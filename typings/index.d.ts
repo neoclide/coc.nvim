@@ -3968,6 +3968,9 @@ declare module 'coc.nvim' {
     highlight?: string
     borderhighlight?: string
     modes?: string[]
+    shadow?: boolean
+    winblend?: number
+    focusable?: boolean
     excludeImages?: boolean
   }
 

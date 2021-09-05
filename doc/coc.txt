@@ -1019,6 +1019,9 @@ following properties are supported:
 	- "close": Set to true to draw close icon.
 	- "maxWidth": Maximum width of float window, contains border.
 	- "maxHeight": Maximum height of float window, contains border.
+	- "winblend": Set 'winblend' option of window, neovim only.
+	- "focusable": Set to false to make window not focusable, neovim only.
+	- "shadow": Set to true to enable shadow, neovim only.
 
 						*coc-config-languageserver*
 "languageserver":~

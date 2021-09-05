@@ -33,11 +33,28 @@
         },
         "maxWidth": {
           "type": "number",
-          "description": "Maximum width of float window, contains border."
+          "description": "Maximum width of float window, include border."
         },
         "maxHeight": {
           "type": "number",
-          "description": "Maximum height of float window, contains border."
+          "description": "Maximum height of float window, include border."
+        },
+        "focusable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable focus by user actions (wincmds, mouse events), neovim only."
+        },
+        "shadow": {
+          "type": "boolean",
+          "default": false,
+          "description": "Drop shadow effect by blending with the background, neovim only."
+        },
+        "winblend": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
         }
       }
     },
@@ -361,7 +378,10 @@
         "border": {},
         "highlight": {},
         "borderhighlight": {},
-        "maxWidth": {}
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
       }
     },
     "suggest.labelMaxLength": {
@@ -449,7 +469,7 @@
       "description": "Timeout for completion, in miliseconds."
     },
     "suggest.minTriggerInputLength": {
-      "type": "number",
+      "type": "integer",
       "default": 1,
       "description": "Mininal input length for trigger completion, default 1"
     },
@@ -690,7 +710,10 @@
         "title": {},
         "close": {},
         "maxHeight": {},
-        "maxWidth": {}
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
       }
     },
     "diagnostic.filetypeMap": {
@@ -814,7 +837,10 @@
         "title": {},
         "close": {},
         "maxHeight": {},
-        "maxWidth": {}
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
       }
     },
     "hover.autoHide": {

@@ -55,6 +55,9 @@ endfunction
 " - close: (optional) show close button when is 1.
 " - buttons: (optional) array of button text for create buttons at bottom.
 " - codes: (optional) list of CodeBlock.
+" - winblend: winblend option for float window, neovim only.
+" - shadow: use shadow as border style, neovim only.
+" - focusable: neovim only, default to true.
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
@@ -135,6 +138,10 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     endif
   else
     let config = s:convert_config_nvim(a:config)
+    let border = get(a:config, 'border', [])
+    if has('nvim-0.5.0') && get(a:config, 'shadow', 0) && empty(get(a:config, 'buttons', v:null)) && empty(get(border, 2, 0))
+      let config['border'] = 'shadow'
+    endif
     noa let winid = nvim_open_win(bufnr, 0, config)
     if winid == 0
       return []
@@ -146,6 +153,9 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     " cursorline highlight not work on old neovim
     call setwinvar(winid, '&cursorline', 0)
     call setwinvar(winid, 'border', get(a:config, 'border', []))
+    if get(a:config, 'winblend', 0)
+      call setwinvar(winid, '&winblend', a:config['winblend'])
+    endif
     " no left border
     if s:empty_border(get(a:config, 'border', [])) || a:config['border'][3] == 0
       call setwinvar(winid, '&foldcolumn', 1)
@@ -197,24 +207,26 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   let title = get(a:opts, 'title', '')
   let buttons = get(a:opts, 'buttons', [])
   let pad = empty(border) || get(border, 1, 0) == 0
+  let winblend = get(a:opts, 'winblend', 0)
+  let shadow = get(a:opts, 'shadow', 0)
   if get(a:opts, 'close', 0)
-    call coc#float#nvim_close_btn(a:config, a:winid, border, borderhighlight, related)
+    call coc#float#nvim_close_btn(a:config, a:winid, border, borderhighlight, winblend, related)
   elseif exists
     call coc#float#close_related(a:winid, 'close')
   endif
   if !empty(buttons)
-    call coc#float#nvim_buttons(a:config, a:winid, buttons, get(border, 2, 0), pad, hlgroup, borderhighlight, related)
+    call coc#float#nvim_buttons(a:config, a:winid, buttons, get(border, 2, 0), pad, hlgroup, borderhighlight, winblend, shadow, related)
   elseif exists
     call coc#float#close_related(a:winid, 'buttons')
   endif
   if !s:empty_border(border)
-    call coc#float#nvim_border_win(a:config, a:winid, border, title, !empty(buttons), borderhighlight, related)
+    call coc#float#nvim_border_win(a:config, a:winid, border, title, !empty(buttons), borderhighlight, winblend, shadow, related)
   elseif exists
     call coc#float#close_related(a:winid, 'border')
   endif
   " Check right border
   if pad
-    call coc#float#nvim_right_pad(a:config, a:winid, hlgroup, related)
+    call coc#float#nvim_right_pad(a:config, a:winid, hlgroup, winblend, related)
   elseif exists
     call coc#float#close_related(a:winid, 'pad')
   endif
@@ -222,7 +234,7 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
 endfunction
 
 " border window for neovim, content config with border
-function! coc#float#nvim_border_win(config, winid, border, title, hasbtn, hlgroup, related) abort
+function! coc#float#nvim_border_win(config, winid, border, title, hasbtn, hlgroup, winblend, shadow, related) abort
   let winid = coc#float#get_related(a:winid, 'border')
   let row = a:border[0] ? a:config['row'] - 1 : a:config['row']
   let col = a:border[3] ? a:config['col'] - 1 : a:config['col']
@@ -240,12 +252,18 @@ function! coc#float#nvim_border_win(config, winid, border, title, hasbtn, hlgrou
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
+  if has('nvim-0.5.0') && a:shadow && !a:hasbtn && a:border[2]
+    let opt['border'] = 'shadow'
+  endif
   if winid
     call nvim_win_set_config(winid, opt)
     call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
   else
     noa let winid = nvim_open_win(bufnr, 0, opt)
     if winid
+      if a:winblend
+        call setwinvar(winid, '&winblend', a:winblend)
+      endif
       call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
       call setwinvar(winid, 'kind', 'border')
@@ -255,7 +273,7 @@ function! coc#float#nvim_border_win(config, winid, border, title, hasbtn, hlgrou
 endfunction
 
 " neovim only
-function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abort
+function! coc#float#nvim_close_btn(config, winid, border, hlgroup, winblend, related) abort
   let winid = coc#float#get_related(a:winid, 'close')
   let config = {
         \ 'relative': a:config['relative'],
@@ -266,6 +284,9 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
         \ 'focusable': v:true,
         \ 'style': 'minimal',
         \ }
+  if has('nvim-0.5.0')
+    let config['zindex'] = 300
+  endif
   if winid
     call nvim_win_set_config(winid, config)
   else
@@ -275,6 +296,9 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
       call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
       call setwinvar(winid, 'kind', 'close')
+      if a:winblend
+        call setwinvar(winid, '&winblend', a:winblend)
+      endif
       call add(a:related, winid)
     endif
     call s:nvim_create_keymap(winid)
@@ -282,7 +306,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
 endfunction
 
 " Create padding window by config of current window & border config
-function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
+function! coc#float#nvim_right_pad(config, winid, hlgroup, winblend, related) abort
   let winid = coc#float#get_related(a:winid, 'pad')
   let bufnr = 0
   let config = {
@@ -309,6 +333,9 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
       call setwinvar(winid, '&foldcolumn', 0)
       call setwinvar(winid, '&signcolumn', 0)
     endif
+    if a:winblend
+      call setwinvar(winid, '&winblend', a:winblend)
+    endif
     call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
     call setwinvar(winid, 'target_winid', a:winid)
     call setwinvar(winid, 'kind', 'pad')
@@ -317,7 +344,7 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, related) abort
 endfunction
 
 " draw buttons window for window with config
-function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgroup, borderhighlight, related) abort
+function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgroup, borderhighlight, winblend, shadow, related) abort
   let winid = coc#float#get_related(a:winid, 'buttons')
   let width = a:config['width'] + (a:pad ? 1 : 0)
   let config = {
@@ -329,6 +356,12 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
         \ 'focusable': 1,
         \ 'style': 'minimal',
         \ }
+  if has('nvim-0.5.0')
+    let config['zindex'] = 300
+    if a:shadow
+      let config['border'] = 'shadow'
+    endif
+  endif
   if winid
     let bufnr = winbufnr(winid)
     call s:create_btns_buffer(bufnr, width, a:buttons, a:borderbottom)
@@ -340,6 +373,9 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
       call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
       call setwinvar(winid, 'kind', 'buttons')
+      if a:winblend
+        call setwinvar(winid, '&winblend', a:winblend)
+      endif
       call add(a:related, winid)
       call s:nvim_create_keymap(winid)
     endif
@@ -383,6 +419,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   let ch = coc#float#content_height(bufnr, cw, getwinvar(a:winid, '&wrap'))
   let closewin = coc#float#get_related(a:winid, 'close')
   let border = getwinvar(a:winid, 'border', [])
+  let winblend = getwinvar(a:winid, '&winblend', 0)
   let move_down = closewin && !get(border, 0, 0)
   if move_down
     let height = height - 1
@@ -407,12 +444,18 @@ function! coc#float#nvim_scrollbar(winid) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
+  if has('nvim-0.5.0')
+    let opts['zindex'] = 300
+  endif
   if id
     call nvim_win_set_config(id, opts)
   else
     noa let id = nvim_open_win(sbuf, 0 , opts)
     if id == 0
       return
+    endif
+    if winblend
+      call setwinvar(id, '&winblend', winblend)
     endif
     call setwinvar(id, 'kind', 'scrollbar')
     call setwinvar(id, 'target_winid', a:winid)
@@ -913,10 +956,9 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
         \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
         \ 'codes': get(a:config, 'codes', []),
         \ }
-  for key in ['border', 'highlight', 'borderhighlight']
-    let val = get(a:config, key, v:null)
-    if !empty(val)
-      let opts[key] = val
+  for key in ['border', 'highlight', 'borderhighlight', 'winblend', 'focusable', 'shadow']
+    if has_key(a:config, key)
+      let opts[key] = a:config[key]
     endif
   endfor
   call coc#float#close_auto_hide_wins(a:winid)

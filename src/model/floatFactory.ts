@@ -37,6 +37,9 @@ export interface FloatWinConfig {
   highlight?: string
   borderhighlight?: string
   modes?: string[]
+  shadow?: boolean
+  winblend?: number
+  focusable?: boolean
   excludeImages?: boolean
 }
 
@@ -108,10 +111,13 @@ export default class FloatFactory implements Disposable {
   }
 
   public applyFloatConfig(conf: FloatWinConfig, opts: FloatConfig): FloatWinConfig {
-    for (let key of ['maxWidth', 'maxHeight', 'close', 'title', 'highlight', 'borderhighlight']) {
-      if (opts[key]) conf[key] = opts[key]
+    for (let key of Object.keys(opts)) {
+      if (key == 'border') {
+        if (opts.border) conf.border = [1, 1, 1, 1]
+        continue
+      }
+      conf[key] = opts[key]
     }
-    if (opts.border) conf.border = [1, 1, 1, 1]
     return conf
   }
 
@@ -152,6 +158,11 @@ export default class FloatFactory implements Disposable {
       highlights,
       modes: opts.modes || ['n', 'i', 'ic', 's']
     }
+    if (!isVim) {
+      if (typeof opts.winblend === 'number') config.winblend = opts.winblend
+      if (opts.focusable != null) config.focusable = opts.focusable ? 1 : 0
+      if (opts.shadow) config.shadow = 1
+    }
     if (opts.maxHeight) config.maxHeight = opts.maxHeight
     if (opts.maxWidth) config.maxWidth = opts.maxWidth
     if (opts.border && !opts.border.every(o => o == 0)) {
@@ -165,13 +176,13 @@ export default class FloatFactory implements Disposable {
     if (autoHide) config.autohide = 1
     this.unbind()
     let arr = await this.nvim.call('coc#float#create_cursor_float', [this.winid, this._bufnr, lines, config])
-    if (isVim) this.nvim.command('redraw', true)
+    this.nvim.redrawVim()
     if (!arr || arr.length == 0 || this.closeTs > timestamp) {
       let winid = arr && arr.length > 0 ? arr[2] : this.winid
       if (winid) {
         this.winid = 0
         this.nvim.call('coc#float#close', [winid], true)
-        if (isVim) this.nvim.command('redraw', true)
+        this.nvim.redrawVim()
       }
       return
     }
@@ -192,10 +203,8 @@ export default class FloatFactory implements Disposable {
     this.unbind()
     if (winid) {
       this.winid = 0
-      nvim.pauseNotification()
       nvim.call('coc#float#close', [winid], true)
-      if (isVim) this.nvim.command('redraw', true)
-      void nvim.resumeNotification(false, true)
+      nvim.redrawVim()
     }
   }
 
