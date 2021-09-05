@@ -619,6 +619,7 @@ function! coc#float#create_prompt_win(title, default, opts) abort
     exe 'inoremap <silent><expr><nowait><buffer> <cr> "\<C-r>=coc#float#prompt_insert(getline(''.''))\<cr>\<esc>"'
     call feedkeys('A', 'in')
   endif
+  call coc#util#do_autocmd('CocOpenFloatPrompt')
   return [bufnr, winid]
 endfunction
 

@@ -2679,6 +2679,13 @@ AUTOCMD							*coc-autocmds*
 	Triggered when a floating window is opened.  The window is not
 	focused, use |g:coc_last_float_win| to get window id.
 
+							*CocOpenFloatPrompt*
+
+:autocmd User CocOpenFloatPrompt {command}
+
+	Triggered when a floating prompt window is opened (triggered after
+	CocOpenFloat).
+
 							*CocTerminalOpen*
 :autocmd User CocTerminalOpen {command}
 
