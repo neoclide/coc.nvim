@@ -100,7 +100,7 @@ describe('parseDocuments', () => {
     let res = parseDocuments(docs)
     expect(res.lines).toEqual([
       'Error text',
-      '—',
+      '─',
       'Warning text'
     ])
     expect(res.codes).toEqual([
@@ -120,7 +120,7 @@ describe('parseDocuments', () => {
     let res = parseDocuments(docs)
     expect(res.lines).toEqual([
       'const workspace',
-      '—',
+      '─',
       'header'
     ])
     expect(res.highlights).toEqual([{

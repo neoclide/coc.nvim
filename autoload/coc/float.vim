@@ -544,7 +544,7 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
     return v:null
   endif
   let width = dimension['width']
-  let lines = map(a:lines, {_, s -> s =~# '^—' ? repeat('—', width) : s})
+  let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width) : s})
   let config = extend(extend({'lines': lines, 'relative': 'cursor'}, a:config), dimension)
   call coc#float#close_auto_hide_wins(a:winid)
   let res = coc#float#create_float_win(a:winid, a:bufnr, config)
@@ -560,6 +560,8 @@ function! coc#float#create_cursor_float(winid, bufnr, lines, config) abort
   endif
   return [currbuf, pos, winid, bufnr, alignTop]
 endfunction
+
+
 
 " Create float window for input
 function! coc#float#create_prompt_win(title, default, opts) abort
@@ -947,7 +949,7 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
   endfor
   let width = float2nr(coc#helper#min(maxWidth, width))
   let height = float2nr(coc#helper#min(maxHeight, ch))
-  let lines = map(a:lines, {_, s -> s =~# '^—' ? repeat('—', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
+  let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
   let opts = {
         \ 'lines': lines,
         \ 'relative': 'editor',
