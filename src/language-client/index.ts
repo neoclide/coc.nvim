@@ -577,7 +577,7 @@ export class LanguageClient extends BaseLanguageClient {
           }
         }
       }
-      if (enabled.includes('*') || enabled.filter(x => curLangs.has(x)).length > 0) {
+      if (enabled.includes('*') || enabled.filter(x => curLangs.has(x)).length > 0 || global.hasOwnProperty('__TEST__')) {
         this.registerFeature(new SemanticTokensFeature(this))
       }
     }
