@@ -70,3 +70,4 @@ export { Neovim, MarkupKind, DiagnosticTag, DocumentHighlightKind, SymbolKind, S
 export { workspace, window, CompletionTriggerKind, snippetManager, SnippetString, events, services, commands, sources, languages, diagnosticManager, extensions, listManager, BasicList, Mutex }
 export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
 export { TreeItem, TreeItemCollapsibleState } from './tree/index'
+export { SemanticTokensBuilder } from './semanticTokensBuilder'
