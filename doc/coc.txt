@@ -2940,7 +2940,8 @@ Semantic highlights~				*coc-semantic-highlights*
   coc.nvim can use semantic tokens from language server to add additional color
   information that depends on language specific symbol information. The semantic
   tokens highlighting is disabled by default, you can enable it by add filetype
-  to `coc.preferences.semanticTokensFiletypes` in coc-settings.json.
+  to `coc.preferences.semanticTokensFiletypes` in coc-settings.json, or set it
+  to `["*"]` for all filetypes.
 
   coc.nvim will use `nvim-treesitter`'s highlight group to do highlighting. But
   not all semantic tokens type are available in `nvim-treesitter`. You can use
