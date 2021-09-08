@@ -1320,7 +1320,7 @@
     },
     "coc.preferences.semanticTokensFiletypes": {
       "type":"array",
-      "description": "Filetypes that enable semanticTokens highlighting",
+      "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
       "default": [],
       "items": {
         "type":"string"
