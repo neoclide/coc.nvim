@@ -131,7 +131,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   workspace.configurations.updateUserConfig({
-    'coc.preferences.semanticTokensHighlights': true
+    'coc.preferences.semanticTokensFiletypes': []
   })
   await helper.reset()
   disposeAll(disposables)
@@ -140,20 +140,17 @@ afterEach(async () => {
 
 describe('semanticTokens', () => {
   describe('triggerSemanticTokens', () => {
-    it('should be disabled', async () => {
-      await helper.createDocument()
+    it('should be disabled by default', async () => {
+      const curr = await highlighter.getCurrentItem()
+      expect(curr.enabled).toBe(false)
+    })
+
+    it('should be enabled', async () => {
       workspace.configurations.updateUserConfig({
-        'coc.preferences.semanticTokensHighlights': false
+        'coc.preferences.semanticTokensFiletypes': ['rust']
       })
       const curr = await highlighter.getCurrentItem()
-      let err
-      try {
-        curr.checkState()
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
-      expect(err.message).toMatch('disabled by configuration')
+      expect(curr.enabled).toBe(true)
     })
 
     it('should get legend by API', async () => {
@@ -162,14 +159,10 @@ describe('semanticTokens', () => {
       expect(l).toEqual(legend)
     })
 
-    it('should get semanticTokens by API', async () => {
-      // const doc = await workspace.document
-      // const highlights = await highlighter.getHighlights(doc.bufnr)
-      // expect(highlights.length).toBe(11)
-      // expect(highlights[0].hlGroup).toBe('TSKeyword')
-    })
-
     it('should doHighlight', async () => {
+      workspace.configurations.updateUserConfig({
+        'coc.preferences.semanticTokensFiletypes': ['rust']
+      })
       const doc = await workspace.document
       await nvim.call('CocAction', 'semanticHighlight')
       const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
