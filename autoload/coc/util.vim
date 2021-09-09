@@ -442,6 +442,9 @@ function! coc#util#open_terminal(opts) abort
   setl norelativenumber
   setl nonumber
   setl bufhidden=wipe
+  if exists('#User#CocTerminalOpen')
+    exe 'doautocmd <nomodeline> User CocTerminalOpen'
+  endif
   let cmd = get(a:opts, 'cmd', '')
   let autoclose = get(a:opts, 'autoclose', 1)
   if empty(cmd)
