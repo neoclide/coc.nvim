@@ -528,7 +528,7 @@ Built-in configurations:~
 
 	Target of signature help, use `"float"` when possible by default.
 
-	Valid options: ["float", "echo"]
+	Valid options: ["float", "echo", "both"]
 
 "signature.preferShownAbove":~
 

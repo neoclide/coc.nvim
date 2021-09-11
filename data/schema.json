@@ -758,7 +758,7 @@
       "type": "string",
       "description": "Target of signature help, use float when possible by default.",
       "default": "float",
-      "enum": ["float", "echo"]
+      "enum": ["float", "echo", "both"]
     },
     "signature.floatConfig": {
       "type": "object",

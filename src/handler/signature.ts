@@ -75,7 +75,7 @@ export default class Signature {
     if (!e || e.affectsConfiguration('signature')) {
       let config = workspace.getConfiguration('signature')
       let target = config.get<string>('target', 'float')
-      if (target == 'float' && !workspace.floatSupported) {
+      if (!workspace.floatSupported) {
         target = 'echo'
       }
       this.config = {
@@ -138,6 +138,9 @@ export default class Signature {
     }
     if (target == 'echo') {
       this.echoSignature(signatureHelp)
+    } else if (target == 'both') {
+      this.echoSignature(signatureHelp)
+      await this.showSignatureHelp(doc, position, signatureHelp, offset)
     } else {
       await this.showSignatureHelp(doc, position, signatureHelp, offset)
     }
