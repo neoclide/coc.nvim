@@ -33,17 +33,22 @@ export default class Floating {
       this.close()
       return
     }
-    let opts = {
+    let opts: any = {
       codes,
       highlights,
       maxWidth: config.maxWidth || 80,
       pumbounding: bounding,
-      border: config.border ? [1, 1, 1, 1] : undefined,
-      highlight: config.highlight,
-      borderhighlight: config.borderhighlight
     }
-    logger.debug('opts:', opts)
+    if (config.border) opts.border = [1, 1, 1, 1]
+    if (config.highlight) opts.highlight = config.highlight
+    if (config.borderhighlight) opts.borderhighlight = config.borderhighlight
+    if (!this.isVim) {
+      if (typeof config.winblend === 'number') opts.winblend = config.winblend
+      opts.focusable = config.focusable === true ? 1 : 0
+      if (config.shadow) opts.shadow = 1
+    }
     let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, opts])
+    // can't use redrawVim which lost the cursor.
     if (this.isVim) nvim.command('redraw', true)
     if (!res || res.length == 0) return
     this.winid = res[0]

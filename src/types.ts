@@ -46,6 +46,9 @@ export interface FloatConfig {
   close?: boolean
   maxHeight?: number
   maxWidth?: number
+  winblend?: number
+  focusable?: boolean
+  shadow?: boolean
 }
 
 /**

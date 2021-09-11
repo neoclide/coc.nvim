@@ -32,12 +32,30 @@
           "description": "Set to true to draw close icon"
         },
         "maxWidth": {
-          "type": "number",
-          "description": "Maximum width of float window, contains border."
+          "type": "integer",
+          "description": "Maximum width of float window, include border."
         },
         "maxHeight": {
-          "type": "number",
-          "description": "Maximum height of float window, contains border."
+          "type": "integer",
+          "minimum": 2,
+          "description": "Maximum height of float window, include border."
+        },
+        "focusable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable focus by user actions (wincmds, mouse events), neovim only."
+        },
+        "shadow": {
+          "type": "boolean",
+          "default": false,
+          "description": "Drop shadow effect by blending with the background, neovim only."
+        },
+        "winblend": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
         }
       }
     },
@@ -361,7 +379,10 @@
         "border": {},
         "highlight": {},
         "borderhighlight": {},
-        "maxWidth": {}
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
       }
     },
     "suggest.labelMaxLength": {
@@ -449,7 +470,7 @@
       "description": "Timeout for completion, in miliseconds."
     },
     "suggest.minTriggerInputLength": {
-      "type": "number",
+      "type": "integer",
       "default": 1,
       "description": "Mininal input length for trigger completion, default 1"
     },
@@ -690,7 +711,10 @@
         "title": {},
         "close": {},
         "maxHeight": {},
-        "maxWidth": {}
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
       }
     },
     "diagnostic.filetypeMap": {
@@ -706,17 +730,17 @@
     "diagnostic.separateRelatedInformationAsDiagnostics": {
       "type": "boolean",
       "default": false,
-      "description": "Separate related information as diagnostics"
+      "description": "Separate related information as diagnostics."
     },
     "diagnostic.showUnused": {
       "type": "boolean",
       "default": true,
-      "description": "Show unused variables"
+      "description": "Show diagnostics with unused tag."
     },
     "diagnostic.showDeprecated": {
       "type": "boolean",
       "default": true,
-      "description": "Show deprecated variables"
+      "description": "Show diagnostics with deprecated tag."
     },
     "signature.enable": {
       "type": "boolean",
@@ -736,16 +760,23 @@
       "default": "float",
       "enum": ["float", "echo"]
     },
-    "signature.maxWindowWidth": {
-      "type": "integer",
-      "default": 80,
-      "description": "Maximum width of signature float window (or popup on vim8)."
-    },
-    "signature.maxWindowHeight": {
-      "type": "number",
-      "description": "Maximum height of signature float window (or popup on vim8).",
-      "minimum": 3,
-      "default": 8
+    "signature.floatConfig": {
+      "type": "object",
+      "description": "Configure float window style of signature documents.",
+      "allOf": [{ "$ref": "#/definitions/float" }],
+      "additionalProperties": false,
+      "properties": {
+        "border": {},
+        "highlight": {},
+        "borderhighlight": {},
+        "title": {},
+        "close": {},
+        "maxHeight": {},
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
+      }
     },
     "signature.preferShownAbove": {
       "type": "boolean",
@@ -814,7 +845,10 @@
         "title": {},
         "close": {},
         "maxHeight": {},
-        "maxWidth": {}
+        "maxWidth": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
       }
     },
     "hover.autoHide": {
