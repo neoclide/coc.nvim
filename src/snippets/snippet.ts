@@ -1,6 +1,6 @@
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { adjustPosition, comparePosition, editRange, getChangedPosition, rangeInRange } from '../util/position'
+import { adjustPosition, comparePosition, editRange, getChangedPosition, rangeInRange, isSingleLine } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 import { byteLength } from '../util/string'
@@ -49,9 +49,23 @@ export class CocSnippet {
   }
 
   // adjust for edit before snippet
-  public adjustTextEdit(edit: TextEdit): boolean {
+  public adjustTextEdit(edit: TextEdit, changedLine?: string): boolean {
     let { range, newText } = edit
-    if (comparePosition(this.range.start, range.end) < 0) return false
+    if (comparePosition(this.range.start, range.end) < 0) {
+      let { start, end } = range
+      let overlaped = end.character - this.range.start.character
+      // shift single line range to left as far as possible
+      if (changedLine && comparePosition(this.range.start, start) > 0
+        && isSingleLine(range)
+        && start.character - overlaped >= 0
+        && changedLine.slice(start.character - overlaped, start.character) ==
+            changedLine.slice(this.range.start.character, this.range.start.character + overlaped)) {
+        edit.range = range = Range.create(start.line, start.character - overlaped, end.line, end.character - overlaped)
+      } else {
+        return false
+      }
+    }
+
     // check change of placeholder at beginning
     if (!newText.includes('\n')
       && comparePosition(range.start, range.end) == 0
