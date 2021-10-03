@@ -1205,6 +1205,16 @@
       "default": true,
       "description": "Enable tooltip to show relative filepath of call hierarchy."
     },
+    "coc.preferences.positionEncoding": {
+      "type": "string",
+      "default": "utf16",
+      "enum": [
+        "utf8",
+        "utf16",
+        "codepoint"
+      ],
+      "description": "counting method of Position.character offsets"
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,

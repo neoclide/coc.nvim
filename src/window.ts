@@ -385,6 +385,23 @@ class Window {
     await nvim.call('coc#util#echo_lines', [lines])
   }
 
+  private async transformPosition(pos: Position): Promise<Position> {
+    let preferences = workspace.getConfiguration("coc.preferences")
+    let encoding = preferences.get<string>("postionEncoding", "utf16")
+    let ret = pos
+    if (encoding == "utf8") {
+      // neovim only use utf8 as internal string encoding, so no transform should perform.
+      // but for vim, which can adjust internal string encoding by modify `encoding`, there are some work TODO here.
+      // for further information please refer to http://vimdoc.sourceforge.net/htmldoc/options.html#'encoding'
+    } else if (encoding == "utf16") {
+      let str = await this.nvim.eval("getline(" + pos.line + ")") as string
+      ret.character = await this.nvim.eval("strlen('" + str.slice(0, pos.character) + "')") as number
+    } else if (encoding == "codepoint") {
+      ret.character = await this.nvim.eval("strlen(strcharparts(getline('.'),0," + ret.character + "))") as number
+    }
+    return ret
+  }
+
   /**
    * Get current cursor position (line, character both 0 based).
    *
@@ -392,8 +409,18 @@ class Window {
    */
   public async getCursorPosition(): Promise<Position> {
     // vim can't count utf16
-    let [line, content] = await this.nvim.eval(`[line('.')-1, strpart(getline('.'), 0, col('.') - 1)]`) as [number, string]
-    return Position.create(line, content.length)
+    let preferences = workspace.getConfiguration("coc.preferences")
+    let encoding = preferences.get<string>("positionEncoding", "utf16")
+    if (encoding == "utf8") {
+      let [line, character] = await this.nvim.eval(`[line('.')-1, col('.') - 1]`) as [number, number]
+      return Position.create(line, character)
+    } else if (encoding == 'utf16') {
+      let [line, content] = await this.nvim.eval(`[line('.')-1, strpart(getline('.'), 0, col('.') - 1)]`) as [number, string]
+      return Position.create(line, content.length)
+    } else if (encoding == 'codepoint') {
+      let [line, character] = await this.nvim.eval(`[line('.')-1, strchars(strpart(getline('.'),0,col('.')))]`) as [number, number]
+      return Position.create(line, character)
+    }
   }
 
   /**
@@ -402,6 +429,7 @@ class Window {
    * @param position LSP position.
    */
   public async moveTo(position: Position): Promise<void> {
+    position = await this.transformPosition(position)
     await this.nvim.call('coc#cursor#move_to', [position.line, position.character])
     if (workspace.env.isVim) this.nvim.command('redraw', true)
   }
