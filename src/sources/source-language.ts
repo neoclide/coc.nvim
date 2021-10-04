@@ -197,8 +197,10 @@ export default class LanguageSource implements ISource {
     }
     if (isSnippet) {
       let currline = doc.getline(linenr - 1)
+      // the start character should be relocated to the begining of the completion word
+      let startCharacter = option.col
       let endCharacter = currline.length - end.length
-      let r = Range.create(linenr - 1, range.start.character, linenr - 1, endCharacter)
+      let r = Range.create(linenr - 1, startCharacter, linenr - 1, endCharacter)
       // can't select, since additionalTextEdits would break selection
       return await snippetManager.insertSnippet(newText, false, r, item.insertTextMode)
     }
