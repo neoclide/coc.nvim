@@ -179,6 +179,36 @@ function! coc#util#jump(cmd, filepath, ...) abort
   endif
 endfunction
 
+function! coc#util#tjump(cmd, filepath, ...) abort
+  let path = a:filepath
+  if !empty(get(a:, 1, []))
+    let line = a:1[0]
+    let column = a:1[1]
+  else
+    let line = 1
+    let column = 1
+  endif
+  if (has('win32unix'))
+    let path = substitute(a:filepath, '\v\\', '/', 'g')
+  endif
+  " Optimization: Reuse tempfile if already created (speedup)
+  if !exists('s:tempfile')
+    let s:tempfile = tempname()
+  endif
+  let tagname = "tagname"
+  call writefile([tagname."\t".path."\t"."call cursor(".line.",".column.")"], s:tempfile)
+  let old_tags = &tags
+  let old_wildignore = &wildignore
+  try
+    set wildignore=
+    let &tags = s:tempfile
+    exe a:cmd.' '.tagname
+  finally
+    let &tags = old_tags
+    let &wildignore= old_wildignore
+  endtry
+endfunction
+
 function! coc#util#echo_messages(hl, msgs)
   if a:hl !~# 'Error' && (mode() !~# '\v^(i|n)$')
     return

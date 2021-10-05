@@ -827,7 +827,8 @@ Built-in configurations:~
 	Command used for location jump performed for goto definition, goto
 	references etc, default: `"edit"`
 
-	Valid options: ["edit", "split", "vsplit", "tabe", "drop", "tab drop"]
++	Valid options: ["edit","split","vsplit","tabe","drop","tab
++	drop","tjump","stjump","ptjump"]
 
 "coc.preferences.messageLevel":~
 

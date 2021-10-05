@@ -810,7 +810,27 @@ export class Workspace implements IWorkspace {
     let { nvim } = this
     let doc = this.getDocument(uri)
     let bufnr = doc ? doc.bufnr : -1
-    if (bufnr != -1 && jumpCommand == 'edit') {
+    if (jumpCommand == 'tjump' || jumpCommand == 'stjump' || jumpCommand == 'ptjump') {
+      let { fsPath, scheme } = URI.parse(uri)
+      let pos = null
+      if (doc) {
+        if (position) {
+          let line = doc.getline(position.line)
+          let col = byteLength(line.slice(0, position.character)) + 1
+          pos = [position.line + 1, col]
+        }
+      } else {
+        if (position) {
+          pos = [position.line + 1, position.character + 1]
+        }
+      }
+      if (scheme == 'file') {
+        let bufname = fixDriver(path.normalize(fsPath))
+        await this.nvim.call('coc#util#tjump', [jumpCommand, bufname, pos])
+      } else {
+        await this.nvim.call('coc#util#tjump', [jumpCommand, uri, pos])
+      }
+    } else if (bufnr != -1 && jumpCommand == 'edit') {
       // use buffer command since edit command would reload the buffer
       nvim.pauseNotification()
       nvim.command(`silent! normal! m'`, true)
