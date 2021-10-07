@@ -1253,7 +1253,7 @@ augroup coc_dynamic_autocmd
   ${cmds.join('\n  ')}
 augroup end`
     try {
-      let dir = path.join(process.env.TMPDIR, `coc.nvim-${process.pid}`)
+      let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)
       if (!fs.existsSync(dir)) fs.mkdirpSync(dir)
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
       fs.writeFileSync(filepath, content, 'utf8')
