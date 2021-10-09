@@ -319,7 +319,6 @@ function! s:get_topline(config, lnum, winid) abort
     return max([1, a:lnum - winheight(a:winid)/2])
   endif
 
-  # default offset
   let toplineOffset = get(a:config, 'toplineOffset', 3)
   return max([1, a:lnum - toplineOffset])
 endfunction

@@ -706,6 +706,17 @@ Built-in configurations:~
 	Highlight group used for highlighting the range in preview window,
 	default: `"Search"`
 
+"list.previewToplineStyle":~
+
+	Topline style for list previews
+	default: `"offset"`
+	Valid options: ["offset","middle"]
+
+"list.previewToplineOffset":~
+
+	Topline offset for list previews
+	default: 3
+
 "list.nextKeymap":~
 
 	Key for selecting next line in the insert mode, default: `"<C-j>"`

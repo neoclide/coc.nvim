@@ -254,6 +254,8 @@ export default abstract class BasicList implements IList, Disposable {
       splitRight: this.splitRight,
       hlGroup: this.hlGroup,
       scheme: u.scheme,
+      toplineStyle: this.toplineStyle,
+      toplineOffset: this.toplineOffset,
     }
     await nvim.call('coc#list#preview', [lines, config])
     if (workspace.isVim) nvim.command('redraw', true)
