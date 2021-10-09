@@ -1017,6 +1017,16 @@
       "default": "Search",
       "description": "Highlight group used for highlight the range in preview window."
     },
+    "list.previewToplineStyle": {
+      "type": "string",
+      "default": "offset",
+      "description": "Topline style for list previews"
+    },
+    "list.previewToplineOffset": {
+      "type": "number",
+      "default": 3,
+      "description": "Topline offset for list previews"
+    },
     "list.nextKeymap": {
       "type": "string",
       "default": "<C-j>",

@@ -245,7 +245,7 @@ function! coc#list#preview(lines, config) abort
       execute 'noa '.mod.' sb +resize\ '.height.' '.bufnr
       let winid = win_getid()
     endif
-    noa call winrestview({"lnum": lnum ,"topline":max([1, lnum - 3])})
+    noa call winrestview({"lnum": lnum ,"topline":s:get_topline(a:config, lnum, winid)})
     call setwinvar(winid, '&signcolumn', 'no')
     call setwinvar(winid, '&number', 1)
     call setwinvar(winid, '&cursorline', 0)
@@ -264,7 +264,7 @@ function! coc#list#preview(lines, config) abort
         call nvim_win_set_height(winid, height)
       endif
     endif
-    call coc#compat#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.max([1, lnum - 3]).'})'])
+    call coc#compat#execute(winid, ['syntax clear', 'noa call winrestview({"lnum":'.lnum.',"topline":'.s:get_topline(a:config, lnum, winid).'})'])
   endif
   call setwinvar(winid, '&foldenable', 0)
   if s:prefix.' '.name != bufname(bufnr)
@@ -311,4 +311,15 @@ function! s:load_buffer(name) abort
     return bufnr
   endif
   return 0
+endfunction
+
+function! s:get_topline(config, lnum, winid) abort
+  let toplineStyle = get(a:config, 'toplineStyle', 'offset')
+  if toplineStyle == 'middle'
+    return max([1, a:lnum - winheight(a:winid)/2])
+  endif
+
+  # default offset
+  let toplineOffset = get(a:config, 'toplineOffset', 3)
+  return max([1, a:lnum - toplineOffset])
 endfunction

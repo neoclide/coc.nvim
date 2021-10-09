@@ -36,6 +36,8 @@ interface PreviewConfig {
   filetype?: string
   range?: Range
   scheme?: string
+  toplineStyle: string
+  toplineOffset: number
 }
 
 export interface PreviewOptions {
@@ -74,6 +76,14 @@ export default abstract class BasicList implements IList, Disposable {
 
   protected get splitRight(): boolean {
     return this.config.get('previewSplitRight', false)
+  }
+
+  protected get toplineStyle(): string {
+      return this.config.get('previewToplineStyle', 'offset')
+  }
+
+  protected get toplineOffset(): number {
+      return this.config.get('previewToplineOffset', 3)
   }
 
   public parseArguments(args: string[]): { [key: string]: string | boolean } {
@@ -260,6 +270,8 @@ export default abstract class BasicList implements IList, Disposable {
       maxHeight: this.previewHeight,
       splitRight: this.splitRight,
       hlGroup: this.hlGroup,
+      toplineStyle: this.toplineStyle,
+      toplineOffset: this.toplineOffset,
     }
     if (bufname) config.name = bufname
     if (range) config.range = range
