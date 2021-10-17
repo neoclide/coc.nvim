@@ -137,10 +137,20 @@ export default class Document {
    * Map filetype for languageserver.
    */
   public convertFiletype(filetype: string): string {
-    let map = this.env.filetypeMap
-    if (filetype == 'javascript.jsx') return 'javascriptreact'
-    if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx') return 'typescriptreact'
-    return map[filetype] || filetype
+    switch (filetype) {
+      case 'javascript.jsx':
+        return 'javascriptreact'
+      case 'typescript.jsx':
+      case 'typescript.tsx':
+        return 'typescriptreact'
+      case 'tex':
+        // Vim filetype 'tex' means LaTeX, which has LSP language ID 'latex'
+        return 'latex'
+      default: {
+        let map = this.env.filetypeMap
+        return map[filetype] || filetype
+      }
+    }
   }
 
   /**

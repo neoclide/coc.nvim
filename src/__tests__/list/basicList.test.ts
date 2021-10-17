@@ -52,6 +52,7 @@ describe('getFiletype()', () => {
   it('should get filetype', async () => {
     expect(getFiletype('javascriptreact')).toBe('javascript')
     expect(getFiletype('typescriptreact')).toBe('typescript')
+    expect(getFiletype('latex')).toBe('tex')
     expect(getFiletype('foo.bar')).toBe('foo')
     expect(getFiletype('foo')).toBe('foo')
   })

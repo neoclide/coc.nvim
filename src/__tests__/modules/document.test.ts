@@ -165,6 +165,20 @@ describe('properties', () => {
     expect(winid != -1).toBe(true)
     expect(previewwindow).toBe(false)
   })
+
+  it('should set filetype', async () => {
+    let doc = await helper.createDocument()
+    doc.setFiletype('javascript.jsx')
+    expect(doc.filetype).toBe('javascriptreact')
+    doc.setFiletype('typescript.jsx')
+    expect(doc.filetype).toBe('typescriptreact')
+    doc.setFiletype('typescript.tsx')
+    expect(doc.filetype).toBe('typescriptreact')
+    doc.setFiletype('tex')
+    expect(doc.filetype).toBe('latex')
+    doc.setFiletype('foo')
+    expect(doc.filetype).toBe('foo')
+  })
 })
 
 describe('synchronize', () => {
