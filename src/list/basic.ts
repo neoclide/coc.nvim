@@ -294,8 +294,16 @@ export default abstract class BasicList implements IList, Disposable {
 }
 
 export function getFiletype(filetype: string): string {
-  if (filetype == 'javascriptreact') return 'javascript'
-  if (filetype == 'typescriptreact') return 'typescript'
-  if (filetype.indexOf('.') !== -1) return filetype.split('.')[0]
-  return filetype
+  switch (filetype) {
+    case 'javascriptreact':
+      return 'javascript'
+    case 'typescriptreact':
+      return 'typescript'
+    case 'latex':
+      // LaTeX (LSP language ID 'latex') has Vim filetype 'tex'
+      return 'tex'
+    default:
+      if (filetype.indexOf('.') !== -1) return filetype.split('.')[0]
+      return filetype
+  }
 }
