@@ -1020,7 +1020,8 @@
     "list.previewToplineStyle": {
       "type": "string",
       "default": "offset",
-      "description": "Topline style for list previews"
+      "description": "Topline style for list previews",
+      "enum": ["offset", "middle"]
     },
     "list.previewToplineOffset": {
       "type": "number",

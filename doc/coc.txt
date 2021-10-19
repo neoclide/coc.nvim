@@ -715,7 +715,7 @@ Built-in configurations:~
 "list.previewToplineOffset":~
 
 	Topline offset for list previews
-	default: 3
+	default: `3`
 
 "list.nextKeymap":~
 
