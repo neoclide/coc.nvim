@@ -30,26 +30,26 @@ function! coc#window#gotoid(winid) abort
   endif
 endfunction
 
-" Avoid autocmd & errors
+" Avoid errors
 function! coc#window#close(winid) abort
   if empty(a:winid) || a:winid == -1
     return
   endif
   if exists('*nvim_win_is_valid') && exists('*nvim_win_close')
     if nvim_win_is_valid(a:winid)
-      noa call nvim_win_close(a:winid, 1)
+      call nvim_win_close(a:winid, 1)
     endif
   elseif exists('*win_execute')
     call coc#compat#execute(a:winid, 'noa close!', 'silent!')
   else
     let curr = win_getid()
     if curr == a:winid
-      noa silent! close!
+      silent! close!
     else
       let res = win_gotoid(a:winid)
       if res
-        noa silent! close!
-        noa call win_gotoid(curr)
+        silent! close!
+        call win_gotoid(curr)
       endif
     endif
   endif
