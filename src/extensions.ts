@@ -679,7 +679,13 @@ export class Extensions {
 
   private async localExtensionStats(excludes: string[]): Promise<ExtensionInfo[]> {
     let runtimepath = await workspace.nvim.eval('&runtimepath') as string
-    let paths = runtimepath.split(',')
+    const paths: string[] = []
+    for (const p of runtimepath.split(',')) {
+      const jsons = await workspace.nvim.call('globpath', [p, 'package.json', 1, 1]) as string[]
+      // maybe some plugin also has package.json but not an extension
+      // this will be filtered by checkDirectory
+      jsons.length ? jsons.map(x => paths.push(path.dirname(x))) : paths.push(p)
+    }
     let res: ExtensionInfo[] = await Promise.all(paths.map(root => new Promise<ExtensionInfo>(async resolve => {
       try {
         let res = this.checkDirectory(root)
