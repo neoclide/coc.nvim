@@ -815,6 +815,7 @@ export class Workspace implements IWorkspace {
       nvim.pauseNotification()
       nvim.command(`silent! normal! m'`, true)
       nvim.command(`buffer ${bufnr}`, true)
+      nvim.command(`filetype detect`, true)
       if (position) {
         let line = doc.getline(position.line)
         let col = byteLength(line.slice(0, position.character)) + 1
