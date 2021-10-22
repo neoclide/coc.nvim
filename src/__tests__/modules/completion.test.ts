@@ -482,6 +482,34 @@ describe('completion TextChangedP', () => {
     expect(col).toBe(12)
   })
 
+  it('should fix cursor position and keep placeholder with snippet on additionalTextEdits', async () => {
+    let doc = await helper.createDocument()
+    let text = 'foo0bar1'
+    await nvim.setLine(text)
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+        label: 'var',
+        insertTextFormat: InsertTextFormat.Snippet,
+        textEdit: { range: Range.create(0, text.length + 1, 0, text.length + 1), newText: '${1:foo} = foo0bar1' },
+        additionalTextEdits: [TextEdit.del(Range.create(0, 0, 0, text.length + 1))],
+        preselect: true
+      }]
+    }
+    disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
+    await nvim.input('A.')
+    await helper.waitPopup()
+    let res = await helper.getItems()
+    let idx = res.findIndex(o => o.menu == '[edit]')
+    await helper.selectCompleteItem(idx)
+    await helper.wait(800)
+    let line = await nvim.line
+    expect(line).toBe('foo = foo0bar1')
+    expect(snippetManager.isActived(doc.bufnr)).toBe(true)
+    let [, lnum, col] = await nvim.call('getcurpos')
+    expect(lnum).toBe(1)
+    expect(col).toBe(3)
+  })
+
   it('should fix input for snippet item', async () => {
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{

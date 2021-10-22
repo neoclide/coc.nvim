@@ -129,7 +129,7 @@ export class SnippetSession {
     let edit: TextEdit = { range: (change as any).range, newText: change.text }
     let { snippet } = this
     // change outside range
-    let adjusted = snippet.adjustTextEdit(edit)
+    let adjusted = snippet.adjustTextEdit(edit, changedLine)
     if (adjusted) return
     let currRange = this.placeholder.range
     if (changedLine != null
