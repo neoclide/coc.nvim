@@ -223,7 +223,9 @@ export interface IWorkspace {
 export interface LocationListItem {
   bufnr: number
   lnum: number
+  end_lnum: number
   col: number
+  end_col: number
   text: string
   type: string
 }

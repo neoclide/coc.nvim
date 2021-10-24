@@ -25,7 +25,9 @@ export interface DiagnosticEventParams {
 export interface DiagnosticItem {
   file: string
   lnum: number
+  end_lnum: number
   col: number
+  end_col: number
   source: string
   code: string | number
   message: string
@@ -364,11 +366,13 @@ export class DiagnosticManager implements Disposable {
           if (!showDeprecated && diagnostic.tags?.includes(DiagnosticTag.Deprecated)) {
             continue
           }
-          let { start } = diagnostic.range
+          let { start, end } = diagnostic.range
           let o: DiagnosticItem = {
             file,
             lnum: start.line + 1,
+            end_lnum: end.line + 1,
             col: start.character + 1,
+            end_col: end.character + 1,
             code: diagnostic.code,
             source: diagnostic.source || collection.name,
             message: diagnostic.message,
