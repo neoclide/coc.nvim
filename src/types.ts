@@ -237,7 +237,9 @@ export interface QuickfixItem {
   filename?: string
   bufnr?: number
   lnum?: number
+  end_lnum?: number
   col?: number
+  end_col?: number
   valid?: boolean
   nr?: number
 }
