@@ -99,7 +99,7 @@
         "formatterPriority": {
           "type": "number",
           "default": 0,
-          "description": "Priority of this languageserver's fomatter."
+          "description": "Priority of this languageserver's formatter."
         },
         "env": {
           "type": "object",
@@ -467,12 +467,12 @@
       "default": 5000,
       "minimum": 500,
       "maximum": 15000,
-      "description": "Timeout for completion, in miliseconds."
+      "description": "Timeout for completion, in milliseconds."
     },
     "suggest.minTriggerInputLength": {
       "type": "integer",
       "default": 1,
-      "description": "Mininal input length for trigger completion, default 1"
+      "description": "Minimal input length for trigger completion, default 1"
     },
     "suggest.triggerCompletionWait": {
       "type": "integer",
@@ -583,7 +583,7 @@
     },
     "diagnostic.highlighLimit": {
       "type": "number",
-      "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responsing",
+      "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responding",
       "default": 1000
     },
     "diagnostic.autoRefresh": {
@@ -752,7 +752,7 @@
       "default": 500,
       "minimum": 200,
       "maximum": 1000,
-      "description": "Timeout for trigger signature help, in miliseconds."
+      "description": "Timeout for trigger signature help, in milliseconds."
     },
     "signature.target": {
       "type": "string",

@@ -4310,7 +4310,7 @@ declare module 'coc.nvim' {
   export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit?: number): Promise<void>
 
   /**
-   * Create promise resolved after ms miliseconds.
+   * Create promise resolved after ms milliseconds.
    */
   export function wait(ms: number): Promise<any>
 
@@ -6689,7 +6689,7 @@ declare module 'coc.nvim' {
 
   export interface NotificationConfig extends DialogConfig {
     /**
-     * Timeout in miliseconds to dismiss notification, default no timeout.
+     * Timeout in milliseconds to dismiss notification, default no timeout.
      */
     timeout?: number
   }
