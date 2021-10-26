@@ -593,6 +593,10 @@ export class Workspace implements IWorkspace {
     let doc = this.getDocument(loc.uri)
     let { uri, range } = loc
     let { line, character } = range.start
+    let sl = range.start.line
+    let sc = range.start.character
+    let el = range.end.line
+    let ec = range.end.character
     let u = URI.parse(uri)
     let bufnr = doc ? doc.bufnr : -1
     if (!text && u.scheme == 'file') {
@@ -602,8 +606,10 @@ export class Workspace implements IWorkspace {
     let item: QuickfixItem = {
       uri,
       filename: u.scheme == 'file' ? u.fsPath : uri,
-      lnum: line + 1,
-      col: character + 1,
+      lnum: sl + 1,
+      end_lnum: el + 1,
+      col: sc + 1,
+      end_col: ec + 1,
       text: text || '',
       range
     }

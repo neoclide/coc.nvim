@@ -256,7 +256,9 @@ describe('locations', () => {
       expect(res).toEqual([{
         uri: 'test://bar',
         lnum: 3,
+        end_lnum: 3,
         col: 1,
+        end_col: 6,
         filename: 'test://bar',
         text: '',
         range: Range.create(2, 0, 2, 5)
