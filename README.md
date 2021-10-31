@@ -29,8 +29,8 @@ _True snippet and additional text editing support_
 
 Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
 
-```sh
-curl -sL install-node.now.sh/lts | bash
+```bash
+curl -sL install-node.vercel.app/lts | bash
 ```
 
 For [vim-plug](https://github.com/junegunn/vim-plug) users:
