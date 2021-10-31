@@ -3232,7 +3232,8 @@ The mapping expression should be `command:arguments`, available commands:
 	'paste'          - append text from system clipboard to prompt.
 'eval'     - append text to prompt from result of VimL expression.
 'action'   - execute action of list, use <tab> to find available actions.
-'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special characters.
+'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special
+             characters.
 'normal'   - execute normal command in list window.
 'normal!'  - execute normal command without remap.
 'command'  - execute command.
