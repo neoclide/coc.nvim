@@ -117,8 +117,8 @@ You can also use Vim's native package management: >
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-The configuration of coc.nvim in stored in `coc-settings.json` file. You can
-open it through |:CocConfig|. This will open (or cretate) a global settings
+The configuration of coc.nvim is stored in `coc-settings.json` file. You can
+open it through |:CocConfig|. This will open (or create) a global settings
 files in folder returned by |coc#util#get_config_home()|
 
 To create a local configuration project for a specific workspace, use
