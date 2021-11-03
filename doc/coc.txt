@@ -62,18 +62,19 @@ Some of its key features include:~
 - APIs compatible with both Vim8 and Neovim.
 - Loading VSCode-like extensions.
 - Configuring coc.nvim and its extensions with a JSON configuration file.
-- Configuring Language Servers implemented according to Language Server Protocol (LSP).
+- Configuring Language Servers implemented according to Language Server
+  Protocol (LSP).
 
-It's designed to have an as good as possible integration with other Vim plugins.
+It is designed for best possible integration with other Vim plugins.
 
-Note: This plugin doesn't come with any support for any specific language. You
-will need to install a coc extension or set up a languageserver for LSP features.
+Note: This plugin doesn't come with support for any specific language. You
+will need to install a coc extension or set up the language server yourself.
 
 Note: This plugin doesn't change any of your existing key-mappings. You will
-need to create key-mappings by yourself.
+need to create key-mappings by yourself, see README for examples.
 
-Note: automatic completion plugins can't play nicely together, you can disable
-automatic completion of coc.nvim by use `"suggest.autoTrigger": "none"` (or
+Note: Automatic completion plugins can't play nicely together, you can disable
+automatic completion of coc.nvim through `"suggest.autoTrigger": "none"` (or
 `"suggest.autoTrigger": "trigger"`) in your settings file.
 
 ==============================================================================
@@ -116,12 +117,13 @@ You can also use Vim's native package management: >
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-The configurations of coc.nvim are stored in a file named `coc-settings.json`.
-You can open it using |:CocConfig|. This will create/open a global settings
+The configuration of coc.nvim is stored in `coc-settings.json` file. You can
+open it through |:CocConfig|. This will open (or create) a global settings
 files in folder returned by |coc#util#get_config_home()|
 
-To create a configuration file used by project only, use |:CocLocalConfig| to
-create/open `.vim/coc-settings.json` inside current workspace folder.
+To create a local configuration project for a specific workspace, use
+|:CocLocalConfig|: this will create `.vim/coc-settings.json` in the current
+workspace folder.
 
 The global configuration file can be created in another directory by setting
 `g:coc_config_home` in your `.vimrc` or `init.vim`: >
@@ -154,7 +156,8 @@ Built-in configurations:~
 
 "http.proxyAuthorization":~
 
-	The value to send as the `Proxy-Authorization` header for every network request.
+	The value to send as the `Proxy-Authorization` header for every
+	network request.
 
 "http.proxyCA":~
 
@@ -293,8 +296,8 @@ Built-in configurations:~
 "suggest.keepCompleteopt":~
 
 	When enabled, 'completeopt' is not overridden. Autocompletion will be
-	disabled if 'completeopt' doesn't have 'noinsert' and 'noselect', default:
-	`false`
+	disabled if 'completeopt' doesn't have 'noinsert' and 'noselect',
+	default: `false`
 
 "suggest.lowPrioritySourceLimit":~
 
@@ -423,8 +426,8 @@ Built-in configurations:~
 
 "diagnostic.checkCurrentLine":~
 
-	Show all diagnostics of the current line if none of them are at the current
-	position, default: `false`
+	Show all diagnostics of the current line if none of them are at the
+	current position, default: `false`
 
 "diagnostic.messageTarget":~
 
@@ -439,8 +442,8 @@ Built-in configurations:~
 "diagnostic.displayByAle":~
 
 	Use ALE for displaying diagnostics. This will disable coc.nvim for
-	displaying diagnostics. Restart to make changes take the effect, default:
-	`false`
+	displaying diagnostics. Restart to make changes take the effect,
+	default: `false`
 
 "diagnostic.virtualText":~
 
@@ -511,8 +514,8 @@ Built-in configurations:~
 
 "signature.enable":~
 
-	Enable signature help when trigger character typed. Requires service restart
-	on change, default: `true`
+	Enable signature help when trigger character typed. Requires service
+	restart on change, default: `true`
 
 "signature.floatConfig":~
 
@@ -532,13 +535,13 @@ Built-in configurations:~
 
 "signature.preferShownAbove":~
 
-	Show signature help's floating window above cursor when possible. Requires
-	restart on change, default: `true`
+	Show signature help's floating window above cursor when possible.
+	Requires restart on change, default: `true`
 
 "signature.hideOnTextChange":~
 
-	Hide signature help's floating window when text changed. Requires restart
-	on change, default: `false`
+	Hide signature help's floating window when text changed. Requires
+	restart on change, default: `false`
 
 							*coc-config-refactor*
 "refactor.saveToFile":~
@@ -561,7 +564,8 @@ Built-in configurations:~
 							*coc-config-hover*
 "hover.target":~
 
-	Target to show hover information, default is floating window when possible.
+	Target to show hover information, default is floating window when
+	possible.
 
 	Valid options: ["preview", "echo", "float"]
 
@@ -682,7 +686,8 @@ Built-in configurations:~
 
 "list.signOffset":~
 
-	Sign offset of list, should be different from other plugins, default: `900`
+	Sign offset of list, should be different from other plugins, default:
+	`900`
 
 "list.selectedSignText":~
 
@@ -727,8 +732,8 @@ Built-in configurations:~
 
 "list.extendedSearchMode": ~
 
-	Enable extended search mode which allows multiple search patterns delimited
-	by spaces, default: `true`
+	Enable extended search mode which allows multiple search patterns
+	delimited by spaces, default: `true`
 
 "list.normalMappings":~
 
@@ -1124,7 +1129,7 @@ Language server start with module:~
 	  is used by default.
 
 	- "execArgv": Argv passed to node on fork, normally used for
-	  debugging, ex: `["--nolazy", "--inspect-brk=6045"]`
+	  debugging, example: `["--nolazy", "--inspect-brk=6045"]`
 
 	- "transport": Transport kind used by server, could be 'ipc', 'stdio',
 	  'socket' and 'pipe'. 'ipc' is used by default (recommended).
@@ -1403,7 +1408,7 @@ User defined variables:~
 b:coc_enabled						*b:coc_enabled*
 
 	Set to `0` on buffer create if you don't want coc.nvim receive content
-	from buffer. Normally used with |BufAdd| autocmd, ex:
+	from buffer. Normally used with |BufAdd| autocmd, example:
 >
 	" Disable file with size > 1MB
 	autocmd BufAdd * if getfsize(expand('<afile>')) > 1024*1024 |
@@ -1414,7 +1419,7 @@ b:coc_root_patterns					*b:coc_root_patterns*
 
 	Root patterns used for resolving workspaceFolder for
 	the current file, will be used instead of
-	`"coc.preferences.rootPatterns"` setting. E.g.: >
+	`"coc.preferences.rootPatterns"` setting. Example: >
 
 	autocmd FileType python let b:coc_root_patterns =
 				\ ['.git', '.env']
@@ -1422,7 +1427,7 @@ b:coc_root_patterns					*b:coc_root_patterns*
 
 b:coc_suggest_disable					*b:coc_suggest_disable*
 
-	Disable completion support of current buffer. E.g.: >
+	Disable completion support of current buffer. Example: >
 
 	" Disable completion for python
 	autocmd FileType python let b:coc_suggest_disable = 1
@@ -1434,14 +1439,14 @@ b:coc_diagnostic_disable				*b:coc_diagnostic_disable*
 b:coc_suggest_blacklist                 	        *b:coc_suggest_blacklist*
 
 	List of input words for which completion should not be triggered.
-	E.g.: >
+	Example: >
 
 	" Disable completion for 'end' in lua files
 	autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
 b:coc_additional_keywords				*b:coc_additional_keywords*
 
-	Addition keyword characters for generate keywords. E.g.: >
+	Addition keyword characters for generate keywords. Example: >
 
 	" Add keyword characters for css
 	autocmd FileType css let b:coc_additional_keywords = ["-"]
@@ -1544,7 +1549,7 @@ g:coc_snippet_prev					*g:coc_snippet_prev*
 g:coc_filetype_map					*g:coc_filetype_map*
 
 	Map for document filetypes so the server could handle current document
-	as another filetype, ex: >
+	as another filetype, example: >
 
 	let g:coc_filetype_map = {
 		\ 'html.swig': 'html',
@@ -1571,7 +1576,7 @@ g:coc_selectmode_mapping				*g:coc_selectmode_mapping*
 
 g:coc_node_path						*g:coc_node_path*
 
-	Path to node executable to start coc service. ex: >
+	Path to node executable to start coc service, example: >
 
 	let g:coc_node_path = '/usr/local/opt/node@12/bin/node'
 <
@@ -1583,7 +1588,7 @@ g:coc_node_args						*g:coc_node_args*
 
 	Arguments passed to node when starting coc service from source code.
 
-	Useful for starting coc in debug mode, ex: >
+	Useful for starting coc in debug mode, example: >
 >
 	let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
@@ -1653,7 +1658,7 @@ g:coc_data_home						*g:coc_data_home*
 g:coc_sources_disable_map 				*g:coc_sources_disable_map*
 
 	Configure disabled sources for different filetypes.
-	Use `:CocList sources` for loaded complete sources.  ex:
+	Use `:CocList sources` for loaded complete sources. Example:
 >
 	let g:coc_sources_disable_map = { \ 'python': ['omni', 'tag'] \ }
 
@@ -1679,7 +1684,8 @@ g:coc_prompt_win_width 					*g:coc_prompt_win_width*
 
 g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 
-	Filetype list that should be disabled for highlight in markdown block, ex: >
+	Filetype list that should be disabled for highlight in markdown block,
+	Example: >
 
 	let g:coc_markdown_disabled_languages = ['html']
 
@@ -1755,7 +1761,7 @@ coc#start([{option}]) 					*coc#start()*
 
 		- `source` specific completion source name.
 
-	ex:  >
+	Example:  >
 
 	inoremap <silent> <C-w> <C-R>=coc#start({'source': 'word'})<CR>
 <
@@ -1764,7 +1770,7 @@ coc#start([{option}]) 					*coc#start()*
 coc#config({section}, {value})				*coc#config()*
 
 	Change user configuration by Vim script, no changes would be made to
-	user configuration file. ex: >
+	user configuration file. Example: >
 
 	call coc#config('coc.preferences', {
 		\ 'timeout': 1000,
@@ -1791,7 +1797,7 @@ coc#add_extension({name}, ...)				*coc#add_extension()*
 	Deprecated function for install extensions not exists.
 	Use |g:coc_global_extensions| variable instead.
 
-	ex: >
+	Example: >
 
 	call coc#add_extension('coc-json', 'coc-tsserver', 'coc-rls')
 <
@@ -1811,7 +1817,7 @@ coc#add_command({id}, {command}, [{title}])		*coc#add_command()*
 coc#refresh()						*coc#refresh()*
 
 	Start or refresh completion at current cursor position, bind this to
-	'imap' to trigger completion, ex: >
+	'imap' to trigger completion, example: >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
@@ -1833,7 +1839,7 @@ coc#on_enter()						*coc#on_enter()*
 
 	Notify coc.nvim that `<enter>` has been pressed.
 
-	Used for the format on type and improvement of brackets, ex: >
+	Used for the format on type and improvement of brackets, example: >
 
 	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
 				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
@@ -1891,7 +1897,8 @@ coc#util#root_patterns()				*coc#util#root_patterns()*
 <
 coc#util#get_config({key})				*coc#util#get_config()*
 
-	Get configuration (mostly defined in coc-settings.json)	by {key}, ex: >
+	Get configuration (mostly defined in coc-settings.json)	by {key},
+	example: >
 
 	:echo coc#util#get_config('coc.preferences')
 
@@ -1937,7 +1944,7 @@ coc#float#scroll({forward}, [{amount}])                 *coc#float#scroll()*
 CocRequest({id}, {method}, [{params}])			*CocRequest()*
 
 	Send a request to language client of {id} with {method} and optional
-	{params}. ex: >
+	{params}. Example: >
 
 	call CocRequest('tslint', 'textDocument/tslint/allFixes',
 		\  {'textDocument': {'uri': 'file:///tmp'}})
@@ -1953,7 +1960,7 @@ CocRequestAsync({id}, {method}, [{params}, [{callback}]])
 
 CocNotify({id}, {method}, [{params}])			*CocNotify()*
 
-	Send notification to remote language server, ex:
+	Send notification to remote language server, example:
 >
 	call CocNotify('ccls', '$ccls/reload')
 <
@@ -2959,7 +2966,7 @@ LIST COMMAND						*coc-list-command*
 
 :CocList [{...options}] [{source}] [{...args}]		*:CocList*
 
-	Open coc list of {source}, Ex: >
+	Open coc list of {source}, example: >
 
 	:CocList --normal location
 <
@@ -3175,7 +3182,7 @@ Use |coc-list-mappings-custom| to override default mappings.
 							*coc-list-mappings-custom*
 
 Configurations `"list.normalMappings"` and `"list.insertMappings"` are used
-for customizing the list key-mappings, ex: >
+for customizing the list key-mappings, example: >
 
 	"list.insertMappings": {
 		"<C-r>": "do:refresh",
@@ -3232,7 +3239,8 @@ The mapping expression should be `command:arguments`, available commands:
 	'paste'          - append text from system clipboard to prompt.
 'eval'     - append text to prompt from result of VimL expression.
 'action'   - execute action of list, use <tab> to find available actions.
-'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special characters.
+'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special
+             characters.
 'normal'   - execute normal command in list window.
 'normal!'  - execute normal command without remap.
 'command'  - execute command.
@@ -3243,7 +3251,7 @@ The mapping expression should be `command:arguments`, available commands:
 
 Context argument contains the following properties:
 
-'name'    - name of the list, ex: `'location'`.
+'name'    - name of the list, example: `'location'`.
 'args'    - arguments of the list.
 'input'   - current input of prompt.
 'winid'   - window id on list activated.
@@ -3468,7 +3476,7 @@ STATUSLINE SUPPORT					*coc-status*
 Diagnostics info and other status info contributed by extensions could be
 shown in statusline.
 
-The easiest way is add `%{coc#status()}` to your 'statusline' option. Ex: >
+The easiest way is add `%{coc#status()}` to your 'statusline' option. Example: >
 
 	set statusline^=%{coc#status()}
 >
