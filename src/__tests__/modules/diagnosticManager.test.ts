@@ -436,6 +436,17 @@ describe('diagnostic manager', () => {
       config.update('messageTarget', 'float')
     })
 
+    it('should not echo messages on cursor hold', async () => {
+      let config = workspace.getConfiguration('diagnostic')
+      config.update('messageTarget', 'none')
+      await createDocument()
+      await nvim.call('cursor', [1, 3])
+      await helper.wait(600)
+      let line = await helper.getCmdline()
+      expect(line.length).toBe(0)
+      config.update('messageTarget', 'float')
+    })
+
     it('should show diagnostics of current line', async () => {
       let config = workspace.getConfiguration('diagnostic')
       config.update('checkCurrentLine', true)

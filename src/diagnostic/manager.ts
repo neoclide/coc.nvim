@@ -433,6 +433,7 @@ export class DiagnosticManager implements Disposable {
     if (!this.enabled || config.displayByAle) return
     if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
+    let noMessageTarget = config.messageTarget == 'none'
     // echo
     let [filetype, mode] = await this.nvim.eval(`[&filetype,mode()]`) as [string, string]
     if (mode != 'n') return
@@ -476,7 +477,7 @@ export class DiagnosticManager implements Disposable {
       await this.floatFactory.show(docs, config)
     } else {
       let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
-      if (lines.length) {
+      if (lines.length && !noMessageTarget) {
         await this.nvim.command('echo ""')
         await window.echoLines(lines, truncate)
       }

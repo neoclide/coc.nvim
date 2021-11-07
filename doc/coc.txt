@@ -433,7 +433,7 @@ Built-in configurations:~
 
 	Diagnostic message target, default: `"float"`
 
-	Valid options: ["echo", "float"]
+	Valid options: ["echo", "float", "none"]
 
 "diagnostic.refreshOnInsertMode":~
 

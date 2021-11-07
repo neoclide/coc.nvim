@@ -611,7 +611,7 @@
       "type": "string",
       "description": "Diagnostic message target.",
       "default": "float",
-      "enum": ["echo", "float"]
+      "enum": ["echo", "float", "none"]
     },
     "diagnostic.messageDelay": {
       "type": "number",
