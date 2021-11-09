@@ -132,7 +132,7 @@ export class Installer extends EventEmitter {
     let { dependencies } = JSON.parse(content)
     if (dependencies && Object.keys(dependencies).length) {
       let p = new Promise<void>((resolve, reject) => {
-        let args = ['install', '--ignore-scripts', '--no-lockfile', '--production']
+        let args = ['install', '--ignore-scripts', '--no-lockfile', '--production', '--no-global']
         if (url.startsWith('https://github.com')) {
           args = ['install']
         }
