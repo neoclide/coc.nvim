@@ -452,7 +452,7 @@ export class DiagnosticManager implements Disposable {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
       const codeStr = code ? ' ' + code : ''
-      const str = config.format.replace('%source', source).replace('%code', codeStr).replace('%severity', s).replace('%message', message)
+      const str = config.format.replace('%source', source).replace('%code', codeStr).replace('%severity', s).split('%message').join(message)
       let filetype = 'Error'
       if (ft === '') {
         switch (severity) {
