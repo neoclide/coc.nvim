@@ -67,6 +67,7 @@ export default class FormatHandler {
     }))
     handler.addDisposable(events.on('CursorMovedI', async bufnr => {
       if (bufnr == enterBufnr && Date.now() - enterTs < 100) {
+        enterBufnr = undefined
         await this.handleEnter(bufnr)
       }
     }))
@@ -129,15 +130,14 @@ export default class FormatHandler {
       let origLine = doc.getline(position.line - 1)
       // not format for empty line.
       if (newLine && /^\s*$/.test(origLine)) return
-      let pos: Position = newLine ? { line: position.line - 1, character: origLine.length } : position
       await doc.synchronize()
-      return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, pos, token)
+      return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, position, token)
     })
     if (!edits || !edits.length) return
     let changed = getChangedFromEdits(position, edits)
     await doc.applyEdits(edits)
     let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
-    if (to && !newLine) await window.moveTo(to)
+    if (to) await window.moveTo(to)
   }
 
   public async formatCurrentBuffer(): Promise<boolean> {
