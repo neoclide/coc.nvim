@@ -250,7 +250,13 @@ class Renderer {
   }
 
   public hr(): string {
-    return `---\n\n`
+    // NOTE: the '─' character is conveniently translated into a window-wide
+    // horizontal rule by coc.nvim/autoload/coc/float.vim. Using this character
+    // causes the horizontal rule to appear like a proper hr separator. In case
+    // the user isn't benefiting from a floating window, we provide three
+    // characters so that the hr doesn't deviate too significantly from
+    // Markdown's normal '-'.
+    return `───\n`
   }
 
   public list(body, ordered): string {
