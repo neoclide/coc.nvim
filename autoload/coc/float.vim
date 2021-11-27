@@ -262,22 +262,14 @@ function! coc#float#nvim_border_win(config, winid, border, title, hasbtn, hlgrou
   endif
   if winid
     call nvim_win_set_config(winid, opt)
-    call coc#compat#execute(winid, [
-          \ 'hi! link Normal '.a:hlgroup,
-          \ 'hi! link NormalNC '.a:hlgroup,
-          \ 'hi! link NormalFloat '.a:hlgroup
-          \ ])
+    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
   else
     noa let winid = nvim_open_win(bufnr, 0, opt)
     if winid
       if a:winblend
         call setwinvar(winid, '&winblend', a:winblend)
       endif
-      call coc#compat#execute(winid, [
-            \ 'hi! link Normal '.a:hlgroup,
-            \ 'hi! link NormalNC '.a:hlgroup,
-            \ 'hi! link NormalFloat '.a:hlgroup
-            \ ])
+      call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
       call setwinvar(winid, 'kind', 'border')
       call add(a:related, winid)
@@ -306,11 +298,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, winblend, rel
     let bufnr = coc#float#create_buf(0, ['X'])
     noa let winid = nvim_open_win(bufnr, 0, config)
     if winid
-      call coc#compat#execute(winid, [
-            \ 'hi! link Normal '.a:hlgroup,
-            \ 'hi! link NormalNC '.a:hlgroup,
-            \ 'hi! link NormalFloat '.a:hlgroup
-            \ ])
+      call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
       call setwinvar(winid, 'kind', 'close')
       if a:winblend
@@ -356,11 +344,7 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, winblend, related) ab
     if a:winblend
       call setwinvar(winid, '&winblend', a:winblend)
     endif
-    call coc#compat#execute(winid, [
-          \ 'hi! link Normal '.a:hlgroup,
-          \ 'hi! link NormalNC '.a:hlgroup,
-          \ 'hi! link NormalFloat '.a:hlgroup
-          \ ])
+    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
     call setwinvar(winid, 'target_winid', a:winid)
     call setwinvar(winid, 'kind', 'pad')
     call add(a:related, winid)
@@ -394,11 +378,7 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
     let bufnr = s:create_btns_buffer(0, width, a:buttons, a:borderbottom)
     noa let winid = nvim_open_win(bufnr, 0, config)
     if winid
-      call coc#compat#execute(winid, [
-            \ 'hi! link Normal '.a:hlgroup,
-            \ 'hi! link NormalNC '.a:hlgroup,
-            \ 'hi! link NormalFloat '.a:hlgroup
-            \ ])
+      call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
       call setwinvar(winid, 'target_winid', a:winid)
       call setwinvar(winid, 'kind', 'buttons')
       if a:winblend
