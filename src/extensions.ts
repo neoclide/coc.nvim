@@ -678,7 +678,7 @@ export class Extensions {
   }
 
   private async localExtensionStats(excludes: string[]): Promise<ExtensionInfo[]> {
-    let runtimepath = await workspace.nvim.eval('&runtimepath') as string
+    let runtimepath = await workspace.nvim.eval('join(globpath(&runtimepath, "", 0, 1), ",")') as string
     let paths = runtimepath.split(',')
     let res: ExtensionInfo[] = await Promise.all(paths.map(root => new Promise<ExtensionInfo>(async resolve => {
       try {

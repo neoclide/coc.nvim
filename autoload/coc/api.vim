@@ -149,7 +149,7 @@ function! s:funcs.feedkeys(keys, mode, escape_csi)
 endfunction
 
 function! s:funcs.list_runtime_paths()
-  return split(&runtimepath, ',')
+  return globpath(&runtimepath, '', 0, 1)
 endfunction
 
 function! s:funcs.command_output(cmd)

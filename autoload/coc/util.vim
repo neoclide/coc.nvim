@@ -540,7 +540,7 @@ function! coc#util#vim_info()
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
         \ 'background': &background,
-        \ 'runtimepath': &runtimepath,
+        \ 'runtimepath': join(globpath(&runtimepath, '', 0, 1), ','),
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
@@ -557,7 +557,7 @@ function! coc#util#highlight_options()
   return {
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'background': &background,
-        \ 'runtimepath': &runtimepath,
+        \ 'runtimepath': join(globpath(&runtimepath, '', 0, 1), ','),
         \}
 endfunction
 
