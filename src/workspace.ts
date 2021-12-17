@@ -1,6 +1,5 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import bytes from 'bytes'
-import fastDiff from 'fast-diff'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
@@ -204,12 +203,11 @@ export class Workspace implements IWorkspace {
       this._onDidChangeConfiguration.fire(e)
     }, null, this.disposables)
     this.watchOption('runtimepath', (oldValue, newValue: string) => {
-      let result = fastDiff(oldValue, newValue)
-      for (let [changeType, value] of result) {
-        if (changeType == 1) {
-          let paths = value.replace(/,$/, '').split(',')
+      let oldList: string[] = oldValue.split(',')
+      let newList: string[] = newValue.split(',')
+      let paths = newList.filter(x => !oldList.includes(x))
+      if (paths.length > 0) {
           this._onDidRuntimePathChange.fire(paths)
-        }
       }
       this._env.runtimepath = newValue
     }, this.disposables)
