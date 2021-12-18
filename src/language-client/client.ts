@@ -710,6 +710,7 @@ export type Middleware = _Middleware &
 export interface LanguageClientOptions {
   ignoredRootPaths?: string[]
   documentSelector?: DocumentSelector | string[]
+  rootPatterns?: string[]
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
   disableDynamicRegister?: boolean
@@ -747,6 +748,7 @@ interface ResolvedClientOptions {
   disableCompletion: boolean
   formatterPriority: number
   documentSelector?: DocumentSelector
+  rootPatterns?: string[]
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
   outputChannelName: string
@@ -3681,7 +3683,7 @@ export abstract class BaseLanguageClient {
     }
     let { ignoredRootPaths } = this._clientOptions
     let config = workspace.getConfiguration(this.id)
-    let rootPatterns = config.get<string[]>('rootPatterns', [])
+    let rootPatterns = config.get<string[]>('rootPatterns', this._clientOptions.rootPatterns || [])
     let required = config.get<boolean>('requireRootPattern', false)
     let resolved: string
     if (rootPatterns && rootPatterns.length) {
