@@ -69,12 +69,7 @@ export class Completion implements Disposable {
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     let fn = debounce(this.onPumChange.bind(this), 20)
-    this.closeFloat = debounce(async () => {
-      let visible = await this.nvim.call('pumvisible', []) as number
-      if (visible == 0) {
-        this.floating.close()
-      }
-    }, 200)
+    this.closeFloat = debounce(this.stop, 200)
     this.disposables.push({
       dispose: () => {
         fn.clear()
