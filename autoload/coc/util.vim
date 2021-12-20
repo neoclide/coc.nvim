@@ -159,7 +159,7 @@ function! coc#util#jump(cmd, filepath, ...) abort
     let extra = empty(get(a:, 1, [])) ? '' : '+'.(a:1[0] + 1)
     exe 'pedit '.extra.' '.fnameescape(file)
     return
-  elseif a:cmd == 'drop'
+  elseif a:cmd == 'drop' && exists('*bufadd')
     let dstbuf = bufadd(path)
     let binfo = getbufinfo(dstbuf)
     if len(binfo) == 1 && empty(binfo[0].windows)
