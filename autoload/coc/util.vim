@@ -159,6 +159,14 @@ function! coc#util#jump(cmd, filepath, ...) abort
     let extra = empty(get(a:, 1, [])) ? '' : '+'.(a:1[0] + 1)
     exe 'pedit '.extra.' '.fnameescape(file)
     return
+  elseif a:cmd == 'drop' && exists('*bufadd')
+    let dstbuf = bufadd(path)
+    let binfo = getbufinfo(dstbuf)
+    if len(binfo) == 1 && empty(binfo[0].windows)
+      exec 'buffer '.dstbuf
+    else
+      exec 'drop '.fnameescape(file)
+    endif
   else
     exe a:cmd.' '.fnameescape(file)
   endif
@@ -442,6 +450,9 @@ function! coc#util#open_terminal(opts) abort
   setl norelativenumber
   setl nonumber
   setl bufhidden=wipe
+  if exists('#User#CocTerminalOpen')
+    exe 'doautocmd <nomodeline> User CocTerminalOpen'
+  endif
   let cmd = get(a:opts, 'cmd', '')
   let autoclose = get(a:opts, 'autoclose', 1)
   if empty(cmd)
@@ -529,7 +540,7 @@ function! coc#util#vim_info()
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
         \ 'background': &background,
-        \ 'runtimepath': &runtimepath,
+        \ 'runtimepath': join(globpath(&runtimepath, '', 0, 1), ','),
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
@@ -546,7 +557,7 @@ function! coc#util#highlight_options()
   return {
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'background': &background,
-        \ 'runtimepath': &runtimepath,
+        \ 'runtimepath': join(globpath(&runtimepath, '', 0, 1), ','),
         \}
 endfunction
 

@@ -29,8 +29,8 @@ _True snippet and additional text editing support_
 
 Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
 
-```sh
-curl -sL install-node.now.sh/lts | bash
+```bash
+curl -sL install-node.vercel.app/lts | bash
 ```
 
 For [vim-plug](https://github.com/junegunn/vim-plug) users:
@@ -233,7 +233,7 @@ command! -nargs=0 Format :call CocAction('format')
 command! -nargs=? Fold :call     CocAction('fold', <f-args>)
 
 " Add `:OR` command for organize imports of the current buffer.
-command! -nargs=0 OR   :call     CocAction('runCommand', 'editor.action.organizeImport')
+command! -nargs=0 OR   :call     CocActionAsync('runCommand', 'editor.action.organizeImport')
 
 " Add (Neo)Vim's native statusline support.
 " NOTE: Please see `:h coc-status` for integrations with external plugins that
