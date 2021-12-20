@@ -78,7 +78,6 @@ export class Completion implements Disposable {
       if (!this.activated) return
       fn.clear()
       this.cancelResolve()
-      this.floating.close()
       await this.onCompleteDone(item)
     }, this, this.disposables)
     this.cancelResolve()
@@ -322,7 +321,6 @@ export class Completion implements Disposable {
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     let { nvim, latestInsertChar, option } = this
-    let noChange = this.pretext == info.pre
     let pretext = this.pretext = info.pre
     this.lastInsert = null
     let doc = workspace.getDocument(bufnr)
@@ -346,8 +344,8 @@ export class Completion implements Disposable {
       this.stop()
       return
     }
-    // Completion is canceled by <C-e>
-    if (noChange && !latestInsertChar) {
+    // Completion canceled by <C-e> or text changed by backspace.
+    if (!latestInsertChar) {
       this.stop(false)
       return
     }
