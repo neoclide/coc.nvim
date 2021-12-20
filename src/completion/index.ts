@@ -37,6 +37,7 @@ export class Completion implements Disposable {
   private insertCharTs = 0
   private insertLeaveTs = 0
   private excludeImages: boolean
+  private closeFloat: Function & { clear(): void }
 
   public init(): void {
     this.config = this.getCompleteConfig()
@@ -68,9 +69,16 @@ export class Completion implements Disposable {
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     let fn = debounce(this.onPumChange.bind(this), 20)
+    this.closeFloat = debounce(async () => {
+      let visible = await this.nvim.call('pumvisible', []) as number
+      if (visible == 0) {
+        this.floating.close()
+      }
+    }, 200)
     this.disposables.push({
       dispose: () => {
         fn.clear()
+        this.closeFloat.clear()
       }
     })
     events.on('CompleteDone', async item => {
@@ -78,7 +86,7 @@ export class Completion implements Disposable {
       if (!this.activated) return
       fn.clear()
       this.cancelResolve()
-      this.floating.close()
+      this.closeFloat()
       await this.onCompleteDone(item)
     }, this, this.disposables)
     this.cancelResolve()
@@ -500,6 +508,7 @@ export class Completion implements Disposable {
 
   private async onPumChange(): Promise<void> {
     if (!this.popupEvent) return
+    this.closeFloat.clear()
     let { col, row, height, width, scrollbar } = this.popupEvent
     let bounding: PumBounding = { col, row, height, width, scrollbar }
     let resolvedItem = this.getCompleteItem(this.selectedItem)
