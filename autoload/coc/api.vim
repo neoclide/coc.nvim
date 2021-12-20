@@ -310,7 +310,7 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
   endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   let start = a:startLine + 1
-  let end = a:endLine == -1 ? len(getbufline(bufnr, 1, '$')) : a:endLine;
+  let end = a:endLine == -1 ? len(getbufline(bufnr, 1, '$')) : a:endLine
   if a:srcId == -1
     call prop_clear(start, end, {'bufnr' : bufnr})
   else
