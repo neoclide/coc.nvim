@@ -900,6 +900,13 @@ Built-in configurations:~
 
 	Will save handler timeout, default: `500`
 
+"coc.preferences.semanticTokensHighlights"~
+
+	Enable semanticTokens highlight if language server support it.
+	Default: `true`
+
+	Note: this configuration is expected to change in the future.
+
 						*coc-config-cursors*
 
 "cursors.cancelKey":~
