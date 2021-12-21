@@ -68,7 +68,7 @@ export default class LocationsHandler {
     return languages.getReferences(doc.textDocument, { includeDeclaration: true }, position, tokenSource.token)
   }
 
-  public async gotoDefinition(openCommand?: string): Promise<boolean> {
+  public async gotoDefinition(openCommand?: string | false): Promise<boolean> {
     let definition = await this.request('definition', (doc, position, token) => {
       return languages.getDefinition(doc, position, token)
     })
@@ -76,7 +76,7 @@ export default class LocationsHandler {
     return definition ? definition.length > 0 : false
   }
 
-  public async gotoDeclaration(openCommand?: string): Promise<boolean> {
+  public async gotoDeclaration(openCommand?: string | false): Promise<boolean> {
     let definition = await this.request('declaration', (doc, position, token) => {
       return languages.getDeclaration(doc, position, token)
     })
@@ -84,7 +84,7 @@ export default class LocationsHandler {
     return definition ? (Array.isArray(definition) ? definition.length > 0 : true) : false
   }
 
-  public async gotoTypeDefinition(openCommand?: string): Promise<boolean> {
+  public async gotoTypeDefinition(openCommand?: string | false): Promise<boolean> {
     let definition = await this.request('typeDefinition', (doc, position, token) => {
       return languages.getTypeDefinition(doc, position, token)
     })
@@ -92,7 +92,7 @@ export default class LocationsHandler {
     return definition ? definition.length > 0 : false
   }
 
-  public async gotoImplementation(openCommand?: string): Promise<boolean> {
+  public async gotoImplementation(openCommand?: string | false): Promise<boolean> {
     let definition = await this.request('implementation', (doc, position, token) => {
       return languages.getImplementation(doc, position, token)
     })
@@ -100,7 +100,7 @@ export default class LocationsHandler {
     return definition ? definition.length > 0 : false
   }
 
-  public async gotoReferences(openCommand?: string, includeDeclaration = true): Promise<boolean> {
+  public async gotoReferences(openCommand?: string | false, includeDeclaration = true): Promise<boolean> {
     let definition = await this.request('reference', (doc, position, token) => {
       return languages.getReferences(doc, { includeDeclaration }, position, token)
     })
