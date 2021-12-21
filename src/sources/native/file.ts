@@ -7,6 +7,7 @@ import Source from '../source'
 import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../../types'
 import { statAsync } from '../../util/fs'
 import { byteSlice } from '../../util/string'
+import { isWindows } from '../../util/platform'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('sources-file')
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|[a-zA-Z]:|)(\/|\\)(?:[\u4e00-\u9fa5\w.@()-]+(\/|\\))*(?:[\u4e00-\u9fa5\w.@()-])*$/
@@ -24,6 +25,11 @@ export default class File extends Source {
       name: 'file',
       filepath: __filename
     })
+  }
+
+  public get triggerCharacters(): string[] {
+    let characters = this.getConfig('triggerCharacters', [])
+    return isWindows ? characters : characters.filter(s => s != '\\')
   }
 
   private resolveEnvVariables(str: string): string {
