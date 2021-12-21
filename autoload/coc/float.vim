@@ -284,7 +284,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, winblend, rel
         \ 'focusable': v:true,
         \ 'style': 'minimal',
         \ }
-  if has('nvim-0.5.0')
+  if has('nvim-0.5.1')
     let config['zindex'] = 300
   endif
   if winid
@@ -318,7 +318,7 @@ function! coc#float#nvim_right_pad(config, winid, hlgroup, winblend, related) ab
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  if has('nvim-0.5.0')
+  if has('nvim-0.5.1')
     let config['zindex'] = 300
   endif
   if winid && nvim_win_is_valid(winid)
@@ -359,7 +359,7 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
         \ 'focusable': 1,
         \ 'style': 'minimal',
         \ }
-  if has('nvim-0.5.0')
+  if has('nvim-0.5.1')
     let config['zindex'] = 300
     if a:shadow
       let config['border'] = 'shadow'
@@ -447,7 +447,7 @@ function! coc#float#nvim_scrollbar(winid) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  if has('nvim-0.5.0')
+  if has('nvim-0.5.1')
     let opts['zindex'] = 300
   endif
   if id
