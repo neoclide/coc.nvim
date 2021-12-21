@@ -148,7 +148,7 @@ export default class LanguageSource implements ISource {
     let line = opt.linenr - 1
     if (item.insertText != null && !item.textEdit) {
       item.textEdit = {
-        range: Range.create(line, opt.col, line, opt.colnr - 1),
+        range: Range.create(line, characterIndex(opt.line, opt.col), line, characterIndex(opt.line, opt.colnr - 1)),
         newText: item.insertText
       }
     }
