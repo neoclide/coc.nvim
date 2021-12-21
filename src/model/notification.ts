@@ -22,7 +22,7 @@ export interface NotificationConfig {
    */
   title?: string
   /**
-   * Timeout in miliseconds to dismiss notification.
+   * Timeout in milliseconds to dismiss notification.
    */
   timeout?: number
   /**

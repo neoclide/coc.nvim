@@ -373,7 +373,7 @@ Built-in configurations:~
 "diagnostic.highlighLimit":~
 
 	Limit count for highlighted diagnostics, too many diagnostic
-	highlights could make vim stop responsing.
+	highlights could make vim stop responding.
 
 	default: `1000`
 
