@@ -196,7 +196,7 @@ describe('format handler', () => {
       await nvim.input('o')
       await helper.wait(100)
       let lines = await buf.lines
-      expect(lines).toEqual(['  foo', ''])
+      expect(lines).toEqual(['foo', '  '])
     })
 
     it('should adjust cursor after format on type', async () => {
