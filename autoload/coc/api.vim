@@ -376,8 +376,10 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       if delCount
         let start = startLnum + len(replacement)
         let saved_reg = @"
+        let system_reg = @*
         silent execute start . ','.(start + delCount - 1).'d'
         let @" = saved_reg
+        let @* = system_reg
       endif
     endif
     call winrestview(storeView)
@@ -396,8 +398,12 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       endif
       if delCount
         let start = startLnum + len(replacement)
+        let saved_reg = @"
+        let system_reg = @*
         "8.1.0039
         silent call deletebufline(a:bufnr, start, start + delCount - 1)
+        let @" = saved_reg
+        let @* = system_reg
       endif
     endif
   endif

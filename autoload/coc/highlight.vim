@@ -364,6 +364,9 @@ function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   elseif underline
     let cmd .= ' cterm=underline gui=underline'
   endif
+  if cmd ==# 'silent hi ' . hlGroup
+      return 'Normal'
+  endif
   execute cmd
   return hlGroup
 endfunction
