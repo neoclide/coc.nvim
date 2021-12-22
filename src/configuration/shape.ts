@@ -22,7 +22,7 @@ export default class ConfigurationProxy implements ConfigurationShape {
     let file = workspace.getConfigFile(target)
     if (!file) return
     let formattingOptions: FormattingOptions = { tabSize: 2, insertSpaces: true }
-    let content = fs.readFileSync(file, 'utf8')
+    let content = fs.readFileSync(file, { encoding: 'utf8', flag: 'a+'})
     value = value == null ? undefined : value
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)
