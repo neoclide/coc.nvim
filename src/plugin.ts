@@ -196,7 +196,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('jumpTypeDefinition', openCommand => this.handler.locations.gotoTypeDefinition(openCommand))
     this.addAction('typeDefinitions', () => this.handler.locations.typeDefinitions())
     this.addAction('jumpReferences', openCommand => this.handler.locations.gotoReferences(openCommand))
-    this.addAction('references', includeDeclaration => this.handler.locations.references(includeDeclaration))
+    this.addAction('references', excludeDeclaration => this.handler.locations.references(excludeDeclaration))
     this.addAction('jumpUsed', openCommand => this.handler.locations.gotoReferences(openCommand, false))
     this.addAction('doHover', hoverTarget => this.handler.hover.onHover(hoverTarget))
     this.addAction('definitionHover', hoverTarget => this.handler.hover.definitionHover(hoverTarget))
