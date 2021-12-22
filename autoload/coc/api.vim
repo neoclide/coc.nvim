@@ -377,7 +377,11 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
         let start = startLnum + len(replacement)
         let saved_reg = @"
         let system_reg = @*
-        silent execute start . ','.(start + delCount - 1).'d'
+        if exists('*deletebufline')
+          silent call deletebufline(curr, start, start + delCount - 1)
+        else
+          silent execute start . ','.(start + delCount - 1).'d'
+        endif
         let @" = saved_reg
         let @* = system_reg
       endif
