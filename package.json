@@ -96,7 +96,7 @@
     "fb-watchman": "^2.0.1",
     "fs-extra": "^9.0.1",
     "follow-redirects": "^1.13.0",
-    "http-proxy-agent": "^4.0.1",
+    "http-proxy-agent": "^5.0.0",
     "https-proxy-agent": "^5.0.0",
     "isuri": "^2.0.3",
     "jsonc-parser": "^3.0.0",
