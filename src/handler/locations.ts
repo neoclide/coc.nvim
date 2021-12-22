@@ -60,12 +60,12 @@ export default class LocationsHandler {
     return languages.getImplementation(doc.textDocument, position, tokenSource.token)
   }
 
-  public async references(): Promise<Location[]> {
+  public async references(excludeDeclaration?: boolean): Promise<Location[]> {
     const { doc, position } = await this.handler.getCurrentState()
     this.handler.checkProvier('reference', doc.textDocument)
     await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
-    return languages.getReferences(doc.textDocument, { includeDeclaration: true }, position, tokenSource.token)
+    return languages.getReferences(doc.textDocument, { includeDeclaration: !excludeDeclaration }, position, tokenSource.token)
   }
 
   public async gotoDefinition(openCommand?: string | false): Promise<boolean> {

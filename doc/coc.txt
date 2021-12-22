@@ -2169,6 +2169,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Same as |CocAction('doHover')|, but includes definition contents from
 	definition provider when possible.
 
+"references" [{excludeDeclaration}] 			*CocAction('references')*
+
+	Get references location list, declaration locations are included by
+	default.
+
 "showSignatureHelp"					*CocAction('showSignatureHelp')*
 
 	Echo signature help of current function, return `v:false` when
