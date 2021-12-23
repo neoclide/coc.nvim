@@ -1160,7 +1160,7 @@ class DidOpenTextDocumentFeature extends DocumentNotifications<DidOpenTextDocume
 class DidCloseTextDocumentFeature extends DocumentNotifications<
   DidCloseTextDocumentParams,
   TextDocument
-  > {
+> {
   constructor(
     client: BaseLanguageClient,
     private _syncedDocuments: Map<string, TextDocument>
@@ -1302,18 +1302,16 @@ class DidChangeTextDocumentFeature
       if (workspace.match(changeData.documentSelector, textDocument) > 0) {
         let middleware = this._client.clientOptions.middleware!
         if (changeData.syncKind === TextDocumentSyncKind.Incremental) {
-          if (middleware.didChange) {
-            middleware.didChange(event, () =>
-              this._client.sendNotification(
-                DidChangeTextDocumentNotification.type,
-                omit(event, ['bufnr', 'original'])
-              )
-            )
-          } else {
+          let didChange = event => {
             this._client.sendNotification(
               DidChangeTextDocumentNotification.type,
-              omit(event, ['bufnr', 'original'])
+              omit(event, ['bufnr', 'original', 'originalLines'])
             )
+          }
+          if (middleware.didChange) {
+            middleware.didChange(event, didChange)
+          } else {
+            didChange(event)
           }
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
           let didChange: (event: DidChangeTextDocumentParams) => void = event => {
@@ -1493,7 +1491,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
 class DidSaveTextDocumentFeature extends DocumentNotifications<
   DidSaveTextDocumentParams,
   TextDocument
-  > {
+> {
   private _includeText: boolean
 
   constructor(client: BaseLanguageClient) {
@@ -1951,7 +1949,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
 
 class HoverFeature extends TextDocumentFeature<
   boolean | HoverOptions, HoverRegistrationOptions, HoverProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, HoverRequest.type)
   }
@@ -2008,7 +2006,7 @@ class HoverFeature extends TextDocumentFeature<
 
 class SignatureHelpFeature extends TextDocumentFeature<
   SignatureHelpOptions, SignatureHelpRegistrationOptions, SignatureHelpProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, SignatureHelpRequest.type)
   }
@@ -2072,7 +2070,7 @@ class SignatureHelpFeature extends TextDocumentFeature<
 
 class DefinitionFeature extends TextDocumentFeature<
   boolean | DefinitionOptions, DefinitionRegistrationOptions, DefinitionProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, DefinitionRequest.type)
   }
@@ -2125,7 +2123,7 @@ class DefinitionFeature extends TextDocumentFeature<
 
 class ReferencesFeature extends TextDocumentFeature<
   boolean | ReferenceOptions, ReferenceRegistrationOptions, ReferenceProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, ReferencesRequest.type)
   }
@@ -2178,7 +2176,7 @@ class ReferencesFeature extends TextDocumentFeature<
 
 class DocumentHighlightFeature extends TextDocumentFeature<
   boolean | DocumentHighlightOptions, DocumentHighlightRegistrationOptions, DocumentHighlightProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, DocumentHighlightRequest.type)
   }
@@ -2231,7 +2229,7 @@ class DocumentHighlightFeature extends TextDocumentFeature<
 
 class DocumentSymbolFeature extends TextDocumentFeature<
   boolean | DocumentSymbolOptions, DocumentSymbolRegistrationOptions, DocumentSymbolProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, DocumentSymbolRequest.type)
   }
@@ -2308,7 +2306,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
 }
 
 class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistrationOptions, WorkspaceSymbolProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, WorkspaceSymbolRequest.type)
   }
@@ -2581,7 +2579,7 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
 
 class DocumentFormattingFeature extends TextDocumentFeature<
   boolean | DocumentFormattingOptions, DocumentHighlightRegistrationOptions, DocumentFormattingEditProvider
-  > {
+> {
 
   constructor(client: BaseLanguageClient) {
     super(client, DocumentFormattingRequest.type)
@@ -2639,7 +2637,7 @@ class DocumentFormattingFeature extends TextDocumentFeature<
 
 class DocumentRangeFormattingFeature extends TextDocumentFeature<
   boolean | DocumentRangeFormattingOptions, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingEditProvider
-  > {
+> {
   constructor(client: BaseLanguageClient) {
     super(client, DocumentRangeFormattingRequest.type)
   }
@@ -2694,7 +2692,7 @@ class DocumentRangeFormattingFeature extends TextDocumentFeature<
 
 class DocumentOnTypeFormattingFeature extends TextDocumentFeature<
   DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingRegistrationOptions, OnTypeFormattingEditProvider
-  > {
+> {
 
   constructor(client: BaseLanguageClient) {
     super(client, DocumentOnTypeFormattingRequest.type)
