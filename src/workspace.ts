@@ -207,7 +207,7 @@ export class Workspace implements IWorkspace {
       let newList: string[] = newValue.split(',')
       let paths = newList.filter(x => !oldList.includes(x))
       if (paths.length > 0) {
-          this._onDidRuntimePathChange.fire(paths)
+        this._onDidRuntimePathChange.fire(paths)
       }
       this._env.runtimepath = newValue
     }, this.disposables)
@@ -646,7 +646,8 @@ export class Workspace implements IWorkspace {
     let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`) as [number, number, number]
     let [, el, ec] = await nvim.call('getpos', isVisual ? `'>` : `']`) as [number, number, number]
     let range = Range.create(document.getPosition(sl, sc), document.getPosition(el, ec))
-    if (mode == 'v' || mode == '\x16') {
+    let lastLine = document.getline(el - 1)
+    if (mode != 'V' && lastLine.length > range.end.character) {
       range.end.character = range.end.character + 1
     }
     return range
