@@ -224,7 +224,7 @@ describe('handler codeActions', () => {
       await nvim.command('normal! 0v$')
       await nvim.input('<esc>')
       let res = await codeActions.getCurrentCodeActions('v')
-      expect(range).toEqual(Range.create(0, 0, 0, 4))
+      expect(range).toEqual(Range.create(0, 0, 0, 3))
       expect(res.length).toBe(3)
     })
   })
@@ -300,7 +300,7 @@ describe('handler codeActions', () => {
       await nvim.command('normal! 0v$')
       await nvim.input('<esc>')
       await codeActions.doCodeAction('v', 'my title')
-      expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 4 } })
+      expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 3 } })
     })
   })
 

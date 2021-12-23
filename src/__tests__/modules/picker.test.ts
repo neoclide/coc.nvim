@@ -94,8 +94,8 @@ describe('Picker key mappings', () => {
     await helper.wait(100)
     await nvim.input('<cr>')
     await nvim.command('redraw')
-    await helper.wait(100)
-    expect(fn).toBeCalledWith([0])
+    await helper.wait(200)
+    expect(fn).toBeCalledTimes(1)
   })
 
   it('should move cursor by j, k, g & G', async () => {
