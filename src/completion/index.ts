@@ -300,16 +300,23 @@ export class Completion implements Disposable {
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
     let { option, document } = this
     let pretext = this.pretext = info.pre
-    // avoid trigger filter on pumvisible
-    if (!option || option.bufnr != bufnr || info.changedtick == this.changedTick) return
+    if (!option || option.bufnr != bufnr) return
     let hasInsert = this.latestInsert != null
     this.lastInsert = null
     if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
       // Can't handle indent change
       logger.warn('Complete stopped by indent change.')
+      this.nvim.call('coc#_cancel', [], true)
       this.stop(false)
       return
     }
+    if ((hasInsert || info.changedtick == this.changedTick)
+      && this.shouldIndent(option.indentkeys, pretext)) {
+      this.nvim.call('coc#complete_indent', [], true)
+      return
+    }
+    // avoid trigger filter on pumvisible
+    if (info.changedtick == this.changedTick) return
     // not handle when not triggered by character insert
     if (!hasInsert || !pretext) return
     if (sources.shouldTrigger(pretext, document.filetype, document.uri)) {
@@ -610,6 +617,30 @@ export class Completion implements Disposable {
   private getCompleteItem(item: VimCompleteItem | {} | null): ExtendedCompleteItem | null {
     if (!this.complete || !Is.vimCompleteItem(item)) return null
     return this.complete.resolveCompletionItem(item)
+  }
+
+  private shouldIndent(indentkeys = '', pretext: string): boolean {
+    for (let part of indentkeys.split(',')) {
+      if (part.indexOf('=') > -1) {
+        let [pre, post] = part.split('=')
+        let word = post.startsWith('~') ? post.slice(1) : post
+        if (pretext.length < word.length ||
+          (pretext.length > word.length && !/^\s/.test(pretext.slice(-word.length - 1)))) {
+          continue
+        }
+        let matched = post.startsWith('~') ? pretext.toLowerCase().endsWith(word) : pretext.endsWith(word)
+        if (!matched) {
+          continue
+        }
+        if (pre == '') {
+          return true
+        }
+        if (pre == '0' && (pretext.length == word.length || /^\s*$/.test(pretext.slice(0, pretext.length - word.length)))) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   public dispose(): void {

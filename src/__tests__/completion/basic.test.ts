@@ -1,10 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { ISource, SourceType, CompleteResult, CompleteOption } from '../../types'
+import { disposeAll } from '../../util'
 import helper from '../helper'
 import sources from '../../sources'
-import { CancellationToken } from 'vscode-jsonrpc'
+import { CancellationToken, Disposable } from 'vscode-jsonrpc'
 
 let nvim: Neovim
+let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -15,6 +17,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
@@ -65,24 +68,6 @@ describe('completion', () => {
     items = await helper.getItems()
     expect(items.findIndex(o => o.word == 'fallback')).toBe(-1)
     expect(items.length).toBeLessThan(l)
-  })
-
-  it('should filter on character remove by backspace', async () => {
-    await helper.edit()
-    await nvim.setLine('forceDocumentSync format  fallback')
-    await helper.wait(30)
-    await nvim.input('ofa')
-
-    await helper.waitPopup()
-    let items = await helper.getItems()
-    let words = items.map(o => o.word)
-    expect(words).toContain('fallback')
-    expect(words).toContain('format')
-    await nvim.input('<backspace>')
-    await helper.wait(100)
-    items = await helper.getItems()
-    words = items.map(o => o.word)
-    expect(words).toEqual([])
   })
 
   it('should not trigger on insert enter', async () => {
@@ -148,7 +133,7 @@ describe('completion', () => {
         return Promise.resolve(result)
       }
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.setLine('')
     await nvim.input('iif')
     await helper.waitPopup()
@@ -156,7 +141,6 @@ describe('completion', () => {
     await helper.wait(300)
     let res = await helper.pumvisible()
     expect(res).toBe(true)
-    disposable.dispose()
   })
 
   it('should trigger on triggerCharacters', async () => {
@@ -171,12 +155,11 @@ describe('completion', () => {
         items: [{ word: 'foo' }]
       })
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('.')
     await helper.waitPopup()
-    sources.removeSource(source)
     let res = await helper.visible('foo', 'trigger')
     expect(res).toBe(true)
   })
@@ -192,7 +175,7 @@ describe('completion', () => {
         items: [{ word: 'foo' }, { word: 'bar' }]
       })
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.command('inoremap <silent><expr> <c-space> coc#refresh()')
     await nvim.input('i')
     await helper.wait(30)
@@ -200,7 +183,6 @@ describe('completion', () => {
     await helper.waitPopup()
     let items = await helper.getItems()
     expect(items.length).toBeGreaterThan(1)
-    disposable.dispose()
     await helper.wait(300)
   })
 
@@ -215,7 +197,7 @@ describe('completion', () => {
         items: [{ word: 'foo', info: 'bar' }]
       })
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('f')
@@ -224,7 +206,6 @@ describe('completion', () => {
     await helper.wait(800)
     let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(1)
-    sources.removeSource(source)
     let res = await helper.visible('foo', 'float')
     expect(res).toBe(true)
   })
@@ -241,7 +222,7 @@ describe('completion', () => {
         items: [{ word: 'foo' }]
       })
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i')
     await helper.wait(10)
     await nvim.input('.')
@@ -252,7 +233,6 @@ describe('completion', () => {
     await helper.wait(30)
     await nvim.input('.')
     await helper.waitPopup()
-    sources.removeSource(source)
     let res = await helper.visible('foo', 'pattern')
     expect(res).toBe(true)
   })
@@ -271,7 +251,7 @@ describe('completion', () => {
         items: [{ word: 'foo' }]
       })
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('o')
     await helper.wait(10)
     await nvim.input('f')
@@ -280,7 +260,6 @@ describe('completion', () => {
     expect(res).toBe(true)
     let items = await helper.items()
     expect(items.length).toBe(1)
-    disposable.dispose()
   })
 
   it('should not trigger when cursor moved', async () => {
@@ -295,7 +274,7 @@ describe('completion', () => {
         items: [{ word: 'foo' }]
       })
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.setLine('.a')
     await nvim.input('A')
     await nvim.eval('feedkeys("\\<bs>")')
@@ -304,7 +283,6 @@ describe('completion', () => {
     await helper.wait(200)
     let visible = await nvim.call('pumvisible')
     expect(visible).toBe(0)
-    sources.removeSource(source)
   })
 
   it('should trigger when completion is not completed', async () => {
@@ -334,22 +312,23 @@ describe('completion', () => {
         })
       }
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('if')
     await helper.wait(100)
     await nvim.input('.')
     await helper.visible('bar', 'completion')
     expect(token.isCancellationRequested).toBe(true)
-    disposable.dispose()
   })
 
   it('should limit results for low priority source', async () => {
+    await helper.edit()
     helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
     await nvim.setLine('filename filepath find filter findIndex')
     await helper.wait(200)
     await nvim.input('of')
     await helper.waitPopup()
     let items = await helper.getItems()
+    helper.updateConfiguration('suggest.lowPrioritySourceLimit', null)
     items = items.filter(o => o.menu == '[A]')
     expect(items.length).toBe(2)
   })
@@ -367,14 +346,14 @@ describe('completion', () => {
         items: ['filename', 'filepath', 'filter', 'file'].map(key => ({ word: key }))
       })
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('.')
     await helper.waitPopup()
     let items = await helper.getItems()
+    helper.updateConfiguration('suggest.highPrioritySourceLimit', null)
     expect(items.length).toBeGreaterThan(1)
-    disposable.dispose()
   })
 
   it('should truncate label of complete items', async () => {
@@ -390,16 +369,16 @@ describe('completion', () => {
         items: ['a', 'b', 'c', 'd'].map(key => ({ word: key.repeat(20) }))
       })
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('.')
     await helper.waitPopup()
+    helper.updateConfiguration('suggest.labelMaxLength', 200)
     let items = await helper.getItems()
     for (let item of items) {
       expect(item.abbr.length).toBeLessThanOrEqual(10)
     }
-    disposable.dispose()
   })
 
   it('should delete previous items if complete item is null', async () => {
@@ -411,7 +390,7 @@ describe('completion', () => {
       sourceType: SourceType.Native,
       triggerCharacters: ['.'],
       doComplete: async (): Promise<CompleteResult> => Promise.resolve({
-        items: [ {word: 'foo', dup: 1} ]
+        items: [{ word: 'foo', dup: 1 }]
       })
     }
     let source2: ISource = {
@@ -427,8 +406,8 @@ describe('completion', () => {
         return Promise.resolve(result)
       }
     }
-    let disposable1 = sources.addSource(source1)
-    let disposable2 = sources.addSource(source2)
+    disposables.push(sources.addSource(source1))
+    disposables.push(sources.addSource(source2))
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('.f')
@@ -440,7 +419,32 @@ describe('completion', () => {
     items = await helper.getItems()
     expect(items.length).toEqual(1)
     expect(items[0].word).toBe('foo')
-    disposable1.dispose()
-    disposable2.dispose()
+  })
+
+  it('should indent lines on TextChangedP', async () => {
+    await helper.edit()
+    await helper.mockFunction('MyIndentExpr', 0)
+    await nvim.command('setl indentexpr=MyIndentExpr()')
+    await nvim.command('setl indentkeys=\\=~end,0\\=\\\\item')
+    let source: ISource = {
+      name: 'source',
+      priority: 90,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: [],
+      doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        items: [
+          { word: 'END' },
+          { word: 'ENDIF' }
+        ]
+      })
+    }
+    disposables.push(sources.addSource(source))
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('  END')
+    await helper.wait(300)
+    let line = await nvim.line
+    expect(line).toBe('END')
   })
 })

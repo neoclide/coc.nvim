@@ -448,6 +448,7 @@ export interface CompleteOption {
   readonly source?: string
   readonly blacklist: string[]
   readonly changedtick: number
+  readonly indentkeys: string
   triggerForInComplete?: boolean
 }
 

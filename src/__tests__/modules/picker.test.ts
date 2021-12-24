@@ -129,7 +129,7 @@ describe('Picker key mappings', () => {
     let fn = jest.fn()
     picker.onDidClose(fn)
     await nvim.input('<space>')
-    await helper.wait(100)
+    await helper.wait(200)
     await nvim.command('redraw')
     let lines = await nvim.call('getbufline', [picker.buffer.id, 1])
     expect(lines[0]).toMatch('[x]')

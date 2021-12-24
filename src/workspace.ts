@@ -48,7 +48,7 @@ export interface Autocmd {
   callback: Function
 }
 
-const APIVERSION = 10
+const APIVERSION = 11
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 2000
 const methods = [
