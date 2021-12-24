@@ -80,7 +80,8 @@ automatic completion of coc.nvim through `"suggest.autoTrigger": "none"` (or
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
 
-Neovim >= 0.3.2 or Vim >= 8.0.1453.
+Neovim >= 0.3.2 or Vim >= 8.0.1453, for best experience, use neovim >= 0.4.0
+or vim >= 8.2.0750.
 
 NodeJS https://nodejs.org/ >= 12.12.0.
 
@@ -2800,7 +2801,7 @@ List related~
 
 Tree view related~
 
-CocTree* 						*CocTree*
+CocTree 						*CocTree*
 
 *CocTreeTitle* for title in tree view.
 *CocTreeDescription* for description beside label.
@@ -2809,7 +2810,7 @@ CocTree* 						*CocTree*
 
 Symbol icons~
 
-CocSymbol* 						*CocSymbol*
+CocSymbol 						*CocSymbol*
 
 Highlight groups for symbol icons, including:
 
