@@ -164,6 +164,7 @@ function! coc#util#jump(cmd, filepath, ...) abort
     let binfo = getbufinfo(dstbuf)
     if len(binfo) == 1 && empty(binfo[0].windows)
       exec 'buffer '.dstbuf
+      let &buflisted = 1
     else
       exec 'drop '.fnameescape(file)
     endif
