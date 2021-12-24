@@ -194,3 +194,22 @@ function! coc#do_notify(id, method, result)
     call Fn(a:result)
   endif
 endfunction
+
+function! coc#complete_indent() abort
+  let l:curpos = getcurpos()
+  let l:indent_pre = indent('.')
+
+  let l:startofline = &startofline
+  let l:virtualedit = &virtualedit
+  set nostartofline
+  set virtualedit=all
+  normal! ==
+  let &startofline = l:startofline
+  let &virtualedit = l:virtualedit
+
+  let l:shift = indent('.') - l:indent_pre
+  let l:curpos[2] += l:shift
+  let l:curpos[4] += l:shift
+  call cursor(l:curpos[1:])
+  call coc#_cancel()
+endfunction
