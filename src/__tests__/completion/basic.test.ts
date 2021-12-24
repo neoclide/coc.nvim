@@ -34,7 +34,7 @@ describe('completion', () => {
     res = await helper.notVisible('foo')
     expect(res).toBe(true)
   })
-
+  //
   it('should trigger on first letter insert', async () => {
     await helper.edit()
     await nvim.setLine('foo bar')
@@ -43,7 +43,7 @@ describe('completion', () => {
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
   })
-
+  //
   it('should trigger on force refresh', async () => {
     await helper.edit()
     await nvim.setLine('foo f')
@@ -54,7 +54,7 @@ describe('completion', () => {
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
   })
-
+  //
   it('should filter and sort on increment search', async () => {
     await helper.edit()
     await nvim.setLine('forceDocumentSync format  fallback')
@@ -69,7 +69,7 @@ describe('completion', () => {
     expect(items.findIndex(o => o.word == 'fallback')).toBe(-1)
     expect(items.length).toBeLessThan(l)
   })
-
+  //
   it('should not trigger on insert enter', async () => {
     await helper.edit()
     await nvim.setLine('foo bar')
@@ -78,7 +78,7 @@ describe('completion', () => {
     let visible = await nvim.call('pumvisible')
     expect(visible).toBe(0)
   })
-
+  //
   it('should filter on fast input', async () => {
     await helper.edit()
     await nvim.setLine('foo bar')
@@ -90,7 +90,7 @@ describe('completion', () => {
     expect(item).toBeFalsy()
     expect(items[0].word).toBe('bar')
   })
-
+  //
   it('should fix start column', async () => {
     await helper.edit()
     let source: ISource = {
@@ -116,7 +116,7 @@ describe('completion', () => {
     expect(val.start).toBe(0)
     disposable.dispose()
   })
-
+  //
   it('should stop completion when type none trigger character', async () => {
     await helper.edit()
     let source: ISource = {
@@ -142,7 +142,7 @@ describe('completion', () => {
     let res = await helper.pumvisible()
     expect(res).toBe(true)
   })
-
+  //
   it('should trigger on triggerCharacters', async () => {
     await helper.edit()
     let source: ISource = {
@@ -163,7 +163,7 @@ describe('completion', () => {
     let res = await helper.visible('foo', 'trigger')
     expect(res).toBe(true)
   })
-
+  //
   it('should should complete items without input', async () => {
     await helper.edit()
     let source: ISource = {
@@ -185,7 +185,7 @@ describe('completion', () => {
     expect(items.length).toBeGreaterThan(1)
     await helper.wait(300)
   })
-
+  //
   it('should show float window', async () => {
     await helper.edit()
     let source: ISource = {
@@ -209,7 +209,7 @@ describe('completion', () => {
     let res = await helper.visible('foo', 'float')
     expect(res).toBe(true)
   })
-
+  //
   it('should trigger on triggerPatterns', async () => {
     await helper.edit()
     let source: ISource = {
@@ -236,7 +236,7 @@ describe('completion', () => {
     let res = await helper.visible('foo', 'pattern')
     expect(res).toBe(true)
   })
-
+  //
   it('should not trigger triggerOnly source', async () => {
     await helper.edit()
     await nvim.setLine('foo bar')
@@ -261,7 +261,7 @@ describe('completion', () => {
     let items = await helper.items()
     expect(items.length).toBe(1)
   })
-
+  //
   it('should not trigger when cursor moved', async () => {
     await helper.edit()
     let source: ISource = {
@@ -284,7 +284,7 @@ describe('completion', () => {
     let visible = await nvim.call('pumvisible')
     expect(visible).toBe(0)
   })
-
+  //
   it('should trigger when completion is not completed', async () => {
     await helper.edit()
     let token: CancellationToken
@@ -319,7 +319,7 @@ describe('completion', () => {
     await helper.visible('bar', 'completion')
     expect(token.isCancellationRequested).toBe(true)
   })
-
+  //
   it('should limit results for low priority source', async () => {
     await helper.edit()
     helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
@@ -332,7 +332,7 @@ describe('completion', () => {
     items = items.filter(o => o.menu == '[A]')
     expect(items.length).toBe(2)
   })
-
+  //
   it('should limit result for high priority source', async () => {
     helper.updateConfiguration('suggest.highPrioritySourceLimit', 2)
     await helper.edit()
@@ -355,7 +355,7 @@ describe('completion', () => {
     helper.updateConfiguration('suggest.highPrioritySourceLimit', null)
     expect(items.length).toBeGreaterThan(1)
   })
-
+  //
   it('should truncate label of complete items', async () => {
     helper.updateConfiguration('suggest.labelMaxLength', 10)
     await helper.edit()
@@ -380,7 +380,7 @@ describe('completion', () => {
       expect(item.abbr.length).toBeLessThanOrEqual(10)
     }
   })
-
+  //
   it('should delete previous items if complete item is null', async () => {
     await helper.edit()
     let source1: ISource = {
@@ -421,19 +421,20 @@ describe('completion', () => {
     expect(items[0].word).toBe('foo')
   })
 
-  it('should indent lines on TextChangedP', async () => {
-    await helper.edit()
+  it('should indent lines on TextChangedP #1', async () => {
+    await helper.createDocument()
     await helper.mockFunction('MyIndentExpr', 0)
     await nvim.command('setl indentexpr=MyIndentExpr()')
     await nvim.command('setl indentkeys=\\=~end,0\\=\\\\item')
     let source: ISource = {
-      name: 'source',
+      name: 'source1',
       priority: 90,
       enable: true,
       sourceType: SourceType.Native,
-      triggerCharacters: [],
       doComplete: async (): Promise<CompleteResult> => Promise.resolve({
         items: [
+          { word: 'item' },
+          { word: 'items' },
           { word: 'END' },
           { word: 'ENDIF' }
         ]
@@ -442,9 +443,17 @@ describe('completion', () => {
     disposables.push(sources.addSource(source))
     await nvim.input('i')
     await helper.wait(30)
-    await nvim.input('  END')
+    await nvim.input('  \\ite')
+    await helper.waitPopup()
+    await nvim.input('m')
     await helper.wait(300)
     let line = await nvim.line
+    expect(line).toBe('\\item')
+    await nvim.input('<cr>')
+    await helper.wait(30)
+    await nvim.input('  END')
+    await helper.wait(300)
+    line = await nvim.line
     expect(line).toBe('END')
   })
 })
