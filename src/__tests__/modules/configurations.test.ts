@@ -3,7 +3,7 @@ import os from 'os'
 import { ParseError } from 'jsonc-parser'
 import path from 'path'
 import Configurations from '../../configuration'
-import { convertErrors, getChangedKeys, getConfigurationValue, getKeys, parseConfiguration } from '../../configuration/util'
+import { convertErrors, mergeConfigProperties, getChangedKeys, getConfigurationValue, getKeys, parseConfiguration } from '../../configuration/util'
 import { IConfigurationModel } from '../../types'
 import { URI } from 'vscode-uri'
 import { v1 as uuidv1 } from 'uuid'
@@ -243,5 +243,33 @@ describe('parse configuration', () => {
     let schema = { 'my.schema': { 'foo.bar': 1 } }
     let [, obj] = parseConfiguration(JSON.stringify(schema))
     expect(obj).toEqual({ my: { schema: { 'foo.bar': 1 } } })
+  })
+
+  it('should not parse uri properties', async () => {
+    let o: any = {
+      foo: {
+        'bar://x': '',
+        'file://y': ''
+      }
+    }
+    let [, contents] = parseConfiguration(JSON.stringify(o))
+    expect(contents).toEqual({
+      foo: {
+        'bar://x': '',
+        'file://y': ''
+      }
+    })
+  })
+
+  it('should merge preperties', async () => {
+    let res = mergeConfigProperties({
+      foo: 'bar',
+      "x.y.a": "x",
+      "x.y.b": "y",
+      "x.t": "z"
+    })
+    expect(res).toEqual({
+      foo: 'bar', x: { y: { a: 'x', b: 'y' }, t: 'z' }
+    })
   })
 })

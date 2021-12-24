@@ -14,6 +14,29 @@ const pluginRoot = typeof ESBUILD === 'undefined' ? resolve(__dirname, '../..') 
 
 export type ShowError = (errors: ErrorItem[]) => void
 
+export function mergeConfigProperties(obj: any): any {
+  let res = {}
+  for (let key of Object.keys(obj)) {
+    if (key.indexOf('.') == -1) {
+      res[key] = obj[key]
+    } else {
+      let parts = key.split('.')
+      let pre = res
+      let len = parts.length
+      for (let i = 0; i < len; i++) {
+        let k = parts[i]
+        if (i == len - 1) {
+          pre[k] = obj[key]
+        } else {
+          pre[k] = pre[k] || {}
+          pre = pre[k]
+        }
+      }
+    }
+  }
+  return res
+}
+
 export function parseContentFromFile(filepath: string | null, onError?: ShowError): IConfigurationModel {
   if (!filepath || !fs.existsSync(filepath)) return { contents: {} }
   let content: string
@@ -50,7 +73,8 @@ export function parseConfiguration(content: string): [ParseError[], any] {
     if (emptyObject(obj)) return {}
     let dest = {}
     for (let key of Object.keys(obj)) {
-      if (split && key.includes('.')) {
+      // not split uri
+      if (split && key.includes('.') && !/^.+:\//.test(key)) {
         let parts = key.split('.')
         let first = parts.shift()
         addProperty(dest, first, parts, obj[key])

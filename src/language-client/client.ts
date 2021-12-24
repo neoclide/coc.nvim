@@ -15,6 +15,7 @@ import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent,
 import { resolveRoot } from '../util/fs'
 import * as Is from '../util/is'
 import { omit } from '../util/lodash'
+import { mergeConfigProperties } from '../configuration/util'
 import DiagnosticCollection from '../diagnostic/collection'
 import window, { MessageItem } from '../window'
 import workspace from '../workspace'
@@ -2945,7 +2946,7 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
         return
       }
       if (section != undefined) {
-        this.onDidChangeConfiguration(data.registerOptions.section)
+        this.onDidChangeConfiguration(section)
       }
     })
     this._listeners.set(data.id, disposable)
@@ -2955,7 +2956,7 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
     }
     if (section != undefined) {
       // Avoid server bug
-      this.onDidChangeConfiguration(data.registerOptions.section)
+      this.onDidChangeConfiguration(section)
     }
   }
 
@@ -3001,7 +3002,7 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
   private getConfiguredSettings(key: string): any {
     let len = '.settings'.length
     let config = workspace.getConfiguration(key.slice(0, - len))
-    return config.get<any>('settings', {})
+    return mergeConfigProperties(config.get<any>('settings', {}))
   }
 
   private extractSettingsInformation(keys: string[]): any {
