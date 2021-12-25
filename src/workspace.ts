@@ -3,6 +3,7 @@ import bytes from 'bytes'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
+import semver from 'semver'
 import { v1 as uuid } from 'uuid'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -219,6 +220,32 @@ export class Workspace implements IWorkspace {
 
   public getConfigFile(target: ConfigurationTarget): string {
     return this.configurations.getConfigFile(target)
+  }
+
+  /**
+   * Like vim's has(), but for version check only.
+   * Check patch on neovim and check nvim on vim would return false.
+   *
+   * For example:
+   * - has('nvim-0.6.0')
+   * - has('patch-7.4.248')
+   */
+  public has(feature: string): boolean {
+    if (!feature.startsWith('nvim-') && !feature.startsWith('patch-')) {
+      throw new Error('Feature param could only starts with nvim and patch')
+    }
+    if (this.isNvim && feature.startsWith('patch-')) {
+      return false
+    }
+    if (this.isVim && feature.startsWith('nvim-')) {
+      return false
+    }
+    if (this.isVim) {
+      let [_, major, minor, patch] = this.env.version.match(/^(\d)(\d{2})(\d+)$/)
+      let version = `${major}.${parseInt(minor, 10)}.${parseInt(patch, 10)}`
+      return semver.gte(version, feature.slice(6))
+    }
+    return semver.gte(this.env.version, feature.slice(5))
   }
 
   /**
