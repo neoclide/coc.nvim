@@ -42,6 +42,8 @@ export interface DiagnosticConfig {
   messageDelay: number
   refreshOnInsertMode: boolean
   virtualText: boolean
+  virtualTextAlignRight: boolean
+  virtualTextWinCol: number | null
   virtualTextCurrentLineOnly: boolean
   virtualTextSrcId: number
   virtualTextPrefix: string
@@ -253,7 +255,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
   }
 
   public showVirtualText(lnum: number, bufnr?: number): void {
-    if (!this.config.virtualText) return
+    let { config } = this
+    if (!config.virtualText) return
     let { virtualTextSrcId, virtualTextPrefix, virtualTextCurrentLineOnly } = this.config
     let { diagnostics, buffer } = this
     if (virtualTextCurrentLineOnly) {
@@ -274,7 +277,19 @@ export class DiagnosticBuffer implements BufferSyncItem {
         .filter((l: string) => l.length > 0)
         .slice(0, this.config.virtualTextLines)
         .join(this.config.virtualTextLineSeparator)
-      void buffer.setVirtualText(virtualTextSrcId, line, [[virtualTextPrefix + msg, highlight]], {})
+      if (workspace.has('nvim-0.5.1')) {
+        let opts: any = {
+          virt_text: [[virtualTextPrefix + msg, highlight]]
+        }
+        if (config.virtualTextAlignRight) {
+          opts.virt_text_pos = 'right_align'
+        } else if (typeof config.virtualTextWinCol === 'number') {
+          opts.virt_text_win_col = config.virtualTextWinCol
+        }
+        buffer.setExtMark(virtualTextSrcId, line, 0, opts)
+      } else {
+        void buffer.setVirtualText(virtualTextSrcId, line, [[virtualTextPrefix + msg, highlight]], {})
+      }
     }
   }
 

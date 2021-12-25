@@ -633,6 +633,16 @@
       "description": "Use NeoVim virtual text to display diagnostics",
       "default": false
     },
+    "diagnostic.virtualTextAlignRight": {
+      "type": "boolean",
+      "description": "Make virtual text align to the right of window.",
+      "default": false
+    },
+    "diagnostic.virtualTextWinCol": {
+      "type": ["number", "null"],
+      "description": "Window column number to align virtual text",
+      "default": null
+    },
     "diagnostic.virtualTextCurrentLineOnly": {
       "type": "boolean",
       "description": "Only show virtualText diagnostic on current cursor line",

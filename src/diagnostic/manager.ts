@@ -49,6 +49,12 @@ export class DiagnosticManager implements Disposable {
 
   public init(): void {
     this.setConfiguration()
+    if (workspace.isNvim) {
+      // setExtMark throws when namespace not created.
+      this.nvim.createNamespace('coc-diagnostic-virtualText').then(id => {
+        this.config.virtualTextSrcId = id
+      }).logError()
+    }
     workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
     }, null, this.disposables)
@@ -539,13 +545,15 @@ export class DiagnosticManager implements Disposable {
       enableHighlightLineNumber,
       highlighLimit: config.get<number>('highlighLimit', 1000),
       autoRefresh: config.get<boolean>('autoRefresh', true),
-      virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
+      virtualTextSrcId: this.config ? this.config.virtualTextSrcId : workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
       enableSign: workspace.env.sign && config.get<boolean>('enableSign', true),
       locationlistUpdate: config.get<boolean>('locationlistUpdate', true),
       enableMessage: config.get<string>('enableMessage', 'always'),
       messageDelay: config.get<number>('messageDelay', 200),
       virtualText: config.get<boolean>('virtualText', false) && this.nvim.hasFunction('nvim_buf_set_virtual_text'),
+      virtualTextAlignRight: workspace.has('nvim-0.5.1') && config.get<boolean>('virtualTextAlignRight', false),
+      virtualTextWinCol: workspace.has('nvim-0.5.1') ? config.get<number | null>('virtualTextWinCol', null) : null,
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
