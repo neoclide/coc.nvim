@@ -25,6 +25,24 @@ _True snippet and additional text editing support_
 - 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
 - ❤️ **Flexible**: [configured like VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file), [extensions work like in VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
+**Gold Sponsors**
+
+<a href="https://opencollective.com/cocnvim#platinum-sponsors">
+  <img src="https://opencollective.com/cocnvim/tiers/gold-sponsors.svg?avatarHeight=36&width=600">
+</a>
+
+**Silver Sponsors**
+
+<a href="https://opencollective.com/cocnvim#platinum-sponsors">
+  <img src="https://opencollective.com/cocnvim/tiers/silver-sponsors.svg?avatarHeight=36&width=600">
+</a>
+
+**Bronze Sponsors**
+
+<a href="https://opencollective.com/cocnvim#platinum-sponsors">
+  <img src="https://opencollective.com/cocnvim/tiers/bronze-sponsors.svg?avatarHeight=36&width=600">
+</a>
+
 ## Quick Start
 
 Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
