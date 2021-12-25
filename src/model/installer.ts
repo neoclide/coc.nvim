@@ -5,7 +5,6 @@ import readline from 'readline'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
-import rc from 'rc'
 import semver from 'semver'
 import workspace from '../workspace'
 import download from './download'
@@ -21,9 +20,28 @@ export interface Info {
 }
 
 function registryUrl(scope = 'coc.nvim'): string {
-  const result = rc('npm', { registry: 'https://registry.npmjs.org/' })
-  const registry = result[`${scope}:registry`] || result.config_registry || result.registry as string
-  return registry.endsWith('/') ? registry : registry + '/'
+  let res = 'https://registry.npmjs.org/'
+  let filepath = path.join(os.homedir(), '.npmrc')
+  if (fs.existsSync(filepath)) {
+    try {
+      let content = fs.readFileSync(filepath, 'utf8')
+      let obj = {}
+      for (let line of content.split(/\r?\n/)) {
+        if (line.indexOf('=') > -1) {
+          let [_, key, val] = line.match(/^(.*?)=(.*)$/)
+          obj[key] = val
+        }
+      }
+      if (obj[`${scope}:registry`]) {
+        res = obj[`${scope}:registry`]
+      } else if (obj['registry']) {
+        res = obj['registry']
+      }
+    } catch (e) {
+      logger.error('Error on read .npmrc:', e.message)
+    }
+  }
+  return res.endsWith('/') ? res : res + '/'
 }
 
 export class Installer extends EventEmitter {
