@@ -1,12 +1,12 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import diagnosticManager from '../diagnostic/manager'
-import { CodeAction, CodeActionContext, Range, CodeActionKind } from 'vscode-languageserver-protocol'
+import { CodeActionContext, CodeActionKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
-import workspace from '../workspace'
-import Document from '../model/document'
-import window from '../window'
-import { HandlerDelegate } from '../types'
+import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
+import Document from '../model/document'
+import { ExtendedCodeAction, HandlerDelegate } from '../types'
+import window from '../window'
+import workspace from '../workspace'
 const logger = require('../util/logger')('handler-codeActions')
 
 /**
@@ -50,7 +50,7 @@ export default class CodeActions {
     throw new Error('Organize import action not found.')
   }
 
-  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
+  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
     range = range || Range.create(0, 0, doc.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
     let context: CodeActionContext = { diagnostics }
@@ -107,7 +107,7 @@ export default class CodeActions {
   /**
    * Get current codeActions
    */
-  public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<CodeAction[]> {
+  public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
     let { doc } = await this.handler.getCurrentState()
     let range: Range
     if (mode) range = await workspace.getSelectedRange(mode, doc)
@@ -126,14 +126,17 @@ export default class CodeActions {
     this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`, true)
   }
 
-  public async applyCodeAction(action: CodeAction): Promise<void> {
+  public async applyCodeAction(action: ExtendedCodeAction): Promise<void> {
     if (action.disabled) {
       throw new Error(`Action "${action.title}" is disabled: ${action.disabled.reason}`)
     }
-    action = await this.handler.withRequestToken('resolve codeAction', token => {
+    if (!action.providerId) {
+      throw new Error('providerId not found with codeAction')
+    }
+    let resolved = await this.handler.withRequestToken('resolve codeAction', token => {
       return languages.resolveCodeAction(action, token)
     })
-    let { edit, command } = action
+    let { edit, command } = resolved
     if (edit) await workspace.applyEdit(edit)
     if (command) await commandManager.execute(command)
   }

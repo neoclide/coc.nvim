@@ -1,14 +1,13 @@
 import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeActionProvider } from './index'
+import { ExtendedCodeAction } from '../types'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
+import { omit } from '../util/lodash'
 const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeActionManager extends Manager<CodeActionProvider> {
-  // action to provider uuid
-  private providerMap: WeakMap<CodeAction, string> = new WeakMap()
-
   public register(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
     let item: ProviderItem<CodeActionProvider> = {
       id: uuid(),
@@ -28,7 +27,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider> {
     range: Range,
     context: CodeActionContext,
     token: CancellationToken
-  ): Promise<CodeAction[]> {
+  ): Promise<ExtendedCodeAction[]> {
     let providers = this.getProviders(document)
     if (!providers.length) return null
     if (context.only) {
@@ -40,19 +39,19 @@ export default class CodeActionManager extends Manager<CodeActionProvider> {
         return true
       })
     }
-    let res: CodeAction[] = []
+    let res: ExtendedCodeAction[] = []
     await Promise.all(providers.map(item => {
       let { provider, id } = item
       return Promise.resolve(provider.provideCodeActions(document, range, context, token)).then(actions => {
         if (!actions || actions.length == 0) return
         for (let action of actions) {
           if (Command.is(action)) {
-            let codeAction: CodeAction = {
+            let codeAction: ExtendedCodeAction = {
               title: action.title,
-              command: action
+              command: action,
+              providerId: id
             }
             res.push(codeAction)
-            this.providerMap.set(codeAction, id)
           } else {
             if (context.only) {
               if (!action.kind) continue
@@ -67,8 +66,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider> {
             }
             let idx = res.findIndex(o => o.title == action.title)
             if (idx == -1) {
-              this.providerMap.set(action, id)
-              res.push(action)
+              res.push(Object.assign({ providerId: id }, action))
             }
           }
         }
@@ -77,18 +75,16 @@ export default class CodeActionManager extends Manager<CodeActionProvider> {
     return res
   }
 
-  public async resolveCodeAction(codeAction: CodeAction, token: CancellationToken): Promise<CodeAction> {
+  public async resolveCodeAction(codeAction: ExtendedCodeAction, token: CancellationToken): Promise<CodeAction> {
     // no need to resolve
     if (codeAction.edit != null) return codeAction
-    let id = this.providerMap.get(codeAction)
+    let id = codeAction.providerId
     if (!id) throw new Error(`provider id not found from codeAction`)
     let provider = this.getProviderById(id)
     if (!provider || typeof provider.resolveCodeAction !== 'function') {
       return codeAction
     }
-    let resolved = await Promise.resolve(provider.resolveCodeAction(codeAction, token))
-    // save the map to support resolveClientId
-    if (resolved) this.providerMap.set(resolved, id)
+    let resolved = await Promise.resolve(provider.resolveCodeAction(omit(codeAction, ['providerId']), token))
     return resolved || codeAction
   }
 }

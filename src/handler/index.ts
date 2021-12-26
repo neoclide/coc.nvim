@@ -1,11 +1,11 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionKind, Disposable, Position, Range, SymbolKind } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeActionKind, Disposable, Position, Range, SymbolKind } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import { StatusBarItem } from '../model/status'
-import { ProviderName } from '../types'
+import { ExtendedCodeAction, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import window from '../window'
 import workspace from '../workspace'
@@ -183,11 +183,11 @@ export default class Handler implements HandlerDelegate {
     }
   }
 
-  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
+  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
     return await this.codeActions.getCodeActions(doc, range, only)
   }
 
-  public async applyCodeAction(action: CodeAction): Promise<void> {
+  public async applyCodeAction(action: ExtendedCodeAction): Promise<void> {
     await this.codeActions.applyCodeAction(action)
   }
 

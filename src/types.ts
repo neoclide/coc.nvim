@@ -34,8 +34,15 @@ export interface HandlerDelegate {
   getCurrentState: () => Promise<CurrentState>
   addDisposable: (disposable: Disposable) => void
   getIcon(kind: SymbolKind): { text: string, hlGroup: string }
-  getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]>
-  applyCodeAction(action: CodeAction): Promise<void>
+  getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]>
+  applyCodeAction(action: ExtendedCodeAction): Promise<void>
+}
+
+/*
+ * With providerId so it can be resolved.
+ */
+export interface ExtendedCodeAction extends CodeAction {
+  providerId: string
 }
 
 export interface FloatConfig {

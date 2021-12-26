@@ -27,6 +27,7 @@ import SemanticTokensRangeManager from './provider/semanticTokensRangeManager'
 import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
+import { ExtendedCodeAction } from './types'
 const logger = require('./util/logger')('languages')
 
 export interface DocumentSymbolProviderMetadata {
@@ -282,7 +283,7 @@ class Languages {
     return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token)
   }
 
-  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken): Promise<CodeAction[]> {
+  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken): Promise<ExtendedCodeAction[]> {
     return await this.codeActionManager.provideCodeActions(document, range, context, token)
   }
 
@@ -325,7 +326,7 @@ class Languages {
     return await this.codeLensManager.resolveCodeLens(codeLens, token)
   }
 
-  public async resolveCodeAction(codeAction: CodeAction, token: CancellationToken): Promise<CodeAction> {
+  public async resolveCodeAction(codeAction: ExtendedCodeAction, token: CancellationToken): Promise<CodeAction> {
     return await this.codeActionManager.resolveCodeAction(codeAction, token)
   }
 

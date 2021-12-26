@@ -2,7 +2,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
-import { CallHierarchyItem, CodeAction, CodeActionKind } from 'vscode-languageserver-protocol'
+import { CallHierarchyItem, CodeActionKind } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from './commands'
 import completion from './completion'
@@ -227,25 +227,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('codeAction', (mode, only) => this.handler.codeActions.doCodeAction(mode, only))
     this.addAction('organizeImport', () => this.handler.codeActions.organizeImport())
     this.addAction('fixAll', () => this.handler.codeActions.doCodeAction(null, [CodeActionKind.SourceFixAll]))
-    // save actions send to vim, for provider resolve
-    let codeActions: CodeAction[] = []
-    this.addAction('doCodeAction', codeAction => {
-      if (codeAction.index == null) {
-        throw new Error(`index should exists with codeAction`)
-      }
-      let action = codeActions[codeAction.index]
-      if (!action) throw new Error(`invalid codeAction index: ${codeAction.index}`)
-      return this.handler.codeActions.applyCodeAction(action)
-    })
-    this.addAction('codeActions', async (mode, only) => {
-      codeActions = await this.handler.codeActions.getCurrentCodeActions(mode, only)
-      // save index for retreive
-      return codeActions.map((o, idx) => Object.assign({ index: idx }, o))
-    })
-    this.addAction('quickfixes', async mode => {
-      codeActions = await this.handler.codeActions.getCurrentCodeActions(mode, [CodeActionKind.QuickFix])
-      return codeActions.map((o, idx) => Object.assign({ index: idx }, o))
-    })
+    this.addAction('doCodeAction', codeAction => this.handler.codeActions.applyCodeAction(codeAction))
+    this.addAction('codeActions', (mode, only) => this.handler.codeActions.getCurrentCodeActions(mode, only))
+    this.addAction('quickfixes', mode => this.handler.codeActions.getCurrentCodeActions(mode, [CodeActionKind.QuickFix]))
     this.addAction('codeLensAction', () => this.handler.codeLens.doAction())
     this.addAction('runCommand', (...args: any[]) => this.handler.commands.runCommand(...args))
     this.addAction('doQuickfix', () => this.handler.codeActions.doQuickfix())

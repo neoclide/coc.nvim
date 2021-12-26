@@ -348,8 +348,8 @@ describe('handler codeActions', () => {
     })
 
     it('should throw for disabled action', async () => {
-      let action = CodeAction.create('my action', CodeActionKind.Empty)
-      action.disabled = { reason: 'disabled' }
+      let action: any = CodeAction.create('my action', CodeActionKind.Empty)
+      action.disabled = { reason: 'disabled', providerId: 'x' }
       let err
       try {
         await codeActions.applyCodeAction(action)
