@@ -168,6 +168,7 @@ function request(url: string, data: any, opts: any, token?: CancellationToken): 
         req.destroy(new Error('request aborted'))
       })
     }
+    let timer: NodeJS.Timer
     const req = mod.request(opts, res => {
       let readable: Readable = res
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
@@ -179,6 +180,7 @@ function request(url: string, data: any, opts: any, token?: CancellationToken): 
           chunks.push(chunk)
         })
         readable.on('end', () => {
+          if (timer) clearTimeout(timer)
           let buf = Buffer.concat(chunks)
           if (!opts.buffer && (contentType.startsWith('application/json') || contentType.startsWith('text/'))) {
             let ms = contentType.match(/charset=(\S+)/)
@@ -205,7 +207,16 @@ function request(url: string, data: any, opts: any, token?: CancellationToken): 
         reject(new Error(`Bad response from ${url}: ${res.statusCode}`))
       }
     })
-    req.on('error', reject)
+    req.on('error', e => {
+      // Possible succeed proxy request with ECONNRESET error on node > 14
+      if (opts.agent && e.code == 'ECONNRESET') {
+        timer = setTimeout(() => {
+          reject(e)
+        }, 500)
+      } else {
+        reject(e)
+      }
+    })
     req.on('timeout', () => {
       req.destroy(new Error(`Request timeout after ${opts.timeout}ms`))
     })
