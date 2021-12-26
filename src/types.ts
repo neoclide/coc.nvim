@@ -212,6 +212,7 @@ export interface IWorkspace {
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
   registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
   getQuickfixItem(loc: Location, text?: string, type?: string): Promise<QuickfixItem>
+  getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>>
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
   getCurrentState(): Promise<EditerState>
