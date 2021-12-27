@@ -740,7 +740,7 @@ export class Workspace implements IWorkspace {
     let filesLines: { [fsPath: string]: string[] } = {}
     let filepathList = locations.reduce<string[]>((pre: string[], curr) => {
       let u = URI.parse(curr.uri)
-      if (u.scheme == 'file' && !this.getDocument(curr.uri)) {
+      if (u.scheme == 'file' && !pre.includes(u.fsPath) && !this.getDocument(curr.uri)) {
         pre.push(u.fsPath)
       }
       return pre
