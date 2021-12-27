@@ -25,12 +25,11 @@ import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, OutputChannel, PatternType, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
-import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
+import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, MapMode, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
-import { Mutex } from './util/mutex'
 import { getChangedFromEdits } from './util/position'
-import { byteLength } from './util/string'
+import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
 
@@ -629,29 +628,23 @@ export class Workspace implements IWorkspace {
     }
     let doc = this.getDocument(loc.uri)
     let { uri, range } = loc
-    let { line } = range.start
-    let sl = range.start.line
-    let sc = range.start.character
-    let el = range.end.line
-    let ec = range.end.character
     let u = URI.parse(uri)
-    let bufnr = doc ? doc.bufnr : -1
     if (!text && u.scheme == 'file') {
-      text = await this.getLine(uri, line)
+      text = await this.getLine(uri, range.start.line)
     }
     let item: QuickfixItem = {
       uri,
       filename: u.scheme == 'file' ? u.fsPath : uri,
-      lnum: sl + 1,
-      end_lnum: el + 1,
-      col: sc + 1,
-      end_col: ec + 1,
+      lnum: range.start.line + 1,
+      end_lnum: range.end.line + 1,
+      col: text ? byteIndex(text, range.start.character) + 1 : range.start.character + 1,
+      end_col: text ? byteIndex(text, range.end.character) + 1 : range.end.character + 1,
       text: text || '',
       range
     }
     if (module) item.module = module
     if (type) item.type = type
-    if (bufnr != -1) item.bufnr = bufnr
+    if (doc) item.bufnr = doc.bufnr
     return item
   }
 
