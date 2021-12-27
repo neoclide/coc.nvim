@@ -1219,10 +1219,7 @@ class DidCloseTextDocumentFeature extends DocumentNotifications<
       ) {
         let middleware = this._client.clientOptions.middleware!
         let didClose = (textDocument: TextDocument) => {
-          this._client.sendNotification(
-            this._type,
-            this._createParams(textDocument)
-          )
+          this._client.sendNotification(this._type, this._createParams(textDocument))
         }
         this._syncedDocuments.delete(textDocument.uri.toString())
         if (middleware.didClose) {
@@ -1315,8 +1312,7 @@ class DidChangeTextDocumentFeature
             didChange(event)
           }
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
-          let didChange: (event: DidChangeTextDocumentParams) => void = event => {
-            let { textDocument } = workspace.getDocument(event.textDocument.uri)
+          let didChange: (event: DidChangeTextDocumentParams) => void = () => {
             this._client.sendNotification(
               DidChangeTextDocumentNotification.type,
               cv.asChangeTextDocumentParams(textDocument)

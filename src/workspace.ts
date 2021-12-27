@@ -9,10 +9,12 @@ import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, Del
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import which from 'which'
+import { version as VERSION } from '../package.json'
 import channels from './channels'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
+import BufferSync, { SyncItem } from './model/bufferSync'
 import DB from './model/db'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
@@ -20,18 +22,17 @@ import Mru from './model/mru'
 import Resolver from './model/resolver'
 import Task from './model/task'
 import TerminalModel, { TerminalOptions } from './model/terminal'
-import BufferSync, { SyncItem } from './model/bufferSync'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, OutputChannel, PatternType, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { distinct } from './util/array'
-import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
-import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, platform, runCommand, wait, MapMode } from './util/index'
+import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
+import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, MapMode, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
+import { Mutex } from './util/mutex'
 import { getChangedFromEdits } from './util/position'
-import { byteIndex, byteLength } from './util/string'
+import { byteLength } from './util/string'
 import Watchman from './watchman'
 import window from './window'
-import { version as VERSION } from '../package.json'
 
 export interface KeymapOption {
   sync: boolean
@@ -409,11 +410,24 @@ export class Workspace implements IWorkspace {
 
   /**
    * Current filetypes.
+   *
+   * @deprecated use languageIds instead.
    */
   public get filetypes(): Set<string> {
     let res = new Set<string>()
     for (let doc of this.documents) {
       res.add(doc.filetype)
+    }
+    return res
+  }
+
+  /**
+   * Current languageIds.
+   */
+  public get languageIds(): Set<string> {
+    let res = new Set<string>()
+    for (let doc of this.documents) {
+      res.add(doc.languageId)
     }
     return res
   }
@@ -490,7 +504,7 @@ export class Workspace implements IWorkspace {
   /**
    * Get created document by uri or bufnr.
    */
-  public getDocument(uri: number | string): Document {
+  public getDocument(uri: number | string): Document | null {
     if (typeof uri === 'number') {
       return this.buffers.get(uri)
     }
@@ -589,7 +603,7 @@ export class Workspace implements IWorkspace {
         })
       }
       if (locations.length) {
-        let items = await Promise.all(locations.map(loc => this.getQuickfixItem(loc)))
+        let items = await this.getQuickfixList(locations)
         let silent = locations.every(l => l.uri == uri)
         if (listTarget == 'quickfix') {
           await this.nvim.call('setqflist', [items])
@@ -617,7 +631,7 @@ export class Workspace implements IWorkspace {
     }
     let doc = this.getDocument(loc.uri)
     let { uri, range } = loc
-    let { line, character } = range.start
+    let { line } = range.start
     let sl = range.start.line
     let sc = range.start.character
     let el = range.end.line
@@ -626,7 +640,6 @@ export class Workspace implements IWorkspace {
     let bufnr = doc ? doc.bufnr : -1
     if (!text && u.scheme == 'file') {
       text = await this.getLine(uri, line)
-      character = byteIndex(text, character)
     }
     let item: QuickfixItem = {
       uri,
@@ -723,11 +736,40 @@ export class Workspace implements IWorkspace {
     await nvim.resumeNotification()
   }
 
+  public async getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>> {
+    let filesLines: { [fsPath: string]: string[] } = {}
+    let filepathList = locations.reduce<string[]>((pre: string[], curr) => {
+      let u = URI.parse(curr.uri)
+      if (u.scheme == 'file' && !pre.includes(u.fsPath) && !this.getDocument(curr.uri)) {
+        pre.push(u.fsPath)
+      }
+      return pre
+    }, [])
+
+    await Promise.all(filepathList.map(fsPath => {
+      return new Promise(resolve => {
+        fs.readFile(fsPath, 'utf8', (err, content) => {
+          if (err) return resolve(undefined)
+          filesLines[fsPath] = content.split(/\r?\n/)
+          resolve(undefined)
+        })
+      })
+    }))
+    return await Promise.all(locations.map(loc => {
+      let { uri, range } = loc
+      let { fsPath } = URI.parse(uri)
+      let text: string | undefined
+      let lines = filesLines[fsPath]
+      if (lines) text = lines[range.start.line]
+      return this.getQuickfixItem(loc, text)
+    }))
+  }
+
   /**
    * Populate locations to UI.
    */
   public async showLocations(locations: Location[]): Promise<void> {
-    let items = await Promise.all(locations.map(loc => this.getQuickfixItem(loc)))
+    let items = await this.getQuickfixList(locations)
     let { nvim } = this
     const preferences = this.getConfiguration('coc.preferences')
     if (preferences.get<boolean>('useQuickfixForLocations', false)) {
@@ -1425,7 +1467,7 @@ augroup end`
       this.configurations.checkFolderConfiguration(document.uri)
       let config = this.getConfiguration('workspace')
       let filetypes = config.get<string[]>('ignoredFiletypes', [])
-      if (!filetypes.includes(document.filetype)) {
+      if (!filetypes.includes(document.languageId)) {
         let root = this.resolveRoot(document)
         if (root) {
           this.addWorkspaceFolder(root)
@@ -1575,7 +1617,7 @@ augroup end`
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let isBottomUp = bottomUpFileTypes.includes(document.filetype)
+        let isBottomUp = bottomUpFileTypes.includes(document.languageId)
         let root = resolveRoot(dir, patterns, cwd, isBottomUp, checkCwd)
         if (root) return root
       }
@@ -1587,7 +1629,7 @@ augroup end`
   public getRootPatterns(document: Document, patternType: PatternType): string[] {
     let { uri } = document
     if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
-    if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.filetype)
+    if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.languageId)
     const preferences = this.getConfiguration('coc.preferences', uri)
     return preferences.get<string[]>('rootPatterns', ['.git', '.hg', '.projections.json']).slice()
   }

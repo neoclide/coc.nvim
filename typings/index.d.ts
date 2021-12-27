@@ -6510,6 +6510,11 @@ declare module 'coc.nvim' {
     export function getQuickfixItem(loc: Location | LocationLink, text?: string, type?: string, module?: string): Promise<QuickfixItem>
 
     /**
+     * Convert locations to quickfix list.
+     */
+    export function getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>>
+
+    /**
      * Get selected range for current document
      */
     export function getSelectedRange(visualmode: string, document: Document): Promise<Range | null>

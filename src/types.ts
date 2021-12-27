@@ -188,6 +188,7 @@ export interface IWorkspace {
   readonly isVim: boolean
   readonly isNvim: boolean
   readonly filetypes: Set<string>
+  readonly languageIds: Set<string>
   readonly pluginRoot: string
   readonly initialized: boolean
   readonly completeOpt: string
@@ -212,6 +213,7 @@ export interface IWorkspace {
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
   registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
   getQuickfixItem(loc: Location, text?: string, type?: string): Promise<QuickfixItem>
+  getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>>
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
   getCurrentState(): Promise<EditerState>

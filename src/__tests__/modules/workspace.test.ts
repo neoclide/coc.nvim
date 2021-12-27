@@ -76,6 +76,8 @@ describe('workspace properties', () => {
     await helper.edit('f.js')
     let filetypes = workspace.filetypes
     expect(filetypes.has('javascript')).toBe(true)
+    let languageIds = workspace.languageIds
+    expect(languageIds.has('javascript')).toBe(true)
   })
 })
 
@@ -343,6 +345,29 @@ describe('workspace methods', () => {
     let item = await workspace.getQuickfixItem(loc)
     expect(item.filename).toBe(filepath)
     expect(item.text).toBe('quickfix')
+  })
+
+  it('should get quickfix list from Locations', async () => {
+    let filepathA = await createTmpFile('fileA:1\nfileA:2\nfileA:3')
+    let uriA = URI.file(filepathA).toString()
+    let filepathB = await createTmpFile('fileB:1\nfileB:2\nfileB:3')
+    let uriB = URI.file(filepathB).toString()
+    let p1 = Position.create(0, 0)
+    let p2 = Position.create(1, 0)
+    let locations: Location[] = []
+    locations.push(Location.create(uriA, Range.create(p1, p1)))
+    locations.push(Location.create(uriA, Range.create(p2, p2)))
+    locations.push(Location.create(uriB, Range.create(p1, p1)))
+    locations.push(Location.create(uriB, Range.create(p2, p2)))
+    let items = await workspace.getQuickfixList(locations)
+    expect(items[0].filename).toBe(filepathA)
+    expect(items[0].text).toBe('fileA:1')
+    expect(items[1].filename).toBe(filepathA)
+    expect(items[1].text).toBe('fileA:2')
+    expect(items[2].filename).toBe(filepathB)
+    expect(items[2].text).toBe('fileB:1')
+    expect(items[3].filename).toBe(filepathB)
+    expect(items[3].text).toBe('fileB:2')
   })
 
   it('should get line of document', async () => {
