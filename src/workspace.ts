@@ -504,7 +504,7 @@ export class Workspace implements IWorkspace {
   /**
    * Get created document by uri or bufnr.
    */
-  public getDocument(uri: number | string): Document {
+  public getDocument(uri: number | string): Document | null {
     if (typeof uri === 'number') {
       return this.buffers.get(uri)
     }
@@ -737,39 +737,32 @@ export class Workspace implements IWorkspace {
   }
 
   public async getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>> {
-    let filesLines: { [fsPath: string]: any } = {}
-    new Set<string>(locations.map(loc => URI.parse(loc.uri))
-      .filter(uri => uri.scheme == 'file').map(uri => uri.fsPath))
-      .forEach(key => {
-        let mutex = new Mutex()
-        let lines = null
-        let hasRead = false
-        filesLines[key] = { mutex, lines, hasRead }
-      })
+    let filesLines: { [fsPath: string]: string[] } = {}
+    let filepathList = locations.reduce<string[]>((pre: string[], curr) => {
+      let u = URI.parse(curr.uri)
+      if (u.scheme == 'file' && !this.getDocument(curr.uri)) {
+        pre.push(u.fsPath)
+      }
+      return pre
+    }, [])
 
-    let items = await Promise.all(locations.map(async loc => {
+    await Promise.all(filepathList.map(fsPath => {
+      return new Promise(resolve => {
+        fs.readFile(fsPath, 'utf8', (err, content) => {
+          if (err) return resolve(undefined)
+          filesLines[fsPath] = content.split(/\r?\n/)
+          resolve(undefined)
+        })
+      })
+    }))
+    return await Promise.all(locations.map(loc => {
       let { uri, range } = loc
       let { fsPath } = URI.parse(uri)
-      let text
-      let o = filesLines[fsPath]
-      if (o) {
-        let release = await o.mutex.acquire()
-        if (!o.hasRead) {
-          let stat = await statAsync(fsPath)
-          if (stat && stat.isFile()) {
-            let content = await readFile(fsPath, 'utf8')
-            o.lines = content.split(/\r?\n/)
-          }
-          o.hasRead = true
-        }
-        release()
-        if (Array.isArray(o.lines)) {
-          text = o.lines[range.start.line]
-        }
-      }
+      let text: string | undefined
+      let lines = filesLines[fsPath]
+      if (lines) text = lines[range.start.line]
       return this.getQuickfixItem(loc, text)
     }))
-    return items
   }
 
   /**
