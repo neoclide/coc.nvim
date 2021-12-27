@@ -916,6 +916,12 @@ Built-in configurations:~
 
 	Note: this configuration is expected to change in the future.
 
+"coc.preferences.renameFillCurrent"~
+
+	Disable to stop Refactor-Rename float/popup window from populating
+	with old name in the New Name field.
+	Default: `true`
+
 						*coc-config-cursors*
 
 "cursors.cancelKey":~
