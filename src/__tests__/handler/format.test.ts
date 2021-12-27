@@ -182,23 +182,6 @@ describe('format handler', () => {
       expect(cursor).toEqual({ line: 0, character: 3 })
     })
 
-    it('should format on new line inserted', async () => {
-      disposables.push(languages.registerOnTypeFormattingEditProvider(['text'], {
-        provideOnTypeFormattingEdits: (doc, position) => {
-          let text = doc.getText()
-          if (text.startsWith(' ')) return []
-          return [TextEdit.insert(Position.create(position.line, 0), '  ')]
-        }
-      }, ['\n']))
-      let buf = await helper.edit()
-      await nvim.command('setf text')
-      await nvim.setLine('foo')
-      await nvim.input('o')
-      await helper.wait(100)
-      let lines = await buf.lines
-      expect(lines).toEqual(['foo', '  '])
-    })
-
     it('should adjust cursor after format on type', async () => {
       disposables.push(languages.registerOnTypeFormattingEditProvider(['text'], {
         provideOnTypeFormattingEdits: () => {

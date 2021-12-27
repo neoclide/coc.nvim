@@ -83,18 +83,6 @@ export default class FormatHandler {
       let pre = info.pre[info.pre.length - 1]
       if (pre) await this.tryFormatOnType(pre, bufnr)
     }))
-    let lastEnterBufnr: number
-    let lastEnterTs: number
-    handler.addDisposable(events.on('InsertEnter', bufnr => {
-      lastEnterBufnr = bufnr
-      lastEnterTs = Date.now()
-    }))
-    handler.addDisposable(events.on('TextChangedI', async (bufnr, info) => {
-      if (!this.preferences.formatOnType && !/^\s*$/.test(info.pre)) return
-      if (lastEnterBufnr != bufnr || !lastEnterTs || Date.now() - lastEnterTs > 30) return
-      lastEnterBufnr = undefined
-      await this.tryFormatOnType('\n', bufnr, true)
-    }))
   }
 
   private loadPreferences(e?: ConfigurationChangeEvent): void {
