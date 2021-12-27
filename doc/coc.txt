@@ -450,6 +450,14 @@ Built-in configurations:~
 
 	Use Neovim virtual text to display diagnostics, default: `false`
 
+"diagnostic.virtualTextAlignRight":~
+
+	Make virtual text align to the right of window, default: `false`
+
+"diagnostic.virtualTextWinCol":~
+
+	Window column number to align virtual text, default: `null`
+
 "diagnostic.virtualTextCurrentLineOnly":~
 
 	Only show virtualText diagnostic on current cursor line, default:

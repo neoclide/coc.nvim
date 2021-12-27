@@ -1683,8 +1683,17 @@ endfunction
 " get popup position for vim8 based on config of neovim float window
 function! s:popup_position(config) abort
   let relative = get(a:config, 'relative', 'editor')
+  let border = get(a:config, 'border', [0, 0, 0, 0])
+  let delta = get(border, 0, 0)  + get(border, 2, 0)
   if relative ==# 'cursor'
-    return [s:popup_cursor(a:config['row']), s:popup_cursor(a:config['col'])]
+    if a:config['row'] < 0
+      let delta = - delta
+    elseif a:config['row'] == 0
+      let delta = - get(border, 0, 0)
+    else
+      let delta = 0
+    endif
+    return [s:popup_cursor(a:config['row'] + delta), s:popup_cursor(a:config['col'])]
   endif
   return [a:config['row'] + 1, a:config['col'] + 1]
 endfunction
