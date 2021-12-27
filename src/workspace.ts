@@ -410,8 +410,6 @@ export class Workspace implements IWorkspace {
 
   /**
    * Current filetypes.
-   *
-   * @deprecated use languageIds instead.
    */
   public get filetypes(): Set<string> {
     let res = new Set<string>()

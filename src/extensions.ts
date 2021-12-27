@@ -777,12 +777,14 @@ export class Extensions {
       let parts = eventName.split(':')
       let ev = parts[0]
       if (ev == 'onLanguage') {
-        if (workspace.languageIds.has(parts[1])) {
+        if (workspace.languageIds.has(parts[1])
+          || workspace.filetypes.has(parts[1])) {
           await active()
           return
         }
         workspace.onDidOpenTextDocument(document => {
-          if (document.languageId == parts[1]) {
+          let doc = workspace.getDocument(document.bufnr)
+          if (document.languageId == parts[1] || doc.filetype == parts[1]) {
             void active()
           }
         }, null, disposables)
