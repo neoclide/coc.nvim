@@ -1,12 +1,15 @@
+import { Disposable } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import events from '../../events'
 import workspace from '../../workspace'
 import sources from '../../sources'
 import { ISource, SourceType } from '../../types'
+import { disposeAll } from '../../util'
 import helper from '../helper'
 
 let nvim: Neovim
+let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -17,11 +20,11 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await helper.reset()
 })
 
 describe('sources', () => {
-
   it('should do document enter', async () => {
     let fn = jest.fn()
     let source: ISource = {
@@ -33,11 +36,29 @@ describe('sources', () => {
       doComplete: () => Promise.resolve({ items: [] }),
       onEnter: fn
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     let buffer = await nvim.buffer
     await events.fire('BufEnter', [buffer.id])
     expect(fn).toBeCalled()
-    sources.removeSource(source)
+  })
+
+  it('should get sources by split filetypes', async () => {
+    disposables.push(sources.addSource({
+      name: 'foo',
+      filetypes: ['foo'],
+      enable: true,
+      doComplete: () => Promise.resolve({ items: [] }),
+    }))
+    disposables.push(sources.addSource({
+      name: 'bar',
+      filetypes: ['bar'],
+      enable: true,
+      doComplete: () => Promise.resolve({ items: [] }),
+    }))
+    let arr = sources.getNormalSources('foo.bar', 'file:///a')
+    let names = arr.map(s => s.name)
+    expect(names.includes('foo')).toBe(true)
+    expect(names.includes('bar')).toBe(true)
   })
 
   it('should return source states', () => {
@@ -84,10 +105,9 @@ describe('sources#refresh', () => {
       doComplete: () => Promise.resolve({ items: [] }),
       refresh: fn
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await sources.refresh('refresh')
     expect(fn).toBeCalled()
-    sources.removeSource(source)
   })
 
   it('should work if refresh not defined', async () => {
@@ -99,29 +119,27 @@ describe('sources#refresh', () => {
       triggerCharacters: [],
       doComplete: () => Promise.resolve({ items: [] })
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await sources.refresh('refresh')
-    sources.removeSource(source)
   })
 })
 
 describe('sources#createSource', () => {
   it('should create source', async () => {
-    let disposable = sources.createSource({
+    disposables.push(sources.createSource({
       name: 'custom',
       doComplete: () => Promise.resolve({
         items: [{
           word: 'custom'
         }]
       })
-    })
+    }))
     await helper.createDocument()
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('c')
     let visible = await helper.visible('custom', 'custom')
     expect(visible).toBe(true)
-    disposable.dispose()
   })
 
   it('should create vim source', async () => {
@@ -149,10 +167,9 @@ describe('sources#getTriggerSources()', () => {
       triggerCharacters: ['#'],
       doComplete: () => Promise.resolve({ items: [] })
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
     expect(res.find(o => o.name == 'test')).toBeDefined()
-    disposable.dispose()
   })
 
   it('should filter by documentSelector', async () => {
@@ -165,10 +182,9 @@ describe('sources#getTriggerSources()', () => {
       triggerCharacters: ['#'],
       doComplete: () => Promise.resolve({ items: [] })
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
     expect(res.find(o => o.name == 'test')).toBeDefined()
-    disposable.dispose()
   })
 
   it('should filter by disabledSources', async () => {
@@ -184,9 +200,8 @@ describe('sources#getTriggerSources()', () => {
       triggerCharacters: ['#'],
       doComplete: () => Promise.resolve({ items: [] })
     }
-    let disposable = sources.addSource(source)
+    disposables.push(sources.addSource(source))
     let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
     expect(res.find(o => o.name == 'test')).toBeUndefined()
-    disposable.dispose()
   })
 })

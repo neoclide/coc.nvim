@@ -134,6 +134,15 @@ export default class Document {
   }
 
   /**
+   * LanguageId of TextDocument, main filetype are used for combined filetypes
+   * with '.'
+   */
+  public get languageId(): string {
+    let { _filetype } = this
+    return _filetype.includes('.') ? _filetype.match(/(.*?)\./)[1] : _filetype
+  }
+
+  /**
    * Map filetype for languageserver.
    */
   public convertFiletype(filetype: string): string {
@@ -290,7 +299,7 @@ export default class Document {
       edits = arguments[1]
     }
     if (edits.length == 0) return
-    let textDocument = TextDocument.create(this.uri, this.filetype, 1, this.getDocumentContent())
+    let textDocument = TextDocument.create(this.uri, this.languageId, 1, this.getDocumentContent())
     // apply edits to current textDocument
     let applied = TextDocument.applyEdits(textDocument, edits)
     let content: string
@@ -437,8 +446,8 @@ export default class Document {
   }
 
   private createTextDocument(version: number, lines: ReadonlyArray<string>): void {
-    let { uri, filetype, eol } = this
-    this._textDocument = new LinesTextDocument(uri, filetype, version, lines, eol)
+    let { uri, languageId, eol } = this
+    this._textDocument = new LinesTextDocument(uri, languageId, version, lines, eol)
   }
 
   /**
@@ -626,7 +635,7 @@ export default class Document {
   public setFiletype(filetype: string): void {
     this._filetype = this.convertFiletype(filetype)
     let lines = this._textDocument.lines
-    this._textDocument = new LinesTextDocument(this.uri, this.filetype, 1, lines, this.eol)
+    this._textDocument = new LinesTextDocument(this.uri, this.languageId, 1, lines, this.eol)
   }
 
   /**
@@ -684,7 +693,7 @@ export default class Document {
     let content = this.lines.slice(startLine, endLine).join('\n')
     sp = Position.create(sp.line - startLine, sp.character)
     ep = Position.create(ep.line - startLine, ep.character)
-    let doc = TextDocument.create(this.uri, this.filetype, 1, content)
+    let doc = TextDocument.create(this.uri, this.languageId, 1, content)
     let headCount = doc.offsetAt(sp)
     let len = content.length
     let tailCount = len - doc.offsetAt(ep)

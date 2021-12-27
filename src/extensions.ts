@@ -777,7 +777,7 @@ export class Extensions {
       let parts = eventName.split(':')
       let ev = parts[0]
       if (ev == 'onLanguage') {
-        if (workspace.filetypes.has(parts[1])) {
+        if (workspace.languageIds.has(parts[1])) {
           await active()
           return
         }

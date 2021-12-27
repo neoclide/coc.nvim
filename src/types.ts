@@ -188,6 +188,7 @@ export interface IWorkspace {
   readonly isVim: boolean
   readonly isNvim: boolean
   readonly filetypes: Set<string>
+  readonly languageIds: Set<string>
   readonly pluginRoot: string
   readonly initialized: boolean
   readonly completeOpt: string

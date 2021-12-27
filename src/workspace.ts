@@ -409,11 +409,24 @@ export class Workspace implements IWorkspace {
 
   /**
    * Current filetypes.
+   *
+   * @deprecated use languageIds instead.
    */
   public get filetypes(): Set<string> {
     let res = new Set<string>()
     for (let doc of this.documents) {
       res.add(doc.filetype)
+    }
+    return res
+  }
+
+  /**
+   * Current languageIds.
+   */
+  public get languageIds(): Set<string> {
+    let res = new Set<string>()
+    for (let doc of this.documents) {
+      res.add(doc.languageId)
     }
     return res
   }
@@ -1425,7 +1438,7 @@ augroup end`
       this.configurations.checkFolderConfiguration(document.uri)
       let config = this.getConfiguration('workspace')
       let filetypes = config.get<string[]>('ignoredFiletypes', [])
-      if (!filetypes.includes(document.filetype)) {
+      if (!filetypes.includes(document.languageId)) {
         let root = this.resolveRoot(document)
         if (root) {
           this.addWorkspaceFolder(root)
@@ -1575,7 +1588,7 @@ augroup end`
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let isBottomUp = bottomUpFileTypes.includes(document.filetype)
+        let isBottomUp = bottomUpFileTypes.includes(document.languageId)
         let root = resolveRoot(dir, patterns, cwd, isBottomUp, checkCwd)
         if (root) return root
       }
@@ -1587,7 +1600,7 @@ augroup end`
   public getRootPatterns(document: Document, patternType: PatternType): string[] {
     let { uri } = document
     if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
-    if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.filetype)
+    if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.languageId)
     const preferences = this.getConfiguration('coc.preferences', uri)
     return preferences.get<string[]>('rootPatterns', ['.git', '.hg', '.projections.json']).slice()
   }

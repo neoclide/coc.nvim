@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Definition, Location, LocationLink, Position, TextDocument } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Definition, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import languages from '../languages'
 import services from '../services'

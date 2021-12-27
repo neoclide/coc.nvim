@@ -76,6 +76,8 @@ describe('workspace properties', () => {
     await helper.edit('f.js')
     let filetypes = workspace.filetypes
     expect(filetypes.has('javascript')).toBe(true)
+    let languageIds = workspace.languageIds
+    expect(languageIds.has('javascript')).toBe(true)
   })
 })
 
