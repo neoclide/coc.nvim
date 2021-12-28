@@ -2,7 +2,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import events from '../../events'
-import workspace from '../../workspace'
 import sources from '../../sources'
 import { ISource, SourceType } from '../../types'
 import { disposeAll } from '../../util'
@@ -72,14 +71,6 @@ describe('sources', () => {
     expect(s.enable).toBe(false)
     sources.toggleSource('around')
   })
-
-  it('should disable source by coc_sources_disable_map', async () => {
-    await nvim.command('let g:coc_sources_disable_map = {"python": ["around", "buffer"]}')
-    let res = sources.getNormalSources('python', 'file:///t.py')
-    await nvim.command('let g:coc_sources_disable_map = {}')
-    expect(res.find(o => o.name == 'around')).toBeUndefined()
-    expect(res.find(o => o.name == 'buffer')).toBeUndefined()
-  })
 })
 
 describe('sources#has', () => {
@@ -145,6 +136,12 @@ describe('sources#createSource', () => {
   it('should create vim source', async () => {
     let folder = path.resolve(__dirname, '..')
     await nvim.command(`set runtimepath+=${folder}`)
+    disposables.push({
+      dispose: () => {
+        nvim.command(`set runtimepath-=${folder}`, true)
+        sources.removeSource('email')
+      }
+    })
     await helper.wait(100)
     let exists = sources.has('email')
     expect(exists).toBe(true)
@@ -187,21 +184,19 @@ describe('sources#getTriggerSources()', () => {
     expect(res.find(o => o.name == 'test')).toBeDefined()
   })
 
-  it('should filter by disabledSources', async () => {
-    workspace.env.disabledSources = {
-      javascript: ['test']
+  it('should filter disabled sources', async () => {
+    await helper.edit()
+    await nvim.setLine('foo bar ')
+    let buf = await nvim.buffer
+    await buf.setVar('coc_disabled_sources', ['around', 'buffer', 'file'])
+    await helper.wait(30)
+    await nvim.input('Af')
+    await helper.wait(100)
+    let visible = await nvim.call('pumvisible')
+    if (visible) {
+      let items = await helper.getItems()
+      console.log(items)
     }
-    let source: ISource = {
-      name: 'test',
-      enable: true,
-      priority: 0,
-      documentSelector: [{ language: 'javascript' }],
-      sourceType: SourceType.Service,
-      triggerCharacters: ['#'],
-      doComplete: () => Promise.resolve({ items: [] })
-    }
-    disposables.push(sources.addSource(source))
-    let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
-    expect(res.find(o => o.name == 'test')).toBeUndefined()
+    expect(visible).toBe(0)
   })
 })

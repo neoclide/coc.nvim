@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import fastDiff from 'fast-diff'
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
@@ -12,7 +11,6 @@ import { disposeAll, getUri } from '../util'
 import { intersect } from '../util/array'
 import { statAsync } from '../util/fs'
 import { score } from '../util/match'
-import { isEmpty } from '../util/object'
 import { byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -37,17 +35,11 @@ export class Sources {
     this.createNativeSources()
     this.createRemoteSources()
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
-    workspace.watchOption('runtimepath', async (oldValue, newValue) => {
-      let result = fastDiff(oldValue, newValue)
-      for (let [changeType, value] of result) {
-        if (changeType == 1) {
-          let paths = value.replace(/,$/, '').split(',')
-          for (let p of paths) {
-            if (p) await this.createVimSources(p)
-          }
-        }
+    workspace.onDidRuntimePathChange(newPaths => {
+      for (let p of newPaths) {
+        if (p) void this.createVimSources(p)
       }
-    }, this.disposables)
+    }, null, this.disposables)
   }
 
   private loadCompleteConfig(): void {
@@ -283,8 +275,9 @@ export class Sources {
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && !!opt.triggerCharacter
     let uri = getUri(opt.filepath, opt.bufnr, '', workspace.env.isCygwin)
-    if (isTriggered) return this.getTriggerSources(pre, filetype, uri)
-    return this.getNormalSources(opt.filetype, uri)
+    let disabled = Array.isArray(opt.disabled) ? opt.disabled : []
+    if (isTriggered) return this.getTriggerSources(pre, filetype, uri, disabled)
+    return this.getNormalSources(opt.filetype, uri, disabled)
   }
 
   /**
@@ -293,17 +286,17 @@ export class Sources {
    * @param {string} filetype
    * @returns {ISource[]}
    */
-  public getNormalSources(filetype: string, uri: string): ISource[] {
+  public getNormalSources(filetype: string, uri: string, disabled: ReadonlyArray<string> = []): ISource[] {
     let languageIds = filetype.split('.')
     return this.sources.filter(source => {
-      let { filetypes, triggerOnly, documentSelector, enable } = source
+      let { filetypes, triggerOnly, name, documentSelector, enable } = source
+      if (disabled.includes(name)) {
+        return false
+      }
       if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }
       if (documentSelector && languageIds.every(filetype => score(documentSelector, uri, filetype) == 0)) {
-        return false
-      }
-      if (this.disabledByFiletype(source, filetype)) {
         return false
       }
       return true
@@ -326,19 +319,22 @@ export class Sources {
     return this.getTriggerSources(pre, filetype, uri).length > 0
   }
 
-  public getTriggerSources(pre: string, filetype: string, uri: string): ISource[] {
+  public getTriggerSources(pre: string, filetype: string, uri: string, disabled: ReadonlyArray<string> = []): ISource[] {
     let character = pre.length ? pre[pre.length - 1] : ''
     if (!character) return []
     let languageIds = filetype.split('.')
     return this.sources.filter(source => {
-      let { filetypes, enable, documentSelector } = source
+      let { filetypes, enable, documentSelector, name } = source
+      if (disabled.includes(name)) {
+        return name
+      }
       if (!enable || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }
       if (documentSelector && languageIds.every(languageId => score(documentSelector, uri, languageId) == 0)) {
         return false
       }
-      if (this.disabledByFiletype(source, filetype)) return false
+      // if (this.disabledByFiletype(source, filetype)) return false
       return this.checkTrigger(source, pre, character)
     })
   }
@@ -413,13 +409,6 @@ export class Sources {
     }
     let source = new Source(Object.assign({ sourceType: SourceType.Service } as any, config))
     return this.addSource(source)
-  }
-
-  private disabledByFiletype(source: ISource, filetype: string): boolean {
-    let map = workspace.env.disabledSources
-    if (isEmpty(map)) return false
-    let list = map ? map[filetype] : []
-    return Array.isArray(list) && list.includes(source.name)
   }
 
   public dispose(): void {

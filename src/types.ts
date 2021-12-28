@@ -89,7 +89,6 @@ export interface BufferSyncItem {
 export interface Env {
   completeOpt: string
   runtimepath: string
-  disabledSources: { [filetype: string]: string[] }
   readonly guicursor: string
   readonly mode: string
   readonly apiversion: number
@@ -456,6 +455,7 @@ export interface CompleteOption {
   readonly synname: string
   readonly source?: string
   readonly blacklist: string[]
+  readonly disabled: ReadonlyArray<string>
   readonly changedtick: number
   readonly indentkeys: string
   triggerForInComplete?: boolean

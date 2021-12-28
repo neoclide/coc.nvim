@@ -335,8 +335,7 @@ export class Completion implements Disposable {
     // try trigger on character type
     if (!this.activated) {
       if (!latestInsertChar) return
-      let triggerSources = sources.getTriggerSources(pretext, doc.filetype, doc.uri)
-      if (triggerSources.length) {
+      if (sources.shouldTrigger(pretext, doc.filetype, doc.uri)) {
         await this.triggerCompletion(doc, this.pretext)
         return
       }
@@ -391,13 +390,9 @@ export class Completion implements Disposable {
     // check trigger
     let shouldTrigger = this.shouldTrigger(doc, pre)
     if (!shouldTrigger) return
-    if (doc.getVar('suggest_disable')) {
-      logger.warn(`Suggest disabled by b:coc_suggest_disable`)
-      return
-    }
     await doc.patchChange()
-    let [disabled, option] = await this.nvim.eval('[get(b:,"coc_suggest_disable",0),coc#util#get_complete_option()]') as [number, CompleteOption]
-    if (disabled == 1) {
+    let option = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
+    if (!option) {
       logger.warn(`Suggest disabled by b:coc_suggest_disable`)
       return
     }

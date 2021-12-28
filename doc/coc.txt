@@ -1454,6 +1454,12 @@ b:coc_suggest_disable					*b:coc_suggest_disable*
 	" Disable completion for python
 	autocmd FileType python let b:coc_suggest_disable = 1
 
+b:coc_disabled_sources 					 *b:coc_disabled_sources*
+
+	Disabled completion sources of current buffer. Example:
+>
+	let b:coc_disabled_sources = ['around', 'buffer', 'file']
+<
 b:coc_diagnostic_disable				*b:coc_diagnostic_disable*
 
 	Disable diagnostic support of current buffer.
@@ -1676,13 +1682,6 @@ g:coc_data_home						*g:coc_data_home*
 
 	Windows: `~/AppData/Local/coc`
 	Other: `~/.config/coc`
-
-g:coc_sources_disable_map 				*g:coc_sources_disable_map*
-
-	Configure disabled sources for different filetypes.
-	Use `:CocList sources` for loaded complete sources. Example:
->
-	let g:coc_sources_disable_map = { \ 'python': ['omni', 'tag'] \ }
 
 g:coc_borderchars 					*g:coc_borderchars*
 

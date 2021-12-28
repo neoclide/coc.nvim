@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 11
+let s:vim_api_version = 12
 let s:activate = ""
 let s:quit = ""
 
@@ -342,6 +342,9 @@ function! coc#util#get_input()
 endfunction
 
 function! coc#util#get_complete_option()
+  if get(b:,"coc_suggest_disable",0)
+    return v:null
+  endif
   let pos = getcurpos()
   let line = getline(pos[1])
   let input = matchstr(strpart(line, 0, pos[2] - 1), '\k*$')
@@ -360,6 +363,7 @@ function! coc#util#get_complete_option()
         \ 'synname': synname,
         \ 'changedtick': b:changedtick,
         \ 'blacklist': get(b:, 'coc_suggest_blacklist', []),
+        \ 'disabled': get(b:, 'coc_disabled_sources', []),
         \ 'indentkeys': coc#util#get_indentkeys()
         \}
 endfunction
@@ -551,7 +555,6 @@ function! coc#util#vim_info()
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
         \ 'dialog': has('nvim-0.4.0') || has('patch-8.2.0750') ? v:true : v:false,
-        \ 'disabledSources': get(g:, 'coc_sources_disable_map', {}),
         \}
 endfunction
 

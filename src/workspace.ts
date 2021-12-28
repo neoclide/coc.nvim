@@ -49,7 +49,7 @@ export interface Autocmd {
   callback: Function
 }
 
-const APIVERSION = 11
+const APIVERSION = 12
 const logger = require('./util/logger')('workspace')
 let NAME_SPACE = 2000
 const methods = [
@@ -212,9 +212,6 @@ export class Workspace implements IWorkspace {
       }
       this._env.runtimepath = newValue
     }, this.disposables)
-    this.watchGlobal('coc_sources_disable_map', async (_, newValue) => {
-      this.env.disabledSources = newValue
-    })
     this.disposables.push(this.registerTextDocumentContentProvider('output', channels.getProvider(nvim)))
   }
 
