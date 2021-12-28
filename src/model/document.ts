@@ -465,6 +465,8 @@ export default class Document {
       } else {
         this.fireContentChanges()
       }
+    } else if (sync) {
+      this._forceSync()
     }
   }
 
