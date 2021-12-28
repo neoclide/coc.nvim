@@ -451,12 +451,11 @@ export default class Document {
     if (o) {
       this._changedtick = o.changedtick
       this.lines = o.lines
-      if (sync) {
-        this._forceSync()
-      } else {
-        this.fireContentChanges()
-      }
+      this.fireContentChanges()
     }
+    // we must force sync even when o == null because fireContentChanges could
+    // have been scheduled
+    if (sync) this._forceSync()
   }
 
   /**
