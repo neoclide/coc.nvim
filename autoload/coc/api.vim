@@ -264,7 +264,7 @@ function! s:funcs.buf_get_mark(bufnr, name)
 endfunction
 
 function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd) abort
-  if !has('textprop') || !has('patch-8.1.1719')
+  if !has('patch-8.1.1719')
     return
   endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
@@ -305,7 +305,7 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
 endfunction
 
 function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
-  if !has('textprop') || !has('patch-8.1.1719')
+  if !has('patch-8.1.1719')
     return
   endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
