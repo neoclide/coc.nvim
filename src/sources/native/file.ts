@@ -84,7 +84,7 @@ export default class File extends Source {
 
   public async getItemsFromRoot(pathstr: string, root: string): Promise<VimCompleteItem[]> {
     let res = []
-    let part = pathstr.endsWith("/") ? pathstr : path.dirname(pathstr)
+    let part = /[\\/]$/.test(pathstr) ? pathstr : path.dirname(pathstr)
     let dir = path.isAbsolute(pathstr) ? part : path.join(root, part)
     try {
       let stat = await statAsync(dir)
@@ -119,7 +119,9 @@ export default class File extends Source {
     let root
     if (pathstr.startsWith(".")) {
       root = filepath ? path.dirname(filepath) : cwd
-    } else if (pathstr.startsWith("/")) {
+    } else if (isWindows && /^\w+:/.test(pathstr)) {
+      root = /[\\/]$/.test(pathstr) ? pathstr : path.dirname(pathstr)
+    } else if (!isWindows && pathstr.startsWith("/")) {
       root = pathstr.endsWith("/") ? pathstr : path.dirname(pathstr)
     } else if (part) {
       if (fs.existsSync(path.join(dirname, part))) {

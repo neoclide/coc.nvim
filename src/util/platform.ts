@@ -17,11 +17,6 @@ interface INodeProcess {
 
 declare let process: INodeProcess
 declare let global: any
-
-interface INavigator {
-  userAgent: string
-  language: string
-}
 declare let self: any
 
 export const language = 'en'
