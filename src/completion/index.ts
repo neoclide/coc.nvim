@@ -356,10 +356,7 @@ export class Completion implements Disposable {
       return
     }
     // Check commit character
-    if (pretext
-      && this.selectedItem
-      && this.config.acceptSuggestionOnCommitCharacter
-      && latestInsertChar) {
+    if (pretext && this.selectedItem && this.config.acceptSuggestionOnCommitCharacter) {
       let resolvedItem = this.getCompleteItem(this.selectedItem)
       let last = pretext[pretext.length - 1]
       if (sources.shouldCommit(resolvedItem, last)) {
