@@ -133,7 +133,7 @@ The global configuration file can be created in another directory by setting
 
 When creating a local configuration file, it's possible to use
 |b:coc_root_patterns| for resolve the root directory from the filepath of
-opend buffer.
+opened buffer.
 
 Since the configuration files are all in JSON format, it's suggested to enable
 JSON completion and validation by install the `coc-json` extension: >
@@ -146,7 +146,7 @@ for more details.
 Built-in configurations:~
 
 							*coc-config-http*
-*http.proxy*
+"http.proxy":~
 
 	HTTP proxy URI, used for extensions that send request, default: `""`
 
@@ -507,7 +507,7 @@ Built-in configurations:~
 "diagnostic.filetypeMap":~
 
 	A map between buffer filetype and the filetype assigned to diagnostics.
-	To syntax highlight diagnostics withs their parent buffer type use
+	To syntax highlight diagnostics with their parent buffer type use
 	`"default": "bufferType"`, default: `{}`
 
 "diagnostic.format":~
@@ -555,7 +555,7 @@ Built-in configurations:~
 							*coc-config-refactor*
 "refactor.saveToFile":~
 
-	Save chagnes to file when write refactor buffer with |:write| command,
+	Save changes to file when write refactor buffer with |:write| command,
 	set to false if you want save buffer by yourself.
 
 "refactor.openCommand":~
@@ -754,7 +754,7 @@ Built-in configurations:~
 
 "list.interactiveDebounceTime":~
 
-	Debouce time for input change on interactive mode, default: `100`
+	Debounce time for input change on interactive mode, default: `100`
 
 "list.previewSplitRight":~
 
@@ -762,7 +762,7 @@ Built-in configurations:~
 
 "list.source.symbols.excludes":~
 
-	Patterns of minimatch for filepath to execlude from symbols list,
+	Patterns of minimatch for filepath to exclude from symbols list,
 	default: `[]`
 
 "list.source.outline.ctagsFilestypes":~
@@ -939,12 +939,12 @@ Built-in configurations:~
 						*coc-config-tree*
 "tree.closedIcon": ~
 	
-	Closed icon of tree view, use '' to make it looks better when you
+	Closed icon of tree view, use '' to make it look better when you
 	have patched font, default: '+'.
 
 "tree.openedIcon": ~
 	
-	Opened icon of tree view, use '' to make it looks better when you
+	Opened icon of tree view, use '' to make it look better when you
 	have patched font, default: '-'
 
 "tree.key.toggleSelection":~
@@ -1127,7 +1127,7 @@ supported:
 
 Language server start with command:~
 
-	Additional fields can be used for command language server:
+	Additional fields can be used for a command languageserver:
 
 	- "command": Executable program name in $PATH or absolute path of
 	  executable used for start languageserver.
@@ -1140,7 +1140,7 @@ Language server start with command:~
 
 Language server start with module:~
 
-	Additional fields can be used forlanguage server started by node
+	Additional fields can be used for a languageserver started by node
 	module:
 
 	- "module": Absolute filepath of javascript file.
@@ -1328,7 +1328,7 @@ invoke |CocAction('refactor')|
 *<plug>(coc-command-repeat)* Repeat latest |CocCommand|.
 
 *<plug>(coc-codeaction)* Get and run code action(s) for current file, use
-|coc-codeaction-cursor| for same beharior as VSCode.
+|coc-codeaction-cursor| for same behavior as VSCode.
 
 *<plug>(coc-codeaction-line)* Get and run code action(s) for current line.
 
@@ -3594,9 +3594,9 @@ A:	It means you don't have coc extension or languageserver that provide
 	languageserver.
 
 	Note some languageserver may not have that feature supported, please
-	checkout it's documentation.
+	checkout its documentation.
 
-Q:	Syntax highlight on float/popup doesn't looks right.
+Q:	Syntax highlight on float/popup doesn't look right.
 
 A:	On neovim, coc.nvim uses background neovim instance which load syntax
 	plugins only for generate highlights, it may not what you would expect.
