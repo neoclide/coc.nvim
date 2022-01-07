@@ -1368,6 +1368,11 @@
       "maximum": 5000,
       "description": "Will save handler timeout"
     },
+    "coc.preferences.renameFillCurrent": {
+      "type": "boolean",
+      "default": true,
+      "description": "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
+    },
     "coc.source.around.enable": {
       "type": "boolean",
       "default": true
