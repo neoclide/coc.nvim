@@ -105,7 +105,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   // draw frame
   private draw(nvim: Neovim, buffer: Buffer): void {
     let { remains } = this
-    let first = remains == 0 ? `${this.isUpdate ? 'Update' : 'Install'} finished` : `Installing, ${remains} remains...`
+    let first = remains == 0 ? `${this.isUpdate ? 'Update' : 'Install'} finished` : `Installing, ${remains} remaining...`
     let lines = [first, '', ...this.getLines()]
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
