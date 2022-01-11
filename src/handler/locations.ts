@@ -131,7 +131,7 @@ export default class LocationsHandler {
   /**
    * Send custom request for locations to services.
    */
-  public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<void> {
+  public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<boolean> {
     let { doc, position } = await this.handler.getCurrentState()
     params = params || {}
     Object.assign(params, {
@@ -155,6 +155,7 @@ export default class LocationsHandler {
       getLocation(res)
     }
     await this.handleLocations(locations, openCommand)
+    return locations ? locations.length > 0 : false
   }
 
   public async handleLocations(definition: Definition | LocationLink[], openCommand?: string | false): Promise<void> {
