@@ -576,6 +576,11 @@
       "description": "Suggest ASCII characters only",
       "default": false
     },
+    "documentHighlight.priority": {
+      "type": "number",
+      "default": -1,
+      "description": "Match priority used by document highlight, see ':h matchadd'"
+    },
     "diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic display",
@@ -1367,6 +1372,11 @@
       "minimum": 200,
       "maximum": 5000,
       "description": "Will save handler timeout"
+    },
+    "coc.preferences.renameFillCurrent": {
+      "type": "boolean",
+      "default": true,
+      "description": "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
     },
     "coc.source.around.enable": {
       "type": "boolean",
