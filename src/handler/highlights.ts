@@ -13,6 +13,7 @@ const logger = require('../util/logger')('documentHighlight')
  * Highlights are added to window by matchaddpos.
  */
 export default class Highlights {
+  private priority: number
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   private highlights: Map<number, DocumentHighlight[]> = new Map()
@@ -21,6 +22,8 @@ export default class Highlights {
       this.cancel()
       this.clearHighlights()
     }, null, this.disposables)
+    let config = workspace.getConfiguration('documentHighlight')
+    this.priority = config.get<number>('priority')
   }
 
   public clearHighlights(): void {
@@ -54,7 +57,7 @@ export default class Highlights {
     nvim.pauseNotification()
     win.clearMatchGroup('^CocHighlight')
     for (let hlGroup of Object.keys(groups)) {
-      win.highlightRanges(hlGroup, groups[hlGroup], -1, true)
+      win.highlightRanges(hlGroup, groups[hlGroup], this.priority, true)
     }
     if (workspace.isVim) nvim.command('redraw', true)
     // eslint-disable-next-line @typescript-eslint/no-floating-promises

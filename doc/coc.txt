@@ -366,6 +366,13 @@ Built-in configurations:~
 		"default": "\uf29c"
 	}
 <
+							*coc-config-documentHighlight*
+
+"documentHighlight.priority":~
+
+	Match priority used by document highlight, see ':h matchadd'.
+	Default `-1`
+
 							*coc-config-diagnostic*
 "diagnostic.enable":~
 
