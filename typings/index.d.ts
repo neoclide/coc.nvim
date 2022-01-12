@@ -2566,9 +2566,15 @@ declare module 'coc.nvim' {
     /**
      * Runs a command and returns output.
      *
-     * **Note:** works on neovim only.
+     * @deprecated Use exec() instead.
      */
     commandOutput(arg: string): Promise<string>
+
+    /**
+     * Executes Vimscript (multiline block of Ex-commands), like
+     * anonymous |:source|
+     */
+    exec(src: string, output?: boolean): Promise<string>
 
     /**
      * Gets a v: variable.
@@ -2810,6 +2816,7 @@ declare module 'coc.nvim' {
      * Set virtual text for a line
      *
      * @public
+     * @deprecated Use setExtMark() instead.
      * @param {number} src_id - Source group to use or 0 to use a new group, or -1
      * @param {number} line - Line to annotate with virtual text (zero-indexed)
      * @param {Chunk[]} chunks - List with [text, hl_group]
@@ -2887,7 +2894,7 @@ declare module 'coc.nvim' {
     /**
      * Clear highlights of specified lins.
      *
-     * @deprecated use clearNamespace instead.
+     * @deprecated use clearNamespace() instead.
      */
     clearHighlight(args?: BufferClearHighlight)
 
