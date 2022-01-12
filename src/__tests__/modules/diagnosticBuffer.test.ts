@@ -73,6 +73,20 @@ describe('diagnostic buffer', () => {
       expect(signs[0].name).toBe('CocError')
     })
 
+    it('should filter sign by signLevel', async () => {
+      config.signLevel = DiagnosticSeverity.Error
+      let range = Range.create(0, 0, 0, 3)
+      let diagnostics = [createDiagnostic('foo', range, DiagnosticSeverity.Warning), createDiagnostic('bar', range, DiagnosticSeverity.Warning)]
+      let buf = await createDiagnosticBuffer()
+      buf.addSigns('a', diagnostics)
+      await helper.wait(30)
+      let res = await nvim.call('sign_getplaced', [buf.bufnr, { group: 'CocDiagnostica' }])
+      config.signLevel = undefined
+      let signs = res[0].signs
+      expect(signs).toBeDefined()
+      expect(signs.length).toBe(0)
+    })
+
     it('should set diagnostic info', async () => {
       let r = Range.create(0, 1, 0, 2)
       let diagnostics = [

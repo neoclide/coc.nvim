@@ -49,6 +49,20 @@ async function createDocument(name?: string): Promise<Document> {
 }
 
 describe('diagnostic manager', () => {
+  describe('setLocationlist()', () => {
+    it('should set location list', async () => {
+      let doc = await createDocument()
+      await manager.setLocationlist(doc.bufnr)
+      let res = await nvim.call('getloclist', [doc.bufnr]) as any[]
+      expect(res.length).toBeGreaterThan(2)
+      let config = workspace.getConfiguration('diagnostic')
+      config.update('locationlistLevel', 'error')
+      await manager.setLocationlist(doc.bufnr)
+      res = await nvim.call('getloclist', [doc.bufnr]) as any[]
+      expect(res.length).toBe(2)
+    })
+  })
+
   describe('refresh()', () => {
     it('should refresh on buffer create', async () => {
       let uri = URI.file(path.join(path.dirname(__dirname), 'doc')).toString()
@@ -163,16 +177,6 @@ describe('diagnostic manager', () => {
       let buf = await nvim.buffer
       let lines = await buf.lines
       expect(lines[0]).toEqual('[test] [E]')
-    })
-  })
-
-  describe('setLocationlist()', () => {
-    it('should set location list', async () => {
-      let doc = await createDocument()
-      await manager.setLocationlist(doc.bufnr)
-      await nvim.command('lopen')
-      let buftype = await nvim.eval('&buftype') as string
-      expect(buftype).toBe('quickfix')
     })
   })
 
@@ -423,6 +427,20 @@ describe('diagnostic manager', () => {
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.lines
       expect(lines.join('\n')).toMatch('error')
+    })
+
+    it('should filter diagnostics by messageLevel', async () => {
+      let config = workspace.getConfiguration('diagnostic')
+      config.update('messageLevel', 'error')
+      config.update('messageTarget', 'echo')
+      await createDocument()
+      await nvim.call('cursor', [1, 6])
+      await helper.wait(10)
+      await manager.echoMessage(false)
+      config.update('messageLevel', null)
+      config.update('messageTarget', 'float')
+      let line = await helper.getCmdline()
+      expect(line.indexOf('warning')).toBe(-1)
     })
 
     it('should echo messages on cursor hold', async () => {

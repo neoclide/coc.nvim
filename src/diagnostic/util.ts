@@ -27,7 +27,8 @@ export function getSeverityType(severity: DiagnosticSeverity): string {
   }
 }
 
-export function severityLevel(level: string): number {
+export function severityLevel(level: string | null | undefined): number | undefined {
+  if (level == null) return undefined
   switch (level) {
     case 'hint':
       return DiagnosticSeverity.Hint

@@ -38,6 +38,9 @@ export interface DiagnosticConfig {
   infoSign: string
   hintSign: string
   level: number
+  locationlistLevel: number | undefined
+  signLevel: number | undefined
+  messageLevel: number | undefined
   messageTarget: string
   messageDelay: number
   refreshOnInsertMode: boolean
@@ -205,12 +208,16 @@ export class DiagnosticBuffer implements BufferSyncItem {
   }
 
   public addSigns(collection: string, diagnostics: ReadonlyArray<Diagnostic>): void {
-    if (!this.config.enableSign) return
+    let { enableSign, signLevel } = this.config
+    if (!enableSign) return
     let group = signGroup + collection
     this.buffer.unplaceSign({ group })
     let signsMap: Map<number, DiagnosticSeverity[]> = new Map()
     for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic
+      if (!severity || (signLevel && severity > signLevel)) {
+        continue
+      }
       let line = range.start.line
       let exists = signsMap.get(line) || []
       if (exists.includes(severity)) {

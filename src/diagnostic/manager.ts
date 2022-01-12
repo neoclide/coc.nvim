@@ -149,11 +149,13 @@ export class DiagnosticManager implements Disposable {
    * Fill location list with diagnostics
    */
   public async setLocationlist(bufnr: number): Promise<void> {
+    let { locationlistLevel } = this.config
     let buf = this.buffers.getItem(bufnr)
     let diagnosticsMap = buf ? this.getDiagnostics(buf.uri) : {}
     let items: LocationListItem[] = []
     for (let diagnostics of Object.values(diagnosticsMap)) {
       for (let diagnostic of diagnostics) {
+        if (locationlistLevel && diagnostic.severity && diagnostic.severity > locationlistLevel) continue
         let item = getLocationListItem(bufnr, diagnostic)
         items.push(item)
       }
@@ -443,6 +445,11 @@ export class DiagnosticManager implements Disposable {
     let [filetype, mode] = await this.nvim.eval(`[&filetype,mode()]`) as [string, string]
     if (mode != 'n') return
     let diagnostics = await this.getCurrentDiagnostics()
+    if (config.messageLevel) {
+      diagnostics = diagnostics.filter(diagnostic => {
+        return diagnostic.severity && diagnostic.severity <= config.messageLevel
+      })
+    }
     if (diagnostics.length == 0) {
       if (useFloat) this.floatFactory.close()
       return
@@ -560,6 +567,9 @@ export class DiagnosticManager implements Disposable {
       virtualTextLines: config.get<number>('virtualTextLines', 3),
       displayByAle: config.get<boolean>('displayByAle', false),
       level: severityLevel(config.get<string>('level', 'hint')),
+      locationlistLevel: severityLevel(config.get<string>('locationlistLevel')),
+      signLevel: severityLevel(config.get<string>('signLevel')),
+      messageLevel: severityLevel(config.get<string>('messageLevel')),
       signPriority: config.get<number>('signPriority', 10),
       errorSign: config.get<string>('errorSign', '>>'),
       warningSign: config.get<string>('warningSign', '>>'),
