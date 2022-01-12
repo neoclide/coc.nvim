@@ -3,22 +3,24 @@ import window from '../window'
 import { Variable, VariableResolver } from "./parser"
 const logger = require('../util/logger')('snippets-variable')
 
+function padZero(n: number): string {
+  return n < 10 ? '0' + n : n.toString()
+}
+
 export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
 
   constructor() {
     const currentDate = new Date()
+    const fullyear = currentDate.getFullYear().toString()
     Object.assign(this._variableToValue, {
-      CURRENT_YEAR: currentDate.getFullYear().toString(),
-      CURRENT_YEAR_SHORT: currentDate
-        .getFullYear()
-        .toString()
-        .slice(-2),
-      CURRENT_MONTH: (currentDate.getMonth() + 1).toString(),
-      CURRENT_DATE: currentDate.getDate().toString(),
-      CURRENT_HOUR: currentDate.getHours().toString(),
-      CURRENT_MINUTE: currentDate.getMinutes().toString(),
-      CURRENT_SECOND: currentDate.getSeconds().toString(),
+      CURRENT_YEAR: fullyear,
+      CURRENT_YEAR_SHORT: fullyear.slice(-2),
+      CURRENT_MONTH: padZero(currentDate.getMonth() + 1),
+      CURRENT_DATE: padZero(currentDate.getDate()),
+      CURRENT_HOUR: padZero(currentDate.getHours()),
+      CURRENT_MINUTE: padZero(currentDate.getMinutes()),
+      CURRENT_SECOND: padZero(currentDate.getSeconds()),
       CURRENT_DAY_NAME: currentDate.toLocaleString("en-US", { weekday: "long" }),
       CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
       CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
