@@ -6,6 +6,7 @@ import FloatFactory from './model/floatFactory'
 import fetch from './model/fetch'
 import download from './model/download'
 import Highligher from './model/highligher'
+import { TextLine } from './model/textdocument'
 import services from './services'
 import sources from './sources/index'
 import workspace from './workspace'
@@ -67,7 +68,7 @@ export {
 } from './language-client'
 
 export { Neovim, MarkupKind, DiagnosticTag, DocumentHighlightKind, SymbolKind, SignatureHelpTriggerKind, FileChangeType, CodeActionKind, Diagnostic, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
-export { workspace, window, CompletionTriggerKind, snippetManager, SnippetString, events, services, commands, sources, languages, diagnosticManager, extensions, listManager, BasicList, Mutex }
+export { workspace, window, CompletionTriggerKind, snippetManager, SnippetString, events, services, commands, sources, languages, diagnosticManager, extensions, listManager, BasicList, Mutex, TextLine }
 export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
 export { TreeItem, TreeItemCollapsibleState } from './tree/index'
 export { SemanticTokensBuilder } from './semanticTokensBuilder'

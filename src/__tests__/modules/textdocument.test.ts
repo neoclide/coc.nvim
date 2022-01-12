@@ -13,6 +13,18 @@ describe('LinesTextDocument', () => {
     expect(content).toBe('a\nb\n')
   })
 
+  it('should get text by line', async () => {
+    const doc = createTextDocument(['foo', 'bar'])
+    const textLine = doc.lineAt(0)
+    expect(textLine.text).toBe('foo')
+  })
+
+  it('should get text by position', async () => {
+    const doc = createTextDocument(['foo', 'bar'])
+    const textLine = doc.lineAt(Position.create(0, 3))
+    expect(textLine.text).toBe('foo')
+  })
+
   it('should get position', async () => {
     let doc = createTextDocument(['foo', 'bar'])
     let pos = doc.positionAt(4)
