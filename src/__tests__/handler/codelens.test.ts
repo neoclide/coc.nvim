@@ -49,6 +49,7 @@ describe('codeLenes featrue', () => {
     }))
     let doc = await helper.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await doc.synchronize()
     await codeLens.checkProvider()
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.getCodelenses()

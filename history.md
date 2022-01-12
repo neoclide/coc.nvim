@@ -1,8 +1,13 @@
+# 2022-01-13
+
+- `codeLens.separator` now defaults to `""` and will be placed above lines on neovim >= 0.6.0 .
+- Add configurations 'diagnostic.locationlistLevel', 'diagnostic.signLevel', 'diagnostic.messageLevel'.
+
 # 2022-01-12
 
-- 34fae826 Add document.lineAt(), export TextLine class.
-- 73db30b0 Upgrade node-client, support nvim.exec().
-- e8bbb875 Add documentHighlight.priority configuration.
+- Add document.lineAt(), export TextLine class.
+- Upgrade node-client, support nvim.exec().
+- Add documentHighlight.priority configuration.
 
 # 2019-08-18 0.0.74
 

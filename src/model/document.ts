@@ -433,7 +433,7 @@ export default class Document {
   /**
    * Synchronized textDocument.
    */
-  public get textDocument(): TextDocument {
+  public get textDocument(): LinesTextDocument {
     return this._textDocument
   }
 

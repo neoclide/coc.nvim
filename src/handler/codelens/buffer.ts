@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationTokenSource, CodeLens, Command } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import { LinesTextDocument } from '../../model/textdocument'
 import commandManager from '../../commands'
 import languages from '../../languages'
 import { BufferSyncItem } from '../../types'
@@ -19,6 +19,17 @@ export interface CodeLensConfig {
   enabled: boolean
   separator: string
   subseparator: string
+}
+
+function getIndentCols(text: string): number {
+  let ms = text.match(/^\s*/)
+  if (!ms[0]) return 0
+  let n = 0
+  for (let i = 0; i < ms[0].length; i++) {
+    // TODO Should consider tabstop
+    n = n + (ms[0][i] == '\t' ? 2 : 1)
+  }
+  return n
 }
 
 /**
@@ -50,7 +61,8 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   private get enabled(): boolean {
-    return this.textDocument && this.config.enabled && languages.hasProvider('codeLens', this.textDocument)
+    let { textDocument } = this
+    return textDocument && this.config.enabled && languages.hasProvider('codeLens', textDocument)
   }
 
   public async forceFetch(): Promise<void> {
@@ -58,7 +70,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
     await this._fetchCodeLenses()
   }
 
-  private get textDocument(): TextDocument | undefined {
+  private get textDocument(): LinesTextDocument | undefined {
     return workspace.getDocument(this.bufnr)?.textDocument
   }
 
@@ -136,11 +148,13 @@ export default class CodeLensBuffer implements BufferSyncItem {
         list.set(line, [codeLens])
       }
     }
+    let textDocument = this.textDocument
+    let buf = this.nvim.createBuffer(this.bufnr)
     for (let lnum of list.keys()) {
       let codeLenses = list.get(lnum)
       let commands = codeLenses.map(codeLens => codeLens.command)
       commands = commands.filter(c => c && c.title)
-      let chunks = []
+      let chunks: [string, string][] = []
       let n_commands = commands.length
       for (let i = 0; i < n_commands; i++) {
         let c = commands[i]
@@ -149,8 +163,23 @@ export default class CodeLensBuffer implements BufferSyncItem {
           chunks.push([this.config.subseparator, 'CocCodeLens'] as [string, string])
         }
       }
-      chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
-      this.nvim.call('nvim_buf_set_virtual_text', [this.bufnr, this.srcId, lnum, chunks, {}], true)
+      if (this.config.separator) {
+        chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
+      }
+      if (workspace.has('nvim-0.6.0')) {
+        // get indent
+        let textLine = textDocument.lineAt(lnum)
+        let col = getIndentCols(textLine.text)
+        if (col) {
+          chunks.unshift([(new Array(col)).fill(' ').join(''), 'CocCodeLens'])
+        }
+        buf.setExtMark(this.srcId, lnum, 0, {
+          virt_lines: [chunks],
+          virt_lines_above: true
+        })
+      } else {
+        this.nvim.call('nvim_buf_set_virtual_text', [this.bufnr, this.srcId, lnum, chunks, {}], true)
+      }
     }
   }
 

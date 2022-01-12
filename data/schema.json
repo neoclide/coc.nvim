@@ -829,7 +829,7 @@
     "codeLens.separator": {
       "type": "string",
       "description": "Separator text for codeLens in virtual text",
-      "default": "‣"
+      "default": ""
     },
     "codeLens.subseparator": {
       "type": "string",

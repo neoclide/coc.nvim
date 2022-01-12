@@ -676,7 +676,7 @@ Built-in configurations:~
 
 "codeLens.separator":~
 
-	Separator text for `codeLens` in virtual text, default: `"‣"`.
+	Separator text for `codeLens` in virtual text, default: `""`.
 
 "codeLens.subseparator":~
 
