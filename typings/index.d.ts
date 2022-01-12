@@ -1757,6 +1757,48 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * Represents a line of text, such as a line of source code.
+   *
+   * TextLine objects are __immutable__. When a {@link TextDocument document} changes,
+   * previously retrieved lines will not represent the latest state.
+   */
+  export class TextLine {
+    constructor(line: number, text: string, isLastLine: boolean)
+
+    /**
+     * The zero-based line number.
+     */
+    get lineNumber(): number
+
+    /**
+     * The text of this line without the line separator characters.
+     */
+    get text(): string
+
+    /**
+     * The range this line covers without the line separator characters.
+     */
+    get range(): Range
+
+    /**
+     * The range this line covers with the line separator characters.
+     */
+    get rangeIncludingLineBreak(): Range
+
+    /**
+     * The offset of the first character which is not a whitespace character as defined
+     * by `/\s/`. **Note** that if a line is all whitespace the length of the line is returned.
+     */
+    get firstNonWhitespaceCharacterIndex(): number
+
+    /**
+     * Whether this line is whitespace only, shorthand
+     * for {@link TextLine.firstNonWhitespaceCharacterIndex} === {@link TextLine.text TextLine.text.length}.
+     */
+    get isEmptyOrWhitespace(): boolean
+  }
+
+  /**
    * A simple text document. Not to be implemented. The document keeps the content
    * as string.
    */
@@ -1797,6 +1839,15 @@ declare module 'coc.nvim' {
      *         range is provided.
      */
     getText(range?: Range): string
+    /**
+     * Returns a text line denoted by the line number. Note
+     * that the returned object is *not* live and changes to the
+     * document are not reflected.
+     *
+     * @param line or position
+     * @return A {@link TextLine line}.
+     */
+    lineAt(lineOrPos: number | Position): TextLine
     /**
      * Converts a zero-based offset to a position.
      *
