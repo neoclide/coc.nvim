@@ -114,7 +114,7 @@
     "vscode-uri": "^2.1.2",
     "vscode-jsonrpc": "^6.0.0",
     "vscode-languageserver-protocol": "^3.16.0",
-    "vscode-languageserver-textdocument": "^1.0.1",
+    "vscode-languageserver-textdocument": "^1.0.3",
     "vscode-languageserver-types": "^3.16.0"
   }
 }
