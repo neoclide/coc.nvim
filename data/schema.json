@@ -602,6 +602,24 @@
       "default": "hint",
       "enum": ["hint", "information", "warning", "error"]
     },
+    "diagnostic.locationlistLevel": {
+      "type": ["string", "null"],
+      "description": "Filter diagnostics in locationlist.",
+      "default": null,
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "diagnostic.signLevel": {
+      "type": ["string", "null"],
+      "description": "Filter diagnostics displayed in signcolumn.",
+      "default": null,
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "diagnostic.messageLevel": {
+      "type": ["string", "null"],
+      "description": "Filter diagnostic message in float window/popup.",
+      "default": null,
+      "enum": ["hint", "information", "warning", "error"]
+    },
     "diagnostic.locationlistUpdate": {
       "type": "boolean",
       "description": "Update locationlist on diagnostics change, only works with locationlist opened by :CocDiagnostics command and first window of associated buffer.",
@@ -811,7 +829,7 @@
     "codeLens.separator": {
       "type": "string",
       "description": "Separator text for codeLens in virtual text",
-      "default": "‣"
+      "default": ""
     },
     "codeLens.subseparator": {
       "type": "string",
