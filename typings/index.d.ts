@@ -6049,6 +6049,11 @@ declare module 'coc.nvim' {
      * Converted filetype.
      */
     readonly filetype: string
+    /**
+     * Main filetype of buffer, first part when buffer filetype contains dots.
+     * Same as filetype most of the time.
+     */
+    readonly languageId: string
     readonly uri: string
     readonly version: number
     /**
