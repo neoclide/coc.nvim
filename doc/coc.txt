@@ -825,7 +825,7 @@ Built-in configurations:~
 
 "coc.preferences.extensionUpdateCheck":~
 
-	Interval for checking extension updates, default: `"daily"`
+	Interval for checking extension updates, default: `"never"`
 
 	Valid options: ["daily","weekly","never"]
 
