@@ -10,7 +10,7 @@ import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating, { PumBounding } from './floating'
 import debounce from 'debounce'
-import { byteSlice } from '../util/string'
+import { byteLength, byteSlice } from '../util/string'
 import { equals } from '../util/object'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
@@ -389,6 +389,10 @@ export class Completion implements Disposable {
     if (!shouldTrigger) return
     await doc.patchChange()
     let option = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
+    if (option.input && this.config.asciiCharactersOnly) {
+      option.input = this.getInput(doc, pre)
+      option.col = byteLength(pre) - byteLength(option.input)
+    }
     if (!option) {
       logger.warn(`Suggest disabled by b:coc_suggest_disable`)
       return
@@ -481,16 +485,19 @@ export class Completion implements Disposable {
   }
 
   public shouldTrigger(doc: Document, pre: string): boolean {
-    let autoTrigger = this.config.autoTrigger
+    let { autoTrigger, asciiCharactersOnly, minTriggerInputLength } = this.config
     if (autoTrigger == 'none') return false
     if (sources.shouldTrigger(pre, doc.filetype, doc.uri)) return true
     if (autoTrigger !== 'always' || this.isActivated) return false
     let last = pre.slice(-1)
+    // eslint-disable-next-line no-control-regex
+    if (asciiCharactersOnly && !/[\x00-\x7F]/.test(last)) {
+      return false
+    }
     if (last && (doc.isWord(pre.slice(-1)) || last.codePointAt(0) > 255)) {
-      let minLength = this.config.minTriggerInputLength
-      if (minLength == 1) return true
+      if (minTriggerInputLength == 1) return true
       let input = this.getInput(doc, pre)
-      return input.length >= minLength
+      return input.length >= minTriggerInputLength
     }
     return false
   }
@@ -578,10 +585,12 @@ export class Completion implements Disposable {
   }
 
   private getInput(document: Document, pre: string): string {
+    let { asciiCharactersOnly } = this.config
     let input = ''
     for (let i = pre.length - 1; i >= 0; i--) {
       let ch = i == 0 ? null : pre[i - 1]
-      if (!ch || !document.isWord(ch)) {
+      // eslint-disable-next-line no-control-regex
+      if (!ch || !document.isWord(ch) || (asciiCharactersOnly && !/[\x00-\x7F]/.test(ch))) {
         input = pre.slice(i, pre.length)
         break
       }

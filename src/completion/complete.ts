@@ -164,7 +164,7 @@ export default class Complete {
         })
       })
     } catch (err) {
-      this.nvim.command(`echoerr 'Complete ${source.name} error: ${err.message.replace(/'/g, "''")}'`, true)
+      this.nvim.echoError(`Complete ${source.name} error: ${err.message.replace(/'/g, "''")}`)
       logger.error('Complete error:', source.name, err)
     }
   }
@@ -197,7 +197,7 @@ export default class Complete {
       if (b.source == 'tabnine') return -1
       return b.priority - a.priority
     })
-    let { snippetIndicator, removeDuplicateItems, fixInsertedWord, asciiCharactersOnly } = this.config
+    let { snippetIndicator, maxItemCount, defaultSortMethod, removeDuplicateItems, fixInsertedWord } = this.config
     let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
     let arr: ExtendedCompleteItem[] = []
@@ -212,10 +212,6 @@ export default class Complete {
           continue
         }
         let { word } = item
-        // eslint-disable-next-line no-control-regex
-        if (asciiCharactersOnly && !/^[\x00-\x7F]*$/.test(word)) {
-          continue
-        }
         if (!item.dup && words.has(word)) continue
         if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line == undefined) continue
         let filterText = item.filterText || item.word
@@ -270,7 +266,7 @@ export default class Complete {
         return b.localBonus - a.localBonus
       }
       // Default sort method
-      switch (this.config.defaultSortMethod) {
+      switch (defaultSortMethod) {
         case 'none':
           return 0
         case 'alphabetical':
@@ -280,7 +276,7 @@ export default class Complete {
           return a.filterText.length - b.filterText.length
       }
     })
-    return this.limitCompleteItems(arr.slice(0, this.config.maxItemCount))
+    return this.limitCompleteItems(arr.slice(0, maxItemCount))
   }
 
   private limitCompleteItems(items: ExtendedCompleteItem[]): ExtendedCompleteItem[] {

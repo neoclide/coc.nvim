@@ -573,7 +573,7 @@
     },
     "suggest.asciiCharactersOnly": {
       "type": "boolean",
-      "description": "Suggest ASCII characters only",
+      "description": "Trigger suggest with ASCII characters only",
       "default": false
     },
     "documentHighlight.priority": {
