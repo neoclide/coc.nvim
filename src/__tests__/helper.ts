@@ -70,7 +70,6 @@ export class Helper extends EventEmitter {
     this.nvim.removeAllListeners()
     this.nvim = null
     if (this.proc) {
-      this.proc.unref()
       terminate(this.proc)
       this.proc = null
     }
@@ -105,11 +104,11 @@ export class Helper extends EventEmitter {
 
   public async reset(): Promise<void> {
     let mode = await this.nvim.mode
-    if (mode.mode != 'n' || mode.blocking) {
-      await this.nvim.command('stopinsert')
+    if (mode.blocking && mode.mode == 'r') {
+      await this.nvim.input('<cr>')
+    } else if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
-    await this.nvim.call('coc#float#close_all')
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(80)
   }

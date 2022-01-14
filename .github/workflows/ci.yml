@@ -54,7 +54,7 @@ jobs:
           tar xzf nvim-macos.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-osx64/bin"
           nvim --version
-          yarn test-build --maxWorkers=4
+          yarn test-build
       - if: matrix.os == 'ubuntu-latest'
         name: yarn test on Ubuntu
         run: |
@@ -64,7 +64,7 @@ jobs:
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           nvim --version
-          yarn test-build --maxWorkers=2
+          yarn test-build
 
       - name: Codecov
         uses: codecov/codecov-action@v2.0.2
