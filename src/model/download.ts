@@ -56,6 +56,7 @@ export default function download(url: string, options: DownloadOptions, token?: 
         req.destroy(new Error('request aborted'))
       })
     }
+    let timer: NodeJS.Timer
     const req = mod.request(opts, (res: IncomingMessage) => {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = res.headers || {}
@@ -92,6 +93,12 @@ export default function download(url: string, options: DownloadOptions, token?: 
         res.on('error', err => {
           reject(new Error(`Unable to connect ${url}: ${err.message}`))
         })
+        res.on('data', () => {
+          if (timer) {
+            clearTimeout(timer)
+            timer = undefined
+          }
+        })
         res.on('end', () => {
           logger.info('Download completed:', url)
         })
@@ -115,7 +122,16 @@ export default function download(url: string, options: DownloadOptions, token?: 
         reject(new Error(`Invalid response from ${url}: ${res.statusCode}`))
       }
     })
-    req.on('error', reject)
+    req.on('error', e => {
+      // Possible succeed proxy request with ECONNRESET error on node > 14
+      if (opts.agent && e.code == 'ECONNRESET') {
+        timer = setTimeout(() => {
+          reject(e)
+        }, 500)
+      } else {
+        reject(e)
+      }
+    })
     req.on('timeout', () => {
       req.destroy(new Error(`request timeout after ${options.timeout}ms`))
     })
