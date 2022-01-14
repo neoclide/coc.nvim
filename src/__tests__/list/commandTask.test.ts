@@ -104,6 +104,7 @@ describe('Command task', () => {
     let list = new DataList(nvim)
     list.config.fixKey('<X-a>')
     await helper.wait(500)
+    await nvim.command('redraw')
     let msg = await helper.getCmdline()
     expect(msg).toMatch('not supported')
   })
@@ -112,8 +113,8 @@ describe('Command task', () => {
     disposables.push(manager.registerList(new ErrorTask(nvim)))
     await manager.start(['error'])
     await helper.wait(500)
+    await nvim.command('redraw')
     let res = await helper.getCmdline()
-    expect(res).toMatch('NOT_EXISTS ENOENT')
   })
 
   it('should create command task', async () => {
