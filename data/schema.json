@@ -1004,12 +1004,12 @@
     "list.statusLineSegments": {
       "type": ["array", "null"],
       "default": [
-        "%#CocListMode#-- %{get(b:list_status, \"mode\", \"\")} --%*",
-        "%{get(b:list_status, \"loading\", \"\")}",
-        "%{get(b:list_status, \"args\", \"\")}",
-        "(%L/%{get(b:list_status, \"total\", \"\")})",
+        "%#CocListMode#-- %{coc#list#status(\"mode\")} --%*",
+        "%{coc#list#status(\"loading\")}",
+        "%{coc#list#status(\"args\")}",
+        "(%L/%{coc#list#status(\"total\")})",
         "%=",
-        "%#CocListPath# %{get(b:list_status, \"cwd\", \"\")} %l/%L%*"
+        "%#CocListPath# %{coc#list#status(\"cwd\")} %l/%L%*"
       ],
       "items": {
         "types": "string"
