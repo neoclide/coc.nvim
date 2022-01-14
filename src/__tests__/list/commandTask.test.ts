@@ -100,6 +100,14 @@ describe('Command task', () => {
     expect(lines).toEqual(['stdout'])
   })
 
+  it('should show error for bad key', async () => {
+    let list = new DataList(nvim)
+    list.config.fixKey('<X-a>')
+    await helper.wait(500)
+    let msg = await helper.getCmdline()
+    expect(msg).toMatch('not supported')
+  })
+
   it('should not show error', async () => {
     disposables.push(manager.registerList(new ErrorTask(nvim)))
     await manager.start(['error'])
@@ -122,13 +130,5 @@ describe('Command task', () => {
     disposables.push(manager.registerList(list))
     await manager.start(['sleep'])
     manager.session.stop()
-  })
-
-  it('should show error for bad key', async () => {
-    let list = new DataList(nvim)
-    list.config.fixKey('<X-a>')
-    await helper.wait(500)
-    let msg = await helper.getCmdline()
-    expect(msg).toMatch('not supported')
   })
 })

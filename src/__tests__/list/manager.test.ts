@@ -429,34 +429,10 @@ describe('list', () => {
       await events.fire('FocusGained', [])
       await manager.start(['location'])
       await manager.session.ui.ready
-      await helper.wait(50)
       await manager.session.hide()
       await helper.wait(100)
       await manager.resume('location')
       expect(manager.isActivated).toBe(true)
-    })
-  })
-
-  describe('start()', () => {
-    it('should show error when loadItems throws', async () => {
-      let list: IList = {
-        name: 'test',
-        actions: [{
-          name: 'open',
-          execute: (_item: ListItem) => {
-          }
-        }],
-        defaultAction: 'open',
-        loadItems: () => {
-          throw new Error('test error')
-        }
-      }
-      manager.registerList(list)
-      await manager.start(['test'])
-      await nvim.command('redraw')
-      await helper.wait(200)
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('test error')
     })
   })
 
@@ -505,6 +481,28 @@ describe('list', () => {
       await helper.wait(30)
       let msg = await helper.getCmdline()
       expect(msg).toMatch('recreated')
+    })
+  })
+
+  describe('start()', () => {
+    it('should show error when loadItems throws', async () => {
+      let list: IList = {
+        name: 'test',
+        actions: [{
+          name: 'open',
+          execute: (_item: ListItem) => {
+          }
+        }],
+        defaultAction: 'open',
+        loadItems: () => {
+          throw new Error('test error')
+        }
+      }
+      manager.registerList(list)
+      await manager.start(['test'])
+      await nvim.command('redraw')
+      let msg = await helper.getCmdline()
+      expect(msg).toMatch('test error')
     })
   })
 })

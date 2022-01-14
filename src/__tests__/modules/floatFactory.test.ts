@@ -91,7 +91,7 @@ describe('FloatFactory', () => {
         content: 'f'
       }]
       let p = floatFactory.show(docs)
-      await helper.wait(1)
+      await helper.wait(10)
       floatFactory.close()
       await p
       let activated = await floatFactory.activated()
@@ -109,6 +109,19 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       expect(floatFactory.window).toBe(null)
+    })
+
+    it('should allow select mode', async () => {
+      await helper.createDocument()
+      await snippetManager.insertSnippet('${1:foo}')
+      let docs: Documentation[] = [{
+        filetype: 'markdown',
+        content: 'foo'
+      }]
+      await floatFactory.show(docs)
+      let { mode } = await nvim.mode
+      expect(mode).toBe('s')
+      await nvim.input('<esc>')
     })
   })
 
@@ -247,30 +260,4 @@ describe('FloatFactory', () => {
       expect(activated).toBe(true)
     })
   })
-
-  it('should allow select mode', async () => {
-    await helper.createDocument()
-    await snippetManager.insertSnippet('${1:foo}')
-    let docs: Documentation[] = [{
-      filetype: 'markdown',
-      content: 'foo'
-    }]
-    await floatFactory.show(docs)
-    let { mode } = await nvim.mode
-    expect(mode).toBe('s')
-  })
-
-  it('should get active state of window', async () => {
-    let docs: Documentation[] = [{
-      filetype: 'markdown',
-      content: 'f'.repeat(81)
-    }]
-    await floatFactory.show(docs)
-    let res = await floatFactory.activated()
-    expect(res).toBe(true)
-    await nvim.call('coc#float#close_all')
-    res = await floatFactory.activated()
-    expect(res).toBe(false)
-  })
-
 })

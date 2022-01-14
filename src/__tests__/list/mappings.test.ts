@@ -157,7 +157,7 @@ describe('list normal mappings', () => {
     await nvim.eval('feedkeys("\\<tab>", "in")')
     await helper.wait(100)
     await nvim.input('t')
-    await helper.wait(300)
+    await helper.wait(100)
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
   })
@@ -167,7 +167,7 @@ describe('list normal mappings', () => {
     await manager.session.ui.ready
     await helper.wait(50)
     await nvim.eval('feedkeys("p", "in")')
-    await helper.wait(200)
+    await helper.wait(50)
     let winnr = await nvim.call('coc#list#has_preview')
     expect(winnr).toBe(2)
   })
@@ -188,7 +188,7 @@ describe('list normal mappings', () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<esc>", "in")')
-    await helper.wait(200)
+    await helper.wait(100)
     expect(manager.isActivated).toBe(false)
   })
 
@@ -323,11 +323,11 @@ describe('list insert mappings', () => {
   it('should select action by <tab>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
-    await helper.wait(100)
+    await helper.wait(50)
     nvim.call('eval', 'feedkeys("\\<tab>", "in")', true)
     await helper.wait(100)
     await nvim.input('t')
-    await helper.wait(500)
+    await helper.wait(200)
     let pages = await nvim.tabpages
     expect(pages.length).toBe(2)
   })
@@ -896,7 +896,7 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await nvim.eval(`feedkeys("\\<C-v>", "in")`)
-    await helper.wait(200)
+    await helper.wait(100)
     let { input } = manager.prompt
     expect(input).toMatch('bar')
   })

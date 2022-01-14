@@ -11,6 +11,7 @@ import attach from '../attach'
 import Document from '../model/document'
 import Plugin from '../plugin'
 import workspace from '../workspace'
+import { terminate } from '../util/processes'
 import { v4 as uuid } from 'uuid'
 import { VimCompleteItem } from '../types'
 
@@ -44,14 +45,15 @@ export class Helper extends EventEmitter {
     this.nvim.uiAttach(160, 80, {}).catch(_e => {
       // noop
     })
-    proc.on('exit', () => {
-      this.proc = null
-    })
     this.nvim.on('notification', (method, args) => {
       if (method == 'redraw') {
         for (let arg of args) {
           let event = arg[0]
           this.emit(event, arg.slice(1))
+          // if (event == 'put') {
+          //   let arr = arg.slice(1).map(o => o[0])
+          //   console.log(arr.join(''))
+          // }
         }
       }
     })
@@ -62,9 +64,12 @@ export class Helper extends EventEmitter {
 
   public async shutdown(): Promise<void> {
     this.plugin.dispose()
-    await this.nvim.quit()
+    this.nvim.removeAllListeners()
+    this.nvim = null
     if (this.proc) {
-      this.proc.kill('SIGKILL')
+      this.proc.unref()
+      terminate(this.proc)
+      this.proc = null
     }
     await this.wait(60)
   }
@@ -96,8 +101,6 @@ export class Helper extends EventEmitter {
   }
 
   public async reset(): Promise<void> {
-    let file = path.join(process.env.COC_DATA_HOME, 'suggest.txt')
-    fs.writeFileSync(file, '', 'utf8')
     let mode = await this.nvim.mode
     if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.command('stopinsert')
