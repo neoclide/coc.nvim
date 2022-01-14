@@ -1315,7 +1315,9 @@ augroup coc_dynamic_autocmd
   autocmd!
   ${cmds.join('\n  ')}
 augroup end`
-    try {
+    if (this.nvim.hasFunction('nvim_exec')) {
+      this.nvim.exec(content, false).logError()
+    } else {
       let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)
       if (!fs.existsSync(dir)) fs.mkdirpSync(dir)
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
@@ -1325,8 +1327,6 @@ augroup end`
         cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`
       }
       this.nvim.command(cmd).logError()
-    } catch (e) {
-      window.showMessage(`Can't create tmp file: ${e.message}`, 'error')
     }
   }
 
