@@ -165,6 +165,16 @@ Built-in configurations:~
 	CA (file) to use as Certificate Authority.
 
 							*coc-config-suggest*
+"suggest.selection":~
+
+	Controls how suggestions are pre-selected when showing the suggest
+	list. Default: "none".
+
+	Could be "none", "recentlyUsed" and "recentlyUsedByPrefix".
+
+	Note: the selected item would be moved to first place when
+	"suggest.enablePreselect" is not enabled.
+
 "suggest.enablePreselect":~
 
 	Enable preselect feature on Neovim, default: `false`

@@ -56,6 +56,71 @@ describe('completion', () => {
       expect(visible).toBe(false)
     })
   })
+
+  describe('suggest selection', () => {
+    afterEach(() => {
+      helper.updateConfiguration('suggest.selection', 'none')
+      helper.updateConfiguration('suggest.enablePreselect', false)
+    })
+
+    it('should not select when selection is none', async () => {
+      helper.updateConfiguration('suggest.enablePreselect', true)
+      let doc = await helper.createDocument()
+      await nvim.setLine('world')
+      await helper.wait(50)
+      await doc.synchronize()
+      await nvim.input('ow')
+      await helper.visible('world')
+      await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
+      await nvim.input('<C-y>')
+      await nvim.input('<esc>')
+      await nvim.input('ow')
+      await helper.visible('world')
+      let context = await nvim.getVar('coc#_context') as any
+      expect(context.preselect).toBe(-1)
+    })
+
+    it('should select recent item', async () => {
+      helper.updateConfiguration('suggest.selection', 'recentlyUsed')
+      helper.updateConfiguration('suggest.enablePreselect', true)
+      let doc = await helper.createDocument()
+      await nvim.setLine('world')
+      await helper.wait(50)
+      await doc.synchronize()
+      await nvim.input('ow')
+      await helper.visible('world')
+      await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
+      await nvim.input('<C-y>')
+      await nvim.input('<esc>')
+      await nvim.input('ow')
+      await helper.visible('world')
+      let context = await nvim.getVar('coc#_context') as any
+      expect(context.preselect).toBe(0)
+    })
+
+    it('should select recent item', async () => {
+      helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix')
+      helper.updateConfiguration('suggest.enablePreselect', true)
+      let doc = await helper.createDocument()
+      await nvim.setLine('world')
+      await helper.wait(50)
+      await doc.synchronize()
+      await nvim.input('owo')
+      await helper.visible('world')
+      await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
+      await nvim.input('<C-y>')
+      await nvim.input('<esc>')
+      await nvim.input('ow')
+      await helper.visible('world')
+      let context = await nvim.getVar('coc#_context') as any
+      expect(context.preselect).toBe(-1)
+      await nvim.input('o')
+      await helper.wait(50)
+      context = await nvim.getVar('coc#_context') as any
+      expect(context.preselect).toBe(0)
+    })
+  })
+
   describe('trigger completion', () => {
     it('should not show word of word source on empty input', async () => {
       await nvim.setLine('foo bar')
@@ -356,6 +421,13 @@ describe('completion', () => {
   })
 
   describe('completion results', () => {
+
+    afterEach(() => {
+      helper.updateConfiguration('suggest.lowPrioritySourceLimit', null)
+      helper.updateConfiguration('suggest.highPrioritySourceLimit', null)
+      helper.updateConfiguration('suggest.labelMaxLength', 200)
+    })
+
     it('should limit results for low priority source', async () => {
       await helper.edit()
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
@@ -364,7 +436,6 @@ describe('completion', () => {
       await nvim.input('of')
       await helper.waitPopup()
       let items = await helper.getItems()
-      helper.updateConfiguration('suggest.lowPrioritySourceLimit', null)
       items = items.filter(o => o.menu == '[A]')
       expect(items.length).toBe(2)
     })
@@ -388,7 +459,6 @@ describe('completion', () => {
       await nvim.input('.')
       await helper.waitPopup()
       let items = await helper.getItems()
-      helper.updateConfiguration('suggest.highPrioritySourceLimit', null)
       expect(items.length).toBeGreaterThan(1)
     })
 
@@ -410,7 +480,6 @@ describe('completion', () => {
       await helper.wait(30)
       await nvim.input('.')
       await helper.waitPopup()
-      helper.updateConfiguration('suggest.labelMaxLength', 200)
       let items = await helper.getItems()
       for (let item of items) {
         expect(item.abbr.length).toBeLessThanOrEqual(10)

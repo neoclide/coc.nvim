@@ -49,7 +49,7 @@ describe('register handler', () => {
     disposables.push(disposable)
     let ts = Date.now()
     await events.fire('FocusGained', [])
-    expect(Date.now() - ts >= 100).toBe(true)
+    expect(Date.now() - ts >= 80).toBe(true)
   })
 
   it('should emit TextInsert after TextChangedI', async () => {

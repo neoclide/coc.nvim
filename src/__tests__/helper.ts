@@ -96,6 +96,8 @@ export class Helper extends EventEmitter {
   }
 
   public async reset(): Promise<void> {
+    let file = path.join(process.env.COC_DATA_HOME, 'suggest.txt')
+    fs.writeFileSync(file, '', 'utf8')
     let mode = await this.nvim.mode
     if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.command('stopinsert')

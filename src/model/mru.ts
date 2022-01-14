@@ -11,7 +11,10 @@ export default class Mru {
    * @param {string} name unique name
    * @param {string} base? optional directory name, default to config root of coc.nvim
    */
-  constructor(private name: string, base?: string) {
+  constructor(
+    name: string,
+    base?: string,
+    private maximum = 5000) {
     this.file = path.join(base || process.env.COC_DATA_HOME, name)
   }
 
@@ -33,6 +36,19 @@ export default class Mru {
     }
   }
 
+  public loadSync(): string[] {
+    if (!fs.existsSync(this.file)) {
+      return []
+    }
+    try {
+      let content = fs.readFileSync(this.file, 'utf8')
+      content = content.trim()
+      return content.length ? content.trim().split('\n') : []
+    } catch (e) {
+      return []
+    }
+  }
+
   /**
    * Add item to mru file.
    */
@@ -41,6 +57,9 @@ export default class Mru {
     let idx = items.indexOf(item)
     if (idx !== -1) items.splice(idx, 1)
     items.unshift(item)
+    if (this.maximum && items.length >= this.maximum) {
+      items.pop()
+    }
     fs.writeFileSync(this.file, items.join('\n'), 'utf8')
   }
 

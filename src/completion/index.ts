@@ -1,13 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-import events, { PopupChangeEvent, InsertChange } from '../events'
+import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
+import Mru from '../model/mru'
 import sources from '../sources'
-import { CompleteOption, ISource, VimCompleteItem, ExtendedCompleteItem, FloatConfig } from '../types'
+import { CompleteOption, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
 import * as Is from '../util/is'
 import workspace from '../workspace'
-import Complete, { CompleteConfig } from './complete'
+import Complete, { CompleteConfig, MruItem } from './complete'
 import Floating, { PumBounding } from './floating'
 import debounce from 'debounce'
 import { byteLength, byteSlice } from '../util/string'
@@ -37,9 +38,11 @@ export class Completion implements Disposable {
   private insertCharTs = 0
   private insertLeaveTs = 0
   private excludeImages: boolean
+  private mru: Mru
 
   public init(): void {
     this.config = this.getCompleteConfig()
+    this.mru = new Mru('suggest.txt', process.env.COC_DATA_HOME, 1000)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         this.config = this.getCompleteConfig()
@@ -137,6 +140,7 @@ export class Completion implements Disposable {
       autoTrigger,
       floatEnable,
       keepCompleteopt,
+      selection: getConfig<'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'>('selection', 'recentlyUsed'),
       floatConfig: getConfig<FloatConfig>('floatConfig', {}),
       defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
@@ -176,10 +180,7 @@ export class Completion implements Disposable {
 
   private async resumeCompletion(force = false): Promise<void> {
     let { document, complete } = this
-    if (!document
-      || complete.isCanceled
-      || !complete.results
-      || complete.results.length == 0) return
+    if (!document || complete.isCanceled || complete.isEmpty) return
     let search = this.getResumeInput()
     if (search == this.input && !force) return
     if (!search || search.endsWith(' ') || !search.startsWith(complete.input)) {
@@ -264,10 +265,13 @@ export class Completion implements Disposable {
       if (s) arr.push(s)
     }
     if (!arr.length) return
-    await doc.patchChange()
+    let [mruItems] = await Promise.all([
+      this.getRecentItems(),
+      doc.patchChange(),
+    ]) as [MruItem[], undefined]
     // document get changed, not complete
     if (doc.changedtick != option.changedtick) return
-    let complete = new Complete(option, doc, config, arr, nvim)
+    let complete = new Complete(option, doc, config, arr, mruItems, nvim)
     this.start(complete)
     let items = await this.complete.doComplete()
     if (complete.isCanceled) return
@@ -418,6 +422,8 @@ export class Completion implements Disposable {
     let timestamp = this.insertCharTs
     let insertLeaveTs = this.insertLeaveTs
     let source = new CancellationTokenSource()
+    let line = `${this.input}|${resolvedItem.filterText}|${resolvedItem.source}`
+    this.mru.add(line).logError()
     await this.doCompleteResolve(resolvedItem, source.token)
     source.dispose()
     // Wait possible TextChangedI
@@ -642,6 +648,22 @@ export class Completion implements Disposable {
       }
     }
     return false
+  }
+
+  private async getRecentItems(): Promise<MruItem[]> {
+    let lines = await this.mru.load()
+    let items: MruItem[] = []
+    for (let line of lines) {
+      let arr = line.split('|')
+      if (arr.length >= 3) {
+        items.push({
+          prefix: arr[0],
+          label: arr[1],
+          source: arr[2]
+        })
+      }
+    }
+    return items
   }
 
   public dispose(): void {

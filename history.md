@@ -1,3 +1,7 @@
+# 2022-01-14
+
+- Add configuration 'suggest.selection'.
+
 # 2022-01-13
 
 - `codeLens.separator` now defaults to `""` and will be placed above lines on neovim >= 0.6.0 .

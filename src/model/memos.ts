@@ -1,5 +1,4 @@
 import fs from 'fs'
-import { readFile, statAsync } from '../util/fs'
 import { deepClone } from '../util/object'
 const logger = require('../util/logger')('model-memos')
 

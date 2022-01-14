@@ -1,13 +1,20 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteOption, FloatConfig, VimCompleteItem, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
-import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
+import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex } from '../util/string'
 import { matchScore } from './match'
 const logger = require('../util/logger')('completion-complete')
 
+export interface MruItem {
+  prefix: string
+  label: string
+  source: string
+}
+
 export interface CompleteConfig {
+  selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
   disableKind: boolean
   disableMenu: boolean
   disableMenuShortcut: boolean
@@ -44,7 +51,7 @@ const FIRST_TIMEOUT = 500
 
 export default class Complete {
   // identify this complete
-  public results: CompleteResult[] = []
+  private results: Map<string, CompleteResult> = new Map()
   private completing: Set<string> = new Set()
   private _canceled = false
   private localBonus: Map<string, number>
@@ -55,6 +62,7 @@ export default class Complete {
     private document: Document,
     private config: CompleteConfig,
     private sources: ISource[],
+    private mruItems: ReadonlyArray<MruItem>,
     private nvim: Neovim) {
   }
 
@@ -67,7 +75,7 @@ export default class Complete {
   }
 
   public get isEmpty(): boolean {
-    return this.results.length == 0
+    return this.results.size == 0
   }
 
   public get startcol(): number {
@@ -79,15 +87,16 @@ export default class Complete {
   }
 
   public get isIncomplete(): boolean {
-    return this.results.findIndex(o => o.isIncomplete) !== -1
+    return Array.from(this.results.values()).findIndex(o => o.isIncomplete) !== -1
   }
 
   private async completeSource(source: ISource): Promise<void> {
     let { col } = this.option
     // new option for each source
     let opt = Object.assign({}, this.option)
-    let timeout = this.config.timeout
+    let { timeout, fixInsertedWord, snippetIndicator } = this.config
     timeout = Math.max(Math.min(timeout, 15000), 500)
+    let followPart = !fixInsertedWord ? '' : this.getFollowPart()
     try {
       if (typeof source.shouldComplete === 'function') {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
@@ -135,26 +144,39 @@ export default class Complete {
           onFinished()
           let dt = Date.now() - start
           logger.debug(`Source "${name}" takes ${dt}ms`)
-          if (result && result.items && result.items.length) {
+          if (result && result.items) {
             result.priority = source.priority
             result.source = name
-            // lazy completed items
-            if (empty && result.startcol && result.startcol != col) {
-              this.results = [result]
+            // make sure word exists.
+            result.items = result.items.filter(o => o && typeof o.word === 'string')
+            if (!result.items.length) {
+              this.results.delete(name)
             } else {
-              let { results } = this
-              let idx = results.findIndex(o => o.source == name)
-              if (idx != -1) {
-                results.splice(idx, 1, result)
+              result.items.forEach(item => {
+                item.source = name
+                item.priority = source.priority
+                item.filterText = item.filterText || item.word
+                item.abbr = item.abbr || item.word
+                if (followPart.length && !item.isSnippet && item.word.endsWith(followPart)) {
+                  item.word = item.word.slice(0, - followPart.length)
+                }
+                if (item.isSnippet && !item.abbr.endsWith(snippetIndicator)) {
+                  item.abbr = `${item.abbr || item.word}${snippetIndicator}`
+                }
+                item.localBonus = this.localBonus ? this.localBonus.get(item.filterText) || 0 : 0
+              })
+              // lazy completed items
+              if (empty && result.startcol && result.startcol != col) {
+                this.results.clear()
+                this.results.set(name, result)
               } else {
-                results.push(result)
+                this.results.set(name, result)
               }
+              if (empty) this._onDidComplete.fire()
             }
-            if (empty) this._onDidComplete.fire()
             resolve(undefined)
           } else {
-            let { results } = this
-            this.results = results.filter(res => res.source != name)
+            this.results.delete(name)
             resolve(undefined)
           }
         }, err => {
@@ -171,12 +193,14 @@ export default class Complete {
 
   public async completeInComplete(resumeInput: string): Promise<ExtendedCompleteItem[]> {
     let { results, document } = this
-    let remains = results.filter(res => !res.isIncomplete)
-    remains.forEach(res => {
-      res.items.forEach(item => delete item.user_data)
-    })
-    let arr = results.filter(res => res.isIncomplete)
-    let names = arr.map(o => o.source)
+    let names: string[] = []
+    for (let result of results.values()) {
+      if (result.isIncomplete) {
+        names.push(result.source)
+      } else {
+        result.items.forEach(item => delete item.user_data)
+      }
+    }
     let { input, colnr, linenr } = this.option
     Object.assign(this.option, {
       input: resumeInput,
@@ -192,61 +216,36 @@ export default class Complete {
 
   public filterResults(input: string, cid = 0): ExtendedCompleteItem[] {
     let { results } = this
-    results.sort((a, b) => {
-      if (a.source == 'tabnine') return 1
-      if (b.source == 'tabnine') return -1
-      return b.priority - a.priority
-    })
-    let { snippetIndicator, maxItemCount, defaultSortMethod, removeDuplicateItems, fixInsertedWord } = this.config
-    let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
-    if (results.length == 0) return []
+    if (results.size == 0) return []
+    let resultList = Array.from(results.values()).sort((a, b) => b.priority - a.priority)
+    let { maxItemCount, enablePreselect, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
-    for (let i = 0, l = results.length; i < l; i++) {
-      let res = results[i]
-      let { items, source, priority } = res
+    for (let i = 0, l = resultList.length; i < l; i++) {
+      let res = resultList[i]
+      let { items } = res
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
-        if (!item || typeof item.word !== 'string') {
-          continue
-        }
         let { word } = item
         if (!item.dup && words.has(word)) continue
-        if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line == undefined) continue
-        let filterText = item.filterText || item.word
-        item.filterText = filterText
+        if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line === undefined) continue
+        let filterText = item.filterText || word
         if (filterText.length < input.length) continue
         let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
-        if (input.length && score == 0) continue
-        if (followPart.length && !item.isSnippet) {
-          if (item.word.endsWith(followPart)) {
-            let { word } = item
-            item.word = item.word.slice(0, - followPart.length)
-            item.abbr = item.abbr || word
-          }
-        }
+        if (input.length > 0 && score == 0) continue
         if (!item.user_data) {
-          let user_data: any = { cid, source }
+          let user_data: any = { cid, source: res.source }
           user_data.index = item.index || idx
-          if (item.isSnippet) {
-            let abbr = item.abbr || item.word
-            if (!abbr.endsWith(snippetIndicator)) {
-              item.abbr = `${item.abbr || item.word}${snippetIndicator}`
-            }
-          }
           if (item.signature) user_data.signature = item.signature
           item.user_data = JSON.stringify(user_data)
-          item.source = source
         }
-        item.priority = priority
-        item.abbr = item.abbr || item.word
-        item.score = input.length ? score * (item.sourceScore || 1) : 0
-        item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
+        if (input.length > 0 && item.isSnippet && item.word === input) {
+          item.score = 99
+        } else {
+          item.score = input.length ? score * (item.sourceScore || 1) : 0
+        }
         words.add(word)
-        if (item.isSnippet && input.length && item.word == input) {
-          item.preselect = true
-        }
         arr.push(item)
       }
     }
@@ -255,17 +254,14 @@ export default class Complete {
       let sb = b.sortText
       let wa = a.filterText
       let wb = b.filterText
-      if (a.score != b.score) return b.score - a.score
-      if (a.priority != b.priority) return b.priority - a.priority
-      if (sa && sb && sa != sb) return sa < sb ? -1 : 1
-      if (a.localBonus != b.localBonus) {
-        if (a.localBonus && b.localBonus && wa != wb) {
-          if (wa.startsWith(wb)) return 1
-          if (wb.startsWith(wa)) return -1
-        }
-        return b.localBonus - a.localBonus
+      if (a.score !== b.score) return b.score - a.score
+      if (a.priority !== b.priority) return b.priority - a.priority
+      if (sa && sb && sa !== sb) return sa < sb ? -1 : 1
+      if (wa !== wb) {
+        if (wa.startsWith(wb)) return 1
+        if (wb.startsWith(wa)) return -1
       }
-      // Default sort method
+      if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
       switch (defaultSortMethod) {
         case 'none':
           return 0
@@ -276,7 +272,44 @@ export default class Complete {
           return a.filterText.length - b.filterText.length
       }
     })
+    let recentIndex = this.getRecentIndex(input, arr)
+    if (recentIndex !== undefined && !this.nvim.isVim) {
+      if (enablePreselect && !this.nvim.isVim) {
+        arr[recentIndex].preselect = true
+      } else {
+        let [item] = arr.splice(recentIndex, 1)
+        arr.unshift(item)
+      }
+    }
     return this.limitCompleteItems(arr.slice(0, maxItemCount))
+  }
+
+  private getRecentIndex(input: string, items: ExtendedCompleteItem[]): number | undefined {
+    let { selection } = this.config
+    if (selection == 'none' || !this.mruItems.length) return undefined
+    let res: number | undefined
+    let minimalIndex: number | undefined
+    let mruMap: Map<string, number> = new Map()
+    for (let i = this.mruItems.length - 1; i >= 0; i--) {
+      let o = this.mruItems[i]
+      let key = `${selection === 'recentlyUsedByPrefix' ? o.prefix : ''}|${o.source}|${o.label}`
+      mruMap.set(key, i)
+    }
+    for (let i = 0; i < items.length; i++) {
+      let item = items[i]
+      if (selection === 'recentlyUsed' && input.length && !item.filterText.startsWith(input)) continue
+      let key = `${selection === 'recentlyUsedByPrefix' ? input : ''}|${item.source}|${item.filterText}`
+      let idx = mruMap.get(key)
+      if (idx === undefined) continue
+      if (minimalIndex === undefined || idx < minimalIndex) {
+        minimalIndex = idx
+        res = i
+      }
+      if (idx === 0) {
+        break
+      }
+    }
+    return res
   }
 
   private limitCompleteItems(items: ExtendedCompleteItem[]): ExtendedCompleteItem[] {
@@ -296,18 +329,6 @@ export default class Complete {
     })
   }
 
-  public hasMatch(input: string): boolean {
-    let { results } = this
-    if (!results) return false
-    let codes = getCharCodes(input)
-    for (let i = 0, l = results.length; i < l; i++) {
-      let items = results[i].items
-      let idx = items.findIndex(item => fuzzyMatch(codes, item.filterText || item.word))
-      if (idx !== -1) return true
-    }
-    return false
-  }
-
   public async doComplete(): Promise<ExtendedCompleteItem[]> {
     let opts = this.option
     let { line, colnr, linenr, col } = this.option
@@ -319,32 +340,32 @@ export default class Complete {
     }
     await Promise.all(this.sources.map(s => this.completeSource(s)))
     let { results } = this
-    if (results.length == 0) return []
-    let engrossResult = results.find(r => r.startcol != null && r.startcol != col)
+    if (this.isEmpty) return []
+    let engrossResult = Array.from(results.values()).find(r => r.startcol != null && r.startcol != col)
     if (engrossResult) {
       let { startcol } = engrossResult
       opts.col = startcol
       opts.input = byteSlice(line, startcol, colnr - 1)
-      this.results = [engrossResult]
+      this.results.clear()
+      this.results.set(engrossResult.source, engrossResult)
     }
-    logger.info(`Results from: ${this.results.map(s => s.source).join(',')}`)
+    logger.info(`Results from: ${Array.from(this.results.keys()).join(',')}`)
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
   }
 
   public resolveCompletionItem(item: VimCompleteItem): ExtendedCompleteItem | null {
-    let { results } = this
-    if (!results) return null
     try {
       if (item.user_data) {
         let { source } = JSON.parse(item.user_data)
-        let result = results.find(res => res.source == source)
-        return result.items.find(o => o.user_data == item.user_data)
+        let res = this.results.get(source)
+        return res ? res.items.find(o => o.user_data == item.user_data) : null
+      } else {
+        for (let result of Array.from(this.results.values())) {
+          let res = result.items.find(o => o.abbr == item.abbr && o.info == item.info)
+          if (res) return res
+        }
+        return null
       }
-      for (let result of results) {
-        let res = result.items.find(o => o.abbr == item.abbr && o.info == item.info)
-        if (res) return res
-      }
-      return null
     } catch (e) {
       return null
     }
@@ -367,6 +388,6 @@ export default class Complete {
     }
     this.tokenSources.clear()
     this.sources = []
-    this.results = []
+    this.results.clear()
   }
 }
