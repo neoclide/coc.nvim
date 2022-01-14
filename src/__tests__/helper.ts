@@ -50,10 +50,13 @@ export class Helper extends EventEmitter {
         for (let arg of args) {
           let event = arg[0]
           this.emit(event, arg.slice(1))
-          // if (event == 'put') {
-          //   let arr = arg.slice(1).map(o => o[0])
-          //   console.log(arr.join(''))
-          // }
+          if (event == 'put') {
+            let arr = arg.slice(1).map(o => o[0])
+            let line = arr.join('').trim()
+            if (line.length > 3) {
+              // console.log(line)
+            }
+          }
         }
       }
     })
@@ -106,6 +109,7 @@ export class Helper extends EventEmitter {
       await this.nvim.command('stopinsert')
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
+    await this.nvim.call('coc#float#close_all')
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(80)
   }

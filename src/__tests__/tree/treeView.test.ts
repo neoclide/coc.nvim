@@ -598,7 +598,7 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
-      await helper.wait(50)
+      await helper.waitFloat()
       await nvim.input('<cr>')
       await helper.wait(50)
       expect(called).toBe(true)

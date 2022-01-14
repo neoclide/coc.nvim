@@ -111,7 +111,7 @@ describe('Command task', () => {
   it('should not show error', async () => {
     disposables.push(manager.registerList(new ErrorTask(nvim)))
     await manager.start(['error'])
-    await helper.wait(200)
+    await helper.wait(500)
     let res = await helper.getCmdline()
     expect(res).toMatch('NOT_EXISTS ENOENT')
   })

@@ -436,6 +436,7 @@ describe('completion TextChangedP', () => {
   })
 
   it('should fix cursor position with plain text snippet on additionalTextEdits', async () => {
+    await helper.createDocument()
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
         label: 'if',
@@ -448,8 +449,10 @@ describe('completion TextChangedP', () => {
     disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
     await nvim.input('iif')
     await helper.waitPopup()
-    await helper.selectCompleteItem(0)
-    await helper.wait(200)
+    let items = await helper.getItems()
+    let idx = items.findIndex(o => o.word == 'do' && o.menu == '[edit]')
+    await helper.selectCompleteItem(idx)
+    await helper.wait(500)
     let line = await nvim.line
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(line).toBe('bar do')
