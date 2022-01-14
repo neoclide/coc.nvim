@@ -1,7 +1,6 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { Mutex } from '../util/mutex'
 import extensions from '../extensions'
 import Highlighter from '../model/highligher'
 import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from '../types'
@@ -33,7 +32,6 @@ export default class ListSession {
   private window: Window
   private buffer: Buffer
   private interactiveDebounceTime: number
-  private mutex: Mutex = new Mutex()
   /**
    * Original list arguments.
    */
@@ -99,23 +97,16 @@ export default class ListSession {
       await this.doAction()
     }, null, this.disposables)
     this.worker.onDidChangeItems(async ({ items, reload, append, finished }) => {
-      let release = await this.mutex.acquire()
-      if (!this.hidden) {
-        try {
-          if (append) {
-            this.ui.appendItems(items)
-          } else {
-            let height = this.config.get<number>('height', 10)
-            if (finished && !listOptions.interactive && listOptions.input.length == 0) {
-              height = Math.min(items.length, height)
-            }
-            await this.ui.drawItems(items, Math.max(1, height), reload)
-          }
-        } catch (e) {
-          nvim.echoError(e)
+      if (this.hidden) return
+      if (append) {
+        await this.ui.appendItems(items)
+      } else {
+        let height = this.config.get<number>('height', 10)
+        if (finished && !listOptions.interactive && listOptions.input.length == 0) {
+          height = Math.min(items.length, height)
         }
+        await this.ui.drawItems(items, Math.max(1, height), reload)
       }
-      release()
     }, null, this.disposables)
     this.worker.onDidChangeLoading(loading => {
       if (this.hidden) return
@@ -293,7 +284,8 @@ export default class ListSession {
 
   public async hide(): Promise<void> {
     if (this.hidden) return
-    let { nvim, interval } = this
+    let { nvim, timer, interval } = this
+    if (timer) clearTimeout(timer)
     if (interval) clearInterval(interval)
     this.hidden = true
     this.worker.stop()
@@ -418,7 +410,7 @@ export default class ListSession {
     this.worker.drawItems()
   }
 
-  public updateStatus(): void {
+  private updateStatus(): void {
     let { ui, list, nvim } = this
     if (!ui.winid) return
     let buf = nvim.createBuffer(ui.bufnr)
@@ -430,10 +422,8 @@ export default class ListSession {
       loading: this.loadingFrame,
       total: this.worker.length
     }
-    nvim.pauseNotification()
     buf.setVar('list_status', status, true)
     nvim.command('redraws', true)
-    nvim.resumeNotification(false, true).logError()
   }
 
   public get context(): ListContext {

@@ -4,6 +4,7 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { ListItem, ListItemWithHighlights, ListOptions } from '../types'
 import { disposeAll } from '../util'
+import { Mutex } from '../util/mutex'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-ui')
@@ -35,6 +36,7 @@ export default class ListUI {
   private matchHighlightGroup: string
   private selected: Set<number> = new Set()
   private mouseDown: MousePosition
+  private mutex: Mutex = new Mutex()
   private _onDidChangeLine = new Emitter<number>()
   private _onDidOpen = new Emitter<number>()
   private _onDidClose = new Emitter<number>()
@@ -133,17 +135,16 @@ export default class ListUI {
   }
 
   public async updateItem(item: ListItem, index: number): Promise<void> {
-    if (!this.bufnr) return
+    if (!this.buffer) return
     let obj: ListItem = Object.assign({ resolved: true }, item)
-    if (index < this.length) {
-      this.items[index] = obj
-      let { nvim } = this
-      nvim.pauseNotification()
-      this.buffer.setOption('modifiable', true, true)
-      nvim.call('setbufline', [this.bufnr, index + 1, obj.label], true)
-      this.buffer.setOption('modifiable', false, true)
-      await nvim.resumeNotification()
-    }
+    if (index >= this.length) return
+    this.items[index] = obj
+    let { nvim } = this
+    nvim.pauseNotification()
+    this.buffer.setOption('modifiable', true, true)
+    nvim.call('setbufline', [this.bufnr, index + 1, obj.label], true)
+    this.buffer.setOption('modifiable', false, true)
+    await nvim.resumeNotification()
   }
 
   public async getItems(): Promise<ListItem[]> {
@@ -200,7 +201,7 @@ export default class ListUI {
   public async resume(): Promise<void> {
     let { items, selected, nvim } = this
     await this.drawItems(items, this.height, true)
-    if (!selected.size) return
+    if (!selected.size || !this.buffer) return
     nvim.pauseNotification()
     for (let lnum of selected) {
       this.buffer?.placeSign({ lnum, id: this.signOffset + lnum, name: 'CocSelected', group: 'coc-list' })
@@ -293,6 +294,7 @@ export default class ListUI {
   public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
     const { nvim, name, listOptions } = this
     this.items = items.length > this.limitLines ? items.slice(0, this.limitLines) : items
+    let release = await this.mutex.acquire()
     if (!this.window) {
       let { position, numberSelect } = listOptions
       let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
@@ -307,15 +309,21 @@ export default class ListUI {
     let newIndex = reload ? this.currIndex : 0
     this.setLines(lines, false, newIndex)
     this._onDidLineChange.fire(this.currIndex + 1)
+    release()
   }
 
-  public appendItems(items: ListItem[]): void {
-    let curr = this.items.length
-    if (curr >= this.limitLines) return
-    let max = this.limitLines - curr
-    let append = items.slice(0, max)
-    this.items = this.items.concat(append)
-    this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
+  public async appendItems(items: ListItem[]): Promise<void> {
+    let release = await this.mutex.acquire()
+    if (this.window) {
+      let curr = this.items.length
+      if (curr < this.limitLines) {
+        let max = this.limitLines - curr
+        let append = items.slice(0, max)
+        this.items = this.items.concat(append)
+        this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
+      }
+    }
+    release()
   }
 
   private setLines(lines: string[], append = false, index: number): void {
@@ -368,7 +376,8 @@ export default class ListUI {
   }
 
   private doHighlight(start: number, end: number): void {
-    let { items } = this
+    let { items, nvim, window } = this
+    if (!window) return
     let groups: HighlightGroup[] = []
     for (let i = start; i <= Math.min(end, items.length - 1); i++) {
       let { ansiHighlights, highlights } = items[i]
@@ -385,7 +394,7 @@ export default class ListUI {
         }
       }
     }
-    this.nvim.call('coc#compat#matchaddgroups', [this.window.id, groups], true)
+    nvim.call('coc#compat#matchaddgroups', [window.id, groups], true)
   }
 
   public setCursor(lnum: number, col: number): void {

@@ -140,10 +140,8 @@ export default class Worker {
         }
       }
       let disposable = token.onCancellationRequested(() => {
-        if (task) {
-          task.dispose()
-          onEnd()
-        }
+        task?.dispose()
+        onEnd()
       })
       task.on('error', async (error: Error | string) => {
         if (task == null) return
@@ -153,8 +151,8 @@ export default class Worker {
         disposable.dispose()
         if (timer) clearTimeout(timer)
         this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
-        window.showMessage(`Task error: ${error.toString()}`, 'error')
-        logger.error(error)
+        this.nvim.echoError(`Task error: ${error.toString()}`)
+        logger.error('Task error:', error)
       })
       task.on('end', onEnd)
     }
