@@ -42,7 +42,7 @@ export class Completion implements Disposable {
 
   public init(): void {
     this.config = this.getCompleteConfig()
-    this.mru = new Mru('suggest.txt', process.env.COC_DATA_HOME, 1000)
+    this.mru = new Mru(`suggest${globalThis.__TEST__ ? process.pid : ''}.txt`, process.env.COC_DATA_HOME, 1000)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         this.config = this.getCompleteConfig()
