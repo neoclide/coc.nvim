@@ -70,6 +70,7 @@ export default class CodeLensManager {
     }
     this.config = Object.assign(this.config || {}, {
       enabled: enable,
+      position: config.get<string>('position', 'extmark'),
       separator: config.get<string>('separator', '‣'),
       subseparator: config.get<string>('subseparator', ' ')
     })

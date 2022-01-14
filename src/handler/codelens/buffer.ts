@@ -17,6 +17,7 @@ export interface CodeLensInfo {
 
 export interface CodeLensConfig {
   enabled: boolean
+  position: string
   separator: string
   subseparator: string
 }
@@ -166,7 +167,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
       if (this.config.separator) {
         chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
       }
-      if (workspace.has('nvim-0.6.0')) {
+      if (this.config.position === 'extmark' && workspace.has('nvim-0.6.0')) {
         // get indent
         let textLine = textDocument.lineAt(lnum)
         let col = getIndentCols(textLine.text)
