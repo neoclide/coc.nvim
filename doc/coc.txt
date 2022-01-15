@@ -684,6 +684,11 @@ Built-in configurations:~
 	Enable `codeLens` feature. Requires Neovim with virtual text feature,
 	default: `false`.
 
+"codeLens.position":~
+
+	Position of codeLens, requires nvim >= 0.6.0, valid options ["top",
+	"eol", "right_align"], default: `top`.
+
 "codeLens.separator":~
 
 	Separator text for `codeLens` in virtual text, default: `""`.

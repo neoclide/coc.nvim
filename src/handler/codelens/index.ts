@@ -21,11 +21,12 @@ export default class CodeLensManager {
     if (!workspace.isNvim) return
     workspace.onDidChangeConfiguration(e => {
       this.setConfiguration(e)
-    })
+    }, null, this.disposables)
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
       return new CodeLensBuffer(nvim, doc.bufnr, this.config)
     })
+    this.disposables.push(this.buffers)
     this.listen()
   }
 
@@ -70,6 +71,7 @@ export default class CodeLensManager {
     }
     this.config = Object.assign(this.config || {}, {
       enabled: enable,
+      position: config.get<'top' | 'eol'>('position', 'top'),
       separator: config.get<string>('separator', '‣'),
       subseparator: config.get<string>('subseparator', ' ')
     })
@@ -82,7 +84,6 @@ export default class CodeLensManager {
   }
 
   public dispose(): void {
-    this.buffers.dispose()
     disposeAll(this.disposables)
   }
 }

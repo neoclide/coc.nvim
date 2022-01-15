@@ -28,7 +28,6 @@ afterAll(async () => {
 afterEach(async () => {
   await helper.reset()
   disposeAll(disposables)
-  disposables = []
 })
 
 describe('codeLenes featrue', () => {
@@ -58,6 +57,37 @@ describe('codeLenes featrue', () => {
     expect(codelens[1].command).toBeDefined()
     let markers = await helper.getMarkers(doc.bufnr, srcId)
     expect(markers.length).toBe(2)
+  })
+
+  it('should change codeLenes position', async () => {
+    let fn = jest.fn()
+    helper.updateConfiguration('codeLens.position', 'eol')
+    disposables.push({
+      dispose: () => {
+        helper.updateConfiguration('codeLens.position', 'top')
+      }
+    })
+    disposables.push(commands.registerCommand('__save', (...args) => {
+      fn(...args)
+    }))
+    disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
+      provideCodeLenses: () => {
+        return [{
+          range: Range.create(0, 0, 0, 1)
+        }]
+      },
+      resolveCodeLens: codeLens => {
+        codeLens.command = Command.create('save', '__save', 1, 2, 3)
+        return codeLens
+      }
+    }))
+    let doc = await helper.createDocument('example.js')
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await codeLens.checkProvider()
+    let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
+    expect(res.length).toBeGreaterThan(0)
+    let arr = res[0][3]['virt_text']
+    expect(arr[0][0]).toBe('save')
   })
 
   it('should refresh codeLens on CursorHold', async () => {
@@ -247,6 +277,11 @@ describe('codeLenes featrue', () => {
   })
 
   it('should refresh on configuration change', async () => {
+    disposables.push({
+      dispose: () => {
+        helper.updateConfiguration('codeLens.enable', true)
+      }
+    })
     disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
       provideCodeLenses: () => {
         return [{
@@ -262,9 +297,5 @@ describe('codeLenes featrue', () => {
     await helper.wait(10)
     let markers = await helper.getMarkers(buffer.id, srcId)
     expect(markers.length).toBe(0)
-    helper.updateConfiguration('codeLens.enable', true)
-    await helper.wait(300)
-    markers = await helper.getMarkers(buffer.id, srcId)
-    expect(markers.length).toBeGreaterThan(0)
   })
 })

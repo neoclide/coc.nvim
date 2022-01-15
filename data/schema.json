@@ -832,6 +832,12 @@
       "description": "Enable codeLens feature, require neovim with set virtual text feature.",
       "default": false
     },
+    "codeLens.position": {
+      "type": "string",
+      "enum": ["top", "eol", "right_align"],
+      "description": "Position of codeLens, requires nvim >= 0.6.0",
+      "default": "top"
+    },
     "codeLens.separator": {
       "type": "string",
       "description": "Separator text for codeLens in virtual text",

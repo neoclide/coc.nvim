@@ -16,6 +16,7 @@ export interface CodeLensInfo {
 }
 
 export interface CodeLensConfig {
+  position: 'top' | 'eol' | 'right_align'
   enabled: boolean
   separator: string
   subseparator: string
@@ -138,6 +139,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
   private setVirtualText(codeLenses: CodeLens[]): void {
     if (codeLenses.length == 0) return
     let list: Map<number, CodeLens[]> = new Map()
+    let { position } = this.config
     for (let codeLens of codeLenses) {
       let { range, command } = codeLens
       if (!command) continue
@@ -167,16 +169,20 @@ export default class CodeLensBuffer implements BufferSyncItem {
         chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
       }
       if (workspace.has('nvim-0.6.0')) {
-        // get indent
         let textLine = textDocument.lineAt(lnum)
-        let col = getIndentCols(textLine.text)
-        if (col) {
-          chunks.unshift([(new Array(col)).fill(' ').join(''), 'CocCodeLens'])
+        if (position == 'top') {
+          let col = getIndentCols(textLine.text)
+          if (col) chunks.unshift([(new Array(col)).fill(' ').join(''), 'CocCodeLens'])
+          buf.setExtMark(this.srcId, lnum, 0, {
+            virt_lines: [chunks],
+            virt_lines_above: true
+          })
+        } else {
+          buf.setExtMark(this.srcId, lnum, 0, {
+            virt_text: chunks,
+            virt_text_pos: position
+          })
         }
-        buf.setExtMark(this.srcId, lnum, 0, {
-          virt_lines: [chunks],
-          virt_lines_above: true
-        })
       } else {
         this.nvim.call('nvim_buf_set_virtual_text', [this.bufnr, this.srcId, lnum, chunks, {}], true)
       }

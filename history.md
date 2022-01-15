@@ -1,3 +1,7 @@
+# 2022-01-16
+
+- Add configuration 'codeLens.position'.
+
 # 2022-01-14
 
 - Add configuration 'suggest.selection'.
