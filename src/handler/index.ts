@@ -21,6 +21,7 @@ import Links from './links'
 import Locations from './locations'
 import Refactor from './refactor/index'
 import Rename from './rename'
+import WorkspaceHandler from './workspace'
 import SelectionRange from './selectionRange'
 import CallHierarchy from './callHierarchy'
 import SemanticTokensHighlights from './semanticTokensHighlights/index'
@@ -56,6 +57,7 @@ export default class Handler implements HandlerDelegate {
   public readonly selectionRange: SelectionRange
   public readonly callHierarchy: CallHierarchy
   public readonly semanticHighlighter: SemanticTokensHighlights
+  public readonly workspace: WorkspaceHandler
   private labels: { [key: string]: string }
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
@@ -82,6 +84,7 @@ export default class Handler implements HandlerDelegate {
     this.locations = new Locations(nvim, this)
     this.signature = new Signature(nvim, this)
     this.rename = new Rename(nvim, this)
+    this.workspace = new WorkspaceHandler(nvim, this)
     this.codeActions = new CodeActions(nvim, this)
     this.commands = new Commands(nvim, workspace.env)
     this.callHierarchy = new CallHierarchy(nvim, this)

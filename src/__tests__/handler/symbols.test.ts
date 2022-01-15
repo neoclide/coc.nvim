@@ -142,8 +142,8 @@ describe('symbols handler', () => {
           ]
         }
       }))
-      let doc = await helper.createDocument()
-      let res = await symbols.getDocumentSymbols(doc.bufnr)
+      await helper.createDocument()
+      let res = await symbols.getDocumentSymbols()
       expect(res.length).toBe(2)
       expect(res[0].text).toBe('root')
       expect(res[1].text).toBe('child')

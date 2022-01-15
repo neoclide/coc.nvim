@@ -1,4 +1,4 @@
-import marked from 'marked'
+import { marked } from 'marked'
 import Renderer from '../../markdown/renderer'
 import * as styles from '../../markdown/styles'
 import { parseAnsiHighlights, AnsiResult } from '../../util/ansiparse'

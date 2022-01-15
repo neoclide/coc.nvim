@@ -35,7 +35,7 @@ describe('help tags', () => {
     await nvim.call('CocActionAsync', ['showInfo'])
     await helper.wait(300)
     let line = await nvim.line
-    expect(line).toMatch('versions')
+    expect(line).toMatch('version')
   })
 
   it('should ensure current document created', async () => {

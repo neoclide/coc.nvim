@@ -4,7 +4,7 @@ import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import { HandlerDelegate } from '../../types'
-import { disposeAll } from '../../util/index'
+import { disposeAll, wait } from '../../util/index'
 import { equals } from '../../util/object'
 import { positionInRange, rangeInRange } from '../../util/position'
 import window from '../../window'
@@ -58,7 +58,13 @@ export default class Symbols {
     return await languages.resolveWorkspaceSymbol(symbolInfo, tokenSource.token)
   }
 
-  public async getDocumentSymbols(bufnr: number): Promise<SymbolInfo[] | undefined> {
+  public async getDocumentSymbols(bufnr?: number): Promise<SymbolInfo[] | undefined> {
+    if (!bufnr) {
+      let doc = await workspace.document
+      if (doc.isCommandLine || !doc.attached) return undefined
+      await wait(1)
+      bufnr = doc.bufnr
+    }
     let buf = this.buffers.getItem(bufnr)
     if (!buf) return
     let res = await buf.getSymbols()

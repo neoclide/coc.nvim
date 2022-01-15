@@ -73,6 +73,7 @@ export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
   public readonly version: string
   public readonly keymaps: Map<string, [Function, boolean]> = new Map()
+  public readonly autocmds: Map<number, Autocmd> = new Map()
   public bufnr: number
   private maxFileSize: number
   private resolver: Resolver = new Resolver()
@@ -86,7 +87,6 @@ export class Workspace implements IWorkspace {
   private _attached = false
   private buffers: Map<number, Document> = new Map()
   private autocmdMaxId = 0
-  private autocmds: Map<number, Autocmd> = new Map()
   private terminals: Map<number, TerminalModel> = new Map()
   private creatingSources: Map<number, CancellationTokenSource> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()

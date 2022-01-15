@@ -1,9 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
-import fs from 'fs'
-import path from 'path'
-import { CallHierarchyItem, CodeActionKind } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
+import { CodeActionKind } from 'vscode-languageserver-protocol'
 import commandManager from './commands'
 import completion from './completion'
 import Cursors from './cursors'
@@ -15,17 +12,13 @@ import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { OutputChannel, PatternType } from './types'
 import window from './window'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
 
-declare const REVISION
-
 export default class Plugin extends EventEmitter {
   private _ready = false
   private handler: Handler | undefined
-  private infoChannel: OutputChannel
   private cursors: Cursors
   private actions: Map<string, Function> = new Map()
 
@@ -43,107 +36,22 @@ export default class Plugin extends EventEmitter {
       if (extensions.has('coc-json')) return
       window.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more')
     })
-    this.addAction('rootPatterns', bufnr => {
-      let doc = workspace.getDocument(bufnr)
-      if (!doc) return null
-      return {
-        buffer: workspace.getRootPatterns(doc, PatternType.Buffer),
-        server: workspace.getRootPatterns(doc, PatternType.LanguageServer),
-        global: workspace.getRootPatterns(doc, PatternType.Global)
-      }
-    })
-    this.addAction('getConfig', async key => {
-      let document = await workspace.document
-      return workspace.getConfiguration(key, document ? document.uri : undefined)
-    })
-    this.addAction('doAutocmd', async (id: number, ...args: []) => {
-      let autocmd = (workspace as any).autocmds.get(id) as any
-      if (autocmd) {
-        try {
-          await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
-        } catch (e) {
-          logger.error(`Error on autocmd ${autocmd.event}`, e)
-          window.showMessage(`Error on autocmd ${autocmd.event}: ${e.message}`)
-        }
-      }
-    })
-    this.addAction('openLog', async () => {
-      let file = logger.getLogFile()
-      await workspace.jumpTo(URI.file(file).toString())
-    })
+    this.addAction('rootPatterns', (bufnr: number) => this.handler.workspace.getRootPatterns(bufnr))
+    this.addAction('ensureDocument', () => this.handler.workspace.ensureDocument())
+    this.addAction('getConfig', async key => this.handler.workspace.getConfiguration(key))
+    this.addAction('doAutocmd', async (id: number, ...args: []) => this.handler.workspace.doAutocmd(id, args))
+    this.addAction('openLog', async () => this.handler.workspace.openLog())
     this.addAction('attach', () => workspace.attach())
     this.addAction('detach', () => workspace.detach())
-    this.addAction('doKeymap', async (key: string, defaultReturn = '', pressed?: string) => {
-      let keymap = workspace.keymaps.get(key)
-      if (!keymap) {
-        logger.error(`keymap for ${key} not found`)
-        this.nvim.command(`silent! unmap <buffer> ${pressed.startsWith('{') && pressed.endsWith('}') ? `<${pressed.slice(1, -1)}>` : pressed}`, true)
-        return defaultReturn
-      }
-      let [fn, repeat] = keymap
-      let res = await Promise.resolve(fn())
-      if (repeat) await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
-      return res ?? defaultReturn
-    })
-    this.addAction('registExtensions', async (...folders: string[]) => {
-      for (let folder of folders) {
-        await extensions.loadExtension(folder)
-      }
-    })
-    this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => {
-      if (checkExpand && !extensions.has('coc-snippets')) {
-        console.error('coc-snippets required for check expand status!')
-        return false
-      }
-      if (checkJump) {
-        let jumpable = snippetManager.jumpable()
-        if (jumpable) return true
-      }
-      if (checkExpand) {
-        let api = extensions.getExtensionApi('coc-snippets') as any
-        if (api && api.hasOwnProperty('expandable')) {
-          let expandable = await Promise.resolve(api.expandable())
-          if (expandable) return true
-        }
-      }
-      return false
-    })
+    this.addAction('doKeymap', async (key, defaultReturn, pressed) => this.handler.workspace.doKeymap(key, defaultReturn, pressed))
+    this.addAction('registExtensions', (...folders: string[]) => extensions.loadExtension(folders))
+    this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => this.handler.workspace.snippetCheck(checkExpand, checkJump))
     this.addAction('snippetNext', () => snippetManager.nextPlaceholder())
     this.addAction('snippetPrev', () => snippetManager.previousPlaceholder())
     this.addAction('snippetCancel', () => snippetManager.cancel())
     this.addAction('openLocalConfig', () => window.openLocalConfig())
-    this.addAction('showInfo', async () => {
-      if (!this.infoChannel) {
-        this.infoChannel = window.createOutputChannel('info')
-      } else {
-        this.infoChannel.clear()
-      }
-      let channel = this.infoChannel
-      channel.appendLine('## versions')
-      channel.appendLine('')
-      let out = await this.nvim.call('execute', ['version']) as string
-      let first = out.trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, '').trim()
-      channel.appendLine('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
-      channel.appendLine('node version: ' + process.version)
-      channel.appendLine('coc.nvim version: ' + this.version)
-      channel.appendLine('coc.nvim directory: ' + path.dirname(__dirname))
-      channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
-      channel.appendLine('platform: ' + process.platform)
-      channel.appendLine('')
-      channel.appendLine('## Log of coc.nvim')
-      channel.appendLine('')
-      let file = logger.getLogFile()
-      if (fs.existsSync(file)) {
-        let content = fs.readFileSync(file, { encoding: 'utf8' })
-        channel.appendLine(content)
-      }
-      channel.show()
-    })
-    this.addAction('findLocations', (id: string, method: string, params: any, openCommand?: string | false) => {
-      return this.handler.locations.findLocations(id, method, params, openCommand)
-    })
+    this.addAction('showInfo', () => this.handler.workspace.showInfo())
     this.addAction('hasProvider', id => this.handler.hasProvider(id))
-    this.addAction('getTagList', () => this.handler.locations.getTagList())
     this.addAction('hasSelected', () => completion.hasSelected())
     this.addAction('listNames', () => listManager.names)
     this.addAction('listDescriptions', () => listManager.descriptions)
@@ -179,14 +87,13 @@ export default class Plugin extends EventEmitter {
     this.addAction('diagnosticRefresh', bufnr => diagnosticManager.refresh(bufnr))
     this.addAction('diagnosticInfo', () => diagnosticManager.echoMessage())
     this.addAction('diagnosticToggle', () => diagnosticManager.toggleDiagnostic())
-    this.addAction('diagnosticToggleBuffer', async (bufnr?: number) => {
-      if (!bufnr) bufnr = await nvim.call('bufnr', ['%'])
-      return diagnosticManager.toggleDiagnosticBuffer(bufnr)
-    })
+    this.addAction('diagnosticToggleBuffer', bufnr => diagnosticManager.toggleDiagnosticBuffer(bufnr))
     this.addAction('diagnosticNext', severity => diagnosticManager.jumpNext(severity))
     this.addAction('diagnosticPrevious', severity => diagnosticManager.jumpPrevious(severity))
     this.addAction('diagnosticPreview', () => diagnosticManager.preview())
     this.addAction('diagnosticList', () => diagnosticManager.getDiagnosticList())
+    this.addAction('findLocations', (id, method, params, openCommand) => this.handler.locations.findLocations(id, method, params, openCommand))
+    this.addAction('getTagList', () => this.handler.locations.getTagList())
     this.addAction('jumpDefinition', openCommand => this.handler.locations.gotoDefinition(openCommand))
     this.addAction('definitions', () => this.handler.locations.definitions())
     this.addAction('jumpDeclaration', openCommand => this.handler.locations.gotoDeclaration(openCommand))
@@ -202,17 +109,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('definitionHover', hoverTarget => this.handler.hover.definitionHover(hoverTarget))
     this.addAction('getHover', () => this.handler.hover.getHover())
     this.addAction('showSignatureHelp', () => this.handler.signature.triggerSignatureHelp())
-    this.addAction('documentSymbols', async (bufnr?: number) => {
-      if (!bufnr) {
-        let doc = await workspace.document
-        bufnr = doc.bufnr
-      }
-      return await this.handler.symbols.getDocumentSymbols(bufnr)
-    })
-    this.addAction('ensureDocument', async () => {
-      let doc = await workspace.document
-      return doc && doc.attached
-    })
+    this.addAction('documentSymbols', (bufnr?: number) => this.handler.symbols.getDocumentSymbols(bufnr))
     this.addAction('symbolRanges', () => this.handler.documentHighlighter.getSymbolsRanges())
     this.addAction('selectionRanges', () => this.handler.selectionRange.getSelectionRanges())
     this.addAction('rangeSelect', (visualmode, forward) => this.handler.selectionRange.selectRange(visualmode, forward))
@@ -254,8 +151,8 @@ export default class Plugin extends EventEmitter {
     this.addAction('currentWorkspacePath', () => workspace.rootPath)
     this.addAction('selectCurrentPlaceholder', triggerAutocmd => snippetManager.selectCurrentPlaceholder(!!triggerAutocmd))
     this.addAction('codeActionRange', (start, end, only) => this.handler.codeActions.codeActionRange(start, end, only))
-    this.addAction('incomingCalls', (item?: CallHierarchyItem) => this.handler.callHierarchy.getIncoming(item))
-    this.addAction('outgoingCalls', (item?: CallHierarchyItem) => this.handler.callHierarchy.getOutgoing(item))
+    this.addAction('incomingCalls', item => this.handler.callHierarchy.getIncoming(item))
+    this.addAction('outgoingCalls', item => this.handler.callHierarchy.getOutgoing(item))
     this.addAction('showIncomingCalls', () => this.handler.callHierarchy.showCallHierarchyTree('incoming'))
     this.addAction('showOutgoingCalls', () => this.handler.callHierarchy.showCallHierarchyTree('outgoing'))
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
@@ -292,7 +189,7 @@ export default class Plugin extends EventEmitter {
       nvim.resumeNotification(false, true)
       this._ready = true
       await events.fire('ready', [])
-      logger.info(`coc.nvim ${this.version} initialized with node: ${process.version} after ${Date.now() - s}ms`)
+      logger.info(`coc.nvim initialized with node: ${process.version} after ${Date.now() - s}ms`)
       this.emit('ready')
     } catch (e) {
       nvim.echoError(e)
@@ -310,10 +207,6 @@ export default class Plugin extends EventEmitter {
         resolve()
       })
     })
-  }
-
-  private get version(): string {
-    return workspace.version + (typeof REVISION === 'string' ? '-' + REVISION : '')
   }
 
   public hasAction(method: string): boolean {

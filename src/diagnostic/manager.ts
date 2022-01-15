@@ -605,8 +605,9 @@ export class DiagnosticManager implements Disposable {
     }
   }
 
-  public async toggleDiagnosticBuffer(bufnr: number): Promise<void> {
+  public async toggleDiagnosticBuffer(bufnr?: number): Promise<void> {
     if (!this.enabled) return
+    bufnr = bufnr || workspace.bufnr
     let buf = this.buffers.getItem(bufnr)
     if (buf) {
       let isEnabled = await buf.isEnabled()

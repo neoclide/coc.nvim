@@ -462,7 +462,13 @@ export class Extensions {
   /**
    * Load extension from folder, folder should contains coc extension.
    */
-  public async loadExtension(folder: string): Promise<boolean> {
+  public async loadExtension(folder: string | string[]): Promise<boolean> {
+    if (Array.isArray(folder)) {
+      for (let f of folder) {
+        await this.loadExtension(f)
+      }
+      return true
+    }
     try {
       let parentFolder = path.dirname(folder)
       let isLocal = path.normalize(parentFolder) != path.normalize(this.modulesFolder)
