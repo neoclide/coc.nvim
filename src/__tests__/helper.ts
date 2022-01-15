@@ -70,6 +70,7 @@ export class Helper extends EventEmitter {
     this.nvim.removeAllListeners()
     this.nvim = null
     if (this.proc) {
+      this.proc.unref()
       terminate(this.proc)
       this.proc = null
     }

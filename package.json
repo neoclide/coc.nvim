@@ -12,7 +12,7 @@
     "lint:typecheck": "tsc -p tsconfig.json",
     "build": "node esbuild.js",
     "test": "./node_modules/.bin/jest --forceExit",
-    "test-build": "./node_modules/.bin/jest --runInBand --coverage --forceExit",
+    "test-build": "./node_modules/.bin/jest --coverage --forceExit",
     "prepare": "node esbuild.js"
   },
   "repository": {
