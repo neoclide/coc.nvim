@@ -1,4 +1,4 @@
-import marked from 'marked'
+import { marked } from 'marked'
 import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteLength } from '../util/string'
