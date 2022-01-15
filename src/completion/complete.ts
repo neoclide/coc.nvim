@@ -61,7 +61,7 @@ export default class Complete {
   constructor(public option: CompleteOption,
     private document: Document,
     private config: CompleteConfig,
-    private sources: ISource[],
+    private sources: ReadonlyArray<ISource>,
     private mruItems: ReadonlyArray<MruItem>,
     private nvim: Neovim) {
   }
@@ -90,7 +90,7 @@ export default class Complete {
     return Array.from(this.results.values()).findIndex(o => o.isIncomplete) !== -1
   }
 
-  private async completeSource(source: ISource): Promise<void> {
+  private async completeSource(source: ISource, cid = 0): Promise<void> {
     let { col } = this.option
     // new option for each source
     let opt = Object.assign({}, this.option)
@@ -146,13 +146,12 @@ export default class Complete {
           logger.debug(`Source "${name}" takes ${dt}ms`)
           if (result && result.items) {
             result.priority = source.priority
-            result.source = name
             // make sure word exists.
             result.items = result.items.filter(o => o && typeof o.word === 'string')
             if (!result.items.length) {
               this.results.delete(name)
             } else {
-              result.items.forEach(item => {
+              result.items.forEach((item, idx) => {
                 item.source = name
                 item.priority = source.priority
                 item.filterText = item.filterText || item.word
@@ -161,9 +160,13 @@ export default class Complete {
                   item.word = item.word.slice(0, - followPart.length)
                 }
                 if (item.isSnippet && !item.abbr.endsWith(snippetIndicator)) {
-                  item.abbr = `${item.abbr || item.word}${snippetIndicator}`
+                  item.abbr = `${item.abbr}${snippetIndicator}`
                 }
                 item.localBonus = this.localBonus ? this.localBonus.get(item.filterText) || 0 : 0
+                let user_data: any = { source: name, cid }
+                user_data.index = item.index || idx
+                if (item.signature) user_data.signature = item.signature
+                item.user_data = JSON.stringify(user_data)
               })
               // lazy completed items
               if (empty && result.startcol && result.startcol != col) {
@@ -194,12 +197,8 @@ export default class Complete {
   public async completeInComplete(resumeInput: string): Promise<ExtendedCompleteItem[]> {
     let { results, document } = this
     let names: string[] = []
-    for (let result of results.values()) {
-      if (result.isIncomplete) {
-        names.push(result.source)
-      } else {
-        result.items.forEach(item => delete item.user_data)
-      }
+    for (let [source, result] of results.entries()) {
+      if (result.isIncomplete) names.push(source)
     }
     let { input, colnr, linenr } = this.option
     Object.assign(this.option, {
@@ -210,11 +209,12 @@ export default class Complete {
       triggerForInComplete: true
     })
     let sources = this.sources.filter(s => names.includes(s.name))
-    await Promise.all(sources.map(s => this.completeSource(s)))
-    return this.filterResults(resumeInput, Math.floor(Date.now() / 1000))
+    let cid = Math.floor(Date.now() / 1000)
+    await Promise.all(sources.map(s => this.completeSource(s, cid)))
+    return this.filterResults(resumeInput)
   }
 
-  public filterResults(input: string, cid = 0): ExtendedCompleteItem[] {
+  public filterResults(input: string): ExtendedCompleteItem[] {
     let { results } = this
     if (results.size == 0) return []
     let resultList = Array.from(results.values()).sort((a, b) => b.priority - a.priority)
@@ -223,23 +223,15 @@ export default class Complete {
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
     for (let i = 0, l = resultList.length; i < l; i++) {
-      let res = resultList[i]
-      let { items } = res
+      let { items } = resultList[i]
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
-        let { word } = item
-        if (!item.dup && words.has(word)) continue
-        if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line === undefined) continue
-        let filterText = item.filterText || word
+        let { word, filterText, dup } = item
+        if (dup !== 1 && words.has(word)) continue
         if (filterText.length < input.length) continue
+        if (removeDuplicateItems && !item.isSnippet && words.has(word) && item.line === undefined) continue
         let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
-        if (input.length > 0 && score == 0) continue
-        if (!item.user_data) {
-          let user_data: any = { cid, source: res.source }
-          user_data.index = item.index || idx
-          if (item.signature) user_data.signature = item.signature
-          item.user_data = JSON.stringify(user_data)
-        }
+        if (input.length > 0 && score === 0) continue
         if (input.length > 0 && item.isSnippet && item.word === input) {
           item.score = 99
         } else {
@@ -252,16 +244,12 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      let wa = a.filterText
-      let wb = b.filterText
       if (a.score !== b.score) return b.score - a.score
+      if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1
       if (a.priority !== b.priority) return b.priority - a.priority
-      if (sa && sb && sa !== sb) return sa < sb ? -1 : 1
-      if (wa !== wb) {
-        if (wa.startsWith(wb)) return 1
-        if (wb.startsWith(wa)) return -1
-      }
       if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
+      // not sort with empty input
+      if (input.length === 0) return 0
       switch (defaultSortMethod) {
         case 'none':
           return 0
@@ -340,32 +328,26 @@ export default class Complete {
     }
     await Promise.all(this.sources.map(s => this.completeSource(s)))
     let { results } = this
-    if (this.isEmpty) return []
-    let engrossResult = Array.from(results.values()).find(r => r.startcol != null && r.startcol != col)
-    if (engrossResult) {
-      let { startcol } = engrossResult
+    for (let [source, result] of results.entries()) {
+      if (result.startcol == null || result.startcol === col) continue
+      let { startcol } = result
       opts.col = startcol
       opts.input = byteSlice(line, startcol, colnr - 1)
-      this.results.clear()
-      this.results.set(engrossResult.source, engrossResult)
+      results.clear()
+      results.set(source, result)
+      break
     }
-    logger.info(`Results from: ${Array.from(this.results.keys()).join(',')}`)
-    return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
+    logger.info(`${results.size} results from: ${Array.from(results.keys()).join(',')}`)
+    return results.size > 0 ? this.filterResults(opts.input) : []
   }
 
-  public resolveCompletionItem(item: VimCompleteItem): ExtendedCompleteItem | null {
+  public resolveCompletionItem(item: VimCompleteItem | undefined): ExtendedCompleteItem | null {
+    if (!item?.user_data) return null
     try {
-      if (item.user_data) {
-        let { source } = JSON.parse(item.user_data)
-        let res = this.results.get(source)
-        return res ? res.items.find(o => o.user_data == item.user_data) : null
-      } else {
-        for (let result of Array.from(this.results.values())) {
-          let res = result.items.find(o => o.abbr == item.abbr && o.info == item.info)
-          if (res) return res
-        }
-        return null
-      }
+      let obj = JSON.parse(item.user_data)
+      if (!obj) return null
+      let res = this.results.get(obj.source)
+      return res ? res.items.find(o => o.user_data == item.user_data) : null
     } catch (e) {
       return null
     }

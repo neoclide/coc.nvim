@@ -44,7 +44,6 @@ export function matchScore(word: string, input: number[]): number {
   let score = 0
   let first = input[0]
   let idx = 1
-  let allowFuzzy = true
   if (caseMatch(first, curr)) {
     score = first == curr ? 5 : 2.5
     idx = 1
@@ -63,17 +62,16 @@ export function matchScore(word: string, input: number[]): number {
         if (caseMatch(first, codes[i])) {
           score = first == codes[i] ? 1 : 0.5
           idx = i + 1
-          allowFuzzy = false
         }
       }
     }
   }
   if (input.length == 1 || score == 0) return score
-  let next = nextScore(codes, idx, input.slice(1), allowFuzzy)
+  let next = nextScore(codes, idx, input.slice(1))
   return next == 0 ? 0 : score + next
 }
 
-function nextScore(codes: number[], index: number, inputCodes: number[], allowFuzzy = true): number {
+function nextScore(codes: number[], index: number, inputCodes: number[]): number {
   if (index >= codes.length) return 0
   let scores: number[] = []
   let input = inputCodes[0]
@@ -83,7 +81,7 @@ function nextScore(codes: number[], index: number, inputCodes: number[], allowFu
     for (let i = index; i < len; i++) {
       if (codes[i] == input) {
         if (isFinal) return 1
-        let next = nextScore(codes, i + 1, inputCodes.slice(1), allowFuzzy)
+        let next = nextScore(codes, i + 1, inputCodes.slice(1))
         return next == 0 ? 0 : 1 + next
       }
     }
@@ -94,7 +92,7 @@ function nextScore(codes: number[], index: number, inputCodes: number[], allowFu
   if (match) {
     let score = input == curr ? 1 : 0.5
     if (!isFinal) {
-      let next = nextScore(codes, index + 1, inputCodes.slice(1), allowFuzzy)
+      let next = nextScore(codes, index + 1, inputCodes.slice(1))
       score = next == 0 ? 0 : score + next
     }
     scores.push(score)
@@ -107,7 +105,7 @@ function nextScore(codes: number[], index: number, inputCodes: number[], allowFu
       if (caseMatch(input, next)) {
         let score = input == next ? 1 : 0.75
         if (!isFinal) {
-          let next = nextScore(codes, idx + 1, inputCodes.slice(1), allowFuzzy)
+          let next = nextScore(codes, idx + 1, inputCodes.slice(1))
           score = next == 0 ? 0 : score + next
         }
         scores.push(score)
@@ -115,13 +113,13 @@ function nextScore(codes: number[], index: number, inputCodes: number[], allowFu
     }
   }
   // find fuzzy
-  if (!match && allowFuzzy) {
+  if (!match) {
     for (let i = index + 1; i < len; i++) {
       let code = codes[i]
       if (caseMatch(input, code)) {
         let score = input == code ? 0.1 : 0.05
         if (!isFinal) {
-          let next = nextScore(codes, i + 1, inputCodes.slice(1), false)
+          let next = nextScore(codes, i + 1, inputCodes.slice(1))
           score = next == 0 ? 0 : score + next
         }
         scores.push(score)

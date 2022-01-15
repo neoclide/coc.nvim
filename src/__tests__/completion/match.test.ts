@@ -49,7 +49,7 @@ describe('matchScore', () => {
   })
 
   it('should only allow search once', () => {
-    expect(score('foobar', 'fbr')).toBe(0)
+    expect(score('foobar', 'fbr')).toBe(5.2)
     expect(score('foobaRow', 'fbr')).toBe(5.85)
     expect(score('foobaRow', 'fbR')).toBe(6.1)
     expect(score('foobar', 'fa')).toBe(5.1)

@@ -435,7 +435,6 @@ export interface CompleteResult {
   items: ExtendedCompleteItem[]
   isIncomplete?: boolean
   startcol?: number
-  source?: string
   priority?: number
 }
 

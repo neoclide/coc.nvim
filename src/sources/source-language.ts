@@ -188,8 +188,8 @@ export default class LanguageSource implements ISource {
     let range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
-    let start = line.substr(0, range.start.character)
-    let end = line.substr(range.end.character)
+    let start = line.slice(0, range.start.character)
+    let end = line.slice(range.end.character)
     if (isSnippet && this.completeConfig.snippetsSupport === false) {
       // could be wrong, but maybe best we can do.
       isSnippet = false

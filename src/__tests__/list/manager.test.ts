@@ -500,6 +500,7 @@ describe('list', () => {
       }
       manager.registerList(list)
       await manager.start(['test'])
+      await helper.wait(30)
       await nvim.command('redraw')
       let msg = await helper.getCmdline()
       expect(msg).toMatch('test error')

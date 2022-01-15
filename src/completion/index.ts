@@ -284,8 +284,8 @@ export class Completion implements Disposable {
       let search = this.getResumeInput()
       if (complete.isCanceled || search == null) return
       let { input } = this.option
-      if (search == input) {
-        let items = complete.filterResults(search, Math.floor(Date.now() / 1000))
+      if (search === input) {
+        let items = complete.filterResults(search)
         await this.showCompletion(option.col, items)
       } else {
         await this.resumeCompletion()
