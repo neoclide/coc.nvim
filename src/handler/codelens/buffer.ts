@@ -124,7 +124,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
     this.nvim.pauseNotification()
     this.clear(start - 1, end)
     this.setVirtualText(codeLenses)
-    await this.nvim.resumeNotification()
+    void this.nvim.resumeNotification(false, true)
   }
 
   private get isChanged(): boolean {
