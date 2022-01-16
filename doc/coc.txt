@@ -1656,18 +1656,6 @@ g:coc_node_args						*g:coc_node_args*
 <
 	Default: []
 
-g:coc_jump_locations					*g:coc_jump_locations*
-
-	This variable would be set to jump locations when the
-	|CocLocationsChange| autocmd is fired.
-
-	Each location item contains:
-
-	'filename': full file path.
-	'lnum': line number (1 based).
-	'col': column number(1 based).
-	'text':  line content of location.
-
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
 	Error character used for statusline, default: `E`
@@ -1684,11 +1672,6 @@ g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
 	let g:coc_quickfix_open_command = 'copen|cfirst'
 <
 	Default: |copen|
-
-g:WorkspaceFolders					*g:WorkspaceFolders*
-
-	Current workspace folders, used for restoring from a session file, add
-	`set sessionoptions+=globals` to vimrc for restoring globals.
 
 g:node_client_debug					*g:node_client_debug*
 
@@ -1744,10 +1727,33 @@ g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 
 	let g:coc_markdown_disabled_languages = ['html']
 
+g:coc_highlight_batch_lines 			*g:coc_highlight_batch_lines*
+
+	Maximum line count to perform highlights update each time, default:
+	`300`
+
 ------------------------------------------------------------------------------
 
-Some variables are provided by coc.nvim so you can use them in your
-statusline. See |coc-status| for detail.
+Some variables are provided by coc.nvim.
+
+
+g:WorkspaceFolders					*g:WorkspaceFolders*
+
+	Current workspace folders, used for restoring from a session file, add
+	`set sessionoptions+=globals` to vimrc for restoring globals on
+	session load.
+
+g:coc_jump_locations					*g:coc_jump_locations*
+
+	This variable would be set to jump locations when the
+	|CocLocationsChange| autocmd is fired.
+
+	Each location item contains:
+
+	'filename': full file path.
+	'lnum': line number (1 based).
+	'col': column number(1 based).
+	'text':  line content of location.
 
 g:coc_process_pid					*g:coc_process_pid*
 

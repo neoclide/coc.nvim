@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
-import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
@@ -56,16 +55,6 @@ export default class SemanticTokensHighlights {
         commands.unregister('semanticTokens.checkCurrentBuffer')
       }
     })
-    // may need update highlights for buffer that becomes visible
-    events.on('BufEnter', bufnr => {
-      let item = this.highlighters.getItem(bufnr)
-      if (!item) return
-      let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.textDocument.version == item.previousVersion) return
-      item.forceHighlight().catch(e => {
-        logger.error(`Error on semantic highlighters:`, e)
-      })
-    }, null, this.disposables)
     this.highlighters = workspace.registerBufferSync(doc => {
       return new SemanticTokensBuffer(this.nvim, doc.bufnr, this.config)
     })

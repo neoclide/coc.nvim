@@ -44,7 +44,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.doHighlight().catch(e => {
         logger.error('Error on semanticTokens highlight:', e.stack)
       })
-    }, global.hasOwnProperty('__TEST__') ? 10 : 2000)
+    }, global.hasOwnProperty('__TEST__') ? 10 : 500)
     this.highlight()
   }
 
@@ -101,108 +101,14 @@ export default class SemanticTokensBuffer implements SyncItem {
   private async doHighlight(): Promise<void> {
     if (!this.enabled) return
     let doc = workspace.getDocument(this.bufnr)
-    const { nvim } = this
-    let winid = await nvim.call('bufwinid', [this.bufnr])
-    // not visible on current tab
-    if (winid == -1) return
-    const curr = await this.requestHighlights(doc)
+    const items = await this.requestHighlights(doc)
     // request cancelled or can't work
-    if (!curr) return
-    if (!curr.length) {
-      this.clearHighlight()
-      return
-    }
-    let prev: HighlightItem[] = []
-    if (workspace.env.updateHighlight) {
-      prev = (await nvim.call('coc#highlight#get_highlights', [this.bufnr, NAMESPACE])) as HighlightItem[]
-    }
-    const { highlights, lines } = this.calculateHighlightUpdates(prev, curr)
+    if (!items) return
+    const { nvim } = this
     nvim.pauseNotification()
-    if (!workspace.env.updateHighlight) {
-      this.buffer.clearNamespace(NAMESPACE, 0, -1)
-    } else {
-      for (const ln of lines) {
-        this.buffer.clearNamespace(NAMESPACE, ln, ln + 1)
-      }
-    }
-    const groups: { [index: string]: Range[] } = {}
-    if (highlights.length) {
-      for (const h of highlights) {
-        const range = Range.create(h.lnum, h.colStart, h.lnum, h.colEnd)
-        groups[h.hlGroup] = groups[h.hlGroup] || []
-        groups[h.hlGroup].push(range)
-      }
-    }
-    for (const hlGroup of Object.keys(groups)) {
-      this.buffer.highlightRanges(NAMESPACE, hlGroup, groups[hlGroup])
-    }
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    this.buffer.updateHighlights(NAMESPACE, items)
     if (workspace.isVim) nvim.command('redraw', true)
-  }
-
-  private calculateHighlightUpdates(prev: HighlightItem[], curr: HighlightItem[]): { highlights: HighlightItem[], lines: Set<number> } {
-    const stringCompare = Intl.Collator("en").compare
-    function compare(a: HighlightItem, b: HighlightItem): number {
-      return (
-        a.lnum - b.lnum ||
-        a.colStart - b.colStart ||
-        a.colEnd - b.colEnd ||
-        stringCompare(a.hlGroup, b.hlGroup)
-      )
-    }
-
-    prev = prev.slice().sort(compare)
-    curr = curr.slice().sort(compare)
-
-    const prevByLine: Map<number, HighlightItem[]> = new Map()
-    for (const hl of prev) {
-      if (!prevByLine.has(hl.lnum)) prevByLine.set(hl.lnum, [])
-      prevByLine.get(hl.lnum).push(hl)
-    }
-
-    const currByLine: Map<number, HighlightItem[]> = new Map()
-    for (const hl of curr) {
-      if (!currByLine.has(hl.lnum)) currByLine.set(hl.lnum, [])
-      currByLine.get(hl.lnum).push(hl)
-    }
-
-    const lastLine = Math.max(
-      (prev[prev.length - 1] || { lnum: 0 }).lnum,
-      (curr[curr.length - 1] || { lnum: 0 }).lnum
-    )
-    const lineNumbersToUpdate: Set<number> = new Set()
-    for (let i = 0; i <= lastLine; i++) {
-      const ph = prevByLine.has(i)
-      const ch = currByLine.has(i)
-      if (ph !== ch) {
-        lineNumbersToUpdate.add(i)
-        continue
-      } else if (!ph && !ch) {
-        continue
-      }
-
-      const pp = prevByLine.get(i)
-      const cc = currByLine.get(i)
-
-      if (pp.length !== cc.length) {
-        lineNumbersToUpdate.add(i)
-        continue
-      }
-
-      for (let j = 0; j < pp.length; j++) {
-        if (compare(pp[j], cc[j]) !== 0) {
-          lineNumbersToUpdate.add(i)
-          continue
-        }
-      }
-    }
-
-    let highlights: HighlightItem[] = []
-    for (const line of lineNumbersToUpdate) {
-      highlights = highlights.concat(currByLine.get(line) || [])
-    }
-    return { highlights, lines: lineNumbersToUpdate }
+    void nvim.resumeNotification(false, true)
   }
 
   /**
