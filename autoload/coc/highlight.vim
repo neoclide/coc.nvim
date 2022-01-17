@@ -597,7 +597,7 @@ function! s:update_highlights_timer(bufnr, changedtick, key, start, end, total, 
   let end = a:end
   if empty(highlights) && end > 0
     " find maxium lnum to clear
-    let till = end < get(a:exclude, 0, 0) ? get(a:exclude, 0, 0) : a:total
+    let till = type(a:exclude) == 3 && end < get(a:exclude, 0, 0) ? get(a:exclude, 0, 0) : a:total
     if till > end
       let minimal = till
       for hl in filter(copy(a:highlights), 'v:val["lnum"] >='.end.' && v:val["lnum"] <'.till)
