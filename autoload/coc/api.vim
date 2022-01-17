@@ -263,14 +263,22 @@ function! s:funcs.buf_get_mark(bufnr, name)
   return [line("'" . a:name), col("'" . a:name)]
 endfunction
 
-function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd) abort
+function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd, ...) abort
   if !has('patch-8.1.1719')
     return
   endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   let type = 'CocHighlight'.a:hlGroup
   if empty(prop_type_get(type))
-    call prop_type_add(type, {'highlight': a:hlGroup, 'combine': 1})
+    let opts = get(a:, 1, 0)
+    let priority = get(opts, 'priority', 0)
+    call prop_type_add(type, {
+          \ 'highlight': a:hlGroup,
+          \ 'priority': type(priority) == 0 ? priority : 0,
+          \ 'combine': get(opts, 'combine', 1),
+          \ 'start_incl': get(opts, 'start_incl', 0),
+          \ 'end_incl': get(opts, 'end_incl', 0),
+          \ })
   endif
   let total = strlen(getbufline(bufnr, a:line + 1)[0])
   let end = a:colEnd

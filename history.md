@@ -1,3 +1,7 @@
+# 2022-01-17
+
+- Extend `buffer.updateHighlights` to support `priority`, `combine`, `start_incl` and `end_incl`.
+
 # 2022-01-16
 
 - Add configuration 'codeLens.position'.

@@ -2223,6 +2223,12 @@ declare module 'coc.nvim' {
     colEnd: number
   }
 
+  export interface ExtendedHighlightItem extends HighlightItem {
+    combine?: boolean
+    start_incl?: boolean
+    end_incl?: boolean
+  }
+
   export interface BufferKeymapOption {
     nowait?: boolean
     silent?: boolean
@@ -2833,13 +2839,16 @@ declare module 'coc.nvim' {
 
     /**
      * Update namespaced highlights in range by notification.
+     * Priority default to 0 on vim and 4096 on neovim.
+     * Note: timer used for whole buffer highlights for better performance.
      *
-     * @param {string | number} ns Namespace key or id.
+     * @param {string} ns Namespace key.
      * @param {HighlightItem[]} highlights Highlight items.
      * @param {number} start 0 based line number, default to 0.
      * @param {number} end 0 based line number, default to -1.
+     * @param {priority} priority Priority of this highlight.
      */
-    updateHighlights(ns: string | number, highlights: HighlightItem[], start?: number, end?: number): void
+    updateHighlights(ns: string, highlights: ExtendedHighlightItem[], start?: number, end?: number, priority?: number): void
 
     /**
      * Gets a map of buffer-local |user-commands|.

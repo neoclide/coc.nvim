@@ -16,7 +16,7 @@ if has('nvim-0.5.0')
 endif
 
 " Update buffer region by region.
-function! coc#highlight#buffer_update(bufnr, key, highlights) abort
+function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
   if !bufloaded(a:bufnr)
     return
   endif
@@ -29,10 +29,11 @@ function! coc#highlight#buffer_update(bufnr, key, highlights) abort
     call coc#highlight#clear_highlight(a:bufnr, a:key, 0, -1)
     return
   endif
+  let priority = get(a:, 1, v:null)
   let hls = map(copy(a:highlights), "{'hlGroup':v:val[0],'lnum':v:val[1],'colStart':v:val[2],'colEnd':v:val[3]}")
   let total = exists('*nvim_buf_line_count') ? nvim_buf_line_count(a:bufnr): getbufinfo(a:bufnr)[0]['linecount']
   if total <= g:coc_highlight_batch_lines || get(g:, 'coc_node_env', '') ==# 'test'
-    call coc#highlight#update_highlights(a:bufnr, a:key, hls)
+    call coc#highlight#update_highlights(a:bufnr, a:key, hls, 0, -1, priority)
     return
   endif
   let changedtick = getbufvar(a:bufnr, 'changedtick', 0)
@@ -42,15 +43,15 @@ function! coc#highlight#buffer_update(bufnr, key, highlights) abort
     let le = line('w$')
     let exclude = [ls, le]
     let highlights = filter(copy(hls), 'v:val["lnum"]>='.(ls - 1).'&& v:val["lnum"] <='.(le - 1))
-    call coc#highlight#update_highlights(a:bufnr, a:key, highlights, ls - 1, le)
+    call coc#highlight#update_highlights(a:bufnr, a:key, highlights, ls - 1, le, priority)
     let re = s:get_highlight_region(0, total, exclude)
     if !empty(re)
-      let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, changedtick, a:key, re[0], re[1], total, hls, exclude)})
+      let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, changedtick, a:key, priority, re[0], re[1], total, hls, exclude)})
       call setbufvar(a:bufnr, key, timer)
     endif
   else
     let re = s:get_highlight_region(0, total, v:null)
-    call s:update_highlights_timer(a:bufnr, changedtick, a:key, re[0], re[1], total, hls, v:null)
+    call s:update_highlights_timer(a:bufnr, changedtick, a:key, priority, re[0], re[1], total, hls, v:null)
   endif
 endfunction
 
@@ -109,10 +110,7 @@ endfunction
 
 " Update highlights by check exists highlights.
 function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
-  let bufnr = a:bufnr
-  if a:bufnr == 0
-    let bufnr = bufnr('%')
-  endif
+  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr)
     return
   endif
@@ -122,6 +120,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
     call coc#highlight#clear_highlight(bufnr, a:key, start, end)
     return
   endif
+  let priority = get(a:, 3, v:null)
   let total = len(a:highlights)
   " index list that exists with current highlights
   let exists = []
@@ -176,7 +175,16 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   endif
   for i in indexes
     let hi = a:highlights[i]
-    call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
+    let opts = {}
+    if type(priority) == 0
+      let opts['priority'] = priority
+    endif
+    for key in ['combine', 'start_incl', 'end_incl']
+      if has_key(hi, key)
+        let opts[key] = hi[key]
+      endif
+    endfor
+    call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'], opts)
   endfor
 endfunction
 
@@ -233,11 +241,12 @@ function! coc#highlight#get_highlights(bufnr, key) abort
 endfunction
 
 " highlight LSP range,
-function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
+function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr) || !exists('*getbufline')
     return
   endif
+  let opts = get(a:, 1, {})
   let synmaxcol = getbufvar(a:bufnr, '&synmaxcol', 1000)
   if synmaxcol == 0
     let synmaxcol = 1000
@@ -262,24 +271,29 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
       if colStart == colEnd
         continue
       endif
-      call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd)
+      call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd, opts)
     endfor
   endfor
 endfunction
 
-function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end) abort
+function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
+  let opts = get(a:, 1, {})
+  let priority = get(opts, 'priority', v:null)
   if has('nvim')
     if s:set_extmark && a:src_id != -1
       call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
             \ 'end_col': a:col_end,
             \ 'hl_group': a:hl_group,
-            \ 'priority': 4096,
+            \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
+            \ 'right_gravity': get(opts, 'start_incl', 0) ? v:false : v:true,
+            \ 'end_right_gravity': get(opts, 'end_incl', 0) ? v:true : v:false,
+            \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
             \ })
     else
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     endif
   else
-    call coc#api#call('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end])
+    call coc#api#call('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
   endif
 endfunction
 
@@ -589,7 +603,7 @@ function! s:same_highlight(one, other) abort
   return 1
 endfunction
 
-function! s:update_highlights_timer(bufnr, changedtick, key, start, end, total, highlights, exclude) abort
+function! s:update_highlights_timer(bufnr, changedtick, key, priority, start, end, total, highlights, exclude) abort
   if getbufvar(a:bufnr, 'changedtick', 0) != a:changedtick
     return
   endif
@@ -607,11 +621,11 @@ function! s:update_highlights_timer(bufnr, changedtick, key, start, end, total, 
     endif
   endif
   "call coc#rpc#notify('log', ['update_timer', a:bufnr, a:changedtick, a:key, a:start, end, a:total, highlights, a:exclude])
-  call coc#highlight#update_highlights(a:bufnr, a:key, highlights, a:start, end)
+  call coc#highlight#update_highlights(a:bufnr, a:key, highlights, a:start, end, a:priority)
   let re = s:get_highlight_region(end, a:total, a:exclude)
   if !empty(re)
     let key = 'coc_timer_'.a:key
-    let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, re[0], re[1], a:total, a:highlights, a:exclude)})
+    let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, re[0], re[1], a:total, a:highlights, a:exclude)})
     call setbufvar(a:bufnr, key, timer)
   endif
 endfunction
