@@ -30,13 +30,16 @@ function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
     return
   endif
   let priority = get(a:, 1, v:null)
+  let changedtick = getbufvar(a:bufnr, 'changedtick', 0)
+  if type(get(a:, 2, v:null)) == 0 && changedtick > a:2
+    return
+  endif
   let hls = map(copy(a:highlights), "{'hlGroup':v:val[0],'lnum':v:val[1],'colStart':v:val[2],'colEnd':v:val[3]}")
   let total = exists('*nvim_buf_line_count') ? nvim_buf_line_count(a:bufnr): getbufinfo(a:bufnr)[0]['linecount']
   if total <= g:coc_highlight_batch_lines || get(g:, 'coc_node_env', '') ==# 'test'
     call coc#highlight#update_highlights(a:bufnr, a:key, hls, 0, -1, priority)
     return
   endif
-  let changedtick = getbufvar(a:bufnr, 'changedtick', 0)
   if bufnr('%') == a:bufnr
     " Highlight visible region first
     let ls = line('w0')
@@ -121,6 +124,9 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
     return
   endif
   let priority = get(a:, 3, v:null)
+  if type(get(a:, 4, v:null)) == 0 && getbufvar(bufnr, 'changedtick') > a:4
+    return
+  endif
   let total = len(a:highlights)
   " index list that exists with current highlights
   let exists = []
@@ -281,14 +287,18 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
   let priority = get(opts, 'priority', v:null)
   if has('nvim')
     if s:set_extmark && a:src_id != -1
-      call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
-            \ 'end_col': a:col_end,
-            \ 'hl_group': a:hl_group,
-            \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
-            \ 'right_gravity': get(opts, 'start_incl', 0) ? v:false : v:true,
-            \ 'end_right_gravity': get(opts, 'end_incl', 0) ? v:true : v:false,
-            \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
-            \ })
+      try
+        call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
+              \ 'end_col': a:col_end,
+              \ 'hl_group': a:hl_group,
+              \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
+              \ 'right_gravity': get(opts, 'start_incl', 0) ? v:false : v:true,
+              \ 'end_right_gravity': get(opts, 'end_incl', 0) ? v:true : v:false,
+              \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
+              \ })
+      catch /^Vim\%((\a\+)\)\=:E5555/
+        " the end_col could be invalid, ignore this error
+      endtry
     else
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     endif

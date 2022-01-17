@@ -2229,6 +2229,25 @@ declare module 'coc.nvim' {
     end_incl?: boolean
   }
 
+  export interface HighlightOption {
+    /**
+     * 0 based start line, default to 0.
+     */
+    start?: number
+    /**
+     * 0 based end line, default to 0.
+     */
+    end?: number
+    /**
+     * Default to 0 on vim8, 4096 on neovim
+     */
+    priority?: number
+    /**
+     * Buffer changedtick to match.
+     */
+    changedtick?: number
+  }
+
   export interface BufferKeymapOption {
     nowait?: boolean
     silent?: boolean
@@ -2844,11 +2863,9 @@ declare module 'coc.nvim' {
      *
      * @param {string} ns Namespace key.
      * @param {HighlightItem[]} highlights Highlight items.
-     * @param {number} start 0 based line number, default to 0.
-     * @param {number} end 0 based line number, default to -1.
-     * @param {priority} priority Priority of this highlight.
+     * @param {HighlightOption} opts Highlight options.
      */
-    updateHighlights(ns: string, highlights: ExtendedHighlightItem[], start?: number, end?: number, priority?: number): void
+    updateHighlights(ns: string, highlights: ExtendedHighlightItem[], opts?: HighlightOption): void
 
     /**
      * Gets a map of buffer-local |user-commands|.
