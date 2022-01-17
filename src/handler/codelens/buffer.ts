@@ -179,6 +179,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
           })
         } else {
           buf.setExtMark(this.srcId, lnum, 0, {
+            hl_mode: 'combine',
             virt_text: chunks,
             virt_text_pos: position
           })
