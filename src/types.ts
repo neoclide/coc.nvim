@@ -73,6 +73,18 @@ export interface HighlightItem {
    * 0 based end column.
    */
   colEnd: number
+  /**
+   * default to true
+   */
+  combine?: boolean
+  /**
+   * default to false
+   */
+  start_incl?: boolean
+  /**
+   * default to false
+   */
+  end_incl?: boolean
 }
 
 export interface BufferSyncItem {

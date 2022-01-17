@@ -393,7 +393,13 @@ Built-in configurations:~
 	Limit count for highlighted diagnostics, too many diagnostic
 	highlights could make vim stop responding.
 
-	default: `1000`
+	Default: `1000`
+
+"diagnostic.highlightPriority":~
+
+	Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0
+
+	Default: `4096`
 
 "diagnostic.autoRefresh":~
 

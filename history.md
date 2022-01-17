@@ -1,14 +1,15 @@
 # 2022-01-17
 
 - Extend `buffer.updateHighlights` to support `priority`, `combine`, `start_incl` and `end_incl`.
+- Add configuration `diagnostic.highlightPriority`.
 
 # 2022-01-16
 
-- Add configuration 'codeLens.position'.
+- Add configuration `codeLens.position`.
 
 # 2022-01-14
 
-- Add configuration 'suggest.selection'.
+- Add configuration `suggest.selection`.
 
 # 2022-01-13
 

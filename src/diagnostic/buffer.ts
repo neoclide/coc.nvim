@@ -10,7 +10,7 @@ import { getLocationListItem, getNameFromSeverity, getSeverityType } from './uti
 const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
-const highlightNamespace = 'diagnostic'
+const NAMESPACE = 'diagnostic'
 // higher priority first
 const hlGroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 
@@ -25,6 +25,7 @@ export enum DiagnosticHighlight {
 
 export interface DiagnosticConfig {
   highlighLimit: number
+  highlightPriority: number
   autoRefresh: boolean
   enableSign: boolean
   locationlistUpdate: boolean
@@ -96,7 +97,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
   }
 
   private clearHighlight(collection: string): void {
-    this.buffer.clearNamespace(highlightNamespace + collection)
+    this.buffer.clearNamespace(NAMESPACE + collection)
   }
 
   private clearSigns(collection: string): void {
@@ -305,7 +306,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
       this.clearHighlight(collection)
     } else {
       let items = this.getHighlightItems(diagnostics)
-      this.buffer.updateHighlights(highlightNamespace + collection, items)
+      let priority = this.config.highlightPriority
+      this.buffer.updateHighlights(NAMESPACE + collection, items, { priority })
     }
   }
 
