@@ -4,16 +4,17 @@ import { CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, ui
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
-import { HighlightItem } from '../../types'
+import { HighlightItem, HighlightItemOption } from '../../types'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
-const SEMANTIC_HLGROUP_PREFIX = 'CocSem_'
+const HLGROUP_PREFIX = 'CocSem_'
 /**
  * Relative highlight
  */
 interface RelativeHighlight {
-  group: string
+  tokenType: string
+  tokenModifiers: string[]
   deltaLine: number
   deltaStartCharacter: number
   length: number
@@ -41,9 +42,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     public readonly bufnr: number,
     private readonly config: SemanticTokensConfig) {
     this.highlight = debounce(() => {
-      this.doHighlight().catch(e => {
-        logger.error('Error on semanticTokens highlight:', e.stack)
-      })
+      this.doHighlight().logError()
     }, global.hasOwnProperty('__TEST__') ? 10 : 500)
     this.highlight()
   }
@@ -106,7 +105,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!items) return
     const { nvim } = this
     nvim.pauseNotification()
-    this.buffer.updateHighlights(NAMESPACE, items)
+    this.buffer.updateHighlights(NAMESPACE, items, { priority: 4096 })
     if (workspace.isVim) nvim.command('redraw', true)
     void nvim.resumeNotification(false, true)
   }
@@ -153,36 +152,32 @@ export default class SemanticTokensBuffer implements SyncItem {
       const deltaStartCharacter = tokens[i + 1]
       const length = tokens[i + 2]
       const tokenType = tokens[i + 3]
-      // const tokenModifiers = legend.tokenModifiers.filter((_, m) => tokens[i + 4] & (1 << m))
-      const group = SEMANTIC_HLGROUP_PREFIX + legend.tokenTypes[tokenType]
-      relatives.push({
-        group,
-        deltaLine,
-        deltaStartCharacter,
-        length
-      })
+      const tokenModifiers = legend.tokenModifiers.filter((_, m) => tokens[i + 4] & (1 << m))
+      relatives.push({ tokenType: legend.tokenTypes[tokenType], tokenModifiers, deltaLine, deltaStartCharacter, length })
     }
 
     const res: HighlightItem[] = []
     let currentLine = 0
     let currentCharacter = 0
     for (const {
-      group,
+      tokenType,
       deltaLine,
       deltaStartCharacter,
       length
     } of relatives) {
       const lnum = currentLine + deltaLine
-      const colStart = deltaLine === 0 ? currentCharacter + deltaStartCharacter : deltaStartCharacter
-      const colEnd = colStart + length
+      const startCharacter = deltaLine === 0 ? currentCharacter + deltaStartCharacter : deltaStartCharacter
+      const endCharacter = startCharacter + length
       currentLine = lnum
-      currentCharacter = colStart
-      res.push({
-        hlGroup: group,
-        lnum,
-        colStart,
-        colEnd
-      })
+      currentCharacter = startCharacter
+      let range = Range.create(lnum, startCharacter, lnum, endCharacter)
+      let hlGroup = HLGROUP_PREFIX + tokenType
+      let opts: HighlightItemOption = { combine: false }
+      if (tokenType === 'variable' || tokenType === 'string') {
+        opts.end_incl = true
+        opts.start_incl = true
+      }
+      doc.addHighlights(res, hlGroup, range, opts)
     }
     this._highlights = res
     return res
@@ -195,6 +190,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   public cancel(): void {
     if (this.tokenSource) {
       this.tokenSource.cancel()
+      this.tokenSource.dispose()
       this.tokenSource = null
     }
   }
