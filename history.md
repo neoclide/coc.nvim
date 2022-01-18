@@ -2,6 +2,7 @@
 
 - Extend `buffer.updateHighlights` to support `priority`, `combine`, `start_incl` and `end_incl`.
 - Add configuration `diagnostic.highlightPriority`.
+- Add configuration `colors.filetypes` and `colors.highlightPriority`.
 
 # 2022-01-16
 

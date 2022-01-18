@@ -4,7 +4,7 @@ import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdi
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
-import { DidChangeTextDocumentParams, HighlightItem } from '../types'
+import { DidChangeTextDocumentParams, HighlightItem, HighlightItemOption } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
@@ -551,7 +551,7 @@ export default class Document {
    * Add vim highlight items from highlight group and range.
    * Synchronized lines are used for calculate cols.
    */
-  public addHighlights(items: HighlightItem[], hlGroup: string, range: Range): void {
+  public addHighlights(items: HighlightItem[], hlGroup: string, range: Range, opts: HighlightItemOption = {}): void {
     let { start, end } = range
     if (emptyRange(range)) return
     for (let line = start.line; line <= end.line; line++) {
@@ -559,7 +559,7 @@ export default class Document {
       let colStart = line == start.line ? byteIndex(text, start.character) : 0
       let colEnd = line == end.line ? byteIndex(text, end.character) : global.Buffer.byteLength(text)
       if (colStart >= colEnd) continue
-      items.push({ hlGroup, lnum: line, colStart, colEnd })
+      items.push(Object.assign({ hlGroup, lnum: line, colStart, colEnd }, opts))
     }
   }
 

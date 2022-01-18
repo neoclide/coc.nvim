@@ -383,6 +383,14 @@ Built-in configurations:~
 	Match priority used by document highlight, see ':h matchadd'.
 	Default `-1`
 
+							*coc-config-filetypes*
+"colors.filetypes":~
+
+	Filetypes that should enable colors highlight feature.
+	Use `*` for all filetypes.
+
+	Default: `[]`
+
 							*coc-config-diagnostic*
 "diagnostic.enable":~
 
@@ -856,10 +864,6 @@ Built-in configurations:~
 	Check |coc-status| for statusline integration.
 
 	Default: `"SNIP"`
-
-"coc.preferences.colorSupport":~
-
-	Enable color highlight if Language Server support it, default: `true`
 
 "coc.preferences.currentFunctionSymbolAutoUpdate":~
 

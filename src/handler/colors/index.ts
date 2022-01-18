@@ -4,41 +4,29 @@ import commandManager from '../../commands'
 import extensions from '../../extensions'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { HandlerDelegate } from '../../types'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { toHexString } from '../../util/color'
 import window from '../../window'
 import workspace from '../../workspace'
-import ColorBuffer from './colorBuffer'
+import ColorBuffer, { ColorConfig } from './colorBuffer'
 const logger = require('../../util/logger')('colors-index')
 
 export default class Colors {
-  private _enabled = true
+  private config: ColorConfig
   private disposables: Disposable[] = []
   private highlighters: BufferSync<ColorBuffer>
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
-    let config = workspace.getConfiguration('coc.preferences')
-    this._enabled = config.get<boolean>('colorSupport', true)
+    this.setConfiguration()
     let usedColors: Set<string> = new Set()
     this.highlighters = workspace.registerBufferSync(doc => {
-      let buf = new ColorBuffer(this.nvim, doc.bufnr, this._enabled, usedColors)
-      buf.highlight()
-      return buf
+      return new ColorBuffer(this.nvim, doc.bufnr, this.config, usedColors)
     })
     extensions.onDidActiveExtension(() => {
       this.highlightAll()
     }, null, this.disposables)
-    workspace.onDidChangeConfiguration(async e => {
-      if (e.affectsConfiguration('coc.preferences.colorSupport')) {
-        let config = workspace.getConfiguration('coc.preferences')
-        let enabled = config.get<boolean>('colorSupport', true)
-        this._enabled = enabled
-        for (let buf of this.highlighters.items) {
-          buf.setState(enabled)
-        }
-      }
-    }, null, this.disposables)
+    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
       return this.pickColor()
     }))
@@ -47,6 +35,16 @@ export default class Colors {
       return this.pickPresentation()
     }))
     commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
+  }
+
+  private setConfiguration(e?: ConfigurationChangeEvent): void {
+    if (!e || e.affectsConfiguration('colors')) {
+      let c = workspace.getConfiguration('colors')
+      this.config = Object.assign(this.config || {}, {
+        filetypes: c.get<string[]>('filetypes', []),
+        highlightPriority: c.get<number>('highlightPriority', 1000)
+      })
+    }
   }
 
   public async pickPresentation(): Promise<void> {
@@ -91,8 +89,9 @@ export default class Colors {
     }])
   }
 
-  public get enabled(): boolean {
-    return this._enabled
+  public isEnabled(bufnr: number): boolean {
+    let highlighter = this.highlighters.getItem(bufnr)
+    return highlighter != null && highlighter.enabled === true
   }
 
   public clearHighlight(bufnr: number): void {

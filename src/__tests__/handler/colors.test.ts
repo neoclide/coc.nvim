@@ -16,6 +16,7 @@ let disposables: Disposable[] = []
 let colorPresentations: ColorPresentation[] = []
 beforeAll(async () => {
   await helper.setup()
+  helper.updateConfiguration('colors.filetypes', ['*'])
   nvim = helper.nvim
   colors = helper.plugin.getHandler().colors
   disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
@@ -68,11 +69,11 @@ describe('Colors', () => {
 
   describe('configuration', () => {
     it('should toggle enable state on configuration change', async () => {
-      await helper.createDocument()
-      helper.updateConfiguration('coc.preferences.colorSupport', false)
-      expect(colors.enabled).toBe(false)
-      helper.updateConfiguration('coc.preferences.colorSupport', true)
-      expect(colors.enabled).toBe(true)
+      let doc = await helper.createDocument()
+      helper.updateConfiguration('colors.filetypes', [])
+      let enabled = colors.isEnabled(doc.bufnr)
+      helper.updateConfiguration('colors.filetypes', ['*'])
+      expect(enabled).toBe(false)
     })
   })
 

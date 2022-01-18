@@ -587,6 +587,19 @@
       "default": -1,
       "description": "Match priority used by document highlight, see ':h matchadd'"
     },
+    "colors.filetypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "colors.highlightPriority": {
+      "type": "number",
+      "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
+      "default": 1000
+    },
     "diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic display",
@@ -1291,11 +1304,6 @@
       "type": "string",
       "default": "SNIP",
       "description": "Text shown in statusline to indicate snippet session is activated."
-    },
-    "coc.preferences.colorSupport": {
-      "type": "boolean",
-      "description": "Enable color highlight if language server support it.",
-      "default": true
     },
     "coc.preferences.semanticTokensHighlights": {
       "type": "boolean",

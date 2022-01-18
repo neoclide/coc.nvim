@@ -58,21 +58,7 @@ export interface FloatConfig {
   shadow?: boolean
 }
 
-/**
- * Represent a highlight that not cross lines
- * all zero based.
- */
-export interface HighlightItem {
-  lnum: number
-  hlGroup: string
-  /**
-   * 0 based start column.
-   */
-  colStart: number
-  /**
-   * 0 based end column.
-   */
-  colEnd: number
+export interface HighlightItemOption {
   /**
    * default to true
    */
@@ -85,6 +71,23 @@ export interface HighlightItem {
    * default to false
    */
   end_incl?: boolean
+}
+
+/**
+ * Represent a highlight that not cross lines
+ * all zero based.
+ */
+export interface HighlightItem extends HighlightItemOption {
+  lnum: number
+  hlGroup: string
+  /**
+   * 0 based start column.
+   */
+  colStart: number
+  /**
+   * 0 based end column.
+   */
+  colEnd: number
 }
 
 export interface BufferSyncItem {
