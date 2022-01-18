@@ -1,9 +1,11 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:clear_match_by_window = has('nvim-0.5.0') || has('patch-8.1.1084')
+let s:set_extmark = exists('*nvim_buf_set_extmark')
 let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
 let s:namespace_map = {}
 let s:ns_id = 1
+let g:coc_highlight_batch_lines = get(g:, 'coc_highlight_batch_lines', 300)
 
 if has('nvim-0.5.0')
   try
@@ -13,13 +15,53 @@ if has('nvim-0.5.0')
   endtry
 endif
 
+" Update buffer region by region.
+function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
+  if !bufloaded(a:bufnr)
+    return
+  endif
+  let key = 'coc_timer_'.a:key
+  if getbufvar(a:bufnr, key, 0)
+    call timer_stop(getbufvar(a:bufnr, key, 0))
+    call setbufvar(a:bufnr, key, 0)
+  endif
+  if empty(a:highlights)
+    call coc#highlight#clear_highlight(a:bufnr, a:key, 0, -1)
+    return
+  endif
+  let priority = get(a:, 1, v:null)
+  let changedtick = getbufvar(a:bufnr, 'changedtick', 0)
+  if type(get(a:, 2, v:null)) == 0 && changedtick > a:2
+    return
+  endif
+  let hls = map(copy(a:highlights), "{'hlGroup':v:val[0],'lnum':v:val[1],'colStart':v:val[2],'colEnd':v:val[3],'combine':get(v:val,4,1),'start_incl':get(v:val,5,0),'end_incl':get(v:val,6,0)}")
+  let total = exists('*nvim_buf_line_count') ? nvim_buf_line_count(a:bufnr): getbufinfo(a:bufnr)[0]['linecount']
+  if total <= g:coc_highlight_batch_lines || get(g:, 'coc_node_env', '') ==# 'test'
+    call coc#highlight#update_highlights(a:bufnr, a:key, hls, 0, -1, priority)
+    return
+  endif
+  if bufnr('%') == a:bufnr
+    " Highlight visible region first
+    let ls = line('w0')
+    let le = line('w$')
+    let exclude = [ls, le]
+    let highlights = filter(copy(hls), 'v:val["lnum"]>='.(ls - 1).'&& v:val["lnum"] <='.(le - 1))
+    call coc#highlight#update_highlights(a:bufnr, a:key, highlights, ls - 1, le, priority)
+    let re = s:get_highlight_region(0, total, exclude)
+    if !empty(re)
+      let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, changedtick, a:key, priority, re[0], re[1], total, hls, exclude)})
+      call setbufvar(a:bufnr, key, timer)
+    endif
+  else
+    let re = s:get_highlight_region(0, total, v:null)
+    call s:update_highlights_timer(a:bufnr, changedtick, a:key, priority, re[0], re[1], total, hls, v:null)
+  endif
+endfunction
+
 " Get namespaced coc highlights from range of bufnr
 " start - 0 based start line index
 " end - 0 based end line index, could be -1 for last line (exclusive)
 function! coc#highlight#get(bufnr, key, start, end) abort
-  if !has('nvim-0.5.0') && !exists('*prop_list')
-    throw 'Get highlights requires neovim 0.5.0 or vim support prop_list()'
-  endif
   if !has_key(s:namespace_map, a:key) || !bufloaded(a:bufnr)
     return {}
   endif
@@ -28,18 +70,15 @@ function! coc#highlight#get(bufnr, key, start, end) abort
   if has('nvim-0.5.0')
     let end = a:end == -1 ? [-1, -1] : [a:end - 1, 0]
     let markers = nvim_buf_get_extmarks(a:bufnr, ns, [a:start, 0], end, {'details': v:true})
+    let linecount = nvim_buf_line_count(a:bufnr)
     for [_, row, start_col, details] in markers
       let delta = details['end_row'] - row
-      if delta > 1 || (delta == 1 && details['end_col'] != 0)
+      if row >= linecount || delta > 1 || (delta == 1 && details['end_col'] != 0)
+        " Ignore markers with invalid row
         " Don't known neovim's api for multiple lines markers.
         continue
       endif
-      let lines = getbufline(a:bufnr, row + 1)
-      if empty(lines)
-        " It's possible that markers exceeded last line.
-        continue
-      endif
-      let text = lines[0]
+      let text = get(getbufline(a:bufnr, row + 1), 0, '')
       let curr = get(current, string(row), [])
       call add(curr, {
           \ 'hlGroup': details['hl_group'],
@@ -49,7 +88,7 @@ function! coc#highlight#get(bufnr, key, start, end) abort
           \ })
       let current[string(row)] = curr
     endfor
-  else
+  elseif exists('*prop_list')
     let id = s:prop_offset + ns
     " we could only get textprops line by line
     let end = a:end == -1 ? getbufinfo(a:bufnr)[0]['linecount'] : a:end
@@ -74,10 +113,7 @@ endfunction
 
 " Update highlights by check exists highlights.
 function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
-  let bufnr = a:bufnr
-  if a:bufnr == 0
-    let bufnr = bufnr('%')
-  endif
+  let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr)
     return
   endif
@@ -85,6 +121,10 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   let end = get(a:, 2, -1)
   if empty(a:highlights)
     call coc#highlight#clear_highlight(bufnr, a:key, start, end)
+    return
+  endif
+  let priority = get(a:, 3, v:null)
+  if type(get(a:, 4, v:null)) == 0 && getbufvar(bufnr, 'changedtick') > a:4
     return
   endif
   let total = len(a:highlights)
@@ -95,7 +135,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   if has('nvim-0.5.0') || exists('*prop_list')
     let current = coc#highlight#get(bufnr, a:key, start, end)
     for lnum in sort(map(keys(current), 'str2nr(v:val)'), {a, b -> a - b})
-      let items = current[lnum]
+      let items = get(current, lnum, [])
       let indexes = []
       let nextIndex = currIndex
       if currIndex != total
@@ -106,7 +146,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
               let nextIndex = i
               break
             endif
-            if coc#helper#obj_equal(item, hi)
+            if s:same_highlight(item, hi)
               call add(indexes, i)
               let nextIndex = max([nextIndex, i + 1])
             endif
@@ -116,7 +156,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
       let currIndex = nextIndex
       " all highlights of current line exists, not clear.
       if len(indexes) == len(items)
-        let exists = exists + indexes
+        call extend(exists, indexes)
       else
         if has('nvim')
           call nvim_buf_clear_namespace(bufnr, ns, lnum, lnum + 1)
@@ -125,10 +165,12 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
         endif
       endif
     endfor
-    if has('nvim') && end == -1
+    if has('nvim')
       let count = nvim_buf_line_count(bufnr)
-      " remove highlights exceed last line.
-      call nvim_buf_clear_namespace(bufnr, ns, count, -1)
+      if end == -1 || end == count
+        " remove highlights exceed last line.
+        call nvim_buf_clear_namespace(bufnr, ns, count, -1)
+      endif
     endif
   else
     call coc#highlight#clear_highlight(bufnr, a:key, start, end)
@@ -139,7 +181,16 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   endif
   for i in indexes
     let hi = a:highlights[i]
-    call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'])
+    let opts = {}
+    if type(priority) == 0
+      let opts['priority'] = priority
+    endif
+    for key in ['combine', 'start_incl', 'end_incl']
+      if has_key(hi, key)
+        let opts[key] = hi[key]
+      endif
+    endfor
+    call coc#highlight#add_highlight(bufnr, ns, hi['hlGroup'], hi['lnum'], hi['colStart'], hi['colEnd'], opts)
   endfor
 endfunction
 
@@ -196,11 +247,12 @@ function! coc#highlight#get_highlights(bufnr, key) abort
 endfunction
 
 " highlight LSP range,
-function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
+function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr) || !exists('*getbufline')
     return
   endif
+  let opts = get(a:, 1, {})
   let synmaxcol = getbufvar(a:bufnr, '&synmaxcol', 1000)
   if synmaxcol == 0
     let synmaxcol = 1000
@@ -225,16 +277,33 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges) abort
       if colStart == colEnd
         continue
       endif
-      call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd)
+      call coc#highlight#add_highlight(bufnr, srcId, a:hlGroup, lnum - 1, colStart, colEnd, opts)
     endfor
   endfor
 endfunction
 
-function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end) abort
+function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
+  let opts = get(a:, 1, {})
+  let priority = get(opts, 'priority', v:null)
   if has('nvim')
-    call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
+    if s:set_extmark && a:src_id != -1
+      try
+        call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
+              \ 'end_col': a:col_end,
+              \ 'hl_group': a:hl_group,
+              \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
+              \ 'right_gravity': get(opts, 'start_incl', 0) ? v:false : v:true,
+              \ 'end_right_gravity': get(opts, 'end_incl', 0) ? v:true : v:false,
+              \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
+              \ })
+      catch /^Vim\%((\a\+)\)\=:E5555/
+        " the end_col could be invalid, ignore this error
+      endtry
+    else
+      call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
+    endif
   else
-    call coc#api#call('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end])
+    call coc#api#call('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
   endif
 endfunction
 
@@ -525,4 +594,72 @@ endfunction
 
 function! coc#highlight#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
+endfunction
+
+" TODO support check for virt_text
+function! s:same_highlight(one, other) abort
+  if a:one['hlGroup'] !=# a:other['hlGroup']
+    return 0
+  endif
+  if a:one['lnum'] != a:other['lnum']
+    return 0
+  endif
+  if a:one['colStart'] !=# a:other['colStart']
+    return 0
+  endif
+  if a:one['colEnd'] !=# a:other['colEnd']
+    return 0
+  endif
+  return 1
+endfunction
+
+function! s:update_highlights_timer(bufnr, changedtick, key, priority, start, end, total, highlights, exclude) abort
+  if getbufvar(a:bufnr, 'changedtick', 0) != a:changedtick
+    return
+  endif
+  let highlights = filter(copy(a:highlights), 'v:val["lnum"] >='.a:start.' && v:val["lnum"] <'.a:end)
+  let end = a:end
+  if empty(highlights) && end > 0
+    " find maxium lnum to clear
+    let till = type(a:exclude) == 3 && end < get(a:exclude, 0, 0) ? get(a:exclude, 0, 0) : a:total
+    if till > end
+      let minimal = till
+      for hl in filter(copy(a:highlights), 'v:val["lnum"] >='.end.' && v:val["lnum"] <'.till)
+        let minimal = min([minimal, hl['lnum']])
+      endfor
+      let end = minimal
+    endif
+  endif
+  "call coc#rpc#notify('log', ['update_timer', a:bufnr, a:changedtick, a:key, a:start, end, a:total, highlights, a:exclude])
+  call coc#highlight#update_highlights(a:bufnr, a:key, highlights, a:start, end, a:priority)
+  let re = s:get_highlight_region(end, a:total, a:exclude)
+  if !empty(re)
+    let key = 'coc_timer_'.a:key
+    let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, re[0], re[1], a:total, a:highlights, a:exclude)})
+    call setbufvar(a:bufnr, key, timer)
+  endif
+endfunction
+
+" Get 0 based, end exclusive region to highlight.
+function! s:get_highlight_region(start, total, exclude) abort
+  if a:start >= a:total
+    return v:null
+  endif
+  if empty(a:exclude)
+    let end = min([a:total, a:start + g:coc_highlight_batch_lines])
+    return [a:start, end]
+  endif
+  if a:start < a:exclude[0] - 1
+    let end = min([a:exclude[0] - 1, a:start + g:coc_highlight_batch_lines])
+    return [a:start, end]
+  endif
+  let start = a:start
+  if a:start >= a:exclude[0] - 1 && a:start <= a:exclude[1] - 1
+    let start = a:exclude[1]
+  endif
+  if start >= a:total
+    return v:null
+  endif
+  let end = min([a:total, start + g:coc_highlight_batch_lines])
+  return [start, end]
 endfunction

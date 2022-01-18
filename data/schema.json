@@ -355,9 +355,15 @@
       "default": "npm",
       "description": "Command or absolute path to npm or yarn."
     },
+    "suggest.selection": {
+      "type": "string",
+      "default": "none",
+      "description": "Controls how suggestions are pre-selected when showing the suggest list.",
+      "enum": ["none", "recentlyUsed", "recentlyUsedByPrefix"]
+    },
     "suggest.enablePreselect": {
       "type": "boolean",
-      "description": "Enable preselect feature of LSP, only works on neovim",
+      "description": "Enable preselect feature of LSP, only works on neovim, required for suggest.selection config.",
       "default": false
     },
     "suggest.enablePreview": {
@@ -573,13 +579,26 @@
     },
     "suggest.asciiCharactersOnly": {
       "type": "boolean",
-      "description": "Suggest ASCII characters only",
+      "description": "Trigger suggest with ASCII characters only",
       "default": false
     },
     "documentHighlight.priority": {
       "type": "number",
       "default": -1,
       "description": "Match priority used by document highlight, see ':h matchadd'"
+    },
+    "colors.filetypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "colors.highlightPriority": {
+      "type": "number",
+      "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
+      "default": 1000
     },
     "diagnostic.enable": {
       "type": "boolean",
@@ -590,6 +609,11 @@
       "type": "number",
       "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responding",
       "default": 1000
+    },
+    "diagnostic.highlightPriority": {
+      "type": "number",
+      "description": "Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0",
+      "default": 4096
     },
     "diagnostic.autoRefresh": {
       "type": "boolean",
@@ -826,6 +850,12 @@
       "description": "Enable codeLens feature, require neovim with set virtual text feature.",
       "default": false
     },
+    "codeLens.position": {
+      "type": "string",
+      "enum": ["top", "eol", "right_align"],
+      "description": "Position of codeLens, requires nvim >= 0.6.0",
+      "default": "top"
+    },
     "codeLens.separator": {
       "type": "string",
       "description": "Separator text for codeLens in virtual text",
@@ -998,12 +1028,12 @@
     "list.statusLineSegments": {
       "type": ["array", "null"],
       "default": [
-        "%#CocListMode#-- %{get(b:list_status, \"mode\", \"\")} --%*",
-        "%{get(b:list_status, \"loading\", \"\")}",
-        "%{get(b:list_status, \"args\", \"\")}",
-        "(%L/%{get(b:list_status, \"total\", \"\")})",
+        "%#CocListMode#-- %{coc#list#status(\"mode\")} --%*",
+        "%{coc#list#status(\"loading\")}",
+        "%{coc#list#status(\"args\")}",
+        "(%L/%{coc#list#status(\"total\")})",
         "%=",
-        "%#CocListPath# %{get(b:list_status, \"cwd\", \"\")} %l/%L%*"
+        "%#CocListPath# %{coc#list#status(\"cwd\")} %l/%L%*"
       ],
       "items": {
         "types": "string"
@@ -1274,11 +1304,6 @@
       "type": "string",
       "default": "SNIP",
       "description": "Text shown in statusline to indicate snippet session is activated."
-    },
-    "coc.preferences.colorSupport": {
-      "type": "boolean",
-      "description": "Enable color highlight if language server support it.",
-      "default": true
     },
     "coc.preferences.semanticTokensHighlights": {
       "type": "boolean",

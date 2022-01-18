@@ -165,6 +165,16 @@ Built-in configurations:~
 	CA (file) to use as Certificate Authority.
 
 							*coc-config-suggest*
+"suggest.selection":~
+
+	Controls how suggestions are pre-selected when showing the suggest
+	list. Default: "none".
+
+	Could be "none", "recentlyUsed" and "recentlyUsedByPrefix".
+
+	Note: the selected item would be moved to first place when
+	"suggest.enablePreselect" is not enabled.
+
 "suggest.enablePreselect":~
 
 	Enable preselect feature on Neovim, default: `false`
@@ -329,7 +339,7 @@ Built-in configurations:~
 
 "suggest.asciiCharactersOnly":~
 
-	Suggest ASCII characters only, default: `false`
+	Trigger suggest with ASCII characters only, default: `false`
 
 "suggest.completionItemKindLabels":~
 
@@ -373,6 +383,14 @@ Built-in configurations:~
 	Match priority used by document highlight, see ':h matchadd'.
 	Default `-1`
 
+							*coc-config-filetypes*
+"colors.filetypes":~
+
+	Filetypes that should enable colors highlight feature.
+	Use `*` for all filetypes.
+
+	Default: `[]`
+
 							*coc-config-diagnostic*
 "diagnostic.enable":~
 
@@ -383,7 +401,13 @@ Built-in configurations:~
 	Limit count for highlighted diagnostics, too many diagnostic
 	highlights could make vim stop responding.
 
-	default: `1000`
+	Default: `1000`
+
+"diagnostic.highlightPriority":~
+
+	Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0
+
+	Default: `4096`
 
 "diagnostic.autoRefresh":~
 
@@ -674,6 +698,11 @@ Built-in configurations:~
 	Enable `codeLens` feature. Requires Neovim with virtual text feature,
 	default: `false`.
 
+"codeLens.position":~
+
+	Position of codeLens, requires nvim >= 0.6.0, valid options ["top",
+	"eol", "right_align"], default: `top`.
+
 "codeLens.separator":~
 
 	Separator text for `codeLens` in virtual text, default: `""`.
@@ -835,10 +864,6 @@ Built-in configurations:~
 	Check |coc-status| for statusline integration.
 
 	Default: `"SNIP"`
-
-"coc.preferences.colorSupport":~
-
-	Enable color highlight if Language Server support it, default: `true`
 
 "coc.preferences.currentFunctionSymbolAutoUpdate":~
 
@@ -1641,18 +1666,6 @@ g:coc_node_args						*g:coc_node_args*
 <
 	Default: []
 
-g:coc_jump_locations					*g:coc_jump_locations*
-
-	This variable would be set to jump locations when the
-	|CocLocationsChange| autocmd is fired.
-
-	Each location item contains:
-
-	'filename': full file path.
-	'lnum': line number (1 based).
-	'col': column number(1 based).
-	'text':  line content of location.
-
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
 	Error character used for statusline, default: `E`
@@ -1669,11 +1682,6 @@ g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
 	let g:coc_quickfix_open_command = 'copen|cfirst'
 <
 	Default: |copen|
-
-g:WorkspaceFolders					*g:WorkspaceFolders*
-
-	Current workspace folders, used for restoring from a session file, add
-	`set sessionoptions+=globals` to vimrc for restoring globals.
 
 g:node_client_debug					*g:node_client_debug*
 
@@ -1729,10 +1737,33 @@ g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 
 	let g:coc_markdown_disabled_languages = ['html']
 
+g:coc_highlight_batch_lines 			*g:coc_highlight_batch_lines*
+
+	Maximum line count to perform highlights update each time, default:
+	`300`
+
 ------------------------------------------------------------------------------
 
-Some variables are provided by coc.nvim so you can use them in your
-statusline. See |coc-status| for detail.
+Some variables are provided by coc.nvim.
+
+
+g:WorkspaceFolders					*g:WorkspaceFolders*
+
+	Current workspace folders, used for restoring from a session file, add
+	`set sessionoptions+=globals` to vimrc for restoring globals on
+	session load.
+
+g:coc_jump_locations					*g:coc_jump_locations*
+
+	This variable would be set to jump locations when the
+	|CocLocationsChange| autocmd is fired.
+
+	Each location item contains:
+
+	'filename': full file path.
+	'lnum': line number (1 based).
+	'col': column number(1 based).
+	'text':  line content of location.
 
 g:coc_process_pid					*g:coc_process_pid*
 
