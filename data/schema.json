@@ -1318,10 +1318,13 @@
       "default": "SNIP",
       "description": "Text shown in statusline to indicate snippet session is activated."
     },
-    "coc.preferences.semanticTokensHighlights": {
-      "type": "boolean",
-      "description": "Enable semanticTokens highlight if language server support it.",
-      "default": true
+    "coc.preferences.semanticTokensFiletypes": {
+      "type":"array",
+      "description": "Filetypes that enable semanticTokens highlighting",
+      "default": [],
+      "items": {
+        "type":"string"
+      }
     },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",

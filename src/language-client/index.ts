@@ -2,7 +2,7 @@
 import cp from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
+import { createClientPipeTransport, createClientSocketTransport, Disposable, DocumentFilter, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
 import { ServiceStat } from '../types'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
@@ -549,11 +549,6 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new SelectionRangeFeature(this))
     this.registerFeature(new ProgressFeature(this))
     this.registerFeature(new CallHierarchyFeature(this))
-    if (workspace.isNvim || (workspace.isVim && workspace.env.textprop)) {
-      const config = workspace.getConfiguration('coc.preferences')
-      const enabled = config.get<boolean>('semanticTokensHighlights', true)
-      if (enabled) this.registerFeature(new SemanticTokensFeature(this))
-    }
     this.registerFeature(new LinkedEditingFeature(this))
     this.registerFeature(new DidCreateFilesFeature(this))
     this.registerFeature(new DidRenameFilesFeature(this))
@@ -563,6 +558,28 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new WillDeleteFilesFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
+    }
+
+    if (workspace.isNvim || (workspace.isVim && workspace.env.textprop)) {
+      const config = workspace.getConfiguration('coc.preferences')
+      const enabled = config.get<string[]>('semanticTokensFiletypes', [])
+      const curLangs: Set<string> = new Set()
+      if (enabled.length && this.clientOptions.documentSelector?.length) {
+        for (const item of this.clientOptions.documentSelector) {
+          if (DocumentFilter.is(item)) {
+            if (item.language?.length) {
+              curLangs.add(item.language)
+            } else {
+              // TODO: item.pattern support
+            }
+          } else {
+            curLangs.add(item)
+          }
+        }
+      }
+      if (enabled.includes('*') || enabled.filter(x => curLangs.has(x)).length > 0) {
+        this.registerFeature(new SemanticTokensFeature(this))
+      }
     }
   }
 
