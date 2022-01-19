@@ -119,9 +119,13 @@ describe('Colors', () => {
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
       state = 'error'
-      await colors.doHighlight(doc.bufnr)
-      let res = colors.hasColor(doc.bufnr)
-      expect(res).toBe(false)
+      let err
+      try {
+        await colors.doHighlight(doc.bufnr)
+      } catch (e) {
+        err = e
+      }
+      expect(err).toBeDefined()
       state = 'normal'
     })
 
