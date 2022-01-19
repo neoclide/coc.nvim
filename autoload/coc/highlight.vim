@@ -7,7 +7,7 @@ let s:namespace_map = {}
 let s:ns_id = 1
 let g:coc_highlight_batch_lines = get(g:, 'coc_highlight_batch_lines', 300)
 " Maxium count to highlight each time.
-let g:coc_highlight_maxium_count = get(g:, 'coc_highlight_batch_count', 300)
+let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_batch_count', 300)
 
 if has('nvim-0.5.0')
   try
@@ -264,7 +264,7 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
     return
   endif
     let ns = coc#highlight#create_namespace(a:key)
-    if len(a:highlights) > g:coc_highlight_maxium_count
+    if len(a:highlights) > g:coc_highlight_maximum_count
       call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
     else
       call s:add_highlights(a:bufnr, ns, a:highlights, a:priority)
@@ -673,7 +673,7 @@ function! s:update_highlights_timer(bufnr, changedtick, key, priority, start, en
   let highlights = filter(copy(a:highlights), 'v:val["lnum"] >='.a:start.' && v:val["lnum"] <'.a:end)
   let end = a:end
   if empty(highlights) && end > 0
-    " find maxium lnum to clear
+    " find maximum lnum to clear
     let till = type(a:exclude) == 3 && end < get(a:exclude, 0, 0) ? get(a:exclude, 0, 0) : a:total
     if till > end
       let minimal = till
@@ -719,7 +719,7 @@ function! s:add_highlights_timer(bufnr, ns, highlights, priority) abort
   let hls = []
   let next = []
   for i in range(0, len(a:highlights) - 1)
-    if i < g:coc_highlight_maxium_count
+    if i < g:coc_highlight_maximum_count
       call add(hls, a:highlights[i])
     else
       call add(next, a:highlights[i])
