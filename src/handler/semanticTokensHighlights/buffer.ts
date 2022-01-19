@@ -8,7 +8,7 @@ import workspace from '../../workspace'
 import window from '../../window'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
-const HLGROUP_PREFIX = 'CocSem_'
+const HLGROUP_PREFIX = 'TS'
 export const NAMESPACE = 'semanticTokens'
 
 /**
@@ -153,6 +153,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let currentCharacter = 0
     for (const {
       tokenType,
+      tokenModifiers,
       deltaLine,
       deltaStartCharacter,
       length
@@ -170,6 +171,7 @@ export default class SemanticTokensBuffer implements SyncItem {
         opts.start_incl = true
       }
       doc.addHighlights(res, hlGroup, range, opts)
+      tokenModifiers.forEach(m => doc.addHighlights(res, HLGROUP_PREFIX + m, range, opts))
     }
     this._highlights = res
     return res
