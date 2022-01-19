@@ -22,11 +22,6 @@ function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
   if !bufloaded(a:bufnr)
     return
   endif
-  let key = 'coc_timer_'.a:key
-  if getbufvar(a:bufnr, key, 0)
-    call timer_stop(getbufvar(a:bufnr, key, 0))
-    call setbufvar(a:bufnr, key, 0)
-  endif
   if empty(a:highlights)
     call coc#highlight#clear_highlight(a:bufnr, a:key, 0, -1)
     return
@@ -51,8 +46,7 @@ function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
     call coc#highlight#update_highlights(a:bufnr, a:key, highlights, ls - 1, le, priority)
     let re = s:get_highlight_region(0, total, exclude)
     if !empty(re)
-      let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, changedtick, a:key, priority, re[0], re[1], total, hls, exclude)})
-      call setbufvar(a:bufnr, key, timer)
+      call timer_start(50, { -> s:update_highlights_timer(a:bufnr, changedtick, a:key, priority, re[0], re[1], total, hls, exclude)})
     endif
   else
     let re = s:get_highlight_region(0, total, v:null)
@@ -690,9 +684,7 @@ function! s:update_highlights_timer(bufnr, changedtick, key, priority, start, en
   call coc#highlight#update_highlights(a:bufnr, a:key, highlights, a:start, end, a:priority)
   let re = s:get_highlight_region(end, a:total, a:exclude)
   if !empty(re)
-    let key = 'coc_timer_'.a:key
-    let timer = timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, re[0], re[1], a:total, a:highlights, a:exclude)})
-    call setbufvar(a:bufnr, key, timer)
+    call timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, re[0], re[1], a:total, a:highlights, a:exclude)})
   endif
 endfunction
 
