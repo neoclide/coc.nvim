@@ -142,7 +142,7 @@ export default class SemanticTokensHighlights {
     const legend = languages.getLegend(doc.textDocument)
     if (legend?.tokenTypes.length) {
       for (const t of [...new Set(legend.tokenTypes)]) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
+        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `TS${t}`, hlGroup: `TS${t}` }])
         highlighter.addLine('')
       }
     } else {
@@ -152,7 +152,7 @@ export default class SemanticTokensHighlights {
     highlighter.addLine('')
     if (legend?.tokenModifiers.length) {
       for (const t of [...new Set(legend.tokenModifiers)]) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `CocSem_${t}`, hlGroup: `CocSem_${t}` }])
+        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `TS${t}`, hlGroup: `TS${t}` }])
         highlighter.addLine('')
       }
     } else {
