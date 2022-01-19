@@ -52,6 +52,11 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.highlight()
   }
 
+  public onTextChange(): void {
+    this.cancel()
+    this.highlight()
+  }
+
   public async forceHighlight(): Promise<void> {
     this.highlight.clear()
     await this.doHighlight()

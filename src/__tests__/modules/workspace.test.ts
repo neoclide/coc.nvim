@@ -1071,4 +1071,23 @@ describe('workspace registerBufferSync', () => {
     await helper.wait(50)
     expect(deleted).toBe(1)
   })
+
+  it('should invoke onTextChange', async () => {
+    let called = 0
+    disposables.push(workspace.registerBufferSync(() => {
+      return {
+        dispose: () => {
+        },
+        onTextChange: () => {
+          called = called + 1
+        }
+      }
+    }))
+    let doc = await helper.createDocument()
+    await events.fire('TextChanged', [doc.bufnr])
+    expect(called).toBe(1)
+    await nvim.input('if')
+    await helper.wait(50)
+    expect(called).toBe(2)
+  })
 })

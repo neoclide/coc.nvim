@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
-import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
@@ -22,19 +21,6 @@ export default class SemanticTokensHighlights {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    const onChange = bufnr => {
-      let item = this.highlighters.getItem(bufnr)
-      if (item) {
-        item.cancel()
-        item.highlight()
-      }
-    }
-    events.on('InsertCharPre', (_, bufnr) => {
-      let item = this.highlighters.getItem(bufnr)
-      if (item) item.cancel()
-    }, null, this.disposables)
-    events.on('TextChanged', onChange, this.disposables)
-    events.on('TextChangedI', onChange, this.disposables)
     commands.register({
       id: 'semanticTokens.checkCurrent',
       execute: async () => {
