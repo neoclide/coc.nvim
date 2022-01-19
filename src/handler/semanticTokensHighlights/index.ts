@@ -6,6 +6,7 @@ import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
+import { equals } from '../../util/object'
 import window from '../../window'
 import workspace from '../../workspace'
 import SemanticTokensBuffer, { NAMESPACE, SemanticTokensConfig } from './buffer'
@@ -70,23 +71,27 @@ export default class SemanticTokensHighlights {
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('coc.preferences')) {
-      // let con = this.config || {}
       let config = workspace.getConfiguration('coc.preferences')
-      let enabled = config.get<boolean>('semanticTokensHighlights', true)
+      let filetypes = config.get<string[]>('semanticTokensFiletypes', [])
       if (workspace.isVim && !workspace.env.textprop) {
-        enabled = false
+        filetypes = []
       }
-      if (this.config && enabled != this.config.enabled) {
+
+      if (this.config && !equals(filetypes, this.config.filetypes)) {
         if (this.highlighters) {
           for (let buf of this.highlighters.items) {
-            buf.setState(enabled)
+            const doc = workspace.getDocument(buf.bufnr)
+            if (doc && doc.attached) {
+              buf.setState(filetypes.includes(doc.filetype))
+            }
           }
         }
       }
+
       if (!this.config) {
-        this.config = { enabled }
+        this.config = { filetypes }
       } else {
-        this.config.enabled = enabled
+        this.config.filetypes = filetypes
       }
     }
   }
@@ -111,7 +116,6 @@ export default class SemanticTokensHighlights {
    * Show semantic highlight info in temporarily buffer
    */
   public async showHiglightInfo(): Promise<void> {
-    if (!this.config.enabled) throw new Error('Semantic highlights is disabled by configuration.')
     let item = await this.getCurrentItem()
     item.checkState()
     let highlights = item.highlights || []
