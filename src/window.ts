@@ -13,7 +13,7 @@ import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
 import { TreeView, TreeViewOptions } from './tree'
-import { MessageLevel, OutputChannel } from './types'
+import { HighlightItem, MessageLevel, OutputChannel } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import { isWindows } from './util/platform'
@@ -21,6 +21,14 @@ import workspace from './workspace'
 const logger = require('./util/logger')('window')
 
 export type MsgTypes = 'error' | 'warning' | 'more'
+export type HighlightItemResult = [string, number, number, number, number?]
+export type HighlightItemDef = [string, number, number, number, number?, number?, number?]
+
+export interface HighlightDiff {
+  remove: number[]
+  removeMarkers: number[]
+  add: HighlightItemDef[]
+}
 
 export interface StatusItemOption {
   progress?: boolean
@@ -93,6 +101,26 @@ export interface MessageItem {
    * Note: not used by coc.nvim for now.
    */
   isCloseAffordance?: boolean
+}
+
+function converHighlightItem(item: HighlightItem): HighlightItemDef {
+  return [item.hlGroup, item.lnum, item.colStart, item.colEnd, item.combine ? 1 : 0, item.start_incl ? 1 : 0, item.end_incl ? 1 : 0]
+}
+
+function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
+  if (item.hlGroup !== curr[0]) {
+    return false
+  }
+  if (item.lnum !== curr[1]) {
+    return false
+  }
+  if (item.colStart !== curr[2]) {
+    return false
+  }
+  if (item.colEnd !== curr[3]) {
+    return false
+  }
+  return true
 }
 
 class Window {
@@ -574,6 +602,107 @@ class Window {
   public createTreeView<T>(viewId: string, options: TreeViewOptions<T>): TreeView<T> {
     const BasicTreeView = require('./tree/TreeView').default
     return new BasicTreeView(viewId, options)
+  }
+
+  /**
+   * Get diff from highlight items and current highlights on vim
+   *
+   * @param {number} bufnr Buffer number
+   * @param {string} ns Highlight namespace
+   * @param {HighlightItem[]} items Highlight items
+   * @returns {Promise<HighlightDiff>}
+   */
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[]): Promise<HighlightDiff> {
+    let curr = await this.nvim.call('coc#highlight#get_highlights', [bufnr, ns]) as HighlightItemResult[]
+    items.sort((a, b) => a.lnum - b.lnum)
+    let linesToRmove = []
+    let checkMarkers = workspace.has('nvim-0.5.0')
+    let removeMarkers = []
+    let newItems: HighlightItemDef[] = []
+    let itemIndex = 0
+    let maxIndex = items.length - 1
+    let maxLnum = 0
+    // highlights on vim
+    let map: Map<number, HighlightItemResult[]> = new Map()
+    curr.forEach(o => {
+      let arr = map.get(o[1]) || []
+      arr.push(o)
+      maxLnum = Math.max(maxLnum, o[1])
+      map.set(o[1], arr)
+    })
+    for (let i = 0; i <= maxLnum; i++) {
+      let exists = map.get(i) || []
+      let added: HighlightItem[] = []
+      for (let j = itemIndex; j <= maxIndex; j++) {
+        let o = items[j]
+        if (o.lnum == i) {
+          itemIndex = j + 1
+          added.push(o)
+        } else {
+          itemIndex = j
+          break
+        }
+      }
+      if (added.length == 0) {
+        if (exists.length) {
+          if (checkMarkers) {
+            removeMarkers.push(...exists.map(o => o[4]))
+          } else {
+            linesToRmove.push(i)
+          }
+        }
+      } else {
+        if (exists.length == 0) {
+          newItems.push(...added.map(o => converHighlightItem(o)))
+        } else if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
+          if (checkMarkers) {
+            removeMarkers.push(...exists.map(o => o[4]))
+          } else {
+            linesToRmove.push(i)
+          }
+          newItems.push(...added.map(o => converHighlightItem(o)))
+        }
+      }
+    }
+    for (let i = itemIndex; i <= maxIndex; i++) {
+      newItems.push(converHighlightItem(items[i]))
+    }
+    return { remove: linesToRmove, add: newItems, removeMarkers }
+  }
+
+  /**
+   * Apply highlight diffs, normally used with `window.diffHighlights`
+   *
+   * Timer is used to add highlights when there're too many highlight items to add,
+   * the highlight process won't be finished on that case.
+   *
+   * @param {number} bufnr - Buffer name
+   * @param {string} ns - Namespace
+   * @param {number} priority
+   * @param {HighlightDiff} diff
+   * @param {boolean} notify - Use notification, default false.
+   * @returns {Promise<void>}
+   */
+  public async applyDiffHighlights(bufnr: number, ns: string, priority: number, diff: HighlightDiff, notify = false): Promise<void> {
+    let { nvim } = this
+    let { remove, add, removeMarkers } = diff
+    if (remove.length === 0 && add.length === 0 && removeMarkers.length === 0) return
+    nvim.pauseNotification()
+    if (removeMarkers.length) {
+      nvim.call('coc#highlight#del_markers', [bufnr, ns, removeMarkers], true)
+    }
+    if (remove.length) {
+      nvim.call('coc#highlight#clear', [bufnr, ns, remove], true)
+    }
+    if (add.length) {
+      nvim.call('coc#highlight#set', [bufnr, ns, add, priority], true)
+    }
+    if (workspace.isVim) nvim.command('redraw', true)
+    if (notify) {
+      void nvim.resumeNotification(false, true)
+    } else {
+      await nvim.resumeNotification()
+    }
   }
 
   private createNotification(borderhighlight: string, message: string, items: string[]): Promise<number> {
