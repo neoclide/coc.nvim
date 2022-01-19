@@ -1,12 +1,17 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim, Buffer } from '@chemzqm/neovim'
 import { Disposable, Emitter, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { disposeAll } from '../../util'
+import path from 'path'
+import os from 'os'
+import fs from 'fs-extra'
 import window from '../../window'
 import workspace from '../../workspace'
 import events from '../../events'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
+import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
+import { MessageLevel } from '../../types'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -273,6 +278,40 @@ describe('window functions', () => {
     let res = await p
     expect(res).toBe('first')
   })
+
+  it('should open local config', async () => {
+    let dir = path.join(os.tmpdir(), '.vim')
+    if (fs.existsSync(dir)) {
+      fs.emptyDirSync(dir)
+      fs.rmdirSync(dir)
+    }
+    if (!fs.existsSync(path.join(os.tmpdir(), '.git'))) {
+      fs.mkdirSync(path.join(os.tmpdir(), '.git'))
+    }
+    await helper.edit(path.join(os.tmpdir(), 't'))
+    let root = workspace.root
+    expect(root).toBe(os.tmpdir())
+    let p = window.openLocalConfig()
+    await helper.wait(50)
+    await nvim.input('y')
+    await p
+    let bufname = await nvim.call('bufname', ['%'])
+    expect(bufname).toMatch('coc-settings.json')
+  })
+
+  describe('should get messageLevel', () => {
+    helper.updateConfiguration('coc.preferences.messageLevel', 'error')
+    let level = window.messageLevel
+    expect(level).toBe(MessageLevel.Error)
+    helper.updateConfiguration('coc.preferences.messageLevel', 'warning')
+    level = window.messageLevel
+    expect(level).toBe(MessageLevel.Warning)
+    disposables.push({
+      dispose: () => {
+        helper.updateConfiguration('coc.preferences.messageLevel', 'more')
+      }
+    })
+  })
 })
 
 describe('window notifications', () => {
@@ -361,5 +400,147 @@ describe('window notifications', () => {
     let floats = await helper.getFloats()
     expect(called).toBe(1)
     expect(floats.length).toBe(0)
+  })
+})
+
+describe('diffHighlights', () => {
+  let ns = 'window-test'
+  let priority = 99
+  let ns_id: number
+  beforeAll(async () => {
+    ns_id = await nvim.call('coc#highlight#create_namespace', [ns])
+  })
+
+  async function createFile(): Promise<Buffer> {
+    let content = 'foo\nbar'
+    let file = await createTmpFile(content)
+    return await helper.edit(file)
+  }
+
+  async function setHighlights(hls: HighlightItem[]): Promise<void> {
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    let arr = hls.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd, o.combine === false ? 0 : 1, o.end_incl ? 1 : 0, o.start_incl ? 1 : 0])
+    await nvim.call('coc#highlight#set', [bufnr, ns, arr, priority])
+  }
+
+  it('should add new highlights', async () => {
+    let buf = await createFile()
+    let items: HighlightItem[] = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 0,
+      colEnd: 3
+    }]
+    let res = await window.diffHighlights(buf.id, ns, items)
+    expect(res).toBeDefined()
+    expect(res.add.length).toBe(1)
+    await window.applyDiffHighlights(buf.id, ns, priority, res)
+    let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
+    expect(markers.length).toBe(1)
+    expect(markers[0][3].end_col).toBe(3)
+  })
+
+  it('should return empty diff', async () => {
+    let buf = await createFile()
+    let items: HighlightItem[] = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 0,
+      colEnd: 3
+    }]
+    await setHighlights(items)
+    let res = await window.diffHighlights(buf.id, ns, items)
+    expect(res).toBeDefined()
+    expect(res.remove).toEqual([])
+    expect(res.add).toEqual([])
+    expect(res.removeMarkers).toEqual([])
+  })
+
+  it('should remove and add highlights', async () => {
+    let buf = await createFile()
+    let items: HighlightItem[] = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 0,
+      colEnd: 3
+    }]
+    await setHighlights(items)
+    items = [{
+      hlGroup: 'Search',
+      lnum: 1,
+      colStart: 0,
+      colEnd: 3
+    }]
+    let res = await window.diffHighlights(buf.id, ns, items)
+    expect(res).toBeDefined()
+    expect(res.add.length).toBe(1)
+    expect(res.removeMarkers.length).toBe(1)
+    await window.applyDiffHighlights(buf.id, ns, priority, res)
+    let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
+    expect(markers.length).toBe(1)
+    expect(markers[0][1]).toBe(1)
+    expect(markers[0][3].end_col).toBe(3)
+  })
+
+  it('should update highlights of single line', async () => {
+    let buf = await createFile()
+    let items: HighlightItem[] = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 0,
+      colEnd: 1
+    }, {
+      hlGroup: 'Search',
+      lnum: 1,
+      colStart: 2,
+      colEnd: 3
+    }]
+    await setHighlights(items)
+    items = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 2,
+      colEnd: 3
+    }]
+    let res = await window.diffHighlights(buf.id, ns, items)
+    expect(res).toBeDefined()
+    expect(res.add.length).toBe(1)
+    expect(res.removeMarkers.length).toBe(2)
+    await window.applyDiffHighlights(buf.id, ns, priority, res)
+    let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
+    expect(markers.length).toBe(1)
+    expect(markers[0][1]).toBe(0)
+    expect(markers[0][3].end_col).toBe(3)
+  })
+
+  it('should not use extmarks on neovim < 0.6.0', async () => {
+    let fn = workspace.has
+    workspace.has = feature => {
+      if (feature == 'nvim-0.6.0') return false
+      return fn.apply(workspace, feature)
+    }
+    disposables.push({
+      dispose: () => {
+        workspace.has = fn
+      }
+    })
+    let buf = await createFile()
+    let items: HighlightItem[] = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 0,
+      colEnd: 1
+    }, {
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 2,
+      colEnd: 3
+    }]
+    await setHighlights(items)
+    let res = await window.diffHighlights(buf.id, ns, [])
+    expect(res).toEqual({
+      remove: [0], add: [], removeMarkers: []
+    })
+    await window.applyDiffHighlights(buf.id, ns, priority, res, true)
   })
 })

@@ -16,6 +16,7 @@ import { TreeView, TreeViewOptions } from './tree'
 import { HighlightItem, MessageLevel, OutputChannel } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
+import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import workspace from './workspace'
 const logger = require('./util/logger')('window')
@@ -108,19 +109,8 @@ function converHighlightItem(item: HighlightItem): HighlightItemDef {
 }
 
 function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
-  if (item.hlGroup !== curr[0]) {
-    return false
-  }
-  if (item.lnum !== curr[1]) {
-    return false
-  }
-  if (item.colStart !== curr[2]) {
-    return false
-  }
-  if (item.colEnd !== curr[3]) {
-    return false
-  }
-  return true
+  let arr = [item.hlGroup, item.lnum, item.colStart, item.colEnd]
+  return equals(arr, curr.slice(0, 4))
 }
 
 class Window {
@@ -249,10 +239,6 @@ class Window {
    */
   public async openLocalConfig(): Promise<void> {
     let { root } = workspace
-    if (root == os.homedir()) {
-      this.showMessage(`Can't create local config in home directory`, 'warning')
-      return
-    }
     let dir = path.join(root, '.vim')
     if (!fs.existsSync(dir)) {
       let res = await this.showPrompt(`Would you like to create folder'${root}/.vim'?`)
@@ -618,7 +604,7 @@ class Window {
     if (!curr) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRmove = []
-    let checkMarkers = workspace.has('nvim-0.5.0')
+    let checkMarkers = workspace.has('nvim-0.6.0')
     let removeMarkers = []
     let newItems: HighlightItemDef[] = []
     let itemIndex = 0
@@ -771,7 +757,7 @@ class Window {
     return config.get<boolean>('enableMessageDialog', false)
   }
 
-  private get messageLevel(): MessageLevel {
+  public get messageLevel(): MessageLevel {
     let config = workspace.getConfiguration('coc.preferences')
     let level = config.get<string>('messageLevel', 'more')
     switch (level) {
