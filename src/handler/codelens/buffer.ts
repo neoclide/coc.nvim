@@ -22,17 +22,6 @@ export interface CodeLensConfig {
   subseparator: string
 }
 
-function getIndentCols(text: string): number {
-  let ms = text.match(/^\s*/)
-  if (!ms[0]) return 0
-  let n = 0
-  for (let i = 0; i < ms[0].length; i++) {
-    // TODO Should consider tabstop
-    n = n + (ms[0][i] == '\t' ? 2 : 1)
-  }
-  return n
-}
-
 /**
  * CodeLens buffer
  */
@@ -54,6 +43,11 @@ export default class CodeLensBuffer implements BufferSyncItem {
     this.resolveCodeLens = debounce(() => {
       void this._resolveCodeLenses()
     }, 200)
+    this.fetchCodelenses()
+  }
+
+  public onChange(): void {
+    this.cancel()
     this.fetchCodelenses()
   }
 
@@ -171,8 +165,8 @@ export default class CodeLensBuffer implements BufferSyncItem {
       if (workspace.has('nvim-0.6.0')) {
         let textLine = textDocument.lineAt(lnum)
         if (position == 'top') {
-          let col = getIndentCols(textLine.text)
-          if (col) chunks.unshift([(new Array(col)).fill(' ').join(''), 'CocCodeLens'])
+          let indent = textLine.text.match(/^\s*/)[0]
+          if (indent.length > 0) chunks.unshift([indent, 'Normal'])
           buf.setExtMark(this.srcId, lnum, 0, {
             virt_lines: [chunks],
             virt_lines_above: true
@@ -234,11 +228,6 @@ export default class CodeLensBuffer implements BufferSyncItem {
       this.tokenSource.dispose()
       this.tokenSource = null
     }
-  }
-
-  public onChange(): void {
-    this.cancel()
-    this.fetchCodelenses()
   }
 
   public dispose(): void {
