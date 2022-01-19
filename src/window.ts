@@ -605,15 +605,17 @@ class Window {
   }
 
   /**
-   * Get diff from highlight items and current highlights on vim
+   * Get diff from highlight items and current highlights on vim.
+   * Return null when buffer not loaded
    *
    * @param {number} bufnr Buffer number
    * @param {string} ns Highlight namespace
    * @param {HighlightItem[]} items Highlight items
-   * @returns {Promise<HighlightDiff>}
+   * @returns {Promise<HighlightDiff | null>}
    */
-  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[]): Promise<HighlightDiff> {
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[]): Promise<HighlightDiff | null> {
     let curr = await this.nvim.call('coc#highlight#get_highlights', [bufnr, ns]) as HighlightItemResult[]
+    if (!curr) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRmove = []
     let checkMarkers = workspace.has('nvim-0.5.0')

@@ -6369,6 +6369,10 @@ declare module 'coc.nvim' {
      * Called on buffer change.
      */
     onChange?(e: DidChangeTextDocumentParams): void
+    /**
+     * Called on TextChangedI & TextChanged events.
+     */
+    onTextChange?(): void
   }
 
   export interface BufferSync<T extends BufferSyncItem> {
@@ -7031,6 +7035,14 @@ declare module 'coc.nvim' {
     dispose: () => void
   }
 
+  export type HighlightItemDef = [string, number, number, number, number?, number?, number?]
+
+  export interface HighlightDiff {
+    remove: number[]
+    removeMarkers: number[]
+    add: HighlightItemDef[]
+  }
+
   export namespace window {
     /**
      * Reveal message with message type.
@@ -7284,6 +7296,32 @@ declare module 'coc.nvim' {
       message?: string
       increment?: number
     }>, token: CancellationToken) => Thenable<R>): Promise<R>
+
+
+    /**
+     * Get diff from highlight items and current highlights requested from vim
+     *
+     * @param {number} bufnr Buffer number
+     * @param {string} ns Highlight namespace
+     * @param {HighlightItem[]} items Highlight items
+     * @returns {Promise<HighlightDiff>}
+     */
+    export function diffHighlights(bufnr: number, ns: string, items: ExtendedHighlightItem[]): Promise<HighlightDiff | number>
+
+    /**
+     * Apply highlight diffs, normally used with `window.diffHighlights`
+     *
+     * Timer is used to add highlights when there're too many highlight items to add,
+     * the highlight process won't be finished on that case.
+     *
+     * @param {number} bufnr - Buffer name
+     * @param {string} ns - Namespace
+     * @param {number} priority
+     * @param {HighlightDiff} diff
+     * @param {boolean} notify - Use notification, default false.
+     * @returns {Promise<void>}
+     */
+    export function applyDiffHighlights(bufnr: number, ns: string, priority: number, diff: HighlightDiff, notify?: boolean): Promise<void>
   }
   // }}
 

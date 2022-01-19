@@ -192,7 +192,10 @@ endfunction
 
 " 0 based line, start_col and end_col
 function! coc#highlight#get_highlights(bufnr, key) abort
-  if !has_key(s:namespace_map, a:key) || !bufloaded(a:bufnr)
+  if !bufloaded(a:bufnr)
+    return v:null
+  endif
+  if !has_key(s:namespace_map, a:key)
     return []
   endif
   let res = []
