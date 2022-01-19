@@ -74,7 +74,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) return false
     if (languages.getLegend(doc.textDocument) == null) return false
-    if (!this.config.filetypes.includes(doc.filetype)) return false
+    if (!this.config.filetypes.includes('*') && !this.config.filetypes.includes(doc.filetype)) return false
     return languages.hasProvider('semanticTokens', doc.textDocument)
   }
 
@@ -92,7 +92,9 @@ export default class SemanticTokensBuffer implements SyncItem {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) throw new Error('Document not attached')
     if (languages.getLegend(doc.textDocument) == null) throw new Error('Legend not exists.')
-    if (!this.config.filetypes.includes(doc.filetype)) throw new Error('SemanticTokens highlight is not enabled for current filetype')
+    if (!this.config.filetypes.includes('*') && !this.config.filetypes.includes(doc.filetype)) {
+      throw new Error('SemanticTokens highlight is not enabled for current filetype')
+    }
     if (!languages.hasProvider('semanticTokens', doc.textDocument)) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
   }
 
