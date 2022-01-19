@@ -1737,10 +1737,10 @@ g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 
 	let g:coc_markdown_disabled_languages = ['html']
 
-g:coc_highlight_batch_lines 			*g:coc_highlight_batch_lines*
+g:coc_highlight_maxium_count 			*g:coc_highlight_maxium_count*
 
-	Maximum line count to perform highlights update each time, default:
-	`300`
+	When highlight items exceed maxium count, the highlights will be
+	grouped and added by using |timer_start| for better user experience.
 
 ------------------------------------------------------------------------------
 
