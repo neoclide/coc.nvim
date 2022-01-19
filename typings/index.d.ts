@@ -7306,7 +7306,7 @@ declare module 'coc.nvim' {
      * @param {HighlightItem[]} items Highlight items
      * @returns {Promise<HighlightDiff>}
      */
-    export function diffHighlights(bufnr: number, ns: string, items: ExtendedHighlightItem[]): Promise<HighlightDiff | number>
+    export function diffHighlights(bufnr: number, ns: string, items: ExtendedHighlightItem[]): Promise<HighlightDiff | null>
 
     /**
      * Apply highlight diffs, normally used with `window.diffHighlights`

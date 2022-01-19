@@ -96,8 +96,7 @@ export default class Colors {
 
   public clearHighlight(bufnr: number): void {
     let highlighter = this.highlighters.getItem(bufnr)
-    if (!highlighter) return
-    highlighter.clearHighlight()
+    if (highlighter) highlighter.clearHighlight()
   }
 
   public hasColor(bufnr: number): boolean {
