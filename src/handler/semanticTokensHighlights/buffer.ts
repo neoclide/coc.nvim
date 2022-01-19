@@ -207,27 +207,20 @@ export default class SemanticTokensBuffer implements SyncItem {
     let currHighlights = await nvim.call('coc#highlight#get_highlights', [this.bufnr, NAMESPACE]) as HighlightItemResult[]
     this.tokenSource = null
     if (tokenSource.token.isCancellationRequested) return
-    if (currHighlights.length == 0) {
-      nvim.pauseNotification()
-      this.buffer.updateHighlights(NAMESPACE, items, { priority: 99 })
-      if (workspace.isVim) nvim.command('redraw', true)
-      void nvim.resumeNotification(false, true)
-    } else {
-      let { remove, add, removeMarkers } = this.diffHighlights(items, currHighlights, lineCount)
-      if (!remove.length && !add.length && !removeMarkers.length) return
-      nvim.pauseNotification()
-      if (removeMarkers.length) {
-        nvim.call('coc#highlight#del_markers', [this.bufnr, NAMESPACE, removeMarkers], true)
-      }
-      if (remove.length) {
-        nvim.call('coc#highlight#clear', [this.bufnr, NAMESPACE, remove], true)
-      }
-      if (add.length) {
-        nvim.call('coc#highlight#set', [this.bufnr, NAMESPACE, add, 99], true)
-      }
-      if (workspace.isVim) nvim.command('redraw', true)
-      void nvim.resumeNotification(false, true)
+    let { remove, add, removeMarkers } = this.diffHighlights(items, currHighlights, lineCount)
+    if (remove.length === 0 && add.length === 0 && removeMarkers.length === 0) return
+    nvim.pauseNotification()
+    if (removeMarkers.length) {
+      nvim.call('coc#highlight#del_markers', [this.bufnr, NAMESPACE, removeMarkers], true)
     }
+    if (remove.length) {
+      nvim.call('coc#highlight#clear', [this.bufnr, NAMESPACE, remove], true)
+    }
+    if (add.length) {
+      nvim.call('coc#highlight#set', [this.bufnr, NAMESPACE, add, 99], true)
+    }
+    if (workspace.isVim) nvim.command('redraw', true)
+    await nvim.resumeNotification()
   }
 
   /**

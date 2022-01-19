@@ -6,6 +6,8 @@ let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
 let s:namespace_map = {}
 let s:ns_id = 1
 let g:coc_highlight_batch_lines = get(g:, 'coc_highlight_batch_lines', 300)
+" Maxium count to highlight each time.
+let g:coc_highlight_maxium_count = get(g:, 'coc_highlight_batch_count', 300)
 
 if has('nvim-0.5.0')
   try
@@ -258,22 +260,18 @@ function! coc#highlight#get_highlights(bufnr, key) abort
   return res
 endfunction
 
-" Add multiple highlights.
-" [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
+" Add multiple highlights to buffer.
+" type HighlightItem = [hlGroup, lnum, colStart, colEnd, combine?, start_incl?, end_incl?]
 function! coc#highlight#set(bufnr, key, highlights, priority) abort
   if !bufloaded(a:bufnr)
     return
   endif
     let ns = coc#highlight#create_namespace(a:key)
-    for item in a:highlights
-      let opts = {
-          \ 'priority': a:priority,
-          \ 'combine': get(item, 4, 1) ? 1 : 0,
-          \ 'start_incl': get(item, 5, 0) ? 1 : 0,
-          \ 'end_incl':  get(item, 6, 0) ? 1 : 0,
-          \ }
-      call coc#highlight#add_highlight(a:bufnr, ns, item[0], item[1], item[2], item[3], opts)
-    endfor
+    if len(a:highlights) > g:coc_highlight_maxium_count
+      call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
+    else
+      call s:add_highlights(a:bufnr, ns, a:highlights, a:priority)
+    endif
 endfunction
 
 " Clear highlights by 0 based line numbers.
@@ -720,4 +718,32 @@ function! s:get_highlight_region(start, total, exclude) abort
   endif
   let end = min([a:total, start + g:coc_highlight_batch_lines])
   return [start, end]
+endfunction
+
+function! s:add_highlights_timer(bufnr, ns, highlights, priority) abort
+  let hls = []
+  let next = []
+  for i in range(0, len(a:highlights) - 1)
+    if i < g:coc_highlight_maxium_count
+      call add(hls, a:highlights[i])
+    else
+      call add(next, a:highlights[i])
+    endif
+  endfor
+  call s:add_highlights(a:bufnr, a:ns, hls, a:priority)
+  if len(next)
+    call timer_start(30, {->s:add_highlights_timer(a:bufnr, a:ns, next, a:priority)})
+  endif
+endfunction
+
+function! s:add_highlights(bufnr, ns, highlights, priority) abort
+  for item in a:highlights
+    let opts = {
+          \ 'priority': a:priority,
+          \ 'combine': get(item, 4, 1) ? 1 : 0,
+          \ 'start_incl': get(item, 5, 0) ? 1 : 0,
+          \ 'end_incl':  get(item, 6, 0) ? 1 : 0,
+          \ }
+    call coc#highlight#add_highlight(a:bufnr, a:ns, item[0], item[1], item[2], item[3], opts)
+  endfor
 endfunction
