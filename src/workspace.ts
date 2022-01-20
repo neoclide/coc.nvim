@@ -451,15 +451,6 @@ export class Workspace implements IWorkspace {
     return null
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  public async resolveRootFolder(uri: URI, patterns: string[]): Promise<string> {
-    let { cwd } = this
-    if (uri.scheme != 'file') return cwd
-    let filepath = path.normalize(uri.fsPath)
-    let dir = path.dirname(filepath)
-    return resolveRoot(dir, patterns) || dir
-  }
-
   /**
    * Create a FileSystemWatcher instance,
    * doesn't fail when watchman not found.
@@ -1605,7 +1596,7 @@ augroup end`
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let isBottomUp = bottomUpFileTypes.includes(document.languageId)
+        let isBottomUp = bottomUpFileTypes.includes(document.filetype)
         let root = resolveRoot(dir, patterns, cwd, isBottomUp, checkCwd)
         if (root) return root
       }

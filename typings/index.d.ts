@@ -6569,15 +6569,6 @@ declare module 'coc.nvim' {
     export function findUp(filename: string | string[]): Promise<string | null>
 
     /**
-     * Resolve root folder of uri with match patterns.
-     * Cwd is returned when uri is not file scheme.
-     * Parent folder of uri is returned when failed to resolve.
-     *
-     * @deprecated avoid use it when possible.
-     */
-    export function resolveRootFolder(uri: Uri, patterns: string[]): Promise<string>
-
-    /**
      * Get possible watchman binary path.
      */
     export function getWatchmanPath(): string | null

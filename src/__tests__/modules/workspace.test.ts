@@ -726,13 +726,6 @@ describe('workspace utility', () => {
     expect(filepath).toBeNull()
   })
 
-  it('should resolveRootPath', async () => {
-    let file = path.join(__dirname, 'foo')
-    let uri = URI.file(file)
-    let res = await workspace.resolveRootFolder(uri, ['.git'])
-    expect(res).toMatch('coc.nvim')
-  })
-
   it('should register autocmd', async () => {
     let event: any
     let eventCount = 0

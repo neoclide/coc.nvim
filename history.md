@@ -1,3 +1,7 @@
+# 2022-01-20
+
+- Remove deprecated method `workspace.resolveRootFolder`.
+
 # 2022-01-17
 
 - Extend `buffer.updateHighlights` to support `priority`, `combine`, `start_incl` and `end_incl`.
