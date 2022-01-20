@@ -21,7 +21,10 @@ function! s:buf_line_count(bufnr) abort
     if empty(info)
       return 0
     endif
-    return info[0]['linecount']
+    " vim 8.1 has getbufinfo but no linecount
+    if has_key(info[0], 'linecount')
+      return info[0]['linecount']
+    endif
   endif
   if exists('*getbufline')
     let lines = getbufline(a:bufnr, 1, '$')
