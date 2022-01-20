@@ -393,6 +393,10 @@ export class Completion implements Disposable {
     if (!shouldTrigger) return
     await doc.patchChange()
     let option = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
+    if (!option) {
+      logger.warn(`Completion of ${doc.bufnr} disabled by b:coc_suggest_disable`)
+      return
+    }
     if (option.input && this.config.asciiCharactersOnly) {
       option.input = this.getInput(doc, pre)
       option.col = byteLength(pre) - byteLength(option.input)
