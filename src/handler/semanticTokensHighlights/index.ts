@@ -70,9 +70,9 @@ export default class SemanticTokensHighlights {
   }
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
-    if (!e || e.affectsConfiguration('coc.preferences')) {
-      let config = workspace.getConfiguration('coc.preferences')
-      let filetypes = config.get<string[]>('semanticTokensFiletypes', [])
+    if (!e || e.affectsConfiguration('semanticTokens')) {
+      let config = workspace.getConfiguration('semanticTokens')
+      let filetypes = config.get<string[]>('filetypes', [])
       if (workspace.isVim && !workspace.env.textprop) {
         filetypes = []
       }

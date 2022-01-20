@@ -971,16 +971,18 @@ Built-in configurations:~
 
 	Will save handler timeout, default: `500`
 
-"coc.preferences.semanticTokensFiletypes"~
-
-	Filetypes that should enable semanticTokens highlight feature.
-	Use `["*"]` for all filetypes, default: `[]`
-
 "coc.preferences.renameFillCurrent"~
 
 	Disable to stop Refactor-Rename float/popup window from populating
 	with old name in the New Name field.
 	Default: `true`
+
+						*coc-config-semanticTokens*
+
+"semanticTokens.filetypes"~
+
+	Filetypes that should enable semanticTokens highlight feature.
+	Use `["*"]` for all filetypes, default: `[]`
 
 						*coc-config-cursors*
 
@@ -2938,8 +2940,8 @@ Semantic highlights~				*coc-semantic-highlights*
   coc.nvim can use semantic tokens from language server to add additional color
   information that depends on language specific symbol information. The semantic
   tokens highlighting is disabled by default, you can enable it by adding a
-  filetype to `coc.preferences.semanticTokensFiletypes` in coc-settings.json,
-  or set it to `["*"]` for all filetypes.
+  filetype to `semanticTokens.filetypes` in coc-settings.json, or set it to
+  `["*"]` for all filetypes.
 
   coc.nvim will use `nvim-treesitter`'s highlight group to do highlighting. But
   not all semantic tokens type are available in `nvim-treesitter`. You can use

@@ -131,7 +131,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   workspace.configurations.updateUserConfig({
-    'coc.preferences.semanticTokensFiletypes': []
+    'semanticTokens.filetypes': []
   })
   await helper.reset()
   disposeAll(disposables)
@@ -147,7 +147,7 @@ describe('semanticTokens', () => {
 
     it('should be enabled', async () => {
       workspace.configurations.updateUserConfig({
-        'coc.preferences.semanticTokensFiletypes': ['rust']
+        'semanticTokens.filetypes': ['rust']
       })
       const curr = await highlighter.getCurrentItem()
       expect(curr.enabled).toBe(true)
@@ -161,7 +161,7 @@ describe('semanticTokens', () => {
 
     it('should doHighlight', async () => {
       workspace.configurations.updateUserConfig({
-        'coc.preferences.semanticTokensFiletypes': ['rust']
+        'semanticTokens.filetypes': ['rust']
       })
       const doc = await workspace.document
       await nvim.call('CocAction', 'semanticHighlight')

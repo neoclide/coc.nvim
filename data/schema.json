@@ -1166,6 +1166,14 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
+    "semanticTokens.filetypes": {
+      "type":"array",
+      "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
+      "default": [],
+      "items": {
+        "type":"string"
+      }
+    },
     "tree.closedIcon": {
       "type": "string",
       "default": "+",
@@ -1317,14 +1325,6 @@
       "type": "string",
       "default": "SNIP",
       "description": "Text shown in statusline to indicate snippet session is activated."
-    },
-    "coc.preferences.semanticTokensFiletypes": {
-      "type":"array",
-      "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
-      "default": [],
-      "items": {
-        "type":"string"
-      }
     },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
