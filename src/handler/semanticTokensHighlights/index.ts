@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Position } from 'vscode-languageserver-protocol'
+import { Disposable } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
@@ -142,59 +142,56 @@ export default class SemanticTokensHighlights {
    */
   public async showHiglightInfo(): Promise<void> {
     let buf = await this.nvim.buffer
-    let highlighter = new Highlighter()
     let { nvim } = this
+    let item = this.highlighters.getItem(buf.id)
+    if (!item) return nvim.echoError('Document not attached.')
+    let highlighter = new Highlighter()
     nvim.pauseNotification()
     nvim.command(`vs +setl\\ buftype=nofile __coc_semantic_highlights_${buf.id}__`, true)
     nvim.command(`setl bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1`, true)
     nvim.call('bufnr', ['%'], true)
     let res = await nvim.resumeNotification()
-    let item = this.highlighters.getItem(buf.id)
     highlighter.addLine('Semantic highlights info', headGroup)
     highlighter.addLine('')
-    if (!item) {
-      highlighter.addLine('Document not attached.', 'WarningMsg')
-    } else {
-      try {
-        item.checkState()
-        let highlights = item.highlights || []
-        highlighter.addLine('The number of semantic tokens: ')
-        highlighter.addText(String(highlights.length), 'Number')
+    try {
+      item.checkState()
+      let highlights = item.highlights || []
+      highlighter.addLine('The number of semantic tokens: ')
+      highlighter.addText(String(highlights.length), 'Number')
+      highlighter.addLine('')
+      highlighter.addLine('Semantic highlight groups used by current buffer', headGroup)
+      highlighter.addLine('')
+      const groups = distinct(highlights.filter(o => o.hlGroup != null).map(({ hlGroup }) => hlGroup))
+      for (const hlGroup of groups) {
+        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: hlGroup, hlGroup }])
         highlighter.addLine('')
-        highlighter.addLine('Semantic highlight groups used by current buffer', headGroup)
-        highlighter.addLine('')
-        const groups = distinct(highlights.filter(o => o.hlGroup != null).map(({ hlGroup }) => hlGroup))
-        for (const hlGroup of groups) {
-          highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: hlGroup, hlGroup }])
+      }
+      highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
+      highlighter.addLine('')
+      let doc = workspace.getDocument(item.bufnr)
+      const legend = languages.getLegend(doc.textDocument)
+      if (legend?.tokenTypes.length) {
+        for (const t of [...new Set(legend.tokenTypes)]) {
+          let text = HLGROUP_PREFIX + capitalize(t)
+          highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
           highlighter.addLine('')
         }
-        highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
-        highlighter.addLine('')
-        let doc = workspace.getDocument(item.bufnr)
-        const legend = languages.getLegend(doc.textDocument)
-        if (legend?.tokenTypes.length) {
-          for (const t of [...new Set(legend.tokenTypes)]) {
-            let text = HLGROUP_PREFIX + capitalize(t)
-            highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
-            highlighter.addLine('')
-          }
-        } else {
-          highlighter.addLine('No token types supported', 'Comment')
-        }
-        highlighter.addLine('Tokens modifiers that current Language Server supported:', headGroup)
-        highlighter.addLine('')
-        if (legend?.tokenModifiers.length) {
-          for (const t of [...new Set(legend.tokenModifiers)]) {
-            let text = HLGROUP_PREFIX + capitalize(t)
-            highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
-            highlighter.addLine('')
-          }
-        } else {
-          highlighter.addLine('No token modifiers exists', 'Comment')
-        }
-      } catch (e) {
-        highlighter.addLine(e.message, 'Error')
+      } else {
+        highlighter.addLine('No token types supported', 'Comment')
       }
+      highlighter.addLine('Tokens modifiers that current Language Server supported:', headGroup)
+      highlighter.addLine('')
+      if (legend?.tokenModifiers.length) {
+        for (const t of [...new Set(legend.tokenModifiers)]) {
+          let text = HLGROUP_PREFIX + capitalize(t)
+          highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
+          highlighter.addLine('')
+        }
+      } else {
+        highlighter.addLine('No token modifiers exists', 'Comment')
+      }
+    } catch (e) {
+      highlighter.addLine(e.message, 'Error')
     }
     nvim.pauseNotification()
     let bufnr = res[0][2] as number

@@ -51,8 +51,6 @@ export function capitalize(text: string): string {
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private _highlights: SemanticTokenRange[]
-  // Store type with modifiers groups.
-  private _modifiersMap: Map<string, [string, string[]]> = new Map()
   private previousResults: SemanticTokensPreviousResult
   public highlight: Function & { clear(): void }
   constructor(
@@ -65,16 +63,14 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.highlight()
   }
 
-  public getModifiers(): [string, string[]][] {
-    return Array.from(this._modifiersMap.values())
-  }
-
   public onChange(): void {
+    if (!this.enabled) return
     this.cancel()
     this.highlight()
   }
 
   public onTextChange(): void {
+    if (!this.enabled) return
     this.cancel()
     this.highlight()
   }
@@ -147,11 +143,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else {
       tokens = previousResult.tokens
       result.edits.forEach(e => {
-        if (e.deleteCount > 0) {
-          tokens.splice(e.start, e.deleteCount, ...e.data)
-        } else {
-          tokens.splice(e.start, 0, ...e.data)
-        }
+        tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data)
       })
     }
     this.previousResults = { resultId: result.resultId, tokens, version }
