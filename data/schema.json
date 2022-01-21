@@ -598,7 +598,8 @@
     "colors.highlightPriority": {
       "type": "number",
       "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
-      "default": 1000
+      "default": 1000,
+      "maximum": 4096
     },
     "diagnostic.enable": {
       "type": "boolean",
@@ -613,7 +614,8 @@
     "diagnostic.highlightPriority": {
       "type": "number",
       "description": "Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0",
-      "default": 4096
+      "default": 4096,
+      "maximum": 4096
     },
     "diagnostic.autoRefresh": {
       "type": "boolean",
@@ -1167,11 +1169,33 @@
       "description": "Key used for jump to previous cursors position."
     },
     "semanticTokens.filetypes": {
-      "type":"array",
+      "type": "array",
       "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
       "default": [],
       "items": {
-        "type":"string"
+        "type": "string"
+      }
+    },
+    "semanticTokens.highlightPriority": {
+      "type": "number",
+      "description": "Priority for semantic tokens highlight.",
+      "default": 2048,
+      "maximum": 4096
+    },
+    "semanticTokens.incrementTypes": {
+      "type": "array",
+      "description": "Semantic token types that should increase highlight when insert at the start and end position of token.",
+      "default": ["variable", "string"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "semanticTokens.combinedModifiers": {
+      "type": "array",
+      "description": "Semantic token modifiers that should combine with syntax highlights.",
+      "default": ["deprecated"],
+      "items": {
+        "type": "string"
       }
     },
     "tree.closedIcon": {

@@ -989,6 +989,22 @@ Built-in configurations:~
 	Note: semantic tokens highlight requires nvim >= 0.5.0 and vim >=
 	8.1.0579 to work.
 
+"semanticTokens.highlightPriority":~
+
+	Priority for semantic tokens highlight, default `2048`
+
+"semanticTokens.incrementTypes":~
+
+	Semantic token types that should increase highlight when insert at
+	the start and end position of token.
+
+	Default: `['variable', 'string']`
+
+"semanticTokens.combinedModifiers":~
+
+	Semantic token modifiers that should combine with syntax highlights.
+
+	Default: `['deprecated']`
 						*coc-config-cursors*
 
 "cursors.cancelKey":~

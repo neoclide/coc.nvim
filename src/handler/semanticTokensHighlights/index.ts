@@ -6,10 +6,8 @@ import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
-import { equals } from '../../util/object'
-import window from '../../window'
 import workspace from '../../workspace'
-import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
+import SemanticTokensBuffer, { capitalize, HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
@@ -25,23 +23,16 @@ export default class SemanticTokensHighlights {
     commands.register({
       id: 'semanticTokens.checkCurrent',
       execute: async () => {
-        try {
-          let item = await this.getCurrentItem()
-          item.checkState()
-        } catch (e) {
-          window.showMessage(e.message, 'error')
-          return
-        }
-        window.showMessage('Semantic tokens provider found for current buffer', 'more')
+        await this.showHiglightInfo()
       }
-    }, false, 'check semantic tokens provider for current buffer')
+    }, false, 'show semantic tokens highlight information of current buffer')
     commands.register({
       id: 'semanticTokens.clearCurrent',
       execute: async () => {
         let buf = await nvim.buffer
         buf.clearNamespace(NAMESPACE, 0, -1)
       }
-    }, false, 'clear semantic tokens highlights of current buffer')
+    }, false, 'clear semantic tokens highlight of current buffer')
     commands.register({
       id: 'semanticTokens.clearAll',
       execute: async () => {
@@ -50,12 +41,7 @@ export default class SemanticTokensHighlights {
           buf.clearNamespace(NAMESPACE, 0, -1)
         }
       }
-    }, false, 'clear semantic tokens highlights of all buffers')
-    this.disposables.push({
-      dispose: () => {
-        commands.unregister('semanticTokens.checkCurrentBuffer')
-      }
-    })
+    }, false, 'clear semantic tokens highlight of all buffers')
     this.highlighters = workspace.registerBufferSync(doc => {
       return new SemanticTokensBuffer(this.nvim, doc.bufnr, this.config)
     })
@@ -72,34 +58,19 @@ export default class SemanticTokensHighlights {
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('semanticTokens')) {
       let config = workspace.getConfiguration('semanticTokens')
-      let filetypes = config.get<string[]>('filetypes', [])
-      if (workspace.isVim && !workspace.env.textprop) {
-        filetypes = []
-      }
-
-      if (this.config && !equals(filetypes, this.config.filetypes)) {
-        if (this.highlighters) {
-          for (let buf of this.highlighters.items) {
-            const doc = workspace.getDocument(buf.bufnr)
-            if (doc && doc.attached) {
-              buf.setState(filetypes.includes(doc.filetype))
-            }
-          }
-        }
-      }
-
-      if (!this.config) {
-        this.config = { filetypes }
-      } else {
-        this.config.filetypes = filetypes
-      }
+      this.config = Object.assign(this.config || {}, {
+        filetypes: config.get<string[]>('filetypes', []),
+        highlightPriority: config.get<number>('highlightPriority', 2048),
+        incrementTypes: config.get<string[]>('incrementTypes'),
+        combinedModifiers: config.get<string[]>('combinedModifiers')
+      })
     }
   }
 
-  public async getCurrentItem(): Promise<SemanticTokensBuffer> {
+  public async getCurrentItem(): Promise<SemanticTokensBuffer | null> {
     let buf = await this.nvim.buffer
     let highlighter = this.highlighters.getItem(buf.id)
-    if (!highlighter) throw new Error('current buffer not attached')
+    if (!highlighter) null
     return highlighter
   }
 
@@ -108,6 +79,7 @@ export default class SemanticTokensHighlights {
    */
   public async highlightCurrent(): Promise<void> {
     let highlighter = await this.getCurrentItem()
+    if (!highlighter) return
     highlighter.checkState()
     await highlighter.forceHighlight()
   }
@@ -116,56 +88,65 @@ export default class SemanticTokensHighlights {
    * Show semantic highlight info in temporarily buffer
    */
   public async showHiglightInfo(): Promise<void> {
-    let item = await this.getCurrentItem()
-    item.checkState()
-    let highlights = item.highlights || []
+    let buf = await this.nvim.buffer
     let highlighter = new Highlighter()
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command(`vs +setl\\ buftype=nofile __coc_semantic_highlights_${item.bufnr}__`, true)
+    nvim.command(`vs +setl\\ buftype=nofile __coc_semantic_highlights_${buf.id}__`, true)
     nvim.command(`setl bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1`, true)
     nvim.call('bufnr', ['%'], true)
     let res = await nvim.resumeNotification()
-    if (res[1]) throw new Error(`Error on buffer create: ${res[1]}`)
-    let bufnr = res[0][2] as number
+    let item = this.highlighters.getItem(buf.id)
     highlighter.addLine('Semantic highlights info', headGroup)
     highlighter.addLine('')
-    highlighter.addLine('The number of semantic tokens: ')
-    highlighter.addText(String(highlights.length), 'Number')
-    highlighter.addLine('')
-    highlighter.addLine('Semantic highlight groups used by current buffer', headGroup)
-    highlighter.addLine('')
-    const groups = [...new Set(highlights.map(({ hlGroup }) => hlGroup))]
-    for (const hlGroup of groups) {
-      highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: hlGroup, hlGroup }])
-      highlighter.addLine('')
-    }
-    highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
-    highlighter.addLine('')
-    let doc = workspace.getDocument(item.bufnr)
-    const legend = languages.getLegend(doc.textDocument)
-    if (legend?.tokenTypes.length) {
-      for (const t of [...new Set(legend.tokenTypes)]) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `${HLGROUP_PREFIX}${t}`, hlGroup: `${HLGROUP_PREFIX}${t}` }])
-        highlighter.addLine('')
-      }
+    if (!item) {
+      highlighter.addLine('Document not attached.', 'WarningMsg')
     } else {
-      highlighter.addLine('No token types supported', 'Comment')
-    }
-    highlighter.addLine('Tokens modifiers that current Language Server supported:', headGroup)
-    highlighter.addLine('')
-    if (legend?.tokenModifiers.length) {
-      for (const t of [...new Set(legend.tokenModifiers)]) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `${HLGROUP_PREFIX}${t}`, hlGroup: `${HLGROUP_PREFIX}${t}` }])
+      try {
+        item.checkState()
+        let highlights = item.highlights || []
+        highlighter.addLine('The number of semantic tokens: ')
+        highlighter.addText(String(highlights.length), 'Number')
         highlighter.addLine('')
+        highlighter.addLine('Semantic highlight groups used by current buffer', headGroup)
+        highlighter.addLine('')
+        const groups = [...new Set(highlights.map(({ hlGroup }) => hlGroup))]
+        for (const hlGroup of groups) {
+          highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: hlGroup, hlGroup }])
+          highlighter.addLine('')
+        }
+        highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
+        highlighter.addLine('')
+        let doc = workspace.getDocument(item.bufnr)
+        const legend = languages.getLegend(doc.textDocument)
+        if (legend?.tokenTypes.length) {
+          for (const t of [...new Set(legend.tokenTypes)]) {
+            let text = HLGROUP_PREFIX + capitalize(t)
+            highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
+            highlighter.addLine('')
+          }
+        } else {
+          highlighter.addLine('No token types supported', 'Comment')
+        }
+        highlighter.addLine('Tokens modifiers that current Language Server supported:', headGroup)
+        highlighter.addLine('')
+        if (legend?.tokenModifiers.length) {
+          for (const t of [...new Set(legend.tokenModifiers)]) {
+            let text = HLGROUP_PREFIX + capitalize(t)
+            highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
+            highlighter.addLine('')
+          }
+        } else {
+          highlighter.addLine('No token modifiers exists', 'Comment')
+        }
+      } catch (e) {
+        highlighter.addLine(e.message, 'Error')
       }
-    } else {
-      highlighter.addLine('No token modifiers supported', 'Comment')
     }
     nvim.pauseNotification()
+    let bufnr = res[0][2] as number
     highlighter.render(nvim.createBuffer(bufnr))
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    void nvim.resumeNotification(false, true)
   }
 
   public dispose(): void {

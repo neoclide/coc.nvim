@@ -1,5 +1,15 @@
 # 2022-01-21
 
+- Changed semantic token highlight prefix from `CocSem_` to `CocSem`.
+- Changed semantic token highlight disabled by default, use configuration
+  `semanticTokens.filetypes`
+- Add configuration `semanticTokens.filetypes`.
+- Add configuration `semanticTokens.highlightPriority`.
+- Add configuration `semanticTokens.incrementTypes`.
+- Add configuration `semanticTokens.combinedModifiers`.
+
+# 2022-01-21
+
 - Add configuration `workspace.ignoredFolders`.
 - Add configuration `workspace.workspaceFolderFallbackCwd`.
 
