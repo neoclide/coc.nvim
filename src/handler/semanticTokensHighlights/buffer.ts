@@ -32,6 +32,10 @@ interface SemanticTokensPreviousResult {
   readonly tokens?: uinteger[],
 }
 
+function capitalize(text: string): string {
+  return text.length ? text[0].toUpperCase() + text.slice(1) : ''
+}
+
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private _highlights: HighlightItem[]
@@ -164,14 +168,13 @@ export default class SemanticTokensBuffer implements SyncItem {
       currentLine = lnum
       currentCharacter = startCharacter
       let range = Range.create(lnum, startCharacter, lnum, endCharacter)
-      let hlGroup = HLGROUP_PREFIX + tokenType
+      let hlGroup = HLGROUP_PREFIX + capitalize(tokenType)
       let opts: HighlightItemOption = { combine: false }
-      if (tokenType === 'variable' || tokenType === 'string') {
+      if (tokenType.toLowerCase() === 'variable' || tokenType.toLowerCase() === 'string') {
         opts.end_incl = true
         opts.start_incl = true
       }
       doc.addHighlights(res, hlGroup, range, opts)
-      tokenModifiers.forEach(m => doc.addHighlights(res, HLGROUP_PREFIX + m, range, opts))
     }
     this._highlights = res
     return res

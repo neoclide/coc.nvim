@@ -345,11 +345,11 @@ function! s:Hi() abort
   hi default CocHintSign      ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
-  hi default CocUnderline     cterm=underline gui=underline
+  hi default CocUnderline     term=underline cterm=underline gui=underline
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
   if s:is_vim || has('nvim-0.4.0')
-    hi default CocStrikeThrough cterm=strikethrough gui=strikethrough
+    hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
   else
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
@@ -461,6 +461,7 @@ function! s:Hi() abort
         \ 'Regexp': ['TSStringRegex', 'String'],
         \ 'Operator': ['TSOperator', 'Operator'],
         \ 'Decorator': ['TSSymbol', 'Identifier'],
+        \ 'Deprecated': ['TSStrike', 'CocStrikeThrough']
         \ }
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')

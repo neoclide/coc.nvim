@@ -39,10 +39,7 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     if (!item) return
     // save matched provider
     this.resolvedProvider.set(document.uri, item.id)
-    const legend = item.legend as SemanticTokensLegend
-    legend.tokenTypes = legend.tokenTypes.map(t => t[0].toUpperCase() + t.slice(1))
-    legend.tokenModifiers = legend.tokenModifiers.map(m => m[0].toUpperCase() + m.slice(1))
-    return legend
+    return item.legend
   }
 
   protected resolveProvider(document: TextDocument): DocumentSemanticTokensProvider {
