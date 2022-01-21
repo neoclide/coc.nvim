@@ -20,6 +20,7 @@ Interface					|coc-interface|
   Commands					|coc-commands|
   Autocmds					|coc-autocmds|
   Highlights					|coc-highlights|
+    Semantic highlights 				 |coc-semantic-highlights|
 Tree 						|coc-tree|
   Tree mappings 				|coc-tree-mappings|
   Tree filter 					|coc-tree-filter|
@@ -2985,6 +2986,25 @@ information that depends on language specific symbol information.
 Semantic tokens highlighting is disabled by default, you can enable it by use
 configuration "semanticTokens.filetypes", see |coc-config-semanticTokens| for
 details.
+
+To create custom highlight for symbol under cursor, follow these steps:
+
+- Inspect semantic token by
+>
+  :CocCommand semanticTokens.inspect
+<
+  to check token type and token modifiers with current symbol.
+
+- Create new highlight group, for example:
+>
+  :hi link CocSemDeclarationVariable MoreMsg
+<
+- Refresh highlight of current buffer by:
+>
+  :CocCommand semanticTokens.refreshCurrent
+<
+Use `:CocCommand semanticTokens.checkCurrent` to check semantic highlight
+information with current buffer.
 
 *CocSem*
 
