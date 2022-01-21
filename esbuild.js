@@ -12,7 +12,7 @@ try {
 let envPlugin = {
   name: 'env',
   setup(build) {
-    build.onResolve({filter: /\/appenders/}, args => {
+    build.onResolve({filter: /\/appenders$/}, args => {
       let fullpath = path.join(args.resolveDir, args.path)
       return {
         path: path.relative(__dirname, fullpath).replace(/\\/g, '/'),
