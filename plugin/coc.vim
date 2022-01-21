@@ -435,87 +435,39 @@ function! s:Hi() abort
   endif
   call s:AddAnsiGroups()
 
-  hi default link CocSemNamespace       TSNamespace
-  hi default link CocSemType            TSType
-  hi default link CocSemClass           TSClass
-  hi default link CocSemEnum            TSEnum
-  hi default link CocSemInterface       TSInterface
-  hi default link CocSemStruct          TSStruct
-  hi default link CocSemTypeParameter   TSTypeParameter
-  hi default link CocSemParameter       TSParameter
-  hi default link CocSemVariable        TSVariable
-  hi default link CocSemProperty        TSProperty
-  hi default link CocSemEnumMember      TSEnumMember
-  hi default link CocSemEvent           TSEvent
-  hi default link CocSemFunction        TSFunction
-  hi default link CocSemMethod          TSMethod
-  hi default link CocSemMacro           TSMacro
-  hi default link CocSemKeyword         TSKeyword
-  hi default link CocSemModifier        TSModifier
-  hi default link CocSemComment         TSComment
-  hi default link CocSemString          TSString
-  hi default link CocSemNumber          TSNumber
-  hi default link CocSemRegexp          TSRegexp
-  hi default link CocSemOperator        TSOperator
-  hi default link CocSemDeclaration     TSDeclaration
-  hi default link CocSemDefinition      TSDefinition
-  hi default link CocSemReadonly        TSReadonly
-  hi default link CocSemStatic          TSStatic
-  hi default link CocSemDeprecated      TSDeprecated
-  hi default link CocSemAbstract        TSAbstract
-  hi default link CocSemAsync           TSAsync
-  hi default link CocSemModification    TSModification
-  hi default link CocSemDocumentation   TSDocumentation
-  hi default link CocSemDefaultLibrary  TSDefaultLibrary
-
-  hi default link CocSemPunctDelimiter          TSPunctDelimiter
-  hi default link CocSemPunctBracket            TSPunctBracket
-  hi default link CocSemPunctSpecial            TSPunctSpecial
-  hi default link CocSemConstant                TSConstant
-  hi default link CocSemConstBuiltin            TSConstBuiltin
-  hi default link CocSemConstMacro              TSConstMacro
-  hi default link CocSemStringRegex             TSStringRegex
-  hi default link CocSemStringEscape            TSStringEscape
-  hi default link CocSemStringSpecial           TSStringSpecial
-  hi default link CocSemCharacter               TSCharacter
-  hi default link CocSemBoolean                 TSBoolean
-  hi default link CocSemFloat                   TSFloat
-  hi default link CocSemFuncBuiltin             TSFuncBuiltin
-  hi default link CocSemFuncMacro               TSFuncMacro
-  hi default link CocSemParameterReference      TSParameterReference
-  hi default link CocSemField                   TSField
-  hi default link CocSemConstructor             TSConstructor
-  hi default link CocSemAnnotation              TSAnnotation
-  hi default link CocSemAttribute               TSAttribute
-  hi default link CocSemSymbol                  TSSymbol
-  hi default link CocSemConditional             TSConditional
-  hi default link CocSemRepeat                  TSRepeat
-  hi default link CoCSemLabel                   TSLabel
-  hi default link CocSemKeywordFunction         TSKeywordFunction
-  hi default link CocSemKeywordOperator         TSKeywordOperator
-  hi default link CocSemKeywordReturn           TSKeywordReturn
-  hi default link CocSemException               TSException
-  hi default link CocSemTypeBuiltin             TSTypeBuiltin
-  hi default link CocSemInclude                 TSInclude
-  hi default link CocSemVariableBuiltin         TSVariableBuiltin
-  hi default link CocSemText                    TSText
-  hi default link CocSemStrong                  TSStrong
-  hi default link CocSemEmphasis                TSEmphasis
-  hi default link CocSemUnderline               TSUnderline
-  hi default link CocSemStrike                  TSStrike
-  hi default link CocSemMath                    TSMath
-  hi default link CocSemTextReference           TSTextReference
-  hi default link CocSemEnvironment             TSEnvironment
-  hi default link CocSemEnvironmentName         TSEnvironmentName
-  hi default link CocSemTitle                   TSTitle
-  hi default link CocSemLiteral                 TSLiteral
-  hi default link CocSemURI                     TSURI
-  hi default link CocSemNote                    TSNote
-  hi default link CocSemWarning                 TSWarning
-  hi default link CocSemDanger                  TSDanger
-  hi default link CocSemTag                     TSTag
-  hi default link CocSemTagDelimiter            TSTagDelimiter
-  hi default link CocSemTagAttribute            TSTagAttribute
+  if get(g:, 'coc_default_semantic_highlight_groups', 1)
+    let hlMap = {
+        \ 'Namespace': ['TSNamespace', 'Include'],
+        \ 'Type': ['TSType', 'Type'],
+        \ 'Class': ['TSConstructor', 'Special'],
+        \ 'Enum': ['TSEnum', 'Type'],
+        \ 'Interface': ['TSInterface', 'Type'],
+        \ 'Struct': ['TSStruct', 'Identifier'],
+        \ 'TypeParameter': ['TSParameter', 'Identifier'],
+        \ 'Parameter': ['TSParameter', 'Identifier'],
+        \ 'Variable': ['TSSymbol', 'Identifier'],
+        \ 'Property': ['TSProperty', 'Identifier'],
+        \ 'EnumMember': ['TSEnumMember', 'Constant'],
+        \ 'Event': ['TSEvent', 'Keyword'],
+        \ 'Function': ['TSFunction', 'Function'],
+        \ 'Method': ['TSMethod', 'Function'],
+        \ 'Macro': ['TSConstMacro', 'Define'],
+        \ 'Keyword': ['TSKeyword', 'Keyword'],
+        \ 'Modifier': ['TSModifier', 'StorageClass'],
+        \ 'Comment': ['TSComment', 'Comment'],
+        \ 'String': ['TSString', 'String'],
+        \ 'Number': ['TSNumber', 'Number'],
+        \ 'Boolean': ['TSBoolean', 'Boolean'],
+        \ 'Regexp': ['TSStringRegex', 'String'],
+        \ 'Operator': ['TSOperator', 'Operator'],
+        \ 'Decorator': ['TSSymbol', 'Identifier'],
+        \ }
+    for [key, value] in items(hlMap)
+      let ts = get(value, 0, '')
+      let fallback = get(value, 1, '')
+      execute 'hi default link CocSem'.key.' '.(hlexists(ts) ? ts : fallback)
+    endfor
+  endif
 endfunction
 
 function! s:FormatFromSelected(type)
