@@ -9,6 +9,7 @@
 - Add configuration `semanticTokens.combinedModifiers`.
 - Add command `semanticTokens.refreshCurrent`.
 - Rework command `semanticTokens.checkCurrent` to show highlight information.
+- Support semantic tokens highlight group composed with type and modifier.
 
 # 2022-01-21
 

@@ -3,9 +3,10 @@ import debounce from 'debounce'
 import { CancellationToken, CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
+import Document from '../../model/document'
 import { HighlightItem, HighlightItemOption } from '../../types'
-import workspace from '../../workspace'
 import window from '../../window'
+import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
 export const HLGROUP_PREFIX = 'CocSem'
@@ -27,6 +28,14 @@ export interface SemanticTokensConfig {
   highlightPriority: number
   incrementTypes: string[]
   combinedModifiers: string[]
+  highlightGroups: string[]
+}
+
+export interface SemanticTokenRange {
+  range: Range
+  tokenType: string
+  tokenModifiers?: string[]
+  hlGroup?: string
 }
 
 interface SemanticTokensPreviousResult {
@@ -41,7 +50,9 @@ export function capitalize(text: string): string {
 
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
-  private _highlights: HighlightItem[]
+  private _highlights: SemanticTokenRange[]
+  // Store type with modifiers groups.
+  private _modifiersMap: Map<string, [string, string[]]> = new Map()
   private previousResults: SemanticTokensPreviousResult
   public highlight: Function & { clear(): void }
   constructor(
@@ -52,6 +63,10 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.doHighlight().logError()
     }, global.hasOwnProperty('__TEST__') ? 10 : 500)
     this.highlight()
+  }
+
+  public getModifiers(): [string, string[]][] {
+    return Array.from(this._modifiersMap.values())
   }
 
   public onChange(): void {
@@ -65,7 +80,6 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async forceHighlight(): Promise<void> {
-    // TODO fetch highlight groups
     this.highlight.clear()
     await this.doHighlight()
   }
@@ -73,7 +87,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * Get current highlight items
    */
-  public get highlights(): ReadonlyArray<HighlightItem> {
+  public get highlights(): ReadonlyArray<SemanticTokenRange> {
     return this._highlights
   }
 
@@ -150,6 +164,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const res: HighlightItem[] = []
     let currentLine = 0
     let currentCharacter = 0
+    this._highlights = []
     for (const {
       tokenType,
       tokenModifiers,
@@ -164,18 +179,55 @@ export default class SemanticTokensBuffer implements SyncItem {
       currentCharacter = startCharacter
       // range, tokenType, tokenModifiers
       let range = Range.create(lnum, startCharacter, lnum, endCharacter)
+      this.addHighlightItems(res, doc, range, tokenType, tokenModifiers)
+    }
+    return res
+  }
 
+  private addHighlightItems(items: HighlightItem[], doc: Document, range: Range, tokenType: string, tokenModifiers?: string[]): void {
+    let { highlightGroups, combinedModifiers, incrementTypes } = this.config
+    tokenModifiers = tokenModifiers || []
+    let highlightGroup: string
+    let combine = false
+    // Compose highlight group CocSem + modifier + type
+    for (let item of tokenModifiers) {
+      let hlGroup = HLGROUP_PREFIX + capitalize(item) + capitalize(tokenType)
+      if (highlightGroups.includes(hlGroup)) {
+        combine = combinedModifiers.includes(item)
+        highlightGroup = hlGroup
+        break
+      }
+    }
+    if (!highlightGroup) {
+      for (let item of tokenModifiers) {
+        let hlGroup = HLGROUP_PREFIX + capitalize(item)
+        if (highlightGroups.includes(hlGroup)) {
+          highlightGroup = hlGroup
+          combine = combinedModifiers.includes(item)
+          break
+        }
+      }
+    }
+    if (!highlightGroup) {
       let hlGroup = HLGROUP_PREFIX + capitalize(tokenType)
-      let opts: HighlightItemOption = { combine: false }
-      let incrementTypes = this.config.incrementTypes.map(s => s.toLowerCase())
-      if (incrementTypes.includes(tokenType.toLowerCase())) {
+      if (highlightGroups.includes(hlGroup)) {
+        highlightGroup = hlGroup
+      }
+    }
+    if (highlightGroup) {
+      let opts: HighlightItemOption = { combine }
+      if (incrementTypes.includes(tokenType)) {
         opts.end_incl = true
         opts.start_incl = true
       }
-      doc.addHighlights(res, hlGroup, range, opts)
+      doc.addHighlights(items, highlightGroup, range, opts)
     }
-    this._highlights = res
-    return res
+    this._highlights.push({
+      range,
+      tokenType,
+      hlGroup: highlightGroup,
+      tokenModifiers,
+    })
   }
 
   private async doHighlight(): Promise<void> {

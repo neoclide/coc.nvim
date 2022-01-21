@@ -6,6 +6,7 @@ import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
+import { distinct } from '../../util/array'
 import workspace from '../../workspace'
 import SemanticTokensBuffer, { capitalize, HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
@@ -31,6 +32,7 @@ export default class SemanticTokensHighlights {
       execute: async () => {
         let item = await this.getCurrentItem()
         if (!item || !item.enabled) throw new Error(`Unable to perform semantic highlights for current buffer.`)
+        await this.fetchHighlightGroups()
         await item.forceHighlight()
       }
     }, false, 'refresh semantic tokens highlight of current buffer.')
@@ -67,12 +69,21 @@ export default class SemanticTokensHighlights {
     if (!e || e.affectsConfiguration('semanticTokens')) {
       let config = workspace.getConfiguration('semanticTokens')
       this.config = Object.assign(this.config || {}, {
+        highlightGroups: [],
         filetypes: config.get<string[]>('filetypes', []),
         highlightPriority: config.get<number>('highlightPriority', 2048),
         incrementTypes: config.get<string[]>('incrementTypes'),
         combinedModifiers: config.get<string[]>('combinedModifiers')
       })
+      if (!e) {
+        this.config.highlightGroups = workspace.env.semanticHighlights
+      }
     }
+  }
+
+  public async fetchHighlightGroups(): Promise<void> {
+    let res = await this.nvim.call('coc#util#semantic_hlgroups') as string[]
+    this.config.highlightGroups = res
   }
 
   public async getCurrentItem(): Promise<SemanticTokensBuffer | null> {
@@ -118,7 +129,7 @@ export default class SemanticTokensHighlights {
         highlighter.addLine('')
         highlighter.addLine('Semantic highlight groups used by current buffer', headGroup)
         highlighter.addLine('')
-        const groups = [...new Set(highlights.map(({ hlGroup }) => hlGroup))]
+        const groups = distinct(highlights.filter(o => o.hlGroup != null).map(({ hlGroup }) => hlGroup))
         for (const hlGroup of groups) {
           highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: hlGroup, hlGroup }])
           highlighter.addLine('')
