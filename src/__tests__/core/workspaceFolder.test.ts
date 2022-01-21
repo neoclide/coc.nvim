@@ -42,6 +42,10 @@ afterEach(async () => {
   workspaceFolder.reset()
 })
 
+afterAll(async () => {
+  await helper.shutdown()
+})
+
 describe('WorkspaceFolderController', () => {
   describe('setWorkspaceFolders()', () => {
     it('should set valid folders', async () => {

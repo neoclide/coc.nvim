@@ -19,6 +19,7 @@ export default class FileSystemWatcher implements Disposable {
   private _onDidDelete = new Emitter<URI>()
   private _onDidRename = new Emitter<RenameEvent>()
 
+  private _disposed = false
   public readonly onDidCreate: Event<URI> = this._onDidCreate.event
   public readonly onDidChange: Event<URI> = this._onDidChange.event
   public readonly onDidDelete: Event<URI> = this._onDidDelete.event
@@ -26,7 +27,7 @@ export default class FileSystemWatcher implements Disposable {
   private disposables: Disposable[] = []
 
   constructor(
-    clientPromise: Promise<Watchman> | null,
+    clientPromise: Promise<Watchman | Watchman[]> | null,
     private globPattern: string,
     public ignoreCreateEvents: boolean,
     public ignoreChangeEvents: boolean,
@@ -34,19 +35,26 @@ export default class FileSystemWatcher implements Disposable {
   ) {
     if (!clientPromise) return
     clientPromise.then(client => {
-      if (client) return this.listen(client)
+      if (Array.isArray(client)) {
+        client.forEach(c => {
+          if (c) this.listen(c)
+        })
+      } else if (client) {
+        this.listen(client)
+      }
     }).catch(error => {
       logger.error('watchman initialize failed')
       logger.error(error.stack)
     })
   }
 
-  private async listen(client: Watchman): Promise<Disposable> {
+  private listen(client: Watchman): void {
+    if (this._disposed) return
     let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
       ignoreDeleteEvents } = this
-    let disposable = await client.subscribe(globPattern, (change: FileChange) => {
+    const onChange = (change: FileChange) => {
       let { root, files } = change
       files = files.filter(f => f.type == 'f' && minimatch(f.name, globPattern, { dot: true }))
       for (let file of files) {
@@ -87,12 +95,17 @@ export default class FileSystemWatcher implements Disposable {
           }
         }
       }
+    }
+    client.subscribe(globPattern, onChange).then(disposable => {
+      if (this._disposed) return disposable.dispose()
+      this.disposables.push(disposable)
+    }, err => {
+      logger.error(err)
     })
-    this.disposables.push(disposable)
-    return disposable
   }
 
   public dispose(): void {
+    this._disposed = true
     disposeAll(this.disposables)
   }
 }

@@ -463,7 +463,8 @@ export class Workspace implements IWorkspace {
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
     let channel: OutputChannel = watchmanPath ? window.createOutputChannel('watchman') : null
-    let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root, channel) : Promise.resolve(null)
+    let roots = this.workspaceFolders.map(o => URI.parse(o.uri).fsPath)
+    let promise = watchmanPath && roots.length ? Promise.all(roots.map(root => Watchman.createClient(watchmanPath, root, channel))) : Promise.resolve(null)
     let watcher = new FileSystemWatcher(
       promise,
       globPattern,
