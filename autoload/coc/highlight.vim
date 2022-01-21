@@ -626,7 +626,10 @@ function! coc#highlight#clear_matches(winid, ids)
 endfunction
 
 function! s:prop_type_hlgroup(type) abort
-  return prop_type_get(a:type)['highlight']
+  if a:type=~# '^CocHighlight'
+    return strpart(a:type, 12)
+  endif
+  return get(prop_type_get(a:type), 'highlight', '')
 endfunction
 
 function! coc#highlight#create_namespace(key) abort
