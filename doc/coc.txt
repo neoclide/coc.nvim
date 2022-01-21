@@ -2595,6 +2595,14 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Show outgoing calls of current function with |coc-tree|.
 
+"semanticHighlight" 				*CocAction('semanticHighlight')*
+
+	Request semantic tokens highlight for current buffer.
+
+"inspectSemanticToken" 				 *CocAction('inspectSemanticToken')*
+
+	Inspect semantic token information at cursor position.
+
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*
 

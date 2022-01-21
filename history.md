@@ -8,6 +8,8 @@
 - Add configuration `semanticTokens.incrementTypes`.
 - Add configuration `semanticTokens.combinedModifiers`.
 - Add command `semanticTokens.refreshCurrent`.
+- Add command `semanticTokens.inspect`.
+- Add action `inspectSemanticToken`.
 - Rework command `semanticTokens.checkCurrent` to show highlight information.
 - Support semantic tokens highlight group composed with type and modifier.
 

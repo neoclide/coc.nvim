@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, Position } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
@@ -8,7 +8,10 @@ import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
 import workspace from '../../workspace'
+import window from '../../window'
+import FloatFactory from '../../model/floatFactory'
 import SemanticTokensBuffer, { capitalize, HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
+import { positionInRange } from '../../util/position'
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
@@ -17,9 +20,11 @@ export default class SemanticTokensHighlights {
   private config: SemanticTokensConfig
   private disposables: Disposable[] = []
   private highlighters: BufferSync<SemanticTokensBuffer>
+  private floatFactory: FloatFactory
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
+    this.floatFactory = new FloatFactory(nvim)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     commands.register({
       id: 'semanticTokens.checkCurrent',
@@ -29,13 +34,16 @@ export default class SemanticTokensHighlights {
     }, false, 'show semantic tokens highlight information of current buffer')
     commands.register({
       id: 'semanticTokens.refreshCurrent',
-      execute: async () => {
-        let item = await this.getCurrentItem()
-        if (!item || !item.enabled) throw new Error(`Unable to perform semantic highlights for current buffer.`)
-        await this.fetchHighlightGroups()
-        await item.forceHighlight()
+      execute: () => {
+        return this.highlightCurrent()
       }
     }, false, 'refresh semantic tokens highlight of current buffer.')
+    commands.register({
+      id: 'semanticTokens.inspect',
+      execute: () => {
+        return this.inspectSemanticToken()
+      }
+    }, false, 'Inspect semantic token information at cursor position.')
     commands.register({
       id: 'semanticTokens.clearCurrent',
       execute: async () => {
@@ -81,6 +89,32 @@ export default class SemanticTokensHighlights {
     }
   }
 
+  public async inspectSemanticToken(): Promise<void> {
+    let item = await this.getCurrentItem()
+    if (!item || !item.enabled) {
+      this.floatFactory.close()
+      return
+    }
+    let position = await window.getCursorPosition()
+    let highlight = item.highlights.find(o => positionInRange(position, o.range) == 0)
+    if (highlight) {
+      let modifiers = highlight.tokenModifiers || []
+      let docs = [{
+        filetype: 'txt',
+        content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${highlight.hlGroup || ''}`
+      }]
+      await this.floatFactory.show(docs, {
+        autoHide: true,
+        focusable: true,
+        title: 'Semantic token info',
+        borderhighlight: 'MoreMsg',
+        border: [1, 1, 1, 1]
+      })
+    } else {
+      this.floatFactory.close()
+    }
+  }
+
   public async fetchHighlightGroups(): Promise<void> {
     let res = await this.nvim.call('coc#util#semantic_hlgroups') as string[]
     this.config.highlightGroups = res
@@ -97,10 +131,10 @@ export default class SemanticTokensHighlights {
    * Force highlight of current buffer
    */
   public async highlightCurrent(): Promise<void> {
-    let highlighter = await this.getCurrentItem()
-    if (!highlighter) return
-    highlighter.checkState()
-    await highlighter.forceHighlight()
+    let item = await this.getCurrentItem()
+    if (!item || !item.enabled) throw new Error(`Unable to perform semantic highlights for current buffer.`)
+    await this.fetchHighlightGroups()
+    await item.forceHighlight()
   }
 
   /**
@@ -169,6 +203,7 @@ export default class SemanticTokensHighlights {
   }
 
   public dispose(): void {
+    this.floatFactory.dispose()
     this.highlighters.dispose()
     disposeAll(this.disposables)
   }
