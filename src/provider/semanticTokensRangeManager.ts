@@ -22,7 +22,7 @@ export default class SemanticTokensRangeManager extends Manager<DocumentRangeSem
   public getLegend(document: TextDocument): SemanticTokensLegend {
     const item = this.getProvider(document)
     if (!item) return
-    return item.legend
+    return item.legend as SemanticTokensLegend
   }
 
   public async provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): Promise<SemanticTokens> {

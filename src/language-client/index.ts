@@ -2,7 +2,7 @@
 import cp from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
+import { createClientPipeTransport, createClientSocketTransport, Disposable, DocumentFilter, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
 import { ServiceStat } from '../types'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
@@ -549,11 +549,6 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new SelectionRangeFeature(this))
     this.registerFeature(new ProgressFeature(this))
     this.registerFeature(new CallHierarchyFeature(this))
-    if (workspace.isNvim || (workspace.isVim && workspace.env.textprop)) {
-      const config = workspace.getConfiguration('coc.preferences')
-      const enabled = config.get<boolean>('semanticTokensHighlights', true)
-      if (enabled) this.registerFeature(new SemanticTokensFeature(this))
-    }
     this.registerFeature(new LinkedEditingFeature(this))
     this.registerFeature(new DidCreateFilesFeature(this))
     this.registerFeature(new DidRenameFilesFeature(this))
@@ -561,6 +556,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new WillCreateFilesFeature(this))
     this.registerFeature(new WillRenameFilesFeature(this))
     this.registerFeature(new WillDeleteFilesFeature(this))
+    this.registerFeature(new SemanticTokensFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }

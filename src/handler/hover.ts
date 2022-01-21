@@ -4,7 +4,7 @@ import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent
 import { URI } from 'vscode-uri'
 import languages from '../languages'
 import { Documentation } from '../markdown'
-import FloatFactory, { FloatWinConfig } from '../model/floatFactory'
+import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import { ConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
 import { disposeAll, isMarkdown } from '../util'

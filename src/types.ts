@@ -130,6 +130,7 @@ export interface Env {
   readonly textprop: boolean
   readonly updateHighlight: boolean
   readonly vimCommands: CommandConfig[]
+  readonly semanticHighlights: string[]
 }
 
 export interface CommandConfig {

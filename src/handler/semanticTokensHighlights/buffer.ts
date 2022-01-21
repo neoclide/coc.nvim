@@ -3,12 +3,13 @@ import debounce from 'debounce'
 import { CancellationToken, CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
+import Document from '../../model/document'
 import { HighlightItem, HighlightItemOption } from '../../types'
-import workspace from '../../workspace'
 import window from '../../window'
+import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
-const HLGROUP_PREFIX = 'CocSem_'
+export const HLGROUP_PREFIX = 'CocSem'
 export const NAMESPACE = 'semanticTokens'
 
 /**
@@ -23,7 +24,18 @@ interface RelativeHighlight {
 }
 
 export interface SemanticTokensConfig {
-  enabled: boolean
+  filetypes: string[]
+  highlightPriority: number
+  incrementTypes: string[]
+  combinedModifiers: string[]
+  highlightGroups: string[]
+}
+
+export interface SemanticTokenRange {
+  range: Range
+  tokenType: string
+  tokenModifiers?: string[]
+  hlGroup?: string
 }
 
 interface SemanticTokensPreviousResult {
@@ -32,9 +44,13 @@ interface SemanticTokensPreviousResult {
   readonly tokens?: uinteger[],
 }
 
+export function capitalize(text: string): string {
+  return text.length ? text[0].toUpperCase() + text.slice(1) : ''
+}
+
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
-  private _highlights: HighlightItem[]
+  private _highlights: SemanticTokenRange[]
   private previousResults: SemanticTokensPreviousResult
   public highlight: Function & { clear(): void }
   constructor(
@@ -48,11 +64,13 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public onChange(): void {
+    if (!this.enabled) return
     this.cancel()
     this.highlight()
   }
 
   public onTextChange(): void {
+    if (!this.enabled) return
     this.cancel()
     this.highlight()
   }
@@ -65,15 +83,17 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * Get current highlight items
    */
-  public get highlights(): ReadonlyArray<HighlightItem> {
+  public get highlights(): ReadonlyArray<SemanticTokenRange> {
     return this._highlights
   }
 
   public get enabled(): boolean {
-    if (!this.config.enabled) return false
+    if (!this.config.filetypes.length) return false
+    if (!workspace.env.updateHighlight) return false
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) return false
     if (languages.getLegend(doc.textDocument) == null) return false
+    if (!this.config.filetypes.includes('*') && !this.config.filetypes.includes(doc.filetype)) return false
     return languages.hasProvider('semanticTokens', doc.textDocument)
   }
 
@@ -87,20 +107,17 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public checkState(): void {
-    if (!this.config.enabled) throw new Error('SemanticTokens highlights disabled by configuration')
+    if (!workspace.env.updateHighlight) {
+      throw new Error(`Can't perform highlight update, please upgrade your (neo)vim.`)
+    }
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) throw new Error('Document not attached')
-    if (languages.getLegend(doc.textDocument) == null) throw new Error('Legend not exists.')
-    if (!languages.hasProvider('semanticTokens', doc.textDocument)) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
-  }
-
-  public setState(enabled: boolean): void {
-    if (enabled) {
-      this.highlight()
-    } else {
-      this.highlight.clear()
-      this.clearHighlight()
+    let { filetypes } = this.config
+    if (!filetypes.includes('*') && !filetypes.includes(doc.filetype)) {
+      throw new Error(`Semantic tokens highlight not enabled for current filetype: ${doc.filetype}`)
     }
+    if (!languages.hasProvider('semanticTokens', doc.textDocument)) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
+    if (languages.getLegend(doc.textDocument) == null) throw new Error('Legend not exists.')
   }
 
   /**
@@ -126,11 +143,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else {
       tokens = previousResult.tokens
       result.edits.forEach(e => {
-        if (e.deleteCount > 0) {
-          tokens.splice(e.start, e.deleteCount, ...e.data)
-        } else {
-          tokens.splice(e.start, 0, ...e.data)
-        }
+        tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data)
       })
     }
     this.previousResults = { resultId: result.resultId, tokens, version }
@@ -147,8 +160,10 @@ export default class SemanticTokensBuffer implements SyncItem {
     const res: HighlightItem[] = []
     let currentLine = 0
     let currentCharacter = 0
+    this._highlights = []
     for (const {
       tokenType,
+      tokenModifiers,
       deltaLine,
       deltaStartCharacter,
       length
@@ -158,17 +173,57 @@ export default class SemanticTokensBuffer implements SyncItem {
       const endCharacter = startCharacter + length
       currentLine = lnum
       currentCharacter = startCharacter
+      // range, tokenType, tokenModifiers
       let range = Range.create(lnum, startCharacter, lnum, endCharacter)
-      let hlGroup = HLGROUP_PREFIX + tokenType
-      let opts: HighlightItemOption = { combine: false }
-      if (tokenType === 'variable' || tokenType === 'string') {
+      this.addHighlightItems(res, doc, range, tokenType, tokenModifiers)
+    }
+    return res
+  }
+
+  private addHighlightItems(items: HighlightItem[], doc: Document, range: Range, tokenType: string, tokenModifiers?: string[]): void {
+    let { highlightGroups, combinedModifiers, incrementTypes } = this.config
+    tokenModifiers = tokenModifiers || []
+    let highlightGroup: string
+    let combine = false
+    // Compose highlight group CocSem + modifier + type
+    for (let item of tokenModifiers) {
+      let hlGroup = HLGROUP_PREFIX + capitalize(item) + capitalize(tokenType)
+      if (highlightGroups.includes(hlGroup)) {
+        combine = combinedModifiers.includes(item)
+        highlightGroup = hlGroup
+        break
+      }
+    }
+    if (!highlightGroup) {
+      for (let item of tokenModifiers) {
+        let hlGroup = HLGROUP_PREFIX + capitalize(item)
+        if (highlightGroups.includes(hlGroup)) {
+          highlightGroup = hlGroup
+          combine = combinedModifiers.includes(item)
+          break
+        }
+      }
+    }
+    if (!highlightGroup) {
+      let hlGroup = HLGROUP_PREFIX + capitalize(tokenType)
+      if (highlightGroups.includes(hlGroup)) {
+        highlightGroup = hlGroup
+      }
+    }
+    if (highlightGroup) {
+      let opts: HighlightItemOption = { combine }
+      if (incrementTypes.includes(tokenType)) {
         opts.end_incl = true
         opts.start_incl = true
       }
-      doc.addHighlights(res, hlGroup, range, opts)
+      doc.addHighlights(items, highlightGroup, range, opts)
     }
-    this._highlights = res
-    return res
+    this._highlights.push({
+      range,
+      tokenType,
+      hlGroup: highlightGroup,
+      tokenModifiers,
+    })
   }
 
   private async doHighlight(): Promise<void> {
@@ -181,7 +236,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items)
     this.tokenSource = null
     if (tokenSource.token.isCancellationRequested || !diff) return
-    await window.applyDiffHighlights(this.bufnr, NAMESPACE, 99, diff)
+    let priority = this.config.highlightPriority
+    await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
   }
 
   public clearHighlight(): void {

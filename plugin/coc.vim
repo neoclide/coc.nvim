@@ -345,11 +345,11 @@ function! s:Hi() abort
   hi default CocHintSign      ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
-  hi default CocUnderline     cterm=underline gui=underline
+  hi default CocUnderline     term=underline cterm=underline gui=underline
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
   if s:is_vim || has('nvim-0.4.0')
-    hi default CocStrikeThrough cterm=strikethrough gui=strikethrough
+    hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
   else
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
@@ -435,29 +435,39 @@ function! s:Hi() abort
   endif
   call s:AddAnsiGroups()
 
-  if get(g:, 'coc_default_semantic_highlight_groups', 0) == 1
-    hi default link CocSem_namespace Identifier
-    hi default link CocSem_type Type
-    hi default link CocSem_class Structure
-    hi default link CocSem_enum Type
-    hi default link CocSem_interface Type
-    hi default link CocSem_struct Structure
-    hi default link CocSem_typeParameter Type
-    hi default link CocSem_parameter Identifier
-    hi default link CocSem_variable Identifier
-    hi default link CocSem_property Identifier
-    hi default link CocSem_enumMember Constant
-    hi default link CocSem_event Identifier
-    hi default link CocSem_function Function
-    hi default link CocSem_method Function
-    hi default link CocSem_macro Macro
-    hi default link CocSem_keyword Keyword
-    hi default link CocSem_modifier StorageClass
-    hi default link CocSem_comment Comment
-    hi default link CocSem_string String
-    hi default link CocSem_number Number
-    hi default link CocSem_regexp Normal
-    hi default link CocSem_operator Operator
+  if get(g:, 'coc_default_semantic_highlight_groups', 1)
+    let hlMap = {
+        \ 'Namespace': ['TSNamespace', 'Include'],
+        \ 'Type': ['TSType', 'Type'],
+        \ 'Class': ['TSConstructor', 'Special'],
+        \ 'Enum': ['TSEnum', 'Type'],
+        \ 'Interface': ['TSInterface', 'Type'],
+        \ 'Struct': ['TSStruct', 'Identifier'],
+        \ 'TypeParameter': ['TSParameter', 'Identifier'],
+        \ 'Parameter': ['TSParameter', 'Identifier'],
+        \ 'Variable': ['TSSymbol', 'Identifier'],
+        \ 'Property': ['TSProperty', 'Identifier'],
+        \ 'EnumMember': ['TSEnumMember', 'Constant'],
+        \ 'Event': ['TSEvent', 'Keyword'],
+        \ 'Function': ['TSFunction', 'Function'],
+        \ 'Method': ['TSMethod', 'Function'],
+        \ 'Macro': ['TSConstMacro', 'Define'],
+        \ 'Keyword': ['TSKeyword', 'Keyword'],
+        \ 'Modifier': ['TSModifier', 'StorageClass'],
+        \ 'Comment': ['TSComment', 'Comment'],
+        \ 'String': ['TSString', 'String'],
+        \ 'Number': ['TSNumber', 'Number'],
+        \ 'Boolean': ['TSBoolean', 'Boolean'],
+        \ 'Regexp': ['TSStringRegex', 'String'],
+        \ 'Operator': ['TSOperator', 'Operator'],
+        \ 'Decorator': ['TSSymbol', 'Identifier'],
+        \ 'Deprecated': ['TSStrike', 'CocDeprecatedHighlight']
+        \ }
+    for [key, value] in items(hlMap)
+      let ts = get(value, 0, '')
+      let fallback = get(value, 1, '')
+      execute 'hi default link CocSem'.key.' '.(hlexists(ts) ? ts : fallback)
+    endfor
   endif
 endfunction
 

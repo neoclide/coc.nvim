@@ -13,11 +13,13 @@ Configuration					|coc-configuration|
 Completion					|coc-completion|
 Interface					|coc-interface|
   Key mappings					|coc-key-mappings|
-  Variables						|coc-variables|
-  Functions						|coc-functions|
-  Commands						|coc-commands|
-  Autocmds						|coc-autocmds|
-  Highlights						|coc-highlights|
+  Variables					|coc-variables|
+    Buffer variables 					|coc-buffer-variables|
+    Global variables 					|coc-global-variables|
+  Functions					|coc-functions|
+  Commands					|coc-commands|
+  Autocmds					|coc-autocmds|
+  Highlights					|coc-highlights|
 Tree 						|coc-tree|
   Tree mappings 				|coc-tree-mappings|
   Tree filter 					|coc-tree-filter|
@@ -971,19 +973,38 @@ Built-in configurations:~
 
 	Will save handler timeout, default: `500`
 
-"coc.preferences.semanticTokensHighlights"~
-
-	Enable semanticTokens highlight if language server support it.
-	Default: `true`
-
-	Note: this configuration is expected to change in the future.
-
 "coc.preferences.renameFillCurrent"~
 
 	Disable to stop Refactor-Rename float/popup window from populating
 	with old name in the New Name field.
 	Default: `true`
 
+						*coc-config-semanticTokens*
+
+"semanticTokens.filetypes"~
+
+	Filetypes that should enable semantic tokens highlight feature. Use
+	`["*"]` for all filetypes, default: `[]`
+
+	Note: semantic tokens highlight requires nvim >= 0.5.0 and vim >=
+	8.1.0579 to work.
+
+"semanticTokens.highlightPriority":~
+
+	Priority for semantic tokens highlight, default `2048`
+
+"semanticTokens.incrementTypes":~
+
+	Semantic token types that should increase highlight when insert at
+	the start and end position of token.
+
+	Default: `['variable', 'string']`
+
+"semanticTokens.combinedModifiers":~
+
+	Semantic token modifiers that should combine with syntax highlights.
+
+	Default: `['deprecated']`
 						*coc-config-cursors*
 
 "cursors.cancelKey":~
@@ -1485,9 +1506,11 @@ Visual mode key-mappings:~
 ------------------------------------------------------------------------------
 VARIABLES						*coc-variables*
 
+User defined variables:~
+
 ------------------------------------------------------------------------------
 
-User defined variables:~
+Buffer variables 					*coc-buffer-variables*					
 
 b:coc_enabled						*b:coc_enabled*
 
@@ -1497,7 +1520,7 @@ b:coc_enabled						*b:coc_enabled*
 	" Disable file with size > 1MB
 	autocmd BufAdd * if getfsize(expand('<afile>')) > 1024*1024 |
 				\ let b:coc_enabled=0 |
-				\ ndif
+				\ endif
 <
 b:coc_root_patterns					*b:coc_root_patterns*
 
@@ -1540,6 +1563,10 @@ b:coc_additional_keywords				*b:coc_additional_keywords*
 
 	" Add keyword characters for css
 	autocmd FileType css let b:coc_additional_keywords = ["-"]
+
+------------------------------------------------------------------------------
+
+Global variables 					*coc-global-variables*
 
 g:coc_disable_startup_warning 				*g:coc_disable_startup_warning*
 
@@ -1759,6 +1786,12 @@ g:coc_highlight_maximum_count 			*g:coc_highlight_maximum_count*
 
 	When highlight items exceed maximum count, the highlights will be
 	grouped and added by using |timer_start| for better user experience.
+
+g:coc_default_semantic_highlight_groups         *g:coc_default_semantic_highlight_groups*
+
+	Create default semantic highlight groups for |coc-semantic-highlights|
+
+	Default: `1`
 
 ------------------------------------------------------------------------------
 
@@ -2562,6 +2595,14 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Show outgoing calls of current function with |coc-tree|.
 
+"semanticHighlight" 				*CocAction('semanticHighlight')*
+
+	Request semantic tokens highlight for current buffer.
+
+"inspectSemanticToken" 				 *CocAction('inspectSemanticToken')*
+
+	Inspect semantic token information at cursor position.
+
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*
 
@@ -2936,38 +2977,43 @@ vim doesn't support change highlight group of cursorline inside popup.
 *CocSelectedRange* for highlight ranges of outgoing calls.
 
 Semantic highlights~
+							*coc-semantic-highlights*
 
-CocSem_*						*CocSem*
+coc.nvim can use semantic tokens from language server to add additional color
+information that depends on language specific symbol information.
 
-  Used for words whose semantics are provided by the language server, which
-  typically analyzes source code more deeply than vim's builtin syntax parser.
+Semantic tokens highlighting is disabled by default, you can enable it by use
+configuration "semanticTokens.filetypes", see |coc-config-semanticTokens| for
+details.
 
-  Basic defaults are provided for the "standard" token kinds, but any kind
-  supported by the server can be highlighted by creating the highlight group.
+*CocSem*
 
-  Default (enabled by setting `g:coc_default_semantic_highlight_groups = 1`):
-  `hi default link CocSem_namespace Identifier`
-  `hi default link CocSem_type Type`
-  `hi default link CocSem_class Structure`
-  `hi default link CocSem_enum Type`
-  `hi default link CocSem_interface Type`
-  `hi default link CocSem_struct Structure`
-  `hi default link CocSem_typeParameter Type`
-  `hi default link CocSem_parameter Identifier`
-  `hi default link CocSem_variable Identifier`
-  `hi default link CocSem_property Identifier`
-  `hi default link CocSem_enumMember Constant`
-  `hi default link CocSem_event Identifier`
-  `hi default link CocSem_function Function`
-  `hi default link CocSem_method Function`
-  `hi default link CocSem_macro Macro`
-  `hi default link CocSem_keyword Keyword`
-  `hi default link CocSem_modifier StorageClass`
-  `hi default link CocSem_comment Comment`
-  `hi default link CocSem_string String`
-  `hi default link CocSem_number Number`
-  `hi default link CocSem_regexp Normal`
-  `hi default link CocSem_operator Operator`
+Semantic highlight groups are starts with 'CocSem' which links to related
+|nvim-treesitter| highlight groups when possible and fallback to builtin
+highlight groups, use variable |g:coc_default_semantic_highlight_groups| to
+disable creation of these highlight groups.
+
+Currently only semantic tokens types and `deprecated` modifier have default
+highlight groups.  You need create highlight groups for highlight other
+modifiers and specific modifier with type, for example:
+>
+	" Add highlights for defaultLibrary modifier
+	hi link CocSemDefaultLibrary TSOtherDefaultLibrary
+	hi link CocSemDefaultLibraryClass TSTypeDefaultLibrary
+	hi link CocSemDefaultLibraryInterface TSTypeDefaultLibrary
+	hi link CocSemDefaultLibraryEnum TSTypeDefaultLibrary
+	hi link CocSemDefaultLibraryType TSTypeDefaultLibrary
+	hi link CocSemDefaultLibraryNamespace TSTypeDefaultLibrary
+
+	" Add highlights for declaration modifier
+	hi link CocSemDeclaration TSOtherDeclaration
+	hi link CocSemDeclarationClass TSTypeDeclaration
+	hi link CocSemDeclarationInterface TSTypeDeclaration
+	hi link CocSemDeclarationEnum TSTypeDeclaration
+	hi link CocSemDeclarationType TSTypeDeclaration
+	hi link CocSemDeclarationNamespace TSTypeDeclaration
+<
+The modifier highlight groups have higher priority.
 
 ==============================================================================
 TREE SUPPORT 						*coc-tree*
