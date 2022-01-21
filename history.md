@@ -7,6 +7,8 @@
 - Add configuration `semanticTokens.highlightPriority`.
 - Add configuration `semanticTokens.incrementTypes`.
 - Add configuration `semanticTokens.combinedModifiers`.
+- Add command `semanticTokens.refreshCurrent`.
+- Rework command `semanticTokens.checkCurrent` to show highlight information.
 
 # 2022-01-21
 

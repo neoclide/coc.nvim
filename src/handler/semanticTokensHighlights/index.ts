@@ -27,6 +27,14 @@ export default class SemanticTokensHighlights {
       }
     }, false, 'show semantic tokens highlight information of current buffer')
     commands.register({
+      id: 'semanticTokens.refreshCurrent',
+      execute: async () => {
+        let item = await this.getCurrentItem()
+        if (!item || !item.enabled) throw new Error(`Unable to perform semantic highlights for current buffer.`)
+        await item.forceHighlight()
+      }
+    }, false, 'refresh semantic tokens highlight of current buffer.')
+    commands.register({
       id: 'semanticTokens.clearCurrent',
       execute: async () => {
         let buf = await nvim.buffer
