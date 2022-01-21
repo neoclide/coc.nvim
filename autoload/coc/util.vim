@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 14
+let s:vim_api_version = 15
 let s:activate = ""
 let s:quit = ""
 
@@ -21,6 +21,12 @@ endif
 
 function! coc#util#api_version() abort
   return s:vim_api_version
+endfunction
+
+function! coc#util#semantic_hlgroups() abort
+  let res = split(execute('hi'), "\n")
+  let filtered = filter(res, "v:val =~# '^CocSem'")
+  return map(filtered, "matchstr(v:val,'\\v^CocSem\\w+')")
 endfunction
 
 " get cursor position
@@ -555,6 +561,7 @@ function! coc#util#vim_info()
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
         \ 'dialog': has('nvim-0.4.0') || has('patch-8.2.0750') ? v:true : v:false,
+        \ 'semanticHighlights': coc#util#semantic_hlgroups()
         \}
 endfunction
 
