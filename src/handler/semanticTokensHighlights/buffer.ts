@@ -93,6 +93,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public get enabled(): boolean {
     if (!this.config.filetypes.length) return false
+    if (!workspace.env.updateHighlight) return false
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) return false
     if (languages.getLegend(doc.textDocument) == null) return false
@@ -110,6 +111,9 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public checkState(): void {
+    if (!workspace.env.updateHighlight) {
+      throw new Error(`Can't perform highlight update, please upgrade your (neo)vim.`)
+    }
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) throw new Error('Document not attached')
     let { filetypes } = this.config

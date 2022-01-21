@@ -461,7 +461,7 @@ function! s:Hi() abort
         \ 'Regexp': ['TSStringRegex', 'String'],
         \ 'Operator': ['TSOperator', 'Operator'],
         \ 'Decorator': ['TSSymbol', 'Identifier'],
-        \ 'Deprecated': ['TSStrike', 'CocStrikeThrough']
+        \ 'Deprecated': ['TSStrike', 'CocDeprecatedHighlight']
         \ }
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')

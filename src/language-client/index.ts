@@ -556,12 +556,9 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new WillCreateFilesFeature(this))
     this.registerFeature(new WillRenameFilesFeature(this))
     this.registerFeature(new WillDeleteFilesFeature(this))
+    this.registerFeature(new SemanticTokensFeature(this))
     if (!this.clientOptions.disableWorkspaceFolders) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
-    }
-
-    if (workspace.isNvim || (workspace.isVim && workspace.env.textprop)) {
-      this.registerFeature(new SemanticTokensFeature(this))
     }
   }
 
