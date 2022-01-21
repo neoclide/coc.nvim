@@ -167,7 +167,7 @@ describe('semanticTokens', () => {
       await nvim.call('CocAction', 'semanticHighlight')
       const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
       expect(highlights.length).toBe(12)
-      expect(highlights[0][0]).toBe('TSKeyword')
+      expect(highlights[0][0]).toBe('CocSemKeyword')
     })
   })
 })

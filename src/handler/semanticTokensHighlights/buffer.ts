@@ -8,7 +8,7 @@ import workspace from '../../workspace'
 import window from '../../window'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 
-const HLGROUP_PREFIX = 'TS'
+export const HLGROUP_PREFIX = 'CocSem'
 export const NAMESPACE = 'semanticTokens'
 
 /**

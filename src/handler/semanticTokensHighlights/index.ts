@@ -9,7 +9,7 @@ import { disposeAll } from '../../util'
 import { equals } from '../../util/object'
 import window from '../../window'
 import workspace from '../../workspace'
-import SemanticTokensBuffer, { NAMESPACE, SemanticTokensConfig } from './buffer'
+import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
@@ -146,7 +146,7 @@ export default class SemanticTokensHighlights {
     const legend = languages.getLegend(doc.textDocument)
     if (legend?.tokenTypes.length) {
       for (const t of [...new Set(legend.tokenTypes)]) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `TS${t}`, hlGroup: `TS${t}` }])
+        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `${HLGROUP_PREFIX}${t}`, hlGroup: `${HLGROUP_PREFIX}${t}` }])
         highlighter.addLine('')
       }
     } else {
@@ -156,7 +156,7 @@ export default class SemanticTokensHighlights {
     highlighter.addLine('')
     if (legend?.tokenModifiers.length) {
       for (const t of [...new Set(legend.tokenModifiers)]) {
-        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `TS${t}`, hlGroup: `TS${t}` }])
+        highlighter.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: `${HLGROUP_PREFIX}${t}`, hlGroup: `${HLGROUP_PREFIX}${t}` }])
         highlighter.addLine('')
       }
     } else {
