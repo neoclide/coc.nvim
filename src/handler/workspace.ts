@@ -43,9 +43,9 @@ export default class WorkspaceHandler {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return null
     return {
-      buffer: workspace.getRootPatterns(doc, PatternType.Buffer),
-      server: workspace.getRootPatterns(doc, PatternType.LanguageServer) || [],
-      global: workspace.getRootPatterns(doc, PatternType.Global)
+      buffer: workspace.workspaceFolderControl.getRootPatterns(doc, PatternType.Buffer),
+      server: workspace.workspaceFolderControl.getRootPatterns(doc, PatternType.LanguageServer) || [],
+      global: workspace.workspaceFolderControl.getRootPatterns(doc, PatternType.Global)
     }
   }
 

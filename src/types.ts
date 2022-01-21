@@ -210,7 +210,6 @@ export interface IWorkspace {
   readonly documents: Document[]
   readonly configurations: Configurations
   textDocuments: TextDocument[]
-  workspaceFolder: WorkspaceFolder
   onDidOpenTextDocument: Event<TextDocument & { bufnr: number }>
   onDidCloseTextDocument: Event<TextDocument & { bufnr: number }>
   onDidChangeTextDocument: Event<DidChangeTextDocumentParams>

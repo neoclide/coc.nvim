@@ -987,7 +987,7 @@
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": ["markdown", "log", "txt", "help"],
-      "description": "Filetypes that should be ignored for resolve workspace folder.",
+      "description": "Filetypes that should be ignored for workspace folder resolve.",
       "items": {
         "type": "string"
       }
@@ -1000,10 +1000,23 @@
         "type": "string"
       }
     },
+    "workspace.ignoredFolders": {
+      "type": "array",
+      "default": ["$HOME"],
+      "description": "List of folders that should not be resolved as workspace folder, environment variables and minimatch patterns can be used.",
+      "items": {
+        "type": "string"
+      }
+    },
     "workspace.workspaceFolderCheckCwd": {
       "type": "boolean",
       "default": true,
-      "description": "Whether the cwd directory should be checked first when resolving workspace folder."
+      "description": "Whether the current working directory should be used first when checking patterns match for workspace folder."
+    },
+    "workspace.workspaceFolderFallbackCwd": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use current working directory as workspace folder when no root patterns resolved."
     },
     "list.indicator": {
       "type": "string",

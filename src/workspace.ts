@@ -13,6 +13,7 @@ import { version as VERSION } from '../package.json'
 import channels from './channels'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
+import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import DB from './model/db'
@@ -23,9 +24,8 @@ import Resolver from './model/resolver'
 import Task from './model/task'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, OutputChannel, PatternType, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
-import { distinct } from './util/array'
-import { findUp, fixDriver, inDirectory, isFile, isParentFolder, readFileLine, renameAsync, resolveRoot, statAsync } from './util/fs'
+import { ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, OutputChannel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { findUp, fixDriver, isFile, isParentFolder, readFileLine, renameAsync, statAsync } from './util/fs'
 import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, MapMode, platform, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
@@ -77,8 +77,6 @@ export class Workspace implements IWorkspace {
   public bufnr: number
   private maxFileSize: number
   private resolver: Resolver = new Resolver()
-  private rootPatterns: Map<string, string[]> = new Map()
-  private _workspaceFolders: WorkspaceFolder[] = []
   private _insertMode = false
   private _env: Env
   private _root: string
@@ -101,16 +99,15 @@ export class Workspace implements IWorkspace {
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
   private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
   private _onDidSaveDocument = new Emitter<TextDocument>()
-  private _onDidChangeWorkspaceFolders = new Emitter<WorkspaceFoldersChangeEvent>()
   private _onDidChangeConfiguration = new Emitter<ConfigurationChangeEvent>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
   private _onDidOpenTerminal = new Emitter<TerminalModel>()
   private _onDidCloseTerminal = new Emitter<TerminalModel>()
   private _onDidRuntimePathChange = new Emitter<string[]>()
 
+  public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent>
   public readonly onDidCloseTerminal: Event<TerminalModel> = this._onDidCloseTerminal.event
   public readonly onDidOpenTerminal: Event<TerminalModel> = this._onDidOpenTerminal.event
-  public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent> = this._onDidChangeWorkspaceFolders.event
   public readonly onDidOpenTextDocument: Event<TextDocument & { bufnr: number }> = this._onDidOpenDocument.event
   public readonly onDidCloseTextDocument: Event<TextDocument & { bufnr: number }> = this._onDidCloseDocument.event
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
@@ -120,6 +117,7 @@ export class Workspace implements IWorkspace {
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
   public readonly configurations: Configurations
+  public readonly workspaceFolderControl: WorkspaceFolderController
 
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
@@ -137,14 +135,11 @@ export class Workspace implements IWorkspace {
 
   constructor() {
     this.version = VERSION
-    this.configurations = this.createConfigurations()
-    let cwd = process.cwd()
-    if (cwd != os.homedir() && inDirectory(cwd, ['.vim'])) {
-      this._workspaceFolders.push({
-        uri: URI.file(cwd).toString(),
-        name: path.basename(cwd)
-      })
-    }
+    let home = path.normalize(process.env.COC_VIMCONFIG) || path.join(os.homedir(), '.vim')
+    let userConfigFile = path.join(home, CONFIG_FILE_NAME)
+    this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
+    this.workspaceFolderControl = new WorkspaceFolderController(this.configurations)
+    this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
   }
 
   public async init(): Promise<void> {
@@ -153,7 +148,7 @@ export class Workspace implements IWorkspace {
       Object.defineProperty(this, method, {
         get: () => {
           return (...args: any[]) => {
-            // logger.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, Error().stack)
+            logger.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, Error().stack)
             return window[method].apply(window, args)
           }
         }
@@ -166,10 +161,7 @@ export class Workspace implements IWorkspace {
     }
     this._insertMode = this._env.mode.startsWith('insert')
     if (this._env.workspaceFolders && Array.isArray(this._env.workspaceFolders)) {
-      this._workspaceFolders = this._env.workspaceFolders.map(f => ({
-        uri: URI.file(f).toString(),
-        name: path.dirname(f)
-      }))
+      this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
     }
     this.configurations.updateUserConfig(this._env.config)
     let preferences = this.getConfiguration('coc.preferences')
@@ -181,10 +173,12 @@ export class Workspace implements IWorkspace {
     events.on(['InsertLeave', 'CursorMoved'], () => {
       this._insertMode = false
     }, null, this.disposables)
+    events.on('DirChanged', cwd => {
+      this._cwd = cwd
+    }, null, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables)
     events.on('CursorMovedI', this.checkCurrentBuffer, this, this.disposables)
-    events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
     events.on('TermOpen', this.onBufCreate, this, this.disposables)
@@ -322,8 +316,28 @@ export class Workspace implements IWorkspace {
     return this.root
   }
 
+  public get insertMode(): boolean {
+    return this._insertMode
+  }
+
+  /**
+   * @deprecated
+   */
+  public get workspaceFolder(): WorkspaceFolder {
+    return this.workspaceFolders[0]
+  }
+
   public get workspaceFolders(): WorkspaceFolder[] {
-    return this._workspaceFolders
+    return this.workspaceFolderControl.workspaceFolders
+  }
+
+  public get folderPaths(): string[] {
+    return this.workspaceFolders.map(f => URI.parse(f.uri).fsPath)
+  }
+
+  public get floatSupported(): boolean {
+    let { env } = this
+    return env.floating || env.textprop
   }
 
   /**
@@ -340,15 +354,6 @@ export class Workspace implements IWorkspace {
       }
     }
     return null
-  }
-
-  public get workspaceFolder(): WorkspaceFolder {
-    let { rootPath } = this
-    if (rootPath == os.homedir()) return null
-    return {
-      uri: URI.file(rootPath).toString(),
-      name: path.basename(rootPath)
-    }
   }
 
   public get textDocuments(): TextDocument[] {
@@ -787,9 +792,7 @@ export class Workspace implements IWorkspace {
    * Get WorkspaceFolder of uri
    */
   public getWorkspaceFolder(uri: string): WorkspaceFolder | null {
-    this.workspaceFolders.sort((a, b) => b.uri.length - a.uri.length)
-    let filepath = URI.parse(uri).fsPath
-    return this.workspaceFolders.find(folder => isParentFolder(URI.parse(folder.uri).fsPath, filepath, true))
+    return this.workspaceFolderControl.getWorkspaceFolder(URI.parse(uri))
   }
 
   /**
@@ -1394,12 +1397,6 @@ augroup end`
     return Array.from(uris)
   }
 
-  private createConfigurations(): Configurations {
-    let home = path.normalize(process.env.COC_VIMCONFIG) || path.join(os.homedir(), '.vim')
-    let userConfigFile = path.join(home, CONFIG_FILE_NAME)
-    return new Configurations(userConfigFile, new ConfigurationShape(this))
-  }
-
   // events for sync buffer of vim
   private attachChangedEvents(): void {
     if (this.isVim) {
@@ -1442,20 +1439,8 @@ augroup end`
         if (doc) this.onBufUnload(doc.bufnr)
       })
     }
-    if (document.buftype == '' && document.schema == 'file') {
-      this.configurations.checkFolderConfiguration(document.uri)
-      let config = this.getConfiguration('workspace')
-      let filetypes = config.get<string[]>('ignoredFiletypes', [])
-      if (!filetypes.includes(document.languageId)) {
-        let root = this.resolveRoot(document)
-        if (root) {
-          this.addWorkspaceFolder(root)
-          if (this.bufnr == buffer.id) {
-            this._root = root
-          }
-        }
-      }
-    }
+    let root = this.workspaceFolderControl.resolveRoot(document, this.cwd, this._initialized, this.expand.bind(this))
+    if (root && this.bufnr == document.bufnr) this._root = root
     if (document.enabled) {
       let textDocument: TextDocument & { bufnr: number } = Object.assign(document.textDocument, { bufnr })
       this._onDidOpenDocument.fire(textDocument)
@@ -1563,11 +1548,6 @@ augroup end`
     }
   }
 
-  private onDirChanged(cwd: string): void {
-    if (cwd == this._cwd) return
-    this._cwd = cwd
-  }
-
   private onFileTypeChange(filetype: string, bufnr: number): void {
     let doc = this.getDocument(bufnr)
     if (!doc) return
@@ -1583,34 +1563,6 @@ augroup end`
     if (this._disposed || !bufnr) return
     let doc = this.getDocument(bufnr)
     if (!doc && !this.creatingSources.has(bufnr)) await this.onBufCreate(bufnr)
-  }
-
-  private resolveRoot(document: Document): string {
-    let types = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
-    let u = URI.parse(document.uri)
-    let dir = path.dirname(u.fsPath)
-    let { cwd } = this
-    let config = this.getConfiguration('workspace')
-    let bottomUpFileTypes = config.get<string[]>('bottomUpFiletypes', [])
-    let checkCwd = config.get<boolean>('workspaceFolderCheckCwd', true)
-    for (let patternType of types) {
-      let patterns = this.getRootPatterns(document, patternType)
-      if (patterns && patterns.length) {
-        let isBottomUp = bottomUpFileTypes.includes(document.filetype)
-        let root = resolveRoot(dir, patterns, cwd, isBottomUp, checkCwd)
-        if (root) return root
-      }
-    }
-    if (this.cwd != os.homedir() && isParentFolder(this.cwd, dir, true)) return this.cwd
-    return null
-  }
-
-  public getRootPatterns(document: Document, patternType: PatternType): string[] {
-    let { uri } = document
-    if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
-    if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.languageId)
-    const preferences = this.getConfiguration('coc.preferences', uri)
-    return preferences.get<string[]>('rootPatterns', ['.git', '.hg', '.projections.json']).slice()
   }
 
   public async renameCurrent(): Promise<void> {
@@ -1669,57 +1621,6 @@ augroup end`
     await nvim.resumeNotification()
   }
 
-  public get folderPaths(): string[] {
-    return this.workspaceFolders.map(f => URI.parse(f.uri).fsPath)
-  }
-
-  public get floatSupported(): boolean {
-    let { env } = this
-    return env.floating || env.textprop
-  }
-
-  public removeWorkspaceFolder(fsPath: string): void {
-    let idx = this._workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == fsPath)
-    if (idx != -1) {
-      let folder = this._workspaceFolders[idx]
-      this._workspaceFolders.splice(idx, 1)
-      this._onDidChangeWorkspaceFolders.fire({
-        removed: [folder],
-        added: []
-      })
-    }
-  }
-
-  public renameWorkspaceFolder(oldPath: string, newPath: string): void {
-    let idx = this._workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == oldPath)
-    if (idx == -1) return
-    let removed = this._workspaceFolders[idx]
-    let added: WorkspaceFolder = {
-      uri: URI.file(newPath).toString(),
-      name: path.dirname(newPath)
-    }
-    this._workspaceFolders.splice(idx, 1)
-    this._workspaceFolders.push(added)
-    this._onDidChangeWorkspaceFolders.fire({
-      removed: [removed],
-      added: [added]
-    })
-  }
-
-  public addRootPattern(filetype: string, rootPatterns: string[]): void {
-    let patterns = this.rootPatterns.get(filetype) || []
-    for (let p of rootPatterns) {
-      if (!patterns.includes(p)) {
-        patterns.push(p)
-      }
-    }
-    this.rootPatterns.set(filetype, patterns)
-  }
-
-  public get insertMode(): boolean {
-    return this._insertMode
-  }
-
   public async detach(): Promise<void> {
     if (!this._attached) return
     this._attached = false
@@ -1738,37 +1639,6 @@ augroup end`
     Watchman.dispose()
     this.configurations.dispose()
     this.buffers.clear()
-  }
-
-  private addWorkspaceFolder(rootPath: string): WorkspaceFolder {
-    if (rootPath == os.homedir()) return
-    let { _workspaceFolders } = this
-    let uri = URI.file(rootPath).toString()
-    let workspaceFolder: WorkspaceFolder = { uri, name: path.basename(rootPath) }
-    if (_workspaceFolders.findIndex(o => o.uri == uri) == -1) {
-      _workspaceFolders.push(workspaceFolder)
-      if (this._initialized) {
-        this._onDidChangeWorkspaceFolders.fire({
-          added: [workspaceFolder],
-          removed: []
-        })
-      }
-    }
-    return workspaceFolder
-  }
-
-  private getServerRootPatterns(filetype: string): string[] {
-    let lspConfig = this.getConfiguration().get<{ [key: string]: unknown }>('languageserver', {})
-    let patterns: string[] = []
-    for (let key of Object.keys(lspConfig)) {
-      let config: any = lspConfig[key]
-      let { filetypes, rootPatterns } = config
-      if (Array.isArray(filetypes) && rootPatterns && filetypes.includes(filetype)) {
-        patterns.push(...rootPatterns)
-      }
-    }
-    patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
-    return patterns.length ? distinct(patterns) : null
   }
 }
 

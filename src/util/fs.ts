@@ -14,7 +14,7 @@ export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   let stat = null
   try {
     stat = await fs.stat(filepath)
-  } catch (e) { }
+  } catch (e) {}
   return stat
 }
 
@@ -26,7 +26,7 @@ export async function isDirectory(filepath: string): Promise<boolean> {
 export async function unlinkAsync(filepath: string): Promise<void> {
   try {
     await fs.unlink(filepath)
-  } catch (e) { }
+  } catch (e) {}
 }
 
 export function renameAsync(oldPath: string, newPath: string): Promise<void> {
@@ -46,40 +46,40 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   try {
     let { stdout } = await util.promisify(exec)('git rev-parse --show-toplevel', { cwd: path.dirname(fullpath) })
     root = stdout.trim()
-  } catch (e) { }
+  } catch (e) {}
   if (!root) return false
   let file = path.relative(root, fullpath)
   try {
     let { stdout } = await util.promisify(exec)(`git check-ignore ${file}`, { cwd: root })
     return stdout.trim() == file
-  } catch (e) { }
+  } catch (e) {}
   return false
 }
 
-export function resolveRoot(folder: string, subs: string[], cwd?: string, bottomup = false, checkCwd = true): string | null {
-  let home = os.homedir()
+export function isFolderIgnored(folder: string, ignored: string[] = []): boolean {
+  if (!ignored || !ignored.length) return false
+  return ignored.some(p => minimatch(folder, p, { dot: true }))
+}
+
+export function resolveRoot(folder: string, subs: string[], cwd?: string, bottomup = false, checkCwd = true, ignored: string[] = []): string | null {
   let dir = fixDriver(folder)
-  if (isParentFolder(dir, home, true)) return null
-  if (checkCwd && cwd && isParentFolder(cwd, dir, true) && inDirectory(cwd, subs)) return cwd
+  if (checkCwd && cwd && isParentFolder(cwd, dir, true) && !isFolderIgnored(cwd, ignored) && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
   if (bottomup) {
     while (parts.length > 0) {
       let dir = parts.join(path.sep)
-      if (dir == home) {
-          break
-      }
-      if (dir != home && inDirectory(dir, subs)) {
+      if (!ignored.includes(dir) && inDirectory(dir, subs)) {
         return dir
       }
       parts.pop()
     }
-  return null
+    return null
   } else {
     let curr: string[] = [parts.shift()]
     for (let part of parts) {
       curr.push(part)
       let dir = curr.join(path.sep)
-      if (dir != home && inDirectory(dir, subs)) {
+      if (!ignored.includes(dir) && inDirectory(dir, subs)) {
         return dir
       }
     }

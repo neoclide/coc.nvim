@@ -198,7 +198,7 @@ describe('resolveRoot', () => {
   })
 
   it('should not resolve to home', () => {
-    let res = resolveRoot(__dirname, ['.config'])
+    let res = resolveRoot(__dirname, ['.config'], undefined, false, false, [os.homedir()])
     expect(res != os.homedir()).toBeTruthy()
   })
 })

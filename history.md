@@ -1,3 +1,8 @@
+# 2022-01-21
+
+- Add configuration `workspace.ignoredFolders`.
+- Add configuration `workspace.workspaceFolderFallbackCwd`.
+
 # 2022-01-20
 
 - Remove deprecated method `workspace.resolveRootFolder`.
