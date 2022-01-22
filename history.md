@@ -1,3 +1,56 @@
+# 2022-01-22
+
+- Not set `gravity` with api `nvim_buf_set_extmark` because highlight bug, wait neovim fix.
+
+# 2022-01-21
+
+- Changed semantic token highlight prefix from `CocSem_` to `CocSem`.
+- Changed semantic token highlight disabled by default, use configuration
+  `semanticTokens.filetypes`
+- Add configuration `semanticTokens.filetypes`.
+- Add configuration `semanticTokens.highlightPriority`.
+- Add configuration `semanticTokens.incrementTypes`.
+- Add configuration `semanticTokens.combinedModifiers`.
+- Add command `semanticTokens.refreshCurrent`.
+- Add command `semanticTokens.inspect`.
+- Add action `inspectSemanticToken`.
+- Rework command `semanticTokens.checkCurrent` to show highlight information.
+- Support semantic tokens highlight group composed with type and modifier.
+
+# 2022-01-21
+
+- Add configuration `workspace.ignoredFolders`.
+- Add configuration `workspace.workspaceFolderFallbackCwd`.
+
+# 2022-01-20
+
+- Remove deprecated method `workspace.resolveRootFolder`.
+
+# 2022-01-17
+
+- Extend `buffer.updateHighlights` to support `priority`, `combine`, `start_incl` and `end_incl`.
+- Add configuration `diagnostic.highlightPriority`.
+- Add configuration `colors.filetypes` and `colors.highlightPriority`.
+
+# 2022-01-16
+
+- Add configuration `codeLens.position`.
+
+# 2022-01-14
+
+- Add configuration `suggest.selection`.
+
+# 2022-01-13
+
+- `codeLens.separator` now defaults to `""` and will be placed above lines on neovim >= 0.6.0 .
+- Add configurations 'diagnostic.locationlistLevel', 'diagnostic.signLevel', 'diagnostic.messageLevel'.
+
+# 2022-01-12
+
+- Add document.lineAt(), export TextLine class.
+- Upgrade node-client, support nvim.exec().
+- Add documentHighlight.priority configuration.
+
 # 2019-08-18 0.0.74
 
 - feat(cursors): support multiple cursors.
