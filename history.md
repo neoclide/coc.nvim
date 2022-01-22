@@ -1,3 +1,7 @@
+# 2022-01-23
+
+- Support semantic tokens highlights from range provider.
+
 # 2022-01-22
 
 - Not set `gravity` with api `nvim_buf_set_extmark` because highlight bug, wait neovim fix.

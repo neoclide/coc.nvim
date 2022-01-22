@@ -432,6 +432,8 @@ class Languages {
         return this.callHierarchyManager.hasProvider(document)
       case 'semanticTokens':
         return this.semanticTokensManager.hasProvider(document)
+      case 'semanticTokensRange':
+        return this.semanticTokensRangeManager.hasProvider(document)
       case 'linkedEditing':
         return this.linkedEditingManager.hasProvider(document)
       default:

@@ -54,3 +54,12 @@ function! coc#window#close(winid) abort
     endif
   endif
 endfunction
+
+function! coc#window#visible_range(bufnr) abort
+  let winid = bufwinid(a:bufnr)
+  if winid == -1
+    return v:null
+  endif
+  let info = getwininfo(winid)[0]
+  return [info['topline'], info['botline']]
+endfunction

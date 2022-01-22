@@ -1,17 +1,19 @@
 import { Neovim } from '@chemzqm/neovim'
+import { debounce } from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
+import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
+import FloatFactory from '../../model/floatFactory'
 import Highlighter from '../../model/highligher'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
-import workspace from '../../workspace'
-import window from '../../window'
-import FloatFactory from '../../model/floatFactory'
-import SemanticTokensBuffer, { capitalize, HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
 import { positionInRange } from '../../util/position'
+import window from '../../window'
+import workspace from '../../workspace'
+import SemanticTokensBuffer, { capitalize, HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
@@ -71,6 +73,17 @@ export default class SemanticTokensHighlights {
         }
       }
     }, null, this.disposables)
+    let fn = debounce(bufnr => {
+      let item = this.highlighters.getItem(bufnr)
+      if (!item || !item.rangeProviderOnly) return
+      item.doRangeHighlight().logError()
+    }, global.hasOwnProperty('__TEST__') ? 10 : 300)
+    events.on('CursorMoved', fn, null, this.disposables)
+    this.disposables.push({
+      dispose: () => {
+        fn.clear()
+      }
+    })
   }
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {

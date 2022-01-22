@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Disposable, SemanticTokensLegend } from 'vscode-languageserver-protocol'
+import { Disposable, Range, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import SemanticTokensHighlights from '../../handler/semanticTokensHighlights/index'
 import { disposeAll } from '../../util'
@@ -7,6 +7,7 @@ import workspace from '../../workspace'
 import window from '../../window'
 import commandManager from '../../commands'
 import helper from '../helper'
+import events from '../../events'
 
 let nvim: Neovim
 let ns: number
@@ -114,6 +115,17 @@ const defaultResult = {
     1, 0, 1, 25, 0,
   ]
 }
+
+function registerRangeProvider(filetype: string, fn: (range: Range) => number[]): Disposable {
+  return languages.registerDocumentRangeSemanticTokensProvider([{ language: filetype }], {
+    provideDocumentRangeSemanticTokens: (_, range) => {
+      return {
+        data: fn(range)
+      }
+    }
+  }, legend)
+}
+
 beforeEach(async () => {
   workspace.configurations.updateUserConfig({
     'semanticTokens.filetypes': ['rust']
@@ -122,6 +134,7 @@ beforeEach(async () => {
     let buf = await nvim.buffer
     await nvim.command('setf rust')
     await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
+    await helper.wait(10)
     let doc = await workspace.document
     await doc.synchronize()
     return buf
@@ -236,6 +249,61 @@ describe('semanticTokens', () => {
       let buf = await nvim.buffer
       let markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(0)
+    })
+  })
+
+  describe('rangeProvider', () => {
+    it('should invoke range provider first time when both kind exists', async () => {
+      await nvim.command('bd!')
+      await helper.wait(50)
+      let t = 0
+      disposables.push(registerRangeProvider('rust', () => {
+        t++
+        return []
+      }))
+      await helper.createDocument('t.rust')
+      await nvim.command('setf rust')
+      await helper.wait(100)
+      expect(t).toBe(1)
+      await highlighter.highlightCurrent()
+      expect(t).toBe(1)
+    })
+
+    it('should do range highlight first time', async () => {
+      await highlighter.fetchHighlightGroups()
+      let doc = await helper.createDocument('t.vim')
+      let r: Range
+      expect(doc.filetype).toBe('vim')
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
+      await helper.wait(30)
+      disposables.push(registerRangeProvider('vim', range => {
+        r = range
+        return [0, 0, 3, 1, 0]
+      }))
+      let item = await highlighter.getCurrentItem()
+      await item.doRangeHighlight()
+      expect(r).toEqual(Range.create(0, 0, 1, 0))
+      let buf = await nvim.buffer
+      let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(1)
+    })
+
+    it('should do range highlight after cursor moved', async () => {
+      await highlighter.fetchHighlightGroups()
+      let doc = await helper.createDocument('t.vim')
+      let r: Range
+      expect(doc.filetype).toBe('vim')
+      await nvim.call('setline', [2, (new Array(200).fill(''))])
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
+      await helper.wait(30)
+      disposables.push(registerRangeProvider('vim', range => {
+        r = range
+        return []
+      }))
+      await nvim.command('normal! G')
+      await helper.wait(50)
+      expect(r).toBeDefined()
+      expect(r.end).toEqual({ line: 201, character: 0 })
     })
   })
 
