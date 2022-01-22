@@ -1,6 +1,7 @@
 import path from 'path'
 import helper from '../helper'
 import os from 'os'
+import fs from 'fs'
 import bser from 'bser'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Configurations from '../../configuration/index'
@@ -112,6 +113,19 @@ afterEach(async () => {
   if (watcher) {
     watcher.dispose()
     watcher = null
+  }
+})
+
+afterAll(() => {
+  if (client) {
+    client.removeAllListeners()
+    client.destroy()
+  }
+  server.removeAllListeners()
+  server.unref()
+  server.close()
+  if (fs.existsSync(sockPath)) {
+    fs.unlinkSync(sockPath)
   }
 })
 

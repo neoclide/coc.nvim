@@ -21,10 +21,6 @@ beforeAll(async () => {
   nvim = helper.nvim
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
 afterEach(async () => {
   await Watchman.dispose()
   capabilities = undefined
@@ -101,7 +97,7 @@ beforeAll(done => {
   })
 })
 
-afterAll(() => {
+afterAll(async () => {
   if (client) {
     client.removeAllListeners()
     client.destroy()
@@ -112,6 +108,7 @@ afterAll(() => {
   if (fs.existsSync(sockPath)) {
     fs.unlinkSync(sockPath)
   }
+  await helper.shutdown()
 })
 
 describe('watchman', () => {
