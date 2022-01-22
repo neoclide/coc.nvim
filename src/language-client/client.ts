@@ -9,7 +9,7 @@ import { TextDocument } from "vscode-languageserver-textdocument"
 import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
-import FileWatcher from '../model/fileSystemWatcher'
+import { FileSystemWatcher as FileWatcher } from '../types'
 import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import { resolveRoot } from '../util/fs'

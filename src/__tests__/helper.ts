@@ -13,12 +13,23 @@ import Plugin from '../plugin'
 import workspace from '../workspace'
 import { terminate } from '../util/processes'
 import { v4 as uuid } from 'uuid'
-import { VimCompleteItem } from '../types'
+import { VimCompleteItem, OutputChannel } from '../types'
 
 export interface CursorPosition {
   bufnum: number
   lnum: number
   col: number
+}
+
+const nullChannel: OutputChannel = {
+  content: '',
+  show: () => {},
+  dispose: () => {},
+  name: 'null',
+  append: () => {},
+  appendLine: () => {},
+  clear: () => {},
+  hide: () => {}
 }
 
 process.on('uncaughtException', err => {
@@ -241,6 +252,10 @@ export class Helper extends EventEmitter {
     let ids = await this.nvim.call('coc#float#get_float_win_list', [])
     if (!ids) return []
     return ids.map(id => this.nvim.createWindow(id))
+  }
+
+  public createNullChannel(): OutputChannel {
+    return nullChannel
   }
 }
 

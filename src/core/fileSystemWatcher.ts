@@ -1,10 +1,13 @@
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
-import Watchman, { FileChange } from '../watchman'
 import minimatch from 'minimatch'
 import path from 'path'
+import fs from 'fs'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
+import Watchman, { FileChange } from './watchman'
+import WorkspaceFolder from './workspaceFolder'
 const logger = require('../util/logger')('filesystem-watcher')
 
 export interface RenameEvent {
@@ -12,14 +15,18 @@ export interface RenameEvent {
   newUri: URI
 }
 
+/*
+ * FileSystemWatcher for watch workspace folders.
+ */
 export default class FileSystemWatcher implements Disposable {
-
   private _onDidCreate = new Emitter<URI>()
   private _onDidChange = new Emitter<URI>()
   private _onDidDelete = new Emitter<URI>()
   private _onDidRename = new Emitter<RenameEvent>()
+  private _watchedFolders: Set<string> = new Set()
 
   private _disposed = false
+  public subscribe: string
   public readonly onDidCreate: Event<URI> = this._onDidCreate.event
   public readonly onDidChange: Event<URI> = this._onDidChange.event
   public readonly onDidDelete: Event<URI> = this._onDidDelete.event
@@ -27,29 +34,35 @@ export default class FileSystemWatcher implements Disposable {
   private disposables: Disposable[] = []
 
   constructor(
-    clientPromise: Promise<Watchman | Watchman[]> | null,
+    workspaceFolder: WorkspaceFolder,
+    private watchmanPath: string,
+    private channel: OutputChannel | undefined,
     private globPattern: string,
     public ignoreCreateEvents: boolean,
     public ignoreChangeEvents: boolean,
-    public ignoreDeleteEvents: boolean
+    public ignoreDeleteEvents: boolean,
   ) {
-    if (!clientPromise) return
-    clientPromise.then(client => {
-      if (Array.isArray(client)) {
-        client.forEach(c => {
-          if (c) this.listen(c)
-        })
-      } else if (client) {
-        this.listen(client)
-      }
-    }).catch(error => {
-      logger.error('watchman initialize failed')
-      logger.error(error.stack)
+    workspaceFolder.workspaceFolders.forEach(folder => {
+      let root = URI.parse(folder.uri).fsPath
+      this.create(root)
     })
+    workspaceFolder.onDidChangeWorkspaceFolders(e => {
+      e.added.forEach(folder => {
+        let root = URI.parse(folder.uri).fsPath
+        this.create(root)
+      })
+    }, null, this.disposables)
+  }
+
+  private create(root: string): void {
+    if (!root || !fs.existsSync(root) || this.watchmanPath == null) return
+    Watchman.createClient(this.watchmanPath, root, this.channel).then(client => {
+      if (this._disposed || !client) return
+      this.listen(client)
+    }).logError()
   }
 
   private listen(client: Watchman): void {
-    if (this._disposed) return
     let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
@@ -97,15 +110,18 @@ export default class FileSystemWatcher implements Disposable {
       }
     }
     client.subscribe(globPattern, onChange).then(disposable => {
+      this.subscribe = disposable.subscribe
       if (this._disposed) return disposable.dispose()
       this.disposables.push(disposable)
-    }, err => {
-      logger.error(err)
-    })
+    }).logError()
   }
 
   public dispose(): void {
     this._disposed = true
+    this._watchedFolders.clear()
+    this._onDidRename.dispose()
+    this._onDidCreate.dispose()
+    this._onDidChange.dispose()
     disposeAll(this.disposables)
   }
 }

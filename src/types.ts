@@ -1,11 +1,10 @@
 // vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionKind, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionKind, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Configurations from './configuration'
 import Document from './model/document'
-import FileSystemWatcher from './model/fileSystemWatcher'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
 
 export interface Thenable<T> {
@@ -43,6 +42,15 @@ export interface HandlerDelegate {
  */
 export interface ExtendedCodeAction extends CodeAction {
   providerId: string
+}
+
+export interface FileSystemWatcher extends Disposable {
+  ignoreCreateEvents: boolean
+  ignoreChangeEvents: boolean
+  ignoreDeleteEvents: boolean
+  onDidCreate: Event<URI>
+  onDidChange: Event<URI>
+  onDidDelete: Event<URI>
 }
 
 export interface FloatConfig {

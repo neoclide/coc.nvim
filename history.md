@@ -1,6 +1,7 @@
 # 2022-01-22
 
 - Not set `gravity` with api `nvim_buf_set_extmark` because highlight bug, wait neovim fix.
+- Support watch later created workspace folders for file events.
 
 # 2022-01-21
 

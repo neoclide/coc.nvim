@@ -1,12 +1,12 @@
 import watchman, { Client } from 'fb-watchman'
 import os from 'os'
 import path from 'path'
-import { OutputChannel } from './types'
+import { OutputChannel } from '../types'
 import { v1 as uuidv1 } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import minimatch from 'minimatch'
-import { isParentFolder } from './util/fs'
-const logger = require('./util/logger')('watchman')
+import { isParentFolder } from '../util/fs'
+const logger = require('../util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
 export interface WatchResponse {
@@ -34,6 +34,7 @@ export interface FileChange {
 export type ChangeCallback = (FileChange) => void
 
 const clientsMap: Map<string, Promise<Watchman>> = new Map()
+
 /**
  * Watchman wrapper for fb-watchman client
  *
@@ -59,7 +60,7 @@ export default class Watchman {
         optional: [],
         required: requiredCapabilities
       }, (error, resp) => {
-        if (error) return reject(error)
+        if (error) return resolve(false)
         let { capabilities } = resp
         for (let key of Object.keys(capabilities)) {
           if (!capabilities[key]) return resolve(false)
@@ -70,18 +71,14 @@ export default class Watchman {
   }
 
   public async watchProject(root: string): Promise<boolean> {
-    try {
-      let resp = await this.command(['watch-project', root])
-      let { watch, warning, relative_path } = (resp as WatchResponse)
-      if (warning) logger.warn(warning)
-      this.watch = watch
-      this.relative_path = relative_path
-      logger.info(`watchman watching project: ${root}`)
-      this.appendOutput(`watchman watching project: ${root}`)
-    } catch (e) {
-      logger.error(e)
-      return false
-    }
+    let resp = await this.command(['watch-project', root])
+    let { watch, warning, relative_path } = resp as WatchResponse
+    if (!watch) return false
+    if (warning) logger.warn(warning)
+    this.watch = watch
+    this.relative_path = relative_path
+    logger.info(`watchman watching project: ${root}`)
+    this.appendOutput(`watchman watching project: ${root}`)
     return true
   }
 
@@ -94,12 +91,9 @@ export default class Watchman {
     })
   }
 
-  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable> {
+  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable & { subscribe: string }> {
     let { watch, relative_path } = this
-    if (!watch) {
-      this.appendOutput(`watchman not watching: ${watch}`, 'Error')
-      return null
-    }
+    if (!watch) throw new Error('watchman not watching')
     let { clock } = await this.command(['clock', watch])
     let uid = uuidv1()
     let sub: any = {
@@ -113,7 +107,6 @@ export default class Watchman {
       root = path.join(watch, relative_path)
     }
     let { subscribe } = await this.command(['subscribe', watch, uid, sub])
-    if (global.hasOwnProperty('__TEST__')) (global as any).subscribe = subscribe
     this.appendOutput(`subscribing "${globPattern}" in ${root}`)
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid) return
@@ -126,7 +119,13 @@ export default class Watchman {
       this.appendOutput(`file change detected: ${JSON.stringify(ev, null, 2)}`)
       cb(ev)
     })
-    return Disposable.create(() => this.unsubscribe(subscribe))
+    // return Disposable.create(() => )
+    return {
+      dispose: () => {
+        void this.unsubscribe(subscribe)
+      },
+      subscribe
+    }
   }
 
   public unsubscribe(subscription: string): Promise<any> {
@@ -142,8 +141,10 @@ export default class Watchman {
   public dispose(): void {
     if (this._disposed) return
     this._disposed = true
-    this.client.removeAllListeners()
-    this.client.end()
+    if (this.client) {
+      this.client.removeAllListeners()
+      this.client.end()
+    }
   }
 
   private appendOutput(message: string, type = "Info"): void {
@@ -152,30 +153,29 @@ export default class Watchman {
     }
   }
 
-  public static dispose(): void {
+  public static async dispose(): Promise<void> {
     for (let promise of clientsMap.values()) {
-      promise.then(client => {
-        client.dispose()
-      }, _e => {
-        // noop
-      })
+      let client = await promise
+      if (client) client.dispose()
     }
+    clientsMap.clear()
   }
 
   public static createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman | null> {
-    if (!isValidWatchRoot(root)) return null
+    if (!isValidWatchRoot(root)) return Promise.resolve(null)
     let client = clientsMap.get(root)
     if (client) return client
-    let promise = new Promise<Watchman | null>(async (resolve, reject) => {
+    let promise = new Promise<Watchman | null>(async resolve => {
       try {
         let watchman = new Watchman(binaryPath, channel)
         let valid = await watchman.checkCapability()
-        if (!valid) return resolve(null)
+        if (!valid) throw new Error('required capabilities not exists.')
         let watching = await watchman.watchProject(root)
-        if (!watching) return resolve(null)
+        if (!watching) throw new Error('unable to watch')
         resolve(watchman)
       } catch (e) {
-        reject(e)
+        logger.error(`Error on watchman create: ${e.message}`)
+        resolve(null)
       }
     })
     clientsMap.set(root, promise)
@@ -188,7 +188,7 @@ export default class Watchman {
  */
 export function isValidWatchRoot(root: string): boolean {
   if (root == '/' || root == '/tmp' || root == '/private/tmp') return false
-  if (root.toLowerCase() === os.homedir().toLowerCase()) return false
+  if (isParentFolder(root, os.homedir(), true)) return false
   if (path.parse(root).base == root) return false
   if (root.startsWith('/tmp/') || root.startsWith('/private/tmp/')) return false
   if (isParentFolder(os.tmpdir(), root, true)) return false

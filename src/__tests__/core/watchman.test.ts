@@ -1,15 +1,18 @@
 // import watchman from 'fb-watchman'
 import { Neovim } from '@chemzqm/neovim'
 import net from 'net'
+import path from 'path'
+import os from 'os'
 import fs from 'fs'
 import bser from 'bser'
-import Watchman, { FileChangeItem } from '../../watchman'
+import Watchman, { FileChangeItem, isValidWatchRoot } from '../../core/watchman'
 import helper from '../helper'
 import BufferChannel from '../../model/outputChannel'
+import { v1 as uuidv1 } from 'uuid'
 
 let server: net.Server
 let client: net.Socket
-const sockPath = '/tmp/watchman-fake'
+const sockPath = path.join(os.tmpdir(), `watchman-fake-${uuidv1()}`)
 process.env.WATCHMAN_SOCK = sockPath
 
 let nvim: Neovim
@@ -22,16 +25,18 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
+afterEach(async () => {
+  await Watchman.dispose()
+  capabilities = undefined
+  watchResponse = undefined
+})
+
 function wait(ms: number): Promise<any> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve(undefined)
     }, ms)
   })
-}
-
-function sendResponse(data: any): void {
-  client.write(bser.dumpToBuffer(data))
 }
 
 function createFileChange(file: string, exists = true): FileChangeItem {
@@ -45,6 +50,10 @@ function createFileChange(file: string, exists = true): FileChangeItem {
   }
 }
 
+function sendResponse(data: any): void {
+  client.write(bser.dumpToBuffer(data))
+}
+
 function sendSubscription(uid: string, root: string, files: FileChangeItem[]): void {
   client.write(bser.dumpToBuffer({
     subscription: uid,
@@ -53,6 +62,8 @@ function sendSubscription(uid: string, root: string, files: FileChangeItem[]): v
   }))
 }
 
+let capabilities: any
+let watchResponse: any
 beforeAll(done => {
   // create a mock sever for watchman
   server = net.createServer(c => {
@@ -60,7 +71,7 @@ beforeAll(done => {
     c.on('data', data => {
       let obj = bser.loadFromBuffer(data)
       if (obj[0] == 'watch-project') {
-        sendResponse({ watch: obj[1] })
+        sendResponse(watchResponse || { watch: obj[1], warning: 'warning' })
       } else if (obj[0] == 'unsubscribe') {
         sendResponse({ path: obj[1] })
       } else if (obj[0] == 'clock') {
@@ -68,13 +79,13 @@ beforeAll(done => {
       } else if (obj[0] == 'version') {
         let { optional, required } = obj[1]
         let res = {}
-        for (let key of Object.keys(optional)) {
+        for (let key of optional) {
           res[key] = true
         }
-        for (let key of Object.keys(required)) {
+        for (let key of required) {
           res[key] = true
         }
-        sendResponse({ capabilities: res })
+        sendResponse({ capabilities: capabilities || res })
       } else if (obj[0] == 'subscribe') {
         sendResponse({ subscribe: obj[2] })
       } else {
@@ -91,7 +102,12 @@ beforeAll(done => {
 })
 
 afterAll(() => {
-  client.unref()
+  if (client) {
+    client.removeAllListeners()
+    client.destroy()
+  }
+  server.removeAllListeners()
+  server.unref()
   server.close()
   if (fs.existsSync(sockPath)) {
     fs.unlinkSync(sockPath)
@@ -104,6 +120,9 @@ describe('watchman', () => {
     let res = await client.checkCapability()
     expect(res).toBe(true)
     client.dispose()
+    capabilities = { relative_root: false }
+    res = await client.checkCapability()
+    expect(res).toBe(false)
   })
 
   it('should watchProject', async () => {
@@ -120,7 +139,7 @@ describe('watchman', () => {
     let fn = jest.fn()
     let disposable = await client.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
-    sendSubscription((global as any).subscribe, cwd, changes)
+    sendSubscription(disposable.subscribe, cwd, changes)
     await wait(100)
     expect(fn).toBeCalled()
     let call = fn.mock.calls[0][0]
@@ -140,10 +159,21 @@ describe('watchman', () => {
 })
 
 describe('Watchman#createClient', () => {
+  it('should not create client when capabilities not match', async () => {
+    capabilities = { relative_root: false }
+    let client = await Watchman.createClient(null, process.cwd())
+    expect(client).toBe(null)
+  })
+
+  it('should not create when watch failed', async () => {
+    watchResponse = {}
+    let client = await Watchman.createClient(null, process.cwd())
+    expect(client).toBe(null)
+  })
+
   it('should create client', async () => {
     let client = await Watchman.createClient(null, process.cwd())
     expect(client).toBeDefined()
-    client.dispose()
   })
 
   it('should resue client for same root', async () => {
@@ -157,5 +187,14 @@ describe('Watchman#createClient', () => {
   it('should not create client for root', async () => {
     let client = await Watchman.createClient(null, '/')
     expect(client).toBeNull()
+  })
+})
+
+describe('isValidWatchRoot()', () => {
+  it('should check valid root', async () => {
+    expect(isValidWatchRoot('/')).toBe(false)
+    expect(isValidWatchRoot(os.homedir())).toBe(false)
+    expect(isValidWatchRoot('/tmp/a/b/c')).toBe(false)
+    expect(isValidWatchRoot(os.tmpdir())).toBe(false)
   })
 })

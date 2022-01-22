@@ -326,7 +326,7 @@ describe('workspace methods', () => {
 
   it('should create file watcher', async () => {
     let watcher = workspace.createFileSystemWatcher('**/*.ts')
-    expect(watcher).toBeTruthy()
+    expect(watcher).toBeDefined()
   })
 
   it('should get quickfix item from Location', async () => {

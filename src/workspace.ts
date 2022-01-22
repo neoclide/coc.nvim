@@ -13,12 +13,12 @@ import { version as VERSION } from '../package.json'
 import channels from './channels'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
+import FileSystemWatcher from './core/fileSystemWatcher'
 import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import DB from './model/db'
 import Document from './model/document'
-import FileSystemWatcher from './model/fileSystemWatcher'
 import Mru from './model/mru'
 import Resolver from './model/resolver'
 import Task from './model/task'
@@ -30,7 +30,6 @@ import { CONFIG_FILE_NAME, disposeAll, getKeymapModifier, MapMode, platform, run
 import { score } from './util/match'
 import { getChangedFromEdits } from './util/position'
 import { byteIndex, byteLength } from './util/string'
-import Watchman from './watchman'
 import window from './window'
 
 export interface KeymapOption {
@@ -463,10 +462,10 @@ export class Workspace implements IWorkspace {
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
     let channel: OutputChannel = watchmanPath ? window.createOutputChannel('watchman') : null
-    let roots = this.workspaceFolders.map(o => URI.parse(o.uri).fsPath)
-    let promise = watchmanPath && roots.length ? Promise.all(roots.map(root => Watchman.createClient(watchmanPath, root, channel))) : Promise.resolve(null)
     let watcher = new FileSystemWatcher(
-      promise,
+      this.workspaceFolderControl,
+      watchmanPath,
+      channel,
       globPattern,
       !!ignoreCreate,
       !!ignoreChange,
@@ -1637,7 +1636,6 @@ augroup end`
       doc.detach()
     }
     disposeAll(this.disposables)
-    Watchman.dispose()
     this.configurations.dispose()
     this.buffers.clear()
   }
