@@ -1,3 +1,7 @@
+# 2022-01-22
+
+- Not set `gravity` with api `nvim_buf_set_extmark` because highlight bug, wait neovim fix.
+
 # 2022-01-21
 
 - Changed semantic token highlight prefix from `CocSem_` to `CocSem`.

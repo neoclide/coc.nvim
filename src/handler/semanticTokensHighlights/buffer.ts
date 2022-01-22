@@ -66,7 +66,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   public onChange(): void {
     if (!this.enabled) return
     this.cancel()
-    this.highlight()
+    this.doHighlight().logError()
   }
 
   public onTextChange(): void {
@@ -76,7 +76,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async forceHighlight(): Promise<void> {
-    this.highlight.clear()
+    this.cancel()
     await this.doHighlight()
   }
 
@@ -245,6 +245,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public cancel(): void {
+    this.highlight.clear()
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource.dispose()
@@ -253,9 +254,8 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public dispose(): void {
-    this._highlights = []
-    this.highlight.clear()
-    this.previousResults = undefined
     this.cancel()
+    this._highlights = []
+    this.previousResults = undefined
   }
 }

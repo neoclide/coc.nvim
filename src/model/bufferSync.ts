@@ -25,7 +25,9 @@ export default class BufferSync<T extends SyncItem> {
       if (doc) this.create(doc)
     }, null, disposables)
     workspace.onDidChangeTextDocument(e => {
-      this.onChange(e)
+      process.nextTick(() => {
+        this.onChange(e)
+      })
     }, null, disposables)
     workspace.onDidCloseTextDocument(e => {
       this.delete(e.bufnr)
