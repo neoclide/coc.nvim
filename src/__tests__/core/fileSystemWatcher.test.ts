@@ -112,6 +112,7 @@ beforeAll(done => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   await Watchman.dispose()
   capabilities = undefined
   watchResponse = undefined
@@ -137,8 +138,18 @@ afterAll(() => {
 })
 
 describe('watchman', () => {
+  it('should throw error when not watching', async () => {
+    let client = new Watchman(null)
+    disposables.push(client)
+    let fn = async () => {
+      await client.subscribe('**/*', () => {})
+    }
+    await expect(fn()).rejects.toThrow(/not watching/)
+  })
+
   it('should checkCapability', async () => {
     let client = new Watchman(null)
+    disposables.push(client)
     let res = await client.checkCapability()
     expect(res).toBe(true)
     client.dispose()
@@ -149,20 +160,34 @@ describe('watchman', () => {
 
   it('should watchProject', async () => {
     let client = new Watchman(null)
+    disposables.push(client)
     let res = await client.watchProject(__dirname)
     expect(res).toBe(true)
     client.dispose()
   })
 
-  it('should subscribe', async () => {
+  it('should unsubscribe', async () => {
+    let client = new Watchman(null)
+    disposables.push(client)
+    await client.watchProject(process.cwd())
+    let fn = jest.fn()
+    let disposable = await client.subscribe(`${process.cwd()}/*`, fn)
+    disposable.dispose()
+    client.dispose()
+  })
+})
+
+describe('Watchman#subscribe', () => {
+
+  it('should subscribe file change', async () => {
     let client = new Watchman(null, helper.createNullChannel())
-    let cwd = process.cwd()
+    disposables.push(client)
     await client.watchProject(cwd)
     let fn = jest.fn()
     let disposable = await client.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription(disposable.subscribe, cwd, changes)
-    await wait(100)
+    await wait(30)
     expect(fn).toBeCalled()
     let call = fn.mock.calls[0][0]
     disposable.dispose()
@@ -170,13 +195,40 @@ describe('watchman', () => {
     client.dispose()
   })
 
-  it('should unsubscribe', async () => {
-    let client = new Watchman(null)
-    await client.watchProject(process.cwd())
+  it('should subscribe with relative_path', async () => {
+    let client = new Watchman(null, helper.createNullChannel())
+    watchResponse = { watch: cwd, relative_path: 'foo' }
+    await client.watchProject(cwd)
     let fn = jest.fn()
-    let disposable = await client.subscribe(`${process.cwd()}/*`, fn)
+    let disposable = await client.subscribe(`${cwd}/*`, fn)
+    let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
+    sendSubscription(disposable.subscribe, cwd, changes)
+    await wait(30)
+    expect(fn).toBeCalled()
+    let call = fn.mock.calls[0][0]
     disposable.dispose()
+    expect(call.root).toBe(path.join(cwd, 'foo'))
     client.dispose()
+  })
+
+  it('should not subscribe invalid response', async () => {
+    let c = new Watchman(null, helper.createNullChannel())
+    disposables.push(c)
+    watchResponse = { watch: cwd, relative_path: 'foo' }
+    await c.watchProject(cwd)
+    let fn = jest.fn()
+    let disposable = await c.subscribe(`${cwd}/*`, fn)
+    let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
+    sendSubscription('uuid', cwd, changes)
+    await wait(10)
+    sendSubscription(disposable.subscribe, cwd, [])
+    await wait(10)
+    client.write(bser.dumpToBuffer({
+      subscription: disposable.subscribe,
+      root: cwd
+    }))
+    await wait(10)
+    expect(fn).toBeCalledTimes(0)
   })
 })
 
