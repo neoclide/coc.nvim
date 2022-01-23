@@ -1,18 +1,18 @@
-import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
-import bytes from 'bytes'
+import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
 import semver from 'semver'
 import { v1 as uuid } from 'uuid'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import { version as VERSION } from '../package.json'
-import channels from './channels'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
+import channels from './core/channels'
+import Documents from './core/documents'
 import FileSystemWatcher from './core/fileSystemWatcher'
 import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
@@ -23,6 +23,7 @@ import Mru from './model/mru'
 import Resolver from './model/resolver'
 import Task from './model/task'
 import TerminalModel, { TerminalOptions } from './model/terminal'
+import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, DocumentChange, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, OutputChannel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { findUp, fixDriver, isFile, isParentFolder, readFileLine, renameAsync, statAsync } from './util/fs'
@@ -73,48 +74,27 @@ export class Workspace implements IWorkspace {
   public readonly version: string
   public readonly keymaps: Map<string, [Function, boolean]> = new Map()
   public readonly autocmds: Map<number, Autocmd> = new Map()
-  public bufnr: number
-  private maxFileSize: number
-  private resolver: Resolver = new Resolver()
-  private _insertMode = false
   private _env: Env
-  private _root: string
-  private _cwd = process.cwd()
-  private _initialized = false
-  private _attached = false
-  private buffers: Map<number, Document> = new Map()
+  // private buffers: Map<number, Document> = new Map()
   private autocmdMaxId = 0
-  private terminals: Map<number, TerminalModel> = new Map()
-  private creatingSources: Map<number, CancellationTokenSource> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private namespaceMap: Map<string, number> = new Map()
   private disposables: Disposable[] = []
   private watchedOptions: Set<string> = new Set()
 
   private _dynAutocmd = false
-  private _disposed = false
-  private _onDidOpenDocument = new Emitter<TextDocument & { bufnr: number }>()
-  private _onDidCloseDocument = new Emitter<TextDocument & { bufnr: number }>()
-  private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
-  private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
-  private _onDidSaveDocument = new Emitter<TextDocument>()
-  private _onDidChangeConfiguration = new Emitter<ConfigurationChangeEvent>()
-  private _onDidWorkspaceInitialized = new Emitter<void>()
-  private _onDidOpenTerminal = new Emitter<TerminalModel>()
-  private _onDidCloseTerminal = new Emitter<TerminalModel>()
   private _onDidRuntimePathChange = new Emitter<string[]>()
-
+  private resolver: Resolver = new Resolver()
+  public readonly documentsManager: Documents
+  public readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent>
+  public readonly onDidOpenTextDocument: Event<LinesTextDocument & { bufnr: number }>
+  public readonly onDidCloseTextDocument: Event<LinesTextDocument & { bufnr: number }>
+  public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
+  public readonly onDidSaveTextDocument: Event<LinesTextDocument>
+  public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
   public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent>
-  public readonly onDidCloseTerminal: Event<TerminalModel> = this._onDidCloseTerminal.event
-  public readonly onDidOpenTerminal: Event<TerminalModel> = this._onDidOpenTerminal.event
-  public readonly onDidOpenTextDocument: Event<TextDocument & { bufnr: number }> = this._onDidOpenDocument.event
-  public readonly onDidCloseTextDocument: Event<TextDocument & { bufnr: number }> = this._onDidCloseDocument.event
-  public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
-  public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
-  public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
-  public readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent> = this._onDidChangeConfiguration.event
-  public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
-  public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
+  public readonly onDidCloseTerminal: Event<TerminalModel>
+  public readonly onDidOpenTerminal: Event<TerminalModel>
   public readonly configurations: Configurations
   public readonly workspaceFolderControl: WorkspaceFolderController
 
@@ -125,6 +105,7 @@ export class Workspace implements IWorkspace {
   private _onWillRenameFiles = new Emitter<FileWillRenameEvent>()
   private _onWillDeleteFiles = new Emitter<FileWillDeleteEvent>()
 
+  public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
   public readonly onDidCreateFiles: Event<FileCreateEvent> = this._onDidCreateFiles.event
   public readonly onDidRenameFiles: Event<FileRenameEvent> = this._onDidRenameFiles.event
   public readonly onDidDeleteFiles: Event<FileDeleteEvent> = this._onDidDeleteFiles.event
@@ -139,6 +120,15 @@ export class Workspace implements IWorkspace {
     this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
     this.workspaceFolderControl = new WorkspaceFolderController(this.configurations)
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
+    this.onDidChangeConfiguration = this.configurations.onDidChange
+    let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl)
+    this.onDidOpenTextDocument = documents.onDidOpenTextDocument
+    this.onDidChangeTextDocument = documents.onDidChangeDocument
+    this.onDidCloseTextDocument = documents.onDidCloseDocument
+    this.onDidSaveTextDocument = documents.onDidSaveTextDocument
+    this.onWillSaveTextDocument = documents.onWillSaveTextDocument
+    this.onDidOpenTerminal = documents.onDidOpenTerminal
+    this.onDidCloseTerminal = documents.onDidCloseTerminal
   }
 
   public async init(): Promise<void> {
@@ -147,7 +137,8 @@ export class Workspace implements IWorkspace {
       Object.defineProperty(this, method, {
         get: () => {
           return (...args: any[]) => {
-            logger.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, Error().stack)
+            let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
+            logger.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack)
             return window[method].apply(window, args)
           }
         }
@@ -158,44 +149,14 @@ export class Workspace implements IWorkspace {
       console.error(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
       process.exit()
     }
-    this._insertMode = this._env.mode.startsWith('insert')
-    if (this._env.workspaceFolders && Array.isArray(this._env.workspaceFolders)) {
-      this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
-    }
+    this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
     this.configurations.updateUserConfig(this._env.config)
-    let preferences = this.getConfiguration('coc.preferences')
-    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
-    this.maxFileSize = bytes.parse(maxFileSize)
-    events.on(['InsertEnter', 'CursorMovedI'], () => {
-      this._insertMode = true
-    }, null, this.disposables)
-    events.on(['InsertLeave', 'CursorMoved'], () => {
-      this._insertMode = false
-    }, null, this.disposables)
-    events.on('DirChanged', cwd => {
-      this._cwd = cwd
-    }, null, this.disposables)
-    events.on('BufEnter', this.onBufEnter, this, this.disposables)
-    events.on('CursorMoved', this.checkCurrentBuffer, this, this.disposables)
-    events.on('CursorMovedI', this.checkCurrentBuffer, this, this.disposables)
-    events.on('BufCreate', this.onBufCreate, this, this.disposables)
-    events.on('BufUnload', this.onBufUnload, this, this.disposables)
-    events.on('TermOpen', this.onBufCreate, this, this.disposables)
-    events.on('TermClose', this.onBufUnload, this, this.disposables)
-    events.on('BufWritePost', this.onBufWritePost, this, this.disposables)
-    events.on('BufWritePre', this.onBufWritePre, this, this.disposables)
-    events.on('FileType', this.onFileTypeChange, this, this.disposables)
-    events.on('CursorHold', this.checkCurrentBuffer, this, this.disposables)
-    events.on('TextChanged', this.checkBuffer, this, this.disposables)
     events.on('BufReadCmd', this.onBufReadCmd, this, this.disposables)
     events.on('VimResized', (columns, lines) => {
       Object.assign(this._env, { columns, lines })
     }, null, this.disposables)
+
     await this.attach()
-    this.attachChangedEvents()
-    this.configurations.onDidChange(e => {
-      this._onDidChangeConfiguration.fire(e)
-    }, null, this.disposables)
     this.watchOption('runtimepath', (oldValue, newValue: string) => {
       let oldList: string[] = oldValue.split(',')
       let newList: string[] = newValue.split(',')
@@ -300,7 +261,7 @@ export class Workspace implements IWorkspace {
   }
 
   public get cwd(): string {
-    return this._cwd
+    return this.documentsManager.cwd
   }
 
   public get env(): Env {
@@ -308,15 +269,43 @@ export class Workspace implements IWorkspace {
   }
 
   public get root(): string {
-    return this._root || this.cwd
+    return this.documentsManager.root || this.cwd
   }
 
   public get rootPath(): string {
     return this.root
   }
 
+  public get bufnr(): number {
+    return this.documentsManager.bufnr
+  }
+
+  /**
+   * @deprecated
+   */
   public get insertMode(): boolean {
-    return this._insertMode
+    return false
+  }
+
+  public get floatSupported(): boolean {
+    let { env } = this
+    return env.floating || env.textprop
+  }
+
+  public get uri(): string {
+    return this.documentsManager.uri
+  }
+
+  public get textDocuments(): TextDocument[] {
+    return this.documentsManager.textDocuments
+  }
+
+  public get documents(): Document[] {
+    return this.documentsManager.documents
+  }
+
+  public get document(): Promise<Document | undefined> {
+    return this.documentsManager.document
   }
 
   /**
@@ -332,39 +321,6 @@ export class Workspace implements IWorkspace {
 
   public get folderPaths(): string[] {
     return this.workspaceFolders.map(f => URI.parse(f.uri).fsPath)
-  }
-
-  public get floatSupported(): boolean {
-    let { env } = this
-    return env.floating || env.textprop
-  }
-
-  /**
-   * uri of current file, could be null
-   *
-   * @deprecated this method is reliable, will be removed in the feature.
-   */
-  public get uri(): string {
-    let { bufnr } = this
-    if (bufnr) {
-      let document = this.getDocument(bufnr)
-      if (document && document.schema == 'file') {
-        return document.uri
-      }
-    }
-    return null
-  }
-
-  public get textDocuments(): TextDocument[] {
-    let docs: TextDocument[] = []
-    for (let b of this.buffers.values()) {
-      docs.push(b.textDocument)
-    }
-    return docs
-  }
-
-  public get documents(): Document[] {
-    return Array.from(this.buffers.values())
   }
 
   public createNameSpace(name = ''): number {
@@ -394,40 +350,12 @@ export class Workspace implements IWorkspace {
     return this._env.completeOpt
   }
 
-  public get initialized(): boolean {
-    return this._initialized
-  }
-
-  public get ready(): Promise<void> {
-    if (this._initialized) return Promise.resolve()
-    return new Promise<void>(resolve => {
-      let disposable = this.onDidWorkspaceInitialized(() => {
-        disposable.dispose()
-        resolve()
-      })
-    })
-  }
-
-  /**
-   * Current filetypes.
-   */
   public get filetypes(): Set<string> {
-    let res = new Set<string>()
-    for (let doc of this.documents) {
-      res.add(doc.filetype)
-    }
-    return res
+    return this.documentsManager.filetypes
   }
 
-  /**
-   * Current languageIds.
-   */
   public get languageIds(): Set<string> {
-    let res = new Set<string>()
-    for (let doc of this.documents) {
-      res.add(doc.languageId)
-    }
-    return res
+    return this.documentsManager.languageIds
   }
 
   /**
@@ -495,18 +423,7 @@ export class Workspace implements IWorkspace {
    * Get created document by uri or bufnr.
    */
   public getDocument(uri: number | string): Document | null {
-    if (typeof uri === 'number') {
-      return this.buffers.get(uri)
-    }
-    const caseInsensitive = platform.isWindows || platform.isMacintosh
-    uri = URI.parse(uri).toString()
-    for (let doc of this.buffers.values()) {
-      if (!doc) continue
-      if (doc.uri === uri) return doc
-      if (path.resolve(doc.uri) === path.resolve(uri)) return doc
-      if (caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
-    }
-    return null
+    return this.documentsManager.getDocument(uri)
   }
 
   /**
@@ -796,7 +713,7 @@ export class Workspace implements IWorkspace {
   }
 
   /**
-   * Get content from buffer of file by uri.
+   * Get content from buffer or file by uri.
    */
   public async readFile(uri: string): Promise<string> {
     let document = this.getDocument(uri)
@@ -810,30 +727,6 @@ export class Workspace implements IWorkspace {
     return lines.join('\n') + '\n'
   }
 
-  /**
-   * Current document.
-   */
-  public get document(): Promise<Document> {
-    return new Promise<Document>((resolve, reject) => {
-      this.nvim.buffer.then(buf => {
-        let bufnr = buf.id
-        this.bufnr = bufnr
-        if (this.buffers.has(bufnr)) {
-          resolve(this.buffers.get(bufnr))
-          return
-        }
-        this.onBufCreate(bufnr).catch(reject)
-        let disposable = this.onDidOpenTextDocument(doc => {
-          disposable.dispose()
-          resolve(this.getDocument(doc.uri))
-        })
-      }, reject)
-    })
-  }
-
-  /**
-   * Get current document and position.
-   */
   public async getCurrentState(): Promise<EditerState> {
     let document = await this.document
     let position = await window.getCursorPosition()
@@ -843,23 +736,10 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  /**
-   * Get format options
-   */
   public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
-    let doc: Document
-    if (uri) doc = this.getDocument(uri)
-    let bufnr = doc ? doc.bufnr : 0
-    let [tabSize, insertSpaces] = await this.nvim.call('coc#util#get_format_opts', [bufnr]) as [number, number]
-    return {
-      tabSize,
-      insertSpaces: insertSpaces == 1
-    } as FormattingOptions
+    return this.documentsManager.getFormatOptions(uri)
   }
 
-  /**
-   * Jump to location.
-   */
   public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
     const preferences = this.getConfiguration('coc.preferences')
     let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
@@ -1091,61 +971,11 @@ export class Workspace implements IWorkspace {
    * Expand filepath with `~` and/or environment placeholders
    */
   public expand(filepath: string): string {
-    if (!filepath) return filepath
-    if (filepath.startsWith('~')) {
-      filepath = os.homedir() + filepath.slice(1)
-    }
-    if (filepath.includes('$')) {
-      let doc = this.getDocument(this.bufnr)
-      let fsPath = doc ? URI.parse(doc.uri).fsPath : ''
-      filepath = filepath.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
-        if (name.startsWith('env:')) {
-          let key = name.split(':')[1]
-          let val = key ? process.env[key] : ''
-          return val
-        }
-        switch (name) {
-          case 'workspace':
-          case 'workspaceRoot':
-          case 'workspaceFolder':
-            return this.root
-          case 'workspaceFolderBasename':
-            return path.dirname(this.root)
-          case 'cwd':
-            return this.cwd
-          case 'file':
-            return fsPath
-          case 'fileDirname':
-            return fsPath ? path.dirname(fsPath) : ''
-          case 'fileExtname':
-            return fsPath ? path.extname(fsPath) : ''
-          case 'fileBasename':
-            return fsPath ? path.basename(fsPath) : ''
-          case 'fileBasenameNoExtension': {
-            let basename = fsPath ? path.basename(fsPath) : ''
-            return basename ? basename.slice(0, basename.length - path.extname(basename).length) : ''
-          }
-          default:
-            return match
-        }
-      })
-      filepath = filepath.replace(/\$[\w]+/g, match => {
-        if (match == '$HOME') return os.homedir()
-        return process.env[match.slice(1)] || match
-      })
-    }
-    return filepath
+    return this.documentsManager.expand(filepath)
   }
 
   public async createTerminal(opts: TerminalOptions): Promise<TerminalModel> {
-    let cmd = opts.shellPath
-    let args = opts.shellArgs
-    if (!cmd) cmd = await this.nvim.getOption('shell') as string
-    let terminal = new TerminalModel(cmd, args || [], this.nvim, opts.name)
-    await terminal.start(opts.cwd || this.cwd, opts.env)
-    this.terminals.set(terminal.bufnr, terminal)
-    this._onDidOpenTerminal.fire(terminal)
-    return terminal
+    return await this.documentsManager.createTerminal(opts)
   }
 
   public async callAsync<T>(method: string, args: any[]): Promise<T> {
@@ -1344,17 +1174,7 @@ augroup end`
   }
 
   public async attach(): Promise<void> {
-    if (this._attached) return
-    this._attached = true
-    let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]'),bufnr('%'),win_getid()]`) as [number[], number, number]
-    this.bufnr = bufnr
-    await Promise.all(bufs.map(buf => this.onBufCreate(buf)))
-    if (!this._initialized) {
-      this._onDidWorkspaceInitialized.fire(void 0)
-      this._initialized = true
-    }
-    await events.fire('BufEnter', [bufnr])
-    await events.fire('BufWinEnter', [bufnr, winid])
+    await this.documentsManager.attach(this.nvim, this._env)
   }
 
   // count of document need change
@@ -1395,174 +1215,6 @@ augroup end`
       }
     }
     return Array.from(uris)
-  }
-
-  // events for sync buffer of vim
-  private attachChangedEvents(): void {
-    if (this.isVim) {
-      const onChange = (bufnr: number) => {
-        let doc = this.getDocument(bufnr)
-        if (doc && doc.attached) doc.fetchContent()
-      }
-      events.on('TextChangedP', onChange, null, this.disposables)
-      events.on('TextChangedI', onChange, null, this.disposables)
-      events.on('TextChanged', onChange, null, this.disposables)
-    }
-  }
-
-  private async onBufCreate(buf: number | Buffer): Promise<void> {
-    let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
-    let bufnr = buffer.id
-    if (this.creatingSources.has(bufnr)) return
-    let document = this.getDocument(bufnr)
-    let source = new CancellationTokenSource()
-    try {
-      if (document) this.onBufUnload(bufnr, true)
-      document = new Document(buffer, this._env, this.maxFileSize)
-      let token = source.token
-      this.creatingSources.set(bufnr, source)
-      let created = await document.init(this.nvim, token)
-      if (!created) document = null
-    } catch (e) {
-      logger.error('Error on create buffer:', e)
-      document = null
-    }
-    if (this.creatingSources.get(bufnr) == source) {
-      source.dispose()
-      this.creatingSources.delete(bufnr)
-    }
-    if (!document || !document.textDocument) return
-    this.buffers.set(bufnr, document)
-    if (document.attached) {
-      document.onDocumentDetach(bufnr => {
-        let doc = this.getDocument(bufnr)
-        if (doc) this.onBufUnload(doc.bufnr)
-      })
-    }
-    let root = this.workspaceFolderControl.resolveRoot(document, this.cwd, this._initialized, this.expand.bind(this))
-    if (root && this.bufnr == document.bufnr) this._root = root
-    if (document.enabled) {
-      let textDocument: TextDocument & { bufnr: number } = Object.assign(document.textDocument, { bufnr })
-      this._onDidOpenDocument.fire(textDocument)
-      document.onDocumentChange(e => this._onDidChangeDocument.fire(e))
-    }
-    logger.debug('buffer created', buffer.id)
-  }
-
-  private onBufEnter(bufnr: number): void {
-    this.bufnr = bufnr
-    let doc = this.getDocument(bufnr)
-    if (doc) {
-      this.configurations.setFolderConfiguration(doc.uri)
-      let workspaceFolder = this.getWorkspaceFolder(doc.uri)
-      if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
-    }
-  }
-
-  private async checkCurrentBuffer(bufnr: number): Promise<void> {
-    this.bufnr = bufnr
-    await this.checkBuffer(bufnr)
-  }
-
-  private onBufWritePost(bufnr: number): void {
-    let doc = this.buffers.get(bufnr)
-    if (!doc) return
-    this._onDidSaveDocument.fire(doc.textDocument)
-  }
-
-  private onBufUnload(bufnr: number, recreate = false): void {
-    logger.debug('buffer unload', bufnr)
-    if (!recreate) {
-      let source = this.creatingSources.get(bufnr)
-      if (source) {
-        source.cancel()
-        this.creatingSources.delete(bufnr)
-      }
-    }
-    if (this.terminals.has(bufnr)) {
-      let terminal = this.terminals.get(bufnr)
-      this._onDidCloseTerminal.fire(terminal)
-      this.terminals.delete(bufnr)
-    }
-    let doc = this.buffers.get(bufnr)
-    if (doc) {
-      let textDocument: TextDocument & { bufnr: number } = Object.assign(doc.textDocument, { bufnr })
-      this._onDidCloseDocument.fire(textDocument)
-      this.buffers.delete(bufnr)
-      doc.detach()
-    }
-  }
-
-  private async onBufWritePre(bufnr: number): Promise<void> {
-    let doc = this.buffers.get(bufnr)
-    if (!doc || !doc.attached) return
-    await doc.synchronize()
-    let firing = true
-    let thenables: Thenable<TextEdit[] | any>[] = []
-    let event: TextDocumentWillSaveEvent = {
-      document: doc.textDocument,
-      reason: TextDocumentSaveReason.Manual,
-      waitUntil: (thenable: Thenable<any>) => {
-        if (!firing) {
-          logger.error(`Can't call waitUntil in async manner:`, Error().stack)
-          window.showMessage(`waitUntil can't be used in async manner, check log for details`, 'error')
-        } else {
-          thenables.push(thenable)
-        }
-      }
-    }
-    this._onWillSaveDocument.fire(event)
-    firing = false
-    let total = thenables.length
-    if (total) {
-      let promise = new Promise<TextEdit[] | undefined>(resolve => {
-        const preferences = this.getConfiguration('coc.preferences')
-        const willSaveHandlerTimeout = preferences.get<number>('willSaveHandlerTimeout', 500)
-        let timer = setTimeout(() => {
-          window.showMessage(`Will save handler timeout after ${willSaveHandlerTimeout}ms`, 'warning')
-          resolve(undefined)
-        }, willSaveHandlerTimeout)
-        let i = 0
-        let called = false
-        for (let p of thenables) {
-          let cb = (res: any) => {
-            if (called) return
-            called = true
-            clearTimeout(timer)
-            resolve(res)
-          }
-          p.then(res => {
-            if (Array.isArray(res) && res.length && TextEdit.is(res[0])) {
-              return cb(res)
-            }
-            i = i + 1
-            if (i == total) cb(undefined)
-          }, () => {
-            i = i + 1
-            if (i == total) cb(undefined)
-          })
-        }
-      })
-      let edits = await promise
-      if (edits) await doc.applyEdits(edits)
-    }
-  }
-
-  private onFileTypeChange(filetype: string, bufnr: number): void {
-    let doc = this.getDocument(bufnr)
-    if (!doc) return
-    let converted = doc.convertFiletype(filetype)
-    if (converted == doc.filetype) return
-    let textDocument: TextDocument & { bufnr: number } = Object.assign(doc.textDocument, { bufnr })
-    this._onDidCloseDocument.fire(textDocument)
-    doc.setFiletype(filetype)
-    this._onDidOpenDocument.fire(Object.assign(doc.textDocument, { bufnr }))
-  }
-
-  private async checkBuffer(bufnr: number): Promise<void> {
-    if (this._disposed || !bufnr) return
-    let doc = this.getDocument(bufnr)
-    if (!doc && !this.creatingSources.has(bufnr)) await this.onBufCreate(bufnr)
   }
 
   public async renameCurrent(): Promise<void> {
@@ -1622,22 +1274,19 @@ augroup end`
   }
 
   public async detach(): Promise<void> {
-    if (!this._attached) return
-    this._attached = false
-    channels.dispose()
-    for (let bufnr of this.buffers.keys()) {
-      await events.fire('BufUnload', [bufnr])
-    }
+    await this.documentsManager.detach()
+  }
+
+  public reset(): void {
+    this.workspaceFolderControl.reset()
+    this.documentsManager.reset()
   }
 
   public dispose(): void {
-    this._disposed = true
-    for (let doc of this.documents) {
-      doc.detach()
-    }
     disposeAll(this.disposables)
+    channels.dispose()
+    this.documentsManager.dispose()
     this.configurations.dispose()
-    this.buffers.clear()
   }
 }
 

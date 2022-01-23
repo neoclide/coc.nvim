@@ -6,7 +6,6 @@ const logger = require('../util/logger')('outpubChannel')
 
 export default class BufferChannel implements OutputChannel {
   private lines: string[] = ['']
-  private disposables: Disposable[] = []
   private _disposed = false
   public created = false
   constructor(public name: string, private nvim: Neovim, private onDispose?: () => void) {
@@ -89,6 +88,5 @@ export default class BufferChannel implements OutputChannel {
     this._disposed = true
     this.hide()
     this.lines = []
-    disposeAll(this.disposables)
   }
 }

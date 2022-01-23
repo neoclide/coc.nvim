@@ -19,7 +19,8 @@ export default class WorkspaceFolderController {
   ) {
   }
 
-  public setWorkspaceFolders(folders: string[]): void {
+  public setWorkspaceFolders(folders: string[] | undefined): void {
+    if (!folders || !Array.isArray(folders)) return
     let dirs = folders.filter(fsPath => typeof fsPath === 'string' && fs.existsSync(fsPath))
     this._workspaceFolders.clear()
     dirs.forEach(f => {

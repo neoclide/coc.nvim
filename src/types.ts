@@ -213,7 +213,6 @@ export interface IWorkspace {
   readonly filetypes: Set<string>
   readonly languageIds: Set<string>
   readonly pluginRoot: string
-  readonly initialized: boolean
   readonly completeOpt: string
   readonly channelNames: string[]
   readonly documents: Document[]
@@ -225,7 +224,6 @@ export interface IWorkspace {
   onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
   onDidSaveTextDocument: Event<TextDocument>
   onDidChangeConfiguration: Event<ConfigurationChangeEvent>
-  onDidWorkspaceInitialized: Event<void>
   findUp(filename: string | string[]): Promise<string | null>
   getDocument(uri: number | string): Document
   getFormatOptions(uri?: string): Promise<FormattingOptions>
@@ -238,7 +236,6 @@ export interface IWorkspace {
   getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>>
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
-  getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
   createFile(filepath: string, opts?: CreateFileOptions): Promise<void>
   renameFile(oldPath: string, newPath: string, opts?: RenameFileOptions): Promise<void>

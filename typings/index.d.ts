@@ -6432,12 +6432,6 @@ declare module 'coc.nvim' {
      */
     export const isNvim: boolean
     /**
-     * Is true when current mode is insert, could be wrong when user cancel insert by <C-c>
-     *
-     * @deprecated
-     */
-    export const insertMode: boolean
-    /**
      * All filetypes of loaded documents.
      */
     export const filetypes: ReadonlySet<string>
@@ -6624,7 +6618,7 @@ declare module 'coc.nvim' {
     export function getWorkspaceFolder(uri: string): WorkspaceFolder | null
 
     /**
-     * Get content from buffer of file by uri.
+     * Get content from buffer or file by uri.
      */
     export function readFile(uri: string): Promise<string>
 

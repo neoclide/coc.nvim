@@ -36,9 +36,8 @@ afterEach(async () => {
 describe('workspace properties', () => {
 
   it('should have initialized', () => {
-    let { nvim, rootPath, cwd, documents, initialized, textDocuments } = workspace
+    let { nvim, rootPath, cwd, documents, textDocuments } = workspace
     expect(nvim).toBeTruthy()
-    expect(initialized).toBe(true)
     expect(documents.length).toBe(1)
     expect(textDocuments.length).toBe(1)
     expect(rootPath).toBe(process.cwd())
@@ -56,20 +55,17 @@ describe('workspace properties', () => {
     expect(typeof pluginRoot).toBe('string')
   })
 
-  it('should ready', async () => {
-    (workspace as any)._initialized = false
-    let p = workspace.ready
-      ; (workspace as any)._initialized = true
-      ; (workspace as any)._onDidWorkspaceInitialized.fire(void 0)
-    await p
-  })
-
   it('should get filetyps', async () => {
     await helper.edit('f.js')
     let filetypes = workspace.filetypes
     expect(filetypes.has('javascript')).toBe(true)
     let languageIds = workspace.languageIds
     expect(languageIds.has('javascript')).toBe(true)
+  })
+
+  it('should get channelNames', async () => {
+    let names = workspace.channelNames
+    expect(Array.isArray(names)).toBe(true)
   })
 })
 
