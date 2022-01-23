@@ -7,13 +7,14 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
+import { v4 as uuid } from 'uuid'
 import attach from '../attach'
+import events from '../events'
 import Document from '../model/document'
 import Plugin from '../plugin'
-import workspace from '../workspace'
+import { OutputChannel, VimCompleteItem } from '../types'
 import { terminate } from '../util/processes'
-import { v4 as uuid } from 'uuid'
-import { VimCompleteItem, OutputChannel } from '../types'
+import workspace from '../workspace'
 
 export interface CursorPosition {
   bufnum: number
@@ -93,6 +94,15 @@ export class Helper extends EventEmitter {
       await this.wait(50)
       let visible = await this.nvim.call('pumvisible')
       if (visible) return
+    }
+    throw new Error('timeout after 2s')
+  }
+
+  public async waitPreviewWindow(): Promise<void> {
+    for (let i = 0; i < 40; i++) {
+      await this.wait(50)
+      let has = await this.nvim.call('coc#list#has_preview')
+      if (has > 0) return
     }
     throw new Error('timeout after 2s')
   }
@@ -185,6 +195,10 @@ export class Helper extends EventEmitter {
     let doc = workspace.getDocument(buf.id)
     if (!doc) return await workspace.document
     return doc
+  }
+
+  public async listInput(input: string): Promise<void> {
+    await events.fire('InputChar', ['list', input, 0])
   }
 
   public async getMarkers(bufnr: number, ns: number): Promise<[number, number, number][]> {
