@@ -9,7 +9,6 @@ import WorkspaceFolderController from '../../core/workspaceFolder'
 import FileSystemWatcher from '../../core/fileSystemWatcher'
 import { FileChangeItem } from '../../core/watchman'
 import { disposeAll } from '../../util'
-import { v1 as uuidv1 } from 'uuid'
 import net from 'net'
 import { URI } from 'vscode-uri'
 
@@ -20,7 +19,7 @@ let watcher: FileSystemWatcher
 
 let server: net.Server
 let client: net.Socket
-const sockPath = path.join(os.tmpdir(), `watchman-fake-${uuidv1()}`)
+const sockPath = path.join(os.tmpdir(), `watchman-fake-1`)
 const cwd = process.cwd()
 process.env.WATCHMAN_SOCK = sockPath
 

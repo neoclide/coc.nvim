@@ -1,31 +1,15 @@
-// import watchman from 'fb-watchman'
-import { Neovim } from '@chemzqm/neovim'
-import net from 'net'
-import path from 'path'
-import os from 'os'
-import fs from 'fs'
 import bser from 'bser'
+import fs from 'fs'
+import net from 'net'
+import os from 'os'
+import path from 'path'
 import Watchman, { FileChangeItem, isValidWatchRoot } from '../../core/watchman'
 import helper from '../helper'
-import BufferChannel from '../../model/outputChannel'
-import { v1 as uuidv1 } from 'uuid'
 
 let server: net.Server
 let client: net.Socket
-const sockPath = path.join(os.tmpdir(), `watchman-fake-${uuidv1()}`)
+const sockPath = path.join(os.tmpdir(), `watchman-fake-2`)
 process.env.WATCHMAN_SOCK = sockPath
-
-let nvim: Neovim
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-})
-
-afterEach(async () => {
-  await Watchman.dispose()
-  capabilities = undefined
-  watchResponse = undefined
-})
 
 function wait(ms: number): Promise<any> {
   return new Promise(resolve => {
@@ -97,8 +81,15 @@ beforeAll(done => {
   })
 })
 
-afterAll(async () => {
+afterEach(async () => {
+  await Watchman.dispose()
+  capabilities = undefined
+  watchResponse = undefined
+})
+
+afterAll(() => {
   if (client) {
+    client.unref()
     client.removeAllListeners()
     client.destroy()
   }
@@ -108,7 +99,6 @@ afterAll(async () => {
   if (fs.existsSync(sockPath)) {
     fs.unlinkSync(sockPath)
   }
-  await helper.shutdown()
 })
 
 describe('watchman', () => {
@@ -130,7 +120,7 @@ describe('watchman', () => {
   })
 
   it('should subscribe', async () => {
-    let client = new Watchman(null, new BufferChannel('watchman', nvim))
+    let client = new Watchman(null, helper.createNullChannel())
     let cwd = process.cwd()
     await client.watchProject(cwd)
     let fn = jest.fn()
