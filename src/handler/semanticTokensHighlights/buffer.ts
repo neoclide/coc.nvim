@@ -123,7 +123,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!workspace.env.updateHighlight) return false
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) return false
-    if (languages.getLegend(doc.textDocument) == null) return false
+    if (!this.hasLegend) return false
     if (!this.config.filetypes.includes('*') && !this.config.filetypes.includes(doc.filetype)) return false
     return this.hasProvider
   }
@@ -137,6 +137,11 @@ export default class SemanticTokensBuffer implements SyncItem {
     return this.nvim.createBuffer(this.bufnr)
   }
 
+  private get hasLegend(): boolean {
+    let doc = workspace.getDocument(this.bufnr)
+    return languages.getLegend(doc.textDocument) != null || languages.getLegend(doc.textDocument, true) != null
+  }
+
   public checkState(): void {
     if (!workspace.env.updateHighlight) {
       throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`)
@@ -147,8 +152,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!filetypes.includes('*') && !filetypes.includes(doc.filetype)) {
       throw new Error(`Semantic tokens highlight not enabled for current filetype: ${doc.filetype}`)
     }
-    if (!languages.hasProvider('semanticTokens', doc.textDocument)) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
-    if (languages.getLegend(doc.textDocument) == null) throw new Error('Legend not exists.')
+    if (!this.hasProvider) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
+    if (!this.hasLegend) throw new Error('Legend not exists.')
   }
 
   private convertTokens(doc: Document, tokens: number[], legend: SemanticTokensLegend): HighlightItem[] {

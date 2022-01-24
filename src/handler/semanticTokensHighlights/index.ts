@@ -75,7 +75,7 @@ export default class SemanticTokensHighlights {
     }, null, this.disposables)
     let fn = debounce(bufnr => {
       let item = this.highlighters.getItem(bufnr)
-      if (!item || !item.rangeProviderOnly) return
+      if (!item || !item.enabled || !item.rangeProviderOnly) return
       item.doRangeHighlight().logError()
     }, global.hasOwnProperty('__TEST__') ? 10 : 300)
     events.on('CursorMoved', fn, null, this.disposables)
