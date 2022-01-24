@@ -6465,6 +6465,8 @@ declare module 'coc.nvim' {
     export const folderPaths: ReadonlyArray<string>
     /**
      * Current workspace folder, could be null when vim started from user's home.
+     *
+     * @deprecated
      */
     export const workspaceFolder: WorkspaceFolder | null
     /**
@@ -6519,6 +6521,8 @@ declare module 'coc.nvim' {
 
     /**
      * Create new namespace id by name.
+     *
+     * @deprecated Latest neovim requires namespace created by neoivm.
      */
     export function createNameSpace(name: string): number
 

@@ -30,8 +30,7 @@ export default class WorkspaceHandler {
   }
 
   public async doAutocmd(id: number, args: any[]): Promise<void> {
-    let autocmd = workspace.autocmds.get(id) as any
-    if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
+    await workspace.autocmds.doAutocmd(id, args)
   }
 
   public async getConfiguration(key: string): Promise<WorkspaceConfiguration> {
@@ -55,16 +54,7 @@ export default class WorkspaceHandler {
   }
 
   public async doKeymap(key: string, defaultReturn = '', pressed?: string): Promise<string> {
-    let keymap = workspace.keymaps.get(key)
-    if (!keymap) {
-      logger.error(`keymap for ${key} not found`)
-      if (pressed) this.nvim.command(`silent! unmap <buffer> ${pressed.startsWith('{') && pressed.endsWith('}') ? `<${pressed.slice(1, -1)}>` : pressed}`, true)
-      return defaultReturn
-    }
-    let [fn, repeat] = keymap
-    let res = await Promise.resolve(fn())
-    if (repeat) await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
-    return res ?? defaultReturn
+    return await workspace.keymaps.doKeymap(key, defaultReturn, pressed)
   }
 
   public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {

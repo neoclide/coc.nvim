@@ -204,6 +204,22 @@ export interface OutputChannel {
   dispose(): void
 }
 
+export interface KeymapOption {
+  sync: boolean
+  cancel: boolean
+  silent: boolean
+  repeat: boolean
+}
+
+export interface Autocmd {
+  pattern?: string
+  event: string | string[]
+  arglist?: string[]
+  request?: boolean
+  thisArg?: any
+  callback: Function
+}
+
 export interface IWorkspace {
   readonly nvim: Neovim
   readonly cwd: string

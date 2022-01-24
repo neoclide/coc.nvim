@@ -5,7 +5,7 @@ import events from '../events'
 import BufferChannel from '../model/outputChannel'
 import { TextDocumentContentProvider } from '../provider'
 import { OutputChannel } from '../types'
-const logger = require('../util/logger')('channels')
+const logger = require('../util/logger')('core-channels')
 
 export class Channels {
   private outputChannels: Map<string, BufferChannel> = new Map()

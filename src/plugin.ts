@@ -181,7 +181,7 @@ export default class Plugin extends EventEmitter {
       this.handler = new Handler(nvim)
       services.init()
       extensions.activateExtensions()
-      workspace.setupDynamicAutocmd(true)
+      workspace.autocmds.setupDynamicAutocmd(true)
       nvim.pauseNotification()
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       nvim.setVar('coc_service_initialized', 1, true)

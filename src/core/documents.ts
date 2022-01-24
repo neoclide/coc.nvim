@@ -12,7 +12,7 @@ import { DidChangeTextDocumentParams, Env, TextDocumentWillSaveEvent } from '../
 import events from '../events'
 import TerminalModel, { TerminalOptions } from '../model/terminal'
 import { disposeAll, platform } from '../util'
-const logger = require('../util/logger')('documents')
+const logger = require('../util/logger')('core-documents')
 
 export default class Documents implements Disposable {
   private _cwd: string

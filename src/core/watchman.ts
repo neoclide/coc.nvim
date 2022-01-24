@@ -6,7 +6,7 @@ import { v1 as uuidv1 } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import minimatch from 'minimatch'
 import { isParentFolder } from '../util/fs'
-const logger = require('../util/logger')('watchman')
+const logger = require('../util/logger')('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
 export interface WatchResponse {
