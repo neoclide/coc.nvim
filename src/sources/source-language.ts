@@ -247,7 +247,7 @@ export default class LanguageSource implements ISource {
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
     let { echodocSupport, detailMaxLength, invalidInsertCharacters, detailField, labels, defaultKindText } = this.completeConfig
-    let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
+    let hasAdditionalEdit = item.additionalTextEdits != null && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
     let obj: ExtendedCompleteItem = {
@@ -367,7 +367,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
       }
     }
   } else {
-    newText = insertText
+    newText = opt.input + insertText
   }
   if (insertTextFormat == InsertTextFormat.Snippet
     && newText
@@ -376,15 +376,15 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
     let text = parser.text(newText)
     word = text ? getValidWord(text, invalidInsertCharacters) : label
   } else {
-    word = getValidWord(newText, invalidInsertCharacters) || label
+    word = newText || label
   }
   return word || ''
 }
 
-export function getValidWord(text: string, invalidChars: string[]): string {
+export function getValidWord(text: string, invalidChars: string[], start = 2): string {
   if (!text) return ''
   if (!invalidChars.length) return text
-  for (let i = 0; i < text.length; i++) {
+  for (let i = start; i < text.length; i++) {
     let c = text[i]
     if (invalidChars.includes(c)) {
       return text.slice(0, i)
