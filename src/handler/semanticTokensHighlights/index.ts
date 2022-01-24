@@ -182,7 +182,8 @@ export default class SemanticTokensHighlights {
       highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
       highlighter.addLine('')
       let doc = workspace.getDocument(item.bufnr)
-      const legend = languages.getLegend(doc.textDocument)
+      let legend = languages.getLegend(doc.textDocument)
+      if (!legend) legend = languages.getLegend(doc.textDocument, true)
       if (legend?.tokenTypes.length) {
         for (const t of [...new Set(legend.tokenTypes)]) {
           let text = HLGROUP_PREFIX + capitalize(t)
