@@ -128,7 +128,7 @@ function registerRangeProvider(filetype: string, fn: (range: Range) => number[])
 
 beforeEach(async () => {
   workspace.configurations.updateUserConfig({
-    'semanticTokens.filetypes': ['rust']
+    'semanticTokens.filetypes': ['rust', 'vim']
   })
   async function createBuffer(code: string): Promise<Buffer> {
     let buf = await nvim.buffer

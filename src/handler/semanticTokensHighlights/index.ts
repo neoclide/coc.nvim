@@ -75,7 +75,7 @@ export default class SemanticTokensHighlights {
     }, null, this.disposables)
     let fn = debounce(bufnr => {
       let item = this.highlighters.getItem(bufnr)
-      if (!item || !item.rangeProviderOnly) return
+      if (!item || !item.enabled || !item.rangeProviderOnly) return
       item.doRangeHighlight().logError()
     }, global.hasOwnProperty('__TEST__') ? 10 : 300)
     events.on('CursorMoved', fn, null, this.disposables)
@@ -182,7 +182,8 @@ export default class SemanticTokensHighlights {
       highlighter.addLine('Tokens types that current Language Server supported:', headGroup)
       highlighter.addLine('')
       let doc = workspace.getDocument(item.bufnr)
-      const legend = languages.getLegend(doc.textDocument)
+      let legend = languages.getLegend(doc.textDocument)
+      if (!legend) legend = languages.getLegend(doc.textDocument, true)
       if (legend?.tokenTypes.length) {
         for (const t of [...new Set(legend.tokenTypes)]) {
           let text = HLGROUP_PREFIX + capitalize(t)
