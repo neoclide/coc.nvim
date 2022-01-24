@@ -48,6 +48,7 @@ export type Callback = () => void
 
 // first time completion
 const FIRST_TIMEOUT = 500
+let global_id = 0
 
 export default class Complete {
   // identify this complete
@@ -56,6 +57,7 @@ export default class Complete {
   private _canceled = false
   private localBonus: Map<string, number>
   private tokenSources: Map<string, CancellationTokenSource> = new Map()
+  private _id: number
   private readonly _onDidComplete = new Emitter<void>()
   public readonly onDidComplete: Event<void> = this._onDidComplete.event
   constructor(public option: CompleteOption,
@@ -64,6 +66,11 @@ export default class Complete {
     private sources: ReadonlyArray<ISource>,
     private mruItems: ReadonlyArray<MruItem>,
     private nvim: Neovim) {
+    this._id = global_id++
+  }
+
+  public id(): number {
+    return this._id
   }
 
   public get isCompleting(): boolean {

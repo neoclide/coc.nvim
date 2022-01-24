@@ -366,7 +366,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
         }
       }
     }
-  } else {
+  } else if (insertText) {
     newText = opt.input + insertText
   }
   if (insertTextFormat == InsertTextFormat.Snippet

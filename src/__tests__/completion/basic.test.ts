@@ -434,7 +434,7 @@ describe('completion', () => {
       await helper.edit()
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
       await nvim.setLine('filename filepath find filter findIndex')
-      await helper.wait(200)
+      await helper.wait(100)
       await nvim.input('of')
       await helper.waitPopup()
       let items = await helper.getItems()

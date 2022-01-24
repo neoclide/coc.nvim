@@ -54,7 +54,7 @@ export class Completion implements Disposable {
       if (this.config.autoTrigger === 'always') {
         let content = await this.nvim.call('execute', ['verbose set completeopt']) as string
         let lines = content.split(/\r?\n/)
-        console.error(`Some plugin change completeopt during completion: ${lines[lines.length - 1].trim()}!`)
+        this.nvim.echoError(`Some plugin change completeopt during completion: ${lines[lines.length - 1].trim()}!`)
       }
     }, this.disposables)
     this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
@@ -178,27 +178,52 @@ export class Completion implements Disposable {
     }
   }
 
-  private async resumeCompletion(force = false): Promise<void> {
+  /**
+   * Filter or trigger new completion
+   */
+  private async resumeCompletion(forceRefresh = false): Promise<void> {
     let { document, complete } = this
-    if (!document || complete.isCanceled || complete.isEmpty) return
+    if (!document) return
     let search = this.getResumeInput()
-    if (search == this.input && !force) return
-    if (!search || search.endsWith(' ') || !search.startsWith(complete.input)) {
+    // not changed
+    if (search == this.input && !forceRefresh) return
+    if (search == null) {
       this.stop()
       return
     }
-    this.input = search
-    let items: VimCompleteItem[] = []
-    if (complete.isIncomplete) {
-      await document.patchChange(true)
-      let { changedtick } = document
-      items = await complete.completeInComplete(search)
-      if (complete.isCanceled || document.changedtick != changedtick) return
-    } else {
-      items = complete.filterResults(search)
-    }
-    if (!complete.isCompleting && items.length === 0) {
+    let disabled = complete.option.disabled
+    let triggerSources = sources.getTriggerSources(this.pretext, document.filetype, document.uri, disabled)
+    if (search.endsWith(' ') && !triggerSources.length) {
       this.stop()
+      return
+    }
+    let filteredSources: string[] = []
+    let items: ExtendedCompleteItem[] = []
+    this.input = search
+    if (!complete.isEmpty) {
+      let { isIncomplete } = complete
+      if (isIncomplete) {
+        await document.patchChange(true)
+        let { changedtick } = document
+        items = await complete.completeInComplete(search)
+        if (complete.isCanceled || document.changedtick != changedtick) return
+      } else {
+        items = complete.filterResults(search)
+      }
+      items.forEach(item => {
+        // success filter
+        if (!filteredSources.includes(item.source) && item.filterText.startsWith(search)) {
+          filteredSources.push(item.source)
+        }
+      })
+    }
+    if (triggerSources.length && !equals(triggerSources.map(o => o.name), filteredSources)) {
+      complete.dispose()
+      await this.triggerCompletion(document, this.pretext)
+      return
+    }
+    if (items.length === 0) {
+      if (!complete.isCompleting) this.stop()
       return
     }
     await this.showCompletion(complete.option.col, items)
@@ -283,14 +308,16 @@ export class Completion implements Disposable {
       if (this.selectedItem != null) return
       let search = this.getResumeInput()
       if (complete.isCanceled || search == null) return
+      if (complete.id !== this.complete?.id) return
       let { input } = this.option
       if (search === input) {
         let items = complete.filterResults(search)
         await this.showCompletion(option.col, items)
       } else {
-        await this.resumeCompletion()
+        await this.resumeCompletion(true)
       }
     })
+    if (complete.id !== this.complete?.id) return
     if (items.length) {
       let search = this.getResumeInput()
       if (search == option.input) {
@@ -302,7 +329,7 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
-    let { option, document } = this
+    let { option } = this
     let pretext = this.pretext = info.pre
     if (!option || option.bufnr != bufnr) return
     let hasInsert = this.latestInsert != null
@@ -323,11 +350,7 @@ export class Completion implements Disposable {
     if (info.changedtick == this.changedTick) return
     // not handle when not triggered by character insert
     if (!hasInsert || !pretext) return
-    if (sources.shouldTrigger(pretext, document.filetype, document.uri)) {
-      await this.triggerCompletion(document, pretext)
-    } else {
-      await this.resumeCompletion()
-    }
+    await this.resumeCompletion()
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
@@ -375,12 +398,7 @@ export class Completion implements Disposable {
         return
       }
     }
-    // prefer trigger completion
-    if (sources.shouldTrigger(pretext, doc.filetype, doc.uri)) {
-      await this.triggerCompletion(doc, pretext)
-    } else {
-      await this.resumeCompletion()
-    }
+    await this.resumeCompletion()
   }
 
   private async triggerCompletion(doc: Document, pre: string): Promise<void> {
@@ -400,10 +418,6 @@ export class Completion implements Disposable {
     if (option.input && this.config.asciiCharactersOnly) {
       option.input = this.getInput(doc, pre)
       option.col = byteLength(pre) - byteLength(option.input)
-    }
-    if (!option) {
-      logger.warn(`Suggest disabled by b:coc_suggest_disable`)
-      return
     }
     if (option.blacklist && option.blacklist.includes(option.input)) {
       logger.warn(`Suggest disabled by b:coc_suggest_blacklist`, option.blacklist)
@@ -611,6 +625,7 @@ export class Completion implements Disposable {
   public getResumeInput(): string {
     let { option, pretext } = this
     if (!option) return null
+    if (events.cursor && option.linenr != events.cursor.lnum) return null
     let buf = Buffer.from(pretext, 'utf8')
     if (buf.length < option.col) return null
     let input = buf.slice(option.col).toString('utf8')
@@ -671,6 +686,9 @@ export class Completion implements Disposable {
   }
 
   public dispose(): void {
+    if (this.triggerTimer) {
+      clearTimeout(this.triggerTimer)
+    }
     this.resolveTokenSource = null
     disposeAll(this.disposables)
   }
