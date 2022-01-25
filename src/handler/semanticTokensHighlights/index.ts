@@ -65,14 +65,14 @@ export default class SemanticTokensHighlights {
     this.highlighters = workspace.registerBufferSync(doc => {
       return new SemanticTokensBuffer(this.nvim, doc.bufnr, this.config)
     })
-    languages.onDidSemanticTokensRefresh(selector => {
-      for (let item of this.highlighters.items) {
-        let doc = workspace.getDocument(item.bufnr)
-        if (doc && workspace.match(selector, doc.textDocument)) {
-          item.highlight()
-        }
-      }
-    }, null, this.disposables)
+    // languages.onDidSemanticTokensRefresh(selector => {
+    //   for (let item of this.highlighters.items) {
+    //     let doc = workspace.getDocument(item.bufnr)
+    //     if (doc && workspace.match(selector, doc.textDocument)) {
+    //       item.highlight()
+    //     }
+    //   }
+    // }, null, this.disposables)
     let fn = debounce(bufnr => {
       let item = this.highlighters.getItem(bufnr)
       if (!item || !item.enabled || !item.rangeProviderOnly) return
