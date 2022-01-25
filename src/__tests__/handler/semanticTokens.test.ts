@@ -1,13 +1,12 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable, Range, SemanticTokensLegend } from 'vscode-languageserver-protocol'
-import languages from '../../languages'
-import SemanticTokensHighlights from '../../handler/semanticTokensHighlights/index'
-import { disposeAll } from '../../util'
-import workspace from '../../workspace'
-import window from '../../window'
 import commandManager from '../../commands'
-import helper from '../helper'
-import events from '../../events'
+import SemanticTokensHighlights from '../../handler/semanticTokensHighlights/index'
+import languages from '../../languages'
+import { disposeAll } from '../../util'
+import window from '../../window'
+import workspace from '../../workspace'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let ns: number
@@ -126,20 +125,7 @@ function registerRangeProvider(filetype: string, fn: (range: Range) => number[])
   }, legend)
 }
 
-beforeEach(async () => {
-  workspace.configurations.updateUserConfig({
-    'semanticTokens.filetypes': ['rust', 'vim']
-  })
-  async function createBuffer(code: string): Promise<Buffer> {
-    let buf = await nvim.buffer
-    await nvim.command('setf rust')
-    await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
-    await helper.wait(10)
-    let doc = await workspace.document
-    await doc.synchronize()
-    return buf
-  }
-
+function registerProvider(): void {
   disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'rust' }], {
     provideDocumentSemanticTokens: () => {
       return defaultResult
@@ -156,10 +142,24 @@ beforeEach(async () => {
       }
     }
   }, legend))
-  await createBuffer(`fn main() {
+}
+
+async function createRustBuffer(): Promise<Buffer> {
+  workspace.configurations.updateUserConfig({
+    'semanticTokens.filetypes': ['rust']
+  })
+  registerProvider()
+  let code = `fn main() {
     println!("H");
-}`)
-})
+}`
+  let buf = await nvim.buffer
+  await nvim.command('setf rust')
+  await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
+  await helper.wait(10)
+  let doc = await workspace.document
+  await doc.synchronize()
+  return buf
+}
 
 afterEach(async () => {
   workspace.configurations.updateUserConfig({
@@ -188,6 +188,7 @@ describe('semanticTokens', () => {
     })
 
     it('should show semantic tokens info', async () => {
+      await createRustBuffer()
       await highlighter.highlightCurrent()
       await commandManager.executeCommand('semanticTokens.checkCurrent')
       let buf = await nvim.buffer
@@ -199,6 +200,7 @@ describe('semanticTokens', () => {
 
   describe('highlightCurrent()', () => {
     it('should refresh highlights', async () => {
+      await createRustBuffer()
       await nvim.command('hi link CocSemDeclarationFunction MoreMsg')
       await nvim.command('hi link CocSemDocumentation Statement')
       await window.moveTo({ line: 0, character: 4 })
@@ -221,10 +223,35 @@ describe('semanticTokens', () => {
       }
       expect(err).toBeDefined()
     })
+
+    it('should refresh when buffer visible', async () => {
+      workspace.configurations.updateUserConfig({
+        'semanticTokens.filetypes': ['rust']
+      })
+      let code = `fn main() {
+    println!("H");
+}`
+      let buf = await nvim.buffer
+      await nvim.command('setf rust')
+      await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
+      await helper.wait(10)
+      let doc = await workspace.document
+      await doc.synchronize()
+      let item = await highlighter.getCurrentItem()
+      expect(item.enabled).toBe(false)
+      await nvim.command('edit bar')
+      registerProvider()
+      expect(item.enabled).toBe(true)
+      await helper.wait(20)
+      await nvim.command(`b ${buf.id}`)
+      await helper.wait(50)
+      expect(item.highlights).toBeDefined()
+    })
   })
 
   describe('clear highlights', () => {
     it('should clear highlights of current buffer', async () => {
+      await createRustBuffer()
       await highlighter.highlightCurrent()
       let buf = await nvim.buffer
       let markers = await buf.getExtMarks(ns, 0, -1)
@@ -235,6 +262,7 @@ describe('semanticTokens', () => {
     })
 
     it('should clear all highlights', async () => {
+      await createRustBuffer()
       await highlighter.highlightCurrent()
       let buf = await nvim.buffer
       await commandManager.executeCommand('semanticTokens.clearAll')
@@ -243,6 +271,7 @@ describe('semanticTokens', () => {
     })
 
     it('should clear highlight by api', async () => {
+      await createRustBuffer()
       let item = await highlighter.getCurrentItem()
       item.clearHighlight()
       await helper.wait(50)
@@ -254,6 +283,7 @@ describe('semanticTokens', () => {
 
   describe('rangeProvider', () => {
     it('should invoke range provider first time when both kind exists', async () => {
+      await createRustBuffer()
       await nvim.command('bd!')
       await helper.wait(50)
       let t = 0
@@ -289,6 +319,9 @@ describe('semanticTokens', () => {
     })
 
     it('should do range highlight after cursor moved', async () => {
+      workspace.configurations.updateUserConfig({
+        'semanticTokens.filetypes': ['vim']
+      })
       await highlighter.fetchHighlightGroups()
       let doc = await helper.createDocument('t.vim')
       let r: Range
@@ -312,22 +345,26 @@ describe('semanticTokens', () => {
       workspace.configurations.updateUserConfig({
         'semanticTokens.filetypes': []
       })
+      await workspace.document
       const curr = await highlighter.getCurrentItem()
       expect(curr.enabled).toBe(false)
     })
 
     it('should be enabled', async () => {
+      await createRustBuffer()
       const curr = await highlighter.getCurrentItem()
       expect(curr.enabled).toBe(true)
     })
 
     it('should get legend by API', async () => {
+      await createRustBuffer()
       const doc = await workspace.document
       const l = languages.getLegend(doc.textDocument)
       expect(l).toEqual(legend)
     })
 
     it('should doHighlight', async () => {
+      await createRustBuffer()
       const doc = await workspace.document
       await nvim.call('CocAction', 'semanticHighlight')
       const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
@@ -338,6 +375,7 @@ describe('semanticTokens', () => {
 
   describe('delta update', () => {
     it('should perform highlight update', async () => {
+      await createRustBuffer()
       let buf = await nvim.buffer
       await highlighter.highlightCurrent()
       await window.moveTo({ line: 0, character: 0 })

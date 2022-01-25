@@ -33,7 +33,7 @@ import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 import { score } from './util/match'
 import window from './window'
 
-const APIVERSION = 16
+const APIVERSION = 17
 const logger = require('./util/logger')('workspace')
 const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',

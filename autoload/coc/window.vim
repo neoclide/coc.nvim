@@ -22,6 +22,17 @@ function! coc#window#find(key, val) abort
   return -1
 endfunction
 
+" Visible buffer numbers
+function! coc#window#bufnrs() abort
+  let winids = []
+  if exists('*nvim_list_wins')
+    let winids = nvim_list_wins()
+  else
+    let winids = map(getwininfo(), 'v:val["winid"]')
+  endif
+  return map(winids, 'winbufnr(v:val)')
+endfunction
+
 " Make sure window exists
 function! coc#window#gotoid(winid) abort
   noa let res = win_gotoid(a:winid)
