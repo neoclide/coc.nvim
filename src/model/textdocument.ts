@@ -114,7 +114,7 @@ export class LinesTextDocument implements TextDocument {
 
   public lineAt(lineOrPos: number | Position): TextLine {
     const line = Position.is(lineOrPos) ? lineOrPos.line : lineOrPos
-		if (typeof line !== 'number' || line < 0 || line >= this.lines.length || Math.floor(line) !== line) {
+    if (typeof line !== 'number' || line < 0 || line >= this.lines.length || Math.floor(line) !== line) {
       throw new Error('Illegal value for `line`')
     }
 

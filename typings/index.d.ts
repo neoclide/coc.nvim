@@ -214,7 +214,7 @@ declare module 'coc.nvim' {
   }
 
   /**
-   * An event that is fired when a [document](#TextDocument) will be saved.
+   * An event that is fired when a [document](#LinesTextDocument) will be saved.
    *
    * To make modifications to the document before it is being saved, call the
    * [`waitUntil`](#TextDocumentWillSaveEvent.waitUntil)-function with a thenable
@@ -225,7 +225,7 @@ declare module 'coc.nvim' {
     /**
      * The document that will be saved.
      */
-    document: TextDocument
+    document: LinesTextDocument
 
     /**
      * The reason why save was triggered.
@@ -235,8 +235,8 @@ declare module 'coc.nvim' {
 
   /**
    * A document filter denotes a document by different properties like
-   * the [language](#TextDocument.languageId), the [scheme](#Uri.scheme) of
-   * its resource, or a glob-pattern that is applied to the [path](#TextDocument.fileName).
+   * the [language](#LinesTextDocument.languageId), the [scheme](#Uri.scheme) of
+   * its resource, or a glob-pattern that is applied to the [path](#LinesTextDocument.fileName).
    *
    * Glob patterns can have the following syntax:
    * - `*` to match one or more characters in a path segment
@@ -1759,43 +1759,41 @@ declare module 'coc.nvim' {
   /**
    * Represents a line of text, such as a line of source code.
    *
-   * TextLine objects are __immutable__. When a {@link TextDocument document} changes,
+   * TextLine objects are __immutable__. When a {@link LinesTextDocument document} changes,
    * previously retrieved lines will not represent the latest state.
    */
-  export class TextLine {
-    constructor(line: number, text: string, isLastLine: boolean)
-
+  export interface TextLine {
     /**
      * The zero-based line number.
      */
-    get lineNumber(): number
+    readonly lineNumber: number
 
     /**
      * The text of this line without the line separator characters.
      */
-    get text(): string
+    readonly text: string
 
     /**
      * The range this line covers without the line separator characters.
      */
-    get range(): Range
+    readonly range: Range
 
     /**
      * The range this line covers with the line separator characters.
      */
-    get rangeIncludingLineBreak(): Range
+    readonly rangeIncludingLineBreak: Range
 
     /**
      * The offset of the first character which is not a whitespace character as defined
      * by `/\s/`. **Note** that if a line is all whitespace the length of the line is returned.
      */
-    get firstNonWhitespaceCharacterIndex(): number
+    readonly firstNonWhitespaceCharacterIndex: number
 
     /**
      * Whether this line is whitespace only, shorthand
      * for {@link TextLine.firstNonWhitespaceCharacterIndex} === {@link TextLine.text TextLine.text.length}.
      */
-    get isEmptyOrWhitespace(): boolean
+    readonly isEmptyOrWhitespace: boolean
   }
 
   /**
@@ -1840,15 +1838,6 @@ declare module 'coc.nvim' {
      */
     getText(range?: Range): string
     /**
-     * Returns a text line denoted by the line number. Note
-     * that the returned object is *not* live and changes to the
-     * document are not reflected.
-     *
-     * @param line or position
-     * @return A {@link TextLine line}.
-     */
-    lineAt(lineOrPos: number | Position): TextLine
-    /**
      * Converts a zero-based offset to a position.
      *
      * @param offset A zero-based offset.
@@ -1870,6 +1859,18 @@ declare module 'coc.nvim' {
      * @readonly
      */
     readonly lineCount: number
+  }
+
+  export interface LinesTextDocument extends TextDocument {
+    /**
+     * Returns a text line denoted by the line number. Note
+     * that the returned object is *not* live and changes to the
+     * document are not reflected.
+     *
+     * @param line or position
+     * @return A {@link TextLine line}.
+     */
+    lineAt(lineOrPos: number | Position): TextLine
   }
 
   /**
@@ -3411,7 +3412,7 @@ declare module 'coc.nvim' {
      * The lack of a result can be signaled by returning `undefined`, `null`, or an empty array.
      */
     provideCompletionItems(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken,
       context?: CompletionContext
@@ -3451,7 +3452,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined` or `null`.
      */
     provideHover(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<Hover>
@@ -3473,7 +3474,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined` or `null`.
      */
     provideDefinition(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<Definition | DefinitionLink[]>
@@ -3489,7 +3490,7 @@ declare module 'coc.nvim' {
      * Provide the declaration of the symbol at the given position and document.
      */
     provideDeclaration(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<Definition | DefinitionLink[]>
@@ -3510,7 +3511,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined` or `null`.
      */
     provideSignatureHelp(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken,
       context: SignatureHelpContext
@@ -3532,7 +3533,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined` or `null`.
      */
     provideTypeDefinition(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<Definition | DefinitionLink[]>
@@ -3565,7 +3566,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined`, `null`, or an empty array.
      */
     provideReferences(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       context: ReferenceContext,
       token: CancellationToken
@@ -3591,7 +3592,7 @@ declare module 'coc.nvim' {
      * @param token A cancellation token.
      */
     provideFoldingRanges(
-      document: TextDocument,
+      document: LinesTextDocument,
       context: FoldingContext,
       token: CancellationToken
     ): ProviderResult<FoldingRange[]>
@@ -3611,7 +3612,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined`, `null`, or an empty array.
      */
     provideDocumentSymbols(
-      document: TextDocument,
+      document: LinesTextDocument,
       token: CancellationToken
     ): ProviderResult<SymbolInformation[] | DocumentSymbol[]>
   }
@@ -3631,7 +3632,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined` or `null`.
      */
     provideImplementation(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<Definition | DefinitionLink[]>
@@ -3698,7 +3699,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined` or `null`.
      */
     provideRenameEdits(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       newName: string,
       token: CancellationToken
@@ -3715,7 +3716,7 @@ declare module 'coc.nvim' {
      * @return The range or range and placeholder text of the identifier that is to be renamed. The lack of a result can signaled by returning `undefined` or `null`.
      */
     prepareRename?(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<Range | { range: Range; placeholder: string }>
@@ -3736,7 +3737,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined`, `null`, or an empty array.
      */
     provideDocumentFormattingEdits(
-      document: TextDocument,
+      document: LinesTextDocument,
       options: FormattingOptions,
       token: CancellationToken
     ): ProviderResult<TextEdit[]>
@@ -3762,7 +3763,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined`, `null`, or an empty array.
      */
     provideDocumentRangeFormattingEdits(
-      document: TextDocument,
+      document: LinesTextDocument,
       range: Range,
       options: FormattingOptions,
       token: CancellationToken
@@ -3788,7 +3789,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined`, `null`, or an empty array.
      */
     provideCodeActions(
-      document: TextDocument,
+      document: LinesTextDocument,
       range: Range,
       context: CodeActionContext,
       token: CancellationToken
@@ -3837,7 +3838,7 @@ declare module 'coc.nvim' {
      * signaled by returning `undefined`, `null`, or an empty array.
      */
     provideDocumentHighlights(
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<DocumentHighlight[]>
@@ -3858,7 +3859,7 @@ declare module 'coc.nvim' {
      * @return An array of [document links](#DocumentLink) or a thenable that resolves to such. The lack of a result
      * can be signaled by returning `undefined`, `null`, or an empty array.
      */
-    provideDocumentLinks(document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
+    provideDocumentLinks(document: LinesTextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
 
     /**
      * Given a link fill in its [target](#DocumentLink.target). This method is called when an incomplete
@@ -3888,7 +3889,7 @@ declare module 'coc.nvim' {
      * @return An array of code lenses or a thenable that resolves to such. The lack of a result can be
      * signaled by returning `undefined`, `null`, or an empty array.
      */
-    provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
+    provideCodeLenses(document: LinesTextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
 
     /**
      * This function will be called for each visible code lens, usually when scrolling and after
@@ -3922,7 +3923,7 @@ declare module 'coc.nvim' {
      * @return A set of text edits or a thenable that resolves to such. The lack of a result can be
      * signaled by returning `undefined`, `null`, or an empty array.
      */
-    provideOnTypeFormattingEdits(document: TextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
+    provideOnTypeFormattingEdits(document: LinesTextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
   }
 
   /**
@@ -3939,7 +3940,7 @@ declare module 'coc.nvim' {
      * @return An array of [color information](#ColorInformation) or a thenable that resolves to such. The lack of a result
      * can be signaled by returning `undefined`, `null`, or an empty array.
      */
-    provideDocumentColors(document: TextDocument, token: CancellationToken): ProviderResult<ColorInformation[]>
+    provideDocumentColors(document: LinesTextDocument, token: CancellationToken): ProviderResult<ColorInformation[]>
 
     /**
      * Provide [representations](#ColorPresentation) for a color.
@@ -3950,7 +3951,7 @@ declare module 'coc.nvim' {
      * @return An array of color presentations or a thenable that resolves to such. The lack of a result
      * can be signaled by returning `undefined`, `null`, or an empty array.
      */
-    provideColorPresentations(color: Color, context: { document: TextDocument; range: Range }, token: CancellationToken): ProviderResult<ColorPresentation[]>
+    provideColorPresentations(color: Color, context: { document: LinesTextDocument; range: Range }, token: CancellationToken): ProviderResult<ColorPresentation[]>
   }
 
   export interface TextDocumentContentProvider {
@@ -3964,7 +3965,7 @@ declare module 'coc.nvim' {
      * Provide textual content for a given uri.
      *
      * The editor will use the returned string-content to create a readonly
-     * [document](#TextDocument). Resources allocated should be released when
+     * [document](#LinesTextDocument). Resources allocated should be released when
      * the corresponding document has been [closed](#workspace.onDidCloseTextDocument).
      *
      * @param uri An uri which scheme matches the scheme this provider was [registered](#workspace.registerTextDocumentContentProvider) for.
@@ -3979,7 +3980,7 @@ declare module 'coc.nvim' {
      * Provide selection ranges starting at a given position. The first range must [contain](#Range.contains)
      * position and subsequent ranges must contain the previous range.
      */
-    provideSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
+    provideSelectionRanges(document: LinesTextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
   }
 
   /**
@@ -4000,7 +4001,7 @@ declare module 'coc.nvim' {
      * @returns A call hierarchy item or a thenable that resolves to such. The lack of a result can be
      * signaled by returning `undefined` or `null`.
      */
-    prepareCallHierarchy(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<CallHierarchyItem | CallHierarchyItem[]>
+    prepareCallHierarchy(document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<CallHierarchyItem | CallHierarchyItem[]>
 
     /**
      * Provide all incoming calls for an item, e.g all callers for a method. In graph terms this describes directed
@@ -4098,7 +4099,7 @@ declare module 'coc.nvim' {
      * *NOTE*: When doing edits, it is possible that multiple edits occur until VS Code decides to invoke the semantic tokens provider.
      * *NOTE*: If the provider cannot temporarily compute semantic tokens, it can indicate this by throwing an error with the message 'Busy'.
      */
-    provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>
+    provideDocumentSemanticTokens(document: LinesTextDocument, token: CancellationToken): ProviderResult<SemanticTokens>
 
     /**
      * Instead of always returning all the tokens in a file, it is possible for a `DocumentSemanticTokensProvider` to implement
@@ -4129,7 +4130,7 @@ declare module 'coc.nvim' {
      * *NOTE*: If the provider cannot compute `SemanticTokensEdits`, it can "give up" and return all the tokens in the document again.
      * *NOTE*: All edits in `SemanticTokensEdits` contain indices in the old integers array, so they all refer to the previous result state.
      */
-    provideDocumentSemanticTokensEdits?(document: TextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>
+    provideDocumentSemanticTokensEdits?(document: LinesTextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>
   }
 
   /**
@@ -4140,7 +4141,7 @@ declare module 'coc.nvim' {
     /**
      * @see [provideDocumentSemanticTokens](#DocumentSemanticTokensProvider.provideDocumentSemanticTokens).
      */
-    provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>
+    provideDocumentRangeSemanticTokens(document: LinesTextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>
   }
 
   export interface LinkedEditingRangeProvider {
@@ -4155,7 +4156,7 @@ declare module 'coc.nvim' {
      * @param token A cancellation token.
      * @return A list of ranges that can be edited together
      */
-    provideLinkedEditingRanges(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
+    provideLinkedEditingRanges(document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
   }
   // }}
 
@@ -5809,10 +5810,14 @@ declare module 'coc.nvim' {
      * Original content before change
      */
     original: string
+    /**
+     * Original lines before change
+     */
+    originalLines: string[]
   }
 
   export interface EditerState {
-    document: TextDocument
+    document: LinesTextDocument
     position: Position
   }
 
@@ -6030,7 +6035,7 @@ declare module 'coc.nvim' {
     /**
      * Text document that synchronized.
      */
-    readonly textDocument: TextDocument
+    readonly textDocument: LinesTextDocument
     /**
      * Fired when document change.
      */
@@ -6083,7 +6088,7 @@ declare module 'coc.nvim' {
     readonly uri: string
     readonly version: number
     /**
-     * Apply textEdits to current buffer lines, fire content change event.
+     * Apply textEdits to current buffer lines, fire content change event on next tick.
      */
     applyEdits(edits: TextEdit[]): Promise<void>
 
@@ -6454,7 +6459,7 @@ declare module 'coc.nvim' {
     /**
      * Current document array.
      */
-    export const textDocuments: ReadonlyArray<TextDocument>
+    export const textDocuments: ReadonlyArray<LinesTextDocument>
     /**
      * Current workspace folders.
      */
@@ -6486,11 +6491,11 @@ declare module 'coc.nvim' {
     /**
      * Event fired after document create.
      */
-    export const onDidOpenTextDocument: Event<TextDocument & { bufnr: number }>
+    export const onDidOpenTextDocument: Event<LinesTextDocument & { bufnr: number }>
     /**
      * Event fired after document unload.
      */
-    export const onDidCloseTextDocument: Event<TextDocument & { bufnr: number }>
+    export const onDidCloseTextDocument: Event<LinesTextDocument & { bufnr: number }>
     /**
      * Event fired on document change.
      */
@@ -6502,7 +6507,7 @@ declare module 'coc.nvim' {
     /**
      * Event fired after document save.
      */
-    export const onDidSaveTextDocument: Event<TextDocument>
+    export const onDidSaveTextDocument: Event<LinesTextDocument>
 
     /**
      * Event fired on configuration change. Configuration change could by many
@@ -6557,7 +6562,7 @@ declare module 'coc.nvim' {
     /**
      * Check if selector match document.
      */
-    export function match(selector: DocumentSelector, document: TextDocument): number
+    export function match(selector: DocumentSelector, document: LinesTextDocument): number
 
     /**
      * Findup from filename or filenames from current filepath or root.
@@ -8117,7 +8122,7 @@ declare module 'coc.nvim' {
   export interface ProvideTypeDefinitionSignature {
     (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken
     ): ProviderResult<Definition | DefinitionLink[]>
@@ -8126,7 +8131,7 @@ declare module 'coc.nvim' {
   export interface TypeDefinitionMiddleware {
     provideTypeDefinition?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken,
       next: ProvideTypeDefinitionSignature
@@ -8134,47 +8139,47 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideImplementationSignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>
   }
 
   export interface ImplementationMiddleware {
-    provideImplementation?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideImplementationSignature) => ProviderResult<Definition | DefinitionLink[]>
+    provideImplementation?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideImplementationSignature) => ProviderResult<Definition | DefinitionLink[]>
   }
-  export type ProvideDocumentColorsSignature = (document: TextDocument, token: CancellationToken) => ProviderResult<ColorInformation[]>
+  export type ProvideDocumentColorsSignature = (document: LinesTextDocument, token: CancellationToken) => ProviderResult<ColorInformation[]>
 
   export type ProvideColorPresentationSignature = (
     color: Color,
-    context: { document: TextDocument; range: Range },
+    context: { document: LinesTextDocument; range: Range },
     token: CancellationToken
   ) => ProviderResult<ColorPresentation[]>
 
   export interface ColorProviderMiddleware {
     provideDocumentColors?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       token: CancellationToken,
       next: ProvideDocumentColorsSignature
     ) => ProviderResult<ColorInformation[]>
     provideColorPresentations?: (
       this: void,
       color: Color,
-      context: { document: TextDocument; range: Range },
+      context: { document: LinesTextDocument; range: Range },
       token: CancellationToken,
       next: ProvideColorPresentationSignature
     ) => ProviderResult<ColorPresentation[]>
   }
 
   export interface ProvideDeclarationSignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration | DeclarationLink[]>
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<Declaration | DeclarationLink[]>
   }
 
   export interface DeclarationMiddleware {
-    provideDeclaration?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideDeclarationSignature) => ProviderResult<Declaration | DeclarationLink[]>
+    provideDeclaration?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideDeclarationSignature) => ProviderResult<Declaration | DeclarationLink[]>
   }
 
   export type ProvideFoldingRangeSignature = (
     this: void,
-    document: TextDocument,
+    document: LinesTextDocument,
     context: FoldingContext,
     token: CancellationToken
   ) => ProviderResult<FoldingRange[]>
@@ -8182,7 +8187,7 @@ declare module 'coc.nvim' {
   export interface FoldingRangeProviderMiddleware {
     provideFoldingRanges?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       context: FoldingContext,
       token: CancellationToken,
       next: ProvideFoldingRangeSignature
@@ -8190,7 +8195,7 @@ declare module 'coc.nvim' {
   }
 
   export interface PrepareCallHierarchySignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<CallHierarchyItem | CallHierarchyItem[]>
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<CallHierarchyItem | CallHierarchyItem[]>
   }
 
   export interface CallHierarchyIncomingCallsSignature {
@@ -8203,7 +8208,7 @@ declare module 'coc.nvim' {
   export interface CallHierarchyMiddleware {
     prepareCallHierarchy?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       positions: Position,
       token: CancellationToken,
       next: PrepareCallHierarchySignature
@@ -8223,34 +8228,34 @@ declare module 'coc.nvim' {
   }
 
   export interface DocumentSemanticsTokensSignature {
-    (this: void, document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>
+    (this: void, document: LinesTextDocument, token: CancellationToken): ProviderResult<SemanticTokens>
   }
 
   export interface DocumentSemanticsTokensEditsSignature {
-    (this: void, document: TextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>
+    (this: void, document: LinesTextDocument, previousResultId: string, token: CancellationToken): ProviderResult<SemanticTokens | SemanticTokensDelta>
   }
 
   export interface DocumentRangeSemanticTokensSignature {
-    (this: void, document: TextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>
+    (this: void, document: LinesTextDocument, range: Range, token: CancellationToken): ProviderResult<SemanticTokens>
   }
 
   export interface SemanticTokensMiddleware {
     provideDocumentSemanticTokens?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       token: CancellationToken,
       next: DocumentSemanticsTokensSignature
     ) => ProviderResult<SemanticTokens>
     provideDocumentSemanticTokensEdits?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       previousResultId: string,
       token: CancellationToken,
       next: DocumentSemanticsTokensEditsSignature
     ) => ProviderResult<SemanticTokens | SemanticTokensDelta>
     provideDocumentRangeSemanticTokens?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       range: Range,
       token: CancellationToken,
       next: DocumentRangeSemanticTokensSignature
@@ -8258,13 +8263,13 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideLinkedEditingRangeSignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
   }
 
   export interface LinkedEditingRangeMiddleware {
     provideLinkedEditingRange?: (
       this: void,
-      document: TextDocument,
+      document: LinesTextDocument,
       position: Position,
       token: CancellationToken,
       next: ProvideLinkedEditingRangeSignature
@@ -8272,11 +8277,11 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideSelectionRangeSignature {
-    (this: void, document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
+    (this: void, document: LinesTextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
   }
 
   export interface SelectionRangeProviderMiddleware {
-    provideSelectionRanges?: (this: void, document: TextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[]>
+    provideSelectionRanges?: (this: void, document: LinesTextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[]>
   }
 
   export interface HandleWorkDoneProgressSignature {
@@ -8288,7 +8293,7 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideCompletionItemsSignature {
-    (this: void, document: TextDocument, position: Position, context: CompletionContext, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList>
+    (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList>
   }
 
   export interface ResolveCompletionItemSignature {
@@ -8296,29 +8301,29 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideHoverSignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Hover>
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<Hover>
   }
 
   export interface ProvideSignatureHelpSignature {
-    (this: void, document: TextDocument, position: Position, context: SignatureHelpContext, token: CancellationToken): ProviderResult<SignatureHelp>
+    (this: void, document: LinesTextDocument, position: Position, context: SignatureHelpContext, token: CancellationToken): ProviderResult<SignatureHelp>
   }
 
   export interface ProvideDefinitionSignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>
   }
 
   export interface ProvideReferencesSignature {
-    (this: void, document: TextDocument, position: Position, options: {
+    (this: void, document: LinesTextDocument, position: Position, options: {
       includeDeclaration: boolean
     }, token: CancellationToken): ProviderResult<Location[]>
   }
 
   export interface ProvideDocumentHighlightsSignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<DocumentHighlight[]>
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<DocumentHighlight[]>
   }
 
   export interface ProvideDocumentSymbolsSignature {
-    (this: void, document: TextDocument, token: CancellationToken): ProviderResult<SymbolInformation[] | DocumentSymbol[]>
+    (this: void, document: LinesTextDocument, token: CancellationToken): ProviderResult<SymbolInformation[] | DocumentSymbol[]>
   }
 
   export interface ProvideWorkspaceSymbolsSignature {
@@ -8326,7 +8331,7 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideCodeActionsSignature {
-    (this: void, document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken): ProviderResult<(Command | CodeAction)[]>
+    (this: void, document: LinesTextDocument, range: Range, context: CodeActionContext, token: CancellationToken): ProviderResult<(Command | CodeAction)[]>
   }
 
   export interface ResolveCodeActionSignature {
@@ -8334,7 +8339,7 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideCodeLensesSignature {
-    (this: void, document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
+    (this: void, document: LinesTextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
   }
 
   export interface ResolveCodeLensSignature {
@@ -8342,30 +8347,30 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideDocumentFormattingEditsSignature {
-    (this: void, document: TextDocument, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
+    (this: void, document: LinesTextDocument, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
   }
 
   export interface ProvideDocumentRangeFormattingEditsSignature {
-    (this: void, document: TextDocument, range: Range, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
+    (this: void, document: LinesTextDocument, range: Range, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
   }
 
   export interface ProvideOnTypeFormattingEditsSignature {
-    (this: void, document: TextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
+    (this: void, document: LinesTextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
   }
 
   export interface PrepareRenameSignature {
-    (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Range | {
+    (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<Range | {
       range: Range
       placeholder: string
     }>
   }
 
   export interface ProvideRenameEditsSignature {
-    (this: void, document: TextDocument, position: Position, newName: string, token: CancellationToken): ProviderResult<WorkspaceEdit>
+    (this: void, document: LinesTextDocument, position: Position, newName: string, token: CancellationToken): ProviderResult<WorkspaceEdit>
   }
 
   export interface ProvideDocumentLinksSignature {
-    (this: void, document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
+    (this: void, document: LinesTextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
   }
 
   export interface ResolveDocumentLinkSignature {
@@ -8452,38 +8457,38 @@ declare module 'coc.nvim' {
    * from the server
    */
   interface _Middleware {
-    didOpen?: NextSignature<TextDocument, void>
+    didOpen?: NextSignature<LinesTextDocument, void>
     didChange?: NextSignature<DidChangeTextDocumentParams, void>
     willSave?: NextSignature<TextDocumentWillSaveEvent, void>
     willSaveWaitUntil?: NextSignature<TextDocumentWillSaveEvent, Thenable<TextEdit[]>>
-    didSave?: NextSignature<TextDocument, void>
-    didClose?: NextSignature<TextDocument, void>
+    didSave?: NextSignature<LinesTextDocument, void>
+    didClose?: NextSignature<LinesTextDocument, void>
     handleDiagnostics?: (this: void, uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void
-    provideCompletionItem?: (this: void, document: TextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature) => ProviderResult<CompletionItem[] | CompletionList>
+    provideCompletionItem?: (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature) => ProviderResult<CompletionItem[] | CompletionList>
     resolveCompletionItem?: (this: void, item: CompletionItem, token: CancellationToken, next: ResolveCompletionItemSignature) => ProviderResult<CompletionItem>
-    provideHover?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideHoverSignature) => ProviderResult<Hover>
-    provideSignatureHelp?: (this: void, document: TextDocument, position: Position, context: SignatureHelpContext, token: CancellationToken, next: ProvideSignatureHelpSignature) => ProviderResult<SignatureHelp>
-    provideDefinition?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideDefinitionSignature) => ProviderResult<Definition | DefinitionLink[]>
-    provideReferences?: (this: void, document: TextDocument, position: Position, options: {
+    provideHover?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideHoverSignature) => ProviderResult<Hover>
+    provideSignatureHelp?: (this: void, document: LinesTextDocument, position: Position, context: SignatureHelpContext, token: CancellationToken, next: ProvideSignatureHelpSignature) => ProviderResult<SignatureHelp>
+    provideDefinition?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideDefinitionSignature) => ProviderResult<Definition | DefinitionLink[]>
+    provideReferences?: (this: void, document: LinesTextDocument, position: Position, options: {
       includeDeclaration: boolean
     }, token: CancellationToken, next: ProvideReferencesSignature) => ProviderResult<Location[]>
-    provideDocumentHighlights?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideDocumentHighlightsSignature) => ProviderResult<DocumentHighlight[]>
-    provideDocumentSymbols?: (this: void, document: TextDocument, token: CancellationToken, next: ProvideDocumentSymbolsSignature) => ProviderResult<SymbolInformation[] | DocumentSymbol[]>
+    provideDocumentHighlights?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideDocumentHighlightsSignature) => ProviderResult<DocumentHighlight[]>
+    provideDocumentSymbols?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideDocumentSymbolsSignature) => ProviderResult<SymbolInformation[] | DocumentSymbol[]>
     provideWorkspaceSymbols?: (this: void, query: string, token: CancellationToken, next: ProvideWorkspaceSymbolsSignature) => ProviderResult<SymbolInformation[]>
-    provideCodeActions?: (this: void, document: TextDocument, range: Range, context: CodeActionContext, token: CancellationToken, next: ProvideCodeActionsSignature) => ProviderResult<(Command | CodeAction)[]>
+    provideCodeActions?: (this: void, document: LinesTextDocument, range: Range, context: CodeActionContext, token: CancellationToken, next: ProvideCodeActionsSignature) => ProviderResult<(Command | CodeAction)[]>
     handleWorkDoneProgress?: (this: void, token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd, next: HandleWorkDoneProgressSignature) => void
     resolveCodeAction?: (this: void, item: CodeAction, token: CancellationToken, next: ResolveCodeActionSignature) => ProviderResult<CodeAction>
-    provideCodeLenses?: (this: void, document: TextDocument, token: CancellationToken, next: ProvideCodeLensesSignature) => ProviderResult<CodeLens[]>
+    provideCodeLenses?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideCodeLensesSignature) => ProviderResult<CodeLens[]>
     resolveCodeLens?: (this: void, codeLens: CodeLens, token: CancellationToken, next: ResolveCodeLensSignature) => ProviderResult<CodeLens>
-    provideDocumentFormattingEdits?: (this: void, document: TextDocument, options: FormattingOptions, token: CancellationToken, next: ProvideDocumentFormattingEditsSignature) => ProviderResult<TextEdit[]>
-    provideDocumentRangeFormattingEdits?: (this: void, document: TextDocument, range: Range, options: FormattingOptions, token: CancellationToken, next: ProvideDocumentRangeFormattingEditsSignature) => ProviderResult<TextEdit[]>
-    provideOnTypeFormattingEdits?: (this: void, document: TextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken, next: ProvideOnTypeFormattingEditsSignature) => ProviderResult<TextEdit[]>
-    prepareRename?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: PrepareRenameSignature) => ProviderResult<Range | {
+    provideDocumentFormattingEdits?: (this: void, document: LinesTextDocument, options: FormattingOptions, token: CancellationToken, next: ProvideDocumentFormattingEditsSignature) => ProviderResult<TextEdit[]>
+    provideDocumentRangeFormattingEdits?: (this: void, document: LinesTextDocument, range: Range, options: FormattingOptions, token: CancellationToken, next: ProvideDocumentRangeFormattingEditsSignature) => ProviderResult<TextEdit[]>
+    provideOnTypeFormattingEdits?: (this: void, document: LinesTextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken, next: ProvideOnTypeFormattingEditsSignature) => ProviderResult<TextEdit[]>
+    prepareRename?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: PrepareRenameSignature) => ProviderResult<Range | {
       range: Range
       placeholder: string
     }>
-    provideRenameEdits?: (this: void, document: TextDocument, position: Position, newName: string, token: CancellationToken, next: ProvideRenameEditsSignature) => ProviderResult<WorkspaceEdit>
-    provideDocumentLinks?: (this: void, document: TextDocument, token: CancellationToken, next: ProvideDocumentLinksSignature) => ProviderResult<DocumentLink[]>
+    provideRenameEdits?: (this: void, document: LinesTextDocument, position: Position, newName: string, token: CancellationToken, next: ProvideRenameEditsSignature) => ProviderResult<WorkspaceEdit>
+    provideDocumentLinks?: (this: void, document: LinesTextDocument, token: CancellationToken, next: ProvideDocumentLinksSignature) => ProviderResult<DocumentLink[]>
     resolveDocumentLink?: (this: void, link: DocumentLink, token: CancellationToken, next: ResolveDocumentLinkSignature) => ProviderResult<DocumentLink>
     executeCommand?: (this: void, command: string, args: any[], next: ExecuteCommandSignature) => ProviderResult<any>
     workspace?: WorkspaceMiddleware

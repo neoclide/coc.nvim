@@ -6,7 +6,6 @@ import FloatFactory from './model/floatFactory'
 import fetch from './model/fetch'
 import download from './model/download'
 import Highligher from './model/highligher'
-import { TextLine } from './model/textdocument'
 import services from './services'
 import sources from './sources/index'
 import workspace from './workspace'
@@ -20,7 +19,6 @@ import { ansiparse } from './util/ansiparse'
 import BasicList from './list/basic'
 import { Mutex } from './util/mutex'
 import { URI } from 'vscode-uri'
-import { Neovim, Buffer, Window } from '@chemzqm/neovim'
 import {
   CodeActionKind,
   Disposable,
@@ -62,12 +60,11 @@ export {
   SettingMonitor,
   LanguageClient,
   MessageTransports,
-  TextDocumentFeature,
   RevealOutputChannelOn,
 } from './language-client'
 
-export { Neovim, MarkupKind, DiagnosticTag, DocumentHighlightKind, SymbolKind, SignatureHelpTriggerKind, FileChangeType, CodeActionKind, Diagnostic, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Buffer, Window, Highligher, Mru, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
-export { workspace, window, CompletionTriggerKind, snippetManager, SnippetString, events, services, commands, sources, languages, diagnosticManager, extensions, listManager, BasicList, Mutex, TextLine }
+export { MarkupKind, DiagnosticTag, DocumentHighlightKind, SymbolKind, SignatureHelpTriggerKind, FileChangeType, CodeActionKind, Diagnostic, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Highligher, Mru, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
+export { workspace, window, CompletionTriggerKind, snippetManager, SnippetString, events, services, commands, sources, languages, diagnosticManager, extensions, listManager, BasicList, Mutex }
 export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
 export { TreeItem, TreeItemCollapsibleState } from './tree/index'
 export { SemanticTokensBuilder } from './semanticTokensBuilder'
