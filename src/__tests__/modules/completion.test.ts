@@ -427,8 +427,12 @@ describe('completion TextChangedP', () => {
     let res = await helper.getItems()
     let idx = res.findIndex(o => o.menu == '[edit]')
     await helper.selectCompleteItem(idx)
-    await helper.wait(800)
-    let line = await nvim.line
+    let line: string
+    for (let i =0 ; i < 40; i++) {
+      await helper.wait(50)
+      line = await nvim.line
+      if (line == 'bar if()') break
+    }
     expect(line).toBe('bar if()')
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(lnum).toBe(1)
@@ -525,7 +529,7 @@ describe('completion TextChangedP', () => {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
         label: 'foo',
         filterText: 'foo',
-        insertText: '${1:oo}($2)',
+        insertText: '${1:foo}($2)',
         insertTextFormat: InsertTextFormat.Snippet,
       }]
     }

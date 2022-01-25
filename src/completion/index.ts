@@ -183,14 +183,13 @@ export class Completion implements Disposable {
    */
   private async resumeCompletion(forceRefresh = false): Promise<void> {
     let { document, complete } = this
-    if (!document) return
     let search = this.getResumeInput()
-    // not changed
-    if (search == this.input && !forceRefresh) return
     if (search == null) {
       this.stop()
       return
     }
+    // not changed
+    if (search == this.input && !forceRefresh) return
     let disabled = complete.option.disabled
     let triggerSources = sources.getTriggerSources(this.pretext, document.filetype, document.uri, disabled)
     if (search.endsWith(' ') && !triggerSources.length) {
@@ -623,8 +622,8 @@ export class Completion implements Disposable {
   }
 
   public getResumeInput(): string {
-    let { option, pretext } = this
-    if (!option) return null
+    let { option, pretext, document } = this
+    if (!option || !document) return null
     if (events.cursor && option.linenr != events.cursor.lnum) return null
     let buf = Buffer.from(pretext, 'utf8')
     if (buf.length < option.col) return null
