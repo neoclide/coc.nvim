@@ -367,7 +367,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
       }
     }
   } else if (insertText) {
-    newText = opt.input + insertText
+    newText = insertText
   }
   if (insertTextFormat == InsertTextFormat.Snippet
     && newText
@@ -376,7 +376,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
     let text = parser.text(newText)
     word = text ? getValidWord(text, invalidInsertCharacters) : label
   } else {
-    word = newText || label
+    word = getValidWord(newText, invalidInsertCharacters) || label
   }
   return word || ''
 }
