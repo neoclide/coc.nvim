@@ -19,7 +19,7 @@ export type LastChangeType = 'insert' | 'change' | 'delete'
 /**
  * newText, startLine, startCol, endLine, endCol
  */
-export type TextChangeItem = [string, number, number, number, number]
+export type TextChangeItem = [string[], number, number, number, number]
 
 export interface Env {
   readonly filetypeMap: { [index: string]: string }
@@ -325,7 +325,10 @@ export default class Document {
       let d = diffLines(lines, newLines, Math.min.apply(null, lnums))
       let original = lines.slice(d.start, d.end)
       let changes: TextChangeItem[] = []
-      if (this.nvim.hasFunction('nvim_buf_set_text')) {
+      let total = lines.length
+      // avoid out of range and lines replacement.
+      if (this.nvim.hasFunction('nvim_buf_set_text')
+        && !edits.some(o => (o.range.start.character == 0 && o.range.end.character == 0) || o.range.end.line >= total)) {
         // keep the extmarks
         edits.sort((a, b) => comparePosition(b.range.start, a.range.start))
         changes = edits.map(o => {
@@ -334,7 +337,7 @@ export default class Document {
           let sc = byteLength(sl.slice(0, r.start.character))
           let el = this.getline(r.end.line)
           let ec = byteLength(el.slice(0, r.end.character))
-          return [o.newText, r.start.line, sc, r.end.line, ec]
+          return [o.newText.split(/\r?\n/), r.start.line, sc, r.end.line, ec]
         })
       }
       this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, original, d.replacement, d.start, d.end, changes], true)

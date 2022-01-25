@@ -599,12 +599,12 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
   endif
   if exists('*nvim_buf_set_text') && !empty(a:changes)
     for item in a:changes
-      let replacement = split(item[0], '\r\?\n')
-      call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], replacement)
+      let lines = nvim_buf_get_lines(a:bufnr, 0, -1, v:false)
+      call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
     endfor
-    return
+  else
+    call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
   endif
-  call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
 endfunction
 
 function! coc#util#change_lines(bufnr, list) abort
