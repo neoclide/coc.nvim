@@ -184,6 +184,7 @@ export class SnippetSession {
   }
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
+    if (!this.snippet) return
     let placeholder = this.snippet.getPlaceholderById(this._currId)
     if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd)
   }
