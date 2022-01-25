@@ -573,7 +573,7 @@ function! coc#util#highlight_options()
         \}
 endfunction
 
-function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end) abort
+function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes) abort
   if !bufloaded(a:bufnr)
     return
   endif
@@ -596,6 +596,13 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
         endif
       endif
     endif
+  endif
+  if exists('*nvim_buf_set_text') && !empty(a:changes)
+    for item in a:changes
+      let replacement = split(item[0], '\r\?\n')
+      call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], replacement)
+    endfor
+    return
   endif
   call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
 endfunction

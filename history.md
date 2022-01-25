@@ -1,3 +1,7 @@
+# 2022-01-26
+
+- Use `nvim_buf_set_text` when possible to keep extmarks.
+
 # 2022-01-25
 
 - Not trigger completion when filtered is succeed.

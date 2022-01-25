@@ -8,13 +8,18 @@ import { DidChangeTextDocumentParams, HighlightItem, HighlightItemOption } from 
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
-import { emptyRange } from '../util/position'
+import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
+
+/**
+ * newText, startLine, startCol, endLine, endCol
+ */
+export type TextChangeItem = [string, number, number, number, number]
 
 export interface Env {
   readonly filetypeMap: { [index: string]: string }
@@ -319,7 +324,20 @@ export default class Document {
       let lnums = edits.map(o => o.range.start.line)
       let d = diffLines(lines, newLines, Math.min.apply(null, lnums))
       let original = lines.slice(d.start, d.end)
-      this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, original, d.replacement, d.start, d.end], true)
+      let changes: TextChangeItem[] = []
+      if (this.nvim.hasFunction('nvim_buf_set_text')) {
+        // keep the extmarks
+        edits.sort((a, b) => comparePosition(b.range.start, a.range.start))
+        changes = edits.map(o => {
+          let r = o.range
+          let sl = this.getline(r.start.line)
+          let sc = byteLength(sl.slice(0, r.start.character))
+          let el = this.getline(r.end.line)
+          let ec = byteLength(el.slice(0, r.end.character))
+          return [o.newText, r.start.line, sc, r.end.line, ec]
+        })
+      }
+      this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, original, d.replacement, d.start, d.end, changes], true)
       if (this.env.isVim) this.nvim.command('redraw', true)
       await waitNextTick(() => {
         // can't wait vim sync buffer
