@@ -1,10 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
-import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import channels from './core/channels'
+import * as ui from './core/ui'
 import events from './events'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
 import Menu from './model/menu'
@@ -13,96 +13,13 @@ import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
 import { TreeView, TreeViewOptions } from './tree'
-import { HighlightItem, MessageLevel, OutputChannel } from './types'
+import { HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import workspace from './workspace'
 const logger = require('./util/logger')('window')
-
-export type MsgTypes = 'error' | 'warning' | 'more'
-export type HighlightItemResult = [string, number, number, number, number?]
-export type HighlightItemDef = [string, number, number, number, number?, number?, number?]
-
-export interface HighlightDiff {
-  remove: number[]
-  removeMarkers: number[]
-  add: HighlightItemDef[]
-}
-
-export interface StatusItemOption {
-  progress?: boolean
-}
-
-export interface ScreenPosition {
-  row: number
-  col: number
-}
-
-export interface OpenTerminalOption {
-  /**
-   * Cwd of terminal, default to result of |getcwd()|
-   */
-  cwd?: string
-  /**
-   * Close terminal on job finish, default to true.
-   */
-  autoclose?: boolean
-  /**
-   * Keep foucus current window, default to false,
-   */
-  keepfocus?: boolean
-}
-
-export interface TerminalResult {
-  bufnr: number
-  success: boolean
-  content?: string
-}
-/**
- * Value-object describing where and how progress should show.
- */
-export interface ProgressOptions {
-
-  /**
-   * A human-readable string which will be used to describe the
-   * operation.
-   */
-  title?: string
-
-  /**
-   * Controls if a cancel button should show to allow the user to
-   * cancel the long running operation.
-   */
-  cancellable?: boolean
-}
-
-/**
- * Represents an action that is shown with an information, warning, or
- * error message.
- *
- * @see [showInformationMessage](#window.showInformationMessage)
- * @see [showWarningMessage](#window.showWarningMessage)
- * @see [showErrorMessage](#window.showErrorMessage)
- */
-export interface MessageItem {
-
-  /**
-   * A short title like 'Retry', 'Open Log' etc.
-   */
-  title: string
-
-  /**
-   * A hint for modal dialogs that the item should be triggered
-   * when the user cancels the dialog (e.g. by pressing the ESC
-   * key).
-   *
-   * Note: this option is ignored for non-modal messages.
-   * Note: not used by coc.nvim for now.
-   */
-  isCloseAffordance?: boolean
-}
 
 function converHighlightItem(item: HighlightItem): HighlightItemDef {
   return [item.hlGroup, item.lnum, item.colStart, item.colEnd, item.combine ? 1 : 0, item.start_incl ? 1 : 0, item.end_incl ? 1 : 0]
@@ -134,9 +51,7 @@ class Window {
   public showMessage(msg: string, messageType: MsgTypes = 'more'): void {
     if (this.mutex.busy || !this.nvim) return
     let { messageLevel } = this
-    let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call'
-    if (global.hasOwnProperty('__TEST__')) logger.info(msg)
-    let hl = 'Error'
+    let hl: 'Error' | 'MoreMsg' | 'WarningMsg' = 'Error'
     let level = MessageLevel.Error
     switch (messageType) {
       case 'more':
@@ -149,7 +64,7 @@ class Window {
         break
     }
     if (level >= messageLevel) {
-      this.nvim[method]('coc#util#echo_messages', [hl, ('[coc.nvim] ' + msg).split('\n')], true)
+      ui.showMessage(this.nvim, msg, hl)
     }
   }
 
@@ -258,9 +173,9 @@ class Window {
   public async showPrompt(title: string): Promise<boolean> {
     let release = await this.mutex.acquire()
     try {
-      let res = await this.nvim.callAsync('coc#float#prompt_confirm', [title])
+      let res = await ui.showPrompt(this.nvim, title)
       release()
-      return res == 1
+      return res
     } catch (e) {
       release()
       return false
@@ -404,10 +319,8 @@ class Window {
    *
    * @returns Cursor position.
    */
-  public async getCursorPosition(): Promise<Position> {
-    // vim can't count utf16
-    let [line, content] = await this.nvim.eval(`[line('.')-1, strpart(getline('.'), 0, col('.') - 1)]`) as [number, string]
-    return Position.create(line, content.length)
+  public getCursorPosition(): Promise<Position> {
+    return ui.getCursorPosition(this.nvim)
   }
 
   /**
@@ -416,8 +329,21 @@ class Window {
    * @param position LSP position.
    */
   public async moveTo(position: Position): Promise<void> {
-    await this.nvim.call('coc#cursor#move_to', [position.line, position.character])
-    if (workspace.env.isVim) this.nvim.command('redraw', true)
+    await ui.moveTo(this.nvim, position, workspace.env.isVim)
+  }
+
+  /**
+   * Get selected range for current document
+   */
+  public getSelectedRange(mode: string): Promise<Range | null> {
+    return ui.getSelection(this.nvim, mode)
+  }
+
+  /**
+   * Visual select range of current document
+   */
+  public async selectRange(range: Range): Promise<void> {
+    await ui.selectRange(this.nvim, range)
   }
 
   /**
@@ -426,8 +352,8 @@ class Window {
    *
    * @returns Character offset.
    */
-  public async getOffset(): Promise<number> {
-    return await this.nvim.call('coc#cursor#char_offset') as number
+  public getOffset(): Promise<number> {
+    return ui.getOffset(this.nvim)
   }
 
   /**
@@ -436,9 +362,8 @@ class Window {
    *
    * @returns Cursor screen position.
    */
-  public async getCursorScreenPosition(): Promise<ScreenPosition> {
-    let [row, col] = await this.nvim.call('coc#cursor#screen_pos') as [number, number]
-    return { row, col }
+  public getCursorScreenPosition(): Promise<ScreenPosition> {
+    return ui.getCursorScreenPosition(this.nvim)
   }
 
   /**

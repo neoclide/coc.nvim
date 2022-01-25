@@ -269,6 +269,21 @@ export class Helper extends EventEmitter {
     return ids.map(id => this.nvim.createWindow(id))
   }
 
+  public async waitFor<T>(method: string, args: any[], value: T): Promise<void> {
+    let find = false
+    for (let i = 0; i < 40; i++) {
+      await this.wait(50)
+      let res = await this.nvim.call(method, args) as T
+      if (res == value) {
+        find = true
+        break
+      }
+    }
+    if (!find) {
+      throw new Error(`waitFor ${value} timeout`)
+    }
+  }
+
   public createNullChannel(): OutputChannel {
     return nullChannel
   }

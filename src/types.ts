@@ -263,6 +263,92 @@ export interface IWorkspace {
   dispose(): void
 }
 
+// window {{
+export type MsgTypes = 'error' | 'warning' | 'more'
+export type HighlightItemResult = [string, number, number, number, number?]
+export type HighlightItemDef = [string, number, number, number, number?, number?, number?]
+
+export interface HighlightDiff {
+  remove: number[]
+  removeMarkers: number[]
+  add: HighlightItemDef[]
+}
+
+export interface StatusItemOption {
+  progress?: boolean
+}
+
+export interface ScreenPosition {
+  row: number
+  col: number
+}
+
+export interface OpenTerminalOption {
+  /**
+   * Cwd of terminal, default to result of |getcwd()|
+   */
+  cwd?: string
+  /**
+   * Close terminal on job finish, default to true.
+   */
+  autoclose?: boolean
+  /**
+   * Keep foucus current window, default to false,
+   */
+  keepfocus?: boolean
+}
+
+export interface TerminalResult {
+  bufnr: number
+  success: boolean
+  content?: string
+}
+/**
+ * Value-object describing where and how progress should show.
+ */
+export interface ProgressOptions {
+
+  /**
+   * A human-readable string which will be used to describe the
+   * operation.
+   */
+  title?: string
+
+  /**
+   * Controls if a cancel button should show to allow the user to
+   * cancel the long running operation.
+   */
+  cancellable?: boolean
+}
+
+/**
+ * Represents an action that is shown with an information, warning, or
+ * error message.
+ *
+ * @see [showInformationMessage](#window.showInformationMessage)
+ * @see [showWarningMessage](#window.showWarningMessage)
+ * @see [showErrorMessage](#window.showErrorMessage)
+ */
+export interface MessageItem {
+
+  /**
+   * A short title like 'Retry', 'Open Log' etc.
+   */
+  title: string
+
+  /**
+   * A hint for modal dialogs that the item should be triggered
+   * when the user cancels the dialog (e.g. by pressing the ESC
+   * key).
+   *
+   * Note: this option is ignored for non-modal messages.
+   * Note: not used by coc.nvim for now.
+   */
+  isCloseAffordance?: boolean
+}
+
+// }}
+
 // vim {{
 export interface LocationListItem {
   bufnr: number

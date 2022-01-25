@@ -195,7 +195,7 @@ export default class FormatHandler {
     await doc.synchronize()
     let range: Range
     if (mode) {
-      range = await workspace.getSelectedRange(mode, doc)
+      range = await window.getSelectedRange(mode)
       if (!range) return -1
     } else {
       let [lnum, count, mode] = await this.nvim.eval("[v:lnum,v:count,mode()]") as [number, number, string]

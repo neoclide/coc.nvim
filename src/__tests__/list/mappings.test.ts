@@ -733,7 +733,7 @@ describe('User mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-b>')
     expect(manager.isActivated).toBe(true)
-  }, 10000)
+  }, 20000)
 
   it('should execute prompt mappings', async () => {
     helper.updateConfiguration('list.insertMappings', {

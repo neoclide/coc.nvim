@@ -1,8 +1,9 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
-import { CodeActionKind } from 'vscode-languageserver-protocol'
+import { CodeActionKind, Disposable } from 'vscode-languageserver-protocol'
 import commandManager from './commands'
 import completion from './completion'
+import channels from './core/channels'
 import Cursors from './cursors'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
@@ -12,6 +13,7 @@ import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
+import { disposeAll } from './util'
 import window from './window'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
@@ -21,15 +23,20 @@ export default class Plugin extends EventEmitter {
   private handler: Handler | undefined
   private cursors: Cursors
   private actions: Map<string, Function> = new Map()
+  private disposables: Disposable[] = []
 
   constructor(public nvim: Neovim) {
     super()
+    this.disposables.push(workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim)))
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
-    })
+    }, null, this.disposables)
+    events.on('VimResized', (columns, lines) => {
+      if (workspace.env) Object.assign(workspace.env, { columns, lines })
+    }, null, this.disposables)
     this.cursors = new Cursors(nvim)
     commandManager.init(nvim, this)
     this.addAction('checkJsonExtension', () => {
@@ -230,9 +237,11 @@ export default class Plugin extends EventEmitter {
 
   public dispose(): void {
     this.removeAllListeners()
+    disposeAll(this.disposables)
     extensions.dispose()
     listManager.dispose()
     workspace.dispose()
+    channels.dispose()
     window.dispose()
     sources.dispose()
     services.stopAll()

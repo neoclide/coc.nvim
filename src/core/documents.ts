@@ -1,17 +1,20 @@
-import { Neovim, Buffer } from '@chemzqm/neovim'
-import path from 'path'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import bytes from 'bytes'
+import fs from 'fs'
 import os from 'os'
+import path from 'path'
+import { CancellationTokenSource, Disposable, Emitter, Event, FormattingOptions, Location, LocationLink, TextDocumentSaveReason, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
-import WorkspaceFolder from './workspaceFolder'
-import Document from '../model/document'
-import { LinesTextDocument } from '../model/textdocument'
-import { CancellationTokenSource, Disposable, Emitter, Event, FormattingOptions, TextDocumentSaveReason, TextEdit } from 'vscode-languageserver-protocol'
-import { DidChangeTextDocumentParams, Env, TextDocumentWillSaveEvent } from '../types'
 import events from '../events'
+import Document from '../model/document'
 import TerminalModel, { TerminalOptions } from '../model/terminal'
+import { LinesTextDocument } from '../model/textdocument'
+import { DidChangeTextDocumentParams, Env, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll, platform } from '../util'
+import { readFileLine } from '../util/fs'
+import { byteIndex } from '../util/string'
+import WorkspaceFolder from './workspaceFolder'
 const logger = require('../util/logger')('core-documents')
 
 export default class Documents implements Disposable {
@@ -419,6 +422,91 @@ export default class Documents implements Disposable {
     this._onDidCloseDocument.fire(textDocument)
     doc.setFiletype(filetype)
     this._onDidOpenTextDocument.fire(Object.assign(doc.textDocument, { bufnr }))
+  }
+
+  public async getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>> {
+    let filesLines: { [fsPath: string]: string[] } = {}
+    let filepathList = locations.reduce<string[]>((pre: string[], curr) => {
+      let u = URI.parse(curr.uri)
+      if (u.scheme == 'file' && !pre.includes(u.fsPath) && !this.getDocument(curr.uri)) {
+        pre.push(u.fsPath)
+      }
+      return pre
+    }, [])
+
+    await Promise.all(filepathList.map(fsPath => {
+      return new Promise(resolve => {
+        fs.readFile(fsPath, 'utf8', (err, content) => {
+          if (err) return resolve(undefined)
+          filesLines[fsPath] = content.split(/\r?\n/)
+          resolve(undefined)
+        })
+      })
+    }))
+    return await Promise.all(locations.map(loc => {
+      let { uri, range } = loc
+      let { fsPath } = URI.parse(uri)
+      let text: string | undefined
+      let lines = filesLines[fsPath]
+      if (lines) text = lines[range.start.line]
+      return this.getQuickfixItem(loc, text)
+    }))
+  }
+
+  /**
+   * Convert location to quickfix item.
+   */
+  public async getQuickfixItem(loc: Location | LocationLink, text?: string, type = '', module?: string): Promise<QuickfixItem> {
+    if (LocationLink.is(loc)) {
+      loc = Location.create(loc.targetUri, loc.targetRange)
+    }
+    let doc = this.getDocument(loc.uri)
+    let { uri, range } = loc
+    let u = URI.parse(uri)
+    if (!text && u.scheme == 'file') {
+      text = await this.getLine(uri, range.start.line)
+    }
+    let item: QuickfixItem = {
+      uri,
+      filename: u.scheme == 'file' ? u.fsPath : uri,
+      lnum: range.start.line + 1,
+      end_lnum: range.end.line + 1,
+      col: text ? byteIndex(text, range.start.character) + 1 : range.start.character + 1,
+      end_col: text ? byteIndex(text, range.end.character) + 1 : range.end.character + 1,
+      text: text || '',
+      range
+    }
+    if (module) item.module = module
+    if (type) item.type = type
+    if (doc) item.bufnr = doc.bufnr
+    return item
+  }
+
+  /**
+   * Get content of line by uri and line.
+   */
+  public async getLine(uri: string, line: number): Promise<string> {
+    let document = this.getDocument(uri)
+    if (document) return document.getline(line) || ''
+    if (!uri.startsWith('file:')) return ''
+    let fsPath = URI.parse(uri).fsPath
+    if (!fs.existsSync(fsPath)) return ''
+    return await readFileLine(fsPath, line)
+  }
+
+  /**
+   * Get content from buffer or file by uri.
+   */
+  public async readFile(uri: string): Promise<string> {
+    let document = this.getDocument(uri)
+    if (document) {
+      await document.patchChange()
+      return document.content
+    }
+    let u = URI.parse(uri)
+    if (u.scheme != 'file') return ''
+    let lines = await this.nvim.call('readfile', [u.fsPath]) as string[]
+    return lines.join('\n') + '\n'
   }
 
   public reset(): void {

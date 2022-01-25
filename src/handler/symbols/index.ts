@@ -116,7 +116,7 @@ export default class Symbols {
     this.handler.checkProvier('documentSymbol', doc.textDocument)
     let range: Range
     if (visualmode) {
-      range = await workspace.getSelectedRange(visualmode, doc)
+      range = await window.getSelectedRange(visualmode)
     } else {
       let pos = await window.getCursorPosition()
       range = Range.create(pos, pos)
@@ -141,7 +141,7 @@ export default class Symbols {
       selectRange = Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - 1, endLine.length)
     }
     if (selectRange) {
-      await workspace.selectRange(selectRange)
+      await window.selectRange(selectRange)
     } else if (['v', 'V', '\x16'].includes(visualmode)) {
       await this.nvim.command('normal! gv')
     }

@@ -1,3 +1,9 @@
+# 2022-01-25
+
+- Not trigger completion when filtered is succeed.
+- Move methods `workspace.getSelectedRange` `workspace.selectRange` to `window`
+  module, show deprecated warning when using old methods.
+
 # 2022-01-23
 
 - Support semantic tokens highlights from range provider.

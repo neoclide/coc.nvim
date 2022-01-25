@@ -78,7 +78,7 @@ export default class CodeActions {
   public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
     let range: Range
-    if (mode) range = await workspace.getSelectedRange(mode, doc)
+    if (mode) range = await window.getSelectedRange(mode)
     await doc.synchronize()
     let codeActions = await this.getCodeActions(doc, range, Array.isArray(only) ? only : null)
     if (typeof only == 'string') {
@@ -110,7 +110,7 @@ export default class CodeActions {
   public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
     let { doc } = await this.handler.getCurrentState()
     let range: Range
-    if (mode) range = await workspace.getSelectedRange(mode, doc)
+    if (mode) range = await window.getSelectedRange(mode)
     return await this.getCodeActions(doc, range, only)
   }
 

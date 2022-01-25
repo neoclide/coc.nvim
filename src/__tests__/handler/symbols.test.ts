@@ -3,6 +3,7 @@ import { Disposable, SymbolInformation, SymbolKind, Range } from 'vscode-languag
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
 import workspace from '../../workspace'
+import window from '../../window'
 import events from '../../events'
 import { disposeAll } from '../../util'
 import helper from '../helper'
@@ -169,14 +170,13 @@ describe('symbols handler', () => {
       fun1() {
       }
     }`
-      let buf = await createBuffer(code)
+      await createBuffer(code)
       await nvim.call('cursor', [3, 0])
       await helper.doAction('selectSymbolRange', false, '', ['Function', 'Method'])
       let mode = await nvim.mode
       expect(mode.mode).toBe('v')
-      let doc = workspace.getDocument(buf.id)
       await nvim.input('<esc>')
-      let res = await workspace.getSelectedRange('v', doc)
+      let res = await window.getSelectedRange('v')
       expect(res).toEqual({ start: { line: 1, character: 6 }, end: { line: 2, character: 6 } })
     })
 
@@ -191,9 +191,8 @@ describe('symbols handler', () => {
       await symbols.selectSymbolRange(true, '', ['Method'])
       let mode = await nvim.mode
       expect(mode.mode).toBe('v')
-      let doc = workspace.getDocument(buf.id)
       await nvim.input('<esc>')
-      let res = await workspace.getSelectedRange('v', doc)
+      let res = await window.getSelectedRange('v')
       expect(res).toEqual({
         start: { line: 2, character: 8 }, end: { line: 2, character: 16 }
       })
@@ -226,7 +225,7 @@ describe('symbols handler', () => {
       expect(mode.mode).toBe('v')
       let doc = workspace.getDocument(buf.id)
       await nvim.input('<esc>')
-      let res = await workspace.getSelectedRange('v', doc)
+      let res = await window.getSelectedRange('v')
       expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 3, character: 4 } })
     })
   })

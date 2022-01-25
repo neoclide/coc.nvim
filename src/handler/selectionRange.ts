@@ -29,7 +29,7 @@ export default class SelectionRangeHandler {
     let positions: Position[] = []
     if (!forward && (!this.selectionRange || !visualmode)) return
     if (visualmode) {
-      let range = await workspace.getSelectedRange(visualmode, doc)
+      let range = await window.getSelectedRange(visualmode)
       positions.push(range.start, range.end)
     } else {
       let position = await window.getCursorPosition()
@@ -45,7 +45,7 @@ export default class SelectionRangeHandler {
         selectionRange = selectionRange.parent
       }
       if (selectionRange && selectionRange.parent) {
-        await workspace.selectRange(selectionRange.range)
+        await window.selectRange(selectionRange.range)
       }
       return
     }
@@ -78,6 +78,6 @@ export default class SelectionRangeHandler {
     }
     if (!selectionRange) return
     this.selectionRange = selectionRanges[0]
-    await workspace.selectRange(selectionRange.range)
+    await window.selectRange(selectionRange.range)
   }
 }

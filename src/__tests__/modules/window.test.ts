@@ -50,6 +50,15 @@ describe('window functions', () => {
     expect(n).toBe(5)
   })
 
+  it('should selected range', async () => {
+    let buf = await helper.edit()
+    await nvim.setLine('foobar')
+    await nvim.command('normal! viw')
+    await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
+    let range = await window.getSelectedRange('v')
+    expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 6 } })
+  })
+
   it('should echo lines', async () => {
     await window.echoLines(['a', 'b'])
     let ch = await nvim.call('screenchar', [79, 1])

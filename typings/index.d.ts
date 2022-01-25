@@ -6597,16 +6597,6 @@ declare module 'coc.nvim' {
     export function getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>>
 
     /**
-     * Get selected range for current document
-     */
-    export function getSelectedRange(visualmode: string, document: Document): Promise<Range | null>
-
-    /**
-     * Visual select range of current document
-     */
-    export function selectRange(range: Range): Promise<void>
-
-    /**
      * Populate locations to UI.
      */
     export function showLocations(locations: Location[]): Promise<void>
@@ -7286,6 +7276,15 @@ declare module 'coc.nvim' {
       increment?: number
     }>, token: CancellationToken) => Thenable<R>): Promise<R>
 
+    /**
+     * Get selected range for current document
+     */
+    export function getSelectedRange(visualmode: string): Promise<Range | null>
+
+    /**
+     * Visual select range of current document
+     */
+    export function selectRange(range: Range): Promise<void>
 
     /**
      * Get diff from highlight items and current highlights requested from vim

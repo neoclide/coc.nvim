@@ -107,7 +107,7 @@ export default class Cursors {
       session.addRange(range, line.slice(range.start.character, range.end.character))
     } else if (kind == 'range') {
       await nvim.call('eval', 'feedkeys("\\<esc>", "in")')
-      let range = await workspace.getSelectedRange(mode, doc)
+      let range = await window.getSelectedRange(mode)
       if (!range || comparePosition(range.start, range.end) == 0) return
       let ranges = mode == '\x16' ? getVisualRanges(doc, range) : splitRange(doc, range)
       for (let r of ranges) {

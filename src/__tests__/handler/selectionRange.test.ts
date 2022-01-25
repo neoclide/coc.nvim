@@ -3,6 +3,7 @@ import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-pro
 import SelectionRange from '../../handler/selectionRange'
 import languages from '../../languages'
 import workspace from '../../workspace'
+import window from '../../window'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -62,7 +63,7 @@ describe('selectionRange', () => {
       let bufnr = await nvim.call('bufnr', ['%'])
       await nvim.input('<esc>')
       let doc = workspace.getDocument(bufnr)
-      let res = await workspace.getSelectedRange('v', doc)
+      let res = await window.getSelectedRange('v')
       return res
     }
 
@@ -125,7 +126,7 @@ describe('selectionRange', () => {
       let mode = await nvim.call('mode')
       expect(mode).toBe('v')
       await nvim.input('<esc>')
-      await workspace.selectRange(Range.create(0, 0, 1, 3))
+      await window.selectRange(Range.create(0, 0, 1, 3))
       await nvim.input('<esc>')
       await selection.selectRange('v', false)
       let r = await getSelectedRange()

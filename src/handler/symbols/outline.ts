@@ -238,7 +238,7 @@ export default class SymbolsOutline {
           title: 'Visual Select',
           handler: async item => {
             await nvim.command(`${winnr}wincmd w`)
-            await workspace.selectRange(item.range)
+            await window.selectRange(item.range)
           }
         }]
       },
