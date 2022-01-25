@@ -189,7 +189,7 @@ export class Workspace implements IWorkspace {
     return this.documentsManager.document
   }
 
-  public get workspaceFolders(): WorkspaceFolder[] {
+  public get workspaceFolders(): ReadonlyArray<WorkspaceFolder> {
     return this.workspaceFolderControl.workspaceFolders
   }
 

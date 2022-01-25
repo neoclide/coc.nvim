@@ -1,5 +1,5 @@
-import fs from 'fs'
 import path from 'path'
+import fs from 'fs'
 import { Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
@@ -8,12 +8,20 @@ import { PatternType } from '../types'
 import { distinct } from '../util/array'
 import { isParentFolder, resolveRoot } from '../util/fs'
 
+function toWorkspaceFolder(fsPath: string): WorkspaceFolder | null {
+  if (!fsPath || !path.isAbsolute(fsPath) || !fs.existsSync(fsPath)) return null
+  return {
+    name: path.basename(fsPath),
+    uri: URI.file(fsPath).toString()
+  }
+}
+
 export default class WorkspaceFolderController {
   private _onDidChangeWorkspaceFolders = new Emitter<WorkspaceFoldersChangeEvent>()
   public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent> = this._onDidChangeWorkspaceFolders.event
   // filetype => patterns
   private rootPatterns: Map<string, string[]> = new Map()
-  private _workspaceFolders: Set<string> = new Set()
+  private _workspaceFolders: WorkspaceFolder[] = []
   constructor(
     private readonly configurations: Configurations
   ) {
@@ -21,31 +29,21 @@ export default class WorkspaceFolderController {
 
   public setWorkspaceFolders(folders: string[] | undefined): void {
     if (!folders || !Array.isArray(folders)) return
-    let dirs = folders.filter(fsPath => typeof fsPath === 'string' && fs.existsSync(fsPath))
-    this._workspaceFolders.clear()
-    dirs.forEach(f => {
-      this._workspaceFolders.add(f)
-    })
+    let arr = folders.map(f => toWorkspaceFolder(f))
+    this._workspaceFolders = arr.filter(o => o != null)
   }
 
   public getWorkspaceFolder(uri: URI): WorkspaceFolder | null {
     if (uri.scheme !== 'file') return null
-    let folders = Array.from(this._workspaceFolders)
+    let folders = Array.from(this._workspaceFolders).map(o => URI.parse(o.uri).fsPath)
     folders.sort((a, b) => b.length - a.length)
     let fsPath = uri.fsPath
     let folder = folders.find(f => isParentFolder(f, fsPath, true))
-    return folder ? {
-      name: path.dirname(folder),
-      uri: URI.file(folder).toString()
-    } : null
+    return toWorkspaceFolder(folder)
   }
 
-  public get workspaceFolders(): WorkspaceFolder[] {
-    let res: WorkspaceFolder[] = []
-    for (let folder of this._workspaceFolders) {
-      res.push({ name: path.dirname(folder), uri: URI.file(folder).toString() })
-    }
-    return res
+  public get workspaceFolders(): ReadonlyArray<WorkspaceFolder> {
+    return this._workspaceFolders
   }
 
   public addRootPattern(filetype: string, rootPatterns: string[]): void {
@@ -92,11 +90,11 @@ export default class WorkspaceFolderController {
     return res
   }
 
-  public addWorkspaceFolder(folder: string, fireEvent: boolean): WorkspaceFolder {
-    let uri = URI.file(folder).toString()
-    let workspaceFolder: WorkspaceFolder = { uri, name: path.basename(folder) }
-    if (!this._workspaceFolders.has(folder)) {
-      this._workspaceFolders.add(folder)
+  public addWorkspaceFolder(folder: string, fireEvent: boolean): WorkspaceFolder | null {
+    let workspaceFolder: WorkspaceFolder = toWorkspaceFolder(folder)
+    if (!workspaceFolder) return null
+    if (this._workspaceFolders.findIndex(o => o.uri == workspaceFolder.uri) == -1) {
+      this._workspaceFolders.push(workspaceFolder)
       if (fireEvent) {
         this._onDidChangeWorkspaceFolders.fire({
           added: [workspaceFolder],
@@ -108,15 +106,12 @@ export default class WorkspaceFolderController {
   }
 
   public renameWorkspaceFolder(oldPath: string, newPath: string): void {
-    let idx = this.workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == oldPath)
+    let added: WorkspaceFolder = toWorkspaceFolder(newPath)
+    if (!added) return
+    let idx = this._workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == oldPath)
     if (idx == -1) return
     let removed = this.workspaceFolders[idx]
-    let added: WorkspaceFolder = {
-      uri: URI.file(newPath).toString(),
-      name: path.dirname(newPath)
-    }
-    this._workspaceFolders.delete(oldPath)
-    this._workspaceFolders.add(newPath)
+    this._workspaceFolders.splice(idx, 1, added)
     this._onDidChangeWorkspaceFolders.fire({
       removed: [removed],
       added: [added]
@@ -124,13 +119,13 @@ export default class WorkspaceFolderController {
   }
 
   public removeWorkspaceFolder(fsPath: string): void {
-    if (!this._workspaceFolders.has(fsPath)) return
-    this._workspaceFolders.delete(fsPath)
+    let removed = toWorkspaceFolder(fsPath)
+    if (!removed) return
+    let idx = this._workspaceFolders.findIndex(f => f.uri == removed.uri)
+    if (idx == -1) return
+    this._workspaceFolders.splice(idx, 1)
     this._onDidChangeWorkspaceFolders.fire({
-      removed: [{
-        uri: URI.file(fsPath).toString(),
-        name: path.dirname(fsPath)
-      }],
+      removed: [removed],
       added: []
     })
   }
@@ -145,7 +140,7 @@ export default class WorkspaceFolderController {
 
   public reset(): void {
     this.rootPatterns.clear()
-    this._workspaceFolders.clear()
+    this._workspaceFolders = []
   }
 
   /**
