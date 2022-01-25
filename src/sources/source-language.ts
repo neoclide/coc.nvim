@@ -83,6 +83,12 @@ export default class LanguageSource implements ISource {
     let startcol = getStartColumn(opt.line, completeItems)
     let option: CompleteOption = Object.assign({}, opt)
     let prefix: string
+    let isIncomplete = typeof result['isIncomplete'] === 'boolean' ? result['isIncomplete'] : false
+    if (startcol == null && isIncomplete && this.triggerCharacters.includes(opt.input.slice(-1))) {
+      if (completeItems.every(o => o.insertText && !o.insertText.startsWith(opt.input))) {
+        startcol = option.col + option.input.length
+      }
+    }
     if (startcol != null) {
       if (startcol < option.col) {
         prefix = byteSlice(opt.line, startcol, option.col)
@@ -94,7 +100,6 @@ export default class LanguageSource implements ISource {
       item.index = index
       return item
     })
-    let isIncomplete = typeof result['isIncomplete'] === 'boolean' ? result['isIncomplete'] : false
     return { startcol, isIncomplete, items }
   }
 

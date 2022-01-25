@@ -218,6 +218,7 @@ export default class Complete {
     let sources = this.sources.filter(s => names.includes(s.name))
     let cid = Math.floor(Date.now() / 1000)
     await Promise.all(sources.map(s => this.completeSource(s, cid)))
+    this.checkResults()
     return this.filterResults(resumeInput)
   }
 
@@ -334,18 +335,23 @@ export default class Complete {
       this.localBonus = new Map()
     }
     await Promise.all(this.sources.map(s => this.completeSource(s)))
+    this.checkResults()
+    return this.results.size > 0 ? this.filterResults(opts.input) : []
+  }
+
+  private checkResults(): void {
     let { results } = this
+    let { line, colnr, col } = this.option
     for (let [source, result] of results.entries()) {
       if (result.startcol == null || result.startcol === col) continue
       let { startcol } = result
-      opts.col = startcol
-      opts.input = byteSlice(line, startcol, colnr - 1)
+      this.option.col = startcol
+      this.option.input = byteSlice(line, startcol, colnr - 1)
       results.clear()
       results.set(source, result)
       break
     }
     logger.info(`${results.size} results from: ${Array.from(results.keys()).join(',')}`)
-    return results.size > 0 ? this.filterResults(opts.input) : []
   }
 
   public resolveCompletionItem(item: VimCompleteItem | undefined): ExtendedCompleteItem | null {
