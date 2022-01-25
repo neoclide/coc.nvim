@@ -60,6 +60,7 @@ jobs:
         run: |
           sudo apt-get install ripgrep -y
           rg --version
+          sudo apt-get install ctags -y
           curl -LO https://github.com/neovim/neovim/releases/download/v0.6.0/nvim-linux64.tar.gz
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"

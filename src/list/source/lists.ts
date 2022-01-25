@@ -4,7 +4,7 @@ import BasicList from '../basic'
 import Mru from '../../model/mru'
 import { formatListItems, UnformattedListItem } from '../formatting'
 
-export default class LinksList extends BasicList {
+export default class ListsList extends BasicList {
   public readonly name = 'lists'
   public readonly defaultAction = 'open'
   public readonly description = 'registered lists of coc.nvim'
@@ -43,9 +43,7 @@ export default class LinksList extends BasicList {
     nvim.pauseNotification()
     nvim.command('syntax match CocListsDesc /\\t.*$/ contained containedin=CocListsLine', true)
     nvim.command('highlight default link CocListsDesc Comment', true)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    void nvim.resumeNotification()
   }
 }
 

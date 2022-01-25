@@ -98,8 +98,6 @@ export default class Symbols extends LocationList {
     nvim.command('highlight default link CocSymbolsName Normal', true)
     nvim.command('highlight default link CocSymbolsKind Typedef', true)
     nvim.command('highlight default link CocSymbolsFile Comment', true)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    void nvim.resumeNotification()
   }
 }

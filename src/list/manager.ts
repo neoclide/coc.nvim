@@ -76,7 +76,7 @@ export class ListManager implements Disposable {
     this.registerList(new OutlineList(nvim))
     this.registerList(new CommandsList(nvim))
     this.registerList(new ExtensionList(nvim))
-    this.registerList(new DiagnosticsList(nvim))
+    this.registerList(new DiagnosticsList(nvim, this))
     this.registerList(new SourcesList(nvim))
     this.registerList(new ServicesList(nvim))
     this.registerList(new ListsList(nvim, this.listMap))
@@ -163,7 +163,7 @@ export class ListManager implements Disposable {
     if (s) await s.next()
   }
 
-  private getSession(name?: string): ListSession {
+  public getSession(name?: string): ListSession {
     if (!name) return this.session
     return this.sessionsMap.get(name)
   }

@@ -1,15 +1,24 @@
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import diagnosticManager from '../../diagnostic/manager'
 import { ListContext, ListItem } from '../../types'
-import LocationList from './location'
 import { isParentFolder } from '../../util/fs'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
+import { ListManager } from '../manager'
+import LocationList from './location'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class DiagnosticsList extends LocationList {
   public readonly defaultAction = 'open'
   public readonly description = 'diagnostics of current workspace'
   public name = 'diagnostics'
+  public constructor(nvim: Neovim, manager: ListManager) {
+    super(nvim)
+    diagnosticManager.onDidRefresh(async () => {
+      let session = manager.getSession('diagnostics')
+      if (session) await session.reloadItems()
+    }, null, this.disposables)
+  }
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let list = diagnosticManager.getDiagnosticList()
