@@ -441,7 +441,7 @@ export class Completion implements Disposable {
     let source = new CancellationTokenSource()
     let line = `${this.input}|${resolvedItem.filterText}|${resolvedItem.source}`
     this.mru.add(line).logError()
-    await this.doCompleteResolve(resolvedItem, source.token)
+    await this.doCompleteResolve(resolvedItem, source)
     source.dispose()
     // Wait possible TextChangedI
     await wait(50)
@@ -452,15 +452,27 @@ export class Completion implements Disposable {
     await this.doCompleteDone(resolvedItem, opt)
   }
 
-  private async doCompleteResolve(item: ExtendedCompleteItem, token: CancellationToken): Promise<void> {
+  private doCompleteResolve(item: ExtendedCompleteItem, tokenSource: CancellationTokenSource): Promise<void> {
     let source = sources.getSource(item.source)
-    if (source && typeof source.onCompleteResolve == 'function') {
-      try {
-        await Promise.resolve(source.onCompleteResolve(item, token))
-      } catch (e) {
-        logger.error('Error on complete resolve:', e.stack)
+    return new Promise<void>(resolve => {
+      if (source && typeof source.onCompleteResolve == 'function') {
+        let timer = setTimeout(() => {
+          tokenSource.cancel()
+          logger.warn(`Resolve timeout after 300ms: ${source.name}`)
+          resolve()
+        }, 300)
+        Promise.resolve(source.onCompleteResolve(item, tokenSource.token)).then(() => {
+          clearTimeout(timer)
+          resolve()
+        }, e => {
+          logger.error(`Error on complete resolve: ${e.message}`, e)
+          clearTimeout(timer)
+          resolve()
+        })
+      } else {
+        resolve()
       }
-    }
+    })
   }
 
   public async doCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
@@ -536,7 +548,7 @@ export class Completion implements Disposable {
     }
     let source = this.resolveTokenSource = new CancellationTokenSource()
     let { token } = source
-    await this.doCompleteResolve(resolvedItem, token)
+    await this.doCompleteResolve(resolvedItem, source)
     if (this.resolveTokenSource == source) {
       this.resolveTokenSource = null
     }
