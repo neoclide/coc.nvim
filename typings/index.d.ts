@@ -4289,14 +4289,15 @@ declare module 'coc.nvim' {
      * Arguments of command.
      */
     args: string[]
-    cwd: string
+    /**
+     * Current working directory.
+     */
+    cwd?: string
+    env?: NodeJS.ProcessEnv
     /**
      * Runs for each line, return undefined for invalid item.
      */
     onLine: (line: string) => ListItem | undefined
-  }
-
-  export interface CommandTask extends ListTask {
   }
 
   export abstract class BasicList implements IList {

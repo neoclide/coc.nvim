@@ -4,6 +4,7 @@ import readline from 'readline'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { ListItem, ListTask } from '../types'
 import { disposeAll } from '../util'
+import workspace from '../workspace'
 const logger = require('../util/logger')('list-commandTask')
 
 export interface CommandTaskOption {
@@ -15,7 +16,8 @@ export interface CommandTaskOption {
    * Arguments of command.
    */
   args: string[]
-  cwd: string
+  cwd?: string
+  env?: NodeJS.ProcessEnv
   /**
    * Runs for each line, return undefined for invalid item.
    */
@@ -31,7 +33,7 @@ export default class CommandTask extends EventEmitter implements ListTask {
 
   private start(): void {
     let { cmd, args, cwd, onLine } = this.opt
-    let proc = spawn(cmd, args, { cwd, windowsHide: true })
+    let proc = spawn(cmd, args, { cwd: cwd || workspace.cwd, windowsHide: true })
     this.disposables.push({
       dispose: () => {
         proc.kill()
