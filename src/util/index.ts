@@ -25,7 +25,8 @@ export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")
 }
 
-export function wait(ms: number): Promise<any> {
+export function wait(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve(undefined)
   return new Promise(resolve => {
     setTimeout(() => {
       resolve(undefined)

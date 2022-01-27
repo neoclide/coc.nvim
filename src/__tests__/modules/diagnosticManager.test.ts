@@ -365,9 +365,8 @@ describe('diagnostic manager', () => {
       await manager.refreshBuffer(doc.uri, true)
       await nvim.call('cursor', [1, 1])
       await manager.jumpRelated()
-      await helper.wait(100)
-      let bufname = await nvim.call('bufname', '%')
-      expect(bufname).toBe('list:///location')
+      await helper.waitFor('bufname', ['%'], 'list:///location')
+      await nvim.input('<esc>')
     })
   })
 

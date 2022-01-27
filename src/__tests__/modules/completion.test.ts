@@ -16,6 +16,7 @@ let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  helper.updateConfiguration('suggest.triggerCompletionWait', 0)
 })
 
 beforeEach(async () => {
@@ -428,7 +429,7 @@ describe('completion TextChangedP', () => {
     let idx = res.findIndex(o => o.menu == '[edit]')
     await helper.selectCompleteItem(idx)
     let line: string
-    for (let i =0 ; i < 40; i++) {
+    for (let i = 0; i < 40; i++) {
       await helper.wait(50)
       line = await nvim.line
       if (line == 'bar if()') break
