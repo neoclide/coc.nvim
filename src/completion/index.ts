@@ -297,7 +297,7 @@ export class Completion implements Disposable {
     let items = await this.complete.doComplete()
     if (complete.isCanceled) return
     if (items.length == 0 && !complete.isCompleting) {
-      this.stop()
+      if (!complete.isCanceled) this.stop(false)
       return
     }
     complete.onDidComplete(async () => {
