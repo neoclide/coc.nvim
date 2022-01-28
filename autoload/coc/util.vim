@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 16
+let s:vim_api_version = 17
 let s:activate = ""
 let s:quit = ""
 
@@ -573,7 +573,7 @@ function! coc#util#highlight_options()
         \}
 endfunction
 
-function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end) abort
+function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes) abort
   if !bufloaded(a:bufnr)
     return
   endif
@@ -597,7 +597,14 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
       endif
     endif
   endif
-  call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
+  if exists('*nvim_buf_set_text') && !empty(a:changes)
+    for item in a:changes
+      let lines = nvim_buf_get_lines(a:bufnr, 0, -1, v:false)
+      call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
+    endfor
+  else
+    call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
+  endif
 endfunction
 
 function! coc#util#change_lines(bufnr, list) abort
