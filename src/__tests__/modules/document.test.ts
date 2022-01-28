@@ -35,36 +35,6 @@ describe('properties', () => {
     expect(words).toEqual(['foo', 'bar'])
   })
 
-  it('should applyEdits', async () => {
-    let doc = await helper.createDocument()
-    let edits: TextEdit[] = []
-    edits.push({
-      range: Range.create(0, 0, 0, 0),
-      newText: 'a\n'
-    })
-    edits.push({
-      range: Range.create(0, 0, 0, 0),
-      newText: 'b\n'
-    })
-    await doc.applyEdits(edits)
-    let content = doc.getDocumentContent()
-    expect(content).toBe('a\nb\n\n')
-  })
-
-  it('should applyEdits with changed lines', async () => {
-    let doc = await helper.createDocument()
-    await nvim.setLine('a')
-    await doc.patchChange()
-    let edits: TextEdit[] = []
-    edits.push({
-      range: Range.create(0, 1, 0, 1),
-      newText: `\n\nd`
-    })
-    await doc.applyEdits(edits)
-    let lines = await nvim.call('getline', [1, '$'])
-    expect(lines).toEqual(['a', '', 'd'])
-  })
-
   it('should parse iskeyword of character range', async () => {
     await nvim.setOption('iskeyword', 'a-z,A-Z,48-57,_')
     let doc = await helper.createDocument()
@@ -178,6 +148,83 @@ describe('properties', () => {
     expect(doc.filetype).toBe('latex')
     doc.setFiletype('foo')
     expect(doc.filetype).toBe('foo')
+  })
+})
+
+describe('applyEdits()', () => {
+  it('should simple applyEdits', async () => {
+    let doc = await helper.createDocument()
+    let edits: TextEdit[] = []
+    edits.push({
+      range: Range.create(0, 0, 0, 0),
+      newText: 'a\n'
+    })
+    edits.push({
+      range: Range.create(0, 0, 0, 0),
+      newText: 'b\n'
+    })
+    await doc.applyEdits(edits)
+    let content = doc.getDocumentContent()
+    expect(content).toBe('a\nb\n\n')
+  })
+
+  it('should applyEdits with range not sorted', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines([
+      'aa',
+      'bb',
+      'cc',
+      'dd'
+    ], { start: 0, end: -1, strictIndexing: false })
+    await doc.patchChange()
+    let edits = [
+      { range: { start: { line: 3, character: 0 }, end: { line: 3, character: 1 } }, newText: "" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 1, character: 0 } }, newText: "" },
+    ]
+    await doc.applyEdits(edits)
+    await helper.wait(50)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['aabb', 'cc', 'd'])
+  })
+
+  it('should applyEdits with insert as same position', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines([
+      'foo'
+    ], { start: 0, end: -1, strictIndexing: false })
+    await doc.patchChange()
+    let edits = [
+      { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 'aa' },
+      { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 'bb' },
+    ]
+    await doc.applyEdits(edits)
+    await helper.wait(50)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['aabbfoo'])
+  })
+
+  it('should applyEdits with changed lines', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('a')
+    await doc.patchChange()
+    await doc.applyEdits([{
+      range: Range.create(0, 1, 0, 1),
+      newText: '\nb'
+    }])
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['a', 'b'])
+    await doc.applyEdits([{
+      range: Range.create(1, 0, 2, 0),
+      newText: 'c\n'
+    }])
+    lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['a', 'c'])
+    await doc.applyEdits([{
+      range: Range.create(1, 0, 2, 0),
+      newText: ''
+    }])
+    lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['a'])
   })
 })
 
@@ -328,9 +375,7 @@ describe('applyEdits', () => {
       range: Range.create(0, 0, 0, 5),
       newText: 'foo foo'
     }])
-    await helper.wait(100)
-    let line = await nvim.line
-    expect(line).toBe('foor foo')
+    await helper.waitFor('getline', ['.'], 'foor foo')
   })
 
   it('should synchronize content delete', async () => {
@@ -346,9 +391,7 @@ describe('applyEdits', () => {
       range: Range.create(0, 0, 0, 5),
       newText: 'foo foo'
     }])
-    await helper.wait(100)
-    let line = await nvim.line
-    expect(line).toBe('fo foo')
+    await helper.waitFor('getline', ['.'], 'fo foo')
   })
 })
 

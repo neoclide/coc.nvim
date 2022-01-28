@@ -8,7 +8,8 @@ import { DidChangeTextDocumentParams, HighlightItem, HighlightItemOption } from 
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
-import { comparePosition, emptyRange } from '../util/position'
+import { emptyRange } from '../util/position'
+import { mergeSort, getWellformedEdit } from '../util/textedit'
 import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
@@ -328,14 +329,21 @@ export default class Document {
       let total = lines.length
       // avoid out of range and lines replacement.
       if (this.nvim.hasFunction('nvim_buf_set_text')
-        && !edits.some(o => (o.range.start.character == 0 && o.range.end.character == 0) || o.range.end.line >= total)) {
+        && !edits.some(o => o.range.end.line >= total)) {
         // keep the extmarks
-        edits.sort((a, b) => comparePosition(b.range.start, a.range.start))
-        changes = edits.map(o => {
+        let sortedEdits = mergeSort(edits.map(getWellformedEdit), (a, b) => {
+          let diff = a.range.start.line - b.range.start.line
+          if (diff === 0) {
+            return a.range.start.character - b.range.start.character
+          }
+          return diff
+        })
+        // console.log(JSON.stringify(sortedEdits, null, 2))
+        changes = sortedEdits.reverse().map(o => {
           let r = o.range
           let sl = this.getline(r.start.line)
           let sc = byteLength(sl.slice(0, r.start.character))
-          let el = this.getline(r.end.line)
+          let el = r.end.line == r.start.line ? sl : this.getline(r.end.line)
           let ec = byteLength(el.slice(0, r.end.character))
           return [o.newText.split(/\r?\n/), r.start.line, sc, r.end.line, ec]
         })
@@ -596,7 +604,7 @@ export default class Document {
    * Get lines, zero indexed, end exclude.
    */
   public getLines(start?: number, end?: number): string[] {
-    return this.lines.slice(start, end)
+    return this.lines.slice(start ?? 0, end ?? this.lines.length)
   }
 
   /**
