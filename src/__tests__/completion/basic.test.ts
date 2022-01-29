@@ -190,7 +190,7 @@ describe('completion', () => {
       expect(items[0].word).toBe('bar')
     })
 
-    it('should stop completion when type none trigger character', async () => {
+    it('should filter completion when type none trigger character', async () => {
       await helper.edit()
       let source: ISource = {
         name: 'test',
@@ -211,7 +211,7 @@ describe('completion', () => {
       await nvim.input('iif')
       await helper.waitPopup()
       await nvim.input('(')
-      await helper.wait(300)
+      await helper.wait(100)
       let res = await helper.pumvisible()
       expect(res).toBe(true)
     })

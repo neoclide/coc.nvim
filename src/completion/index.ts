@@ -3,7 +3,6 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
-import Mru from '../model/mru'
 import sources from '../sources'
 import { CompleteOption, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
@@ -12,6 +11,7 @@ import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig, MruItem } from './complete'
+import MruLoader from './mru'
 import Floating, { PumBounding } from './floating'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
@@ -25,9 +25,13 @@ export class Completion implements Disposable {
   public config: CompleteConfig
   private popupEvent: PopupChangeEvent
   private triggerTimer: NodeJS.Timer
+  private completeTimer: NodeJS.Timer
+  private currentSources: string[] = []
   private floating: Floating
   // current input string
   private activated = false
+  // selecting complete item
+  private selecting = false
   private input: string
   private lastInsert?: LastInsert
   private disposables: Disposable[] = []
@@ -38,11 +42,10 @@ export class Completion implements Disposable {
   private insertCharTs = 0
   private insertLeaveTs = 0
   private excludeImages: boolean
-  private mru: Mru
+  private mru: MruLoader = new MruLoader()
 
   public init(): void {
     this.config = this.getCompleteConfig()
-    this.mru = new Mru(`suggest${globalThis.__TEST__ ? process.pid : ''}.txt`, process.env.COC_DATA_HOME, 1000)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         this.config = this.getCompleteConfig()
@@ -63,6 +66,10 @@ export class Completion implements Disposable {
       if (this.triggerTimer) {
         clearTimeout(this.triggerTimer)
         this.triggerTimer = null
+      }
+      if (this.completeTimer) {
+        clearTimeout(this.completeTimer)
+        this.completeTimer = null
       }
     }, this, this.disposables)
     events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
@@ -220,8 +227,8 @@ export class Completion implements Disposable {
       await this.triggerCompletion(document, this.pretext)
       return
     }
-    if (items.length === 0) {
-      if (!complete.isCompleting) this.stop()
+    if (items.length === 0 && !complete.isCompleting) {
+      this.stop()
       return
     }
     await this.showCompletion(complete.option.col, items)
@@ -235,6 +242,8 @@ export class Completion implements Disposable {
 
   private async showCompletion(col: number, items: ExtendedCompleteItem[]): Promise<void> {
     let { nvim, document, option } = this
+    if (this.selecting) return
+    this.currentSources = this.complete.resultSources
     let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
     if (numberSelect && option.input.length && !/^\d/.test(option.input)) {
@@ -287,41 +296,51 @@ export class Completion implements Disposable {
     }
     if (!arr.length) return
     let [mruItems] = await Promise.all([
-      this.getRecentItems(),
+      this.mru.getRecentItems(),
       doc.patchChange(true),
     ]) as [MruItem[], undefined]
     // document get changed, not complete
     if (doc.changedtick != option.changedtick) return
     let complete = new Complete(option, doc, config, arr, mruItems, nvim)
     this.start(complete)
+    // Urgent refresh for complete items
+    let timer = this.completeTimer = setTimeout(async () => {
+      if (complete.isCanceled) return
+      let items = complete.filterResults(option.input)
+      if (items.length === 0 || this.sourcesExists(items)) return
+      await this.showCompletion(option.col, items)
+    }, 200)
     let items = await this.complete.doComplete()
-    if (complete.isCanceled) return
-    if (items.length == 0 && !complete.isCompleting) {
-      if (!complete.isCanceled) this.stop(false)
+    clearTimeout(timer)
+    if (complete.isCanceled || this.selecting) return
+    if (items.length == 0) {
+      this.stop(false)
       return
     }
-    complete.onDidComplete(async () => {
-      if (this.selectedItem != null) return
-      let search = this.getResumeInput()
-      if (complete.isCanceled || search == null) return
-      let { input } = this.option
-      if (search === input) {
-        let items = complete.filterResults(search)
-        await this.showCompletion(option.col, items)
-      } else {
-        await this.resumeCompletion(true)
-      }
-    })
-    if (items.length) {
-      let search = this.getResumeInput()
-      if (search == option.input) {
-        await this.showCompletion(option.col, items)
-      } else {
-        // avoid refresh which could trigger CompleteDone.
-        if (this.selectedItem && this.pretext.endsWith(this.selectedItem.word)) return
-        await this.resumeCompletion(true)
+    let search = this.getResumeInput()
+    if (this.sourcesExists(items)) return
+    if (search == option.input) {
+      // TODO avoid refresh when we have selected item
+      await this.showCompletion(option.col, items)
+    } else {
+      await this.resumeCompletion(true)
+    }
+  }
+
+  /**
+   * Check if soruces of items already shown.
+   */
+  private sourcesExists(items: ExtendedCompleteItem[]): boolean {
+    let { currentSources } = this
+    if (currentSources.length == 0) return items.length == 0
+    let exists = true
+    for (let item of items) {
+      if (!currentSources.includes(item.source)) {
+        exists = false
+        break
       }
     }
+    return exists
   }
 
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
@@ -344,6 +363,7 @@ export class Completion implements Disposable {
     }
     // avoid trigger filter on pumvisible
     if (info.changedtick == this.changedTick) return
+    if (!hasInsert) this.selecting = true
     // not handle when not triggered by character insert
     if (!hasInsert || !pretext) return
     await this.resumeCompletion()
@@ -433,14 +453,14 @@ export class Completion implements Disposable {
     if (!resolvedItem) return
     let now = Date.now()
     let source = new CancellationTokenSource()
-    let line = `${this.input}|${resolvedItem.filterText}|${resolvedItem.source}`
-    this.mru.add(line).logError()
+    this.mru.add(this.input, resolvedItem)
     await this.doCompleteResolve(resolvedItem, source)
     source.dispose()
     // Wait possible TextChangedI
     await wait(50 - (Date.now() - now))
-    if (this.insertCharTs > now || this.insertLeaveTs > now || this.activated) return
-    if (this.pretext !== byteSlice(opt.line, 0, opt.col) + item.word) return
+    let [lnum, mode, pretext] = await this.nvim.eval(`[line('.'),mode(),strpart(getline('.'),0,col('.')-1)]`) as [number, string, string]
+    if (lnum !== opt.linenr || mode != 'i' || pretext !== byteSlice(opt.line, 0, opt.col) + item.word) return
+    if (this.insertCharTs > now || this.activated) return
     await document.patchChange(true)
     await this.doCompleteDone(resolvedItem, opt)
   }
@@ -571,6 +591,8 @@ export class Completion implements Disposable {
   public start(complete: Complete): void {
     let { activated } = this
     this.activated = true
+    this.selecting = false
+    this.currentSources = []
     if (activated) {
       this.complete.dispose()
     }
@@ -646,22 +668,6 @@ export class Completion implements Disposable {
   private getCompleteItem(item: VimCompleteItem | {} | null): ExtendedCompleteItem | null {
     if (!this.complete || !Is.vimCompleteItem(item)) return null
     return this.complete.resolveCompletionItem(item)
-  }
-
-  private async getRecentItems(): Promise<MruItem[]> {
-    let lines = await this.mru.load()
-    let items: MruItem[] = []
-    for (let line of lines) {
-      let arr = line.split('|')
-      if (arr.length >= 3) {
-        items.push({
-          prefix: arr[0],
-          label: arr[1],
-          source: arr[2]
-        })
-      }
-    }
-    return items
   }
 
   public dispose(): void {

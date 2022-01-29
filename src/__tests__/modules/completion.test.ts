@@ -81,7 +81,7 @@ describe('completion start', () => {
       doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
         setTimeout(() => {
           resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
-        }, 600)
+        }, 100)
       })
     }
     disposables.push(sources.addSource(source))
@@ -91,6 +91,36 @@ describe('completion start', () => {
     expect(completion.isActivated).toBe(true)
     let items = await helper.items()
     expect(items.length).toBe(2)
+  })
+
+  it('should show items before slow source finished', async () => {
+    let source: ISource = {
+      name: 'fast',
+      enable: true,
+      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+      })
+    }
+    disposables.push(sources.addSource(source))
+    let slowSource: ISource = {
+      name: 'slow',
+      enable: true,
+      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        setTimeout(() => {
+          resolve({ items: [{ word: 'world' }] })
+        }, 300)
+      })
+    }
+    disposables.push(sources.addSource(slowSource))
+    await helper.edit()
+    await nvim.input('if')
+    let d = Date.now()
+    await helper.waitPopup()
+    expect(Date.now() - d).toBeLessThan(300)
+    await nvim.input('<down>')
+    await helper.wait(300)
+    let info = await nvim.call('complete_info')
+    expect(info['selected']).toBe(0)
   })
 })
 
@@ -178,17 +208,15 @@ describe('completion resumeCompletion', () => {
       doComplete: (): Promise<CompleteResult> => new Promise(resolve => {
         setTimeout(() => {
           resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
-        }, 600)
+        }, 100)
       })
     }
     disposables.push(sources.addSource(source))
     await helper.edit()
-    await nvim.input('i.')
-    await helper.wait(60)
-    await nvim.input('f')
+    await nvim.input('i.f')
     await helper.waitPopup()
     await nvim.input('o')
-    await helper.wait(100)
+    await helper.wait(50)
     expect(completion.isActivated).toBe(true)
     let items = await helper.items()
     expect(items.length).toBe(1)
@@ -245,9 +273,9 @@ describe('completion resumeCompletion', () => {
     await helper.waitPopup()
     expect(completion.isActivated).toBe(true)
     await nvim.input('fo')
-    await helper.wait(100)
+    await helper.wait(50)
     await nvim.input('b')
-    await helper.wait(200)
+    await helper.wait(50)
     expect(completion.isActivated).toBe(true)
   })
 })
@@ -329,7 +357,6 @@ describe('completion TextChangedP', () => {
           }
         }
         if (option.input == 'f') {
-          await helper.wait(100)
           if (token.isCancellationRequested) return
           return {
             isIncomplete: true,
@@ -341,7 +368,6 @@ describe('completion TextChangedP', () => {
           }
         }
         if (option.input == 'fo') {
-          await helper.wait(100)
           if (token.isCancellationRequested) return
           return {
             isIncomplete: false,
@@ -358,9 +384,9 @@ describe('completion TextChangedP', () => {
     await nvim.input('i.')
     await helper.waitPopup()
     await nvim.input('f')
-    await helper.wait(60)
+    await helper.wait(50)
     await nvim.input('o')
-    await helper.wait(300)
+    await helper.wait(50)
     let res = await helper.getItems()
     expect(res.length).toBe(1)
   })
@@ -751,9 +777,9 @@ describe('completion TextChangedI', () => {
     sources.addSource(source)
     await nvim.input('if')
     await helper.pumvisible()
-    await helper.wait(100)
+    await helper.wait(50)
     await nvim.input('.')
-    await helper.wait(100)
+    await helper.wait(50)
     sources.removeSource(source)
   })
 

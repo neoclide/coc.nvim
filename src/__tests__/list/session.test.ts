@@ -236,8 +236,7 @@ describe('chooseAction()', () => {
     })
     disposables.push(manager.registerList(list))
     await manager.start(['--normal', 'simple'])
-    let ui = manager.session.ui
-    await ui.ready
+    await manager.session.ui.ready
     let p = manager.session.chooseAction()
     await helper.wait(100)
     await nvim.input('a')

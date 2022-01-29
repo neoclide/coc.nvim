@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
 import { getCharCodes } from '../util/fuzzy'
@@ -46,10 +46,6 @@ export interface CompleteConfig {
 
 export type Callback = () => void
 
-// first time completion
-const FIRST_TIMEOUT = 500
-let global_id = 0
-
 export default class Complete {
   // identify this complete
   private results: Map<string, CompleteResult> = new Map()
@@ -57,24 +53,20 @@ export default class Complete {
   private _canceled = false
   private localBonus: Map<string, number>
   private tokenSources: Map<string, CancellationTokenSource> = new Map()
-  private _id: number
-  private readonly _onDidComplete = new Emitter<void>()
-  public readonly onDidComplete: Event<void> = this._onDidComplete.event
   constructor(public option: CompleteOption,
     private document: Document,
     private config: CompleteConfig,
     private sources: ReadonlyArray<ISource>,
     private mruItems: ReadonlyArray<MruItem>,
     private nvim: Neovim) {
-    this._id = global_id++
-  }
-
-  public id(): number {
-    return this._id
   }
 
   public get isCompleting(): boolean {
     return this.completing.size > 0
+  }
+
+  public get resultSources(): string[] {
+    return Array.from(this.results.keys())
   }
 
   public get isCanceled(): boolean {
@@ -97,100 +89,88 @@ export default class Complete {
     return Array.from(this.results.values()).findIndex(o => o.isIncomplete) !== -1
   }
 
-  private async completeSource(source: ISource, cid = 0): Promise<void> {
-    let { col } = this.option
-    // new option for each source
-    let opt = Object.assign({}, this.option)
-    let { timeout, fixInsertedWord, snippetIndicator } = this.config
+  private async completeSources(sources: ReadonlyArray<ISource>, cid = 0): Promise<void> {
+    if (this.tokenSources.size > 0) {
+      for (let tokenSource of this.tokenSources.values()) {
+        tokenSource.cancel()
+      }
+      this.tokenSources.clear()
+    }
+    let { timeout, fixInsertedWord } = this.config
     timeout = Math.max(Math.min(timeout, 15000), 500)
     let followPart = !fixInsertedWord ? '' : this.getFollowPart()
+    await Promise.all(sources.map(s => this.completeSource(s, timeout, followPart, cid)))
+    let { results } = this
+    logger.info(`${results.size} results from: ${Array.from(results.keys()).join(',')}`)
+  }
+
+  private async completeSource(source: ISource, timeout: number, followPart: string, cid = 0): Promise<void> {
+    // new option for each source
+    let opt = Object.assign({}, this.option)
+    let { snippetIndicator } = this.config
+    let { name } = source
     try {
+      this.completing.add(name)
       if (typeof source.shouldComplete === 'function') {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
-        if (!shouldRun) return null
+        if (!shouldRun) return
       }
       let start = Date.now()
-      let oldSource = this.tokenSources.get(source.name)
-      if (oldSource) oldSource.cancel()
       let tokenSource = new CancellationTokenSource()
       this.tokenSources.set(source.name, tokenSource)
-      await new Promise<CompleteResult>((resolve, reject) => {
-        let { name } = source
+      await new Promise<void>((resolve, reject) => {
         let timer = setTimeout(() => {
           this.nvim.command(`echohl WarningMsg| echom 'source ${source.name} timeout after ${timeout}ms'|echohl None`, true)
           tokenSource.cancel()
         }, timeout)
         let cancelled = false
         let called = false
-        let empty = false
-        let ft = setTimeout(() => {
-          if (called) return
-          empty = true
-          resolve(undefined)
-        }, FIRST_TIMEOUT)
         let onFinished = () => {
           if (called) return
           called = true
-          disposable.dispose()
-          clearTimeout(ft)
-          clearTimeout(timer)
+          this.completing.delete(name)
           this.tokenSources.delete(name)
+          disposable.dispose()
+          clearTimeout(timer)
         }
         let disposable = tokenSource.token.onCancellationRequested(() => {
-          disposable.dispose()
-          this.completing.delete(name)
           cancelled = true
-          onFinished()
           logger.debug(`Source "${name}" cancelled`)
+          onFinished()
           resolve(undefined)
         })
-        this.completing.add(name)
         Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
-          this.completing.delete(name)
           if (cancelled) return
           onFinished()
-          let dt = Date.now() - start
-          logger.debug(`Source "${name}" takes ${dt}ms`)
-          if (result && result.items) {
-            result.priority = source.priority
+          logger.debug(`Source "${name}" takes ${Date.now() - start}ms`)
+          if (result?.items && result.items.length > 0) {
+            result.priority = result.priority ?? source.priority
             // make sure word exists.
             result.items = result.items.filter(o => o && typeof o.word === 'string')
-            if (!result.items.length) {
-              this.results.delete(name)
-            } else {
-              result.items.forEach((item, idx) => {
-                item.source = name
-                item.priority = source.priority
-                item.filterText = item.filterText || item.word
-                item.abbr = item.abbr || item.word
-                if (followPart.length && !item.isSnippet && item.word.endsWith(followPart)) {
-                  item.word = item.word.slice(0, - followPart.length)
-                }
-                if (item.isSnippet && !item.abbr.endsWith(snippetIndicator)) {
-                  item.abbr = `${item.abbr}${snippetIndicator}`
-                }
-                item.localBonus = this.localBonus ? this.localBonus.get(item.filterText) || 0 : 0
-                let user_data: any = { source: name, cid }
-                user_data.index = item.index || idx
-                if (item.signature) user_data.signature = item.signature
-                item.user_data = JSON.stringify(user_data)
-              })
-              // lazy completed items
-              if (empty && result.startcol && result.startcol != col) {
-                this.results.clear()
-                this.results.set(name, result)
-              } else {
-                this.results.set(name, result)
+            result.items.forEach((item, idx) => {
+              item.source = name
+              item.priority = source.priority
+              item.filterText = item.filterText || item.word
+              item.abbr = item.abbr || item.word
+              if (followPart.length && !item.isSnippet && item.word.endsWith(followPart)) {
+                item.word = item.word.slice(0, - followPart.length)
               }
-              if (empty) this._onDidComplete.fire()
-            }
+              if (item.isSnippet && !item.abbr.endsWith(snippetIndicator)) {
+                item.abbr = `${item.abbr}${snippetIndicator}`
+              }
+              item.localBonus = this.localBonus ? this.localBonus.get(item.filterText) || 0 : 0
+              let user_data: any = { source: name, cid }
+              user_data.index = item.index || idx
+              if (item.signature) user_data.signature = item.signature
+              item.user_data = JSON.stringify(user_data)
+            })
+            this.setResult(name, result)
             resolve(undefined)
           } else {
             this.results.delete(name)
             resolve(undefined)
           }
         }, err => {
-          this.completing.delete(name)
           onFinished()
           reject(err)
         })
@@ -217,8 +197,7 @@ export default class Complete {
     })
     let sources = this.sources.filter(s => names.includes(s.name))
     let cid = Math.floor(Date.now() / 1000)
-    await Promise.all(sources.map(s => this.completeSource(s, cid)))
-    this.checkResults()
+    await this.completeSources(sources, cid)
     return this.filterResults(resumeInput)
   }
 
@@ -327,31 +306,36 @@ export default class Complete {
 
   public async doComplete(): Promise<ExtendedCompleteItem[]> {
     let opts = this.option
-    let { line, colnr, linenr, col } = this.option
+    let { colnr, linenr } = this.option
     if (this.config.localityBonus) {
       let line = linenr - 1
       this.localBonus = this.document.getLocalifyBonus(Position.create(line, opts.col - 1), Position.create(line, colnr))
     } else {
       this.localBonus = new Map()
     }
-    await Promise.all(this.sources.map(s => this.completeSource(s)))
-    this.checkResults()
+    await this.completeSources(this.sources)
     return this.results.size > 0 ? this.filterResults(opts.input) : []
   }
 
-  private checkResults(): void {
-    let { results } = this
+  // handle startcol change
+  private setResult(name: string, result: CompleteResult): void {
+    let { results, tokenSources } = this
     let { line, colnr, col } = this.option
-    for (let [source, result] of results.entries()) {
-      if (result.startcol == null || result.startcol === col) continue
+    if (typeof result.startcol === 'number' && result.startcol != col) {
+      for (let key of tokenSources.keys()) {
+        if (key != name) {
+          tokenSources.get(key).cancel()
+        }
+      }
+      tokenSources.clear()
       let { startcol } = result
       this.option.col = startcol
       this.option.input = byteSlice(line, startcol, colnr - 1)
       results.clear()
-      results.set(source, result)
-      break
+      results.set(name, result)
+    } else {
+      results.set(name, result)
     }
-    logger.info(`${results.size} results from: ${Array.from(results.keys()).join(',')}`)
   }
 
   public resolveCompletionItem(item: VimCompleteItem | undefined): ExtendedCompleteItem | null {
@@ -376,7 +360,6 @@ export default class Complete {
 
   public dispose(): void {
     if (this._canceled) return
-    this._onDidComplete.dispose()
     this._canceled = true
     for (let tokenSource of this.tokenSources.values()) {
       tokenSource.cancel()
