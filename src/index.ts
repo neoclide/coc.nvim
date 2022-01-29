@@ -49,8 +49,8 @@ import {
   ProgressType,
 } from 'vscode-languageserver-protocol'
 
-export { PatternType, SourceType, MessageLevel, ConfigurationTarget, ServiceStat, FileType } from './types'
-export {
+import { PatternType, SourceType, MessageLevel, ConfigurationTarget, ServiceStat, FileType } from './types'
+import {
   State,
   NullLogger,
   ClientState,
@@ -63,8 +63,83 @@ export {
   RevealOutputChannelOn,
 } from './language-client'
 
-export { MarkupKind, DiagnosticTag, DocumentHighlightKind, SymbolKind, SignatureHelpTriggerKind, FileChangeType, CodeActionKind, Diagnostic, DiagnosticSeverity, CompletionItemKind, InsertTextFormat, Location, LocationLink, CancellationTokenSource, CancellationToken, ProgressType, Position, Range, TextEdit, RequestType, RequestType0, NotificationType, NotificationType0, Highligher, Mru, URI as Uri, Disposable, Event, Emitter, FloatFactory, fetch, download, ansiparse }
-export { workspace, window, CompletionTriggerKind, snippetManager, SnippetString, events, services, commands, sources, languages, diagnosticManager, extensions, listManager, BasicList, Mutex }
-export { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
-export { TreeItem, TreeItemCollapsibleState } from './tree/index'
-export { SemanticTokensBuilder } from './semanticTokensBuilder'
+import { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
+import { TreeItem, TreeItemCollapsibleState } from './tree/index'
+import { SemanticTokensBuilder } from './semanticTokensBuilder'
+
+module.exports = {
+  Uri: URI,
+  NullLogger,
+  SettingMonitor,
+  LanguageClient,
+  CancellationTokenSource,
+  ProgressType,
+  RequestType,
+  RequestType0,
+  NotificationType,
+  NotificationType0,
+  Highligher,
+  Mru,
+  Emitter,
+  SnippetString,
+  BasicList,
+  Mutex,
+  TreeItem,
+  SemanticTokensBuilder,
+  FloatFactory,
+  PatternType,
+  SourceType,
+  MessageLevel,
+  ConfigurationTarget,
+  ServiceStat,
+  FileType,
+  State,
+  ClientState,
+  CloseAction,
+  ErrorAction,
+  TransportKind,
+  MessageTransports,
+  RevealOutputChannelOn,
+  MarkupKind,
+  DiagnosticTag,
+  DocumentHighlightKind,
+  SymbolKind,
+  SignatureHelpTriggerKind,
+  FileChangeType,
+  CodeActionKind,
+  Diagnostic,
+  DiagnosticSeverity,
+  CompletionItemKind,
+  InsertTextFormat,
+  Location,
+  LocationLink,
+  CancellationToken,
+  Position,
+  Range,
+  TextEdit,
+  Disposable,
+  Event,
+  workspace,
+  window,
+  CompletionTriggerKind,
+  snippetManager,
+  events,
+  services,
+  commands,
+  sources,
+  languages,
+  diagnosticManager,
+  extensions,
+  listManager,
+  TreeItemCollapsibleState,
+  fetch,
+  download,
+  ansiparse,
+  disposeAll,
+  concurrent,
+  watchFile,
+  wait,
+  runCommand,
+  isRunning,
+  executable,
+}
