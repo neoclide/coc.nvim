@@ -85,6 +85,13 @@ describe('applyEdits()', () => {
 
   it('should apply edits when file not exists', async () => {
     let filepath = path.join(__dirname, 'not_exists')
+    disposables.push({
+      dispose: () => {
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath)
+        }
+      }
+    })
     let uri = URI.file(filepath).toString()
     let changes = {
       [uri]: [TextEdit.insert(Position.create(0, 0), 'foo')]
@@ -341,6 +348,16 @@ describe('loadFile()', () => {
     expect(bufnr).toBe(doc.bufnr)
   })
 
+  it('should throw error when loadFile failed', async () => {
+    await helper.createDocument()
+    let err
+    try {
+      await workspace.loadFile('output:///')
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  })
 })
 
 describe('loadFiles', () => {
@@ -352,5 +369,13 @@ describe('loadFiles', () => {
       let doc = workspace.getDocument(uri)
       expect(doc).toBeDefined()
     }
+  })
+
+  it('should load empty files array', async () => {
+    await workspace.loadFiles([])
+  })
+
+  it('should load files already exists', async () => {
+
   })
 })

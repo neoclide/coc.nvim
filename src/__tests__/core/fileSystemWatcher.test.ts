@@ -57,7 +57,7 @@ function createWatcher(pattern: string, ignoreCreateEvents = false, ignoreChange
   return new FileSystemWatcher(
     workspaceFolder,
     '',
-    helper.createNullChannel(),
+    undefined,
     pattern,
     ignoreCreateEvents,
     ignoreChangeEvents,

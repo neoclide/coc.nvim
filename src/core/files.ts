@@ -97,7 +97,7 @@ export default class Files {
     let cwd = await nvim.call('getcwd')
     let doc = documents.getDocument(bufnr)
     if (!doc || doc.buftype != '' || doc.schema != 'file') {
-      nvim.errWriteLine('current buffer is not file.')
+      nvim.echoError('current buffer is not file.')
       return
     }
     let oldPath = URI.parse(doc.uri).fsPath
@@ -161,12 +161,8 @@ export default class Files {
     if (!stat || opts.overwrite) {
       // directory
       if (filepath.endsWith('/')) {
-        try {
-          filepath = documents.expand(filepath)
-          await fs.mkdirp(filepath)
-        } catch (e) {
-          ui.showMessage(this.nvim, `Can't create ${filepath}: ${e.message}`, 'Error')
-        }
+        filepath = documents.expand(filepath)
+        await fs.mkdirp(filepath)
       } else {
         let uri = URI.file(filepath).toString()
         let doc = documents.getDocument(uri)
@@ -365,7 +361,7 @@ export default class Files {
     return true
   }
 
-  private getChangedUris(documentChanges: DocumentChange[] | null): string[] {
+  public getChangedUris(documentChanges: DocumentChange[] | null): string[] {
     let { documents } = this
     let uris: Set<string> = new Set()
     let createUris: Set<string> = new Set()
@@ -374,11 +370,9 @@ export default class Files {
         let { textDocument } = change
         let { uri, version } = textDocument
         uris.add(uri)
-        if (version != null && version > 0) {
+        if (typeof version === 'number' && version > 0) {
           let doc = documents.getDocument(uri)
-          if (!doc) {
-            throw new Error(`${uri} not loaded`)
-          }
+          if (!doc) throw new Error(`${uri} not loaded`)
           if (doc.version != version) {
             throw new Error(`${uri} changed before apply edit`)
           }

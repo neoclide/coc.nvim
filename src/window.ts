@@ -343,7 +343,7 @@ class Window {
    * Visual select range of current document
    */
   public async selectRange(range: Range): Promise<void> {
-    await ui.selectRange(this.nvim, range)
+    await ui.selectRange(this.nvim, range, this.nvim.isVim)
   }
 
   /**

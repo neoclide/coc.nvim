@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
 import { v1 as uuid } from 'uuid'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { KeymapOption } from '../types'
 import { getKeymapModifier, MapMode } from '../util'
 import Documents from './documents'
@@ -57,7 +57,6 @@ export default class Keymaps {
   }
 
   public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false): Disposable {
-    if (!key) return
     let id = `${mode}${global.Buffer.from(key).toString('base64')}${buffer ? '1' : '0'}`
     let { nvim } = this
     this.keymaps.set(id, [fn, false])

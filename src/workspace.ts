@@ -2,7 +2,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
-import { CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { version as VERSION } from '../package.json'
@@ -14,24 +14,23 @@ import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
 import Files from './core/files'
 import FileSystemWatcher from './core/fileSystemWatcher'
-import { createNameSpace, findUp, getWatchmanPath, has, resolveModule } from './core/funcs'
+import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps from './core/keymaps'
 import Locations from './core/locations'
+import * as ui from './core/ui'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import DB from './model/db'
-import Document from './model/document'
+import type Document from './model/document'
 import Mru from './model/mru'
 import Task from './model/task'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, OutputChannel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
-import { score } from './util/match'
-import window from './window'
 
 const APIVERSION = 17
 const logger = require('./util/logger')('workspace')
@@ -104,7 +103,7 @@ export class Workspace implements IWorkspace {
     this.onWillDeleteFiles = this.files.onWillDeleteFiles
   }
 
-  public async init(): Promise<void> {
+  public async init(window: any): Promise<void> {
     let { nvim } = this
     for (let method of methods) {
       Object.defineProperty(this, method, {
@@ -264,7 +263,7 @@ export class Workspace implements IWorkspace {
   /**
    * Check if selector match document.
    */
-  public match(selector: DocumentSelector, document: TextDocument): number {
+  public match(selector: DocumentSelector, document: { uri: string, languageId: string }): number {
     return score(selector, document.uri, document.languageId)
   }
 
@@ -273,11 +272,10 @@ export class Workspace implements IWorkspace {
    */
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
-    let channel: OutputChannel = watchmanPath ? window.createOutputChannel('watchman') : null
     let watcher = new FileSystemWatcher(
       this.workspaceFolderControl,
       watchmanPath,
-      channel,
+      this.nvim,
       globPattern,
       !!ignoreCreate,
       !!ignoreChange,
@@ -352,7 +350,7 @@ export class Workspace implements IWorkspace {
 
   public async getCurrentState(): Promise<EditerState> {
     let document = await this.document
-    let position = await window.getCursorPosition()
+    let position = await ui.getCursorPosition(this.nvim)
     return {
       document: document.textDocument,
       position

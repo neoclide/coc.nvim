@@ -28,10 +28,7 @@ export default class ContentProvider implements Disposable {
 
   private async onBufReadCmd(scheme: string, uri: string): Promise<void> {
     let provider = this.providers.get(scheme)
-    if (!provider) {
-      this.nvim.echoError(`Provider for ${scheme} not found`)
-      return
-    }
+    if (!provider) return
     let tokenSource = new CancellationTokenSource()
     let content = await Promise.resolve(provider.provideTextDocumentContent(URI.parse(uri), tokenSource.token))
     let buf = await this.nvim.buffer

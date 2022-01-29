@@ -8,7 +8,7 @@ import WorkspaceFolderController from '../../core/workspaceFolder'
 import workspace from '../../workspace'
 import { disposeAll } from '../../util'
 import helper from '../helper'
-import { PatternType } from '../..'
+import { PatternType } from '../../types'
 
 let workspaceFolder: WorkspaceFolderController
 let configurations: Configurations

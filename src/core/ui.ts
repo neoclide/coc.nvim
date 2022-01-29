@@ -57,8 +57,8 @@ export async function getCursorScreenPosition(nvim: Neovim): Promise<ScreenPosit
 /**
  * Reveal message with highlight.
  */
-export function showMessage(nvim: Neovim, msg: string, hl: 'MoreMsg' | 'Error' | 'ErrorMsg' | 'WarningMsg' = 'MoreMsg'): void {
-  let method = isVim ? 'callTimer' : 'call'
+export function showMessage(nvim: Neovim, msg: string, hl: 'MoreMsg' | 'Error' | 'ErrorMsg' | 'WarningMsg' = 'MoreMsg', forceTimer = false): void {
+  let method = forceTimer || isVim ? 'callTimer' : 'call'
   nvim[method]('coc#util#echo_messages', [hl, ('[coc.nvim] ' + msg).split('\n')], true)
 }
 
@@ -79,37 +79,27 @@ export async function getSelection(nvim: Neovim, mode: string): Promise<Range | 
   return Range.create(res[0], res[1], res[2], res[3])
 }
 
-export async function selectRange(nvim: Neovim, range: Range): Promise<void> {
+export async function selectRange(nvim: Neovim, range: Range, redraw: boolean): Promise<void> {
   let { start, end } = range
-  let [line, endLine, ve, selection] = await nvim.eval(`[getline(${start.line + 1}),getline(${end.line + 1}), &virtualedit, &selection]`) as [string, string, string, string]
-  let col = line ? byteLength(line.slice(0, start.character)) : 0
-  let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
-  let move_cmd = ''
-  let resetVirtualEdit = false
-  move_cmd += 'v'
-  endCol = await nvim.eval(`virtcol([${end.line + 1}, ${endCol}])`) as number
-  if (selection == 'inclusive') {
-    if (end.character == 0) {
-      move_cmd += `${end.line}G`
-    } else {
-      move_cmd += `${end.line + 1}G${endCol}|`
-    }
-  } else if (selection == 'old') {
-    move_cmd += `${end.line + 1}G${endCol}|`
+  let [line, endLine] = await nvim.eval(`[getline(${start.line + 1}),getline(${end.line + 1})]`) as [string, string]
+  let col = line.length > 0 ? byteLength(line.slice(0, start.character)) : 0
+  let endCol: number
+  let endLnum: number
+  let toEnd = end.character == 0
+  if (toEnd) {
+    endLnum = end.line == 0 ? 0 : end.line - 1
+    let pre = await nvim.call('getline', [endLnum + 1]) as string
+    endCol = byteLength(pre)
   } else {
-    move_cmd += `${end.line + 1}G${endCol + 1}|`
+    endLnum = end.line
+    endCol = endLine.length > 0 ? byteLength(endLine.slice(0, end.character)) : 0
   }
   col = await nvim.eval(`virtcol([${start.line + 1}, ${col}])`) as number
-  move_cmd += `o${start.line + 1}G${col + 1}|o`
   nvim.pauseNotification()
-  if (ve != 'onemore') {
-    resetVirtualEdit = true
-    nvim.setOption('virtualedit', 'onemore', true)
-  }
-  nvim.command(`noa call cursor(${start.line + 1},${col + (move_cmd == 'a' ? 0 : 1)})`, true)
-  // nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
-  nvim.command(`normal! ${move_cmd}`, true)
-  if (resetVirtualEdit) nvim.setOption('virtualedit', ve, true)
-  if (isVim) nvim.command('redraw', true)
+  nvim.command(`noa call cursor(${start.line + 1},${col + 1})`, true)
+  nvim.command('normal! v', true)
+  nvim.command(`noa call cursor(${endLnum + 1},${endCol})`, true)
+  if (toEnd) nvim.command('normal! $', true)
+  if (redraw) nvim.command('redraw', true)
   await nvim.resumeNotification()
 }

@@ -7,7 +7,9 @@ import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import Watchman, { FileChange } from './watchman'
+import channels from './channels'
 import WorkspaceFolder from './workspaceFolder'
+import { Neovim } from '@chemzqm/neovim'
 const logger = require('../util/logger')('filesystem-watcher')
 
 export interface RenameEvent {
@@ -32,16 +34,18 @@ export default class FileSystemWatcher implements Disposable {
   public readonly onDidDelete: Event<URI> = this._onDidDelete.event
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
   private disposables: Disposable[] = []
+  private channel: OutputChannel | undefined
 
   constructor(
     workspaceFolder: WorkspaceFolder,
     private watchmanPath: string,
-    private channel: OutputChannel | undefined,
+    nvim: Neovim | undefined,
     private globPattern: string,
     public ignoreCreateEvents: boolean,
     public ignoreChangeEvents: boolean,
     public ignoreDeleteEvents: boolean,
   ) {
+    if (nvim) this.channel = channels.create('watchman', nvim)
     workspaceFolder.workspaceFolders.forEach(folder => {
       let root = URI.parse(folder.uri).fsPath
       this.create(root)

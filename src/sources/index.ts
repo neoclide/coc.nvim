@@ -10,7 +10,6 @@ import { CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat
 import { disposeAll, getUri } from '../util'
 import { intersect } from '../util/array'
 import { statAsync } from '../util/fs'
-import { score } from '../util/match'
 import { byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -296,7 +295,7 @@ export class Sources {
       if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }
-      if (documentSelector && languageIds.every(filetype => score(documentSelector, uri, filetype) == 0)) {
+      if (documentSelector && languageIds.every(filetype => workspace.match(documentSelector, { uri, languageId: filetype }) == 0)) {
         return false
       }
       return true
@@ -331,7 +330,7 @@ export class Sources {
       if (!enable || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }
-      if (documentSelector && languageIds.every(languageId => score(documentSelector, uri, languageId) == 0)) {
+      if (documentSelector && languageIds.every(languageId => workspace.match(documentSelector, { uri, languageId }) == 0)) {
         return false
       }
       // if (this.disabledByFiletype(source, filetype)) return false

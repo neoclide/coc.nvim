@@ -7,7 +7,6 @@ import { wait, watchFile } from '../../util'
 import { isGitIgnored, findUp, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { score, positions, groupPositions } from '../../util/fzy'
-import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
 import { Mutex } from '../../util/mutex'
 import { indexOf, rangeParts } from '../../util/string'
@@ -44,11 +43,6 @@ describe('watchFile', () => {
 })
 
 describe('score test', () => {
-  it('should match schema', () => {
-    let uri = URI.file('/foo').toString()
-    let s = matchScore([{ language: '*', scheme: 'file' }], uri, 'typescript')
-    expect(s).toBe(5)
-  })
 
   it('fzy#score', async () => {
     let a = score("amuser", "app/models/user.rb")

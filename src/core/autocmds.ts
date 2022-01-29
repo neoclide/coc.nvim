@@ -1,20 +1,24 @@
-import { Autocmd, Env } from '../types'
-import ContentProvider from './contentProvider'
-import os from 'os'
-import fs from 'fs-extra'
-import path from 'path'
 import { Neovim } from '@chemzqm/neovim'
-import { disposeAll, platform } from '../util'
+import fs from 'fs-extra'
+import os from 'os'
+import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { Autocmd } from '../types'
+import { disposeAll, platform } from '../util'
+import ContentProvider from './contentProvider'
 import Watchers from './watchers'
 const logger = require('../util/logger')('core-autocmds')
+
+interface PartialEnv {
+  isCygwin: boolean
+}
 
 export default class Autocmds implements Disposable {
   private _dynAutocmd = false
   private autocmdMaxId = 0
   public readonly autocmds: Map<number, Autocmd> = new Map()
   private nvim: Neovim
-  private env: Env
+  private env: PartialEnv
   private disposables: Disposable[] = []
   constructor(
     private contentProvider: ContentProvider,
@@ -28,7 +32,7 @@ export default class Autocmds implements Disposable {
     }, null, this.disposables)
   }
 
-  public attach(nvim: Neovim, env: Env): void {
+  public attach(nvim: Neovim, env: PartialEnv): void {
     this.nvim = nvim
     this.env = env
   }
@@ -75,9 +79,9 @@ augroup coc_dynamic_autocmd
   ${cmds.join('\n  ')}
 augroup end`
     if (this.nvim.hasFunction('nvim_exec')) {
-      this.nvim.exec(content, false).logError()
+      void this.nvim.exec(content, false)
     } else {
-      let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)
+      let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}.vim`)
       if (!fs.existsSync(dir)) fs.mkdirpSync(dir)
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
       fs.writeFileSync(filepath, content, 'utf8')
@@ -85,15 +89,12 @@ augroup end`
       if (this.env.isCygwin && platform.isWindows) {
         cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`
       }
-      this.nvim.command(cmd).logError()
+      void this.nvim.command(cmd)
     }
   }
 
   public dispose(): void {
+    this.nvim.command(`augroup coc_dynamic_autocmd|  autocmd!|augroup end`, true)
     disposeAll(this.disposables)
-    if (this.nvim.hasFunction('nvim_exec')) {
-      let content = 'augroup coc_dynamic_autocmd\n  autocmd!\naugroup end'
-      this.nvim.exec(content, false).logError()
-    }
   }
 }

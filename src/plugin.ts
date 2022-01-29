@@ -179,7 +179,7 @@ export default class Plugin extends EventEmitter {
     let s = Date.now()
     try {
       await extensions.init()
-      await workspace.init()
+      await workspace.init(window)
       snippetManager.init()
       completion.init()
       diagnosticManager.init()
