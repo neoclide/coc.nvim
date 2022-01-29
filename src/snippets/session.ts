@@ -133,6 +133,7 @@ export class SnippetSession {
     if (adjusted) return
     let currRange = this.placeholder.range
     if (changedLine != null
+      && edit.range.start.line == currRange.start.line
       && singleLineEdit(edit)
       && !rangeInRange(edit.range, currRange)
       && isSingleLine(currRange)
