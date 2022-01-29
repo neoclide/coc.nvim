@@ -496,6 +496,10 @@ Built-in configurations:~
 
 	Use Neovim virtual text to display diagnostics, default: `false`
 
+"diagnostic.virtualTextLevel":~
+
+	Filter diagnostic message in virtual text by level, default: `null`
+
 "diagnostic.virtualTextAlignRight":~
 
 	Make virtual text align to the right of window, default: `false`

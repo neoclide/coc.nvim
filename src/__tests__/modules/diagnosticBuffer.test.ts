@@ -175,6 +175,7 @@ describe('diagnostic buffer', () => {
       config.virtualTextCurrentLineOnly = true
       config.virtualTextAlignRight = false
       config.virtualTextWinCol = null
+      config.virtualTextLevel = null
     })
 
     it('should show virtual text on current line', async () => {
@@ -226,6 +227,19 @@ describe('diagnostic buffer', () => {
       let ns = config.virtualTextSrcId
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(2)
+    })
+
+    it('should filter by virtualTextLevel', async () => {
+      config.virtualTextLevel = DiagnosticSeverity.Error
+      let buf = await createDiagnosticBuffer()
+      let diagnostics = [
+        createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error),
+        createDiagnostic('bar', Range.create(1, 0, 1, 1), DiagnosticSeverity.Warning),
+      ]
+      await buf.refresh({ '': diagnostics })
+      let ns = config.virtualTextSrcId
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      expect(res.length).toBe(1)
     })
   })
 

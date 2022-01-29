@@ -46,6 +46,7 @@ export interface DiagnosticConfig {
   messageDelay: number
   refreshOnInsertMode: boolean
   virtualText: boolean
+  virtualTextLevel: number | undefined
   virtualTextAlignRight: boolean
   virtualTextWinCol: number | null
   virtualTextCurrentLineOnly: boolean
@@ -264,7 +265,8 @@ export class DiagnosticBuffer implements BufferSyncItem {
 
   public showVirtualText(lnum: number, bufnr?: number): void {
     let { config } = this
-    if (!config.virtualText) return
+    let { virtualText, virtualTextLevel } = config
+    if (!virtualText) return
     let { virtualTextSrcId, virtualTextPrefix, virtualTextCurrentLineOnly } = this.config
     let { diagnostics, buffer } = this
     if (virtualTextCurrentLineOnly) {
@@ -278,6 +280,9 @@ export class DiagnosticBuffer implements BufferSyncItem {
     buffer.clearNamespace(virtualTextSrcId)
     for (let i = diagnostics.length - 1; i >= 0; i--) {
       let diagnostic = diagnostics[i]
+      if (virtualTextLevel && diagnostic.severity && diagnostic.severity > virtualTextLevel) {
+        continue
+      }
       let { line } = diagnostic.range.start
       let highlight = getNameFromSeverity(diagnostic.severity) + 'VirtualText'
       let msg = diagnostic.message.split(/\n/)

@@ -570,6 +570,7 @@ export class DiagnosticManager implements Disposable {
       level: severityLevel(config.get<string>('level', 'hint')),
       locationlistLevel: severityLevel(config.get<string>('locationlistLevel')),
       signLevel: severityLevel(config.get<string>('signLevel')),
+      virtualTextLevel: severityLevel(config.get<string>('virtualTextLevel')),
       messageLevel: severityLevel(config.get<string>('messageLevel')),
       signPriority: config.get<number>('signPriority', 10),
       errorSign: config.get<string>('errorSign', '>>'),
