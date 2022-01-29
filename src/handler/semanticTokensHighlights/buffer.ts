@@ -81,26 +81,24 @@ export default class SemanticTokensBuffer implements SyncItem {
     return languages.hasProvider('semanticTokens', doc.textDocument) || languages.hasProvider('semanticTokensRange', doc.textDocument)
   }
 
-  public get hasBothProvider(): boolean {
-    let doc = workspace.getDocument(this.bufnr)
-    if (!doc) return false
-    return languages.hasProvider('semanticTokens', doc.textDocument) && languages.hasProvider('semanticTokensRange', doc.textDocument)
-  }
-
   public get rangeProviderOnly(): boolean {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return false
     return !languages.hasProvider('semanticTokens', doc.textDocument) && languages.hasProvider('semanticTokensRange', doc.textDocument)
   }
 
+  public get shouldRangeHighlight(): boolean {
+    let doc = workspace.getDocument(this.bufnr)
+    if (!doc) return false
+    return languages.hasProvider('semanticTokensRange', doc.textDocument) && this.previousResults == null
+  }
+
   public onChange(): void {
-    if (!this.enabled) return
     this.cancel()
     this.doHighlight().logError()
   }
 
   public onTextChange(): void {
-    if (!this.enabled) return
     this.cancel()
     this.highlight()
   }
@@ -118,16 +116,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     return this._highlights
   }
 
-  public get enabled(): boolean {
-    if (!this.config.filetypes.length) return false
-    if (!workspace.env.updateHighlight) return false
-    let doc = workspace.getDocument(this.bufnr)
-    if (!doc || !doc.attached) return false
-    if (!this.hasLegend) return false
-    if (!this.config.filetypes.includes('*') && !this.config.filetypes.includes(doc.filetype)) return false
-    return this.hasProvider
-  }
-
   public get previousVersion(): number | undefined {
     if (!this.previousResults) return undefined
     return this.previousResults.version
@@ -142,6 +130,16 @@ export default class SemanticTokensBuffer implements SyncItem {
     return languages.getLegend(doc.textDocument) != null || languages.getLegend(doc.textDocument, true) != null
   }
 
+  public get enabled(): boolean {
+    if (!this.config.filetypes.length) return false
+    if (!workspace.env.updateHighlight) return false
+    let doc = workspace.getDocument(this.bufnr)
+    if (!doc || !doc.attached) return false
+    if (!this.hasLegend) return false
+    if (!this.config.filetypes.includes('*') && !this.config.filetypes.includes(doc.filetype)) return false
+    return this.hasProvider
+  }
+
   public checkState(): void {
     if (!workspace.env.updateHighlight) {
       throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`)
@@ -149,7 +147,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc || !doc.attached) throw new Error('Document not attached')
     let { filetypes } = this.config
-    if (!filetypes.includes('*') && !filetypes.includes(doc.filetype)) {
+    if (!filetypes?.includes('*') && !filetypes.includes(doc.filetype)) {
       throw new Error(`Semantic tokens highlight not enabled for current filetype: ${doc.filetype}`)
     }
     if (!this.hasProvider) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
@@ -237,6 +235,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async doRangeHighlight(): Promise<void> {
+    if (!this.enabled) return
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let priority = this.config.highlightPriority
@@ -249,17 +248,15 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   private async doHighlight(forceFull = false): Promise<void> {
     if (!this.enabled) return
-    if (this.rangeProviderOnly) {
+    this.cancel()
+    if (this.shouldRangeHighlight) {
       await this.doRangeHighlight()
-      return
-    }
-    if (this.hasBothProvider && !forceFull && this.previousResults == null) {
-      await this.doRangeHighlight()
+      if (this.rangeProviderOnly) return
     }
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let priority = this.config.highlightPriority
-    const items = await this.requestHighlights(tokenSource.token, forceFull)
+    const items = await this.requestAllHighlights(tokenSource.token, forceFull)
     // request cancelled or can't work
     if (!items || tokenSource.token.isCancellationRequested) return
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items)
@@ -288,7 +285,7 @@ export default class SemanticTokensBuffer implements SyncItem {
    * Request highlights from provider, return undefined when can't request or request cancelled
    * Use range provider only when not semanticTokens provider exists.
    */
-  private async requestHighlights(token: CancellationToken, forceFull: boolean): Promise<HighlightItem[] | undefined> {
+  private async requestAllHighlights(token: CancellationToken, forceFull: boolean): Promise<HighlightItem[] | undefined> {
     let doc = workspace.getDocument(this.bufnr)
     const legend = languages.getLegend(doc.textDocument)
     const hasEditProvider = languages.hasSemanticTokensEdits(doc.textDocument)
@@ -300,15 +297,17 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else {
       result = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
     }
-    if (token.isCancellationRequested || !result) return undefined
+    if (token.isCancellationRequested || !result) return
     let tokens: uinteger[] = []
     if (SemanticTokens.is(result)) {
       tokens = result.data
-    } else {
+    } else if (Array.isArray(result.edits)) {
       tokens = previousResult.tokens
       result.edits.forEach(e => {
         tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data)
       })
+    } else {
+      return
     }
     this.previousResults = { resultId: result.resultId, tokens, version }
     return this.convertTokens(doc, tokens, legend)

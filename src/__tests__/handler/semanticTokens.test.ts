@@ -300,16 +300,19 @@ describe('semanticTokens', () => {
     })
 
     it('should do range highlight first time', async () => {
+      workspace.configurations.updateUserConfig({
+        'semanticTokens.filetypes': ['vim']
+      })
       await highlighter.fetchHighlightGroups()
       let doc = await helper.createDocument('t.vim')
       let r: Range
-      expect(doc.filetype).toBe('vim')
-      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
-      await helper.wait(30)
       disposables.push(registerRangeProvider('vim', range => {
         r = range
         return [0, 0, 3, 1, 0]
       }))
+      expect(doc.filetype).toBe('vim')
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
+      await helper.wait(30)
       let item = await highlighter.getCurrentItem()
       await item.doRangeHighlight()
       expect(r).toEqual(Range.create(0, 0, 1, 0))
