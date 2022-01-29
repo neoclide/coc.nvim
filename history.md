@@ -1,6 +1,7 @@
 # 2022-01-30
 
 - Add configuration `diagnostics.virtualTextLevel`.
+- Remove configuration `suggest.numberSelect`
 
 # 2022-01-26
 

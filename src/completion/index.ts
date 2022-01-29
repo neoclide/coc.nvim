@@ -161,7 +161,6 @@ export class Completion implements Disposable {
       labelMaxLength: getConfig<number>('labelMaxLength', 200),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
       noselect: getConfig<boolean>('noselect', true),
-      numberSelect: getConfig<boolean>('numberSelect', false),
       maxItemCount: getConfig<number>('maxCompleteItemCount', 50),
       timeout: getConfig<number>('timeout', 500),
       minTriggerInputLength: getConfig<number>('minTriggerInputLength', 1),
@@ -244,20 +243,8 @@ export class Completion implements Disposable {
     let { nvim, document, option } = this
     if (this.selecting) return
     this.currentSources = this.complete.resultSources
-    let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
+    let { disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
-    if (numberSelect && option.input.length && !/^\d/.test(option.input)) {
-      items = items.map((item, i) => {
-        let idx = i + 1
-        if (i < 9) {
-          return Object.assign({}, item, {
-            abbr: item.abbr ? `${idx} ${item.abbr}` : `${idx} ${item.word}`
-          })
-        }
-        return item
-      })
-      nvim.call('coc#_map', [], true)
-    }
     this.changedTick = document.changedtick
     let validKeys = completeItemKeys.slice()
     if (disableKind) validKeys = validKeys.filter(s => s != 'kind')
@@ -622,9 +609,6 @@ export class Completion implements Disposable {
     nvim.pauseNotification()
     if (hide) {
       nvim.call('coc#_hide', [], true)
-    }
-    if (this.config.numberSelect) {
-      nvim.call('coc#_unmap', [], true)
     }
     if (!this.config.keepCompleteopt) {
       nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)

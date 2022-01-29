@@ -225,11 +225,6 @@ Built-in configurations:~
 
 	Priority of language sources, default: `99`
 
-"suggest.numberSelect":~
-
-	Input number to select complete item, it could be wrong when
-	using '<up>' and '<down>' to select complete item, default: `false`
-
 "suggest.disableKind":~
 
 	Remove kind field from Vim complete item, default: `false`

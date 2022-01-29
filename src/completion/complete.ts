@@ -30,7 +30,6 @@ export interface CompleteConfig {
   acceptSuggestionOnCommitCharacter: boolean
   noselect: boolean
   keepCompleteopt: boolean
-  numberSelect: boolean
   maxItemCount: number
   timeout: number
   snippetIndicator: string

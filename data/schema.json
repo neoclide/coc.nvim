@@ -418,11 +418,6 @@
       "default": 99,
       "description": "Priority of language sources."
     },
-    "suggest.numberSelect": {
-      "type": "boolean",
-      "description": "Input number to select complete item, works on neovim >= 0.4.0 only.",
-      "default": false
-    },
     "suggest.disableKind": {
       "type": "boolean",
       "description": "Remove kind field from vim complete item.",
