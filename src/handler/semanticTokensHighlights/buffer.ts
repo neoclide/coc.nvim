@@ -62,6 +62,7 @@ export function capitalize(text: string): string {
 
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
+  private rangeTokenSource: CancellationTokenSource
   private _highlights: SemanticTokenRange[]
   private previousResults: SemanticTokensPreviousResult | undefined
   public highlight: Function & { clear(): void }
@@ -95,16 +96,19 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public onChange(): void {
     this.cancel()
+    this.cancelRange()
     this.doHighlight().logError()
   }
 
   public onTextChange(): void {
     this.cancel()
+    this.cancelRange()
     this.highlight()
   }
 
   public async forceHighlight(): Promise<void> {
     this.clearHighlight()
+    this.cancelRange()
     this.cancel()
     await this.doHighlight(true)
   }
@@ -236,25 +240,24 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public async doRangeHighlight(): Promise<void> {
     if (!this.enabled) return
-    this.cancel()
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
+    this.cancelRange()
+    let tokenSource = this.rangeTokenSource = new CancellationTokenSource()
     let priority = this.config.highlightPriority
     let res = await this.requestRangeHighlights(tokenSource.token)
-    this.tokenSource = null
+    this.rangeTokenSource = null
     if (!res) return
     const { items, start, end } = res
     await this.nvim.call('coc#highlight#update_highlights', [this.bufnr, NAMESPACE, items, start, end, priority])
   }
 
-  private async doHighlight(forceFull = false): Promise<void> {
+  public async doHighlight(forceFull = false): Promise<void> {
     if (!this.enabled) return
     this.cancel()
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
     if (this.shouldRangeHighlight) {
       await this.doRangeHighlight()
       if (this.rangeProviderOnly) return
     }
-    this.cancel()
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
     let priority = this.config.highlightPriority
     const items = await this.requestAllHighlights(tokenSource.token, forceFull)
     // request cancelled or can't work
@@ -326,8 +329,17 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
   }
 
+  public cancelRange(): void {
+    if (this.rangeTokenSource) {
+      this.rangeTokenSource.cancel()
+      this.rangeTokenSource.dispose()
+      this.rangeTokenSource = null
+    }
+  }
+
   public dispose(): void {
     this.cancel()
+    this.cancelRange()
     this._highlights = []
     this.previousResults = undefined
   }

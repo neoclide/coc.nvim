@@ -155,9 +155,8 @@ async function createRustBuffer(): Promise<Buffer> {
   let buf = await nvim.buffer
   await nvim.command('setf rust')
   await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
-  await helper.wait(10)
   let doc = await workspace.document
-  await doc.synchronize()
+  await doc.patchChange()
   return buf
 }
 
@@ -340,6 +339,57 @@ describe('semanticTokens', () => {
       await helper.wait(50)
       expect(r).toBeDefined()
       expect(r.end).toEqual({ line: 201, character: 0 })
+    })
+
+    it('should only cancel range highlight request', async () => {
+      let rangeCancelled = false
+      disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: 'vim' }], {
+        provideDocumentRangeSemanticTokens: (_, range, token) => {
+          return new Promise(resolve => {
+            token.onCancellationRequested(() => {
+              clearTimeout(timeout)
+              rangeCancelled = true
+              resolve(null)
+            })
+            let timeout = setTimeout(() => {
+              resolve({ data: [] })
+            }, 500)
+          })
+        }
+      }, legend))
+      let cancelled = false
+      disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
+        provideDocumentSemanticTokens: (_, token) => {
+          return new Promise(resolve => {
+            token.onCancellationRequested(() => {
+              clearTimeout(timeout)
+              cancelled = true
+              resolve(null)
+            })
+            let timeout = setTimeout(() => {
+              resolve({
+                resultId: '1',
+                data: [0, 0, 3, 1, 0]
+              })
+            }, 100)
+          })
+        }
+      }, legend))
+      await highlighter.fetchHighlightGroups()
+      let doc = await helper.createDocument('t.vim')
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
+      let item = await highlighter.getCurrentItem()
+      workspace.configurations.updateUserConfig({
+        'semanticTokens.filetypes': ['vim']
+      })
+      item.cancel()
+      let p = item.doHighlight()
+      await helper.wait(10)
+      item.cancelRange()
+      await p
+      expect(rangeCancelled).toBe(true)
+      expect(item.highlights).toBeDefined()
+      expect(item.highlights.length).toBe(1)
     })
   })
 
