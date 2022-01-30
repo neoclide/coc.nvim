@@ -214,6 +214,25 @@ describe('applyEdits()', () => {
     expect(lines).toEqual(['foo', ''])
   })
 
+  it('should applyEdits with lines', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines([
+      'aa',
+      'bb',
+      'cc',
+      'dd'
+    ], { start: 0, end: -1, strictIndexing: false })
+    await doc.patchChange()
+    let edits = [
+      { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } }, newText: "" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 1, character: 0 } }, newText: "" },
+    ]
+    await doc.applyEdits(edits)
+    await helper.wait(50)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['abb', 'cc', 'dd'])
+  })
+
   it('should applyEdits with changed lines', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('a')
