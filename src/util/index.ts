@@ -21,10 +21,6 @@ export function isMarkdown(content: MarkupContent | string | undefined): boolean
   return false
 }
 
-export function escapeSingleQuote(str: string): string {
-  return str.replace(/'/g, "''")
-}
-
 export function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve(undefined)
   return new Promise(resolve => {

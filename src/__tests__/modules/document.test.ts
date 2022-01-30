@@ -203,6 +203,17 @@ describe('applyEdits()', () => {
     expect(lines).toEqual(['aabbfoo'])
   })
 
+  it('should applyEdits with bad range', async () => {
+    let doc = await helper.createDocument()
+    await doc.buffer.setLines([], { start: 0, end: -1, strictIndexing: false })
+    await doc.patchChange()
+    let edits = [{ range: { start: { line: -1, character: -1 }, end: { line: -1, character: -1 } }, newText: 'foo' },]
+    await doc.applyEdits(edits)
+    await helper.wait(50)
+    let lines = await nvim.call('getline', [1, '$'])
+    expect(lines).toEqual(['foo', ''])
+  })
+
   it('should applyEdits with changed lines', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('a')

@@ -329,7 +329,7 @@ export default class Document {
       let total = lines.length
       // avoid out of range and lines replacement.
       if (this.nvim.hasFunction('nvim_buf_set_text')
-        && !edits.some(o => o.range.end.line >= total)) {
+        && edits.every(o => validRange(o.range, total))) {
         // keep the extmarks
         let sortedEdits = mergeSort(edits.map(getWellformedEdit), (a, b) => {
           let diff = a.range.start.line - b.range.start.line
@@ -760,4 +760,10 @@ export default class Document {
     }
     return res
   }
+}
+
+function validRange(range: Range, total: number): boolean {
+  if (range.end.line >= total) return false
+  if (range.start.line < 0 || range.start.character < 0) return false
+  return true
 }
