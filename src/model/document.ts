@@ -507,7 +507,10 @@ export default class Document {
     if (this.env.isVim) {
       if (currentLine) {
         let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
-        if (change.changedtick < this._changedtick) return
+        if (change.changedtick < this._changedtick) {
+          this._forceSync()
+          return
+        }
         let { lnum, line, changedtick } = change
         let curr = this.getline(lnum - 1)
         this._changedtick = changedtick

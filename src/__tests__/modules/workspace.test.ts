@@ -590,7 +590,7 @@ describe('workspace textDocument content provider', () => {
     expect(lines).toEqual(['sample text'])
   })
 
-  it('should react onChagne event of document content provider', async () => {
+  it('should react on change event of document content provider', async () => {
     let text = 'foo'
     let emitter = new Emitter<URI>()
     let event = emitter.event
@@ -599,15 +599,12 @@ describe('workspace textDocument content provider', () => {
       provideTextDocumentContent: (_uri, _token): string => text
     }
     workspace.registerTextDocumentContentProvider('jdk', provider)
-    await helper.wait(80)
+    workspace.autocmds.setupDynamicAutocmd(true)
     await nvim.command('edit jdk://1')
-    await helper.wait(100)
+    await helper.wait(50)
     text = 'bar'
     emitter.fire(URI.parse('jdk://1'))
-    await helper.wait(200)
-    let buf = await nvim.buffer
-    let lines = await buf.lines
-    expect(lines).toEqual(['bar'])
+    await helper.waitFor('getline', ['.'], 'bar')
   })
 })
 

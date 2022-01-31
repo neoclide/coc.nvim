@@ -186,11 +186,16 @@ export default class LanguageSource implements ISource {
     let { nvim } = workspace
     let { textEdit } = item
     if (!textEdit) return false
-    let { line, bufnr, linenr } = option
+    let { line, bufnr, linenr, colnr } = option
     let doc = workspace.getDocument(bufnr)
     if (!doc) return false
     let newText = textEdit.newText
     let range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
+    let characterIndex = byteSlice(line, 0, colnr - 1).length
+    // attampt to fix range from textEdit, range should include trigger position
+    if (range.end.character < characterIndex) {
+      range.end.character = characterIndex
+    }
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     // replace inserted word
     let start = line.slice(0, range.start.character)
@@ -374,9 +379,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
   } else if (insertText) {
     newText = insertText
   }
-  if (insertTextFormat == InsertTextFormat.Snippet
-    && newText
-    && newText.includes('$')) {
+  if (insertTextFormat == InsertTextFormat.Snippet && newText && newText.includes('$')) {
     let parser = new SnippetParser()
     let text = parser.text(newText)
     word = text ? getValidWord(text, invalidInsertCharacters) : label

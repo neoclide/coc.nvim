@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-jsonrpc'
-import { CompletionItem, InsertTextFormat, Position, Range, TextEdit, CompletionList } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
@@ -645,9 +645,22 @@ describe('completion done', () => {
     await nvim.input('<C-n>')
     await helper.wait(30)
     await nvim.call('coc#_select')
-    await helper.wait(100)
-    let line = await nvim.line
-    expect(line).toBe('football football')
+    await helper.waitFor('getline', ['.'], 'football football')
+  })
+
+  it('should fix bad range', async () => {
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+        label: 'foo',
+        filterText: 'foo',
+        textEdit: { range: Range.create(0, 0, 0, 0), newText: 'foo' },
+      }]
+    }
+    disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+    await nvim.input('if')
+    await helper.waitPopup()
+    await helper.selectCompleteItem(0)
+    await helper.waitFor('getline', ['.'], 'foo')
   })
 })
 
