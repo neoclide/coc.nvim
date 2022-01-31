@@ -51,9 +51,6 @@ export default class Documents implements Disposable {
     private readonly workspaceFolder: WorkspaceFolder,
   ) {
     this._cwd = process.cwd()
-    let preferences = configurations.getConfiguration('coc.preferences')
-    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
-    this.maxFileSize = bytes.parse(maxFileSize)
   }
 
   public async attach(nvim: Neovim, env: Env): Promise<void> {
@@ -61,6 +58,9 @@ export default class Documents implements Disposable {
     this.nvim = nvim
     this._env = env
     this._attached = true
+    let preferences = this.configurations.getConfiguration('coc.preferences')
+    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
+    this.maxFileSize = bytes.parse(maxFileSize)
     let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]'),bufnr('%'),win_getid()]`) as [number[], number, number]
     this._bufnr = bufnr
     await Promise.all(bufs.map(buf => this.onBufCreate(buf)))
