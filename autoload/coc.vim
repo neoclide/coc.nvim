@@ -9,6 +9,7 @@ let s:is_vim = !has('nvim')
 let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
 let s:select_api = exists('*nvim_select_popupmenu_item')
+let s:complete_info_api = exists('*complete_info')
 let s:callbacks = {}
 
 function! coc#expandable() abort
@@ -63,6 +64,10 @@ function! coc#_complete() abort
 endfunction
 
 function! coc#_do_complete(start, items, preselect)
+  " Refresh with selected item would cause unexpected CompleteDone
+  if s:complete_info_api && get(complete_info(['selected']), 'selected', -1) != -1 && &completeopt =~# 'noselect'
+    return
+  endif
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
