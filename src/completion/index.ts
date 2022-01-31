@@ -286,8 +286,9 @@ export class Completion implements Disposable {
       this.mru.getRecentItems(),
       doc.patchChange(true),
     ]) as [MruItem[], undefined]
+    let pre = byteSlice(option.line, 0, option.colnr - 1)
     // document get changed, not complete
-    if (doc.changedtick != option.changedtick) return
+    if (pre !== this.pretext) return
     let complete = new Complete(option, doc, config, arr, mruItems, nvim)
     this.start(complete)
     // Urgent refresh for complete items

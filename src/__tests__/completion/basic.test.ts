@@ -80,7 +80,7 @@ describe('completion', () => {
       expect(context.preselect).toBe(-1)
     })
 
-    it('should select recent item', async () => {
+    it('should select recent used item', async () => {
       helper.updateConfiguration('suggest.selection', 'recentlyUsed')
       helper.updateConfiguration('suggest.enablePreselect', true)
       let doc = await helper.createDocument()

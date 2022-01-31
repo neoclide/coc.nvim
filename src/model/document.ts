@@ -509,12 +509,16 @@ export default class Document {
         let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
         if (change.changedtick < this._changedtick) return
         let { lnum, line, changedtick } = change
-        let newLines = this.lines.slice()
+        let curr = this.getline(lnum - 1)
         this._changedtick = changedtick
-        if (newLines[lnum - 1] == line) return
-        newLines[lnum - 1] = line
-        this.lines = newLines
-        this._forceSync()
+        if (curr == line) {
+          this._forceSync()
+        } else {
+          let newLines = this.lines.slice()
+          newLines[lnum - 1] = line
+          this.lines = newLines
+          this._forceSync()
+        }
       } else {
         this.fetchContent.clear()
         await this._fetchContent(true)
