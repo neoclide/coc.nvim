@@ -540,24 +540,49 @@ export class LanguageClient extends BaseLanguageClient {
 
   protected registerBuiltinFeatures(): void {
     super.registerBuiltinFeatures()
-    this.registerFeature(new PullConfigurationFeature(this))
-    this.registerFeature(new TypeDefinitionFeature(this))
-    this.registerFeature(new ImplementationFeature(this))
-    this.registerFeature(new DeclarationFeature(this))
-    this.registerFeature(new ColorProviderFeature(this))
-    this.registerFeature(new FoldingRangeFeature(this))
-    this.registerFeature(new SelectionRangeFeature(this))
-    this.registerFeature(new ProgressFeature(this))
-    this.registerFeature(new CallHierarchyFeature(this))
-    this.registerFeature(new LinkedEditingFeature(this))
-    this.registerFeature(new DidCreateFilesFeature(this))
-    this.registerFeature(new DidRenameFilesFeature(this))
-    this.registerFeature(new DidDeleteFilesFeature(this))
-    this.registerFeature(new WillCreateFilesFeature(this))
-    this.registerFeature(new WillRenameFilesFeature(this))
-    this.registerFeature(new WillDeleteFilesFeature(this))
-    this.registerFeature(new SemanticTokensFeature(this))
-    if (!this.clientOptions.disableWorkspaceFolders) {
+    let { disabledFeatures } = this.clientOptions
+    if (!disabledFeatures.includes('pullConfiguration')) {
+      this.registerFeature(new PullConfigurationFeature(this))
+    }
+    if (!disabledFeatures.includes('typeDefinition')) {
+      this.registerFeature(new TypeDefinitionFeature(this))
+    }
+    if (!disabledFeatures.includes('implementation')) {
+      this.registerFeature(new ImplementationFeature(this))
+    }
+    if (!disabledFeatures.includes('declaration')) {
+      this.registerFeature(new DeclarationFeature(this))
+    }
+    if (!disabledFeatures.includes('colorProvider')) {
+      this.registerFeature(new ColorProviderFeature(this))
+    }
+    if (!disabledFeatures.includes('foldingRange')) {
+      this.registerFeature(new FoldingRangeFeature(this))
+    }
+    if (!disabledFeatures.includes('selectionRange')) {
+      this.registerFeature(new SelectionRangeFeature(this))
+    }
+    if (!disabledFeatures.includes('callHierarchy')) {
+      this.registerFeature(new CallHierarchyFeature(this))
+    }
+    if (!disabledFeatures.includes('progress')) {
+      this.registerFeature(new ProgressFeature(this))
+    }
+    if (!disabledFeatures.includes('linkedEditing')) {
+      this.registerFeature(new LinkedEditingFeature(this))
+    }
+    if (!disabledFeatures.includes('fileEvents')) {
+      this.registerFeature(new DidCreateFilesFeature(this))
+      this.registerFeature(new DidRenameFilesFeature(this))
+      this.registerFeature(new DidDeleteFilesFeature(this))
+      this.registerFeature(new WillCreateFilesFeature(this))
+      this.registerFeature(new WillRenameFilesFeature(this))
+      this.registerFeature(new WillDeleteFilesFeature(this))
+    }
+    if (!disabledFeatures.includes('semanticTokens')) {
+      this.registerFeature(new SemanticTokensFeature(this))
+    }
+    if (!disabledFeatures.includes('workspaceFolders')) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
     }
   }

@@ -76,25 +76,56 @@
           "default": false,
           "description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicated feature regstration."
         },
-        "disableWorkspaceFolders": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable workspaceFolders feature for this languageserver."
-        },
         "disableSnippetCompletion": {
           "type": "boolean",
           "default": false,
           "description": "Disable completion snippet feature for this languageserver, the languageserver may not respect it."
         },
-        "disableDiagnostics": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable handle diagnostics for this languageserver."
-        },
-        "disableCompletion": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable completion feature for this languageserver."
+        "disabledFeatures": {
+          "type": "array",
+          "default": [],
+          "description": "Disabled features for this languageserver.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "completion",
+              "configuration",
+              "workspaceFolders",
+              "diagnostics",
+              "willSave",
+              "willSaveUntil",
+              "didSaveTextDocument",
+              "fileSystemWatcher",
+              "hover",
+              "signatureHelp",
+              "definition",
+              "references",
+              "documentHighlight",
+              "documentSymbol",
+              "workspaceSymbol",
+              "codeAction",
+              "codeLens",
+              "formatting",
+              "documentFormatting",
+              "documentRangeFormatting",
+              "documentOnTypeFormatting",
+              "rename",
+              "documentLink",
+              "executeCommand",
+              "pullConfiguration",
+              "typeDefinition",
+              "implementation",
+              "declaration",
+              "color",
+              "foldingRange",
+              "selectionRange",
+              "progress",
+              "callHierarchy",
+              "linkedEditing",
+              "fileEvents",
+              "semanticTokens"
+            ]
+          }
         },
         "formatterPriority": {
           "type": "number",
@@ -192,11 +223,9 @@
           "default": "127.0.0.1",
           "description": "Host of server"
         },
-        "disableWorkspaceFolders": {},
         "disableSnippetCompletion": {},
         "disableDynamicRegister": {},
-        "disableDiagnostics": {},
-        "disableCompletion": {},
+        "disabledFeatures": {},
         "formatterPriority": {},
         "enable": {},
         "rootPatterns": {},
@@ -258,10 +287,8 @@
         "env": {},
         "enable": {},
         "disableDynamicRegister": {},
-        "disableWorkspaceFolders": {},
         "disableSnippetCompletion": {},
-        "disableDiagnostics": {},
-        "disableCompletion": {},
+        "disabledFeatures": {},
         "formatterPriority": {},
         "rootPatterns": {},
         "requireRootPattern": {},
@@ -309,10 +336,8 @@
         "env": {},
         "enable": {},
         "disableDynamicRegister": {},
-        "disableWorkspaceFolders": {},
         "disableSnippetCompletion": {},
-        "disableDiagnostics": {},
-        "disableCompletion": {},
+        "disabledFeatures": {},
         "formatterPriority": {},
         "rootPatterns": {},
         "requireRootPattern": {},

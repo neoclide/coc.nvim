@@ -714,10 +714,8 @@ export interface LanguageClientOptions {
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
   disableDynamicRegister?: boolean
-  disableWorkspaceFolders?: boolean
   disableSnippetCompletion?: boolean
-  disableDiagnostics?: boolean
-  disableCompletion?: boolean
+  disabledFeatures?: string[]
   formatterPriority?: number
   outputChannelName?: string
   outputChannel?: OutputChannel
@@ -741,11 +739,9 @@ export interface LanguageClientOptions {
 
 interface ResolvedClientOptions {
   ignoredRootPaths?: string[]
-  disableWorkspaceFolders: boolean
+  disabledFeatures: string[]
   disableSnippetCompletion: boolean
   disableDynamicRegister: boolean
-  disableDiagnostics: boolean
-  disableCompletion: boolean
   formatterPriority: number
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
@@ -3202,11 +3198,9 @@ export abstract class BaseLanguageClient {
     }
 
     this._clientOptions = {
-      disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
       disableSnippetCompletion,
       disableDynamicRegister: clientOptions.disableDynamicRegister,
-      disableDiagnostics: clientOptions.disableDiagnostics,
-      disableCompletion: clientOptions.disableCompletion,
+      disabledFeatures: clientOptions.disabledFeatures || [],
       formatterPriority: clientOptions.formatterPriority,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
       documentSelector: clientOptions.documentSelector || [],
@@ -3558,7 +3552,9 @@ export abstract class BaseLanguageClient {
     if (!this._diagnostics) {
       let opts = this._clientOptions
       let name = opts.diagnosticCollectionName ? opts.diagnosticCollectionName : this._id
-      this._diagnostics = languages.createDiagnosticCollection(name)
+      if (!opts.disabledFeatures.includes('diagnostics')) {
+        this._diagnostics = languages.createDiagnosticCollection(name)
+      }
     }
 
     this.state = ClientState.Starting
@@ -3764,9 +3760,7 @@ export abstract class BaseLanguageClient {
       this._capabilities = Object.assign({}, result.capabilities, {
         resolvedTextDocumentSync: textDocumentSyncOptions
       })
-      if (!this._clientOptions.disableDiagnostics) {
-        connection.onDiagnostics(params => this.handleDiagnostics(params))
-      }
+      connection.onDiagnostics(params => this.handleDiagnostics(params))
       connection.onRequest(RegistrationRequest.type, params =>
         this.handleRegistrationRequest(params)
       )
@@ -4154,32 +4148,73 @@ export abstract class BaseLanguageClient {
   }
 
   protected registerBuiltinFeatures() {
-    this.registerFeature(new ConfigurationFeature(this))
+    let { disabledFeatures } = this._clientOptions
+    if (!disabledFeatures.includes('configuration')) {
+      this.registerFeature(new ConfigurationFeature(this))
+    }
     this.registerFeature(new DidOpenTextDocumentFeature(this, this._syncedDocuments))
     this.registerFeature(new DidChangeTextDocumentFeature(this))
-    this.registerFeature(new WillSaveFeature(this))
-    this.registerFeature(new WillSaveWaitUntilFeature(this))
-    this.registerFeature(new DidSaveTextDocumentFeature(this))
     this.registerFeature(new DidCloseTextDocumentFeature(this, this._syncedDocuments))
-    this.registerFeature(new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event)))
-    if (!this._clientOptions.disableCompletion) {
+    if (!disabledFeatures.includes('willSave')) {
+      this.registerFeature(new WillSaveFeature(this))
+    }
+    if (!disabledFeatures.includes('willSaveWaitUntil')) {
+      this.registerFeature(new WillSaveWaitUntilFeature(this))
+    }
+    if (!disabledFeatures.includes('didSave')) {
+      this.registerFeature(new DidSaveTextDocumentFeature(this))
+    }
+    if (!disabledFeatures.includes('fileSystemWatcher')) {
+      this.registerFeature(new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event)))
+    }
+    if (!disabledFeatures.includes('completion')) {
       this.registerFeature(new CompletionItemFeature(this))
     }
-    this.registerFeature(new HoverFeature(this))
-    this.registerFeature(new SignatureHelpFeature(this))
-    this.registerFeature(new DefinitionFeature(this))
-    this.registerFeature(new ReferencesFeature(this))
-    this.registerFeature(new DocumentHighlightFeature(this))
-    this.registerFeature(new DocumentSymbolFeature(this))
-    this.registerFeature(new WorkspaceSymbolFeature(this))
-    this.registerFeature(new CodeActionFeature(this))
-    this.registerFeature(new CodeLensFeature(this))
-    this.registerFeature(new DocumentFormattingFeature(this))
-    this.registerFeature(new DocumentRangeFormattingFeature(this))
-    this.registerFeature(new DocumentOnTypeFormattingFeature(this))
-    this.registerFeature(new RenameFeature(this))
-    this.registerFeature(new DocumentLinkFeature(this))
-    this.registerFeature(new ExecuteCommandFeature(this))
+    if (!disabledFeatures.includes('hover')) {
+      this.registerFeature(new HoverFeature(this))
+    }
+    if (!disabledFeatures.includes('signatureHelp')) {
+      this.registerFeature(new SignatureHelpFeature(this))
+    }
+    if (!disabledFeatures.includes('references')) {
+      this.registerFeature(new ReferencesFeature(this))
+    }
+    if (!disabledFeatures.includes('definition')) {
+      this.registerFeature(new DefinitionFeature(this))
+    }
+    if (!disabledFeatures.includes('documentHighlight')) {
+      this.registerFeature(new DocumentHighlightFeature(this))
+    }
+    if (!disabledFeatures.includes('documentSymbol')) {
+      this.registerFeature(new DocumentSymbolFeature(this))
+    }
+    if (!disabledFeatures.includes('codeAction')) {
+      this.registerFeature(new CodeActionFeature(this))
+    }
+    if (!disabledFeatures.includes('workspaceSymbol')) {
+      this.registerFeature(new WorkspaceSymbolFeature(this))
+    }
+    if (!disabledFeatures.includes('codeLens')) {
+      this.registerFeature(new CodeLensFeature(this))
+    }
+    if (!disabledFeatures.includes('documentFormatting')) {
+      this.registerFeature(new DocumentFormattingFeature(this))
+    }
+    if (!disabledFeatures.includes('documentRangeFormatting')) {
+      this.registerFeature(new DocumentRangeFormattingFeature(this))
+    }
+    if (!disabledFeatures.includes('documentOnTypeFormatting')) {
+      this.registerFeature(new DocumentOnTypeFormattingFeature(this))
+    }
+    if (!disabledFeatures.includes('rename')) {
+      this.registerFeature(new RenameFeature(this))
+    }
+    if (!disabledFeatures.includes('documentLink')) {
+      this.registerFeature(new DocumentLinkFeature(this))
+    }
+    if (!disabledFeatures.includes('executeCommand')) {
+      this.registerFeature(new ExecuteCommandFeature(this))
+    }
   }
 
   private fillInitializeParams(params: InitializeParams): void {

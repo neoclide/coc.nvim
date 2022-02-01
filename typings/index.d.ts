@@ -8504,11 +8504,9 @@ declare module 'coc.nvim' {
 
   export interface LanguageClientOptions {
     ignoredRootPaths?: string[]
-    disableWorkspaceFolders?: boolean
     disableSnippetCompletion?: boolean
     disableDynamicRegister?: boolean
-    disableDiagnostics?: boolean
-    disableCompletion?: boolean
+    disabledFeatures?: string[]
     formatterPriority?: number
     documentSelector?: DocumentSelector | string[]
     synchronize?: SynchronizeOptions
