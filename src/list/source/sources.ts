@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import sources from '../../sources'
-import workspace from '../../workspace'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
 const logger = require('../../util/logger')('list-sources')
@@ -25,9 +24,9 @@ export default class SourcesList extends BasicList {
       await sources.refresh(name)
     }, { persist: true, reload: true })
 
-    this.addAction('open', async item => {
+    this.addAction('open', async (item, context) => {
       let { location } = item
-      if (location) await this.jumpTo(location)
+      if (location) await this.jumpTo(location, null, context)
     })
   }
 

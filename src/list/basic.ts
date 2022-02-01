@@ -79,11 +79,11 @@ export default abstract class BasicList implements IList, Disposable {
   }
 
   protected get toplineStyle(): string {
-      return this.config.get('previewToplineStyle', 'offset')
+    return this.config.get('previewToplineStyle', 'offset')
   }
 
   protected get toplineOffset(): number {
-      return this.config.get('previewToplineOffset', 3)
+    return this.config.get('previewToplineOffset', 3)
   }
 
   public parseArguments(args: string[]): { [key: string]: string | boolean } {
@@ -160,8 +160,8 @@ export default abstract class BasicList implements IList, Disposable {
     for (let name of ['open', 'tabe', 'drop', 'vsplit', 'split']) {
       this.createAction({
         name,
-        execute: async (item: ListItem) => {
-          await this.jumpTo(item.location, name == 'open' ? null : name)
+        execute: async (item: ListItem, context: ListContext) => {
+          await this.jumpTo(item.location, name == 'open' ? null : name, context)
         }
       })
     }
@@ -204,7 +204,10 @@ export default abstract class BasicList implements IList, Disposable {
     return Location.create(location.uri, Range.create(0, 0, 0, 0))
   }
 
-  public async jumpTo(location: Location | LocationWithLine | string, command?: string): Promise<void> {
+  public async jumpTo(location: Location | LocationWithLine | string, command?: string, context?: ListContext): Promise<void> {
+    if (context && context.options.position === 'tab') {
+      command = 'tabe'
+    }
     if (typeof location == 'string') {
       await workspace.jumpTo(location, null, command)
       return

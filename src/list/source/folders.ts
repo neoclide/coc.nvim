@@ -30,7 +30,7 @@ export default class FoldList extends BasicList {
       workspace.workspaceFolderControl.removeWorkspaceFolder(item.label)
     }, { reload: true, persist: true })
 
-    this.addAction('newfile', async item => {
+    this.addAction('newfile', async (item, context) => {
       let file = await window.requestInput('File name', item.label + '/')
       let dir = path.dirname(file)
       let stat = await statAsync(dir)
@@ -38,7 +38,7 @@ export default class FoldList extends BasicList {
         fs.mkdirpSync(dir)
       }
       await workspace.createFile(file, { overwrite: false, ignoreIfExists: true })
-      await this.jumpTo(URI.file(file).toString())
+      await this.jumpTo(URI.file(file).toString(), null, context)
     })
   }
 
