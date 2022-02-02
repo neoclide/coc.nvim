@@ -21,6 +21,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  helper.updateConfiguration('documentHighlight.timeout', 300)
   await helper.reset()
   disposeAll(disposables)
   disposables = []
@@ -47,15 +48,8 @@ function registProvider(): void {
 
 describe('document highlights', () => {
 
-  it('should return null when highlights provide not exists', async () => {
-    let doc = await helper.createDocument()
-    let res = await highlights.getHighlights(doc, Position.create(0, 0))
-    expect(res).toBeNull()
-  })
-
-  it('should cancel request on CursorMoved', async () => {
-    let fn = jest.fn()
-    languages.registerDocumentHighlightProvider([{ language: '*' }], {
+  function registerTimerProvider(fn: Function, timeout: number): void {
+    disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
       provideDocumentHighlights: (_document, _position, token) => {
         return new Promise(resolve => {
           token.onCancellationRequested(() => {
@@ -65,16 +59,37 @@ describe('document highlights', () => {
           })
           let timer = setTimeout(() => {
             resolve([{ range: Range.create(0, 0, 0, 3) }])
-          }, 3000)
+          }, timeout)
         })
       }
-    })
+    }))
+  }
+
+  it('should return null when highlights provide not exists', async () => {
+    let doc = await helper.createDocument()
+    let res = await highlights.getHighlights(doc, Position.create(0, 0))
+    expect(res).toBeNull()
+  })
+
+  it('should cancel request on CursorMoved', async () => {
+    let fn = jest.fn()
+    registerTimerProvider(fn, 3000)
     await helper.edit()
     await nvim.setLine('foo')
     let p = highlights.highlight()
     await helper.wait(50)
     await nvim.call('cursor', [1, 2])
     await p
+    expect(fn).toBeCalled()
+  })
+
+  it('should cancel on timeout', async () => {
+    helper.updateConfiguration('documentHighlight.timeout', 10)
+    let fn = jest.fn()
+    registerTimerProvider(fn, 3000)
+    await helper.edit()
+    await nvim.setLine('foo')
+    await highlights.highlight()
     expect(fn).toBeCalled()
   })
 
@@ -112,14 +127,8 @@ describe('document highlights', () => {
     await nvim.call('feedkeys', ['q:', 'in'])
     let doc = await workspace.document
     expect(doc.isCommandLine).toBe(true)
-    let err
-    try {
-      await highlights.highlight()
-    } catch (e) {
-      err = e
-    }
+    await highlights.highlight()
     await nvim.input('<C-c>')
-    expect(err).toBeUndefined()
   })
 
   it('should not throw when provider not found', async () => {
@@ -127,12 +136,6 @@ describe('document highlights', () => {
     await helper.createDocument()
     await nvim.setLine('  oo')
     await nvim.call('cursor', [1, 2])
-    let err
-    try {
-      await highlights.highlight()
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeUndefined()
+    await highlights.highlight()
   })
 })

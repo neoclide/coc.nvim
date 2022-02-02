@@ -381,6 +381,11 @@ Built-in configurations:~
 	Match priority used by document highlight, see ':h matchadd'.
 	Default `-1`
 
+"documentHighlight.timeout":~
+
+	Timeout for document highlight, in milliseconds.
+	Default `500`
+
 							*coc-config-filetypes*
 "colors.filetypes":~
 

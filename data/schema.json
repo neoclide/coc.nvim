@@ -607,6 +607,13 @@
       "default": -1,
       "description": "Match priority used by document highlight, see ':h matchadd'"
     },
+    "documentHighlight.timeout": {
+      "type": "integer",
+      "default": 300,
+      "minimum": 200,
+      "maximum": 5000,
+      "description": "Timeout for document highlight, in milliseconds."
+    },
     "colors.filetypes": {
       "type": "array",
       "default": [],
