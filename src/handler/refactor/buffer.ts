@@ -186,17 +186,13 @@ export default class RefactorBuffer implements BufferSyncItem {
         if (!newLines.length) {
           // remove this range
           fileItem.ranges.splice(i, 1)
-          edits.push({
-            range: this.getFileRangeRange(r, false),
-            newText: ''
-          })
+          let range = this.getFileRangeRange(r, false)
+          if (range) edits.push({ range, newText: '' })
         } else {
           r.end = r.start + newLines.length
           // reload lines, reset end
-          edits.push({
-            range: this.getFileRangeRange(r, true),
-            newText: newLines.join('\n') + '\n'
-          })
+          let range = this.getFileRangeRange(r, true)
+          if (range) edits.push({ range, newText: newLines.join('\n') + '\n' })
         }
       }
     }
@@ -341,10 +337,7 @@ export default class RefactorBuffer implements BufferSyncItem {
         let pos = hlRanges[0].start
         nvim.call('coc#cursor#move_to', [pos.line, pos.character], true)
       }
-      if (workspace.isVim) {
-        nvim.command('redraw', true)
-      }
-      let [, err] = await nvim.resumeNotification()
+      let [, err] = await nvim.resumeNotification(true)
       if (err) throw new Error(err[2])
       await document.patchChange()
       this.changing = false
