@@ -31,7 +31,6 @@ class SleepList extends BasicList {
     return Promise.resolve(this.createCommandTask({
       cmd: 'sleep',
       args: ['10'],
-      cwd: __dirname,
       onLine: line => {
         return {
           label: line
@@ -103,7 +102,7 @@ describe('Command task', () => {
   it('should show error for bad key', async () => {
     let list = new DataList(nvim)
     list.config.fixKey('<X-a>')
-    await helper.wait(500)
+    await helper.wait(200)
     await nvim.command('redraw')
     let msg = await helper.getCmdline()
     expect(msg).toMatch('not supported')
@@ -112,16 +111,18 @@ describe('Command task', () => {
   it('should not show error', async () => {
     disposables.push(manager.registerList(new ErrorTask(nvim)))
     await manager.start(['error'])
-    await helper.wait(500)
+    await helper.wait(300)
     await nvim.command('redraw')
-    let res = await helper.getCmdline()
+    let len = manager.session.ui.length
+    expect(len).toBe(0)
   })
 
   it('should create command task', async () => {
     let list = new DataList(nvim)
     disposables.push(manager.registerList(list))
     await manager.start(['data'])
-    await helper.wait(500)
+    await manager.session.ui.ready
+    await helper.wait(100)
     let lines = await nvim.call('getline', [1, '$']) as string[]
     expect(lines).toEqual(['foo', 'bar'])
   })

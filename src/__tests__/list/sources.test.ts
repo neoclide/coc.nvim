@@ -4,6 +4,7 @@ import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range } from 'vsc
 import diagnosticManager from '../../diagnostic/manager'
 import languages from '../../languages'
 import BasicList from '../../list/basic'
+import events from '../../events'
 import manager from '../../list/manager'
 import Document from '../../model/document'
 import services, { IServiceProvider } from '../../services'
@@ -34,6 +35,20 @@ class OptionList extends BasicList {
 
 let disposables: Disposable[] = []
 let nvim: Neovim
+const locations: any[] = [{
+  filename: __filename,
+  range: Range.create(0, 0, 0, 6),
+  text: 'foo'
+}, {
+  filename: __filename,
+  range: Range.create(2, 0, 2, 6),
+  text: 'Bar'
+}, {
+  filename: __filename,
+  range: Range.create(3, 0, 4, 6),
+  text: 'multiple'
+}]
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -84,7 +99,7 @@ describe('BasicList', () => {
         label: 'foo',
         location: Location.create(doc.uri, Range.create(0, 0, 0, 0))
       })
-      let disposable = manager.registerList(list)
+      disposables.push(manager.registerList(list))
       await manager.start(['option'])
       await helper.wait(100)
       await manager.doAction('preview')
@@ -95,12 +110,113 @@ describe('BasicList', () => {
       expect(isPreview).toBe(1)
       let line = await nvim.line
       expect(line).toBe('foo')
-      disposable.dispose()
     })
   })
 })
 
 describe('list sources', () => {
+  beforeAll(async () => {
+    await nvim.setVar('coc_jump_locations', locations)
+  })
+
+  describe('locations', () => {
+    it('should highlight ranges', async () => {
+      await manager.start(['--normal', '--auto-preview', 'location'])
+      await manager.session.ui.ready
+      await helper.wait(200)
+      manager.prompt.cancel()
+      await nvim.command('wincmd k')
+      let name = await nvim.eval('bufname("%")')
+      expect(name).toMatch('sources.test.ts')
+      let res = await nvim.call('getmatches')
+      expect(res.length).toBe(1)
+    })
+
+    it('should change highlight on cursor move', async () => {
+      await manager.start(['--normal', '--auto-preview', 'location'])
+      await manager.session.ui.ready
+      await nvim.command('exe 2')
+      let bufnr = await nvim.eval('bufnr("%")')
+      await events.fire('CursorMoved', [bufnr, [2, 1]])
+      await helper.wait(100)
+      await nvim.command('wincmd k')
+      let res = await nvim.call('getmatches')
+      expect(res.length).toBe(1)
+      expect(res[0]['pos1']).toEqual([3, 1, 6])
+    })
+
+    it('should highlight multiple line range', async () => {
+      await manager.start(['--normal', '--auto-preview', 'location'])
+      await manager.session.ui.ready
+      await nvim.command('exe 3')
+      let bufnr = await nvim.eval('bufnr("%")')
+      await events.fire('CursorMoved', [bufnr, [2, 1]])
+      await helper.wait(100)
+      await nvim.command('wincmd k')
+      let res = await nvim.call('getmatches')
+      expect(res.length).toBe(1)
+      expect(res[0]['pos1']).toBeDefined()
+      expect(res[0]['pos2']).toBeDefined()
+    })
+
+    it('should do open action', async () => {
+      await manager.start(['--normal', 'location'])
+      await manager.session.ui.ready
+      await manager.doAction('open')
+      let name = await nvim.eval('bufname("%")')
+      expect(name).toMatch('sources.test.ts')
+    })
+
+    it('should do quickfix action', async () => {
+      await manager.start(['--normal', 'location'])
+      await manager.session.ui.ready
+      await manager.session.ui.selectAll()
+      await manager.doAction('quickfix')
+      let buftype = await nvim.eval('&buftype')
+      expect(buftype).toBe('quickfix')
+    })
+
+    it('should do refactor action', async () => {
+      await manager.start(['--normal', 'location'])
+      await manager.session.ui.ready
+      await manager.session.ui.selectAll()
+      await manager.doAction('refactor')
+      let name = await nvim.eval('bufname("%")')
+      expect(name).toMatch('coc_refactor')
+    })
+
+    it('should do tabe action', async () => {
+      await manager.start(['--normal', 'location'])
+      await manager.session.ui.ready
+      await manager.doAction('tabe')
+      let tabs = await nvim.tabpages
+      expect(tabs.length).toBe(2)
+    })
+
+    it('should do drop action', async () => {
+      await manager.start(['--normal', 'location'])
+      await manager.session.ui.ready
+      await manager.doAction('drop')
+      let name = await nvim.eval('bufname("%")')
+      expect(name).toMatch('sources.test.ts')
+    })
+
+    it('should do vsplit action', async () => {
+      await manager.start(['--normal', 'location'])
+      await manager.session.ui.ready
+      await manager.doAction('vsplit')
+      let name = await nvim.eval('bufname("%")')
+      expect(name).toMatch('sources.test.ts')
+    })
+
+    it('should do split action', async () => {
+      await manager.start(['--normal', 'location'])
+      await manager.session.ui.ready
+      await manager.doAction('split')
+      let name = await nvim.eval('bufname("%")')
+      expect(name).toMatch('sources.test.ts')
+    })
+  })
 
   describe('commands', () => {
     it('should load commands source', async () => {

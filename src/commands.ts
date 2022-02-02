@@ -117,6 +117,13 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
+      id: 'workspace.refactor',
+      execute: async (locations: Location[]) => {
+        let locs = locations.filter(o => Location.is(o))
+        await plugin.getHandler().refactor.fromLocations(locs)
+      }
+    }, true)
+    this.register({
       id: 'workspace.clearWatchman',
       execute: async () => {
         let res = await window.runTerminalCommand('watchman watch-del-all')

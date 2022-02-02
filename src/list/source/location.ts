@@ -4,6 +4,7 @@ import path from 'path'
 import { ListContext, ListItem, QuickfixItem, AnsiHighlight } from '../../types'
 import BasicList from '../basic'
 import workspace from '../../workspace'
+import commands from '../../commands'
 import { URI } from 'vscode-uri'
 import { isParentFolder } from '../../util/fs'
 import { CancellationToken } from 'vscode-languageserver-protocol'
@@ -17,6 +18,14 @@ export default class LocationList extends BasicList {
 
   constructor(nvim: Neovim) {
     super(nvim)
+    this.createAction({
+      name: 'refactor',
+      multiple: true,
+      execute: async (items: ListItem[]) => {
+        let locations = items.map(o => o.location)
+        await commands.executeCommand('workspace.refactor', locations)
+      }
+    })
     this.addLocationActions()
   }
 
@@ -78,8 +87,6 @@ export default class LocationList extends BasicList {
     nvim.command('highlight default link CocLocationPosition LineNr', true)
     nvim.command('highlight default link CocLocationError Error', true)
     nvim.command('highlight default link CocLocationWarning WarningMsg', true)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    void nvim.resumeNotification()
   }
 }

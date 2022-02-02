@@ -357,21 +357,13 @@ describe('semanticTokens', () => {
           })
         }
       }, legend))
-      let cancelled = false
       disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
         provideDocumentSemanticTokens: (_, token) => {
           return new Promise(resolve => {
-            token.onCancellationRequested(() => {
-              clearTimeout(timeout)
-              cancelled = true
-              resolve(null)
+            resolve({
+              resultId: '1',
+              data: [0, 0, 3, 1, 0]
             })
-            let timeout = setTimeout(() => {
-              resolve({
-                resultId: '1',
-                data: [0, 0, 3, 1, 0]
-              })
-            }, 100)
           })
         }
       }, legend))

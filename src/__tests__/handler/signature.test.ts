@@ -49,23 +49,23 @@ describe('signatureHelp', () => {
     })
 
     it('should trigger by space', async () => {
-      let called = false
-      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-        provideSignatureHelp: (_doc, _position) => {
-          called = true
-          return {
-            signatures: [SignatureInformation.create('foo()', 'my signature')],
-            activeParameter: null,
-            activeSignature: null
+      let promise = new Promise(resolve => {
+        disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+          provideSignatureHelp: (_doc, _position) => {
+            resolve(undefined)
+            return {
+              signatures: [SignatureInformation.create('foo()', 'my signature')],
+              activeParameter: null,
+              activeSignature: null
+            }
           }
-        }
-      }, [' ']))
+        }, [' ']))
+      })
       await helper.createDocument()
       await nvim.input('i')
       await helper.wait(30)
       await nvim.input(' ')
-      await helper.wait(50)
-      expect(called).toBe(true)
+      await promise
     })
 
     it('should show signature help with param label as string', async () => {
