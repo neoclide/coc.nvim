@@ -381,6 +381,11 @@ Built-in configurations:~
 	Match priority used by document highlight, see ':h matchadd'.
 	Default `-1`
 
+"documentHighlight.timeout":~
+
+	Timeout for document highlight, in milliseconds.
+	Default `500`
+
 							*coc-config-filetypes*
 "colors.filetypes":~
 
@@ -1188,18 +1193,24 @@ supported:
 	- "disableDynamicRegister": Disable dynamic registerCapability feature
 	  for this languageserver to avoid duplicated feature regstration.
 
-	- "disableWorkspaceFolders": Disable workspaceFolders feature for this
-	  languageserver.
-
 	- "disableSnippetCompletion": Disable snippet completion feature for
 	  this languageserver.
 
-	- "disableDiagnostics": Disable handle diagnostics for this
-	  languageserver.
-
-	- "disableCompletion": Disable completion feature for this
-	  languageserver.
-
+	- "disabledFeatures": Disable features for this languageserver,
+	  valid keys:
+>
+	  ["completion", "configuration", "workspaceFolders", "diagnostics",
+	  "willSave", "willSaveUntil", "didSaveTextDocument",
+	  "fileSystemWatcher", "hover", "signatureHelp", "definition",
+	  "references", "documentHighlight", "documentSymbol",
+	  "workspaceSymbol", "codeAction", "codeLens", "formatting",
+	  "documentFormatting", "documentRangeFormatting",
+	  "documentOnTypeFormatting", "rename", "documentLink",
+	  "executeCommand", "pullConfiguration", "typeDefinition",
+	  "implementation", "declaration", "color", "foldingRange",
+	  "selectionRange", "progress", "callHierarchy", "linkedEditing",
+	  "fileEvents", "semanticTokens"]
+<
 	- "formatterPriority": Priority of this languageserver's fomatter.
 
 	- "revealOutputChannelOn": Configure message level to show the output

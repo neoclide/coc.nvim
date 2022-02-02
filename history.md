@@ -1,3 +1,9 @@
+# 2022-02-02
+
+- Remove `disableWorkspaceFolders` `disableDiagnostics` and `disableCompletion`
+  from language client option.
+- Add configuration `documentHighlight.timeout`.
+
 # 2022-01-30
 
 - Add configuration `diagnostics.virtualTextLevel`.
