@@ -65,7 +65,7 @@ import {
 
 import { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
 import { TreeItem, TreeItemCollapsibleState } from './tree/index'
-import { SemanticTokensBuilder } from './semanticTokensBuilder'
+import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
 
 module.exports = {
   Uri: URI,
