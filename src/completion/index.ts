@@ -308,7 +308,6 @@ export class Completion implements Disposable {
     let search = this.getResumeInput()
     if (this.sourcesExists(items)) return
     if (search == option.input) {
-      // TODO avoid refresh when we have selected item
       await this.showCompletion(option.col, items)
     } else {
       await this.resumeCompletion(true)

@@ -6,6 +6,7 @@ import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { getChangedFromEdits, rangeOverlap } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
+import { getCharCodes, fuzzyMatch } from '../util/fuzzy'
 import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-language')
@@ -273,7 +274,7 @@ export default class LanguageSource implements ISource {
     }
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
-        if (item.textEdit && item.textEdit.newText.startsWith(prefix)) {
+        if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
           obj.filterText = item.textEdit.newText.split(/\r?\n/)[0]
         }
       }
