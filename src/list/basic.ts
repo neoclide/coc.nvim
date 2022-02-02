@@ -18,6 +18,7 @@ interface ActionOptions {
   persist?: boolean
   reload?: boolean
   parallel?: boolean
+  tabPersist?: boolean
 }
 
 interface ArgumentItem {
@@ -162,7 +163,8 @@ export default abstract class BasicList implements IList, Disposable {
         name,
         execute: async (item: ListItem, context: ListContext) => {
           await this.jumpTo(item.location, name == 'open' ? null : name, context)
-        }
+        },
+        tabPersist: name === 'open'
       })
     }
   }

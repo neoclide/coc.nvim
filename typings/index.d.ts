@@ -4275,9 +4275,22 @@ declare module 'coc.nvim' {
   }
 
   export interface ListActionOptions {
+    /**
+     * No prompt stop and window switch when invoked.
+     */
     persist?: boolean
+    /**
+     * Reload list after action invoked.
+     */
     reload?: boolean
+    /**
+     * Support multiple items as execute argument.
+     */
     parallel?: boolean
+    /**
+     * Tab positioned list should be persisted (no window switch) on action invoke.
+     */
+    tabPersist?: boolean
   }
 
   export interface CommandTaskOption {
@@ -7656,6 +7669,10 @@ declare module 'coc.nvim' {
      * Support handle multiple items at once.
      */
     multiple?: boolean
+    /**
+     * Tab positioned list should be persisted (no window switch) on action invoke.
+     */
+    tabPersist?: boolean
     /**
      * Item is array of selected items when multiple is true.
      */

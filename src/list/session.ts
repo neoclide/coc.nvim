@@ -494,9 +494,10 @@ export default class ListSession {
   }
 
   private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
-    let { noQuit } = this.listOptions
+    let { noQuit, position } = this.listOptions
     let { nvim } = this
     let persistAction = action.persist === true || action.name == 'preview'
+    if (position === 'tab' && action.tabPersist) persistAction = true
     let persist = this.winid && (persistAction || noQuit)
     try {
       if (persist) {

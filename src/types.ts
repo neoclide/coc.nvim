@@ -938,6 +938,7 @@ export interface ListAction {
   reload?: boolean
   parallel?: boolean
   multiple?: boolean
+  tabPersist?: boolean
   execute: (item: ListItem | ListItem[], context: ListContext) => ProviderResult<void>
 }
 
