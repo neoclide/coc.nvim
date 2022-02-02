@@ -712,6 +712,9 @@ export interface LanguageClientOptions {
   ignoredRootPaths?: string[]
   documentSelector?: DocumentSelector | string[]
   synchronize?: SynchronizeOptions
+  disableWorkspaceFolders?: boolean
+  disableDiagnostics?: boolean
+  disableCompletion?: boolean
   diagnosticCollectionName?: string
   disableDynamicRegister?: boolean
   disableSnippetCompletion?: boolean
@@ -3218,6 +3221,16 @@ export abstract class BaseLanguageClient {
       workspaceFolder: clientOptions.workspaceFolder,
       connectionOptions: clientOptions.connectionOptions,
       markdown
+    }
+    for (let key of ['disableCompletion', 'disableWorkspaceFolders', 'disableDiagnostics']) {
+      if (typeof clientOptions[key] === 'boolean') {
+        logger.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, Error().stack)
+        this.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, Error().stack)
+        if (clientOptions[key] === true) {
+          let s = key.slice(7)
+          this._clientOptions.disabledFeatures.push(s[0].toLowerCase() + s.slice(1))
+        }
+      }
     }
     this.state = ClientState.Initial
     this._connectionPromise = undefined
