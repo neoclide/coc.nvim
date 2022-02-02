@@ -3,6 +3,8 @@
 - Remove `disableWorkspaceFolders` `disableDiagnostics` and `disableCompletion`
   from language client option.
 - Add configuration `documentHighlight.timeout`.
+- Add `tabPersist` option to `ListAction`.
+- Add `refactor` to `LocationList`
 
 # 2022-01-30
 
