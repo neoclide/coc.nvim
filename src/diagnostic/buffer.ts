@@ -191,8 +191,7 @@ export class DiagnosticBuffer implements BufferSyncItem {
         this.updateLocationList(info.winid, info.locationlist)
         this.setDiagnosticInfo()
       }
-      if (isVim && redraw) this.nvim.command('redraw', true)
-      await this.nvim.resumeNotification()
+      await this.nvim.resumeNotification(redraw)
     }
     this.onRefresh(this.diagnostics)
   }

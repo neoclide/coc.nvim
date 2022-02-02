@@ -610,11 +610,10 @@ class Window {
     if (add.length) {
       nvim.call('coc#highlight#set', [bufnr, ns, add, priority], true)
     }
-    if (workspace.isVim) nvim.command('redraw', true)
     if (notify) {
-      void nvim.resumeNotification(false, true)
+      void nvim.resumeNotification(true, true)
     } else {
-      await nvim.resumeNotification()
+      await nvim.resumeNotification(true)
     }
   }
 

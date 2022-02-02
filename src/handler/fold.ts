@@ -1,8 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Range, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import languages from '../languages'
 import { HandlerDelegate } from '../types'
-import workspace from '../workspace'
 
 export default class FoldHandler {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
@@ -30,8 +28,7 @@ export default class FoldHandler {
     }
     win.setOption('foldenable', true, true)
     win.setOption('foldlevel', foldlevel, true)
-    if (workspace.isVim) this.nvim.command('redraw', true)
-    await this.nvim.resumeNotification()
+    await this.nvim.resumeNotification(true)
     return true
   }
 }

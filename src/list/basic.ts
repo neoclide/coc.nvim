@@ -261,7 +261,7 @@ export default abstract class BasicList implements IList, Disposable {
       toplineOffset: this.toplineOffset,
     }
     await nvim.call('coc#list#preview', [lines, config])
-    if (workspace.isVim) nvim.command('redraw', true)
+    nvim.command('redraw', true)
   }
 
   public async preview(options: PreviewOptions, context: ListContext): Promise<void> {
@@ -281,7 +281,7 @@ export default abstract class BasicList implements IList, Disposable {
     if (bufname) config.name = bufname
     if (range) config.range = range
     await nvim.call('coc#list#preview', [lines, config])
-    if (workspace.isVim) nvim.command('redraw', true)
+    nvim.command('redraw', true)
   }
 
   public abstract loadItems(context: ListContext, token?: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>

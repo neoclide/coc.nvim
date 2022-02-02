@@ -384,7 +384,7 @@ describe('semanticTokens', () => {
       })
       item.cancel()
       let p = item.doHighlight()
-      await helper.wait(50)
+      await helper.wait(10)
       item.cancelRange()
       await p
       expect(item.highlights).toBeDefined()

@@ -73,9 +73,7 @@ export default class BufferChannel implements OutputChannel {
     if (preserveFocus) {
       nvim.command('wincmd p', true)
     }
-    nvim.command('redraw', true)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    void nvim.resumeNotification(true, true)
     this.created = true
   }
 

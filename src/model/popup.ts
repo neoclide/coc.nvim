@@ -51,8 +51,7 @@ export default class Popup {
     this.execute(`normal! ${botline}Gzt`)
     this.refreshScrollbar()
     nvim.command('redraw', true)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    void nvim.resumeNotification(false, true)
   }
 
   /**
@@ -74,8 +73,7 @@ export default class Popup {
     this.execute(`normal! ${topline}Gzb`)
     this.refreshScrollbar()
     nvim.command('redraw', true)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    void nvim.resumeNotification(false, true)
   }
 
   /**

@@ -100,6 +100,5 @@ export async function selectRange(nvim: Neovim, range: Range, redraw: boolean): 
   nvim.command('normal! v', true)
   nvim.command(`noa call cursor(${endLnum + 1},${endCol})`, true)
   if (toEnd) nvim.command('normal! $', true)
-  if (redraw) nvim.command('redraw', true)
-  await nvim.resumeNotification()
+  await nvim.resumeNotification(redraw)
 }

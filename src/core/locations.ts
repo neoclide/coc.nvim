@@ -70,8 +70,7 @@ export default class Locations implements Disposable {
         let col = byteLength(line.slice(0, position.character)) + 1
         nvim.call('cursor', [position.line + 1, col], true)
       }
-      if (this.env.isVim) nvim.command('redraw', true)
-      await nvim.resumeNotification()
+      await nvim.resumeNotification(true)
     } else {
       let { fsPath, scheme } = URI.parse(uri)
       let pos = position == null ? null : [position.line, position.character]

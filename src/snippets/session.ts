@@ -274,8 +274,7 @@ export class SnippetSession {
         nvim.call('coc#snippet#disable', [], true)
       }
     }
-    if (workspace.env.isVim) nvim.command('redraw', true)
-    await nvim.resumeNotification()
+    await nvim.resumeNotification(true)
     if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
   }
 
