@@ -24,7 +24,6 @@
     "neovim"
   ],
   "author": "Qiming Zhao <chemzqm@gmail.com>",
-  "license": "ANTI996",
   "bugs": {
     "url": "https://github.com/neoclide/coc.nvim/issues"
   },
