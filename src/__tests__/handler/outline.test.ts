@@ -352,9 +352,7 @@ describe('symbols outline', () => {
       await nvim.input('<tab>')
       await helper.wait(50)
       await nvim.input('<cr>')
-      await helper.wait(50)
-      let m = await nvim.mode
-      expect(m.mode).toBe('v')
+      await helper.waitFor('mode', [], 'v')
       let buf = await nvim.buffer
       expect(buf.id).toBe(bufnr)
     })

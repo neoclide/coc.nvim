@@ -3224,8 +3224,9 @@ export abstract class BaseLanguageClient {
     }
     for (let key of ['disableCompletion', 'disableWorkspaceFolders', 'disableDiagnostics']) {
       if (typeof clientOptions[key] === 'boolean') {
-        logger.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, Error().stack)
-        this.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, Error().stack)
+        let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
+        logger.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack)
+        this.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack)
         if (clientOptions[key] === true) {
           let s = key.slice(7)
           this._clientOptions.disabledFeatures.push(s[0].toLowerCase() + s.slice(1))

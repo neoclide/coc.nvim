@@ -33,7 +33,7 @@ afterEach(async () => {
 describe('workspace properties', () => {
 
   it('should have initialized', () => {
-    let { nvim, rootPath, cwd, documents, textDocuments } = workspace
+    let { nvim, rootPath, uri, workspaceFolder, cwd, documents, textDocuments } = workspace
     expect(nvim).toBeTruthy()
     expect(documents.length).toBe(1)
     expect(textDocuments.length).toBe(1)
@@ -46,6 +46,12 @@ describe('workspace properties', () => {
     let { isVim, isNvim } = workspace
     expect(isVim).toBe(false)
     expect(isNvim).toBe(true)
+    expect(uri).toBeDefined()
+    expect(workspaceFolder).toBeUndefined()
+    let watchmanPath = workspace.getWatchmanPath()
+    expect(watchmanPath == null || typeof watchmanPath === 'string').toBe(true)
+    let folder = workspace.getWorkspaceFolder(uri)
+    expect(folder).toBeUndefined()
   })
 
   it('should get filetyps', async () => {
@@ -60,9 +66,30 @@ describe('workspace properties', () => {
     let names = workspace.channelNames
     expect(Array.isArray(names)).toBe(true)
   })
+
+  it('should work with deprecated method', async () => {
+    await nvim.setLine('foo')
+    await workspace['moveTo'](Position.create(0, 1))
+    let col = await nvim.call('col', ['.'])
+    expect(col).toBe(2)
+  })
 })
 
 describe('workspace methods', () => {
+  it('should call vim method', async () => {
+    let res = await workspace.callAsync('bufnr', ['%'])
+    expect(typeof res).toBe('number')
+    let obj: any = workspace.env
+    obj.isVim = true
+    disposables.push({
+      dispose: () => {
+        obj.isVim = false
+      }
+    })
+    res = await workspace.callAsync('bufnr', ['%'])
+    expect(typeof res).toBe('number')
+  })
+
   it('should get the document', async () => {
     let buf = await helper.edit()
     let doc = workspace.getDocument(buf.id)
@@ -406,7 +433,7 @@ describe('workspace events', () => {
   it('should listen to fileType change', async () => {
     let buf = await helper.edit()
     await nvim.command('setf xml')
-    await helper.wait(40)
+    await helper.wait(50)
     let doc = workspace.getDocument(buf.id)
     expect(doc.filetype).toBe('xml')
   })
@@ -450,7 +477,6 @@ describe('workspace events', () => {
     })
     let config = workspace.getConfiguration('tsserver')
     config.update('enable', false)
-    await helper.wait(100)
     expect(fn).toHaveBeenCalledTimes(1)
     config.update('enable', undefined)
   })
@@ -476,7 +502,6 @@ describe('workspace events', () => {
       })
       event.waitUntil(promise)
     })
-    await helper.wait(100)
     await nvim.setLine('bar')
     await helper.wait(30)
     await events.fire('BufWritePre', [doc.bufnr])
@@ -558,21 +583,11 @@ describe('workspace events', () => {
   it('should attach & detach', async () => {
     let buf = await helper.edit()
     await nvim.command('CocDisable')
-    await helper.wait(100)
     let doc = workspace.getDocument(buf.id)
     expect(doc).toBeUndefined()
     await nvim.command('CocEnable')
-    await helper.wait(100)
     doc = workspace.getDocument(buf.id)
     expect(doc.bufnr).toBe(buf.id)
-  })
-
-  it('should create document with same bufnr', async () => {
-    await nvim.command('tabe')
-    let buf = await helper.edit()
-    await helper.wait(100)
-    let doc = workspace.getDocument(buf.id)
-    expect(doc).toBeDefined()
   })
 })
 
@@ -583,7 +598,6 @@ describe('workspace textDocument content provider', () => {
       provideTextDocumentContent: (_uri, _token): string => 'sample text'
     }
     workspace.registerTextDocumentContentProvider('test', provider)
-    await helper.wait(100)
     await nvim.command('edit test://1')
     let buf = await nvim.buffer
     let lines = await buf.lines
@@ -601,7 +615,7 @@ describe('workspace textDocument content provider', () => {
     workspace.registerTextDocumentContentProvider('jdk', provider)
     workspace.autocmds.setupDynamicAutocmd(true)
     await nvim.command('edit jdk://1')
-    await helper.wait(50)
+    await workspace.document
     text = 'bar'
     emitter.fire(URI.parse('jdk://1'))
     await helper.waitFor('getline', ['.'], 'bar')
@@ -631,7 +645,6 @@ describe('workspace registerBufferSync', () => {
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     expect(changed).toBe(1)
     await nvim.command('bd!')
-    await helper.wait(50)
     expect(deleted).toBe(1)
   })
 
@@ -649,8 +662,5 @@ describe('workspace registerBufferSync', () => {
     let doc = await helper.createDocument()
     await events.fire('TextChanged', [doc.bufnr])
     expect(called).toBe(1)
-    await nvim.input('if')
-    await helper.wait(50)
-    expect(called).toBe(2)
   })
 })

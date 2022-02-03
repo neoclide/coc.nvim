@@ -15,6 +15,7 @@ import Plugin from '../plugin'
 import { OutputChannel, VimCompleteItem } from '../types'
 import { terminate } from '../util/processes'
 import workspace from '../workspace'
+import completion from '../completion'
 
 export interface CursorPosition {
   bufnum: number
@@ -131,6 +132,7 @@ export class Helper extends EventEmitter {
     } else if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
+    completion.reset()
     workspace.reset()
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(20)

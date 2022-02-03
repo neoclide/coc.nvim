@@ -34,9 +34,9 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  await helper.reset()
   disposeAll(disposables)
   disposables = []
+  await helper.reset()
 })
 
 describe('Parser', () => {

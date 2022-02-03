@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { ISource, SourceType, CompleteResult, CompleteOption } from '../../types'
+import { CancellationToken, Disposable } from 'vscode-jsonrpc'
+import sources from '../../sources'
+import { CompleteOption, CompleteResult, ISource, SourceType } from '../../types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
-import sources from '../../sources'
-import { CancellationToken, Disposable } from 'vscode-jsonrpc'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -33,25 +33,19 @@ describe('completion', () => {
     })
 
     it('should trigger with none ascii characters', async () => {
-      let doc = await helper.createDocument()
       await nvim.setLine('world')
-      await helper.wait(50)
-      await doc.synchronize()
       await nvim.input('o')
       await nvim.input('你')
       await nvim.input('w')
-      await helper.wait(100)
       let visible = await helper.visible('world', 'around')
       expect(visible).toBe(true)
     })
 
     it('should not trigger with none ascii characters', async () => {
-      let doc = await helper.createDocument()
-      await nvim.setLine('你好 你是谁')
-      await doc.synchronize()
+      await nvim.setLine('你好')
       await nvim.input('o')
       await nvim.input('你')
-      await helper.wait(100)
+      await helper.wait(50)
       let visible = await helper.pumvisible()
       expect(visible).toBe(false)
     })
@@ -67,7 +61,6 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.enablePreselect', true)
       let doc = await helper.createDocument()
       await nvim.setLine('around')
-      await helper.wait(50)
       await doc.synchronize()
       await nvim.input('oa')
       await helper.visible('around')
@@ -85,7 +78,6 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.enablePreselect', true)
       let doc = await helper.createDocument()
       await nvim.setLine('result')
-      await helper.wait(50)
       await doc.synchronize()
       await nvim.input('or')
       await helper.visible('result')
@@ -103,7 +95,6 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.enablePreselect', true)
       let doc = await helper.createDocument()
       await nvim.setLine('world')
-      await helper.wait(50)
       await doc.synchronize()
       await nvim.input('owo')
       await helper.visible('world')
@@ -123,15 +114,14 @@ describe('completion', () => {
 
   describe('trigger completion', () => {
     it('should not show word of word source on empty input', async () => {
+      let doc = await helper.createDocument()
       await nvim.setLine('foo bar')
-      await helper.wait(200)
+      await doc.synchronize()
       await nvim.input('of')
       let res = await helper.visible('foo', 'around')
       expect(res).toBe(true)
       await nvim.input('<backspace>')
-      await helper.wait(200)
-      res = await helper.notVisible('foo')
-      expect(res).toBe(true)
+      await helper.waitFor('pumvisible', [], 0)
     })
 
     it('should trigger on first letter insert', async () => {
@@ -144,20 +134,19 @@ describe('completion', () => {
     })
 
     it('should trigger on force refresh', async () => {
-      await helper.edit()
+      let doc = await helper.createDocument()
       await nvim.setLine('foo f')
-      await helper.wait(100)
+      await doc.synchronize()
       await nvim.input('A')
-      await helper.wait(10)
       await nvim.call('coc#start')
       let res = await helper.visible('foo', 'around')
       expect(res).toBe(true)
     })
 
     it('should filter and sort on increment search', async () => {
-      await helper.edit()
+      let doc = await helper.createDocument()
       await nvim.setLine('forceDocumentSync format  fallback')
-      await helper.wait(30)
+      await doc.synchronize()
       await nvim.input('of')
       await helper.waitPopup()
       let items = await helper.getItems()
@@ -170,18 +159,18 @@ describe('completion', () => {
     })
 
     it('should not trigger on insert enter', async () => {
-      await helper.edit()
+      let doc = await helper.createDocument()
       await nvim.setLine('foo bar')
-      await helper.wait(30)
+      await doc.synchronize()
       await nvim.input('o')
       let visible = await nvim.call('pumvisible')
       expect(visible).toBe(0)
     })
 
     it('should filter on fast input', async () => {
-      await helper.edit()
+      let doc = await helper.createDocument()
       await nvim.setLine('foo bar')
-      await helper.wait(60)
+      await doc.synchronize()
       await nvim.input('oba')
       await helper.waitPopup()
       let items = await helper.getItems()
@@ -431,10 +420,10 @@ describe('completion', () => {
     })
 
     it('should limit results for low priority source', async () => {
-      await helper.edit()
+      let doc = await helper.createDocument()
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
       await nvim.setLine('filename filepath find filter findIndex')
-      await helper.wait(100)
+      await doc.synchronize()
       await nvim.input('of')
       await helper.waitPopup()
       let items = await helper.getItems()
@@ -551,19 +540,15 @@ describe('completion', () => {
       }
       disposables.push(sources.addSource(source))
       await nvim.input('i')
-      await helper.wait(30)
+      await helper.wait(10)
       await nvim.input('  \\ite')
       await helper.waitPopup()
       await nvim.input('m')
-      await helper.wait(300)
-      let line = await nvim.line
-      expect(line).toBe('\\item')
+      await helper.waitFor('getline', ['.'], '\\item')
       await nvim.input('<cr>')
-      await helper.wait(30)
+      await helper.wait(10)
       await nvim.input('  END')
-      await helper.wait(300)
-      line = await nvim.line
-      expect(line).toBe('END')
+      await helper.waitFor('getline', ['.'], 'END')
     })
   })
 })

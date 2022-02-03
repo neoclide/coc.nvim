@@ -617,6 +617,16 @@ export class Completion implements Disposable {
     void nvim.resumeNotification(false, true)
   }
 
+  public reset(): void {
+    this.stop(true)
+    if (this.triggerTimer) {
+      clearTimeout(this.triggerTimer)
+    }
+    if (this.completeTimer) {
+      clearTimeout(this.completeTimer)
+    }
+  }
+
   private getInput(document: Document, pre: string): string {
     let { asciiCharactersOnly } = this.config
     let input = ''
