@@ -198,7 +198,7 @@ describe('list worker', () => {
   it('should deactivate on task error', async () => {
     disposables.push(manager.registerList(new ErrorTaskList(nvim)))
     await manager.start(['task'])
-    await helper.wait(500)
+    await helper.wait(300)
     expect(manager.isActivated).toBe(false)
   })
 })

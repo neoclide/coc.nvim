@@ -142,11 +142,7 @@ export default class ListSession {
   }
 
   public async reloadItems(): Promise<void> {
-    if (!this.window) return
-    let bufnr = await this.nvim.call('winbufnr', [this.window.id])
-    // can't reload since window not exists
-    if (bufnr == -1) return
-    this.buffer = this.nvim.createBuffer(bufnr)
+    if (!this.window || !this.ui.winid) return
     await this.worker.loadItems(this.context, true)
   }
 

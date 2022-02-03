@@ -1,9 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
+import { formatPath, UnformattedListItem, formatListItems } from '../../list/formatting'
 import { CancellationToken, Emitter } from 'vscode-jsonrpc'
 import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range } from 'vscode-languageserver-protocol'
 import diagnosticManager from '../../diagnostic/manager'
 import languages from '../../languages'
-import BasicList from '../../list/basic'
+import BasicList, { getFiletype, PreviewOptions } from '../../list/basic'
 import events from '../../events'
 import manager from '../../list/manager'
 import Document from '../../model/document'
@@ -12,6 +13,7 @@ import { ListArgument, ListContext, ListItem, ServiceStat } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { URI } from 'vscode-uri'
 
 let listItems: ListItem[] = []
 class OptionList extends BasicList {
@@ -30,6 +32,23 @@ class OptionList extends BasicList {
   }
   public loadItems(_context: ListContext, _token: CancellationToken): Promise<ListItem[]> {
     return Promise.resolve(listItems)
+  }
+}
+
+let previewOptions: PreviewOptions
+class SimpleList extends BasicList {
+  public name = 'simple'
+  public defaultAction: 'preview'
+  constructor(nvim: Neovim) {
+    super(nvim)
+    this.addAction('preview', async (_item, context) => {
+      await this.preview(previewOptions, context)
+    })
+  }
+  public loadItems(): Promise<ListItem[]> {
+    return Promise.resolve(['a', 'b', 'c'].map((s, idx) => {
+      return { label: s, location: Location.create('test:///a', Range.create(idx, 0, idx + 1, 0)) } as ListItem
+    }))
   }
 }
 
@@ -60,12 +79,56 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  listItems = []
   disposeAll(disposables)
   manager.reset()
   await helper.reset()
 })
 
+describe('formatting', () => {
+  describe('formatPath()', () => {
+    it('should format path', async () => {
+      expect(formatPath('hidden', 'path')).toBe('')
+      expect(formatPath('full', __filename)).toMatch('sources.test.ts')
+      expect(formatPath('short', __filename)).toMatch('sources.test.ts')
+      expect(formatPath('filename', __filename)).toMatch('sources.test.ts')
+    })
+  })
+
+  describe('formatListItems', () => {
+    it('should format list items', async () => {
+      expect(formatListItems(false, [])).toEqual([])
+      let items: UnformattedListItem[] = [{
+        label: ['a', 'b', 'c']
+      }]
+      expect(formatListItems(false, items)).toEqual([{
+        label: 'a\tb\tc'
+      }])
+      items = [{
+        label: ['a', 'b', 'c']
+      }, {
+        label: ['foo', 'bar', 'go']
+      }]
+      expect(formatListItems(true, items)).toEqual([{
+        label: 'a  \tb  \tc '
+      }, {
+        label: 'foo\tbar\tgo'
+      }])
+    })
+  })
+})
+
 describe('BasicList', () => {
+  describe('getFiletype()', () => {
+    it('should get filetype', async () => {
+      expect(getFiletype('javascriptreact')).toBe('javascript')
+      expect(getFiletype('typescriptreact')).toBe('typescript')
+      expect(getFiletype('latex')).toBe('tex')
+      expect(getFiletype('foo.bar')).toBe('foo')
+      expect(getFiletype('foo')).toBe('foo')
+    })
+  })
+
   describe('parse arguments', () => {
     it('should parse args #1', () => {
       let list = new OptionList(nvim)
@@ -86,7 +149,127 @@ describe('BasicList', () => {
     })
   })
 
+  describe('jumpTo()', () => {
+    let list: OptionList
+    beforeAll(() => {
+      list = new OptionList(nvim)
+    })
+    it('should jump to uri', async () => {
+      let uri = URI.file(__filename).toString()
+      await list.jumpTo(uri, 'edit')
+      let bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toMatch('sources.test.ts')
+    })
+
+    it('should jump to location', async () => {
+      let uri = URI.file(__filename).toString()
+      let loc = Location.create(uri, Range.create(0, 0, 1, 0))
+      await list.jumpTo(loc, 'edit')
+      let bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toMatch('sources.test.ts')
+    })
+
+    it('should jump to location with empty range', async () => {
+      let uri = URI.file(__filename).toString()
+      let loc = Location.create(uri, Range.create(0, 0, 0, 0))
+      await list.jumpTo(loc, 'edit')
+      let bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toMatch('sources.test.ts')
+    })
+  })
+
+  describe('convertLocation()', () => {
+    let list: OptionList
+    beforeAll(() => {
+      list = new OptionList(nvim)
+    })
+    it('should convert uri', async () => {
+      let uri = URI.file(__filename).toString()
+      let res = await list.convertLocation(uri)
+      expect(res.uri).toBe(uri)
+    })
+
+    it('should convert location with line', async () => {
+      let uri = URI.file(__filename).toString()
+      let res = await list.convertLocation({ uri, line: 'convertLocation()', text: 'convertLocation' })
+      expect(res.uri).toBe(uri)
+      res = await list.convertLocation({ uri, line: 'convertLocation()' })
+      expect(res.uri).toBe(uri)
+    })
+
+    it('should convert location with custom schema', async () => {
+      let uri = 'test:///foo'
+      let res = await list.convertLocation({ uri, line: 'convertLocation()' })
+      expect(res.uri).toBe(uri)
+    })
+  })
+
+  describe('createAction()', () => {
+    it('should overwrite action', async () => {
+      let idx: number
+      let list = new OptionList(nvim)
+      listItems.push({
+        label: 'foo',
+        location: Location.create('untitled:///1', Range.create(0, 0, 0, 0))
+      })
+      list.createAction({
+        name: 'foo',
+        execute: () => { idx = 0 }
+      })
+      list.createAction({
+        name: 'foo',
+        execute: () => { idx = 1 }
+      })
+      disposables.push(manager.registerList(list))
+      await manager.start(['--normal', 'option'])
+      await manager.session.ui.ready
+      await manager.doAction('foo')
+      expect(idx).toBe(1)
+    })
+  })
+
   describe('preview()', () => {
+    beforeEach(() => {
+      let list = new SimpleList(nvim)
+      disposables.push(manager.registerList(list))
+    })
+
+    async function doPreview(opts: PreviewOptions): Promise<number> {
+      previewOptions = opts
+      await manager.start(['--normal', 'simple'])
+      await manager.session.ui.ready
+      await manager.doAction('preview')
+      let res = await nvim.call('coc#list#has_preview') as number
+      expect(res).toBeGreaterThan(0)
+      let winid = await nvim.call('win_getid', [res])
+      return winid
+    }
+
+    it('should preview lines', async () => {
+      await doPreview({ filetype: '', lines: ['foo', 'bar'] })
+    })
+
+    it('should preview with bufname', async () => {
+      await doPreview({
+        bufname: 't.js',
+        filetype: 'typescript',
+        lines: ['foo', 'bar']
+      })
+    })
+
+    it('should preview with range highlight', async () => {
+      let winid = await doPreview({
+        bufname: 't.js',
+        filetype: 'typescript',
+        lines: ['foo', 'bar'],
+        range: Range.create(0, 0, 0, 3)
+      })
+      let res = await nvim.call('getmatches', [winid])
+      expect(res.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('previewLocation()', () => {
     it('should preview sketch buffer', async () => {
       await nvim.command('new')
       await nvim.setLine('foo')

@@ -3,7 +3,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
 import ListSession from '../../list/session'
-import { ListItem } from '../../types'
+import { ListItem, IList } from '../../types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -124,6 +124,32 @@ describe('list session', () => {
       let buf = await nvim.buffer
       let lines = await buf.lines
       expect(lines).toEqual(['d', 'e'])
+    })
+  })
+
+  describe('reloadItems()', () => {
+    it('should not reload items when window is hidden', async () => {
+      let fn = jest.fn()
+      let list: IList = {
+        name: 'reload',
+        defaultAction: 'open',
+        actions: [{
+          name: 'open',
+          execute: () => {}
+        }],
+        loadItems: () => {
+          fn()
+          return Promise.resolve([])
+        }
+      }
+      disposables.push(manager.registerList(list))
+      await manager.start(['--normal', 'reload'])
+      let ui = manager.session.ui
+      await ui.ready
+      await manager.cancel(true)
+      let ses = manager.getSession('reload')
+      await ses.reloadItems()
+      expect(fn).toBeCalledTimes(1)
     })
   })
 
