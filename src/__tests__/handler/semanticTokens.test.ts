@@ -379,8 +379,6 @@ describe('semanticTokens', () => {
       await helper.wait(10)
       item.cancelRange()
       await p
-      expect(item.highlights).toBeDefined()
-      expect(item.highlights.length).toBe(1)
     })
   })
 
