@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 17
+let s:vim_api_version = 18
 let s:activate = ""
 let s:quit = ""
 
@@ -647,6 +647,7 @@ endfunction
 " used for TextChangedI with InsertCharPre
 function! coc#util#get_changeinfo()
   return {
+        \ 'bufnr': bufnr('%'),
         \ 'lnum': line('.'),
         \ 'line': getline('.'),
         \ 'changedtick': b:changedtick,
