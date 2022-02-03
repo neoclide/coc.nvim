@@ -29,6 +29,7 @@ export interface Env {
 }
 
 export interface ChangeInfo {
+  bufnr: number
   lnum: number
   line: string
   changedtick: number
@@ -507,6 +508,7 @@ export default class Document {
     if (this.env.isVim) {
       if (currentLine) {
         let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
+        if (change.bufnr !== this.bufnr) return
         if (change.changedtick < this._changedtick) {
           this._forceSync()
           return
