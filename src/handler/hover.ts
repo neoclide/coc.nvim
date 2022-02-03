@@ -88,7 +88,7 @@ export default class HoverHandler {
       win.highlightRanges('CocHoverRange', [hover.range], 99, true)
       this.timer = setTimeout(() => {
         win.clearMatchGroup('CocHoverRange')
-        if (workspace.isVim) this.nvim.command('redraw', true)
+        this.nvim.redrawVim()
       }, 500)
     }
     await this.previewHover(hovers, hoverTarget)

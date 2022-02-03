@@ -48,8 +48,7 @@ export default class Floating {
       if (config.shadow) opts.shadow = 1
     }
     let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, opts])
-    // can't use redrawVim which lost the cursor.
-    if (this.isVim) nvim.command('redraw', true)
+    nvim.redrawVim()
     if (!res || res.length == 0) return
     this.winid = res[0]
     this.bufnr = res[1]
@@ -64,6 +63,6 @@ export default class Floating {
     this.winid = 0
     if (!winid) return
     nvim.call('coc#float#close', [winid], true)
-    if (this.isVim) nvim.command('redraw', true)
+    nvim.redrawVim()
   }
 }

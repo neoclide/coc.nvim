@@ -3,7 +3,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { disposeAll } from '../util'
 import { DialogButton } from './dialog'
-const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-notification')
 
 export interface NotificationPreferences {
@@ -83,7 +82,7 @@ export default class Notification {
     if (!res) return false
     if (this._disposed) {
       this.nvim.call('coc#float#close', [res[0]], true)
-      if (isVim) this.nvim.command('redraw', true)
+      this.nvim.redrawVim()
     } else {
       this._winid = res[0]
       this.bufnr = res[1]
@@ -101,7 +100,7 @@ export default class Notification {
     let { winid } = this
     if (winid) {
       this.nvim.call('coc#float#close', [winid], true)
-      if (isVim) this.nvim.command('redraw', true)
+      this.nvim.redrawVim()
     }
     this.bufnr = undefined
     this._winid = undefined

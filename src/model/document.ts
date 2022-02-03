@@ -370,7 +370,7 @@ export default class Document {
     }
     if (!filtered.length) return
     this.nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
-    if (this.env.isVim) this.nvim.command('redraw', true)
+    this.nvim.redrawVim()
     this.lines = newLines
     this._forceSync()
   }

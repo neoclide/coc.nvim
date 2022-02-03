@@ -2386,21 +2386,33 @@ declare module 'coc.nvim' {
 
     /**
      * Stop send subsequent notifications.
+     * This method **must** be paired with `nvim.resumeNotification` in a sync manner.
      */
     pauseNotification(): void
 
     /**
      * Send paused notifications by nvim_call_atomic request
      *
+     * @param {boolean} redrawVim Redraw vim on vim8 to update the screen
+     *
      * **Note**: avoid call async function between pauseNotification and
      * resumeNotification.
      */
-    resumeNotification(): Promise<[any[], [string, number, string] | null]>
+    resumeNotification(redrawVim: boolean): Promise<[any[], [string, number, string] | null]>
 
     /**
      * Send paused notifications by nvim_call_atomic notification
+     *
+     * @param {boolean} redrawVim Redraw vim to update the screen
+     * @param {true} notify
+     * @returns {void}
      */
-    resumeNotification(cancel: boolean, notify: true): void
+    resumeNotification(redrawVim: boolean, notify: true): void
+
+    /**
+     * Send redraw command to vim, does nothing on neovim since it's not necessary on most cases.
+     */
+    redrawVim(): void
 
     /**
      * Get list of current buffers.

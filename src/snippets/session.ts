@@ -266,6 +266,7 @@ export class SnippetSession {
       nvim.call('coc#_cancel', [], true)
     }
     nvim.setOption('virtualedit', ve, true)
+    void nvim.resumeNotification(true, true)
     if (isFinalTabstop) {
       if (this.snippet.finalCount == 1) {
         logger.info('Jump to final placeholder, cancelling snippet session')
@@ -274,7 +275,6 @@ export class SnippetSession {
         nvim.call('coc#snippet#disable', [], true)
       }
     }
-    await nvim.resumeNotification(true)
     if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
   }
 

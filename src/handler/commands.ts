@@ -4,7 +4,6 @@ import events from '../events'
 import { Env } from '../types'
 import listManager from '../list/manager'
 const logger = require('../util/logger')('handler-commands')
-const isVim = process.env.VIM_NODE_RPC == '1'
 
 interface CommandItem {
   id: string
@@ -22,7 +21,7 @@ export default class Commands {
     let id = `vim.${cmd.id}`
     commandManager.registerCommand(id, () => {
       this.nvim.command(cmd.cmd, true)
-      if (isVim) this.nvim.command('redraw', true)
+      this.nvim.redrawVim()
     })
     if (cmd.title) commandManager.titles.set(id, cmd.title)
   }
