@@ -55,7 +55,8 @@ export default class DiagnosticCollection {
   }
 
   public clear(): void {
-    let uris = this.diagnosticsMap.keys()
+    let uris = Array.from(this.diagnosticsMap.keys())
+    uris = uris.filter(uri => this.diagnosticsMap.get(uri).length > 0)
     this.diagnosticsMap.clear()
     for (let uri of uris) {
       this._onDidDiagnosticsChange.fire(uri)

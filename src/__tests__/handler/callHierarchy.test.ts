@@ -153,9 +153,7 @@ describe('CallHierarchy', () => {
     ])
     await nvim.command('exe 3')
     await nvim.input('t')
-    await helper.wait(50)
-    let line = await nvim.line
-    expect(line).toEqual('  - c bar Detail')
+    await helper.waitFor('getline', ['.'], '  - c bar Detail')
     await nvim.input('<cr>')
     await helper.wait(50)
     doc = await workspace.document
@@ -205,7 +203,7 @@ describe('CallHierarchy', () => {
     ])
     await nvim.command('exe 3')
     await nvim.input('<tab>')
-    await helper.wait(50)
+    await helper.wait(100)
     await nvim.input('<cr>')
     await helper.wait(200)
     let newTab = await nvim.call('tabpagenr')

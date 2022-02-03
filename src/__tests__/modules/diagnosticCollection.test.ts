@@ -73,9 +73,12 @@ describe('diagnostic collection', () => {
     let collection = new DiagnosticCollection('test')
     let diagnostic = createDiagnostic('error')
     let uri = 'file:///1'
+    let fn = jest.fn()
     collection.set(uri, [diagnostic])
+    collection.onDidDiagnosticsChange(fn)
     collection.clear()
     expect(collection.get(uri).length).toBe(0)
+    expect(fn).toBeCalledTimes(1)
   })
 
   it('should call for every uri with diagnostics', () => {
