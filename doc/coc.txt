@@ -2,7 +2,7 @@
 
 Version: 0.0.80
 Author: Qiming Zhao <chemzqm at gmail.com>
-License: MIT license
+License: Anti 996 license
 
 CONTENTS					*coc-contents*
 

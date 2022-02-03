@@ -1,7 +1,7 @@
 " ============================================================================
 " Description: Client api used by vim8
 " Author: Qiming Zhao <chemzqm@gmail.com>
-" Licence: MIT licence
+" Licence: Anti 996 licence
 " Last Modified:  Aug 10, 2021
 " ============================================================================
 if has('nvim') | finish | endif

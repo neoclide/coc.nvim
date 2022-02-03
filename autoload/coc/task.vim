@@ -1,7 +1,7 @@
 " ============================================================================
 " Description: Manage long running tasks.
 " Author: Qiming Zhao <chemzqm@gmail.com>
-" Licence: MIT licence
+" Licence: Anti 966 licence
 " Version: 0.1
 " Last Modified:  Dec 12, 2020
 " ============================================================================
