@@ -206,8 +206,7 @@ describe('rename handler', () => {
       await nvim.input('<cr>')
       let res = await p
       expect(res).toBe(true)
-      let line = await nvim.getLine()
-      expect(line).toBe('bar bar bar')
+      await helper.waitFor('getline', ['.'], 'bar bar bar')
     })
 
     it('should use newName from cword', async () => {

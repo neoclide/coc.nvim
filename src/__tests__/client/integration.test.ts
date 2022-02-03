@@ -1,10 +1,4 @@
 /* eslint-disable */
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-'use strict'
-
 import helper from '../helper'
 import * as assert from 'assert'
 import * as lsclient from '../../language-client'
