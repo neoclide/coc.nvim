@@ -6628,7 +6628,7 @@ declare module 'coc.nvim' {
     /**
      * Get WorkspaceFolder of uri
      */
-    export function getWorkspaceFolder(uri: string): WorkspaceFolder | null
+    export function getWorkspaceFolder(uri: string): WorkspaceFolder | undefined
 
     /**
      * Get content from buffer or file by uri.

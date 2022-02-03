@@ -8,8 +8,8 @@ import { PatternType } from '../types'
 import { distinct } from '../util/array'
 import { isParentFolder, resolveRoot } from '../util/fs'
 
-function toWorkspaceFolder(fsPath: string): WorkspaceFolder | null {
-  if (!fsPath || !path.isAbsolute(fsPath) || !fs.existsSync(fsPath)) return null
+function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
+  if (!fsPath || !path.isAbsolute(fsPath) || !fs.existsSync(fsPath)) return undefined
   return {
     name: path.basename(fsPath),
     uri: URI.file(fsPath).toString()
@@ -33,8 +33,8 @@ export default class WorkspaceFolderController {
     this._workspaceFolders = arr.filter(o => o != null)
   }
 
-  public getWorkspaceFolder(uri: URI): WorkspaceFolder | null {
-    if (uri.scheme !== 'file') return null
+  public getWorkspaceFolder(uri: URI): WorkspaceFolder | undefined {
+    if (uri.scheme !== 'file') return undefined
     let folders = Array.from(this._workspaceFolders).map(o => URI.parse(o.uri).fsPath)
     folders.sort((a, b) => b.length - a.length)
     let fsPath = uri.fsPath
@@ -90,9 +90,9 @@ export default class WorkspaceFolderController {
     return res
   }
 
-  public addWorkspaceFolder(folder: string, fireEvent: boolean): WorkspaceFolder | null {
+  public addWorkspaceFolder(folder: string, fireEvent: boolean): WorkspaceFolder | undefined {
     let workspaceFolder: WorkspaceFolder = toWorkspaceFolder(folder)
-    if (!workspaceFolder) return null
+    if (!workspaceFolder) return undefined
     if (this._workspaceFolders.findIndex(o => o.uri == workspaceFolder.uri) == -1) {
       this._workspaceFolders.push(workspaceFolder)
       if (fireEvent) {

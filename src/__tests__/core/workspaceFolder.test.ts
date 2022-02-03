@@ -59,9 +59,9 @@ describe('WorkspaceFolderController', () => {
   describe('getWorkspaceFolder()', () => {
     it('should get workspaceFolder by uri', async () => {
       let res = workspaceFolder.getWorkspaceFolder(URI.parse('untitled://1'))
-      expect(res).toBe(null)
+      expect(res).toBeUndefined()
       res = workspaceFolder.getWorkspaceFolder(URI.file('/a/b'))
-      expect(res).toBe(null)
+      expect(res).toBeUndefined()
       let filepath = path.join(process.cwd(), 'a/b')
       workspaceFolder.setWorkspaceFolders([process.cwd()])
       res = workspaceFolder.getWorkspaceFolder(URI.file(filepath))

@@ -337,7 +337,7 @@ export class Workspace implements IWorkspace {
   /**
    * Get WorkspaceFolder of uri
    */
-  public getWorkspaceFolder(uri: string): WorkspaceFolder | null {
+  public getWorkspaceFolder(uri: string): WorkspaceFolder | undefined {
     return this.workspaceFolderControl.getWorkspaceFolder(URI.parse(uri))
   }
 
