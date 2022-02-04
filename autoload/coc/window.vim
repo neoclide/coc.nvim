@@ -11,6 +11,17 @@ function! coc#window#tabnr(winid) abort
   endif
 endfunction
 
+function! coc#window#set_heigth(winid, height) abort
+  if empty(getwininfo(a:winid))
+    return
+  endif
+  if exists('*nvim_win_set_height')
+    call nvim_win_set_height(a:winid, a:height)
+  else
+    call coc#compat#execute(a:winid, 'noa resize '.a:height, 'silent')
+  endif
+endfunction
+
 " Get single window by window variable, current tab only
 function! coc#window#find(key, val) abort
   for i in range(1, winnr('$'))

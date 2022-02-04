@@ -2,7 +2,7 @@
 
 Version: 0.0.80
 Author: Qiming Zhao <chemzqm at gmail.com>
-License: MIT license
+License: Anti 996 license
 
 CONTENTS					*coc-contents*
 
@@ -3246,6 +3246,10 @@ Options of CocList command~
 
 	Invoke default action for first list item on list open.
 	Nothing happens when the list is empty.
+
+--reverse
+
+	Reverse lines order of list.
 
 ------------------------------------------------------------------------------
 
