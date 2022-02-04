@@ -1,6 +1,7 @@
 # 2022-02-04
 
 - Add `--reverse` option to list.
+- Add `<esc>` key-mapping to cancel list in preview window (neovim only).
 
 # 2022-02-02
 

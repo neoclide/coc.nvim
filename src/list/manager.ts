@@ -54,9 +54,15 @@ export class ListManager implements Disposable {
       let session = this.getSessionByWinid(winid)
       if (session) this.prompt.start(session.listOptions)
     }, null, this.disposables)
+    let timer: NodeJS.Timer
     events.on('WinLeave', winid => {
+      if (timer) clearTimeout(timer)
       let session = this.getSessionByWinid(winid)
-      if (session) this.prompt.cancel()
+      if (session) {
+        setTimeout(() => {
+          this.prompt.cancel()
+        }, workspace.isVim ? 50 : 0)
+      }
     }, null, this.disposables)
     this.disposables.push({
       dispose: () => {

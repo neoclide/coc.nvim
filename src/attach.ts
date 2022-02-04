@@ -60,10 +60,11 @@ export default (opts: Attach, requestApi = true): Plugin => {
         logger.trace('Notification autocmd:', ...args)
         await events.fire(args[0], args.slice(1))
         break
+      case 'redraw':
+        break
       default: {
         let exists = plugin.hasAction(method)
         if (!exists) {
-          if (global.hasOwnProperty('__TEST__')) return
           console.error(`action "${method}" not exists`)
           return
         }
