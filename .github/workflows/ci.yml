@@ -66,10 +66,9 @@ jobs:
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           nvim --version
           yarn test-build --maxWorkers=2
-          cp coverage/lcov.info coverage/lcov.txt
 
       - name: Codecov
-        uses: codecov/codecov-action@v2.0.2
+        uses: codecov/codecov-action@v1
         if: ${{ matrix.ENABLE_CODE_COVERAGE }}
         with:
           fail_ci_if_error: true
