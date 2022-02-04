@@ -290,6 +290,7 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   private async requestAllHighlights(token: CancellationToken, forceFull: boolean): Promise<HighlightItem[] | undefined> {
     let doc = workspace.getDocument(this.bufnr)
+    if (!doc) return
     const legend = languages.getLegend(doc.textDocument)
     const hasEditProvider = languages.hasSemanticTokensEdits(doc.textDocument)
     const previousResult = forceFull ? null : this.previousResults
