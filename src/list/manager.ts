@@ -214,6 +214,7 @@ export class ListManager implements Disposable {
     let numberSelect = false
     let noQuit = false
     let first = false
+    let reverse = false
     let name: string
     let input = ''
     let matcher: Matcher = 'fuzzy'
@@ -258,6 +259,8 @@ export class ListManager implements Disposable {
         options.push(opt.slice(2))
       } else if (opt == '--first') {
         first = true
+      } else if (opt == '--reverse') {
+        reverse = true
       } else if (opt == '--no-quit') {
         noQuit = true
       } else {
@@ -280,6 +283,7 @@ export class ListManager implements Disposable {
       options: {
         numberSelect,
         autoPreview,
+        reverse,
         noQuit,
         first,
         input,

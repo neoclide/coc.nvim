@@ -33,7 +33,7 @@ endfunction
 function! coc#list#options(...)
   let list = ['--top', '--tab', '--normal', '--no-sort', '--input', '--strict',
         \ '--regex', '--interactive', '--number-select', '--auto-preview',
-        \ '--ignore-case', '--no-quit', '--first']
+        \ '--ignore-case', '--no-quit', '--first', '--reverse']
   if get(g:, 'coc_enabled', 0)
     let names = coc#rpc#request('listNames', [])
     call extend(list, names)
@@ -66,7 +66,7 @@ function! coc#list#create(position, height, name, numberSelect)
     setl norelativenumber
     setl signcolumn=yes
   endif
-  return [bufnr('%'), win_getid()]
+  return [bufnr('%'), win_getid(), tabpagenr()]
 endfunction
 
 " close list windows
@@ -96,7 +96,10 @@ function! coc#list#setup(source)
   let source = a:source[8:]
   let name = toupper(source[0]).source[1:]
   execute 'syntax match Coc'.name.'Line /\v^.*$/'
-  nnoremap <silent><nowait><buffer> <esc> <C-w>c
+  if !s:is_vim
+    " Repeat press <C-f> and <C-b> would invoke <esc> on vim
+    nnoremap <silent><nowait><buffer> <esc> <C-w>c
+  endif
 endfunction
 
 " Check if previewwindow exists on current tab.
@@ -116,7 +119,7 @@ function! coc#list#get_preview(...) abort
   let info = gettabinfo(tabnr)
   if !empty(info)
     for win in info[0]['windows']
-      if getwinvar(win, 'previewwindow', 0)
+      if gettabwinvar(tabnr, win, 'previewwindow', 0)
         return win
       endif
     endfor
@@ -140,40 +143,10 @@ function! coc#list#scroll_preview(dir) abort
   endif
 endfunction
 
-function! coc#list#restore(winid, height)
-  if has('nvim') && nvim_win_is_valid(a:winid)
-    call nvim_win_set_height(a:winid, a:height)
-  elseif s:is_vim && exists('*win_execute')
-    call win_execute(a:winid, 'noa resize '.a:height, 'silent!')
-    redraw
-  endif
-endfunction
-
-function! coc#list#set_height(height) abort
-  if winnr('$') == 1| return | endif
-  execute 'resize '.a:height
-endfunction
-
-function! coc#list#hide(original, height, winid) abort
-  let arr = win_id2tabwin(a:winid)
-  " close preview window
-  if !empty(arr) && arr[0] != 0
-    silent! pclose!
-    let previewwin = coc#list#get_preview(arr[0])
-    call coc#window#close(previewwin)
-  endif
-  if !empty(getwininfo(a:original))
-    call win_gotoid(a:original)
-  endif
-  if a:winid
-    silent! call coc#window#close(a:winid)
-  endif
-  if !empty(a:height) && win_getid() == a:original
-    if exists('*nvim_win_set_height')
-      call nvim_win_set_height(a:original, a:height)
-    elseif win_getid() == a:original
-      execute 'resize '.a:height
-    endif
+function! coc#list#close_preview(tabnr) abort
+  let winid = coc#list#get_preview(a:tabnr)
+  if winid != -1
+    call coc#window#close(winid)
   endif
 endfunction
 

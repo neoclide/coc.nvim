@@ -126,10 +126,11 @@ describe('list', () => {
     })
 
     it('should parse arguments', async () => {
-      await manager.start(['--input=test', '--normal', '--no-sort', '--ignore-case', '--top', '--number-select', '--auto-preview', '--strict', 'location'])
+      await manager.start(['--input=test', '--reverse', '--normal', '--no-sort', '--ignore-case', '--top', '--number-select', '--auto-preview', '--strict', 'location'])
       await helper.wait(30)
       let opts = manager.session?.listOptions
       expect(opts).toEqual({
+        reverse: true,
         numberSelect: true,
         autoPreview: true,
         first: false,

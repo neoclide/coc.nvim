@@ -363,7 +363,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   endif
   let replacement = get(a:, 1, [])
   let lineCount = s:buf_line_count(a:bufnr)
-  let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 1
+  let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 2
   let end = a:end >= 0 ? a:end : lineCount + a:end + 1
   if end == lineCount + 1
     let end = lineCount

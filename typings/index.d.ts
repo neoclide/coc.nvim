@@ -7620,6 +7620,7 @@ declare module 'coc.nvim' {
 
   export interface ListOptions {
     position: string
+    reverse: boolean
     input: string
     ignorecase: boolean
     interactive: boolean

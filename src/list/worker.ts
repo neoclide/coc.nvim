@@ -204,7 +204,7 @@ export default class Worker {
     let { input } = this
     let { sort, matcher, ignorecase } = this.listOptions
     let inputs = this.config.extendedSearchMode ? parseInput(input) : [input]
-    if (input.length == 0 || inputs.length == 0) return items
+    if (input.length == 0 || inputs.length == 0) return items.slice()
     if (matcher == 'strict') {
       let filtered: ListItemWithHighlights[] = []
       for (let item of items) {

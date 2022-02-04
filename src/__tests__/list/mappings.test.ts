@@ -230,13 +230,16 @@ describe('list normal mappings', () => {
   })
 
   it('should change to insert mode by i, o, a', async () => {
+    await manager.start(['--normal', 'location'])
+    await manager.session.ui.ready
     let keys = ['i', 'I', 'o', 'O', 'a', 'A']
     for (let key of keys) {
-      await manager.start(['--normal', 'location'])
-      await manager.session.ui.ready
       await helper.listInput(key)
       let mode = manager.prompt.mode
       expect(mode).toBe('insert')
+      await helper.listInput('<C-o>')
+      mode = manager.prompt.mode
+      expect(mode).toBe('normal')
     }
   })
 

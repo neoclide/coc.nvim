@@ -19,6 +19,16 @@ function! coc#compat#buf_set_lines(bufnr, start, end, replacement) abort
   endif
 endfunction
 
+function! coc#compat#prepend_lines(bufnr, replacement) abort
+  if exists('*appendbufline')
+    call appendbufline(a:bufnr, 0, a:replacement)
+  elseif !s:is_vim
+    call nvim_buf_set_lines(a:bufnr, 0, 0, 0, a:replacement)
+  else
+    throw 'appendbufline() required for prepend lines.'
+  endif
+endfunction
+
 function! coc#compat#win_is_valid(winid) abort
   if exists('*nvim_win_is_valid')
     return nvim_win_is_valid(a:winid)

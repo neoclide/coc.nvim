@@ -3247,6 +3247,10 @@ Options of CocList command~
 	Invoke default action for first list item on list open.
 	Nothing happens when the list is empty.
 
+--reverse
+
+	Reverse lines order of list.
+
 ------------------------------------------------------------------------------
 
 LIST CONFIGURATION					*coc-list-configuration*

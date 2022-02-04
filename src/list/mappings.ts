@@ -144,11 +144,11 @@ export default class Mappings {
     let { session } = this.manager
     if (!session) return
     if (key == nextKey) {
-      session.ui.index = session.ui.index + 1
+      session.ui.moveDown()
       return true
     }
     if (key == previousKey) {
-      session.ui.index = session.ui.index - 1
+      session.ui.moveUp()
       return true
     }
     let expr = this.userInsertMappings.get(key)

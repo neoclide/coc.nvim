@@ -1,3 +1,7 @@
+# 2022-02-04
+
+- Add `--reverse` option to list.
+
 # 2022-02-02
 
 - Remove `disableWorkspaceFolders` `disableDiagnostics` and `disableCompletion`

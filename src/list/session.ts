@@ -54,7 +54,8 @@ export default class ListSession {
     let debouncedChangeLine = debounce(async () => {
       let [previewing, currwin, lnum] = await nvim.eval('[coc#list#has_preview(),win_getid(),line(".")]') as [number, number, number]
       if (previewing && currwin == this.winid) {
-        await this.doPreview(lnum - 1)
+        let idx = this.ui.lnumToIndex(lnum)
+        await this.doPreview(idx)
       }
     }, 50)
     this.disposables.push({
@@ -66,6 +67,7 @@ export default class ListSession {
     this.ui.onDidChangeLine(this.resolveItem, this, this.disposables)
     this.ui.onDidLineChange(this.resolveItem, this, this.disposables)
     let debounced = debounce(async () => {
+      this.updateStatus()
       let { autoPreview } = this.listOptions
       if (!autoPreview) {
         let [previewing, mode] = await nvim.eval('[coc#list#has_preview(),mode()]') as [number, string]
@@ -79,13 +81,11 @@ export default class ListSession {
       }
     })
     this.ui.onDidLineChange(debounced, null, this.disposables)
-    this.ui.onDidLineChange(() => {
-      this.updateStatus()
-    }, null, this.disposables)
     this.ui.onDidOpen(async () => {
       if (typeof this.list.doHighlight == 'function') {
         this.list.doHighlight()
       }
+      if (workspace.isVim) this.prompt.drawPrompt()
       if (this.listOptions.first) {
         await this.doAction()
       }
@@ -278,25 +278,31 @@ export default class ListSession {
     return action
   }
 
-  public async hide(): Promise<void> {
+  public async hide(notify = false): Promise<void> {
     if (this.hidden) return
-    let { nvim, timer, interval } = this
+    let { nvim, timer, interval, window } = this
+    let { winid, tabnr } = this.ui
     if (timer) clearTimeout(timer)
     if (interval) clearInterval(interval)
     this.hidden = true
     this.worker.stop()
     this.history.add()
-    let { winid } = this.ui
     this.ui.reset()
-    if (this.window && winid) {
-      await nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid])
-      if (workspace.isVim) {
-        nvim.command('redraw', true)
-        // Needed for tabe action, don't know why.
-        await wait(10)
-      }
+    let { isVim } = workspace
+    nvim.pauseNotification()
+    if (!isVim) nvim.call('coc#prompt#stop_prompt', ['list'], true)
+    if (tabnr) nvim.call('coc#list#close_preview', [tabnr], true)
+    if (winid) nvim.call('coc#window#close', [winid], true)
+    if (window && this.savedHeight && this.listOptions.position !== 'tab') {
+      nvim.call('coc#window#set_heigth', [window.id, this.savedHeight], true)
     }
-    nvim.call('coc#prompt#stop_prompt', ['list'], true)
+    await nvim.resumeNotification(false, notify)
+    if (isVim && !notify) {
+      // otherwise we could receive <esc> for new list.
+      await wait(10)
+      nvim.call('feedkeys', ['\x1b', 'int'], true)
+      nvim.command('redraw', true)
+    }
   }
 
   public toggleMode(): void {
@@ -456,7 +462,7 @@ export default class ListSession {
       if (n == 0) n = 10
       if (this.ui.length >= n) {
         this.nvim.pauseNotification()
-        this.ui.setCursor(n, 0)
+        this.ui.setCursor(n)
         await this.nvim.resumeNotification()
         await this.doAction()
         return true
@@ -544,20 +550,7 @@ export default class ListSession {
   }
 
   public dispose(): void {
-    if (!this.hidden) {
-      this.hidden = true
-      let { winid } = this.ui
-      this.ui.reset()
-      if (this.window && winid) {
-        this.nvim.call('coc#list#hide', [this.window.id, this.savedHeight, winid], true)
-      }
-    }
-    if (this.interval) {
-      clearInterval(this.interval)
-    }
-    if (this.timer) {
-      clearTimeout(this.timer)
-    }
+    void this.hide(true)
     disposeAll(this.disposables)
     this.worker.dispose()
     this.ui.dispose()
