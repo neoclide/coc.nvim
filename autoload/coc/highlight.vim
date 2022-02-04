@@ -115,6 +115,10 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
+  let linecount = exists('*nvim_buf_line_count') ? nvim_buf_line_count(a:bufnr): getbufinfo(a:bufnr)[0]['linecount']
+  if end >= linecount
+    let end = -1
+  endif
   if empty(a:highlights)
     call coc#highlight#clear_highlight(bufnr, a:key, start, end)
     return
