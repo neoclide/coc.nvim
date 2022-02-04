@@ -42,10 +42,6 @@
     "coveragePathIgnorePatterns": [
       "<rootDir>/src/__tests__/*"
     ],
-    "coverageReporters": [
-      "text",
-      "lcov"
-    ],
     "moduleFileExtensions": [
       "ts",
       "tsx",
@@ -56,6 +52,11 @@
       "^.+\\.tsx?$": "ts-jest"
     },
     "testRegex": "src/__tests__/.*\\.(test|spec)\\.ts$",
+    "coverageReporters": [
+      "clover",
+      "text",
+      "lcov"
+    ],
     "coverageDirectory": "./coverage/"
   },
   "devDependencies": {
