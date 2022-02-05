@@ -6,6 +6,7 @@
 - Support `label` from DocumentSymbolOptions in outline tree.
 - Support extra url use regexp under cursor with `openLink` action.
 - Support `activeParameter` from signature information.
+- Add `trimTrailingWhitespace`, `insertFinalNewline` and `trimFinalNewlines` to FormattingOptions.
 - Add configuration `links.tooltip`, default to `false`.
 
 # 2022-02-04

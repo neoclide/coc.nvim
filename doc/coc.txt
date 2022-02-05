@@ -1583,6 +1583,21 @@ b:coc_additional_keywords				*b:coc_additional_keywords*
 	" Add keyword characters for css
 	autocmd FileType css let b:coc_additional_keywords = ["-"]
 
+b:coc_trim_trailing_whitespace 				 *b:coc_trim_trailing_whitespace*
+
+	Trim trailing whitespace on a line, default `0`.
+	Use by "FormattingOptions" send to the server.
+
+b:coc_trim_final_newlines 				*b:coc_trim_final_newlines*
+
+	Trim all newlines after the final newline at the end of the file.
+	Use by "FormattingOptions" send to the server.
+
+	Other buffer options that affect document format: 'eol', 'shiftwidth'
+	and 'expandtab'.
+
+	Note: language server may not respect format options.
+
 ------------------------------------------------------------------------------
 
 Global variables 					*coc-global-variables*

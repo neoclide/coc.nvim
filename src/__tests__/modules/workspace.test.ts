@@ -98,7 +98,7 @@ describe('workspace methods', () => {
     expect(doc.buffer.equals(buf)).toBeTruthy()
   })
 
-  it('should get format options', async () => {
+  it('should get format options of without bufnr', async () => {
     let opts = await workspace.getFormatOptions()
     expect(opts.insertSpaces).toBe(true)
     expect(opts.tabSize).toBe(2)
@@ -106,12 +106,19 @@ describe('workspace methods', () => {
 
   it('should get format options of current buffer', async () => {
     let buf = await helper.edit()
+    await buf.setVar('coc_trim_trailing_whitespace', 1)
+    await buf.setVar('coc_trim_final_newlines', 1)
     await buf.setOption('shiftwidth', 8)
     await buf.setOption('expandtab', false)
     let doc = workspace.getDocument(buf.id)
     let opts = await workspace.getFormatOptions(doc.uri)
-    expect(opts.insertSpaces).toBe(false)
-    expect(opts.tabSize).toBe(8)
+    expect(opts).toEqual({
+      tabSize: 8,
+      insertSpaces: false,
+      insertFinalNewline: true,
+      trimTrailingWhitespace: true,
+      trimFinalNewlines: true
+    })
   })
 
   it('should get format options when uri not exists', async () => {

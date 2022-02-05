@@ -265,11 +265,12 @@ export default class Documents implements Disposable {
     let doc: Document
     if (uri) doc = this.getDocument(uri)
     let bufnr = doc ? doc.bufnr : 0
-    let [tabSize, insertSpaces] = await this.nvim.call('coc#util#get_format_opts', [bufnr]) as [number, number]
-    return {
-      tabSize,
-      insertSpaces: insertSpaces == 1
-    } as FormattingOptions
+    let res = await this.nvim.call('coc#util#get_format_opts', [bufnr]) as any
+    let obj: FormattingOptions = { tabSize: res.tabsize, insertSpaces: res.expandtab == 1 }
+    obj.insertFinalNewline = res.insertFinalNewline == 1
+    if (res.trimTrailingWhitespace) obj.trimTrailingWhitespace = true
+    if (res.trimFinalNewlines) obj.trimFinalNewlines = true
+    return obj
   }
 
   private async onBufCreate(buf: number | Buffer): Promise<void> {
