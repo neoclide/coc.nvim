@@ -2,7 +2,7 @@ import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CallHierarchyManager from './provider/callHierarchyManager'
 import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
@@ -29,13 +29,6 @@ import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { ExtendedCodeAction } from './types'
 const logger = require('./util/logger')('languages')
-
-export interface DocumentSymbolProviderMetadata {
-  /**
-   * A human-readable string that is shown when multiple outlines trees show for one document.
-   */
-  label?: string
-}
 
 class Languages {
   private _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()
@@ -118,7 +111,7 @@ class Languages {
   }
 
   public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
-    return this.documentSymbolManager.register(selector, provider, metadata?.label)
+    return this.documentSymbolManager.register(selector, provider, metadata)
   }
 
   public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
@@ -244,6 +237,10 @@ class Languages {
 
   public async getDocumentSymbol(document: TextDocument, token: CancellationToken): Promise<SymbolInformation[] | DocumentSymbol[]> {
     return await this.documentSymbolManager.provideDocumentSymbols(document, token)
+  }
+
+  public getDocumentSymbolMetadata(document: TextDocument): DocumentSymbolProviderMetadata {
+    return this.documentSymbolManager.getMetaData(document)
   }
 
   public async getSelectionRanges(document: TextDocument, positions: Position[], token): Promise<SelectionRange[] | null> {

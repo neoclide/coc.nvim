@@ -267,6 +267,9 @@ export default class SymbolsOutline {
       enableFilter: true,
       treeDataProvider: provider,
     })
+    let doc = workspace.getDocument(bufnr)
+    let meta = languages.getDocumentSymbolMetadata(doc.textDocument)
+    if (meta && meta.label) treeView.description = meta.label
     this.originalWins.set(treeView, winid)
     let arr = this.treeViews.get(provider) || []
     arr.push(treeView)

@@ -1,8 +1,9 @@
 # 2022-02-05
 
-- Support `version` of `textDocument/publishDiagnostics` notification's parameter.
+- Support `version` from `textDocument/publishDiagnostics` notification's parameter.
 - Support show `codeDescription` of diagnostics.
 - Support `showDocument` request from language server.
+- Support `label` from DocumentSymbolOptions in outline tree.
 
 # 2022-02-04
 

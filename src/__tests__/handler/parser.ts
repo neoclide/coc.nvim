@@ -1,5 +1,5 @@
+import { DocumentSymbol, Range, SymbolKind } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { DocumentSymbol, SymbolKind, Range } from 'vscode-languageserver-protocol'
 
 /**
  * A syntax parser that parse `class` and `method` only.

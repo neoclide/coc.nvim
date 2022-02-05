@@ -1,15 +1,15 @@
 import { CancellationToken, Disposable, DocumentSelector, DocumentSymbol, SymbolInformation } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { DocumentSymbolProvider } from './index'
+import { DocumentSymbolProvider, DocumentSymbolProviderMetadata } from './index'
 import Manager, { ProviderItem } from './manager'
 import { v4 as uuid } from 'uuid'
 
 export default class DocumentSymbolManager extends Manager<DocumentSymbolProvider> {
 
-  public register(selector: DocumentSelector, provider: DocumentSymbolProvider, displayName?: string): Disposable {
+  public register(selector: DocumentSelector, provider: DocumentSymbolProvider, meta?: DocumentSymbolProviderMetadata): Disposable {
     let item: ProviderItem<DocumentSymbolProvider> = {
       id: uuid(),
-      displayName,
+      meta,
       selector,
       provider
     }
@@ -17,6 +17,12 @@ export default class DocumentSymbolManager extends Manager<DocumentSymbolProvide
     return Disposable.create(() => {
       this.providers.delete(item)
     })
+  }
+
+  public getMetaData(document: TextDocument): DocumentSymbolProviderMetadata {
+    let item = this.getProvider(document)
+    if (!item) return {}
+    return item.provider.meta ?? {}
   }
 
   public async provideDocumentSymbols(

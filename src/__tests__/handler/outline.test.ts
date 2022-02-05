@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, Range, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag, TextDocumentSyncKind, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
@@ -23,7 +23,7 @@ beforeEach(() => {
   disposables.push(languages.registerDocumentSymbolProvider([{ language: 'javascript' }], {
     provideDocumentSymbols: document => {
       let parser = new Parser(document.getText())
-      let res = parser.parse()
+      let res: DocumentSymbol[] = parser.parse()
       if (res.length) {
         res[0].tags = [SymbolTag.Deprecated]
       }
@@ -37,9 +37,9 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  await helper.reset()
   disposeAll(disposables)
   disposables = []
+  await helper.reset()
 })
 
 async function getOutlineBuffer(): Promise<Buffer | undefined> {
@@ -68,18 +68,6 @@ describe('symbols outline', () => {
   }
 
   describe('configuration', () => {
-    afterEach(() => {
-      let { configurations } = workspace
-      configurations.updateUserConfig({
-        'outline.splitCommand': 'botright 30vs',
-        'outline.followCursor': true,
-        'outline.keepWindow': false,
-        'outline.sortBy': 'category',
-        'outline.expandLevel': 1,
-        'outline.checkBufferSwitch': true
-      })
-    })
-
     it('should follow cursor', async () => {
       await createBuffer()
       let curr = await nvim.call('bufnr', ['%'])
@@ -339,6 +327,33 @@ describe('symbols outline', () => {
         '',
         'OUTLINE'
       ])
+    })
+
+    it('should show label in description', async () => {
+      disposables.push(languages.registerDocumentSymbolProvider([{ language: 'vim' }], {
+        meta: {
+          label: 'vimlsp'
+        },
+        provideDocumentSymbols: _ => {
+          let res: DocumentSymbol[] = [{
+            name: 'let',
+            range: Range.create(0, 0, 0, 3),
+            kind: SymbolKind.Constant,
+            selectionRange: Range.create(0, 0, 0, 3),
+            tags: [SymbolTag.Deprecated]
+          }]
+          return Promise.resolve(res)
+        }
+      }))
+      let doc = await helper.createDocument('t.vim')
+      await nvim.command('setf vim')
+      let buf = await nvim.buffer
+      await buf.setLines(['let'], { start: 0, end: -1, strictIndexing: false })
+      await doc.synchronize()
+      await symbols.showOutline(0)
+      let lines = await nvim.call('getline', [1, '$'])
+      expect(lines[0]).toMatch('vimlsp')
+      await nvim.command('wincmd p')
     })
   })
 

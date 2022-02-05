@@ -2244,8 +2244,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
     symbolCapabilities.tagSupport = {
       valueSet: SupportedSymbolTags
     }
-    // TODO: capabilities
-    // symbolCapabilities.labelSupport = true
+    symbolCapabilities.labelSupport = true
   }
 
   public initialize(
@@ -4280,7 +4279,7 @@ export abstract class BaseLanguageClient {
     const generalCapabilities = ensure(result, 'general')!
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
     generalCapabilities.markdown = { parser: 'marked', version: '4.0.10' }
-    // TODO: added in 3.17.0
+    // Added in 3.17.0
     // if (this._clientOptions.markdown.supportHtml) {
     //   generalCapabilities.markdown.allowedTags = ['ul', 'li', 'p', 'code', 'blockquote', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'em', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'del', 'a', 'strong', 'br', 'img', 'span']
     // }

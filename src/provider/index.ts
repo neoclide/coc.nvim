@@ -246,13 +246,20 @@ export interface FoldingRangeProvider {
   ): ProviderResult<FoldingRange[]>
 }
 
+export interface DocumentSymbolProviderMetadata {
+  /**
+   * A human-readable string that is shown when multiple outlines trees show for one document.
+   */
+  label?: string
+}
+
 /**
  * The document symbol provider interface defines the contract between extensions and
  * the [go to symbol](https://code.visualstudio.com/docs/editor/editingevolved#_go-to-symbol)-feature.
  */
 export interface DocumentSymbolProvider {
 
-  displayName?: string
+  meta?: DocumentSymbolProviderMetadata
 
   /**
    * Provide symbol information for the given document.
