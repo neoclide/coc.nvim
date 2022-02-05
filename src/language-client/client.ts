@@ -737,6 +737,7 @@ export interface LanguageClientOptions {
   connectionOptions?: ConnectionOptions
   markdown?: {
     isTrusted?: boolean
+    supportHtml?: boolean
   }
 }
 
@@ -761,6 +762,7 @@ interface ResolvedClientOptions {
   connectionOptions?: ConnectionOptions
   markdown: {
     isTrusted: boolean
+    supportHtml?: boolean
   }
 }
 
@@ -3195,9 +3197,10 @@ export abstract class BaseLanguageClient {
       disableSnippetCompletion = true
     }
 
-    const markdown = { isTrusted: false }
-    if (clientOptions.markdown !== undefined && clientOptions.markdown.isTrusted === true) {
-      markdown.isTrusted = true
+    const markdown = { isTrusted: false, supportHtml: false }
+    if (clientOptions.markdown != null) {
+      markdown.isTrusted = clientOptions.markdown.isTrusted === true
+      markdown.supportHtml = clientOptions.markdown.supportHtml === true
     }
 
     this._clientOptions = {
@@ -3951,7 +3954,6 @@ export abstract class BaseLanguageClient {
     if (separate && diagnostics.length > 0) {
       const entries: Map<string, Diagnostic[]> = new Map()
       entries.set(uri, diagnostics)
-
       for (const diagnostic of diagnostics) {
         if (diagnostic.relatedInformation?.length) {
           let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
@@ -4248,8 +4250,8 @@ export abstract class BaseLanguageClient {
     workspaceEdit.documentChanges = true
     workspaceEdit.resourceOperations = [ResourceOperationKind.Create, ResourceOperationKind.Rename, ResourceOperationKind.Delete]
     workspaceEdit.failureHandling = FailureHandlingKind.TextOnlyTransactional
+    workspaceEdit.normalizesLineEndings = true
     // TODO: capabilities
-    // workspaceEdit.normalizesLineEndings = true
     // workspaceEdit.changeAnnotationSupport = {
     //   groupsOnLabel: true
     // }
@@ -4257,11 +4259,9 @@ export abstract class BaseLanguageClient {
     diagnostics.relatedInformation = true
     diagnostics.versionSupport = true
     diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
-    // TODO: capabilities
-    // diagnostics.dataSupport = true
-    // diagnostics.codeDescriptionSupport = true
+    diagnostics.codeDescriptionSupport = true
+    diagnostics.dataSupport = true
 
-    // TODO: capabilities, disabled by default
     const windowCapabilities = ensure(result, 'window')!
     const showMessage = ensure(windowCapabilities, 'showMessage')!
     showMessage.messageActionItem = { additionalPropertiesSupport: false }
@@ -4270,7 +4270,11 @@ export abstract class BaseLanguageClient {
 
     const generalCapabilities = ensure(result, 'general')!
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
-    generalCapabilities.markdown = { parser: 'marked', version: '1.1.0' }
+    generalCapabilities.markdown = { parser: 'marked', version: '4.0.10' }
+    // TODO: added in 3.17.0
+    // if (this._clientOptions.markdown.supportHtml) {
+    //   generalCapabilities.markdown.allowedTags = ['ul', 'li', 'p', 'code', 'blockquote', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'em', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'del', 'a', 'strong', 'br', 'img', 'span']
+    // }
 
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)

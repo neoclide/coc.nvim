@@ -1,15 +1,17 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { severityLevel, getNameFromSeverity } from '../../diagnostic/util'
-import { Range, DiagnosticSeverity, Diagnostic, Location, DiagnosticTag } from 'vscode-languageserver-types'
+import { Disposable, Range, DiagnosticSeverity, Diagnostic, Location, DiagnosticTag } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import workspace from '../../workspace'
 import window from '../../window'
 import manager from '../../diagnostic/manager'
 import helper, { createTmpFile } from '../helper'
+import { disposeAll } from '../../util'
 
 let nvim: Neovim
+let disposables: Disposable[] = []
 function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic {
   range = range ? range : Range.create(0, 0, 0, 1)
   return Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error)
@@ -25,6 +27,7 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
+  disposeAll(disposables)
   manager.reset()
   await helper.reset()
 })
@@ -48,6 +51,12 @@ async function createDocument(name?: string): Promise<Document> {
   return doc
 }
 
+function addDisposable(fn: () => void): void {
+  disposables.push({
+    dispose: fn
+  })
+}
+
 describe('diagnostic manager', () => {
   describe('setLocationlist()', () => {
     it('should set location list', async () => {
@@ -55,8 +64,10 @@ describe('diagnostic manager', () => {
       await manager.setLocationlist(doc.bufnr)
       let res = await nvim.call('getloclist', [doc.bufnr]) as any[]
       expect(res.length).toBeGreaterThan(2)
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('locationlistLevel', 'error')
+      helper.updateConfiguration('diagnostic.locationlistLevel', 'error')
+      addDisposable(() => {
+        helper.updateConfiguration('diagnostic.locationlistLevel', null)
+      })
       await manager.setLocationlist(doc.bufnr)
       res = await nvim.call('getloclist', [doc.bufnr]) as any[]
       expect(res.length).toBe(2)
@@ -139,6 +150,11 @@ describe('diagnostic manager', () => {
       config.update('level', 'warning')
       config.update('showUnused', false)
       config.update('showDeprecated', false)
+      addDisposable(() => {
+        helper.updateConfiguration('diagnostic.level', 'hint')
+        helper.updateConfiguration('diagnostic.showUnused', true)
+        helper.updateConfiguration('diagnostic.showDeprecated', true)
+      })
       let doc = await createDocument()
       let diagnostics = manager.getDiagnostics(doc.uri)['test']
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
@@ -150,9 +166,6 @@ describe('diagnostic manager', () => {
       expect(list[0].severity).toBe('Warning')
       let res = manager.getDiagnostics(doc.uri)['test']
       expect(res.length).toBe(1)
-      helper.updateConfiguration('diagnostic.level', 'hint')
-      helper.updateConfiguration('diagnostic.showUnused', true)
-      helper.updateConfiguration('diagnostic.showDeprecated', true)
       let ranges = manager.getSortedRanges(doc.uri)
       expect(ranges.length).toBe(3)
     })
@@ -401,9 +414,16 @@ describe('diagnostic manager', () => {
     it('should use filetype map from config', async () => {
       let config = workspace.getConfiguration('diagnostic')
       config.update('filetypeMap', { default: 'bufferType' })
+      addDisposable(() => {
+        helper.updateConfiguration('diagnostic.filetypeMap', {})
+      })
       let doc = await createDocument('foo.js')
       let collection = manager.getCollectionByName('test')
-      let diagnostics = [createDiagnostic('99', Range.create(0, 0, 0, 2), DiagnosticSeverity.Error)]
+      let diagnostic = createDiagnostic('99', Range.create(0, 0, 0, 2), DiagnosticSeverity.Error)
+      diagnostic.codeDescription = {
+        href: 'http://www.example.com'
+      }
+      let diagnostics = [diagnostic]
       collection.set(doc.uri, diagnostics)
       await nvim.call('cursor', [1, 1])
       await nvim.command('doautocmd CursorHold')
@@ -412,7 +432,8 @@ describe('diagnostic manager', () => {
       await nvim.command('normal! $')
       let res = await nvim.eval('synIDattr(synID(line("."),col("."),1),"name")')
       expect(res).toMatch(/javascript/i)
-      config.update('filetypeMap', {})
+      let line = await nvim.call('getline', ['$']) as string
+      expect(line).toMatch('example.com')
     })
 
     it('should show floating window on cursor hold', async () => {

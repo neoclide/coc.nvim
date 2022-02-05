@@ -1,6 +1,7 @@
 # 2022-02-05
 
 - Support `version` of `textDocument/publishDiagnostics` notification's parameter.
+- Support show `codeDescription` of diagnostics.
 
 # 2022-02-04
 

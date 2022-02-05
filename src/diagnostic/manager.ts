@@ -454,7 +454,7 @@ export class DiagnosticManager implements Disposable {
       if (useFloat) this.floatFactory.close()
       return
     }
-    if (truncate && workspace.insertMode) return
+    if (truncate && events.insertMode) return
     let docs = []
     let ft = ''
     if (Object.keys(config.filetypeMap).length > 0) {
@@ -483,6 +483,9 @@ export class DiagnosticManager implements Disposable {
         filetype = ft
       }
       docs.push({ filetype, content: str })
+      if (diagnostic.codeDescription?.href) {
+        docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
+      }
     })
     if (useFloat) {
       let config = this.floatFactory.applyFloatConfig({ modes: ['n'], maxWidth: 80 }, this.config.floatConfig)
