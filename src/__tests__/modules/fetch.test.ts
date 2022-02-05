@@ -15,7 +15,6 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  helper.updateConfiguration('http.proxy', '')
   await helper.reset()
 })
 

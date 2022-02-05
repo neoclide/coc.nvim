@@ -24,8 +24,10 @@ interface FileNode {
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  let config = workspace.getConfiguration('coc.preferences')
-  config.update('enableMessageDialog', true)
+})
+
+beforeEach(() => {
+  helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
 })
 
 afterAll(async () => {
@@ -315,11 +317,6 @@ describe('window functions', () => {
     helper.updateConfiguration('coc.preferences.messageLevel', 'warning')
     level = window.messageLevel
     expect(level).toBe(MessageLevel.Warning)
-    disposables.push({
-      dispose: () => {
-        helper.updateConfiguration('coc.preferences.messageLevel', 'more')
-      }
-    })
   })
 })
 
@@ -526,7 +523,7 @@ describe('diffHighlights', () => {
     let fn = workspace.has
     workspace.has = feature => {
       if (feature == 'nvim-0.6.0') return false
-      return fn.apply(workspace, feature)
+      return fn.apply(workspace, [feature])
     }
     disposables.push({
       dispose: () => {

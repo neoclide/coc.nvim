@@ -21,7 +21,6 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  helper.updateConfiguration('documentHighlight.timeout', 300)
   await helper.reset()
   disposeAll(disposables)
   disposables = []

@@ -49,7 +49,7 @@ export interface DiagnosticConfig {
   virtualTextAlignRight: boolean
   virtualTextWinCol: number | null
   virtualTextCurrentLineOnly: boolean
-  virtualTextSrcId: number
+  virtualTextSrcId?: number
   virtualTextPrefix: string
   virtualTextLines: number
   virtualTextLineSeparator: string

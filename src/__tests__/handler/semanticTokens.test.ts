@@ -6,7 +6,7 @@ import languages from '../../languages'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper, { createTmpFile } from '../helper'
+import helper from '../helper'
 
 let nvim: Neovim
 let ns: number

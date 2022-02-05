@@ -62,11 +62,6 @@ describe('symbols handler', () => {
   }
 
   describe('configuration', () => {
-    afterEach(() => {
-      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', false)
-      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', false)
-    })
-
     it('should get configuration', async () => {
       let functionUpdate = symbols.functionUpdate
       expect(functionUpdate).toBe(false)

@@ -16,7 +16,6 @@ let disposables: Disposable[] = []
 let colorPresentations: ColorPresentation[] = []
 beforeAll(async () => {
   await helper.setup()
-  helper.updateConfiguration('colors.filetypes', ['*'])
   nvim = helper.nvim
   colors = helper.plugin.getHandler().colors
   disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
@@ -42,6 +41,10 @@ beforeAll(async () => {
       })
     }
   }))
+})
+
+beforeEach(() => {
+  helper.updateConfiguration('colors.filetypes', ['*'])
 })
 
 afterAll(async () => {
@@ -136,8 +139,8 @@ describe('Colors', () => {
       expect(colors.hasColor(doc.bufnr)).toBe(false)
       expect(colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1))).toBe(false)
       await nvim.setLine('#ffffff #ff0000')
-      doc.forceSync()
-      await helper.wait(300)
+      await doc.synchronize()
+      await helper.wait(100)
       expect(colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1))).toBe(true)
       expect(colors.hasColor(doc.bufnr)).toBe(true)
     })

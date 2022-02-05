@@ -507,6 +507,7 @@ export class Workspace implements IWorkspace {
   }
 
   public reset(): void {
+    this.configurations.reset()
     this.workspaceFolderControl.reset()
     this.documentsManager.reset()
   }

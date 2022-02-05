@@ -258,7 +258,6 @@ describe('list', () => {
       let curr = await nvim.window
       let isPreview = await curr.getVar('previewwindow')
       expect(isPreview).toBe(1)
-      helper.updateConfiguration('list.previewSplitRight', false)
     })
 
     it('should toggle selection mode', async () => {

@@ -1,14 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
-import { Disposable, Location, Range } from 'vscode-languageserver-protocol'
+import { Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
-let disposables: Disposable[] = []
 
 beforeAll(async () => {
   await helper.setup()
@@ -21,8 +19,6 @@ afterAll(async () => {
 
 afterEach(async () => {
   await helper.reset()
-  disposeAll(disposables)
-  disposables = []
 })
 
 function createLocations(): Location[] {
@@ -53,9 +49,6 @@ autocmd User CocLocationsChange :call OnLocationsChange()`)
 
   it('should show quickfix when quickfix enabled', async () => {
     helper.updateConfiguration('coc.preferences.useQuickfixForLocations', true)
-    disposables.push(Disposable.create(() => {
-      helper.updateConfiguration('coc.preferences.useQuickfixForLocations', false)
-    }))
     let locations = createLocations()
     await workspace.showLocations(locations)
     await helper.waitFor('eval', [`&buftype`], 'quickfix')
@@ -64,9 +57,6 @@ autocmd User CocLocationsChange :call OnLocationsChange()`)
   it('should use customized quickfix open command', async () => {
     await nvim.setVar('coc_quickfix_open_command', 'copen 1')
     helper.updateConfiguration('coc.preferences.useQuickfixForLocations', true)
-    disposables.push(Disposable.create(() => {
-      helper.updateConfiguration('coc.preferences.useQuickfixForLocations', false)
-    }))
     let locations = createLocations()
     await workspace.showLocations(locations)
     await helper.waitFor('eval', [`&buftype`], 'quickfix')

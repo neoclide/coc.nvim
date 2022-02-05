@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range, Command, TextEdit, Position } from 'vscode-languageserver-protocol'
-import { disposeAll } from '../../util'
-import languages from '../../languages'
+import { Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
-import CodeLens from '../../handler/codelens/index'
-import helper, { createTmpFile } from '../helper'
 import events from '../../events'
+import CodeLens from '../../handler/codelens/index'
+import languages from '../../languages'
+import { disposeAll } from '../../util'
+import helper from '../helper'
 
 let nvim: Neovim
 let codeLens: CodeLens
@@ -17,11 +17,13 @@ beforeAll(async () => {
   nvim = helper.nvim
   srcId = await nvim.createNamespace('coc-codelens')
   codeLens = helper.plugin.getHandler().codeLens
+})
+
+beforeEach(() => {
   helper.updateConfiguration('codeLens.enable', true)
 })
 
 afterAll(async () => {
-  helper.updateConfiguration('codeLens.enable', false)
   await helper.shutdown()
 })
 
@@ -62,11 +64,6 @@ describe('codeLenes featrue', () => {
   it('should change codeLenes position', async () => {
     let fn = jest.fn()
     helper.updateConfiguration('codeLens.position', 'eol')
-    disposables.push({
-      dispose: () => {
-        helper.updateConfiguration('codeLens.position', 'top')
-      }
-    })
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
@@ -274,28 +271,5 @@ describe('codeLenes featrue', () => {
     let curr = codeLensBuffer.currentCodeLens()
     expect(curr.length).toBeGreaterThan(1)
     expect(called).toBe(2)
-  })
-
-  it('should refresh on configuration change', async () => {
-    disposables.push({
-      dispose: () => {
-        helper.updateConfiguration('codeLens.enable', true)
-      }
-    })
-    disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
-      provideCodeLenses: () => {
-        return [{
-          range: Range.create(0, 0, 0, 1),
-          command: Command.create('save', '__save')
-        }]
-      }
-    }))
-    let filepath = await createTmpFile('abc')
-    let buffer = await helper.edit(filepath)
-    await codeLens.checkProvider()
-    helper.updateConfiguration('codeLens.enable', false)
-    await helper.wait(10)
-    let markers = await helper.getMarkers(buffer.id, srcId)
-    expect(markers.length).toBe(0)
   })
 })

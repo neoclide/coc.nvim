@@ -16,11 +16,11 @@ let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  helper.updateConfiguration('suggest.triggerCompletionWait', 0)
 })
 
 beforeEach(async () => {
   disposables = []
+  helper.updateConfiguration('suggest.triggerCompletionWait', 0)
   await helper.createDocument()
   await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
 })
@@ -276,11 +276,6 @@ describe('completion resumeCompletion', () => {
 describe('completion InsertEnter', () => {
   beforeEach(() => {
     helper.updateConfiguration('suggest.triggerAfterInsertEnter', true)
-    disposables.push({
-      dispose: () => {
-        helper.updateConfiguration('suggest.triggerAfterInsertEnter', false)
-      }
-    })
   })
 
   it('should trigger completion if triggerAfterInsertEnter is true', async () => {
@@ -673,8 +668,6 @@ describe('completion option', () => {
     let items = await helper.getItems()
     expect(items[0].kind).toBeUndefined()
     expect(items[0].menu).toBeUndefined()
-    helper.updateConfiguration('suggest.disableKind', false)
-    helper.updateConfiguration('suggest.disableMenu', false)
   })
 })
 
@@ -705,11 +698,6 @@ describe('completion trigger', () => {
 
   it('should not trigger if autoTrigger is none', async () => {
     helper.updateConfiguration('suggest.autoTrigger', 'none')
-    disposables.push({
-      dispose: () => {
-        helper.updateConfiguration('suggest.autoTrigger', 'always')
-      }
-    })
     await nvim.setLine('foo ')
     await nvim.input('Af')
     await helper.wait(50)

@@ -55,9 +55,7 @@ export class DiagnosticManager implements Disposable {
         this.config.virtualTextSrcId = id
       }).logError()
     }
-    workspace.onDidChangeConfiguration(e => {
-      this.setConfiguration(e)
-    }, null, this.disposables)
+    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
 
     this.floatFactory = new FloatFactory(this.nvim)
     this.buffers = workspace.registerBufferSync(doc => {
@@ -549,14 +547,13 @@ export class DiagnosticManager implements Disposable {
     }
     let enableHighlightLineNumber = config.get<boolean>('enableHighlightLineNumber', true)
     if (!workspace.isNvim) enableHighlightLineNumber = false
-    this.config = {
+    this.config = Object.assign(this.config || {}, {
       floatConfig: config.get('floatConfig', {}),
       messageTarget,
       enableHighlightLineNumber,
       highlighLimit: config.get<number>('highlighLimit', 1000),
       highlightPriority: config.get<number>('highlightPriority'),
       autoRefresh: config.get<boolean>('autoRefresh', true),
-      virtualTextSrcId: this.config ? this.config.virtualTextSrcId : workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
       enableSign: workspace.env.sign && config.get<boolean>('enableSign', true),
       locationlistUpdate: config.get<boolean>('locationlistUpdate', true),
@@ -585,7 +582,7 @@ export class DiagnosticManager implements Disposable {
       showUnused: config.get<boolean>('showUnused', true),
       showDeprecated: config.get<boolean>('showDeprecated', true),
       format: config.get<string>('format', '[%source%code] [%severity] %message'),
-    }
+    })
     this.enabled = config.get<boolean>('enable', true)
     this.defineSigns()
   }

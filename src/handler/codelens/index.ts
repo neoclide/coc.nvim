@@ -17,11 +17,7 @@ export default class CodeLensManager {
   public buffers: BufferSync<CodeLensBuffer>
   constructor(private nvim: Neovim) {
     this.setConfiguration()
-    // need neovim to work
-    if (!workspace.isNvim) return
-    workspace.onDidChangeConfiguration(e => {
-      this.setConfiguration(e)
-    }, null, this.disposables)
+    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
       return new CodeLensBuffer(nvim, doc.bufnr, this.config)
@@ -31,6 +27,8 @@ export default class CodeLensManager {
   }
 
   private listen(): void {
+    // need neovim to work
+    if (!workspace.isNvim) return
     events.on('CursorMoved', bufnr => {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.resolveCodeLens()
@@ -55,20 +53,6 @@ export default class CodeLensManager {
     if (e && !e.affectsConfiguration('codeLens')) return
     let config = workspace.getConfiguration('codeLens')
     let enable: boolean = this.nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', false)
-    if (e && enable != this.config.enabled) {
-      if (enable) {
-        this.listen()
-      } else {
-        disposeAll(this.disposables)
-      }
-      for (let buf of this.buffers.items) {
-        if (enable) {
-          buf.fetchCodelenses()
-        } else {
-          buf.cleanUp()
-        }
-      }
-    }
     this.config = Object.assign(this.config || {}, {
       enabled: enable,
       position: config.get<'top' | 'eol'>('position', 'top'),

@@ -1,10 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import Format from '../../handler/format'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import window from '../../window'
-import workspace from '../../workspace'
-import Format from '../../handler/format'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -12,11 +11,13 @@ let disposables: Disposable[] = []
 let format: Format
 
 beforeAll(async () => {
-  let { configurations } = workspace
-  configurations.updateUserConfig({ 'coc.preferences.formatOnType': true })
   await helper.setup()
   nvim = helper.nvim
   format = helper.plugin.getHandler().format
+})
+
+beforeEach(() => {
+  helper.updateConfiguration('coc.preferences.formatOnType', true)
 })
 
 afterAll(async () => {
@@ -24,10 +25,8 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', [])
   await helper.reset()
   disposeAll(disposables)
-  disposables = []
 })
 
 describe('format handler', () => {

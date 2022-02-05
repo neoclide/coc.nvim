@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import { formatPath, UnformattedListItem, formatListItems } from '../../list/formatting'
 import { CancellationToken, Emitter } from 'vscode-jsonrpc'
 import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import diagnosticManager from '../../diagnostic/manager'
+import events from '../../events'
 import languages from '../../languages'
 import BasicList, { getFiletype, PreviewOptions } from '../../list/basic'
-import events from '../../events'
+import { formatListItems, formatPath, UnformattedListItem } from '../../list/formatting'
 import manager from '../../list/manager'
 import Document from '../../model/document'
 import services, { IServiceProvider } from '../../services'
@@ -13,7 +14,6 @@ import { ListArgument, ListContext, ListItem, ServiceStat } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { URI } from 'vscode-uri'
 
 let listItems: ListItem[] = []
 class OptionList extends BasicList {
@@ -473,7 +473,6 @@ describe('list sources', () => {
       expect(manager.isActivated).toBe(true)
       let line = await nvim.line
       expect(line.match(/foo/)).toBeNull()
-      helper.updateConfiguration('list.source.diagnostics.pathFormat', 'full')
     })
 
     it('should refresh on diagnostics refresh', async () => {
@@ -613,10 +612,11 @@ describe('list sources', () => {
 
   describe('symbols', () => {
     it('should load symbols source', async () => {
+      await helper.createDocument()
       let disposable = languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => []
       })
-      await manager.start(['symbols'])
+      await manager.start(['--interactive', 'symbols'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
       disposable.dispose()

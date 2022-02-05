@@ -28,10 +28,6 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.asciiCharactersOnly', true)
     })
 
-    afterEach(() => {
-      helper.updateConfiguration('suggest.asciiCharactersOnly', false)
-    })
-
     it('should trigger with none ascii characters', async () => {
       await nvim.setLine('world')
       await nvim.input('o')
@@ -52,11 +48,6 @@ describe('completion', () => {
   })
 
   describe('suggest selection', () => {
-    afterEach(() => {
-      helper.updateConfiguration('suggest.selection', 'none')
-      helper.updateConfiguration('suggest.enablePreselect', false)
-    })
-
     it('should not select when selection is none', async () => {
       helper.updateConfiguration('suggest.enablePreselect', true)
       let doc = await helper.createDocument()
@@ -412,13 +403,6 @@ describe('completion', () => {
   })
 
   describe('completion results', () => {
-
-    afterEach(() => {
-      helper.updateConfiguration('suggest.lowPrioritySourceLimit', null)
-      helper.updateConfiguration('suggest.highPrioritySourceLimit', null)
-      helper.updateConfiguration('suggest.labelMaxLength', 200)
-    })
-
     it('should limit results for low priority source', async () => {
       let doc = await helper.createDocument()
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)

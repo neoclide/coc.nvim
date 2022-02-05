@@ -45,7 +45,6 @@ describe('completion float', () => {
     await helper.edit()
     await nvim.input('if')
     await helper.visible('foo', 'float')
-    helper.updateConfiguration('suggest.floatEnable', true)
     let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })

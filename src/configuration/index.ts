@@ -332,6 +332,26 @@ export default class Configurations {
     return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new ConfigurationModel())
   }
 
+  /**
+   * Reset configurations
+   */
+  public reset(): void {
+    this._errorItems = []
+    this._folderConfigurations.clear()
+    let user = this.parseContentFromFile(this.userConfigFile)
+    let data: IConfigurationData = {
+      defaults: loadDefaultConfigurations(),
+      user,
+      workspace: { contents: {} }
+    }
+    this._configuration = Configurations.parse(data)
+    this._onChange.fire({
+      affectsConfiguration: () => {
+        return true
+      }
+    })
+  }
+
   public dispose(): void {
     disposeAll(this.disposables)
   }
