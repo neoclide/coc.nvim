@@ -83,7 +83,7 @@ export class Workspace implements IWorkspace {
     this.watchers = new Watchers()
     this.autocmds = new Autocmds(this.contentProvider, this.watchers)
     this.keymaps = new Keymaps(documents)
-    this.locations = new Locations(this.configurations, documents)
+    this.locations = new Locations(this.configurations, documents, this.contentProvider)
     this.files = new Files(documents, this.configurations)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders

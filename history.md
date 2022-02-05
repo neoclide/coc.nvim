@@ -4,6 +4,8 @@
 - Support show `codeDescription` of diagnostics.
 - Support `showDocument` request from language server.
 - Support `label` from DocumentSymbolOptions in outline tree.
+- Support extra url use regexp under cursor with `openLink` action.
+- Add configuration `links.tooltip`, default to `false`.
 
 # 2022-02-04
 

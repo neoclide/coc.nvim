@@ -8,6 +8,7 @@ import { Env } from '../types'
 import { disposeAll } from '../util'
 import { fixDriver } from '../util/fs'
 import { byteLength } from '../util/string'
+import ContentProvider from './contentProvider'
 import Documents from './documents'
 const logger = require('../util/logger')('core-locations')
 
@@ -17,7 +18,8 @@ export default class Locations implements Disposable {
   private disposables: Disposable[] = []
   constructor(
     private configurations: Configurations,
-    private documents: Documents
+    private documents: Documents,
+    private contentProvider: ContentProvider
   ) {
   }
 
@@ -90,9 +92,9 @@ export default class Locations implements Disposable {
    * Open resource by uri
    */
   public async openResource(uri: string): Promise<void> {
-    let { nvim } = this
-    // not supported
-    if (uri.startsWith('http')) {
+    let { nvim, contentProvider } = this
+    let u = URI.parse(uri)
+    if (u.scheme !== 'file' && !contentProvider.schemes.includes(u.scheme)) {
       await nvim.call('coc#util#open_url', uri)
       return
     }

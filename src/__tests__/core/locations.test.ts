@@ -116,11 +116,14 @@ describe('openResource()', () => {
   })
 
   it('should open none file uri', async () => {
-    let uri = 'jdi://abc'
+    workspace.registerTextDocumentContentProvider('jd', {
+      provideTextDocumentContent: () => 'jd'
+    })
+    let uri = 'jd://abc'
     await workspace.openResource(uri)
     let buf = await nvim.buffer
     let name = await buf.name
-    expect(name).toBe('jdi://abc')
+    expect(name).toBe('jd://abc')
   })
 
   it('should open opened buffer', async () => {

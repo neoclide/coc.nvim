@@ -394,6 +394,13 @@ Built-in configurations:~
 
 	Default: `[]`
 
+							*coc-config-links*
+
+"links.tooltip":~
+
+	Show tooltip of link under cursor on CursorHold, neovim only.
+	Default: `false`
+
 							*coc-config-diagnostic*
 "diagnostic.enable":~
 
@@ -1123,6 +1130,7 @@ Built-in configurations:~
 "callHierarchy.enableTooltip":~
 
 	Enable tooltip to show relative filepath of call hierarchy.
+	Default: `true`
 
 						*coc-config-npm*
 "npm.binPath":~

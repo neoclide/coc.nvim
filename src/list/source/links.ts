@@ -39,9 +39,8 @@ export default class LinksList extends BasicList {
     if (!doc) return null
     let items: ListItem[] = []
     let links = await languages.getDocumentLinks(doc.textDocument, token)
-    if (links == null) {
-      throw new Error('Links provider not found.')
-    }
+    if (token.isCancellationRequested) return null
+    if (links == null) throw new Error('Links provider not found.')
     let res: DocumentLink[] = []
     for (let link of links) {
       if (link.target) {
@@ -53,7 +52,7 @@ export default class LinksList extends BasicList {
           }
         })
       } else {
-        link = await languages.resolveDocumentLink(link)
+        link = await languages.resolveDocumentLink(link, token)
         if (link.target) {
           items.push({
             label: formatUri(link.target),

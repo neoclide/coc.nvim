@@ -95,6 +95,7 @@ export default class Handler implements HandlerDelegate {
       dispose: () => {
         this.callHierarchy.dispose()
         this.codeLens.dispose()
+        this.links.dispose()
         this.refactor.dispose()
         this.signature.dispose()
         this.symbols.dispose()

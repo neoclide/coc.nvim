@@ -57,7 +57,6 @@ class Languages {
   private semanticTokensManager = new SemanticTokensManager()
   private semanticTokensRangeManager = new SemanticTokensRangeManager()
   private linkedEditingManager = new LinkedEditingRangeManager()
-  private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
 
   public hasFormatProvider(doc: TextDocument): boolean {
     if (this.formatManager.hasProvider(doc)) {
@@ -295,8 +294,8 @@ class Languages {
     return (await this.documentLinkManager.provideDocumentLinks(document, token)) || []
   }
 
-  public async resolveDocumentLink(link: DocumentLink): Promise<DocumentLink> {
-    return await this.documentLinkManager.resolveDocumentLink(link, this.token)
+  public async resolveDocumentLink(link: DocumentLink, token: CancellationToken): Promise<DocumentLink> {
+    return await this.documentLinkManager.resolveDocumentLink(link, token)
   }
 
   public async provideDocumentColors(document: TextDocument, token: CancellationToken): Promise<ColorInformation[] | null> {
@@ -437,13 +436,9 @@ class Languages {
         throw new Error(`Invalid provider name: ${id}`)
     }
   }
+
   public createDiagnosticCollection(owner: string): DiagnosticCollection {
     return diagnosticManager.create(owner)
-  }
-
-  private get token(): CancellationToken {
-    this.cancelTokenSource = new CancellationTokenSource()
-    return this.cancelTokenSource.token
   }
 }
 

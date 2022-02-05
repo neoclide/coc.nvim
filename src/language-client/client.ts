@@ -2847,7 +2847,6 @@ class DocumentLinkFeature extends TextDocumentFeature<DocumentLinkOptions, Docum
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     const documentLinkCapabilities = ensure(ensure(capabilities, 'textDocument')!, 'documentLink')!
     documentLinkCapabilities.dynamicRegistration = true
-    // TODO support tooltip
     documentLinkCapabilities.tooltipSupport = true
   }
 

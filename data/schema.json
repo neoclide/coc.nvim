@@ -628,6 +628,11 @@
       "default": 1000,
       "maximum": 4096
     },
+    "links.tooltip": {
+      "type": "boolean",
+      "description": "Show tooltip of link under cursor on CursorHold, neovim only",
+      "default": false
+    },
     "diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic display",
