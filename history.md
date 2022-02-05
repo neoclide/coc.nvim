@@ -1,3 +1,7 @@
+# 2022-02-05
+
+- Support `version` of `textDocument/publishDiagnostics` notification's parameter.
+
 # 2022-02-04
 
 - Add `--reverse` option to list.

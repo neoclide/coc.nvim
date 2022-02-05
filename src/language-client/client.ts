@@ -3926,10 +3926,12 @@ export abstract class BaseLanguageClient {
   }
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {
-    if (!this._diagnostics) {
-      return
+    if (!this._diagnostics) return
+    let { uri, diagnostics, version } = params
+    if (typeof version === 'number') {
+      let doc = workspace.getDocument(uri)
+      if (!doc || doc.version != version) return
     }
-    let { uri, diagnostics } = params
     let middleware = this.clientOptions.middleware!.handleDiagnostics
     if (middleware) {
       middleware(uri, diagnostics, (uri, diagnostics) =>
@@ -4253,7 +4255,7 @@ export abstract class BaseLanguageClient {
     // }
     const diagnostics = ensure(ensure(result, 'textDocument')!, 'publishDiagnostics')!
     diagnostics.relatedInformation = true
-    diagnostics.versionSupport = false
+    diagnostics.versionSupport = true
     diagnostics.tagSupport = { valueSet: [DiagnosticTag.Unnecessary, DiagnosticTag.Deprecated] }
     // TODO: capabilities
     // diagnostics.dataSupport = true
