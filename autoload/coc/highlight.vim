@@ -196,6 +196,9 @@ endfunction
 
 " 0 based line, start_col and end_col
 function! coc#highlight#get_highlights(bufnr, key) abort
+  if has('nvim-0.6.0')
+    return v:lua.require('coc').getHighlights(a:bufnr, a:key)
+  endif
   if !bufloaded(a:bufnr)
     return v:null
   endif
