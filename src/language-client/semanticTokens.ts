@@ -5,14 +5,14 @@
 'use strict'
 
 import {
-  CancellationToken, SemanticTokensClientCapabilities, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
+  CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, ProviderResult } from '../provider'
-import * as cv from './utils/converter'
 import * as Is from '../util/is'
 import { BaseLanguageClient, Middleware, TextDocumentFeature } from './client'
+import * as cv from './utils/converter'
 const logger = require('../util/logger')('languageclient-semanticTokens')
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {

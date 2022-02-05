@@ -2,6 +2,7 @@
 
 - Support `version` of `textDocument/publishDiagnostics` notification's parameter.
 - Support show `codeDescription` of diagnostics.
+- Support `showDocument` request from language server.
 
 # 2022-02-04
 

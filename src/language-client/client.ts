@@ -37,6 +37,7 @@ import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 import { LinkedEditingRangeMiddleware } from './linkedEditingRange'
+import { comparePosition } from '../util/position'
 
 const logger = require('../util/logger')('language-client-client')
 
@@ -1870,6 +1871,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
+    completion.insertTextMode = InsertTextMode.adjustIndentation
   }
 
   public initialize(
@@ -3639,14 +3641,19 @@ export abstract class BaseLanguageClient {
         connection.onRequest(ShowDocumentRequest.type, async (params): Promise<ShowDocumentResult> => {
           const showDocument = async (params: ShowDocumentParams): Promise<ShowDocumentResult> => {
             try {
-              if (params.external === true) {
+              if (params.external === true || /^https?:\/\//.test(params.uri)) {
                 await workspace.openResource(params.uri)
                 return { success: true }
               } else {
-                if (params.selection) {
-                  params.selection.start
+                let { selection, takeFocus } = params
+                if (takeFocus === false) {
+                  await workspace.loadFile(params.uri)
+                } else {
+                  await workspace.jumpTo(params.uri, selection?.start)
+                  if (comparePosition(selection.start, selection.end) != 0) {
+                    await window.selectRange(selection)
+                  }
                 }
-                await workspace.jumpTo(params.uri, params.selection?.start)
                 return { success: true }
               }
             } catch (error) {
@@ -4268,7 +4275,7 @@ export abstract class BaseLanguageClient {
     const showMessage = ensure(windowCapabilities, 'showMessage')!
     showMessage.messageActionItem = { additionalPropertiesSupport: true }
     const showDocument = ensure(windowCapabilities, 'showDocument')!
-    showDocument.support = false
+    showDocument.support = true
 
     const generalCapabilities = ensure(result, 'general')!
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
