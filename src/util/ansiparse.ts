@@ -197,8 +197,6 @@ export function ansiparse(str: string): AnsiItem[] {
         //
         // Convert matched formatting data into user-friendly state object.
         //
-        // TODO: DRY.
-        //
         ansiState.forEach(ansiCode => {
           if (foregroundColors[ansiCode]) {
             state.foreground = foregroundColors[ansiCode]

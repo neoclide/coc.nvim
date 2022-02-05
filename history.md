@@ -1,10 +1,11 @@
 # 2022-02-05
 
 - Support `version` from `textDocument/publishDiagnostics` notification's parameter.
-- Support show `codeDescription` of diagnostics.
+- Support `codeDescription` of diagnostics by add href to float window.
 - Support `showDocument` request from language server.
 - Support `label` from DocumentSymbolOptions in outline tree.
 - Support extra url use regexp under cursor with `openLink` action.
+- Support `activeParameter` from signature information.
 - Add configuration `links.tooltip`, default to `false`.
 
 # 2022-02-04

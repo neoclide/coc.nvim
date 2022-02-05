@@ -1,4 +1,4 @@
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
@@ -380,6 +380,10 @@ class Languages {
     return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token)
   }
 
+  public createDiagnosticCollection(owner: string): DiagnosticCollection {
+    return diagnosticManager.create(owner)
+  }
+
   public hasProvider(id: string, document: TextDocument): boolean {
     switch (id) {
       case 'formatOnType':
@@ -435,10 +439,6 @@ class Languages {
       default:
         throw new Error(`Invalid provider name: ${id}`)
     }
-  }
-
-  public createDiagnosticCollection(owner: string): DiagnosticCollection {
-    return diagnosticManager.create(owner)
   }
 }
 

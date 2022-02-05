@@ -150,9 +150,10 @@ export default class Signature {
     let startOffset = offset
     let docs = signatures.reduce((p, c, idx) => {
       let activeIndexes: [number, number] = null
+      let activeIndex = c.activeParameter ?? activeParameter
       let nameIndex = c.label.indexOf('(')
-      if (idx == 0 && activeParameter != null) {
-        let active = c.parameters?.[activeParameter]
+      if (idx == 0 && typeof activeIndex === 'number') {
+        let active = c.parameters?.[activeIndex]
         if (active) {
           let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
           paramDoc = active.documentation
