@@ -1,6 +1,18 @@
+# 2022-02-05
+
+- Support `version` from `textDocument/publishDiagnostics` notification's parameter.
+- Support `codeDescription` of diagnostics by add href to float window.
+- Support `showDocument` request from language server.
+- Support `label` from DocumentSymbolOptions in outline tree.
+- Support extra url use regexp under cursor with `openLink` action.
+- Support `activeParameter` from signature information.
+- Add `trimTrailingWhitespace`, `insertFinalNewline` and `trimFinalNewlines` to FormattingOptions.
+- Add configuration `links.tooltip`, default to `false`.
+
 # 2022-02-04
 
 - Add `--reverse` option to list.
+- Add `<esc>` key-mapping to cancel list in preview window (neovim only).
 
 # 2022-02-02
 

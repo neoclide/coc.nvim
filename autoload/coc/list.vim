@@ -3,12 +3,14 @@ let s:is_vim = !has('nvim')
 let s:prefix = '[List Preview]'
 " filetype detect could be slow.
 let s:filetype_map = {
-  \ 'vim': 'vim',
-  \ 'ts': 'typescript',
-  \ 'js': 'javascript',
-  \ 'html': 'html',
-  \ 'css': 'css'
-  \ }
+      \ 'c': 'c',
+      \ 'py': 'python',
+      \ 'vim': 'vim',
+      \ 'ts': 'typescript',
+      \ 'js': 'javascript',
+      \ 'html': 'html',
+      \ 'css': 'css'
+      \ }
 
 function! coc#list#getchar() abort
   return coc#prompt#getchar()
@@ -262,6 +264,10 @@ function! coc#list#preview(lines, config) abort
   endif
   call sign_unplace('coc', {'buffer': bufnr})
   call coc#compat#execute(winid, 'call clearmatches()')
+  if !s:is_vim
+    " vim send <esc> to buffer on FocusLost, <C-w> and other cases
+    call coc#compat#execute(winid, 'nnoremap <silent><nowait><buffer> <esc> :call CocActionAsync("listCancel")<CR>')
+  endif
   if !empty(range)
     call sign_place(1, 'coc', 'CocCurrentLine', bufnr, {'lnum': lnum})
     call coc#highlight#match_ranges(winid, bufnr, [range], hlGroup, 10)

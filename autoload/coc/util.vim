@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 19
+let s:vim_api_version = 20
 let s:activate = ""
 let s:quit = ""
 
@@ -895,15 +895,18 @@ endfunction
 
 " get tabsize & expandtab option
 function! coc#util#get_format_opts(bufnr) abort
-  if a:bufnr && bufloaded(a:bufnr)
-    let tabsize = getbufvar(a:bufnr, '&shiftwidth')
-    if tabsize == 0
-      let tabsize = getbufvar(a:bufnr, '&tabstop')
-    endif
-    return [tabsize, getbufvar(a:bufnr, '&expandtab')]
+  let bufnr = a:bufnr && bufloaded(a:bufnr) ? a:bufnr : bufnr('%')
+  let tabsize = getbufvar(bufnr, '&shiftwidth')
+  if tabsize == 0
+    let tabsize = getbufvar(bufnr, '&tabstop')
   endif
-  let tabsize = &shiftwidth == 0 ? &tabstop : &shiftwidth
-  return [tabsize, &expandtab]
+  return {
+      \ 'tabsize': tabsize,
+      \ 'expandtab': getbufvar(bufnr, '&expandtab'),
+      \ 'insertFinalNewline': getbufvar(bufnr, '&eol'),
+      \ 'trimTrailingWhitespace': getbufvar(bufnr, 'coc_trim_trailing_whitespace', 0),
+      \ 'trimFinalNewlines': getbufvar(bufnr, 'coc_trim_final_newlines', 0)
+      \ }
 endfunction
 
 " Get indentkeys for indent on TextChangedP, consider = for word indent only.
