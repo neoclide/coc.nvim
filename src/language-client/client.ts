@@ -2755,7 +2755,8 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
     rename.prepareSupport = true
     // TODO: capabilities
     // rename.honorsChangeAnnotations = true
-    rename.prepareSupportDefaultBehavior = PrepareSupportDefaultBehavior.Identifier
+    // Some language server report bug, renable when it's useful
+    // rename.prepareSupportDefaultBehavior = PrepareSupportDefaultBehavior.Identifier
   }
 
   public initialize(
