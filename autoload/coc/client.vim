@@ -5,6 +5,7 @@ let s:is_win = has("win32") || has("win64")
 let s:clients = {}
 
 if get(g:, 'node_client_debug', 0)
+  echohl WarningMsg | echon '[coc.nvim] Enable g:node_client_debug could impact your vim experience' | echohl None
   let $NODE_CLIENT_LOG_LEVEL = 'debug'
   if exists('$NODE_CLIENT_LOG_FILE')
     let s:logfile = resolve($NODE_CLIENT_LOG_FILE)
