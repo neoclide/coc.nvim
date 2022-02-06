@@ -49,7 +49,9 @@
       "js"
     ],
     "transform": {
-      "^.+\\.tsx?$": "ts-jest"
+      "^.+\\.tsx?$": [
+        "@swc/jest"
+      ]
     },
     "testRegex": "src/__tests__/.*\\.(test|spec)\\.ts$",
     "coverageReporters": [
@@ -59,6 +61,8 @@
     "coverageDirectory": "./coverage/"
   },
   "devDependencies": {
+    "@swc/core": "^1.2.136",
+    "@swc/jest": "^0.2.17",
     "@types/cli-table": "^0.3.0",
     "@types/debounce": "^3.0.0",
     "@types/fb-watchman": "^2.0.0",
@@ -80,7 +84,6 @@
     "esbuild": "^0.14.12",
     "bser": "^2.1.1",
     "jest": "27.4.5",
-    "ts-jest": "^27.1.2",
     "typescript": "^4.5.4",
     "vscode-languageserver": "7.0.0"
   },

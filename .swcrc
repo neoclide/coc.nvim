@@ -1,0 +1,13 @@
+{
+  "sourceMaps": false,
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "tsx": false,
+      "dynamicImport": false,
+      "decorators": false
+    },
+    "loose": true,
+    "target": "es2020"
+  }
+}
