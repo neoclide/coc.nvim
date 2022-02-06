@@ -1230,7 +1230,7 @@
     },
     "semanticTokens.combinedModifiers": {
       "type": "array",
-      "description": "Semantic token modifiers that should combine with syntax highlights.",
+      "description": "Semantic token modifiers that should have highlight combined with syntax highlights.",
       "default": ["deprecated"],
       "items": {
         "type": "string"
