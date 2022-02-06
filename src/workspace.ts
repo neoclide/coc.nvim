@@ -131,9 +131,9 @@ export class Workspace implements IWorkspace {
     this.autocmds.attach(nvim, env)
     this.locations.attach(nvim, env)
     this.watchers.attach(nvim, env)
+    await this.attach()
     let channel = channels.create('watchman', nvim)
     this.fileSystemWatchers.attach(channel)
-    await this.attach()
   }
 
   public get cwd(): string {
