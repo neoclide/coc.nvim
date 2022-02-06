@@ -16,7 +16,7 @@ afterEach(async () => {
   await helper.reset()
 })
 
-async function testLanguageServer(serverOptions: lsclient.ServerOptions): Promise<void> {
+async function testLanguageServer(serverOptions: lsclient.ServerOptions): Promise<lsclient.LanguageClient> {
   let clientOptions: lsclient.LanguageClientOptions = {
     documentSelector: ['css'],
     synchronize: {},
@@ -26,6 +26,7 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions): Promis
   client.start()
   await client.onReady()
   expect(client.initializeResult).toBeDefined()
+  return client
 }
 
 describe('Client integration', () => {
@@ -87,7 +88,8 @@ describe('Client integration', () => {
       module: serverModule,
       transport: lsclient.TransportKind.stdio
     }
-    await testLanguageServer(serverOptions)
+    let client = await testLanguageServer(serverOptions)
+    await client.stop()
   })
 
   it('should initialize use pipe', async () => {
@@ -96,7 +98,8 @@ describe('Client integration', () => {
       module: serverModule,
       transport: lsclient.TransportKind.pipe
     }
-    await testLanguageServer(serverOptions)
+    let client = await testLanguageServer(serverOptions)
+    await client.stop()
   })
 
   it('should initialize use socket', async () => {
@@ -108,7 +111,8 @@ describe('Client integration', () => {
         port: 8088
       }
     }
-    await testLanguageServer(serverOptions)
+    let client = await testLanguageServer(serverOptions)
+    await client.stop()
   })
 
   it('should initialize as command', async () => {
@@ -117,6 +121,7 @@ describe('Client integration', () => {
       command: 'node',
       args: [serverModule, '--stdio']
     }
-    await testLanguageServer(serverOptions)
+    let client = await testLanguageServer(serverOptions)
+    await client.stop()
   })
 })
