@@ -13,7 +13,7 @@ import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
 import Files from './core/files'
-import FileSystemWatcher from './core/fileSystemWatcher'
+import { FileSystemWatcherManager, FileSystemWatcher } from './core/fileSystemWatcher'
 import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps from './core/keymaps'
 import Locations from './core/locations'
@@ -69,6 +69,7 @@ export class Workspace implements IWorkspace {
   public readonly keymaps: Keymaps
   public readonly locations: Locations
   public readonly files: Files
+  public readonly fileSystemWatchers: FileSystemWatcherManager
 
   private _env: Env
 
@@ -101,6 +102,8 @@ export class Workspace implements IWorkspace {
     this.onWillCreateFiles = this.files.onWillCreateFiles
     this.onWillRenameFiles = this.files.onWillRenameFiles
     this.onWillDeleteFiles = this.files.onWillDeleteFiles
+    let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
+    this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, watchmanPath)
   }
 
   public async init(window: any): Promise<void> {
@@ -128,6 +131,8 @@ export class Workspace implements IWorkspace {
     this.autocmds.attach(nvim, env)
     this.locations.attach(nvim, env)
     this.watchers.attach(nvim, env)
+    let channel = channels.create('watchman', nvim)
+    this.fileSystemWatchers.attach(channel)
     await this.attach()
   }
 
@@ -271,17 +276,7 @@ export class Workspace implements IWorkspace {
    * Create a FileSystemWatcher instance, doesn't fail when watchman not found.
    */
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
-    let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
-    let watcher = new FileSystemWatcher(
-      this.workspaceFolderControl,
-      watchmanPath,
-      this.nvim,
-      globPattern,
-      !!ignoreCreate,
-      !!ignoreChange,
-      !!ignoreDelete
-    )
-    return watcher
+    return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete)
   }
 
   public getWatchmanPath(): string | null {

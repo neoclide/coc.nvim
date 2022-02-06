@@ -1,10 +1,10 @@
 import watchman, { Client } from 'fb-watchman'
+import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
-import { OutputChannel } from '../types'
 import { v1 as uuidv1 } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
-import minimatch from 'minimatch'
+import { OutputChannel } from '../types'
 import { isParentFolder } from '../util/fs'
 const logger = require('../util/logger')('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
@@ -32,8 +32,6 @@ export interface FileChange {
 }
 
 export type ChangeCallback = (FileChange) => void
-
-const clientsMap: Map<string, Promise<Watchman>> = new Map()
 
 /**
  * Watchman wrapper for fb-watchman client
@@ -153,33 +151,21 @@ export default class Watchman {
     }
   }
 
-  public static async dispose(): Promise<void> {
-    for (let promise of clientsMap.values()) {
-      let client = await promise
-      if (client) client.dispose()
+  public static async createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman | null> {
+    if (!isValidWatchRoot(root)) return null
+    let watchman: Watchman
+    try {
+      watchman = new Watchman(binaryPath, channel)
+      let valid = await watchman.checkCapability()
+      if (!valid) throw new Error('required capabilities not exists.')
+      let watching = await watchman.watchProject(root)
+      if (!watching) throw new Error('unable to watch')
+      return watchman
+    } catch (e) {
+      if (watchman) watchman.dispose()
+      logger.error(`Error on watchman create: ${e.message}`)
+      return null
     }
-    clientsMap.clear()
-  }
-
-  public static createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman | null> {
-    if (!isValidWatchRoot(root)) return Promise.resolve(null)
-    let client = clientsMap.get(root)
-    if (client) return client
-    let promise = new Promise<Watchman | null>(async resolve => {
-      try {
-        let watchman = new Watchman(binaryPath, channel)
-        let valid = await watchman.checkCapability()
-        if (!valid) throw new Error('required capabilities not exists.')
-        let watching = await watchman.watchProject(root)
-        if (!watching) throw new Error('unable to watch')
-        resolve(watchman)
-      } catch (e) {
-        logger.error(`Error on watchman create: ${e.message}`)
-        resolve(null)
-      }
-    })
-    clientsMap.set(root, promise)
-    return promise
   }
 }
 

@@ -1,15 +1,12 @@
 import minimatch from 'minimatch'
 import path from 'path'
-import fs from 'fs'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import Watchman, { FileChange } from './watchman'
-import channels from './channels'
 import WorkspaceFolder from './workspaceFolder'
-import { Neovim } from '@chemzqm/neovim'
 const logger = require('../util/logger')('filesystem-watcher')
 
 export interface RenameEvent {
@@ -17,56 +14,125 @@ export interface RenameEvent {
   newUri: URI
 }
 
+export class FileSystemWatcherManager {
+  private creatingRoots: Set<string> = new Set()
+  private clientsMap: Map<string, Watchman | null> = new Map()
+  private disposables: Disposable[] = []
+  private channel: OutputChannel | undefined
+  private _disposed = false
+  public static watchers: Set<FileSystemWatcher> = new Set()
+  private readonly _onDidCreateClient = new Emitter<string>()
+  public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
+  constructor(
+    private workspaceFolder: WorkspaceFolder,
+    private watchmanPath: string | null
+  ) {
+  }
+
+  public attach(channel: OutputChannel): void {
+    this.channel = channel
+    this.workspaceFolder.workspaceFolders.forEach(folder => {
+      let root = URI.parse(folder.uri).fsPath
+      void this.createClient(root)
+    })
+    this.workspaceFolder.onDidChangeWorkspaceFolders(e => {
+      e.added.forEach(folder => {
+        let root = URI.parse(folder.uri).fsPath
+        void this.createClient(root)
+      })
+      e.removed.forEach(folder => {
+        let root = URI.parse(folder.uri).fsPath
+        let client = this.clientsMap.get(root)
+        if (client) client.dispose()
+      })
+    }, null, this.disposables)
+  }
+
+  public waitClient(root: string): Promise<void> {
+    if (this.clientsMap.has(root)) return Promise.resolve()
+    return new Promise(resolve => {
+      let disposable = this.onDidCreateClient(r => {
+        if (r == root) {
+          disposable.dispose()
+          resolve()
+        }
+      })
+    })
+  }
+
+  private async createClient(root: string): Promise<void> {
+    if (this.watchmanPath == null) return
+    if (this.creatingRoots.has(root) || this.clientsMap.has(root)) return
+    try {
+      this.creatingRoots.add(root)
+      let client = await Watchman.createClient(this.watchmanPath, root, this.channel)
+      this.creatingRoots.delete(root)
+      if (this._disposed) {
+        client.dispose()
+        return
+      }
+      this.clientsMap.set(root, client)
+      if (client) {
+        for (let watcher of FileSystemWatcherManager.watchers) {
+          watcher.listen(client)
+        }
+      }
+      this._onDidCreateClient.fire(root)
+    } catch (e) {
+      logger.error(e)
+      if (this.channel) this.channel.appendLine(`Error on create watchman client:` + e.message)
+    }
+  }
+
+  public createFileSystemWatcher(
+    globPattern: string,
+    ignoreCreateEvents: boolean,
+    ignoreChangeEvents: boolean,
+    ignoreDeleteEvents: boolean): FileSystemWatcher {
+    let fileWatcher = new FileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents)
+    for (let client of this.clientsMap.values()) {
+      if (client) fileWatcher.listen(client)
+    }
+    FileSystemWatcherManager.watchers.add(fileWatcher)
+    return fileWatcher
+  }
+
+  public dispose(): void {
+    this._disposed = true
+    this.creatingRoots.clear()
+    this._onDidCreateClient.dispose()
+    for (let client of this.clientsMap.values()) {
+      if (client) client.dispose()
+    }
+    disposeAll(this.disposables)
+  }
+}
+
 /*
  * FileSystemWatcher for watch workspace folders.
  */
-export default class FileSystemWatcher implements Disposable {
+export class FileSystemWatcher implements Disposable {
   private _onDidCreate = new Emitter<URI>()
   private _onDidChange = new Emitter<URI>()
   private _onDidDelete = new Emitter<URI>()
   private _onDidRename = new Emitter<RenameEvent>()
-  private _watchedFolders: Set<string> = new Set()
-
+  private disposables: Disposable[] = []
   private _disposed = false
   public subscribe: string
   public readonly onDidCreate: Event<URI> = this._onDidCreate.event
   public readonly onDidChange: Event<URI> = this._onDidChange.event
   public readonly onDidDelete: Event<URI> = this._onDidDelete.event
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
-  private disposables: Disposable[] = []
-  private channel: OutputChannel | undefined
 
   constructor(
-    workspaceFolder: WorkspaceFolder,
-    private watchmanPath: string,
-    nvim: Neovim | undefined,
     private globPattern: string,
     public ignoreCreateEvents: boolean,
     public ignoreChangeEvents: boolean,
     public ignoreDeleteEvents: boolean,
   ) {
-    if (nvim) this.channel = channels.create('watchman', nvim)
-    workspaceFolder.workspaceFolders.forEach(folder => {
-      let root = URI.parse(folder.uri).fsPath
-      this.create(root)
-    })
-    workspaceFolder.onDidChangeWorkspaceFolders(e => {
-      e.added.forEach(folder => {
-        let root = URI.parse(folder.uri).fsPath
-        this.create(root)
-      })
-    }, null, this.disposables)
   }
 
-  private create(root: string): void {
-    if (!root || !fs.existsSync(root) || this.watchmanPath == null) return
-    Watchman.createClient(this.watchmanPath, root, this.channel).then(client => {
-      if (this._disposed || !client) return
-      this.listen(client)
-    }).logError()
-  }
-
-  private listen(client: Watchman): void {
+  public listen(client: Watchman): void {
     let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
@@ -122,7 +188,7 @@ export default class FileSystemWatcher implements Disposable {
 
   public dispose(): void {
     this._disposed = true
-    this._watchedFolders.clear()
+    FileSystemWatcherManager.watchers.delete(this)
     this._onDidRename.dispose()
     this._onDidCreate.dispose()
     this._onDidChange.dispose()
