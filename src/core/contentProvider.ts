@@ -48,17 +48,14 @@ export default class ContentProvider implements Disposable {
     let disposables: Disposable[] = []
     if (provider.onDidChange) {
       provider.onDidChange(async uri => {
-        let doc = this.documents.getDocument(uri.toString())
-        if (doc) {
-          let { buffer } = doc
-          let tokenSource = new CancellationTokenSource()
-          let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token))
-          await buffer.setLines(content.split(/\r?\n/), {
-            start: 0,
-            end: -1,
-            strictIndexing: false
-          })
-        }
+        let { buffer } = this.documents.getDocument(uri.toString())
+        let tokenSource = new CancellationTokenSource()
+        let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token))
+        await buffer.setLines(content.split(/\r?\n/), {
+          start: 0,
+          end: -1,
+          strictIndexing: false
+        })
       }, null, disposables)
     }
     return Disposable.create(() => {

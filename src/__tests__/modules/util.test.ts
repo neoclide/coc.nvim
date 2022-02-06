@@ -341,7 +341,7 @@ describe('watchFile', () => {
     let disposable = watchFile(filepath, () => {
       fn()
     })
-    await wait(30)
+    await wait(50)
     fs.writeFileSync(filepath, 'new file', 'utf8')
     await wait(200)
     expect(fn).toBeCalled()

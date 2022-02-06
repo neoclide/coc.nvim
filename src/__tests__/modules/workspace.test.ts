@@ -413,6 +413,7 @@ describe('workspace utility', () => {
   it('should watch options', async () => {
     let fn = jest.fn()
     workspace.watchOption('showmode', fn, disposables)
+    workspace.watchOption('showmode', fn)
     await helper.wait(30)
     await nvim.command('set showmode')
     await helper.wait(30)
@@ -423,6 +424,8 @@ describe('workspace utility', () => {
   it('should watch global', async () => {
     let fn = jest.fn()
     workspace.watchGlobal('x', fn, disposables)
+    workspace.watchGlobal('x', fn)
+    workspace.watchGlobal('x')
     await nvim.command('let g:x = 1')
     await helper.wait(30)
     expect(fn).toBeCalled()

@@ -9,6 +9,7 @@ export default class BufferChannel implements OutputChannel {
   private _disposed = false
   public created = false
   constructor(public name: string, private nvim: Neovim, private onDispose?: () => void) {
+    if (!/^[\w\s-.]+$/.test(name)) throw new Error(`Invalid channel name "${name}", only word characters and white space allowed.`)
   }
 
   public get content(): string {

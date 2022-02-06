@@ -1,12 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Documents from '../../core/documents'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let documents: Documents
-let disposables: Disposable[] = []
 let nvim: Neovim
 
 beforeAll(async () => {

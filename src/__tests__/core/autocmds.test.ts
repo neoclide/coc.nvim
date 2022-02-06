@@ -39,10 +39,30 @@ describe('setupDynamicAutocmd()', () => {
     expect(called).toBe(true)
     nvim.command(`augroup coc_dynamic_autocmd|  autocmd!|augroup end`, true)
   })
+
+  it('should setup user autocmd', async () => {
+    let called = false
+    workspace.registerAutocmd({
+      event: 'User CocJumpPlaceholder',
+      request: true,
+      callback: () => {
+        called = true
+      }
+    })
+    workspace.autocmds.setupDynamicAutocmd(true)
+    await helper.wait(50)
+    await nvim.command('doautocmd <nomodeline> User CocJumpPlaceholder')
+    await helper.wait(100)
+    expect(called).toBe(true)
+  })
 })
 
 describe('doAutocmd()', () => {
   it('should not throw when command id not exists', async () => {
     await workspace.autocmds.doAutocmd(999, [])
+  })
+
+  it('should dispose', async () => {
+    workspace.autocmds.dispose()
   })
 })

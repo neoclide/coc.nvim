@@ -15,7 +15,6 @@ export interface RenameEvent {
 }
 
 export class FileSystemWatcherManager {
-  private creatingRoots: Set<string> = new Set()
   private clientsMap: Map<string, Watchman | null> = new Map()
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
@@ -60,16 +59,17 @@ export class FileSystemWatcherManager {
     })
   }
 
-  private async createClient(root: string): Promise<void> {
-    if (this.watchmanPath == null) return
-    if (this.creatingRoots.has(root) || this.clientsMap.has(root)) return
+  public async createClient(root: string): Promise<void> {
+    if (this.watchmanPath == null || this.clientsMap.has(root)) return
+    if (this.clientsMap.has(root)) return
     try {
-      this.creatingRoots.add(root)
       let client = await Watchman.createClient(this.watchmanPath, root, this.channel)
-      this.creatingRoots.delete(root)
       if (this._disposed) {
         client.dispose()
         return
+      }
+      if (this.clientsMap.has(root)) {
+        this.clientsMap.get(root).dispose()
       }
       this.clientsMap.set(root, client)
       if (client) {
@@ -99,7 +99,6 @@ export class FileSystemWatcherManager {
 
   public dispose(): void {
     this._disposed = true
-    this.creatingRoots.clear()
     this._onDidCreateClient.dispose()
     for (let client of this.clientsMap.values()) {
       if (client) client.dispose()

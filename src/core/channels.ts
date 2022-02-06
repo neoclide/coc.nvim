@@ -56,7 +56,6 @@ export class Channels {
 
   public create(name: string, nvim: Neovim): OutputChannel | null {
     if (this.outputChannels.has(name)) return this.outputChannels.get(name)
-    if (!/^[\w\s-.]+$/.test(name)) throw new Error(`Invalid channel name "${name}", only word characters and white space allowed.`)
     let channel = new BufferChannel(name, nvim, () => {
       this.outputChannels.delete(name)
     })

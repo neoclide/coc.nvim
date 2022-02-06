@@ -63,7 +63,7 @@ export default class Watchers implements Disposable {
   /**
    * Watch global variable, works on neovim only.
    */
-  public watchGlobal(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables: Disposable[]): void {
+  public watchGlobal(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
     let { nvim } = this
     nvim.call('coc#_watch', key, true)
     let disposable = events.on('GlobalChange', async (changed: string, oldValue: any, newValue: any) => {
@@ -71,12 +71,14 @@ export default class Watchers implements Disposable {
         await Promise.resolve(callback(oldValue, newValue))
       }
     })
-    disposables.push(
-      Disposable.create(() => {
-        disposable.dispose()
-        nvim.call('coc#_unwatch', key, true)
-      })
-    )
+    if (disposables) {
+      disposables.push(
+        Disposable.create(() => {
+          disposable.dispose()
+          nvim.call('coc#_unwatch', key, true)
+        })
+      )
+    }
   }
 
   public dispose(): void {

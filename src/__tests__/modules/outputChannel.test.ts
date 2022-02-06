@@ -18,6 +18,16 @@ afterAll(async () => {
 })
 
 describe('OutputChannel', () => {
+  test('bad channel name', () => {
+    let err
+    try {
+      new OutputChannel('@', nvim)
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  })
+
   test('outputChannel.show(true)', async () => {
     await nvim.setLine('foo')
     let c = new OutputChannel('0', nvim)

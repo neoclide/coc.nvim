@@ -3,6 +3,7 @@ import { CancellationToken, Disposable } from 'vscode-jsonrpc'
 import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType } from '../../types'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -244,7 +245,7 @@ describe('completion', () => {
     })
 
     it('should should complete items without input', async () => {
-      await helper.edit()
+      await workspace.document
       let source: ISource = {
         enable: true,
         name: 'trigger',
@@ -255,14 +256,13 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.command('inoremap <silent><expr> <c-space> coc#refresh()')
+      await nvim.command('inoremap <silent><nowait><expr> <c-space> coc#refresh()')
       await nvim.input('i')
       await helper.wait(30)
       await nvim.input('<c-space>')
       await helper.waitPopup()
       let items = await helper.getItems()
       expect(items.length).toBeGreaterThan(1)
-      await helper.wait(300)
     })
 
     it('should show float window', async () => {

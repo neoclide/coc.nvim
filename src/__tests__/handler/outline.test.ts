@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag, TextDocumentSyncKind, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'

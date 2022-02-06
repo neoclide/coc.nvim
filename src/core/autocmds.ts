@@ -82,7 +82,7 @@ augroup end`
       void this.nvim.exec(content, false)
     } else {
       let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}.vim`)
-      if (!fs.existsSync(dir)) fs.mkdirpSync(dir)
+      fs.mkdirSync(dir, { recursive: true })
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
       fs.writeFileSync(filepath, content, 'utf8')
       let cmd = `source ${filepath}`

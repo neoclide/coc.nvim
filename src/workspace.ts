@@ -262,7 +262,7 @@ export class Workspace implements IWorkspace {
    * Watch global variable, works on neovim only.
    */
   public watchGlobal(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
-    this.watchers.watchGlobal(key, callback, disposables)
+    this.watchers.watchGlobal(key, callback || function() {}, disposables)
   }
 
   /**
