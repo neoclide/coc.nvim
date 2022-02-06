@@ -23,9 +23,12 @@ export default class SemanticTokensHighlights {
   private disposables: Disposable[] = []
   private highlighters: BufferSync<SemanticTokensBuffer>
   private floatFactory: FloatFactory
+  // buffers that wait for refresh when visible
+  private hiddenBuffers: Set<number> = new Set()
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
+    this.config.highlightGroups = workspace.env.semanticHighlights || []
     this.floatFactory = new FloatFactory(nvim)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     commands.register({
@@ -66,25 +69,34 @@ export default class SemanticTokensHighlights {
       return new SemanticTokensBuffer(this.nvim, doc.bufnr, this.config)
     })
     languages.onDidSemanticTokensRefresh(async selector => {
-      let bufnrs = await this.nvim.call('coc#window#bufnrs') as number[]
+      let visibleBufs = await this.nvim.call('coc#window#bufnrs') as number[]
+      let visible = await this.nvim.call('pumvisible')
       for (let item of this.highlighters.items) {
-        if (!bufnrs.includes(item.bufnr)) continue
         let doc = workspace.getDocument(item.bufnr)
-        if (doc && workspace.match(selector, doc.textDocument)) {
-          item.highlight()
+        if (!doc || !workspace.match(selector, doc.textDocument)) continue
+        if (visibleBufs.includes(item.bufnr)) {
+          this.hiddenBuffers.delete(item.bufnr)
+          if (!visible) item.highlight()
+        } else {
+          this.hiddenBuffers.add(item.bufnr)
         }
       }
     }, null, this.disposables)
     events.on('BufWinEnter', bufnr => {
+      if (!this.hiddenBuffers.has(bufnr)) return
+      this.hiddenBuffers.delete(bufnr)
       let item = this.highlighters.getItem(bufnr)
       if (item && !item.rangeProviderOnly) {
         item.highlight()
       }
     }, null, this.disposables)
-    let fn = debounce(bufnr => {
+    events.on('BufUnload', bufnr => {
+      this.hiddenBuffers.delete(bufnr)
+    }, null, this.disposables)
+    let fn = debounce(async bufnr => {
       let item = this.highlighters.getItem(bufnr)
       if (!item || !item.shouldRangeHighlight) return
-      void item.doRangeHighlight()
+      await item.doRangeHighlight()
     }, global.hasOwnProperty('__TEST__') ? 10 : 300)
     events.on('CursorMoved', fn, null, this.disposables)
     this.disposables.push({
@@ -98,15 +110,11 @@ export default class SemanticTokensHighlights {
     if (!e || e.affectsConfiguration('semanticTokens')) {
       let config = workspace.getConfiguration('semanticTokens')
       this.config = Object.assign(this.config || {}, {
-        highlightGroups: [],
         filetypes: config.get<string[]>('filetypes', []),
         highlightPriority: config.get<number>('highlightPriority', 2048),
-        incrementTypes: config.get<string[]>('incrementTypes'),
-        combinedModifiers: config.get<string[]>('combinedModifiers')
+        incrementTypes: config.get<string[]>('incrementTypes', []),
+        combinedModifiers: config.get<string[]>('combinedModifiers', [])
       })
-      if (!e) {
-        this.config.highlightGroups = workspace.env.semanticHighlights
-      }
     }
   }
 
@@ -222,6 +230,7 @@ export default class SemanticTokensHighlights {
   }
 
   public dispose(): void {
+    this.hiddenBuffers.clear()
     this.floatFactory.dispose()
     this.highlighters.dispose()
     disposeAll(this.disposables)

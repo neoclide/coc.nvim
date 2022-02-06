@@ -246,6 +246,56 @@ describe('semanticTokens', () => {
       await helper.wait(50)
       expect(item.highlights).toBeDefined()
     })
+
+    it('should reuse exists tokens when version not changed', async () => {
+      let doc = await helper.createDocument('t.vim')
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
+      let fn = jest.fn()
+      workspace.configurations.updateUserConfig({ 'semanticTokens.filetypes': ['vim'] })
+      disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
+        provideDocumentSemanticTokens: () => {
+          fn()
+          return new Promise(resolve => {
+            resolve({
+              resultId: '1',
+              data: [0, 0, 3, 1, 0]
+            })
+          })
+        }
+      }, legend))
+      await highlighter.fetchHighlightGroups()
+      let item = await highlighter.getCurrentItem()
+      item.cancel()
+      await item.doHighlight()
+      await item.doHighlight()
+      expect(fn).toBeCalledTimes(1)
+    })
+
+    it('should not highlight when pumvisible', async () => {
+      let doc = await helper.createDocument('t.vim')
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
+      await nvim.setLine('foo f')
+      await nvim.input('A')
+      await nvim.input('<C-n>')
+      await helper.waitPopup()
+      let fn = jest.fn()
+      workspace.configurations.updateUserConfig({ 'semanticTokens.filetypes': ['vim'] })
+      disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
+        provideDocumentSemanticTokens: () => {
+          fn()
+          return new Promise(resolve => {
+            resolve({
+              resultId: '1',
+              data: [0, 0, 3, 1, 0]
+            })
+          })
+        }
+      }, legend))
+      await highlighter.fetchHighlightGroups()
+      let item = await highlighter.getCurrentItem()
+      await item.doHighlight()
+      expect(fn).toBeCalledTimes(0)
+    })
   })
 
   describe('clear highlights', () => {
@@ -272,8 +322,8 @@ describe('semanticTokens', () => {
     it('should clear highlight by api', async () => {
       await createRustBuffer()
       let item = await highlighter.getCurrentItem()
+      item.cancel()
       item.clearHighlight()
-      await helper.wait(50)
       let buf = await nvim.buffer
       let markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(0)
@@ -377,7 +427,7 @@ describe('semanticTokens', () => {
       item.cancel()
       let p = item.doHighlight()
       await helper.wait(10)
-      item.cancelRange()
+      item.cancel(true)
       await p
     })
   })

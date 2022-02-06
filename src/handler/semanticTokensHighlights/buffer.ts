@@ -28,7 +28,7 @@ export interface SemanticTokensConfig {
   highlightPriority: number
   incrementTypes: string[]
   combinedModifiers: string[]
-  highlightGroups: string[]
+  highlightGroups?: string[]
 }
 
 export interface SemanticTokenRange {
@@ -71,9 +71,27 @@ export default class SemanticTokensBuffer implements SyncItem {
     public readonly bufnr: number,
     private readonly config: SemanticTokensConfig) {
     this.highlight = debounce(() => {
-      this.doHighlight().logError()
+      this.doHighlight().catch(e => {
+        logger.error(`Error on doHighlight: ${e.message}`, e)
+      })
     }, global.hasOwnProperty('__TEST__') ? 10 : 500)
     this.highlight()
+  }
+
+  public onChange(): void {
+    this.cancel()
+    this.highlight()
+  }
+
+  public onTextChange(): void {
+    this.cancel()
+    this.highlight()
+  }
+
+  public async forceHighlight(): Promise<void> {
+    this.clearHighlight()
+    this.cancel()
+    await this.doHighlight(true)
   }
 
   public get hasProvider(): boolean {
@@ -94,35 +112,11 @@ export default class SemanticTokensBuffer implements SyncItem {
     return languages.hasProvider('semanticTokensRange', doc.textDocument) && this.previousResults == null
   }
 
-  public onChange(): void {
-    this.cancel()
-    this.cancelRange()
-    this.doHighlight().logError()
-  }
-
-  public onTextChange(): void {
-    this.cancel()
-    this.cancelRange()
-    this.highlight()
-  }
-
-  public async forceHighlight(): Promise<void> {
-    this.clearHighlight()
-    this.cancelRange()
-    this.cancel()
-    await this.doHighlight(true)
-  }
-
   /**
    * Get current highlight items
    */
   public get highlights(): ReadonlyArray<SemanticTokenRange> {
     return this._highlights
-  }
-
-  public get previousVersion(): number | undefined {
-    if (!this.previousResults) return undefined
-    return this.previousResults.version
   }
 
   private get buffer(): Buffer {
@@ -158,7 +152,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!this.hasLegend) throw new Error('Legend not exists.')
   }
 
-  private convertTokens(doc: Document, tokens: number[], legend: SemanticTokensLegend): HighlightItem[] {
+  private getHighlightItems(doc: Document, tokens: number[], legend: SemanticTokensLegend): HighlightItem[] {
     const relatives: RelativeHighlight[] = []
     for (let i = 0; i < tokens.length; i += 5) {
       const deltaLine = tokens[i]
@@ -240,7 +234,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public async doRangeHighlight(): Promise<void> {
     if (!this.enabled) return
-    this.cancelRange()
+    this.cancel(true)
     let tokenSource = this.rangeTokenSource = new CancellationTokenSource()
     let priority = this.config.highlightPriority
     let res = await this.requestRangeHighlights(tokenSource.token)
@@ -253,13 +247,25 @@ export default class SemanticTokensBuffer implements SyncItem {
   public async doHighlight(forceFull = false): Promise<void> {
     if (!this.enabled) return
     this.cancel()
+    let visible = await this.nvim.call('pumvisible')
+    if (visible) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     if (this.shouldRangeHighlight) {
       await this.doRangeHighlight()
       if (this.rangeProviderOnly) return
     }
     let priority = this.config.highlightPriority
-    const items = await this.requestAllHighlights(tokenSource.token, forceFull)
+    let previousVersion = this.previousResults?.version
+    let doc = workspace.getDocument(this.bufnr)
+    let items: HighlightItem[] | undefined
+    // TextDocument not changed, need perform highlight since lines possible changed.
+    if (previousVersion && doc && doc.version === previousVersion) {
+      let tokens = this.previousResults.tokens
+      const legend = languages.getLegend(doc.textDocument)
+      items = this.getHighlightItems(doc, tokens, legend)
+    } else {
+      items = await this.requestAllHighlights(tokenSource.token, forceFull)
+    }
     // request cancelled or can't work
     if (!items || tokenSource.token.isCancellationRequested) return
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items)
@@ -280,7 +286,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let range = Range.create(r[0] - 1, 0, r[1], 0)
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || token.isCancellationRequested) return null
-    let items = this.convertTokens(doc, res.data, legend)
+    let items = this.getHighlightItems(doc, res.data, legend)
     return { items, start: r[0] - 1, end: r[1] }
   }
 
@@ -305,7 +311,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let tokens: uinteger[] = []
     if (SemanticTokens.is(result)) {
       tokens = result.data
-    } else if (Array.isArray(result.edits)) {
+    } else if (previousResult && Array.isArray(result.edits)) {
       tokens = previousResult.tokens
       result.edits.forEach(e => {
         tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data)
@@ -314,14 +320,20 @@ export default class SemanticTokensBuffer implements SyncItem {
       return
     }
     this.previousResults = { resultId: result.resultId, tokens, version }
-    return this.convertTokens(doc, tokens, legend)
+    return this.getHighlightItems(doc, tokens, legend)
   }
 
   public clearHighlight(): void {
     this.buffer.clearNamespace(NAMESPACE)
   }
 
-  public cancel(): void {
+  public cancel(rangeOnly = false): void {
+    if (this.rangeTokenSource) {
+      this.rangeTokenSource.cancel()
+      this.rangeTokenSource.dispose()
+      this.rangeTokenSource = null
+    }
+    if (rangeOnly) return
     this.highlight.clear()
     if (this.tokenSource) {
       this.tokenSource.cancel()
@@ -330,17 +342,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
   }
 
-  public cancelRange(): void {
-    if (this.rangeTokenSource) {
-      this.rangeTokenSource.cancel()
-      this.rangeTokenSource.dispose()
-      this.rangeTokenSource = null
-    }
-  }
-
   public dispose(): void {
     this.cancel()
-    this.cancelRange()
     this._highlights = []
     this.previousResults = undefined
   }
