@@ -6,7 +6,6 @@ import { Range, Position, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { concurrent, wait, watchFile } from '../../util'
 import { ansiparse } from '../../util/ansiparse'
-import * as decorator from '../../util/decorator'
 import { ChangedLines, diffLines, getChange, patchLine } from '../../util/diff'
 import { findUp, isGitIgnored, isParentFolder, parentDirs, resolveRoot, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
@@ -289,32 +288,6 @@ describe('diff', () => {
       let res = getChange('foo\nbar', 'fab\nbar', 2)
       expect(res).toEqual({ start: 1, end: 3, newText: 'ab' })
     })
-  })
-})
-
-describe('memorize', () => {
-  class CallTest {
-    public count = 0
-
-    @decorator.memorize
-    public async memorized(): Promise<number> { return ++this.count }
-  }
-
-  test('overlapping', async () => {
-    const c = new CallTest()
-
-    const first = c.memorized()
-    const second = c.memorized()
-    expect(await first).toBe(1)
-    expect(await second).toBe(2)
-  })
-  test('nonoverlapping', async () => {
-    const c = new CallTest()
-
-    const first = c.memorized()
-    expect(await first).toBe(1)
-    const second = c.memorized()
-    expect(await second).toBe(1)
   })
 })
 
