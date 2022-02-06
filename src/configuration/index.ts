@@ -110,7 +110,7 @@ export default class Configurations {
         model.setValue(key, val)
       }
     })
-    this.changeConfiguration(ConfigurationTarget.User, model)
+    this.changeConfiguration(ConfigurationTarget.User, model, undefined)
   }
 
   public get defaults(): ConfigurationModel {
@@ -131,6 +131,7 @@ export default class Configurations {
     if (path.resolve(filepath, '../..') == os.homedir()) return
     let model = this.parseContentFromFile(filepath)
     this.watchFile(filepath, ConfigurationTarget.Workspace)
+    logger.debug('add folder configuration:', filepath)
     this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
   }
 
@@ -144,7 +145,7 @@ export default class Configurations {
   }
 
   // create new configuration and fire change event
-  public changeConfiguration(target: ConfigurationTarget, model: IConfigurationModel, configFile?: string): void {
+  public changeConfiguration(target: ConfigurationTarget, model: IConfigurationModel, configFile: string | undefined): void {
     let { defaults, user, workspace } = this._configuration
     let { workspaceConfigFile } = this
     let data: IConfigurationData = {
@@ -154,8 +155,8 @@ export default class Configurations {
     }
     let configuration = Configurations.parse(data)
     let changed = getChangedKeys(this._configuration.getValue(), configuration.getValue())
-    if (target == ConfigurationTarget.Workspace && configFile) {
-      this._folderConfigurations.set(configFile, new ConfigurationModel(model.contents))
+    if (target == ConfigurationTarget.Workspace) {
+      if (configFile) this._folderConfigurations.set(configFile, new ConfigurationModel(model.contents))
       this.workspaceConfigFile = configFile
     }
     if (changed.length == 0) return
@@ -179,12 +180,19 @@ export default class Configurations {
     let u = URI.parse(uri)
     if (u.scheme != 'file') return
     let filepath = u.fsPath
+    let find = false
     for (let [configFile, model] of this.foldConfigurations) {
       let root = path.resolve(configFile, '../..')
       if (isParentFolder(root, filepath, true) && this.workspaceConfigFile != configFile) {
+        logger.debug('change folder configuration:', filepath)
         this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
+        find = true
         break
       }
+    }
+    if (!find) {
+      logger.debug('reset folder configuration to empty')
+      this.changeConfiguration(ConfigurationTarget.Workspace, { contents: {} }, undefined)
     }
   }
 

@@ -302,6 +302,7 @@ export default class Documents implements Disposable {
         if (doc) this.onBufUnload(doc.bufnr)
       })
     }
+    this.configurations.checkFolderConfiguration(document.uri)
     let root = this.workspaceFolder.resolveRoot(document, this._cwd, this._initialized, this.expand.bind(this))
     if (root && this.bufnr == document.bufnr) this._root = root
     if (document.enabled) {
