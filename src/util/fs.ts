@@ -192,7 +192,7 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
   })
 }
 
-export function sameFile(fullpath: string, other: string): boolean {
+export function sameFile(fullpath: string | null, other: string | null): boolean {
   const caseInsensitive = platform.isWindows || platform.isMacintosh
   if (!fullpath || !other) return false
   if (caseInsensitive) return fullpath.toLowerCase() === other.toLowerCase()

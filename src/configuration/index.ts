@@ -180,20 +180,15 @@ export default class Configurations {
     let u = URI.parse(uri)
     if (u.scheme != 'file') return
     let filepath = u.fsPath
-    let find = false
     for (let [configFile, model] of this.foldConfigurations) {
       let root = path.resolve(configFile, '../..')
       if (isParentFolder(root, filepath, true)) {
-        find = true
         if (this.workspaceConfigFile != configFile) {
+          logger.debug('Change folder configuration to:', configFile)
           this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
         }
         break
       }
-    }
-    if (this.workspaceConfigFile && find === false) {
-      logger.debug('reset folder configuration to empty')
-      this.changeConfiguration(ConfigurationTarget.Workspace, { contents: {} }, undefined)
     }
   }
 
@@ -325,7 +320,7 @@ export default class Configurations {
       let folder = findUp('.vim', rootPath)
       if (folder) {
         let file = path.join(folder, CONFIG_FILE_NAME)
-        if (fs.existsSync(file)) {
+        if (!sameFile(file, this.userConfigFile) && fs.existsSync(file)) {
           this.addFolderFile(file)
         }
       }
