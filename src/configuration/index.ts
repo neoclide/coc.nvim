@@ -50,10 +50,7 @@ export default class Configurations {
     }
     this._configuration = Configurations.parse(data)
     this.watchFile(userConfigFile, ConfigurationTarget.User)
-    let folderConfigFile = path.join(process.cwd(), `.vim/${CONFIG_FILE_NAME}`)
-    if (fs.existsSync(folderConfigFile)) {
-      this.addFolderFile(folderConfigFile, true)
-    }
+    this.addFolderFromCwd()
   }
 
   private parseContentFromFile(filepath: string): IConfigurationModel {
@@ -125,23 +122,36 @@ export default class Configurations {
     return this._configuration.workspace
   }
 
-  public addFolderFile(filepath: string, fromCwd = false): void {
-    let { _folderConfigurations } = this
-    if (_folderConfigurations.has(filepath)) return
-    if (sameFile(this.userConfigFile, filepath) || sameFile(filepath, path.join(os.homedir(), '.vim/coc-settings.json'))) return
-    let model = this.parseContentFromFile(filepath)
+  public addFolderFile(filepath: string, change = true, fromCwd = false): boolean {
+    if (!fs.existsSync(filepath)) return false
+    if (sameFile(this.userConfigFile, filepath)) return false
+    if (sameFile(filepath, path.join(os.homedir(), `.vim/${CONFIG_FILE_NAME}`))) return false
     this.watchFile(filepath, ConfigurationTarget.Workspace)
-    logger.debug(`add folder configuration from ${fromCwd ? 'cwd' : 'file'}:`, filepath)
+    let model = this.addFolderConfiguration(filepath)
+    logger.debug(`Add folder configuration from ${fromCwd ? 'cwd' : 'file'}:`, filepath)
+    if (!change) return true
     this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
+    return true
+  }
+
+  public addFolderFromCwd(): void {
+    let filepath = path.join(process.cwd(), `.vim/${CONFIG_FILE_NAME}`)
+    this.addFolderFile(filepath, true, true)
   }
 
   private watchFile(filepath: string, target: ConfigurationTarget): void {
     if (!fs.existsSync(filepath) || global.hasOwnProperty('__TEST__')) return
     let disposable = watchFile(filepath, () => {
-      let model = this.parseContentFromFile(filepath)
+      let model = this.addFolderConfiguration(filepath)
       this.changeConfiguration(target, model, filepath)
     })
     this.disposables.push(disposable)
+  }
+
+  private addFolderConfiguration(configFile: string): IConfigurationModel {
+    let model = this.parseContentFromFile(configFile)
+    this._folderConfigurations.set(configFile, new ConfigurationModel(model.contents))
+    return model
   }
 
   // create new configuration and fire change event
@@ -156,7 +166,7 @@ export default class Configurations {
     let configuration = Configurations.parse(data)
     let changed = getChangedKeys(this._configuration.getValue(), configuration.getValue())
     if (target == ConfigurationTarget.Workspace) {
-      if (configFile) this._folderConfigurations.set(configFile, new ConfigurationModel(model.contents))
+      logger.debug('Change folder configuration to:', configFile)
       this.workspaceConfigFile = configFile
     }
     if (changed.length == 0) return
@@ -176,25 +186,10 @@ export default class Configurations {
     })
   }
 
-  public setFolderConfiguration(uri: string): void {
-    let u = URI.parse(uri)
-    if (u.scheme != 'file') return
-    let filepath = u.fsPath
-    for (let [configFile, model] of this.foldConfigurations) {
-      let root = path.resolve(configFile, '../..')
-      if (isParentFolder(root, filepath, true)) {
-        if (this.workspaceConfigFile != configFile) {
-          logger.debug('Change folder configuration to:', configFile)
-          this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
-        }
-        break
-      }
-    }
-  }
-
-  public hasFolderConfiguration(filepath: string): boolean {
+  private getFolderConfigFile(filepath: string): string | undefined {
     let { folders } = this
-    return folders.findIndex(f => isParentFolder(f, filepath, true)) !== -1
+    let folder = folders.find(f => isParentFolder(f, filepath, true))
+    return folder ? path.join(folder, `.vim/${CONFIG_FILE_NAME}`) : undefined
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -312,20 +307,38 @@ export default class Configurations {
     return new ConfigurationModel()
   }
 
-  public checkFolderConfiguration(uri: string): void {
+  /**
+   * Resolve folder configuration from uri, returns resolved config file path.
+   */
+  public resolveFolderConfigution(uri: string): string | undefined {
     let u = URI.parse(uri)
     if (u.scheme != 'file') return
     let rootPath = path.dirname(u.fsPath)
-    if (!this.hasFolderConfiguration(rootPath)) {
-      let folder = findUp('.vim', rootPath)
-      if (folder) {
-        let file = path.join(folder, CONFIG_FILE_NAME)
-        if (!sameFile(file, this.userConfigFile) && fs.existsSync(file)) {
-          this.addFolderFile(file)
+    let configFile = this.getFolderConfigFile(rootPath)
+    if (configFile) return configFile
+    let folder = findUp('.vim', rootPath)
+    if (!folder) return
+    let filepath = path.join(folder, CONFIG_FILE_NAME)
+    let added = this.addFolderFile(filepath, false)
+    if (!added) return
+    return filepath
+  }
+
+  /**
+   * Try to change current workspace configuration by uri
+   */
+  public setFolderConfiguration(uri: string): void {
+    let u = URI.parse(uri)
+    if (u.scheme != 'file') return
+    let filepath = u.fsPath
+    for (let [configFile, model] of this.foldConfigurations) {
+      let root = path.resolve(configFile, '../..')
+      if (isParentFolder(root, filepath, true)) {
+        if (this.workspaceConfigFile != configFile) {
+          this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
         }
+        break
       }
-    } else {
-      this.setFolderConfiguration(uri)
     }
   }
 

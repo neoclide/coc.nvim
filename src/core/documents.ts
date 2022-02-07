@@ -301,8 +301,11 @@ export default class Documents implements Disposable {
         let doc = this.getDocument(bufnr)
         if (doc) this.onBufUnload(doc.bufnr)
       })
+      let configfile = this.configurations.resolveFolderConfigution(document.uri)
+      if (configfile && this._initialized) {
+        this.configurations.setFolderConfiguration(document.uri)
+      }
     }
-    if (this._initialized) this.configurations.checkFolderConfiguration(document.uri)
     let root = this.workspaceFolder.resolveRoot(document, this._cwd, this._initialized, this.expand.bind(this))
     if (root && this.bufnr == document.bufnr) this._root = root
     if (document.enabled) {
@@ -311,6 +314,16 @@ export default class Documents implements Disposable {
       document.onDocumentChange(e => this._onDidChangeDocument.fire(e))
     }
     logger.debug('buffer created', buffer.id, document.uri)
+  }
+
+  private onBufEnter(bufnr: number): void {
+    this._bufnr = bufnr
+    let doc = this.getDocument(bufnr)
+    if (doc) {
+      this.configurations.setFolderConfiguration(doc.uri)
+      let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri))
+      if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
+    }
   }
 
   private onBufUnload(bufnr: number, recreate = false): void {
@@ -340,16 +353,6 @@ export default class Documents implements Disposable {
     if (!this._attached || !bufnr) return
     let doc = this.getDocument(bufnr)
     if (!doc && !this.creatingSources.has(bufnr)) await this.onBufCreate(bufnr)
-  }
-
-  private onBufEnter(bufnr: number): void {
-    this._bufnr = bufnr
-    let doc = this.getDocument(bufnr)
-    if (doc) {
-      this.configurations.setFolderConfiguration(doc.uri)
-      let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri))
-      if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
-    }
   }
 
   private onBufWritePost(bufnr: number): void {

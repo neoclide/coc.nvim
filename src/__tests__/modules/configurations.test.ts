@@ -77,6 +77,25 @@ describe('Configurations', () => {
     configurations.dispose()
   })
 
+  it('should not add invalid folders', async () => {
+    let configurations = createConfigurations()
+    expect(configurations.addFolderFile('ab')).toBe(false)
+    let configFile = path.join(__dirname, 'settings.json')
+    expect(configurations.addFolderFile(configFile)).toBe(false)
+    configFile = path.join(os.homedir(), '.vim/coc-settings.json')
+    expect(configurations.addFolderFile(configFile)).toBe(false)
+  })
+
+  it('should resolve folder configuration when possible', async () => {
+    let configurations = createConfigurations()
+    expect(configurations.resolveFolderConfigution('test:///foo')).toBeUndefined()
+    expect(configurations.resolveFolderConfigution(URI.file(path.join(os.tmpdir(), 'foo')).toString())).toBeUndefined()
+    let fsPath = path.join(__dirname, `../sample/abc`)
+    expect(configurations.resolveFolderConfigution(URI.file(fsPath).toString())).toBeDefined()
+    fsPath = path.join(__dirname, `../sample/foo`)
+    expect(configurations.resolveFolderConfigution(URI.file(fsPath).toString())).toBeDefined()
+  })
+
   it('should get changed keys #1', () => {
     let res = getChangedKeys({ y: 2 }, { x: 1 })
     expect(res).toEqual(['x', 'y'])
