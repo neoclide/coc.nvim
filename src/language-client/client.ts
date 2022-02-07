@@ -4078,8 +4078,10 @@ export abstract class BaseLanguageClient {
   }
 
   private hookConfigurationChanged(connection: IConnection): void {
-    workspace.onDidChangeConfiguration(() => {
-      this.refreshTrace(connection, true)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration(this._id)) {
+        this.refreshTrace(connection, true)
+      }
     }, null, this._listeners)
   }
 
@@ -4099,6 +4101,9 @@ export abstract class BaseLanguageClient {
         trace = Trace.fromString(config.get('trace.server.verbosity', 'off'))
         traceFormat = TraceFormat.fromString(config.get('trace.server.format', 'text'))
       }
+    }
+    if (sendNotification && this._trace == trace && this._traceFormat == traceFormat) {
+      return
     }
     this._trace = trace
     this._traceFormat = traceFormat
