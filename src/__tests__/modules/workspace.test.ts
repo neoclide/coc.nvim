@@ -33,7 +33,8 @@ afterEach(async () => {
 describe('workspace properties', () => {
 
   it('should have initialized', () => {
-    let { nvim, rootPath, uri, workspaceFolder, cwd, documents, textDocuments } = workspace
+    let { nvim, rootPath, uri, insertMode, workspaceFolder, cwd, documents, textDocuments } = workspace
+    expect(insertMode).toBe(false)
     expect(nvim).toBeTruthy()
     expect(documents.length).toBe(1)
     expect(textDocuments.length).toBe(1)
@@ -241,11 +242,13 @@ describe('workspace methods', () => {
 
   it('should resolve module path if exists', async () => {
     let res = await workspace.resolveModule('typescript')
+    res = await workspace.resolveModule('typescript')
     expect(res).toBeTruthy()
   })
 
   it('should not resolve module if not exists', async () => {
     let res = await workspace.resolveModule('foo')
+    res = await workspace.resolveModule('foo')
     expect(res).toBeFalsy()
   })
 
@@ -371,11 +374,11 @@ describe('workspace utility', () => {
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await nvim.call('feedkeys', ['go', 'i'])
-    await helper.wait(10)
+    await helper.wait(50)
     expect(fn).toBeCalledTimes(1)
     disposable.dispose()
     await nvim.call('feedkeys', ['go', 'i'])
-    await helper.wait(10)
+    await helper.wait(50)
     expect(fn).toBeCalledTimes(1)
   })
 
