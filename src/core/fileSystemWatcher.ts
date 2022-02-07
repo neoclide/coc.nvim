@@ -1,12 +1,12 @@
 import minimatch from 'minimatch'
 import path from 'path'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, WorkspaceFolder, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import Watchman, { FileChange } from './watchman'
-import WorkspaceFolder from './workspaceFolder'
+import WorkspaceFolderControl from './workspaceFolder'
 const logger = require('../util/logger')('filesystem-watcher')
 
 export interface RenameEvent {
@@ -18,31 +18,41 @@ export class FileSystemWatcherManager {
   private clientsMap: Map<string, Watchman | null> = new Map()
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
+  private creating: Set<string> = new Set()
   private _disposed = false
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
   public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
   constructor(
-    private workspaceFolder: WorkspaceFolder,
+    private workspaceFolder: WorkspaceFolderControl,
     private watchmanPath: string | null
   ) {
   }
 
   public attach(channel: OutputChannel): void {
     this.channel = channel
-    this.workspaceFolder.workspaceFolders.forEach(folder => {
+    let createClient = (folder: WorkspaceFolder) => {
       let root = URI.parse(folder.uri).fsPath
-      void this.createClient(root)
+      if (this.creating.has(root)) return
+      this.creating.add(root)
+      this.createClient(root).finally(() => {
+        this.creating.delete(root)
+      })
+    }
+    this.workspaceFolder.workspaceFolders.forEach(folder => {
+      createClient(folder)
     })
     this.workspaceFolder.onDidChangeWorkspaceFolders(e => {
       e.added.forEach(folder => {
-        let root = URI.parse(folder.uri).fsPath
-        void this.createClient(root)
+        createClient(folder)
       })
       e.removed.forEach(folder => {
         let root = URI.parse(folder.uri).fsPath
         let client = this.clientsMap.get(root)
-        if (client) client.dispose()
+        if (client) {
+          this.clientsMap.delete(root)
+          client.dispose()
+        }
       })
     }, null, this.disposables)
   }
@@ -61,7 +71,6 @@ export class FileSystemWatcherManager {
 
   public async createClient(root: string): Promise<void> {
     if (this.watchmanPath == null || this.clientsMap.has(root)) return
-    if (this.clientsMap.has(root)) return
     try {
       let client = await Watchman.createClient(this.watchmanPath, root, this.channel)
       if (this._disposed) {
@@ -103,6 +112,7 @@ export class FileSystemWatcherManager {
     for (let client of this.clientsMap.values()) {
       if (client) client.dispose()
     }
+    this.clientsMap.clear()
     disposeAll(this.disposables)
   }
 }
