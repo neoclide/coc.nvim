@@ -1,3 +1,8 @@
+# 2022-02-07
+
+- Change `:CocLocalConfig` to open configuration file of current workspace
+  folder.
+
 # 2022-02-05
 
 - Support `version` from `textDocument/publishDiagnostics` notification's parameter.

@@ -2665,8 +2665,7 @@ COMMANDS						*coc-commands*
 
 :CocLocalConfig						*:CocLocalConfig*
 
-	Edit or create `.vim/coc-settings.json` of the current working
-	directory.
+	Edit or create `.vim/coc-settings.json` in current workspace folder.
 
 :CocInstall [{option}] {name} ...			*:CocInstall*
 
