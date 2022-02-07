@@ -271,6 +271,35 @@ describe('window functions', () => {
     expect(res).toBe('first')
   })
 
+  it('should throw when workspace folder not exists', async () => {
+    helper.updateConfiguration('coc.preferences.rootPatterns', [])
+    await nvim.command('enew')
+    let err
+    try {
+      await window.openLocalConfig()
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+    await nvim.command(`e ${path.join(os.tmpdir(), 'a')}`)
+    err
+    try {
+      await window.openLocalConfig()
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+    await nvim.command(`e t.md`)
+    await nvim.command('setf markdown')
+    err
+    try {
+      await window.openLocalConfig()
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  })
+
   it('should open local config', async () => {
     let dir = path.join(os.tmpdir(), '.vim')
     if (fs.existsSync(dir)) {

@@ -153,7 +153,23 @@ class Window {
    * Open local config file
    */
   public async openLocalConfig(): Promise<void> {
-    let { root } = workspace
+    let fsPath = await this.nvim.call('expand', ['%:p'])
+    let filetype = await this.nvim.eval('&filetype') as string
+    if (!fsPath || !path.isAbsolute(fsPath)) {
+      throw new Error(`current buffer doesn't have valid file path.`)
+    }
+    let folder = workspace.getWorkspaceFolder(URI.file(fsPath).toString())
+    if (!folder) {
+      let c = workspace.getConfiguration('coc.preferences')
+      let patterns = c.get<string[]>('rootPatterns', [])
+      let w = workspace.getConfiguration('workspace')
+      let ignored = w.get<string[]>('ignoredFiletypes', [])
+      if (ignored.includes(filetype)) {
+        throw new Error(`Can't resolve workspace folder for current file, current filetype exclude for workspace folder resolve.`)
+      }
+      throw new Error(`Can't resolve workspace folder for current file, consider create one of ${patterns.join(', ')} in your project root.`)
+    }
+    let root = URI.parse(folder.uri).fsPath
     let dir = path.join(root, '.vim')
     if (!fs.existsSync(dir)) {
       let res = await this.showPrompt(`Would you like to create folder'${root}/.vim'?`)
