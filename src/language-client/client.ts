@@ -3857,26 +3857,37 @@ export abstract class BaseLanguageClient {
     }
     this.state = ClientState.Stopping
     this.cleanUp()
-    // unkook listeners
-    return (this._onStop = this.resolveConnection().then(connection => {
-      connection.exit()
-      return connection.shutdown().then(() => {
+    const shutdown = this.resolveConnection().then(connection => {
+      let disposed = false
+      let timer = setTimeout(() => {
+        disposed = true
         connection.end()
         connection.dispose()
-        this.state = ClientState.Stopped
-        this.cleanUpChannel()
-        this._onStop = undefined
-        this._connectionPromise = undefined
-        this._resolvedConnection = undefined
+      }, 2000)
+      return connection.shutdown().then(() => {
+        clearTimeout(timer)
+        connection.exit()
+        return connection
+      }, err => {
+        if (disposed) return
+        connection.end()
+        connection.dispose()
+        throw err
       })
-    }).catch(e => {
-      logger.error('Error on stop languageserver:', e)
+    })
+    // unkook listeners
+    return (this._onStop = shutdown.then(connection => {
+    }, err => {
+      logger.error(`Stopping server failed:`, err)
+      this.error(`Stopping server failed`, err)
+      throw err
+    })).finally(() => {
       this.state = ClientState.Stopped
       this.cleanUpChannel()
       this._onStop = undefined
       this._connectionPromise = undefined
       this._resolvedConnection = undefined
-    }))
+    })
   }
 
   private cleanUp(channel: boolean = true, diagnostics: boolean = true): void {
@@ -4016,6 +4027,7 @@ export abstract class BaseLanguageClient {
   protected handleConnectionClosed() {
     // Check whether this is a normal shutdown in progress or the client stopped normally.
     if (this.state === ClientState.Stopped) {
+      logger.debug(`client ${this._id} normal close`)
       return
     }
     try {
@@ -4036,9 +4048,7 @@ export abstract class BaseLanguageClient {
     this._connectionPromise = undefined
     this._resolvedConnection = undefined
     if (action === CloseAction.DoNotRestart) {
-      this.error(
-        'Connection to server got closed. Server will not be restarted.'
-      )
+      this.error('Connection to server got closed. Server will not be restarted.')
       if (this.state === ClientState.Starting) {
         this._onReadyCallbacks.reject(new Error(`Connection to server got closed. Server will not be restarted.`))
         this.state = ClientState.StartFailed
@@ -4070,7 +4080,7 @@ export abstract class BaseLanguageClient {
   private hookConfigurationChanged(connection: IConnection): void {
     workspace.onDidChangeConfiguration(() => {
       this.refreshTrace(connection, true)
-    })
+    }, null, this._listeners)
   }
 
   private refreshTrace(

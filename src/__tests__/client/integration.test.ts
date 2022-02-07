@@ -12,10 +12,6 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-afterEach(async () => {
-  await helper.reset()
-})
-
 async function testLanguageServer(serverOptions: lsclient.ServerOptions): Promise<lsclient.LanguageClient> {
   let clientOptions: lsclient.LanguageClientOptions = {
     documentSelector: ['css'],
@@ -46,13 +42,11 @@ describe('Client integration', () => {
           assert.ok(Array.isArray(diagnostics))
           assert.equal(diagnostics.length, 0)
           next(uri, diagnostics)
-          disposable.dispose()
-          done()
         }
       }
     }
     let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
-    let disposable = client.start()
+    client.start()
 
     assert.equal(client.initializeResult, undefined)
 
@@ -72,12 +66,14 @@ describe('Client integration', () => {
           }
         }
         assert.deepEqual(client.initializeResult, expected)
+        setTimeout(async () => {
+          await client.stop()
+          done()
+        }, 50)
       } catch (e) {
-        disposable.dispose()
         done(e)
       }
     }, e => {
-      disposable.dispose()
       done(e)
     })
   })
