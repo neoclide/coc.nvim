@@ -29,6 +29,7 @@ export default class CodeActions {
     let line = doc.getline(end - 1)
     let range = Range.create(start - 1, 0, end - 1, line.length)
     let codeActions = await this.getCodeActions(doc, range, only ? [only] : null)
+    codeActions = codeActions.filter(o => !o.disabled)
     if (!codeActions || codeActions.length == 0) {
       window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
@@ -59,11 +60,11 @@ export default class CodeActions {
       return languages.getCodeActions(doc.textDocument, range, context, token)
     })
     if (!codeActions || codeActions.length == 0) return []
-    // TODO support fadeout disabled actions in menu
-    codeActions = codeActions.filter(o => !o.disabled)
     codeActions.sort((a, b) => {
       if (a.isPreferred && !b.isPreferred) return -1
       if (b.isPreferred && !a.isPreferred) return 1
+      if (a.disabled && !b.disabled) return 1
+      if (b.disabled && !a.disabled) return -1
       return 0
     })
     return codeActions
@@ -90,14 +91,17 @@ export default class CodeActions {
       window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
       return
     }
-    if (only && codeActions.length == 1) {
+    if (only && codeActions.length == 1 && !codeActions[0].disabled) {
       await this.applyCodeAction(codeActions[0])
       return
     }
+    if (!this.floatActions) codeActions = codeActions.filter(o => !o.disabled)
     let idx = this.floatActions
       ? await window.showMenuPicker(
-        codeActions.map(o => o.title),
-        "Choose action"
+        codeActions.map(o => {
+          return { text: o.title, disabled: o.disabled }
+        }),
+        'Choose action'
       )
       : await window.showQuickpick(codeActions.map(o => o.title))
     let action = codeActions[idx]
@@ -111,7 +115,8 @@ export default class CodeActions {
     let { doc } = await this.handler.getCurrentState()
     let range: Range
     if (mode) range = await window.getSelectedRange(mode)
-    return await this.getCodeActions(doc, range, only)
+    let codeActions = await this.getCodeActions(doc, range, only)
+    return codeActions.filter(o => !o.disabled)
   }
 
   /**

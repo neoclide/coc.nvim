@@ -121,7 +121,7 @@ describe('handler codeActions', () => {
       expect(res.length).toBe(0)
     })
 
-    it('should filter disabled actions', async () => {
+    it('should not filter disabled actions', async () => {
       currActions = []
       let action = CodeAction.create('foo', CodeActionKind.QuickFix)
       action.disabled = { reason: 'disabled' }
@@ -131,7 +131,7 @@ describe('handler codeActions', () => {
       currActions.push(action)
       let doc = await helper.createDocument()
       let res = await codeActions.getCodeActions(doc)
-      expect(res.length).toBe(0)
+      expect(res.length).toBe(1)
     })
 
     it('should get all actions', async () => {
@@ -264,6 +264,34 @@ describe('handler codeActions', () => {
       await codeActions.doCodeAction(undefined, [CodeActionKind.QuickFix])
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
+    })
+
+    it('should show diabled code action', async () => {
+      let doc = await helper.createDocument()
+      let edits: TextEdit[] = []
+      edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
+      let edit = { changes: { [doc.uri]: edits } }
+      let refactorAction = CodeAction.create('code refactor', edit, CodeActionKind.Refactor)
+      refactorAction.disabled = { reason: 'invalid position' }
+      let fixAction = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
+      currActions = [refactorAction, fixAction]
+      let p = codeActions.doCodeAction(undefined)
+      let winid = await helper.waitFloat()
+      let win = nvim.createWindow(winid)
+      let buf = await win.buffer
+      let lines = await buf.lines
+      expect(lines.length).toBe(2)
+      expect(lines[1]).toMatch(/code refactor/)
+      await nvim.input('2')
+      await helper.wait(50)
+      await nvim.input('j')
+      await nvim.input('<cr>')
+      await helper.wait(50)
+      let valid = await win.valid
+      expect(valid).toBe(true)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline).toMatch(/invalid position/)
+      await nvim.input('<esc>')
     })
 
     it('should action dialog to choose action', async () => {

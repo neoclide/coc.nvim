@@ -7053,6 +7053,11 @@ declare module 'coc.nvim' {
     add: HighlightItemDef[]
   }
 
+  export interface MenuItem {
+    text: string
+    disabled?: boolean | { reason: string }
+  }
+
   export namespace window {
     /**
      * Reveal message with message type.
@@ -7092,12 +7097,12 @@ declare module 'coc.nvim' {
      * Show menu picker at current cursor position, |inputlist()| is used as fallback.
      * Use `workspace.env.dialog` to check if the picker window/popup could work.
      *
-     * @param items Array of texts.
+     * @param items Array of texts or menu items.
      * @param title Optional title of float/popup window.
      * @param token A token that can be used to signal cancellation.
      * @returns Selected index (0 based), -1 when canceled.
      */
-    export function showMenuPicker(items: string[], title?: string, token?: CancellationToken): Promise<number>
+    export function showMenuPicker(items: string[] | MenuItem[], title?: string, token?: CancellationToken): Promise<number>
 
     /**
      * Open local config file

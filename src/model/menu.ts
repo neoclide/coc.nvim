@@ -1,14 +1,26 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
+import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
+import { byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
 import Popup from './popup'
 const logger = require('../util/logger')('model-menu')
 
+export interface MenuItem {
+  text: string
+  disabled?: boolean | { reason: string }
+}
+
 export interface MenuConfig {
-  items: string[]
+  items: string[] | MenuItem[]
   title?: string
+}
+
+export function isMenuItem(item: any): item is MenuItem {
+  if (!item) return false
+  return typeof item.text === 'string'
 }
 
 /**
@@ -53,8 +65,7 @@ export default class Menu {
       this.dispose()
     })
     this.addKeys(['\r', '<cr>'], () => {
-      this._onDidClose.fire(this.currIndex)
-      this.dispose()
+      this.selectCurrent()
     })
     let setCursorIndex = idx => {
       if (!this.win) return
@@ -89,6 +100,12 @@ export default class Menu {
     })
     let timer: NodeJS.Timeout
     let firstNumber: number
+    const choose = (n: number) => {
+      let disabled = this.isDisabled(n)
+      if (disabled) return
+      this._onDidClose.fire(n)
+      this.dispose()
+    }
     this.addKeys(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], character => {
       if (timer) clearTimeout(timer)
       let n = parseInt(character, 10)
@@ -97,21 +114,27 @@ export default class Menu {
       if (firstNumber) {
         let count = firstNumber * 10 + n
         firstNumber = undefined
-        this._onDidClose.fire(count - 1)
-        this.dispose()
+        choose(count - 1)
         return
       }
       if (this.total < 10 || n * 10 > this.total) {
-        this._onDidClose.fire(n - 1)
-        this.dispose()
+        choose(n - 1)
         return
       }
       timer = setTimeout(async () => {
-        this._onDidClose.fire(n - 1)
-        this.dispose()
+        choose(n - 1)
       }, 200)
       firstNumber = n
     })
+  }
+
+  private isDisabled(idx: number): boolean {
+    let { items } = this.config
+    let item = items[idx]
+    if (isMenuItem(item) && item.disabled) {
+      return true
+    }
+    return false
   }
 
   public async show(preferences: DialogPreferences = {}): Promise<number> {
@@ -123,14 +146,27 @@ export default class Menu {
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
     if (preferences.floatBorderHighlight) opts.borderhighlight = [preferences.floatBorderHighlight]
+    let highlights: HighlightItem[] = []
     let lines = items.map((v, i) => {
-      if (i < 99) return `${i + 1}. ${v}`
-      return v
+      let text: string = isMenuItem(v) ? v.text : v
+      if (i < 99) return `${i + 1}. ${text.trim()}`
+      return text.trim()
     })
+    lines.forEach((line, i) => {
+      let item = items[i]
+      if (isMenuItem(item) && item.disabled) {
+        highlights.push({
+          hlGroup: 'CocDisabled',
+          lnum: i,
+          colStart: 0,
+          colEnd: byteLength(line)
+        })
+      }
+    })
+    if (highlights.length) opts.highlights = highlights
     if (preferences.confirmKey && preferences.confirmKey != '<cr>') {
       this.addKeys(preferences.confirmKey, () => {
-        this._onDidClose.fire(this.currIndex)
-        this.dispose()
+        this.selectCurrent()
       })
     }
     let res = await nvim.call('coc#float#create_menu', [lines, opts]) as [number, number]
@@ -139,6 +175,19 @@ export default class Menu {
     this.attachEvents()
     nvim.call('coc#prompt#start_prompt', ['menu'], true)
     return res[0]
+  }
+
+  private selectCurrent(): void {
+    if (this.isDisabled(this.currIndex)) {
+      let item = this.config.items[this.currIndex] as MenuItem
+      if (item.disabled['reason']) {
+        this.nvim.outWriteLine(`Item disabled: ${item.disabled['reason']}`)
+        // this.nvim.command('redraw', true)
+      }
+      return
+    }
+    this._onDidClose.fire(this.currIndex)
+    this.dispose()
   }
 
   public get buffer(): Buffer {

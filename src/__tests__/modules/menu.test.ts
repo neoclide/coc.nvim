@@ -21,7 +21,7 @@ afterEach(async () => {
 
 describe('Menu', () => {
   it('should cancel by <esc>', async () => {
-    menu = new Menu(nvim, { items: ['foo', 'bar'] })
+    menu = new Menu(nvim, { items: [{ text: 'foo' }, { text: 'bar', disabled: true }] })
     let p = new Promise(resolve => {
       menu.onDidClose(v => {
         resolve(v)

@@ -354,60 +354,61 @@ function! s:Hi() abort
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
-  hi default link CocFadeOut       Conceal
-  hi default link CocMarkdownCode     markdownCode
-  hi default link CocMarkdownHeader   markdownH1
-  hi default link CocMenuSel          PmenuSel
-  hi default link CocErrorFloat       CocErrorSign
-  hi default link CocWarningFloat     CocWarningSign
-  hi default link CocInfoFloat        CocInfoSign
-  hi default link CocHintFloat        CocHintSign
-  hi default link CocErrorHighlight   CocUnderline
-  hi default link CocWarningHighlight CocUnderline
-  hi default link CocInfoHighlight    CocUnderline
-  hi default link CocHintHighlight    CocUnderline
+  hi default CocDisabled guifg=#999999 ctermfg=gray
+  hi default link CocFadeOut             Conceal
+  hi default link CocMarkdownCode        markdownCode
+  hi default link CocMarkdownHeader      markdownH1
+  hi default link CocMenuSel             PmenuSel
+  hi default link CocErrorFloat          CocErrorSign
+  hi default link CocWarningFloat        CocWarningSign
+  hi default link CocInfoFloat           CocInfoSign
+  hi default link CocHintFloat           CocHintSign
+  hi default link CocErrorHighlight      CocUnderline
+  hi default link CocWarningHighlight    CocUnderline
+  hi default link CocInfoHighlight       CocUnderline
+  hi default link CocHintHighlight       CocUnderline
   hi default link CocDeprecatedHighlight CocStrikeThrough
   hi default link CocUnusedHighlight     CocFadeOut
-  hi default link CocListMode ModeMsg
-  hi default link CocListPath Comment
-  hi default link CocHighlightText  CursorColumn
-  hi default link CocHoverRange     Search
-  hi default link CocCursorRange    Search
-  hi default link CocHighlightRead  CocHighlightText
-  hi default link CocHighlightWrite CocHighlightText
+  hi default link CocListMode            ModeMsg
+  hi default link CocListPath            Comment
+  hi default link CocHighlightText       CursorColumn
+  hi default link CocHoverRange          Search
+  hi default link CocCursorRange         Search
+  hi default link CocHighlightRead       CocHighlightText
+  hi default link CocHighlightWrite      CocHighlightText
   " Tree view highlights
-  hi default link CocTreeTitle Title
+  hi default link CocTreeTitle       Title
   hi default link CocTreeDescription Comment
-  hi default link CocTreeOpenClose CocBold
-  hi default link CocTreeSelected CursorLine
-  hi default link CocSelectedRange  CocHighlightText
+  hi default link CocTreeOpenClose   CocBold
+  hi default link CocTreeSelected    CursorLine
+  hi default link CocSelectedRange   CocHighlightText
   " Symbol highlights
-  hi default link CocSymbolDefault MoreMsg
-  hi default link CocSymbolFile Statement
-  hi default link CocSymbolModule Statement
-  hi default link CocSymbolNamespace Statement
-  hi default link CocSymbolPackage Statement
-  hi default link CocSymbolClass Statement
-  hi default link CocSymbolMethod Function
-  hi default link CocSymbolProperty Keyword
-  hi default link CocSymbolField CocSymbolDefault
-  hi default link CocSymbolConstructor Function
-  hi default link CocSymbolEnum CocSymbolDefault
-  hi default link CocSymbolInterface CocSymbolDefault
-  hi default link CocSymbolFunction Function
-  hi default link CocSymbolVariable CocSymbolDefault
-  hi default link CocSymbolConstant Constant
-  hi default link CocSymbolString String
-  hi default link CocSymbolNumber Number
-  hi default link CocSymbolBoolean Boolean
-  hi default link CocSymbolArray CocSymbolDefault
-  hi default link CocSymbolObject CocSymbolDefault
-  hi default link CocSymbolKey Keyword
-  hi default link CocSymbolNull Type
-  hi default link CocSymbolEnumMember CocSymbolDefault
-  hi default link CocSymbolStruct Keyword
-  hi default link CocSymbolEvent Keyword
-  hi default link CocSymbolOperator Operator
+  hi default link CocSymbolDefault       MoreMsg
+  hi default link CocSymbolFile          Statement
+  hi default link CocSymbolModule        Statement
+  hi default link CocSymbolNamespace     Statement
+  hi default link CocSymbolPackage       Statement
+  hi default link CocSymbolClass         Statement
+  hi default link CocSymbolMethod        Function
+  hi default link CocSymbolProperty      Keyword
+  hi default link CocSymbolField         CocSymbolDefault
+  hi default link CocSymbolConstructor   Function
+  hi default link CocSymbolEnum          CocSymbolDefault
+  hi default link CocSymbolInterface     CocSymbolDefault
+  hi default link CocSymbolFunction      Function
+  hi default link CocSymbolVariable      CocSymbolDefault
+  hi default link CocSymbolConstant      Constant
+  hi default link CocSymbolString        String
+  hi default link CocSymbolNumber        Number
+  hi default link CocSymbolBoolean       Boolean
+  hi default link CocSymbolArray         CocSymbolDefault
+  hi default link CocSymbolObject        CocSymbolDefault
+  hi default link CocSymbolKey           Keyword
+  hi default link CocSymbolNull          Type
+  hi default link CocSymbolEnumMember    CocSymbolDefault
+  hi default link CocSymbolStruct        Keyword
+  hi default link CocSymbolEvent         Keyword
+  hi default link CocSymbolOperator      Operator
   hi default link CocSymbolTypeParameter Operator
 
   if has('nvim')

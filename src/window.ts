@@ -7,7 +7,7 @@ import channels from './core/channels'
 import * as ui from './core/ui'
 import events from './events'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
-import Menu from './model/menu'
+import Menu, { MenuItem, isMenuItem } from './model/menu'
 import Notification, { NotificationConfig, NotificationPreferences } from './model/notification'
 import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
@@ -123,7 +123,7 @@ class Window {
    * @param token A token that can be used to signal cancellation.
    * @returns Selected index (0 based), -1 when canceled.
    */
-  public async showMenuPicker(items: string[], title?: string, token?: CancellationToken): Promise<number> {
+  public async showMenuPicker(items: string[] | MenuItem[], title?: string, token?: CancellationToken): Promise<number> {
     if (workspace.env.dialog) {
       let release = await this.mutex.acquire()
       if (token && token.isCancellationRequested) {
@@ -131,7 +131,7 @@ class Window {
         return -1
       }
       try {
-        let menu = new Menu(this.nvim, { items: items.map(s => s.trim()), title }, token)
+        let menu = new Menu(this.nvim, { items, title }, token)
         let promise = new Promise<number>(resolve => {
           menu.onDidClose(selected => {
             resolve(selected)
@@ -145,8 +145,13 @@ class Window {
         logger.error(`Error on showMenuPicker:`, e)
         release()
       }
+    } else {
+      let titles: string[] = items.map(item => {
+        if (isMenuItem(item) && item.disabled) return null
+        return isMenuItem(item) ? item.text : item
+      })
+      return await this.showQuickpick(titles.filter(t => t != null))
     }
-    return await this.showQuickpick(items)
   }
 
   /**

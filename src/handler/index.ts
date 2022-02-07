@@ -188,7 +188,8 @@ export default class Handler implements HandlerDelegate {
   }
 
   public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
-    return await this.codeActions.getCodeActions(doc, range, only)
+    let codeActions = await this.codeActions.getCodeActions(doc, range, only)
+    return codeActions.filter(o => !o.disabled)
   }
 
   public async applyCodeAction(action: ExtendedCodeAction): Promise<void> {
