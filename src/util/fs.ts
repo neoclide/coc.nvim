@@ -5,6 +5,7 @@ import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import util from 'util'
+import * as platform from './platform'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -189,6 +190,13 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
     })
     rl.on('error', reject)
   })
+}
+
+export function sameFile(fullpath: string, other: string): boolean {
+  const caseInsensitive = platform.isWindows || platform.isMacintosh
+  if (!fullpath || !other) return false
+  if (caseInsensitive) return fullpath.toLowerCase() === other.toLowerCase()
+  return fullpath === other
 }
 
 export async function writeFile(fullpath: string, content: string): Promise<void> {

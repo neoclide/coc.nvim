@@ -1,16 +1,16 @@
-import os from 'os'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
-import { Emitter, Event, Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ConfigurationChangeEvent, ConfigurationInspect, ConfigurationShape, ConfigurationTarget, ErrorItem, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from '../types'
+import { CONFIG_FILE_NAME, disposeAll, watchFile } from '../util'
+import { findUp, isParentFolder, sameFile } from '../util/fs'
+import { objectLiteral } from '../util/is'
 import { deepClone, deepFreeze, mixin } from '../util/object'
-import { watchFile, disposeAll, CONFIG_FILE_NAME } from '../util'
 import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
-import { addToValueTree, loadDefaultConfigurations, parseContentFromFile, getChangedKeys } from './util'
-import { objectLiteral } from '../util/is'
-import { isParentFolder, findUp } from '../util/fs'
+import { addToValueTree, getChangedKeys, loadDefaultConfigurations, parseContentFromFile } from './util'
 const logger = require('../util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -33,7 +33,7 @@ export default class Configurations {
   private _onError = new Emitter<ErrorItem[]>()
   private _onChange = new Emitter<ConfigurationChangeEvent>()
   private disposables: Disposable[] = []
-  private workspaceConfigFile: string
+  private workspaceConfigFile: string | undefined
 
   public readonly onError: Event<ErrorItem[]> = this._onError.event
   public readonly onDidChange: Event<ConfigurationChangeEvent> = this._onChange.event
@@ -51,8 +51,8 @@ export default class Configurations {
     this._configuration = Configurations.parse(data)
     this.watchFile(userConfigFile, ConfigurationTarget.User)
     let folderConfigFile = path.join(process.cwd(), `.vim/${CONFIG_FILE_NAME}`)
-    if (folderConfigFile != userConfigFile && fs.existsSync(folderConfigFile)) {
-      this.addFolderFile(folderConfigFile)
+    if (fs.existsSync(folderConfigFile)) {
+      this.addFolderFile(folderConfigFile, true)
     }
   }
 
@@ -125,13 +125,13 @@ export default class Configurations {
     return this._configuration.workspace
   }
 
-  public addFolderFile(filepath: string): void {
+  public addFolderFile(filepath: string, fromCwd = false): void {
     let { _folderConfigurations } = this
     if (_folderConfigurations.has(filepath)) return
-    if (path.resolve(filepath, '../..') == os.homedir()) return
+    if (sameFile(this.userConfigFile, filepath) || sameFile(filepath, path.join(os.homedir(), '.vim/coc-settings.json'))) return
     let model = this.parseContentFromFile(filepath)
     this.watchFile(filepath, ConfigurationTarget.Workspace)
-    logger.debug('add folder configuration:', filepath)
+    logger.debug(`add folder configuration from ${fromCwd ? 'cwd' : 'file'}:`, filepath)
     this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
   }
 
@@ -183,14 +183,15 @@ export default class Configurations {
     let find = false
     for (let [configFile, model] of this.foldConfigurations) {
       let root = path.resolve(configFile, '../..')
-      if (isParentFolder(root, filepath, true) && this.workspaceConfigFile != configFile) {
-        logger.debug('change folder configuration:', filepath)
-        this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
+      if (isParentFolder(root, filepath, true)) {
         find = true
+        if (this.workspaceConfigFile != configFile) {
+          this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
+        }
         break
       }
     }
-    if (!find) {
+    if (this.workspaceConfigFile && find === false) {
       logger.debug('reset folder configuration to empty')
       this.changeConfiguration(ConfigurationTarget.Workspace, { contents: {} }, undefined)
     }
@@ -322,7 +323,7 @@ export default class Configurations {
     let rootPath = path.dirname(u.fsPath)
     if (!this.hasFolderConfiguration(rootPath)) {
       let folder = findUp('.vim', rootPath)
-      if (folder && folder != os.homedir()) {
+      if (folder) {
         let file = path.join(folder, CONFIG_FILE_NAME)
         if (fs.existsSync(file)) {
           this.addFolderFile(file)

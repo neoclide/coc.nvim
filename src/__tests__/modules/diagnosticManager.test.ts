@@ -134,11 +134,11 @@ describe('diagnostic manager', () => {
     })
 
     it('should filter diagnostics by configuration', async () => {
+      let doc = await createDocument()
       let config = workspace.getConfiguration('diagnostic')
       config.update('level', 'warning')
       config.update('showUnused', false)
       config.update('showDeprecated', false)
-      let doc = await createDocument()
       let diagnostics = manager.getDiagnostics(doc.uri)['test']
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
       diagnostics[2].tags = [DiagnosticTag.Deprecated]
@@ -394,9 +394,9 @@ describe('diagnostic manager', () => {
 
   describe('diagnostic configuration', () => {
     it('should use filetype map from config', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('filetypeMap', { default: 'bufferType' })
       let doc = await createDocument('foo.js')
+      let config = workspace.getConfiguration('diagnostic')
+      config.update('filetypeMap', { default: 'bufferType' }, true)
       let collection = manager.getCollectionByName('test')
       let diagnostic = createDiagnostic('99', Range.create(0, 0, 0, 2), DiagnosticSeverity.Error)
       diagnostic.codeDescription = {
@@ -441,9 +441,9 @@ describe('diagnostic manager', () => {
     })
 
     it('should echo messages on cursor hold', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('messageTarget', 'echo')
       await createDocument()
+      let config = workspace.getConfiguration('diagnostic')
+      config.update('messageTarget', 'echo', true)
       await nvim.call('cursor', [1, 3])
       await helper.wait(600)
       let line = await helper.getCmdline()
@@ -451,9 +451,8 @@ describe('diagnostic manager', () => {
     })
 
     it('should show diagnostics of current line', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('checkCurrentLine', true)
       await createDocument()
+      helper.updateConfiguration('diagnostic.checkCurrentLine', true)
       await nvim.call('cursor', [1, 1])
       let winid = await helper.waitFloat()
       let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
@@ -475,8 +474,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should send ale diagnostic items', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('displayByAle', true)
+      helper.updateConfiguration('diagnostic.displayByAle', true)
       let content = `
     function! MockAleResults(bufnr, collection, items)
       let g:collection = a:collection

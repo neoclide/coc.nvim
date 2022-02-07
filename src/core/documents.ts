@@ -302,7 +302,7 @@ export default class Documents implements Disposable {
         if (doc) this.onBufUnload(doc.bufnr)
       })
     }
-    this.configurations.checkFolderConfiguration(document.uri)
+    if (this._initialized) this.configurations.checkFolderConfiguration(document.uri)
     let root = this.workspaceFolder.resolveRoot(document, this._cwd, this._initialized, this.expand.bind(this))
     if (root && this.bufnr == document.bufnr) this._root = root
     if (document.enabled) {
@@ -310,7 +310,7 @@ export default class Documents implements Disposable {
       this._onDidOpenTextDocument.fire(textDocument)
       document.onDocumentChange(e => this._onDidChangeDocument.fire(e))
     }
-    logger.debug('buffer created', buffer.id)
+    logger.debug('buffer created', buffer.id, document.uri)
   }
 
   private onBufUnload(bufnr: number, recreate = false): void {
