@@ -1,26 +1,19 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Position } from 'vscode-languageserver-protocol'
+import { debounce } from 'debounce'
+import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { BufferSyncItem, FloatConfig, HighlightItem, LocationListItem } from '../types'
+import { FloatConfig, HighlightItem, LocationListItem } from '../types'
+import { SyncItem } from '../model/bufferSync'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
-import { comparePosition, lineInRange, positionInRange } from '../util/position'
+import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
-import { getLocationListItem, getNameFromSeverity, getSeverityType } from './util'
+import { getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
 const hlGroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
-
-export enum DiagnosticHighlight {
-  Error = 'CocErrorHighlight',
-  Warning = 'CocWarningHighlight',
-  Information = 'CocInfoHighlight',
-  Hint = 'CocHintHighlight',
-  Deprecated = 'CocDeprecatedHighlight',
-  Unused = 'CocUnusedHighlight'
-}
 
 export interface DiagnosticConfig {
   highlighLimit: number
@@ -79,10 +72,11 @@ interface DiagnosticInfo {
  * - location list
  * - virtual text
  */
-export class DiagnosticBuffer implements BufferSyncItem {
+export class DiagnosticBuffer implements SyncItem {
   private diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
   private mutex = new Mutex()
   private _disposed = false
+  private refreshHighlights: Function & { clear(): void }
   constructor(
     private readonly nvim: Neovim,
     public readonly bufnr: number,
@@ -90,6 +84,15 @@ export class DiagnosticBuffer implements BufferSyncItem {
     private config: DiagnosticConfig,
     private onRefresh: (diagnostics: ReadonlyArray<Diagnostic>) => void
   ) {
+    this.refreshHighlights = debounce(this._refreshHighlights.bind(this), 500)
+  }
+
+  public onChange(): void {
+    this.refreshHighlights.clear()
+  }
+
+  public onTextChange(): void {
+    this.refreshHighlights()
   }
 
   private get displayByAle(): boolean {
@@ -314,6 +317,22 @@ export class DiagnosticBuffer implements BufferSyncItem {
     }
   }
 
+  /**
+   * Refresh highlights and signs
+   */
+  private _refreshHighlights(): void {
+    if (this.config.displayByAle) return
+    let { diagnosticsMap, nvim } = this
+    nvim.pauseNotification()
+    for (let [collection, diagnostics] of diagnosticsMap.entries()) {
+      let items = this.getHighlightItems(diagnostics)
+      let priority = this.config.highlightPriority
+      this.buffer.updateHighlights(NAMESPACE + collection, items, { priority })
+      this.addSigns(collection, diagnostics)
+    }
+    void nvim.resumeNotification(true, true)
+  }
+
   private getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return []
@@ -383,37 +402,5 @@ export class DiagnosticBuffer implements BufferSyncItem {
   public dispose(): void {
     this._disposed = true
     this.clear()
-  }
-}
-
-/**
- * Sort by severity and position
- */
-function sortDiagnostics(a: Diagnostic, b: Diagnostic): number {
-  if ((a.severity || 1) != (b.severity || 1)) {
-    return (a.severity || 1) - (b.severity || 1)
-  }
-  let d = comparePosition(a.range.start, b.range.start)
-  if (d != 0) return d
-  return a.source > b.source ? 1 : -1
-}
-
-function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight {
-  let tags = diagnostic.tags || []
-  if (tags.includes(DiagnosticTag.Deprecated)) {
-    return DiagnosticHighlight.Deprecated
-  }
-  if (tags.includes(DiagnosticTag.Unnecessary)) {
-    return DiagnosticHighlight.Unused
-  }
-  switch (diagnostic.severity) {
-    case DiagnosticSeverity.Warning:
-      return DiagnosticHighlight.Warning
-    case DiagnosticSeverity.Information:
-      return DiagnosticHighlight.Information
-    case DiagnosticSeverity.Hint:
-      return DiagnosticHighlight.Hint
-    default:
-      return DiagnosticHighlight.Error
   }
 }

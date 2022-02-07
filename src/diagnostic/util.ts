@@ -1,5 +1,15 @@
-import { DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-protocol'
+import { DiagnosticSeverity, Diagnostic, DiagnosticTag } from 'vscode-languageserver-protocol'
 import { LocationListItem } from '../types'
+import { comparePosition } from '../util/position'
+
+export enum DiagnosticHighlight {
+  Error = 'CocErrorHighlight',
+  Warning = 'CocWarningHighlight',
+  Information = 'CocInfoHighlight',
+  Hint = 'CocHintHighlight',
+  Deprecated = 'CocDeprecatedHighlight',
+  Unused = 'CocUnusedHighlight'
+}
 
 export function getSeverityName(severity: DiagnosticSeverity): string {
   switch (severity) {
@@ -71,5 +81,37 @@ export function getLocationListItem(bufnr: number, diagnostic: Diagnostic): Loca
     end_col: end.character + 1,
     text: `[${owner}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg} [${type}]`,
     type
+  }
+}
+
+/**
+ * Sort by severity and position
+ */
+export function sortDiagnostics(a: Diagnostic, b: Diagnostic): number {
+  if ((a.severity || 1) != (b.severity || 1)) {
+    return (a.severity || 1) - (b.severity || 1)
+  }
+  let d = comparePosition(a.range.start, b.range.start)
+  if (d != 0) return d
+  return a.source > b.source ? 1 : -1
+}
+
+export function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight {
+  let tags = diagnostic.tags || []
+  if (tags.includes(DiagnosticTag.Deprecated)) {
+    return DiagnosticHighlight.Deprecated
+  }
+  if (tags.includes(DiagnosticTag.Unnecessary)) {
+    return DiagnosticHighlight.Unused
+  }
+  switch (diagnostic.severity) {
+    case DiagnosticSeverity.Warning:
+      return DiagnosticHighlight.Warning
+    case DiagnosticSeverity.Information:
+      return DiagnosticHighlight.Information
+    case DiagnosticSeverity.Hint:
+      return DiagnosticHighlight.Hint
+    default:
+      return DiagnosticHighlight.Error
   }
 }
