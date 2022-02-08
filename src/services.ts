@@ -425,7 +425,7 @@ export function documentSelectorToLanguageIds(documentSelector: DocumentSelector
 }
 
 // convert config to options
-export function getLanguageServerOptions(id: string, name: string, config: LanguageServerConfig): [LanguageClientOptions, ServerOptions] {
+export function getLanguageServerOptions(id: string, name: string, config: Readonly<LanguageServerConfig>): [LanguageClientOptions, ServerOptions] {
   let { command, module, port, args, filetypes } = config
   args = args || []
   if (!filetypes) {
@@ -473,11 +473,11 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     })
   }
   // compatiable
+  let disabledFeatures: string[] = []
   for (let key of ['disableWorkspaceFolders', 'disableCompletion', 'disableDiagnostics']) {
     if (config[key] === true) {
-      config.disabledFeatures = config.disabledFeatures || []
       let s = key.slice(7)
-      config.disabledFeatures.push(s[0].toLowerCase() + s.slice(1))
+      disabledFeatures.push(s[0].toLowerCase() + s.slice(1))
     }
   }
   let disableSnippetCompletion = !!config.disableSnippetCompletion
@@ -486,7 +486,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     ignoredRootPaths: ignoredRootPaths.map(s => workspace.expand(s)),
     disableSnippetCompletion,
     disableDynamicRegister: !!config.disableDynamicRegister,
-    disabledFeatures: Array.isArray(config.disabledFeatures) ? config.disabledFeatures : [],
+    disabledFeatures,
     formatterPriority: config.formatterPriority || 0,
     documentSelector: getDocumentSelector(config.filetypes, config.additionalSchemes),
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
