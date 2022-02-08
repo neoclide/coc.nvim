@@ -88,11 +88,29 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
 
     let messageTimer: NodeJS.Timeout
-    events.on('CursorMoved', bufnr => {
+    events.on('CursorMoved', (bufnr, cursor) => {
       if (this.config.enableMessage != 'always') return
       if (!this.buffers.getItem(bufnr)) return
       if (messageTimer) clearTimeout(messageTimer)
       messageTimer = setTimeout(async () => {
+        let buf = this.buffers.getItem(bufnr)
+        if (!buf) return
+        let { messageLevel } = this.config
+        let diagnostics = this.getDiagnostics(buf.uri)
+        let line = cursor[0] - 1
+        let find = false
+        for (let diags of Object.values(diagnostics)) {
+          for (let diagnostic of diags) {
+            if (messageLevel && diagnostic.severity && diagnostic.severity > messageLevel) continue
+            let { start, end } = diagnostic.range
+            if (line >= start.line && line <= end.line) {
+              find = true
+              break
+            }
+          }
+          if (find) break
+        }
+        if (!find) return
         await this.echoMessage(true)
       }, this.config.messageDelay)
     }, null, this.disposables)
