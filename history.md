@@ -1,3 +1,7 @@
+# 2022-02-09
+
+- Add error log to `nvim_error_event`.
+
 # 2022-02-08
 
 - Support `MenuItem` with disabled property for `window.showMenuPicker`
