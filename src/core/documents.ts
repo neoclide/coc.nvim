@@ -71,6 +71,12 @@ export default class Documents implements Disposable {
       this._bufnr = bufnr
       await this.checkBuffer(bufnr)
     }
+    const onInsertLeave = (bufnr: number) => {
+      let doc = this.getDocument(bufnr)
+      if (!doc?.attached) return
+      doc._forceSync()
+    }
+    events.on('InsertLeave', onInsertLeave, null, this.disposables)
     events.on('CursorMoved', checkCurrentBuffer, null, this.disposables)
     events.on('CursorMovedI', checkCurrentBuffer, null, this.disposables)
     events.on('TextChanged', this.checkBuffer, this, this.disposables)

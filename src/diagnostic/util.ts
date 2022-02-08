@@ -1,5 +1,5 @@
 import { DiagnosticSeverity, Diagnostic, DiagnosticTag } from 'vscode-languageserver-protocol'
-import { LocationListItem } from '../types'
+import { FloatConfig, LocationListItem } from '../types'
 import { comparePosition } from '../util/position'
 
 export enum DiagnosticHighlight {
@@ -9,6 +9,44 @@ export enum DiagnosticHighlight {
   Hint = 'CocHintHighlight',
   Deprecated = 'CocDeprecatedHighlight',
   Unused = 'CocUnusedHighlight'
+}
+
+export interface DiagnosticConfig {
+  highlighLimit: number
+  highlightPriority: number
+  autoRefresh: boolean
+  enableSign: boolean
+  locationlistUpdate: boolean
+  enableHighlightLineNumber: boolean
+  checkCurrentLine: boolean
+  enableMessage: string
+  displayByAle: boolean
+  signPriority: number
+  errorSign: string
+  warningSign: string
+  infoSign: string
+  hintSign: string
+  level: number
+  locationlistLevel: number | undefined
+  signLevel: number | undefined
+  messageLevel: number | undefined
+  messageTarget: string
+  messageDelay: number
+  refreshOnInsertMode: boolean
+  virtualText: boolean
+  virtualTextLevel: number | undefined
+  virtualTextAlignRight: boolean
+  virtualTextWinCol: number | null
+  virtualTextCurrentLineOnly: boolean
+  virtualTextSrcId?: number
+  virtualTextPrefix: string
+  virtualTextLines: number
+  virtualTextLineSeparator: string
+  filetypeMap: object
+  showUnused?: boolean
+  showDeprecated?: boolean
+  format?: string
+  floatConfig: FloatConfig
 }
 
 export function getSeverityName(severity: DiagnosticSeverity): string {

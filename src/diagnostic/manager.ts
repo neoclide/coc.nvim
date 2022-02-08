@@ -11,9 +11,9 @@ import { disposeAll } from '../util'
 import { comparePosition, rangeIntersect } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-import { DiagnosticBuffer, DiagnosticConfig } from './buffer'
+import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { getLocationListItem, getSeverityName, severityLevel } from './util'
+import { DiagnosticConfig, getLocationListItem, getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticEventParams {
@@ -45,7 +45,7 @@ export class DiagnosticManager implements Disposable {
   private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private timer: NodeJS.Timer
+  private clearTimers: () => void | undefined
 
   public init(): void {
     this.setConfiguration()
@@ -64,14 +64,19 @@ export class DiagnosticManager implements Disposable {
         this.nvim, doc.bufnr, doc.uri, this.config,
         diagnostics => {
           this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
-          if (['never', 'jump'].includes(this.config.enableMessage)) return
-          if (events.insertMode) return
-          this.echoMessage(true).logError()
+          this.floatFactory?.close()
         })
       let collections = this.getCollections(doc.uri)
       if (this.enabled && collections.length) {
         let diagnostics = this.getDiagnostics(doc.uri)
-        void buf.refresh(diagnostics)
+        // ignore empty diagnostics on first redraw.
+        let obj: { [collection: string]: Diagnostic[] } = {}
+        for (let [key, diags] of Object.entries(diagnostics)) {
+          if (diags.length > 0) obj[key] = diags
+        }
+        if (Object.keys(obj).length !== 0) {
+          void buf.refresh(obj)
+        }
       }
       return buf
     })
@@ -82,11 +87,12 @@ export class DiagnosticManager implements Disposable {
       }
     }, null, this.disposables)
 
+    let messageTimer: NodeJS.Timeout
     events.on('CursorMoved', bufnr => {
       if (this.config.enableMessage != 'always') return
       if (!this.buffers.getItem(bufnr)) return
-      if (this.timer) clearTimeout(this.timer)
-      this.timer = setTimeout(async () => {
+      if (messageTimer) clearTimeout(messageTimer)
+      messageTimer = setTimeout(async () => {
         await this.echoMessage(true)
       }, this.config.messageDelay)
     }, null, this.disposables)
@@ -97,30 +103,22 @@ export class DiagnosticManager implements Disposable {
       if (buf) buf.showVirtualText(cursor[0])
     }, 100)
     events.on('CursorMoved', fn, null, this.disposables)
-    this.disposables.push(Disposable.create(() => {
-      fn.clear()
-    }))
-    let timer: NodeJS.Timer
-    events.on('InsertLeave', async bufnr => {
+    events.on('InsertLeave', async () => {
       if (this.config.refreshOnInsertMode || !this.autoRefresh) return
-      let doc = workspace.getDocument(bufnr)
-      if (!doc?.attached) return
-      doc._forceSync()
-      timer = setTimeout(() => {
-        if (events.insertMode) return
-        for (let buf of this.buffers.items) {
-          void buf.refresh(this.getDiagnostics(buf.uri), false)
-        }
-      }, Math.max(0, 500 - Date.now() + events.lastChangeTs))
+      for (let buf of this.buffers.items) {
+        if (buf.dirty) buf.refreshHighlights()
+      }
     }, null, this.disposables)
-    let clear = () => {
-      if (timer) clearTimeout(timer)
+    this.clearTimers = () => {
+      if (messageTimer) clearTimeout(messageTimer)
+      messageTimer = undefined
+      fn.clear()
     }
-    this.disposables.push({ dispose: clear })
-    events.on('InsertEnter', clear, null, this.disposables)
-    events.on('BufEnter', async () => {
-      if (this.timer) clearTimeout(this.timer)
+    events.on('BufWinEnter', (bufnr: number) => {
+      let buf = this.buffers.getItem(bufnr)
+      if (buf && buf.dirty) buf.refreshHighlights()
     }, null, this.disposables)
+    events.on('InsertEnter', this.clearTimers, this, this.disposables)
     let errorItems = workspace.configurations.errorItems
     this.setConfigurationErrors(errorItems)
     workspace.configurations.onError(items => {
@@ -193,8 +191,7 @@ export class DiagnosticManager implements Disposable {
     collection.onDidDiagnosticsChange(uri => {
       let buf = this.buffers.getItem(uri)
       if (!this.autoRefresh || !buf) return
-      if (events.insertMode && !this.config.refreshOnInsertMode) return
-      void buf.refresh(this.getDiagnostics(uri, name), true)
+      void buf.refresh(this.getDiagnostics(uri, name))
     })
     return collection
   }
@@ -437,7 +434,6 @@ export class DiagnosticManager implements Disposable {
   public async echoMessage(truncate = false): Promise<void> {
     const config = this.config
     if (!this.enabled || config.displayByAle) return
-    if (this.timer) clearTimeout(this.timer)
     let useFloat = config.messageTarget == 'float'
     // echo
     let [filetype, mode] = await this.nvim.eval(`[&filetype,mode()]`) as [string, string]
@@ -511,8 +507,8 @@ export class DiagnosticManager implements Disposable {
   }
 
   public reset(): void {
-    if (this.timer) {
-      clearTimeout(this.timer)
+    if (this.clearTimers) {
+      this.clearTimers()
     }
     this.buffers.reset()
     for (let collection of this.collections) {
@@ -522,10 +518,8 @@ export class DiagnosticManager implements Disposable {
   }
 
   public dispose(): void {
+    this.clearTimers()
     this.buffers.dispose()
-    if (this.timer) {
-      clearTimeout(this.timer)
-    }
     for (let collection of this.collections) {
       collection.dispose()
     }
@@ -629,10 +623,10 @@ export class DiagnosticManager implements Disposable {
   /**
    * Refresh diagnostics by uri or bufnr
    */
-  public async refreshBuffer(uri: string | number, force = false): Promise<boolean> {
+  public async refreshBuffer(uri: string | number, clear = false): Promise<boolean> {
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
-    await buf.refresh(this.getDiagnostics(buf.uri), force)
+    await buf.refresh(this.getDiagnostics(buf.uri), clear)
     return true
   }
 

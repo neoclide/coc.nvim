@@ -1,57 +1,18 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { debounce } from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver-protocol'
-import events from '../events'
-import { FloatConfig, HighlightItem, LocationListItem } from '../types'
 import { SyncItem } from '../model/bufferSync'
+import { HighlightItem, LocationListItem } from '../types'
+import events from '../events'
 import { Mutex } from '../util/mutex'
-import { equals } from '../util/object'
 import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
-import { getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
+import { DiagnosticConfig, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first
 const hlGroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
-
-export interface DiagnosticConfig {
-  highlighLimit: number
-  highlightPriority: number
-  autoRefresh: boolean
-  enableSign: boolean
-  locationlistUpdate: boolean
-  enableHighlightLineNumber: boolean
-  checkCurrentLine: boolean
-  enableMessage: string
-  displayByAle: boolean
-  signPriority: number
-  errorSign: string
-  warningSign: string
-  infoSign: string
-  hintSign: string
-  level: number
-  locationlistLevel: number | undefined
-  signLevel: number | undefined
-  messageLevel: number | undefined
-  messageTarget: string
-  messageDelay: number
-  refreshOnInsertMode: boolean
-  virtualText: boolean
-  virtualTextLevel: number | undefined
-  virtualTextAlignRight: boolean
-  virtualTextWinCol: number | null
-  virtualTextCurrentLineOnly: boolean
-  virtualTextSrcId?: number
-  virtualTextPrefix: string
-  virtualTextLines: number
-  virtualTextLineSeparator: string
-  filetypeMap: object
-  showUnused?: boolean
-  showDeprecated?: boolean
-  format?: string
-  floatConfig: FloatConfig
-}
 
 interface DiagnosticInfo {
   /**
@@ -63,6 +24,7 @@ interface DiagnosticInfo {
   locationlist: string
 }
 
+const aleMethod = global.hasOwnProperty('__TEST__') ? 'MockAleResults' : 'ale#other_source#ShowResults'
 /**
  * Manage diagnostics of buffer, including:
  *
@@ -76,7 +38,8 @@ export class DiagnosticBuffer implements SyncItem {
   private diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
   private mutex = new Mutex()
   private _disposed = false
-  private refreshHighlights: Function & { clear(): void }
+  private _dirty = false
+  public refreshHighlights: Function & { clear(): void }
   constructor(
     private readonly nvim: Neovim,
     public readonly bufnr: number,
@@ -84,7 +47,12 @@ export class DiagnosticBuffer implements SyncItem {
     private config: DiagnosticConfig,
     private onRefresh: (diagnostics: ReadonlyArray<Diagnostic>) => void
   ) {
-    this.refreshHighlights = debounce(this._refreshHighlights.bind(this), 500)
+    let ms = global.hasOwnProperty('__TEST__') ? 50 : 500
+    this.refreshHighlights = debounce(this._refreshHighlights.bind(this), ms)
+  }
+
+  public get dirty(): boolean {
+    return this._dirty
   }
 
   public onChange(): void {
@@ -92,6 +60,7 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   public onTextChange(): void {
+    if (events.insertMode && !this.config.refreshOnInsertMode) return
     this.refreshHighlights()
   }
 
@@ -132,8 +101,7 @@ export class DiagnosticBuffer implements SyncItem {
         type: getSeverityType(o.severity)
       }
     })
-    let method = global.hasOwnProperty('__TEST__') ? 'MockAleResults' : 'ale#other_source#ShowResults'
-    this.nvim.call(method, [this.bufnr, 'coc' + collection, aleItems], true)
+    this.nvim.call(aleMethod, [this.bufnr, 'coc' + collection, aleItems], true)
   }
 
   /**
@@ -142,10 +110,14 @@ export class DiagnosticBuffer implements SyncItem {
    * @param {Object} diagnosticsMap
    * @param {boolean} force Force highlights update.
    */
-  public async refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }, force?: boolean): Promise<void> {
+  public async refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }, clear?: boolean): Promise<void> {
+    if (clear) {
+      this.diagnosticsMap.clear()
+      this.refreshHighlights.clear()
+    }
     let release = await this.mutex.acquire()
     try {
-      await this._refresh(diagnosticsMap, force === true)
+      await this._refresh(diagnosticsMap)
       release()
     } catch (e) {
       release()
@@ -153,49 +125,57 @@ export class DiagnosticBuffer implements SyncItem {
     }
   }
 
+  private async getDiagnosticInfo(): Promise<DiagnosticInfo | undefined> {
+    let { refreshOnInsertMode } = this.config
+    let { nvim, bufnr } = this
+    let disabledByInsert = events.insertMode && !refreshOnInsertMode
+    if (disabledByInsert) return undefined
+    let info: DiagnosticInfo | undefined = await nvim.call('coc#util#diagnostic_info', [bufnr, !refreshOnInsertMode])
+    return info
+  }
+
+  private async updateDiagnostics(diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>>, info: DiagnosticInfo): Promise<void> {
+    let { nvim } = this
+    nvim.pauseNotification()
+    for (let [collection, diagnostics] of diagnosticsMap.entries()) {
+      this.addSigns(collection, diagnostics)
+      this.updateHighlights(collection, diagnostics)
+    }
+    this.showVirtualText(info.lnum, info.bufnr)
+    this.updateLocationList(info.winid, info.locationlist)
+    this.setDiagnosticInfo()
+    void this.nvim.resumeNotification(true, false)
+    this.onRefresh(this.diagnostics)
+  }
+
   /**
    * Refresh UI with new diagnostics.
+   * Used on document create, diagnostics change and force refresh.
+   * Note that highlights create may use timer, so the highlight process may not finished.
    */
-  private async _refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }, force: boolean): Promise<void> {
-    let { refreshOnInsertMode } = this.config
+  private async _refresh(diagnosticsMap: { [collection: string]: Diagnostic[] }): Promise<void> {
     let { nvim } = this
-    let checkInsert = !this.displayByAle && !refreshOnInsertMode
-    if (events.insertMode && checkInsert) return
-    let info = await nvim.call('coc#util#diagnostic_info', [this.bufnr, checkInsert]) as DiagnosticInfo | undefined
-    if (!info || this._disposed) return
+    let info = await this.getDiagnosticInfo()
     if (this.displayByAle) {
+      if (!info) return
       nvim.pauseNotification()
       for (let [collection, diagnostics] of Object.entries(diagnosticsMap)) {
-        // no need to save diagnostics
         this.diagnosticsMap.set(collection, [])
         this.refreshAle(collection, diagnostics)
       }
       await nvim.resumeNotification()
     } else {
-      let changed = false
-      let redraw = false
-      nvim.pauseNotification()
+      // avoid highlights on invalid state or buffer hidden.
+      let noHighlights = !info || info.winid == -1
+      let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
       for (let [collection, diagnostics] of Object.entries(diagnosticsMap)) {
-        let prev = this.diagnosticsMap.get(collection) || []
         this.diagnosticsMap.set(collection, diagnostics)
-        if (!equals(prev, diagnostics)) {
-          changed = true
-          redraw = true
-          this.addSigns(collection, diagnostics)
-          this.updateHighlights(collection, diagnostics)
-        } else if (prev.length && force) {
-          redraw = true
-          this.updateHighlights(collection, diagnostics)
-        }
+        map.set(collection, diagnostics)
       }
-      if (changed) {
-        this.showVirtualText(info.lnum, info.bufnr)
-        this.updateLocationList(info.winid, info.locationlist)
-        this.setDiagnosticInfo()
-      }
-      await this.nvim.resumeNotification(redraw)
+      this._dirty = noHighlights
+      if (noHighlights) return
+      await this.updateDiagnostics(map, info)
     }
-    this.onRefresh(this.diagnostics)
   }
 
   public updateLocationList(winid: number, title: string): void {
@@ -307,7 +287,7 @@ export class DiagnosticBuffer implements SyncItem {
     }
   }
 
-  public updateHighlights(collection: string, diagnostics: Diagnostic[]): void {
+  public updateHighlights(collection: string, diagnostics: ReadonlyArray<Diagnostic>): void {
     if (!diagnostics.length) {
       this.clearHighlight(collection)
     } else {
@@ -318,19 +298,15 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   /**
-   * Refresh highlights and signs
+   * Refresh all diagnostics
    */
-  private _refreshHighlights(): void {
+  private async _refreshHighlights(): Promise<void> {
     if (this.config.displayByAle) return
-    let { diagnosticsMap, nvim } = this
-    nvim.pauseNotification()
-    for (let [collection, diagnostics] of diagnosticsMap.entries()) {
-      let items = this.getHighlightItems(diagnostics)
-      let priority = this.config.highlightPriority
-      this.buffer.updateHighlights(NAMESPACE + collection, items, { priority })
-      this.addSigns(collection, diagnostics)
-    }
-    void nvim.resumeNotification(true, true)
+    this._dirty = false
+    let info = await this.getDiagnosticInfo()
+    let noHighlights = !info || info.winid == -1
+    if (noHighlights) return
+    await this.updateDiagnostics(this.diagnosticsMap, info)
   }
 
   private getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
@@ -356,13 +332,14 @@ export class DiagnosticBuffer implements SyncItem {
   public clear(): void {
     let { nvim } = this
     let collections = Array.from(this.diagnosticsMap.keys())
+    this.refreshHighlights.clear()
     this.diagnosticsMap.clear()
     if (this.displayByAle) {
       for (let collection of collections) {
-        let method = global.hasOwnProperty('__TEST__') ? 'MockAleResults' : 'ale#other_source#ShowResults'
-        this.nvim.call(method, [this.bufnr, collection, []], true)
+        this.nvim.call(aleMethod, [this.bufnr, collection, []], true)
       }
     } else {
+      this.buffer.deleteVar('coc_diagnostic_info')
       nvim.pauseNotification()
       for (let collection of collections) {
         this.clearHighlight(collection)
@@ -371,8 +348,7 @@ export class DiagnosticBuffer implements SyncItem {
       if (this.config.virtualText) {
         this.buffer.clearNamespace(this.config.virtualTextSrcId)
       }
-      this.buffer.deleteVar('coc_diagnostic_info')
-      void nvim.resumeNotification(false, true)
+      void nvim.resumeNotification(true, true)
     }
   }
 

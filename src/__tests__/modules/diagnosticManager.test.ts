@@ -38,13 +38,13 @@ async function createDocument(name?: string): Promise<Document> {
     end: -1,
     strictIndexing: false
   })
+  await doc.synchronize()
   diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
   diagnostics.push(createDiagnostic('warning', Range.create(0, 5, 0, 6), DiagnosticSeverity.Warning))
   diagnostics.push(createDiagnostic('information', Range.create(1, 0, 1, 1), DiagnosticSeverity.Information))
   diagnostics.push(createDiagnostic('hint', Range.create(1, 2, 1, 3), DiagnosticSeverity.Hint))
   diagnostics.push(createDiagnostic('error', Range.create(2, 0, 2, 2), DiagnosticSeverity.Error))
   collection.set(doc.uri, diagnostics)
-  doc.forceSync()
   return doc
 }
 
@@ -84,28 +84,58 @@ describe('diagnostic manager', () => {
     it('should delay refresh on InsertLeave', async () => {
       let doc = await helper.createDocument()
       await nvim.input('i')
-      let collection = manager.create('test')
+      let collection = manager.create('foo')
       let diagnostics: Diagnostic[] = []
       await doc.buffer.setLines(['foo bar foo bar', 'foo bar', 'foo', 'bar'], {
         start: 0,
         end: -1,
         strictIndexing: false
       })
+      await doc.synchronize()
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
       collection.set(doc.uri, diagnostics)
-      await helper.wait(10)
+      await helper.wait(50)
+      let buf = doc.buffer
+      let val = await buf.getVar('coc_diagnostic_info') as any
+      expect(val == null).toBe(true)
+      let ns = await nvim.createNamespace('coc-diagnosticfoo')
+      let markers = await buf.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBe(0)
       await nvim.input('<esc>')
       await helper.wait(100)
-      let val = await doc.buffer.getVar('coc_diagnostic_info') as any
-      expect(val).toBe(null)
-      await helper.wait(600)
-      val = await doc.buffer.getVar('coc_diagnostic_info') as any
-      expect(val).toBeDefined()
+      markers = await buf.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBe(1)
+    })
+
+    it('should delay refresh for hidden buffer', async () => {
+      let doc = await helper.createDocument()
+      await helper.edit()
+      let collection = manager.create('foo')
+      let diagnostics: Diagnostic[] = []
+      await doc.buffer.setLines(['foo bar foo bar', 'foo bar', 'foo', 'bar'], {
+        start: 0,
+        end: -1,
+        strictIndexing: false
+      })
+      await doc.synchronize()
+      diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
+      collection.set(doc.uri, diagnostics)
+      await helper.wait(50)
+      let buf = doc.buffer
+      let val = await buf.getVar('coc_diagnostic_info') as any
+      expect(val == null).toBe(true)
+      let ns = await nvim.createNamespace('coc-diagnosticfoo')
+      let markers = await buf.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBe(0)
+      await nvim.command(`b ${buf.id}`)
+      await helper.wait(100)
+      markers = await buf.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBe(1)
     })
   })
 
   describe('toggleDiagnostic()', () => {
-    it('should toggle diagnostics', async () => {
+    it('should toggle diagnostics for all buffer', async () => {
       let doc = await createDocument()
       await helper.wait(50)
       manager.toggleDiagnostic()
@@ -240,7 +270,7 @@ describe('diagnostic manager', () => {
         end: -1,
         strictIndexing: false
       })
-      await helper.wait(300)
+      await doc.synchronize()
       diagnostics.push(createDiagnostic('a', Range.create(0, 0, 0, 1)))
       diagnostics.push(createDiagnostic('b', Range.create(0, 2, 0, 3)))
       diagnostics.push(createDiagnostic('c', Range.create(1, 0, 1, 2)))
@@ -394,18 +424,19 @@ describe('diagnostic manager', () => {
 
   describe('diagnostic configuration', () => {
     it('should use filetype map from config', async () => {
-      let doc = await createDocument('foo.js')
       let config = workspace.getConfiguration('diagnostic')
-      config.update('filetypeMap', { default: 'bufferType' }, true)
+      config.update('filetypeMap', { default: 'bufferType' })
+      config.update('messageDelay', 10)
+      let doc = await createDocument('foo.js')
+      await nvim.setLine('foo')
       let collection = manager.getCollectionByName('test')
-      let diagnostic = createDiagnostic('99', Range.create(0, 0, 0, 2), DiagnosticSeverity.Error)
+      let diagnostic = createDiagnostic('99', Range.create(0, 0, 0, 3), DiagnosticSeverity.Error)
       diagnostic.codeDescription = {
         href: 'http://www.example.com'
       }
       let diagnostics = [diagnostic]
       collection.set(doc.uri, diagnostics)
-      await nvim.call('cursor', [1, 1])
-      await nvim.command('doautocmd CursorHold')
+      await nvim.call('cursor', [1, 2])
       let winid = await helper.waitFloat()
       await nvim.call('win_gotoid', [winid])
       await nvim.command('normal! $')
@@ -413,11 +444,13 @@ describe('diagnostic manager', () => {
       expect(res).toMatch(/javascript/i)
       let line = await nvim.call('getline', ['$']) as string
       expect(line).toMatch('example.com')
+      await nvim.command('wincmd w')
     })
 
     it('should show floating window on cursor hold', async () => {
       let config = workspace.getConfiguration('diagnostic')
       config.update('messageTarget', 'float')
+      config.update('messageDelay', 10)
       await createDocument()
       await nvim.call('cursor', [1, 3])
       await nvim.command('doautocmd CursorHold')
@@ -434,29 +467,30 @@ describe('diagnostic manager', () => {
       config.update('messageTarget', 'echo')
       await createDocument()
       await nvim.call('cursor', [1, 6])
-      await helper.wait(10)
       await manager.echoMessage(false)
       let line = await helper.getCmdline()
       expect(line.indexOf('warning')).toBe(-1)
     })
 
-    it('should echo messages on cursor hold', async () => {
+    it('should echo messages on CursorHold', async () => {
       await createDocument()
       let config = workspace.getConfiguration('diagnostic')
-      config.update('messageTarget', 'echo', true)
+      config.update('messageTarget', 'echo')
+      config.update('messageDelay', 1)
       await nvim.call('cursor', [1, 3])
-      await helper.wait(600)
+      await helper.wait(50)
       let line = await helper.getCmdline()
       expect(line).toMatch('error')
     })
 
     it('should show diagnostics of current line', async () => {
-      await createDocument()
       helper.updateConfiguration('diagnostic.checkCurrentLine', true)
-      await nvim.call('cursor', [1, 1])
+      helper.updateConfiguration('diagnostic.messageDelay', 1)
+      await createDocument()
+      await nvim.call('cursor', [1, 3])
       let winid = await helper.waitFloat()
-      let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
-      let buf = nvim.createBuffer(bufnr)
+      let win = nvim.createWindow(winid)
+      let buf = await win.buffer
       let lines = await buf.lines
       expect(lines.length).toBe(3)
     })
@@ -515,7 +549,6 @@ describe('diagnostic manager', () => {
       // required to wait refresh finish
       await helper.wait(50)
       await manager.toggleDiagnosticBuffer(doc.bufnr)
-      await helper.wait(50)
       let buf = nvim.createBuffer(doc.bufnr)
       let res = await buf.getVar('coc_diagnostic_info') as any
       expect(res == null).toBe(true)
@@ -539,13 +572,14 @@ describe('diagnostic manager', () => {
       // should not refresh
       expect(res == null).toBe(true)
       manager.refresh(doc.bufnr)
-      await helper.wait(100)
+      await helper.wait(50)
       res = await buf.getVar('coc_diagnostic_info') as any
       expect(res?.error).toBe(2)
     })
 
     it('should refresh all buffers', async () => {
       let one = await helper.createDocument('one')
+      await nvim.command('vnew')
       let two = await helper.createDocument('two')
       let collection = manager.create('tmp')
       collection.set([[one.uri, [createDiagnostic('Error one')]], [two.uri, [createDiagnostic('Error two')]]])
