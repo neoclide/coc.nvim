@@ -3002,6 +3002,7 @@ characters.
 
 Others~
 
+*CocDisabled* highlight for disabled items, eg: menu item.
 *CocCodeLens* for virtual text of codeLens.
 *CocCursorRange* for ranges of activated cursors.
 *CocHoverRange* for range of current hovered symbol.
@@ -3019,7 +3020,7 @@ Semantic tokens highlighting is disabled by default, you can enable it by use
 configuration "semanticTokens.filetypes", see |coc-config-semanticTokens| for
 details.
 
-To create custom highlight for symbol under cursor, follow these steps:
+To create custom highlights for symbol under cursor, follow these steps:
 
 - Inspect semantic token by
 >
@@ -3027,11 +3028,11 @@ To create custom highlight for symbol under cursor, follow these steps:
 <
   to check token type and token modifiers with current symbol.
 
-- Create new highlight group, for example:
+- Create new highlight group by command, for example:
 >
   :hi link CocSemDeclarationVariable MoreMsg
 <
-- Refresh highlight of current buffer by:
+- Refresh semantic highlight of current buffer by:
 >
   :CocCommand semanticTokens.refreshCurrent
 <
@@ -3047,7 +3048,7 @@ disable creation of these highlight groups.
 
 Currently only semantic tokens types and `deprecated` modifier have default
 highlight groups.  You need create highlight groups for highlight other
-modifiers and specific modifier with type, for example:
+modifiers and/or specific modifier with type, for example:
 >
 	" Add highlights for defaultLibrary modifier
 	hi link CocSemDefaultLibrary TSOtherDefaultLibrary

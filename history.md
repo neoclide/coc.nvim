@@ -1,3 +1,12 @@
+# 2022-02-09
+
+- Add error log to `nvim_error_event`.
+
+# 2022-02-08
+
+- Support `MenuItem` with disabled property for `window.showMenuPicker`
+- Support show disabled code actions in menu picker.
+
 # 2022-02-07
 
 - Change `:CocLocalConfig` to open configuration file of current workspace
