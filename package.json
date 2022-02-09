@@ -88,7 +88,7 @@
     "vscode-languageserver": "7.0.0"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^5.7.1",
+    "@chemzqm/neovim": "^5.7.2",
     "bytes": "^3.1.0",
     "tslib": "^2.0.3",
     "ansi-styles": "^5.0.0",

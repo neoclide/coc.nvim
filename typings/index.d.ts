@@ -2596,7 +2596,7 @@ declare module 'coc.nvim' {
      *
      * **Note:** works on neovim only.
      */
-    executeLua(code: string, args?: VimValue[]): Promise<object>
+    lua(code: string, args?: VimValue[]): Promise<object>
 
     /**
      * Calls a VimL |Dictionary-function| with the given arguments.
@@ -2906,7 +2906,7 @@ declare module 'coc.nvim' {
      * Set virtual text for a line
      *
      * @public
-     * @deprecated Use setExtMark() instead.
+     * @deprecated Use `setExtMark()` instead.
      * @param {number} src_id - Source group to use or 0 to use a new group, or -1
      * @param {number} line - Line to annotate with virtual text (zero-indexed)
      * @param {Chunk[]} chunks - List with [text, hl_group]
