@@ -1,6 +1,7 @@
 # 2022-02-09
 
 - Add error log to `nvim_error_event`.
+- Add `nvim.lua()` which replace `nvim.executeLua()` to typings.d.ts.
 
 # 2022-02-08
 
