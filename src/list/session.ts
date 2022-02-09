@@ -292,6 +292,7 @@ export default class ListSession {
     nvim.pauseNotification()
     if (!isVim) nvim.call('coc#prompt#stop_prompt', ['list'], true)
     if (tabnr) nvim.call('coc#list#close_preview', [tabnr], true)
+    if (window) nvim.call('win_gotoid', [window.id], true)
     if (winid) nvim.call('coc#window#close', [winid], true)
     if (window && this.savedHeight && this.listOptions.position !== 'tab') {
       nvim.call('coc#window#set_heigth', [window.id, this.savedHeight], true)
