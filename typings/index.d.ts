@@ -4710,9 +4710,22 @@ declare module 'coc.nvim' {
   }
 
   export interface InsertChange {
+    /**
+     * 1 based line number
+     */
     lnum: number
+    /**
+     * 1 based column number
+     */
     col: number
+    /**
+     * Text before cursor.
+     */
     pre: string
+    /**
+     * Insert character that cause change of this time.
+     */
+    insertChar: string | undefined
     changedtick: number
   }
 

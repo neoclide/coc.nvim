@@ -24,8 +24,8 @@ export interface LastInsert {
 export class Completion implements Disposable {
   public config: CompleteConfig
   private popupEvent: PopupChangeEvent
-  private triggerTimer: NodeJS.Timer
-  private completeTimer: NodeJS.Timer
+  private triggerTimer: NodeJS.Timeout
+  private completeTimer: NodeJS.Timeout
   private currentSources: string[] = []
   private floating: Floating
   // current input string
@@ -33,14 +33,12 @@ export class Completion implements Disposable {
   // selecting complete item
   private selecting = false
   private input: string
-  private lastInsert?: LastInsert
   private disposables: Disposable[] = []
   private complete: Complete | null = null
   private resolveTokenSource: CancellationTokenSource
   private pretext = ''
   private changedTick = 0
   private insertCharTs = 0
-  private insertLeaveTs = 0
   private excludeImages: boolean
   private mru: MruLoader = new MruLoader()
 
@@ -196,7 +194,6 @@ export class Completion implements Disposable {
     // not changed
     if (search == this.input && !forceRefresh) return
     let disabled = complete.option.disabled
-    // TODO use this.getTriggerSources
     let triggerSources = sources.getTriggerSources(pretext, document.filetype, document.uri, disabled)
     if (search.endsWith(' ') && !triggerSources.length) {
       this.stop()
@@ -227,6 +224,7 @@ export class Completion implements Disposable {
       return
     }
     if (items.length === 0 && !complete.isCompleting) {
+      logger.debug('stop')
       this.stop()
       return
     }
@@ -240,7 +238,7 @@ export class Completion implements Disposable {
   }
 
   private async showCompletion(col: number, items: ExtendedCompleteItem[]): Promise<void> {
-    let { nvim, document, option } = this
+    let { nvim, document } = this
     if (this.selecting) return
     this.currentSources = this.complete.resultSources
     let { disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
@@ -295,10 +293,11 @@ export class Completion implements Disposable {
     let timer = this.completeTimer = setTimeout(async () => {
       if (complete.isCanceled) return
       let items = complete.filterResults(option.input)
-      if (items.length === 0 || this.sourcesExists(items)) return
+      if (items.length === 0) return
       await this.showCompletion(option.col, items)
     }, 200)
     let items = await this.complete.doComplete()
+    this.completeTimer = null
     clearTimeout(timer)
     if (complete.isCanceled || this.selecting) return
     if (items.length == 0) {
@@ -334,8 +333,7 @@ export class Completion implements Disposable {
     let { option } = this
     let pretext = this.pretext = info.pre
     if (!option || option.bufnr != bufnr) return
-    let hasInsert = this.latestInsert != null
-    this.lastInsert = null
+    let hasInsert = info.insertChar != null
     if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
       // Can't handle indent change
       logger.warn('Complete stopped by indent change.')
@@ -357,14 +355,13 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
-    let { nvim, latestInsertChar, option } = this
-    let pretext = this.pretext = info.pre
-    this.lastInsert = null
+    let { nvim, option } = this
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
+    let pretext = this.pretext = info.pre
     // try trigger on character type
     if (!this.activated) {
-      if (!latestInsertChar) return
+      if (!info.insertChar) return
       if (sources.shouldTrigger(pretext, doc.filetype, doc.uri)) {
         await this.triggerCompletion(doc, pretext)
         return
@@ -378,11 +375,11 @@ export class Completion implements Disposable {
     // Ignore change with other buffer
     if (!option || bufnr != option.bufnr) return
     if (option.linenr != info.lnum || option.col >= info.col - 1) {
-      this.stop()
+      this.stop(false)
       return
     }
     // Completion canceled by <C-e> or text changed by backspace.
-    if (!latestInsertChar) {
+    if (!info.insertChar) {
       this.stop(false)
       return
     }
@@ -394,7 +391,7 @@ export class Completion implements Disposable {
         let { linenr, col, line, colnr } = this.option
         this.stop()
         let { word } = resolvedItem
-        let newLine = `${line.slice(0, col)}${word}${latestInsertChar}${line.slice(colnr - 1)}`
+        let newLine = `${line.slice(0, col)}${word}${info.insertChar}${line.slice(colnr - 1)}`
         await nvim.call('coc#util#setline', [linenr, newLine])
         let curcol = col + word.length + 2
         await nvim.call('cursor', [linenr, curcol])
@@ -483,9 +480,12 @@ export class Completion implements Disposable {
     }
   }
 
-  private async onInsertLeave(): Promise<void> {
-    this.insertLeaveTs = Date.now()
+  private onInsertLeave(): void {
     this.stop(false)
+  }
+
+  private async onInsertCharPre(): Promise<void> {
+    this.insertCharTs = Date.now()
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
@@ -495,28 +495,6 @@ export class Completion implements Disposable {
     let pre = await this.nvim.eval(`strpart(getline('.'), 0, col('.') - 1)`) as string
     if (!pre) return
     await this.triggerCompletion(doc, pre)
-  }
-
-  private async onInsertCharPre(character: string): Promise<void> {
-    this.lastInsert = {
-      character,
-      timestamp: Date.now(),
-    }
-    this.insertCharTs = this.lastInsert.timestamp
-  }
-
-  private get latestInsert(): LastInsert | null {
-    let { lastInsert } = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > 500) {
-      return null
-    }
-    return lastInsert
-  }
-
-  private get latestInsertChar(): string {
-    let { latestInsert } = this
-    if (!latestInsert) return ''
-    return latestInsert.character
   }
 
   public shouldTrigger(doc: Document, pre: string): boolean {

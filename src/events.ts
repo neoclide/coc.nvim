@@ -20,6 +20,10 @@ export interface InsertChange {
   lnum: number
   col: number
   pre: string
+  /**
+   * Insert character that cause change of this time.
+   */
+  insertChar?: string
   changedtick: number
 }
 
@@ -108,6 +112,8 @@ class Events {
     if (event == 'TextChangedI' || event == 'TextChangedP') {
       this._lastChange = Date.now()
       if (this._latestInsert) {
+        let info = args[1]
+        if (info) info.insertChar = this._latestInsert.character
         let insert = this._latestInsert
         this._latestInsert = undefined
         if (insert.bufnr == args[0] && Date.now() - insert.timestamp < 200 && args[1].pre.length) {
