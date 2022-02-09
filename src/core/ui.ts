@@ -94,7 +94,6 @@ export async function selectRange(nvim: Neovim, range: Range, redraw: boolean): 
     endLnum = end.line
     endCol = endLine.length > 0 ? byteLength(endLine.slice(0, end.character)) : 0
   }
-  col = await nvim.eval(`virtcol([${start.line + 1}, ${col}])`) as number
   nvim.pauseNotification()
   nvim.command(`noa call cursor(${start.line + 1},${col + 1})`, true)
   nvim.command('normal! v', true)
