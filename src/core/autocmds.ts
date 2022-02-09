@@ -38,8 +38,12 @@ export default class Autocmds implements Disposable {
   }
 
   public async doAutocmd(id: number, args: any[]): Promise<void> {
-    let autocmd = this.autocmds.get(id) as any
-    if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
+    let autocmd = this.autocmds.get(id)
+    if (autocmd) {
+      let ev = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
+      logger.debug(`invoke ${autocmd.request ? 'request' : 'notify'} autocmd:`, ev)
+      await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
+    }
   }
 
   public registerAutocmd(autocmd: Autocmd): Disposable {
