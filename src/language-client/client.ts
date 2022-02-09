@@ -12,7 +12,7 @@ import languages from '../languages'
 import { FileSystemWatcher as FileWatcher } from '../types'
 import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, OutputChannel, TextDocumentWillSaveEvent, Thenable, MessageItem } from '../types'
-import { resolveRoot } from '../util/fs'
+import { resolveRoot, sameFile } from '../util/fs'
 import * as Is from '../util/is'
 import { omit } from '../util/lodash'
 import { mergeConfigProperties } from '../configuration/util'
@@ -3158,6 +3158,7 @@ export abstract class BaseLanguageClient {
   private _name: string
   private _markdownSupport: boolean
   private _clientOptions: ResolvedClientOptions
+  private _rootPath: string | false
 
   protected _state: ClientState
   private _onReady: Promise<void>
@@ -3561,6 +3562,11 @@ export abstract class BaseLanguageClient {
   }
 
   public start(): Disposable {
+    this._rootPath = this.resolveRootPath()
+    if (this._rootPath === false) {
+      this.warn(`Required root pattern not resolved, server won't start.`)
+      return Disposable.create(() => {})
+    }
     if (this._onReadyCallbacks.isUsed) {
       this._onReady = new Promise((resolve, reject) => {
         this._onReadyCallbacks = new OnReady(resolve, reject)
@@ -3711,7 +3717,7 @@ export abstract class BaseLanguageClient {
     }
     if (required && !resolved) return false
     let rootPath = resolved || workspace.rootPath || workspace.cwd
-    if (rootPath === os.homedir() || (ignoredRootPaths && ignoredRootPaths.includes(rootPath))) {
+    if (sameFile(rootPath, os.homedir()) || (Array.isArray(ignoredRootPaths) && ignoredRootPaths.some(p => sameFile(rootPath, p)))) {
       this.warn(`Ignored rootPath ${rootPath} of client "${this._id}"`)
       return null
     }
@@ -3719,13 +3725,9 @@ export abstract class BaseLanguageClient {
   }
 
   private initialize(connection: IConnection): Promise<InitializeResult> {
-    this.refreshTrace(connection, false)
     let { initializationOptions, progressOnInitialization } = this._clientOptions
-    let rootPath = this.resolveRootPath()
-    if (rootPath === false) {
-      console.warn(`required root pattern not found, server not started.`)
-      return
-    }
+    this.refreshTrace(connection, false)
+    let rootPath = this._rootPath
     let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,

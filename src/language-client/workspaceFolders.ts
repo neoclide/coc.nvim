@@ -5,11 +5,11 @@
 'use strict'
 
 import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RegistrationType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersChangeEvent, WorkspaceFoldersRequest } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import { sameFile } from '../util/fs'
 import workspace from '../workspace'
-import os from 'os'
 import { BaseLanguageClient, DynamicFeature, NextSignature, RegistrationData } from './client'
 import * as UUID from './utils/uuid'
-import { URI } from 'vscode-uri'
 const logger = require('../util/logger')('language-client-workspaceFolder')
 
 function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | undefined {
@@ -43,14 +43,11 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   private getValidWorkspaceFolders(): WorkspaceFolder[] | undefined {
     let { workspaceFolders } = workspace
     if (!workspaceFolders || workspaceFolders.length == 0) return undefined
-    let home = os.homedir()
     let { ignoredRootPaths } = this._client.clientOptions
-    if (!Array.isArray(ignoredRootPaths)) {
-      ignoredRootPaths = []
-    }
+    if (!Array.isArray(ignoredRootPaths)) ignoredRootPaths = []
     let arr = workspaceFolders.filter(o => {
       let fsPath = URI.parse(o.uri).fsPath
-      return fsPath != home && !ignoredRootPaths.includes(fsPath)
+      return ignoredRootPaths.every(p => !sameFile(p, fsPath))
     })
     return arr.length ? arr : undefined
   }
@@ -58,9 +55,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   private asProtocol(workspaceFolder: WorkspaceFolder): WorkspaceFolder
   private asProtocol(workspaceFolder: undefined): null
   private asProtocol(workspaceFolder: WorkspaceFolder | undefined): WorkspaceFolder | null {
-    if (workspaceFolder === void 0) {
-      return null
-    }
+    if (workspaceFolder == null) return null
     return { uri: workspaceFolder.uri, name: workspaceFolder.name }
   }
 
@@ -68,11 +63,11 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
     const folders = this.getValidWorkspaceFolders()
     this._initialFolders = folders
     if (folders == null) {
+      this._client.warn(`No valid workspaceFolder exists`)
       params.workspaceFolders = null
     } else {
       params.workspaceFolders = folders.map(folder => this.asProtocol(folder))
     }
-    // params.workspaceFolders = workspace.workspaceFolders
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
@@ -139,8 +134,8 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
     let id = data.id
     let client = this._client
     let disposable = workspace.onDidChangeWorkspaceFolders(event => {
-      let didChangeWorkspaceFolders = (event: WorkspaceFoldersChangeEvent) => {
-        this.doSendEvent(event.added, event.removed)
+      let didChangeWorkspaceFolders = (e: WorkspaceFoldersChangeEvent) => {
+        this.doSendEvent(e.added, e.removed)
       }
       let middleware = client.clientOptions.middleware.workspace
       middleware && middleware.didChangeWorkspaceFolders
