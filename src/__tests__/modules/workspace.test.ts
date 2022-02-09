@@ -451,15 +451,6 @@ describe('workspace events', () => {
     expect(doc.filetype).toBe('xml')
   })
 
-  it('should listen optionSet', async () => {
-    let opt = workspace.completeOpt
-    expect(opt).toMatch('menuone')
-    await nvim.command('set completeopt=menu,preview')
-    await helper.wait(50)
-    opt = workspace.completeOpt
-    expect(opt).toBe('menu,preview')
-  })
-
   it('should fire onDidOpenTextDocument', async () => {
     let fn = jest.fn()
     workspace.onDidOpenTextDocument(fn, null, disposables)

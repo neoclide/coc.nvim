@@ -76,14 +76,6 @@ export default class Complete {
     return this.results.size == 0
   }
 
-  public get startcol(): number {
-    return this.option.col || 0
-  }
-
-  public get input(): string {
-    return this.option.input
-  }
-
   public get isIncomplete(): boolean {
     return Array.from(this.results.values()).findIndex(o => o.isIncomplete) !== -1
   }

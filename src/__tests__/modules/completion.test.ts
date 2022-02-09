@@ -9,6 +9,7 @@ import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
+import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -574,6 +575,40 @@ describe('completion TextChangedP', () => {
     await helper.wait(50)
     let items = await helper.getItems()
     expect(items[0].word).toBe('foo#abc')
+  })
+
+  it('should cancel on InsertLeave', async () => {
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      sourceType: SourceType.Service,
+      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo#abc' }] }),
+    }
+    disposables.push(sources.addSource(source))
+    await nvim.input('if')
+    await helper.waitPopup()
+    await nvim.input('<esc>')
+    await helper.wait(50)
+    expect(completion.isActivated).toBe(false)
+  })
+
+  it('should cancel on CursorMoved', async () => {
+    let buf = await nvim.buffer
+    await buf.setLines(['', 'bar'], { start: 0, end: -1, strictIndexing: false })
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      sourceType: SourceType.Service,
+      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo#abc' }] }),
+    }
+    disposables.push(sources.addSource(source))
+    await nvim.input('if')
+    await helper.waitPopup()
+    await events.fire('CompleteDone', [{}])
+    await events.fire('CursorMovedI', [buf.id, [2, 1]])
+    expect(completion.isActivated).toBe(false)
   })
 
   it('should use source-provided score', async () => {

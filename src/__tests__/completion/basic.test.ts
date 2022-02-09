@@ -78,8 +78,6 @@ describe('completion', () => {
       await nvim.input('<esc>')
       await nvim.input('or')
       await helper.visible('result')
-      let context = await nvim.getVar('coc#_context') as any
-      expect(context.preselect).toBe(0)
     })
 
     it('should select recent item by prefix', async () => {
@@ -97,10 +95,6 @@ describe('completion', () => {
       await helper.visible('world')
       let context = await nvim.getVar('coc#_context') as any
       expect(context.preselect).toBe(-1)
-      await nvim.input('o')
-      await helper.wait(50)
-      context = await nvim.getVar('coc#_context') as any
-      expect(context.preselect).toBe(0)
     })
   })
 

@@ -5,14 +5,14 @@ import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig, MruItem } from './complete'
-import MruLoader from './mru'
 import Floating, { PumBounding } from './floating'
+import MruLoader from './mru'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
 
@@ -38,8 +38,6 @@ export class Completion implements Disposable {
   private resolveTokenSource: CancellationTokenSource
   private pretext = ''
   private changedTick = 0
-  private insertCharTs = 0
-  private excludeImages: boolean
   private mru: MruLoader = new MruLoader()
 
   public init(): void {
@@ -49,16 +47,6 @@ export class Completion implements Disposable {
         this.config = this.getCompleteConfig()
       }
     }, null, this.disposables)
-    workspace.watchOption('completeopt', async (_, newValue) => {
-      workspace.env.completeOpt = newValue
-      if (!this.isActivated) return
-      if (this.config.autoTrigger === 'always') {
-        let content = await this.nvim.call('execute', ['verbose set completeopt']) as string
-        let lines = content.split(/\r?\n/)
-        this.nvim.echoError(`Some plugin change completeopt during completion: ${lines[lines.length - 1].trim()}!`)
-      }
-    }, this.disposables)
-    this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on(['InsertCharPre', 'MenuPopupChanged', 'TextChangedI', 'CursorMovedI', 'InsertLeave'], () => {
       if (this.triggerTimer) {
@@ -70,7 +58,6 @@ export class Completion implements Disposable {
         this.completeTimer = null
       }
     }, this, this.disposables)
-    events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
     events.on('InsertLeave', this.onInsertLeave, this, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
@@ -86,6 +73,11 @@ export class Completion implements Disposable {
       if (!this.activated) return
       fn.clear()
       this.cancelResolve()
+      if (Object.keys(item).length == 0) {
+        let menuPopup = await this.waitMenuPopup()
+        if (!menuPopup) this.stop(false)
+        return
+      }
       await this.onCompleteDone(item)
     }, this, this.disposables)
     events.on('MenuPopupChanged', ev => {
@@ -224,7 +216,6 @@ export class Completion implements Disposable {
       return
     }
     if (items.length === 0 && !complete.isCompleting) {
-      logger.debug('stop')
       this.stop()
       return
     }
@@ -428,23 +419,69 @@ export class Completion implements Disposable {
     await this.startCompletion(option)
   }
 
+  private async waitMenuPopup(): Promise<boolean> {
+    return new Promise(resolve => {
+      let disposables: Disposable[] = []
+      let timer = setTimeout(() => {
+        disposeAll(disposables)
+        resolve(false)
+      }, 300)
+      events.on('InsertLeave', () => {
+        clearTimeout(timer)
+        disposeAll(disposables)
+        resolve(false)
+      }, null, disposables)
+      events.on('CursorMovedI', () => {
+        clearTimeout(timer)
+        disposeAll(disposables)
+        resolve(false)
+      }, null, disposables)
+      events.on('MenuPopupChanged', () => {
+        clearTimeout(timer)
+        disposeAll(disposables)
+        resolve(true)
+      }, null, disposables)
+      events.on('InsertCharPre', () => {
+        clearTimeout(timer)
+        disposeAll(disposables)
+        resolve(true)
+      }, null, disposables)
+    })
+  }
+
+  private async waitTextChangedI(): Promise<InsertChange | undefined> {
+    return new Promise(resolve => {
+      let disposables: Disposable[] = []
+      let timer = setTimeout(() => {
+        disposeAll(disposables)
+        resolve(undefined)
+      }, 300)
+      events.on('InsertLeave', () => {
+        clearTimeout(timer)
+        disposeAll(disposables)
+        resolve(undefined)
+      }, null, disposables)
+      events.on('TextChangedI', (_, info) => {
+        clearTimeout(timer)
+        disposeAll(disposables)
+        resolve(info)
+      }, null, disposables)
+    })
+  }
+
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
-    let { document, isActivated } = this
-    if (!isActivated || !document || !Is.vimCompleteItem(item)) return
+    let { document } = this
+    if (!document || !Is.vimCompleteItem(item)) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
     this.stop()
     if (!resolvedItem) return
-    let now = Date.now()
+    let insertChange = await this.waitTextChangedI()
+    if (!insertChange) return
+    if (insertChange.lnum != opt.linenr || insertChange.pre !== byteSlice(opt.line, 0, opt.col) + item.word) return
     let source = new CancellationTokenSource()
     this.mru.add(this.input, resolvedItem)
     await this.doCompleteResolve(resolvedItem, source)
-    source.dispose()
-    // Wait possible TextChangedI
-    await wait(50 - (Date.now() - now))
-    let [lnum, mode, pretext] = await this.nvim.eval(`[line('.'),mode(),strpart(getline('.'),0,col('.')-1)]`) as [number, string, string]
-    if (lnum !== opt.linenr || mode != 'i' || pretext !== byteSlice(opt.line, 0, opt.col) + item.word) return
-    if (this.insertCharTs > now || this.activated) return
     await document.patchChange(true)
     await this.doCompleteDone(resolvedItem, opt)
   }
@@ -482,10 +519,6 @@ export class Completion implements Disposable {
 
   private onInsertLeave(): void {
     this.stop(false)
-  }
-
-  private async onInsertCharPre(): Promise<void> {
-    this.insertCharTs = Date.now()
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
@@ -543,8 +576,9 @@ export class Completion implements Disposable {
     } else {
       if (this.config.floatEnable) {
         let source = new CancellationTokenSource()
+        let excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
         await this.floating.show(docs, bounding, Object.assign({}, this.config.floatConfig, {
-          excludeImages: this.excludeImages
+          excludeImages
         }), source.token)
       }
       if (!this.isActivated) {

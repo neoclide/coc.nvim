@@ -199,10 +199,6 @@ describe('diagnostic manager', () => {
       await manager.preview()
       let res = await nvim.call('coc#window#find', ['&previewwindow', 1])
       expect(res).toBeDefined()
-      await nvim.call('win_gotoid', [res])
-      let buf = await nvim.buffer
-      let lines = await buf.lines
-      expect(lines[0]).toEqual('[test] [E]')
     })
   })
 
