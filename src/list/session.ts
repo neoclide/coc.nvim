@@ -197,6 +197,7 @@ export default class ListSession {
       nvim.call('coc#prompt#stop_prompt', ['list'], true)
       n = await window.showMenuPicker(names, { title: 'Choose action', shortcuts: true })
       n = n + 1
+      if (workspace.isVim) await wait(10)
       this.prompt.start()
     } else {
       await nvim.call('coc#prompt#stop_prompt', ['list'])
