@@ -61,6 +61,14 @@ describe('getSelection()', () => {
     let res = await ui.getSelection(nvim, 'v')
     expect(res).toBeNull()
   })
+
+  it('should return range for line selection', async () => {
+    await nvim.setLine('foo')
+    await nvim.input('V')
+    await nvim.input('<esc>')
+    let res = await ui.getSelection(nvim, 'V')
+    expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 1, character: 0 } })
+  })
 })
 
 describe('selectRange()', () => {

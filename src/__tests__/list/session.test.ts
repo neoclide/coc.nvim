@@ -244,10 +244,12 @@ describe('showHelp()', () => {
 describe('chooseAction()', () => {
   it('should filter actions not have shortcuts', async () => {
     labels = ['a', 'b', 'c']
+    let fn = jest.fn()
     let list = new SimpleList(nvim)
     list.actions.push({
       name: 'a',
       execute: () => {
+        fn()
       }
     })
     list.actions.push({
@@ -264,8 +266,38 @@ describe('chooseAction()', () => {
     await manager.start(['--normal', 'simple'])
     await manager.session.ui.ready
     let p = manager.session.chooseAction()
-    await helper.wait(100)
+    await helper.wait(50)
     await nvim.input('a')
     await p
+    expect(fn).toBeCalled()
+  })
+
+  it('should choose action by menu picker', async () => {
+    helper.updateConfiguration('list.menuAction', true)
+    labels = ['a', 'b', 'c']
+    let fn = jest.fn()
+    let list = new SimpleList(nvim)
+    let len = list.actions.length
+    list.actions.splice(0, len)
+    list.actions.push({
+      name: 'a',
+      execute: () => {
+        fn()
+      }
+    })
+    list.actions.push({
+      name: 'b',
+      execute: () => {
+        fn()
+      }
+    })
+    disposables.push(manager.registerList(list))
+    await manager.start(['--normal', 'simple'])
+    await manager.session.ui.ready
+    let p = manager.session.chooseAction()
+    await helper.wait(50)
+    await nvim.input('<cr>')
+    await p
+    expect(fn).toBeCalled()
   })
 })

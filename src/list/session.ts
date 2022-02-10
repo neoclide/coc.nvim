@@ -5,8 +5,8 @@ import extensions from '../extensions'
 import Highlighter from '../model/highligher'
 import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from '../types'
 import { disposeAll, wait } from '../util'
-import workspace from '../workspace'
 import window from '../window'
+import workspace from '../workspace'
 import ListConfiguration from './configuration'
 import InputHistory from './history'
 import Prompt from './prompt'
@@ -174,6 +174,7 @@ export default class ListSession {
     let shortcuts: Set<string> = new Set()
     let choices: string[] = []
     let invalids: string[] = []
+    let menuAction = workspace.env.dialog && this.config.get('menuAction', false)
     for (let name of names) {
       let i = 0
       for (let ch of name) {
@@ -188,17 +189,22 @@ export default class ListSession {
         invalids.push(name)
       }
     }
-    if (invalids.length) {
+    if (invalids.length && !menuAction) {
       names = names.filter(s => !invalids.includes(s))
     }
-    await nvim.call('coc#prompt#stop_prompt', ['list'])
-    let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
-    await wait(10)
-    this.prompt.start()
-    if (n) await this.doAction(names[n - 1])
-    if (invalids.length) {
-      nvim.echoError(`Can't create shortcut for actions: ${invalids.join(',')} of "${this.name}" list`)
+    let n: number
+    if (menuAction) {
+      nvim.call('coc#prompt#stop_prompt', ['list'], true)
+      n = await window.showMenuPicker(names, { title: 'Choose action', shortcuts: true })
+      n = n + 1
+      this.prompt.start()
+    } else {
+      await nvim.call('coc#prompt#stop_prompt', ['list'])
+      n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
+      await wait(10)
+      this.prompt.start()
     }
+    if (n) await this.doAction(names[n - 1])
   }
 
   public async doAction(name?: string): Promise<void> {
