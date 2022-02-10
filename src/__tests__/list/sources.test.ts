@@ -5,7 +5,7 @@ import { URI } from 'vscode-uri'
 import diagnosticManager from '../../diagnostic/manager'
 import events from '../../events'
 import languages from '../../languages'
-import BasicList, { getFiletype, PreviewOptions } from '../../list/basic'
+import BasicList, { toVimFiletype, PreviewOptions } from '../../list/basic'
 import { formatListItems, formatPath, UnformattedListItem } from '../../list/formatting'
 import manager from '../../list/manager'
 import Document from '../../model/document'
@@ -121,11 +121,8 @@ describe('formatting', () => {
 describe('BasicList', () => {
   describe('getFiletype()', () => {
     it('should get filetype', async () => {
-      expect(getFiletype('javascriptreact')).toBe('javascript')
-      expect(getFiletype('typescriptreact')).toBe('typescript')
-      expect(getFiletype('latex')).toBe('tex')
-      expect(getFiletype('foo.bar')).toBe('foo')
-      expect(getFiletype('foo')).toBe('foo')
+      expect(toVimFiletype('latex')).toBe('tex')
+      expect(toVimFiletype('foo')).toBe('foo')
     })
   })
 

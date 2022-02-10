@@ -212,7 +212,8 @@ describe('list', () => {
 
     it('should respect auto preview option', async () => {
       await manager.start(['--auto-preview', 'location'])
-      await helper.wait(300)
+      await manager.session.ui.ready
+      await helper.wait(100)
       let previewWinnr = await nvim.call('coc#list#has_preview')
       expect(previewWinnr).toBe(2)
       let bufnr = await nvim.call('winbufnr', previewWinnr)
@@ -228,7 +229,7 @@ describe('list', () => {
     it('should respect tab option', async () => {
       await manager.start(['--tab', '--auto-preview', 'location'])
       await manager.session.ui.ready
-      await helper.wait(200)
+      await helper.wait(100)
       await nvim.command('wincmd l')
       let previewwindow = await nvim.eval('w:previewwindow')
       expect(previewwindow).toBe(1)

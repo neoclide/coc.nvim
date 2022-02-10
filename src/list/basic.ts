@@ -253,7 +253,7 @@ export default abstract class BasicList implements IList, Disposable {
       range: emptyRange(range) ? null : range,
       lnum: range.start.line + 1,
       name: u.scheme == 'file' ? u.fsPath : uri,
-      filetype: doc ? doc.filetype : this.getFiletype(u.fsPath),
+      filetype: toVimFiletype(doc ? doc.languageId : this.getLanguageId(u.fsPath)),
       position: context.options.position,
       maxHeight: this.previewHeight,
       splitRight: this.splitRight,
@@ -299,30 +299,25 @@ export default abstract class BasicList implements IList, Disposable {
   /**
    * Get filetype by check same extension name buffer.
    */
-  private getFiletype(filepath: string): string {
+  private getLanguageId(filepath: string): string {
     let extname = path.extname(filepath)
     if (!extname) return ''
     for (let doc of workspace.documents) {
       let fsPath = URI.parse(doc.uri).fsPath
       if (path.extname(fsPath) == extname) {
-        return getFiletype(doc.filetype)
+        return doc.languageId
       }
     }
     return ''
   }
 }
 
-export function getFiletype(filetype: string): string {
+export function toVimFiletype(filetype: string): string {
   switch (filetype) {
-    case 'javascriptreact':
-      return 'javascript'
-    case 'typescriptreact':
-      return 'typescript'
     case 'latex':
       // LaTeX (LSP language ID 'latex') has Vim filetype 'tex'
       return 'tex'
     default:
-      if (filetype.indexOf('.') !== -1) return filetype.split('.')[0]
       return filetype
   }
 }
