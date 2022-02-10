@@ -13,7 +13,7 @@ import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
 import { TreeView, TreeViewOptions } from './tree'
-import { HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
+import { HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
@@ -119,11 +119,11 @@ class Window {
    * Use `workspace.env.dialog` to check if the picker window/popup could work.
    *
    * @param items Array of texts.
-   * @param title Optional title of float/popup window.
+   * @param option Options for menu.
    * @param token A token that can be used to signal cancellation.
    * @returns Selected index (0 based), -1 when canceled.
    */
-  public async showMenuPicker(items: string[] | MenuItem[], title?: string, token?: CancellationToken): Promise<number> {
+  public async showMenuPicker(items: string[] | MenuItem[], option?: MenuOption, token?: CancellationToken): Promise<number> {
     if (workspace.env.dialog) {
       let release = await this.mutex.acquire()
       if (token && token.isCancellationRequested) {
@@ -131,7 +131,9 @@ class Window {
         return -1
       }
       try {
-        let menu = new Menu(this.nvim, { items, title }, token)
+        option = option || {}
+        if (typeof option === 'string') option = { title: option }
+        let menu = new Menu(this.nvim, { items, ...option }, token)
         let promise = new Promise<number>(resolve => {
           menu.onDidClose(selected => {
             resolve(selected)
@@ -675,6 +677,7 @@ class Window {
       pickerButtons: config.get<boolean>('pickerButtons'),
       pickerButtonShortcut: config.get<boolean>('pickerButtonShortcut'),
       confirmKey: config.get<string>('confirmKey'),
+      shortcutHighlight: config.get<string>('shortcutHighlight')
     }
   }
 

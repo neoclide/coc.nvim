@@ -347,6 +347,13 @@ export interface MessageItem {
   isCloseAffordance?: boolean
 }
 
+export type MenuOption = {
+  title?: string,
+  /**
+   * Create and highlight shortcut characters.
+   */
+  shortcuts?: boolean
+} | string
 // }}
 
 // vim {{

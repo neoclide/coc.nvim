@@ -1,3 +1,9 @@
+# 2022-02-10
+
+- Add shortcut support for `window.showMenuPicker()`.
+- Add configuration `dialog.shortcutHighlight` for shortcut highlight.
+- Add configuration `list.menuAction` for choose action by menu picker.
+
 # 2022-02-09
 
 - Add error log to `nvim_error_event`.

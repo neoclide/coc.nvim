@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import helper from '../helper'
 import Menu from '../../model/menu'
+import { CancellationTokenSource } from 'vscode-jsonrpc'
 
 let nvim: Neovim
 let menu: Menu
@@ -32,6 +33,34 @@ describe('Menu', () => {
     await nvim.input('<esc>')
     let res = await p
     expect(res).toBe(-1)
+  })
+
+  it('should cancel before float window shown', async () => {
+    let tokenSource: CancellationTokenSource = new CancellationTokenSource()
+    menu = new Menu(nvim, { items: [{ text: 'foo' }] }, tokenSource.token)
+    let p = new Promise(resolve => {
+      menu.onDidClose(v => {
+        resolve(v)
+      })
+    })
+    let promise = menu.show()
+    tokenSource.cancel()
+    await promise
+    let res = await p
+    expect(res).toBe(-1)
+  })
+
+  it('should support menu shortcut', async () => {
+    menu = new Menu(nvim, { items: [{ text: 'foo' }, { text: 'bar' }, { text: 'baba' }], shortcuts: true, title: 'Actions' })
+    let p = new Promise(resolve => {
+      menu.onDidClose(v => {
+        resolve(v)
+      })
+    })
+    await menu.show()
+    await nvim.input('b')
+    let res = await p
+    expect(res).toBe(1)
   })
 
   it('should select by CR', async () => {

@@ -69,21 +69,11 @@ export function isWord(character: string): boolean {
   if (code > 128) return false
   if (code == 95) return true
   if (code >= 48 && code <= 57) return true
-  if (code >= 65 && code <= 90) return true
-  if (code >= 97 && code <= 122) return true
+  if (isAlphabet(code)) return true
   return false
 }
 
-export function isTriggerCharacter(character: string): boolean {
-  if (!character) return false
-  let code = character.charCodeAt(0)
-  if (code > 128) return false
-  if (code >= 65 && code <= 90) return false
-  if (code >= 97 && code <= 122) return false
-  return true
-}
-
-export function isAsciiLetter(code: number): boolean {
+export function isAlphabet(code: number): boolean {
   if (code >= 65 && code <= 90) return true
   if (code >= 97 && code <= 122) return true
   return false
@@ -100,7 +90,7 @@ function doEqualsIgnoreCase(a: string, b: string, stopAt = a.length): boolean {
       continue
     }
     // a-z A-Z
-    if (isAsciiLetter(codeA) && isAsciiLetter(codeB)) {
+    if (isAlphabet(codeA) && isAlphabet(codeB)) {
       const diff = Math.abs(codeA - codeB)
       if (diff !== 0 && diff !== 32) {
         return false
@@ -119,8 +109,6 @@ function doEqualsIgnoreCase(a: string, b: string, stopAt = a.length): boolean {
 export function equalsIgnoreCase(a: string, b: string): boolean {
   const len1 = a ? a.length : 0
   const len2 = b ? b.length : 0
-  if (len1 !== len2) {
-    return false
-  }
+  if (len1 !== len2) return false
   return doEqualsIgnoreCase(a, b)
 }

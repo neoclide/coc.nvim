@@ -3,7 +3,7 @@ import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languagese
 import events from '../events'
 import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
-import { byteLength } from '../util/string'
+import { byteLength, isAlphabet } from '../util/string'
 import { DialogPreferences } from './dialog'
 import Popup from './popup'
 const logger = require('../util/logger')('model-menu')
@@ -16,6 +16,7 @@ export interface MenuItem {
 export interface MenuConfig {
   items: string[] | MenuItem[]
   title?: string
+  shortcuts?: boolean
 }
 
 export function isMenuItem(item: any): item is MenuItem {
@@ -33,13 +34,20 @@ export default class Menu {
   private total: number
   private disposables: Disposable[] = []
   private keyMappings: Map<string, (character: string) => void> = new Map()
+  private shortcutIndexes: Set<number> = new Set()
+  private _disposed = false
   private readonly _onDidClose = new Emitter<number>()
   public readonly onDidClose: Event<number> = this._onDidClose.event
   constructor(private nvim: Neovim, private config: MenuConfig, token?: CancellationToken) {
     this.total = config.items.length
     if (token) {
       token.onCancellationRequested(() => {
-        this.win?.close()
+        if (this.win) {
+          this.win?.close()
+        } else {
+          this._onDidClose.fire(-1)
+          this.dispose()
+        }
       })
     }
     this.disposables.push(this._onDidClose)
@@ -51,8 +59,6 @@ export default class Menu {
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
         this._onDidClose.fire(-1)
-        this.bufnr = undefined
-        this.win = undefined
         this.dispose()
       }
     }, null, this.disposables)
@@ -126,6 +132,27 @@ export default class Menu {
       }, 200)
       firstNumber = n
     })
+    if (this.config.shortcuts) {
+      this.addShortcuts(choose)
+    }
+  }
+
+  private addShortcuts(choose: (idx: number) => void): void {
+    let { items } = this.config
+    let texts: string[] = items.map(o => {
+      return isMenuItem(o) ? o.text : o
+    })
+    texts.forEach((text, idx) => {
+      if (text.length) {
+        let s = text[0]
+        if (isAlphabet(s.charCodeAt(0)) && !this.keyMappings.has(s)) {
+          this.shortcutIndexes.add(idx)
+          this.addKeys(s, () => {
+            choose(idx)
+          })
+        }
+      }
+    })
   }
 
   private isDisabled(idx: number): boolean {
@@ -138,7 +165,7 @@ export default class Menu {
   }
 
   public async show(preferences: DialogPreferences = {}): Promise<number> {
-    let { nvim } = this
+    let { nvim, shortcutIndexes } = this
     let { title, items } = this.config
     let opts: any = {}
     if (title) opts.title = title
@@ -149,8 +176,17 @@ export default class Menu {
     let highlights: HighlightItem[] = []
     let lines = items.map((v, i) => {
       let text: string = isMenuItem(v) ? v.text : v
-      if (i < 99) return `${i + 1}. ${text.trim()}`
-      return text.trim()
+      let pre = i < 99 ? `${i + 1}. ` : ''
+      // if (i < 99) return `${i + 1}. ${text.trim()}`
+      if (shortcutIndexes.has(i)) {
+        highlights.push({
+          lnum: i,
+          hlGroup: preferences.shortcutHighlight || 'MoreMsg',
+          colStart: byteLength(pre),
+          colEnd: byteLength(pre) + 1
+        })
+      }
+      return pre + text.trim()
     })
     lines.forEach((line, i) => {
       let item = items[i]
@@ -170,6 +206,8 @@ export default class Menu {
       })
     }
     let res = await nvim.call('coc#float#create_menu', [lines, opts]) as [number, number]
+    nvim.command('redraw', true)
+    if (this._disposed) return
     this.win = new Popup(nvim, res[0], res[1])
     this.bufnr = res[1]
     this.attachEvents()
@@ -195,10 +233,13 @@ export default class Menu {
   }
 
   public dispose(): void {
+    this._disposed = true
     disposeAll(this.disposables)
-    this.disposables = []
+    this.shortcutIndexes.clear()
+    this.keyMappings.clear()
     this.nvim.call('coc#prompt#stop_prompt', ['menu'], true)
     this.win?.close()
+    this.bufnr = undefined
     this.win = undefined
   }
 

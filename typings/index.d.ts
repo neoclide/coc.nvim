@@ -7071,6 +7071,14 @@ declare module 'coc.nvim' {
     disabled?: boolean | { reason: string }
   }
 
+  export interface MenuOption {
+    title: string,
+    /**
+     * Create and highlight shortcut characters.
+     */
+    shortcuts?: boolean
+  }
+
   export namespace window {
     /**
      * Reveal message with message type.
@@ -7099,6 +7107,7 @@ declare module 'coc.nvim' {
 
     /**
      * Show quickpick for single item, use `window.menuPick` for menu at current current position.
+     * Use `window.showPickerDialog()` for multiple selection.
      *
      * @param items Label list.
      * @param placeholder Prompt text, default to 'choose by number'.
@@ -7115,7 +7124,7 @@ declare module 'coc.nvim' {
      * @param token A token that can be used to signal cancellation.
      * @returns Selected index (0 based), -1 when canceled.
      */
-    export function showMenuPicker(items: string[] | MenuItem[], title?: string, token?: CancellationToken): Promise<number>
+    export function showMenuPicker(items: string[] | MenuItem[], option?: MenuOption, token?: CancellationToken): Promise<number>
 
     /**
      * Open local config file

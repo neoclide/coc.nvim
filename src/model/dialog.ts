@@ -24,6 +24,7 @@ export interface DialogPreferences {
   pickerButtons?: boolean
   pickerButtonShortcut?: boolean
   confirmKey?: string
+  shortcutHighlight?: string
 }
 
 export interface DialogConfig {
