@@ -207,7 +207,7 @@ export default abstract class BasicList implements IList, Disposable {
   }
 
   public async jumpTo(location: Location | LocationWithLine | string, command?: string, context?: ListContext): Promise<void> {
-    if (context && context.options.position === 'tab') {
+    if (command == null && context && context.options.position === 'tab') {
       command = 'tabe'
     }
     if (typeof location == 'string') {
