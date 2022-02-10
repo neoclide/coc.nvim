@@ -97,11 +97,18 @@ export default class SemanticTokensHighlights {
       let item = this.highlighters.getItem(bufnr)
       if (!item || !item.shouldRangeHighlight) return
       await item.doRangeHighlight()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 300)
+    }, global.hasOwnProperty('__TEST__') ? 15 : 300)
     events.on('CursorMoved', fn, null, this.disposables)
+    let fn1 = debounce(async bufnr => {
+      let item = this.highlighters.getItem(bufnr)
+      if (!item) return
+      await item.doPendingHighlight()
+    }, global.hasOwnProperty('__TEST__') ? 10 : 100)
+    events.on('CursorMoved', fn1, null, this.disposables)
     this.disposables.push({
       dispose: () => {
         fn.clear()
+        fn1.clear()
       }
     })
   }

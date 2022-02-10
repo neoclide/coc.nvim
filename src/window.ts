@@ -545,10 +545,12 @@ class Window {
    * @param {number} bufnr Buffer number
    * @param {string} ns Highlight namespace
    * @param {HighlightItem[]} items Highlight items
+   * @param {start} start start range of the current items, default 0, inclusive.
+   * @param {end} end end range of the current items, default -1, exclusive.
    * @returns {Promise<HighlightDiff | null>}
    */
-  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[]): Promise<HighlightDiff | null> {
-    let curr = await this.nvim.call('coc#highlight#get_highlights', [bufnr, ns]) as HighlightItemResult[]
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], start = 0, end = -1): Promise<HighlightDiff | null> {
+    let curr = await this.nvim.call('coc#highlight#get_highlights', [bufnr, ns, start, end]) as HighlightItemResult[]
     if (!curr) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRmove = []

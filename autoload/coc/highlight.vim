@@ -64,8 +64,8 @@ function! coc#highlight#get(bufnr, key, start, end) abort
   let ns = coc#highlight#create_namespace(a:key)
   let current = {}
   if has('nvim-0.5.0')
-    let end = a:end == -1 ? [-1, -1] : [a:end, 0]
-    let markers = nvim_buf_get_extmarks(a:bufnr, ns, [a:start, 0], end, {'details': v:true})
+    let end = a:end == -1 ?  -1 : a:end - 1
+    let markers = nvim_buf_get_extmarks(a:bufnr, ns, [a:start, 0], [end, -1], {'details': v:true})
     let linecount = nvim_buf_line_count(a:bufnr)
     for [_, row, start_col, details] in markers
       let delta = details['end_row'] - row
@@ -195,7 +195,9 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
 endfunction
 
 " 0 based line, start_col and end_col
-function! coc#highlight#get_highlights(bufnr, key) abort
+function! coc#highlight#get_highlights(bufnr, key, ...) abort
+  let start = get(a:, 1, 0)
+  let end = get(a:, 2, -1)
   if !bufloaded(a:bufnr)
     return v:null
   endif
@@ -207,7 +209,7 @@ function! coc#highlight#get_highlights(bufnr, key) abort
   if exists('*prop_list')
     " Could filter by end_line and types
     if has('patch-8.2.3652')
-      for prop in prop_list(1, {'bufnr': a:bufnr, 'ids': [s:prop_offset + ns], 'end_lnum': -1})
+      for prop in prop_list(start + 1, {'bufnr': a:bufnr, 'ids': [s:prop_offset + ns], 'end_lnum': end})
         if prop['start'] == 0 || prop['end'] == 0
           " multi line textprop are not supported, simply ignore it
           continue
@@ -219,7 +221,8 @@ function! coc#highlight#get_highlights(bufnr, key) abort
       endfor
     else
       let linecount = getbufinfo(a:bufnr)[0]['linecount']
-      for line in range(1, linecount)
+      let end = end == -1 ? linecount : end
+      for line in range(start + 1, min([end, linecount]))
         for prop in prop_list(line, {'bufnr': a:bufnr, 'id': s:prop_offset + ns})
           if prop['start'] == 0 || prop['end'] == 0
             " multi line textprop are not supported, simply ignore it
@@ -232,7 +235,8 @@ function! coc#highlight#get_highlights(bufnr, key) abort
     endfor
     endif
   elseif has('nvim-0.5.0')
-    let markers = nvim_buf_get_extmarks(a:bufnr, ns, 0, -1, {'details': v:true})
+    let end = end == -1 ? -1 : end - 1
+    let markers = nvim_buf_get_extmarks(a:bufnr, ns, [start, 0], [end, -1], {'details': v:true})
     let total = nvim_buf_line_count(a:bufnr)
     for [marker_id, line, start_col, details] in markers
       if line >= total

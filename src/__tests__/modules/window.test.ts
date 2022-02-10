@@ -428,7 +428,7 @@ describe('diffHighlights', () => {
   })
 
   async function createFile(): Promise<Buffer> {
-    let content = 'foo\nbar'
+    let content = 'foo\nbar\nbaz'
     let file = await createTmpFile(content)
     return await helper.edit(file)
   }
@@ -454,6 +454,39 @@ describe('diffHighlights', () => {
     let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
     expect(markers.length).toBe(1)
     expect(markers[0][3].end_col).toBe(3)
+  })
+
+  it('should diff highlights through range', async () => {
+    let buf = await createFile()
+    let items: HighlightItem[] = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 0,
+      colEnd: 3
+    }, {
+      hlGroup: 'Search',
+      lnum: 1,
+      colStart: 0,
+      colEnd: 3
+    }, {
+      hlGroup: 'Search',
+      lnum: 2,
+      colStart: 0,
+      colEnd: 3
+    }]
+    await setHighlights(items)
+    items = [{
+      hlGroup: 'Search',
+      lnum: 0,
+      colStart: 0,
+      colEnd: 3
+    }]
+    let res = await window.diffHighlights(buf.id, ns, items, 0, 2)
+    expect(res).toBeDefined()
+    expect(res.removeMarkers.length).toBe(1)
+    res = await window.diffHighlights(buf.id, ns, items, 0, -1)
+    expect(res).toBeDefined()
+    expect(res.removeMarkers.length).toBe(2)
   })
 
   it('should return empty diff', async () => {

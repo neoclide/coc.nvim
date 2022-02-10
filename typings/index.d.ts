@@ -7350,9 +7350,11 @@ declare module 'coc.nvim' {
      * @param {number} bufnr Buffer number
      * @param {string} ns Highlight namespace
      * @param {HighlightItem[]} items Highlight items
+     * @param {start} start start range of the current items, default 0, inclusive.
+     * @param {end} end end range of the current items, default -1, exclusive.
      * @returns {Promise<HighlightDiff>}
      */
-    export function diffHighlights(bufnr: number, ns: string, items: ExtendedHighlightItem[]): Promise<HighlightDiff | null>
+    export function diffHighlights(bufnr: number, ns: string, items: ExtendedHighlightItem[], start?: number, end?: number): Promise<HighlightDiff | null>
 
     /**
      * Apply highlight diffs, normally used with `window.diffHighlights`

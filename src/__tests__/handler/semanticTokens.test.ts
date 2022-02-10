@@ -296,6 +296,38 @@ describe('semanticTokens', () => {
       await item.doHighlight()
       expect(fn).toBeCalledTimes(0)
     })
+
+    it('should only highlight limited range', async () => {
+      let doc = await helper.createDocument('t.vim')
+      let newLine = ' \n'
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: `let${newLine.repeat(1000)}` }])
+      await helper.wait(30)
+      let fn = jest.fn()
+      workspace.configurations.updateUserConfig({ 'semanticTokens.filetypes': ['vim'] })
+      disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
+        provideDocumentSemanticTokens: () => {
+          fn()
+          return new Promise(resolve => {
+            resolve({
+              resultId: '1',
+              data: [0, 0, 3, 1, 0]
+            })
+          })
+        }
+      }, legend))
+      await highlighter.fetchHighlightGroups()
+      let item = await highlighter.getCurrentItem()
+      await item.doHighlight()
+      expect(fn).toBeCalledTimes(1)
+      expect(item.hasPendingHighlights).toBe(true)
+      let buf = await nvim.buffer
+      let markers = await buf.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBe(0)
+      await window.moveTo({ line: 0, character: 0 })
+      await helper.wait(30)
+      markers = await buf.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBeGreaterThan(0)
+    })
   })
 
   describe('clear highlights', () => {

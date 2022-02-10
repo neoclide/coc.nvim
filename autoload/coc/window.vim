@@ -85,3 +85,18 @@ function! coc#window#visible_range(bufnr) abort
   let info = getwininfo(winid)[0]
   return [info['topline'], info['botline']]
 endfunction
+
+" 0-based, [start, end] start: inclusive, end: exclusive
+" 3 times window's height to be rendered if possible
+function! coc#window#render_range(bufnr) abort
+  let bufinfos = getbufinfo(a:bufnr)
+  if empty(bufinfos)
+    return v:null
+  endif
+  let bufinfo = bufinfos[0]
+  let winid = bufwinid(a:bufnr)
+  let height = winid == -1 ? (&lines - &cmdheight) : winheight(winid)
+  let delta = float2nr(ceil(height * 3 / 2))
+  let lnum = bufinfo.lnum
+  return [max([0, lnum - 1 - delta]), min([lnum + delta, bufinfo.linecount])]
+endfunction
