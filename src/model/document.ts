@@ -79,7 +79,7 @@ export default class Document {
   constructor(public readonly buffer: Buffer, private env: Env, private maxFileSize: number | null) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
-    }, 300)
+    }, 200)
     this.fetchContent = debounce(() => {
       void this._fetchContent()
     }, 100)

@@ -60,6 +60,9 @@ export function capitalize(text: string): string {
   return text.length ? text[0].toUpperCase() + text.slice(1) : ''
 }
 
+// should be higher than document debounce
+const debounceInterval = global.hasOwnProperty('__TEST__') ? 10 : 300
+
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private rangeTokenSource: CancellationTokenSource
@@ -74,7 +77,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.doHighlight().catch(e => {
         logger.error(`Error on doHighlight: ${e.message}`, e)
       })
-    }, global.hasOwnProperty('__TEST__') ? 10 : 500)
+    }, debounceInterval)
     this.highlight()
   }
 
@@ -110,6 +113,11 @@ export default class SemanticTokensBuffer implements SyncItem {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return false
     return languages.hasProvider('semanticTokensRange', doc.textDocument) && this.previousResults == null
+  }
+
+  private get invalid(): boolean {
+    let doc = workspace.getDocument(this.bufnr)
+    return !doc || doc.dirty
   }
 
   /**
@@ -267,10 +275,10 @@ export default class SemanticTokensBuffer implements SyncItem {
       items = await this.requestAllHighlights(tokenSource.token, forceFull)
     }
     // request cancelled or can't work
-    if (!items || tokenSource.token.isCancellationRequested) return
+    if (!items || tokenSource.token.isCancellationRequested || this.invalid) return
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items)
     this.tokenSource = null
-    if (tokenSource.token.isCancellationRequested || !diff) return
+    if (tokenSource.token.isCancellationRequested || !diff || this.invalid) return
     await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
   }
 
