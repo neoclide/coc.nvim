@@ -49,7 +49,7 @@ function! coc#cursor#get_selection(char) abort
   let [_, el, ec, eoff] = getpos(m ==# 'char' ? "']" : "'>")
   let start_idx = coc#helper#get_charactor(getline(sl), sc)
   if m ==# 'V'
-    return [sl - 1, start_idx, el, 0]
+    return [sl - 1, start_idx, el - 1, 0]
   endif
   let line = getline(el)
   let end_idx = coc#helper#get_charactor(line, ec)
