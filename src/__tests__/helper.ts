@@ -55,8 +55,8 @@ export class Helper extends EventEmitter {
     })
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
-    this.nvim.uiAttach(160, 80, {}).catch(_e => {
-      // noop
+    this.nvim.uiAttach(160, 80, {}).catch(e => {
+      console.error(e)
     })
     this.nvim.on('notification', (method, args) => {
       if (method == 'redraw') {
@@ -219,7 +219,7 @@ export class Helper extends EventEmitter {
   }
 
   public updateConfiguration(key: string, value: any): () => void {
-    let { configurations } = workspace as any
+    let { configurations } = workspace
     let curr = workspace.getConfiguration(key)
     configurations.updateUserConfig({ [key]: value })
     return () => {
@@ -231,10 +231,8 @@ export class Helper extends EventEmitter {
     let content = `
     function! ${name}(...)
       return ${typeof result == 'number' ? result : JSON.stringify(result)}
-    endfunction
-    `
-    let file = await createTmpFile(content)
-    await this.nvim.command(`source ${file}`)
+    endfunction`
+    await this.nvim.exec(content)
   }
 
   public async items(): Promise<VimCompleteItem[]> {
