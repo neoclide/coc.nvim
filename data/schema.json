@@ -994,6 +994,11 @@
       "default": null,
       "description": "Highlight group for border of dialog window/popup, default to 'CocFloating'"
     },
+    "dialog.shortcutHighlight": {
+      "type": "string",
+      "default": "MoreMsg",
+      "description": "Highlight group for shortcut character in menu dialog, default to 'MoreMsg'"
+    },
     "notification.marginTop": {
       "type": "number",
       "default": 1,
@@ -1067,6 +1072,11 @@
       "type": "boolean",
       "default": false,
       "description": "Whether to align lists in columns, default: `false`"
+    },
+    "list.menuAction": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use menu picker instead of confirm() for choose action."
     },
     "list.interactiveDebounceTime": {
       "type": "number",

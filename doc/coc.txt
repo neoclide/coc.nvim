@@ -681,6 +681,10 @@ Built-in configurations:~
 	Highlight group for border of dialog window/popup, default to
 	'CocFloating'.
 
+"dialog.shortcutHighlight":~
+
+	Highlight group for shortcut character in menu dialog, default to
+	'MoreMsg'
 							*coc-config-notification*
 "notification.marginTop": ~
 
@@ -768,6 +772,11 @@ Built-in configurations:~
 "list.alignColumns":~
 
 	Whether to align lists in columns, default: `false`
+
+"list.menuAction":~
+
+	Use menu picker instead of confirm() for choose action.
+	Default: `false`
 
 "list.height":~
 
