@@ -58,6 +58,7 @@ describe('Menu', () => {
       })
     })
     await menu.show()
+    await helper.wait(30)
     await nvim.input('b')
     let res = await p
     expect(res).toBe(1)
