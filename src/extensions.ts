@@ -112,15 +112,36 @@ export class Extensions {
   constructor() {
     let folder = global.hasOwnProperty('__TEST__') ? path.join(__dirname, '__tests__') : process.env.COC_DATA_HOME
     let root = this.root = path.join(folder, 'extensions')
-    if (!fs.existsSync(root)) {
-      fs.mkdirpSync(root)
+    let checked = this.checkRoot(root)
+    if (checked) {
+      let filepath = path.join(root, 'db.json')
+      this.db = new DB(filepath)
     }
-    let jsonFile = path.join(root, 'package.json')
-    if (!fs.existsSync(jsonFile)) {
-      fs.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8')
+  }
+
+  public checkRoot(root: string): boolean {
+    try {
+      if (!fs.existsSync(root)) {
+        fs.mkdirpSync(root)
+      }
+      let stat = fs.statSync(root)
+      if (stat.isFile()) {
+        logger.info(`Trying to delete ${root}`)
+        fs.unlinkSync(root)
+        fs.mkdirpSync(root)
+      } else if (!stat.isDirectory()) {
+        console.error(`Data home ${root} it not a valid directory`)
+        return false
+      }
+      let jsonFile = path.join(root, 'package.json')
+      if (!fs.existsSync(jsonFile)) {
+        fs.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8')
+      }
+    } catch (e) {
+      console.error(`Unexpected error when check data home: ${e.message}`)
+      return false
     }
-    let filepath = path.join(root, 'db.json')
-    this.db = new DB(filepath)
+    return true
   }
 
   private get outputChannel(): OutputChannel {

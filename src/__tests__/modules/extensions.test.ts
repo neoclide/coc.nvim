@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import events from '../../events'
 import extensions, { API, Extension } from '../../extensions'
 import helper from '../helper'
@@ -19,6 +20,25 @@ afterAll(async () => {
 jest.setTimeout(30000)
 
 describe('extensions', () => {
+
+  it('should create root when not exists', async () => {
+    let root = path.join(os.tmpdir(), 'foo-bar')
+    let res = extensions.checkRoot(root)
+    expect(res).toBe(true)
+    expect(fs.existsSync(path.join(root, 'package.json'))).toBe(true)
+    let method = typeof fs['rmSync'] === 'function' ? 'rmSync' : 'rmdirSync'
+    fs[method](root, { recursive: true })
+  })
+
+  it('should remove unexpted file', async () => {
+    let root = path.join(os.tmpdir(), 'foo-bar')
+    fs.writeFileSync(root, '')
+    let res = extensions.checkRoot(root)
+    expect(res).toBe(true)
+    expect(fs.existsSync(path.join(root, 'package.json'))).toBe(true)
+    let method = typeof fs['rmSync'] === 'function' ? 'rmSync' : 'rmdirSync'
+    fs[method](root, { recursive: true })
+  })
 
   it('should load global extensions', async () => {
     let stat = extensions.getExtensionState('test')
