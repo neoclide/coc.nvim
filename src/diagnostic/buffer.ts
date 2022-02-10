@@ -1,9 +1,9 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { debounce } from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver-protocol'
+import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import { HighlightItem, LocationListItem } from '../types'
-import events from '../events'
 import { Mutex } from '../util/mutex'
 import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
@@ -117,7 +117,7 @@ export class DiagnosticBuffer implements SyncItem {
     }
     let release = await this.mutex.acquire()
     try {
-      await this._refresh(diagnosticsMap)
+      if (!this._disposed) await this._refresh(diagnosticsMap)
       release()
     } catch (e) {
       release()
@@ -172,8 +172,9 @@ export class DiagnosticBuffer implements SyncItem {
         this.diagnosticsMap.set(collection, diagnostics)
         map.set(collection, diagnostics)
       }
-      this._dirty = noHighlights
-      if (noHighlights) return
+      let doc = workspace.getDocument(this.uri)
+      this._dirty = noHighlights || (doc && doc.dirty)
+      if (this._dirty) return
       await this.updateDiagnostics(map, info)
     }
   }
@@ -310,7 +311,7 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   private getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
-    let doc = workspace.getDocument(this.bufnr)
+    let doc = workspace.getDocument(this.uri)
     if (!doc) return []
     let res: HighlightItem[] = []
     for (let diagnostic of diagnostics.slice(0, this.config.highlighLimit)) {
@@ -339,8 +340,8 @@ export class DiagnosticBuffer implements SyncItem {
         this.nvim.call(aleMethod, [this.bufnr, collection, []], true)
       }
     } else {
-      this.buffer.deleteVar('coc_diagnostic_info')
       nvim.pauseNotification()
+      this.buffer.deleteVar('coc_diagnostic_info')
       for (let collection of collections) {
         this.clearHighlight(collection)
         this.clearSigns(collection)
@@ -378,5 +379,7 @@ export class DiagnosticBuffer implements SyncItem {
   public dispose(): void {
     this._disposed = true
     this.clear()
+    this.diagnosticsMap.clear()
+    this.refreshHighlights.clear()
   }
 }
