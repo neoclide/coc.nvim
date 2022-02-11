@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import fs from 'fs'
-import { Logger } from 'log4js'
 import path from 'path'
 import * as vm from 'vm'
 import { defaults } from './lodash'
@@ -10,6 +9,13 @@ const logger = createLogger('util-factoroy')
 export interface ExtensionExport {
   activate: (context: unknown) => any
   deactivate: () => any | null
+}
+export interface ILogger {
+  debug: (data: string, ...meta: any[]) => void
+  log: (data: string, ...meta: any[]) => void
+  error: (data: string, ...meta: any[]) => void
+  warn: (data: string, ...meta: any[]) => void
+  info: (data: string, ...meta: any[]) => void
 }
 
 export interface IModule {
@@ -59,7 +65,7 @@ function makeRequireFunction(this: any): any {
 }
 
 // @see node/lib/module.js
-function compileInSandbox(sandbox: ISandbox): Function {
+export function compileInSandbox(sandbox: ISandbox): Function {
   // eslint-disable-next-line
   return function(this: any, content: string, filename: string): any {
     const require = makeRequireFunction.call(this)
@@ -86,7 +92,7 @@ export interface ISandbox {
   Promise: any
 }
 
-function createSandbox(filename: string, logger: Logger): ISandbox {
+export function createSandbox(filename: string, logger: ILogger): ISandbox {
   const module = new Module(filename)
   module.paths = Module._nodeModulePaths(filename)
 
@@ -117,6 +123,7 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 
   sandbox.require = function sandboxRequire(p): any {
     const oldCompile = Module.prototype._compile
+    // Not work on test environment!
     Module.prototype._compile = compileInSandbox(sandbox)
     const moduleExports = sandbox.module.require(p)
     Module.prototype._compile = oldCompile

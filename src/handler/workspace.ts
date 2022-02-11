@@ -25,7 +25,7 @@ export default class WorkspaceHandler {
   }
 
   public async openLog(): Promise<void> {
-    let file = logger.getLogFile()
+    let file = logger.logfile
     await workspace.jumpTo(URI.file(file).toString())
   }
 
@@ -96,7 +96,7 @@ export default class WorkspaceHandler {
     channel.appendLine('')
     channel.appendLine('## Log of coc.nvim')
     channel.appendLine('')
-    let file = logger.getLogFile()
+    let file = logger.logfile
     if (fs.existsSync(file)) {
       let content = fs.readFileSync(file, { encoding: 'utf8' })
       channel.appendLine(content)

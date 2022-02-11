@@ -36,6 +36,8 @@ if (fs.existsSync(logfile)) {
   }
 }
 
+exports.getLogFile = getLogFile
+
 log4js.configure({
   disableClustering: true,
   appenders: {
@@ -60,6 +62,8 @@ log4js.configure({
 
 module.exports = (name = 'coc-nvim'): log4js.Logger => {
   let logger = log4js.getLogger(name)
-    ; (logger as any).getLogFile = () => logfile
-  return logger
+  return Object.assign(logger, {
+    getLogFile,
+    logfile
+  })
 }

@@ -7,6 +7,14 @@ import Configurations from './configuration'
 import Document from './model/document'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
 
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __TEST__: boolean
+    }
+  }
+}
+
 export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
   // eslint-disable-next-line @typescript-eslint/unified-signatures

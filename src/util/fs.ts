@@ -146,10 +146,6 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
   let n = 0
   return new Promise((resolve, reject) => {
     rl.on('line', line => {
-      if (n == 0 && line.startsWith('\uFEFF')) {
-        // handle BOM
-        line = line.slice(1)
-      }
       if (n >= start && n <= end) {
         res.push(line)
       }
@@ -192,8 +188,8 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
   })
 }
 
-export function sameFile(fullpath: string | null, other: string | null): boolean {
-  const caseInsensitive = platform.isWindows || platform.isMacintosh
+export function sameFile(fullpath: string | null, other: string | null, caseInsensitive?: boolean): boolean {
+  caseInsensitive = typeof caseInsensitive == 'boolean' ? caseInsensitive : platform.isWindows || platform.isMacintosh
   if (!fullpath || !other) return false
   if (caseInsensitive) return fullpath.toLowerCase() === other.toLowerCase()
   return fullpath === other
@@ -228,7 +224,7 @@ export function isParentFolder(folder: string, filepath: string, checkEqual = fa
 }
 
 // use uppercase for windows driver
-export function fixDriver(filepath: string): string {
-  if (os.platform() != 'win32' || filepath[1] != ':') return filepath
+export function fixDriver(filepath: string, platform = os.platform()): string {
+  if (platform != 'win32' || filepath[1] != ':') return filepath
   return filepath[0].toUpperCase() + filepath.slice(1)
 }

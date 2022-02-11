@@ -2,7 +2,7 @@ require('./util/extensions')
 
 Object.defineProperty(console, 'log', {
   value() {
-    logger.info(...arguments)
+    logger?.info(...arguments)
   }
 })
 const logger = require('./util/logger')('server')

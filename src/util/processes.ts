@@ -40,10 +40,6 @@ export function terminate(process: ChildProcess, cwd?: string): boolean {
   } else if (isLinux || isMacintosh) {
     try {
       let filepath = join(pluginRoot, 'bin/terminateProcess.sh')
-      if (!fs.existsSync(filepath)) {
-        console.error(`"${filepath}" not found`)
-        return false
-      }
       let result = cp.spawnSync(filepath, [process.pid.toString()])
       return result.error ? false : true
     } catch (err) {
