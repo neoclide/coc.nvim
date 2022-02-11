@@ -153,27 +153,30 @@ describe('diagnostic manager', () => {
   describe('getDiagnosticList()', () => {
     it('should get all diagnostics', async () => {
       await createDocument()
+      let collection = manager.create('test')
+      let fsPath = await createTmpFile('foo')
+      let doc = await helper.createDocument(fsPath)
+      let diagnostics: Diagnostic[] = []
+      diagnostics.push(createDiagnostic('error', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error))
+      diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 3), DiagnosticSeverity.Warning))
+      collection.set(doc.uri, diagnostics)
       let list = manager.getDiagnosticList()
       expect(list).toBeDefined()
       expect(list.length).toBeGreaterThanOrEqual(5)
       expect(list[0].severity).toBe('Error')
       expect(list[1].severity).toBe('Error')
-      expect(list[2].severity).toBe('Warning')
-      expect(list[3].severity).toBe('Information')
-      expect(list[4].severity).toBe('Hint')
+      expect(list[2].severity).toBe('Error')
     })
 
     it('should filter diagnostics by configuration', async () => {
-      let doc = await createDocument()
       let config = workspace.getConfiguration('diagnostic')
       config.update('level', 'warning')
       config.update('showUnused', false)
       config.update('showDeprecated', false)
+      let doc = await createDocument()
       let diagnostics = manager.getDiagnostics(doc.uri)['test']
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
       diagnostics[2].tags = [DiagnosticTag.Deprecated]
-      let collection = manager.getCollectionByName('test')
-      collection.set(doc.uri, diagnostics)
       let list = manager.getDiagnosticList()
       expect(list.length).toBe(1)
       expect(list[0].severity).toBe('Warning')
@@ -214,12 +217,12 @@ describe('diagnostic manager', () => {
       }]
       manager.setConfigurationErrors(errors)
       await helper.wait(50)
-      let res = manager.getDiagnostics(doc.uri, 'config')['config']
-      expect(res.length).toBe(2)
+      let res = manager.getDiagnostics(doc.uri)
+      expect(res.config.length).toBe(2)
       manager.setConfigurationErrors()
       await helper.wait(50)
-      res = manager.getDiagnostics(doc.uri, 'config')['config']
-      expect(res.length).toBe(0)
+      res = manager.getDiagnostics(doc.uri)
+      expect(res.config).toBeUndefined()
     })
   })
 
@@ -299,11 +302,12 @@ describe('diagnostic manager', () => {
       let diagnostic = Diagnostic.create(Range.create(0, 3, 1, 0), 'error', DiagnosticSeverity.Error)
       let collection = manager.create('empty')
       collection.set(doc.uri, [diagnostic])
-      await manager.refreshBuffer(doc.bufnr, true)
+      await manager.refreshBuffer(doc.bufnr)
       let diagnostics = await manager.getCurrentDiagnostics()
       expect(diagnostics.length).toBeGreaterThanOrEqual(1)
       expect(diagnostics[0].message).toBe('error')
       collection.dispose()
+      await manager.refreshBuffer(99)
     })
 
     it('should get diagnostic next to end of line', async () => {
@@ -314,7 +318,7 @@ describe('diagnostic manager', () => {
       let diagnostic = Diagnostic.create(Range.create(0, 3, 0, 4), 'error', DiagnosticSeverity.Error)
       let collection = manager.create('empty')
       collection.set(doc.uri, [diagnostic])
-      await manager.refreshBuffer(doc.bufnr, true)
+      await manager.refreshBuffer(doc.bufnr)
       let diagnostics = await manager.getCurrentDiagnostics()
       expect(diagnostics.length).toBeGreaterThanOrEqual(1)
       expect(diagnostics[0].message).toBe('error')
@@ -329,7 +333,7 @@ describe('diagnostic manager', () => {
       let diagnostic = Diagnostic.create(Range.create(0, 3, 1, 0), 'error', DiagnosticSeverity.Error)
       let collection = manager.create('empty')
       collection.set(doc.uri, [diagnostic])
-      await manager.refreshBuffer(doc.bufnr, true)
+      await manager.refreshBuffer(doc.bufnr)
       let diagnostics = await manager.getCurrentDiagnostics()
       expect(diagnostics.length).toBeGreaterThanOrEqual(1)
       expect(diagnostics[0].message).toBe('error')
@@ -344,7 +348,7 @@ describe('diagnostic manager', () => {
       let diagnostic = Diagnostic.create(Range.create(1, 0, 1, 0), 'error', DiagnosticSeverity.Error)
       let collection = manager.create('empty')
       collection.set(doc.uri, [diagnostic])
-      await manager.refreshBuffer(doc.bufnr, true)
+      await manager.refreshBuffer(doc.bufnr)
       let diagnostics = await manager.getCurrentDiagnostics()
       expect(diagnostics.length).toBeGreaterThanOrEqual(1)
       expect(diagnostics[0].message).toBe('error')
@@ -354,6 +358,22 @@ describe('diagnostic manager', () => {
   })
 
   describe('jumpRelated', () => {
+    it('should does nothing when no diagnostic exists', async () => {
+      let doc = await helper.createDocument()
+      await nvim.call('cursor', [1, 1])
+      await manager.jumpRelated()
+      let bufnr = await nvim.eval('bufnr("%")')
+      expect(bufnr).toBe(doc.bufnr)
+    })
+
+    it('should does nothing when no related information exists', async () => {
+      let doc = await createDocument()
+      await nvim.call('cursor', [1, 4])
+      await manager.jumpRelated()
+      let bufnr = await nvim.eval('bufnr("%")')
+      expect(bufnr).toBe(doc.bufnr)
+    })
+
     it('should jump to related position', async () => {
       let doc = await helper.createDocument()
       let range = Range.create(0, 0, 0, 10)
@@ -362,7 +382,7 @@ describe('diagnostic manager', () => {
         [{ location, message: 'test' }])
       let collection = manager.create('positions')
       collection.set(doc.uri, [diagnostic])
-      await manager.refreshBuffer(doc.uri, true)
+      await manager.refreshBuffer(doc.uri)
       await nvim.call('cursor', [1, 1])
       await manager.jumpRelated()
       await helper.wait(100)
@@ -383,7 +403,7 @@ describe('diagnostic manager', () => {
         }])
       let collection = manager.create('positions')
       collection.set(doc.uri, [diagnostic])
-      await manager.refreshBuffer(doc.uri, true)
+      await manager.refreshBuffer(doc.uri)
       await nvim.call('cursor', [1, 1])
       await manager.jumpRelated()
       await helper.waitFor('bufname', ['%'], 'list:///location')
@@ -416,6 +436,27 @@ describe('diagnostic manager', () => {
       }
       await manager.jumpNext()
     })
+
+    it('should not throw for buffer not attached', async () => {
+      await nvim.command('edit foo | setl buftype=nofile')
+      let doc = await workspace.document
+      expect(doc.attached).toBe(false)
+      await manager.jumpNext()
+      await manager.jumpPrevious()
+    })
+
+    it('should respect wrapscan', async () => {
+      await createDocument()
+      await nvim.command('setl nowrapscan')
+      await nvim.command('normal! G$')
+      await manager.jumpNext()
+      let pos = await window.getCursorPosition()
+      expect(pos).toEqual({ line: 3, character: 2 })
+      await nvim.command('normal! gg0')
+      await manager.jumpPrevious()
+      pos = await window.getCursorPosition()
+      expect(pos).toEqual({ line: 0, character: 0 })
+    })
   })
 
   describe('diagnostic configuration', () => {
@@ -432,6 +473,7 @@ describe('diagnostic manager', () => {
       }
       let diagnostics = [diagnostic]
       collection.set(doc.uri, diagnostics)
+      await helper.wait(50)
       await nvim.call('cursor', [1, 2])
       let winid = await helper.waitFloat()
       await nvim.call('win_gotoid', [winid])
@@ -540,6 +582,13 @@ describe('diagnostic manager', () => {
   })
 
   describe('toggleDiagnosticBuffer', () => {
+    it('should not throw when bufnr is invliad or disabled', async () => {
+      let doc = await helper.createDocument()
+      await manager.toggleDiagnosticBuffer(99)
+      helper.updateConfiguration('diagnostic.enable', false)
+      await manager.toggleDiagnosticBuffer(doc.bufnr)
+    })
+
     it('should toggle diagnostics for buffer', async () => {
       let doc = await createDocument()
       // required to wait refresh finish
@@ -571,6 +620,7 @@ describe('diagnostic manager', () => {
       await helper.wait(50)
       res = await buf.getVar('coc_diagnostic_info') as any
       expect(res?.error).toBe(2)
+      manager.refresh(99)
     })
 
     it('should refresh all buffers', async () => {

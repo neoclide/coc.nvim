@@ -72,7 +72,7 @@ export default class DiagnosticCollection {
 
   public get(uri: string): Diagnostic[] {
     let arr = this.diagnosticsMap.get(uri)
-    return arr == null ? [] : arr
+    return arr == null ? [] : arr.slice()
   }
 
   public has(uri: string): boolean {

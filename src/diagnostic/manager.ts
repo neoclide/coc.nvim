@@ -9,6 +9,7 @@ import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, ErrorItem, LocationListItem } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition, rangeIntersect } from '../util/position'
+import { characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
@@ -75,7 +76,7 @@ export class DiagnosticManager implements Disposable {
           if (diags.length > 0) obj[key] = diags
         }
         if (Object.keys(obj).length !== 0) {
-          void buf.refresh(obj)
+          void buf.reset(obj)
         }
       }
       return buf
@@ -90,27 +91,17 @@ export class DiagnosticManager implements Disposable {
     let messageTimer: NodeJS.Timeout
     events.on('CursorMoved', (bufnr, cursor) => {
       if (this.config.enableMessage != 'always') return
-      if (!this.buffers.getItem(bufnr)) return
       if (messageTimer) clearTimeout(messageTimer)
       messageTimer = setTimeout(async () => {
         let buf = this.buffers.getItem(bufnr)
-        if (!buf) return
-        let { messageLevel } = this.config
-        let diagnostics = this.getDiagnostics(buf.uri)
-        let line = cursor[0] - 1
-        let find = false
-        for (let diags of Object.values(diagnostics)) {
-          for (let diagnostic of diags) {
-            if (messageLevel && diagnostic.severity && diagnostic.severity > messageLevel) continue
-            let { start, end } = diagnostic.range
-            if (line >= start.line && line <= end.line) {
-              find = true
-              break
-            }
-          }
-          if (find) break
-        }
-        if (!find) return
+        if (!buf || buf.dirty) return
+        let doc = workspace.getDocument(bufnr)
+        if (!doc) return
+        let line = doc.getline(cursor[0] - 1)
+        let character = characterIndex(line, cursor[1] - 1)
+        let lastline = cursor[0] == doc.lineCount
+        let diagnostics = this.getDiagnosticsAt(bufnr, [cursor[0] - 1, character], character == line.length, lastline)
+        if (!diagnostics.length) return
         await this.echoMessage(true)
       }, this.config.messageDelay)
     }, null, this.disposables)
@@ -127,10 +118,14 @@ export class DiagnosticManager implements Disposable {
         if (buf.dirty) buf.refreshHighlights()
       }
     }, null, this.disposables)
-    this.clearTimers = () => {
+    this.clearTimers = (bufnr?: number) => {
       if (messageTimer) clearTimeout(messageTimer)
       messageTimer = undefined
       fn.clear()
+      if (bufnr && !this.config.refreshOnInsertMode) {
+        let buf = this.buffers.getItem(bufnr)
+        buf.refreshHighlights.clear()
+      }
     }
     events.on('BufWinEnter', (bufnr: number) => {
       let buf = this.buffers.getItem(bufnr)
@@ -182,6 +177,8 @@ export class DiagnosticManager implements Disposable {
   public setConfigurationErrors(errorItems?: ErrorItem[]): void {
     let collection = this.create('config')
     if (errorItems?.length) {
+      let fsPath = URI.parse(errorItems[0].location.uri).fsPath
+      void window.showErrorMessage(`Error detected for config file ${fsPath}, please check diagnostics list.`)
       let entries: Map<string, Diagnostic[]> = new Map()
       for (let item of errorItems) {
         let { uri } = item.location
@@ -209,7 +206,7 @@ export class DiagnosticManager implements Disposable {
     collection.onDidDiagnosticsChange(uri => {
       let buf = this.buffers.getItem(uri)
       if (!this.autoRefresh || !buf) return
-      void buf.refresh(this.getDiagnostics(uri, name))
+      void buf.update(name, this.getDiagnosticsByCollection(uri, collection))
     })
     return collection
   }
@@ -229,10 +226,7 @@ export class DiagnosticManager implements Disposable {
         let minLevel = this.config.level
         if (minLevel && minLevel < DiagnosticSeverity.Hint) {
           diagnostics = diagnostics.filter(o => {
-            if (o.severity && o.severity > minLevel) {
-              return false
-            }
-            return true
+            return o.severity && o.severity > minLevel ? false : true
           })
         }
       }
@@ -251,33 +245,40 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get readonly diagnostics for a buffer
    */
-  public getDiagnostics(uri: string, collection?: string): { [collection: string]: Diagnostic[] } {
+  public getDiagnostics(uri: string): { [collection: string]: Diagnostic[] } {
     let res: { [collection: string]: Diagnostic[] } = {}
-    let collections = collection ? [this.getCollectionByName(collection)] : this.getCollections(uri)
-    let { level, showUnused, showDeprecated } = this.config
+    let collections = this.getCollections(uri)
     for (let collection of collections) {
       if (!collection) continue
-      let items = collection.get(uri) || []
-      if (items.length) {
-        items = items.filter(d => {
-          if (level && d.severity && d.severity > level) {
-            return false
-          }
-          if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
-            return false
-          }
-          if (!showDeprecated && d.tags?.includes(DiagnosticTag.Deprecated)) {
-            return false
-          }
-          return true
-        })
-        items.sort((a, b) => {
-          return comparePosition(a.range.start, b.range.start)
-        })
-      }
-      res[collection.name] = items
+      res[collection.name] = this.getDiagnosticsByCollection(uri, collection)
     }
     return res
+  }
+
+  /**
+   * Get filtered diagnostics by collection.
+   */
+  public getDiagnosticsByCollection(uri: string, collection: DiagnosticCollection): Diagnostic[] {
+    let { level, showUnused, showDeprecated } = this.config
+    let items = collection.get(uri) || []
+    if (items.length) {
+      items = items.filter(d => {
+        if (level && d.severity && d.severity > level) {
+          return false
+        }
+        if (!showUnused && d.tags?.includes(DiagnosticTag.Unnecessary)) {
+          return false
+        }
+        if (!showDeprecated && d.tags?.includes(DiagnosticTag.Deprecated)) {
+          return false
+        }
+        return true
+      })
+      items.sort((a, b) => {
+        return comparePosition(a.range.start, b.range.start)
+      })
+    }
+    return items
   }
 
   public getDiagnosticsInRange(document: TextDocument, range: Range): Diagnostic[] {
@@ -320,10 +321,10 @@ export class DiagnosticManager implements Disposable {
    */
   public async jumpPrevious(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
-    let document = workspace.getDocument(buffer.id)
-    if (!document) return
+    let item = this.buffers.getItem(buffer.id)
+    if (!item) return
     let curpos = await window.getCursorPosition()
-    let ranges = this.getSortedRanges(document.uri, severity)
+    let ranges = this.getSortedRanges(item.uri, severity)
     let pos: Position
     for (let i = ranges.length - 1; i >= 0; i--) {
       let end = ranges[i].end
@@ -347,9 +348,10 @@ export class DiagnosticManager implements Disposable {
    */
   public async jumpNext(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
-    let document = workspace.getDocument(buffer.id)
+    let item = this.buffers.getItem(buffer.id)
+    if (!item) return
     let curpos = await window.getCursorPosition()
-    let ranges = this.getSortedRanges(document.uri, severity)
+    let ranges = this.getSortedRanges(item.uri, severity)
     let pos: Position
     for (let i = 0; i <= ranges.length - 1; i++) {
       let start = ranges[i].start
@@ -453,9 +455,6 @@ export class DiagnosticManager implements Disposable {
     const config = this.config
     if (!this.enabled || config.displayByAle) return
     let useFloat = config.messageTarget == 'float'
-    // echo
-    let [filetype, mode] = await this.nvim.eval(`[&filetype,mode()]`) as [string, string]
-    if (mode != 'n') return
     let diagnostics = await this.getCurrentDiagnostics()
     if (config.messageLevel) {
       diagnostics = diagnostics.filter(diagnostic => {
@@ -470,6 +469,8 @@ export class DiagnosticManager implements Disposable {
     let docs = []
     let ft = ''
     if (Object.keys(config.filetypeMap).length > 0) {
+      let doc = workspace.getDocument(workspace.bufnr)
+      let filetype = doc ? doc.filetype : ''
       const defaultFiletype = config.filetypeMap['default'] || ''
       ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype)
     }
@@ -513,14 +514,14 @@ export class DiagnosticManager implements Disposable {
 
   public async jumpRelated(): Promise<void> {
     let diagnostics = await this.getCurrentDiagnostics()
-    if (!diagnostics) return
     let diagnostic = diagnostics.find(o => o.relatedInformation != null)
-    if (!diagnostic) return
-    let locations = diagnostic.relatedInformation.map(o => o.location)
+    let locations = diagnostic ? diagnostic.relatedInformation.map(o => o.location) : []
     if (locations.length == 1) {
       await workspace.jumpTo(locations[0].uri, locations[0].range.start)
     } else if (locations.length > 1) {
       await workspace.showLocations(locations)
+    } else {
+      void window.showWarningMessage('No related information found.')
     }
   }
 
@@ -612,7 +613,7 @@ export class DiagnosticManager implements Disposable {
     this.enabled = !enabled
     for (let buf of this.buffers.items) {
       if (this.enabled) {
-        void this.refreshBuffer(buf.uri, true)
+        void this.refreshBuffer(buf.uri)
       } else {
         buf.clear()
       }
@@ -629,7 +630,7 @@ export class DiagnosticManager implements Disposable {
       if (isEnabled) {
         buf.clear()
       } else {
-        void this.refreshBuffer(bufnr, true)
+        void this.refreshBuffer(bufnr)
       }
     }
   }
@@ -641,10 +642,10 @@ export class DiagnosticManager implements Disposable {
   /**
    * Refresh diagnostics by uri or bufnr
    */
-  public async refreshBuffer(uri: string | number, clear = false): Promise<boolean> {
+  public async refreshBuffer(uri: string | number): Promise<boolean> {
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
-    await buf.refresh(this.getDiagnostics(buf.uri), clear)
+    await buf.reset(this.getDiagnostics(buf.uri))
     return true
   }
 
@@ -654,12 +655,12 @@ export class DiagnosticManager implements Disposable {
   public refresh(bufnr?: number): void {
     if (!bufnr) {
       for (let item of this.buffers.items) {
-        void this.refreshBuffer(item.uri, true)
+        void this.refreshBuffer(item.uri)
       }
     } else {
       let item = this.buffers.getItem(bufnr)
       if (item) {
-        void this.refreshBuffer(item.uri, true)
+        void this.refreshBuffer(item.uri)
       }
     }
   }

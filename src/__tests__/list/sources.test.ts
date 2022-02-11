@@ -440,7 +440,7 @@ describe('list sources', () => {
       diagnostics.push(createDiagnostic('hint', Range.create(1, 2, 1, 3), DiagnosticSeverity.Hint, 1004))
       diagnostics.push(createDiagnostic('error', Range.create(2, 0, 2, 2), DiagnosticSeverity.Error, 1005))
       collection.set(doc.uri, diagnostics)
-      doc.forceSync()
+      await doc.synchronize()
       return doc
     }
 

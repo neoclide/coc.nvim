@@ -528,16 +528,8 @@ describe('completion TextChangedP', () => {
     let res = await helper.getItems()
     let idx = res.findIndex(o => o.menu == '[edit]')
     await helper.selectCompleteItem(idx)
-    let find = false
-    for (let i = 0; i < 20; i++) {
-      await helper.wait(i * 50)
-      let line = await nvim.line
-      if (line == 'foo = foo0bar1') {
-        find = true
-        break
-      }
-    }
-    expect(find).toBe(true)
+    await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
+    await helper.wait(50)
     expect(snippetManager.isActived(doc.bufnr)).toBe(true)
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(lnum).toBe(1)

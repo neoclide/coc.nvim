@@ -294,9 +294,9 @@ export async function createTmpFile(content: string): Promise<string> {
   if (!fs.existsSync(tmpFolder)) {
     fs.mkdirSync(tmpFolder)
   }
-  let filename = path.join(tmpFolder, uuid())
-  await util.promisify(fs.writeFile)(filename, content, 'utf8')
-  return filename
+  let fsPath = path.join(tmpFolder, uuid())
+  await util.promisify(fs.writeFile)(fsPath, content, 'utf8')
+  return fsPath
 }
 
 export default new Helper()

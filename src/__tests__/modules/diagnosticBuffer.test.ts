@@ -96,7 +96,7 @@ describe('diagnostic buffer', () => {
         createDiagnostic('bar', r, DiagnosticSeverity.Information)
       ]
       let buf = await createDiagnosticBuffer()
-      await buf.refresh({ '': diagnostics })
+      await buf.update('', diagnostics)
       let buffer = await nvim.buffer
       let res = await buffer.getVar('coc_diagnostic_info')
       expect(res).toEqual({
@@ -182,7 +182,7 @@ describe('diagnostic buffer', () => {
       let diagnostic = createDiagnostic('foo')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]
-      await buf.refresh({ '': diagnostics })
+      await buf.update('', diagnostics)
       let ns = config.virtualTextSrcId
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
@@ -195,7 +195,7 @@ describe('diagnostic buffer', () => {
       let diagnostic = createDiagnostic('foo')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]
-      await buf.refresh({ '': diagnostics })
+      await buf.update('', diagnostics)
       let ns = config.virtualTextSrcId
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
@@ -208,7 +208,7 @@ describe('diagnostic buffer', () => {
       let diagnostic = createDiagnostic('foo')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]
-      await buf.refresh({ '': diagnostics })
+      await buf.update('', diagnostics)
       let ns = config.virtualTextSrcId
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
@@ -223,7 +223,7 @@ describe('diagnostic buffer', () => {
         createDiagnostic('foo', Range.create(0, 0, 0, 1)),
         createDiagnostic('bar', Range.create(1, 0, 1, 1)),
       ]
-      await buf.refresh({ '': diagnostics })
+      await buf.update('', diagnostics)
       let ns = config.virtualTextSrcId
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(2)
@@ -236,7 +236,7 @@ describe('diagnostic buffer', () => {
         createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error),
         createDiagnostic('bar', Range.create(1, 0, 1, 1), DiagnosticSeverity.Warning),
       ]
-      await buf.refresh({ '': diagnostics })
+      await buf.update('', diagnostics)
       let ns = config.virtualTextSrcId
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
@@ -254,9 +254,7 @@ describe('diagnostic buffer', () => {
     it('should update location list', async () => {
       let buf = await createDiagnosticBuffer()
       await nvim.call('setloclist', [0, [], 'r', { title: 'Diagnostics of coc', items: [] }])
-      await buf.refresh({
-        a: [createDiagnostic('foo')]
-      })
+      await buf.update('a', [createDiagnostic('foo')])
       let res = await nvim.eval(`getloclist(bufwinid(${buf.bufnr}))`) as any[]
       expect(res.length).toBe(1)
       expect(res[0].text).toBe('[test 999] foo [E]')
@@ -276,12 +274,25 @@ describe('diagnostic buffer', () => {
       let diagnostic = createDiagnostic('foo')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]
-      await buf.refresh({ '': diagnostics })
+      await buf.update('', diagnostics)
+      await helper.wait(50)
       buf.clear()
       await helper.wait(50)
       let buffer = await nvim.buffer
       let res = await buffer.getVar("coc_diagnostic_info")
       expect(res == null).toBe(true)
+    })
+  })
+
+  describe('isEnabled()', () => {
+    it('should return false when buffer disposed', async () => {
+      let buf = await createDiagnosticBuffer()
+      await nvim.command(`bd! ${buf.bufnr}`)
+      buf.dispose()
+      let res = await buf.isEnabled()
+      expect(res).toBe(false)
+      let arr = buf.getHighlightItems([])
+      expect(arr.length).toBe(0)
     })
   })
 
@@ -294,7 +305,7 @@ describe('diagnostic buffer', () => {
         createDiagnostic('two', Range.create(0, 0, 0, 2), DiagnosticSeverity.Error),
       ]
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
-      await buf.refresh({
+      await buf.reset({
         x: diagnostics,
         y: [createDiagnostic('four', Range.create(0, 0, 0, 2), DiagnosticSeverity.Error)]
       })
