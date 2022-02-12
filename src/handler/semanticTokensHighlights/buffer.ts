@@ -294,12 +294,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     let end: number | undefined
     for (let i = startLine - 1; i < endLine; i++) {
       let arr = this._pendingHighlights.get(i)
-      if (!this._pendingHighlights.delete(i) || arr.length == 0) {
-        continue
-      }
-      if (!start) {
-        start = i
-      }
+      if (!this._pendingHighlights.delete(i) || arr.length == 0) continue
+      if (!start) start = i
       for (const o of arr) {
         let { lnum, startCharacter, endCharacter, tokenType, tokenModifiers } = o
         let range = Range.create(lnum, startCharacter, lnum, endCharacter)
@@ -309,7 +305,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
     if (items.length > 0) {
       let priority = this.config.highlightPriority
-      await this.nvim.call('coc#highlight#update_highlights', [this.bufnr, NAMESPACE, items, start, end, priority])
+      await this.nvim.call('coc#highlight#update_highlights', [this.bufnr, NAMESPACE, items, start, end + 1, priority])
     }
   }
 
