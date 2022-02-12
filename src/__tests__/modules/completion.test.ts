@@ -788,6 +788,8 @@ describe('completion trigger', () => {
 
 describe('completion TextChangedI', () => {
   it('should respect commitCharacter on TextChangedI', async () => {
+    helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+    helper.updateConfiguration('suggest.noselect', false)
     let source: ISource = {
       priority: 0,
       enable: true,
@@ -804,19 +806,20 @@ describe('completion TextChangedI', () => {
     }
     sources.addSource(source)
     await nvim.input('if')
-    await helper.pumvisible()
-    await helper.wait(50)
+    await helper.waitPopup()
     await nvim.input('.')
-    await helper.wait(50)
+    await helper.wait(100)
     sources.removeSource(source)
+    let line = await nvim.line
+    expect(line).toBe('foo.')
   })
 
   it('should cancel completion with same pretext', async () => {
     await nvim.setLine('foo')
     await nvim.input('of')
-    await helper.pumvisible()
-    await helper.wait(30)
-    await nvim.call('coc#_cancel', [])
+    await helper.waitPopup()
+    await nvim.input('<space><bs>')
+    await helper.wait(100)
     let line = await nvim.line
     let visible = await nvim.call('pumvisible')
     expect(line).toBe('f')

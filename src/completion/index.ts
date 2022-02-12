@@ -37,6 +37,8 @@ export class Completion implements Disposable {
   private resolveTokenSource: CancellationTokenSource
   private pretext = ''
   private changedTick = 0
+  private isPumvisible = false
+  private previousItem: VimCompleteItem | {} | undefined
   private mru: MruLoader = new MruLoader()
 
   public init(): void {
@@ -68,6 +70,8 @@ export class Completion implements Disposable {
       }
     })
     events.on('CompleteDone', async item => {
+      this.isPumvisible = false
+      this.previousItem = this.popupEvent?.completed_item
       this.popupEvent = null
       if (!this.activated) return
       fn.clear()
@@ -80,6 +84,7 @@ export class Completion implements Disposable {
       await this.onCompleteDone(item)
     }, this, this.disposables)
     events.on('MenuPopupChanged', ev => {
+      this.isPumvisible = true
       if (!this.activated || this.isCommandLine) return
       if (equals(this.popupEvent, ev)) return
       this.cancelResolve()
@@ -321,6 +326,7 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
+    this.isPumvisible = true
     let { option } = this
     let pretext = this.pretext = info.pre
     if (!option || option.bufnr != bufnr) return
@@ -347,6 +353,7 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
+    this.isPumvisible = false
     let { nvim, option } = this
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
@@ -376,8 +383,8 @@ export class Completion implements Disposable {
       return
     }
     // Check commit character
-    if (pretext && this.selectedItem && this.config.acceptSuggestionOnCommitCharacter) {
-      let resolvedItem = this.getCompleteItem(this.selectedItem)
+    if (pretext && Is.vimCompleteItem(this.previousItem) && this.config.acceptSuggestionOnCommitCharacter) {
+      let resolvedItem = this.getCompleteItem(this.previousItem)
       let last = pretext[pretext.length - 1]
       if (sources.shouldCommit(resolvedItem, last)) {
         let { linenr, col, line, colnr } = this.option
@@ -521,6 +528,7 @@ export class Completion implements Disposable {
   }
 
   private onInsertLeave(): void {
+    this.isPumvisible = false
     this.stop()
   }
 
@@ -625,7 +633,8 @@ export class Completion implements Disposable {
       this.complete = null
     }
     nvim.pauseNotification()
-    nvim.call('coc#_hide', [], true)
+    if (this.isPumvisible) nvim.call('coc#_hide', [], true)
+    this.isPumvisible = false
     if (!this.config.keepCompleteopt) {
       nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
     }
