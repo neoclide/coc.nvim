@@ -74,7 +74,7 @@ export default class RefactorBuffer implements BufferSyncItem {
   private matchIds: Set<number> = new Set()
   private changing = false
   constructor(
-    private bufnr: number,
+    public readonly bufnr: number,
     private srcId: number,
     private nvim: Neovim,
     public readonly config: RefactorConfig,

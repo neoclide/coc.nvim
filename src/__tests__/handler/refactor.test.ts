@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import { URI } from 'vscode-uri'
-import Refactor, { FileItem } from '../../handler/refactor/index'
-import helper, { createTmpFile } from '../helper'
-import languages from '../../languages'
-import { WorkspaceEdit, Range } from 'vscode-languageserver-types'
 import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
+import fs from 'fs'
+import { Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
+import { FileItem } from '../../handler/refactor/buffer'
+import Refactor, { emptyWorkspaceEdit } from '../../handler/refactor/index'
+import languages from '../../languages'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let refactor: Refactor
@@ -14,9 +15,6 @@ beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   refactor = helper.plugin.getHandler().refactor
-})
-
-beforeEach(async () => {
 })
 
 afterAll(async () => {
@@ -28,8 +26,42 @@ afterEach(async () => {
   await helper.reset()
 })
 
+function createEdit(uri: string): WorkspaceEdit {
+  let edit = TextEdit.insert(Position.create(0, 0), 'a')
+  let doc = { uri, version: null }
+  return { documentChanges: [TextDocumentEdit.create(doc, [edit])] }
+}
+
+describe('emptyWorkspaceEdit', () => {
+  it('should check empty workspaceEdit', async () => {
+    let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
+    expect(emptyWorkspaceEdit(workspaceEdit)).toBe(false)
+    expect(emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+  })
+})
+
 describe('refactor', () => {
-  describe('create', () => {
+  describe('fromWorkspaceEdit', () => {
+    it('should not create from invalid workspaceEdit', async () => {
+      let res = await refactor.fromWorkspaceEdit(undefined)
+      expect(res).toBeUndefined()
+      res = await refactor.fromWorkspaceEdit({ documentChanges: [] })
+      expect(res).toBeUndefined()
+    })
+
+    it('should create from document changes', async () => {
+      let edit = createEdit(URI.file(__filename).toString())
+      let buf = await refactor.fromWorkspaceEdit(edit)
+      let shown = await buf.valid
+      expect(shown).toBe(true)
+      let items = buf.fileItems
+      expect(items.length).toBe(1)
+      await nvim.command(`bd! ${buf.bufnr}`)
+      await helper.wait(30)
+      let has = refactor.has(buf.bufnr)
+      expect(has).toBe(false)
+    })
+
     it('should create from workspaceEdit', async () => {
       let changes = {
         [URI.file(__filename).toString()]: [{
@@ -38,6 +70,12 @@ describe('refactor', () => {
         }, {
           range: Range.create(1, 0, 1, 6),
           newText: ''
+        }, {
+          range: Range.create(50, 0, 50, 1),
+          newText: ' '
+        }, {
+          range: Range.create(60, 0, 60, 1),
+          newText: ' '
         }]
       }
       let edit: WorkspaceEdit = { changes }
@@ -47,7 +85,9 @@ describe('refactor', () => {
       let items = buf.fileItems
       expect(items.length).toBe(1)
     })
+  })
 
+  describe('fromLocations', () => {
     it('should create from locations', async () => {
       let uri = URI.file(__filename).toString()
       let locations = [{
@@ -62,6 +102,11 @@ describe('refactor', () => {
       expect(shown).toBe(true)
       let items = buf.fileItems
       expect(items.length).toBe(1)
+    })
+
+    it('should not create from empty locations', async () => {
+      let buf = await refactor.fromLocations([])
+      expect(buf).toBeUndefined()
     })
   })
 

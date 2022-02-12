@@ -106,6 +106,7 @@ export default class Handler implements HandlerDelegate {
         this.semanticHighlighter.dispose()
       }
     })
+    void this.refactor.init()
   }
 
   public async getCurrentState(): Promise<CurrentState> {
