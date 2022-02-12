@@ -60,7 +60,6 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'editor.action.insertSnippet',
       execute: async (edit: TextEdit) => {
-        nvim.call('coc#_cancel', [], true)
         return await snipetsManager.insertSnippet(edit.newText, true, edit.range)
       }
     }, true)

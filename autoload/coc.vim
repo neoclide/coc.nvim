@@ -42,10 +42,13 @@ function! coc#on_enter()
 endfunction
 
 function! coc#_insert_key(method, key, ...) abort
+  let prefix = ''
   if get(a:, 1, 1)
-    call coc#_cancel()
+    if pumvisible()
+      let prefix = "\<space>\<bs>"
+    endif
   endif
-  return "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
+  return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
 
 function! coc#_complete() abort
@@ -84,7 +87,7 @@ function! coc#_select_confirm() abort
   endif
   let selected = complete_info()['selected']
   if selected != -1
-     return "\<C-y>"
+    return "\<C-y>"
   elseif pumvisible()
     return "\<down>\<C-y>"
   endif
