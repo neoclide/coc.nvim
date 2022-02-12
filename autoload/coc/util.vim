@@ -174,6 +174,12 @@ function! coc#util#jump(cmd, filepath, ...) abort
     else
       exec 'drop '.fnameescape(file)
     endif
+  elseif a:cmd == 'edit'
+    if bufloaded(file)
+      exe 'b '.bufnr(file)
+    else
+      exe a:cmd.' '.fnameescape(file)
+    endif
   else
     exe a:cmd.' '.fnameescape(file)
   endif

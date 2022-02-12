@@ -42,10 +42,13 @@ function! coc#on_enter()
 endfunction
 
 function! coc#_insert_key(method, key, ...) abort
+  let prefix = ''
   if get(a:, 1, 1)
-    call coc#_cancel()
+    if pumvisible()
+      let prefix = "\<space>\<bs>"
+    endif
   endif
-  return "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
+  return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
 
 function! coc#_complete() abort
@@ -84,7 +87,7 @@ function! coc#_select_confirm() abort
   endif
   let selected = complete_info()['selected']
   if selected != -1
-     return "\<C-y>"
+    return "\<C-y>"
   elseif pumvisible()
     return "\<down>\<C-y>"
   endif
@@ -98,14 +101,14 @@ endfunction
 
 function! coc#_hide() abort
   if !pumvisible() | return | endif
-  call feedkeys("\<C-e>", 'in')
+  " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
+  call feedkeys("\<space>\<bs>", 'in')
 endfunction
 
 function! coc#_cancel()
   " hack for close pum
   if pumvisible()
-    let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
-    call feedkeys("\<Plug>CocRefresh", 'i')
+    call feedkeys("\<space>\<bs>", 'in')
     call coc#rpc#notify('stopCompletion', [])
   endif
 endfunction
