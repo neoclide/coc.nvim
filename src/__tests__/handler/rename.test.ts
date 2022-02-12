@@ -232,7 +232,7 @@ describe('rename handler', () => {
       let p = rename.rename()
       await helper.wait(50)
       await nvim.input('<C-u>')
-      await helper.wait(10)
+      await helper.wait(50)
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p

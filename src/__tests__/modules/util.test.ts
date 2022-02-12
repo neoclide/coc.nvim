@@ -485,7 +485,7 @@ describe('utility', () => {
     await concurrent(arr, fn, 3)
     let dt = Date.now() - ts
     expect(dt).toBeLessThanOrEqual(130)
-    expect(dt).toBeGreaterThanOrEqual(120)
+    expect(dt).toBeGreaterThanOrEqual(100)
     expect(res).toEqual([3, 4, 5, 6, 8])
   })
 
