@@ -111,9 +111,14 @@ export default class LanguageSource implements ISource {
     let hasResolve = typeof this.provider.resolveCompletionItem === 'function'
     if (hasResolve) {
       this.resolvedIndexes.add(index)
+      let disposable = token.onCancellationRequested(() => {
+        this.resolvedIndexes.delete(index)
+      })
       try {
         let resolved = await Promise.resolve(this.provider.resolveCompletionItem(Object.assign({}, resolving), token))
-        if (!resolved || token.isCancellationRequested) {
+        disposable.dispose()
+        if (token.isCancellationRequested) return
+        if (!resolved) {
           this.resolvedIndexes.delete(index)
         } else if (resolved !== resolving) {
           Object.assign(resolving, resolved)

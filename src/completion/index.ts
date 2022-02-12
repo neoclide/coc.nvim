@@ -481,6 +481,7 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document } = this
+    this.cancelResolve()
     if (!document || !Is.vimCompleteItem(item)) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
@@ -502,9 +503,9 @@ export class Completion implements Disposable {
       if (source && typeof source.onCompleteResolve == 'function') {
         let timer = setTimeout(() => {
           tokenSource.cancel()
-          logger.warn(`Resolve timeout after 300ms: ${source.name}`)
+          logger.warn(`Resolve timeout after 500ms: ${source.name}`)
           resolve()
-        }, 300)
+        }, 500)
         Promise.resolve(source.onCompleteResolve(item, tokenSource.token)).then(() => {
           clearTimeout(timer)
           resolve()
