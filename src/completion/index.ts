@@ -294,7 +294,7 @@ export class Completion implements Disposable {
     let items = await this.complete.doComplete()
     this.completeTimer = null
     clearTimeout(timer)
-    if (complete.isCanceled || this.selectedItem) return
+    if (complete.isCanceled) return
     if (items.length == 0) {
       this.stop()
       return
