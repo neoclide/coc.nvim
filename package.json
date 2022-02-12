@@ -97,7 +97,7 @@
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.1",
     "fs-extra": "^9.0.1",
-    "follow-redirects": "^1.14.7",
+    "follow-redirects": "^1.14.8",
     "http-proxy-agent": "^5.0.0",
     "https-proxy-agent": "^5.0.0",
     "isuri": "^2.0.3",
