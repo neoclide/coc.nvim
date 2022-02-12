@@ -235,7 +235,6 @@ export class Completion implements Disposable {
 
   private async showCompletion(col: number, items: ExtendedCompleteItem[]): Promise<void> {
     let { nvim, document } = this
-    if (this.selectedItem) return
     this.currentSources = this.complete.resultSources
     let { disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
