@@ -141,19 +141,17 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   public get highlights(): ReadonlyArray<SemanticTokenRange> {
     let pending: SemanticTokenRange[] = []
-    this._pendingHighlights.forEach(absHighlights => {
-      absHighlights.forEach(absHighlight => {
-        let { lnum, startCharacter, endCharacter, tokenType, tokenModifiers } = absHighlight
+    this._pendingHighlights.forEach(absTokens => {
+      absTokens.forEach(absToken => {
+        let { lnum, startCharacter, endCharacter, tokenType, tokenModifiers } = absToken
         let [highlightGroup] = this.getHighlightGroup(tokenType, tokenModifiers)
-        if (highlightGroup) {
-          let range = Range.create(lnum, startCharacter, lnum, endCharacter)
-          pending.push({
-            range,
-            tokenType,
-            hlGroup: highlightGroup,
-            tokenModifiers,
-          })
-        }
+        let range = Range.create(lnum, startCharacter, lnum, endCharacter)
+        pending.push({
+          range,
+          tokenType,
+          hlGroup: highlightGroup,
+          tokenModifiers,
+        })
       })
     })
     return pending.length > 0 ? [...this._highlights, ...pending] : this._highlights
