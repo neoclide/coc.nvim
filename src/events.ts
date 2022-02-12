@@ -113,11 +113,11 @@ class Events {
       this._lastChange = Date.now()
       if (this._latestInsert) {
         let info = args[1]
-        if (info) info.insertChar = this._latestInsert.character
+        if (info && info.pre.length) info.insertChar = info.pre.slice(-1)
         let insert = this._latestInsert
         this._latestInsert = undefined
-        if (insert.bufnr == args[0] && Date.now() - insert.timestamp < 200 && args[1].pre.length) {
-          let character = args[1].pre.slice(-1)
+        if (insert.bufnr == args[0] && Date.now() - insert.timestamp < 200 && info.pre.length) {
+          let character = info.pre.slice(-1)
           // make it fires after TextChangedI & TextChangedP
           process.nextTick(() => {
             void this.fire('TextInsert', [...args, character])

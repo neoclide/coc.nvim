@@ -98,14 +98,14 @@ endfunction
 
 function! coc#_hide() abort
   if !pumvisible() | return | endif
-  call feedkeys("\<C-e>", 'in')
+  " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
+  call feedkeys("\<space>\<bs>", 'in')
 endfunction
 
 function! coc#_cancel()
   " hack for close pum
   if pumvisible()
-    let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
-    call feedkeys("\<Plug>CocRefresh", 'i')
+    call feedkeys("\<space>\<bs>", 'in')
     call coc#rpc#notify('stopCompletion', [])
   endif
 endfunction

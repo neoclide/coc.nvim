@@ -576,6 +576,8 @@ export interface CompleteResult {
 }
 
 // option on complete & should_complete
+// what need change? line, col, input, colnr, changedtick
+// word = '', triggerForInComplete = false
 export interface CompleteOption {
   readonly bufnr: number
   readonly line: string
@@ -590,6 +592,7 @@ export interface CompleteOption {
   readonly linenr: number
   readonly synname: string
   readonly source?: string
+  readonly sources?: string[]
   readonly blacklist: string[]
   readonly disabled: ReadonlyArray<string>
   readonly changedtick: number

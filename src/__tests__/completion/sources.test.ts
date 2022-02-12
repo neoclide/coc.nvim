@@ -45,7 +45,7 @@ describe('native sources', () => {
     expect(res).toBe(true)
   })
 
-  it('should works for file source', async () => {
+  it('should works with file source', async () => {
     await helper.edit()
     await nvim.input('i/')
     await helper.waitPopup()

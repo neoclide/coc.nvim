@@ -90,6 +90,10 @@ export class Helper extends EventEmitter {
     await this.wait(60)
   }
 
+  public async triggerCompletion(source: string): Promise<void> {
+    await this.nvim.call('coc#start', { source })
+  }
+
   public async waitPopup(): Promise<void> {
     for (let i = 0; i < 40; i++) {
       await this.wait(50)

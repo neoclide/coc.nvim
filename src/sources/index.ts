@@ -304,11 +304,10 @@ export class Sources {
 
   private checkTrigger(source: ISource, pre: string, character: string): boolean {
     let { triggerCharacters, triggerPatterns } = source
-    if (!triggerCharacters && !triggerPatterns) return false
-    if (character && triggerCharacters && triggerCharacters.includes(character)) {
+    if (triggerCharacters?.length > 0 && triggerCharacters.includes(character)) {
       return true
     }
-    if (triggerPatterns && triggerPatterns.findIndex(p => p.test(pre)) !== -1) {
+    if (triggerPatterns?.length > 0 && triggerPatterns.findIndex(p => p.test(pre)) !== -1) {
       return true
     }
     return false
@@ -319,21 +318,18 @@ export class Sources {
   }
 
   public getTriggerSources(pre: string, filetype: string, uri: string, disabled: ReadonlyArray<string> = []): ISource[] {
-    let character = pre.length ? pre[pre.length - 1] : ''
-    if (!character) return []
+    if (!pre) return []
+    let character = pre[pre.length - 1]
     let languageIds = filetype.split('.')
     return this.sources.filter(source => {
       let { filetypes, enable, documentSelector, name } = source
-      if (disabled.includes(name)) {
-        return name
-      }
+      if (disabled.includes(name)) return name
       if (!enable || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }
       if (documentSelector && languageIds.every(languageId => workspace.match(documentSelector, { uri, languageId }) == 0)) {
         return false
       }
-      // if (this.disabledByFiletype(source, filetype)) return false
       return this.checkTrigger(source, pre, character)
     })
   }

@@ -529,4 +529,66 @@ describe('completion', () => {
       await helper.waitFor('getline', ['.'], 'END')
     })
   })
+
+  describe('Character insert', () => {
+    beforeAll(() => {
+      let source: ISource = {
+        name: 'insert',
+        priority: 10,
+        enable: true,
+        firstMatch: false,
+        sourceType: SourceType.Native,
+        triggerCharacters: ['.'],
+        doComplete: async (opt): Promise<CompleteResult> => {
+          if (opt.word === 'f') return { items: [{ word: 'foo' }] }
+          if (!opt.triggerCharacter) return { items: [] }
+          let result: CompleteResult = {
+            items: [{ word: 'one' }, { word: 'two' }]
+          }
+          return Promise.resolve(result)
+        }
+      }
+      sources.addSource(source)
+    })
+
+    afterAll(() => {
+      sources.removeSource('insert')
+    })
+
+    it('should keep selected text after text change', async () => {
+      let text = 'foo bar f'
+      await nvim.setLine(text)
+      await nvim.input('A')
+      await helper.triggerCompletion('insert')
+      await helper.waitPopup()
+      await nvim.call('nvim_select_popupmenu_item', [0, true, false, {}])
+      let line = await nvim.line
+      expect(line).toBe('foo bar foo')
+      await nvim.exec(`
+      noa call setline('.', '${text}oobar')
+      noa call cursor(1,${text.length + 6})
+      `)
+      await helper.wait(100)
+      let res = await helper.pumvisible()
+      expect(res).toBe(false)
+      line = await nvim.line
+      expect(line).toBe('foo bar foobar')
+    })
+
+    it('should trigger on text change by api', async () => {
+      let text = 'foo bar f'
+      await nvim.setLine(text)
+      await nvim.input('A')
+      await helper.triggerCompletion('insert')
+      await helper.waitPopup()
+      await nvim.exec(`
+      noa call setline('.', '${text}oo.')
+      noa call cursor(1,${text.length + 4})
+      `)
+      await helper.wait(100)
+      let res = await helper.pumvisible()
+      expect(res).toBe(true)
+      expect(await helper.visible('one', 'insert')).toBe(true)
+    })
+  })
 })
