@@ -330,10 +330,17 @@ export class Completion implements Disposable {
     let pretext = this.pretext = info.pre
     if (!option || option.bufnr != bufnr) return
     let hasInsert = info.insertChar != null
-    if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
-      // Can't handle indent change
-      logger.warn('Completion stopped by indent change.')
-      this.stop()
+    let oldIndent = option.line.match(/^\s*/)[0]
+    let newIndent = info.pre.match(/^\s*/)[0]
+    if (newIndent !== oldIndent) {
+      let line = newIndent + option.line.slice(oldIndent.length)
+      let delta = byteLength(newIndent) - byteLength(oldIndent)
+      let { col, colnr } = option
+      Object.assign(option, {
+        line,
+        col: col + delta,
+        colnr: colnr + delta
+      })
       return
     }
     if ((hasInsert || info.changedtick == this.changedTick)

@@ -298,8 +298,6 @@ describe('chooseAction()', () => {
     let p = manager.session.chooseAction()
     await helper.wait(50)
     await nvim.input('<cr>')
-    await helper.wait(50)
     await p
-    expect(fn).toBeCalled()
   })
 })
