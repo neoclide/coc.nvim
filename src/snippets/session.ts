@@ -262,6 +262,9 @@ export class SnippetSession {
     if (move_cmd) {
       nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
     }
+    if (pumvisible) {
+      nvim.call('coc#_cancel', [], true)
+    }
     nvim.setOption('virtualedit', ve, true)
     if (isFinalTabstop) {
       if (this.snippet.finalCount == 1) {
