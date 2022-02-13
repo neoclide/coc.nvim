@@ -353,17 +353,11 @@ export default class SemanticTokensBuffer implements SyncItem {
       items = await this.requestAllHighlights(startLine, endLine, tokenSource.token, forceFull)
     }
     // request cancelled or can't work
-    if (!items || tokenSource.token.isCancellationRequested || this.invalid) {
-      this.tokenSource = null
-      return
-    }
+    if (!items || tokenSource.token.isCancellationRequested || this.invalid) return
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, startLine, endLine)
-    if (tokenSource.token.isCancellationRequested || !diff || this.invalid) {
-      this.tokenSource = null
-      return
-    }
-    await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
     this.tokenSource = null
+    if (tokenSource.token.isCancellationRequested || !diff || this.invalid) return
+    await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
   }
 
   /**
