@@ -177,9 +177,17 @@ class Languages {
   }
 
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    this._onDidSemanticTokensRefresh.fire(selector)
-    return this.semanticTokensManager.register(selector, provider, legend, () => {
+    // Language server may send refresh short time after initialized.
+    let timer = setTimeout(() => {
       this._onDidSemanticTokensRefresh.fire(selector)
+    }, 500)
+    let disposable = this.semanticTokensManager.register(selector, provider, legend, () => {
+      clearTimeout(timer)
+      this._onDidSemanticTokensRefresh.fire(selector)
+    })
+    return Disposable.create(() => {
+      clearTimeout(timer)
+      disposable.dispose()
     })
   }
 
