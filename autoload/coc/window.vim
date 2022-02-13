@@ -85,3 +85,15 @@ function! coc#window#visible_range(bufnr) abort
   let info = getwininfo(winid)[0]
   return [info['topline'], info['botline']]
 endfunction
+
+function! coc#window#visible_ranges(bufnr) abort
+  let wins = gettabinfo(tabpagenr())[0]['windows']
+  let res = []
+  for id in wins
+    let info = getwininfo(id)[0]
+    if info['bufnr'] == a:bufnr
+      call add(res, [info['topline'], info['botline']])
+    endif
+  endfor
+  return res
+endfunction

@@ -547,9 +547,9 @@ class Window {
    * @param {HighlightItem[]} items Highlight items
    * @returns {Promise<HighlightDiff | null>}
    */
-  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[]): Promise<HighlightDiff | null> {
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], token?: CancellationToken): Promise<HighlightDiff | null> {
     let curr = await this.nvim.call('coc#highlight#get_highlights', [bufnr, ns]) as HighlightItemResult[]
-    if (!curr) return null
+    if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRmove = []
     let checkMarkers = workspace.has('nvim-0.6.0')

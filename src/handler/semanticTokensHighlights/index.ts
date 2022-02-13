@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { debounce } from 'debounce'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
@@ -10,8 +10,6 @@ import Highlighter from '../../model/highligher'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
-import { positionInRange } from '../../util/position'
-import window from '../../window'
 import workspace from '../../workspace'
 import SemanticTokensBuffer, { capitalize, HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
@@ -23,8 +21,6 @@ export default class SemanticTokensHighlights {
   private disposables: Disposable[] = []
   private highlighters: BufferSync<SemanticTokensBuffer>
   private floatFactory: FloatFactory
-  // buffers that wait for refresh when visible
-  private hiddenBuffers: Set<number> = new Set()
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
@@ -70,29 +66,19 @@ export default class SemanticTokensHighlights {
     })
     languages.onDidSemanticTokensRefresh(async selector => {
       let visibleBufs = await this.nvim.call('coc#window#bufnrs') as number[]
-      let visible = await this.nvim.call('pumvisible')
+      let pumvisible = await this.nvim.call('pumvisible')
       for (let item of this.highlighters.items) {
         let doc = workspace.getDocument(item.bufnr)
         if (!doc || !workspace.match(selector, doc.textDocument)) continue
         item.abandonResult()
         if (visibleBufs.includes(item.bufnr)) {
-          this.hiddenBuffers.delete(item.bufnr)
-          if (!visible) item.highlight()
-        } else {
-          this.hiddenBuffers.add(item.bufnr)
+          if (!pumvisible) item.highlight()
         }
       }
     }, null, this.disposables)
-    events.on('BufWinEnter', bufnr => {
-      if (!this.hiddenBuffers.has(bufnr)) return
-      this.hiddenBuffers.delete(bufnr)
+    events.on('BufWinEnter', async bufnr => {
       let item = this.highlighters.getItem(bufnr)
-      if (item && !item.rangeProviderOnly) {
-        item.highlight()
-      }
-    }, null, this.disposables)
-    events.on('BufUnload', bufnr => {
-      this.hiddenBuffers.delete(bufnr)
+      if (item) await item.onShown()
     }, null, this.disposables)
     let fn = debounce(async bufnr => {
       let item = this.highlighters.getItem(bufnr)
@@ -100,8 +86,28 @@ export default class SemanticTokensHighlights {
       await item.doRangeHighlight()
     }, global.hasOwnProperty('__TEST__') ? 10 : 300)
     events.on('CursorMoved', fn, null, this.disposables)
+    let tokenSource: CancellationTokenSource
+    let timer: NodeJS.Timeout
+    events.on('CursorMoved', bufnr => {
+      if (tokenSource) {
+        tokenSource.cancel()
+        tokenSource = null
+      }
+      if (timer) clearTimeout(timer)
+      let item = this.highlighters.getItem(bufnr)
+      if (!item || item.rangeProviderOnly) return
+      setTimeout(() => {
+        tokenSource = new CancellationTokenSource()
+        void item.highlightRegions(tokenSource.token)
+      }, global.hasOwnProperty('__TEST__') ? 10 : 100)
+    }, null, this.disposables)
     this.disposables.push({
       dispose: () => {
+        if (tokenSource) {
+          tokenSource.cancel()
+          tokenSource = null
+        }
+        if (timer) clearTimeout(timer)
         fn.clear()
       }
     })
@@ -125,8 +131,11 @@ export default class SemanticTokensHighlights {
       this.floatFactory.close()
       return
     }
-    let position = await window.getCursorPosition()
-    let highlight = item.highlights.find(o => positionInRange(position, o.range) == 0)
+    let [_, line, col] = await this.nvim.call('getcurpos', [])
+    let highlight = item.highlights.find(o => {
+      let column = col - 1
+      return o.range[0] === line - 1 && column >= o.range[1] && column < o.range[2]
+    })
     if (highlight) {
       let modifiers = highlight.tokenModifiers || []
       let docs = [{
@@ -231,7 +240,6 @@ export default class SemanticTokensHighlights {
   }
 
   public dispose(): void {
-    this.hiddenBuffers.clear()
     this.floatFactory.dispose()
     this.highlighters.dispose()
     disposeAll(this.disposables)

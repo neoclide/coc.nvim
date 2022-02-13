@@ -39,6 +39,14 @@ export function waitNextTick(fn: () => void): Promise<void> {
   })
 }
 
+export function waitImmediate(): Promise<void> {
+  return new Promise(resolve => {
+    setImmediate(() => {
+      resolve(undefined)
+    })
+  })
+}
+
 export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
   if (!fullpath) return `untitled:${id}`
   // https://github.com/neoclide/coc-java/issues/82

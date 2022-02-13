@@ -4,24 +4,20 @@ import { CancellationToken, CancellationTokenSource, Range, SemanticTokens, Sema
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
-import { HighlightItem, HighlightItemOption } from '../../types'
+import Regions from '../../model/regions'
+import { HighlightItem } from '../../types'
+import { waitImmediate } from '../../util/index'
+import { byteIndex } from '../../util/string'
 import window from '../../window'
+import events from '../../events'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
+const yieldEveryMilliseconds = 15
 
 export const HLGROUP_PREFIX = 'CocSem'
 export const NAMESPACE = 'semanticTokens'
 
-/**
- * Relative highlight
- */
-interface RelativeHighlight {
-  tokenType: string
-  tokenModifiers: string[]
-  deltaLine: number
-  deltaStartCharacter: number
-  length: number
-}
+export type TokenRange = [number, number, number] // line, startCol, endCol
 
 export interface SemanticTokensConfig {
   filetypes: string[]
@@ -32,10 +28,11 @@ export interface SemanticTokensConfig {
 }
 
 export interface SemanticTokenRange {
-  range: Range
+  range: TokenRange
   tokenType: string
-  tokenModifiers?: string[]
+  tokenModifiers: string[]
   hlGroup?: string
+  combine: boolean
 }
 
 interface SemanticTokensPreviousResult {
@@ -45,7 +42,7 @@ interface SemanticTokensPreviousResult {
 }
 
 interface RangeHighlights {
-  items: HighlightItem[]
+  highlights: SemanticTokenRange[]
   /**
    * 0 based
    */
@@ -66,7 +63,9 @@ const debounceInterval = global.hasOwnProperty('__TEST__') ? 10 : 300
 export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private rangeTokenSource: CancellationTokenSource
-  private _highlights: SemanticTokenRange[]
+  private _highlights: [number, SemanticTokenRange[]]
+  private _dirty = false
+  private regions: Regions | undefined
   private previousResults: SemanticTokensPreviousResult | undefined
   public highlight: Function & { clear(): void }
   constructor(
@@ -97,6 +96,12 @@ export default class SemanticTokensBuffer implements SyncItem {
     await this.doHighlight(true)
   }
 
+  public async onShown(): Promise<void> {
+    // Could use CursorMoved to highlight
+    if (this.rangeProviderOnly || this.regions) return
+    await this.doHighlight(false)
+  }
+
   public get hasProvider(): boolean {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return false
@@ -117,14 +122,17 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   private get invalid(): boolean {
     let doc = workspace.getDocument(this.bufnr)
-    return !doc || doc.dirty
+    let { _highlights } = this
+    if (!doc || doc.dirty) return true
+    if (_highlights && _highlights[0] !== doc.version) return true
+    return false
   }
 
   /**
    * Get current highlight items
    */
   public get highlights(): ReadonlyArray<SemanticTokenRange> {
-    return this._highlights
+    return this._highlights ? this._highlights[1] : []
   }
 
   private get buffer(): Buffer {
@@ -160,42 +168,42 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!this.hasLegend) throw new Error('Legend not exists.')
   }
 
-  private getHighlightItems(doc: Document, tokens: number[], legend: SemanticTokensLegend): HighlightItem[] {
-    const relatives: RelativeHighlight[] = []
+  private async getTokenRanges(
+    doc: Document,
+    tokens: number[],
+    legend: SemanticTokensLegend,
+    token: CancellationToken): Promise<SemanticTokenRange[] | null> {
+    let currentLine = 0
+    let currentCharacter = 0
+    let tickStart = Date.now()
+    let highlights: SemanticTokenRange[] = []
     for (let i = 0; i < tokens.length; i += 5) {
+      if (Date.now() - tickStart > yieldEveryMilliseconds) {
+        await waitImmediate()
+        if (token.isCancellationRequested) break
+        tickStart = Date.now()
+      }
       const deltaLine = tokens[i]
       const deltaStartCharacter = tokens[i + 1]
       const length = tokens[i + 2]
-      const tokenType = tokens[i + 3]
+      const tokenType = legend.tokenTypes[tokens[i + 3]]
       const tokenModifiers = legend.tokenModifiers.filter((_, m) => tokens[i + 4] & (1 << m))
-      relatives.push({ tokenType: legend.tokenTypes[tokenType], tokenModifiers, deltaLine, deltaStartCharacter, length })
-    }
-
-    const res: HighlightItem[] = []
-    let currentLine = 0
-    let currentCharacter = 0
-    this._highlights = []
-    for (const {
-      tokenType,
-      tokenModifiers,
-      deltaLine,
-      deltaStartCharacter,
-      length
-    } of relatives) {
       const lnum = currentLine + deltaLine
       const startCharacter = deltaLine === 0 ? currentCharacter + deltaStartCharacter : deltaStartCharacter
       const endCharacter = startCharacter + length
       currentLine = lnum
       currentCharacter = startCharacter
-      // range, tokenType, tokenModifiers
-      let range = Range.create(lnum, startCharacter, lnum, endCharacter)
-      this.addHighlightItems(res, doc, range, tokenType, tokenModifiers)
+      this.addHighlightItems(highlights, doc, lnum, startCharacter, endCharacter, tokenType, tokenModifiers)
     }
-    return res
+    if (token.isCancellationRequested) return null
+    return highlights
   }
 
-  private addHighlightItems(items: HighlightItem[], doc: Document, range: Range, tokenType: string, tokenModifiers?: string[]): void {
-    let { highlightGroups, combinedModifiers, incrementTypes } = this.config
+  /**
+   * Single line only.
+   */
+  private addHighlightItems(highlights: SemanticTokenRange[], doc: Document, lnum: number, startCharacter: number, endCharacter: number, tokenType: string, tokenModifiers?: string[]): void {
+    let { highlightGroups, combinedModifiers } = this.config
     tokenModifiers = tokenModifiers || []
     let highlightGroup: string
     let combine = false
@@ -224,20 +232,40 @@ export default class SemanticTokensBuffer implements SyncItem {
         highlightGroup = hlGroup
       }
     }
-    if (highlightGroup) {
-      let opts: HighlightItemOption = { combine }
-      if (incrementTypes.includes(tokenType)) {
-        opts.end_incl = true
-        opts.start_incl = true
-      }
-      doc.addHighlights(items, highlightGroup, range, opts)
-    }
-    this._highlights.push({
-      range,
+    let line = doc.getline(lnum)
+    let colStart = byteIndex(line, startCharacter)
+    let colEnd = byteIndex(line, endCharacter)
+    highlights.push({
+      range: [lnum, colStart, colEnd],
       tokenType,
+      combine,
       hlGroup: highlightGroup,
       tokenModifiers,
     })
+  }
+
+  private toHighlightItems(highlights: ReadonlyArray<SemanticTokenRange>, startLine?: number, endLine?: number): HighlightItem[] {
+    let { incrementTypes } = this.config
+    let filter = typeof startLine === 'number' && typeof endLine === 'number'
+    let res: HighlightItem[] = []
+    for (let hi of highlights) {
+      if (!hi.hlGroup) continue
+      let lnum = hi.range[0]
+      if (filter && (lnum < startLine || lnum >= endLine)) continue
+      let item: HighlightItem = {
+        lnum,
+        hlGroup: hi.hlGroup,
+        colStart: hi.range[1],
+        colEnd: hi.range[2],
+        combine: hi.combine
+      }
+      if (incrementTypes.includes(hi.tokenType)) {
+        item.end_incl = true
+        item.start_incl = true
+      }
+      res.push(item)
+    }
+    return res
   }
 
   public async doRangeHighlight(): Promise<void> {
@@ -245,41 +273,89 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.cancel(true)
     let tokenSource = this.rangeTokenSource = new CancellationTokenSource()
     let priority = this.config.highlightPriority
-    let res = await this.requestRangeHighlights(tokenSource.token)
+    let token = tokenSource.token
+    let res = await this.requestRangeHighlights(token)
     this.rangeTokenSource = null
-    if (!res) return
-    const { items, start, end } = res
+    if (!res || token.isCancellationRequested) return
+    const { highlights, start, end } = res
+    if (this.rangeProviderOnly || !this._highlights) {
+      this._highlights = [0, highlights]
+    }
+    let items = this.toHighlightItems(highlights)
     await this.nvim.call('coc#highlight#update_highlights', [this.bufnr, NAMESPACE, items, start, end, priority])
   }
 
   public async doHighlight(forceFull = false): Promise<void> {
     if (!this.enabled) return
     this.cancel()
-    let visible = await this.nvim.call('pumvisible')
-    if (visible) return
+    if (events.pumvisible) return
+    let hidden = await this.nvim.eval(`get(get(getbufinfo(${this.bufnr}),0,{}),'hidden',0)`)
+    if (hidden == 1) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
     if (this.shouldRangeHighlight) {
       await this.doRangeHighlight()
       if (this.rangeProviderOnly) return
     }
-    let priority = this.config.highlightPriority
-    let previousVersion = this.previousResults?.version
-    let doc = workspace.getDocument(this.bufnr)
-    let items: HighlightItem[] | undefined
-    // TextDocument not changed, need perform highlight since lines possible changed.
-    if (previousVersion && doc && doc.version === previousVersion) {
-      let tokens = this.previousResults.tokens
-      const legend = languages.getLegend(doc.textDocument)
-      items = this.getHighlightItems(doc, tokens, legend)
+    const doc = workspace.getDocument(this.bufnr)
+    if (token.isCancellationRequested || !doc) return
+    const priority = this.config.highlightPriority
+    const version = doc.version
+    let tokenRanges: SemanticTokenRange[] | undefined
+    // TextDocument not changed, need perform highlight since lines possible replaced.
+    if (version === this.previousResults?.version) {
+      if (this._highlights && this._highlights[0] == version) {
+        tokenRanges = this._highlights[1]
+      } else {
+        // possible cancelled.
+        const tokens = this.previousResults.tokens
+        const legend = languages.getLegend(doc.textDocument)
+        tokenRanges = await this.getTokenRanges(doc, tokens, legend, token)
+        if (tokenRanges) this._highlights = [version, tokenRanges]
+      }
     } else {
-      items = await this.requestAllHighlights(tokenSource.token, forceFull)
+      tokenRanges = await this.requestAllHighlights(token, forceFull)
+      if (tokenRanges) this._highlights = [version, tokenRanges]
     }
     // request cancelled or can't work
-    if (!items || tokenSource.token.isCancellationRequested || this.invalid) return
-    let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items)
-    this.tokenSource = null
-    if (tokenSource.token.isCancellationRequested || !diff || this.invalid) return
-    await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
+    if (!tokenRanges || token.isCancellationRequested || this.invalid) return
+    if (!this._dirty || tokenRanges.length < 1000) {
+      let items = this.toHighlightItems(tokenRanges)
+      let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, token)
+      if (token.isCancellationRequested || !diff || this.invalid) return
+      this._dirty = true
+      await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
+    } else {
+      this.regions = new Regions()
+      await this.highlightRegions(token)
+    }
+  }
+
+  /**
+   * highlight current visible regions
+   */
+  public async highlightRegions(token: CancellationToken): Promise<void> {
+    let { regions, highlights, config, lineCount } = this
+    if (this.invalid || !regions) return
+    let priority = config.highlightPriority
+    let spans: [number, number][] = await this.nvim.call('coc#window#visible_ranges', [this.bufnr])
+    if (this.invalid || token.isCancellationRequested || spans.length === 0) return
+    let height = workspace.env.lines
+    spans.forEach(o => {
+      o[0] = Math.max(0, Math.floor(o[0] - height * 1.5))
+      o[1] = Math.min(lineCount, Math.ceil(o[1] + height * 1.5))
+    })
+    for (let [start, end] of Regions.mergeSpans(spans)) {
+      if (regions.has(start, end)) continue
+      let items = this.toHighlightItems(highlights, start, end)
+      regions.add(start, end)
+      this.nvim.call('coc#highlight#update_highlights', [this.bufnr, NAMESPACE, items, start, end, priority], true)
+    }
+  }
+
+  private get lineCount(): number {
+    let doc = workspace.getDocument(this.bufnr)
+    return doc ? doc.lineCount : 0
   }
 
   /**
@@ -294,22 +370,23 @@ export default class SemanticTokensBuffer implements SyncItem {
     let range = Range.create(r[0] - 1, 0, r[1], 0)
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || token.isCancellationRequested) return null
-    let items = this.getHighlightItems(doc, res.data, legend)
-    return { items, start: r[0] - 1, end: r[1] }
+    let highlights = await this.getTokenRanges(doc, res.data, legend, token)
+    if (token.isCancellationRequested) return null
+    return { highlights, start: r[0] - 1, end: r[1] }
   }
 
   /**
    * Request highlights from provider, return undefined when can't request or request cancelled
    * Use range provider only when not semanticTokens provider exists.
    */
-  private async requestAllHighlights(token: CancellationToken, forceFull: boolean): Promise<HighlightItem[] | undefined> {
+  private async requestAllHighlights(token: CancellationToken, forceFull: boolean): Promise<SemanticTokenRange[] | null> {
     let doc = workspace.getDocument(this.bufnr)
-    if (!doc) return
+    if (!doc) return null
     const legend = languages.getLegend(doc.textDocument)
     const hasEditProvider = languages.hasSemanticTokensEdits(doc.textDocument)
     const previousResult = forceFull ? null : this.previousResults
+    const version = doc.version
     let result: SemanticTokens | SemanticTokensDelta
-    let version = doc.textDocument.version
     if (hasEditProvider && previousResult?.resultId) {
       result = await languages.provideDocumentSemanticTokensEdits(doc.textDocument, previousResult.resultId, token)
     } else {
@@ -325,10 +402,10 @@ export default class SemanticTokensBuffer implements SyncItem {
         tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data)
       })
     } else {
-      return
+      return null
     }
     this.previousResults = { resultId: result.resultId, tokens, version }
-    return this.getHighlightItems(doc, tokens, legend)
+    return await this.getTokenRanges(doc, tokens, legend, token)
   }
 
   public clearHighlight(): void {
@@ -346,6 +423,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.rangeTokenSource = null
     }
     if (rangeOnly) return
+    this.regions = undefined
     this.highlight.clear()
     if (this.tokenSource) {
       this.tokenSource.cancel()
@@ -356,7 +434,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public dispose(): void {
     this.cancel()
-    this._highlights = []
+    this._highlights = undefined
     this.previousResults = undefined
   }
 }
