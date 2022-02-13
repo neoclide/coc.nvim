@@ -472,6 +472,11 @@ export class Completion implements Disposable {
         disposeAll(disposables)
         resolve(undefined)
       }, 300)
+      events.on('InsertCharPre', () => {
+        clearTimeout(timer)
+        disposeAll(disposables)
+        resolve(undefined)
+      }, null, disposables)
       events.on('InsertLeave', () => {
         clearTimeout(timer)
         disposeAll(disposables)
