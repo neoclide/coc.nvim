@@ -74,6 +74,7 @@ export default class SemanticTokensHighlights {
       for (let item of this.highlighters.items) {
         let doc = workspace.getDocument(item.bufnr)
         if (!doc || !workspace.match(selector, doc.textDocument)) continue
+        item.abandonResult()
         if (visibleBufs.includes(item.bufnr)) {
           this.hiddenBuffers.delete(item.bufnr)
           if (!visible) item.highlight()

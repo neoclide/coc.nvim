@@ -335,6 +335,10 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.buffer.clearNamespace(NAMESPACE)
   }
 
+  public abandonResult(): void {
+    this.previousResults = undefined
+  }
+
   public cancel(rangeOnly = false): void {
     if (this.rangeTokenSource) {
       this.rangeTokenSource.cancel()
