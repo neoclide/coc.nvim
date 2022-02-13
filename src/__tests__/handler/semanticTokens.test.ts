@@ -296,6 +296,68 @@ describe('semanticTokens', () => {
       await item.doHighlight()
       expect(fn).toBeCalledTimes(0)
     })
+
+    it('should only highlight limited range on update', async () => {
+      let doc = await helper.createDocument('t.vim')
+      let fn = jest.fn()
+      workspace.configurations.updateUserConfig({ 'semanticTokens.filetypes': ['vim'] })
+      disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
+        provideDocumentSemanticTokens: (doc, token) => {
+          let text = doc.getText()
+          if (!text.trim()) {
+            return Promise.resolve({ resultId: '1', data: [] })
+          }
+          fn()
+          let lines = text.split('\n')
+          let data = [0, 0, 1, 1, 0]
+          for (let i = 0; i < lines.length; i++) {
+            data.push(1, 0, 1, 1, 0)
+          }
+          return new Promise(resolve => {
+            token.onCancellationRequested(() => {
+              clearTimeout(timer)
+              resolve(undefined)
+            })
+            let timer = setTimeout(() => {
+              resolve({ resultId: '1', data })
+            }, 50)
+          })
+        }
+      }, legend))
+      await highlighter.fetchHighlightGroups()
+      let item = await highlighter.getCurrentItem()
+      await item.doHighlight()
+      let newLine = 'l\n'
+      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: `${newLine.repeat(2000)}` }])
+      item.cancel()
+      await item.doHighlight()
+      await helper.wait(100)
+      expect(fn).toBeCalled()
+      let buf = nvim.createBuffer(doc.bufnr)
+      let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      let len = markers.length
+      expect(len).toBeLessThan(400)
+      await nvim.command('normal! gg')
+      await helper.wait(30)
+      await nvim.command('normal! 200G')
+      await helper.wait(30)
+      markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBeGreaterThan(len)
+    })
+
+    it('should highlight hidden buffer on shown', async () => {
+      let buf = await createRustBuffer()
+      let item = await highlighter.getCurrentItem()
+      item.cancel()
+      await nvim.command('enew')
+      await item.doHighlight()
+      let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(0)
+      await nvim.command(`b ${buf.id}`)
+      await helper.wait(50)
+      markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBeGreaterThan(0)
+    })
   })
 
   describe('clear highlights', () => {

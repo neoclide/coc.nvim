@@ -64,7 +64,7 @@ function! coc#highlight#get(bufnr, key, start, end) abort
   let ns = coc#highlight#create_namespace(a:key)
   let current = {}
   if has('nvim-0.5.0')
-    let end = a:end == -1 ? [-1, -1] : [a:end, 0]
+    let end = a:end == -1 ? [-1, -1] : [a:end - 1, -1]
     let markers = nvim_buf_get_extmarks(a:bufnr, ns, [a:start, 0], end, {'details': v:true})
     let linecount = nvim_buf_line_count(a:bufnr)
     for [_, row, start_col, details] in markers
