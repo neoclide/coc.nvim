@@ -70,9 +70,14 @@ class Events {
   private _lastChange = 0
   private _insertMode = false
   private _pumAlignTop = false
+  private _pumVisible = false
 
   public get cursor(): CursorPosition {
     return this._cursor
+  }
+
+  public get pumvisible(): boolean {
+    return this._pumVisible
   }
 
   public get pumAlignTop(): boolean {
@@ -101,7 +106,11 @@ class Events {
       this.fire('InsertLeave', [args[0]]).logError()
     }
     if (event == 'MenuPopupChanged') {
+      this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
+    }
+    if (event == 'CompleteDone' || event == 'InsertLeave') {
+      this._pumVisible = false
     }
     if (event == 'InsertCharPre') {
       this._latestInsert = { bufnr: args[1], character: args[0], timestamp: Date.now() }

@@ -21,6 +21,28 @@ afterEach(async () => {
 })
 
 describe('register handler', () => {
+  it('should fire InsertEnter and InsertLeave when necessary', async () => {
+    let fn = jest.fn()
+    events.on('InsertEnter', fn, null, disposables)
+    events.on('InsertLeave', fn, null, disposables)
+    expect(events.insertMode).toBe(false)
+    await events.fire('CursorMovedI', [1, [1, 1]])
+    expect(events.insertMode).toBe(true)
+    await events.fire('CursorMoved', [1, [1, 1]])
+    expect(events.insertMode).toBe(false)
+    expect(fn).toBeCalledTimes(2)
+  })
+
+  it('should change pumvisible', async () => {
+    expect(events.pumvisible).toBe(false)
+    await nvim.setLine('foo f')
+    await nvim.input('A')
+    await nvim.input('<C-n>')
+    await helper.waitPopup()
+    expect(events.pumvisible).toBe(true)
+    expect(events.lastChangeTs).toBeDefined()
+  })
+
   it('should register single handler', async () => {
     let fn = jest.fn()
     let obj = {}

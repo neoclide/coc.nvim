@@ -1,3 +1,7 @@
+# 2022-02-14
+
+- Add `pumvisible` property to events.
+
 # 2022-02-10
 
 - Add shortcut support for `window.showMenuPicker()`.
