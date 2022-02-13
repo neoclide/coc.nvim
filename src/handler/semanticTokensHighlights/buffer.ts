@@ -123,7 +123,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public get shouldRangeHighlight(): boolean {
     let doc = workspace.getDocument(this.bufnr)
-    if (!doc) return false
+    if (!doc || this.tokenSource) return false
     return languages.hasProvider('semanticTokensRange', doc.textDocument) && this.previousResults == null
   }
 
@@ -284,7 +284,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async doPendingHighlight() {
-    if (this._pendingHighlights.size <= 0) return
+    if (!this.hasPendingHighlights) return
     let r = await this.nvim.call('coc#window#render_range', [this.bufnr]) as [number, number]
     if (!r) return
     let [startLine, endLine] = r
@@ -332,7 +332,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     let { nvim } = this
     let visible = await nvim.call('pumvisible')
     if (visible) return
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
     let r = await nvim.call('coc#window#render_range', [this.bufnr]) as [number, number]
     if (!r) return
     let [startLine, endLine] = r
@@ -344,6 +343,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let previousVersion = this.previousResults?.version
     let doc = workspace.getDocument(this.bufnr)
     let items: HighlightItem[] | undefined
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
     // TextDocument not changed, need perform highlight since lines possible changed.
     if (previousVersion && doc && doc.version === previousVersion) {
       let tokens = this.previousResults.tokens
@@ -353,11 +353,17 @@ export default class SemanticTokensBuffer implements SyncItem {
       items = await this.requestAllHighlights(startLine, endLine, tokenSource.token, forceFull)
     }
     // request cancelled or can't work
-    if (!items || tokenSource.token.isCancellationRequested || this.invalid) return
+    if (!items || tokenSource.token.isCancellationRequested || this.invalid) {
+      this.tokenSource = null
+      return
+    }
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, startLine, endLine)
-    this.tokenSource = null
-    if (tokenSource.token.isCancellationRequested || !diff || this.invalid) return
+    if (tokenSource.token.isCancellationRequested || !diff || this.invalid) {
+      this.tokenSource = null
+      return
+    }
     await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
+    this.tokenSource = null
   }
 
   /**
