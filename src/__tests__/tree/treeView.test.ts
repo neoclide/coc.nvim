@@ -169,35 +169,26 @@ describe('TreeView', () => {
       createTreeView(defaultDef)
       treeView.title = 'foo'
       await treeView.show()
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['foo', '+ a', '+ b', '  g'])
       treeView.title = 'bar'
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['bar', '+ a', '+ b', '  g'])
       treeView.title = undefined
-      await helper.wait(50)
-      await checkLines(['+ a', '+ b', '  g'])
-      makeUpdateUIThrowError()
-      treeView.title = 'xyz'
-      await helper.wait(50)
-      await checkLines(['+ a', '+ b', '  g'])
+      await events.race(['TextChanged'])
     })
 
     it('should change description', async () => {
       createTreeView(defaultDef)
       treeView.description = 'desc'
       await treeView.show()
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['test desc', '+ a', '+ b', '  g'])
       treeView.description = 'foo bar'
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['test foo bar', '+ a', '+ b', '  g'])
       treeView.description = ''
-      await helper.wait(50)
-      await checkLines(['test', '+ a', '+ b', '  g'])
-      makeUpdateUIThrowError()
-      treeView.description = 'desc'
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['test', '+ a', '+ b', '  g'])
     })
 
@@ -205,17 +196,13 @@ describe('TreeView', () => {
       createTreeView(defaultDef)
       treeView.message = 'hello'
       await treeView.show()
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['hello', '', 'test', '+ a', '+ b', '  g'])
       treeView.message = 'foo'
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['foo', '', 'test', '+ a', '+ b', '  g'])
       treeView.message = undefined
-      await helper.wait(50)
-      await checkLines(['test', '+ a', '+ b', '  g'])
-      makeUpdateUIThrowError()
-      treeView.message = 'bar'
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['test', '+ a', '+ b', '  g'])
     })
   })
@@ -231,14 +218,14 @@ describe('TreeView', () => {
     it('should disable leaf indent', async () => {
       createTreeView(defaultDef, { disableLeafIndent: true })
       await treeView.show()
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       await checkLines(['test', '+ a', '+ b', 'g'])
     })
 
     it('should support many selection', async () => {
       createTreeView(defaultDef, { canSelectMany: true })
       await treeView.show()
-      await helper.wait(50)
+      await events.race(['TextChanged'])
       let selection: TreeNode[]
       treeView.onDidChangeSelection(e => {
         selection = e.selection
@@ -595,7 +582,7 @@ describe('TreeView', () => {
         }
       })
       await treeView.show()
-      await helper.wait(50)
+      await events.race(['TextChanged'], 200)
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
       await helper.waitFloat()
@@ -782,7 +769,7 @@ describe('TreeView', () => {
       ])
       await helper.wait(50)
       let line = await helper.getCmdline()
-      expect(line).toMatch('Error on updateUI')
+      expect(line).toMatch('Error on tree refresh')
     })
 
     it('should render deprecated node with deprecated highlight', async () => {
@@ -952,7 +939,7 @@ describe('TreeView', () => {
           throw new Error('Error on updateUI')
         }
       await nvim.input('a')
-      await helper.wait(100)
+      await helper.wait(50)
     })
 
     it('should add & remove Cursor highlight on window change', async () => {
@@ -1104,9 +1091,9 @@ describe('TreeView', () => {
       await nvim.input('a')
       await helper.wait(20)
       await nvim.input('<esc>')
-      await helper.wait(50)
+      await helper.wait(20)
       await nvim.input('f')
-      await helper.wait(50)
+      await helper.wait(20)
       await nvim.input('b')
       await helper.wait(20)
       await nvim.input('<C-o>')
@@ -1115,32 +1102,16 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.input('<C-n>')
       await helper.wait(50)
-      await checkLines([
-        'test',
-        'a ',
-        '  a',
-      ])
+      await checkLines(['test', 'a ', '  a',])
       await nvim.input('<C-n>')
       await helper.wait(50)
-      await checkLines([
-        'test',
-        'b ',
-        '  b',
-      ])
+      await checkLines(['test', 'b ', '  b',])
       await nvim.input('<C-p>')
       await helper.wait(50)
-      await checkLines([
-        'test',
-        'a ',
-        '  a',
-      ])
+      await checkLines(['test', 'a ', '  a',])
       await nvim.input('<C-p>')
       await helper.wait(50)
-      await checkLines([
-        'test',
-        'b ',
-        '  b',
-      ])
+      await checkLines(['test', 'b ', '  b',])
     })
   })
 })
