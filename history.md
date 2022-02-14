@@ -1,3 +1,7 @@
+# 2022-02-15
+
+- Add `events.race`
+
 # 2022-02-14
 
 - Add `pumvisible` property to events.

@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-jsonrpc'
 import { FloatConfig } from '../types'
 import { parseDocuments, Documentation } from '../markdown'
+import events from '../events'
 const logger = require('../util/logger')('floating')
 
 export interface PumBounding {
@@ -52,7 +53,7 @@ export default class Floating {
     if (!res || res.length == 0) return
     this.winid = res[0]
     this.bufnr = res[1]
-    if (token.isCancellationRequested) {
+    if (token.isCancellationRequested || !events.pumvisible) {
       this.close()
       return
     }

@@ -598,9 +598,11 @@ describe('completion TextChangedP', () => {
     disposables.push(sources.addSource(source))
     await nvim.input('if')
     await helper.waitPopup()
-    await events.fire('CompleteDone', [{}])
+    void events.fire('CompleteDone', [{}])
+    await helper.wait(10)
     await events.fire('CursorMovedI', [buf.id, [2, 1]])
     expect(completion.isActivated).toBe(false)
+    await nvim.input('<esc>')
   })
 
   it('should use source-provided score', async () => {

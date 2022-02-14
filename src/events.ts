@@ -71,7 +71,8 @@ class Events {
 
   private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
   private _cursor: CursorPosition
-  private _latestInsert: LatestInsert
+  // bufnr & character
+  private _recentInserts: [number, string][] = []
   private _lastChange = 0
   private _insertMode = false
   private _pumAlignTop = false
@@ -100,6 +101,36 @@ class Events {
     return this._lastChange
   }
 
+  /**
+   * Resolved when first event fired or timeout
+   */
+  public race(events: AllEvents[], token?: number | CancellationToken): Promise<{ name: AllEvents, args: unknown[] } | undefined> {
+    let timer: NodeJS.Timeout
+    let disposables: Disposable[] = []
+    return new Promise(resolve => {
+      if (typeof token === 'number') {
+        timer = setTimeout(() => {
+          disposeAll(disposables)
+          resolve(undefined)
+        }, token)
+        disposables.push(Disposable.create(() => {
+          clearTimeout(timer)
+        }))
+      } else if (CancellationToken.is(token)) {
+        token.onCancellationRequested(() => {
+          disposeAll(disposables)
+          resolve(undefined)
+        }, null, disposables)
+      }
+      events.forEach(ev => {
+        this.on(ev, (...args) => {
+          disposeAll(disposables)
+          resolve({ name: ev, args })
+        }, null, disposables)
+      })
+    })
+  }
+
   public async fire(event: string, args: any[]): Promise<void> {
     let cbs = this.handlers.get(event)
     if (event == 'TextChangedP') {
@@ -123,20 +154,19 @@ class Events {
     } else if (event == 'CompleteDone') {
       this._pumVisible = false
     } else if (event == 'InsertCharPre') {
-      this._latestInsert = { bufnr: args[1], character: args[0], timestamp: Date.now() }
+      this._recentInserts.push([args[1], args[0]])
     } else if (event == 'TextChanged') {
       this._lastChange = Date.now()
     }
     if (event == 'TextChangedI' || event == 'TextChangedP') {
+      let arr = this._recentInserts.filter(o => o[0] == args[0])
+      this._recentInserts = []
       this._pumVisible = event == 'TextChangedP'
       this._lastChange = Date.now()
-      if (this._latestInsert) {
-        let info = args[1]
-        let insert = this._latestInsert
-        this._latestInsert = undefined
-        let ignore = insert.character == ' ' && !info.pre.endsWith(' ')
-        if (insert.bufnr == args[0] && info.pre.length && !ignore) {
-          let character = info.pre.slice(-1)
+      const info = args[1]
+      if (arr.length && info.pre.length) {
+        let character = info.pre.slice(-1)
+        if (arr.findIndex(o => o[1] == character) !== -1) {
           info.insertChar = character
           // make it fires after TextChangedI & TextChangedP
           process.nextTick(() => {
@@ -160,7 +190,7 @@ class Events {
       try {
         await Promise.all(cbs.map(fn => fn(args)))
       } catch (e) {
-        if (e.message && e.message.indexOf('transport disconnected') == -1) return
+        if (e.message?.indexOf('transport disconnected') != -1) return
         logger.error(`Error on event: ${event}`, e.stack)
       }
     }

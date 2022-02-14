@@ -4746,7 +4746,7 @@ declare module 'coc.nvim' {
     /**
      * Latest cursor position.
      */
-    export const cursor: CursorPosition
+    export const cursor: Readonly<CursorPosition>
     /**
      * Latest pum position, is true when pum positioned above current line.
      */
@@ -4755,6 +4755,20 @@ declare module 'coc.nvim' {
      * Insert mode detected by latest events.
      */
     export const insertMode: boolean
+
+    /**
+     * Popup menu is visible.
+     */
+    export const pumvisible: boolean
+
+    /**
+     * Wait for any of event in events to fire, resolve undefined when timeout or CancellationToken requested.
+     * @param events Event names to wait.
+     * @param timeoutOrToken Timeout in miniseconds or CancellationToken.
+     * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
+     */
+    export function race(events: AllEvents[], timeoutOrToken?: number | CancellationToken): Promise<{ name: AllEvents, args: unknown[] } | undefined>
+
     export function on(event: EmptyEvents | AllEvents[], handler: () => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Attach handler to buffer events.
@@ -4803,7 +4817,7 @@ declare module 'coc.nvim' {
 
     /**
      * Fired after user insert character and made change to the buffer.
-     * Fired before TextChangedI & TextChanged event.
+     * Fired after TextChangedI & TextChanged event.
      */
     export function on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
   }

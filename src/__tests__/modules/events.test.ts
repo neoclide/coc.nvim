@@ -1,21 +1,8 @@
-import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { disposeAll } from '../../util'
-let disposables: Disposable[] = []
-import helper from '../helper'
 
-let nvim: Neovim
-
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-})
-
-afterAll(async () => {
-  await helper.shutdown()
-})
-
+const disposables: Disposable[] = []
 afterEach(async () => {
   disposeAll(disposables)
 })
@@ -35,12 +22,19 @@ describe('register handler', () => {
 
   it('should change pumvisible', async () => {
     expect(events.pumvisible).toBe(false)
-    await nvim.setLine('foo f')
-    await nvim.input('A')
-    await nvim.input('<C-n>')
-    await helper.waitPopup()
+    await events.fire('MenuPopupChanged', [{
+      col: 6,
+      row: 2,
+      scrollbar: false,
+      completed_item: {},
+      width: 20,
+      height: 12,
+      size: 12
+    }])
+    expect(events.pumAlignTop).toBe(false)
     expect(events.pumvisible).toBe(true)
-    expect(events.lastChangeTs).toBeDefined()
+    await events.fire('CompleteDone', [{}])
+    expect(events.pumvisible).toBe(false)
   })
 
   it('should register single handler', async () => {
@@ -65,13 +59,13 @@ describe('register handler', () => {
     let fn = (): Promise<void> => new Promise(resolve => {
       setTimeout(() => {
         resolve()
-      }, 100)
+      }, 20)
     })
     let disposable = events.on('FocusGained', fn, {})
     disposables.push(disposable)
     let ts = Date.now()
     await events.fire('FocusGained', [])
-    expect(Date.now() - ts >= 80).toBe(true)
+    expect(Date.now() - ts >= 10).toBe(true)
   })
 
   it('should emit TextInsert after TextChangedI', async () => {
@@ -82,8 +76,39 @@ describe('register handler', () => {
     events.on('TextChangedI', () => {
       arr.push('change')
     }, null, disposables)
-    await nvim.input('ia')
-    await helper.wait(300)
+    await events.fire('InsertCharPre', ['i', 1])
+    await events.fire('TextChangedI', [1, {
+      lnum: 1,
+      col: 2,
+      pre: 'i',
+      changedtick: 1
+    }])
+    expect(events.lastChangeTs).toBeDefined()
+    await events.race(['TextInsert'])
     expect(arr).toEqual(['change', 'insert'])
+  })
+
+  it('should race events', async () => {
+    let p = events.race(['InsertCharPre', 'TextChangedI', 'MenuPopupChanged'])
+    await events.fire('InsertCharPre', ['i', 1])
+    await events.fire('TextChangedI', [1, {
+      lnum: 1,
+      col: 2,
+      pre: 'i',
+      changedtick: 1
+    }])
+    let res = await p
+    expect(res.name).toBe('InsertCharPre')
+    res = await events.race(['TextChanged'], 50)
+    expect(res).toBeUndefined()
+  })
+
+  it('should cancel race by CancellationToken', async () => {
+    let tokenSource = new CancellationTokenSource()
+    setTimeout(() => {
+      tokenSource.cancel()
+    }, 20)
+    let res = await events.race(['TextChanged'], tokenSource.token)
+    expect(res).toBeUndefined()
   })
 })
