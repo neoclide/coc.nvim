@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
 import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, ErrorItem, LocationListItem } from '../types'
+import { ConfigurationChangeEvent, Documentation, ErrorItem, LocationListItem } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition, rangeIntersect } from '../util/position'
 import { characterIndex } from '../util/string'
@@ -65,7 +65,11 @@ export class DiagnosticManager implements Disposable {
         this.nvim, doc.bufnr, doc.uri, this.config,
         diagnostics => {
           this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
-          this.floatFactory?.close()
+          if (buf.bufnr === workspace.bufnr && this.config.messageTarget === 'float') {
+            void this.getCurrentDiagnostics().then(diagnostics => {
+              return this.showFloat(diagnostics)
+            })
+          }
         })
       let collections = this.getCollections(doc.uri)
       if (this.enabled && collections.length) {
@@ -461,13 +465,35 @@ export class DiagnosticManager implements Disposable {
         return diagnostic.severity && diagnostic.severity <= config.messageLevel
       })
     }
+    if (useFloat) {
+      await this.showFloat(diagnostics)
+    } else {
+      if (truncate && events.insertMode) return
+      const lines = []
+      diagnostics.forEach(diagnostic => {
+        let { source, code, severity, message } = diagnostic
+        let s = getSeverityName(severity)[0]
+        const codeStr = code ? ' ' + code : ''
+        const str = config.format.replace('%source', source).replace('%code', codeStr).replace('%severity', s).split('%message').join(message)
+        lines.push(str)
+      })
+      if (lines.length) {
+        await this.nvim.command('echo ""')
+        await window.echoLines(lines, truncate)
+      }
+    }
+  }
+
+  private async showFloat(diagnostics: Diagnostic[]): Promise<void> {
+    if (this.config.messageTarget !== 'float') return
+    let { config } = this
     if (diagnostics.length == 0) {
-      if (useFloat) this.floatFactory.close()
+      this.floatFactory.close()
       return
     }
-    if (truncate && events.insertMode) return
-    let docs = []
+    if (events.insertMode) return
     let ft = ''
+    let docs: Documentation[] = []
     if (Object.keys(config.filetypeMap).length > 0) {
       let doc = workspace.getDocument(workspace.bufnr)
       let filetype = doc ? doc.filetype : ''
@@ -500,16 +526,8 @@ export class DiagnosticManager implements Disposable {
         docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
       }
     })
-    if (useFloat) {
-      let config = this.floatFactory.applyFloatConfig({ modes: ['n'], maxWidth: 80 }, this.config.floatConfig)
-      await this.floatFactory.show(docs, config)
-    } else {
-      let lines = docs.map(d => d.content).join('\n').split(/\r?\n/)
-      if (lines.length) {
-        await this.nvim.command('echo ""')
-        await window.echoLines(lines, truncate)
-      }
-    }
+    let floatConfig = this.floatFactory.applyFloatConfig({ modes: ['n'], maxWidth: 80 }, this.config.floatConfig)
+    await this.floatFactory.show(docs, floatConfig)
   }
 
   public async jumpRelated(): Promise<void> {
