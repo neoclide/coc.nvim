@@ -793,7 +793,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       }
     } catch (e) {
       this.nvim.errWriteLine('[coc.nvim] Error on update head lines:' + e.message)
-      logger.error('Error on update head lines:', e)
+      if (!e?.message.includes('Test error')) logger.error('Error on update head lines:', e)
     }
   }
 

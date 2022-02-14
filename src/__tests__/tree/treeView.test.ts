@@ -74,7 +74,7 @@ function updateData(defs: NodeDef[], reset = false) {
 
 function makeUpdateUIThrowError() {
   (treeView as any).updateUI = () => {
-    throw new Error('Error on updateUI')
+    throw new Error('Test error')
   }
 }
 
