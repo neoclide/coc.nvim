@@ -161,11 +161,10 @@ describe('completion resumeCompletion', () => {
         resolve({ items: [{ word: 'foo bar' }] })
       })
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i.')
     await helper.waitPopup()
     expect(completion.isActivated).toBe(true)
-    sources.removeSource(source)
     let items = await helper.items()
     expect(items[0].word).toBe('foo bar')
     await nvim.input(' ')
@@ -185,7 +184,7 @@ describe('completion resumeCompletion', () => {
         }, 60)
       })
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i.')
     await helper.wait(20)
     await nvim.input('f')
@@ -194,7 +193,6 @@ describe('completion resumeCompletion', () => {
     let items = await helper.items()
     expect(items.length).toBe(1)
     expect(items[0].word).toBe('foo')
-    sources.removeSource(source)
   })
 
   it('should filter slow source', async () => {
@@ -271,6 +269,56 @@ describe('completion resumeCompletion', () => {
     await nvim.input('b')
     await helper.wait(50)
     expect(completion.isActivated).toBe(true)
+  })
+
+  it('should filter when item has selected with noselect', async () => {
+    helper.updateConfiguration('suggest.noselect', false)
+    let source: ISource = {
+      priority: 0,
+      enable: true,
+      name: 'filter',
+      sourceType: SourceType.Service,
+      doComplete: (): Promise<CompleteResult> => {
+        return Promise.resolve({ items: [{ word: 'foo' }, { word: 'foot' }] })
+      }
+    }
+    disposables.push(sources.addSource(source))
+    await nvim.input('if')
+    await helper.waitPopup()
+    await nvim.input('o')
+    await helper.wait(50)
+    let items = await helper.getItems()
+    expect(items.length).toBe(2)
+  })
+
+  it('should filter when type character after item selected without handle complete done', async () => {
+    let input: string
+    let fn = jest.fn()
+    let source: ISource = {
+      priority: 0,
+      enable: true,
+      name: 'filter',
+      sourceType: SourceType.Service,
+      doComplete: (opt): Promise<CompleteResult> => {
+        input = opt.input
+        if (input == 'f') return Promise.resolve({ items: [{ word: 'fo' }] })
+        if (input == 'foo') return Promise.resolve({ items: [{ word: 'foobar' }, { word: 'foot' }] })
+        return Promise.resolve({ items: [] })
+      },
+      onCompleteDone: () => {
+        fn()
+      }
+    }
+    disposables.push(sources.addSource(source))
+    await nvim.input('if')
+    await helper.waitPopup()
+    await nvim.input('<C-n>')
+    await helper.wait(50)
+    await nvim.input('o')
+    await helper.wait(50)
+    let items = await helper.getItems()
+    expect(items.length).toBe(2)
+    expect(fn).toBeCalledTimes(0)
   })
 })
 
@@ -642,12 +690,7 @@ describe('completion TextChangedP', () => {
         item.info = 'detail'
       }
     }
-    sources.addSource(source)
-    disposables.push({
-      dispose: () => {
-        sources.removeSource(source)
-      }
-    })
+    disposables.push(sources.addSource(source))
     await nvim.input('i.')
     await helper.waitPopup()
     await helper.selectCompleteItem(0)
@@ -715,14 +758,13 @@ describe('completion trigger', () => {
         return Promise.resolve({ items: [{ word: 'foo#bar' }] })
       }
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('.')
     await helper.waitPopup()
     let items = await helper.items()
     expect(items.length).toBeGreaterThan(0)
-    sources.removeSource(source)
   })
 
   it('should not trigger if autoTrigger is none', async () => {
@@ -806,12 +848,11 @@ describe('completion TextChangedI', () => {
       },
       shouldCommit: (_item, character) => character == '.'
     }
-    sources.addSource(source)
+    disposables.push(sources.addSource(source))
     await nvim.input('if')
     await helper.waitPopup()
     await nvim.input('.')
     await helper.wait(100)
-    sources.removeSource(source)
     let line = await nvim.line
     expect(line).toBe('foo.')
   })
