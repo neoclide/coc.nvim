@@ -142,6 +142,7 @@ export default class Watchman {
     if (this.client) {
       this.client.removeAllListeners()
       this.client.end()
+      this.client = undefined
     }
   }
 

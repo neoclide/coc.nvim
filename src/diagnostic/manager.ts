@@ -128,7 +128,7 @@ export class DiagnosticManager implements Disposable {
       fn.clear()
       if (bufnr && !this.config.refreshOnInsertMode) {
         let buf = this.buffers.getItem(bufnr)
-        buf.refreshHighlights.clear()
+        if (buf) buf.refreshHighlights.clear()
       }
     }
     events.on('BufWinEnter', (bufnr: number) => {

@@ -201,16 +201,7 @@ export class Completion implements Disposable {
       })
     }
     if (triggerSources.length && !triggerSources.every(s => filteredSources.includes(s.name))) {
-      // TODO direct trigger with triggerSources
-      if (events.pumvisible) {
-        this.stop()
-        if (search.length) {
-          // delay trigger by change insertChar of next TextChangedI.
-          await events.fire('InsertCharPre', [search.slice(-1), document.bufnr])
-        }
-      } else {
-        await this.triggerCompletion(document, this.pretext)
-      }
+      await this.triggerCompletion(document, this.pretext)
       return
     }
     if (items.length === 0 && !complete.isCompleting) {
