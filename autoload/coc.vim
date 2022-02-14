@@ -100,14 +100,17 @@ function! coc#_selected()
 endfunction
 
 function! coc#_hide() abort
-  if !pumvisible() | return | endif
-  " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
-  call feedkeys("\<space>\<bs>", 'in')
+  if pumvisible()
+    " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
+    let g:coc_disable_space_report = 1
+    call feedkeys("\<space>\<bs>", 'in')
+  endif
 endfunction
 
 function! coc#_cancel()
   " hack for close pum
   if pumvisible()
+    let g:coc_disable_space_report = 1
     call feedkeys("\<space>\<bs>", 'in')
     call coc#rpc#notify('stopCompletion', [])
   endif
