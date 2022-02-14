@@ -1,7 +1,8 @@
-import { Disposable } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { disposeAll } from './util'
 import { VimCompleteItem } from './types'
 import { equals } from './util/object'
+import { byteSlice } from './util/string'
 const logger = require('./util/logger')('events')
 
 export type Result = void | Promise<void>
@@ -24,6 +25,10 @@ export interface InsertChange {
    * Insert character that cause change of this time.
    */
   insertChar?: string
+  /**
+   * Current line, TextChangedP only.
+   */
+  line?: string
   changedtick: number
 }
 
@@ -64,7 +69,7 @@ export interface LatestInsert {
 
 class Events {
 
-  private handlers: Map<string, Function[]> = new Map()
+  private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
   private _cursor: CursorPosition
   private _latestInsert: LatestInsert
   private _lastChange = 0
@@ -88,37 +93,42 @@ class Events {
     return this._insertMode
   }
 
+  /**
+   * @deprecated
+   */
   public get lastChangeTs(): number {
     return this._lastChange
   }
 
   public async fire(event: string, args: any[]): Promise<void> {
     let cbs = this.handlers.get(event)
-    if (event == 'InsertEnter') {
+    if (event == 'TextChangedP') {
+      let info = args[1]
+      let pre = byteSlice(info.line || '', 0, info.col - 1)
+      info.pre = pre
+    } else if (event == 'InsertEnter') {
       this._insertMode = true
     } else if (event == 'InsertLeave') {
       this._insertMode = false
+      this._pumVisible = false
     } else if (!this._insertMode && (event == 'CursorHoldI' || event == 'CursorMovedI')) {
       this._insertMode = true
       void this.fire('InsertEnter', [args[0]])
     } else if (this._insertMode && (event == 'CursorHold' || event == 'CursorMoved')) {
       this._insertMode = false
-      this.fire('InsertLeave', [args[0]]).logError()
-    }
-    if (event == 'MenuPopupChanged') {
+      void this.fire('InsertLeave', [args[0]])
+    } else if (event == 'MenuPopupChanged') {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
-    }
-    if (event == 'CompleteDone' || event == 'InsertLeave') {
+    } else if (event == 'CompleteDone') {
       this._pumVisible = false
-    }
-    if (event == 'InsertCharPre') {
+    } else if (event == 'InsertCharPre') {
       this._latestInsert = { bufnr: args[1], character: args[0], timestamp: Date.now() }
-    }
-    if (event == 'TextChanged') {
+    } else if (event == 'TextChanged') {
       this._lastChange = Date.now()
     }
     if (event == 'TextChangedI' || event == 'TextChangedP') {
+      this._pumVisible = event == 'TextChangedP'
       this._lastChange = Date.now()
       if (this._latestInsert) {
         let info = args[1]
@@ -156,7 +166,7 @@ class Events {
     }
   }
 
-  public on(event: EmptyEvents | AllEvents[], handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: EmptyEvents | AllEvents | AllEvents[], handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
@@ -201,7 +211,7 @@ class Events {
             reject(e)
           })
           timer = setTimeout(() => {
-            logger.warn(`Handler of ${event} blocked more than 2s:`, stack)
+            logger.warn(`Handler of "${event}" blocked more than 2s:`, stack)
           }, 2000)
         } catch (e) {
           reject(e)
@@ -215,7 +225,7 @@ class Events {
           arr.splice(idx, 1)
         }
       })
-      if (disposables) {
+      if (Array.isArray(disposables)) {
         disposables.push(disposable)
       }
       return disposable

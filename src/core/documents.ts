@@ -3,11 +3,10 @@ import bytes from 'bytes'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import debounce from 'debounce'
 import { CancellationTokenSource, Disposable, Emitter, Event, FormattingOptions, Location, LocationLink, TextDocumentSaveReason, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
-import events from '../events'
+import events, { InsertChange } from '../events'
 import Document from '../model/document'
 import TerminalModel, { TerminalOptions } from '../model/terminal'
 import { LinesTextDocument } from '../model/textdocument'
@@ -92,21 +91,16 @@ export default class Documents implements Disposable {
     void events.fire('BufEnter', [bufnr])
     void events.fire('BufWinEnter', [bufnr, winid])
     if (this._env.isVim) {
-      let fetchCurrentLine = debounce(async (bufnr: number) => {
-        let doc = this.getDocument(bufnr)
-        if (doc && doc.attached) await doc.patchChange(true)
-      }, 100)
       const onChange = (bufnr: number) => {
-        fetchCurrentLine.clear()
         let doc = this.getDocument(bufnr)
         if (doc && doc.attached) doc.fetchContent()
       }
-      events.on('CompleteDone', () => {
-        fetchCurrentLine.clear()
+      events.on('TextChangedP', (bufnr, info: InsertChange) => {
+        let doc = this.getDocument(bufnr)
+        if (doc && doc.attached) doc.changeLine(info.lnum, info.line, info.changedtick)
       }, null, this.disposables)
       events.on('TextChangedI', onChange, null, this.disposables)
       events.on('TextChanged', onChange, null, this.disposables)
-      events.on('TextChangedP', fetchCurrentLine, null, this.disposables)
     }
     this._initialized = true
   }

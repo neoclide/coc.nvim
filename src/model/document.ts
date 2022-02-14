@@ -501,6 +501,20 @@ export default class Document {
   }
 
   /**
+   * Only used on vim8 for set new line with TextChangedP
+   */
+  public changeLine(lnum: number, line: string, changedtick: number): void {
+    let curr = this.lines[lnum - 1]
+    if (curr === undefined) return
+    if (curr !== line) {
+      let newLines = this.lines.slice()
+      newLines[lnum - 1] = line
+      this.lines = newLines
+    }
+    this._changedtick = changedtick
+  }
+
+  /**
    * Get and synchronize change
    */
   public async patchChange(currentLine?: boolean): Promise<void> {

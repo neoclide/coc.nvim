@@ -306,7 +306,7 @@ function! s:Enable(initialize)
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', get(v:, 'completed_item', {}))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char, bufnr('%'))
     if exists('##TextChangedP')
-      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'pre': strpart(getline('.'), 0, col('.') - 1), 'changedtick': b:changedtick})
+      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'line': getline('.'), 'changedtick': b:changedtick})
     endif
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'pre': strpart(getline('.'), 0, col('.') - 1), 'changedtick': b:changedtick})
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
