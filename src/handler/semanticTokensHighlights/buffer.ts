@@ -91,6 +91,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async forceHighlight(): Promise<void> {
+    this.previousResults = undefined
     this.clearHighlight()
     this.cancel()
     await this.doHighlight(true)

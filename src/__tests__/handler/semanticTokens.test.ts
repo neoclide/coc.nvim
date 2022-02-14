@@ -354,7 +354,7 @@ describe('semanticTokens', () => {
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(0)
       await nvim.command(`b ${buf.id}`)
-      await helper.wait(50)
+      await helper.wait(100)
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBeGreaterThan(0)
     })
@@ -407,7 +407,7 @@ describe('semanticTokens', () => {
       await helper.wait(100)
       expect(t).toBe(1)
       await highlighter.highlightCurrent()
-      expect(t).toBe(1)
+      expect(t).toBe(2)
     })
 
     it('should do range highlight first time', async () => {
