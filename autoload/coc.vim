@@ -45,6 +45,7 @@ function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
     if pumvisible()
+      let g:coc_disable_space_report = 1
       let prefix = "\<space>\<bs>"
     endif
   endif
@@ -67,10 +68,6 @@ function! coc#_complete() abort
 endfunction
 
 function! coc#_do_complete(start, items, preselect)
-  " Refresh with selected item would cause unexpected CompleteDone
-  if s:complete_info_api && get(complete_info(['selected']), 'selected', -1) != -1 && &completeopt =~# 'noselect'
-    return
-  endif
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
