@@ -560,7 +560,6 @@ describe('semanticTokens', () => {
         } catch (e) {
           err = e
         }
-        console.log(err)
         expect(err).toBeDefined()
       }
       let item = highlighter.getItem(doc.bufnr)

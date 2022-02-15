@@ -61,7 +61,7 @@ export default class SemanticTokens {
       }
     }, false, 'clear semantic tokens highlight of all buffers')
     this.highlighters = workspace.registerBufferSync(doc => {
-      return new SemanticTokensBuffer(this.nvim, doc.bufnr, this.config)
+      return new SemanticTokensBuffer(this.nvim, doc, this.config)
     })
     languages.onDidSemanticTokensRefresh(async selector => {
       let visibleBufs = await this.nvim.call('coc#window#bufnrs') as number[]
