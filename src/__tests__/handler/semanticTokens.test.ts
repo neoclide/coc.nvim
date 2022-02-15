@@ -1,7 +1,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable, Range, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
-import SemanticTokensHighlights from '../../handler/semanticTokensHighlights/index'
+import SemanticTokens from '../../handler/semanticTokens/index'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import window from '../../window'
@@ -11,7 +11,7 @@ import helper from '../helper'
 let nvim: Neovim
 let ns: number
 let disposables: Disposable[] = []
-let highlighter: SemanticTokensHighlights
+let highlighter: SemanticTokens
 let legend: SemanticTokensLegend = {
   tokenTypes: [
     "comment",

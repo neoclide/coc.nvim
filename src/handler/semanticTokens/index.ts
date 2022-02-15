@@ -15,7 +15,7 @@ import SemanticTokensBuffer, { capitalize, HLGROUP_PREFIX, NAMESPACE, SemanticTo
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
-export default class SemanticTokensHighlights {
+export default class SemanticTokens {
   // shared with buffers
   private config: SemanticTokensConfig
   private disposables: Disposable[] = []

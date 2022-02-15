@@ -24,7 +24,7 @@ import Rename from './rename'
 import WorkspaceHandler from './workspace'
 import SelectionRange from './selectionRange'
 import CallHierarchy from './callHierarchy'
-import SemanticTokensHighlights from './semanticTokensHighlights/index'
+import SemanticTokens from './semanticTokens/index'
 import Signature from './signature'
 import Symbols from './symbols/index'
 import { HandlerDelegate } from '../types'
@@ -56,7 +56,7 @@ export default class Handler implements HandlerDelegate {
   public readonly fold: Fold
   public readonly selectionRange: SelectionRange
   public readonly callHierarchy: CallHierarchy
-  public readonly semanticHighlighter: SemanticTokensHighlights
+  public readonly semanticHighlighter: SemanticTokens
   public readonly workspace: WorkspaceHandler
   private labels: { [key: string]: string }
   private requestStatusItem: StatusBarItem
@@ -89,7 +89,7 @@ export default class Handler implements HandlerDelegate {
     this.commands = new Commands(nvim, workspace.env)
     this.callHierarchy = new CallHierarchy(nvim, this)
     this.documentHighlighter = new Highlights(nvim, this)
-    this.semanticHighlighter = new SemanticTokensHighlights(nvim, this)
+    this.semanticHighlighter = new SemanticTokens(nvim, this)
     this.selectionRange = new SelectionRange(nvim, this)
     this.disposables.push({
       dispose: () => {

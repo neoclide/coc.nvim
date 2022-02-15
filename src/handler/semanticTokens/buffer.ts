@@ -1,6 +1,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationToken, CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-protocol'
+import events from '../../events'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
@@ -9,7 +10,6 @@ import { HighlightItem } from '../../types'
 import { waitImmediate } from '../../util/index'
 import { byteIndex } from '../../util/string'
 import window from '../../window'
-import events from '../../events'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
 const yieldEveryMilliseconds = 15
