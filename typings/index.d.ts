@@ -4769,7 +4769,6 @@ declare module 'coc.nvim' {
      */
     export function race(events: AllEvents[], timeoutOrToken?: number | CancellationToken): Promise<{ name: AllEvents, args: unknown[] } | undefined>
 
-    export function on(event: EmptyEvents | AllEvents[], handler: () => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Attach handler to buffer events.
      */
@@ -4820,6 +4819,10 @@ declare module 'coc.nvim' {
      * Fired after TextChangedI & TextChanged event.
      */
     export function on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+
+    export function on(event: EmptyEvents, handler: () => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+
+    export function on(event: AllEvents[], handler: (...args: unknown[]) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
   }
   // }}
 
