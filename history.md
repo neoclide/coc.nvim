@@ -1,6 +1,7 @@
 # 2022-02-15
 
-- Add `events.race`
+- Add `events.race`.
+- Change default `suggest.triggerCompletionWait` to 50.
 
 # 2022-02-14
 

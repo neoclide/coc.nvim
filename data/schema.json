@@ -502,7 +502,7 @@
     },
     "suggest.triggerCompletionWait": {
       "type": "integer",
-      "default": 100,
+      "default": 50,
       "minimum": 30,
       "maximum": 500,
       "description": "Wait time between text change and completion start, cancel completion when text changed during wait."
