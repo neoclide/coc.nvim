@@ -17,7 +17,6 @@ interface RootPatterns {
 }
 
 export default class WorkspaceHandler {
-  private called = false
   constructor(
     private nvim: Neovim,
     private handler: HandlerDelegate
@@ -77,30 +76,28 @@ export default class WorkspaceHandler {
   }
 
   public async showInfo(): Promise<void> {
-    let channel = window.createOutputChannel('info')
+    let lines: string[] = []
     let version = workspace.version + (typeof REVISION === 'string' ? '-' + REVISION : '')
-    if (this.called) {
-      channel.clear()
-    }
-    this.called = true
-    channel.appendLine('## versions')
-    channel.appendLine('')
+    lines.push('## versions')
+    lines.push('')
     let out = await this.nvim.call('execute', ['version']) as string
     let first = out.trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, '').trim()
-    channel.appendLine('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
-    channel.appendLine('node version: ' + process.version)
-    channel.appendLine('coc.nvim version: ' + version)
-    channel.appendLine('coc.nvim directory: ' + path.dirname(__dirname))
-    channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
-    channel.appendLine('platform: ' + process.platform)
-    channel.appendLine('')
-    channel.appendLine('## Log of coc.nvim')
-    channel.appendLine('')
+    lines.push('vim version: ' + first + `${workspace.isVim ? ' ' + workspace.env.version : ''}`)
+    lines.push('node version: ' + process.version)
+    lines.push('coc.nvim version: ' + version)
+    lines.push('coc.nvim directory: ' + path.dirname(__dirname))
+    lines.push('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
+    lines.push('platform: ' + process.platform)
+    lines.push('')
+    lines.push('## Log of coc.nvim')
+    lines.push('')
     let file = logger.logfile
     if (fs.existsSync(file)) {
       let content = fs.readFileSync(file, { encoding: 'utf8' })
-      channel.appendLine(content)
+      lines.push(...content.split(/\r?\n/))
     }
-    channel.show()
+    await this.nvim.command('vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted')
+    let buf = await this.nvim.buffer
+    await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false })
   }
 }

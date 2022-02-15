@@ -32,8 +32,7 @@ describe('help tags', () => {
   })
 
   it('should show CocInfo', async () => {
-    await nvim.call('CocActionAsync', ['showInfo'])
-    await helper.wait(300)
+    await helper.doAction('showInfo')
     let line = await nvim.line
     expect(line).toMatch('version')
   })
