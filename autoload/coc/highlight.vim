@@ -67,11 +67,11 @@ function! coc#highlight#get(bufnr, key, start, end) abort
     let end = a:end == -1 ? [-1, -1] : [a:end - 1, -1]
     let markers = nvim_buf_get_extmarks(a:bufnr, ns, [a:start, 0], end, {'details': v:true})
     let linecount = nvim_buf_line_count(a:bufnr)
-    for [_, row, start_col, details] in markers
+    for [id, row, start_col, details] in markers
       let delta = details['end_row'] - row
       if row >= linecount || delta > 1 || (delta == 1 && details['end_col'] != 0)
-        " Ignore markers with invalid row
-        " Don't known neovim's api for multiple lines markers.
+        " Remove unexpected multiple line extmark.
+        call nvim_buf_del_extmark(a:bufnr, ns, id)
         continue
       endif
       let text = get(getbufline(a:bufnr, row + 1), 0, '')
@@ -352,8 +352,8 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
               \ 'end_col': a:col_end,
               \ 'hl_group': a:hl_group,
               \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
-              \ 'right_gravity': v:false,
-              \ 'end_right_gravity': v:false,
+              \ 'right_gravity': get(opts, 'start_incl', 0) ? v:true : v:false,
+              \ 'end_right_gravity': get(opts, 'end_incl', 0) ? v:true : v:false,
               \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
               \ })
       catch /^Vim\%((\a\+)\)\=:E5555/

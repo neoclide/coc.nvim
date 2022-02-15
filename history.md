@@ -1,6 +1,8 @@
 # 2022-02-15
 
-- Add `events.race`
+- Add `events.race`.
+- Change default `suggest.triggerCompletionWait` to 50.
+- Support trigger completion after indent fix.
 
 # 2022-02-14
 
