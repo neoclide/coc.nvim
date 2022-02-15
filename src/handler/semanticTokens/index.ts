@@ -145,6 +145,9 @@ export default class SemanticTokens {
     return highlighter
   }
 
+  public getItem(bufnr: number): SemanticTokensBuffer | null {
+    return this.highlighters.getItem(bufnr)
+  }
   /**
    * Force highlight of current buffer
    */

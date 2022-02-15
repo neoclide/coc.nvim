@@ -97,7 +97,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public async onShown(): Promise<void> {
     // Should be refreshed by onCursorMoved
-    if (this.rangeProviderOnly || this.regions) return
+    if (this.shouldRangeHighlight || this.regions) return
     const doc = workspace.getDocument(this.bufnr)
     if (!doc || doc.dirty || doc.version === this._version) return
     await this.doHighlight(false)
