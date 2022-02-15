@@ -221,5 +221,7 @@ function! coc#complete_indent() abort
   call cursor(l:curpos[1:])
   if l:shift != 0
     call coc#_cancel()
+    return 1
   endif
+  return 0
 endfunction

@@ -13,6 +13,7 @@ export async function waitTextChangedI(): Promise<InsertChange | undefined> {
 }
 
 export function shouldIndent(indentkeys = '', pretext: string): boolean {
+  if (!indentkeys) return false
   for (let part of indentkeys.split(',')) {
     if (part.indexOf('=') > -1) {
       let [pre, post] = part.split('=')

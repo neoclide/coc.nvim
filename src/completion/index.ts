@@ -25,7 +25,6 @@ export class Completion implements Disposable {
   public config: CompleteConfig
   private nvim: Neovim
   private pretext = ''
-  private changedTick = 0
   private activated = false
   private triggering = false
   private popupEvent: PopupChangeEvent
@@ -219,11 +218,10 @@ export class Completion implements Disposable {
   }
 
   private async showCompletion(col: number, items: ExtendedCompleteItem[]): Promise<void> {
-    let { nvim, document } = this
+    let { nvim } = this
     this.currentSources = this.complete.resultSources
     let { disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
-    this.changedTick = document.changedtick
     let validKeys = completeItemKeys.slice()
     if (disableKind) validKeys = validKeys.filter(s => s != 'kind')
     if (disableMenu) validKeys = validKeys.filter(s => s != 'menu')
@@ -312,6 +310,11 @@ export class Completion implements Disposable {
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
     let { option } = this
     if (!option || option.bufnr != bufnr) return
+    if (shouldIndent(option.indentkeys, info.pre)) {
+      let res = await this.nvim.call('coc#complete_indent', [])
+      if (res) return
+    }
+    if (this.pretext == info.pre) return
     let pretext = this.pretext = info.pre
     let oldIndent = option.line.match(/^\s*/)[0]
     let newIndent = info.pre.match(/^\s*/)[0]
@@ -325,15 +328,8 @@ export class Completion implements Disposable {
         colnr: colnr + delta
       })
     }
-    if ((info.insertChar || info.changedtick == this.changedTick)
-      && shouldIndent(option.indentkeys, pretext)) {
-      this.nvim.call('coc#complete_indent', [], true)
-      return
-    }
-    // avoid trigger filter on pumvisible
-    if (info.changedtick == this.changedTick) return
     // Avoid resume when TextChangedP caused by <C-n> or <C-p>
-    if (this.selectedItem) {
+    if (this.selectedItem && !info.insertChar) {
       let expected = byteSlice(option.line, 0, option.col) + this.selectedItem.word
       if (expected == pretext) return
     }
