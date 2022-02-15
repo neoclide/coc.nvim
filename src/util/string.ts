@@ -33,7 +33,7 @@ export function byteLength(str: string): number {
 }
 
 export function upperFirst(str: string): string {
-  return str ? str[0].toUpperCase() + str.slice(1) : ''
+  return str?.length > 0 ? str[0].toUpperCase() + str.slice(1) : ''
 }
 
 export function byteIndex(content: string, index: number): number {

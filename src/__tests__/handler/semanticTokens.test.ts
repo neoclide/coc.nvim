@@ -6,7 +6,7 @@ import languages from '../../languages'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let ns: number
@@ -263,7 +263,6 @@ describe('semanticTokens', () => {
           })
         }
       }, legend))
-      await highlighter.fetchHighlightGroups()
       let item = await highlighter.getCurrentItem()
       item.cancel()
       await item.doHighlight()
@@ -291,7 +290,6 @@ describe('semanticTokens', () => {
           })
         }
       }, legend))
-      await highlighter.fetchHighlightGroups()
       let item = await highlighter.getCurrentItem()
       await item.doHighlight()
       expect(fn).toBeCalledTimes(0)
@@ -324,14 +322,12 @@ describe('semanticTokens', () => {
           })
         }
       }, legend))
-      await highlighter.fetchHighlightGroups()
       let item = await highlighter.getCurrentItem()
       await item.doHighlight()
       let newLine = 'l\n'
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: `${newLine.repeat(2000)}` }])
-      item.cancel()
       await item.doHighlight()
-      await helper.wait(100)
+      await item.waitRefresh()
       expect(fn).toBeCalled()
       let buf = nvim.createBuffer(doc.bufnr)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
@@ -358,6 +354,20 @@ describe('semanticTokens', () => {
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBeGreaterThan(0)
     })
+
+    it('should not highlight on shown when document not changed', async () => {
+      let fn = jest.fn()
+      let buf = await createRustBuffer()
+      let item = await highlighter.getCurrentItem()
+      await item.waitRefresh()
+      await nvim.command('enew')
+      item.doHighlight = async () => {
+        fn()
+      }
+      await nvim.command(`b ${buf.id}`)
+      await helper.wait(100)
+      expect(fn).toBeCalledTimes(0)
+    })
   })
 
   describe('clear highlights', () => {
@@ -377,16 +387,6 @@ describe('semanticTokens', () => {
       await highlighter.highlightCurrent()
       let buf = await nvim.buffer
       await commandManager.executeCommand('semanticTokens.clearAll')
-      let markers = await buf.getExtMarks(ns, 0, -1)
-      expect(markers.length).toBe(0)
-    })
-
-    it('should clear highlight by api', async () => {
-      await createRustBuffer()
-      let item = await highlighter.getCurrentItem()
-      item.cancel()
-      item.clearHighlight()
-      let buf = await nvim.buffer
       let markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(0)
     })
@@ -414,20 +414,18 @@ describe('semanticTokens', () => {
       workspace.configurations.updateUserConfig({
         'semanticTokens.filetypes': ['vim']
       })
-      await highlighter.fetchHighlightGroups()
-      let doc = await helper.createDocument('t.vim')
+      let filepath = await createTmpFile('let')
+      let doc = await helper.createDocument(filepath)
+      await nvim.command('setl filetype=vim')
+      await helper.wait(30)
       let r: Range
       disposables.push(registerRangeProvider('vim', range => {
         r = range
         return [0, 0, 3, 1, 0]
       }))
       expect(doc.filetype).toBe('vim')
-      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
-      await helper.wait(30)
-      let item = await highlighter.getCurrentItem()
-      await item.doRangeHighlight()
-      expect(r).toEqual(Range.create(0, 0, 1, 0))
-      let buf = await nvim.buffer
+      await helper.wait(50)
+      let buf = nvim.createBuffer(doc.bufnr)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(1)
     })
@@ -436,7 +434,6 @@ describe('semanticTokens', () => {
       workspace.configurations.updateUserConfig({
         'semanticTokens.filetypes': ['vim']
       })
-      await highlighter.fetchHighlightGroups()
       let doc = await helper.createDocument('t.vim')
       let r: Range
       expect(doc.filetype).toBe('vim')
@@ -479,7 +476,6 @@ describe('semanticTokens', () => {
           })
         }
       }, legend))
-      await highlighter.fetchHighlightGroups()
       let doc = await helper.createDocument('t.vim')
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
       let item = await highlighter.getCurrentItem()

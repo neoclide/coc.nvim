@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import os from 'os'
 import path from 'path'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -466,6 +467,7 @@ describe('diagnostic manager', () => {
       config.update('messageDelay', 10)
       let doc = await createDocument('foo.js')
       await nvim.setLine('foo')
+      await doc.synchronize()
       let collection = manager.getCollectionByName('test')
       let diagnostic = createDiagnostic('99', Range.create(0, 0, 0, 3), DiagnosticSeverity.Error)
       diagnostic.codeDescription = {
@@ -624,14 +626,14 @@ describe('diagnostic manager', () => {
     })
 
     it('should refresh all buffers', async () => {
-      let one = await helper.createDocument('one')
-      await nvim.command('vnew')
-      let two = await helper.createDocument('two')
+      let uris = ['one', 'two'].map(s => URI.file(path.join(os.tmpdir(), s)).toString())
+      await workspace.loadFiles(uris)
       let collection = manager.create('tmp')
-      collection.set([[one.uri, [createDiagnostic('Error one')]], [two.uri, [createDiagnostic('Error two')]]])
+      collection.set([[uris[0], [createDiagnostic('Error one')]], [uris[1], [createDiagnostic('Error two')]]])
       manager.refresh()
       await helper.wait(50)
-      for (let bufnr of [one.bufnr, two.bufnr]) {
+      let bufnrs = [workspace.getDocument(uris[0]).bufnr, workspace.getDocument(uris[1]).bufnr]
+      for (let bufnr of bufnrs) {
         let buf = nvim.createBuffer(bufnr)
         let res = await buf.getVar('coc_diagnostic_info') as any
         expect(res?.error).toBe(1)

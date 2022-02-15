@@ -1,14 +1,14 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationToken, CancellationTokenSource, Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { HighlightItem } from '../../types'
-import { waitImmediate } from '../../util/index'
-import { byteIndex } from '../../util/string'
+import { wait, waitImmediate } from '../../util/index'
+import { byteIndex, upperFirst } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('semanticTokens-buffer')
@@ -53,20 +53,19 @@ interface RangeHighlights {
   end: number
 }
 
-export function capitalize(text: string): string {
-  return text.length ? text[0].toUpperCase() + text.slice(1) : ''
-}
-
 // should be higher than document debounce
-const debounceInterval = global.hasOwnProperty('__TEST__') ? 10 : 300
+const debounceInterval = global.hasOwnProperty('__TEST__') ? 30 : 300
 
 export default class SemanticTokensBuffer implements SyncItem {
-  private tokenSource: CancellationTokenSource
-  private rangeTokenSource: CancellationTokenSource
   private _highlights: [number, SemanticTokenRange[]]
   private _dirty = false
+  private _version: number | undefined
   private regions: Regions | undefined
+  private tokenSource: CancellationTokenSource
+  private rangeTokenSource: CancellationTokenSource
   private previousResults: SemanticTokensPreviousResult | undefined
+  private readonly _onDidRefresh = new Emitter<void>()
+  public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public highlight: Function & { clear(): void }
   constructor(
     private nvim: Neovim,
@@ -77,12 +76,11 @@ export default class SemanticTokensBuffer implements SyncItem {
         logger.error(`Error on doHighlight: ${e.message}`, e)
       })
     }, debounceInterval)
-    this.highlight()
+    void this.doHighlight()
   }
 
   public onChange(): void {
-    this.cancel()
-    this.highlight()
+    void this.doHighlight()
   }
 
   public onTextChange(): void {
@@ -98,8 +96,10 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public async onShown(): Promise<void> {
-    // Could use CursorMoved to highlight
+    // Should be refreshed by onCursorMoved
     if (this.rangeProviderOnly || this.regions) return
+    const doc = workspace.getDocument(this.bufnr)
+    if (!doc || doc.dirty || doc.version === this._version) return
     await this.doHighlight(false)
   }
 
@@ -123,10 +123,12 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   private get invalid(): boolean {
     let doc = workspace.getDocument(this.bufnr)
-    let { _highlights } = this
-    if (!doc || doc.dirty) return true
-    if (_highlights && _highlights[0] !== doc.version) return true
-    return false
+    return !doc || doc.dirty
+  }
+
+  private get lineCount(): number {
+    let doc = workspace.getDocument(this.bufnr)
+    return doc ? doc.lineCount : 0
   }
 
   /**
@@ -210,7 +212,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let combine = false
     // Compose highlight group CocSem + modifier + type
     for (let item of tokenModifiers) {
-      let hlGroup = HLGROUP_PREFIX + capitalize(item) + capitalize(tokenType)
+      let hlGroup = HLGROUP_PREFIX + upperFirst(item) + upperFirst(tokenType)
       if (highlightGroups.includes(hlGroup)) {
         combine = combinedModifiers.includes(item)
         highlightGroup = hlGroup
@@ -219,7 +221,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
     if (!highlightGroup) {
       for (let item of tokenModifiers) {
-        let hlGroup = HLGROUP_PREFIX + capitalize(item)
+        let hlGroup = HLGROUP_PREFIX + upperFirst(item)
         if (highlightGroups.includes(hlGroup)) {
           highlightGroup = hlGroup
           combine = combinedModifiers.includes(item)
@@ -228,7 +230,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       }
     }
     if (!highlightGroup) {
-      let hlGroup = HLGROUP_PREFIX + capitalize(tokenType)
+      let hlGroup = HLGROUP_PREFIX + upperFirst(tokenType)
       if (highlightGroups.includes(hlGroup)) {
         highlightGroup = hlGroup
       }
@@ -269,33 +271,16 @@ export default class SemanticTokensBuffer implements SyncItem {
     return res
   }
 
-  public async doRangeHighlight(): Promise<void> {
-    if (!this.enabled) return
-    this.cancel(true)
-    let tokenSource = this.rangeTokenSource = new CancellationTokenSource()
-    let priority = this.config.highlightPriority
-    let token = tokenSource.token
-    let res = await this.requestRangeHighlights(token)
-    this.rangeTokenSource = null
-    if (!res || token.isCancellationRequested) return
-    const { highlights, start, end } = res
-    if (this.rangeProviderOnly || !this._highlights) {
-      this._highlights = [0, highlights]
-    }
-    let items = this.toHighlightItems(highlights)
-    await this.nvim.call('coc#highlight#update_highlights', [this.bufnr, NAMESPACE, items, start, end, priority])
-  }
-
   public async doHighlight(forceFull = false): Promise<void> {
-    if (!this.enabled) return
     this.cancel()
-    if (events.pumvisible) return
+    if (!this.enabled || events.pumvisible) return
     let hidden = await this.nvim.eval(`get(get(getbufinfo(${this.bufnr}),0,{}),'hidden',0)`)
     if (hidden == 1) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     if (this.shouldRangeHighlight) {
-      await this.doRangeHighlight()
+      let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
+      await this.doRangeHighlight(rangeTokenSource.token)
       if (this.rangeProviderOnly) return
     }
     const doc = workspace.getDocument(this.bufnr)
@@ -319,17 +304,60 @@ export default class SemanticTokensBuffer implements SyncItem {
       if (tokenRanges) this._highlights = [version, tokenRanges]
     }
     // request cancelled or can't work
-    if (!tokenRanges || token.isCancellationRequested || this.invalid) return
+    if (!tokenRanges || token.isCancellationRequested) return
     if (!this._dirty || tokenRanges.length < 1000) {
       let items = this.toHighlightItems(tokenRanges)
       let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, token)
-      if (token.isCancellationRequested || !diff || this.invalid) return
+      if (token.isCancellationRequested || !diff) return
       this._dirty = true
+      this._version = version
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
     } else {
       this.regions = new Regions()
       await this.highlightRegions(token)
     }
+    this._onDidRefresh.fire()
+  }
+
+  public async waitRefresh(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let timer = setTimeout(() => {
+        disposable.dispose()
+        reject(new Error(`Timeout after 500ms`))
+      }, 500)
+      let disposable = this.onDidRefresh(() => {
+        disposable.dispose()
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+  }
+
+  /**
+   * Perform range highlight request and update.
+   */
+  public async doRangeHighlight(token: CancellationToken): Promise<void> {
+    if (!this.enabled) return
+    let doc = workspace.getDocument(this.bufnr)
+    let { version } = doc
+    let res = await this.requestRangeHighlights(doc, token)
+    if (!res || token.isCancellationRequested || !doc) return
+    const { highlights, start, end } = res
+    if (this.rangeProviderOnly || !this.previousResults) {
+      if (!this._highlights || version !== this._highlights[0]) {
+        this._highlights = [version, []]
+      }
+      let tokenRanges = this._highlights[1]
+      let used: Set<number> = tokenRanges.reduce((p, c) => p.add(c.range[0]), new Set<number>())
+      highlights.forEach(hi => {
+        if (!used.has(hi.range[0])) {
+          tokenRanges.push(hi)
+        }
+      })
+    }
+    const items = this.toHighlightItems(highlights)
+    const priority = this.config.highlightPriority
+    await this.nvim.call('coc#highlight#update_highlights', [this.bufnr, NAMESPACE, items, start, end, priority])
   }
 
   /**
@@ -340,7 +368,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (this.invalid || !regions) return
     let priority = config.highlightPriority
     let spans: [number, number][] = await this.nvim.call('coc#window#visible_ranges', [this.bufnr])
-    if (this.invalid || token.isCancellationRequested || spans.length === 0) return
+    if (this.invalid || !regions || token.isCancellationRequested || spans.length === 0) return
     let height = workspace.env.lines
     spans.forEach(o => {
       o[0] = Math.max(0, Math.floor(o[0] - height * 1.5))
@@ -354,26 +382,34 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
   }
 
-  private get lineCount(): number {
-    let doc = workspace.getDocument(this.bufnr)
-    return doc ? doc.lineCount : 0
+  public async onCursorMoved(): Promise<void> {
+    this.cancel(true)
+    if (!this.enabled) return
+    let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
+    let token = rangeTokenSource.token
+    await wait(global.__TEST__ ? 10 : 100)
+    if (token.isCancellationRequested) return
+    if (this.shouldRangeHighlight) {
+      await this.doRangeHighlight(token)
+    } else {
+      await this.highlightRegions(token)
+    }
   }
 
   /**
    * Request highlights for visible range.
    */
-  private async requestRangeHighlights(token: CancellationToken): Promise<RangeHighlights | null> {
+  private async requestRangeHighlights(doc: Document, token: CancellationToken): Promise<RangeHighlights | null> {
     let { nvim } = this
-    let doc = workspace.getDocument(this.bufnr)
     let legend = languages.getLegend(doc.textDocument, true)
-    let r = await nvim.call('coc#window#visible_range', [this.bufnr])
-    if (!r || token.isCancellationRequested) return null
-    let range = Range.create(r[0] - 1, 0, r[1], 0)
+    let region = await nvim.call('coc#window#visible_range', [this.bufnr]) as [number, number]
+    if (!region || token.isCancellationRequested) return null
+    let range = Range.create(region[0] - 1, 0, region[1], 0)
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || token.isCancellationRequested) return null
     let highlights = await this.getTokenRanges(doc, res.data, legend, token)
     if (token.isCancellationRequested) return null
-    return { highlights, start: r[0] - 1, end: r[1] }
+    return { highlights, start: region[0] - 1, end: region[1] }
   }
 
   /**
@@ -415,6 +451,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public abandonResult(): void {
     this.previousResults = undefined
+    this._highlights = undefined
   }
 
   public cancel(rangeOnly = false): void {
@@ -435,7 +472,8 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public dispose(): void {
     this.cancel()
-    this._highlights = undefined
-    this.previousResults = undefined
+    this.abandonResult()
+    this._onDidRefresh.dispose()
+    this.regions = undefined
   }
 }
