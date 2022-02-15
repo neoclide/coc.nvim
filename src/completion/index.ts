@@ -422,9 +422,13 @@ export class Completion implements Disposable {
     let insertChange = await waitTextChangedI()
     if (!insertChange) return
     if (insertChange.lnum != opt.linenr || insertChange.pre !== byteSlice(opt.line, 0, opt.col) + item.word) return
+    let res = await events.race(['InsertCharPre'], 20)
+    if (res) return
     let source = new CancellationTokenSource()
+    let { token } = source
     this.mru.add(this.input, resolvedItem)
     await this.doCompleteResolve(resolvedItem, source)
+    if (token.isCancellationRequested) return
     await document.patchChange(true)
     await this.doCompleteDone(resolvedItem, opt)
   }
