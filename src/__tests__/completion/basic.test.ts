@@ -528,6 +528,35 @@ describe('completion', () => {
       await nvim.input('  END')
       await helper.waitFor('getline', ['.'], 'END')
     })
+
+    it('should trigger completion after indent change', async () => {
+      await helper.createDocument()
+      await helper.mockFunction('MyIndentExpr', 0)
+      await nvim.command('setl indentexpr=MyIndentExpr()')
+      await nvim.command('setl indentkeys=\\=end')
+      let source: ISource = {
+        name: 'source1',
+        priority: 90,
+        enable: true,
+        sourceType: SourceType.Native,
+        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+          items: [
+            { word: 'endif' },
+            { word: 'endfunction' }
+          ]
+        })
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('i')
+      await helper.wait(10)
+      await nvim.input('  en')
+      await helper.waitPopup()
+      await nvim.input('d')
+      await helper.waitFor('getline', ['.'], 'end')
+      await helper.wait(10)
+      let items = await helper.getItems()
+      expect(items.length).toBe(2)
+    })
   })
 
   describe('Character insert', () => {

@@ -279,7 +279,7 @@ describe('completion resumeCompletion', () => {
       name: 'filter',
       sourceType: SourceType.Service,
       doComplete: (): Promise<CompleteResult> => {
-        return Promise.resolve({ items: [{ word: 'foo' }, { word: 'foot' }] })
+        return Promise.resolve({ items: [{ word: 'foo' }, { word: 'fox' }, { word: 'fat' }] })
       }
     }
     disposables.push(sources.addSource(source))
@@ -289,6 +289,10 @@ describe('completion resumeCompletion', () => {
     await helper.wait(50)
     let items = await helper.getItems()
     expect(items.length).toBe(2)
+    await nvim.input('o')
+    await helper.wait(50)
+    items = await helper.getItems()
+    expect(items.length).toBe(1)
   })
 
   it('should filter when type character after item selected without handle complete done', async () => {

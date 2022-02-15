@@ -24,7 +24,7 @@ export interface LastInsert {
 export class Completion implements Disposable {
   public config: CompleteConfig
   private nvim: Neovim
-  private pretext = ''
+  private pretext: string | undefined
   private activated = false
   private triggering = false
   private popupEvent: PopupChangeEvent
@@ -311,22 +311,20 @@ export class Completion implements Disposable {
     let { option } = this
     if (!option || option.bufnr != bufnr) return
     if (shouldIndent(option.indentkeys, info.pre)) {
-      let res = await this.nvim.call('coc#complete_indent', [])
-      if (res) return
+      logger.debug(`trigger indent by ${info.pre}`)
+      let indentChanged = await this.nvim.call('coc#complete_indent', [])
+      if (indentChanged) {
+        // vim not trigger additional TextChangedP on indent change.
+        await this.nvim.command('redraw')
+        await this.triggerCompletion(this.document, info.pre)
+        return
+      }
     }
     if (this.pretext == info.pre) return
     let pretext = this.pretext = info.pre
-    let oldIndent = option.line.match(/^\s*/)[0]
-    let newIndent = info.pre.match(/^\s*/)[0]
-    if (newIndent !== oldIndent) {
-      let line = newIndent + option.line.slice(oldIndent.length)
-      let delta = byteLength(newIndent) - byteLength(oldIndent)
-      let { col, colnr } = option
-      Object.assign(option, {
-        line,
-        col: col + delta,
-        colnr: colnr + delta
-      })
+    if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
+      await this.triggerCompletion(this.document, pretext)
+      return
     }
     // Avoid resume when TextChangedP caused by <C-n> or <C-p>
     if (this.selectedItem && !info.insertChar) {
@@ -396,6 +394,8 @@ export class Completion implements Disposable {
       logger.warn(`Completion of ${doc.bufnr} disabled by b:coc_suggest_disable`)
       return
     }
+    // could be changed by indent
+    pre = byteSlice(option.line, 0, option.colnr - 1)
     if (option.blacklist && option.blacklist.includes(option.input)) {
       logger.warn(`Suggest disabled by b:coc_suggest_blacklist`, option.blacklist)
       return
@@ -472,7 +472,7 @@ export class Completion implements Disposable {
     let { autoTrigger, asciiCharactersOnly, minTriggerInputLength } = this.config
     if (autoTrigger == 'none') return false
     if (sources.shouldTrigger(pre, doc.filetype, doc.uri)) return true
-    if (autoTrigger !== 'always' || this.isActivated) return false
+    if (autoTrigger !== 'always') return false
     let last = pre.slice(-1)
     // eslint-disable-next-line no-control-regex
     if (asciiCharactersOnly && !/[\x00-\x7F]/.test(last)) {
@@ -542,6 +542,7 @@ export class Completion implements Disposable {
     this.cancelResolve()
     this.floating.close()
     this.activated = false
+    this.pretext = undefined
     if (this.completeTimer) {
       clearTimeout(this.completeTimer)
       this.completeTimer = null

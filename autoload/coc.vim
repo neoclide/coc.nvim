@@ -220,7 +220,6 @@ function! coc#complete_indent() abort
   let l:curpos[4] += l:shift
   call cursor(l:curpos[1:])
   if l:shift != 0
-    call coc#_cancel()
     return 1
   endif
   return 0
