@@ -56,10 +56,8 @@ describe('completion float', () => {
     let items = await helper.getItems()
     expect(items[0].word).toBe('foo')
     expect(items[0].info.length > 0).toBeTruthy()
-    await nvim.input('<C-n>')
-    await helper.wait(500)
-    await nvim.input('<esc>')
-    await helper.wait(100)
+    await helper.selectCompleteItem(0)
+    await helper.wait(30)
     let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
@@ -128,15 +126,13 @@ describe('float config', () => {
     await nvim.input('<C-n>')
   })
 
-  let tokenSource: CancellationTokenSource
   async function createFloat(config: Partial<FloatConfig>, docs = [{ filetype: 'txt', content: 'doc' }], isVim = false): Promise<Floating> {
     let floating = new Floating(nvim, isVim)
     let bounding = { col: 6, row: 2, height: 3, width: 16, scrollbar: false }
-    tokenSource = new CancellationTokenSource()
     await floating.show(docs, bounding, Object.assign({
       excludeImages: true,
       border: false,
-    }, config), tokenSource.token)
+    }, config))
     return floating
   }
 
@@ -199,13 +195,5 @@ describe('float config', () => {
     await createFloat({ shadow: true, winblend: 30 })
     let winid = await getFloat()
     expect(winid).toBeGreaterThan(0)
-  })
-
-  it('should close window when cancelled', async () => {
-    let p = createFloat({})
-    tokenSource.cancel()
-    await p
-    let winid = await getFloat()
-    expect(winid).toBe(-1)
   })
 })

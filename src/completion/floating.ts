@@ -26,7 +26,7 @@ export default class Floating {
     private isVim: boolean) {
   }
 
-  public async show(docs: Documentation[], bounding: PumBounding, config: FloatingConfig, token: CancellationToken): Promise<void> {
+  public async show(docs: Documentation[], bounding: PumBounding, config: FloatingConfig): Promise<void> {
     let { nvim } = this
     docs = docs.filter(o => o.content.trim().length > 0)
     let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: config.excludeImages })
@@ -53,9 +53,8 @@ export default class Floating {
     if (!res || res.length == 0) return
     this.winid = res[0]
     this.bufnr = res[1]
-    if (token.isCancellationRequested || !events.pumvisible) {
+    if (!events.pumvisible) {
       this.close()
-      return
     }
   }
 

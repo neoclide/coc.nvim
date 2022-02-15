@@ -175,18 +175,18 @@ describe('Document', () => {
     it('should attach change events', async () => {
       let doc = await helper.createDocument()
       await nvim.setLine('abc')
-      await helper.wait(50)
+      await doc.synchronize()
       let content = doc.getDocumentContent()
       expect(content.indexOf('abc')).toBe(0)
     })
 
     it('should not attach change events when b:coc_enabled is false', async () => {
-      await nvim.command('autocmd BufNewFile,BufRead *.dis let b:coc_enabled = 0')
-      let doc = await helper.createDocument('a.dis')
+      nvim.command('edit t|let b:coc_enabled = 0', true)
+      let doc = await workspace.document
       let val = doc.getVar<number>('enabled', 0)
       expect(val).toBe(0)
       await nvim.setLine('abc')
-      await helper.wait(50)
+      await doc.synchronize()
       let content = doc.getDocumentContent()
       expect(content.indexOf('abc')).toBe(-1)
     })

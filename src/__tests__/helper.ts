@@ -192,9 +192,8 @@ export class Helper extends EventEmitter {
     }
     let escaped = await this.nvim.call('fnameescape', file) as string
     await this.nvim.command(`edit ${escaped}`)
-    await this.wait(60)
-    let bufnr = await this.nvim.call('bufnr', ['%']) as number
-    return this.nvim.createBuffer(bufnr)
+    let doc = await workspace.document
+    return doc.buffer
   }
 
   public async createDocument(name?: string): Promise<Document> {

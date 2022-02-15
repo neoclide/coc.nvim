@@ -506,16 +506,13 @@ export class Completion implements Disposable {
       let isText = /^[\w-\s.,\t]+$/.test(info)
       docs = [{ filetype: isText ? 'txt' : this.document.filetype, content: info }]
     }
+    if (!this.config.floatEnable) return
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
-      if (this.config.floatEnable) {
-        let source = new CancellationTokenSource()
-        let excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
-        await this.floating.show(docs, bounding, Object.assign({}, this.config.floatConfig, {
-          excludeImages
-        }), source.token)
-      }
+      let excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
+      let config = Object.assign({}, this.config.floatConfig, { excludeImages })
+      await this.floating.show(docs, bounding, config)
     }
   }
 
