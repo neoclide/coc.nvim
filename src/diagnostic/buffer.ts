@@ -48,7 +48,7 @@ export class DiagnosticBuffer implements SyncItem {
     private config: DiagnosticConfig,
     private onRefresh: (diagnostics: ReadonlyArray<Diagnostic>) => void
   ) {
-    let ms = global.hasOwnProperty('__TEST__') ? 50 : 500
+    let ms = global.hasOwnProperty('__TEST__') ? 10 : 500
     this.refreshHighlights = debounce(this._refresh.bind(this), ms)
   }
 

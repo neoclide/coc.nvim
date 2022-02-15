@@ -338,9 +338,9 @@ describe('semanticTokens', () => {
       let len = markers.length
       expect(len).toBeLessThan(400)
       await nvim.command('normal! gg')
-      await helper.wait(30)
+      await helper.wait(50)
       await nvim.command('normal! 200G')
-      await helper.wait(30)
+      await helper.wait(50)
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBeGreaterThan(len)
     })

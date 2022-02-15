@@ -30,6 +30,7 @@ export default class Documents implements Disposable {
   private buffers: Map<number, Document> = new Map()
   private creatingSources: Map<number, CancellationTokenSource> = new Map()
   private terminals: Map<number, TerminalModel> = new Map()
+  private resolves: ((doc: Document) => void)[] = []
   private readonly _onDidOpenTerminal = new Emitter<TerminalModel>()
   private readonly _onDidCloseTerminal = new Emitter<TerminalModel>()
   private readonly _onDidOpenTextDocument = new Emitter<LinesTextDocument & { bufnr: number }>()
@@ -216,12 +217,8 @@ export default class Documents implements Disposable {
           resolve(this.buffers.get(bufnr))
           return
         }
-        this.onBufCreate(bufnr).catch(reject)
-        let disposable = this.onDidOpenTextDocument(doc => {
-          this._bufnr = doc.bufnr
-          disposable.dispose()
-          resolve(this.getDocument(doc.uri))
-        })
+        this.onBufCreate(bufnr).logError()
+        this.resolves.push(resolve)
       }, reject)
     })
   }
@@ -322,6 +319,12 @@ export default class Documents implements Disposable {
       let textDocument: LinesTextDocument & { bufnr: number } = Object.assign(document.textDocument, { bufnr })
       this._onDidOpenTextDocument.fire(textDocument)
       document.onDocumentChange(e => this._onDidChangeDocument.fire(e))
+    }
+    if (this.resolves.length && bufnr == this._bufnr) {
+      this.resolves.forEach(fn => {
+        fn(document)
+      })
+      this.resolves = []
     }
     logger.debug('buffer created', buffer.id, document.uri)
   }
@@ -534,6 +537,10 @@ export default class Documents implements Disposable {
   }
 
   public dispose(): void {
+    this.resolves.forEach(fn => {
+      fn(null)
+    })
+    this.resolves = []
     this._attached = false
     this._onDidOpenTextDocument.dispose()
     for (let doc of this.documents) {

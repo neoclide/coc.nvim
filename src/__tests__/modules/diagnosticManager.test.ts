@@ -74,6 +74,7 @@ describe('diagnostic manager', () => {
       let diagnostic = createDiagnostic('My Error')
       collection.set(uri, [diagnostic])
       let doc = await helper.createDocument('doc')
+      await helper.wait(30)
       let val = await doc.buffer.getVar('coc_diagnostic_info') as any
       expect(fn).toBeCalled()
       expect(val).toBeDefined()
@@ -84,6 +85,7 @@ describe('diagnostic manager', () => {
 
     it('should delay refresh on InsertLeave', async () => {
       let doc = await helper.createDocument()
+      await helper.wait(30)
       await nvim.input('i')
       let collection = manager.create('foo')
       let diagnostics: Diagnostic[] = []
@@ -95,7 +97,7 @@ describe('diagnostic manager', () => {
       await doc.synchronize()
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
       collection.set(doc.uri, diagnostics)
-      await helper.wait(50)
+      await helper.wait(30)
       let buf = doc.buffer
       let val = await buf.getVar('coc_diagnostic_info') as any
       expect(val == null).toBe(true)
@@ -103,7 +105,7 @@ describe('diagnostic manager', () => {
       let markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(0)
       await nvim.input('<esc>')
-      await helper.wait(100)
+      await helper.wait(30)
       markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(1)
     })
