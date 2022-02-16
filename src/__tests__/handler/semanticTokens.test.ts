@@ -149,9 +149,7 @@ function registerProvider(): void {
 }
 
 async function createRustBuffer(): Promise<Buffer> {
-  workspace.configurations.updateUserConfig({
-    'semanticTokens.filetypes': ['rust']
-  })
+  helper.updateConfiguration('semanticTokens.filetypes', ['rust'])
   registerProvider()
   let code = `fn main() {
     println!("H");
@@ -165,9 +163,7 @@ async function createRustBuffer(): Promise<Buffer> {
 }
 
 afterEach(async () => {
-  workspace.configurations.updateUserConfig({
-    'semanticTokens.filetypes': []
-  })
+  helper.updateConfiguration('semanticTokens.filetypes', [])
   await helper.reset()
   disposeAll(disposables)
 })
@@ -228,9 +224,7 @@ describe('semanticTokens', () => {
     })
 
     it('should refresh when buffer visible', async () => {
-      workspace.configurations.updateUserConfig({
-        'semanticTokens.filetypes': ['rust']
-      })
+      helper.updateConfiguration('semanticTokens.filetypes', ['rust'])
       let code = `fn main() {
     println!("H");
 }`
@@ -247,7 +241,7 @@ describe('semanticTokens', () => {
       expect(item.enabled).toBe(true)
       await helper.wait(20)
       await nvim.command(`b ${buf.id}`)
-      await helper.wait(50)
+      await item.waitRefresh()
       expect(item.highlights).toBeDefined()
     })
 
@@ -255,7 +249,7 @@ describe('semanticTokens', () => {
       let doc = await helper.createDocument('t.vim')
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
       let fn = jest.fn()
-      workspace.configurations.updateUserConfig({ 'semanticTokens.filetypes': ['vim'] })
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
         provideDocumentSemanticTokens: () => {
           fn()
@@ -282,7 +276,7 @@ describe('semanticTokens', () => {
       await nvim.input('<C-n>')
       await helper.waitPopup()
       let fn = jest.fn()
-      workspace.configurations.updateUserConfig({ 'semanticTokens.filetypes': ['vim'] })
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
         provideDocumentSemanticTokens: () => {
           fn()
@@ -302,7 +296,7 @@ describe('semanticTokens', () => {
     it('should only highlight limited range on update', async () => {
       let doc = await helper.createDocument('t.vim')
       let fn = jest.fn()
-      workspace.configurations.updateUserConfig({ 'semanticTokens.filetypes': ['vim'] })
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
         provideDocumentSemanticTokens: (doc, token) => {
           let text = doc.getText()
@@ -346,9 +340,7 @@ describe('semanticTokens', () => {
     })
 
     it('should highlight hidden buffer on shown', async () => {
-      workspace.configurations.updateUserConfig({
-        'semanticTokens.filetypes': ['rust']
-      })
+      helper.updateConfiguration('semanticTokens.filetypes', ['rust'])
       registerProvider()
       let code = 'fn main() {\n  println!("H"); \n}'
       let filepath = path.join(os.tmpdir(), 'a.rs')
@@ -421,28 +413,26 @@ describe('semanticTokens', () => {
     })
 
     it('should do range highlight first time', async () => {
-      workspace.configurations.updateUserConfig({
-        'semanticTokens.filetypes': ['vim']
-      })
-      let filepath = await createTmpFile('let')
-      fs.renameSync(filepath, filepath + '.vim')
-      let doc = await helper.createDocument(filepath + '.vim')
-      expect(doc.filetype).toBe('vim')
+      helper.updateConfiguration
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       let r: Range
       disposables.push(registerRangeProvider('vim', range => {
         r = range
         return [0, 0, 3, 1, 0]
       }))
-      await helper.wait(50)
+      let filepath = await createTmpFile('let')
+      fs.renameSync(filepath, filepath + '.vim')
+      let doc = await helper.createDocument(filepath + '.vim')
+      expect(doc.filetype).toBe('vim')
+      await helper.wait(100)
+      expect(r).toBeDefined()
       let buf = nvim.createBuffer(doc.bufnr)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBe(1)
     })
 
     it('should do range highlight after cursor moved', async () => {
-      workspace.configurations.updateUserConfig({
-        'semanticTokens.filetypes': ['vim']
-      })
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       let doc = await helper.createDocument('t.vim')
       let r: Range
       expect(doc.filetype).toBe('vim')
@@ -488,9 +478,7 @@ describe('semanticTokens', () => {
       let doc = await helper.createDocument('t.vim')
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
       let item = await highlighter.getCurrentItem()
-      workspace.configurations.updateUserConfig({
-        'semanticTokens.filetypes': ['vim']
-      })
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       item.cancel()
       let p = item.doHighlight()
       await helper.wait(10)
@@ -501,9 +489,7 @@ describe('semanticTokens', () => {
 
   describe('triggerSemanticTokens', () => {
     it('should be disabled by default', async () => {
-      workspace.configurations.updateUserConfig({
-        'semanticTokens.filetypes': []
-      })
+      helper.updateConfiguration('semanticTokens.filetypes', [])
       await workspace.document
       const curr = await highlighter.getCurrentItem()
       expect(curr.enabled).toBe(false)

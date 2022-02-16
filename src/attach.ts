@@ -119,7 +119,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
   nvim.channelId.then(async channelId => {
     clientReady = true
     // Used for test client on vim side
-    if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
+    if (isTest) nvim.call('coc#rpc#set_channel', [channelId], true)
     let { major, minor, patch } = semver.parse(VERSION)
     nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
     let entered = await nvim.getVvar('vim_did_enter')
