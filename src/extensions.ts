@@ -553,8 +553,8 @@ export class Extensions {
         window.showMessage(`reloaded ${id}`)
       }).then(disposable => {
         this.disposables.push(disposable)
-      }, e => {
-        logger.error(e)
+      }, _e => {
+        // ignore
       })
     }
   }

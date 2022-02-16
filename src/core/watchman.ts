@@ -132,7 +132,7 @@ export default class Watchman {
     if (!watch) return
     this.appendOutput(`unsubscribe "${subscription}" in: ${watch}`)
     return this.command(['unsubscribe', watch, subscription]).catch(e => {
-      logger.error(e)
+      if (e.message?.includes('The client was ended')) logger.error(e)
     })
   }
 
