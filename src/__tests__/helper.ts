@@ -292,6 +292,14 @@ export class Helper extends EventEmitter {
   }
 }
 
+export function rmdir(dir: string): void {
+  if (typeof fs['rm'] === 'function') {
+    fs['rmSync'](dir, { recursive: true })
+  } else {
+    fs.rmdirSync(dir, { recursive: true })
+  }
+}
+
 export async function createTmpFile(content: string): Promise<string> {
   let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
   if (!fs.existsSync(tmpFolder)) {

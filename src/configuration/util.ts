@@ -244,10 +244,6 @@ export function getConfigurationValue<T>(
 
 export function loadDefaultConfigurations(): IConfigurationModel {
   let file = path.join(pluginRoot, 'data/schema.json')
-  if (!fs.existsSync(file)) {
-    console.error('schema.json not found, reinstall coc.nvim to fix this!')
-    return { contents: {} }
-  }
   let content = fs.readFileSync(file, 'utf8')
   let { properties } = JSON.parse(content)
   let config = {}

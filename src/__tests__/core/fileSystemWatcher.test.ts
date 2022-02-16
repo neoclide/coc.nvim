@@ -60,8 +60,7 @@ beforeAll(done => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, {
     $removeConfigurationOption: () => {},
-    $updateConfigurationOption: () => {},
-    workspaceConfigFile: ''
+    $updateConfigurationOption: () => {}
   })
   workspaceFolder = new WorkspaceFolderController(configurations)
   watcherManager = new FileSystemWatcherManager(workspaceFolder, '')

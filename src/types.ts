@@ -1,6 +1,6 @@
 // vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionKind, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionKind, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Configurations from './configuration'
@@ -10,7 +10,7 @@ import { ProviderResult, TextDocumentContentProvider } from './provider'
 declare global {
   namespace NodeJS {
     interface Global {
-      __TEST__: boolean
+      __TEST__?: boolean
     }
   }
 }
@@ -256,6 +256,7 @@ export interface IWorkspace {
   createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
   registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
+  getWorkspaceFolder(uri: string): WorkspaceFolder | undefined
   getQuickfixItem(loc: Location, text?: string, type?: string): Promise<QuickfixItem>
   getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>>
   getLine(uri: string, line: number): Promise<string>
@@ -722,10 +723,18 @@ export interface ConfigurationInspect<T> {
   workspaceValue?: T
 }
 
+export interface IConfigurationOverrides {
+  overrideIdentifier?: string | null
+  resource?: URI | null
+}
+
 export interface ConfigurationShape {
-  workspaceConfigFile: string
-  $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void
-  $removeConfigurationOption(target: ConfigurationTarget, key: string): void
+  /**
+   * Resolve possible workspace config from resource.
+   */
+  getWorkspaceConfig?(resource?: string): URI | undefined
+  $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any, overrides?: IConfigurationOverrides): void
+  $removeConfigurationOption(target: ConfigurationTarget, key: string, overrides?: IConfigurationOverrides): void
 }
 
 export interface IConfigurationModel {

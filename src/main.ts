@@ -1,12 +1,11 @@
-require('./util/extensions')
-
 Object.defineProperty(console, 'log', {
   value() {
-    logger?.info(...arguments)
+    if (logger) logger.info(...arguments)
   }
 })
+import './util/extensions'
+import attach from './attach'
 const logger = require('./util/logger')('server')
-const attach = require('./attach').default
 
 attach({ reader: process.stdin, writer: process.stdout })
 

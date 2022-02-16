@@ -27,6 +27,7 @@ function lookUp(tree: any, key: string): any {
 }
 
 export default class Configurations {
+  public cwd = process.cwd()
   private _configuration: Configuration
   private _errorItems: ErrorItem[] = []
   private _folderConfigurations: Map<string, ConfigurationModel> = new Map()
@@ -126,38 +127,51 @@ export default class Configurations {
     if (!fs.existsSync(filepath)) return false
     if (sameFile(this.userConfigFile, filepath)) return false
     if (sameFile(filepath, path.join(os.homedir(), `.vim/${CONFIG_FILE_NAME}`))) return false
-    this.watchFile(filepath, ConfigurationTarget.Workspace)
-    let model = this.addFolderConfiguration(filepath)
-    logger.debug(`Add folder configuration from ${fromCwd ? 'cwd' : 'file'}:`, filepath)
+    if (!this._folderConfigurations.has(filepath)) {
+      this.watchFile(filepath, ConfigurationTarget.Workspace)
+    }
+    let model = this.updateFolderConfiguration(filepath)
+    logger.info(`Add folder configuration from ${fromCwd ? 'cwd' : 'file'}:`, filepath)
     if (!change) return true
-    this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
+    if (this.workspaceConfigFile !== filepath) {
+      this.workspaceConfigFile = filepath
+      logger.info(`Change folder configuration from ${fromCwd ? 'cwd' : 'file'} to:`, filepath)
+      this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
+    }
     return true
   }
 
   public addFolderFromCwd(): void {
-    let filepath = path.join(process.cwd(), `.vim/${CONFIG_FILE_NAME}`)
+    let filepath = path.join(this.cwd, `.vim/${CONFIG_FILE_NAME}`)
     this.addFolderFile(filepath, true, true)
   }
 
   private watchFile(filepath: string, target: ConfigurationTarget): void {
-    if (!fs.existsSync(filepath) || global.hasOwnProperty('__TEST__')) return
+    if (!fs.existsSync(filepath) || global.__TEST__) return
+    let isWorkspace = target === ConfigurationTarget.Workspace
     let disposable = watchFile(filepath, () => {
-      let model = this.addFolderConfiguration(filepath)
-      this.changeConfiguration(target, model, filepath)
+      let model = this.parseContentFromFile(filepath)
+      if (isWorkspace) {
+        this._folderConfigurations.set(filepath, new ConfigurationModel(model.contents))
+        if (sameFile(this.workspaceConfigFile, filepath)) {
+          this.changeConfiguration(target, model, filepath)
+        }
+      } else {
+        this.changeConfiguration(target, model, filepath)
+      }
     })
     this.disposables.push(disposable)
   }
 
-  private addFolderConfiguration(configFile: string): IConfigurationModel {
+  private updateFolderConfiguration(configFile: string): IConfigurationModel {
     let model = this.parseContentFromFile(configFile)
     this._folderConfigurations.set(configFile, new ConfigurationModel(model.contents))
     return model
   }
 
   // create new configuration and fire change event
-  public changeConfiguration(target: ConfigurationTarget, model: IConfigurationModel, configFile: string | undefined): void {
+  private changeConfiguration(target: ConfigurationTarget, model: IConfigurationModel, folderConfigFile: string | undefined): void {
     let { defaults, user, workspace } = this._configuration
-    let { workspaceConfigFile } = this
     let data: IConfigurationData = {
       defaults: target == ConfigurationTarget.Global ? model : defaults,
       user: target == ConfigurationTarget.User ? model : user,
@@ -165,20 +179,16 @@ export default class Configurations {
     }
     let configuration = Configurations.parse(data)
     let changed = getChangedKeys(this._configuration.getValue(), configuration.getValue())
-    if (target == ConfigurationTarget.Workspace) {
-      logger.debug('Change folder configuration to:', configFile)
-      this.workspaceConfigFile = configFile
-    }
     if (changed.length == 0) return
     this._configuration = configuration
     this._onChange.fire({
       affectsConfiguration: (section, resource) => {
-        if (!resource || target != ConfigurationTarget.Workspace) return changed.includes(section)
+        if (!resource || !resource.startsWith('file:') || target != ConfigurationTarget.Workspace) {
+          return changed.includes(section)
+        }
         let u = URI.parse(resource)
-        if (u.scheme !== 'file') return changed.includes(section)
         let filepath = u.fsPath
-        let preRoot = workspaceConfigFile ? path.resolve(workspaceConfigFile, '../..') : ''
-        if (configFile && !isParentFolder(preRoot, filepath, true) && !isParentFolder(path.resolve(configFile, '../..'), filepath)) {
+        if (folderConfigFile && !isParentFolder(path.resolve(folderConfigFile, '../..'), filepath)) {
           return false
         }
         return changed.includes(section)
@@ -211,6 +221,21 @@ export default class Configurations {
     return this._configuration
   }
 
+  public getWorkspaceConfigUri(resource?: string): URI {
+    let uri: URI
+    if (!resource) {
+      uri = this.workspaceConfigFile ? URI.file(this.workspaceConfigFile) : undefined
+    }
+    if (!uri && this._proxy && typeof this._proxy.getWorkspaceConfig === 'function') {
+      // fallback to check workspace folder.
+      uri = this._proxy.getWorkspaceConfig(resource)
+      if (uri && sameFile(this.userConfigFile, uri.fsPath)) {
+        uri = undefined
+      }
+    }
+    return uri
+  }
+
   /**
    * getConfiguration
    *
@@ -220,14 +245,17 @@ export default class Configurations {
    */
   public getConfiguration(section?: string, resource?: string): WorkspaceConfiguration {
     let configuration: Configuration
+    let localConfig: URI | undefined
     if (resource) {
       let { defaults, user } = this._configuration
-      configuration = new Configuration(defaults, user, this.getFolderConfiguration(resource))
+      let [configUri, model] = this.getFolderConfiguration(resource)
+      localConfig = configUri
+      configuration = new Configuration(defaults, user, model)
     } else {
+      localConfig = this.workspaceConfigFile ? URI.file(this.workspaceConfigFile) : undefined
       configuration = this._configuration
     }
     const config = Object.freeze(lookUp(configuration.getValue(null), section))
-
     const result: WorkspaceConfiguration = {
       has(key: string): boolean {
         return typeof lookUp(config, key) !== 'undefined'
@@ -237,44 +265,44 @@ export default class Configurations {
         if (result == null) return defaultValue
         return result
       },
-      update: (key: string, value: any, isUser = false) => {
+      update: (key: string, value?: any, isUser = false) => {
         let s = section ? `${section}.${key}` : key
         let target = isUser ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         let model = target == ConfigurationTarget.User ? this.user.clone() : this.workspace.clone()
-        if (value == undefined) {
+        if (value === undefined) {
           model.removeValue(s)
         } else {
           model.setValue(s, value)
         }
-        if (target == ConfigurationTarget.Workspace && !this.workspaceConfigFile && this._proxy) {
-          let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile
-          if (!fs.existsSync(file)) {
-            let folder = path.dirname(file)
-            if (!fs.existsSync(folder)) fs.mkdirSync(folder)
-            fs.writeFileSync(file, '{}', { encoding: 'utf8' })
-          }
+        if (!localConfig) localConfig = this.getWorkspaceConfigUri(resource)
+        if (localConfig && !sameFile(this.workspaceConfigFile, localConfig.fsPath)) {
+          logger.info(`Change folder configuration ${resource ? 'by ' + resource : ''} to:`, localConfig.fsPath)
+          this.workspaceConfigFile = localConfig.fsPath
         }
         this.changeConfiguration(target, model, target == ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile)
-        if (this._proxy && !global.hasOwnProperty('__TEST__')) {
-          if (value == undefined) {
-            this._proxy.$removeConfigurationOption(target, s)
+        if (!isUser && !localConfig) {
+          if (!global.__TEST__) console.error(`Unable to locate workspace configuration ${resource ? 'for ' + resource : ''}, workspace folder not resovled.`)
+          logger.error(`Unable to locate workspace configuration:`, resource, Error().stack)
+        }
+        let uri: URI = isUser ? URI.parse(this.userConfigFile) : localConfig
+        if (this._proxy && !global.__TEST__) {
+          if (value === undefined) {
+            this._proxy.$removeConfigurationOption(target, s, { resource: uri })
           } else {
-            this._proxy.$updateConfigurationOption(target, s, value)
+            this._proxy.$updateConfigurationOption(target, s, value, { resource: uri })
           }
         }
+        if (!isUser && localConfig) this.addFolderFile(localConfig.fsPath, false)
       },
       inspect: <T>(key: string): ConfigurationInspect<T> => {
         key = section ? `${section}.${key}` : key
         const config = this._configuration.inspect<T>(key)
-        if (config) {
-          return {
-            key,
-            defaultValue: config.default,
-            globalValue: config.user,
-            workspaceValue: config.workspace,
-          }
+        return {
+          key,
+          defaultValue: config.default,
+          globalValue: config.user,
+          workspaceValue: config.workspace,
         }
-        return undefined
       }
     }
     Object.defineProperty(result, 'has', {
@@ -296,15 +324,22 @@ export default class Configurations {
     return deepFreeze(result)
   }
 
-  private getFolderConfiguration(uri: string): ConfigurationModel {
+  /**
+   * Get folder configuration URI & model, create model when configuration file found.
+   */
+  public getFolderConfiguration(uri: string): [URI | undefined, ConfigurationModel] {
     let u = URI.parse(uri)
-    if (u.scheme != 'file') return new ConfigurationModel()
-    let filepath = u.fsPath
+    let dir: string
+    if (u.scheme != 'file') {
+      dir = this.cwd
+    } else {
+      dir = u.fsPath
+    }
     for (let [configFile, model] of this.foldConfigurations) {
       let root = path.resolve(configFile, '../..')
-      if (isParentFolder(root, filepath, true)) return model
+      if (isParentFolder(root, dir, true)) return [URI.file(configFile), model]
     }
-    return new ConfigurationModel()
+    return [undefined, new ConfigurationModel()]
   }
 
   /**
@@ -335,6 +370,8 @@ export default class Configurations {
       let root = path.resolve(configFile, '../..')
       if (isParentFolder(root, filepath, true)) {
         if (this.workspaceConfigFile != configFile) {
+          this.workspaceConfigFile = configFile
+          logger.info(`Change folder configuration from to:`, filepath)
           this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
         }
         break
@@ -370,6 +407,9 @@ export default class Configurations {
   }
 
   public dispose(): void {
+    this._folderConfigurations.clear()
+    this._onError.dispose()
+    this._onChange.dispose()
     disposeAll(this.disposables)
   }
 }

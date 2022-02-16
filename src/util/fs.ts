@@ -195,6 +195,12 @@ export function sameFile(fullpath: string | null, other: string | null, caseInse
   return fullpath === other
 }
 
+export function fileStartsWith(dir: string, pdir: string) {
+  let caseInsensitive = platform.isWindows || platform.isMacintosh
+  if (caseInsensitive) return dir.toLowerCase().startsWith(pdir.toLowerCase())
+  return dir.startsWith(pdir)
+}
+
 export async function writeFile(fullpath: string, content: string): Promise<void> {
   await fs.writeFile(fullpath, content, { encoding: 'utf8' })
 }
@@ -218,9 +224,9 @@ export function isParentFolder(folder: string, filepath: string, checkEqual = fa
   let pdir = fixDriver(path.resolve(path.normalize(folder)))
   let dir = fixDriver(path.resolve(path.normalize(filepath)))
   if (pdir == '//') pdir = '/'
-  if (pdir == dir) return checkEqual ? true : false
-  if (pdir.endsWith(path.sep)) return dir.startsWith(pdir)
-  return dir.startsWith(pdir) && dir[pdir.length] == path.sep
+  if (sameFile(pdir, dir)) return checkEqual ? true : false
+  if (pdir.endsWith(path.sep)) return fileStartsWith(dir, pdir)
+  return fileStartsWith(dir, pdir) && dir[pdir.length] == path.sep
 }
 
 // use uppercase for windows driver

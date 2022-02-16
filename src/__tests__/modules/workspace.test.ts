@@ -134,6 +134,8 @@ describe('workspace methods', () => {
     expect(file).toBeFalsy()
     file = workspace.getConfigFile(ConfigurationTarget.User)
     expect(file).toBeTruthy()
+    file = workspace.getConfigFile(ConfigurationTarget.Workspace)
+    expect(file).toBeTruthy()
   })
 
   it('should create file watcher', async () => {
