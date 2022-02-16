@@ -347,13 +347,14 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
   let priority = get(opts, 'priority', v:null)
   if has('nvim')
     if s:set_extmark && a:src_id != -1
+      " get(opts, 'start_incl', 0) ? v:true : v:false,
       try
         call nvim_buf_set_extmark(a:bufnr, a:src_id, a:line, a:col_start, {
               \ 'end_col': a:col_end,
               \ 'hl_group': a:hl_group,
               \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
-              \ 'right_gravity': get(opts, 'start_incl', 0) ? v:true : v:false,
-              \ 'end_right_gravity': get(opts, 'end_incl', 0) ? v:true : v:false,
+              \ 'right_gravity': v:false,
+              \ 'end_right_gravity': v:false,
               \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
               \ })
       catch /^Vim\%((\a\+)\)\=:E5555/
