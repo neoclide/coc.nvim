@@ -3,15 +3,9 @@ import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteLength } from '../util/string'
 import stripAnsi from 'strip-ansi'
-import { HighlightItem } from '../types'
+import { HighlightItem, Documentation } from '../types'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
-
-export interface Documentation {
-  filetype: string
-  content: string
-  active?: [number, number]
-}
 
 export interface MarkdownParseOptions {
   excludeImages?: boolean
@@ -41,6 +35,7 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
   for (let doc of docs) {
     let currline = lines.length
     let { content, filetype } = doc
+    let hls = doc.highlights
     if (filetype == 'markdown') {
       let info = parseMarkdown(content, opts)
       codes.push(...info.codes.map(o => {
@@ -62,7 +57,12 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
       }
       lines.push(...parts)
     }
-    if (doc.active) {
+    if (Array.isArray(hls)) {
+      highlights.push(...hls.map(o => {
+        return Object.assign({}, o, { lnum: o.lnum + currline })
+      }))
+    }
+    if (Array.isArray(doc.active)) {
       let arr = getHighlightItems(content, currline, doc.active)
       if (arr.length) highlights.push(...arr)
     }
@@ -141,7 +141,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
     let line = parsedLines[i]
     if (!line.length) {
       let pre = lines[lines.length - 1]
-      if (pre && pre.length) {
+      if (pre) {
         lines.push(line)
         currline++
       }

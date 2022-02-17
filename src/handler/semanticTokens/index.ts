@@ -6,7 +6,7 @@ import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import FloatFactory from '../../model/floatFactory'
 import Highlighter from '../../model/highligher'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
 import { upperFirst } from '../../util/string'
@@ -117,9 +117,20 @@ export default class SemanticTokens {
     })
     if (highlight) {
       let modifiers = highlight.tokenModifiers || []
-      let docs = [{
+      let highlights = []
+      if (highlight.hlGroup) {
+        let s = 'Highlight group: '.length
+        highlights.push({
+          lnum: 2,
+          colStart: s,
+          colEnd: s + highlight.hlGroup.length,
+          hlGroup: highlight.hlGroup
+        })
+      }
+      let docs: Documentation[] = [{
         filetype: 'txt',
-        content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${highlight.hlGroup || ''}`
+        content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${highlight.hlGroup || ''}`,
+        highlights
       }]
       await this.floatFactory.show(docs, {
         autoHide: true,

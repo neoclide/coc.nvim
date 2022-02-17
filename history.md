@@ -2,6 +2,7 @@
 
 - Clear all highlights created by coc.nvim before restart.
 - Support strike through for ansiparse.
+- Support `highlights` for `Documentation` in float window.
 
 # 2022-02-17
 

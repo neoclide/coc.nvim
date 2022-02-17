@@ -4206,6 +4206,7 @@ declare module 'coc.nvim' {
      * Byte offset (0 based) that should be undelined.
      */
     active?: [number, number]
+    highlights?: HighlightItem[]
   }
 
   /**

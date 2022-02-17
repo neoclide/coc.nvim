@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import FloatFactory from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
-import { Documentation } from '../../markdown/index'
+import { Documentation } from '../../types'
 import helper from '../helper'
 
 let nvim: Neovim

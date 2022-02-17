@@ -1,8 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken } from 'vscode-jsonrpc'
-import { FloatConfig } from '../types'
-import { parseDocuments, Documentation } from '../markdown'
 import events from '../events'
+import { parseDocuments } from '../markdown'
+import { FloatConfig, Documentation } from '../types'
 const logger = require('../util/logger')('floating')
 
 export interface PumBounding {

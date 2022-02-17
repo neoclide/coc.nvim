@@ -2,11 +2,11 @@ import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events, { BufEvents } from '../events'
-import { Documentation, parseDocuments } from '../markdown'
+import { parseDocuments } from '../markdown'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
-import { FloatConfig } from '../types'
+import { FloatConfig, Documentation } from '../types'
 const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-float')
 

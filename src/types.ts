@@ -533,6 +533,7 @@ export interface DidChangeTextDocumentParams {
 export interface Documentation {
   filetype: string
   content: string
+  highlights?: HighlightItem[]
   active?: [number, number]
 }
 
