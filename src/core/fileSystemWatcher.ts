@@ -19,7 +19,6 @@ export class FileSystemWatcherManager {
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
   private creating: Set<string> = new Set()
-  private _disposed = false
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
   public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
@@ -73,22 +72,13 @@ export class FileSystemWatcherManager {
     if (this.watchmanPath == null || this.clientsMap.has(root)) return
     try {
       let client = await Watchman.createClient(this.watchmanPath, root, this.channel)
-      if (this._disposed) {
-        client.dispose()
-        return
-      }
-      if (this.clientsMap.has(root)) {
-        this.clientsMap.get(root).dispose()
-      }
+      if (!client) return
       this.clientsMap.set(root, client)
-      if (client) {
-        for (let watcher of FileSystemWatcherManager.watchers) {
-          watcher.listen(client)
-        }
+      for (let watcher of FileSystemWatcherManager.watchers) {
+        watcher.listen(client)
       }
       this._onDidCreateClient.fire(root)
     } catch (e) {
-      logger.error(e)
       if (this.channel) this.channel.appendLine(`Error on create watchman client:` + e.message)
     }
   }
@@ -100,19 +90,19 @@ export class FileSystemWatcherManager {
     ignoreDeleteEvents: boolean): FileSystemWatcher {
     let fileWatcher = new FileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents)
     for (let client of this.clientsMap.values()) {
-      if (client) fileWatcher.listen(client)
+      fileWatcher.listen(client)
     }
     FileSystemWatcherManager.watchers.add(fileWatcher)
     return fileWatcher
   }
 
   public dispose(): void {
-    this._disposed = true
     this._onDidCreateClient.dispose()
     for (let client of this.clientsMap.values()) {
       if (client) client.dispose()
     }
     this.clientsMap.clear()
+    FileSystemWatcherManager.watchers.clear()
     disposeAll(this.disposables)
   }
 }

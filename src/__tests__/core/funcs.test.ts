@@ -13,6 +13,20 @@ beforeAll(async () => {
 })
 
 describe('has()', () => {
+  it('should throw for invalid argument', async () => {
+    let env = {
+      isVim: true,
+      version: '8023956'
+    }
+    let err
+    try {
+      expect(funcs.has(env, '0.5.0')).toBe(true)
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  })
+
   it('should detect version on vim8', async () => {
     let env = {
       isVim: true,
@@ -56,5 +70,25 @@ describe('findUp()', () => {
     }
     let res = await funcs.findUp(nvim, os.homedir(), ['file_not_exists'])
     expect(res).toBeNull()
+  })
+
+  it('should return null when unable find cwd in cwd', async () => {
+    let nvim: any = {
+      call: () => {
+        return ''
+      }
+    }
+    let res = await funcs.findUp(nvim, os.homedir(), ['file_not_exists'])
+    expect(res).toBeNull()
+  })
+})
+
+describe('score()', () => {
+  it('should return score', async () => {
+    expect(funcs.score(undefined, 'untitled:///1', '')).toBe(0)
+    expect(funcs.score({ scheme: '*' }, 'untitled:///1', '')).toBe(3)
+    expect(funcs.score('vim', 'untitled:///1', 'vim')).toBe(10)
+    expect(funcs.score('*', 'untitled:///1', '')).toBe(5)
+    expect(funcs.score('', 'untitled:///1', 'vim')).toBe(0)
   })
 })
