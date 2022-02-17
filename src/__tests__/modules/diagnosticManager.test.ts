@@ -181,8 +181,7 @@ describe('diagnostic manager', () => {
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
       diagnostics[2].tags = [DiagnosticTag.Deprecated]
       let list = manager.getDiagnosticList()
-      expect(list.length).toBe(1)
-      expect(list[0].severity).toBe('Warning')
+      expect(list.length).toBe(3)
       let res = manager.getDiagnostics(doc.uri)['test']
       expect(res.length).toBe(1)
       let ranges = manager.getSortedRanges(doc.uri)
@@ -477,16 +476,14 @@ describe('diagnostic manager', () => {
       }
       let diagnostics = [diagnostic]
       collection.set(doc.uri, diagnostics)
-      await helper.wait(50)
       await nvim.call('cursor', [1, 2])
-      let winid = await helper.waitFloat()
-      await nvim.call('win_gotoid', [winid])
+      await manager.echoMessage(false)
+      let win = await helper.getFloat()
+      await nvim.call('win_gotoid', [win.id])
       await nvim.command('normal! $')
       let res = await nvim.eval('synIDattr(synID(line("."),col("."),1),"name")')
       expect(res).toMatch(/javascript/i)
-      let line = await nvim.call('getline', ['$']) as string
-      expect(line).toMatch('example.com')
-      await nvim.command('wincmd w')
+      await nvim.command('q')
     })
 
     it('should show floating window on cursor hold', async () => {

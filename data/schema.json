@@ -766,11 +766,6 @@
       "description": "When to enable show messages of diagnostics.",
       "enum": ["always", "jump", "never"]
     },
-    "diagnostic.highlightOffset": {
-      "type": "number",
-      "description": "Offset number of buffer.addHighlight, neovim only.",
-      "default": 1000
-    },
     "diagnostic.signPriority": {
       "type": "number",
       "description": "Priority of diagnostic signs, default to 10",
@@ -832,7 +827,7 @@
     "diagnostic.showUnused": {
       "type": "boolean",
       "default": true,
-      "description": "Show diagnostics with unused tag."
+      "description": "Show diagnostics with unused tag, affects highlight, sign, virtual text, message"
     },
     "diagnostic.showDeprecated": {
       "type": "boolean",
@@ -913,7 +908,7 @@
     },
     "refactor.saveToFile": {
       "type": "boolean",
-      "description": "Save to file when write refactor buffer with ':noa wa' command, set to false if you want save buffer by yourself.",
+      "description": "Save changed buffer to file when write refactor buffer with ':noa wa' command.",
       "default": true
     },
     "refactor.beforeContext": {

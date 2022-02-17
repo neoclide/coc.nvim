@@ -2,6 +2,7 @@
 
 - Change workspace configuration throw error when workspace folder can't be
   resolved.
+- Remove configuration `diagnostic.highlightOffset`.
 
 # 2022-02-15
 

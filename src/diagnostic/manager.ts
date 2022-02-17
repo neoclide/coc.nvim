@@ -71,17 +71,11 @@ export class DiagnosticManager implements Disposable {
             })
           }
         })
-      let collections = this.getCollections(doc.uri)
-      if (this.enabled && collections.length) {
-        let diagnostics = this.getDiagnostics(doc.uri)
-        // ignore empty diagnostics on first redraw.
-        let obj: { [collection: string]: Diagnostic[] } = {}
-        for (let [key, diags] of Object.entries(diagnostics)) {
-          if (diags.length > 0) obj[key] = diags
-        }
-        if (Object.keys(obj).length !== 0) {
-          void buf.reset(obj)
-        }
+      if (!this.enabled) return
+      let diagnostics = this.getDiagnostics(doc.uri)
+      // ignore empty diagnostics on first time.
+      if (Object.keys(diagnostics).length > 0) {
+        void buf.reset(diagnostics)
       }
       return buf
     })
@@ -122,6 +116,10 @@ export class DiagnosticManager implements Disposable {
         if (buf.dirty) buf.refreshHighlights()
       }
     }, null, this.disposables)
+    events.on('BufWinEnter', (bufnr: number) => {
+      let buf = this.buffers.getItem(bufnr)
+      if (buf && buf.dirty) buf.refreshHighlights()
+    }, null, this.disposables)
     this.clearTimers = (bufnr?: number) => {
       if (messageTimer) clearTimeout(messageTimer)
       messageTimer = undefined
@@ -131,10 +129,6 @@ export class DiagnosticManager implements Disposable {
         if (buf) buf.refreshHighlights.clear()
       }
     }
-    events.on('BufWinEnter', (bufnr: number) => {
-      let buf = this.buffers.getItem(bufnr)
-      if (buf && buf.dirty) buf.refreshHighlights()
-    }, null, this.disposables)
     events.on('InsertEnter', this.clearTimers, this, this.disposables)
     let errorItems = workspace.configurations.errorItems
     this.setConfigurationErrors(errorItems)
@@ -375,22 +369,16 @@ export class DiagnosticManager implements Disposable {
   }
 
   /**
-   * All diagnostics of current workspace
+   * Get all sorted diagnostics of current workspace
    */
   public getDiagnosticList(): DiagnosticItem[] {
     let res: DiagnosticItem[] = []
-    const { level, showUnused, showDeprecated } = this.config
+    const { level } = this.config
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
         let file = URI.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
           if (diagnostic.severity && diagnostic.severity > level) {
-            continue
-          }
-          if (!showUnused && diagnostic.tags?.includes(DiagnosticTag.Unnecessary)) {
-            continue
-          }
-          if (!showDeprecated && diagnostic.tags?.includes(DiagnosticTag.Deprecated)) {
             continue
           }
           let { start, end } = diagnostic.range
@@ -555,7 +543,9 @@ export class DiagnosticManager implements Disposable {
   }
 
   public dispose(): void {
-    this.clearTimers()
+    if (this.clearTimers) {
+      this.clearTimers()
+    }
     this.buffers.dispose()
     for (let collection of this.collections) {
       collection.dispose()

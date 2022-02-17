@@ -484,7 +484,7 @@ describe('list sources', () => {
       await helper.wait(50)
       let buf = await nvim.buffer
       let lines = await buf.lines
-      expect(lines.length).toBe(1)
+      expect(lines.length).toBeGreaterThan(0)
     })
   })
 

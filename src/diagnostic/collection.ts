@@ -1,7 +1,8 @@
-import { Diagnostic, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import workspace from '../workspace'
 const logger = require('../util/logger')('diagnostic-collection')
+const knownTags = [DiagnosticTag.Deprecated, DiagnosticTag.Unnecessary]
 
 export default class DiagnosticCollection {
   private diagnosticsMap: Map<string, Diagnostic[]> = new Map()
@@ -43,6 +44,9 @@ export default class DiagnosticCollection {
         o.range = o.range || Range.create(0, 0, 0, 0)
         o.message = o.message || ''
         o.source = o.source || this.name
+        if (Array.isArray(o.tags) && o.tags.some(t => knownTags.includes(t))) {
+          o.severity = DiagnosticSeverity.Hint
+        }
       })
       this.diagnosticsMap.set(uri, diagnostics)
       this._onDidDiagnosticsChange.fire(uri)

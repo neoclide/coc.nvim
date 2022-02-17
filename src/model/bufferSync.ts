@@ -15,7 +15,7 @@ export interface SyncItem extends Disposable {
 export default class BufferSync<T extends SyncItem> {
   private disposables: Disposable[] = []
   private itemsMap: Map<number, { uri: string, item: T }> = new Map()
-  constructor(private _create: (doc: Document) => T | undefined, private workspace: IWorkspace) {
+  constructor(private _create: (doc: Document) => T | undefined, workspace: IWorkspace) {
     let { disposables } = this
     for (let doc of workspace.documents) {
       this.create(doc)
