@@ -1,6 +1,7 @@
 # 2022-02-18
 
 - Clear all highlights created by coc.nvim before restart.
+- Support strike through for ansiparse.
 
 # 2022-02-17
 
