@@ -82,6 +82,7 @@ function! s:start() dict
     if has('nvim-0.5.0')
       " could use env option
       let opts['env'] = {
+          \ 'COC_NVIM': '1',
           \ 'NODE_NO_WARNINGS': '1',
           \ 'COC_CHANNEL_TIMEOUT': timeout,
           \ 'TMPDIR': tmpdir
@@ -92,6 +93,7 @@ function! s:start() dict
             \ 'TMPDIR': getenv('TMPDIR'),
             \ }
       if exists('*setenv')
+        call setenv('COC_NVIM', '1')
         call setenv('NODE_NO_WARNINGS', '1')
         call setenv('COC_CHANNEL_TIMEOUT', timeout)
         call setenv('TMPDIR', tmpdir)

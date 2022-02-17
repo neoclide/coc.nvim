@@ -1,3 +1,7 @@
+# 2022-02-18
+
+- Clear all highlights created by coc.nvim before restart.
+
 # 2022-02-17
 
 - Change workspace configuration throw error when workspace folder can't be
