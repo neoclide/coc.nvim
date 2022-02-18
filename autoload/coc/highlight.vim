@@ -353,7 +353,7 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
               \ 'end_col': a:col_end,
               \ 'hl_group': a:hl_group,
               \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
-              \ 'right_gravity': v:false,
+              \ 'right_gravity': v:true,
               \ 'end_right_gravity': v:false,
               \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
               \ })
