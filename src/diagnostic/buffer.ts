@@ -121,16 +121,15 @@ export class DiagnosticBuffer implements SyncItem {
   public async update(collection: string, diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
     let { diagnosticsMap } = this
     let curr = diagnosticsMap.get(collection) || []
-    if (diagnostics.length == 0 && curr.length == 0) return
+    if (this.dirty === false && diagnostics.length == 0 && curr.length == 0) return
     diagnosticsMap.set(collection, diagnostics)
     // avoid refresh when no change happened between previous refresh
-    if (this.changedTick == this._changedTick && equals(curr, diagnostics)) {
+    if (this._dirty === false && this.changedTick == this._changedTick && equals(curr, diagnostics)) {
       return
     }
-    if (this._dirty) return
     let info = await this.getDiagnosticInfo()
     // avoid highlights on invalid state or buffer hidden.
-    if (!info || info.winid == -1 || this._dirty) {
+    if (!info || info.winid == -1) {
       this._dirty = true
       return
     }
