@@ -124,7 +124,9 @@ export class DiagnosticBuffer implements SyncItem {
     if (this.dirty === false && diagnostics.length == 0 && curr.length == 0) return
     diagnosticsMap.set(collection, diagnostics)
     // avoid refresh when no change happened between previous refresh
-    if (this._dirty === false && this.changedTick == this._changedTick && equals(curr, diagnostics)) {
+    if (this._dirty === false
+      && this.changedTick == this._changedTick
+      && equals(curr, diagnostics)) {
       return
     }
     let info = await this.getDiagnosticInfo()
@@ -139,9 +141,13 @@ export class DiagnosticBuffer implements SyncItem {
       this.refreshHighlights()
       return
     }
-    let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
-    map.set(collection, diagnostics)
-    this.refresh(map, info)
+    if (this._dirty) {
+      this.refresh(this.diagnosticsMap, info)
+    } else {
+      let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
+      map.set(collection, diagnostics)
+      this.refresh(map, info)
+    }
   }
 
   /**
