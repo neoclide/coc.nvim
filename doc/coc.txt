@@ -406,6 +406,29 @@ Built-in configurations:~
 
 	Display diagnostics, default: `true`
 
+"diagnostic.autoRefresh":~
+
+	Enable automatically refresh diagnostics, use
+	|CocAction('diagnosticRefresh')| action to refresh diagnostics when it's
+	disabled.
+
+"diagnostic.refreshOnInsertMode":~
+
+	Refresh diagnostics when in insert mode, default: `false`
+
+"diagnostic.displayByAle":~
+
+	Use ALE for displaying diagnostics. This will disable coc.nvim for
+	displaying diagnostics. Restart to make changes take the effect,
+	default: `false`
+
+"diagnostic.level":~
+
+	Filter diagnostics by severity level (affect both UI and diagnostic
+	list), default: `"hint"`
+
+	Valid options: ["hint", "information", "warning", "error"]
+
 "diagnostic.highlighLimit":~
 
 	Limit count for highlighted diagnostics, too many diagnostic
@@ -419,24 +442,34 @@ Built-in configurations:~
 
 	Default: `4096`
 
-"diagnostic.autoRefresh":~
-
-	Enable automatically refresh diagnostics, use
-	|CocAction('diagnosticRefresh')| action to refresh diagnostics when it's
-	disabled.
-
 "diagnostic.enableSign":~
 
 	Enable signs for diagnostics, default: `true`
 
-"diagnostic.enableMessage":~
+"diagnostic.signLevel":~
 
-	When to enable show messages of diagnostics.
+	Filter diagnostics in sign column, default: `null`.
 
-	Valid options: ["always","jump","never"], always means including
-	cursor hold and after jump to another diagnostic.
+"diagnostic.signPriority":~
 
-	default: `"always"`
+	Priority of diagnostic sign, default to `10`, check |sign-priority|.
+
+"diagnostic.errorSign":~
+
+	Sign of error diagnostics shown in the 'signcolumn', default: `">>"`
+
+"diagnostic.warningSign":~
+
+	Sign of warning diagnostics shown in the 'signcolumn', default: `"⚠"`
+
+"diagnostic.infoSign":~
+
+	Sign of info diagnostics shown in the 'signcolumn', default: `">>"`
+
+"diagnostic.hintSign":~
+
+	Sign of hint diagnostics shown in the 'signcolumn', default: `">>"`
+
 
 "diagnostic.enableHighlightLineNumber":~
 
@@ -453,23 +486,27 @@ Built-in configurations:~
 
 	default: `true`
 
-"diagnostic.level":~
-
-	Filter diagnostics by severity, default: `"hint"`
-
-	Valid options: ["hint", "information", "warning", "error"]
-
 "diagnostic.locationlistLevel":~
 
 	Filter diagnostics in locationlist, default: `null`.
 
-"diagnostic.signLevel":~
+"diagnostic.enableMessage":~
 
-	Filter diagnostics in sign column, default: `null`.
+	When to enable show messages of diagnostics.
+
+	Valid options: ["always","jump","never"], always means including
+	cursor hold and after jump to another diagnostic.
+
+	default: `"always"`
 
 "diagnostic.messageLevel":~
 
 	Filter diagnostic message in float window/popup, default: `null`.
+
+"diagnostic.checkCurrentLine":~
+
+	Show all diagnostics of the current line if none of them are at the
+	current position, default: `false`
 
 "diagnostic.messageDelay":~
 
@@ -478,26 +515,28 @@ Built-in configurations:~
 
 	Default: `200`
 
-"diagnostic.checkCurrentLine":~
-
-	Show all diagnostics of the current line if none of them are at the
-	current position, default: `false`
-
 "diagnostic.messageTarget":~
 
 	Diagnostic message target, default: `"float"`
 
 	Valid options: ["echo", "float"]
 
-"diagnostic.refreshOnInsertMode":~
+"diagnostic.format":~
 
-	Refresh diagnostics when in insert mode, default: `false`
+	Define the diagnostic message format.
+	Available parts: source, code, severity, message
 
-"diagnostic.displayByAle":~
+	Default: `[%source%code] [%severity] %message`
 
-	Use ALE for displaying diagnostics. This will disable coc.nvim for
-	displaying diagnostics. Restart to make changes take the effect,
-	default: `false`
+"diagnostic.floatConfig"~
+
+	Configuration of floating window/popup, see |coc-config-float|.
+
+"diagnostic.filetypeMap":~
+
+	A map between buffer filetype and the filetype assigned to diagnostics
+	in float window. To syntax highlight diagnostics with their parent
+	buffer type use `"default": "bufferType"`, default: `{}`
 
 "diagnostic.virtualText":~
 
@@ -533,51 +572,11 @@ Built-in configurations:~
 	The text that will mark a line end from the diagnostic message,
 	default: `" \\ "`
 
-"diagnostic.highlightOffset":~
-
-	Offset number of buffer.addHighlight, Neovim only, default: `1000`
-
-"diagnostic.signPriority":~
-
-	Priority of diagnostic sign, default to `10`, check |sign-priority|.
-
-"diagnostic.errorSign":~
-
-	Sign of error diagnostics shown in the 'signcolumn', default: `">>"`
-
-"diagnostic.warningSign":~
-
-	Sign of warning diagnostics shown in the 'signcolumn', default: `"⚠"`
-
-"diagnostic.infoSign":~
-
-	Sign of info diagnostics shown in the 'signcolumn', default: `">>"`
-
-"diagnostic.hintSign":~
-
-	Sign of hint diagnostics shown in the 'signcolumn', default: `">>"`
-
-"diagnostic.floatConfig"~
-
-	Configuration of floating window/popup, see |coc-config-float|.
-
-"diagnostic.filetypeMap":~
-
-	A map between buffer filetype and the filetype assigned to diagnostics.
-	To syntax highlight diagnostics with their parent buffer type use
-	`"default": "bufferType"`, default: `{}`
-
-"diagnostic.format":~
-
-	Define the diagnostic format.
-	Available parts: source, code, severity, message
-
-	Default: `[%source%code] [%severity] %message`
-
 "diagnostic.separateRelatedInformationAsDiagnostics":~
 
 	Separate related information as diagnostics, default: `false`
 
+							*coc-config-signature*
 "signature.enable":~
 
 	Enable signature help when trigger character typed. Requires service
@@ -612,8 +611,8 @@ Built-in configurations:~
 							*coc-config-refactor*
 "refactor.saveToFile":~
 
-	Save changes to file when write refactor buffer with |:write| command,
-	set to false if you want save buffer by yourself.
+	Save changed buffer to file when write refactor buffer with ':noa wa'
+	command. set to false if you want save buffer by yourself.
 
 "refactor.openCommand":~
 

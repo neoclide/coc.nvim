@@ -77,6 +77,7 @@ function! coc#rpc#restart()
   if empty(s:client)
     call coc#rpc#start_server()
   else
+    call coc#highlight#clear_all()
     call coc#float#close_all()
     call coc#rpc#request('detach', [])
     sleep 100m

@@ -450,7 +450,7 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
   endif
 endfunction
 
-" Copmpose hlGroups with foreground and background colors.
+" Compose hlGroups with foreground and background colors.
 function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   let hlGroup = 'Fg'.a:fgGroup.'Bg'.a:bgGroup
   if a:fgGroup ==# a:bgGroup
@@ -635,6 +635,18 @@ function! s:prop_type_hlgroup(type) abort
     return strpart(a:type, 12)
   endif
   return get(prop_type_get(a:type), 'highlight', '')
+endfunction
+
+function! coc#highlight#clear_all() abort
+  for src_id in values(s:namespace_map)
+    for bufnr in map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
+      if has('nvim')
+        call nvim_buf_clear_namespace(bufnr, src_id, 0, -1)
+      else
+        call coc#api#call('buf_clear_namespace', [bufnr, src_id, 0, -1])
+      endif
+    endfor
+  endfor
 endfunction
 
 function! coc#highlight#create_namespace(key) abort

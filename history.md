@@ -1,7 +1,14 @@
+# 2022-02-18
+
+- Clear all highlights created by coc.nvim before restart.
+- Support strike through for ansiparse.
+- Support `highlights` for `Documentation` in float window.
+
 # 2022-02-17
 
 - Change workspace configuration throw error when workspace folder can't be
   resolved.
+- Remove configuration `diagnostic.highlightOffset`.
 
 # 2022-02-15
 
