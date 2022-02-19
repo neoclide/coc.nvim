@@ -283,6 +283,7 @@ export default class Configurations {
         if (!isUser && !localConfig) {
           if (!global.__TEST__) console.error(`Unable to locate workspace configuration ${resource ? 'for ' + resource : ''}, workspace folder not resovled.`)
           logger.error(`Unable to locate workspace configuration:`, resource, Error().stack)
+          return
         }
         let uri: URI = isUser ? URI.parse(this.userConfigFile) : localConfig
         if (this._proxy && !global.__TEST__) {
