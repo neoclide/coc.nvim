@@ -63,7 +63,7 @@ export default class Autocmds implements Disposable {
     let schemes = this.contentProvider.schemes
     let cmds: string[] = []
     for (let scheme of schemes) {
-      cmds.push(`autocmd BufReadCmd,FileReadCmd,SourceCmd ${scheme}:/* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<amatch>')])`)
+      cmds.push(`autocmd BufReadCmd,FileReadCmd,SourceCmd ${scheme}:/* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<afile>')])`)
     }
     for (let [id, autocmd] of this.autocmds.entries()) {
       let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : ''
