@@ -2553,7 +2553,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Get workspaceEdit of current word, language server used when possible,
 	extract word from current buffer as fallback.
 
-"getWorkspaceSymbols" {input}			*CocAction(getWorkspaceSymbols)*
+"getWorkspaceSymbols" {input}			*CocAction('getWorkspaceSymbols')*
 
 	Get workspace symbols from {input}.
 
