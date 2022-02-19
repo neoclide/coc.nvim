@@ -9,7 +9,7 @@ import { TextDocument } from "vscode-languageserver-textdocument"
 import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
-import { FileSystemWatcher as FileWatcher } from '../types'
+import { ConfigurationChangeEvent, FileSystemWatcher as FileWatcher } from '../types'
 import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, OutputChannel, TextDocumentWillSaveEvent, Thenable, MessageItem } from '../types'
 import { resolveRoot, sameFile } from '../util/fs'
@@ -2939,24 +2939,11 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
   ): void {
     let { section } = data.registerOptions
     let disposable = workspace.onDidChangeConfiguration((event) => {
-      if (typeof section == 'string' && !event.affectsConfiguration(section)) {
-        return
-      }
-      if (Array.isArray(section) && !section.some(v => event.affectsConfiguration(v))) {
-        return
-      }
-      if (section != undefined) {
-        this.onDidChangeConfiguration(section)
-      }
+      this.onDidChangeConfiguration(data.registerOptions.section, event)
     })
     this._listeners.set(data.id, disposable)
-    if (Is.string(section) && section.endsWith('.settings')) {
-      let settings = this.getConfiguredSettings(section as string)
-      if (!settings || Is.emptyObject(settings)) return
-    }
     if (section != undefined) {
-      // Avoid server bug
-      this.onDidChangeConfiguration(section)
+      this.onDidChangeConfiguration(section, undefined)
     }
   }
 
@@ -2975,7 +2962,7 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
     this._listeners.clear()
   }
 
-  private onDidChangeConfiguration(configurationSection: string | string[]): void {
+  private onDidChangeConfiguration(configurationSection: string | string[] | undefined, event: ConfigurationChangeEvent | undefined): void {
     let isConfigured = typeof configurationSection === 'string' && configurationSection.startsWith('languageserver.')
     let sections: string[] | undefined
     if (Is.string(configurationSection)) {
@@ -2983,8 +2970,12 @@ class ConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegis
     } else {
       sections = configurationSection
     }
+    if (sections != null && event != null) {
+      let affected = sections.some((section) => event.affectsConfiguration(section))
+      if (!affected) return
+    }
     let didChangeConfiguration = (sections: string[] | undefined): void => {
-      if (sections === undefined) {
+      if (sections == null) {
         this._client.sendNotification(DidChangeConfigurationNotification.type, { settings: null })
         return
       }
