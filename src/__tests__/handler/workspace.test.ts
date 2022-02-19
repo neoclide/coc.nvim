@@ -26,7 +26,7 @@ afterEach(async () => {
 
 describe('Workspace hanlder', () => {
   describe('methods', () => {
-    it('should opne log', async () => {
+    it('should open log', async () => {
       await handler.openLog()
       let bufname = await nvim.call('bufname', ['%']) as string
       expect(bufname.endsWith('coc-nvim.log')).toBe(true)
