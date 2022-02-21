@@ -63,6 +63,8 @@ describe('list session', () => {
       labels = ['a', 'b', 'c']
       let list = new SimpleList(nvim)
       list.defaultAction = 'foo'
+      let len = list.actions.length
+      list.actions.splice(0, len)
       disposables.push(manager.registerList(list))
       await manager.start(['--normal', 'simple'])
       let ui = manager.session.ui

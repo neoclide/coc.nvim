@@ -288,6 +288,7 @@ export default class ListSession {
     let action: ListAction
     if (config.defaultAction) action = actions.find(o => o.name == config.defaultAction)
     if (!action) action = actions.find(o => o.name == defaultAction)
+    if (!action) action = actions[0]
     if (!action) throw new Error(`default action "${defaultAction}" not found`)
     return action
   }
