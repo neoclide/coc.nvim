@@ -4629,7 +4629,7 @@ declare module 'coc.nvim' {
      * @return A promise that resolves to the returned value of the given command. `undefined` when
      * the command handler function doesn't return anything.
      */
-    export function executeCommand(command: string, ...rest: any[]): Promise<any>
+    export function executeCommand<T>(command: string, ...rest: any[]): Promise<T>
 
     /**
      * Open uri with external tool, use `open` on mac, use `xdg-open` on linux.
@@ -4824,6 +4824,146 @@ declare module 'coc.nvim' {
     export function on(event: EmptyEvents, handler: () => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
 
     export function on(event: AllEvents[], handler: (...args: unknown[]) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+  }
+  // }}
+
+  // file events {{
+  /**
+   * An event that is fired after files are created.
+   */
+  export interface FileCreateEvent {
+
+    /**
+     * The files that got created.
+     */
+    readonly files: ReadonlyArray<Uri>
+  }
+
+  /**
+   * An event that is fired when files are going to be created.
+   *
+   * To make modifications to the workspace before the files are created,
+   * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+   * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+   */
+  export interface FileWillCreateEvent {
+
+    /**
+     * The files that are going to be created.
+     */
+    readonly files: ReadonlyArray<Uri>
+
+    /**
+     * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+     *
+     * *Note:* This function can only be called during event dispatch and not
+     * in an asynchronous manner:
+     *
+     * ```ts
+     * workspace.onWillCreateFiles(event => {
+     *     // async, will *throw* an error
+     *     setTimeout(() => event.waitUntil(promise));
+     *
+     *     // sync, OK
+     *     event.waitUntil(promise);
+     * })
+     * ```
+     *
+     * @param thenable A thenable that delays saving.
+     */
+    waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+  }
+
+  /**
+   * An event that is fired when files are going to be deleted.
+   *
+   * To make modifications to the workspace before the files are deleted,
+   * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+   * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+   */
+  export interface FileWillDeleteEvent {
+
+    /**
+     * The files that are going to be deleted.
+     */
+    readonly files: ReadonlyArray<Uri>
+
+    /**
+     * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+     *
+     * *Note:* This function can only be called during event dispatch and not
+     * in an asynchronous manner:
+     *
+     * ```ts
+     * workspace.onWillCreateFiles(event => {
+     *     // async, will *throw* an error
+     *     setTimeout(() => event.waitUntil(promise));
+     *
+     *     // sync, OK
+     *     event.waitUntil(promise);
+     * })
+     * ```
+     *
+     * @param thenable A thenable that delays saving.
+     */
+    waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+  }
+
+  /**
+   * An event that is fired after files are deleted.
+   */
+  export interface FileDeleteEvent {
+
+    /**
+     * The files that got deleted.
+     */
+    readonly files: ReadonlyArray<Uri>
+  }
+
+  /**
+   * An event that is fired after files are renamed.
+   */
+  export interface FileRenameEvent {
+
+    /**
+     * The files that got renamed.
+     */
+    readonly files: ReadonlyArray<{ oldUri: Uri, newUri: Uri }>
+  }
+
+  /**
+   * An event that is fired when files are going to be renamed.
+   *
+   * To make modifications to the workspace before the files are renamed,
+   * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+   * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+   */
+  export interface FileWillRenameEvent {
+
+    /**
+     * The files that are going to be renamed.
+     */
+    readonly files: ReadonlyArray<{ oldUri: Uri, newUri: Uri }>
+
+    /**
+     * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+     *
+     * *Note:* This function can only be called during event dispatch and not
+     * in an asynchronous manner:
+     *
+     * ```ts
+     * workspace.onWillCreateFiles(event => {
+     * 	// async, will *throw* an error
+     * 	setTimeout(() => event.waitUntil(promise));
+     *
+     * 	// sync, OK
+     * 	event.waitUntil(promise);
+     * })
+     * ```
+     *
+     * @param thenable A thenable that delays saving.
+     */
+    waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
   }
   // }}
 
@@ -6536,6 +6676,12 @@ declare module 'coc.nvim' {
      * by `workspace.createTerminal`
      */
     export const onDidOpenTerminal: Event<Terminal>
+    export const onDidCreateFiles: Event<FileCreateEvent>
+    export const onDidRenameFiles: Event<FileRenameEvent>
+    export const onDidDeleteFiles: Event<FileDeleteEvent>
+    export const onWillCreateFiles: Event<FileWillCreateEvent>
+    export const onWillRenameFiles: Event<FileWillRenameEvent>
+    export const onWillDeleteFiles: Event<FileWillDeleteEvent>
     /**
      * Event fired on terminal close, only fired with Terminal that created by
      * `workspace.createTerminal`

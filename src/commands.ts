@@ -54,7 +54,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workbench.action.reloadWindow',
       execute: async () => {
-        await nvim.command('edit')
+        nvim.command('CocRestart', true)
       }
     }, true)
     this.register({
@@ -362,7 +362,7 @@ export class CommandManager implements Disposable {
    * @return A promise that resolves to the returned value of the given command. `undefined` when
    * the command handler function doesn't return anything.
    */
-  public executeCommand(command: string, ...rest: any[]): Promise<any> {
+  public executeCommand<T>(command: string, ...rest: any[]): Promise<T> {
     let cmd = this.commands.get(command)
     if (!cmd) throw new Error(`Command: ${command} not found`)
     return Promise.resolve(cmd.execute.apply(cmd, rest))
