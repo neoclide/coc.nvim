@@ -367,7 +367,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let height = workspace.env.lines
     spans.forEach(o => {
       o[0] = Math.max(0, Math.floor(o[0] - height * 1.5))
-      o[1] = Math.min(lineCount, Math.ceil(o[1] + height * 1.5))
+      o[1] = Math.min(lineCount, Math.ceil(o[1] + height * 1.5), o[0] + height * 2)
     })
     for (let [start, end] of Regions.mergeSpans(spans)) {
       if (regions.has(start, end)) continue
@@ -396,10 +396,12 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   private async requestRangeHighlights(token: CancellationToken): Promise<RangeHighlights | null> {
     let { nvim, doc } = this
+    // workspace.env.lines
     let legend = languages.getLegend(doc.textDocument, true)
     let region = await nvim.call('coc#window#visible_range', [this.bufnr]) as [number, number]
     if (!region || token.isCancellationRequested) return null
-    let range = Range.create(region[0] - 1, 0, region[1], 0)
+    const endLine = Math.min(region[0] + workspace.env.lines * 2, region[1])
+    let range = Range.create(region[0] - 1, 0, endLine, 0)
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
     if (!res || token.isCancellationRequested) return null
     let highlights = await this.getTokenRanges(res.data, legend, token)
