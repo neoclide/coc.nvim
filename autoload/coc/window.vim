@@ -41,7 +41,7 @@ function! coc#window#bufnrs() abort
   else
     let winids = map(getwininfo(), 'v:val["winid"]')
   endif
-  return map(winids, 'winbufnr(v:val)')
+  return uniq(map(winids, 'winbufnr(v:val)'))
 endfunction
 
 " Make sure window exists

@@ -35,6 +35,21 @@ export interface CurrentState {
   mode: string
 }
 
+export interface BufferOption {
+  eol: number
+  size: number
+  winid: number
+  lines: null | string[]
+  variables: { [key: string]: any }
+  bufname: string
+  fullpath: string
+  buftype: string
+  filetype: string
+  iskeyword: string
+  changedtick: number
+  previewwindow: number
+}
+
 export interface HandlerDelegate {
   checkProvier: (id: ProviderName, document: TextDocument) => void
   withRequestToken: <T> (name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean) => Promise<T>

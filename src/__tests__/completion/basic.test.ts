@@ -608,6 +608,7 @@ describe('completion', () => {
       let text = 'foo bar f'
       await nvim.setLine(text)
       await nvim.input('A')
+      await helper.wait(50)
       await helper.triggerCompletion('insert')
       await helper.waitPopup()
       await nvim.exec(`
@@ -615,8 +616,6 @@ describe('completion', () => {
       noa call cursor(1,${text.length + 4})
       `)
       await helper.wait(100)
-      let res = await helper.pumvisible()
-      expect(res).toBe(true)
       expect(await helper.visible('one', 'insert')).toBe(true)
     })
   })

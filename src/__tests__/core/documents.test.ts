@@ -43,9 +43,9 @@ describe('documents', () => {
   it('should attach events on vim', async () => {
     await documents.attach(nvim, workspace.env)
     let env = Object.assign(workspace.env, { isVim: true })
-    await documents.detach()
+    documents.detach()
     await documents.attach(nvim, env)
-    await documents.detach()
+    documents.detach()
     await events.fire('CursorMoved', [1, [1, 1]])
   })
 })

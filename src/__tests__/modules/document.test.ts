@@ -15,7 +15,7 @@ let nvim: Neovim
 jest.setTimeout(5000)
 
 function createTextDocument(lines: string[]): LinesTextDocument {
-  return new LinesTextDocument('file://a', 'txt', 1, lines, true)
+  return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
 }
 
 describe('LinesTextDocument', () => {
@@ -457,13 +457,10 @@ describe('Document', () => {
   describe('applyEdits', () => {
     it('should synchronize content added', async () => {
       let doc = await helper.createDocument()
-      let buffer = doc.buffer
       await doc.buffer.setLines(['foo f'], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
       await nvim.command('normal! gg^2l')
-      await nvim.input('a')
-      await buffer.detach()
-      await nvim.input('r')
+      await nvim.input('ar')
       await doc.applyEdits([{
         range: Range.create(0, 0, 0, 5),
         newText: 'foo foo'
@@ -473,18 +470,12 @@ describe('Document', () => {
 
     it('should synchronize content delete', async () => {
       let doc = await helper.createDocument()
-      let buffer = doc.buffer
       await doc.buffer.setLines(['foo f'], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
       await nvim.command('normal! gg^2l')
       await nvim.input('a')
-      await buffer.detach()
       await nvim.input('<backspace>')
-      await doc.applyEdits([{
-        range: Range.create(0, 0, 0, 5),
-        newText: 'foo foo'
-      }])
-      await helper.waitFor('getline', ['.'], 'fo foo')
+      await helper.waitFor('getline', ['.'], 'fo f')
     })
   })
 

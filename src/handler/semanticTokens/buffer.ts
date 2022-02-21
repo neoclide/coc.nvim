@@ -149,7 +149,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   public get enabled(): boolean {
     if (!this.config.filetypes.length) return false
     if (!workspace.env.updateHighlight) return false
-    if (!this.doc.attached) return false
+    if (!this.doc?.attached) return false
     if (!this.hasLegend) return false
     if (!this.config.filetypes.includes('*') && !this.config.filetypes.includes(this.doc.filetype)) return false
     return this.hasProvider
@@ -270,10 +270,10 @@ export default class SemanticTokensBuffer implements SyncItem {
   public async doHighlight(forceFull = false): Promise<void> {
     this.cancel()
     if (!this.enabled || events.pumvisible) return
-    let hidden = await this.nvim.eval(`get(get(getbufinfo(${this.bufnr}),0,{}),'hidden',0)`)
-    if (hidden == 1) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
+    let hidden = await this.nvim.eval(`get(get(getbufinfo(${this.bufnr}),0,{}),'hidden',0)`)
+    if (hidden == 1 || token.isCancellationRequested) return
     if (this.shouldRangeHighlight) {
       let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
       await this.doRangeHighlight(rangeTokenSource.token)

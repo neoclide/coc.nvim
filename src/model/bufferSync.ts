@@ -26,6 +26,7 @@ export default class BufferSync<T extends SyncItem> {
     }, null, disposables)
     workspace.onDidChangeTextDocument(e => {
       process.nextTick(() => {
+        if (!workspace.getDocument(e.bufnr)) return
         this.onChange(e)
       })
     }, null, disposables)
@@ -57,7 +58,7 @@ export default class BufferSync<T extends SyncItem> {
   }
 
   private create(doc: Document): void {
-    if (!doc || doc.isCommandLine || !doc.attached) return
+    if (!doc) return
     let o = this.itemsMap.get(doc.bufnr)
     if (o) o.item.dispose()
     let item = this._create(doc)
@@ -74,8 +75,8 @@ export default class BufferSync<T extends SyncItem> {
   private delete(bufnr: number): void {
     let o = this.itemsMap.get(bufnr)
     if (o) {
-      this.itemsMap.delete(bufnr)
       o.item.dispose()
+      this.itemsMap.delete(bufnr)
     }
   }
 
@@ -91,6 +92,7 @@ export default class BufferSync<T extends SyncItem> {
     for (let o of this.itemsMap.values()) {
       o.item.dispose()
     }
+    this._create = undefined
     this.itemsMap.clear()
   }
 }

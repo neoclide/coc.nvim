@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 21
+let s:vim_api_version = 22
 let s:activate = ""
 let s:quit = ""
 
@@ -232,7 +232,7 @@ function! s:Call(method, args)
   endtry
 endfunction
 
-function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
+function! coc#util#get_bufoptions(bufnr) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   let buftype = getbufvar(a:bufnr, '&buftype')
@@ -243,23 +243,23 @@ function! coc#util#get_bufoptions(bufnr, maxFileSize) abort
   elseif !empty(bufname)
     let size = getfsize(bufname)
   endif
-  let lines = []
-  if getbufvar(a:bufnr, 'coc_enabled', 1) && (buftype == '' || buftype == 'acwrite') && size < a:maxFileSize
+  let lines = v:null
+  if getbufvar(a:bufnr, 'coc_enabled', 1) && (buftype == '' || buftype == 'acwrite') && size < get(g:, 'coc_max_filesize', 2097152)
     let lines = getbufline(a:bufnr, 1, '$')
   endif
   return {
-        \ 'bufname': bufname,
         \ 'size': size,
-        \ 'buftype': buftype,
+        \ 'lines': lines,
         \ 'winid': winid,
+        \ 'bufname': bufname,
+        \ 'buftype': buftype,
         \ 'previewwindow': v:false,
-        \ 'variables': s:variables(a:bufnr),
-        \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'eol': getbufvar(a:bufnr, '&eol'),
+        \ 'variables': s:variables(a:bufnr),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
-        \ 'lines': lines,
+        \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \}
 endfunction
 

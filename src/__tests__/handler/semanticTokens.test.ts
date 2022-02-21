@@ -409,6 +409,7 @@ describe('semanticTokens', () => {
       let buf = await createRustBuffer()
       let item = highlighter.getItem(buf.id)
       await item.waitRefresh()
+      await helper.wait(30)
       expect(t).toBe(1)
     })
 
@@ -438,7 +439,7 @@ describe('semanticTokens', () => {
       expect(doc.filetype).toBe('vim')
       await nvim.call('setline', [2, (new Array(200).fill(''))])
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
-      await helper.wait(30)
+      await helper.wait(50)
       disposables.push(registerRangeProvider('vim', range => {
         r = range
         return []

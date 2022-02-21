@@ -32,7 +32,7 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
-const APIVERSION = 21
+const APIVERSION = 22
 const logger = require('./util/logger')('workspace')
 const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',
@@ -102,7 +102,7 @@ export class Workspace implements IWorkspace {
     this.onWillCreateFiles = this.files.onWillCreateFiles
     this.onWillRenameFiles = this.files.onWillRenameFiles
     this.onWillDeleteFiles = this.files.onWillDeleteFiles
-    let watchmanPath = global.hasOwnProperty('__TEST__') ? null : this.getWatchmanPath()
+    let watchmanPath = global.__TEST__ ? null : this.getWatchmanPath()
     this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, watchmanPath)
   }
 
@@ -497,8 +497,8 @@ export class Workspace implements IWorkspace {
     await this.locations.openResource(uri)
   }
 
-  public async detach(): Promise<void> {
-    await this.documentsManager.detach()
+  public detach(): void {
+    this.documentsManager.detach()
   }
 
   public reset(): void {

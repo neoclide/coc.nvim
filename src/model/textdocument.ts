@@ -90,6 +90,7 @@ export class LinesTextDocument implements TextDocument {
     public readonly languageId: string,
     public readonly version: number,
     public readonly lines: ReadonlyArray<string>,
+    public readonly bufnr: number,
     private eol: boolean
   ) {
 

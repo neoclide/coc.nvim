@@ -137,7 +137,7 @@ export class Helper extends EventEmitter {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
     await this.nvim.command('silent! %bwipeout!')
-    await this.wait(30)
+    await this.wait(50)
     completion.reset()
     workspace.reset()
   }

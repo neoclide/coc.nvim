@@ -159,7 +159,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should respect ignored folders', async () => {
-      updateConfiguration('workspace.ignoredFolders', ['$HOME/foo'], [])
+      updateConfiguration('workspace.ignoredFolders', ['$HOME/foo', '$HOME'], [])
       let file = path.join(os.homedir(), '.vim/bar')
       workspaceFolder.addRootPattern('vim', ['.vim'])
       await nvim.command(`edit ${file}`)
