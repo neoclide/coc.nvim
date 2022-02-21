@@ -52,7 +52,7 @@ export interface PreviewOptions {
 
 export default abstract class BasicList implements IList, Disposable {
   public name: string
-  public defaultAction = 'open'
+  public defaultAction: string
   public readonly actions: ListAction[] = []
   public options: ListArgument[] = []
   protected disposables: Disposable[] = []

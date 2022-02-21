@@ -5,7 +5,7 @@ import { URI } from 'vscode-uri'
 import diagnosticManager from '../../diagnostic/manager'
 import events from '../../events'
 import languages from '../../languages'
-import BasicList, { toVimFiletype, PreviewOptions } from '../../list/basic'
+import BasicList, { PreviewOptions, toVimFiletype } from '../../list/basic'
 import { formatListItems, formatPath, UnformattedListItem } from '../../list/formatting'
 import manager from '../../list/manager'
 import Document from '../../model/document'
@@ -115,6 +115,41 @@ describe('formatting', () => {
         label: 'foo\tbar\tgo'
       }])
     })
+  })
+})
+
+describe('configuration', () => {
+  beforeEach(() => {
+    let list = new OptionList(nvim)
+    manager.registerList(list)
+  })
+
+  it('should change default options', async () => {
+    helper.updateConfiguration('list.source.option.defaultOptions', ['--normal'])
+    await manager.start(['option'])
+    await manager.session.ui.ready
+    const mode = manager.prompt.mode
+    expect(mode).toBe('normal')
+  })
+
+  it('should change default action', async () => {
+    helper.updateConfiguration('list.source.option.defaultAction', 'split')
+    await manager.start(['option'])
+    await manager.session.ui.ready
+    const action = manager.session.defaultAction
+    expect(action.name).toBe('split')
+    await manager.session.doAction()
+    let tab = await nvim.tabpage
+    let wins = await tab.windows
+    expect(wins.length).toBeGreaterThan(1)
+  })
+
+  it('should change default arguments', async () => {
+    helper.updateConfiguration('list.source.option.defaultArgs', ['-word'])
+    await manager.start(['option'])
+    await manager.session.ui.ready
+    const context = manager.session.context
+    expect(context.args).toEqual(['-word'])
   })
 })
 

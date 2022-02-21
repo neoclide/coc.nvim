@@ -163,13 +163,13 @@ export default class ListSession {
   }
 
   public async chooseAction(): Promise<void> {
-    let { nvim } = this
-    let { actions, defaultAction } = this.list
+    let { nvim, defaultAction } = this
+    let { actions } = this.list
     let names: string[] = actions.map(o => o.name)
-    let idx = names.indexOf(defaultAction)
+    let idx = names.indexOf(defaultAction.name)
     if (idx != -1) {
       names.splice(idx, 1)
-      names.unshift(defaultAction)
+      names.unshift(defaultAction.name)
     }
     let shortcuts: Set<string> = new Set()
     let choices: string[] = []
@@ -210,11 +210,15 @@ export default class ListSession {
 
   public async doAction(name?: string): Promise<void> {
     let { list } = this
-    name = name || list.defaultAction
-    let action = list.actions.find(o => o.name == name)
-    if (!action) {
-      window.showMessage(`Action ${name} not found`, 'error')
-      return
+    let action: ListAction
+    if (name != null) {
+      action = list.actions.find(o => o.name == name)
+      if (!action) {
+        window.showMessage(`Action ${name} not found`, 'error')
+        return
+      }
+    } else {
+      action = this.defaultAction
     }
     let items: ListItem[]
     if (name == 'preview') {
@@ -278,9 +282,12 @@ export default class ListSession {
     return this.ui.length
   }
 
-  private get defaultAction(): ListAction {
-    let { defaultAction, actions } = this.list
-    let action = actions.find(o => o.name == defaultAction)
+  public get defaultAction(): ListAction {
+    let { defaultAction, actions, name } = this.list
+    let config = workspace.getConfiguration(`list.source.${name}`)
+    let action: ListAction
+    if (config.defaultAction) action = actions.find(o => o.name == config.defaultAction)
+    if (!action) action = actions.find(o => o.name == defaultAction)
     if (!action) throw new Error(`default action "${defaultAction}" not found`)
     return action
   }

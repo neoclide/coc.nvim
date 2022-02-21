@@ -408,7 +408,7 @@ export class ListManager implements Disposable {
     extensions.addSchemeProperty(`list.source.${name}.defaultAction`, {
       type: 'string',
       default: null,
-      description: `Default default action of "${name}" list.`
+      description: `Default action of "${name}" list.`
     })
     extensions.addSchemeProperty(`list.source.${name}.defaultOptions`, {
       type: 'array',
