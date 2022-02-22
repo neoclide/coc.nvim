@@ -5,10 +5,10 @@ import { Disposable, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-p
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration/index'
 import WorkspaceFolderController from '../../core/workspaceFolder'
-import workspace from '../../workspace'
-import { disposeAll } from '../../util'
-import helper from '../helper'
 import { PatternType } from '../../types'
+import { disposeAll } from '../../util'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 let workspaceFolder: WorkspaceFolderController
 let configurations: Configurations
@@ -46,12 +46,65 @@ afterAll(async () => {
 })
 
 describe('WorkspaceFolderController', () => {
+  describe('asRelativePath()', () => {
+    function assertAsRelativePath(input: string, expected: string, includeWorkspace?: boolean) {
+      const actual = workspaceFolder.getRelativePath(input, includeWorkspace)
+      expect(actual).toBe(expected)
+    }
+
+    it('should get relative path', async () => {
+      workspaceFolder.addWorkspaceFolder(`/Coding/Applications/NewsWoWBot`, false)
+      assertAsRelativePath('/Coding/Applications/NewsWoWBot/bernd/das/brot', 'bernd/das/brot')
+      assertAsRelativePath('/Apps/DartPubCache/hosted/pub.dartlang.org/convert-2.0.1/lib/src/hex.dart',
+        '/Apps/DartPubCache/hosted/pub.dartlang.org/convert-2.0.1/lib/src/hex.dart')
+      assertAsRelativePath('', '')
+      assertAsRelativePath('/foo/bar', '/foo/bar')
+      assertAsRelativePath('in/out', 'in/out')
+    })
+
+    it('should asRelativePath, same paths, #11402', async () => {
+      const root = '/home/aeschli/workspaces/samples/docker'
+      const input = '/home/aeschli/workspaces/samples/docker'
+      workspaceFolder.addWorkspaceFolder(root, false)
+      assertAsRelativePath(input, input)
+      const input2 = '/home/aeschli/workspaces/samples/docker/a.file'
+      assertAsRelativePath(input2, 'a.file')
+    })
+
+    it('should asRelativePath, not workspaceFolder', async () => {
+      expect(workspace.getRelativePath('')).toBe('')
+      assertAsRelativePath('/foo/bar', '/foo/bar')
+    })
+
+    it('should asRelativePath, multiple folders', () => {
+      workspaceFolder.addWorkspaceFolder(`/Coding/One`, false)
+      workspaceFolder.addWorkspaceFolder(`/Coding/Two`, false)
+      assertAsRelativePath('/Coding/One/file.txt', 'One/file.txt')
+      assertAsRelativePath('/Coding/Two/files/out.txt', 'Two/files/out.txt')
+      assertAsRelativePath('/Coding/Two2/files/out.txt', '/Coding/Two2/files/out.txt')
+    })
+
+    it('should slightly inconsistent behaviour of asRelativePath and getWorkspaceFolder, #31553', async () => {
+      workspaceFolder.addWorkspaceFolder(`/Coding/One`, false)
+      workspaceFolder.addWorkspaceFolder(`/Coding/Two`, false)
+
+      assertAsRelativePath('/Coding/One/file.txt', 'One/file.txt')
+      assertAsRelativePath('/Coding/One/file.txt', 'One/file.txt', true)
+      assertAsRelativePath('/Coding/One/file.txt', 'file.txt', false)
+      assertAsRelativePath('/Coding/Two/files/out.txt', 'Two/files/out.txt')
+      assertAsRelativePath('/Coding/Two/files/out.txt', 'Two/files/out.txt', true)
+      assertAsRelativePath('/Coding/Two/files/out.txt', 'files/out.txt', false)
+      assertAsRelativePath('/Coding/Two2/files/out.txt', '/Coding/Two2/files/out.txt')
+      assertAsRelativePath('/Coding/Two2/files/out.txt', '/Coding/Two2/files/out.txt', true)
+      assertAsRelativePath('/Coding/Two2/files/out.txt', '/Coding/Two2/files/out.txt', false)
+    })
+  })
+
   describe('setWorkspaceFolders()', () => {
     it('should set valid folders', async () => {
       workspaceFolder.setWorkspaceFolders([os.tmpdir(), '/a/not_exists'])
       let folders = workspaceFolder.workspaceFolders
-      expect(folders.length).toBe(1)
-      expect(URI.parse(folders[0].uri).fsPath).toBe(os.tmpdir())
+      expect(folders.length).toBe(2)
     })
   })
 

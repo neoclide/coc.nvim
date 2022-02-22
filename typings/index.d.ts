@@ -6728,6 +6728,20 @@ declare module 'coc.nvim' {
     export const onDidRuntimePathChange: Event<ReadonlyArray<string>>
 
     /**
+     * Returns a path that is relative to the workspace folder or folders.
+     *
+     * When there are no {@link workspace.workspaceFolders workspace folders} or when the path
+     * is not contained in them, the input is returned.
+     *
+     * @param pathOrUri A path or uri. When a uri is given its {@link Uri.fsPath fsPath} is used.
+     * @param includeWorkspaceFolder When `true` and when the given path is contained inside a
+     * workspace folder the name of the workspace is prepended. Defaults to `true` when there are
+     * multiple workspace folders and `false` otherwise.
+     * @return A path relative to the root or the input.
+     */
+    export function asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string
+
+    /**
      * Opens a document. Will return early if this document is already open. Otherwise
      * the document is loaded and the {@link workspace.onDidOpenTextDocument didOpen}-event fires.
      *

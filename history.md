@@ -1,6 +1,7 @@
 # 2022-02-23
 
 - Add workspace.openTextDocument()
+- Add workspace.getRelativePath()
 
 # 2022-02-18
 

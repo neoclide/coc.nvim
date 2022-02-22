@@ -1,5 +1,5 @@
-import path from 'path'
 import fs from 'fs'
+import path from 'path'
 import { Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
@@ -9,7 +9,7 @@ import { distinct } from '../util/array'
 import { isParentFolder, resolveRoot } from '../util/fs'
 
 function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
-  if (!fsPath || !path.isAbsolute(fsPath) || !fs.existsSync(fsPath)) return undefined
+  if (!fsPath || !path.isAbsolute(fsPath)) return undefined
   return {
     name: path.basename(fsPath),
     uri: URI.file(fsPath).toString()
@@ -40,6 +40,30 @@ export default class WorkspaceFolderController {
     let fsPath = uri.fsPath
     let folder = folders.find(f => isParentFolder(f, fsPath, true))
     return toWorkspaceFolder(folder)
+  }
+
+  public getRelativePath(pathOrUri: string | URI, includeWorkspace?: boolean): string {
+    let resource: URI | undefined
+    let p = ''
+    if (typeof pathOrUri === 'string') {
+      resource = URI.file(pathOrUri)
+      p = pathOrUri
+    } else if (typeof pathOrUri !== 'undefined') {
+      resource = pathOrUri
+      p = pathOrUri.fsPath
+    }
+    if (!resource) return p
+    const folder = this.getWorkspaceFolder(resource)
+    if (!folder) return p
+    if (typeof includeWorkspace === 'undefined' && this._workspaceFolders) {
+      includeWorkspace = this._workspaceFolders.length > 1
+    }
+    let result = path.relative(URI.parse(folder.uri).fsPath, resource.fsPath)
+    result = result == '' ? resource.fsPath : result
+    if (includeWorkspace && folder.name) {
+      result = `${folder.name}/${result}`
+    }
+    return result!
   }
 
   public get workspaceFolders(): ReadonlyArray<WorkspaceFolder> {

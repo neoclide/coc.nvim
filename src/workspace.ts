@@ -501,6 +501,10 @@ export class Workspace implements IWorkspace {
     return this.files.openTextDocument(uri)
   }
 
+  public getRelativePath(pathOrUri: string | URI, includeWorkspace?: boolean): string {
+    return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace)
+  }
+
   public detach(): void {
     this.documentsManager.detach()
   }
