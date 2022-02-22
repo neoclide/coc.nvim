@@ -13,7 +13,7 @@ import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
 import Files from './core/files'
-import { FileSystemWatcherManager, FileSystemWatcher } from './core/fileSystemWatcher'
+import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps from './core/keymaps'
 import Locations from './core/locations'
@@ -462,14 +462,14 @@ export class Workspace implements IWorkspace {
    * Load uri as document.
    */
   public loadFile(uri: string): Promise<Document> {
-    return this.files.loadFile(uri)
+    return this.files.loadResource(uri)
   }
 
   /**
    * Load the files that not loaded
    */
-  public async loadFiles(uris: string[]): Promise<void> {
-    return this.files.loadFiles(uris)
+  public async loadFiles(uris: string[]): Promise<(Document | undefined)[]> {
+    return this.files.loadResources(uris)
   }
 
   /**

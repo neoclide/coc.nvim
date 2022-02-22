@@ -136,10 +136,11 @@ export class Helper extends EventEmitter {
     } else if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
-    await this.nvim.command('silent! %bwipeout!')
-    await this.wait(50)
     completion.reset()
     workspace.reset()
+    await this.nvim.command('silent! %bwipeout!')
+    await this.wait(30)
+    await workspace.document
   }
 
   public async pumvisible(): Promise<boolean> {

@@ -89,11 +89,15 @@ export class LinesTextDocument implements TextDocument {
     public readonly uri: string,
     public readonly languageId: string,
     public readonly version: number,
-    public readonly lines: ReadonlyArray<string>,
+    public lines: ReadonlyArray<string>,
     public readonly bufnr: number,
     private eol: boolean
   ) {
 
+  }
+
+  public reset(): void {
+    this.lines = []
   }
 
   private get _content(): string {

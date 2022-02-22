@@ -23,10 +23,8 @@ export class SnippetManager {
       }
     }, null, this.disposables)
 
-    workspace.onDidCloseTextDocument(textDocument => {
-      let doc = workspace.getDocument(textDocument.uri)
-      if (!doc) return
-      let session = this.getSession(doc.bufnr)
+    workspace.onDidCloseTextDocument(ev => {
+      let session = this.getSession(ev.bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
 

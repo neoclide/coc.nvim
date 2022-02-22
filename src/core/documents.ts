@@ -27,7 +27,7 @@ export default class Documents implements Disposable {
   private nvim: Neovim
   private maxFileSize: number
   private disposables: Disposable[] = []
-  private creating: Set<number> = new Set()
+  private creating: Map<number, Promise<Document | undefined>> = new Map()
   private buffers: Map<number, Document> = new Map()
   private _terminals: Map<number, TerminalModel> = new Map()
   private resolves: ((doc: Document) => void)[] = []
@@ -62,26 +62,30 @@ export default class Documents implements Disposable {
     let preferences = this.configurations.getConfiguration('coc.preferences')
     let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
     this.maxFileSize = bytes.parse(maxFileSize)
-    await nvim.setVar('coc_max_filesize', this.maxFileSize)
+    nvim.setVar('coc_max_filesize', this.maxFileSize, true)
     let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]'),bufnr('%'),win_getid()]`) as [number[], number, number]
     this._bufnr = bufnr
     await Promise.all(bufs.map(bufnr => this.createDocument(bufnr)))
     events.on('DirChanged', cwd => {
       this._cwd = cwd
     }, null, this.disposables)
-    const checkCurrentBuffer = async (bufnr: number) => {
-      this._bufnr = bufnr
-      await this.checkBuffer(bufnr)
-    }
+    // check unloaded buffers
+    events.on('CursorHold', async () => {
+      let bufs = await this.nvim.eval(`map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]')`) as number[]
+      for (let bufnr of this.buffers.keys()) {
+        if (!bufs.includes(bufnr)) this.onBufUnload(bufnr)
+      }
+    }, null, this.disposables)
     const onInsertLeave = (bufnr: number) => {
       let doc = this.getDocument(bufnr)
-      if (!doc?.attached) return
-      doc._forceSync()
+      if (doc?.attached) doc._forceSync()
     }
-    events.on('InsertLeave', onInsertLeave, null, this.disposables)
+    const checkCurrentBuffer = (bufnr: number) => {
+      this._bufnr = bufnr
+    }
     events.on('CursorMoved', checkCurrentBuffer, null, this.disposables)
     events.on('CursorMovedI', checkCurrentBuffer, null, this.disposables)
-    events.on('TextChanged', this.checkBuffer, this, this.disposables)
+    events.on('InsertLeave', onInsertLeave, null, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
     events.on('TermClose', this.onBufUnload, this, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
@@ -92,18 +96,14 @@ export default class Documents implements Disposable {
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
     void events.fire('BufEnter', [bufnr])
     void events.fire('BufWinEnter', [bufnr, winid])
-    events.on('BufWinEnter', async (bufnr, _winid) => {
-      this._bufnr = bufnr
-      await this.createDocument(bufnr)
-    }, null, this.disposables)
     if (this._env.isVim) {
       const onChange = (bufnr: number) => {
         let doc = this.buffers.get(bufnr)
-        if (doc && doc.attached) doc.fetchContent()
+        if (doc?.attached) doc.fetchContent()
       }
       events.on('TextChangedP', (bufnr, info: InsertChange) => {
         let doc = this.buffers.get(bufnr)
-        if (doc && doc.attached) doc.changeLine(info.lnum, info.line, info.changedtick)
+        if (doc?.attached) doc.changeLine(info.lnum, info.line, info.changedtick)
       }, null, this.disposables)
       events.on('TextChangedI', onChange, null, this.disposables)
       events.on('TextChanged', onChange, null, this.disposables)
@@ -285,48 +285,64 @@ export default class Documents implements Disposable {
     return obj
   }
 
-  private async createDocument(bufnr: number): Promise<void> {
-    if (this.creating.has(bufnr)) return
-    this.creating.add(bufnr)
-    let opts = await this.nvim.call('coc#util#get_bufoptions', [bufnr])
-    if (!opts) {
-      this.creating.delete(bufnr)
-      return
-    }
-    this._createDocument(bufnr, opts)
-    this.creating.delete(bufnr)
-  }
-
-  private onBufCreate(bufnr: number): void {
+  /**
+   * Create document by bufnr.
+   */
+  public async createDocument(bufnr: number): Promise<Document | undefined> {
     let doc = this.buffers.get(bufnr)
-    if (doc) this.onBufUnload(bufnr)
+    if (doc) return doc
+    if (this.creating.has(bufnr)) return await this.creating.get(bufnr)
+    let promise = new Promise<Document | undefined>(resolve => {
+      this.nvim.call('coc#util#get_bufoptions', [bufnr]).then(opts => {
+        if (!this.creating.has(bufnr)) {
+          resolve(undefined)
+          return
+        }
+        this.creating.delete(bufnr)
+        if (!opts) {
+          resolve(undefined)
+          return
+        }
+        doc = this._createDocument(bufnr, opts)
+        resolve(doc)
+      }, () => {
+        this.creating.delete(bufnr)
+        resolve(undefined)
+      })
+    })
+    this.creating.set(bufnr, promise)
+    return await promise
   }
 
-  private _createDocument(bufnr: number, opts: BufferOption | null): Document | undefined {
-    if (this.buffers.has(bufnr)) return
+  private async onBufCreate(bufnr: number): Promise<void> {
+    this.onBufUnload(bufnr)
+    await this.createDocument(bufnr)
+  }
+
+  private _createDocument(bufnr: number, opts: BufferOption): Document | undefined {
+    if (this.buffers.has(bufnr)) return this.buffers.get(bufnr)
     let buffer = this.nvim.createBuffer(bufnr)
-    let doc = new Document(buffer, this._env)
-    let created = doc.init(this.nvim, opts)
-    if (!created) return
+    let doc = new Document(buffer, this._env, this.nvim, opts)
     this.buffers.set(bufnr, doc)
     if (doc.attached) {
-      doc.onDocumentDetach(() => {
-        this.onBufUnload(bufnr)
-      })
-      let configfile = this.configurations.resolveFolderConfigution(doc.uri)
-      if (configfile) this.configurations.setFolderConfiguration(doc.uri)
-      let root = this.workspaceFolder.resolveRoot(doc, this._cwd, this._initialized, this.expand.bind(this))
-      if (root && this._bufnr == bufnr) this._root = root
+      if (doc.schema == 'file') {
+        let configfile = this.configurations.resolveFolderConfigution(doc.uri)
+        let root = this.workspaceFolder.resolveRoot(doc, this._cwd, this._initialized, this.expand.bind(this))
+        if (bufnr == this._bufnr) {
+          if (configfile) this.configurations.setFolderConfiguration(doc.uri)
+          if (root) this._root = root
+        }
+      }
       this._onDidOpenTextDocument.fire(doc.textDocument)
       doc.onDocumentChange(e => this._onDidChangeDocument.fire(e))
     }
     if (this.resolves.length) {
-      this.resolves.forEach(fn => {
-        fn(doc)
-      })
-      this.resolves = []
+      while (this.resolves.length) {
+        const fn = this.resolves.pop()
+        if (fn) fn(doc)
+      }
     }
-    logger.debug('buffer created', bufnr, doc.uri)
+    logger.debug('buffer created', bufnr, doc.attached, doc.uri)
     return doc
   }
 
@@ -357,16 +373,9 @@ export default class Documents implements Disposable {
     }
   }
 
-  private async checkBuffer(bufnr: number): Promise<void> {
-    if (!this._attached || !bufnr) return
-    let doc = this.getDocument(bufnr)
-    if (!doc) await this.createDocument(bufnr)
-  }
-
   private onBufWritePost(bufnr: number): void {
     let doc = this.buffers.get(bufnr)
-    if (!doc) return
-    this._onDidSaveDocument.fire(doc.textDocument)
+    if (doc) this._onDidSaveDocument.fire(doc.textDocument)
   }
 
   private async onBufWritePre(bufnr: number): Promise<void> {

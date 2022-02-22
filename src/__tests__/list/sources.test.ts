@@ -305,9 +305,7 @@ describe('BasicList', () => {
     it('should preview sketch buffer', async () => {
       await nvim.command('new')
       await nvim.setLine('foo')
-      let buffer = await nvim.buffer
-      await helper.wait(30)
-      let doc = workspace.getDocument(buffer.id)
+      let doc = await workspace.document
       expect(doc.uri).toMatch('untitled')
       let list = new OptionList(nvim)
       listItems.push({
@@ -316,9 +314,9 @@ describe('BasicList', () => {
       })
       disposables.push(manager.registerList(list))
       await manager.start(['option'])
-      await helper.wait(100)
+      await manager.session.ui.ready
+      await helper.wait(30)
       await manager.doAction('preview')
-      await helper.wait(100)
       await nvim.command('wincmd p')
       let win = await nvim.window
       let isPreview = await win.getVar('previewwindow')

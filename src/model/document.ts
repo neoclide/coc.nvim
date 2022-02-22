@@ -40,8 +40,8 @@ export default class Document {
   public buftype: string
   public isIgnored = false
   public chars: Chars
-  private nvim: Neovim
   private eol = true
+  private _disposed = false
   private _attached = false
   private _previewwindow = false
   private _winid = -1
@@ -56,17 +56,21 @@ export default class Document {
   private lines: ReadonlyArray<string> = []
   public fireContentChanges: Function & { clear(): void }
   public fetchContent: Function & { clear(): void }
-  private _onDocumentDetach = new Emitter<void>()
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
-  public readonly onDocumentDetach: Event<void> = this._onDocumentDetach.event
-  constructor(public readonly buffer: Buffer, private env: Env) {
+  constructor(
+    public readonly buffer: Buffer,
+    private env: Env,
+    private nvim: Neovim,
+    opts: BufferOption
+  ) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
     }, global.__TEST__ ? 20 : 150)
     this.fetchContent = debounce(() => {
       void this._fetchContent()
     }, 100)
+    this.init(opts)
   }
 
   /**
@@ -195,9 +199,7 @@ export default class Document {
   /**
    * Initialize document model.
    */
-  public init(nvim: Neovim, opts: BufferOption | null): boolean {
-    this.nvim = nvim
-    if (opts == null) return false
+  private init(opts: BufferOption): void {
     let buftype = this.buftype = opts.buftype
     this._previewwindow = !!opts.previewwindow
     this._winid = opts.winid
@@ -213,17 +215,15 @@ export default class Document {
     this._filetype = this.convertFiletype(opts.filetype)
     this.setIskeyword(opts.iskeyword)
     this.createTextDocument(1, this.lines)
-    return true
   }
 
   private attach(): void {
     if (this.env.isVim) return
     let lines = this.lines
     this.buffer.attach(true).then(res => {
-      if (!res) this._onDocumentDetach.fire()
+      if (!res) this.detach()
     }, _e => {
-      lines = []
-      this._onDocumentDetach.fire()
+      this.detach()
     })
     this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
       if (buf.id !== this.bufnr || !this._attached || tick == null) return
@@ -234,9 +234,8 @@ export default class Document {
         this.fireContentChanges()
       }
     }, this.disposables)
-    this.buffer.listen('detach', async buf => {
-      lines = []
-      this._onDocumentDetach.fire(buf.id)
+    this.buffer.listen('detach', async () => {
+      this.detach()
     }, this.disposables)
   }
 
@@ -673,19 +672,18 @@ export default class Document {
 
   /**
    * Detach document.
-   *
-   * @internal
    */
   public detach(): void {
-    this._attached = false
+    if (this._disposed) return
     disposeAll(this.disposables)
+    this.textDocument.reset()
+    this._disposed = true
+    this._attached = false
     this.lines = []
-    this._textDocument = undefined
     this._words = []
     this.fetchContent.clear()
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
-    this._onDocumentDetach.dispose()
   }
 
   /**

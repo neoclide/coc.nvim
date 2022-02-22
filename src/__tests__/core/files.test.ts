@@ -339,7 +339,7 @@ describe('deleteFile()', () => {
 })
 
 describe('loadFile()', () => {
-  it('should loadFile', async () => {
+  it('should single loadFile', async () => {
     let doc = await helper.createDocument()
     let newFile = URI.file(path.join(__dirname, 'abc')).toString()
     let document = await workspace.loadFile(newFile)
@@ -347,35 +347,17 @@ describe('loadFile()', () => {
     expect(document.uri.endsWith('abc')).toBe(true)
     expect(bufnr).toBe(doc.bufnr)
   })
-
-  it('should throw error when loadFile failed', async () => {
-    await helper.createDocument()
-    let err
-    try {
-      await workspace.loadFile('output:///')
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
-  })
 })
 
 describe('loadFiles', () => {
   it('should loadFiles', async () => {
     let files = ['a', 'b', 'c'].map(key => URI.file(path.join(__dirname, key)).toString())
-    await workspace.loadFiles(files)
-    for (let file of files) {
-      let uri = URI.file(file).toString()
-      let doc = workspace.getDocument(uri)
-      expect(doc).toBeDefined()
-    }
+    let docs = await workspace.loadFiles(files)
+    let uris = docs.map(o => o.uri)
+    expect(uris).toEqual(files)
   })
 
   it('should load empty files array', async () => {
     await workspace.loadFiles([])
-  })
-
-  it('should load files already exists', async () => {
-
   })
 })

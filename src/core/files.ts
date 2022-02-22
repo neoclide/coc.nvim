@@ -43,52 +43,34 @@ export default class Files {
   /**
    * Load uri as document.
    */
-  public async loadFile(uri: string): Promise<Document> {
+  public loadResource(uri: string): Promise<Document> {
     let doc = this.documents.getDocument(uri)
-    if (doc) return doc
-    let { nvim } = this
+    if (doc) return Promise.resolve(doc)
     let filepath = uri.startsWith('file') ? URI.parse(uri).fsPath : uri
-    nvim.call('coc#util#open_files', [[filepath]], true)
-    return await new Promise<Document>((resolve, reject) => {
-      let disposable = this.documents.onDidOpenTextDocument(textDocument => {
-        let fsPath = URI.parse(textDocument.uri).fsPath
-        if (textDocument.uri == uri || fsPath == filepath) {
-          clearTimeout(timer)
-          disposable.dispose()
-          let doc = this.documents.getDocument(uri)
+    return new Promise<Document>((resolve, reject) => {
+      this.nvim.call('coc#util#open_files', [[filepath]]).then(res => {
+        return this.documents.createDocument(res[0]).then(doc => {
           resolve(doc)
-        }
+        })
+      }, e => {
+        reject(e)
       })
-      let timer = setTimeout(() => {
-        disposable.dispose()
-        reject(new Error(`Create document ${uri} timeout after 1s.`))
-      }, 1000)
     })
   }
 
   /**
    * Load the files that not loaded
    */
-  public async loadFiles(uris: string[]): Promise<void> {
+  public async loadResources(uris: string[]): Promise<(Document | undefined)[]> {
     let { documents } = this
-    uris = uris.filter(uri => documents.getDocument(uri) == null)
-    if (!uris.length) return
-    let bufnrs = await this.nvim.call('coc#util#open_files', [uris.map(u => URI.parse(u).fsPath)]) as number[]
-    let create = bufnrs.filter(bufnr => documents.getDocument(bufnr) == null)
-    if (!create.length) return
-    return new Promise((resolve, reject) => {
-      let timer = setTimeout(() => {
-        disposable.dispose()
-        reject(new Error(`Create document timeout after 2s.`))
-      }, 2000)
-      let disposable = documents.onDidOpenTextDocument(() => {
-        if (uris.every(uri => documents.getDocument(uri) != null)) {
-          clearTimeout(timer)
-          disposable.dispose()
-          resolve()
-        }
-      })
+    let files = uris.map(uri => {
+      let u = URI.parse(uri)
+      return u.scheme == 'file' ? u.fsPath : uri
     })
+    let bufnrs = await this.nvim.call('coc#util#open_files', [files]) as number[]
+    return await Promise.all(bufnrs.map(bufnr => {
+      return documents.createDocument(bufnr)
+    }))
   }
 
   public async renameCurrent(): Promise<void> {
@@ -171,7 +153,7 @@ export default class Files {
           fs.mkdirpSync(path.dirname(filepath))
         }
         fs.writeFileSync(filepath, '', 'utf8')
-        await this.loadFile(uri)
+        await this.loadResource(uri)
       }
     }
   }
@@ -290,7 +272,7 @@ export default class Files {
         for (const change of documentChanges) {
           if (TextDocumentEdit.is(change)) {
             let { textDocument, edits } = change
-            let doc = await this.loadFile(textDocument.uri)
+            let doc = await this.loadResource(textDocument.uri)
             if (textDocument.uri == uri) currEdits = edits
             await doc.applyEdits(edits)
             for (let edit of edits) {
@@ -321,7 +303,7 @@ export default class Files {
             let res = await ui.showPrompt(this.nvim, `${unloaded.length} documents on disk would be loaded for change, confirm?`)
             if (!res) return
           }
-          await this.loadFiles(unloaded)
+          await this.loadResources(unloaded)
         }
         for (let uri of Object.keys(changes)) {
           let document = documents.getDocument(uri)

@@ -166,9 +166,9 @@ describe('Document', () => {
     })
 
     it('should get variable form buffer', async () => {
-      await nvim.command('autocmd BufNewFile,BufRead * let b:coc_enabled = 1')
+      await nvim.command('autocmd BufNewFile,BufRead * let b:coc_variable = 1')
       let doc = await helper.createDocument()
-      let val = doc.getVar<number>('enabled')
+      let val = doc.getVar<number>('variable')
       expect(val).toBe(1)
     })
 

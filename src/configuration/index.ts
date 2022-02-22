@@ -282,7 +282,7 @@ export default class Configurations {
         this.changeConfiguration(target, model, target == ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile)
         if (!isUser && !localConfig) {
           if (!global.__TEST__) console.error(`Unable to locate workspace configuration ${resource ? 'for ' + resource : ''}, workspace folder not resovled.`)
-          logger.error(`Unable to locate workspace configuration:`, resource, Error().stack)
+          logger.error(`Unable to locate workspace configuration`, resource)
           return
         }
         let uri: URI = isUser ? URI.parse(this.userConfigFile) : localConfig
@@ -372,7 +372,7 @@ export default class Configurations {
       if (isParentFolder(root, filepath, true)) {
         if (this.workspaceConfigFile != configFile) {
           this.workspaceConfigFile = configFile
-          logger.info(`Change folder configuration from to:`, filepath)
+          logger.info(`Change folder configuration to:`, configFile)
           this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
         }
         break

@@ -29,6 +29,16 @@ describe('documents', () => {
     expect(res.uri).toBe(doc.uri)
   })
 
+  it('should create document', async () => {
+    await helper.createDocument()
+    let bufnrs = await nvim.call('coc#util#open_files', [[__filename]]) as number[]
+    let bufnr = bufnrs[0]
+    let doc = workspace.getDocument(bufnr)
+    expect(doc).toBeUndefined()
+    doc = await documents.createDocument(bufnr)
+    expect(doc).toBeDefined()
+  })
+
   it('should get bufnrs', async () => {
     await workspace.document
     let bufnrs = documents.bufnrs

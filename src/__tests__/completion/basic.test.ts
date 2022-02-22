@@ -361,33 +361,36 @@ describe('completion', () => {
     it('should trigger when completion is not completed', async () => {
       await helper.edit()
       let token: CancellationToken
-      let source: ISource = {
-        name: 'completion',
-        priority: 10,
-        enable: true,
-        sourceType: SourceType.Native,
-        triggerCharacters: ['.'],
-        doComplete: async (opt, cancellationToken): Promise<CompleteResult> => {
-          if (opt.triggerCharacter != '.') {
-            token = cancellationToken
-            return new Promise<CompleteResult>((resolve, reject) => {
-              let timer = setTimeout(() => {
-                resolve({ items: [{ word: 'foo' }] })
-              }, 200)
-              if (cancellationToken.isCancellationRequested) {
-                clearTimeout(timer)
-                reject(new Error('Cancelled'))
-              }
+      let promise = new Promise(resolve => {
+        let source: ISource = {
+          name: 'completion',
+          priority: 10,
+          enable: true,
+          sourceType: SourceType.Native,
+          triggerCharacters: ['.'],
+          doComplete: async (opt, cancellationToken): Promise<CompleteResult> => {
+            if (opt.triggerCharacter != '.') {
+              token = cancellationToken
+              resolve(undefined)
+              return new Promise<CompleteResult>((resolve, reject) => {
+                let timer = setTimeout(() => {
+                  resolve({ items: [{ word: 'foo' }] })
+                }, 200)
+                if (cancellationToken.isCancellationRequested) {
+                  clearTimeout(timer)
+                  reject(new Error('Cancelled'))
+                }
+              })
+            }
+            return Promise.resolve({
+              items: [{ word: 'bar' }]
             })
           }
-          return Promise.resolve({
-            items: [{ word: 'bar' }]
-          })
         }
-      }
-      disposables.push(sources.addSource(source))
+        disposables.push(sources.addSource(source))
+      })
       await nvim.input('if')
-      await helper.wait(50)
+      await promise
       await nvim.input('.')
       await helper.wait(50)
       await helper.visible('bar', 'completion')
