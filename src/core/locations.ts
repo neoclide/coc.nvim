@@ -55,55 +55,6 @@ export default class Locations implements Disposable {
     }
   }
 
-  public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
-    const preferences = this.configurations.getConfiguration('coc.preferences')
-    let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
-    let { nvim } = this
-    let doc = this.documents.getDocument(uri)
-    let bufnr = doc ? doc.bufnr : -1
-    if (bufnr != -1 && jumpCommand == 'edit') {
-      // use buffer command since edit command would reload the buffer
-      nvim.pauseNotification()
-      nvim.command(`silent! normal! m'`, true)
-      nvim.command(`buffer ${bufnr}`, true)
-      nvim.command(`filetype detect`, true)
-      if (position) {
-        let line = doc.getline(position.line)
-        let col = byteLength(line.slice(0, position.character)) + 1
-        nvim.call('cursor', [position.line + 1, col], true)
-      }
-      await nvim.resumeNotification(true)
-    } else {
-      let { fsPath, scheme } = URI.parse(uri)
-      let pos = position == null ? null : [position.line, position.character]
-      if (scheme == 'file') {
-        let bufname = fixDriver(path.normalize(fsPath))
-        await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
-      } else {
-        if (os.platform() == 'win32') {
-          uri = uri.replace(/\/?/, '?')
-        }
-        await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])
-      }
-    }
-  }
-
-  /**
-   * Open resource by uri
-   */
-  public async openResource(uri: string): Promise<void> {
-    let { nvim, contentProvider } = this
-    let u = URI.parse(uri)
-    if (u.scheme !== 'file' && !contentProvider.schemes.includes(u.scheme)) {
-      await nvim.call('coc#util#open_url', uri)
-      return
-    }
-    let wildignore = await nvim.getOption('wildignore')
-    await nvim.setOption('wildignore', '')
-    await this.jumpTo(uri)
-    await nvim.setOption('wildignore', wildignore)
-  }
-
   public dispose(): void {
     disposeAll(this.disposables)
   }

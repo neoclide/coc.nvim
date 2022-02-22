@@ -361,3 +361,35 @@ describe('loadFiles', () => {
     await workspace.loadFiles([])
   })
 })
+
+describe('openTextDocument()', () => {
+  it('should open document already exists', async () => {
+    let doc = await helper.createDocument('a')
+    await nvim.command('enew')
+    await workspace.openTextDocument(URI.parse(doc.uri))
+    let curr = await workspace.document
+    expect(curr.uri).toBe(doc.uri)
+  })
+
+  it('should throw when file not exists', async () => {
+    let err
+    try {
+      await workspace.openTextDocument('/a/b/c')
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  })
+
+  it('should open untitled document', async () => {
+    let doc = await workspace.openTextDocument(URI.parse(`untitled:///a/b.js`))
+    expect(doc.uri).toBe('file:///a/b.js')
+  })
+
+  it('should load file that exists', async () => {
+    let doc = await workspace.openTextDocument(URI.file(__filename))
+    expect(URI.parse(doc.uri).fsPath).toBe(__filename)
+    let curr = await workspace.document
+    expect(curr.uri).toBe(doc.uri)
+  })
+})

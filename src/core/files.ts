@@ -1,14 +1,16 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
+import os from 'os'
 import path from 'path'
-import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Document from '../model/document'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { wait } from '../util'
-import { isFile, isParentFolder, renameAsync, statAsync } from '../util/fs'
+import { fixDriver, isFile, isParentFolder, renameAsync, statAsync } from '../util/fs'
 import { getChangedFromEdits } from '../util/position'
+import { byteLength } from '../util/string'
 import Documents from './documents'
 import * as ui from './ui'
 const logger = require('../util/logger')('core-files')
@@ -38,6 +40,78 @@ export default class Files {
   public attach(nvim: Neovim, env: Env): void {
     this.nvim = nvim
     this.env = env
+  }
+
+  public async openTextDocument(uri: URI | string): Promise<Document> {
+    uri = typeof uri === 'string' ? URI.file(uri) : uri
+    let doc = this.documents.getDocument(uri.toString())
+    if (doc) {
+      await this.jumpTo(uri.toString(), null, 'drop')
+      return doc
+    }
+    const scheme = uri.scheme
+    if (scheme == 'file') {
+      if (!fs.existsSync(uri.fsPath)) throw new Error(`${uri.fsPath} not exists.`)
+      fs.accessSync(uri.fsPath, fs.constants.R_OK)
+    }
+    if (scheme == 'untitled') {
+      await this.nvim.command(`edit ${uri.path}`)
+      doc = await this.documents.document
+      await this.jumpTo(doc.uri)
+      return doc
+    }
+    doc = await this.loadResource(uri.toString())
+    await this.jumpTo(doc.uri)
+    return doc
+  }
+
+  public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
+    const preferences = this.configurations.getConfiguration('coc.preferences')
+    let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
+    let { nvim } = this
+    let doc = this.documents.getDocument(uri)
+    let bufnr = doc ? doc.bufnr : -1
+    if (bufnr != -1 && jumpCommand == 'edit') {
+      // use buffer command since edit command would reload the buffer
+      nvim.pauseNotification()
+      nvim.command(`silent! normal! m'`, true)
+      nvim.command(`buffer ${bufnr}`, true)
+      nvim.command(`filetype detect`, true)
+      if (position) {
+        let line = doc.getline(position.line)
+        let col = byteLength(line.slice(0, position.character)) + 1
+        nvim.call('cursor', [position.line + 1, col], true)
+      }
+      await nvim.resumeNotification(true)
+    } else {
+      let { fsPath, scheme } = URI.parse(uri)
+      let pos = position == null ? null : [position.line, position.character]
+      if (scheme == 'file') {
+        let bufname = fixDriver(path.normalize(fsPath))
+        await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
+      } else {
+        if (os.platform() == 'win32') {
+          uri = uri.replace(/\/?/, '?')
+        }
+        await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])
+      }
+    }
+  }
+
+  /**
+   * Open resource by uri
+   */
+  public async openResource(uri: string): Promise<void> {
+    let { nvim } = this
+    let u = URI.parse(uri)
+    if (/^https?/.test(u.scheme)) {
+      await nvim.call('coc#util#open_url', uri)
+      return
+    }
+    let wildignore = await nvim.getOption('wildignore')
+    await nvim.setOption('wildignore', '')
+    await this.jumpTo(uri)
+    await nvim.setOption('wildignore', wildignore)
   }
 
   /**
@@ -380,5 +454,4 @@ export default class Files {
     }
     return Array.from(uris)
   }
-
 }

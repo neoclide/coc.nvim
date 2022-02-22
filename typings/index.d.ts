@@ -6650,7 +6650,7 @@ declare module 'coc.nvim' {
      */
     export const channelNames: ReadonlyArray<string>
     /**
-     * Current document array.
+     * Loaded documents that attached.
      */
     export const documents: ReadonlyArray<Document>
     /**
@@ -6726,6 +6726,36 @@ declare module 'coc.nvim' {
      * Fired when vim's runtimepath change detected.
      */
     export const onDidRuntimePathChange: Event<ReadonlyArray<string>>
+
+    /**
+     * Opens a document. Will return early if this document is already open. Otherwise
+     * the document is loaded and the {@link workspace.onDidOpenTextDocument didOpen}-event fires.
+     *
+     * The document is denoted by an {@link Uri}. Depending on the {@link Uri.scheme scheme} the
+     * following rules apply:
+     * * `file`-scheme: Open a file on disk (`openTextDocument(Uri.file(path))`). Will be rejected if the file
+     * does not exist or cannot be loaded.
+     * * `untitled`-scheme: Open a blank untitled file with associated path (`openTextDocument(Uri.file(path).with({ scheme: 'untitled' }))`).
+     * The language will be derived from the file name.
+     * * For all other schemes contributed {@link TextDocumentContentProvider text document content providers} and
+     * {@link FileSystemProvider file system providers} are consulted.
+     *
+     * *Note* that the lifecycle of the returned document is owned by the editor and not by the extension. That means an
+     * {@linkcode workspace.onDidCloseTextDocument onDidClose}-event can occur at any time after opening it.
+     *
+     * @param uri Identifies the resource to open.
+     * @return A promise that resolves to a {@link Document document}.
+     */
+    export function openTextDocument(uri: Uri): Thenable<Document>
+
+    /**
+     * A short-hand for `openTextDocument(Uri.file(fileName))`.
+     *
+     * @see {@link openTextDocument}
+     * @param fileName A name of a file on disk.
+     * @return A promise that resolves to a {@link Document document}.
+     */
+    export function openTextDocument(fileName: string): Thenable<Document>
 
     /**
      * Create new namespace id by name.

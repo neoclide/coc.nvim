@@ -434,7 +434,7 @@ export class Workspace implements IWorkspace {
   }
 
   public jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
-    return this.locations.jumpTo(uri, position, openCommand)
+    return this.files.jumpTo(uri, position, openCommand)
   }
 
   /**
@@ -494,7 +494,11 @@ export class Workspace implements IWorkspace {
    * Open resource by uri
    */
   public async openResource(uri: string): Promise<void> {
-    await this.locations.openResource(uri)
+    await this.files.openResource(uri)
+  }
+
+  public openTextDocument(uri: URI | string): Promise<Document> {
+    return this.files.openTextDocument(uri)
   }
 
   public detach(): void {
