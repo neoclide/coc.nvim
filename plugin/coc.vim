@@ -243,7 +243,7 @@ function! s:Disable() abort
 endfunction
 
 function! s:Autocmd(...) abort
-  if !g:coc_service_initialized
+  if !get(g:, 'coc_workspace_initialized', 0)
     return
   endif
   call coc#rpc#notify('CocAutocmd', a:000)
@@ -260,7 +260,7 @@ function! s:HandleCharInsert(char, bufnr) abort
 endfunction
 
 function! s:SyncAutocmd(...)
-  if !g:coc_service_initialized
+  if !get(g:, 'coc_workspace_initialized', 0)
     return
   endif
   call coc#rpc#request('CocAutocmd', a:000)

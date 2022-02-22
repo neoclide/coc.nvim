@@ -180,6 +180,7 @@ export default class Plugin extends EventEmitter {
     try {
       await extensions.init()
       await workspace.init(window)
+      nvim.setVar('coc_workspace_initialized', true, true)
       snippetManager.init()
       completion.init()
       diagnosticManager.init()
