@@ -26,7 +26,6 @@ import DB from './model/db'
 import type Document from './model/document'
 import Mru from './model/mru'
 import Task from './model/task'
-import TerminalModel, { TerminalOptions } from './model/terminal'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
@@ -38,7 +37,7 @@ const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',
   'menuPick', 'openLocalConfig', 'showPrompt', 'createStatusBarItem', 'createOutputChannel',
   'showOutputChannel', 'requestInput', 'echoLines', 'getCursorPosition', 'moveTo',
-  'getOffset', 'getSelectedRange', 'selectRange'
+  'getOffset', 'getSelectedRange', 'selectRange', 'createTerminal',
 ]
 
 export class Workspace implements IWorkspace {
@@ -49,8 +48,6 @@ export class Workspace implements IWorkspace {
   public readonly onDidSaveTextDocument: Event<LinesTextDocument>
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
   public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent>
-  public readonly onDidCloseTerminal: Event<TerminalModel>
-  public readonly onDidOpenTerminal: Event<TerminalModel>
   public readonly onDidRuntimePathChange: Event<string[]>
   public readonly onDidCreateFiles: Event<FileCreateEvent>
   public readonly onDidRenameFiles: Event<FileRenameEvent>
@@ -94,8 +91,6 @@ export class Workspace implements IWorkspace {
     this.onDidCloseTextDocument = documents.onDidCloseDocument
     this.onDidSaveTextDocument = documents.onDidSaveTextDocument
     this.onWillSaveTextDocument = documents.onWillSaveTextDocument
-    this.onDidOpenTerminal = documents.onDidOpenTerminal
-    this.onDidCloseTerminal = documents.onDidCloseTerminal
     this.onDidCreateFiles = this.files.onDidCreateFiles
     this.onDidRenameFiles = this.files.onDidRenameFiles
     this.onDidDeleteFiles = this.files.onDidDeleteFiles
@@ -116,6 +111,15 @@ export class Workspace implements IWorkspace {
             logger.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack)
             return window[method].apply(window, args)
           }
+        }
+      })
+    }
+    for (let name of ['onDidOpenTerminal', 'onDidCloseTerminal']) {
+      Object.defineProperty(this, name, {
+        get: () => {
+          let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
+          logger.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack)
+          return window.name
         }
       })
     }
@@ -376,10 +380,6 @@ export class Workspace implements IWorkspace {
    */
   public expand(filepath: string): string {
     return this.documentsManager.expand(filepath)
-  }
-
-  public async createTerminal(opts: TerminalOptions): Promise<TerminalModel> {
-    return await this.documentsManager.createTerminal(opts)
   }
 
   public async callAsync<T>(method: string, args: any[]): Promise<T> {

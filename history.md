@@ -1,7 +1,13 @@
 # 2022-02-23
 
-- Add workspace.openTextDocument()
-- Add workspace.getRelativePath()
+- Add `workspace.openTextDocument()`
+- Add `Workspace.getRelativePath()`.
+- Add `window.terminals` `window.onDidOpenTerminal` `window.onDidCloseTerminal`
+  and `window.createTerminal`.
+- Add `exitStatus` property to `Terminal`.
+- Support `strictEnv` in `TerminalOptions` on neovim.
+- Deprecated warning for `workspace.createTerminal()`,
+  `workspace.onDidOpenTerminal` and `workspace.onDidCloseTerminal`
 
 # 2022-02-18
 

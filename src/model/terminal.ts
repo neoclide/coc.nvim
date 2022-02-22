@@ -37,22 +37,33 @@ export interface TerminalOptions {
   strictEnv?: boolean
 }
 
+export interface TerminalExitStatus {
+  code: number | undefined
+}
+
 export default class TerminalModel {
   public bufnr: number
   private pid = 0
+  public exitStatus: TerminalExitStatus | undefined
 
   constructor(private cmd: string,
     private args: string[],
     private nvim: Neovim,
-    private _name?: string) {
+    private _name?: string,
+    private strictEnv?: boolean
+  ) {
   }
 
   public async start(cwd?: string, env?: { [key: string]: string | null }): Promise<void> {
     let { nvim } = this
     let cmd = [this.cmd, ...this.args]
-    let [bufnr, pid] = await nvim.call('coc#terminal#start', [cmd, cwd, env || {}])
+    let [bufnr, pid] = await nvim.call('coc#terminal#start', [cmd, cwd, env || {}, !!this.strictEnv])
     this.bufnr = bufnr
     this.pid = pid
+  }
+
+  public onExit(code: number | undefined): void {
+    this.exitStatus = { code: code === -1 ? undefined : code }
   }
 
   public get name(): string {
@@ -99,8 +110,12 @@ export default class TerminalModel {
   }
 
   public dispose(): void {
+    if (!this.exitStatus) {
+      this.exitStatus = { code: undefined }
+    }
     let { bufnr, nvim } = this
     if (!bufnr) return
+    this.bufnr = undefined
     nvim.call('coc#terminal#close', [bufnr], true)
   }
 }

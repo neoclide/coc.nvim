@@ -8,7 +8,6 @@ import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import events, { InsertChange } from '../events'
 import Document from '../model/document'
-import TerminalModel, { TerminalOptions } from '../model/terminal'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll, platform } from '../util'
@@ -29,10 +28,7 @@ export default class Documents implements Disposable {
   private disposables: Disposable[] = []
   private creating: Map<number, Promise<Document | undefined>> = new Map()
   private buffers: Map<number, Document> = new Map()
-  private _terminals: Map<number, TerminalModel> = new Map()
   private resolves: ((doc: Document) => void)[] = []
-  private readonly _onDidOpenTerminal = new Emitter<TerminalModel>()
-  private readonly _onDidCloseTerminal = new Emitter<TerminalModel>()
   private readonly _onDidOpenTextDocument = new Emitter<LinesTextDocument>()
   private readonly _onDidCloseDocument = new Emitter<LinesTextDocument>()
   private readonly _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
@@ -44,8 +40,6 @@ export default class Documents implements Disposable {
   public readonly onDidChangeDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
   public readonly onDidSaveTextDocument: Event<LinesTextDocument> = this._onDidSaveDocument.event
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
-  public readonly onDidCloseTerminal: Event<TerminalModel> = this._onDidCloseTerminal.event
-  public readonly onDidOpenTerminal: Event<TerminalModel> = this._onDidOpenTerminal.event
 
   constructor(
     private readonly configurations: Configurations,
@@ -228,17 +222,6 @@ export default class Documents implements Disposable {
     })
   }
 
-  public async createTerminal(opts: TerminalOptions): Promise<TerminalModel> {
-    let cmd = opts.shellPath
-    let args = opts.shellArgs
-    if (!cmd) cmd = await this.nvim.getOption('shell') as string
-    let terminal = new TerminalModel(cmd, args || [], this.nvim, opts.name)
-    await terminal.start(opts.cwd || this.cwd, opts.env)
-    this._terminals.set(terminal.bufnr, terminal)
-    this._onDidOpenTerminal.fire(terminal)
-    return terminal
-  }
-
   public get uri(): string {
     let { bufnr } = this
     if (bufnr) {
@@ -358,12 +341,6 @@ export default class Documents implements Disposable {
 
   private onBufUnload(bufnr: number): void {
     this.creating.delete(bufnr)
-    if (this._terminals.has(bufnr)) {
-      logger.debug('terminal detach', bufnr)
-      let terminal = this._terminals.get(bufnr)
-      this._onDidCloseTerminal.fire(terminal)
-      this._terminals.delete(bufnr)
-    }
     let doc = this.buffers.get(bufnr)
     if (doc) {
       logger.debug('document detach', bufnr, doc.uri)
@@ -535,7 +512,6 @@ export default class Documents implements Disposable {
       this.onBufUnload(bufnr)
     }
     this.buffers.clear()
-    this._terminals.clear()
     this._root = process.cwd()
   }
 
@@ -546,7 +522,6 @@ export default class Documents implements Disposable {
     this.resolves = []
     this._attached = false
     this.buffers.clear()
-    this._terminals.clear()
     disposeAll(this.disposables)
   }
 }

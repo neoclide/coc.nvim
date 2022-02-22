@@ -6130,91 +6130,6 @@ declare module 'coc.nvim' {
     readonly textprop: boolean
   }
 
-  export interface TerminalOptions {
-    /**
-     * A human-readable string which will be used to represent the terminal in the UI.
-     */
-    name?: string
-
-    /**
-     * A path to a custom shell executable to be used in the terminal.
-     */
-    shellPath?: string
-
-    /**
-     * Args for the custom shell executable, this does not work on Windows (see #8429)
-     */
-    shellArgs?: string[]
-
-    /**
-     * A path or URI for the current working directory to be used for the terminal.
-     */
-    cwd?: string
-
-    /**
-     * Object with environment variables that will be added to the VS Code process.
-     */
-    env?: { [key: string]: string | null }
-
-    /**
-     * Whether the terminal process environment should be exactly as provided in
-     * `TerminalOptions.env`. When this is false (default), the environment will be based on the
-     * window's environment and also apply configured platform settings like
-     * `terminal.integrated.windows.env` on top. When this is true, the complete environment
-     * must be provided as nothing will be inherited from the process or any configuration.
-     */
-    strictEnv?: boolean
-  }
-
-  /**
-   * An individual terminal instance within the integrated terminal.
-   */
-  export interface Terminal {
-
-    /**
-     * The bufnr of terminal buffer.
-     */
-    readonly bufnr: number
-
-    /**
-     * The name of the terminal.
-     */
-    readonly name: string
-
-    /**
-     * The process ID of the shell process.
-     */
-    readonly processId: Promise<number>
-
-    /**
-     * Send text to the terminal. The text is written to the stdin of the underlying pty process
-     * (shell) of the terminal.
-     *
-     * @param text The text to send.
-     * @param addNewLine Whether to add a new line to the text being sent, this is normally
-     * required to run a command in the terminal. The character(s) added are \n or \r\n
-     * depending on the platform. This defaults to `true`.
-     */
-    sendText(text: string, addNewLine?: boolean): void
-
-    /**
-     * Show the terminal panel and reveal this terminal in the UI, return false when failed.
-     *
-     * @param preserveFocus When `true` the terminal will not take focus.
-     */
-    show(preserveFocus?: boolean): Promise<boolean>
-
-    /**
-     * Hide the terminal panel if this terminal is currently showing.
-     */
-    hide(): void
-
-    /**
-     * Dispose and free associated resources.
-     */
-    dispose(): void
-  }
-
   export interface Document {
     readonly buffer: Buffer
     /**
@@ -6671,22 +6586,12 @@ declare module 'coc.nvim' {
      * @deprecated
      */
     export const workspaceFolder: WorkspaceFolder | null
-    /**
-     * Event fired after terminal created, only fired with Terminal that created
-     * by `workspace.createTerminal`
-     */
-    export const onDidOpenTerminal: Event<Terminal>
     export const onDidCreateFiles: Event<FileCreateEvent>
     export const onDidRenameFiles: Event<FileRenameEvent>
     export const onDidDeleteFiles: Event<FileDeleteEvent>
     export const onWillCreateFiles: Event<FileWillCreateEvent>
     export const onWillRenameFiles: Event<FileWillRenameEvent>
     export const onWillDeleteFiles: Event<FileWillDeleteEvent>
-    /**
-     * Event fired on terminal close, only fired with Terminal that created by
-     * `workspace.createTerminal`
-     */
-    export const onDidCloseTerminal: Event<Terminal>
     /**
      * Event fired on workspace folder change.
      */
@@ -6989,11 +6894,6 @@ declare module 'coc.nvim' {
     export function createTask(id: string): Task
 
     /**
-     * Create terminal in (neo)vim.
-     */
-    export function createTerminal(opts: TerminalOptions): Promise<Terminal>
-
-    /**
      * Create DB instance at extension root.
      */
     export function createDatabase(name: string): JsonDB
@@ -7001,6 +6901,121 @@ declare module 'coc.nvim' {
   // }}
 
   // window module {{
+  /**
+  * Represents how a terminal exited.
+  */
+  export interface TerminalExitStatus {
+    /**
+      * The exit code that a terminal exited with, it can have the following values:
+      * - Zero: the terminal process or custom execution succeeded.
+      * - Non-zero: the terminal process or custom execution failed.
+      * - `undefined`: the user forcibly closed the terminal or a custom execution exited
+      *   without providing an exit code.
+      */
+    readonly code: number | undefined
+  }
+
+  export interface TerminalOptions {
+    /**
+     * A human-readable string which will be used to represent the terminal in the UI.
+     */
+    name?: string
+
+    /**
+     * A path to a custom shell executable to be used in the terminal.
+     */
+    shellPath?: string
+
+    /**
+     * Args for the custom shell executable, this does not work on Windows (see #8429)
+     */
+    shellArgs?: string[]
+
+    /**
+     * A path or URI for the current working directory to be used for the terminal.
+     */
+    cwd?: string
+
+    /**
+     * Object with environment variables that will be added to the VS Code process.
+     */
+    env?: { [key: string]: string | null }
+
+    /**
+     * Whether the terminal process environment should be exactly as provided in
+     * `TerminalOptions.env`. When this is false (default), the environment will be based on the
+     * window's environment and also apply configured platform settings like
+     * `terminal.integrated.windows.env` on top. When this is true, the complete environment
+     * must be provided as nothing will be inherited from the process or any configuration.
+     * Neovim only.
+     */
+    strictEnv?: boolean
+  }
+
+  /**
+   * An individual terminal instance within the integrated terminal.
+   */
+  export interface Terminal {
+
+    /**
+     * The bufnr of terminal buffer.
+     */
+    readonly bufnr: number
+
+    /**
+     * The name of the terminal.
+     */
+    readonly name: string
+
+    /**
+     * The process ID of the shell process.
+     */
+    readonly processId: Promise<number>
+
+    /**
+     * The exit status of the terminal, this will be undefined while the terminal is active.
+     *
+     * **Example:** Show a notification with the exit code when the terminal exits with a
+     * non-zero exit code.
+     * ```typescript
+     * window.onDidCloseTerminal(t => {
+     *   if (t.exitStatus && t.exitStatus.code) {
+     *   	vscode.window.showInformationMessage(`Exit code: ${t.exitStatus.code}`);
+     *   }
+     * });
+     * ```
+     */
+    readonly exitStatus: TerminalExitStatus | undefined
+
+    /**
+     * Send text to the terminal. The text is written to the stdin of the underlying pty process
+     * (shell) of the terminal.
+     *
+     * @param text The text to send.
+     * @param addNewLine Whether to add a new line to the text being sent, this is normally
+     * required to run a command in the terminal. The character(s) added are \n or \r\n
+     * depending on the platform. This defaults to `true`.
+     */
+    sendText(text: string, addNewLine?: boolean): void
+
+    /**
+     * Show the terminal panel and reveal this terminal in the UI, return false when failed.
+     *
+     * @param preserveFocus When `true` the terminal will not take focus.
+     */
+    show(preserveFocus?: boolean): Promise<boolean>
+
+    /**
+     * Hide the terminal panel if this terminal is currently showing.
+     */
+    hide(): void
+
+    /**
+     * Dispose and free associated resources.
+     */
+    dispose(): void
+  }
+
   /**
    * Option for create status item.
    */
@@ -7288,6 +7303,33 @@ declare module 'coc.nvim' {
   }
 
   export namespace window {
+    /**
+     * The currently opened terminals or an empty array.
+     */
+    export const terminals: readonly Terminal[]
+    /**
+     * onDidChangeTerminalState not exists since we can't detect window resize on vim.
+     */
+    /**
+     * Event fired after terminal created, only fired with Terminal that
+     * created by `window.createTerminal`
+     */
+    export const onDidOpenTerminal: Event<Terminal>
+    /**
+     * Event fired on terminal close, only fired with Terminal that created by
+     * `window.createTerminal`
+     */
+    export const onDidCloseTerminal: Event<Terminal>
+    /**
+     * Creates a {@link Terminal} with a backing shell process.
+     * The terminal is created by (neo)vim.
+     *
+     * @param options A TerminalOptions object describing the characteristics of the new terminal.
+     * @return A new Terminal.
+     * @throws When running in an environment where a new process cannot be started.
+     */
+    export function createTerminal(opts: TerminalOptions): Promise<Terminal>
+
     /**
      * Reveal message with message type.
      *

@@ -1,17 +1,19 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
-import { CancellationToken, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Event, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import channels from './core/channels'
+import Terminals from './core/terminals'
 import * as ui from './core/ui'
 import events from './events'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
-import Menu, { MenuItem, isMenuItem } from './model/menu'
+import Menu, { isMenuItem, MenuItem } from './model/menu'
 import Notification, { NotificationConfig, NotificationPreferences } from './model/notification'
 import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
+import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
 import { HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
@@ -33,15 +35,32 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
 class Window {
   private mutex = new Mutex()
   private statusLine: StatusLine | undefined
+  private terminalManager: Terminals = new Terminals()
 
   public get nvim(): Neovim {
     return workspace.nvim
   }
 
   public dispose(): void {
+    this.terminalManager.dispose()
     this.statusLine?.dispose()
   }
 
+  public get terminals(): ReadonlyArray<TerminalModel> {
+    return this.terminalManager.terminals
+  }
+
+  public get onDidOpenTerminal(): Event<TerminalModel> {
+    return this.terminalManager.onDidOpenTerminal
+  }
+
+  public get onDidCloseTerminal(): Event<TerminalModel> {
+    return this.terminalManager.onDidCloseTerminal
+  }
+
+  public async createTerminal(opts: TerminalOptions): Promise<TerminalModel> {
+    return await this.terminalManager.createTerminal(this.nvim, opts)
+  }
   /**
    * Reveal message with message type.
    *

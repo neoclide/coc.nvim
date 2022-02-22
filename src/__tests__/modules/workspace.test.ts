@@ -267,13 +267,6 @@ describe('workspace methods', () => {
     expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
   })
 
-  it('should create terminal', async () => {
-    let terminal = await workspace.createTerminal({ name: 'test' })
-    let pid = await terminal.processId
-    expect(typeof pid == 'number').toBe(true)
-    terminal.dispose()
-  })
-
   it('should rename buffer', async () => {
     await helper.createDocument('a')
     let p = workspace.renameCurrent()
