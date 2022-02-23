@@ -4,6 +4,7 @@ import path from 'path'
 import { CancellationToken, Disposable, Event, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import channels from './core/channels'
+import { TextEditor } from './core/editors'
 import Terminals from './core/terminals'
 import * as ui from './core/ui'
 import events from './events'
@@ -44,6 +45,22 @@ class Window {
   public dispose(): void {
     this.terminalManager.dispose()
     this.statusLine?.dispose()
+  }
+
+  public get activeTextEditor(): TextEditor | undefined {
+    return workspace.editors.activeTextEditor
+  }
+
+  public get visibleTextEditors(): TextEditor[] {
+    return workspace.editors.visibleTextEditors
+  }
+
+  public get onDidChangeActiveTextEditor(): Event<TextEditor | undefined> {
+    return workspace.editors.onDidChangeActiveTextEditor
+  }
+
+  public get onDidChangeVisibleTextEditors(): Event<ReadonlyArray<TextEditor>> {
+    return workspace.editors.onDidChangeVisibleTextEditors
   }
 
   public get terminals(): ReadonlyArray<TerminalModel> {

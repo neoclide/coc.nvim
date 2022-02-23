@@ -19,6 +19,7 @@ import Keymaps from './core/keymaps'
 import Locations from './core/locations'
 import * as ui from './core/ui'
 import Watchers from './core/watchers'
+import Editors from './core/editors'
 import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
 import BufferSync, { SyncItem } from './model/bufferSync'
@@ -31,7 +32,7 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
-const APIVERSION = 22
+const APIVERSION = 23
 const logger = require('./util/logger')('workspace')
 const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',
@@ -67,6 +68,7 @@ export class Workspace implements IWorkspace {
   public readonly locations: Locations
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
+  public readonly editors: Editors
 
   private _env: Env
 
@@ -83,6 +85,7 @@ export class Workspace implements IWorkspace {
     this.keymaps = new Keymaps(documents)
     this.locations = new Locations(this.configurations, documents, this.contentProvider)
     this.files = new Files(documents, this.configurations)
+    this.editors = new Editors(documents)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
     this.onDidChangeConfiguration = this.configurations.onDidChange
@@ -136,6 +139,7 @@ export class Workspace implements IWorkspace {
     this.locations.attach(nvim, env)
     this.watchers.attach(nvim, env)
     await this.attach()
+    await this.editors.attach(nvim)
     let channel = channels.create('watchman', nvim)
     this.fileSystemWatchers.attach(channel)
   }

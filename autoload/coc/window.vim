@@ -11,6 +11,18 @@ function! coc#window#tabnr(winid) abort
   endif
 endfunction
 
+function! coc#window#is_float(winid) abort
+  if !has('nvim')
+    if exists('*popup_list')
+      return index(popup_list(), a:winid) != -1
+    endif
+    return 0
+  else
+    let config = nvim_win_get_config(a:winid)
+    return !empty(config) && !empty(get(config, 'relative', ''))
+  endif
+endfunction
+
 function! coc#window#set_heigth(winid, height) abort
   if empty(getwininfo(a:winid))
     return

@@ -4173,6 +4173,197 @@ declare module 'coc.nvim' {
   // }}
 
   // Classes {{
+  export interface Document {
+    readonly buffer: Buffer
+    /**
+     * Document is attached to vim.
+     */
+    readonly attached: boolean
+    /**
+     * Is command line document.
+     */
+    readonly isCommandLine: boolean
+    /**
+     * `buftype` option of buffer.
+     */
+    readonly buftype: string
+    /**
+     * Text document that synchronized.
+     */
+    readonly textDocument: LinesTextDocument
+    /**
+     * Fired when document change.
+     */
+    readonly onDocumentChange: Event<DidChangeTextDocumentParams>
+    /**
+     * Fired on document detach.
+     */
+    readonly onDocumentDetach: Event<number>
+    /**
+     * Get current buffer changedtick.
+     */
+    readonly changedtick: number
+    /**
+     * Scheme of document.
+     */
+    readonly schema: string
+    /**
+     * Line count of current buffer.
+     */
+    readonly lineCount: number
+    /**
+     * Window ID when buffer create, could be -1 when no window associated.
+     */
+    readonly winid: number
+    /**
+     * Returns if current document is opended with previewwindow
+     */
+    readonly previewwindow: boolean
+    /**
+     * Check if document changed after last synchronize
+     */
+    readonly dirty: boolean
+    /**
+     * Buffer number
+     */
+    readonly bufnr: number
+    /**
+     * Content of textDocument.
+     */
+    readonly content: string
+    /**
+     * Converted filetype.
+     */
+    readonly filetype: string
+    /**
+     * Main filetype of buffer, first part when buffer filetype contains dots.
+     * Same as filetype most of the time.
+     */
+    readonly languageId: string
+    readonly uri: string
+    readonly version: number
+    /**
+     * Apply textEdits to current buffer lines, fire content change event on next tick.
+     */
+    applyEdits(edits: TextEdit[]): Promise<void>
+
+    /**
+     * Change individual lines.
+     *
+     * @param {[number, string][]} lines
+     * @returns {void}
+     */
+    changeLines(lines: [number, string][]): Promise<void>
+
+    /**
+     * Get offset from lnum & col
+     */
+    getOffset(lnum: number, col: number): number
+
+    /**
+     * Check string is word.
+     */
+    isWord(word: string): boolean
+
+    /**
+     * Word range at position.
+     *
+     * @param {Position} position
+     * @param {string} extraChars Extra characters that should be keyword.
+     * @param {boolean} current Use current lines instead of textDocument, default to true.
+     * @returns {Range | null}
+     */
+    getWordRangeAtPosition(position: Position, extraChars?: string, current?: boolean): Range | null
+
+    /**
+     * Get ranges of word in textDocument.
+     */
+    getSymbolRanges(word: string): Range[]
+
+    /**
+     * Get line for buffer
+     *
+     * @param {number} line 0 based line index.
+     * @param {boolean} current Use textDocument lines when false, default to true.
+     * @returns {string}
+     */
+    getline(line: number, current?: boolean): string
+
+    /**
+     * Get range of current lines, zero indexed, end exclude.
+     */
+    getLines(start?: number, end?: number): string[]
+
+    /**
+     * Get variable value by key, defined by `b:coc_{key}`
+     */
+    getVar<T>(key: string, defaultValue?: T): T
+
+    /**
+     * Get position from lnum & col
+     */
+    getPosition(lnum: number, col: number): Position
+
+    /**
+     * Adjust col with new valid character before position.
+     */
+    fixStartcol(position: Position, valids: string[]): number
+
+    /**
+     * Get current content text.
+     */
+    getDocumentContent(): string
+  }
+
+  /**
+   * Represents a {@link TextEditor text editor}'s {@link TextEditor.options options}.
+   */
+  export interface TextEditorOptions {
+    /**
+     * The size in spaces a tab takes. This is used for two purposes:
+     *  - the rendering width of a tab character;
+     *  - the number of spaces to insert when {@link TextEditorOptions.insertSpaces insertSpaces} is true.
+     *
+     * When getting a text editor's options, this property will always be a number (resolved).
+    */
+    tabSize: number
+    /**
+     * When pressing Tab insert {@link TextEditorOptions.tabSize n} spaces.
+     * When getting a text editor's options, this property will always be a boolean (resolved).
+     */
+    insertSpaces: boolean
+  }
+
+  /**
+   * Represents an editor that is attached to a {@link TextDocument document}.
+   */
+  export interface TextEditor {
+    /**
+     * The tabpagenr of current editor.
+     */
+    readonly tabpagenr: number
+    /**
+     * The window id of current editor.
+     */
+    readonly winid: number
+    /**
+     * The window number of current editor.
+     */
+    readonly winnr: number
+    /**
+     * The document associated with this text editor. The document will be the same for the entire lifetime of this text editor.
+     */
+    readonly document: Document
+    /**
+     * The current visible ranges in the editor (vertically).
+     * This accounts only for vertical scrolling, and not for horizontal scrolling.
+     */
+    readonly visibleRanges: readonly Range[]
+    /**
+     * Text editor options.
+     */
+    options: TextEditorOptions
+  }
 
   export interface FloatWinConfig {
     maxHeight?: number
@@ -6130,148 +6321,6 @@ declare module 'coc.nvim' {
     readonly textprop: boolean
   }
 
-  export interface Document {
-    readonly buffer: Buffer
-    /**
-     * Document is attached to vim.
-     */
-    readonly attached: boolean
-    /**
-     * Is command line document.
-     */
-    readonly isCommandLine: boolean
-    /**
-     * `buftype` option of buffer.
-     */
-    readonly buftype: string
-    /**
-     * Text document that synchronized.
-     */
-    readonly textDocument: LinesTextDocument
-    /**
-     * Fired when document change.
-     */
-    readonly onDocumentChange: Event<DidChangeTextDocumentParams>
-    /**
-     * Fired on document detach.
-     */
-    readonly onDocumentDetach: Event<number>
-    /**
-     * Get current buffer changedtick.
-     */
-    readonly changedtick: number
-    /**
-     * Scheme of document.
-     */
-    readonly schema: string
-    /**
-     * Line count of current buffer.
-     */
-    readonly lineCount: number
-    /**
-     * Window ID when buffer create, could be -1 when no window associated.
-     */
-    readonly winid: number
-    /**
-     * Returns if current document is opended with previewwindow
-     */
-    readonly previewwindow: boolean
-    /**
-     * Check if document changed after last synchronize
-     */
-    readonly dirty: boolean
-    /**
-     * Buffer number
-     */
-    readonly bufnr: number
-    /**
-     * Content of textDocument.
-     */
-    readonly content: string
-    /**
-     * Converted filetype.
-     */
-    readonly filetype: string
-    /**
-     * Main filetype of buffer, first part when buffer filetype contains dots.
-     * Same as filetype most of the time.
-     */
-    readonly languageId: string
-    readonly uri: string
-    readonly version: number
-    /**
-     * Apply textEdits to current buffer lines, fire content change event on next tick.
-     */
-    applyEdits(edits: TextEdit[]): Promise<void>
-
-    /**
-     * Change individual lines.
-     *
-     * @param {[number, string][]} lines
-     * @returns {void}
-     */
-    changeLines(lines: [number, string][]): Promise<void>
-
-    /**
-     * Get offset from lnum & col
-     */
-    getOffset(lnum: number, col: number): number
-
-    /**
-     * Check string is word.
-     */
-    isWord(word: string): boolean
-
-    /**
-     * Word range at position.
-     *
-     * @param {Position} position
-     * @param {string} extraChars Extra characters that should be keyword.
-     * @param {boolean} current Use current lines instead of textDocument, default to true.
-     * @returns {Range | null}
-     */
-    getWordRangeAtPosition(position: Position, extraChars?: string, current?: boolean): Range | null
-
-    /**
-     * Get ranges of word in textDocument.
-     */
-    getSymbolRanges(word: string): Range[]
-
-    /**
-     * Get line for buffer
-     *
-     * @param {number} line 0 based line index.
-     * @param {boolean} current Use textDocument lines when false, default to true.
-     * @returns {string}
-     */
-    getline(line: number, current?: boolean): string
-
-    /**
-     * Get range of current lines, zero indexed, end exclude.
-     */
-    getLines(start?: number, end?: number): string[]
-
-    /**
-     * Get variable value by key, defined by `b:coc_{key}`
-     */
-    getVar<T>(key: string, defaultValue?: T): T
-
-    /**
-     * Get position from lnum & col
-     */
-    getPosition(lnum: number, col: number): Position
-
-    /**
-     * Adjust col with new valid character before position.
-     */
-    fixStartcol(position: Position, valids: string[]): number
-
-    /**
-     * Get current content text.
-     */
-    getDocumentContent(): string
-  }
-
   /**
    * Store & retrive most recent used items.
    */
@@ -7303,6 +7352,31 @@ declare module 'coc.nvim' {
   }
 
   export namespace window {
+    /**
+     * The currently active editor or `undefined`. The active editor is the one
+     * that currently has focus or, when none has focus, the one that has changed
+     * input most recently.
+     */
+    export const activeTextEditor: TextEditor | undefined
+
+    /**
+     * The currently visible editors or an empty array.
+     */
+    export const visibleTextEditors: readonly TextEditor[]
+
+    /**
+     * An {@link Event} which fires when the {@link window.activeTextEditor active editor}
+     * has changed. *Note* that the event also fires when the active editor changes
+     * to `undefined`.
+     */
+    export const onDidChangeActiveTextEditor: Event<TextEditor | undefined>
+
+    /**
+     * An {@link Event} which fires when the array of {@link window.visibleTextEditors visible editors}
+     * has changed.
+     */
+    export const onDidChangeVisibleTextEditors: Event<readonly TextEditor[]>
+
     /**
      * The currently opened terminals or an empty array.
      */

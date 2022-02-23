@@ -180,8 +180,6 @@ export default class Document {
 
   /**
    * Window ID when buffer create, could be -1 when no window associated.
-   *
-   * @deprecated could be wrong.
    */
   public get winid(): number {
     return this._winid
