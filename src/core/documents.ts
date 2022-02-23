@@ -76,6 +76,7 @@ export default class Documents implements Disposable {
     }
     const checkCurrentBuffer = (bufnr: number) => {
       this._bufnr = bufnr
+      void this.createDocument(bufnr)
     }
     events.on('CursorMoved', checkCurrentBuffer, null, this.disposables)
     events.on('CursorMovedI', checkCurrentBuffer, null, this.disposables)
@@ -90,6 +91,9 @@ export default class Documents implements Disposable {
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
     void events.fire('BufEnter', [bufnr])
     void events.fire('BufWinEnter', [bufnr, winid])
+    events.on('BufEnter', (bufnr: number) => {
+      void this.createDocument(bufnr)
+    }, null, this.disposables)
     if (this._env.isVim) {
       const onChange = (bufnr: number) => {
         let doc = this.buffers.get(bufnr)
