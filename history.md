@@ -1,3 +1,8 @@
+# 2022-02-24
+
+- Add `window.activeTextEditor`, `window.visibleTextEditors`
+- Add events `window.onDidChangeActiveTextEditor` `window.onDidChangeVisibleTextEditors`
+
 # 2022-02-23
 
 - Add `workspace.openTextDocument()`

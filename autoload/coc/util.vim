@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 22
+let s:vim_api_version = 23
 let s:activate = ""
 let s:quit = ""
 
@@ -571,14 +571,6 @@ function! coc#util#vim_info()
         \}
 endfunction
 
-function! coc#util#highlight_options()
-  return {
-        \ 'colorscheme': get(g:, 'colors_name', ''),
-        \ 'background': &background,
-        \ 'runtimepath': join(globpath(&runtimepath, '', 0, 1), ','),
-        \}
-endfunction
-
 function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes) abort
   if !bufloaded(a:bufnr)
     return
@@ -603,7 +595,7 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
       endif
     endif
   endif
-  if exists('*nvim_buf_set_text') && !empty(a:changes)
+  if exists('*nvim_buf_set_text') && !empty(a:changes) && len(a:changes) < 200
     for item in a:changes
       let lines = nvim_buf_get_lines(a:bufnr, 0, -1, v:false)
       call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
@@ -915,6 +907,37 @@ function! coc#util#get_format_opts(bufnr) abort
       \ }
 endfunction
 
+function! coc#util#get_editoroption(winid) abort
+  if has('nvim')
+    " avoid float window
+    let config = nvim_win_get_config(a:winid)
+    if !empty(get(config, 'relative', ''))
+      return v:null
+    endif
+  endif
+  let info = getwininfo(a:winid)[0]
+  let bufnr = info['bufnr']
+  let buftype = getbufvar(bufnr, '&buftype')
+  " avoid window for other purpose.
+  if buftype !=# '' && buftype !=# 'acwrite'
+    return v:null
+  endif
+  let tabSize = getbufvar(bufnr, '&shiftwidth')
+  if tabSize == 0
+    let tabSize = getbufvar(bufnr, '&tabstop')
+  endif
+  return {
+        \ 'bufnr': bufnr,
+        \ 'winid': a:winid,
+        \ 'winids': map(getwininfo(), 'v:val["winid"]'),
+        \ 'tabpagenr': info['tabnr'],
+        \ 'winnr': winnr(),
+        \ 'visibleRanges': s:visible_ranges(a:winid),
+        \ 'tabSize': tabSize,
+        \ 'insertSpaces': getbufvar(bufnr, '&expandtab') ? v:true : v:false
+        \ }
+endfunction
+
 " Get indentkeys for indent on TextChangedP, consider = for word indent only.
 function! coc#util#get_indentkeys() abort
   if empty(&indentexpr)
@@ -924,4 +947,32 @@ function! coc#util#get_indentkeys() abort
     return ''
   endif
   return &indentkeys
+endfunction
+
+function! s:visible_ranges(winid) abort
+  let info = getwininfo(a:winid)[0]
+  let res = []
+  let begin = 0
+  let curr = info['topline']
+  let max = info['botline']
+  if win_getid() != a:winid
+    return [[curr, max]]
+  endif
+  while curr <= max
+    let closedend = foldclosedend(curr)
+    if closedend == -1
+      let begin = begin == 0 ? curr : begin
+      if curr == max
+        call add(res, [begin, curr])
+      endif
+      let curr = curr + 1
+    else
+      if begin != 0
+        call add(res, [begin, curr - 1])
+        let begin = closedend + 1
+      endif
+      let curr = closedend + 1
+    endif
+  endwhile
+  return res
 endfunction
