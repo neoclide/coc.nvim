@@ -603,7 +603,7 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
       endif
     endif
   endif
-  if exists('*nvim_buf_set_text') && !empty(a:changes)
+  if exists('*nvim_buf_set_text') && !empty(a:changes) && len(a:changes) < 200
     for item in a:changes
       let lines = nvim_buf_get_lines(a:bufnr, 0, -1, v:false)
       call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
