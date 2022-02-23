@@ -88,7 +88,7 @@ export default class ExtensionList extends BasicList {
       if (fs.existsSync(folder)) {
         fs.removeSync(folder)
       }
-      let terminal = await workspace.createTerminal({
+      let terminal = await window.createTerminal({
         cwd: root
       })
       let shown = await terminal.show(false)

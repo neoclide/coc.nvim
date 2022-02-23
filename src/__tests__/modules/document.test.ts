@@ -458,10 +458,10 @@ describe('Document', () => {
     it('should synchronize content added', async () => {
       let doc = await helper.createDocument()
       await nvim.setLine('foo f')
+      await helper.wait(50)
       await doc.synchronize()
       await nvim.command('normal! ^2l')
-      await nvim.input('a')
-      await nvim.input('r')
+      void nvim.input('ar')
       await doc.applyEdits([{
         range: Range.create(0, 0, 0, 5),
         newText: 'foo foo'
