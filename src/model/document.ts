@@ -284,6 +284,7 @@ export default class Document {
     }
     if (edits.length == 0 || !this._attached) return
     let textDocument = TextDocument.create(this.uri, this.languageId, 1, this.getDocumentContent())
+    edits = edits.filter(o => textDocument.getText(o.range) !== o.newText)
     // apply edits to current textDocument
     let applied = TextDocument.applyEdits(textDocument, edits)
     let content: string
