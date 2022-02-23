@@ -243,7 +243,7 @@ function! s:Disable() abort
 endfunction
 
 function! s:Autocmd(...) abort
-  if !g:coc_service_initialized
+  if !get(g:, 'coc_workspace_initialized', 0)
     return
   endif
   call coc#rpc#notify('CocAutocmd', a:000)
@@ -260,7 +260,7 @@ function! s:HandleCharInsert(char, bufnr) abort
 endfunction
 
 function! s:SyncAutocmd(...)
-  if !g:coc_service_initialized
+  if !get(g:, 'coc_workspace_initialized', 0)
     return
   endif
   call coc#rpc#request('CocAutocmd', a:000)
@@ -297,7 +297,6 @@ function! s:Enable(initialize)
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
-      autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
       autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar(win_getid())
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
       if exists('##WinClosed')

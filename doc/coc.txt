@@ -1817,6 +1817,10 @@ g:coc_prompt_win_width 					*g:coc_prompt_win_width*
 
 	Width of input prompt window, default `32`.
 
+g:coc_terminal_height					*g:coc_terminal_height*
+
+	Height of terminal window, default `8`.
+
 g:coc_markdown_disabled_languages  		*g:coc_markdown_disabled_languages*
 
 	Filetype list that should be disabled for highlight in markdown block,
