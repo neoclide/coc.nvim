@@ -4437,6 +4437,73 @@ declare module 'coc.nvim' {
     dispose(): void
   }
 
+
+  /**
+   * A file glob pattern to match file paths against. This can either be a glob pattern string
+   * (like `**​/*.{ts,js}` or `*.{ts,js}`) or a {@link RelativePattern relative pattern}.
+   *
+   * Glob patterns can have the following syntax:
+   * * `*` to match one or more characters in a path segment
+   * * `?` to match on one character in a path segment
+   * * `**` to match any number of path segments, including none
+   * * `{}` to group conditions (e.g. `**​/*.{ts,js}` matches all TypeScript and JavaScript files)
+   * * `[]` to declare a range of characters to match in a path segment (e.g., `example.[0-9]` to match on `example.0`, `example.1`, …)
+   * * `[!...]` to negate a range of characters to match in a path segment (e.g., `example.[!0-9]` to match on `example.a`, `example.b`, but not `example.0`)
+   *
+   * Note: a backslash (`\`) is not valid within a glob pattern. If you have an existing file
+   * path to match against, consider to use the {@link RelativePattern relative pattern} support
+   * that takes care of converting any backslash into slash. Otherwise, make sure to convert
+   * any backslash to slash when creating the glob pattern.
+   */
+  export type GlobPattern = string | RelativePattern
+
+  /**
+   * A relative pattern is a helper to construct glob patterns that are matched
+   * relatively to a base file path. The base path can either be an absolute file
+   * path as string or uri or a {@link WorkspaceFolder workspace folder}, which is the
+   * preferred way of creating the relative pattern.
+   */
+  export class RelativePattern {
+
+    /**
+     * A base file path to which this pattern will be matched against relatively.
+     */
+    baseUri: Uri
+
+    /**
+     * A file glob pattern like `*.{ts,js}` that will be matched on file paths
+     * relative to the base path.
+     *
+     * Example: Given a base of `/home/work/folder` and a file path of `/home/work/folder/index.js`,
+     * the file glob pattern will match on `index.js`.
+     */
+    pattern: string
+
+    /**
+     * Creates a new relative pattern object with a base file path and pattern to match. This pattern
+     * will be matched on file paths relative to the base.
+     *
+     * Example:
+     * ```ts
+     * const folder = vscode.workspace.workspaceFolders?.[0];
+     * if (folder) {
+     *
+     *   // Match any TypeScript file in the root of this workspace folder
+     *   const pattern1 = new vscode.RelativePattern(folder, '*.ts');
+     *
+     *   // Match any TypeScript file in `someFolder` inside this workspace folder
+     *   const pattern2 = new vscode.RelativePattern(folder, 'someFolder/*.ts');
+     * }
+     * ```
+     *
+     * @param base A base to which this pattern will be matched against relatively. It is recommended
+     * to pass in a {@link WorkspaceFolder workspace folder} if the pattern should match inside the workspace.
+     * Otherwise, a uri or string should only be used if the pattern is for a file path outside the workspace.
+     * @param pattern A file glob pattern like `*.{ts,js}` that will be matched on paths relative to the base.
+     */
+    constructor(base: WorkspaceFolder | Uri | string, pattern: string)
+  }
+
   /**
    * Build buffer with lines and highlights
    */
@@ -6930,6 +6997,25 @@ declare module 'coc.nvim' {
      * returned FileSystemWatcher can stil be used, but not work at all.
      */
     export function createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
+    /**
+     * Find files across all {@link workspace.workspaceFolders workspace folders} in the workspace.
+     *
+     * @example
+     * findFiles('**​/*.js', '**​/node_modules/**', 10)
+     *
+     * @param include A {@link GlobPattern glob pattern} that defines the files to search for. The glob pattern
+     * will be matched against the file paths of resulting matches relative to their workspace.
+     * Use a {@link RelativePattern relative pattern} to restrict the search results to a {@link WorkspaceFolder workspace folder}.
+     * @param exclude  A {@link GlobPattern glob pattern} that defines files and folders to exclude. The glob pattern
+     * will be matched against the file paths of resulting matches relative to their workspace. When `undefined` or`null`,
+     * no excludes will apply.
+     * @param maxResults An upper-bound for the result.
+     * @param token A token that can be used to signal cancellation to the underlying search engine.
+     * @return A thenable that resolves to an array of resource identifiers. Will return no results if no
+     * {@link workspace.workspaceFolders workspace folders} are opened.
+     */
+    export function findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Thenable<Uri[]>
+
     /**
      * Create persistence Mru instance.
      */

@@ -1,6 +1,5 @@
 import path from 'path'
 import minimatch from 'minimatch'
-import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import { ListContext, ListItem } from '../../types'

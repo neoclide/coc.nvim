@@ -6,6 +6,7 @@ import FloatFactory from './model/floatFactory'
 import fetch from './model/fetch'
 import download from './model/download'
 import Highligher from './model/highligher'
+import RelativePattern from './model/relativePattern'
 import services from './services'
 import sources from './sources/index'
 import workspace from './workspace'
@@ -87,6 +88,7 @@ module.exports = {
   TreeItem,
   SemanticTokensBuilder,
   FloatFactory,
+  RelativePattern,
   PatternType,
   SourceType,
   MessageLevel,

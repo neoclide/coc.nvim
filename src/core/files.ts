@@ -1,11 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
+import glob from 'glob'
+import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
-import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { promisify } from 'util'
+import { CancellationToken, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Document from '../model/document'
+import RelativePattern from '../model/relativePattern'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { wait } from '../util'
 import { fixDriver, isFile, isParentFolder, renameAsync, statAsync } from '../util/fs'
@@ -13,6 +17,10 @@ import { getChangedFromEdits } from '../util/position'
 import { byteLength } from '../util/string'
 import Documents from './documents'
 import * as ui from './ui'
+import WorkspaceFolderController from './workspaceFolder'
+
+export type GlobPattern = string | RelativePattern
+
 const logger = require('../util/logger')('core-files')
 
 export default class Files {
@@ -33,7 +41,8 @@ export default class Files {
   public readonly onWillDeleteFiles: Event<FileWillDeleteEvent> = this._onWillDeleteFiles.event
   constructor(
     private documents: Documents,
-    private configurations: Configurations
+    private configurations: Configurations,
+    private workspaceFolderControl: WorkspaceFolderController
   ) {
   }
 
@@ -454,4 +463,44 @@ export default class Files {
     }
     return Array.from(uris)
   }
+
+  public async findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Promise<URI[]> {
+    let folders = this.workspaceFolderControl.workspaceFolders
+    if (token?.isCancellationRequested || !folders.length || maxResults === 0) return []
+    maxResults = maxResults ?? Infinity
+    let roots = folders.map(o => URI.parse(o.uri).fsPath)
+    if (typeof include !== 'string') {
+      let base = include.baseUri.fsPath
+      roots = roots.filter(r => isParentFolder(base, r, true))
+    }
+    let pattern = typeof include === 'string' ? include : include.pattern
+    let res: URI[] = []
+    for (let root of roots) {
+      if (res.length >= maxResults) break
+      let files = await promisify(glob)(pattern, {
+        dot: true,
+        cwd: root,
+        nodir: true,
+        absolute: false
+      })
+      if (token?.isCancellationRequested) return []
+      for (let file of files) {
+        if (exclude && fileMatch(root, file, exclude)) continue
+        res.push(URI.file(path.join(root, file)))
+        if (res.length === maxResults) break
+      }
+    }
+    return res
+  }
+}
+
+function fileMatch(root: string, relpath: string, pattern: GlobPattern): boolean {
+  let filepath = path.join(root, relpath)
+  if (typeof pattern !== 'string') {
+    let base = pattern.baseUri.fsPath
+    if (!isParentFolder(base, filepath)) return false
+    let rp = path.relative(base, filepath)
+    return minimatch(rp, pattern.pattern, { dot: true })
+  }
+  return minimatch(relpath, pattern, { dot: true })
 }

@@ -2,7 +2,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
-import { CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CancellationToken, CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { version as VERSION } from '../package.json'
@@ -12,7 +12,7 @@ import Autocmds from './core/autocmds'
 import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
-import Files from './core/files'
+import Files, { GlobPattern } from './core/files'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps from './core/keymaps'
@@ -84,7 +84,7 @@ export class Workspace implements IWorkspace {
     this.autocmds = new Autocmds(this.contentProvider, this.watchers)
     this.keymaps = new Keymaps(documents)
     this.locations = new Locations(this.configurations, documents, this.contentProvider)
-    this.files = new Files(documents, this.configurations)
+    this.files = new Files(documents, this.configurations, this.workspaceFolderControl)
     this.editors = new Editors(documents)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
@@ -507,6 +507,10 @@ export class Workspace implements IWorkspace {
 
   public getRelativePath(pathOrUri: string | URI, includeWorkspace?: boolean): string {
     return this.workspaceFolderControl.getRelativePath(pathOrUri, includeWorkspace)
+  }
+
+  public async findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Promise<URI[]> {
+    return this.files.findFiles(include, exclude, maxResults, token)
   }
 
   public detach(): void {

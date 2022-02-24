@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
-import { disposeAll } from '../util'
 import Documents from './documents'
 const logger = require('../util/logger')('core-editors')
 

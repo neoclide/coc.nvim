@@ -3,9 +3,10 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import RelativePattern from '../../model/relativePattern'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
 import window from '../../window'
@@ -28,6 +29,85 @@ afterEach(async () => {
   await helper.reset()
   disposeAll(disposables)
   disposables = []
+})
+
+describe('RelativePattern', () => {
+  function testThrow(fn: () => void) {
+    let err
+    try {
+      fn()
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  }
+
+  it('should throw for invalid arguments', async () => {
+    testThrow(() => {
+      new RelativePattern('', undefined)
+    })
+    testThrow(() => {
+      new RelativePattern({ uri: undefined } as any, '')
+    })
+  })
+
+  it('should create relativePattern', async () => {
+    for (let base of [__filename, URI.file(__filename), { uri: URI.file(__dirname).toString(), name: 'test' }]) {
+      let p = new RelativePattern(base, '**/*')
+      expect(URI.isUri(p.baseUri)).toBe(true)
+      expect(p.toJSON()).toBeDefined()
+    }
+  })
+})
+
+describe('findFiles()', () => {
+  beforeEach(() => {
+    workspace.workspaceFolderControl.setWorkspaceFolders([__dirname])
+  })
+
+  it('should use glob pattern', async () => {
+    let res = await workspace.findFiles('**/*.ts')
+    expect(res.length).toBeGreaterThan(0)
+  })
+
+  it('should use relativePattern', async () => {
+    let relativePattern = new RelativePattern(URI.file(__dirname), '**/*.ts')
+    let res = await workspace.findFiles(relativePattern)
+    expect(res.length).toBeGreaterThan(0)
+  })
+
+  it('should respect exclude as glob pattern', async () => {
+    let arr = await workspace.findFiles('**/*.ts', 'files*')
+    let res = arr.find(o => path.relative(__dirname, o.fsPath).startsWith('files'))
+    expect(res).toBeUndefined()
+  })
+
+  it('should respect exclude as relativePattern', async () => {
+    let relativePattern = new RelativePattern(URI.file(__dirname), 'files*')
+    let arr = await workspace.findFiles('**/*.ts', relativePattern)
+    let res = arr.find(o => path.relative(__dirname, o.fsPath).startsWith('files'))
+    expect(res).toBeUndefined()
+  })
+
+  it('should respect maxResults', async () => {
+    let arr = await workspace.findFiles('**/*.ts', undefined, 1)
+    expect(arr.length).toBe(1)
+  })
+
+  it('should respect token', async () => {
+    let source = new CancellationTokenSource()
+    source.cancel()
+    let arr = await workspace.findFiles('**/*.ts', undefined, 1, source.token)
+    expect(arr.length).toBe(0)
+  })
+
+  it('should cancel findFiles', async () => {
+    let source = new CancellationTokenSource()
+    let p = workspace.findFiles('**/*.ts', undefined, 1, source.token)
+    source.cancel()
+    let arr = await p
+    expect(arr.length).toBe(0)
+  })
 })
 
 describe('applyEdits()', () => {
