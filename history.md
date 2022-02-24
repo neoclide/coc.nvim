@@ -1,7 +1,9 @@
 # 2022-02-24
 
-- Add `window.activeTextEditor`, `window.visibleTextEditors`
-- Add events `window.onDidChangeActiveTextEditor` `window.onDidChangeVisibleTextEditors`
+- Add `window.activeTextEditor`, `window.visibleTextEditors`.
+- Add events `window.onDidChangeActiveTextEditor` `window.onDidChangeVisibleTextEditors`.
+- Add class `RelativePattern`.
+- Add `workspace.findFiles()`.
 
 # 2022-02-23
 
