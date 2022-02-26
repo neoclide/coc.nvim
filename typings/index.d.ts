@@ -6669,6 +6669,10 @@ declare module 'coc.nvim' {
      */
     export const filetypes: ReadonlySet<string>
     /**
+     * All languageIds of loaded documents.
+     */
+    export const languageIds: ReadonlySet<string>
+    /**
      * Root directory of coc.nvim
      */
     export const pluginRoot: string
