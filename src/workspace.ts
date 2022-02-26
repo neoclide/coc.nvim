@@ -122,7 +122,7 @@ export class Workspace implements IWorkspace {
         get: () => {
           let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
           logger.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack)
-          return window.name
+          return window[name]
         }
       })
     }
