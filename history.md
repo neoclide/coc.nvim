@@ -1,3 +1,7 @@
+# 2022-02-28
+
+- Change `workspace.ignoredFiletypes` default value to `[]`
+
 # 2022-02-24
 
 - Add `window.activeTextEditor`, `window.visibleTextEditors`.

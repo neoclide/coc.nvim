@@ -1,12 +1,23 @@
 scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 
-function! s:checkEnvironment() abort
-  let valid = 1
-  if !has('nvim-0.3.0')
-    let valid = 0
-    call health#report_error('Neovim version not satisfied, 0.3.0 and above required')
+function! s:checkVim(test, name, patchlevel) abort
+  if a:test
+    if !has(a:patchlevel)
+      call health#report_error(a:name . ' version not satisfied, ' . a:patchlevel . ' and above required')
+      return 0
+    else
+      call health#report_ok(a:name . ' version satisfied')
+      return 1
+    endif
   endif
+  return 0
+endfunction
+
+function! s:checkEnvironment() abort
+  let valid
+    \ = s:checkVim(has('nvim'), 'nvim', 'nvim-0.3.2')
+    \ + s:checkVim(!has('nvim'), 'vim', 'patch-0.8.1453')
   let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
   if !executable(node)
     let valid = 0

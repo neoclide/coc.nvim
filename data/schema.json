@@ -1026,7 +1026,7 @@
     },
     "workspace.ignoredFiletypes": {
       "type": "array",
-      "default": ["markdown", "log", "txt", "help"],
+      "default": [],
       "description": "Filetypes that should be ignored for workspace folder resolve.",
       "items": {
         "type": "string"
