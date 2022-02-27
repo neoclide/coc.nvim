@@ -355,7 +355,12 @@ export class Transform extends Marker {
         value = marker.resolve(value)
         ret += value
       } else {
-        ret += marker.toString()
+        let value = marker.toString()
+        let text = value.replace(/\(\?(\d+):([^)]*?)\)/g, (_, idx, val) => {
+          if (typeof groups[idx] === 'string') return val
+          return ''
+        })
+        ret += text
       }
     }
     return ret

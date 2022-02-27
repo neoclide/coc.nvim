@@ -236,6 +236,12 @@ describe('SnippetParser', () => {
 
   })
 
+  test('Parser, transform with choice', () => {
+    const p = new SnippetParser()
+    const actual = p.text('\\begin{${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}}{${2:c}}')
+    expect(actual).toBe('\\begin{tabular}{c}')
+  })
+
   test('Parser, placeholder with transform', () => {
     const p = new SnippetParser()
     const snippet = p.parse('${1:type}${1/(.+)/ /}')
