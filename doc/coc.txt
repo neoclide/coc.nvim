@@ -731,7 +731,7 @@ Built-in configurations:~
 "workspace.ignoredFiletypes":~
 
 	Filetypes to ignore for workspace folder resolution,
-	default: `["markdown","log","txt","help"]`
+	default: `[]`
 
 	Note: This is the filetype after mapping by `g:coc_filetype_map`.
 
