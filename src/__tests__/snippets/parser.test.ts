@@ -245,12 +245,32 @@ describe('SnippetParser', () => {
 
   })
 
-  test('Parser, transform with choice', () => {
+  test('Parser, transform condition if text', () => {
     const p = new SnippetParser()
-    const snip = p.parse('begin|${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}')
+    let snip = p.parse('begin|${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}')
     expect(snip.toString()).toBe('begin|tabular')
     snip.updatePlaceholder(1, 'a')
     expect(snip.toString()).toBe('begin|array')
+  })
+
+  test('Parser, transform condition not match', () => {
+    const p = new SnippetParser()
+    let snip = p.parse('${1:xyz} ${1/^(f)(b?)/(?2:_:two)/}')
+    expect(snip.toString()).toBe('xyz xyz')
+  })
+
+  test('Parser, transform condition else text', () => {
+    const p = new SnippetParser()
+    let snip = p.parse('${1:foo} ${1/^(f)(b?)/(?2:_:two)/}')
+    expect(snip.toString()).toBe('foo twooo')
+    snip.updatePlaceholder(1, 'fb')
+    expect(snip.toString()).toBe('fb _')
+  })
+
+  test('Parser, transform escape sequence', () => {
+    const p = new SnippetParser()
+    const snip = p.parse('${1:a text}\n${1/\\w+\\s*/\\u$0/}')
+    expect(snip.toString()).toBe('a text\nA text')
   })
 
   test('Parser, placeholder with transform', () => {

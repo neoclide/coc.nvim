@@ -358,7 +358,7 @@ export class Transform extends Marker {
         let value = groups[marker.index] || ''
         value = marker.resolve(value)
         ret += value
-      } else if (marker instanceof GroupString) {
+      } else if (marker instanceof ConditionString) {
         let value = groups[marker.index]
         value = marker.resolve(value)
         ret += value
@@ -387,26 +387,26 @@ export class Transform extends Marker {
 
 }
 
-export class GroupString extends Marker {
+export class ConditionString extends Marker {
   constructor(
     public readonly index: number,
-    public readonly text: string,
+    public readonly ifValue: string,
+    public readonly elseValue: string,
   ) {
     super()
   }
 
-  public resolve(value: string | undefined): string {
-    if (value != null) return this.text
-    return ''
+  public resolve(value: string): string {
+    if (value) return this.ifValue
+    return this.elseValue
   }
 
   public toTextmateString(): string {
-    return '(?' + this.index + ':' + this.text + ')'
+    return '(?' + this.index + ':' + this.ifValue + (this.elseValue ? ':' + this.elseValue : '') + ')'
   }
 
-  public clone(): GroupString {
-    let ret = new GroupString(this.index, this.text)
-    return ret
+  public clone(): ConditionString {
+    return new ConditionString(this.index, this.ifValue, this.elseValue)
   }
 }
 
@@ -1105,7 +1105,7 @@ export class SnippetParser {
         transform.appendChild(new Text(escaped))
         continue
       }
-      if (this._parseFormatString(transform) || this._parseGroupString(transform) || this._parseAnything(transform)) {
+      if (this._parseFormatString(transform) || this._parseConditionString(transform) || this._parseAnything(transform)) {
         continue
       }
       return false
@@ -1135,7 +1135,7 @@ export class SnippetParser {
     return true
   }
 
-  private _parseGroupString(parent: Transform): boolean {
+  private _parseConditionString(parent: Transform): boolean {
     const token = this._token
     if (!this._accept(TokenType.OpenParen)) {
       return false
@@ -1155,7 +1155,17 @@ export class SnippetParser {
     }
     let text = this._until(TokenType.CloseParen)
     if (text) {
-      parent.appendChild(new GroupString(Number(index), text))
+      let i = 0
+      while (i < text.length) {
+        let t = text[i]
+        if (t == ':' && text[i - 1] != '\\') {
+          break
+        }
+        i++
+      }
+      let ifValue = text.slice(0, i)
+      let elseValue = text.slice(i + 1)
+      parent.appendChild(new ConditionString(Number(index), ifValue, elseValue))
       return true
     }
     this._backTo(token)
