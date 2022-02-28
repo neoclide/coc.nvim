@@ -23,7 +23,9 @@ export const enum TokenType {
   Plus,
   Dash,
   QuestionMark,
-  EOF
+  EOF,
+  OpenParen,
+  CloseParen,
 }
 
 export interface Token {
@@ -46,6 +48,8 @@ export class Scanner {
     [CharCode.Plus]: TokenType.Plus,
     [CharCode.Dash]: TokenType.Dash,
     [CharCode.QuestionMark]: TokenType.QuestionMark,
+    [CharCode.OpenParen]: TokenType.OpenParen,
+    [CharCode.CloseParen]: TokenType.CloseParen,
   }
 
   public static isDigitCharacter(ch: number): boolean {
@@ -354,13 +358,13 @@ export class Transform extends Marker {
         let value = groups[marker.index] || ''
         value = marker.resolve(value)
         ret += value
+      } else if (marker instanceof GroupString) {
+        let value = groups[marker.index]
+        value = marker.resolve(value)
+        ret += value
       } else {
         let value = marker.toString()
-        let text = value.replace(/\(\?(\d+):([^)]*?)\)/g, (_, idx, val) => {
-          if (typeof groups[idx] === 'string') return val
-          return ''
-        })
-        ret += text
+        ret += value
       }
     }
     return ret
@@ -381,6 +385,29 @@ export class Transform extends Marker {
     return ret
   }
 
+}
+
+export class GroupString extends Marker {
+  constructor(
+    public readonly index: number,
+    public readonly text: string,
+  ) {
+    super()
+  }
+
+  public resolve(value: string | undefined): string {
+    if (value != null) return this.text
+    return ''
+  }
+
+  public toTextmateString(): string {
+    return '(?' + this.index + ':' + this.text + ')'
+  }
+
+  public clone(): GroupString {
+    let ret = new GroupString(this.index, this.text)
+    return ret
+  }
 }
 
 export class FormatString extends Marker {
@@ -1078,11 +1105,7 @@ export class SnippetParser {
         transform.appendChild(new Text(escaped))
         continue
       }
-      if (this._parseFormatString(transform) || this._parseAnything(transform)) {
-        let text = transform.children[0] as Text
-        if (text && text.value && text.value.includes('\\n')) {
-          text.value = text.value.replace(/\\n/g, '\n')
-        }
+      if (this._parseFormatString(transform) || this._parseGroupString(transform) || this._parseAnything(transform)) {
         continue
       }
       return false
@@ -1110,6 +1133,33 @@ export class SnippetParser {
 
     parent.transform = transform
     return true
+  }
+
+  private _parseGroupString(parent: Transform): boolean {
+    const token = this._token
+    if (!this._accept(TokenType.OpenParen)) {
+      return false
+    }
+    if (!this._accept(TokenType.QuestionMark)) {
+      this._backTo(token)
+      return false
+    }
+    let index = this._accept(TokenType.Int, true)
+    if (!index) {
+      this._backTo(token)
+      return false
+    }
+    if (!this._accept(TokenType.Colon)) {
+      this._backTo(token)
+      return false
+    }
+    let text = this._until(TokenType.CloseParen)
+    if (text) {
+      parent.appendChild(new GroupString(Number(index), text))
+      return true
+    }
+    this._backTo(token)
+    return false
   }
 
   private _parseFormatString(parent: Transform): boolean {
