@@ -112,6 +112,7 @@
     "strip-ansi": "^6.0.0",
     "tar": "^6.1.9",
     "tslib": "^2.0.3",
+    "unidecode": "^0.1.8",
     "unzip-stream": "^0.3.1",
     "uuid": "^7.0.3",
     "vscode-jsonrpc": "^6.0.0",

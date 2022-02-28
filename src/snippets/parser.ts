@@ -6,8 +6,10 @@
 import { CharCode } from '../util/charCode'
 import { rangeParts } from '../util/string'
 import { Range } from 'vscode-languageserver-protocol'
+import unidecode from 'unidecode'
 const logger = require('../util/logger')('snippets-parser')
 
+const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
 export const enum TokenType {
   Dollar,
   Colon,
@@ -336,6 +338,7 @@ export class Choice extends Marker {
 export class Transform extends Marker {
 
   public regexp: RegExp
+  public ascii = false
 
   public resolve(value: string): string {
     let didMatch = false
@@ -355,18 +358,14 @@ export class Transform extends Marker {
     let ret = ''
     for (const marker of this._children) {
       if (marker instanceof FormatString) {
-        let value = groups[marker.index] || ''
-        value = marker.resolve(value)
-        ret += value
+        ret += marker.resolve(groups[marker.index] || '')
       } else if (marker instanceof ConditionString) {
-        let value = groups[marker.index]
-        value = marker.resolve(value)
-        ret += value
+        ret += marker.resolve(groups[marker.index])
       } else {
-        let value = marker.toString()
-        ret += value
+        ret += marker.toString()
       }
     }
+    if (this.ascii) ret = unidecode(ret)
     return transformEscapes(ret)
   }
 
@@ -1111,6 +1110,7 @@ export class SnippetParser {
       return false
     }
 
+    let ascii = false
     // (3) /option
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -1118,13 +1118,22 @@ export class SnippetParser {
         break
       }
       if (this._token.type !== TokenType.EOF) {
-        regexOptions += this._accept(undefined, true)
+        let c = this._accept(undefined, true)
+        if (c == 'a') {
+          ascii = true
+        } else {
+          if (knownRegexOptions.includes(c)) {
+            logger.error(`Unknown regex option: ${c}`)
+          }
+          regexOptions += c
+        }
         continue
       }
       return false
     }
 
     try {
+      if (ascii) transform.ascii = true
       transform.regexp = new RegExp(regexValue, regexOptions)
     } catch (e) {
       // invalid regexp

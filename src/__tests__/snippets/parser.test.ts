@@ -273,6 +273,12 @@ describe('SnippetParser', () => {
     expect(snip.toString()).toBe('a text\nA text')
   })
 
+  test('Parser, transform with ascii option', () => {
+    const p = new SnippetParser()
+    const snip = p.parse('${1:pêche}\n${1/.*/$0/a}')
+    expect(snip.toString()).toBe('pêche\npeche')
+  })
+
   test('Parser, placeholder with transform', () => {
     const p = new SnippetParser()
     const snippet = p.parse('${1:type}${1/(.+)/ /}')
