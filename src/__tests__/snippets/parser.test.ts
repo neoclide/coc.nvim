@@ -1,9 +1,16 @@
 /* eslint-disable */
 import * as assert from 'assert'
-import { Scanner, TokenType, SnippetParser, Text, Placeholder, Variable, Marker, TextmateSnippet, Choice, FormatString, Transform } from '../../snippets/parser'
+import { Scanner, transformEscapes, TokenType, SnippetParser, Text, Placeholder, Variable, Marker, TextmateSnippet, Choice, FormatString, Transform } from '../../snippets/parser'
 import { Range } from 'vscode-languageserver-types'
 
 describe('SnippetParser', () => {
+
+  test('transformEscapes', () => {
+    assert.equal(transformEscapes('b\\uabc\\LDef'), 'bAbcdef')
+    assert.equal(transformEscapes('b\\Uabc\\Edef'), 'bABCdef')
+    assert.equal(transformEscapes('b\\LABC\\Edef'), 'babcdef')
+    assert.equal(transformEscapes(' \\n \\t'), ' \n \t')
+  })
 
   test('Scanner', () => {
 
@@ -24,6 +31,8 @@ describe('SnippetParser', () => {
 
     scanner.text('abc() ')
     assert.equal(scanner.next().type, TokenType.VariableName)
+    assert.equal(scanner.next().type, TokenType.OpenParen)
+    assert.equal(scanner.next().type, TokenType.CloseParen)
     assert.equal(scanner.next().type, TokenType.Format)
     assert.equal(scanner.next().type, TokenType.EOF)
 
@@ -238,8 +247,10 @@ describe('SnippetParser', () => {
 
   test('Parser, transform with choice', () => {
     const p = new SnippetParser()
-    const actual = p.text('\\begin{${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}}{${2:c}}')
-    expect(actual).toBe('\\begin{tabular}{c}')
+    const snip = p.parse('begin|${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}')
+    expect(snip.toString()).toBe('begin|tabular')
+    snip.updatePlaceholder(1, 'a')
+    expect(snip.toString()).toBe('begin|array')
   })
 
   test('Parser, placeholder with transform', () => {

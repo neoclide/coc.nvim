@@ -367,7 +367,7 @@ export class Transform extends Marker {
         ret += value
       }
     }
-    return ret
+    return transformEscapes(ret)
   }
 
   public toString(): string {
@@ -1255,4 +1255,59 @@ export class SnippetParser {
     }
     return false
   }
+}
+
+export function transformEscapes(input: string): string {
+  let res = ''
+  let len = input.length
+  let i = 0
+  let toUpper = false
+  let toLower = false
+  while (i < len) {
+    let ch = input[i]
+    if (ch.charCodeAt(0) === CharCode.Backslash) {
+      let next = input[i + 1]
+      if (next == 'u' || next == 'l') {
+        // Uppercase/Lowercase next letter
+        let follow = input[i + 2]
+        if (follow) res = res + (next == 'u' ? follow.toUpperCase() : follow.toLowerCase())
+        i = i + 3
+        continue
+      }
+      if (next == 'U' || next == 'L') {
+        // Uppercase/Lowercase to \E
+        if (next == 'U') {
+          toUpper = true
+        } else {
+          toLower = true
+        }
+        i = i + 2
+        continue
+      }
+      if (next == 'E') {
+        toUpper = false
+        toLower = false
+        i = i + 2
+        continue
+      }
+      if (next == 'n') {
+        res += '\n'
+        i = i + 2
+        continue
+      }
+      if (next == 't') {
+        res += '\t'
+        i = i + 2
+        continue
+      }
+    }
+    if (toUpper) {
+      ch = ch.toUpperCase()
+    } else if (toLower) {
+      ch = ch.toLowerCase()
+    }
+    res += ch
+    i++
+  }
+  return res
 }
