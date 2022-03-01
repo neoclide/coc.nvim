@@ -28,7 +28,7 @@ export class SnippetSession {
     this.preferComplete = suggest.get('preferCompleteThanJumpPlaceholder', false)
   }
 
-  public async start(snippetString: string, select = true, range?: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
+  public async start(snippetString: string, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip = false): Promise<boolean> {
     const { document } = this
     if (!document || !document.attached) return false
     void events.fire('InsertSnippet', [])
@@ -37,7 +37,6 @@ export class SnippetSession {
       range = Range.create(position, position)
     }
     let position = range.start
-    const formatOptions = await workspace.getFormatOptions(this.document.uri)
     await document.patchChange()
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
@@ -45,10 +44,11 @@ export class SnippetSession {
     if (insertTextMode === InsertTextMode.asIs) {
       inserted = snippetString
     } else {
+      const formatOptions = await workspace.getFormatOptions(this.document.uri)
       inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     }
     const resolver = new SnippetVariableResolver()
-    const snippet = new CocSnippet(inserted, position, resolver)
+    const snippet = new CocSnippet(inserted, position, resolver, ultisnip)
     await snippet.init()
     const edit = TextEdit.replace(range, snippet.toString())
     if (snippetString.endsWith('\n')
@@ -66,7 +66,7 @@ export class SnippetSession {
       // insert to placeholder
       if (placeholder && !placeholder.isFinalTabstop) {
         // don't repeat snippet insert
-        let index = this.snippet.insertSnippet(placeholder, inserted, range)
+        let index = this.snippet.insertSnippet(placeholder, inserted, range, ultisnip)
         let p = this.snippet.getPlaceholder(index)
         this._currId = p.id
         if (select) await this.selectPlaceholder(p)

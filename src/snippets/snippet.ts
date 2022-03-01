@@ -20,13 +20,16 @@ export interface CocSnippetPlaceholder {
 }
 
 export class CocSnippet {
-  private _parser: Snippets.SnippetParser = new Snippets.SnippetParser()
+  private _parser: Snippets.SnippetParser
   private _placeholders: CocSnippetPlaceholder[]
   private tmSnippet: Snippets.TextmateSnippet
 
   constructor(private _snippetString: string,
     private position: Position,
-    private _variableResolver?: VariableResolver) {
+    private _variableResolver?: VariableResolver,
+    _ultisnip = false
+  ) {
+    this._parser = new Snippets.SnippetParser(_ultisnip)
   }
 
   public async init(): Promise<void> {
@@ -59,7 +62,7 @@ export class CocSnippet {
         && isSingleLine(range)
         && start.character - overlaped >= 0
         && changedLine.slice(start.character - overlaped, start.character) ==
-            changedLine.slice(this.range.start.character, this.range.start.character + overlaped)) {
+        changedLine.slice(this.range.start.character, this.range.start.character + overlaped)) {
         edit.range = range = Range.create(start.line, start.character - overlaped, end.line, end.character - overlaped)
       } else {
         return false
@@ -156,7 +159,7 @@ export class CocSnippet {
     return this._placeholders.find(o => rangeInRange(range, o.range))
   }
 
-  public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, range: Range): number {
+  public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, range: Range, ultisnip = false): number {
     let { start } = placeholder.range
     // let offset = position.character - start.character
     let editStart = Position.create(
@@ -168,7 +171,7 @@ export class CocSnippet {
       range.end.line == start.line ? range.end.character - start.character : range.end.character
     )
     let editRange = Range.create(editStart, editEnd)
-    let first = this.tmSnippet.insertSnippet(snippet, placeholder.id, editRange)
+    let first = this.tmSnippet.insertSnippet(snippet, placeholder.id, editRange, ultisnip)
     this.update()
     return first
   }

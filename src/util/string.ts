@@ -27,6 +27,14 @@ export function rangeParts(text: string, range: Range): [string, string] {
   return [before, after]
 }
 
+export function getCharIndexes(input: string, character: string): number[] {
+  let res: number[] = []
+  for (let i = 0; i < input.length; i++) {
+    if (input[i] == character) res.push(i)
+  }
+  return res
+}
+
 // nvim use utf8
 export function byteLength(str: string): number {
   return Buffer.byteLength(str)

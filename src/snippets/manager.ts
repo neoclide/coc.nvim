@@ -54,7 +54,7 @@ export class SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode): Promise<boolean> {
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip = false): Promise<boolean> {
     let { bufnr } = workspace
     let session = this.getSession(bufnr)
     if (!session) {
@@ -68,7 +68,7 @@ export class SnippetManager {
       })
     }
     let snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
-    let isActive = await session.start(snippetStr, select, range, insertTextMode)
+    let isActive = await session.start(snippetStr, select, range, insertTextMode, ultisnip)
     if (isActive) this.statusItem.show()
     return isActive
   }
@@ -131,8 +131,8 @@ export class SnippetManager {
     return this.sessionMap.get(bufnr)
   }
 
-  public async resolveSnippet(body: string): Promise<Snippets.TextmateSnippet> {
-    let parser = new Snippets.SnippetParser()
+  public async resolveSnippet(body: string, ultisnip = false): Promise<Snippets.TextmateSnippet> {
+    let parser = new Snippets.SnippetParser(ultisnip)
     const snippet = parser.parse(body, true)
     const resolver = new SnippetVariableResolver()
     await snippet.resolveVariables(resolver)

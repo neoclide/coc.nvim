@@ -246,7 +246,7 @@ describe('SnippetParser', () => {
   })
 
   test('Parser, transform condition if text', () => {
-    const p = new SnippetParser()
+    const p = new SnippetParser(true)
     let snip = p.parse('begin|${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}')
     expect(snip.toString()).toBe('begin|tabular')
     snip.updatePlaceholder(1, 'a')
@@ -254,13 +254,25 @@ describe('SnippetParser', () => {
   })
 
   test('Parser, transform condition not match', () => {
-    const p = new SnippetParser()
+    const p = new SnippetParser(true)
     let snip = p.parse('${1:xyz} ${1/^(f)(b?)/(?2:_:two)/}')
     expect(snip.toString()).toBe('xyz xyz')
   })
 
+  test('Parser, transform backslash in condition', () => {
+    const p = new SnippetParser(true)
+    let snip = p.parse('${1:foo} ${1/^(f)/(?1:x\\)\\:a:two)/}')
+    expect(snip.toString()).toBe('foo x):aoo')
+  })
+
+  test('Parser, transform backslash in format string', () => {
+    const p = new SnippetParser(true)
+    let snip = p.parse('${1:\\n} ${1/^(\\\\n)/$1aa/}')
+    expect(snip.toString()).toBe('\\n \\naa')
+  })
+
   test('Parser, transform condition else text', () => {
-    const p = new SnippetParser()
+    const p = new SnippetParser(true)
     let snip = p.parse('${1:foo} ${1/^(f)(b?)/(?2:_:two)/}')
     expect(snip.toString()).toBe('foo twooo')
     snip.updatePlaceholder(1, 'fb')
@@ -268,9 +280,15 @@ describe('SnippetParser', () => {
   })
 
   test('Parser, transform escape sequence', () => {
-    const p = new SnippetParser()
+    const p = new SnippetParser(true)
     const snip = p.parse('${1:a text}\n${1/\\w+\\s*/\\u$0/}')
     expect(snip.toString()).toBe('a text\nA text')
+  })
+
+  test('Parser, transform backslash', () => {
+    const p = new SnippetParser(true)
+    const snip = p.parse('${1:a}\n${1/\\w+/\\(\\)\\:\\x\\\\y/}')
+    expect(snip.toString()).toBe('a\n():\\x\\\\y')
   })
 
   test('Parser, transform with ascii option', () => {

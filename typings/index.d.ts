@@ -4904,7 +4904,7 @@ declare module 'coc.nvim' {
      *
      * @param edit Contains snippet text and range to replace.
      */
-    export function executeCommand(command: 'editor.action.insertSnippet', edit: TextEdit): Promise<boolean>
+    export function executeCommand(command: 'editor.action.insertSnippet', edit: TextEdit, ultisnip?: boolean): Promise<boolean>
 
     /**
      * Invoke specified code action.
@@ -8227,6 +8227,7 @@ declare module 'coc.nvim' {
   export interface SnippetSession {
     isActive: boolean
   }
+
   export interface TextmateSnippet {
     toString(): string
   }
@@ -8317,7 +8318,7 @@ declare module 'coc.nvim' {
     /**
      * Parse snippet string to TextmateSnippet.
      */
-    export function resolveSnippet(body: string): Promise<TextmateSnippet>
+    export function resolveSnippet(body: string, ultisnip?: boolean): Promise<TextmateSnippet>
     /**
      * Insert snippet at current buffer.
      *
@@ -8326,7 +8327,7 @@ declare module 'coc.nvim' {
      * @param {Range} range Repalce range, insert to current cursor position when undefined.
      * @returns {Promise<boolean>} true when insert success.
      */
-    export function insertSnippet(snippet: string | SnippetString, select?: boolean, range?: Range): Promise<boolean>
+    export function insertSnippet(snippet: string | SnippetString, select?: boolean, range?: Range, ultisnip?: boolean): Promise<boolean>
 
     /**
      * Jump to next placeholder, only works when snippet session activated.

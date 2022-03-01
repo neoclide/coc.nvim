@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../util/charCode'
-import { rangeParts } from '../util/string'
+import { rangeParts, getCharIndexes } from '../util/string'
 import { Range } from 'vscode-languageserver-protocol'
 import unidecode from 'unidecode'
 const logger = require('../util/logger')('snippets-parser')
@@ -339,6 +339,7 @@ export class Transform extends Marker {
 
   public regexp: RegExp
   public ascii = false
+  public ultisnip = false
 
   public resolve(value: string): string {
     let didMatch = false
@@ -356,9 +357,15 @@ export class Transform extends Marker {
 
   private _replace(groups: string[]): string {
     let ret = ''
+    let backslashIndexes: number[] = []
     for (const marker of this._children) {
       if (marker instanceof FormatString) {
-        ret += marker.resolve(groups[marker.index] || '')
+        let val = marker.resolve(groups[marker.index] || '')
+        if (this.ultisnip && val.indexOf('\\') !== -1) {
+          let s = ret.length
+          backslashIndexes.push(...getCharIndexes(val, '\\').map(i => i + s))
+        }
+        ret += val
       } else if (marker instanceof ConditionString) {
         ret += marker.resolve(groups[marker.index])
       } else {
@@ -366,7 +373,7 @@ export class Transform extends Marker {
       }
     }
     if (this.ascii) ret = unidecode(ret)
-    return transformEscapes(ret)
+    return this.ultisnip ? transformEscapes(ret, backslashIndexes) : ret
   }
 
   public toString(): string {
@@ -550,8 +557,13 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
 
 export class TextmateSnippet extends Marker {
 
+  public readonly ultisnip: boolean
   private _placeholders?: { all: Placeholder[]; last?: Placeholder }
   private _variables?: Variable[]
+  constructor(ultisnip?: boolean) {
+    super()
+    this.ultisnip = ultisnip === true
+  }
 
   public get placeholderInfo(): { all: Placeholder[]; last?: Placeholder } {
     if (!this._placeholders) {
@@ -599,12 +611,12 @@ export class TextmateSnippet extends Marker {
     return nums[0] || 0
   }
 
-  public insertSnippet(snippet: string, id: number, range: Range): number {
+  public insertSnippet(snippet: string, id: number, range: Range, ultisnip = false): number {
     let placeholder = this.placeholders[id]
     if (!placeholder) return
     let { index } = placeholder
     let [before, after] = rangeParts(placeholder.toString(), range)
-    let nested = new SnippetParser().parse(snippet, true)
+    let nested = new SnippetParser(ultisnip).parse(snippet, true)
     let maxIndexAdded = nested.maxIndexNumber + 1
     let indexes: number[] = []
     for (let p of nested.placeholders) {
@@ -729,7 +741,7 @@ export class TextmateSnippet extends Marker {
   }
 
   public clone(): TextmateSnippet {
-    let ret = new TextmateSnippet()
+    let ret = new TextmateSnippet(this.ultisnip)
     this._children = this.children.map(child => child.clone())
     return ret
   }
@@ -740,6 +752,8 @@ export class TextmateSnippet extends Marker {
 }
 
 export class SnippetParser {
+  constructor(private ultisnip?: boolean) {
+  }
 
   public static escape(value: string): string {
     return value.replace(/\$|}|\\/g, '\\$&')
@@ -749,7 +763,7 @@ export class SnippetParser {
   private _token: Token
 
   public text(value: string): string {
-    return this.parse(value).toString()
+    return this.parse(value, false).toString()
   }
 
   public parse(value: string, insertFinalTabstop?: boolean): TextmateSnippet {
@@ -757,7 +771,7 @@ export class SnippetParser {
     this._scanner.text(value)
     this._token = this._scanner.next()
 
-    const snippet = new TextmateSnippet()
+    const snippet = new TextmateSnippet(this.ultisnip)
     while (this._parse(snippet)) {
       // nothing
     }
@@ -828,12 +842,14 @@ export class SnippetParser {
     return false
   }
 
-  private _until(type: TokenType): false | string {
+  private _until(type: TokenType, checkBackSlash = false): false | string {
     if (this._token.type === TokenType.EOF) {
       return false
     }
     let start = this._token
-    while (this._token.type !== type) {
+    let pre: Token
+    while (this._token.type !== type || (checkBackSlash && pre?.type === TokenType.Backslash)) {
+      if (checkBackSlash) pre = this._token
       this._token = this._scanner.next()
       if (this._token.type === TokenType.EOF) {
         return false
@@ -1065,6 +1081,7 @@ export class SnippetParser {
     // ...<regex>/<format>/<options>}
 
     let transform = new Transform()
+    transform.ultisnip = this.ultisnip === true
     let regexValue = ''
     let regexOptions = ''
 
@@ -1136,7 +1153,6 @@ export class SnippetParser {
       if (ascii) transform.ascii = true
       transform.regexp = new RegExp(regexValue, regexOptions)
     } catch (e) {
-      // invalid regexp
       return false
     }
 
@@ -1145,7 +1161,9 @@ export class SnippetParser {
   }
 
   private _parseConditionString(parent: Transform): boolean {
+    if (!this.ultisnip) return false
     const token = this._token
+    // (?1:foo:bar)
     if (!this._accept(TokenType.OpenParen)) {
       return false
     }
@@ -1162,7 +1180,7 @@ export class SnippetParser {
       this._backTo(token)
       return false
     }
-    let text = this._until(TokenType.CloseParen)
+    let text = this._until(TokenType.CloseParen, true)
     if (text) {
       let i = 0
       while (i < text.length) {
@@ -1213,6 +1231,10 @@ export class SnippetParser {
       this._backTo(token)
       return false
     }
+    if (this.ultisnip) {
+      this._backTo(token)
+      return false
+    }
 
     if (this._accept(TokenType.Forwardslash)) {
       // ${1:/upcase}
@@ -1253,7 +1275,6 @@ export class SnippetParser {
       }
 
     } else {
-      // ${1:<else>}
       let elseValue = this._until(TokenType.CurlyClose)
       if (elseValue) {
         parent.appendChild(new FormatString(Number(index), undefined, undefined, elseValue))
@@ -1276,7 +1297,8 @@ export class SnippetParser {
   }
 }
 
-export function transformEscapes(input: string): string {
+const escapedCharacters = [':', '(', ')', '{', '}']
+export function transformEscapes(input: string, backslashIndexes = []): string {
   let res = ''
   let len = input.length
   let i = 0
@@ -1284,8 +1306,12 @@ export function transformEscapes(input: string): string {
   let toLower = false
   while (i < len) {
     let ch = input[i]
-    if (ch.charCodeAt(0) === CharCode.Backslash) {
+    if (ch.charCodeAt(0) === CharCode.Backslash && !backslashIndexes.includes(i)) {
       let next = input[i + 1]
+      if (escapedCharacters.includes(next)) {
+        i++
+        continue
+      }
       if (next == 'u' || next == 'l') {
         // Uppercase/Lowercase next letter
         let follow = input[i + 2]

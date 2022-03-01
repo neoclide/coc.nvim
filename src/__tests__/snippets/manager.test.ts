@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { Range } from 'vscode-languageserver-protocol'
+import { InsertTextMode, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import snippetManager from '../../snippets/manager'
@@ -212,13 +212,12 @@ describe('snippet provider', () => {
 
   describe('synchronize text', () => {
     it('should update placeholder on placeholder update', async () => {
-      await snippetManager.insertSnippet('$1\n${1/,/,\\n/g}')
+      await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, true)
       await nvim.input('a,b')
+      await doc.synchronize()
       await helper.wait(50)
-      doc.forceSync()
-      await helper.wait(200)
       let lines = await nvim.call('getline', [1, '$'])
-      expect(lines).toEqual(['a,b', 'a,', 'b'])
+      expect(lines).toEqual(['a,b', 'a|b'])
     })
 
     it('should adjust cursor position on update', async () => {

@@ -130,6 +130,11 @@ describe('textedit', () => {
 })
 
 describe('strings', () => {
+  it('should get character indexes', async () => {
+    expect(strings.getCharIndexes('abaca', 'a')).toEqual([0, 2, 4])
+    expect(strings.getCharIndexes('abd', 'f')).toEqual([])
+  })
+
   it('should get parts', async () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
     expect(res).toEqual(['', 'bar'])

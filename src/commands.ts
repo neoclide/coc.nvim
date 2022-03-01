@@ -1,14 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { CodeAction, Disposable, Location, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CodeAction, Disposable, InsertTextMode, Location, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import diagnosticManager from './diagnostic/manager'
 import Mru from './model/mru'
 import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
 import { wait } from './util'
-import workspace from './workspace'
 import window from './window'
+import workspace from './workspace'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -59,9 +59,9 @@ export class CommandManager implements Disposable {
     }, true)
     this.register({
       id: 'editor.action.insertSnippet',
-      execute: async (edit: TextEdit) => {
+      execute: async (edit: TextEdit, ultisnip = false) => {
         await nvim.call('coc#_cancel', [])
-        return await snipetsManager.insertSnippet(edit.newText, true, edit.range)
+        return await snipetsManager.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, ultisnip)
       }
     }, true)
     this.register({

@@ -1,6 +1,6 @@
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import { VimCompleteItem } from './types'
 import { disposeAll } from './util'
-import { BufferOption, VimCompleteItem } from './types'
 import { equals } from './util/object'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('events')
