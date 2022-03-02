@@ -7,6 +7,7 @@ import languages from '../../languages'
 import { BufferSyncItem } from '../../types'
 import window from '../../window'
 import workspace from '../../workspace'
+import Document from '../../model/document'
 const logger = require('../../util/logger')('codelens-buffer')
 
 export interface CodeLensInfo {
@@ -56,8 +57,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   private get enabled(): boolean {
-    let { textDocument } = this
-    return textDocument && this.config.enabled && languages.hasProvider('codeLens', textDocument)
+    return this.document && this.config.enabled && languages.hasProvider('codeLens', this.document.textDocument)
   }
 
   public async forceFetch(): Promise<void> {
@@ -65,8 +65,8 @@ export default class CodeLensBuffer implements BufferSyncItem {
     await this._fetchCodeLenses()
   }
 
-  private get textDocument(): LinesTextDocument | undefined {
-    return workspace.getDocument(this.bufnr)?.textDocument
+  private get document(): Document | undefined {
+    return workspace.getDocument(this.bufnr)
   }
 
   private async _fetchCodeLenses(): Promise<void> {
@@ -74,7 +74,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
     this.cancel()
     let noFetch = !this.isChanged && !this.codeLenses?.hasError
     if (!noFetch) {
-      let { textDocument } = this
+      let { textDocument } = this.document
       let version = textDocument.version
       let tokenSource = this.tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
@@ -122,16 +122,17 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   private get isChanged(): boolean {
-    if (!this.textDocument || !this.codeLenses) return true
+    if (!this.document || !this.codeLenses) return true
     let { version } = this.codeLenses
-    return this.textDocument.version !== version
+    return this.document.textDocument.version !== version
   }
 
   /**
    * Attach resolved codeLens
    */
   private setVirtualText(codeLenses: CodeLens[]): void {
-    if (codeLenses.length == 0) return
+    let { document } = this
+    if (!document || !codeLenses.length) return
     let list: Map<number, CodeLens[]> = new Map()
     let { position } = this.config
     for (let codeLens of codeLenses) {
@@ -144,8 +145,6 @@ export default class CodeLensBuffer implements BufferSyncItem {
         list.set(line, [codeLens])
       }
     }
-    let textDocument = this.textDocument
-    let buf = this.nvim.createBuffer(this.bufnr)
     for (let lnum of list.keys()) {
       let codeLenses = list.get(lnum)
       let commands = codeLenses.map(codeLens => codeLens.command)
@@ -163,9 +162,11 @@ export default class CodeLensBuffer implements BufferSyncItem {
         chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
       }
       if (workspace.has('nvim-0.6.0')) {
-        let textLine = textDocument.lineAt(lnum)
+        let buf = this.nvim.createBuffer(this.bufnr)
+        if (lnum >= document.lineCount) continue
+        let line = document.getline(lnum)
         if (position == 'top') {
-          let indent = textLine.text.match(/^\s*/)[0]
+          let indent = line.match(/^\s*/)[0]
           if (indent.length > 0) chunks.unshift([indent, 'Normal'])
           buf.setExtMark(this.srcId, lnum, 0, {
             virt_lines: [chunks],
