@@ -1,3 +1,13 @@
+# 2022-03-02
+
+- Add ultisnip option to `snippetManager.insertSnippet()` and
+  `snippetManager.resolveSnippet()`.
+- Support ultisnip regex option: `/a` (ascii option).
+- Support transform replacement of ultisnip, including:
+  - Variable placeholders, `$0`, `$1` etc.
+  - Escape sequence `\u` `\l` `\U` `\L` `\E` `\n` `\t`
+  - Conditional replacement: `(?no:text:other text)`
+
 # 2022-02-28
 
 - Change `workspace.ignoredFiletypes` default value to `[]`
