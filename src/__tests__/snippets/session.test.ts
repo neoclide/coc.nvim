@@ -23,7 +23,6 @@ describe('SnippetSession#start', () => {
 
   it('should start with plain snippet', async () => {
     let buf = await helper.edit()
-    await helper.wait(30)
     await nvim.input('i')
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('bar$0')
@@ -34,7 +33,6 @@ describe('SnippetSession#start', () => {
 
   it('should start with range replaced', async () => {
     let buf = await helper.edit()
-    await helper.wait(30)
     await nvim.setLine('foo')
     await nvim.input('i')
     let session = new SnippetSession(nvim, buf.id)
@@ -46,11 +44,10 @@ describe('SnippetSession#start', () => {
 
   it('should insert placeholder with default value', async () => {
     let buf = await helper.edit()
-    await helper.wait(30)
     await nvim.input('i')
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('a${TM_SELECTED_TEXT:return}b')
-    expect(res).toBe(false)
+    expect(res).toBe(true)
     let line = await nvim.line
     expect(line).toBe('areturnb')
   })
@@ -60,8 +57,8 @@ describe('SnippetSession#start', () => {
     await nvim.setLine('  ab')
     await nvim.input('i<right><right><right>')
     let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('x\n')
-    expect(res).toBe(false)
+    let res = await session.start('${1:x}\n')
+    expect(res).toBe(true)
     let lines = await buf.lines
     expect(lines).toEqual(['  ax', '  b'])
   })
@@ -79,12 +76,11 @@ describe('SnippetSession#start', () => {
   it('should insert indent for snippet endsWith line break', async () => {
     let buf = await helper.edit()
     await nvim.setLine('  bar')
-    await helper.wait(10)
     await nvim.command('startinsert')
     await nvim.call('cursor', [1, 3])
     let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('foo\n')
-    expect(res).toBe(false)
+    let res = await session.start('${1:foo}\n')
+    expect(res).toBe(true)
     let lines = await buf.lines
     expect(lines).toEqual(['  foo', '  bar'])
   })
@@ -93,7 +89,7 @@ describe('SnippetSession#start', () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('${TM_LINE_NUMBER}')
-    expect(res).toBe(false)
+    expect(res).toBe(true)
     let line = await nvim.line
     expect(line).toBe('1')
   })
@@ -102,7 +98,7 @@ describe('SnippetSession#start', () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('${TM_SELECTION:abc}')
-    expect(res).toBe(false)
+    expect(res).toBe(true)
     let line = await nvim.line
     expect(line).toBe('abc')
   })
@@ -200,29 +196,31 @@ describe('SnippetSession#start', () => {
     expect(pos).toEqual({ line: 0, character: 2 })
   })
 
-  it('should jump to variable placeholder with same name only once', async () => {
+  it('should jump to first placeholder', async () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
     await session.start('${foo} ${foo} ${2:bar}', false)
     await session.selectCurrentPlaceholder()
-    await session.nextPlaceholder()
-    await session.nextPlaceholder()
     let pos = await window.getCursorPosition()
+    expect(pos).toEqual({ line: 0, character: 10 })
+    await session.nextPlaceholder()
+    pos = await window.getCursorPosition()
+    expect(pos).toEqual({ line: 0, character: 2 })
+    await session.nextPlaceholder()
+    pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 11 })
   })
 
   it('should start nest snippet without select', async () => {
-    let buf = await helper.edit()
+    let doc = await helper.createDocument()
     await nvim.command('startinsert')
-    let session = new SnippetSession(nvim, buf.id)
+    let session = new SnippetSession(nvim, doc.bufnr)
     let res = await session.start('${1:a} ${2:b}')
-    await helper.wait(30)
-    await nvim.input('<backspace>')
+    let line = await nvim.call('getline', ['.'])
     res = await session.start('${1:foo} ${2:bar}', false)
-    await helper.wait(30)
     expect(res).toBe(true)
-    let line = await nvim.line
-    expect(line).toBe('foo bar b')
+    line = await nvim.line
+    expect(line).toBe('foo bara b')
   })
 
   it('should select none transform placeholder', async () => {
@@ -236,9 +234,9 @@ describe('SnippetSession#start', () => {
   })
 
   it('should indent multiple lines variable text', async () => {
+    let buf = await helper.edit()
     let text = 'abc\n  def'
     await nvim.setVar('coc_selected_text', text)
-    let buf = await helper.edit()
     await nvim.input('i')
     let session = new SnippetSession(nvim, buf.id)
     await session.start('fun\n  ${0:${TM_SELECTED_TEXT:return}}\nend')
@@ -248,6 +246,25 @@ describe('SnippetSession#start', () => {
     expect(lines).toEqual([
       'fun', '  abc', '    def', 'end'
     ])
+  })
+
+  it('should resolve VISUAL', async () => {
+    let buf = await nvim.buffer
+    let text = 'abc'
+    await nvim.setVar('coc_selected_text', text)
+    let session = new SnippetSession(nvim, buf.id)
+    await session.start('$VISUAL')
+    let line = await nvim.line
+    expect(line).toBe('abc')
+  })
+
+  it('should resolve default value of VISUAL', async () => {
+    let buf = await nvim.buffer
+    await nvim.setVar('coc_selected_text', '')
+    let session = new SnippetSession(nvim, buf.id)
+    await session.start('${VISUAL:foo}')
+    let line = await nvim.line
+    expect(line).toBe('foo')
   })
 })
 
@@ -352,24 +369,6 @@ describe('SnippetSession#synchronizeUpdatedPlaceholders', () => {
       text: 'def'
     })
     expect(session.isActive).toBe(true)
-  })
-
-  it('should adjust for variable placeholders', async () => {
-    let buf = await helper.edit()
-    await nvim.input('i')
-    let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('${foo} ${foo}')
-    expect(res).toBe(true)
-    await session.selectCurrentPlaceholder()
-    await helper.wait(100)
-    await nvim.input('bar')
-    await helper.wait(100)
-    await session.synchronizeUpdatedPlaceholders({
-      range: Range.create(0, 0, 0, 3),
-      text: 'bar'
-    })
-    let line = await nvim.getLine()
-    expect(line).toBe('bar bar')
   })
 
   it('should adjust with previous line change', async () => {

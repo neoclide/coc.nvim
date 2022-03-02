@@ -1,7 +1,8 @@
 /* eslint-disable */
 import * as assert from 'assert'
-import { Scanner, transformEscapes, TokenType, SnippetParser, Text, Placeholder, Variable, Marker, TextmateSnippet, Choice, FormatString, Transform } from '../../snippets/parser'
+import { Scanner, transformEscapes, TokenType, SnippetParser, Text, Placeholder, CodeBlock, Variable, Marker, TextmateSnippet, Choice, FormatString, Transform } from '../../snippets/parser'
 import { Range } from 'vscode-languageserver-types'
+import { EvalKind } from '../../snippets/eval'
 
 describe('SnippetParser', () => {
 
@@ -95,8 +96,8 @@ describe('SnippetParser', () => {
     assert.equal(scanner.next().type, TokenType.EOF)
   })
 
-  function assertText(value: string, expected: string) {
-    const p = new SnippetParser()
+  function assertText(value: string, expected: string, ultisnip = false) {
+    const p = new SnippetParser(ultisnip)
     const actual = p.text(value)
     assert.equal(actual, expected)
   }
@@ -136,6 +137,16 @@ describe('SnippetParser', () => {
     assertEscaped('f$1oo$0', 'f\\$1oo\\$0')
     assertEscaped('${1:foo}$0', '\\${1:foo\\}\\$0')
     assertEscaped('$', '\\$')
+  })
+
+  test('Parser, isPlainText()', function() {
+    const s = (input: string, res: boolean) => {
+      assert.equal(SnippetParser.isPlainText(input), res)
+    }
+    s('abc', true)
+    s('abc$0', true)
+    s('ab$0chh', false)
+    s('ab$1chh', false)
   })
 
   test('Parser, text', () => {
@@ -245,11 +256,131 @@ describe('SnippetParser', () => {
 
   })
 
+  test('Parse, parse code block', () => {
+    assertText('aa \\`echo\\`', 'aa `echo`', true)
+    assertText('aa `xyz`', 'aa ', true)
+    assertText('aa `!v xyz`', 'aa ', true)
+    assertText('aa `!p xyz`', 'aa ', true)
+    assertText('aa `!p foo\nbar`', 'aa ', true)
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    assertMarker(c('`foo`'), CodeBlock)
+    assertMarker(c('`!v bar`'), CodeBlock)
+    assertMarker(c('`!p python`'), CodeBlock)
+    const assertPlaceholder = (text: string, kind: EvalKind, code: string) => {
+      let p = c(text).children[0]
+      assert.ok(p instanceof Placeholder)
+      let m = p.children[0] as CodeBlock
+      assert.ok(m instanceof CodeBlock)
+      assert.equal(m.kind, kind)
+      assert.equal(m.code, code)
+    }
+    assertPlaceholder('${1:` foo `}', 'shell', 'foo')
+    assertPlaceholder('${1:`!v bar`}', 'vim', 'bar')
+    assertPlaceholder('${1:`!p python`}', 'python', 'python')
+    assertPlaceholder('${1:`!p x\\`y`}', 'python', 'x\\`y')
+    assertPlaceholder('${1:`!p x\ny`}', 'python', 'x\ny')
+    assertPlaceholder('${1:`!p \nx\ny`}', 'python', 'x\ny')
+  })
+
+  test('Parser, placeholder with CodeBlock primary', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let s = c('${1/^_(.*)/$1/} $1 aa ${1:`!p snip.rv = "_foo"`}')
+    let arr = s.placeholders
+    arr = arr.filter(o => o.index == 1)
+    assert.equal(arr.length, 3)
+    let filtered = arr.filter(o => o.primary === true)
+    assert.equal(filtered.length, 1)
+    assert.equal(filtered[0], arr[2])
+    let childs = arr.map(o => o.children[0])
+    assert.ok(childs[0] instanceof Text)
+    assert.ok(childs[1] instanceof Text)
+    assert.ok(childs[2] instanceof CodeBlock)
+  })
+
+  test('Parser, placeholder with CodeBlock not primary', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let s = c('${1/^_(.*)/$1/} ${1:_foo} ${2:bar} $1 $3 ${1:`!p snip.rv = "three"`}')
+    let arr = s.placeholders
+    arr = arr.filter(o => o.index == 1)
+    assert.equal(arr.length, 4)
+    assert.ok(arr[0].transform)
+    assert.equal(arr[1].primary, true)
+    assert.equal(arr[2].toString(), '_foo')
+    assert.equal(arr[3].toString(), '_foo')
+    assert.deepEqual(s.values, { '0': '', '1': '_foo', '2': 'bar', '3': '' })
+  })
+
+  test('Parser, python CodeBlock with related', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let s = c('${1:_foo} ${2:bar} $1 $3 ${3:`!p snip.rv = str(t[1]) + str(t[2])`}')
+    let b = s.pyBlocks[0]
+    expect(b).toBeDefined()
+    expect(b.related).toEqual([1, 2])
+  })
+
+  test('Parser, python CodeBlock by sequence', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let s = c('${2:\{${3:`!p foo`}\}} ${1:`!p bar`}')
+    let arr = s.pyBlocks
+    expect(arr[0].code).toBe('foo')
+    expect(arr[1].code).toBe('bar')
+  })
+
+  test('Parser, hasPython()', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    assert.equal(c('${1:`!p foo`}').hasPython, true)
+    assert.equal(c('`!p foo`').hasPython, true)
+    assert.equal(c('$1').hasPython, false)
+  })
+
+  test('Parser, hasCodeBlock()', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    assert.equal(c('${1:`!p foo`}').hasCodeBlock, true)
+    assert.equal(c('`!p foo`').hasCodeBlock, true)
+    assert.equal(c('$1').hasCodeBlock, false)
+  })
+
+  test('Parser, resolved variable', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let s = c('${1:${VISUAL}} $1')
+    assert.ok(s.children[0] instanceof Placeholder)
+    assert.ok(s.children[0].children[0] instanceof Variable)
+    let v = s.children[0].children[0] as Variable
+    assert.equal(v.name, 'VISUAL')
+  })
+
+  test('Parser variable with code', () => {
+    // not allowed on ultisnips.
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let s = c('${foo:`!p snip.rv = "bar"`}')
+    assert.ok(s.children[0] instanceof Variable)
+    assert.ok(s.children[0].children[0] instanceof CodeBlock)
+  })
+
   test('Parser, transform condition if text', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('begin|${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}')
     expect(snip.toString()).toBe('begin|tabular')
-    snip.updatePlaceholder(1, 'a')
+    let m = snip.placeholders.find(o => o.index == 1 && o.primary)
+    snip.resetMarker(m, 'a')
     expect(snip.toString()).toBe('begin|array')
   })
 
@@ -271,11 +402,20 @@ describe('SnippetParser', () => {
     expect(snip.toString()).toBe('\\n \\naa')
   })
 
+  test('Parser, ultisnips transform replacement', () => {
+    const p = new SnippetParser(true)
+    let snip = p.parse('${1:foo} ${1/^\\w/$0_/}')
+    expect(snip.toString()).toBe('foo f_oo')
+    snip = p.parse('${1:foo} ${1/^\\w//}')
+    expect(snip.toString()).toBe('foo oo')
+  })
+
   test('Parser, transform condition else text', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:foo} ${1/^(f)(b?)/(?2:_:two)/}')
     expect(snip.toString()).toBe('foo twooo')
-    snip.updatePlaceholder(1, 'fb')
+    let m = snip.placeholders.find(o => o.index == 1 && o.primary)
+    snip.resetMarker(m, 'fb')
     expect(snip.toString()).toBe('fb _')
   })
 
@@ -292,9 +432,12 @@ describe('SnippetParser', () => {
   })
 
   test('Parser, transform with ascii option', () => {
-    const p = new SnippetParser()
-    const snip = p.parse('${1:pêche}\n${1/.*/$0/a}')
+    let p = new SnippetParser()
+    let snip = p.parse('${1:pêche}\n${1/.*/$0/a}')
     expect(snip.toString()).toBe('pêche\npeche')
+    p = new SnippetParser()
+    snip = p.parse('${1/.*/$0/a}\n${1:pêche}')
+    expect(snip.toString()).toBe('peche\npêche')
   })
 
   test('Parser, placeholder with transform', () => {
@@ -677,22 +820,11 @@ describe('SnippetParser', () => {
   })
 
   test('TextmateSnippet#insertSnippet', function() {
-    let snippet = new SnippetParser().parse('${1:aaa} ${1:aaa} bbb ${2:ccc}}$0', true)
-    snippet.insertSnippet('|${1:dd} ${2:ff}|', 1, Range.create(0, 0, 0, 0))
-    const [one, two, three] = snippet.placeholders
-    assert.equal(one.index, 1)
-    assert.equal(one.toString(), 'aaa')
-    assert.equal(two.index, 2)
-    assert.equal(two.toString(), 'dd')
-    assert.equal(three.index, 3)
-    assert.equal(three.toString(), 'ff')
-  })
-
-  test('TextmateSnippet#updatePlaceholder', function() {
-    let snippet = new SnippetParser().parse('aaa${1:bbb} ${1:bbb}', true)
-    snippet.updatePlaceholder(0, 'ccc')
-    let p = snippet.placeholders[0]
-    assert.equal(p.toString(), 'ccc')
+    let snippet = new SnippetParser().parse('${1:aaa} bbb ${2:ccc}}$0', true)
+    let marker = snippet.placeholders.find(o => o.index == 1)
+    snippet.insertSnippet('${1:dd} ${2:ff}', marker, Range.create(0, 0, 0, 0))
+    let arr = snippet.placeholders.map(p => p.index)
+    expect(arr).toEqual([2, 3, 4, 5, 0])
   })
 
   test('Snippet order for placeholders, #28185', function() {

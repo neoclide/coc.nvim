@@ -6,6 +6,8 @@
 import { CharCode } from '../util/charCode'
 import { rangeParts, getCharIndexes } from '../util/string'
 import { Range } from 'vscode-languageserver-protocol'
+import { Neovim } from '@chemzqm/neovim'
+import { EvalKind, evalCode, executePythonCode, getVariablesCode } from './eval'
 import unidecode from 'unidecode'
 const logger = require('../util/logger')('snippets-parser')
 
@@ -28,6 +30,8 @@ export const enum TokenType {
   EOF,
   OpenParen,
   CloseParen,
+  BackTick,
+  ExclamationMark,
 }
 
 export interface Token {
@@ -52,6 +56,8 @@ export class Scanner {
     [CharCode.QuestionMark]: TokenType.QuestionMark,
     [CharCode.OpenParen]: TokenType.OpenParen,
     [CharCode.CloseParen]: TokenType.CloseParen,
+    [CharCode.BackTick]: TokenType.BackTick,
+    [CharCode.ExclamationMark]: TokenType.ExclamationMark,
   }
 
   public static isDigitCharacter(ch: number): boolean {
@@ -239,11 +245,83 @@ export class Text extends Marker {
   }
 }
 
+export class CodeBlock extends Marker {
+
+  private _value = ''
+  private _related: number[] = []
+
+  constructor(public readonly code: string, public readonly kind: EvalKind) {
+    super()
+    if (kind === 'python') {
+      let { _related } = this
+      let arr
+      let re = /\bt\[(\d+)\]/g
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        arr = re.exec(code)
+        if (arr == null) break
+        let n = parseInt(arr[1], 10)
+        if (!_related.includes(n)) _related.push(n)
+      }
+    }
+  }
+
+  public get related(): number[] {
+    return this._related
+  }
+
+  public get index(): number | undefined {
+    if (this.parent instanceof Placeholder) {
+      return this.parent.index
+    }
+    return undefined
+  }
+
+  public get isPython(): boolean {
+    return this.kind == 'python'
+  }
+
+  public async resolve(nvim: Neovim): Promise<void> {
+    if (!this.code.length) return
+    let res = await evalCode(nvim, this.kind, this.code, this._value)
+    if (res != null) this._value = res
+  }
+
+  public len(): number {
+    return this._value.length
+  }
+
+  public toString(): string {
+    return this._value
+  }
+
+  public get value(): string {
+    return this._value
+  }
+
+  public toTextmateString(): string {
+    let t = ''
+    if (this.kind == 'python') {
+      t = 'p'
+    } else if (this.kind == 'shell') {
+      t = '!'
+    } else if (this.kind == 'vim') {
+      t = 'v'
+    }
+    return '`' + t + ' ' + (this.code) + '`'
+  }
+
+  public clone(): CodeBlock {
+    return new CodeBlock(this.code, this.kind)
+  }
+}
+
 export abstract class TransformableMarker extends Marker {
   public transform: Transform
 }
 
 export class Placeholder extends TransformableMarker {
+  public primary = false
   public static compareByIndex(a: Placeholder, b: Placeholder): number {
     if (a.index === b.index) {
       return 0
@@ -479,13 +557,16 @@ export class FormatString extends Marker {
 }
 
 export class Variable extends TransformableMarker {
+  private _resolved = false
 
   constructor(public name: string) {
     super()
   }
 
   public async resolve(resolver: VariableResolver): Promise<boolean> {
+    if (this._resolved) return true
     let value = await resolver.resolve(this)
+    this._resolved = true
     if (value && value.includes('\n')) {
       // get indent from previous texts
       let indent = ''
@@ -543,6 +624,13 @@ export interface VariableResolver {
   resolve(variable: Variable): Promise<string | undefined>
 }
 
+export interface PlaceholderInfo {
+  placeholders: Placeholder[]
+  variables: Variable[]
+  pyBlocks: CodeBlock[]
+  otherBlocks: CodeBlock[]
+}
+
 function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
   const stack = [...marker]
   while (stack.length > 0) {
@@ -558,44 +646,212 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
 export class TextmateSnippet extends Marker {
 
   public readonly ultisnip: boolean
-  private _placeholders?: { all: Placeholder[]; last?: Placeholder }
-  private _variables?: Variable[]
+  private _placeholders?: PlaceholderInfo
+  private _values?: { [index: number]: string }
   constructor(ultisnip?: boolean) {
     super()
     this.ultisnip = ultisnip === true
   }
 
-  public get placeholderInfo(): { all: Placeholder[]; last?: Placeholder } {
+  public get hasPython(): boolean {
+    if (!this.ultisnip) return false
+    return this.pyBlocks.length > 0
+  }
+
+  public get hasCodeBlock(): boolean {
+    if (!this.ultisnip) return false
+    let { pyBlocks, otherBlocks } = this
+    return pyBlocks.length > 0 || otherBlocks.length > 0
+  }
+
+  /**
+   * Values for each placeholder index
+   */
+  public get values(): { [index: number]: string } {
+    if (this._values) return this._values
+    let values: { [index: number]: string } = {}
+    let maxIndexNumber = 0
+    this.placeholders.forEach(c => {
+      maxIndexNumber = Math.max(c.index, maxIndexNumber)
+      if (c.transform != null) return
+      if (c.primary || values[c.index] === undefined) values[c.index] = c.toString()
+    })
+    for (let i = 0; i <= maxIndexNumber; i++) {
+      if (values[i] === undefined) values[i] = ''
+    }
+    this._values = values
+    return values
+  }
+
+  public get orderedPyIndexBlocks(): CodeBlock[] {
+    let res: CodeBlock[] = []
+    let filtered = this.pyBlocks.filter(o => typeof o.index === 'number')
+    if (filtered.length == 0) return res
+    let allIndexes = filtered.map(o => o.index)
+    let usedIndexes: number[] = []
+    const checkBlock = (b: CodeBlock): boolean => {
+      let { related } = b
+      if (related.length == 0
+        || related.every(idx => !allIndexes.includes(idx) || usedIndexes.includes(idx))) {
+        usedIndexes.push(b.index)
+        res.push(b)
+        return true
+      }
+      return false
+    }
+    while (filtered.length > 0) {
+      let c = false
+      for (let b of filtered) {
+        if (checkBlock(b)) {
+          c = true
+        }
+      }
+      if (!c) {
+        // recuisive dependencies detected
+        break
+      }
+      filtered = filtered.filter(o => !usedIndexes.includes(o.index))
+    }
+    return res
+  }
+
+  public async evalCodeBlocks(nvim: Neovim, prepareCodes: string[]): Promise<void> {
+    let { pyBlocks, otherBlocks } = this
+    // update none python blocks
+    await Promise.all(otherBlocks.map(block => {
+      let pre = block.value
+      return block.resolve(nvim).then(() => {
+        if (block.parent instanceof Placeholder && pre !== block.value) {
+          // update placeholder with same index
+          this.updatePlaceholder(block.parent)
+        }
+      })
+    }))
+    if (pyBlocks.length) {
+      // run all python code by sequence
+      const variableCode = getVariablesCode(this.values)
+      await executePythonCode(nvim, [...prepareCodes, variableCode])
+      for (let block of pyBlocks) {
+        let pre = block.value
+        await block.resolve(nvim)
+        if (pre === block.value) continue
+        if (block.parent instanceof Placeholder) {
+          // update placeholder with same index
+          this.updatePlaceholder(block.parent)
+          await executePythonCode(nvim, [getVariablesCode(this.values)])
+        }
+      }
+      for (let block of this.orderedPyIndexBlocks) {
+        await this.updatePyIndexBlock(nvim, block)
+      }
+      // update normal python block with related.
+      let filtered = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
+      if (filtered.length) await Promise.all(filtered.map(block => block.resolve(nvim)))
+    }
+  }
+
+  /**
+   * Update python blocks after user change Placeholder with index
+   */
+  public async updatePythonCodes(nvim: Neovim, marker: Marker): Promise<void> {
+    let index: number | undefined
+    if (marker instanceof Placeholder) {
+      index = marker.index
+    } else {
+      while (marker.parent) {
+        if (marker instanceof Placeholder) {
+          index = marker.index
+          break
+        }
+        marker = marker.parent
+      }
+    }
+    if (index === undefined) return
+    // update related placeholders
+    let blocks = this.getDependentPyIndexBlocks(index)
+    await executePythonCode(nvim, [getVariablesCode(this.values)])
+    for (let block of blocks) {
+      await this.updatePyIndexBlock(nvim, block)
+    }
+    // update normal py codes.
+    let filtered = this.pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
+    if (filtered.length) await Promise.all(filtered.map(block => block.resolve(nvim)))
+  }
+
+  private getDependentPyIndexBlocks(index: number): CodeBlock[] {
+    const res: CodeBlock[] = []
+    const taken: number[] = []
+    let filtered = this.pyBlocks.filter(o => typeof o.index === 'number')
+    const search = (idx: number) => {
+      let blocks = filtered.filter(o => !taken.includes(o.index) && o.related.includes(idx))
+      if (blocks.length > 0) {
+        res.push(...blocks)
+        blocks.forEach(b => {
+          search(b.index)
+        })
+      }
+    }
+    search(index)
+    return res
+  }
+
+  /**
+   * Update single index block
+   */
+  private async updatePyIndexBlock(nvim: Neovim, block: CodeBlock): Promise<void> {
+    let pre = block.value
+    await block.resolve(nvim)
+    if (pre === block.value) return
+    if (block.parent instanceof Placeholder) {
+      this.updatePlaceholder(block.parent)
+    }
+    await executePythonCode(nvim, [getVariablesCode(this.values)])
+  }
+
+  public get placeholderInfo(): PlaceholderInfo {
     if (!this._placeholders) {
-      this._variables = []
+      const variables = []
+      const pyBlocks: CodeBlock[] = []
+      const otherBlocks: CodeBlock[] = []
       // fill in placeholders
-      let all: Placeholder[] = []
-      let last: Placeholder | undefined
+      let placeholders: Placeholder[] = []
       this.walk(candidate => {
         if (candidate instanceof Placeholder) {
-          all.push(candidate)
-          last = !last || last.index < candidate.index ? candidate : last
+          placeholders.push(candidate)
         } else if (candidate instanceof Variable) {
           let first = candidate.name.charCodeAt(0)
           // not jumpover for uppercase variable.
           if (first < 65 || first > 90) {
-            this._variables.push(candidate)
+            variables.push(candidate)
+          }
+        } else if (candidate instanceof CodeBlock) {
+          if (candidate.kind === 'python') {
+            pyBlocks.push(candidate)
+          } else {
+            otherBlocks.push(candidate)
           }
         }
         return true
       })
-      this._placeholders = { all, last }
+      this._placeholders = { placeholders, pyBlocks, otherBlocks, variables }
     }
     return this._placeholders
   }
 
   public get variables(): Variable[] {
-    return this._variables
+    return this.placeholderInfo.variables
   }
 
   public get placeholders(): Placeholder[] {
-    const { all } = this.placeholderInfo
-    return all
+    return this.placeholderInfo.placeholders
+  }
+
+  public get pyBlocks(): CodeBlock[] {
+    return this.placeholderInfo.pyBlocks
+  }
+
+  public get otherBlocks(): CodeBlock[] {
+    return this.placeholderInfo.otherBlocks
   }
 
   public get maxIndexNumber(): number {
@@ -611,11 +867,9 @@ export class TextmateSnippet extends Marker {
     return nums[0] || 0
   }
 
-  public insertSnippet(snippet: string, id: number, range: Range, ultisnip = false): number {
-    let placeholder = this.placeholders[id]
-    if (!placeholder) return
-    let { index } = placeholder
-    let [before, after] = rangeParts(placeholder.toString(), range)
+  public insertSnippet(snippet: string, marker: Placeholder | Variable, range: Range, ultisnip = false): Placeholder {
+    let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
+    let [before, after] = rangeParts(marker.toString(), range)
     let nested = new SnippetParser(ultisnip).parse(snippet, true)
     let maxIndexAdded = nested.maxIndexNumber + 1
     let indexes: number[] = []
@@ -627,6 +881,9 @@ export class TextmateSnippet extends Marker {
       }
       indexes.push(p.index)
     }
+    let minIndex = Math.min.apply(null, indexes)
+    let arr = nested.placeholders.filter(o => o.index == minIndex)
+    let select = arr.find(o => o.primary === true) ?? arr[0]
     this.walk(m => {
       if (m instanceof Placeholder && m.index > index) {
         m.index = m.index + maxIndexAdded
@@ -636,35 +893,57 @@ export class TextmateSnippet extends Marker {
     let children = nested.children
     if (before) children.unshift(new Text(before))
     if (after) children.push(new Text(after))
-    this.replace(placeholder, children)
-    return Math.min.apply(null, indexes)
+    this.replace(marker, children)
+    this.reset()
+    return select
   }
 
-  public updatePlaceholder(id: number, val: string): void {
-    const placeholder = this.placeholders[id]
-    for (let p of this.placeholders) {
-      if (p.index == placeholder.index) {
-        let child = p.children[0]
-        let newText = p.transform ? p.transform.resolve(val) : val
-        if (child) {
-          p.setOnlyChild(new Text(newText))
-        } else {
-          p.appendChild(new Text(newText))
-        }
-      }
+  public async update(nvim: Neovim, marker: Placeholder | Variable, value: string): Promise<void> {
+    this.resetMarker(marker, value)
+    if (this.hasPython) {
+      await this.updatePythonCodes(nvim, marker)
     }
-    this._placeholders = undefined
   }
 
-  public updateVariable(id: number, val: string): void {
-    const find = this.variables[id - this.maxIndexNumber - 1]
-    if (find) {
-      let variables = this.variables.filter(o => o.name == find.name)
-      for (let variable of variables) {
-        let newText = variable.transform ? variable.transform.resolve(val) : val
-        variable.setOnlyChild(new Text(newText))
-      }
+  public resetMarker(marker: Placeholder | Variable, val: string): void {
+    let markers: (Placeholder | Variable)[]
+    if (marker instanceof Placeholder) {
+      markers = this.placeholders.filter(o => o.index == marker.index)
+    } else {
+      markers = this.variables.filter(o => o.name == marker.name)
     }
+    for (let p of markers) {
+      let newText = p.transform ? p.transform.resolve(val) : val
+      p.setOnlyChild(new Text(newText || ''))
+    }
+    // TODO reset value for removed placeholder.
+    this.sychronizeParents(markers)
+    this.reset()
+  }
+
+  public updatePlaceholder(placeholder: Placeholder): void {
+    let val = placeholder.toString()
+    this.values[placeholder.index] = val
+    let markers = this.placeholders.filter(o => o.index == placeholder.index)
+    for (let p of markers) {
+      if (p === placeholder) continue
+      let newText = p.transform ? p.transform.resolve(val) : val
+      p.setOnlyChild(new Text(newText || ''))
+    }
+    this.sychronizeParents(markers)
+  }
+
+  public sychronizeParents(markers: Marker[]): void {
+    let arr: Placeholder[] = []
+    markers.forEach(m => {
+      let p = m.parent
+      if (p instanceof Placeholder && !arr.includes(p)) {
+        arr.push(p)
+      }
+    })
+    arr.forEach(p => {
+      this.updatePlaceholder(p)
+    })
   }
 
   /**
@@ -724,16 +1003,24 @@ export class TextmateSnippet extends Marker {
       return true
     })
     await Promise.all(items.map(o => o.resolve(resolver)))
+    this.sychronizeParents(items)
   }
 
   public appendChild(child: Marker): this {
-    this._placeholders = undefined
+    this.reset()
     return super.appendChild(child)
   }
 
   public replace(child: Marker, others: Marker[]): void {
-    this._placeholders = undefined
+    this.reset()
     return super.replace(child, others)
+  }
+
+  /**
+   * Used on replace happens.
+   */
+  public reset(): void {
+    this._placeholders = undefined
   }
 
   public toTextmateString(): string {
@@ -759,6 +1046,11 @@ export class SnippetParser {
     return value.replace(/\$|}|\\/g, '\\$&')
   }
 
+  public static isPlainText(value: string): boolean {
+    let s = new SnippetParser().parse(value.replace(/\$0$/, ''), false)
+    return s.children.length == 1 && s.children[0] instanceof Text
+  }
+
   private _scanner = new Scanner()
   private _token: Token
 
@@ -778,14 +1070,15 @@ export class SnippetParser {
 
     // fill in values for placeholders. the first placeholder of an index
     // that has a value defines the value for all placeholders with that index
-    const placeholderDefaultValues = new Map<number, Marker[]>()
+    const placeholderDefaultValues = new Map<number, string>()
     const incompletePlaceholders: Placeholder[] = []
+    let hasFinal = false
     snippet.walk(marker => {
       if (marker instanceof Placeholder) {
-        if (marker.isFinalTabstop) {
-          placeholderDefaultValues.set(0, undefined)
-        } else if (!placeholderDefaultValues.has(marker.index) && marker.children.length > 0) {
-          placeholderDefaultValues.set(marker.index, marker.children)
+        if (marker.index == 0) hasFinal = true
+        if (!placeholderDefaultValues.has(marker.index) && marker.children.length > 0) {
+          marker.primary = true
+          placeholderDefaultValues.set(marker.index, marker.toString())
         } else {
           incompletePlaceholders.push(marker)
         }
@@ -793,30 +1086,15 @@ export class SnippetParser {
       return true
     })
     for (const placeholder of incompletePlaceholders) {
+      // avoid transform and replace since no value exists.
       if (placeholderDefaultValues.has(placeholder.index)) {
-        const clone = new Placeholder(placeholder.index)
-        clone.transform = placeholder.transform
-        for (const child of placeholderDefaultValues.get(placeholder.index)) {
-          let marker = child.clone()
-          if (clone.transform) {
-            if (marker instanceof Text) {
-              marker = new Text(clone.transform.resolve(marker.value))
-            } else {
-              for (let child of marker.children) {
-                if (child instanceof Text) {
-                  marker.replace(child, [new Text(clone.transform.resolve(child.value))])
-                  break
-                }
-              }
-            }
-          }
-          clone.appendChild(marker)
-        }
-        snippet.replace(placeholder, [clone])
+        let val = placeholderDefaultValues.get(placeholder.index)
+        let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val)
+        placeholder.setOnlyChild(text)
       }
     }
 
-    if (!placeholderDefaultValues.has(0) && insertFinalTabstop) {
+    if (!hasFinal && insertFinalTabstop) {
       // the snippet uses placeholders but has no
       // final tabstop defined -> insert at the end
       snippet.appendChild(new Placeholder(0))
@@ -862,6 +1140,7 @@ export class SnippetParser {
 
   private _parse(marker: Marker): boolean {
     return this._parseEscaped(marker)
+      || this._parseCodeBlock(marker)
       || this._parseTabstopOrVariableName(marker)
       || this._parseComplexPlaceholder(marker)
       || this._parseComplexVariable(marker)
@@ -877,6 +1156,7 @@ export class SnippetParser {
       value = this._accept(TokenType.Dollar, true)
         || this._accept(TokenType.CurlyClose, true)
         || this._accept(TokenType.Backslash, true)
+        || (this.ultisnip && this._accept(TokenType.BackTick, true))
         || value
 
       marker.appendChild(new Text(value))
@@ -1282,6 +1562,49 @@ export class SnippetParser {
       }
     }
 
+    this._backTo(token)
+    return false
+  }
+
+  private _parseCodeBlock(parent: Marker): boolean {
+    if (!this.ultisnip) return false
+    const token = this._token
+    if (!this._accept(TokenType.BackTick)) {
+      return false
+    }
+    let text = this._until(TokenType.BackTick, true)
+    // `shell code` `!v` `!p`
+    if (text) {
+      if (!text.startsWith('!')) {
+        let marker = new CodeBlock(text.trim(), 'shell')
+        parent.appendChild(marker)
+        return true
+      }
+      if (text.startsWith('!v')) {
+        let marker = new CodeBlock(text.slice(2).trim(), 'vim')
+        parent.appendChild(marker)
+        return true
+      }
+      if (text.startsWith('!p')) {
+        let code = text.slice(2)
+        if (code.indexOf('\n') == -1) {
+          let marker = new CodeBlock(code.trim(), 'python')
+          parent.appendChild(marker)
+        } else {
+          let codes = code.split(/\r?\n/)
+          codes = codes.filter(s => !/^\s*$/.test(s))
+          // format multi line code
+          let ind = codes[0] ? codes[0].match(/^\s*/)[0] : ''
+          if (ind.length && codes.every(s => s.startsWith(ind))) {
+            codes = codes.map(s => s.slice(ind.length))
+          }
+          if (ind == ' ' && codes[0].startsWith(ind)) codes[0] = codes[0].slice(1)
+          let marker = new CodeBlock(codes.join('\n'), 'python')
+          parent.appendChild(marker)
+        }
+        return true
+      }
+    }
     this._backTo(token)
     return false
   }

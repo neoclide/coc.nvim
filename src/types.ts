@@ -244,6 +244,11 @@ export interface Autocmd {
   callback: Function
 }
 
+export interface UltiSnippetOption {
+  regex?: string
+  context?: string
+}
+
 export interface IWorkspace {
   readonly nvim: Neovim
   readonly cwd: string

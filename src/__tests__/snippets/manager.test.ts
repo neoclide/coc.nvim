@@ -1,7 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
 import { InsertTextMode, Range } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import snippetManager from '../../snippets/manager'
 import { SnippetString } from '../../snippets/string'
@@ -36,12 +34,6 @@ describe('snippet provider', () => {
       expect(snippetManager.session).toBe(null)
       expect(snippetManager.getSession(doc.bufnr)).toBeUndefined()
       expect(snippetManager.isActived(doc.bufnr)).toBe(false)
-    })
-
-    it('should resolve variables', async () => {
-      await snippetManager.insertSnippet('${foo:abcdef} ${bar}')
-      let line = await nvim.line
-      expect(line).toBe('abcdef bar')
     })
 
     it('should start new session if session exists', async () => {
@@ -212,7 +204,7 @@ describe('snippet provider', () => {
 
   describe('synchronize text', () => {
     it('should update placeholder on placeholder update', async () => {
-      await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, true)
+      await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, {})
       await nvim.input('a,b')
       await doc.synchronize()
       await helper.wait(50)
@@ -257,40 +249,6 @@ describe('snippet provider', () => {
       await doc.patchChange()
       await helper.wait(200)
       expect(snippetManager.session).toBeDefined()
-    })
-  })
-
-  describe('resolveSnippet', () => {
-    it('should resolve snippet', async () => {
-      let fsPath = URI.parse(doc.uri).fsPath
-      let res = await snippetManager.resolveSnippet(`$TM_FILENAME`)
-      expect(res.toString()).toBe(path.basename(fsPath))
-      res = await snippetManager.resolveSnippet(`$TM_FILENAME_BASE`)
-      expect(res.toString()).toBe(path.basename(fsPath, path.extname(fsPath)))
-      res = await snippetManager.resolveSnippet(`$TM_DIRECTORY`)
-      expect(res.toString()).toBe(path.dirname(fsPath))
-      res = await snippetManager.resolveSnippet(`$TM_FILEPATH`)
-      expect(res.toString()).toBe(fsPath)
-      await nvim.call('setreg', ['""', 'foo'])
-      res = await snippetManager.resolveSnippet(`$YANK`)
-      expect(res.toString()).toBe('foo')
-      res = await snippetManager.resolveSnippet(`$TM_LINE_INDEX`)
-      expect(res.toString()).toBe('0')
-      res = await snippetManager.resolveSnippet(`$TM_LINE_NUMBER`)
-      expect(res.toString()).toBe('1')
-      await nvim.setLine('foo')
-      res = await snippetManager.resolveSnippet(`$TM_CURRENT_LINE`)
-      expect(res.toString()).toBe('foo')
-      res = await snippetManager.resolveSnippet(`$TM_CURRENT_WORD`)
-      expect(res.toString()).toBe('foo')
-      await nvim.call('setreg', ['*', 'foo'])
-      res = await snippetManager.resolveSnippet(`$CLIPBOARD`)
-      expect(res.toString()).toBe('foo')
-      let d = new Date()
-      res = await snippetManager.resolveSnippet(`$CURRENT_YEAR`)
-      expect(res.toString()).toBe(d.getFullYear().toString())
-      res = await snippetManager.resolveSnippet(`$NOT_EXISTS`)
-      expect(res.toString()).toBe('NOT_EXISTS')
     })
   })
 

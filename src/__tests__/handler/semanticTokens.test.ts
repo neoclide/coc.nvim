@@ -401,16 +401,16 @@ describe('semanticTokens', () => {
 
   describe('rangeProvider', () => {
     it('should invoke range provider first time when both kind exists', async () => {
-      let t = 0
+      let fn = jest.fn()
       disposables.push(registerRangeProvider('rust', () => {
-        t++
+        fn()
         return []
       }))
       let buf = await createRustBuffer()
       let item = highlighter.getItem(buf.id)
       await item.waitRefresh()
       await helper.wait(30)
-      expect(t).toBe(1)
+      expect(fn).toBeCalled()
     })
 
     it('should do range highlight first time', async () => {

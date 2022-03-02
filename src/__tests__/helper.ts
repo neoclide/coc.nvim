@@ -48,6 +48,15 @@ export class Helper extends EventEmitter {
     this.setMaxListeners(99)
   }
 
+  public setupNvim(): void {
+    const vimrc = path.resolve(__dirname, 'vimrc')
+    let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
+      cwd: __dirname
+    })
+    let plugin = attach({ proc })
+    this.nvim = plugin.nvim
+  }
+
   public setup(): Promise<void> {
     const vimrc = path.resolve(__dirname, 'vimrc')
     let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
@@ -79,7 +88,7 @@ export class Helper extends EventEmitter {
   }
 
   public async shutdown(): Promise<void> {
-    this.plugin.dispose()
+    if (this.plugin) this.plugin.dispose()
     this.nvim.removeAllListeners()
     this.nvim = null
     if (this.proc) {
@@ -278,7 +287,7 @@ export class Helper extends EventEmitter {
     for (let i = 0; i < 40; i++) {
       await this.wait(50)
       let res = await this.nvim.call(method, args) as T
-      if (res == value) {
+      if (res == value || (value instanceof RegExp && value.test(res.toString()))) {
         find = true
         break
       }

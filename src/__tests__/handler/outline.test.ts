@@ -314,8 +314,8 @@ describe('symbols outline', () => {
         strictIndexing: false
       })
       await doc.synchronize()
-      await helper.wait(200)
       buf = await getOutlineBuffer()
+      await helper.waitFor('eval', [`getbufline(${buf.id},1)[0]`], /No\sresults/)
       let lines = await buf.lines
       expect(lines).toEqual([
         'No results',
@@ -355,10 +355,10 @@ describe('symbols outline', () => {
       await createBuffer()
       let bufnr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline(0)
-      await helper.waitFor('getline', [1], 'OUTLINE')
+      await helper.waitFor('getline', [3], /fun1/)
       await nvim.command('exe 3')
       await nvim.input('<tab>')
-      await helper.wait(50)
+      await helper.waitFloat()
       await nvim.input('<cr>')
       await helper.waitFor('mode', [], 'v')
       let buf = await nvim.buffer

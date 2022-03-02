@@ -1,5 +1,5 @@
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import window from '../window'
 import { Variable, VariableResolver } from "./parser"
 const logger = require('../util/logger')('snippets-variable')
 
@@ -10,7 +10,7 @@ function padZero(n: number): string {
 export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
 
-  constructor() {
+  constructor(private nvim: Neovim) {
     const currentDate = new Date()
     const fullyear = currentDate.getFullYear().toString()
     Object.assign(this._variableToValue, {
@@ -40,7 +40,7 @@ export class SnippetVariableResolver implements VariableResolver {
   }
 
   private async resolveValue(name: string): Promise<string | undefined> {
-    let { nvim } = window
+    let { nvim } = this
     if (['TM_FILENAME', 'TM_FILENAME_BASE', 'TM_DIRECTORY', 'TM_FILEPATH'].includes(name)) {
       let filepath = await nvim.eval('expand("%:p")') as string
       if (name == 'TM_FILENAME') return path.basename(filepath)
@@ -68,7 +68,7 @@ export class SnippetVariableResolver implements VariableResolver {
       let word = await nvim.eval(`expand('<cword>')`) as string
       return word
     }
-    if (name == 'TM_SELECTED_TEXT') {
+    if (name == 'TM_SELECTED_TEXT' || name == 'VISUAL') {
       let text = await nvim.eval(`get(g:,'coc_selected_text', '')`) as string
       return text
     }
@@ -89,6 +89,7 @@ export class SnippetVariableResolver implements VariableResolver {
       return variable.toString()
     }
     if (!this._variableToValue.hasOwnProperty(name)) {
+      // VSCode behavior
       return name
     }
     return ''

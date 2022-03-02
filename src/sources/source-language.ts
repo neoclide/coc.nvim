@@ -215,8 +215,10 @@ export default class LanguageSource implements ISource {
       let currline = doc.getline(linenr - 1)
       let endCharacter = currline.length - end.length
       let r = Range.create(linenr - 1, range.start.character, linenr - 1, endCharacter)
+      let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip
       // can't select, since additionalTextEdits would break selection
-      return await snippetManager.insertSnippet(newText, false, r, item.insertTextMode, item.data?.ultisnip === true)
+      let res = await snippetManager.insertSnippet(newText, false, r, item.insertTextMode, opts ? opts : undefined)
+      return res
     }
     let newLines = `${start}${newText}${end}`.split(/\r?\n/)
     if (newLines.length == 1) {

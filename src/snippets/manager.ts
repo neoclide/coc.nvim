@@ -1,12 +1,13 @@
 import { Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { StatusBarItem } from '../model/status'
-import workspace from '../workspace'
+import { UltiSnippetOption } from '../types'
 import window from '../window'
+import workspace from '../workspace'
 import * as Snippets from "./parser"
 import { SnippetSession } from './session'
-import { SnippetVariableResolver } from './variableResolve'
 import { SnippetString } from './string'
+import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager {
@@ -54,7 +55,7 @@ export class SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip = false): Promise<boolean> {
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     let { bufnr } = workspace
     let session = this.getSession(bufnr)
     if (!session) {
@@ -121,7 +122,7 @@ export class SnippetManager {
     let { session } = this
     if (!session) return false
     let placeholder = session.placeholder
-    if (placeholder && !placeholder.isFinalTabstop) {
+    if (placeholder && placeholder.index !== 0) {
       return true
     }
     return false
@@ -134,7 +135,7 @@ export class SnippetManager {
   public async resolveSnippet(body: string, ultisnip = false): Promise<Snippets.TextmateSnippet> {
     let parser = new Snippets.SnippetParser(ultisnip)
     const snippet = parser.parse(body, true)
-    const resolver = new SnippetVariableResolver()
+    const resolver = new SnippetVariableResolver(workspace.nvim)
     await snippet.resolveVariables(resolver)
     return snippet
   }
