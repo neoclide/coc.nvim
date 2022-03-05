@@ -301,7 +301,6 @@ function! s:Enable(initialize)
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
       if exists('##WinClosed')
         autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
-        autocmd WinClosed       * call s:Autocmd('WinClosed', +expand('<afile>'))
       endif
     endif
     if has('nvim-0.4.0') || has('patch-8.1.1719')

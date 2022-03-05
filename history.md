@@ -1,3 +1,7 @@
+# 2022-03-05
+
+- Make `WinClosed` event fires on `CursorHold` to support vim8.
+
 # 2022-03-02
 
 - Add ultisnip option to `snippetManager.insertSnippet()` and

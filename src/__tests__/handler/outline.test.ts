@@ -295,7 +295,7 @@ describe('symbols outline', () => {
       await createBuffer()
       let bufnr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline(0)
-      await helper.wait(50)
+      await helper.waitFor('getline', [3], '    m fun1 2')
       await nvim.command('exe 3')
       await nvim.input('<cr>')
       await helper.wait(50)

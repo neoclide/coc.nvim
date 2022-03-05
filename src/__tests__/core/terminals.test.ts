@@ -86,16 +86,15 @@ describe('create terminal', () => {
     await terminal.hide()
   })
 
-  it('should show terminal of on current window', async () => {
+  it('should show terminal on current window', async () => {
     let terminal = await terminals.createTerminal(nvim, {
       name: 'test',
       shellPath: which.sync('bash')
     })
     let winid = await nvim.call('bufwinid', [terminal.bufnr])
-    expect(winid != -1).toBe(true)
+    expect(winid).toBeGreaterThan(0)
     await nvim.call('win_gotoid', [winid])
-    let res = await terminal.show()
-    expect(res).toBe(true)
+    await terminal.show()
   })
 
   it('should show terminal that shown', async () => {

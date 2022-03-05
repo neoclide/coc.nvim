@@ -16,6 +16,13 @@ import { byteIndex } from '../util/string'
 import WorkspaceFolder from './workspaceFolder'
 const logger = require('../util/logger')('core-documents')
 
+interface StateInfo {
+  bufnr: number
+  winid: number
+  bufnrs: number[]
+  winids: number[]
+}
+
 export default class Documents implements Disposable {
   private _cwd: string
   private _env: Env
@@ -28,6 +35,7 @@ export default class Documents implements Disposable {
   private disposables: Disposable[] = []
   private creating: Map<number, Promise<Document | undefined>> = new Map()
   private buffers: Map<number, Document> = new Map()
+  private winids: Set<number> = new Set()
   private resolves: ((doc: Document) => void)[] = []
   private readonly _onDidOpenTextDocument = new Emitter<LinesTextDocument>()
   private readonly _onDidCloseDocument = new Emitter<LinesTextDocument>()
@@ -57,18 +65,29 @@ export default class Documents implements Disposable {
     let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
     this.maxFileSize = bytes.parse(maxFileSize)
     nvim.setVar('coc_max_filesize', this.maxFileSize, true)
-    let [bufs, bufnr, winid] = await this.nvim.eval(`[map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]'),bufnr('%'),win_getid()]`) as [number[], number, number]
+    let { bufnrs, winid, bufnr, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
+    this.winids = new Set(winids)
     this._bufnr = bufnr
-    await Promise.all(bufs.map(bufnr => this.createDocument(bufnr)))
+    await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
+    events.on('WinEnter', (winid: number) => {
+      this.winids.add(winid)
+    }, null, this.disposables)
+    events.on('BufWinEnter', (_, winid: number) => {
+      this.winids.add(winid)
+    }, null, this.disposables)
     events.on('DirChanged', cwd => {
       this._cwd = cwd
     }, null, this.disposables)
     // check unloaded buffers
     events.on('CursorHold', async () => {
-      let bufs = await this.nvim.eval(`map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]')`) as number[]
+      let { bufnrs, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
       for (let bufnr of this.buffers.keys()) {
-        if (!bufs.includes(bufnr)) this.onBufUnload(bufnr)
+        if (!bufnrs.includes(bufnr)) this.onBufUnload(bufnr)
       }
+      for (let winid of this.winids) {
+        if (!winids.includes(winid)) void events.fire('WinClosed', [winid])
+      }
+      this.winids = new Set(winids)
     }, null, this.disposables)
     const onInsertLeave = (bufnr: number) => {
       let doc = this.getDocument(bufnr)

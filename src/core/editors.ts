@@ -74,16 +74,9 @@ export default class Editors {
       if (editor) this.onChange(editor)
     }, null, this.disposables)
     events.on('CursorHold', async () => {
-      let [ids, winid, isFloat] = await nvim.eval(`[map(getwininfo(),'v:val["winid"]'),win_getid(),coc#window#is_float(win_getid())]`) as [number[], number, number]
+      let [winid, buftype, isFloat] = await nvim.eval(`[win_getid(),&buftype,coc#window#is_float(win_getid())]`) as [number, string, number]
       let changed = false
-      // vim doesn't have WinClosed event
-      for (let winid of this.editors.keys()) {
-        if (ids.indexOf(winid) == -1) {
-          changed = true
-          this.editors.delete(winid)
-        }
-      }
-      if (!isFloat && !this.editors.has(winid)) {
+      if (!isFloat && ['', 'acwrite'].includes(buftype) && !this.editors.has(winid)) {
         let created = await this.createTextEditor(winid)
         if (created) changed = true
       }
