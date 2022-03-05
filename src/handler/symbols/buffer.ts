@@ -9,13 +9,12 @@ import { isDocumentSymbols } from './util'
 export default class SymbolsBuffer implements SyncItem {
   private disposables: Disposable[] = []
   public fetchSymbols: (() => void) & { clear(): void }
-  private autoUpdate = false
   private version: number
   private symbols: DocumentSymbol[]
   private tokenSource: CancellationTokenSource
   private readonly _onDidUpdate = new Emitter<DocumentSymbol[]>()
   public readonly onDidUpdate: Event<DocumentSymbol[]> = this._onDidUpdate.event
-  constructor(public readonly bufnr: number) {
+  constructor(public readonly bufnr: number, private autoUpdateBufnrs: Set<number>) {
     this.fetchSymbols = debounce(() => {
       this._fetchSymbols().logError()
     }, global.hasOwnProperty('__TEST__') ? 10 : 500)
@@ -28,7 +27,7 @@ export default class SymbolsBuffer implements SyncItem {
     let doc = workspace.getDocument(this.bufnr)
     if (!doc) return []
     await doc.patchChange()
-    this.autoUpdate = true
+    this.autoUpdateBufnrs.add(this.bufnr)
     // refresh for empty symbols since some languages server could be buggy first time.
     if (doc.version == this.version && this.symbols?.length) return this.symbols
     this.cancel()
@@ -38,7 +37,7 @@ export default class SymbolsBuffer implements SyncItem {
 
   public onChange(): void {
     this.cancel()
-    if (this.autoUpdate) {
+    if (this.autoUpdateBufnrs.has(this.bufnr)) {
       this.fetchSymbols()
     }
   }

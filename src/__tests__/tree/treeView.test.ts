@@ -63,6 +63,7 @@ function createTreeView(defs: NodeDef[], opts: Partial<TreeViewOptions<TreeNode>
     }
   }))
   treeView = new TreeView('test', Object.assign(opts, {
+    bufhidden: 'hide',
     treeDataProvider: provider
   }))
 }

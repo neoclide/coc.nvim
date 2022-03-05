@@ -82,7 +82,7 @@ export default class Documents implements Disposable {
     events.on('CursorHold', async () => {
       let { bufnrs, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
       for (let bufnr of this.buffers.keys()) {
-        if (!bufnrs.includes(bufnr)) this.onBufUnload(bufnr)
+        if (!bufnrs.includes(bufnr)) void events.fire('BufUnload', [bufnr])
       }
       for (let winid of this.winids) {
         if (!winids.includes(winid)) void events.fire('WinClosed', [winid])

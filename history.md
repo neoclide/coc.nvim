@@ -1,7 +1,8 @@
 # 2022-03-05
 
 - Make `WinClosed` event fires on `CursorHold` to support vim8.
-- Add events `TabNew` and `TabClose`
+- Add events `TabNew` and `TabClose`.
+- Make outline reuse TreeView buffer.
 
 # 2022-03-02
 

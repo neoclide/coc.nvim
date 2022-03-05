@@ -130,7 +130,8 @@ describe('list worker', () => {
   it('should work with long running task', async () => {
     disposables.push(manager.registerList(new IntervalTaskList(nvim)))
     await manager.start(['task'])
-    await helper.wait(300)
+    await manager.session.ui.ready
+    await helper.wait(200)
     let len = manager.session?.length
     expect(len > 2).toBe(true)
     await manager.cancel()

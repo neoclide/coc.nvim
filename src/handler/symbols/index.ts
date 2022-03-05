@@ -17,6 +17,7 @@ export default class Symbols {
   private buffers: BufferSync<SymbolsBuffer>
   private disposables: Disposable[] = []
   private outline: Outline
+  private autoUpdateBufnrs: Set<number> = new Set()
 
   constructor(
     private nvim: Neovim,
@@ -24,7 +25,12 @@ export default class Symbols {
   ) {
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
-      return new SymbolsBuffer(doc.bufnr)
+      let buf = new SymbolsBuffer(doc.bufnr, this.autoUpdateBufnrs)
+      buf.onDidUpdate(symbols => {
+        if (!this.outline) return
+        this.outline.onSymbolsUpdate(buf.bufnr, symbols)
+      })
+      return buf
     })
     this.outline = new Outline(nvim, this.buffers, handler)
     events.on('CursorHold', async (bufnr: number) => {

@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
+import { CodeAction, CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
@@ -40,6 +40,8 @@ afterEach(async () => {
   disposeAll(disposables)
   disposables = []
   await helper.reset()
+  await nvim.command(`let w:cocViewId = ''`)
+
 })
 
 async function getOutlineBuffer(): Promise<Buffer | undefined> {
@@ -63,7 +65,7 @@ describe('symbols outline', () => {
     await nvim.command('setf javascript')
     await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
     let doc = await workspace.document
-    doc.forceSync()
+    await doc.synchronize()
     return buf
   }
 
@@ -159,7 +161,7 @@ describe('symbols outline', () => {
       await createBuffer()
       await helper.wait(50)
       let buf = await getOutlineBuffer()
-      expect(buf).toBeUndefined()
+      expect(buf).toBeDefined()
     })
 
     it('should sort by position', async () => {
@@ -199,6 +201,15 @@ describe('symbols outline', () => {
 
   describe('events', () => {
 
+    it('should not close TreeView on buffer reload', async () => {
+      await createBuffer()
+      await symbols.showOutline(0)
+      await nvim.command('edit')
+      await helper.wait(30)
+      let winid = await nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
+      expect(winid).toBeGreaterThan(0)
+    })
+
     it('should dispose on buffer unload', async () => {
       await createBuffer()
       let curr = await nvim.call('bufnr', ['%'])
@@ -212,10 +223,10 @@ describe('symbols outline', () => {
 
     it('should check current window on BufEnter', async () => {
       await createBuffer()
-      await symbols.showOutline(0)
+      await symbols.showOutline(1)
       let winid = await nvim.call('win_getid', [])
       await nvim.command('enew')
-      await helper.wait(200)
+      await helper.wait(100)
       let win = await nvim.window
       expect(win.id).toBe(winid)
     })
@@ -253,29 +264,13 @@ describe('symbols outline', () => {
       let curr = await buf.name
       expect(curr).toBe(name)
     })
-
-    it('should dispose provider on outline hide', async () => {
-      await createBuffer()
-      let bufnr = await nvim.call('bufnr', ['%'])
-      await symbols.showOutline(0)
-      await nvim.command('q')
-      await helper.wait(30)
-      let exists = symbols.hasOutline(bufnr)
-      expect(exists).toBe(false)
-    })
   })
 
   describe('show()', () => {
-    it('should throw when document not attached', async () => {
+    it('should not throw when document not attached', async () => {
       await nvim.command(`edit +setl\\ buftype=nofile t`)
-      await helper.wait(50)
-      let err
-      try {
-        await symbols.showOutline(1)
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await workspace.document
+      await symbols.showOutline(1)
     })
 
     it('should not throw when provider not exists', async () => {
@@ -351,9 +346,7 @@ describe('symbols outline', () => {
       await buf.setLines(['let'], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
       await symbols.showOutline(0)
-      let lines = await nvim.call('getline', [1, '$'])
-      expect(lines[0]).toMatch('vimlsp')
-      await nvim.command('wincmd p')
+      await helper.waitFor('getline', [1], 'OUTLINE vimlsp')
     })
   })
 
@@ -362,7 +355,7 @@ describe('symbols outline', () => {
       await createBuffer()
       let bufnr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline(0)
-      await helper.wait(50)
+      await helper.waitFor('getline', [1], 'OUTLINE')
       await nvim.command('exe 3')
       await nvim.input('<tab>')
       await helper.wait(50)
@@ -376,12 +369,7 @@ describe('symbols outline', () => {
       const codeAction = CodeAction.create('my action', CodeActionKind.Refactor)
       let uri: string
       disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
-        provideCodeActions: (
-          _document,
-          _range: Range,
-          _context: CodeActionContext,
-          _token: CancellationToken
-        ) => [codeAction],
+        provideCodeActions: () => [codeAction],
         resolveCodeAction: (action): ProviderResult<CodeAction> => {
           action.edit = {
             changes: {
@@ -396,7 +384,7 @@ describe('symbols outline', () => {
       let doc = workspace.getDocument(bufnr)
       uri = doc.uri
       await symbols.showOutline(0)
-      await helper.wait(50)
+      await helper.wait(200)
       await nvim.command('exe 3')
       await nvim.input('<tab>')
       await helper.wait(50)
@@ -411,7 +399,8 @@ describe('symbols outline', () => {
   describe('hide()', () => {
     it('should hide outline', async () => {
       await createBuffer('')
-      await symbols.showOutline(0)
+      await symbols.showOutline(1)
+      await helper.wait(50)
       await symbols.hideOutline()
       let buf = await getOutlineBuffer()
       expect(buf).toBeUndefined()

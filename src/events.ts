@@ -183,7 +183,7 @@ class Events {
         }
       }
     }
-    if ((event == 'CursorHold' || event == 'CursorHoldI')) {
+    if ((event == 'CursorHold' || event == 'CursorHoldI') && args[1]) {
       let ev: LastHold = { bufnr: args[0], lnum: args[1][0], col: args[1][1] }
       if (this._lastHold && equals(this._lastHold, ev)) return
       this._lastHold = ev

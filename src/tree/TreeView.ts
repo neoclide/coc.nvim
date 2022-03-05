@@ -79,10 +79,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private _creating: boolean
   private _selection: T[] = []
   private _onDispose = new Emitter<void>()
+  private _onDidRefrash = new Emitter<void>()
   private _onDidExpandElement = new Emitter<TreeViewExpansionEvent<T>>()
   private _onDidCollapseElement = new Emitter<TreeViewExpansionEvent<T>>()
   private _onDidChangeSelection = new Emitter<TreeViewSelectionChangeEvent<T>>()
   private _onDidChangeVisibility = new Emitter<TreeViewVisibilityChangeEvent>()
+  public readonly onDidRefrash: Event<void> = this._onDidRefrash.event
   public readonly onDispose: Event<void> = this._onDispose.event
   public readonly onDidExpandElement: Event<TreeViewExpansionEvent<T>> = this._onDidExpandElement.event
   public readonly onDidCollapseElement: Event<TreeViewExpansionEvent<T>> = this._onDidCollapseElement.event
@@ -501,7 +503,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   public get visible(): boolean {
-    return this.bufnr && this.winid != null
+    if (!this.bufnr) return false
+    return this.winid != null
   }
 
   public get vaild(): boolean {
@@ -601,10 +604,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.opts.canSelectMany || forceSingle) {
       buf.unplaceSign({ group: 'CocTree' })
     }
-    let cmd = `exe ${row + 1}${noRedraw ? '' : '|redraw'}`
+    let cmd = `exe ${row + 1}'|normal! zz'`
     nvim.call('coc#compat#execute', [this.winid, cmd], true)
     buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
-    // if (!noRedraw) this.redraw()
+    if (!noRedraw) this.redraw()
     void nvim.resumeNotification(false, true)
     if (!exists) this._onDidChangeSelection.fire({ selection: this._selection })
   }
@@ -878,6 +881,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       let delta = this.startLnum - startLnum
       if (delta) highlights.forEach(o => o.lnum = o.lnum + delta)
       this.updateUI(lines, highlights, this.startLnum, -1)
+      this._onDidRefrash.fire()
       this.retryTimers = 0
       release()
     } catch (e) {
@@ -900,11 +904,19 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this._creating = true
     let { nvim } = this
     let oldWinId = this.winid
-    let [bufnr, windowId, tabnr] = await nvim.eval(`[bufnr("%"),win_getid(),tabpagenr()]`) as [number, number, number]
+    let [bufnr, windowId, tabnr, loaded] = await nvim.eval(`[bufnr("%"),win_getid(),tabpagenr(),bufloaded(${this.bufnr || -1})]`) as [number, number, number, number]
     this._targetBufnr = bufnr
     this._targetWinId = windowId
     this._targetTabId = window.getTabId(tabnr)
+    if (!loaded) this.bufnr = undefined
     let winid = await nvim.call('coc#window#find', ['cocViewId', this.viewId])
+    if (this.bufnr && winid !== -1) {
+      let bufnr = await nvim.call('winbufnr', [winid])
+      if (bufnr == this.bufnr) {
+        this._creating = false
+        return
+      }
+    }
     nvim.pauseNotification()
     if (this.bufnr) {
       if (winid != -1) {
@@ -932,12 +944,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
     nvim.call('win_getid', [], true)
     let res = await nvim.resumeNotification()
     if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))
-    if (!oldWinId) this._onDidChangeVisibility.fire({ visible: true })
-    this.registerKeymaps()
+    if (!this.bufnr) this.registerKeymaps()
     let arr = res[0]
     this.bufname = arr[arr.length - 3]
     this.bufnr = arr[arr.length - 2]
     this.winid = arr[arr.length - 1]
+    if (!oldWinId) this._onDidChangeVisibility.fire({ visible: true })
     if (oldWinId && oldWinId !== this.winid) {
       nvim.call('coc#window#close', [oldWinId], true)
     }
@@ -1020,9 +1032,10 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.provider) return
     if (this.timer) clearTimeout(this.timer)
     this.cancelResolve()
-    this.hide()
     let { bufnr } = this
+    if (this.winid) this._onDidChangeVisibility.fire({ visible: false })
     if (bufnr) this.nvim.command(`silent! bwipeout! ${bufnr}`, true)
+    this.winid = undefined
     this.bufnr = undefined
     this.filter?.dispose()
     this._selection = []
