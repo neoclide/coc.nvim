@@ -43,7 +43,7 @@ let g:coc_service_initialized = 0
 let s:is_win = has('win32') || has('win64')
 let s:root = expand('<sfile>:h:h')
 let s:is_vim = !has('nvim')
-let s:is_gvim = get(v:, 'progname', '') ==# 'gvim'
+let s:is_gvim = s:is_vim && has("gui_running")
 
 if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
   call coc#rpc#start_server()
