@@ -2575,8 +2575,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "showOutline" [{keep}]				*CocAction('showOutline')*
 
-	Show outline tree view for current buffer. Old outline window on current
-	tab would be replaced.
+	Show outline tree view for current buffer.  Does nothing outline
+	window already shown for current buffer on current tab.
+
 	Outline view has Window variable `cocViewId` set to `OUTLINE`.
 
 	{keep} override `"outline.keepWindow"` configuration when specified.
@@ -2603,6 +2604,20 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 >
 	autocmd VimEnter,Tabnew *
 		\ if empty(&buftype) | call CocActionAsync('showOutline', 1) | endif
+<
+	To close outline when it's the last window automatically, use
+	|autocmd| like:
+>
+	autocmd BufEnter * call CheckOutline()
+	function! CheckOutline() abort
+	  if &filetype ==# 'coctree' && winnr('$') == 1
+	    if tabpagenr('$') != 1
+	      close
+	    else
+	      bdelete
+	    endif
+	  endif
+	endfunction
 <
 "hideOutline" 					*CocAction('hideOutline')*
 

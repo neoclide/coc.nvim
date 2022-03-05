@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 23
+let s:vim_api_version = 25
 let s:activate = ""
 let s:quit = ""
 
@@ -539,14 +539,14 @@ function! coc#util#vim_info()
   return {
         \ 'apiversion': s:vim_api_version,
         \ 'mode': mode(),
+        \ 'config': get(g:, 'coc_user_config', {}),
         \ 'floating': has('nvim') && exists('*nvim_open_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
-        \ 'config': get(g:, 'coc_user_config', {}),
-        \ 'pid': coc#util#getpid(),
-        \ 'columns': &columns,
         \ 'lines': &lines,
+        \ 'columns': &columns,
         \ 'cmdheight': &cmdheight,
+        \ 'pid': coc#util#getpid(),
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'completeOpt': &completeopt,
@@ -562,6 +562,7 @@ function! coc#util#vim_info()
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
         \ 'guicursor': &guicursor,
+        \ 'tabCount': tabpagenr('$'),
         \ 'updateHighlight': has('nvim-0.5.0') || has('patch-8.1.1719') ? v:true : v:false,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
@@ -569,6 +570,15 @@ function! coc#util#vim_info()
         \ 'dialog': has('nvim-0.4.0') || has('patch-8.2.0750') ? v:true : v:false,
         \ 'semanticHighlights': coc#util#semantic_hlgroups()
         \}
+endfunction
+
+function! coc#util#all_state()
+  return {
+        \ 'bufnr': bufnr('%'),
+        \ 'winid': win_getid(),
+        \ 'bufnrs': map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]'),
+        \ 'winids': map(getwininfo(),'v:val["winid"]'),
+        \ }
 endfunction
 
 function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes) abort
