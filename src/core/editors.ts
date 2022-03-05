@@ -3,6 +3,7 @@ import { Disposable, Emitter, Event, Range } from 'vscode-languageserver-protoco
 import events from '../events'
 import Document from '../model/document'
 import Documents from './documents'
+import window from '../window'
 const logger = require('../util/logger')('core-editors')
 
 interface EditorOption {
@@ -40,9 +41,7 @@ export default class Editors {
   private readonly _onDidChangeVisibleTextEditors = new Emitter<ReadonlyArray<TextEditor>>()
   public readonly onDidChangeActiveTextEditor: Event<TextEditor | undefined> = this._onDidChangeActiveTextEditor.event
   public readonly onDidChangeVisibleTextEditors: Event<ReadonlyArray<TextEditor>> = this._onDidChangeVisibleTextEditors.event
-  constructor(
-    private documents: Documents
-  ) {
+  constructor(private documents: Documents) {
   }
 
   public get activeTextEditor(): TextEditor | undefined {
@@ -124,8 +123,11 @@ export default class Editors {
 
   private fromOptions(opts: EditorOption, document: Document): TextEditor {
     let { visibleRanges } = opts
+    let tid = window.getTabId(opts.tabpagenr)
     return {
-      tabpagenr: opts.tabpagenr,
+      get tabpagenr() {
+        return window.getTabNumber(tid)
+      },
       winid: opts.winid,
       winnr: opts.winnr,
       document,

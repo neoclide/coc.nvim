@@ -1,6 +1,7 @@
 # 2022-03-05
 
 - Make `WinClosed` event fires on `CursorHold` to support vim8.
+- Add events `TabNew` and `TabClose`
 
 # 2022-03-02
 

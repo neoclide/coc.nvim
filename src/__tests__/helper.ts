@@ -288,6 +288,21 @@ export class Helper extends EventEmitter {
     }
   }
 
+  public async waitValue<T>(fn: () => T, value: T): Promise<void> {
+    let find = false
+    for (let i = 0; i < 40; i++) {
+      await this.wait(50)
+      let res = fn()
+      if (res == value) {
+        find = true
+        break
+      }
+    }
+    if (!find) {
+      throw new Error(`waitValue ${value} timeout`)
+    }
+  }
+
   public createNullChannel(): OutputChannel {
     return nullChannel
   }

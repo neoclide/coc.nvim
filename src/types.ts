@@ -136,6 +136,7 @@ export interface Env {
   completeOpt: string
   runtimepath: string
   readonly guicursor: string
+  readonly tabCount: number
   readonly mode: string
   readonly apiversion: number
   readonly floating: boolean

@@ -16,13 +16,14 @@ import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
-import { HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
+import { Env, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import workspace from './workspace'
 const logger = require('./util/logger')('window')
+let tab_global_id = 3000
 
 function converHighlightItem(item: HighlightItem): HighlightItemDef {
   return [item.hlGroup, item.lnum, item.colStart, item.colEnd, item.combine ? 1 : 0, item.start_incl ? 1 : 0, item.end_incl ? 1 : 0]
@@ -35,8 +36,30 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
 
 class Window {
   private mutex = new Mutex()
+  private tabIds: number[] = []
   private statusLine: StatusLine | undefined
   private terminalManager: Terminals = new Terminals()
+
+  public init(env: Env): void {
+    for (let i = 1; i <= env.tabCount; i++) {
+      this.tabIds.push(Window.generateTabId())
+    }
+    events.on('TabNew', (nr: number) => {
+      this.tabIds.splice(nr - 1, 0, Window.generateTabId())
+    })
+    events.on('TabClosed', (nr: number) => {
+      this.tabIds.splice(nr - 1, 1)
+    })
+  }
+
+  public getTabNumber(id: number): number | undefined {
+    if (!this.tabIds.includes(id)) return undefined
+    return this.tabIds.indexOf(id) + 1
+  }
+
+  public getTabId(nr: number): number | undefined {
+    return this.tabIds[nr - 1]
+  }
 
   public get nvim(): Neovim {
     return workspace.nvim
@@ -752,6 +775,10 @@ class Window {
       default:
         return MessageLevel.More
     }
+  }
+
+  public static generateTabId(): number {
+    return tab_global_id++
   }
 }
 

@@ -147,4 +147,23 @@ describe('editors', () => {
     await nvim.command('edit bar')
     expect(editors.visibleTextEditors.length).toBe(2)
   })
+
+  it('should have corrent tabnr after tab changed', async () => {
+    await nvim.command('tabe')
+    await helper.waitValue(() => {
+      return editors.visibleTextEditors.length
+    }, 2)
+    let editor = editors.visibleTextEditors.find(o => o.tabpagenr == 2)
+    await nvim.command('normal! 1gt')
+    await nvim.command('tabe')
+    await helper.waitValue(() => {
+      return editors.visibleTextEditors.length
+    }, 3)
+    expect(editor.tabpagenr).toBe(3)
+    await nvim.command('tabc')
+    await helper.waitValue(() => {
+      return editors.visibleTextEditors.length
+    }, 2)
+    expect(editor.tabpagenr).toBe(2)
+  })
 })

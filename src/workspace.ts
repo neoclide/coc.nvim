@@ -32,7 +32,7 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
-const APIVERSION = 24
+const APIVERSION = 25
 const logger = require('./util/logger')('workspace')
 const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',
@@ -127,6 +127,7 @@ export class Workspace implements IWorkspace {
       })
     }
     let env = this._env = await nvim.call('coc#util#vim_info') as Env
+    window.init(env)
     if (this._env.apiversion != APIVERSION) {
       nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
     }
