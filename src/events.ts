@@ -33,8 +33,7 @@ export interface InsertChange {
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
-  | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'InsertEnter'
-  | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'Enter'
+  | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'Enter'
 
 export type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet' | 'ready'
 
@@ -46,13 +45,13 @@ export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
 
 export type TabEvents = 'TabNew' | 'TabClosed'
 
-export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | TabEvents
+export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | WindowEvents | TabEvents
   | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'TermClose'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert'
 
-export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
+export type CursorEvents = 'CursorMoved' | 'CursorMovedI' | 'CursorHold' | 'CursorHoldI'
 
 export type OptionValue = string | number | boolean
 
@@ -69,6 +68,12 @@ export interface LatestInsert {
   timestamp: number
 }
 
+export interface LastHold {
+  bufnr: number
+  lnum: number
+  col: number
+}
+
 class Events {
 
   private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
@@ -79,6 +84,7 @@ class Events {
   private _insertMode = false
   private _pumAlignTop = false
   private _pumVisible = false
+  private _lastHold: LastHold | undefined
 
   public get cursor(): CursorPosition {
     return this._cursor
@@ -177,6 +183,11 @@ class Events {
         }
       }
     }
+    if ((event == 'CursorHold' || event == 'CursorHoldI')) {
+      let ev: LastHold = { bufnr: args[0], lnum: args[1][0], col: args[1][1] }
+      if (this._lastHold && equals(this._lastHold, ev)) return
+      this._lastHold = ev
+    }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
       let cursor = {
         bufnr: args[0],
@@ -199,7 +210,7 @@ class Events {
   }
 
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: CursorEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: TabEvents, handler: (tabnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
