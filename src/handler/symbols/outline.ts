@@ -79,9 +79,11 @@ export default class SymbolsOutline {
         view.dispose()
       }
     }, null, this.disposables)
-    events.on('BufEnter', debounce(() => {
-      void this._onBufEnter()
-    }, global.hasOwnProperty('__TEST__') ? 100 : 300), null, this.disposables)
+    window.onDidChangeActiveTextEditor(editor => {
+      if (!this.config.checkBufferSwitch) return
+      let bufnr = editor.tabpagenr
+      // editor.winid editor.tabpagenr
+    }, null, this.disposables)
     events.on('CursorHold', async bufnr => {
       if (!this.config.followCursor) return
       let provider = this.providersMap.get(bufnr)

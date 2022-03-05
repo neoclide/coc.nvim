@@ -5965,6 +5965,10 @@ declare module 'coc.nvim' {
    */
   export interface TreeViewOptions<T> {
     /**
+     * bufhidden option for TreeView, default to 'wipe'
+     */
+    bufhidden?: 'hide' | 'unload' | 'delete' | 'wipe'
+    /**
      * Fixed width for window, default to true
      */
     winfixwidth?: boolean

@@ -238,7 +238,7 @@ export default class CallHierarchyHandler {
     const { doc, position, winid } = await this.handler.getCurrentState()
     await doc.synchronize()
     let provider = this.createProvider(doc.textDocument, winid, position, kind)
-    let treeView = new BasicTreeView('calls', { treeDataProvider: provider })
+    let treeView = new BasicTreeView('calls', { treeDataProvider: provider, bufhidden: 'wipe' })
     treeView.title = `${kind.toUpperCase()} CALLS`
     provider.onDidChangeTreeData(e => {
       if (!e) treeView.title = `${provider.kind.toUpperCase()} CALLS`

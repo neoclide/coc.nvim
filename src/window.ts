@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
-import { CancellationToken, Disposable, Event, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import channels from './core/channels'
 import { TextEditor } from './core/editors'
@@ -39,6 +39,8 @@ class Window {
   private tabIds: number[] = []
   private statusLine: StatusLine | undefined
   private terminalManager: Terminals = new Terminals()
+  private readonly _onDidTabClose = new Emitter<number>()
+  public readonly onDidTabClose: Event<number> = this._onDidTabClose.event
 
   public init(env: Env): void {
     for (let i = 1; i <= env.tabCount; i++) {
@@ -48,7 +50,9 @@ class Window {
       this.tabIds.splice(nr - 1, 0, Window.generateTabId())
     })
     events.on('TabClosed', (nr: number) => {
+      let id = this.tabIds[nr - 1]
       this.tabIds.splice(nr - 1, 1)
+      if (id) this._onDidTabClose.fire(id)
     })
   }
 

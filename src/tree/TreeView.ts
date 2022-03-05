@@ -68,28 +68,32 @@ interface TreeItemData {
  * Basic TreeView implementation
  */
 export default class BasicTreeView<T> implements TreeView<T> {
-  // Resolved TreeItems
   private bufnr: number | undefined
+  private bufname: string | undefined
   private winid: number | undefined
   private config: TreeViewConfig
   private keys: Keys
-  private originalWin: number
+  private _targetBufnr: number
+  private _targetWinId: number
+  private _targetTabId: number | undefined
   private _creating: boolean
   private _selection: T[] = []
+  private _onDispose = new Emitter<void>()
   private _onDidExpandElement = new Emitter<TreeViewExpansionEvent<T>>()
   private _onDidCollapseElement = new Emitter<TreeViewExpansionEvent<T>>()
   private _onDidChangeSelection = new Emitter<TreeViewSelectionChangeEvent<T>>()
   private _onDidChangeVisibility = new Emitter<TreeViewVisibilityChangeEvent>()
-  public onDidExpandElement: Event<TreeViewExpansionEvent<T>> = this._onDidExpandElement.event
-  public onDidCollapseElement: Event<TreeViewExpansionEvent<T>> = this._onDidCollapseElement.event
-  public onDidChangeSelection: Event<TreeViewSelectionChangeEvent<T>> = this._onDidChangeSelection.event
-  public onDidChangeVisibility: Event<TreeViewVisibilityChangeEvent> = this._onDidChangeVisibility.event
+  public readonly onDispose: Event<void> = this._onDispose.event
+  public readonly onDidExpandElement: Event<TreeViewExpansionEvent<T>> = this._onDidExpandElement.event
+  public readonly onDidCollapseElement: Event<TreeViewExpansionEvent<T>> = this._onDidCollapseElement.event
+  public readonly onDidChangeSelection: Event<TreeViewSelectionChangeEvent<T>> = this._onDidChangeSelection.event
+  public readonly onDidChangeVisibility: Event<TreeViewVisibilityChangeEvent> = this._onDidChangeVisibility.event
   public message: string | undefined
   public title: string
   public description: string | undefined
   private retryTimers = 0
   private renderedItems: RenderedItem<T>[] = []
-  private provider: TreeDataProvider<T>
+  public provider: TreeDataProvider<T>
   private nodesMap: Map<T, TreeItemData> = new Map()
   private mutex: Mutex = new Mutex()
   private timer: NodeJS.Timer
@@ -100,17 +104,15 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private filter: Filter<T> | undefined
   private filterText: string | undefined
   private itemsToFilter: T[] | undefined
-  private readonly canSelectMany: boolean
   private readonly leafIndent: boolean
   private readonly winfixwidth: boolean
-  constructor(private viewId: string, opts: TreeViewOptions<T>) {
+  constructor(private viewId: string, private opts: TreeViewOptions<T>) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     if (opts.enableFilter) {
       this.filter = new Filter(this.nvim, [this.keys.selectNext, this.keys.selectPrevious, this.keys.invoke])
     }
     this.tooltipFactory = new FloatFactory(workspace.nvim)
-    this.canSelectMany = !!opts.canSelectMany
     this.provider = opts.treeDataProvider
     this.leafIndent = opts.disableLeafIndent !== true
     this.winfixwidth = opts.winfixwidth !== false
@@ -173,10 +175,29 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     events.on('BufUnload', bufnr => {
       if (bufnr != this.bufnr) return
+      let isVisible = this.winid != null
       this.winid = undefined
       this.bufnr = undefined
-      this._onDidChangeVisibility.fire({ visible: false })
+      if (isVisible) this._onDidChangeVisibility.fire({ visible: false })
       this.dispose()
+    }, null, this.disposables)
+    events.on('WinClosed', winid => {
+      if (this.winid == winid) {
+        this.winid = undefined
+        this._onDidChangeVisibility.fire({ visible: false })
+      }
+    }, null, this.disposables)
+    // switched to another buffer
+    events.on('BufWinLeave', (bufnr: number, winid: number) => {
+      if (bufnr == this.bufnr && winid == this.winid) {
+        this.winid = undefined
+        this._onDidChangeVisibility.fire({ visible: false })
+      }
+    }, null, this.disposables)
+    window.onDidTabClose(id => {
+      if (this._targetTabId === id) {
+        this.dispose()
+      }
     }, null, this.disposables)
     events.on('CursorHold', async bufnr => {
       if (bufnr != this.bufnr) return
@@ -245,6 +266,18 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   public get windowId(): number | undefined {
     return this.winid
+  }
+
+  public get targetTabnr(): number | undefined {
+    return window.getTabNumber(this._targetTabId)
+  }
+
+  public get targetWinId(): number | undefined {
+    return this._targetWinId
+  }
+
+  public get targetBufnr(): number | undefined {
+    return this._targetBufnr
   }
 
   private get startLnum(): number {
@@ -468,7 +501,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   public get visible(): boolean {
-    return this.winid != null
+    return this.bufnr && this.winid != null
+  }
+
+  public get vaild(): boolean {
+    return typeof this.bufnr === 'number'
   }
 
   public get selection(): T[] {
@@ -555,18 +592,19 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (row == null) return
     let buf = nvim.createBuffer(this.bufnr)
     let exists = this._selection.includes(item)
-    if (!this.canSelectMany || forceSingle) {
+    if (!this.opts.canSelectMany || forceSingle) {
       this._selection = [item]
     } else if (!exists) {
       this._selection.push(item)
     }
     nvim.pauseNotification()
-    if (!this.canSelectMany || forceSingle) {
+    if (!this.opts.canSelectMany || forceSingle) {
       buf.unplaceSign({ group: 'CocTree' })
     }
-    nvim.call('coc#compat#execute', [this.winid, `exe ${row + 1}`], true)
+    let cmd = `exe ${row + 1}${noRedraw ? '' : '|redraw'}`
+    nvim.call('coc#compat#execute', [this.winid, cmd], true)
     buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
-    if (!noRedraw) this.redraw()
+    // if (!noRedraw) this.redraw()
     void nvim.resumeNotification(false, true)
     if (!exists) this._onDidChangeSelection.fire({ selection: this._selection })
   }
@@ -829,6 +867,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       if (!nodes?.length) {
         this.message = 'No results'
       } else {
+        if (this.message == 'No results') this.message = ''
         for (let node of nodes) {
           let n = await this.appendTreeNode(node, level, lnum, renderedItems, highlights)
           lnum += n
@@ -857,33 +896,51 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   public async show(splitCommand = 'belowright 30vs'): Promise<void> {
-    if (this.bufnr || this._creating) return
+    if (this._creating || !this.provider) return
     this._creating = true
     let { nvim } = this
-    this.originalWin = await nvim.call('win_getid')
+    let oldWinId = this.winid
+    let [bufnr, windowId, tabnr] = await nvim.eval(`[bufnr("%"),win_getid(),tabpagenr()]`) as [number, number, number]
+    this._targetBufnr = bufnr
+    this._targetWinId = windowId
+    this._targetTabId = window.getTabId(tabnr)
     let winid = await nvim.call('coc#window#find', ['cocViewId', this.viewId])
-    let id = globalId
-    globalId = globalId + 1
     nvim.pauseNotification()
-    if (winid != -1) {
-      nvim.call('win_gotoid', [winid], true)
-      nvim.command(`silent edit +setl\\ buftype=nofile CocTree${id}`, true)
+    if (this.bufnr) {
+      if (winid != -1) {
+        nvim.call('win_gotoid', [winid], true)
+        nvim.command(`b ${this.bufnr}`, true)
+      } else {
+        nvim.command(`silent keepalt ${splitCommand} ${this.bufname}`, true)
+      }
     } else {
-      nvim.command(`silent keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
+      let id = globalId
+      globalId = globalId + 1
+      if (winid != -1) {
+        nvim.call('win_gotoid', [winid], true)
+        nvim.command(`silent edit +setl\\ buftype=nofile CocTree${id}`, true)
+      } else {
+        nvim.command(`silent keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
+      }
+      nvim.command(`setl bufhidden=${this.opts.bufhidden || 'wipe'} nolist nonumber norelativenumber foldcolumn=0`, true)
+      nvim.command(`setl signcolumn=${this.opts.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
+      nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
+      nvim.command(`let w:cocViewId = "${this.viewId.replace(/"/g, '\\"')}"`, true)
     }
-    nvim.command('setl bufhidden=wipe nolist nonumber norelativenumber foldcolumn=0', true)
-    nvim.command(`setl signcolumn=${this.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
-    nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
-    nvim.command(`let w:cocViewId = "${this.viewId.replace(/"/g, '\\"')}"`, true)
+    nvim.call('bufname', ['%'], true)
     nvim.call('bufnr', ['%'], true)
     nvim.call('win_getid', [], true)
     let res = await nvim.resumeNotification()
     if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))
-    this._onDidChangeVisibility.fire({ visible: true })
+    if (!oldWinId) this._onDidChangeVisibility.fire({ visible: true })
     this.registerKeymaps()
     let arr = res[0]
+    this.bufname = arr[arr.length - 3]
     this.bufnr = arr[arr.length - 2]
     this.winid = arr[arr.length - 1]
+    if (oldWinId && oldWinId !== this.winid) {
+      nvim.call('coc#window#close', [oldWinId], true)
+    }
     this._creating = false
     this.updateHeadLines(true)
     void this.render()
@@ -901,7 +958,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       }, notify))
     }
     this.disposables.push(workspace.registerLocalKeymap('n', '<C-o>', () => {
-      nvim.call('win_gotoid', [this.originalWin], true)
+      nvim.call('win_gotoid', [this._targetWinId], true)
     }, true))
     regist('n', '<LeftRelease>', async element => {
       if (element) await this.onClick(element)
@@ -938,12 +995,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   private hide(): void {
-    if (!this.bufnr) return
-    this.nvim.command(`bd! ${this.bufnr}`, true)
+    let { winid } = this
+    if (!winid) return
+    this.nvim.call('coc#window#close', [winid], true)
     this.redraw()
-    this._onDidChangeVisibility.fire({ visible: false })
-    this.bufnr = undefined
     this.winid = undefined
+    this._onDidChangeVisibility.fire({ visible: false })
   }
 
   private redraw(): void {
@@ -961,19 +1018,21 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   public dispose(): void {
     if (!this.provider) return
-    if (this.timer) {
-      clearTimeout(this.timer)
-      this.timer = undefined
-    }
+    if (this.timer) clearTimeout(this.timer)
+    this.cancelResolve()
+    this.hide()
+    let { bufnr } = this
+    if (bufnr) this.nvim.command(`silent! bwipeout! ${bufnr}`, true)
+    this.bufnr = undefined
     this.filter?.dispose()
     this._selection = []
-    this.hide()
     this.itemsToFilter = []
-    this.cancelResolve()
     this.tooltipFactory.dispose()
     this.renderedItems = []
     this.nodesMap.clear()
     this.provider = undefined
+    this._onDispose.fire()
+    this._onDispose.dispose()
     disposeAll(this.disposables)
   }
 }

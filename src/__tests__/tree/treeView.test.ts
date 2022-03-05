@@ -164,6 +164,52 @@ describe('TreeView', () => {
     })
   })
 
+  describe('attach events', () => {
+    function waitVisibilityEvent(visible: boolean): Promise<void> {
+      return new Promise((resolve, reject) => {
+        let timer = setTimeout(() => {
+          disposable.dispose()
+          reject('event not fired after 2s')
+        }, 2000)
+        let disposable = treeView.onDidChangeVisibility(e => {
+          clearTimeout(timer)
+          expect(e.visible).toBe(visible)
+          disposable.dispose()
+          resolve(undefined)
+        })
+      })
+    }
+
+    it('should emit visibility change event', async () => {
+      createTreeView(defaultDef)
+      let p = waitVisibilityEvent(true)
+      await treeView.show()
+      await p
+      nvim.command('close', true)
+      await waitVisibilityEvent(false)
+      p = waitVisibilityEvent(true)
+      await treeView.show()
+      await p
+      nvim.command('enew', true)
+      await waitVisibilityEvent(false)
+      p = waitVisibilityEvent(true)
+      await treeView.show()
+      await p
+    })
+
+    it('should dispose on tab close', async () => {
+      await nvim.command('tabe')
+      createTreeView(defaultDef)
+      await treeView.show()
+      await nvim.command('close')
+      await nvim.command('normal! 1gt')
+      await nvim.command('tabonly')
+      await helper.waitValue(() => {
+        return treeView.vaild
+      }, false)
+    })
+  })
+
   describe('public properties', () => {
     it('should change title', async () => {
       createTreeView(defaultDef)
