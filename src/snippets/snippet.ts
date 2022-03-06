@@ -224,16 +224,16 @@ export class CocSnippet {
     let { range } = this
     let { value, marker } = placeholder
     let newText = editRange(placeholder.range, value, edit)
-    let lineChanged = newText.indexOf('\n') !== -1
-    let before = this.getContentBefore(marker)
+    let lineChanged = newText.split(/\r?\n/).length != value.split(/\r?\n/).length
+    let before = lineChanged ? '' : this.getContentBefore(marker)
     await this.tmSnippet.update(this.nvim, marker, newText)
-    let after = this.getContentBefore(marker)
+    let after = lineChanged ? '' : this.getContentBefore(marker)
     let snippetEdit: TextEdit = {
       range: Range.create(range.start, adjustPosition(range.end, edit)),
       newText: this.tmSnippet.toString()
     }
     this.sychronize()
-    return { edits: [snippetEdit], delta: lineChanged ? 0 : byteLength(after) - byteLength(before) }
+    return { edits: [snippetEdit], delta: byteLength(after) - byteLength(before) }
   }
 
   private sychronize(): void {
