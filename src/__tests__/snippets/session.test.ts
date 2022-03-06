@@ -2,7 +2,7 @@ import { Range } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import workspace from '../../workspace'
 import window from '../../window'
-import { SnippetSession } from '../../snippets/session'
+import { SnippetSession, normalizeSnippetString, shouldFormat } from '../../snippets/session'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -17,6 +17,25 @@ afterAll(async () => {
 
 afterEach(async () => {
   await helper.reset()
+})
+
+describe('session utils', () => {
+  it('should check shouldFormat', async () => {
+    expect(shouldFormat(' f')).toBe(true)
+    expect(shouldFormat('a\nb')).toBe(true)
+    expect(shouldFormat('foo')).toBe(false)
+  })
+
+  it('should normalizeSnippetString', async () => {
+    expect(normalizeSnippetString('a\n\n\tb', '  ', {
+      insertSpaces: true,
+      tabSize: 2
+    })).toBe('a\n\n    b')
+    expect(normalizeSnippetString('a\n\n  b', '\t', {
+      insertSpaces: false,
+      tabSize: 2
+    })).toBe('a\n\n\t\tb')
+  })
 })
 
 describe('SnippetSession#start', () => {
@@ -126,9 +145,7 @@ describe('SnippetSession#start', () => {
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await session.selectCurrentPlaceholder()
-    await helper.wait(100)
-    let m = await nvim.mode
-    expect(m.mode).toBe('s')
+    await helper.waitFor('mode', [], 's')
   })
 
   it('should start with variable selected', async () => {
@@ -139,9 +156,7 @@ describe('SnippetSession#start', () => {
     let line = await nvim.getLine()
     expect(line).toBe('bar')
     await session.selectCurrentPlaceholder()
-    await helper.wait(100)
-    let m = await nvim.mode
-    expect(m.mode).toBe('s')
+    await helper.waitFor('mode', [], 's')
   })
 
   it('should start with nest snippet', async () => {

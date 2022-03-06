@@ -2,11 +2,12 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { executePythonCode, convertRegex, UltiSnippetContext } from '../../snippets/eval'
+import { executePythonCode, addPythonTryCatch, convertRegex, UltiSnippetContext } from '../../snippets/eval'
 import { Placeholder, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet } from '../../snippets/snippet'
-import { SnippetVariableResolver } from '../../snippets/variableResolve'
+import { SnippetVariableResolver, parseComments, parseCommentstring } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -22,14 +23,14 @@ afterAll(async () => {
 })
 
 async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = Range.create(0, 0, 0, 0), line = '') {
-  let snip = new CocSnippet(snippet, Position.create(0, 0), nvim, new SnippetVariableResolver(nvim))
+  let snip = new CocSnippet(snippet, Position.create(0, 0), nvim, new SnippetVariableResolver(nvim, workspace.workspaceFolderControl))
   let context: UltiSnippetContext
   if (opts) context = { range, line, ...opts, }
   await snip.init(context)
   return snip
 }
 
-describe('convertRegex()', () => {
+describe('eval utils', () => {
   function assertThrow(fn: () => void) {
     let err
     try {
@@ -67,6 +68,50 @@ describe('convertRegex()', () => {
     expect(convertRegex('f(?#abc)b')).toBe('fb')
     expect(convertRegex('f(?P<abc>def)b')).toBe('f(?<abc>def)b')
     expect(convertRegex('f(?P=abc)b')).toBe('f\\k<abc>b')
+  })
+
+  it('should catch error with executePythonCode', async () => {
+    let err
+    try {
+      await executePythonCode(nvim, ['INVALID_CODE'])
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+    expect(err.stack).toMatch('INVALID_CODE')
+  })
+
+  it('should set error with addPythonTryCatch', async () => {
+    let code = addPythonTryCatch('INVALID_CODE', true)
+    await nvim.command(`pyx ${code}`)
+    let msg = await nvim.getVar('errmsg')
+    expect(msg).toBeDefined()
+    expect(msg).toMatch('INVALID_CODE')
+  })
+
+  it('should parse comments', async () => {
+    expect(parseCommentstring('a%sb')).toBeUndefined()
+    expect(parseCommentstring('// %s')).toBe('//')
+    expect(parseComments('')).toEqual({
+      start: undefined,
+      end: undefined,
+      single: undefined
+    })
+    expect(parseComments('s:/*')).toEqual({
+      start: '/*',
+      end: undefined,
+      single: undefined
+    })
+    expect(parseComments('e:*/')).toEqual({
+      end: '*/',
+      start: undefined,
+      single: undefined
+    })
+    expect(parseComments(':#,:b')).toEqual({
+      end: undefined,
+      start: undefined,
+      single: '#'
+    })
   })
 })
 
@@ -106,6 +151,33 @@ describe('CocSnippet', () => {
       let d = new Date()
       await assertResult('$CURRENT_YEAR', d.getFullYear().toString())
       await assertResult('$NOT_EXISTS', 'NOT_EXISTS')
+    })
+
+    it('should resolve new VSCode variables', async () => {
+      let doc = await helper.createDocument()
+      await doc.buffer.setOption('comments', 's1:/*,mb:*,ex:*/,://,b:#,:%,:XCOMM,n:>,fb:-')
+      await doc.buffer.setOption('commentstring', '')
+      let fsPath = URI.parse(doc.uri).fsPath
+      let c = await createSnippet('$RANDOM')
+      expect(c.toString().length).toBe(6)
+      c = await createSnippet('$RANDOM_HEX')
+      expect(c.toString().length).toBe(6)
+      c = await createSnippet('$UUID')
+      expect(c.toString()).toMatch('-')
+      c = await createSnippet('$RELATIVE_FILEPATH')
+      expect(c.toString()).toMatch(path.basename(fsPath))
+      c = await createSnippet('$WORKSPACE_NAME')
+      expect(c.toString().length).toBeGreaterThan(0)
+      c = await createSnippet('$WORKSPACE_FOLDER')
+      expect(c.toString().length).toBeGreaterThan(0)
+      await assertResult('$LINE_COMMENT', '//')
+      await assertResult('$BLOCK_COMMENT_START', '/*')
+      await assertResult('$BLOCK_COMMENT_END', '*/')
+      await doc.buffer.setOption('comments', '')
+      await doc.buffer.setOption('commentstring', '// %s')
+      await assertResult('$LINE_COMMENT', '//')
+      await assertResult('$BLOCK_COMMENT_START', '')
+      await assertResult('$BLOCK_COMMENT_END', '')
     })
 
     it('should resolve variables in placeholders', async () => {
@@ -184,6 +256,10 @@ describe('CocSnippet', () => {
       ])
       await asssertPyxValue('fff', 'foo')
       await asssertPyxValue('ft', 'txt')
+    })
+
+    it('should work with snip.c', async () => {
+      // TODO
     })
 
     it('should init python code block', async () => {

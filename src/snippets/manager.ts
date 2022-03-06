@@ -135,7 +135,7 @@ export class SnippetManager {
   public async resolveSnippet(body: string, ultisnip = false): Promise<Snippets.TextmateSnippet> {
     let parser = new Snippets.SnippetParser(ultisnip)
     const snippet = parser.parse(body, true)
-    const resolver = new SnippetVariableResolver(workspace.nvim)
+    const resolver = new SnippetVariableResolver(workspace.nvim, workspace.workspaceFolderControl)
     await snippet.resolveVariables(resolver)
     return snippet
   }

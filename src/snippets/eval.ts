@@ -39,14 +39,11 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr 
     return res.stdout.replace(/\s*$/, '') || res.stderr
   }
 
-  if (kind == 'python') {
-    let lines = [`snip._reset("${escapeString(curr)}")`]
-    lines.push(...code.split(/\r?\n/).map(line => line.replace(/\t/g, '    ')))
-    await executePythonCode(nvim, lines)
-    let res = await nvim.call(`pyxeval`, 'snip.rv') as string
-    return res.toString()
-  }
-  throw new Error(`Invalid kind ${kind}`)
+  let lines = [`snip._reset("${escapeString(curr)}")`]
+  lines.push(...code.split(/\r?\n/).map(line => line.replace(/\t/g, '    ')))
+  await executePythonCode(nvim, lines)
+  let res = await nvim.call(`pyxeval`, 'snip.rv') as string
+  return res.toString()
 }
 
 export function preparePythonCodes(snip: UltiSnippetContext): string[] {
@@ -99,8 +96,8 @@ export function getVariablesCode(values: { [index: number]: string }): string {
  * vim8 doesn't throw any python error with :py command
  * we have to use g:errmsg since v:errmsg can't be changed in python script.
  */
-function addPythonTryCatch(code: string): string {
-  if (!isVim) return code
+export function addPythonTryCatch(code: string, force = false): string {
+  if (!isVim && force === false) return code
   let lines = [
     'import traceback, vim',
     `vim.vars['errmsg'] = ''`,

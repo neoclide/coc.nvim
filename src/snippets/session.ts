@@ -64,7 +64,7 @@ export class SnippetSession {
       this.deactivate()
       return false
     }
-    const resolver = new SnippetVariableResolver(this.nvim)
+    const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
     let context: UltiSnippetContext
     if (ultisnip) context = Object.assign({ range, line: currentLine }, ultisnip)
     const placeholder = this.getReplacePlaceholder(range)
@@ -355,7 +355,7 @@ export function normalizeSnippetString(snippet: string, indent: string, opts: Fo
   return lines.join('\n')
 }
 
-function shouldFormat(snippet: string): boolean {
+export function shouldFormat(snippet: string): boolean {
   if (/^\s/.test(snippet)) return true
   if (snippet.indexOf('\n') !== -1) return true
   return false

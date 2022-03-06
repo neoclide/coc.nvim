@@ -44,6 +44,9 @@ function! s:checkEnvironment() abort
       silent pyx print("")
     catch /.*/
       call health#report_warn('pyx command not work, some extensions may fail to work, checkout ":h pythonx"')
+      if has('nvim')
+        call health#report_warn('Install pynvim by command: pip install pynvim --upgrade')
+      endif
     endtry
   endif
   return valid

@@ -563,8 +563,11 @@ export class Variable extends TransformableMarker {
     super()
   }
 
+  public get resovled(): boolean {
+    return this._resolved
+  }
+
   public async resolve(resolver: VariableResolver): Promise<boolean> {
-    if (this._resolved) return true
     let value = await resolver.resolve(this)
     this._resolved = true
     if (value && value.includes('\n')) {
@@ -893,6 +896,7 @@ export class TextmateSnippet extends Marker {
     let children = nested.children
     if (before) children.unshift(new Text(before))
     if (after) children.push(new Text(after))
+    // TODO adjust python code block which access `t` variable when necessary
     // TODO may need update text for same index!
     this.replace(marker, children)
     this.reset()
@@ -997,7 +1001,7 @@ export class TextmateSnippet extends Marker {
   public async resolveVariables(resolver: VariableResolver): Promise<void> {
     let items: Variable[] = []
     this.walk(candidate => {
-      if (candidate instanceof Variable) {
+      if (candidate instanceof Variable && !candidate.resovled) {
         items.push(candidate)
       }
       return true
