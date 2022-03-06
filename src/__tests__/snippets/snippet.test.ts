@@ -1,13 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
 import { executePythonCode, UltiSnippetContext } from '../../snippets/eval'
-import { CocSnippet } from '../../snippets/snippet'
 import { Placeholder, TextmateSnippet } from '../../snippets/parser'
+import { CocSnippet } from '../../snippets/snippet'
 import { SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import helper from '../helper'
-import { URI } from 'vscode-uri'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -67,12 +67,16 @@ describe('CocSnippet', () => {
       await assertResult('$NOT_EXISTS', 'NOT_EXISTS')
     })
 
-    it('should resolve variables with placeholders', async () => {
+    it('should resolve variables in placeholders', async () => {
       await nvim.setLine('foo')
       await assertResult('$1 ${1:$TM_CURRENT_LINE}', 'foo foo')
       await assertResult('$1 ${1:$TM_CURRENT_LINE bar}', 'foo bar foo bar')
       await assertResult('$2 ${2:|${1:$TM_CURRENT_LINE}|}', '|foo| |foo|')
       await assertResult('$1 $2 ${2:${1:|$TM_CURRENT_LINE|}}', '|foo| |foo| |foo|')
+    })
+
+    it('should resolve variables in placeholders with default value', async () => {
+      await assertResult('$1 ${1:${VISUAL:foo}}', 'foo foo')
     })
 
     it('should resolve for lower case variables', async () => {
@@ -188,28 +192,71 @@ describe('CocSnippet', () => {
       expect(c.getContentBefore(p)).toBe('foo is nested with   bar')
     })
 
-    it('should consider line break', async () => {
+    it('should consider normal line break', async () => {
       let c = await createSnippet('${1:foo}\n${2:is nested with $4}', {})
       let markers = c.placeholders as Placeholder[]
       let p = markers.find(o => o.index == 4)
       expect(c.getContentBefore(p)).toBe('is nested with ')
     })
+
+    it('should consider line break after update', async () => {
+      let c = await createSnippet('${1:foo} ${2}', {})
+      let p = c.getPlaceholder(1)
+      await c.tmSnippet.update(nvim, p.marker, 'abc\ndef')
+      let markers = c.placeholders as Placeholder[]
+      let placeholder = markers.find(o => o.index == 2)
+      expect(c.getContentBefore(placeholder)).toBe('def ')
+    })
   })
 
   describe('updatePlaceholder()', () => {
+    async function assertUpdate(text: string, value: string, result: string, index = 1): Promise<CocSnippet> {
+      let c = await createSnippet(text, {})
+      let p = c.getPlaceholder(index)
+      expect(p != null).toBe(true)
+      await c.tmSnippet.update(nvim, p.marker, value)
+      expect(c.toString()).toBe(result)
+      return c
+    }
+
     it('should update variable placeholders', async () => {
-      let c = await createSnippet('${foo} ${foo}', {})
-      let marker = c.tmSnippet.variables[0]
-      await c.tmSnippet.update(nvim, marker, 'bar')
-      expect(c.toString()).toBe('bar bar')
+      await assertUpdate('${foo} ${foo}', 'bar', 'bar bar')
+      await assertUpdate('${foo} ${foo:x}', 'bar', 'bar bar')
+      await assertUpdate('${1:${foo:x}} $1', 'bar', 'bar bar')
     })
 
-    it('should sychronize parent placeholders of variable placeholder', async () => {
-
+    it('should update placeholder with code blocks', async () => {
+      await assertUpdate('${1:`echo "foo"`} $1', 'bar', 'bar bar')
+      await assertUpdate('${2:${1:`echo "foo"`}} $2', 'bar', 'bar bar')
+      await assertUpdate('${1:`!v "foo"`} $1', 'bar', 'bar bar')
+      await assertUpdate('${1:`!p snip.rv = "foo"`} $1', 'bar', 'bar bar')
     })
 
-    it('should calculate delta', async () => {
-      // TODO
+    it('should update related python blocks', async () => {
+      // multiple
+      await assertUpdate('`!p snip.rv = t[1]` ${1:`!p snip.rv = "foo"`} `!p snip.rv = t[1]`', 'bar', 'bar bar bar')
+      // parent
+      await assertUpdate('`!p snip.rv = t[2]` ${2:foo ${1:`!p snip.rv = "foo"`}}', 'bar', 'foo bar foo bar')
+      // related placeholders
+      await assertUpdate('${2:foo `!p snip.rv = t[1]`} ${1:`!p snip.rv = "foo"`}', 'bar', 'foo bar bar')
+    })
+
+    it('should update python code blocks with normal placeholder values', async () => {
+      await assertUpdate('`!p snip.rv = t[1]` $1 `!p snip.rv = t[1]`', 'bar', 'bar bar bar')
+      await assertUpdate('`!p snip.rv = t[2]` ${2:foo $1}', 'bar', 'foo bar foo bar')
+      await assertUpdate('${2:foo `!p snip.rv = t[1]`} $1', 'bar', 'foo bar bar')
+    })
+
+    it('should reset values for removed placeholders', async () => {
+      // Keep remained placeholder this is same behavior of VSCode.
+      let s = await assertUpdate('${2:bar${1:foo}} $2 $1', 'bar', 'bar bar foo', 2)
+      let prev = s.getPrevPlaceholder(2)
+      expect(prev).toBeDefined()
+      expect(prev.value).toBe('foo')
+      // python placeholder, reset to empty value
+      await assertUpdate('${2:bar${1:foo}} $2 `!p snip.rv = t[1]`', 'bar', 'bar bar ', 2)
+      // not reset since $1 still exists
+      await assertUpdate('${2:bar${1:foo}} $2 $1 `!p snip.rv = t[1]`', 'bar', 'bar bar foo foo', 2)
     })
   })
 })

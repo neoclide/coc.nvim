@@ -916,7 +916,6 @@ export class TextmateSnippet extends Marker {
       let newText = p.transform ? p.transform.resolve(val) : val
       p.setOnlyChild(new Text(newText || ''))
     }
-    // TODO reset value for removed placeholder.
     this.sychronizeParents(markers)
     this.reset()
   }
@@ -1021,6 +1020,7 @@ export class TextmateSnippet extends Marker {
    */
   public reset(): void {
     this._placeholders = undefined
+    this._values = undefined
   }
 
   public toTextmateString(): string {

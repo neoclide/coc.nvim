@@ -1,9 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { InsertTextMode, Range } from 'vscode-languageserver-protocol'
+import { InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Document from '../../model/document'
 import snippetManager from '../../snippets/manager'
 import { SnippetString } from '../../snippets/string'
 import workspace from '../../workspace'
+import commandManager from '../../commands'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -26,6 +27,20 @@ beforeEach(async () => {
 })
 
 describe('snippet provider', () => {
+  describe('insertSnippet command', () => {
+    it('should insert ultisnips snippet', async () => {
+      await nvim.setLine('foo')
+      let edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "bar"`}')
+      await commandManager.executeCommand('editor.action.insertSnippet', edit, true)
+      let line = await nvim.line
+      expect(line).toBe('bar')
+      edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "foo"`}')
+      await commandManager.executeCommand('editor.action.insertSnippet', edit, { regex: '' })
+      line = await nvim.line
+      expect(line).toBe('foo')
+    })
+  })
+
   describe('insertSnippet()', () => {
     it('should not active when insert plain snippet', async () => {
       await snippetManager.insertSnippet('foo')

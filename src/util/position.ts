@@ -112,7 +112,7 @@ export function positionToOffset(lines: string[], line: number, character: numbe
 // edit a range to newText
 export function editRange(range: Range, text: string, edit: TextEdit): string {
   // outof range
-  if (!rangeInRange(edit.range, range)) return text
+  if (!rangeInRange(edit.range, range)) throw new Error(`edit out of range`)
   let { start, end } = edit.range
   let lines = text.split('\n')
   let character = start.line == range.start.line ? start.character - range.start.character : start.character

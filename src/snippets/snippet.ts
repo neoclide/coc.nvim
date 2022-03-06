@@ -118,7 +118,7 @@ export class CocSnippet {
     return this.tmSnippet.toString()
   }
 
-  public get firstPlaceholder(): CocSnippetPlaceholder | null {
+  public get firstPlaceholder(): CocSnippetPlaceholder | undefined {
     let index = 0
     for (let p of this._placeholders) {
       if (p.index == 0) continue
@@ -224,6 +224,7 @@ export class CocSnippet {
     let { range } = this
     let { value, marker } = placeholder
     let newText = editRange(placeholder.range, value, edit)
+    let lineChanged = newText.indexOf('\n') !== -1
     let before = this.getContentBefore(marker)
     await this.tmSnippet.update(this.nvim, marker, newText)
     let after = this.getContentBefore(marker)
@@ -232,7 +233,7 @@ export class CocSnippet {
       newText: this.tmSnippet.toString()
     }
     this.sychronize()
-    return { edits: [snippetEdit], delta: byteLength(after) - byteLength(before) }
+    return { edits: [snippetEdit], delta: lineChanged ? 0 : byteLength(after) - byteLength(before) }
   }
 
   private sychronize(): void {
