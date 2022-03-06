@@ -893,6 +893,7 @@ export class TextmateSnippet extends Marker {
     let children = nested.children
     if (before) children.unshift(new Text(before))
     if (after) children.push(new Text(after))
+    // TODO may need update text for same index!
     this.replace(marker, children)
     this.reset()
     return select

@@ -34,12 +34,24 @@ export class SnippetSession {
   public async start(snippetString: string, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     const { document } = this
     if (!document || !document.attached) return false
+    void events.fire('InsertSnippet', [])
     if (!range) {
       let position = await window.getCursorPosition()
       range = Range.create(position, position)
     }
+    let position = range.start
+    await document.patchChange()
+    const currentLine = document.getline(position.line)
+    const currentIndent = currentLine.match(/^\s*/)[0]
+    let inserted = ''
+    if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
+      inserted = snippetString
+    } else {
+      const formatOptions = await workspace.getFormatOptions(this.document.uri)
+      inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
+    }
     if (!this.isActive && SnippetParser.isPlainText(snippetString)) {
-      let text = snippetString.replace(/\$0$/, '')
+      let text = inserted.replace(/\$0$/, '')
       let edits = [TextEdit.replace(range, text)]
       await document.applyEdits(edits)
       let lines = text.split(/\r?\n/)
@@ -51,18 +63,6 @@ export class SnippetSession {
       await window.moveTo(pos)
       this.deactivate()
       return false
-    }
-    void events.fire('InsertSnippet', [])
-    let position = range.start
-    await document.patchChange()
-    const currentLine = document.getline(position.line)
-    const currentIndent = currentLine.match(/^\s*/)[0]
-    let inserted = ''
-    if (insertTextMode === InsertTextMode.asIs) {
-      inserted = snippetString
-    } else {
-      const formatOptions = await workspace.getFormatOptions(this.document.uri)
-      inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     }
     const resolver = new SnippetVariableResolver(this.nvim)
     let context: UltiSnippetContext
@@ -81,7 +81,7 @@ export class SnippetSession {
       this.current = snippet.firstPlaceholder?.marker
       edits.push(TextEdit.replace(range, snippet.toString()))
       // try fix indent of remain text
-      if (snippetString.endsWith('\n')) {
+      if (inserted.replace(/\$0$/, '').endsWith('\n')) {
         const remain = currentLine.slice(range.end.character)
         if (remain.length) {
           let s = range.end.character
@@ -353,4 +353,10 @@ export function normalizeSnippetString(snippet: string, indent: string, opts: Fo
     return (idx == 0 || line.length == 0 ? '' : indent) + pre + line.slice(space.length)
   })
   return lines.join('\n')
+}
+
+function shouldFormat(snippet: string): boolean {
+  if (/^\s/.test(snippet)) return true
+  if (snippet.indexOf('\n') !== -1) return true
+  return false
 }
