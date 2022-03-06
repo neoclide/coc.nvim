@@ -38,7 +38,7 @@ export class SnippetSession {
       let position = await window.getCursorPosition()
       range = Range.create(position, position)
     }
-    if (SnippetParser.isPlainText(snippetString)) {
+    if (!this.isActive && SnippetParser.isPlainText(snippetString)) {
       let text = snippetString.replace(/\$0$/, '')
       let edits = [TextEdit.replace(range, text)]
       await document.applyEdits(edits)
@@ -49,8 +49,8 @@ export class SnippetSession {
         character: len == 1 ? range.start.character + text.length : lines[len - 1].length
       }
       await window.moveTo(pos)
-      if (!this.isActive) this.deactivate()
-      return this.isActive
+      this.deactivate()
+      return false
     }
     void events.fire('InsertSnippet', [])
     let position = range.start
