@@ -119,3 +119,39 @@ function escapeString(input: string): string {
     .replace(/\t/g, '\\t')
     .replace(/\n/g, '\\n')
 }
+
+const stringStartRe = /\\A/
+const conditionRe = /\(\?\(\w+\).+\|/
+const commentRe = /\(\?#.*?\)/
+const namedCaptureRe = /\(\?P<\w+>.*?\)/
+const namedReferenceRe = /\(\?P=(\w+)\)/
+const regex = new RegExp(`${commentRe.source}|${stringStartRe.source}|${namedCaptureRe.source}|${namedReferenceRe.source}`, 'g')
+
+/**
+ * Convert python regex to javascript regex,
+ * throw error when unsupported pattern found
+ */
+export function convertRegex(str: string): string {
+  if (str.indexOf('\\z') !== -1) {
+    throw new Error('pattern \\z not supported')
+  }
+  if (str.indexOf('(?s)') !== -1) {
+    throw new Error('pattern (?s) not supported')
+  }
+  if (str.indexOf('(?x)') !== -1) {
+    throw new Error('pattern (?x) not supported')
+  }
+  if (str.indexOf('\n') !== -1) {
+    throw new Error('multiple line pattern not supported')
+  }
+  if (conditionRe.test(str)) {
+    throw new Error('(?id/name)yes-pattern|no-pattern not supported')
+  }
+  return str.replace(regex, (match, p1) => {
+    if (match == '\\A') return '^'
+    if (match.startsWith('(?#')) return ''
+    if (match.startsWith('(?P<')) return '(?' + match.slice(3)
+    if (match.startsWith('(?P=')) return `\\k<${p1}>`
+    return ''
+  })
+}

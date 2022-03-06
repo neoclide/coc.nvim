@@ -410,6 +410,12 @@ describe('SnippetParser', () => {
     expect(snip.toString()).toBe('foo oo')
   })
 
+  test('Parser, convert ultisnips regex', () => {
+    const p = new SnippetParser(true)
+    let snip = p.parse('${1:foo} ${1/^\\A/_/}')
+    expect(snip.toString()).toBe('foo _foo')
+  })
+
   test('Parser, transform condition else text', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:foo} ${1/^(f)(b?)/(?2:_:two)/}')

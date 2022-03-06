@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { executePythonCode, UltiSnippetContext } from '../../snippets/eval'
+import { executePythonCode, convertRegex, UltiSnippetContext } from '../../snippets/eval'
 import { Placeholder, TextmateSnippet } from '../../snippets/parser'
 import { CocSnippet } from '../../snippets/snippet'
 import { SnippetVariableResolver } from '../../snippets/variableResolve'
@@ -28,6 +28,47 @@ async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = 
   await snip.init(context)
   return snip
 }
+
+describe('convertRegex()', () => {
+  function assertThrow(fn: () => void) {
+    let err
+    try {
+      fn()
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeDefined()
+  }
+
+  it('should throw for invalid regex', async () => {
+    assertThrow(() => {
+      convertRegex('\\z')
+    })
+    assertThrow(() => {
+      convertRegex('(?s)')
+    })
+    assertThrow(() => {
+      convertRegex('(?x)')
+    })
+    assertThrow(() => {
+      convertRegex('a\nb')
+    })
+    assertThrow(() => {
+      convertRegex('(<)?(\\w+@\\w+(?:\\.\\w+)+)(?(1)>|$)')
+    })
+    assertThrow(() => {
+      convertRegex('(<)?(\\w+@\\w+(?:\\.\\w+)+)(?(1)>|)')
+    })
+  })
+
+  it('should convert regex', async () => {
+    // \\A
+    expect(convertRegex('\\A')).toBe('^')
+    expect(convertRegex('f(?#abc)b')).toBe('fb')
+    expect(convertRegex('f(?P<abc>def)b')).toBe('f(?<abc>def)b')
+    expect(convertRegex('f(?P=abc)b')).toBe('f\\k<abc>b')
+  })
+})
 
 describe('CocSnippet', () => {
   async function assertResult(snip: string, resolved: string) {
@@ -75,7 +116,7 @@ describe('CocSnippet', () => {
       await assertResult('$1 $2 ${2:${1:|$TM_CURRENT_LINE|}}', '|foo| |foo| |foo|')
     })
 
-    it('should resolve variables in placeholders with default value', async () => {
+    it('should resolve variables  with default value', async () => {
       await assertResult('$1 ${1:${VISUAL:foo}}', 'foo foo')
     })
 
@@ -92,6 +133,12 @@ describe('CocSnippet', () => {
 
     it('should init vim block', async () => {
       await assertResult('`!v eval("1 + 1")` = 2', '2 = 2')
+    })
+
+    it('should init code block in placeholders', async () => {
+      await assertResult('f ${1:`echo "b"`}', 'f b')
+      await assertResult('f ${1:`!v "b"`}', 'f b')
+      await assertResult('f ${1:`!p snip.rv = "b"`}', 'f b')
     })
 
     it('should setup python globals', async () => {

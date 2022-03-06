@@ -7,7 +7,7 @@ import { CharCode } from '../util/charCode'
 import { rangeParts, getCharIndexes } from '../util/string'
 import { Range } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
-import { EvalKind, evalCode, executePythonCode, getVariablesCode } from './eval'
+import { EvalKind, evalCode, convertRegex, executePythonCode, getVariablesCode } from './eval'
 import unidecode from 'unidecode'
 const logger = require('../util/logger')('snippets-parser')
 
@@ -1431,6 +1431,7 @@ export class SnippetParser {
 
     try {
       if (ascii) transform.ascii = true
+      if (this.ultisnip) regexValue = convertRegex(regexValue)
       transform.regexp = new RegExp(regexValue, regexOptions)
     } catch (e) {
       return false
