@@ -934,11 +934,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
       } else {
         nvim.command(`silent keepalt ${splitCommand} +setl\\ buftype=nofile CocTree${id}`, true)
       }
-      nvim.command(`setl bufhidden=${this.opts.bufhidden || 'wipe'} nolist nonumber norelativenumber foldcolumn=0`, true)
-      nvim.command(`setl signcolumn=${this.opts.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
-      nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
-      nvim.command(`let w:cocViewId = "${this.viewId.replace(/"/g, '\\"')}"`, true)
     }
+    nvim.command(`setl bufhidden=${this.opts.bufhidden || 'wipe'} nolist nonumber norelativenumber foldcolumn=0`, true)
+    nvim.command(`setl signcolumn=${this.opts.canSelectMany ? 'yes' : 'no'}${this.winfixwidth ? ' winfixwidth' : ''}`, true)
+    nvim.command('setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile', true)
+    nvim.command(`let w:cocViewId = "${this.viewId.replace(/"/g, '\\"')}"`, true)
     nvim.call('bufname', ['%'], true)
     nvim.call('bufnr', ['%'], true)
     nvim.call('win_getid', [], true)
