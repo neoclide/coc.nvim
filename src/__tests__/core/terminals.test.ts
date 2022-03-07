@@ -104,6 +104,7 @@ describe('create terminal', () => {
     })
     let res = await terminal.show(true)
     expect(res).toBe(true)
+    expect(typeof terminal.bufnr).toBe('number')
     let winid = await nvim.call('bufwinid', [terminal.bufnr])
     let curr = await nvim.call('win_getid', [])
     expect(winid != curr).toBe(true)

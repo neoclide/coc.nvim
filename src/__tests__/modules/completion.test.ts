@@ -571,7 +571,7 @@ describe('completion TextChangedP', () => {
     await helper.selectCompleteItem(idx)
     await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
     await helper.wait(50)
-    expect(snippetManager.isActived(doc.bufnr)).toBe(true)
+    expect(snippetManager.session).toBeDefined()
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(lnum).toBe(1)
     expect(col).toBe(3)

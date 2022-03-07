@@ -284,6 +284,15 @@ describe('SnippetParser', () => {
     assertPlaceholder('${1:`!p \nx\ny`}', 'python', 'x\ny')
   })
 
+  test('Parser, CodeBlock toTextmateString', () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    expect(c('`foo`').toTextmateString()).toBe('`foo`')
+    expect(c('`!p snip.rv`').toTextmateString()).toBe('`!p snip.rv`')
+    expect(c('`!v "var"`').toTextmateString()).toBe('`!v "var"`')
+  })
+
   test('Parser, placeholder with CodeBlock primary', () => {
     const c = text => {
       return (new SnippetParser(true)).parse(text)

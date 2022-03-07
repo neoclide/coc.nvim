@@ -211,13 +211,6 @@ export abstract class Marker {
     return 0
   }
 
-  public get next(): Marker | null {
-    let { parent } = this
-    let { children } = parent
-    let idx = children.indexOf(this)
-    return children[idx + 1]
-  }
-
   public abstract clone(): Marker
 }
 
@@ -250,7 +243,7 @@ export class CodeBlock extends Marker {
   private _value = ''
   private _related: number[] = []
 
-  constructor(public readonly code: string, public readonly kind: EvalKind) {
+  constructor(public readonly code: string, public readonly kind: EvalKind, value?: string) {
     super()
     if (kind === 'python') {
       let { _related } = this
@@ -264,6 +257,7 @@ export class CodeBlock extends Marker {
         if (!_related.includes(n)) _related.push(n)
       }
     }
+    if (value !== undefined) this._value = value
   }
 
   public get related(): number[] {
@@ -275,10 +269,6 @@ export class CodeBlock extends Marker {
       return this.parent.index
     }
     return undefined
-  }
-
-  public get isPython(): boolean {
-    return this.kind == 'python'
   }
 
   public async resolve(nvim: Neovim): Promise<void> {
@@ -302,17 +292,17 @@ export class CodeBlock extends Marker {
   public toTextmateString(): string {
     let t = ''
     if (this.kind == 'python') {
-      t = 'p'
+      t = '!p '
     } else if (this.kind == 'shell') {
-      t = '!'
+      t = ''
     } else if (this.kind == 'vim') {
-      t = 'v'
+      t = '!v '
     }
-    return '`' + t + ' ' + (this.code) + '`'
+    return '`' + t + (this.code) + '`'
   }
 
   public clone(): CodeBlock {
-    return new CodeBlock(this.code, this.kind)
+    return new CodeBlock(this.code, this.kind, this.value)
   }
 }
 
@@ -559,8 +549,11 @@ export class FormatString extends Marker {
 export class Variable extends TransformableMarker {
   private _resolved = false
 
-  constructor(public name: string) {
+  constructor(public name: string, resolved?: boolean) {
     super()
+    if (typeof resolved === 'boolean') {
+      this._resolved = resolved
+    }
   }
 
   public get resovled(): boolean {
@@ -614,7 +607,7 @@ export class Variable extends TransformableMarker {
   }
 
   public clone(): Variable {
-    const ret = new Variable(this.name)
+    const ret = new Variable(this.name, this.resovled)
     if (this.transform) {
       ret.transform = this.transform.clone()
     }
@@ -862,14 +855,6 @@ export class TextmateSnippet extends Marker {
     return placeholders.reduce((curr, p) => Math.max(curr, p.index), 0)
   }
 
-  public get minIndexNumber(): number {
-    let { placeholders } = this
-    let nums = placeholders.map(p => p.index)
-    nums.sort((a, b) => a - b)
-    if (nums.length > 1 && nums[0] == 0) return nums[1]
-    return nums[0] || 0
-  }
-
   public insertSnippet(snippet: string, marker: Placeholder | Variable, range: Range, ultisnip = false): Placeholder {
     let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
     let [before, after] = rangeParts(marker.toString(), range)
@@ -897,7 +882,7 @@ export class TextmateSnippet extends Marker {
     if (before) children.unshift(new Text(before))
     if (after) children.push(new Text(after))
     // TODO adjust python code block which access `t` variable when necessary
-    // TODO may need update text for same index!
+    // TODO update children when it's plain snippet.
     this.replace(marker, children)
     this.reset()
     return select
@@ -948,15 +933,6 @@ export class TextmateSnippet extends Marker {
     arr.forEach(p => {
       this.updatePlaceholder(p)
     })
-  }
-
-  /**
-   * newText after update with value
-   */
-  public getPlaceholderText(id: number, value: string): string {
-    const placeholder = this.placeholders[id]
-    if (!placeholder) return value
-    return placeholder.transform ? placeholder.transform.resolve(value) : value
   }
 
   public offset(marker: Marker): number {
@@ -1034,7 +1010,7 @@ export class TextmateSnippet extends Marker {
 
   public clone(): TextmateSnippet {
     let ret = new TextmateSnippet(this.ultisnip)
-    this._children = this.children.map(child => child.clone())
+    ret._children = this.children.map(child => child.clone())
     return ret
   }
 

@@ -115,18 +115,13 @@ describe('window functions', () => {
     disposables.push(emitter)
     disposables.push(treeView)
     await treeView.show()
-    await helper.wait(50)
-    await nvim.command('exe 2')
-    await nvim.input('t')
-    await helper.wait(50)
-    let lines = await nvim.call('getline', [1, '$'])
-    expect(lines).toEqual(['files', '- a', '  b.js'])
+    let filetype = await nvim.eval('&filetype')
+    expect(filetype).toBe('coctree')
   })
 
   it('should show outputChannel', async () => {
     window.createOutputChannel('channel')
     window.showOutputChannel('channel')
-    await helper.wait(50)
     let buf = await nvim.buffer
     let name = await buf.name
     expect(name).toMatch('channel')

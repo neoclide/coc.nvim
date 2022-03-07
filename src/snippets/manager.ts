@@ -16,33 +16,38 @@ export class SnippetManager {
   private statusItem: StatusBarItem
 
   constructor() {
-    workspace.onDidChangeTextDocument(async e => {
-      let session = this.getSession(e.bufnr)
-      if (session) {
-        let firstLine = e.originalLines[e.contentChanges[0].range.start.line] || ''
-        await session.synchronizeUpdatedPlaceholders(e.contentChanges[0], firstLine)
-      }
+    events.on(['TextChanged', 'TextChangedI'], bufnr => {
+      let session = this.getSession(bufnr as number)
+      if (session) session.sychronize()
     }, null, this.disposables)
-
-    workspace.onDidCloseTextDocument(ev => {
-      let session = this.getSession(ev.bufnr)
+    events.on('TextChangedP', bufnr => {
+      let session = this.getSession(bufnr as number)
+      if (session) session.cancel()
+    }, null, this.disposables)
+    events.on('CompleteDone', () => {
+      let session = this.getSession(workspace.bufnr)
+      if (session) session.sychronize()
+    }, null, this.disposables)
+    events.on('InsertCharPre', (_, bufnr) => {
+      let session = this.getSession(bufnr)
+      if (session) session.cancel()
+    }, null, this.disposables)
+    events.on('BufUnload', bufnr => {
+      let session = this.getSession(bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
-
-    events.on('BufEnter', async bufnr => {
-      let session = this.getSession(bufnr)
+    window.onDidChangeActiveTextEditor(e => {
       if (!this.statusItem) return
-      if (session && session.isActive) {
+      let session = this.getSession(e.document.bufnr)
+      if (session) {
         this.statusItem.show()
       } else {
         this.statusItem.hide()
       }
     }, null, this.disposables)
-
-    events.on('InsertEnter', async () => {
-      let { session } = this
-      if (!session) return
-      await session.checkPosition()
+    events.on('InsertEnter', async bufnr => {
+      let session = this.getSession(bufnr)
+      if (session) await session.checkPosition()
     }, null, this.disposables)
   }
 
@@ -57,6 +62,8 @@ export class SnippetManager {
    */
   public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     let { bufnr } = workspace
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) return false
     let session = this.getSession(bufnr)
     if (!session) {
       session = new SnippetSession(workspace.nvim, bufnr)
@@ -70,7 +77,11 @@ export class SnippetManager {
     }
     let snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
     let isActive = await session.start(snippetStr, select, range, insertTextMode, ultisnip)
-    if (isActive) this.statusItem.show()
+    if (isActive) {
+      this.statusItem.show()
+    } else {
+      this.sessionMap.delete(bufnr)
+    }
     return isActive
   }
 
@@ -109,27 +120,17 @@ export class SnippetManager {
   }
 
   public get session(): SnippetSession {
-    let session = this.getSession(workspace.bufnr)
-    return session && session.isActive ? session : null
+    return this.getSession(workspace.bufnr)
   }
 
-  public isActived(bufnr: number): boolean {
-    let session = this.getSession(bufnr)
-    return session && session.isActive ? true : false
+  public getSession(bufnr: number): SnippetSession {
+    return this.sessionMap.get(bufnr)
   }
 
   public jumpable(): boolean {
     let { session } = this
     if (!session) return false
-    let placeholder = session.placeholder
-    if (placeholder && placeholder.index !== 0) {
-      return true
-    }
-    return false
-  }
-
-  public getSession(bufnr: number): SnippetSession {
-    return this.sessionMap.get(bufnr)
+    return session.placeholder != null
   }
 
   public async resolveSnippet(body: string, ultisnip = false): Promise<Snippets.TextmateSnippet> {

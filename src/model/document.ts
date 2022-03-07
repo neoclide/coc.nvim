@@ -315,7 +315,6 @@ export default class Document {
           }
           return diff
         })
-        // console.log(JSON.stringify(sortedEdits, null, 2))
         changes = sortedEdits.reverse().map(o => {
           let r = o.range
           let sl = this.getline(r.start.line)

@@ -25,11 +25,13 @@ export default class StatusLine implements Disposable {
   private interval: NodeJS.Timer
   constructor(private nvim: Neovim) {
     this.interval = setInterval(() => {
-      this.setStatusText().logError()
+      this.setStatusText()
     }, 100)
   }
 
   public dispose(): void {
+    this.items.clear()
+    this.shownIds.clear()
     clearInterval(this.interval)
   }
 
@@ -42,13 +44,16 @@ export default class StatusLine implements Disposable {
       isProgress,
       show: () => {
         this.shownIds.add(uid)
+        this.setStatusText()
       },
       hide: () => {
         this.shownIds.delete(uid)
+        this.setStatusText()
       },
       dispose: () => {
         this.shownIds.delete(uid)
         this.items.delete(uid)
+        this.setStatusText()
       }
     }
     this.items.set(uid, item)
@@ -77,7 +82,7 @@ export default class StatusLine implements Disposable {
     return text
   }
 
-  private async setStatusText(): Promise<void> {
+  private setStatusText(): void {
     let text = this.getText()
     let { nvim } = this
     if (text != this._text) {
@@ -85,7 +90,7 @@ export default class StatusLine implements Disposable {
       nvim.pauseNotification()
       this.nvim.setVar('coc_status', text, true)
       this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-      await nvim.resumeNotification(false, true)
+      void nvim.resumeNotification(false, true)
     }
   }
 }

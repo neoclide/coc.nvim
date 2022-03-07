@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { Position, Range } from 'vscode-languageserver-types'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { executePythonCode, addPythonTryCatch, convertRegex, UltiSnippetContext } from '../../snippets/eval'
+import { LinesTextDocument } from '../../model/textdocument'
+import { addPythonTryCatch, convertRegex, executePythonCode, UltiSnippetContext } from '../../snippets/eval'
 import { Placeholder, TextmateSnippet } from '../../snippets/parser'
-import { CocSnippet } from '../../snippets/snippet'
-import { SnippetVariableResolver, parseComments, parseCommentstring } from '../../snippets/variableResolve'
+import { checkContentBefore, CocSnippet, reduceTextEdit, getContentBefore, getEnd, getEndPosition, normalizeSnippetString, shouldFormat } from '../../snippets/snippet'
+import { parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -30,7 +31,11 @@ async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = 
   return snip
 }
 
-describe('eval utils', () => {
+function createTextDocument(text: string): LinesTextDocument {
+  return new LinesTextDocument('file://a', 'txt', 1, text.split('\n'), 1, true)
+}
+
+describe('utils', () => {
   function assertThrow(fn: () => void) {
     let err
     try {
@@ -40,6 +45,23 @@ describe('eval utils', () => {
     }
     expect(err).toBeDefined()
   }
+
+  it('should check shouldFormat', () => {
+    expect(shouldFormat(' f')).toBe(true)
+    expect(shouldFormat('a\nb')).toBe(true)
+    expect(shouldFormat('foo')).toBe(false)
+  })
+
+  it('should normalizeSnippetString', () => {
+    expect(normalizeSnippetString('a\n\n\tb', '  ', {
+      insertSpaces: true,
+      tabSize: 2
+    })).toBe('a\n\n    b')
+    expect(normalizeSnippetString('a\n\n  b', '\t', {
+      insertSpaces: false,
+      tabSize: 2
+    })).toBe('a\n\n\t\tb')
+  })
 
   it('should throw for invalid regex', async () => {
     assertThrow(() => {
@@ -113,12 +135,62 @@ describe('eval utils', () => {
       single: '#'
     })
   })
+
+  it('should get start end position by content', () => {
+    expect(getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
+    expect(getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
+  })
+
+  it('should reduce TextEdit', () => {
+    let e: TextEdit
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
+    expect(reduceTextEdit(e, '')).toEqual(e)
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
+    expect(reduceTextEdit(e, 'bar')).toEqual(
+      TextEdit.replace(Range.create(0, 0, 0, 0), 'foo\n')
+    )
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
+    expect(reduceTextEdit(e, 'foo')).toEqual(
+      TextEdit.replace(Range.create(0, 3, 0, 3), '\nbar')
+    )
+    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'def')
+    expect(reduceTextEdit(e, 'daf')).toEqual(
+      TextEdit.replace(Range.create(0, 1, 0, 2), 'e')
+    )
+    e = TextEdit.replace(Range.create(2, 0, 3, 0), 'ascii ascii bar\n')
+    expect(reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
+      TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
+    )
+  })
+
+  it('should get new end position', () => {
+    let assert = (pos: Position, oldText: string, newText: string, res: Position) => {
+      expect(getEndPosition(pos, createTextDocument(oldText), createTextDocument(newText))).toEqual(res)
+    }
+    assert(Position.create(0, 0), 'foo', 'bar', undefined)
+    assert(Position.create(0, 0), 'foo\nbar', 'bar', undefined)
+    assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nba', undefined)
+    assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nbar', Position.create(1, 0))
+    assert(Position.create(0, 0), 'foo', 'foo', Position.create(0, 0))
+  })
+
+  it('should check content before position', () => {
+    let assert = (pos: Position, oldText: string, newText: string, res: boolean) => {
+      expect(checkContentBefore(pos, createTextDocument(oldText), createTextDocument(newText))).toBe(res)
+    }
+    assert(Position.create(1, 0), 'foo\nbar', 'foo', true)
+    assert(Position.create(1, 1), 'foo\nbar', 'foo', false)
+    assert(Position.create(2, 0), 'foo\nbar\n', 'foo', false)
+    assert(Position.create(1, 1), 'foo\nbar', 'foo\nbd', true)
+    assert(Position.create(1, 1), 'foo\nbar', 'foo\nab', false)
+    assert(Position.create(1, 1), 'foo\nbar', 'aoo\nbb', false)
+  })
 })
 
 describe('CocSnippet', () => {
   async function assertResult(snip: string, resolved: string) {
     let c = await createSnippet(snip, {})
-    expect(c.toString()).toBe(resolved)
+    expect(c.text).toBe(resolved)
   }
 
   async function asssertPyxValue(code: string, res: any) {
@@ -159,17 +231,17 @@ describe('CocSnippet', () => {
       await doc.buffer.setOption('commentstring', '')
       let fsPath = URI.parse(doc.uri).fsPath
       let c = await createSnippet('$RANDOM')
-      expect(c.toString().length).toBe(6)
+      expect(c.text.length).toBe(6)
       c = await createSnippet('$RANDOM_HEX')
-      expect(c.toString().length).toBe(6)
+      expect(c.text.length).toBe(6)
       c = await createSnippet('$UUID')
-      expect(c.toString()).toMatch('-')
+      expect(c.text).toMatch('-')
       c = await createSnippet('$RELATIVE_FILEPATH')
-      expect(c.toString()).toMatch(path.basename(fsPath))
+      expect(c.text).toMatch(path.basename(fsPath))
       c = await createSnippet('$WORKSPACE_NAME')
-      expect(c.toString().length).toBeGreaterThan(0)
+      expect(c.text.length).toBeGreaterThan(0)
       c = await createSnippet('$WORKSPACE_FOLDER')
-      expect(c.toString().length).toBeGreaterThan(0)
+      expect(c.text.length).toBeGreaterThan(0)
       await assertResult('$LINE_COMMENT', '//')
       await assertResult('$BLOCK_COMMENT_START', '/*')
       await assertResult('$BLOCK_COMMENT_END', '*/')
@@ -291,7 +363,7 @@ describe('CocSnippet', () => {
 
     it('should update nested placeholder values', async () => {
       let c = await createSnippet('${2:foo ${1:`!p snip.rv = "bar"`}} ${2/^\\w//} `!p snip.rv = t[2]`', {})
-      expect(c.toString()).toBe('foo bar oo bar foo bar')
+      expect(c.text).toBe('foo bar oo bar foo bar')
     })
   })
 
@@ -301,25 +373,25 @@ describe('CocSnippet', () => {
       let markers = c.placeholders
       let p = markers[0].parent
       expect(p instanceof TextmateSnippet).toBe(true)
-      expect(c.getContentBefore(p)).toBe('')
-      expect(c.getContentBefore(markers[0])).toBe('')
-      expect(c.getContentBefore(markers[1])).toBe('foo ')
+      expect(getContentBefore(p)).toBe('')
+      expect(getContentBefore(markers[0])).toBe('')
+      expect(getContentBefore(markers[1])).toBe('foo ')
     })
 
     it('should get text before nested marker', async () => {
       let c = await createSnippet('${1:foo} ${2:is nested with $4} $3 bar', {})
       let markers = c.placeholders as Placeholder[]
       let p = markers.find(o => o.index == 4)
-      expect(c.getContentBefore(p)).toBe('foo is nested with ')
+      expect(getContentBefore(p)).toBe('foo is nested with ')
       p = markers.find(o => o.index == 0)
-      expect(c.getContentBefore(p)).toBe('foo is nested with   bar')
+      expect(getContentBefore(p)).toBe('foo is nested with   bar')
     })
 
     it('should consider normal line break', async () => {
       let c = await createSnippet('${1:foo}\n${2:is nested with $4}', {})
       let markers = c.placeholders as Placeholder[]
       let p = markers.find(o => o.index == 4)
-      expect(c.getContentBefore(p)).toBe('is nested with ')
+      expect(getContentBefore(p)).toBe('is nested with ')
     })
 
     it('should consider line break after update', async () => {
@@ -328,7 +400,34 @@ describe('CocSnippet', () => {
       await c.tmSnippet.update(nvim, p.marker, 'abc\ndef')
       let markers = c.placeholders as Placeholder[]
       let placeholder = markers.find(o => o.index == 2)
-      expect(c.getContentBefore(placeholder)).toBe('def ')
+      expect(getContentBefore(placeholder)).toBe('def ')
+    })
+  })
+
+  describe('getSortedPlaceholders()', () => {
+    it('should get sorted placeholders', async () => {
+      const assert = (snip: CocSnippet, index: number | undefined, indexes: number[]) => {
+        let curr = index == null ? undefined : snip.getPlaceholder(index)
+        let res = snip.getSortedPlaceholders(curr)
+        expect(res.map(o => o.index)).toEqual(indexes)
+      }
+      let c = await createSnippet('${1:foo} ${2/^\\w//} ${2:bar} ', {})
+      assert(c, undefined, [1, 2, 0])
+      assert(c, 1, [1, 2, 0])
+      assert(c, 2, [2, 1, 0])
+    })
+  })
+
+  describe('getNewText()', () => {
+    it('should getNewText for placeholder', async () => {
+      let c = await createSnippet('before ${1:foo} after$2', {})
+      let p = c.getPlaceholder(1)
+      expect(c.getNewText(p, `fff`)).toBe(undefined)
+      expect(c.getNewText(p, `before foo `)).toBe(undefined)
+      expect(c.getNewText(p, `before foo afteralll`)).toBe(undefined)
+      expect(c.getNewText(p, `before bar after`)).toBe('bar')
+      p = c.getPlaceholder(2)
+      expect(c.getNewText(p, `before foo afterbar`)).toBe('bar')
     })
   })
 
@@ -338,7 +437,7 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholder(index)
       expect(p != null).toBe(true)
       await c.tmSnippet.update(nvim, p.marker, value)
-      expect(c.toString()).toBe(result)
+      expect(c.tmSnippet.toString()).toBe(result)
       return c
     }
 
