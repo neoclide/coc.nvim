@@ -19,6 +19,34 @@ function! coc#compat#buf_set_lines(bufnr, start, end, replacement) abort
   endif
 endfunction
 
+function! coc#compat#buf_line_count(bufnr) abort
+  if exists('*nvim_buf_line_count')
+    return nvim_buf_line_count(a:bufnr)
+  endif
+  if bufnr('%') == a:bufnr
+    return line('$')
+  endif
+  if exists('*getbufinfo')
+    let info = getbufinfo(a:bufnr)
+    if empty(info)
+      return 0
+    endif
+    " vim 8.1 has getbufinfo but no linecount
+    if has_key(info[0], 'linecount')
+      return info[0]['linecount']
+    endif
+  endif
+  if exists('*getbufline')
+    let lines = getbufline(a:bufnr, 1, '$')
+    return len(lines)
+  endif
+  let curr = bufnr('%')
+  execute 'noa buffer '.a:bufnr
+  let n = line('$')
+  execute 'noa buffer '.curr
+  return n
+endfunction
+
 function! coc#compat#prepend_lines(bufnr, replacement) abort
   if exists('*appendbufline')
     call appendbufline(a:bufnr, 0, a:replacement)

@@ -32,7 +32,7 @@ function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
     return
   endif
   let hls = map(copy(a:highlights), "{'hlGroup':v:val[0],'lnum':v:val[1],'colStart':v:val[2],'colEnd':v:val[3],'combine':get(v:val,4,1),'start_incl':get(v:val,5,0),'end_incl':get(v:val,6,0)}")
-  let total = exists('*nvim_buf_line_count') ? nvim_buf_line_count(a:bufnr): getbufinfo(a:bufnr)[0]['linecount']
+  let total = coc#compat#buf_line_count(a:bufnr)
   if total <= g:coc_highlight_batch_lines || get(g:, 'coc_node_env', '') ==# 'test'
     call coc#highlight#update_highlights(a:bufnr, a:key, hls, 0, -1, priority)
     return
@@ -87,7 +87,7 @@ function! coc#highlight#get(bufnr, key, start, end) abort
   elseif exists('*prop_list')
     let id = s:prop_offset + ns
     " we could only get textprops line by line
-    let end = a:end == -1 ? getbufinfo(a:bufnr)[0]['linecount'] : a:end
+    let end = a:end == -1 ? coc#compat#buf_line_count(a:bufnr) : a:end
     for line in range(a:start + 1, end)
       let items = []
       for prop in prop_list(line, {'bufnr': a:bufnr, 'id': id})
@@ -115,7 +115,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
-  let linecount = exists('*nvim_buf_line_count') ? nvim_buf_line_count(a:bufnr): getbufinfo(a:bufnr)[0]['linecount']
+  let linecount = coc#compat#buf_line_count(a:bufnr)
   if end >= linecount
     let end = -1
   endif
@@ -218,7 +218,7 @@ function! coc#highlight#get_highlights(bufnr, key) abort
         call add(res, [hlGroup, prop['lnum'] - 1, startCol, endCol])
       endfor
     else
-      let linecount = getbufinfo(a:bufnr)[0]['linecount']
+      let linecount = coc#compat#buf_line_count(a:bufnr)
       for line in range(1, linecount)
         for prop in prop_list(line, {'bufnr': a:bufnr, 'id': s:prop_offset + ns})
           if prop['start'] == 0 || prop['end'] == 0
