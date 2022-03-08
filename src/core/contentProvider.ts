@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import { fieldOffs } from 'tar'
 import { CancellationTokenSource, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../events'
