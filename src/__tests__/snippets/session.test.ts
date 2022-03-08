@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Range } from 'vscode-languageserver-protocol'
+import { Position, Range } from 'vscode-languageserver-protocol'
 import { SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -182,15 +182,17 @@ describe('SnippetSession', () => {
       expect(session.isActive).toBe(false)
     })
 
-    it('should cancel when before and body changed', async () => {
+    it('should reset position when change before snippet', async () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
       await nvim.setLine('x')
       await nvim.input('a')
-      await session.start('${1:foo }bar')
-      await nvim.setLine('yfoo  bar')
+      await session.start('${1:foo} bar')
+      await nvim.setLine('yfoo bar')
       await session.forceSynchronize()
-      expect(session.isActive).toBe(false)
+      expect(session.isActive).toBe(true)
+      let start = session.snippet.start
+      expect(start).toEqual(Position.create(0, 1))
     })
 
     it('should cancel when before and body changed', async () => {
@@ -212,6 +214,19 @@ describe('SnippetSession', () => {
       await nvim.setLine('foobar')
       await session.forceSynchronize()
       expect(session.isActive).toBe(false)
+    })
+
+    it('should prefer range contains current cursor', async () => {
+      let buf = await nvim.buffer
+      let session = new SnippetSession(nvim, buf.id)
+      await nvim.input('i')
+      await session.start('$1 $2')
+      await nvim.input('<esc>A')
+      await nvim.input(' ')
+      await session.forceSynchronize()
+      expect(session.isActive).toBe(true)
+      let p = session.placeholder
+      expect(p.index).toBe(2)
     })
   })
 

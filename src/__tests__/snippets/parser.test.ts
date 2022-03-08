@@ -842,14 +842,6 @@ describe('SnippetParser', () => {
     expect(arr).toEqual([2, 3, 4, 5, 0])
   })
 
-  test('Snippet order for placeholders, #28185', function() {
-
-    const _10 = new Placeholder(10)
-    const _2 = new Placeholder(2)
-
-    assert.equal(Placeholder.compareByIndex(_10, _2), 1)
-  })
-
   test('Maximum call stack size exceeded, #28983', function() {
     new SnippetParser().parse('${1:${foo:${1}}}')
   })

@@ -312,21 +312,6 @@ export abstract class TransformableMarker extends Marker {
 
 export class Placeholder extends TransformableMarker {
   public primary = false
-  public static compareByIndex(a: Placeholder, b: Placeholder): number {
-    if (a.index === b.index) {
-      return 0
-    } else if (a.isFinalTabstop) {
-      return 1
-    } else if (b.isFinalTabstop) {
-      return -1
-    } else if (a.index < b.index) {
-      return -1
-    } else if (a.index > b.index) {
-      return 1
-    } else {
-      return 0
-    }
-  }
 
   constructor(public index: number) {
     super()

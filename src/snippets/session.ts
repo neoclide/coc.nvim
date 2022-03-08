@@ -6,13 +6,13 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { UltiSnippetOption } from '../types'
 import { equals } from '../util/object'
-import { positionInRange, rangeInRange } from '../util/position'
+import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder, SnippetParser } from './parser'
-import { checkContentBefore, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, normalizeSnippetString, reduceTextEdit, shouldFormat } from "./snippet"
+import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, normalizeSnippetString, reduceTextEdit, shouldFormat } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
 
@@ -75,7 +75,7 @@ export class SnippetSession {
     }
     await document.applyEdits(edits)
     this.textDocument = document.textDocument
-    if (select) {
+    if (select && this.current) {
       let placeholder = this.snippet.getPlaceholderByMarker(this.current)
       await this.selectPlaceholder(placeholder, true)
     }
@@ -300,12 +300,17 @@ export class SnippetSession {
       this.deactivate()
       return
     }
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
+    let cursor = await window.getCursorPosition()
+    if (tokenSource.token.isCancellationRequested) return
     let inserted = d.getText(Range.create(range.start, end))
     let newText: string | undefined
     let placeholder: CocSnippetPlaceholder
     for (let p of this.snippet.getSortedPlaceholders(this.placeholder)) {
+      if (comparePosition(cursor, p.range.start) < 0) continue
       newText = this.snippet.getNewText(p, inserted)
-      if (typeof newText === 'string') {
+      // p.range.start + newText
+      if (typeof newText === 'string' && checkCursor(p.range.start, cursor, newText)) {
         placeholder = p
         break
       }
@@ -321,23 +326,19 @@ export class SnippetSession {
       this.deactivate()
       return
     }
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
-    let cursor = await window.getCursorPosition()
-    if (tokenSource.token.isCancellationRequested) return
-    let res = await this.snippet.updatePlaceholder(placeholder, newText, end, tokenSource.token)
+    let res = await this.snippet.updatePlaceholder(placeholder, newText, tokenSource.token)
     if (!res) return
     this.current = placeholder.marker
-    let snippet = res.edits[0].newText
-    if (snippet == inserted) {
-      this.textDocument = d
-      logger.debug('no need to update')
-      return
-    }
-    let edit = reduceTextEdit(res.edits[0], inserted)
-    await this.document.applyEdits([edit])
-    if (res.delta) {
-      this.nvim.call(`coc#cursor#move_to`, [cursor.line, cursor.character + res.delta], true)
-      this.nvim.redrawVim()
+    if (res.text !== inserted) {
+      let edit = reduceTextEdit({
+        range: Range.create(this.snippet.start, end),
+        newText: res.text
+      }, inserted)
+      await this.document.applyEdits([edit])
+      if (res.delta) {
+        this.nvim.call(`coc#cursor#move_to`, [cursor.line, cursor.character + res.delta], true)
+        this.nvim.redrawVim()
+      }
     }
     logger.debug('update cost:', Date.now() - start, res.delta)
     this.textDocument = this.document.textDocument

@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, FormattingOptions, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../model/textdocument'
-import { rangeInRange } from '../util/position'
+import { positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import { preparePythonCodes, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
@@ -44,7 +44,7 @@ export class CocSnippet {
     this.nvim.deleteVar('coc_selected_text')
   }
 
-  public getSortedPlaceholders(curr?: CocSnippetPlaceholder): CocSnippetPlaceholder[] {
+  public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {
     let res = curr ? [curr] : []
     let arr = this._placeholders.filter(o => o !== curr)
     arr.sort((a, b) => {
@@ -72,6 +72,10 @@ export class CocSnippet {
   public resetStartPosition(pos: Position): void {
     this.position = pos
     this.sychronize()
+  }
+
+  public get start(): Position {
+    return this.position
   }
 
   public get range(): Range {
@@ -175,9 +179,11 @@ export class CocSnippet {
     return inserted.slice(before.length, - after.length)
   }
 
-  public async updatePlaceholder(placeholder: CocSnippetPlaceholder, newText: string, endPosition: Position, token: CancellationToken): Promise<{ edits: TextEdit[]; delta: number } | undefined> {
+  public async updatePlaceholder(placeholder: CocSnippetPlaceholder, newText: string, token: CancellationToken): Promise<{ text: string; delta: number } | undefined> {
     let { value, marker } = placeholder
     let lineChanged = newText.split(/\r?\n/).length != value.split(/\r?\n/).length
+    //  TODO consider line change
+    //  Not conser row change when cursor not in first row!
     let before = lineChanged ? '' : lastLineText(placeholder.before)
     let cloned = this.tmSnippet.clone()
     let disposable = token.onCancellationRequested(() => {
@@ -186,13 +192,9 @@ export class CocSnippet {
     await this.tmSnippet.update(this.nvim, marker, newText)
     disposable.dispose()
     if (token.isCancellationRequested) return undefined
-    let snippetEdit: TextEdit = {
-      range: Range.create(this.position, endPosition),
-      newText: this.tmSnippet.toString()
-    }
     this.sychronize()
     let after = lineChanged ? '' : lastLineText(this._placeholders.find(o => o.marker == marker).before)
-    return { edits: [snippetEdit], delta: byteLength(after) - byteLength(before) }
+    return { text: this._text, delta: byteLength(after) - byteLength(before) }
   }
 
   private sychronize(): void {
@@ -315,6 +317,14 @@ export function getEnd(start: Position, content: string): Position {
   const lastLine = lines[len - 1]
   const end = len == 1 ? start.character + content.length : lastLine.length
   return Position.create(start.line + len - 1, end)
+}
+
+/*
+ * Check if cursor inside
+ */
+export function checkCursor(start: Position, cursor: Position, newText: string): boolean {
+  let r = Range.create(start, getEnd(start, newText))
+  return positionInRange(cursor, r) == 0
 }
 
 /*
