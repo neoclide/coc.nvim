@@ -149,6 +149,16 @@ describe('SnippetParser', () => {
     s('ab$1chh', false)
   })
 
+  test('Parser, hasPythonDepent()', function() {
+    const s = (input: string, res: boolean) => {
+      assert.equal(SnippetParser.hasPythonDepent(input), res)
+    }
+    s('abc', false)
+    s('${1:foo}', false)
+    s('${1:`!p snip.rv = "foo"`}', false)
+    s('${1:`!p snip.rv = t[2] ${2:bar}`}', true)
+  })
+
   test('Parser, text', () => {
     assertText('$', '$')
     assertText('\\\\$', '\\$')

@@ -91,45 +91,6 @@ describe('SnippetSession', () => {
       await helper.waitFor('mode', [], 's')
     })
 
-    it('should start with nest snippet', async () => {
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('${1:a} ${2:b}', false)
-      let line = await nvim.getLine()
-      expect(line).toBe('a b')
-      expect(res).toBe(true)
-      let { placeholder } = session
-      expect(placeholder.index).toBe(1)
-      res = await session.start('${1:foo} ${2:bar}')
-      expect(res).toBe(true)
-      placeholder = session.placeholder
-      expect(placeholder.index).toBe(2)
-      line = await nvim.getLine()
-      expect(line).toBe('foo bara b')
-      expect(session.snippet.text).toBe('foo bara b')
-      await session.nextPlaceholder()
-      placeholder = session.placeholder
-      expect(placeholder.index).toBe(3)
-      expect(session.placeholder.value).toBe('bar')
-      let col = await nvim.call('col', ['.'])
-      expect(col).toBe(7)
-      await session.nextPlaceholder()
-      await session.nextPlaceholder()
-      expect(session.placeholder.index).toBe(5)
-      expect(session.placeholder.value).toBe('b')
-    })
-
-    it('should start nest snippet without select', async () => {
-      let doc = await helper.createDocument()
-      await nvim.command('startinsert')
-      let session = new SnippetSession(nvim, doc.bufnr)
-      let res = await session.start('${1:a} ${2:b}')
-      let line = await nvim.call('getline', ['.'])
-      res = await session.start('${1:foo} ${2:bar}', false)
-      expect(res).toBe(true)
-      line = await nvim.line
-      expect(line).toBe('foo bara b')
-    })
-
     it('should select none transform placeholder', async () => {
       await nvim.command('startinsert')
       let session = new SnippetSession(nvim, workspace.bufnr)
@@ -167,6 +128,58 @@ describe('SnippetSession', () => {
       await session.start('${VISUAL:foo}')
       let line = await nvim.line
       expect(line).toBe('foo')
+    })
+  })
+
+  describe('nested snippet', () => {
+    it('should start with nest snippet', async () => {
+      let session = new SnippetSession(nvim, workspace.bufnr)
+      let res = await session.start('${1:a} ${2:b}', false)
+      let line = await nvim.getLine()
+      expect(line).toBe('a b')
+      expect(res).toBe(true)
+      let { placeholder } = session
+      expect(placeholder.index).toBe(1)
+      res = await session.start('${1:foo} ${2:bar}')
+      expect(res).toBe(true)
+      placeholder = session.placeholder
+      expect(placeholder.index).toBe(2)
+      line = await nvim.getLine()
+      expect(line).toBe('foo bara b')
+      expect(session.snippet.text).toBe('foo bara b')
+      await session.nextPlaceholder()
+      placeholder = session.placeholder
+      expect(placeholder.index).toBe(3)
+      expect(session.placeholder.value).toBe('bar')
+      let col = await nvim.call('col', ['.'])
+      expect(col).toBe(7)
+      await session.nextPlaceholder()
+      await session.nextPlaceholder()
+      expect(session.placeholder.index).toBe(5)
+      expect(session.placeholder.value).toBe('b')
+    })
+
+    it('should start nest snippet without select', async () => {
+      let buf = await nvim.buffer
+      await nvim.command('startinsert')
+      let session = new SnippetSession(nvim, buf.id)
+      let res = await session.start('${1:a} ${2:b}')
+      let line = await nvim.call('getline', ['.'])
+      res = await session.start('${1:foo} ${2:bar}', false)
+      expect(res).toBe(true)
+      line = await nvim.line
+      expect(line).toBe('foo bara b')
+    })
+
+    it('should not create nest snippet for snippet with python placeholder reference', async () => {
+      let buf = await nvim.buffer
+      await nvim.input('i')
+      let session = new SnippetSession(nvim, buf.id)
+      await session.start('${1:a} ${2:b}')
+      let res = await session.start('${1:foo} `!p snip.rv = t[1]`', false)
+      expect(res).toBe(true)
+      let p = session.placeholder
+      expect(p.index).toBe(1)
     })
   })
 

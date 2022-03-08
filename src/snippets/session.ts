@@ -48,7 +48,8 @@ export class SnippetSession {
     }
     let context: UltiSnippetContext
     if (ultisnip) context = Object.assign({ range, line: currentLine }, ultisnip)
-    const placeholder = this.getReplacePlaceholder(range)
+    const placeholder = this.isActive && !SnippetParser.hasPythonDepent(snippetString) ?
+      this.getReplacePlaceholder(range) : undefined
     const edits: TextEdit[] = []
     if (placeholder) {
       // update all snippet.
@@ -75,11 +76,11 @@ export class SnippetSession {
     }
     await document.applyEdits(edits)
     this.textDocument = document.textDocument
+    this.activate()
     if (select && this.current) {
       let placeholder = this.snippet.getPlaceholderByMarker(this.current)
       await this.selectPlaceholder(placeholder, true)
     }
-    this.activate()
     return true
   }
 
