@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CharCode } from '../util/charCode'
-import { rangeParts, getCharIndexes } from '../util/string'
-import { Range } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
-import { EvalKind, evalCode, convertRegex, executePythonCode, getVariablesCode } from './eval'
 import unidecode from 'unidecode'
+import { groupBy } from '../util/array'
+import { CharCode } from '../util/charCode'
+import { getCharIndexes } from '../util/string'
+import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
 const logger = require('../util/logger')('snippets-parser')
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
@@ -629,7 +629,7 @@ export class TextmateSnippet extends Marker {
   public readonly ultisnip: boolean
   private _placeholders?: PlaceholderInfo
   private _values?: { [index: number]: string }
-  constructor(ultisnip?: boolean) {
+  constructor(ultisnip?: boolean, public readonly startIndex = 0) {
     super()
     this.ultisnip = ultisnip === true
   }
@@ -840,34 +840,45 @@ export class TextmateSnippet extends Marker {
     return placeholders.reduce((curr, p) => Math.max(curr, p.index), 0)
   }
 
-  public insertSnippet(snippet: string, marker: Placeholder | Variable, range: Range, ultisnip = false): Placeholder {
-    let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
-    let [before, after] = rangeParts(marker.toString(), range)
-    let nested = new SnippetParser(ultisnip).parse(snippet, true)
-    let maxIndexAdded = nested.maxIndexNumber + 1
-    let indexes: number[] = []
-    for (let p of nested.placeholders) {
-      if (p.isFinalTabstop) {
-        p.index = maxIndexAdded + index
-      } else {
-        p.index = p.index + index
-      }
-      indexes.push(p.index)
+  public get first(): Placeholder | Variable {
+    let { placeholders, variables } = this
+    let [normals, finals] = groupBy(placeholders.filter(p => !p.transform), v => v.index !== 0)
+    if (normals.length) {
+      let minIndex = Math.min.apply(null, normals.map(o => o.index))
+      let arr = normals.filter(v => v.index == minIndex)
+      return arr.find(p => p.primary) ?? arr[0]
     }
-    let minIndex = Math.min.apply(null, indexes)
-    let arr = nested.placeholders.filter(o => o.index == minIndex)
-    let select = arr.find(o => o.primary === true) ?? arr[0]
+    if (variables.length) return variables[0]
+    return finals.find(o => o.primary) ?? finals[0]
+  }
+
+  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip = false): Placeholder | Variable {
+    let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
+    let [before, after] = parts
+    let nested = new SnippetParser(ultisnip, index).parse(snippet, true)
+    let finalIndex = (nested.maxIndexNumber == 0 ? index : nested.maxIndexNumber) + 1
+    for (let p of nested.placeholders.filter(p => p.index == 0)) {
+      p.index = finalIndex
+    }
+    let select = nested.first
+    let map: Map<number, number> = new Map()
+    let delta = finalIndex - index
     this.walk(m => {
       if (m instanceof Placeholder && m.index > index) {
-        m.index = m.index + maxIndexAdded
+        let idx = m.index
+        m.index = m.index + delta
+        map.set(idx, m.index)
       }
       return true
     })
     let children = nested.children
     if (before) children.unshift(new Text(before))
     if (after) children.push(new Text(after))
-    // TODO adjust python code block which access `t` variable when necessary
-    // TODO update children when it's plain snippet.
+    if (this.hasPython) {
+      // TODO adjust python code block which access `t` variable (update code & related by map)
+    }
+
+    // TODO insert as Text + placeholder when it's plain text and update same index placeholders
     this.replace(marker, children)
     this.reset()
     return select
@@ -1005,7 +1016,10 @@ export class TextmateSnippet extends Marker {
 }
 
 export class SnippetParser {
-  constructor(private ultisnip?: boolean) {
+  constructor(
+    private ultisnip?: boolean,
+    private readonly startIndex = 0
+  ) {
   }
 
   public static escape(value: string): string {
@@ -1043,7 +1057,7 @@ export class SnippetParser {
     this._scanner.text(value)
     this._token = this._scanner.next()
 
-    const snippet = new TextmateSnippet(this.ultisnip)
+    const snippet = new TextmateSnippet(this.ultisnip, this.startIndex)
     while (this._parse(snippet)) {
       // nothing
     }
@@ -1157,7 +1171,7 @@ export class SnippetParser {
     }
 
     parent.appendChild(/^\d+$/.test(value)
-      ? new Placeholder(Number(value))
+      ? new Placeholder(value == '0' ? 0 : Number(value) + this.startIndex)
       : new Variable(value)
     )
     return true
@@ -1175,7 +1189,7 @@ export class SnippetParser {
       return this._backTo(token)
     }
 
-    const placeholder = new Placeholder(Number(index))
+    const placeholder = new Placeholder(index == '0' ? 0 : Number(index) + this.startIndex)
 
     if (this._accept(TokenType.Colon)) {
       // ${1:<children>}

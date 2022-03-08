@@ -159,6 +159,24 @@ describe('SnippetParser', () => {
     s('${1:`!p snip.rv = t[2] ${2:bar}`}', true)
   })
 
+  test('Parser, first placeholder / variable', function() {
+    const first = (input: string): Marker => {
+      const p = new SnippetParser(true)
+      let s = p.parse(input, true)
+      return s.first
+    }
+    const assertPlaceholder = (m: any, index: number) => {
+      assert.equal(m instanceof Placeholder, true)
+      assert.equal(m.index, index)
+    }
+    assertPlaceholder(first('foo'), 0)
+    assertPlaceholder(first('${1:foo}'), 1)
+    assertPlaceholder(first('${2:foo}'), 2)
+    let f = first('$foo $bar') as Variable
+    assert.equal(f instanceof Variable, true)
+    assert.equal(f.name, 'foo')
+  })
+
   test('Parser, text', () => {
     assertText('$', '$')
     assertText('\\\\$', '\\$')
@@ -847,7 +865,7 @@ describe('SnippetParser', () => {
   test('TextmateSnippet#insertSnippet', function() {
     let snippet = new SnippetParser().parse('${1:aaa} bbb ${2:ccc}}$0', true)
     let marker = snippet.placeholders.find(o => o.index == 1)
-    snippet.insertSnippet('${1:dd} ${2:ff}', marker, Range.create(0, 0, 0, 0))
+    snippet.insertSnippet('${1:dd} ${2:ff}', marker, ['', 'aaa'])
     let arr = snippet.placeholders.map(p => p.index)
     expect(arr).toEqual([2, 3, 4, 5, 0])
   })

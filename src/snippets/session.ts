@@ -12,7 +12,7 @@ import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder, SnippetParser } from './parser'
-import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, normalizeSnippetString, reduceTextEdit, shouldFormat } from "./snippet"
+import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
 
@@ -54,7 +54,8 @@ export class SnippetSession {
     if (placeholder) {
       // update all snippet.
       let r = this.snippet.range
-      this.current = await this.snippet.insertSnippet(placeholder, inserted, range, context)
+      let parts = getParts(placeholder.value, placeholder.range, range)
+      this.current = await this.snippet.insertSnippet(placeholder, inserted, parts, context)
       edits.push(TextEdit.replace(r, this.snippet.text))
     } else {
       const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)

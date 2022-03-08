@@ -5,7 +5,7 @@ import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
 import { addPythonTryCatch, convertRegex, executePythonCode, UltiSnippetContext } from '../../snippets/eval'
 import { Placeholder, TextmateSnippet } from '../../snippets/parser'
-import { checkContentBefore, CocSnippet, reduceTextEdit, getContentBefore, getEnd, getEndPosition, normalizeSnippetString, shouldFormat } from '../../snippets/snippet'
+import { checkContentBefore, getParts, CocSnippet, reduceTextEdit, getContentBefore, getEnd, getEndPosition, normalizeSnippetString, shouldFormat } from '../../snippets/snippet'
 import { parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
@@ -184,6 +184,12 @@ describe('utils', () => {
     assert(Position.create(1, 1), 'foo\nbar', 'foo\nbd', true)
     assert(Position.create(1, 1), 'foo\nbar', 'foo\nab', false)
     assert(Position.create(1, 1), 'foo\nbar', 'aoo\nbb', false)
+  })
+
+  it('should getParts by range', async () => {
+    expect(getParts('abcdef', Range.create(1, 5, 1, 11), Range.create(1, 6, 1, 10))).toEqual(['a', 'f'])
+    expect(getParts('abc\nfoo\ndef', Range.create(0, 5, 2, 3), Range.create(1, 1, 1, 2))).toEqual(['abc\nf', 'o\ndef'])
+    expect(getParts('abc\ndef', Range.create(0, 1, 2, 3), Range.create(0, 1, 2, 3))).toEqual(['', ''])
   })
 })
 

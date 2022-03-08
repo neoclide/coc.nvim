@@ -290,9 +290,14 @@ describe('Arrays', () => {
     assert.ok(!arrays.intersect([1, 2, 3], [4, 5]))
   })
 
-  test('group', async () => {
+  test('group', () => {
     let res = arrays.group([1, 2, 3, 4, 5], 3)
     assert.deepStrictEqual(res, [[1, 2, 3], [4, 5]])
+  })
+
+  test('groupBy', () => {
+    let res = arrays.groupBy([0, 0, 3, 4], v => v != 0)
+    assert.deepStrictEqual(res, [[3, 4], [0, 0]])
   })
 
   test('lastIndex', () => {

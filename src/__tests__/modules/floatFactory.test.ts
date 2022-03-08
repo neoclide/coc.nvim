@@ -197,9 +197,7 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       await nvim.command(`edit foo`)
-      await helper.wait(50)
-      let hasFloat = await nvim.call('coc#float#has_float')
-      expect(hasFloat).toBe(0)
+      await helper.waitFor('coc#float#has_float', [], 0)
     })
 
     it('should hide on CursorMoved', async () => {
@@ -210,13 +208,9 @@ describe('FloatFactory', () => {
         content: 'foo'
       }]
       await floatFactory.show(docs)
-      let hasFloat = await nvim.call('coc#float#has_float')
-      expect(hasFloat).toBe(1)
-      await helper.wait(30)
+      await helper.waitFloat()
       await nvim.input('$')
-      await helper.wait(200)
-      hasFloat = await nvim.call('coc#float#has_float')
-      expect(hasFloat).toBe(0)
+      await helper.waitFor('coc#float#has_float', [], 0)
     })
 
     it('should not hide when cursor position not changed', async () => {
@@ -231,9 +225,8 @@ describe('FloatFactory', () => {
       await nvim.call('cursor', [1, 2])
       await helper.wait(10)
       await nvim.call('cursor', cursor)
-      await helper.wait(200)
-      let hasFloat = await nvim.call('coc#float#has_float')
-      expect(hasFloat).toBe(1)
+      await helper.wait(10)
+      await helper.waitFor('coc#float#has_float', [], 1)
     })
 
     it('should preserve float when autohide disable and not overlap with pum', async () => {
@@ -253,9 +246,7 @@ describe('FloatFactory', () => {
       let activated = await floatFactory.activated()
       expect(activated).toBe(true)
       await nvim.input('<C-n>')
-      await helper.wait(100)
-      let pumvisible = await helper.pumvisible()
-      expect(pumvisible).toBe(true)
+      await helper.waitPopup()
       activated = await floatFactory.activated()
       expect(activated).toBe(true)
     })

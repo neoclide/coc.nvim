@@ -33,6 +33,18 @@ export function group<T>(array: T[], size: number): T[][] {
   return res
 }
 
+export function groupBy<T>(array: T[], fn: (v: T) => boolean): [T[], T[]] {
+  let res: [T[], T[]] = [[], []]
+  array.forEach(v => {
+    if (fn(v)) {
+      res[0].push(v)
+    } else {
+      res[1].push(v)
+    }
+  })
+  return res
+}
+
 /**
  * Removes duplicates from the given array. The optional keyFn allows to specify
  * how elements are checked for equalness by returning a unique string for each.

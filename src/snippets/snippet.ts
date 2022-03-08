@@ -149,18 +149,8 @@ export class CocSnippet {
     return this._placeholders.find(o => rangeInRange(range, o.range))
   }
 
-  public async insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, range: Range, ultisnip?: UltiSnippetContext): Promise<Snippets.Placeholder> {
-    let { start } = placeholder.range
-    let editStart = Position.create(
-      range.start.line - start.line,
-      range.start.line == start.line ? range.start.character - start.character : range.start.character
-    )
-    let editEnd = Position.create(
-      range.end.line - start.line,
-      range.end.line == start.line ? range.end.character - start.character : range.end.character
-    )
-    let editRange = Range.create(editStart, editEnd)
-    let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, editRange, !!ultisnip)
+  public async insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, parts: [string, string], ultisnip?: UltiSnippetContext): Promise<Snippets.Placeholder | Snippets.Variable> {
+    let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, !!ultisnip)
     await this.resolve(ultisnip)
     this.sychronize()
     return select
@@ -368,6 +358,38 @@ export function getEndPosition(position: Position, oldTextDocument: LinesTextDoc
     }
   }
   return end
+}
+
+/*
+ * r in range
+ */
+export function getParts(text: string, range: Range, r: Range): [string, string] {
+  let before: string[] = []
+  let after: string[] = []
+  let lines = text.split('\n')
+  let d = r.start.line - range.start.line
+  for (let i = 0; i <= d; i++) {
+    let s = lines[i] ?? ''
+    if (i == d) {
+      before.push(i == 0 ? s.substring(0, r.start.character - range.start.character) : s.substring(0, r.start.character))
+    } else {
+      before.push(s)
+    }
+  }
+  d = range.end.line - r.end.line
+  for (let i = 0; i <= d; i++) {
+    let s = lines[r.end.line - range.start.line + i] ?? ''
+    if (i == 0) {
+      if (d == 0) {
+        after.push(range.end.character == r.end.character ? '' : s.slice(r.end.character - range.end.character))
+      } else {
+        after.push(s.substring(r.end.character))
+      }
+    } else {
+      after.push(s)
+    }
+  }
+  return [before.join('\n'), after.join('\n')]
 }
 
 export function normalizeSnippetString(snippet: string, indent: string, opts: FormattingOptions): string {
