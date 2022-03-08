@@ -1400,7 +1400,7 @@ export class SnippetParser {
         if (c == 'a') {
           ascii = true
         } else {
-          if (knownRegexOptions.includes(c)) {
+          if (!knownRegexOptions.includes(c)) {
             logger.error(`Unknown regex option: ${c}`)
           }
           regexOptions += c
