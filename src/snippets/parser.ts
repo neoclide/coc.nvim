@@ -1017,12 +1017,12 @@ export class SnippetParser {
     return s.children.length == 1 && s.children[0] instanceof Text
   }
 
-  public static hasPythonDepent(value: string): boolean {
+  public static hasPython(value: string): boolean {
     if (value.indexOf('`!p') == -1) return false
     let s = new SnippetParser(true).parse(value, false)
     let find = false
     s.walk(marker => {
-      if (marker instanceof CodeBlock && marker.related.length > 0) {
+      if (marker instanceof CodeBlock) {
         find = true
         return false
       }

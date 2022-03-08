@@ -48,7 +48,7 @@ export class SnippetSession {
     }
     let context: UltiSnippetContext
     if (ultisnip) context = Object.assign({ range, line: currentLine }, ultisnip)
-    const placeholder = this.isActive && !SnippetParser.hasPythonDepent(snippetString) ?
+    const placeholder = this.isActive && !SnippetParser.hasPython(snippetString) ?
       this.getReplacePlaceholder(range) : undefined
     const edits: TextEdit[] = []
     if (placeholder) {
