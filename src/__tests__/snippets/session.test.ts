@@ -228,6 +228,43 @@ describe('SnippetSession', () => {
       let p = session.placeholder
       expect(p.index).toBe(2)
     })
+
+    it('should update cursor column after sychronize', async () => {
+      let buf = await nvim.buffer
+      let session = new SnippetSession(nvim, buf.id)
+      await nvim.input('i')
+      await session.start('${1} ${1:foo}')
+      await nvim.input('b')
+      await session.forceSynchronize()
+      let pos = await window.getCursorPosition()
+      expect(pos).toEqual(Position.create(0, 3))
+      await nvim.input('a')
+      await session.forceSynchronize()
+      pos = await window.getCursorPosition()
+      expect(pos).toEqual(Position.create(0, 5))
+      await nvim.input('<backspace>')
+      await session.forceSynchronize()
+      pos = await window.getCursorPosition()
+      expect(pos).toEqual(Position.create(0, 3))
+    })
+
+    it('should update cursor line after sychronize', async () => {
+      let buf = await nvim.buffer
+      let session = new SnippetSession(nvim, buf.id)
+      await nvim.input('i')
+      await session.start('${1} ${1:foo}')
+      await nvim.input('b')
+      await session.forceSynchronize()
+      let pos = await window.getCursorPosition()
+      expect(pos).toEqual(Position.create(0, 3))
+      await nvim.input('<cr>')
+      await session.forceSynchronize()
+      expect(session.isActive).toBe(true)
+      pos = await window.getCursorPosition()
+      let lines = await buf.lines
+      expect(lines).toEqual(['b', ' b', ''])
+      expect(pos).toEqual(Position.create(2, 0))
+    })
   })
 
   describe('deactivate()', () => {

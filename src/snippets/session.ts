@@ -326,7 +326,7 @@ export class SnippetSession {
       this.deactivate()
       return
     }
-    let res = await this.snippet.updatePlaceholder(placeholder, newText, tokenSource.token)
+    let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token)
     if (!res) return
     this.current = placeholder.marker
     if (res.text !== inserted) {
@@ -335,8 +335,9 @@ export class SnippetSession {
         newText: res.text
       }, inserted)
       await this.document.applyEdits([edit])
-      if (res.delta) {
-        this.nvim.call(`coc#cursor#move_to`, [cursor.line, cursor.character + res.delta], true)
+      let { delta } = res
+      if (delta.line != 0 || delta.character != 0) {
+        this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
         this.nvim.redrawVim()
       }
     }

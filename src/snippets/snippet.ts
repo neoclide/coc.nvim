@@ -2,8 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, FormattingOptions, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../model/textdocument'
-import { positionInRange, rangeInRange } from '../util/position'
-import { byteLength } from '../util/string'
+import { getChangedPosition, positionInRange, rangeInRange } from '../util/position'
 import { preparePythonCodes, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
@@ -75,7 +74,7 @@ export class CocSnippet {
   }
 
   public get start(): Position {
-    return this.position
+    return Object.assign({}, this.position)
   }
 
   public get range(): Range {
@@ -179,22 +178,21 @@ export class CocSnippet {
     return inserted.slice(before.length, - after.length)
   }
 
-  public async updatePlaceholder(placeholder: CocSnippetPlaceholder, newText: string, token: CancellationToken): Promise<{ text: string; delta: number } | undefined> {
-    let { value, marker } = placeholder
-    let lineChanged = newText.split(/\r?\n/).length != value.split(/\r?\n/).length
-    //  TODO consider line change
-    //  Not conser row change when cursor not in first row!
-    let before = lineChanged ? '' : lastLineText(placeholder.before)
+  public async updatePlaceholder(placeholder: CocSnippetPlaceholder, cursor: Position, newText: string, token: CancellationToken): Promise<{ text: string; delta: Position } | undefined> {
+    let start = this.position
+    let { marker, before } = placeholder
     let cloned = this.tmSnippet.clone()
     let disposable = token.onCancellationRequested(() => {
       this.tmSnippet = cloned
     })
+    // range before placeholder
+    let r = Range.create(start, getEnd(start, before))
     await this.tmSnippet.update(this.nvim, marker, newText)
     disposable.dispose()
     if (token.isCancellationRequested) return undefined
     this.sychronize()
-    let after = lineChanged ? '' : lastLineText(this._placeholders.find(o => o.marker == marker).before)
-    return { text: this._text, delta: byteLength(after) - byteLength(before) }
+    let after = this._placeholders.find(o => o.marker == marker).before
+    return { text: this._text, delta: getChangedPosition(cursor, TextEdit.replace(r, after)) }
   }
 
   private sychronize(): void {
