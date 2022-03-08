@@ -277,6 +277,8 @@ describe('CocSnippet', () => {
 
     it('should init vim block', async () => {
       await assertResult('`!v eval("1 + 1")` = 2', '2 = 2')
+      await nvim.setLine('  ')
+      await assertResult('${1:`!v indent(".")`} "$1"', '2 "2"')
     })
 
     it('should init code block in placeholders', async () => {
@@ -299,6 +301,16 @@ describe('CocSnippet', () => {
       await asssertPyxValue('context', false)
       await asssertPyxValue('match.group(0)', 'im')
       await asssertPyxValue('match.group(1)', 'im')
+    })
+
+    it('should setup python match', async () => {
+      let c = await createSnippet('\\\\frac{`!p snip.rv = match.group(1)`}{$1}$0', {
+        regex: '((\\d+)|(\\d*)(\\\\)?([A-Za-z]+)((\\^|_)(\\{\\d+\\}|\\d))*)/',
+        context: 'True'
+      }, Range.create(0, 0, 0, 3), '20/')
+      await asssertPyxValue('context', true)
+      await asssertPyxValue('match.group(1)', '20')
+      expect(c.text).toBe('\\frac{20}{}')
     })
 
     it('should work with methods of snip', async () => {

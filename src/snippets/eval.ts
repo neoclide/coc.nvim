@@ -64,7 +64,8 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
   let indent = line.match(/^\s*/)[0]
   pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`)
   if (regex) {
-    pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
+    let converted = convertRegex(regex)
+    pyCodes.push(`pattern = re.compile("${escapeString(converted)}")`)
     pyCodes.push(`match = pattern.search("${escapeString(line.slice(0, range.end.character))}")`)
   } else {
     pyCodes.push(`match = None`)
@@ -139,10 +140,10 @@ export function convertRegex(str: string): string {
     throw new Error('pattern (?x) not supported')
   }
   if (str.indexOf('\n') !== -1) {
-    throw new Error('multiple line pattern not supported')
+    throw new Error('pattern \\n not supported')
   }
   if (conditionRe.test(str)) {
-    throw new Error('(?id/name)yes-pattern|no-pattern not supported')
+    throw new Error('pattern (?id/name)yes-pattern|no-pattern not supported')
   }
   return str.replace(regex, (match, p1) => {
     if (match == '\\A') return '^'
