@@ -342,10 +342,6 @@ describe('CocSnippet', () => {
       await asssertPyxValue('ft', 'txt')
     })
 
-    it('should work with snip.c', async () => {
-      // TODO
-    })
-
     it('should init python code block', async () => {
       await assertResult('`!p snip.rv = "a"` = a', 'a = a')
       await assertResult('`!p snip.rv = t[1]` = ${1:a}', 'a = a')
@@ -377,6 +373,7 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${2:foo ${1:`!p snip.rv = "bar"`}} ${2/^\\w//} `!p snip.rv = t[2]`', {})
       expect(c.text).toBe('foo bar oo bar foo bar')
     })
+
   })
 
   describe('getContentBefore()', () => {
@@ -452,6 +449,33 @@ describe('CocSnippet', () => {
       expect(c.tmSnippet.toString()).toBe(result)
       return c
     }
+
+    it('should work with snip.c', async () => {
+      let code = [
+        '#ifndef ${1:`!p',
+        'if not snip.c:',
+        '  import random, string',
+        "  name = re.sub(r'[^A-Za-z0-9]+','_', snip.fn).upper()",
+        "  rand = ''.join(random.sample(string.ascii_letters+string.digits, 8))",
+        "  snip.rv = ('%s_%s' % (name,rand)).upper()",
+        "else:",
+        "  snip.rv = snip.c + t[2]`}",
+        '#define $1',
+        '$2'
+      ].join('\n')
+      let c = await createSnippet(code, {})
+      let first = c.text.split('\n')[0]
+      let p = c.getPlaceholder(2)
+      expect(p).toBeDefined()
+      await c.tmSnippet.update(nvim, p.marker, 'foo')
+      let t = c.tmSnippet.toString()
+      expect(t.startsWith(first)).toBe(true)
+      expect(t.split('\n').map(s => s.endsWith('foo'))).toEqual([true, true, true])
+    })
+
+    it('should calculate delta', async () => {
+      // TODO
+    })
 
     it('should update variable placeholders', async () => {
       await assertUpdate('${foo} ${foo}', 'bar', 'bar bar')

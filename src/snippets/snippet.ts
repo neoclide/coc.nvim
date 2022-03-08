@@ -178,7 +178,7 @@ export class CocSnippet {
   public async updatePlaceholder(placeholder: CocSnippetPlaceholder, newText: string, endPosition: Position, token: CancellationToken): Promise<{ edits: TextEdit[]; delta: number } | undefined> {
     let { value, marker } = placeholder
     let lineChanged = newText.split(/\r?\n/).length != value.split(/\r?\n/).length
-    let before = lineChanged ? '' : getContentBefore(marker)
+    let before = lineChanged ? '' : lastLineText(placeholder.before)
     let cloned = this.tmSnippet.clone()
     let disposable = token.onCancellationRequested(() => {
       this.tmSnippet = cloned
@@ -186,12 +186,12 @@ export class CocSnippet {
     await this.tmSnippet.update(this.nvim, marker, newText)
     disposable.dispose()
     if (token.isCancellationRequested) return undefined
-    let after = lineChanged ? '' : getContentBefore(marker)
     let snippetEdit: TextEdit = {
       range: Range.create(this.position, endPosition),
       newText: this.tmSnippet.toString()
     }
     this.sychronize()
+    let after = lineChanged ? '' : lastLineText(this._placeholders.find(o => o.marker == marker).before)
     return { edits: [snippetEdit], delta: byteLength(after) - byteLength(before) }
   }
 
@@ -240,6 +240,11 @@ export class CocSnippet {
     })
     this._text = this.tmSnippet.toString()
   }
+}
+
+function lastLineText(text: string): string {
+  let lines = text.split(/\r?\n/)
+  return lines[lines.length - 1]
 }
 
 /**

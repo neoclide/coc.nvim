@@ -188,12 +188,12 @@ class SnippetUtil(object):
     @property
     def _rv_changed(self):
         """True if rv has changed."""
-        return self._cur
+        return self._changed
 
     @property
     def c(self):  # pylint:disable=invalid-name
         """The current text of the placeholder."""
-        return ""
+        return self._cur
 
     @property
     def v(self):  # pylint:disable=invalid-name
