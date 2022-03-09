@@ -604,7 +604,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.opts.canSelectMany || forceSingle) {
       buf.unplaceSign({ group: 'CocTree' })
     }
-    let cmd = `exe ${row + 1}'|normal! zz'`
+    let cmd = `silent exe ${row + 1}'|normal! zz'`
     nvim.call('coc#compat#execute', [this.winid, cmd], true)
     buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
     if (!noRedraw) this.redraw()
