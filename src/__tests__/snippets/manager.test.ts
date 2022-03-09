@@ -1,10 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
+import path from 'path'
 import { InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
+import commandManager from '../../commands'
 import Document from '../../model/document'
 import snippetManager from '../../snippets/manager'
 import { SnippetString } from '../../snippets/string'
 import workspace from '../../workspace'
-import commandManager from '../../commands'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -219,10 +220,12 @@ describe('snippet provider', () => {
 
   describe('resolveSnippet()', () => {
     it('should resolve snippet text', async () => {
+      let pyfile = path.join(__dirname, '../ultisnips.py')
+      await nvim.command(`execute 'pyxfile '.fnameescape('${pyfile}')`)
       let snippet = await snippetManager.resolveSnippet('${1:foo}')
       expect(snippet.toString()).toBe('foo')
-      snippet = await snippetManager.resolveSnippet('${1:foo} ${2:`!p snip.rv = "foo"`}', true)
-      expect(snippet.toString()).toBe('foo ')
+      snippet = await snippetManager.resolveSnippet('${1:foo} ${2:`!p snip.rv = "foo"`}', {})
+      expect(snippet.toString()).toBe('foo foo')
     })
   })
 

@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, FormattingOptions, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import window from '../window'
 import { LinesTextDocument } from '../model/textdocument'
 import { getChangedPosition, positionInRange, rangeInRange } from '../util/position'
 import { preparePythonCodes, UltiSnippetContext } from './eval'
@@ -33,14 +34,16 @@ export class CocSnippet {
   ) {
   }
 
-  public async init(ultisnip?: UltiSnippetContext): Promise<void> {
+  public async init(ultisnip?: UltiSnippetContext, clear = true): Promise<void> {
     const parser = new Snippets.SnippetParser(!!ultisnip)
     const snippet = parser.parse(this.snippetString, true)
     this.tmSnippet = snippet
     await this.resolve(ultisnip)
     this.sychronize()
-    this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
-    this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
+    if (clear) {
+      this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
+      this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
+    }
   }
 
   public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {

@@ -4,10 +4,8 @@ import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
 import window from '../window'
 import workspace from '../workspace'
-import * as Snippets from "./parser"
 import { SnippetSession } from './session'
 import { SnippetString } from './string'
-import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager {
@@ -30,7 +28,7 @@ export class SnippetManager {
     }, null, this.disposables)
     events.on('InsertCharPre', (_, bufnr) => {
       let session = this.getSession(bufnr)
-      if (session) session.cancel()
+      if (session) session.sychronize()
     }, null, this.disposables)
     events.on('BufUnload', bufnr => {
       let session = this.getSession(bufnr)
@@ -129,15 +127,11 @@ export class SnippetManager {
   public jumpable(): boolean {
     let { session } = this
     if (!session) return false
-    return session.placeholder != null
+    return session.placeholder != null && session.placeholder.index != 0
   }
 
-  public async resolveSnippet(body: string, ultisnip = false): Promise<Snippets.TextmateSnippet> {
-    let parser = new Snippets.SnippetParser(ultisnip)
-    const snippet = parser.parse(body, true)
-    const resolver = new SnippetVariableResolver(workspace.nvim, workspace.workspaceFolderControl)
-    await snippet.resolveVariables(resolver)
-    return snippet
+  public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
+    return await SnippetSession.resolveSnippet(workspace.nvim, snippetString, ultisnip)
   }
 
   public dispose(): void {

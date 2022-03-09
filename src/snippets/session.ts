@@ -405,4 +405,15 @@ export class SnippetSession {
     }
     return inserted
   }
+
+  public static async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
+    let position = await window.getCursorPosition()
+    let line = await nvim.line
+    let context: UltiSnippetContext
+    if (ultisnip) context = Object.assign({ range: Range.create(position, position), line }, ultisnip)
+    const resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
+    let snippet = new CocSnippet(snippetString, position, nvim, resolver)
+    await snippet.init(context, false)
+    return snippet.text
+  }
 }
