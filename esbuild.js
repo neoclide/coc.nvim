@@ -2,11 +2,13 @@ const cp = require('child_process')
 const fs = require('fs')
 const path = require('path')
 let revision = ''
-try {
-  let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, {encoding: 'utf8'})
-  revision = res.replaceAll('"', '').replace(',', ' ')
-} catch (e) {
-  // ignore
+if (process.env.NODE_ENV === 'production') {
+  try {
+    let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, {encoding: 'utf8'})
+    revision = res.replaceAll('"', '').replace(',', ' ')
+  } catch (e) {
+    // ignore
+  }
 }
 
 let envPlugin = {
@@ -57,7 +59,7 @@ async function start(watch) {
 }
 
 let watch = false
-if (process.argv.length > 2 && process.argv[2] === '--watch') {
+if (process.argv.includes('--watch')) {
   console.log('watching...')
   watch = {
     onRebuild(error) {

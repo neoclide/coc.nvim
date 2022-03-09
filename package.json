@@ -80,7 +80,7 @@
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
     "bser": "^2.1.1",
-    "esbuild": "^0.14.12",
+    "esbuild": "^0.14.25",
     "eslint": "^8.8.0",
     "eslint-plugin-jest": "^26.0.0",
     "eslint-plugin-jsdoc": "^37.7.0",
