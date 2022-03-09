@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-jsonrpc'
 import { CompletionItem, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
+import events from '../../events'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
@@ -9,7 +10,6 @@ import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -500,10 +500,7 @@ describe('completion TextChangedP', () => {
     let res = await helper.getItems()
     let idx = res.findIndex(o => o.menu == '[edit]')
     await helper.selectCompleteItem(idx)
-    await helper.waitFor('getline', ['.'], 'bar if()')
-    let [, lnum, col] = await nvim.call('getcurpos')
-    expect(lnum).toBe(1)
-    expect(col).toBe(8)
+    await helper.waitFor('col', ['.'], 8)
   })
 
   it('should fix cursor position with plain text snippet on additionalTextEdits', async () => {

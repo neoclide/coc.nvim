@@ -984,7 +984,7 @@ export class TextmateSnippet extends Marker {
     return ret
   }
 
-  public enclosingPlaceholders(placeholder: Placeholder): Placeholder[] {
+  public enclosingPlaceholders(placeholder: Placeholder | Variable): Placeholder[] {
     let ret: Placeholder[] = []
     let { parent } = placeholder
     while (parent) {
@@ -1061,20 +1061,6 @@ export class SnippetParser {
     return s.children.length == 1 && s.children[0] instanceof Text
   }
 
-  public static hasPython(value: string): boolean {
-    if (value.indexOf('`!p') == -1) return false
-    let s = new SnippetParser(true).parse(value, false)
-    let find = false
-    s.walk(marker => {
-      if (marker instanceof CodeBlock) {
-        find = true
-        return false
-      }
-      return true
-    })
-    return find
-  }
-
   private _scanner = new Scanner()
   private _token: Token
 
@@ -1094,29 +1080,51 @@ export class SnippetParser {
 
     // fill in values for placeholders. the first placeholder of an index
     // that has a value defines the value for all placeholders with that index
-    const placeholderDefaultValues = new Map<number, string>()
+    const defaultValues = new Map<number, string>()
     const incompletePlaceholders: Placeholder[] = []
+    let complexPlaceholders: Placeholder[] = []
     let hasFinal = false
     snippet.walk(marker => {
       if (marker instanceof Placeholder) {
         if (marker.index == 0) hasFinal = true
-        if (!placeholderDefaultValues.has(marker.index) && marker.children.length > 0) {
+        if (marker.children.some(o => o instanceof Placeholder)) {
+          complexPlaceholders.push(marker)
+        } else if (!defaultValues.has(marker.index) && marker.children.length > 0) {
           marker.primary = true
-          placeholderDefaultValues.set(marker.index, marker.toString())
+          defaultValues.set(marker.index, marker.toString())
         } else {
           incompletePlaceholders.push(marker)
         }
       }
       return true
     })
+
     for (const placeholder of incompletePlaceholders) {
       // avoid transform and replace since no value exists.
-      if (placeholderDefaultValues.has(placeholder.index)) {
-        let val = placeholderDefaultValues.get(placeholder.index)
+      if (defaultValues.has(placeholder.index)) {
+        let val = defaultValues.get(placeholder.index)
         let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val)
         placeholder.setOnlyChild(text)
       }
     }
+    const resolveComplex = () => {
+      let resolved: Set<number> = new Set()
+      for (let p of complexPlaceholders) {
+        if (p.children.every(o => !(o instanceof Placeholder) || defaultValues.has(o.index))) {
+          let val = p.toString()
+          defaultValues.set(p.index, val)
+          for (let placeholder of incompletePlaceholders.filter(o => o.index == p.index)) {
+            let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val)
+            placeholder.setOnlyChild(text)
+          }
+          resolved.add(p.index)
+        }
+      }
+      complexPlaceholders = complexPlaceholders.filter(p => !resolved.has(p.index))
+      if (complexPlaceholders.length == 0 || !resolved.size) return
+      resolveComplex()
+    }
+    resolveComplex()
 
     if (!hasFinal && insertFinalTabstop) {
       // the snippet uses placeholders but has no
