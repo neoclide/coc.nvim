@@ -70,9 +70,7 @@ export class SnippetManager {
       this.sessionMap.set(bufnr, session)
       session.onCancel(() => {
         this.sessionMap.delete(bufnr)
-        if (workspace.bufnr == bufnr) {
-          this.statusItem.hide()
-        }
+        this.statusItem.hide()
       })
     }
     let snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
@@ -80,6 +78,7 @@ export class SnippetManager {
     if (isActive) {
       this.statusItem.show()
     } else {
+      this.statusItem.hide()
       this.sessionMap.delete(bufnr)
     }
     return isActive

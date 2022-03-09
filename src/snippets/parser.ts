@@ -168,18 +168,11 @@ export abstract class Marker {
     this._children = [child]
   }
 
-  public replace(child: Marker, others: Marker[]): void {
-    const { parent } = child
-    const idx = parent.children.indexOf(child)
-    const newChildren = parent.children.slice(0)
-    newChildren.splice(idx, 1, ...others)
-    parent._children = newChildren
-      ; (function _fixParent(children: Marker[], parent: Marker): void {
-        for (const child of children) {
-          child.parent = parent
-          _fixParent(child.children, child)
-        }
-      })(others, parent)
+  public replaceChildren(children: Marker[]): void {
+    for (const child of children) {
+      child.parent = this
+    }
+    this._children = children
   }
 
   public get children(): Marker[] {
@@ -243,7 +236,7 @@ export class CodeBlock extends Marker {
   private _value = ''
   private _related: number[] = []
 
-  constructor(public readonly code: string, public readonly kind: EvalKind, value?: string) {
+  constructor(public code: string, public readonly kind: EvalKind, value?: string) {
     super()
     if (kind === 'python') {
       let { _related } = this
@@ -262,6 +255,18 @@ export class CodeBlock extends Marker {
 
   public get related(): number[] {
     return this._related
+  }
+
+  public update(map: Map<number, number>): void {
+    if (this.kind !== 'python') return
+    let related: Set<number> = new Set()
+    this.code = this.code.replace(/\bt\[(\d+)\]/g, (_, p1) => {
+      let idx = Number(p1)
+      let id = map.has(idx) ? map.get(idx) : idx
+      related.add(id)
+      return `t[${id}]`
+    })
+    this._related = Array.from(related)
   }
 
   public get index(): number | undefined {
@@ -629,7 +634,7 @@ export class TextmateSnippet extends Marker {
   public readonly ultisnip: boolean
   private _placeholders?: PlaceholderInfo
   private _values?: { [index: number]: string }
-  constructor(ultisnip?: boolean, public readonly startIndex = 0) {
+  constructor(ultisnip?: boolean) {
     super()
     this.ultisnip = ultisnip === true
   }
@@ -704,7 +709,7 @@ export class TextmateSnippet extends Marker {
       return block.resolve(nvim).then(() => {
         if (block.parent instanceof Placeholder && pre !== block.value) {
           // update placeholder with same index
-          this.updatePlaceholder(block.parent)
+          this.onPlaceholderUpdate(block.parent)
         }
       })
     }))
@@ -718,7 +723,7 @@ export class TextmateSnippet extends Marker {
         if (pre === block.value) continue
         if (block.parent instanceof Placeholder) {
           // update placeholder with same index
-          this.updatePlaceholder(block.parent)
+          this.onPlaceholderUpdate(block.parent)
           await executePythonCode(nvim, [getVariablesCode(this.values)])
         }
       }
@@ -784,7 +789,7 @@ export class TextmateSnippet extends Marker {
     await block.resolve(nvim)
     if (pre === block.value) return
     if (block.parent instanceof Placeholder) {
-      this.updatePlaceholder(block.parent)
+      this.onPlaceholderUpdate(block.parent)
     }
     await executePythonCode(nvim, [getVariablesCode(this.values)])
   }
@@ -855,32 +860,43 @@ export class TextmateSnippet extends Marker {
   public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip = false): Placeholder | Variable {
     let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
     let [before, after] = parts
-    let nested = new SnippetParser(ultisnip, index).parse(snippet, true)
-    let finalIndex = (nested.maxIndexNumber == 0 ? index : nested.maxIndexNumber) + 1
-    for (let p of nested.placeholders.filter(p => p.index == 0)) {
-      p.index = finalIndex
+    let nested = new SnippetParser(ultisnip).parse(snippet, true)
+    let maxIndexAdded = nested.maxIndexNumber + 1
+    let changed: Map<number, number> = new Map()
+    for (let p of nested.placeholders) {
+      let idx = p.index
+      if (p.isFinalTabstop) {
+        p.index = maxIndexAdded + index
+      } else {
+        p.index = p.index + index
+      }
+      changed.set(idx, p.index)
     }
-    let select = nested.first
+    nested.pyBlocks.forEach(b => {
+      b.update(changed)
+    })
     let map: Map<number, number> = new Map()
-    let delta = finalIndex - index
     this.walk(m => {
       if (m instanceof Placeholder && m.index > index) {
         let idx = m.index
-        m.index = m.index + delta
+        m.index = m.index + maxIndexAdded
         map.set(idx, m.index)
       }
       return true
     })
-    let children = nested.children
+    if (this.hasPython) {
+      this.walk(m => {
+        if (m instanceof CodeBlock) {
+          m.update(map)
+        }
+        return true
+      })
+    }
+    const select = nested.first
+    let children = nested.children.slice()
     if (before) children.unshift(new Text(before))
     if (after) children.push(new Text(after))
-    if (this.hasPython) {
-      // TODO adjust python code block which access `t` variable (update code & related by map)
-    }
-
-    // TODO insert as Text + placeholder when it's plain text and update same index placeholders
     this.replace(marker, children)
-    this.reset()
     return select
   }
 
@@ -906,12 +922,20 @@ export class TextmateSnippet extends Marker {
     this.reset()
   }
 
-  public updatePlaceholder(placeholder: Placeholder): void {
-    let val = placeholder.toString()
-    this.values[placeholder.index] = val
-    let markers = this.placeholders.filter(o => o.index == placeholder.index)
+  /**
+   * Reflact changes for related markers.
+   */
+  public onPlaceholderUpdate(marker: Placeholder | Variable): void {
+    let val = marker.toString()
+    let markers: Placeholder[] | Variable[]
+    if (marker instanceof Placeholder) {
+      this.values[marker.index] = val
+      markers = this.placeholders.filter(o => o.index == marker.index)
+    } else {
+      markers = this.variables.filter(o => o.name == marker.name)
+    }
     for (let p of markers) {
-      if (p === placeholder) continue
+      if (p === marker) continue
       let newText = p.transform ? p.transform.resolve(val) : val
       p.setOnlyChild(new Text(newText || ''))
     }
@@ -927,7 +951,7 @@ export class TextmateSnippet extends Marker {
       }
     })
     arr.forEach(p => {
-      this.updatePlaceholder(p)
+      this.onPlaceholderUpdate(p)
     })
   }
 
@@ -978,8 +1002,10 @@ export class TextmateSnippet extends Marker {
       }
       return true
     })
-    await Promise.all(items.map(o => o.resolve(resolver)))
-    this.sychronizeParents(items)
+    if (items.length) {
+      await Promise.all(items.map(o => o.resolve(resolver)))
+      this.sychronizeParents(items)
+    }
   }
 
   public appendChild(child: Marker): this {
@@ -987,9 +1013,12 @@ export class TextmateSnippet extends Marker {
     return super.appendChild(child)
   }
 
-  public replace(child: Marker, others: Marker[]): void {
+  public replace(marker: Marker, children: Marker[]): void {
+    marker.replaceChildren(children)
+    if (marker instanceof Placeholder || marker instanceof Variable) {
+      this.onPlaceholderUpdate(marker)
+    }
     this.reset()
-    return super.replace(child, others)
   }
 
   /**
@@ -1017,8 +1046,7 @@ export class TextmateSnippet extends Marker {
 
 export class SnippetParser {
   constructor(
-    private ultisnip?: boolean,
-    private readonly startIndex = 0
+    private ultisnip?: boolean
   ) {
   }
 
@@ -1057,7 +1085,7 @@ export class SnippetParser {
     this._scanner.text(value)
     this._token = this._scanner.next()
 
-    const snippet = new TextmateSnippet(this.ultisnip, this.startIndex)
+    const snippet = new TextmateSnippet(this.ultisnip)
     while (this._parse(snippet)) {
       // nothing
     }
@@ -1171,7 +1199,7 @@ export class SnippetParser {
     }
 
     parent.appendChild(/^\d+$/.test(value)
-      ? new Placeholder(value == '0' ? 0 : Number(value) + this.startIndex)
+      ? new Placeholder(Number(value))
       : new Variable(value)
     )
     return true
@@ -1189,7 +1217,7 @@ export class SnippetParser {
       return this._backTo(token)
     }
 
-    const placeholder = new Placeholder(index == '0' ? 0 : Number(index) + this.startIndex)
+    const placeholder = new Placeholder(Number(index))
 
     if (this._accept(TokenType.Colon)) {
       // ${1:<children>}

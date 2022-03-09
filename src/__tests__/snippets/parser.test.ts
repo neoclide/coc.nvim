@@ -1,8 +1,7 @@
 /* eslint-disable */
 import * as assert from 'assert'
-import { Scanner, transformEscapes, TokenType, SnippetParser, Text, Placeholder, CodeBlock, Variable, Marker, TextmateSnippet, Choice, FormatString, Transform } from '../../snippets/parser'
-import { Range } from 'vscode-languageserver-types'
 import { EvalKind } from '../../snippets/eval'
+import { Choice, CodeBlock, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
 
 describe('SnippetParser', () => {
 
@@ -831,21 +830,12 @@ describe('SnippetParser', () => {
     const enclosing = snippet.enclosingPlaceholders(second)
     assert.equal(enclosing.length, 1)
     assert.equal(enclosing[0].index, '1')
-
+    let marker = snippet.placeholders.find(o => o.index == 2)
     let nested = new SnippetParser().parse('ddd$1eee$0', true)
-    snippet.replace(second, nested.children)
+    snippet.replace(marker, nested.children)
 
     assert.equal(snippet.toString(), 'aaabbbdddeee')
-    assert.equal(snippet.placeholders.length, 4)
-    assert.equal(snippet.placeholders[0].index, '1')
-    assert.equal(snippet.placeholders[1].index, '1')
-    assert.equal(snippet.placeholders[2].index, '0')
-    assert.equal(snippet.placeholders[3].index, '0')
-
-    const newEnclosing = snippet.enclosingPlaceholders(snippet.placeholders[1])
-    assert.ok(newEnclosing[0] === snippet.placeholders[0])
-    assert.equal(newEnclosing.length, 1)
-    assert.equal(newEnclosing[0].index, '1')
+    assert.equal(snippet.placeholders.length, 5)
   })
 
   test('TextmateSnippet#replace 2/2', function() {
@@ -859,7 +849,7 @@ describe('SnippetParser', () => {
     snippet.replace(second, nested.children)
 
     assert.equal(snippet.toString(), 'aaabbbdddeee')
-    assert.equal(snippet.placeholders.length, 3)
+    assert.equal(snippet.placeholders.length, 4)
   })
 
   test('TextmateSnippet#insertSnippet', function() {
@@ -867,7 +857,7 @@ describe('SnippetParser', () => {
     let marker = snippet.placeholders.find(o => o.index == 1)
     snippet.insertSnippet('${1:dd} ${2:ff}', marker, ['', 'aaa'])
     let arr = snippet.placeholders.map(p => p.index)
-    expect(arr).toEqual([2, 3, 4, 5, 0])
+    expect(arr).toEqual([1, 2, 3, 4, 5, 0])
   })
 
   test('Maximum call stack size exceeded, #28983', function() {

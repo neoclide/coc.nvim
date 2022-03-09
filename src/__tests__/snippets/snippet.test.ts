@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
+import { CancellationTokenSource } from 'vscode-jsonrpc'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
 import { addPythonTryCatch, convertRegex, executePythonCode, UltiSnippetContext } from '../../snippets/eval'
 import { Placeholder, TextmateSnippet } from '../../snippets/parser'
-import { checkContentBefore, getParts, CocSnippet, reduceTextEdit, getContentBefore, getEnd, getEndPosition, normalizeSnippetString, shouldFormat } from '../../snippets/snippet'
+import { checkContentBefore, CocSnippet, getContentBefore, getEnd, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
 import { parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
@@ -34,164 +35,6 @@ async function createSnippet(snippet: string, opts?: UltiSnippetOption, range = 
 function createTextDocument(text: string): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, text.split('\n'), 1, true)
 }
-
-describe('utils', () => {
-  function assertThrow(fn: () => void) {
-    let err
-    try {
-      fn()
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
-  }
-
-  it('should check shouldFormat', () => {
-    expect(shouldFormat(' f')).toBe(true)
-    expect(shouldFormat('a\nb')).toBe(true)
-    expect(shouldFormat('foo')).toBe(false)
-  })
-
-  it('should normalizeSnippetString', () => {
-    expect(normalizeSnippetString('a\n\n\tb', '  ', {
-      insertSpaces: true,
-      tabSize: 2
-    })).toBe('a\n\n    b')
-    expect(normalizeSnippetString('a\n\n  b', '\t', {
-      insertSpaces: false,
-      tabSize: 2
-    })).toBe('a\n\n\t\tb')
-  })
-
-  it('should throw for invalid regex', async () => {
-    assertThrow(() => {
-      convertRegex('\\z')
-    })
-    assertThrow(() => {
-      convertRegex('(?s)')
-    })
-    assertThrow(() => {
-      convertRegex('(?x)')
-    })
-    assertThrow(() => {
-      convertRegex('a\nb')
-    })
-    assertThrow(() => {
-      convertRegex('(<)?(\\w+@\\w+(?:\\.\\w+)+)(?(1)>|$)')
-    })
-    assertThrow(() => {
-      convertRegex('(<)?(\\w+@\\w+(?:\\.\\w+)+)(?(1)>|)')
-    })
-  })
-
-  it('should convert regex', async () => {
-    // \\A
-    expect(convertRegex('\\A')).toBe('^')
-    expect(convertRegex('f(?#abc)b')).toBe('fb')
-    expect(convertRegex('f(?P<abc>def)b')).toBe('f(?<abc>def)b')
-    expect(convertRegex('f(?P=abc)b')).toBe('f\\k<abc>b')
-  })
-
-  it('should catch error with executePythonCode', async () => {
-    let err
-    try {
-      await executePythonCode(nvim, ['INVALID_CODE'])
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
-    expect(err.stack).toMatch('INVALID_CODE')
-  })
-
-  it('should set error with addPythonTryCatch', async () => {
-    let code = addPythonTryCatch('INVALID_CODE', true)
-    await nvim.command(`pyx ${code}`)
-    let msg = await nvim.getVar('errmsg')
-    expect(msg).toBeDefined()
-    expect(msg).toMatch('INVALID_CODE')
-  })
-
-  it('should parse comments', async () => {
-    expect(parseCommentstring('a%sb')).toBeUndefined()
-    expect(parseCommentstring('// %s')).toBe('//')
-    expect(parseComments('')).toEqual({
-      start: undefined,
-      end: undefined,
-      single: undefined
-    })
-    expect(parseComments('s:/*')).toEqual({
-      start: '/*',
-      end: undefined,
-      single: undefined
-    })
-    expect(parseComments('e:*/')).toEqual({
-      end: '*/',
-      start: undefined,
-      single: undefined
-    })
-    expect(parseComments(':#,:b')).toEqual({
-      end: undefined,
-      start: undefined,
-      single: '#'
-    })
-  })
-
-  it('should get start end position by content', () => {
-    expect(getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
-    expect(getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
-  })
-
-  it('should reduce TextEdit', () => {
-    let e: TextEdit
-    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
-    expect(reduceTextEdit(e, '')).toEqual(e)
-    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
-    expect(reduceTextEdit(e, 'bar')).toEqual(
-      TextEdit.replace(Range.create(0, 0, 0, 0), 'foo\n')
-    )
-    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
-    expect(reduceTextEdit(e, 'foo')).toEqual(
-      TextEdit.replace(Range.create(0, 3, 0, 3), '\nbar')
-    )
-    e = TextEdit.replace(Range.create(0, 0, 0, 3), 'def')
-    expect(reduceTextEdit(e, 'daf')).toEqual(
-      TextEdit.replace(Range.create(0, 1, 0, 2), 'e')
-    )
-    e = TextEdit.replace(Range.create(2, 0, 3, 0), 'ascii ascii bar\n')
-    expect(reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
-      TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
-    )
-  })
-
-  it('should get new end position', () => {
-    let assert = (pos: Position, oldText: string, newText: string, res: Position) => {
-      expect(getEndPosition(pos, createTextDocument(oldText), createTextDocument(newText))).toEqual(res)
-    }
-    assert(Position.create(0, 0), 'foo', 'bar', undefined)
-    assert(Position.create(0, 0), 'foo\nbar', 'bar', undefined)
-    assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nba', undefined)
-    assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nbar', Position.create(1, 0))
-    assert(Position.create(0, 0), 'foo', 'foo', Position.create(0, 0))
-  })
-
-  it('should check content before position', () => {
-    let assert = (pos: Position, oldText: string, newText: string, res: boolean) => {
-      expect(checkContentBefore(pos, createTextDocument(oldText), createTextDocument(newText))).toBe(res)
-    }
-    assert(Position.create(1, 0), 'foo\nbar', 'foo', true)
-    assert(Position.create(1, 1), 'foo\nbar', 'foo', false)
-    assert(Position.create(2, 0), 'foo\nbar\n', 'foo', false)
-    assert(Position.create(1, 1), 'foo\nbar', 'foo\nbd', true)
-    assert(Position.create(1, 1), 'foo\nbar', 'foo\nab', false)
-    assert(Position.create(1, 1), 'foo\nbar', 'aoo\nbb', false)
-  })
-
-  it('should getParts by range', async () => {
-    expect(getParts('abcdef', Range.create(1, 5, 1, 11), Range.create(1, 6, 1, 10))).toEqual(['a', 'f'])
-    expect(getParts('abc\nfoo\ndef', Range.create(0, 5, 2, 3), Range.create(1, 1, 1, 2))).toEqual(['abc\nf', 'o\ndef'])
-    expect(getParts('abc\ndef', Range.create(0, 1, 2, 3), Range.create(0, 1, 2, 3))).toEqual(['', ''])
-  })
-})
 
 describe('CocSnippet', () => {
   async function assertResult(snip: string, resolved: string) {
@@ -523,4 +366,188 @@ describe('CocSnippet', () => {
       await assertUpdate('${2:bar${1:foo}} $2 $1 `!p snip.rv = t[1]`', 'bar', 'bar bar foo foo', 2)
     })
   })
+
+  describe('insertSnippet()', () => {
+    it('should update indexes of python blocks', async () => {
+      let c = await createSnippet('${1:a} ${2:b} ${3:`!p snip.rv=t[2]`}', {})
+      let p = c.getPlaceholder(1)
+      await c.insertSnippet(p, '${1:foo} ${2:bar}', ['', ''])
+      expect(c.text).toBe('foo bar b b')
+      p = c.getPlaceholder(5)
+      expect(p.after).toBe(' b')
+      let source = new CancellationTokenSource()
+      let res = await c.updatePlaceholder(p, Position.create(0, 9), 'xyz', source.token)
+      expect(res.text).toBe('foo bar xyz xyz')
+    })
+
+    it('should insert nested placeholder', async () => {
+      let c = await createSnippet('${1:foo}\n$1', {})
+      let p = c.getPlaceholder(1)
+      let marker = await c.insertSnippet(p, '${1:x} $1', ['', ''], { line: '', range: Range.create(0, 0, 0, 3) }) as Placeholder
+      p = c.getPlaceholder(marker.index)
+      let source = new CancellationTokenSource()
+      let res = await c.updatePlaceholder(p, Position.create(0, 3), 'bar', source.token)
+      expect(res.text).toBe('bar bar\nbar bar')
+      expect(res.delta).toEqual(Position.create(0, 0))
+    })
+  })
+
+  describe('utils', () => {
+    function assertThrow(fn: () => void) {
+      let err
+      try {
+        fn()
+      } catch (e) {
+        err = e
+      }
+      expect(err).toBeDefined()
+    }
+
+    it('should check shouldFormat', () => {
+      expect(shouldFormat(' f')).toBe(true)
+      expect(shouldFormat('a\nb')).toBe(true)
+      expect(shouldFormat('foo')).toBe(false)
+    })
+
+    it('should normalizeSnippetString', () => {
+      expect(normalizeSnippetString('a\n\n\tb', '  ', {
+        insertSpaces: true,
+        tabSize: 2
+      })).toBe('a\n\n    b')
+      expect(normalizeSnippetString('a\n\n  b', '\t', {
+        insertSpaces: false,
+        tabSize: 2
+      })).toBe('a\n\n\t\tb')
+    })
+
+    it('should throw for invalid regex', async () => {
+      assertThrow(() => {
+        convertRegex('\\z')
+      })
+      assertThrow(() => {
+        convertRegex('(?s)')
+      })
+      assertThrow(() => {
+        convertRegex('(?x)')
+      })
+      assertThrow(() => {
+        convertRegex('a\nb')
+      })
+      assertThrow(() => {
+        convertRegex('(<)?(\\w+@\\w+(?:\\.\\w+)+)(?(1)>|$)')
+      })
+      assertThrow(() => {
+        convertRegex('(<)?(\\w+@\\w+(?:\\.\\w+)+)(?(1)>|)')
+      })
+    })
+
+    it('should convert regex', async () => {
+      // \\A
+      expect(convertRegex('\\A')).toBe('^')
+      expect(convertRegex('f(?#abc)b')).toBe('fb')
+      expect(convertRegex('f(?P<abc>def)b')).toBe('f(?<abc>def)b')
+      expect(convertRegex('f(?P=abc)b')).toBe('f\\k<abc>b')
+    })
+
+    it('should catch error with executePythonCode', async () => {
+      let err
+      try {
+        await executePythonCode(nvim, ['INVALID_CODE'])
+      } catch (e) {
+        err = e
+      }
+      expect(err).toBeDefined()
+      expect(err.stack).toMatch('INVALID_CODE')
+    })
+
+    it('should set error with addPythonTryCatch', async () => {
+      let code = addPythonTryCatch('INVALID_CODE', true)
+      await nvim.command(`pyx ${code}`)
+      let msg = await nvim.getVar('errmsg')
+      expect(msg).toBeDefined()
+      expect(msg).toMatch('INVALID_CODE')
+    })
+
+    it('should parse comments', async () => {
+      expect(parseCommentstring('a%sb')).toBeUndefined()
+      expect(parseCommentstring('// %s')).toBe('//')
+      expect(parseComments('')).toEqual({
+        start: undefined,
+        end: undefined,
+        single: undefined
+      })
+      expect(parseComments('s:/*')).toEqual({
+        start: '/*',
+        end: undefined,
+        single: undefined
+      })
+      expect(parseComments('e:*/')).toEqual({
+        end: '*/',
+        start: undefined,
+        single: undefined
+      })
+      expect(parseComments(':#,:b')).toEqual({
+        end: undefined,
+        start: undefined,
+        single: '#'
+      })
+    })
+
+    it('should get start end position by content', () => {
+      expect(getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
+      expect(getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
+    })
+
+    it('should reduce TextEdit', () => {
+      let e: TextEdit
+      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
+      expect(reduceTextEdit(e, '')).toEqual(e)
+      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
+      expect(reduceTextEdit(e, 'bar')).toEqual(
+        TextEdit.replace(Range.create(0, 0, 0, 0), 'foo\n')
+      )
+      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
+      expect(reduceTextEdit(e, 'foo')).toEqual(
+        TextEdit.replace(Range.create(0, 3, 0, 3), '\nbar')
+      )
+      e = TextEdit.replace(Range.create(0, 0, 0, 3), 'def')
+      expect(reduceTextEdit(e, 'daf')).toEqual(
+        TextEdit.replace(Range.create(0, 1, 0, 2), 'e')
+      )
+      e = TextEdit.replace(Range.create(2, 0, 3, 0), 'ascii ascii bar\n')
+      expect(reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
+        TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
+      )
+    })
+
+    it('should get new end position', () => {
+      let assert = (pos: Position, oldText: string, newText: string, res: Position) => {
+        expect(getEndPosition(pos, createTextDocument(oldText), createTextDocument(newText))).toEqual(res)
+      }
+      assert(Position.create(0, 0), 'foo', 'bar', undefined)
+      assert(Position.create(0, 0), 'foo\nbar', 'bar', undefined)
+      assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nba', undefined)
+      assert(Position.create(0, 0), 'foo\nbar', 'x\nfoo\nbar', Position.create(1, 0))
+      assert(Position.create(0, 0), 'foo', 'foo', Position.create(0, 0))
+    })
+
+    it('should check content before position', () => {
+      let assert = (pos: Position, oldText: string, newText: string, res: boolean) => {
+        expect(checkContentBefore(pos, createTextDocument(oldText), createTextDocument(newText))).toBe(res)
+      }
+      assert(Position.create(1, 0), 'foo\nbar', 'foo', true)
+      assert(Position.create(1, 1), 'foo\nbar', 'foo', false)
+      assert(Position.create(2, 0), 'foo\nbar\n', 'foo', false)
+      assert(Position.create(1, 1), 'foo\nbar', 'foo\nbd', true)
+      assert(Position.create(1, 1), 'foo\nbar', 'foo\nab', false)
+      assert(Position.create(1, 1), 'foo\nbar', 'aoo\nbb', false)
+    })
+
+    it('should getParts by range', async () => {
+      expect(getParts('abcdef', Range.create(1, 5, 1, 11), Range.create(1, 6, 1, 10))).toEqual(['a', 'f'])
+      expect(getParts('abc\nfoo\ndef', Range.create(0, 5, 2, 3), Range.create(1, 1, 1, 2))).toEqual(['abc\nf', 'o\ndef'])
+      expect(getParts('abc\ndef', Range.create(0, 1, 2, 3), Range.create(0, 1, 2, 3))).toEqual(['', ''])
+    })
+  })
+
 })

@@ -109,6 +109,7 @@ export class SnippetSession {
       this.current = null
       this.textDocument = undefined
       this.nvim.call('coc#snippet#disable', [], true)
+      this.nvim.deleteVar('coc_last_placeholder')
       logger.debug(`session ${this.bufnr} cancelled`)
     }
     this._onCancelEvent.fire(void 0)

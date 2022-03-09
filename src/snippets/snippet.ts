@@ -26,17 +26,16 @@ export class CocSnippet {
   private _text: string | undefined
   public tmSnippet: Snippets.TextmateSnippet
 
-  constructor(private _snippetString: string,
+  constructor(private snippetString: string,
     private position: Position,
     private nvim: Neovim,
     private resolver?: VariableResolver,
   ) {
-    this.nvim.deleteVar('coc_last_placeholder')
   }
 
   public async init(ultisnip?: UltiSnippetContext): Promise<void> {
     const parser = new Snippets.SnippetParser(!!ultisnip)
-    const snippet = parser.parse(this._snippetString, true)
+    const snippet = parser.parse(this.snippetString, true)
     this.tmSnippet = snippet
     await this.resolve(ultisnip)
     this.sychronize()
@@ -230,11 +229,6 @@ export class CocSnippet {
     })
     this._text = this.tmSnippet.toString()
   }
-}
-
-function lastLineText(text: string): string {
-  let lines = text.split(/\r?\n/)
-  return lines[lines.length - 1]
 }
 
 /**
