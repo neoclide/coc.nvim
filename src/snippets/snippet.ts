@@ -1,9 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, FormattingOptions, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import window from '../window'
 import { LinesTextDocument } from '../model/textdocument'
-import { getChangedPosition, positionInRange, rangeInRange } from '../util/position'
+import { emptyRange, getChangedPosition, positionInRange, rangeInRange } from '../util/position'
 import { preparePythonCodes, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
@@ -44,6 +43,19 @@ export class CocSnippet {
       this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
       this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
     }
+  }
+
+  public getRanges(placeholder: CocSnippetPlaceholder): Range[] {
+    let placeholders = this._placeholders.filter(o => o.index == placeholder.index)
+    let ranges = placeholders.map(o => o.range)
+    let parents = this.tmSnippet.enclosingPlaceholders(placeholder.marker)
+    parents.forEach(p => {
+      let arr = this._placeholders.filter(o => o.index == p.index && o.marker !== p)
+      arr.forEach(placeholder => {
+        ranges.push(placeholder.range)
+      })
+    })
+    return ranges.filter(r => !emptyRange(r))
   }
 
   public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {

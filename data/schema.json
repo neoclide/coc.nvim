@@ -1393,6 +1393,11 @@
       "default": "SNIP",
       "description": "Text shown in statusline to indicate snippet session is activated."
     },
+    "coc.preferences.snippetHighlight": {
+      "type": "boolean",
+      "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
+      "default": true
+    },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
       "description": "Automatically update the value of b:coc_current_function on CursorHold event",

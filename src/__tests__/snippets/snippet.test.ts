@@ -367,6 +367,19 @@ describe('CocSnippet', () => {
     })
   })
 
+  describe('getRanges()', () => {
+    it('should get ranges of placeholder', async () => {
+      let c = await createSnippet('${2:${1:x} $1}\n$2', {})
+      let p = c.getPlaceholder(1)
+      let arr = c.getRanges(p)
+      expect(arr.length).toBe(3)
+      expect(arr[0]).toEqual(Range.create(0, 0, 0, 1))
+      expect(arr[1]).toEqual(Range.create(0, 2, 0, 3))
+      expect(arr[2]).toEqual(Range.create(1, 0, 1, 3))
+      expect(c.text).toBe('x x\nx x')
+    })
+  })
+
   describe('insertSnippet()', () => {
     it('should update indexes of python blocks', async () => {
       let c = await createSnippet('${1:a} ${2:b} ${3:`!p snip.rv=t[2]`}', {})

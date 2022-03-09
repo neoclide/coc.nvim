@@ -148,16 +148,6 @@ describe('SnippetParser', () => {
     s('ab$1chh', false)
   })
 
-  test('Parser, hasPythonDepent()', function() {
-    const s = (input: string, res: boolean) => {
-      assert.equal(SnippetParser.hasPython(input), res)
-    }
-    s('abc', false)
-    s('${1:foo}', false)
-    s('${1:`!p snip.rv = "foo"`}', true)
-    s('${1:`!p snip.rv = t[2] ${2:bar}`}', true)
-  })
-
   test('Parser, first placeholder / variable', function() {
     const first = (input: string): Marker => {
       const p = new SnippetParser(true)

@@ -15,6 +15,7 @@ import { Marker, Placeholder, SnippetParser } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
+const NAME_SPACE = 'snippets'
 
 export class SnippetSession {
   private _isActive = false
@@ -108,6 +109,7 @@ export class SnippetSession {
       this.current = null
       this.textDocument = undefined
       this.nvim.call('coc#snippet#disable', [], true)
+      this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
       logger.debug(`session ${this.bufnr} cancelled`)
     }
     this._onCancelEvent.fire(void 0)
@@ -162,8 +164,26 @@ export class SnippetSession {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
+      let finalCount = this.snippet.finalCount
       await this.select(placeholder, triggerAutocmd)
+      this.highlights(placeholder)
+      if (placeholder.index == 0) {
+        if (finalCount == 1) {
+          logger.info('Jump to final placeholder, cancelling snippet session')
+          this.deactivate()
+        } else {
+          nvim.call('coc#snippet#disable', [], true)
+        }
+      }
     }
+  }
+
+  private highlights(placeholder: CocSnippetPlaceholder): void {
+    let buf = this.nvim.createBuffer(this.bufnr)
+    buf.clearNamespace(NAME_SPACE)
+    let ranges = this.snippet.getRanges(placeholder)
+    if (!ranges.length) return
+    buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
   }
 
   private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
@@ -221,14 +241,6 @@ export class SnippetSession {
       nvim.call('coc#_cancel', [], true)
     }
     nvim.setOption('virtualedit', ve, true)
-    if (placeholder.index == 0) {
-      if (this.snippet.finalCount == 1) {
-        logger.info('Jump to final placeholder, cancelling snippet session')
-        this.deactivate()
-      } else {
-        nvim.call('coc#snippet#disable', [], true)
-      }
-    }
     await nvim.resumeNotification(true)
     if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
   }
@@ -330,12 +342,15 @@ export class SnippetSession {
         newText: res.text
       }, inserted)
       await this.document.applyEdits([edit])
+      this.highlights(placeholder)
       let { delta } = res
       if (delta.line != 0 || delta.character != 0) {
         this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
-        this.nvim.redrawVim()
       }
+    } else {
+      this.highlights(placeholder)
     }
+    this.nvim.redrawVim()
     logger.debug('update cost:', Date.now() - start, res.delta)
     this.textDocument = this.document.textDocument
   }
