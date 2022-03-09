@@ -48,8 +48,7 @@ export class SnippetSession {
     }
     let context: UltiSnippetContext
     if (ultisnip) context = Object.assign({ range, line: currentLine }, ultisnip)
-    const placeholder = this.isActive && !SnippetParser.hasPython(snippetString) ?
-      this.getReplacePlaceholder(range) : undefined
+    const placeholder = this.getReplacePlaceholder(range)
     const edits: TextEdit[] = []
     if (placeholder) {
       // update all snippet.
@@ -109,7 +108,6 @@ export class SnippetSession {
       this.current = null
       this.textDocument = undefined
       this.nvim.call('coc#snippet#disable', [], true)
-      this.nvim.deleteVar('coc_last_placeholder')
       logger.debug(`session ${this.bufnr} cancelled`)
     }
     this._onCancelEvent.fire(void 0)
@@ -169,7 +167,7 @@ export class SnippetSession {
   }
 
   private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
-    let { range, value } = placeholder
+    let { range } = placeholder
     let { document, nvim } = this
     let { start, end } = range
     let { textDocument } = document
@@ -178,12 +176,6 @@ export class SnippetSession {
     let col = line ? byteLength(line.slice(0, start.character)) : 0
     let endLine = document.getline(end.line)
     let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
-    nvim.setVar('coc_last_placeholder', {
-      bufnr: document.bufnr,
-      current_text: value,
-      start: { line: start.line, col, character: start.character },
-      end: { line: end.line, col: endCol, character: end.character }
-    }, true)
     let [ve, selection, pumvisible, mode] = await nvim.eval('[&virtualedit, &selection, pumvisible(), mode()]') as [string, string, number, string]
     let move_cmd = ''
     if (pumvisible && this.preferComplete) {

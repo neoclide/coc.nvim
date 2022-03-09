@@ -383,12 +383,27 @@ describe('CocSnippet', () => {
     it('should insert nested placeholder', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       let p = c.getPlaceholder(1)
-      let marker = await c.insertSnippet(p, '${1:x} $1', ['', ''], { line: '', range: Range.create(0, 0, 0, 3) }) as Placeholder
+      let marker = await c.insertSnippet(p, '${1:x} $1', ['', '']) as Placeholder
       p = c.getPlaceholder(marker.index)
       let source = new CancellationTokenSource()
       let res = await c.updatePlaceholder(p, Position.create(0, 3), 'bar', source.token)
       expect(res.text).toBe('bar bar\nbar bar')
       expect(res.delta).toEqual(Position.create(0, 0))
+    })
+
+    it('should insert nested python snippet', async () => {
+      let c = await createSnippet('${1:foo}\n`!p snip.rv = t[1]`', {})
+      let p = c.getPlaceholder(1)
+      let line = await nvim.line
+      let marker = await c.insertSnippet(p, '${1:x} `!p snip.rv = t[1]`', ['', ''], { line, range: Range.create(0, 0, 0, 3) }) as Placeholder
+      p = c.getPlaceholder(marker.index)
+      expect(c.text).toBe('x x\nx x')
+      let source = new CancellationTokenSource()
+      let res = await c.updatePlaceholder(p, Position.create(0, 1), 'bar', source.token)
+      expect(res.text).toBe('bar bar\nbar bar')
+      await executePythonCode(nvim, [`snip = ContextSnippet()`])
+      let val = await nvim.call('pyxeval', 'snip.last_placeholder.current_text')
+      expect(val).toBe('foo')
     })
   })
 

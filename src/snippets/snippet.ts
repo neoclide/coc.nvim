@@ -39,7 +39,8 @@ export class CocSnippet {
     this.tmSnippet = snippet
     await this.resolve(ultisnip)
     this.sychronize()
-    this.nvim.deleteVar('coc_selected_text')
+    this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
+    this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
   }
 
   public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {
@@ -149,6 +150,14 @@ export class CocSnippet {
   }
 
   public async insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, parts: [string, string], ultisnip?: UltiSnippetContext): Promise<Snippets.Placeholder | Snippets.Variable> {
+    if (ultisnip) {
+      let { start, end } = placeholder.range
+      this.nvim.setVar('coc_last_placeholder', {
+        current_text: placeholder.value,
+        start: { line: start.line, col: start.character, character: start.character },
+        end: { line: end.line, col: end.character, character: end.character }
+      }, true)
+    }
     let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, !!ultisnip)
     await this.resolve(ultisnip)
     this.sychronize()

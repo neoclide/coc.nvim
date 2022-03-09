@@ -170,17 +170,6 @@ describe('SnippetSession', () => {
       line = await nvim.line
       expect(line).toBe('foo bara b')
     })
-
-    it('should not create nest snippet for snippet with python placeholder reference', async () => {
-      let buf = await nvim.buffer
-      await nvim.input('i')
-      let session = new SnippetSession(nvim, buf.id)
-      await session.start('${1:a} ${2:b}')
-      let res = await session.start('${1:foo} `!p snip.rv = t[1]`', false)
-      expect(res).toBe(true)
-      let p = session.placeholder
-      expect(p.index).toBe(1)
-    })
   })
 
   describe('sychronize()', () => {

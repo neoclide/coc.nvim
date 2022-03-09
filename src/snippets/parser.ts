@@ -872,9 +872,11 @@ export class TextmateSnippet extends Marker {
       }
       changed.set(idx, p.index)
     }
-    nested.pyBlocks.forEach(b => {
-      b.update(changed)
-    })
+    if (ultisnip) {
+      nested.pyBlocks.forEach(b => {
+        b.update(changed)
+      })
+    }
     let map: Map<number, number> = new Map()
     this.walk(m => {
       if (m instanceof Placeholder && m.index > index) {

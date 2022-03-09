@@ -122,6 +122,14 @@ function! coc#compat#matchaddgroups(winid, groups) abort
   endif
 endfunction
 
+function! coc#compat#del_var(name) abort
+  if exists('*nvim_del_var')
+    silent! call nvim_del_var(a:name)
+  else
+    execute 'unlet! g:'.a:name
+  endif
+endfunction
+
 " remove keymap for specific buffer
 function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if !bufloaded(a:bufnr)

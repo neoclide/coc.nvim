@@ -59,10 +59,6 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
   } else {
     pyCodes.push(`context = True`)
   }
-  let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`
-  let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`
-  let indent = line.match(/^\s*/)[0]
-  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`)
   if (regex) {
     let converted = convertRegex(regex)
     pyCodes.push(`pattern = re.compile("${escapeString(converted)}")`)
@@ -70,6 +66,10 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
   } else {
     pyCodes.push(`match = None`)
   }
+  let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`
+  let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`
+  let indent = line.match(/^\s*/)[0]
+  pyCodes.push(`snip = SnippetUtil("${escapeString(indent)}", ${start}, ${end}, context)`)
   return pyCodes
 }
 
