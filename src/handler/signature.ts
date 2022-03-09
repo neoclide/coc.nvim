@@ -90,21 +90,9 @@ export default class Signature {
   }
 
   public async triggerSignatureHelp(): Promise<boolean> {
-    let { doc, position, mode } = await this.handler.getCurrentState()
+    let { doc, position } = await this.handler.getCurrentState()
     if (!languages.hasProvider('signature', doc.textDocument)) return false
-    let offset = 0
-    let character = position.character
-    if (mode == 's') {
-      let placeholder = await this.nvim.getVar('coc_last_placeholder') as any
-      if (placeholder) {
-        let { start, end, bufnr } = placeholder
-        if (bufnr == doc.bufnr && start.line == end.line && start.line == position.line) {
-          position = Position.create(start.line, start.character)
-          offset = character - position.character
-        }
-      }
-    }
-    return await this._triggerSignatureHelp(doc, position, true, offset)
+    return await this._triggerSignatureHelp(doc, position, true, 0)
   }
 
   private async _triggerSignatureHelp(doc: Document, position: Position, invoke = true, offset = 0): Promise<boolean> {

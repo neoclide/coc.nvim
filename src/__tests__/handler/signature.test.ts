@@ -89,39 +89,6 @@ describe('signatureHelp', () => {
       let lines = await helper.getWinLines(win.id)
       expect(lines.join('\n')).toMatch(/description/)
     })
-
-    it('should consider coc_last_placeholder on select mode', async () => {
-      let pos: Position
-      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
-        provideSignatureHelp: (_doc, position) => {
-          pos = position
-          return {
-            signatures: [
-              SignatureInformation.create('foo(a, b)', 'my signature', ParameterInformation.create('a', 'description')),
-            ],
-            activeParameter: 1,
-            activeSignature: null
-          }
-        }
-      }, []))
-      let doc = await helper.createDocument()
-      let line = await nvim.call('line', ['.'])
-      await nvim.setLine('  fn(abc, def)')
-      await nvim.command('normal! 0fave')
-      await nvim.input('<C-g>')
-      let placeholder = {
-        bufnr: doc.bufnr,
-        start: Position.create(line - 1, 5),
-        end: Position.create(line - 1, 8)
-      }
-      await nvim.setVar('coc_last_placeholder', placeholder)
-      let m = await nvim.mode
-      expect(m.mode).toBe('s')
-      await signature.triggerSignatureHelp()
-      let win = await helper.getFloat()
-      expect(win).toBeDefined()
-      expect(pos).toEqual(Position.create(0, 5))
-    })
   })
 
   describe('events', () => {
