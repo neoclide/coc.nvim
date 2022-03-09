@@ -3,8 +3,8 @@ const fs = require('fs')
 const path = require('path')
 let revision = ''
 try {
-  let res = cp.execSync('git rev-parse HEAD', {encoding: 'utf8'})
-  revision = res.trim().slice(0, 10)
+  let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, {encoding: 'utf8'})
+  revision = res.replaceAll('"', '').replace(',', ' ')
 } catch (e) {
   // ignore
 }
