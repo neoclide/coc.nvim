@@ -1,8 +1,8 @@
 const cp = require('child_process')
 const fs = require('fs')
 const path = require('path')
-let revision = ''
-if (process.env.NODE_ENV === 'production') {
+let revision = 'master'
+if (process.env.NODE_ENV !== 'development') {
   try {
     let res = cp.execSync(`git log -1 --date=iso --pretty=format:'"%h","%ad"'`, {encoding: 'utf8'})
     revision = res.replaceAll('"', '').replace(',', ' ')
