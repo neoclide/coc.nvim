@@ -32,7 +32,7 @@ describe('snippet provider', () => {
     it('should insert ultisnips snippet', async () => {
       await nvim.setLine('foo')
       let edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "bar"`}')
-      await commandManager.executeCommand('editor.action.insertSnippet', edit, true)
+      await commandManager.executeCommand('editor.action.insertSnippet', edit, {})
       let line = await nvim.line
       expect(line).toBe('bar')
       edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "foo"`}')

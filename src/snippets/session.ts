@@ -6,7 +6,7 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { UltiSnippetOption } from '../types'
 import { equals } from '../util/object'
-import { comparePosition, positionInRange, rangeInRange } from '../util/position'
+import { comparePosition, emptyRange, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -34,17 +34,25 @@ export class SnippetSession {
   }
 
   public async start(snippetString: string, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
-    range = await this.getEditRange(range)
-    let position = range.start
     const { document } = this
     if (!document || !document.attached) return false
+    range = range ?? await this.getEditRange()
+    let position = range.start
     await this.forceSynchronize()
     if (positionInRange(position, Range.create(0, 0, document.lineCount + 1, 0)) !== 0) return false
     void events.fire('InsertSnippet', [])
     const currentLine = document.getline(position.line)
     const inserted = await this.normalizeInsertText(snippetString, currentLine, insertTextMode)
     let context: UltiSnippetContext
-    if (ultisnip) context = Object.assign({ range, line: currentLine }, ultisnip)
+    if (ultisnip) {
+      context = Object.assign({ range, line: currentLine }, ultisnip)
+      if (!emptyRange(range)) {
+        // same behavior as Ultisnips
+        await document.applyEdits([{ range, newText: '' }])
+        await this.forceSynchronize()
+        range.end = position
+      }
+    }
     const placeholder = this.getReplacePlaceholder(range)
     const edits: TextEdit[] = []
     if (placeholder) {
@@ -401,8 +409,7 @@ export class SnippetSession {
     await window.moveTo(pos)
   }
 
-  public async getEditRange(range?: Range): Promise<Range> {
-    if (range) return range
+  public async getEditRange(): Promise<Range> {
     let pos = await window.getCursorPosition()
     return Range.create(pos, pos)
   }
