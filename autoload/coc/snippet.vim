@@ -1,6 +1,7 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:map_next = 1
+let s:cmd_mapping = has('nvim') || has('patch-8.2.1978')
 
 function! coc#snippet#_select_mappings()
   if !get(g:, 'coc_selectmode_mapping', 1)
@@ -38,7 +39,6 @@ function! coc#snippet#enable()
     return
   endif
   let b:coc_snippet_active = 1
-  silent! unlet g:coc_selected_text
   call coc#snippet#_select_mappings()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
@@ -48,9 +48,10 @@ function! coc#snippet#enable()
   if s:map_next
     execute 'inoremap <buffer><nowait><silent>'.nextkey." <C-R>=coc#rpc#request('snippetNext', [])<cr>"
   endif
+  let pre = s:cmd_mapping ? '<Cmd>' : '<Esc>'
   execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#rpc#request('snippetPrev', [])<cr>"
-  execute 'snoremap <buffer><nowait><silent>'.prevkey." <Esc>:call coc#rpc#request('snippetPrev', [])<cr>"
-  execute 'snoremap <buffer><nowait><silent>'.nextkey." <Esc>:call coc#rpc#request('snippetNext', [])<cr>"
+  execute 'snoremap <buffer><nowait><silent>'.prevkey." ".pre.":call coc#rpc#request('snippetPrev', [])<cr>"
+  execute 'snoremap <buffer><nowait><silent>'.nextkey." ".pre.":call coc#rpc#request('snippetNext', [])<cr>"
 endfunction
 
 function! coc#snippet#disable()
