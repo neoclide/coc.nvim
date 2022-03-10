@@ -225,7 +225,8 @@ export class CocSnippet {
     disposable.dispose()
     if (token.isCancellationRequested) return undefined
     this.sychronize()
-    let after = this._placeholders.find(o => o.marker == marker).before
+    let p = this._placeholders.find(o => o.marker == marker)
+    let after = p ? p.before : before
     return { text: this._text, delta: getChangedPosition(cursor, TextEdit.replace(r, after)) }
   }
 
