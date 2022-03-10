@@ -984,6 +984,24 @@ export class TextmateSnippet extends Marker {
     return ret
   }
 
+  public getTextBefore(marker: Marker, parent: Placeholder): string {
+    let res = ''
+    const calc = (m: Marker): void => {
+      let p = m.parent
+      if (!p) return
+      let s = ''
+      for (let b of p.children) {
+        if (b === m) break
+        s = s + b.toString()
+      }
+      res = s + res
+      if (p == parent) return
+      calc(p)
+    }
+    calc(marker)
+    return res
+  }
+
   public enclosingPlaceholders(placeholder: Placeholder | Variable): Placeholder[] {
     let ret: Placeholder[] = []
     let { parent } = placeholder

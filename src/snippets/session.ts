@@ -269,9 +269,10 @@ export class SnippetSession {
   public sychronize(): void {
     this.cancel()
     this.timer = setTimeout(async () => {
+      if (events.pumvisible) return
       let { document } = this
       if (!document || !document.attached) return
-      if (document.dirty || events.pumvisible) return this.sychronize()
+      if (document.dirty) return this.sychronize()
       try {
         await this._synchronize()
       } catch (e) {

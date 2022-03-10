@@ -47,14 +47,34 @@ export class CocSnippet {
   }
 
   public getRanges(placeholder: CocSnippetPlaceholder): Range[] {
+    let marker = placeholder.marker
+    if (placeholder.value.length == 0) return []
     let placeholders = this._placeholders.filter(o => o.index == placeholder.index)
     let ranges = placeholders.map(o => o.range)
-    let parents = this.tmSnippet.enclosingPlaceholders(placeholder.marker)
+    let parents = this.tmSnippet.enclosingPlaceholders(marker)
+    let markers: Snippets.Marker[]
+    let p = marker.parent
+    if (marker instanceof Snippets.Placeholder) {
+      let index = marker.index
+      markers = this.tmSnippet.placeholders.filter(o => o.index == index && o.parent == p)
+    } else {
+      let name = marker.name
+      markers = this.tmSnippet.variables.filter(o => o.name == name && o.parent == p)
+    }
     parents.forEach(p => {
       let arr = this._placeholders.filter(o => o.index == p.index && o.marker !== p)
-      arr.forEach(placeholder => {
-        ranges.push(placeholder.range)
-      })
+      if (!arr.length) return
+      for (let m of markers) {
+        let before = this.tmSnippet.getTextBefore(m, p)
+        arr.forEach(item => {
+          if (item.transform) {
+            ranges.push(item.range)
+          } else {
+            let s = item.range.start
+            ranges.push(Range.create(getEnd(s, before), getEnd(s, before + m.toString())))
+          }
+        })
+      }
     })
     return ranges.filter(r => !emptyRange(r))
   }

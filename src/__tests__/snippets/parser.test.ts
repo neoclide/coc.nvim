@@ -777,6 +777,16 @@ describe('SnippetParser', () => {
     assert.deepEqual(snippet.enclosingPlaceholders(second), [first])
   })
 
+  test('TextmateSnippet#getTextBefore', () => {
+    let snippet = new SnippetParser().parse('This ${1:is ${2:nested}}$0', true)
+    expect(snippet.getTextBefore(snippet, undefined)).toBe('')
+    let [first, second] = snippet.placeholders
+    expect(snippet.getTextBefore(second, first)).toBe('is ')
+    snippet = new SnippetParser().parse('This ${1:foo ${2:is ${3:nested}}} $0', true)
+    let arr = snippet.placeholders
+    expect(snippet.getTextBefore(arr[2], arr[0])).toBe('foo is ')
+  })
+
   test('TextmateSnippet#offset', () => {
     let snippet = new SnippetParser().parse('te$1xt', true)
     assert.equal(snippet.offset(snippet.children[0]), 0)

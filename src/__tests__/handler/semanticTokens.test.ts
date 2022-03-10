@@ -445,7 +445,7 @@ describe('semanticTokens', () => {
         return []
       }))
       await nvim.command('normal! G')
-      await helper.wait(50)
+      await helper.wait(100)
       expect(r).toBeDefined()
       expect(r.end).toEqual({ line: 201, character: 0 })
     })

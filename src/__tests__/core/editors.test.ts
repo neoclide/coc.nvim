@@ -48,7 +48,7 @@ describe('editors', () => {
         resolve(e)
       }, null, disposables)
     })
-    await nvim.command('vs')
+    await nvim.command('sp')
     let editor = await promise
     let winid = await nvim.call('win_getid')
     expect(editor.winid).toBe(winid)
