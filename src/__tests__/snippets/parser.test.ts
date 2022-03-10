@@ -143,6 +143,11 @@ describe('SnippetParser', () => {
     expect(actual).toBe('t`a`\n$ {}')
   })
 
+  test('Parser, transform with empty placeholder', () => {
+    const actual = new SnippetParser(true).text('${1} ${1/^(.*)/$1aa/}')
+    expect(actual).toBe(' aa')
+  })
+
   test('Parser, isPlainText()', function() {
     const s = (input: string, res: boolean) => {
       assert.equal(SnippetParser.isPlainText(input), res)
@@ -663,7 +668,7 @@ describe('SnippetParser', () => {
 
     //${3/\\s:=(.*)/${1:+ :=}${1}/}
     assert.ok(children[3] instanceof Placeholder)
-    assert.equal(children[3].children.length, 0)
+    assert.equal(children[3].children.length, 1)
     assert.notEqual((<Placeholder>children[3]).transform, undefined)
     let transform = (<Placeholder>children[3]).transform
     assert.equal(transform.regexp, '/\\s:=(.*)/')

@@ -1121,12 +1121,21 @@ export class SnippetParser {
       return true
     })
 
+    const complexIndexes = complexPlaceholders.map(p => p.index)
     for (const placeholder of incompletePlaceholders) {
       // avoid transform and replace since no value exists.
       if (defaultValues.has(placeholder.index)) {
         let val = defaultValues.get(placeholder.index)
         let text = new Text(placeholder.transform ? placeholder.transform.resolve(val) : val)
         placeholder.setOnlyChild(text)
+      } else if (!complexIndexes.includes(placeholder.index)) {
+        if (placeholder.transform) {
+          let text = new Text(placeholder.transform.resolve(''))
+          placeholder.setOnlyChild(text)
+        } else {
+          placeholder.primary = true
+          defaultValues.set(placeholder.index, '')
+        }
       }
     }
     const resolveComplex = () => {
