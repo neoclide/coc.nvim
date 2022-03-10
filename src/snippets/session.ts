@@ -103,17 +103,15 @@ export class SnippetSession {
 
   public deactivate(): void {
     this.cancel()
-    if (this._isActive) {
-      this._isActive = false
-      this._snippet = null
-      this.current = null
-      this.textDocument = undefined
-      this.nvim.call('coc#snippet#disable', [], true)
-      this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
-      logger.debug(`session ${this.bufnr} cancelled`)
-    }
+    if (!this._isActive) return
+    this._isActive = false
+    this.current = null
+    this.textDocument = undefined
+    this.nvim.call('coc#snippet#disable', [], true)
+    this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
     this._onCancelEvent.fire(void 0)
     this._onCancelEvent.dispose()
+    logger.debug(`session ${this.bufnr} cancelled`)
   }
 
   public get isActive(): boolean {

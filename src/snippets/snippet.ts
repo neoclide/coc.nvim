@@ -13,6 +13,7 @@ export interface CocSnippetPlaceholder {
   marker: Snippets.Placeholder | Snippets.Variable
   value: string
   primary: boolean
+  transform: boolean
   // range in current buffer
   range: Range
   // snippet text before
@@ -60,7 +61,7 @@ export class CocSnippet {
 
   public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {
     let res = curr ? [curr] : []
-    let arr = this._placeholders.filter(o => o !== curr)
+    let arr = this._placeholders.filter(o => o !== curr && !o.transform)
     arr.sort((a, b) => {
       if (a.primary !== b.primary) return a.primary ? -1 : 1
       if (a.index == 0 || b.index == 0) return a.index == 0 ? 1 : -1
@@ -111,7 +112,7 @@ export class CocSnippet {
   public get firstPlaceholder(): CocSnippetPlaceholder | undefined {
     let index = 0
     for (let p of this._placeholders) {
-      if (p.index == 0) continue
+      if (p.index == 0 || p.transform) continue
       if (index == 0 || p.index < index) {
         index = p.index
       }
@@ -124,14 +125,14 @@ export class CocSnippet {
   }
 
   public getPlaceholder(index: number): CocSnippetPlaceholder {
-    let filtered = this._placeholders.filter(o => o.index == index)
+    let filtered = this._placeholders.filter(o => o.index == index && !o.transform)
     let find = filtered.find(o => o.primary) || filtered[0]
     return find ?? filtered[0]
   }
 
   public getPrevPlaceholder(index: number): CocSnippetPlaceholder | undefined {
     if (index <= 1) return undefined
-    let placeholders = this._placeholders.filter(o => o.index < index && o.index != 0)
+    let placeholders = this._placeholders.filter(o => o.index < index && o.index != 0 && !o.transform)
     let find: CocSnippetPlaceholder
     while (index > 1) {
       index = index - 1
@@ -145,7 +146,7 @@ export class CocSnippet {
   }
 
   public getNextPlaceholder(index: number): CocSnippetPlaceholder | undefined {
-    let placeholders = this._placeholders
+    let placeholders = this._placeholders.filter(o => !o.transform)
     let find: CocSnippetPlaceholder
     let indexes = placeholders.map(o => o.index)
     let max = Math.max.apply(null, indexes)
@@ -215,8 +216,6 @@ export class CocSnippet {
     let { placeholders, variables, maxIndexNumber } = snippet
     const variableIndexMap: Map<string, number> = new Map()
     let variableIndex = maxIndexNumber + 1
-    placeholders = placeholders.filter(p => !p.transform)
-    variables = variables.filter(v => !v.transform)
 
     this._placeholders = [...placeholders, ...variables].map(p => {
       const offset = snippet.offset(p)
@@ -244,6 +243,7 @@ export class CocSnippet {
         index,
         value,
         marker: p,
+        transform: !!p.transform,
         range: Range.create(start, getEnd(start, value)),
         before: document.getText(Range.create(Position.create(0, 0), position)),
         after: document.getText(Range.create(end, Position.create(document.lineCount, 0))),

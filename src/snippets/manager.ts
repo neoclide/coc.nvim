@@ -14,13 +14,9 @@ export class SnippetManager {
   private statusItem: StatusBarItem
 
   constructor() {
-    events.on(['TextChanged', 'TextChangedI'], bufnr => {
+    events.on(['TextChanged', 'TextChangedI', 'TextChangedP'], bufnr => {
       let session = this.getSession(bufnr as number)
       if (session) session.sychronize()
-    }, null, this.disposables)
-    events.on('TextChangedP', bufnr => {
-      let session = this.getSession(bufnr as number)
-      if (session) session.cancel()
     }, null, this.disposables)
     events.on('CompleteDone', () => {
       let session = this.getSession(workspace.bufnr)
