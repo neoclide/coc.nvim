@@ -1206,6 +1206,7 @@ export class SnippetParser {
       value = this._accept(TokenType.Dollar, true)
         || this._accept(TokenType.CurlyClose, true)
         || this._accept(TokenType.Backslash, true)
+        || (this.ultisnip && this._accept(TokenType.CurlyOpen, true))
         || (this.ultisnip && this._accept(TokenType.BackTick, true))
         || value
 

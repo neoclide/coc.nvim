@@ -138,6 +138,11 @@ describe('SnippetParser', () => {
     assertEscaped('$', '\\$')
   })
 
+  test('Parser, escaped ultisnips', () => {
+    const actual = new SnippetParser(true).text('t\\`a\\`\n\\$ \\{\\}')
+    expect(actual).toBe('t`a`\n$ {}')
+  })
+
   test('Parser, isPlainText()', function() {
     const s = (input: string, res: boolean) => {
       assert.equal(SnippetParser.isPlainText(input), res)

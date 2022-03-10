@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Position, Range } from 'vscode-languageserver-protocol'
+import { InsertTextMode, Position, Range } from 'vscode-languageserver-protocol'
 import { SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -27,6 +27,15 @@ describe('SnippetSession', () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
       let res = await session.start('bar$0', false, r)
       expect(res).toBe(false)
+    })
+
+    it('should insert escaped text', async () => {
+      await nvim.input('i')
+      let session = new SnippetSession(nvim, workspace.bufnr)
+      let res = await session.start('\\`a\\` \\$ \\{\\}', false, undefined, InsertTextMode.adjustIndentation, {})
+      expect(res).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('`a` $ {}')
     })
 
     it('should start with plain snippet', async () => {

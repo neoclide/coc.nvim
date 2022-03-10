@@ -11,7 +11,7 @@ import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
-import { Marker, Placeholder, SnippetParser } from './parser'
+import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
@@ -43,10 +43,6 @@ export class SnippetSession {
     void events.fire('InsertSnippet', [])
     const currentLine = document.getline(position.line)
     const inserted = await this.normalizeInsertText(snippetString, currentLine, insertTextMode)
-    if (!this.isActive && SnippetParser.isPlainText(snippetString)) {
-      await this.insertPlainText(inserted, range)
-      return false
-    }
     let context: UltiSnippetContext
     if (ultisnip) context = Object.assign({ range, line: currentLine }, ultisnip)
     const placeholder = this.getReplacePlaceholder(range)
@@ -82,7 +78,7 @@ export class SnippetSession {
       let placeholder = this.snippet.getPlaceholderByMarker(this.current)
       await this.selectPlaceholder(placeholder, true)
     }
-    return true
+    return this._isActive
   }
 
   /**
