@@ -178,10 +178,13 @@ export class SnippetSession {
 
   private highlights(placeholder: CocSnippetPlaceholder): void {
     let buf = this.nvim.createBuffer(this.bufnr)
+    this.nvim.pauseNotification()
     buf.clearNamespace(NAME_SPACE)
     let ranges = this.snippet.getRanges(placeholder)
-    if (!ranges.length) return
-    buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
+    if (ranges.length) {
+      buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
+    }
+    void this.nvim.resumeNotification(true, true)
   }
 
   private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
@@ -268,7 +271,7 @@ export class SnippetSession {
     this.timer = setTimeout(async () => {
       let { document } = this
       if (!document || !document.attached) return
-      if (document.dirty) return this.sychronize()
+      if (document.dirty || events.pumvisible) return this.sychronize()
       try {
         await this._synchronize()
       } catch (e) {
