@@ -898,6 +898,13 @@ Built-in configurations:~
 
 	Valid options: ["daily","weekly","never"]
 
+"coc.preferences.snippetHighlight":~
+
+	Use highlight group 'CocSnippetVisual' to highlight placeholders with
+	same index of current one.
+
+	default: `true`
+
 "coc.preferences.snippetStatusText":~
 
 	Text shown in 'statusline' to indicate snippet session is activate.
@@ -3036,6 +3043,7 @@ Others~
 *CocMenuSel* for current menu item in menu dialog, works on neovim only since
 vim doesn't support change highlight group of cursorline inside popup.
 *CocSelectedRange* for highlight ranges of outgoing calls.
+*CocSnippetVisual* for highlight snippet placeholders.
 
 Semantic highlights~
 							*coc-semantic-highlights*

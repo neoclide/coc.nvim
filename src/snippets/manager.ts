@@ -1,11 +1,10 @@
 import { Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { StatusBarItem } from '../model/status'
-import workspace from '../workspace'
+import { UltiSnippetOption } from '../types'
 import window from '../window'
-import * as Snippets from "./parser"
+import workspace from '../workspace'
 import { SnippetSession } from './session'
-import { SnippetVariableResolver } from './variableResolve'
 import { SnippetString } from './string'
 const logger = require('../util/logger')('snippets-manager')
 
@@ -15,33 +14,34 @@ export class SnippetManager {
   private statusItem: StatusBarItem
 
   constructor() {
-    workspace.onDidChangeTextDocument(async e => {
-      let session = this.getSession(e.bufnr)
-      if (session) {
-        let firstLine = e.originalLines[e.contentChanges[0].range.start.line] || ''
-        await session.synchronizeUpdatedPlaceholders(e.contentChanges[0], firstLine)
-      }
+    events.on(['TextChanged', 'TextChangedI', 'TextChangedP'], bufnr => {
+      let session = this.getSession(bufnr as number)
+      if (session) session.sychronize()
     }, null, this.disposables)
-
-    workspace.onDidCloseTextDocument(ev => {
-      let session = this.getSession(ev.bufnr)
+    events.on('CompleteDone', () => {
+      let session = this.getSession(workspace.bufnr)
+      if (session) session.sychronize()
+    }, null, this.disposables)
+    events.on('InsertCharPre', (_, bufnr) => {
+      let session = this.getSession(bufnr)
+      if (session) session.sychronize()
+    }, null, this.disposables)
+    events.on('BufUnload', bufnr => {
+      let session = this.getSession(bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
-
-    events.on('BufEnter', async bufnr => {
-      let session = this.getSession(bufnr)
+    window.onDidChangeActiveTextEditor(e => {
       if (!this.statusItem) return
-      if (session && session.isActive) {
+      let session = this.getSession(e.document.bufnr)
+      if (session) {
         this.statusItem.show()
       } else {
         this.statusItem.hide()
       }
     }, null, this.disposables)
-
-    events.on('InsertEnter', async () => {
-      let { session } = this
-      if (!session) return
-      await session.checkPosition()
+    events.on('InsertEnter', async bufnr => {
+      let session = this.getSession(bufnr)
+      if (session) await session.checkPosition()
     }, null, this.disposables)
   }
 
@@ -54,22 +54,27 @@ export class SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip = false): Promise<boolean> {
+  public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     let { bufnr } = workspace
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) return false
     let session = this.getSession(bufnr)
     if (!session) {
       session = new SnippetSession(workspace.nvim, bufnr)
       this.sessionMap.set(bufnr, session)
       session.onCancel(() => {
         this.sessionMap.delete(bufnr)
-        if (workspace.bufnr == bufnr) {
-          this.statusItem.hide()
-        }
+        this.statusItem.hide()
       })
     }
     let snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
     let isActive = await session.start(snippetStr, select, range, insertTextMode, ultisnip)
-    if (isActive) this.statusItem.show()
+    if (isActive) {
+      this.statusItem.show()
+    } else {
+      this.statusItem.hide()
+      this.sessionMap.delete(bufnr)
+    }
     return isActive
   }
 
@@ -108,35 +113,21 @@ export class SnippetManager {
   }
 
   public get session(): SnippetSession {
-    let session = this.getSession(workspace.bufnr)
-    return session && session.isActive ? session : null
-  }
-
-  public isActived(bufnr: number): boolean {
-    let session = this.getSession(bufnr)
-    return session && session.isActive ? true : false
-  }
-
-  public jumpable(): boolean {
-    let { session } = this
-    if (!session) return false
-    let placeholder = session.placeholder
-    if (placeholder && !placeholder.isFinalTabstop) {
-      return true
-    }
-    return false
+    return this.getSession(workspace.bufnr)
   }
 
   public getSession(bufnr: number): SnippetSession {
     return this.sessionMap.get(bufnr)
   }
 
-  public async resolveSnippet(body: string, ultisnip = false): Promise<Snippets.TextmateSnippet> {
-    let parser = new Snippets.SnippetParser(ultisnip)
-    const snippet = parser.parse(body, true)
-    const resolver = new SnippetVariableResolver()
-    await snippet.resolveVariables(resolver)
-    return snippet
+  public jumpable(): boolean {
+    let { session } = this
+    if (!session) return false
+    return session.placeholder != null && session.placeholder.index != 0
+  }
+
+  public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
+    return await SnippetSession.resolveSnippet(workspace.nvim, snippetString, ultisnip)
   }
 
   public dispose(): void {

@@ -4904,7 +4904,7 @@ declare module 'coc.nvim' {
      *
      * @param edit Contains snippet text and range to replace.
      */
-    export function executeCommand(command: 'editor.action.insertSnippet', edit: TextEdit, ultisnip?: boolean): Promise<boolean>
+    export function executeCommand(command: 'editor.action.insertSnippet', edit: TextEdit, ultisnip?: UltiSnippetOption): Promise<boolean>
 
     /**
      * Invoke specified code action.
@@ -8232,9 +8232,11 @@ declare module 'coc.nvim' {
     isActive: boolean
   }
 
-  export interface TextmateSnippet {
-    toString(): string
+  export interface UltiSnippetOption {
+    regex?: string
+    context?: string
   }
+
   /**
    * A snippet string is a template which allows to insert text
    * and to control the editor cursor when insertion happens.
@@ -8320,9 +8322,9 @@ declare module 'coc.nvim' {
      */
     export function getSession(bufnr: number): SnippetSession | undefined
     /**
-     * Parse snippet string to TextmateSnippet.
+     * Resolve snippet string to text.
      */
-    export function resolveSnippet(body: string, ultisnip?: boolean): Promise<TextmateSnippet>
+    export function resolveSnippet(body: string, ultisnip?: UltiSnippetOption): Promise<string>
     /**
      * Insert snippet at current buffer.
      *

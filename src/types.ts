@@ -244,6 +244,11 @@ export interface Autocmd {
   callback: Function
 }
 
+export interface UltiSnippetOption {
+  regex?: string
+  context?: string
+}
+
 export interface IWorkspace {
   readonly nvim: Neovim
   readonly cwd: string
@@ -582,6 +587,7 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   // used for preview
   documentation?: Documentation[]
   detailShown?: number
+  resolved?: boolean
   // saved line for apply TextEdit
   line?: string
 }

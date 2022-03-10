@@ -1,16 +1,47 @@
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import window from '../window'
 import { Variable, VariableResolver } from "./parser"
+import WorkspaceFolderController from '../core/workspaceFolder'
+import { v4 as uuid } from 'uuid'
+import { URI } from 'vscode-uri'
 const logger = require('../util/logger')('snippets-variable')
 
 function padZero(n: number): string {
   return n < 10 ? '0' + n : n.toString()
 }
 
+export function parseComments(comments: string): { start?: string, end?: string, single?: string } {
+  let start: string
+  let end: string
+  let single: string
+  let parts = comments.split(',')
+  for (let s of parts) {
+    if (start && end && single) break
+    if (!s.includes(':')) continue
+    let [flag, str] = s.split(':')
+    if (flag.includes('s')) {
+      start = str
+    } else if (flag.includes('e')) {
+      end = str
+    } else if (!single && flag == '') {
+      single = str
+    }
+  }
+  return { start, end, single }
+}
+
+/*
+ * Get single line comment text
+ */
+export function parseCommentstring(commentstring: string): string | undefined {
+  if (commentstring.endsWith('%s')) return commentstring.slice(0, -2).trim()
+  return undefined
+}
+
 export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
 
-  constructor() {
+  constructor(private nvim: Neovim, private workspaceFolder: WorkspaceFolderController) {
     const currentDate = new Date()
     const fullyear = currentDate.getFullYear().toString()
     Object.assign(this._variableToValue, {
@@ -35,45 +66,81 @@ export class SnippetVariableResolver implements VariableResolver {
       TM_CURRENT_LINE: null,
       TM_CURRENT_WORD: null,
       TM_SELECTED_TEXT: null,
-      CLIPBOARD: null
+      VISUAL: null,
+      CLIPBOARD: null,
+      RELATIVE_FILEPATH: null,
+      RANDOM: null,
+      RANDOM_HEX: null,
+      UUID: null,
+      BLOCK_COMMENT_START: null,
+      BLOCK_COMMENT_END: null,
+      LINE_COMMENT: null,
+      WORKSPACE_NAME: null,
+      WORKSPACE_FOLDER: null
     })
   }
 
   private async resolveValue(name: string): Promise<string | undefined> {
-    let { nvim } = window
+    let { nvim } = this
     if (['TM_FILENAME', 'TM_FILENAME_BASE', 'TM_DIRECTORY', 'TM_FILEPATH'].includes(name)) {
       let filepath = await nvim.eval('expand("%:p")') as string
-      if (name == 'TM_FILENAME') return path.basename(filepath)
-      if (name == 'TM_FILENAME_BASE') return path.basename(filepath, path.extname(filepath))
-      if (name == 'TM_DIRECTORY') return path.dirname(filepath)
-      if (name == 'TM_FILEPATH') return filepath
+      if (name === 'TM_FILENAME') return path.basename(filepath)
+      if (name === 'TM_FILENAME_BASE') return path.basename(filepath, path.extname(filepath))
+      if (name === 'TM_DIRECTORY') return path.dirname(filepath)
+      if (name === 'TM_FILEPATH') return filepath
     }
-    if (name == 'YANK') {
-      let yank = await nvim.call('getreg', ['""']) as string
-      return yank
+    if (name === 'YANK') {
+      return await nvim.call('getreg', ['""']) as string
     }
-    if (name == 'TM_LINE_INDEX') {
+    if (name === 'TM_LINE_INDEX') {
       let lnum = await nvim.call('line', ['.']) as number
       return (lnum - 1).toString()
     }
-    if (name == 'TM_LINE_NUMBER') {
+    if (name === 'TM_LINE_NUMBER') {
       let lnum = await nvim.call('line', ['.']) as number
       return lnum.toString()
     }
-    if (name == 'TM_CURRENT_LINE') {
-      let line = await nvim.call('getline', ['.']) as string
-      return line
+    if (name === 'TM_CURRENT_LINE') {
+      return await nvim.call('getline', ['.']) as string
     }
-    if (name == 'TM_CURRENT_WORD') {
-      let word = await nvim.eval(`expand('<cword>')`) as string
-      return word
+    if (name === 'TM_CURRENT_WORD') {
+      return await nvim.eval(`expand('<cword>')`) as string
     }
-    if (name == 'TM_SELECTED_TEXT') {
-      let text = await nvim.eval(`get(g:,'coc_selected_text', '')`) as string
-      return text
+    if (name === 'TM_SELECTED_TEXT' || name == 'VISUAL') {
+      return await nvim.eval(`get(g:,'coc_selected_text', v:null)`) as string
     }
-    if (name == 'CLIPBOARD') {
+    if (name === 'CLIPBOARD') {
       return await nvim.eval('@*') as string
+    }
+    if (name === 'RANDOM') {
+      return Math.random().toString().slice(-6)
+    }
+    if (name === 'RANDOM_HEX') {
+      return Math.random().toString(16).slice(-6)
+    }
+    if (name === 'UUID') {
+      return uuid()
+    }
+    if (['RELATIVE_FILEPATH', 'WORKSPACE_NAME', 'WORKSPACE_FOLDER'].includes(name)) {
+      let filepath = await nvim.eval('expand("%:p")') as string
+      let folder = this.workspaceFolder.getWorkspaceFolder(URI.file(filepath))
+      if (name === 'RELATIVE_FILEPATH') return this.workspaceFolder.getRelativePath(filepath)
+      if (name === 'WORKSPACE_NAME') return folder.name
+      if (name === 'WORKSPACE_FOLDER') return URI.parse(folder.uri).fsPath
+    }
+    if (name === 'LINE_COMMENT') {
+      let commentstring = await nvim.eval('&commentstring') as string
+      let s = parseCommentstring(commentstring)
+      if (s) return s
+      let comments = await nvim.eval('&comments') as string
+      let { single } = parseComments(comments)
+      return single ?? ''
+    }
+    if (['BLOCK_COMMENT_START', 'BLOCK_COMMENT_END'].includes(name)) {
+      let comments = await nvim.eval('&comments') as string
+      let { start, end } = parseComments(comments)
+      if (name === 'BLOCK_COMMENT_START') return start ?? ''
+      if (name === 'BLOCK_COMMENT_END') return end ?? ''
     }
   }
 
@@ -81,16 +148,16 @@ export class SnippetVariableResolver implements VariableResolver {
     const name = variable.name
     let resolved = this._variableToValue[name]
     if (resolved != null) return resolved.toString()
-    // resolve value from vim
-    let value = await this.resolveValue(name)
-    if (value) return value
-    // use default value when resolved is undefined
-    if (variable.children && variable.children.length) {
-      return variable.toString()
+    // resolve known value
+    if (this._variableToValue.hasOwnProperty(name)) {
+      let value = await this.resolveValue(name)
+      if (!value && variable.children.length) {
+        return variable.toString()
+      }
+      return value == null ? '' : value.toString()
     }
-    if (!this._variableToValue.hasOwnProperty(name)) {
-      return name
-    }
-    return ''
+    if (variable.children.length) return variable.toString()
+    // VSCode behavior
+    return name
   }
 }

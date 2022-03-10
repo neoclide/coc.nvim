@@ -116,7 +116,7 @@ function! coc#compat#buf_del_var(bufnr, name) abort
   if exists('*nvim_buf_del_var')
     silent! call nvim_buf_del_var(a:bufnr, a:name)
   else
-    if bufnr == bufnr('%')
+    if a:bufnr == bufnr('%')
       execute 'unlet! b:'.a:name
     elseif exists('*win_execute')
       let winid = coc#compat#buf_win_id(a:bufnr)
@@ -150,6 +150,14 @@ function! coc#compat#matchaddgroups(winid, groups) abort
   endif
 endfunction
 
+function! coc#compat#del_var(name) abort
+  if exists('*nvim_del_var')
+    silent! call nvim_del_var(a:name)
+  else
+    execute 'unlet! '.a:name
+  endif
+endfunction
+
 " remove keymap for specific buffer
 function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if !bufloaded(a:bufnr)
@@ -170,7 +178,7 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
   if exists('*win_execute')
     let winid = coc#compat#buf_win_id(a:bufnr)
     if winid != -1
-      call win_execute(winid, 'silent! '.a:mode.'unmap <buffer> '.a:lhs)
+      call win_execute(winid, a:mode.'unmap <buffer> '.a:lhs, 'silent!')
     endif
   endif
 endfunction

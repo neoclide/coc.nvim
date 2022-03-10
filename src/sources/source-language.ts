@@ -4,9 +4,9 @@ import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
-import { getChangedFromEdits, rangeOverlap } from '../util/position'
+import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { getChangedFromEdits, getChangedPosition, rangeOverlap } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
-import { getCharCodes, fuzzyMatch } from '../util/fuzzy'
 import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-language')
@@ -28,7 +28,6 @@ export default class LanguageSource implements ISource {
   public sourceType: SourceType.Service
   private _enabled = true
   private filetype: string
-  private resolvedIndexes: Set<number> = new Set()
   private completeItems: CompletionItem[] = []
   constructor(
     public readonly name: string,
@@ -62,7 +61,6 @@ export default class LanguageSource implements ISource {
     let { provider, name } = this
     let { triggerCharacter, bufnr } = opt
     this.filetype = opt.filetype
-    this.resolvedIndexes.clear()
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
     let position = this.getPosition(opt)
@@ -106,30 +104,16 @@ export default class LanguageSource implements ISource {
 
   public async onCompleteResolve(item: ExtendedCompleteItem, token: CancellationToken): Promise<void> {
     let { index } = item
-    let resolving = this.completeItems[index]
-    if (!resolving || this.resolvedIndexes.has(index)) return
+    let completeItem = this.completeItems[index]
+    if (!completeItem || item.resolved) return
     let hasResolve = typeof this.provider.resolveCompletionItem === 'function'
     if (hasResolve) {
-      this.resolvedIndexes.add(index)
-      let disposable = token.onCancellationRequested(() => {
-        this.resolvedIndexes.delete(index)
-      })
-      try {
-        let resolved = await Promise.resolve(this.provider.resolveCompletionItem(Object.assign({}, resolving), token))
-        disposable.dispose()
-        if (token.isCancellationRequested) return
-        if (!resolved) {
-          this.resolvedIndexes.delete(index)
-        } else if (resolved !== resolving) {
-          Object.assign(resolving, resolved)
-        }
-      } catch (e) {
-        this.resolvedIndexes.delete(index)
-        logger.error(`Error on complete resolve: ${e.message}`, e.stack)
-      }
+      let resolved = await Promise.resolve(this.provider.resolveCompletionItem(completeItem, token))
+      if (token.isCancellationRequested || !resolved) return
+      Object.assign(completeItem, resolved)
     }
     if (typeof item.documentation === 'undefined') {
-      let { documentation, detail } = resolving
+      let { documentation, detail } = completeItem
       if (!documentation && !detail) return
       let docs = []
       if (detail && !item.detailShown && detail != item.word) {
@@ -149,6 +133,7 @@ export default class LanguageSource implements ISource {
           })
         }
       }
+      item.resolved = true
       item.documentation = docs
     }
   }
@@ -156,14 +141,7 @@ export default class LanguageSource implements ISource {
   public async onCompleteDone(vimItem: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     let item = this.completeItems[vimItem.index]
     if (!item) return
-    let line = opt.linenr - 1
-    if (item.insertText && !item.textEdit) {
-      item.textEdit = {
-        range: Range.create(line, characterIndex(opt.line, opt.col), line, characterIndex(opt.line, opt.colnr - 1)),
-        newText: item.insertText
-      }
-    }
-    if (vimItem.line) Object.assign(opt, { line: vimItem.line })
+    if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
     try {
       let isSnippet = await this.applyTextEdit(item, vimItem.word, opt)
       let { additionalTextEdits } = item
@@ -189,49 +167,47 @@ export default class LanguageSource implements ISource {
   }
 
   private async applyTextEdit(item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
-    let { nvim } = workspace
-    let { textEdit } = item
-    if (!textEdit) return false
-    let { line, bufnr, linenr, colnr } = option
+    let { line, bufnr, linenr, colnr, col } = option
     let doc = workspace.getDocument(bufnr)
-    if (!doc) return false
+    let pos = await window.getCursorPosition()
+    if (pos.line != linenr - 1 || !doc.attached) return
+    let { textEdit } = item
+    let currline = doc.getline(linenr - 1)
+    // before CompleteDone
+    let beginIdx = characterIndex(line, colnr - 1)
+    if (!textEdit && item.insertText) {
+      textEdit = {
+        range: Range.create(pos.line, characterIndex(line, col), pos.line, beginIdx),
+        newText: item.insertText
+      }
+    }
+    if (!textEdit) return false
     let newText = textEdit.newText
     let range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
-    let characterIndex = byteSlice(line, 0, colnr - 1).length
+    // adjust range by indent
+    let n = fixIndent(line, currline, range)
+    if (n) beginIdx += n
     // attampt to fix range from textEdit, range should include trigger position
-    if (range.end.character < characterIndex) {
-      range.end.character = characterIndex
-    }
+    if (range.end.character < beginIdx) range.end.character = beginIdx
+    // fix range by count cursor moved to replace insernt word on complete done.
+    if (pos.character > beginIdx) range.end.character += pos.character - beginIdx
+
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    // replace inserted word
-    let start = line.slice(0, range.start.character)
-    let end = line.slice(range.end.character)
     if (isSnippet && this.completeConfig.snippetsSupport === false) {
       // could be wrong, but maybe best we can do.
       isSnippet = false
       newText = word
     }
     if (isSnippet) {
-      let currline = doc.getline(linenr - 1)
-      let endCharacter = currline.length - end.length
-      let r = Range.create(linenr - 1, range.start.character, linenr - 1, endCharacter)
+      let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip
       // can't select, since additionalTextEdits would break selection
-      return await snippetManager.insertSnippet(newText, false, r, item.insertTextMode, item.data?.ultisnip === true)
+      return await snippetManager.insertSnippet(newText, false, range, item.insertTextMode, opts ? opts : undefined)
     }
-    let newLines = `${start}${newText}${end}`.split(/\r?\n/)
-    if (newLines.length == 1) {
-      await nvim.call('coc#util#setline', [linenr, newLines[0]])
-      await window.moveTo(Position.create(linenr - 1, (start + newText).length))
-    } else {
-      let buffer = nvim.createBuffer(bufnr)
-      await buffer.setLines(newLines, {
-        start: linenr - 1,
-        end: linenr,
-        strictIndexing: false
-      })
-      let line = linenr - 1 + newLines.length - 1
-      let character = newLines[newLines.length - 1].length - end.length
-      await window.moveTo({ line, character })
+    let edit = { range, newText }
+    await doc.applyEdits([edit])
+    let changed = getChangedPosition(pos, edit)
+    if (changed.line != 0 || changed.character != 0) {
+      await window.moveTo({ line: pos.line + changed.line, character: pos.character + changed.character })
     }
     return false
   }
@@ -305,7 +281,7 @@ export default class LanguageSource implements ISource {
       obj.info = ''
     }
     if (obj.word == '') obj.empty = 1
-    if (item.textEdit) obj.line = opt.line
+    obj.line = opt.line
     if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
       obj.abbr = obj.abbr + '/'
     }
@@ -405,4 +381,14 @@ export function getValidWord(text: string, invalidChars: string[], start = 2): s
     }
   }
   return text
+}
+
+export function fixIndent(line: string, currline: string, range: Range): number {
+  let oldIndent = line.match(/^\s*/)[0]
+  let newIndent = currline.match(/^\s*/)[0]
+  if (oldIndent == newIndent) return
+  let d = newIndent.length - oldIndent.length
+  range.start.character += d
+  range.end.character += d
+  return d
 }

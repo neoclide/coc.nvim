@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-jsonrpc'
 import { CompletionItem, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
+import events from '../../events'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
@@ -9,7 +10,6 @@ import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -130,7 +130,6 @@ describe('completion resumeCompletion', () => {
 
   it('should stop if no filtered items', async () => {
     await nvim.setLine('foo ')
-    await helper.wait(50)
     await nvim.input('Af')
     await helper.waitPopup()
     expect(completion.isActivated).toBe(true)
@@ -482,9 +481,7 @@ describe('completion TextChangedP', () => {
     await nvim.input('i?')
     await helper.waitPopup()
     await nvim.eval('feedkeys("\\<C-n>", "in")')
-    await helper.wait(200)
-    let line = await nvim.line
-    expect(line).toBe('?foo')
+    await helper.waitFor('getline', ['.'], '?foo')
   })
 
   it('should fix cursor position with snippet on additionalTextEdits', async () => {
@@ -503,16 +500,7 @@ describe('completion TextChangedP', () => {
     let res = await helper.getItems()
     let idx = res.findIndex(o => o.menu == '[edit]')
     await helper.selectCompleteItem(idx)
-    let line: string
-    for (let i = 0; i < 40; i++) {
-      await helper.wait(50)
-      line = await nvim.line
-      if (line == 'bar if()') break
-    }
-    expect(line).toBe('bar if()')
-    let [, lnum, col] = await nvim.call('getcurpos')
-    expect(lnum).toBe(1)
-    expect(col).toBe(8)
+    await helper.waitFor('col', ['.'], 8)
   })
 
   it('should fix cursor position with plain text snippet on additionalTextEdits', async () => {
@@ -553,10 +541,8 @@ describe('completion TextChangedP', () => {
     await nvim.input('if')
     await helper.waitPopup()
     await helper.selectCompleteItem(0)
-    await helper.wait(200)
-    let line = await nvim.line
+    await helper.waitFor('getline', ['.'], 'bar func(do)')
     let [, lnum, col] = await nvim.call('getcurpos')
-    expect(line).toBe('bar func(do)')
     expect(lnum).toBe(1)
     expect(col).toBe(12)
   })
@@ -582,7 +568,7 @@ describe('completion TextChangedP', () => {
     await helper.selectCompleteItem(idx)
     await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
     await helper.wait(50)
-    expect(snippetManager.isActived(doc.bufnr)).toBe(true)
+    expect(snippetManager.session).toBeDefined()
     let [, lnum, col] = await nvim.call('getcurpos')
     expect(lnum).toBe(1)
     expect(col).toBe(3)
@@ -839,9 +825,8 @@ describe('completion TextChangedI', () => {
     helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
     helper.updateConfiguration('suggest.noselect', false)
     let source: ISource = {
-      priority: 0,
       enable: true,
-      name: 'slow',
+      name: 'commit',
       sourceType: SourceType.Service,
       triggerCharacters: ['.'],
       doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
@@ -856,20 +841,6 @@ describe('completion TextChangedI', () => {
     await nvim.input('if')
     await helper.waitPopup()
     await nvim.input('.')
-    await helper.wait(100)
-    let line = await nvim.line
-    expect(line).toBe('foo.')
-  })
-
-  it('should cancel completion with same pretext', async () => {
-    await nvim.setLine('foo')
-    await nvim.input('of')
-    await helper.waitPopup()
-    await nvim.input('<space><bs>')
-    await helper.wait(100)
-    let line = await nvim.line
-    let visible = await nvim.call('pumvisible')
-    expect(line).toBe('f')
-    expect(visible).toBe(0)
+    await helper.waitFor('getline', ['.'], 'foo.')
   })
 })

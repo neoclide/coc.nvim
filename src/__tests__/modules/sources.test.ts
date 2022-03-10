@@ -193,10 +193,6 @@ describe('sources#getTriggerSources()', () => {
     await nvim.input('Af')
     await helper.wait(100)
     let visible = await nvim.call('pumvisible')
-    if (visible) {
-      let items = await helper.getItems()
-      console.log(items)
-    }
     expect(visible).toBe(0)
   })
 })

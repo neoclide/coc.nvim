@@ -6,6 +6,7 @@ import diagnosticManager from './diagnostic/manager'
 import Mru from './model/mru'
 import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
+import { UltiSnippetOption } from './types'
 import { wait } from './util'
 import window from './window'
 import workspace from './workspace'
@@ -59,9 +60,10 @@ export class CommandManager implements Disposable {
     }, true)
     this.register({
       id: 'editor.action.insertSnippet',
-      execute: async (edit: TextEdit, ultisnip = false) => {
+      execute: async (edit: TextEdit, ultisnip?: UltiSnippetOption) => {
         await nvim.call('coc#_cancel', [])
-        return await snipetsManager.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, ultisnip)
+        const opts = ultisnip === true ? {} : ultisnip
+        return await snipetsManager.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : undefined)
       }
     }, true)
     this.register({
