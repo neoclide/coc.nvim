@@ -325,7 +325,7 @@ export class SnippetSession {
       }
     }
     if (!placeholder && inserted.endsWith(text)) {
-      let pos = getEnd(range.start, inserted.slice(0, text.length - inserted.length))
+      let pos = getEnd(range.start, inserted.slice(0, - text.length))
       this.snippet.resetStartPosition(pos)
       logger.info('Content change before snippet, reset snippet position')
       return
