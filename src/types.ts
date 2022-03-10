@@ -587,6 +587,7 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   // used for preview
   documentation?: Documentation[]
   detailShown?: number
+  resolved?: boolean
   // saved line for apply TextEdit
   line?: string
 }
