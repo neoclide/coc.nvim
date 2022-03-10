@@ -732,7 +732,9 @@ export class TextmateSnippet extends Marker {
       }
       // update normal python block with related.
       let filtered = pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
-      if (filtered.length) await Promise.all(filtered.map(block => block.resolve(nvim)))
+      for (let block of filtered) {
+        await block.resolve(nvim)
+      }
     }
   }
 
@@ -761,7 +763,9 @@ export class TextmateSnippet extends Marker {
     }
     // update normal py codes.
     let filtered = this.pyBlocks.filter(o => o.index === undefined && o.related.length > 0)
-    if (filtered.length) await Promise.all(filtered.map(block => block.resolve(nvim)))
+    for (let block of filtered) {
+      await block.resolve(nvim)
+    }
   }
 
   private getDependentPyIndexBlocks(index: number): CodeBlock[] {
