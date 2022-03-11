@@ -2,6 +2,7 @@ import { Disposable, InsertTextMode, Range } from 'vscode-languageserver-protoco
 import events from '../events'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
+import { deepClone } from '../util/object'
 import { emptyRange, rangeInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
@@ -84,7 +85,7 @@ export class SnippetManager {
     let session = this.getSession(bufnr)
     if (session) session.cancel()
     if (ultisnip != null) {
-      context = Object.assign({ range, line: currentLine }, ultisnip)
+      context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
       if (!emptyRange(range)) {
         // same behavior as Ultisnips
         await doc.applyEdits([{ range, newText: '' }])
