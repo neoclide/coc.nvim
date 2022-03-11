@@ -449,7 +449,6 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public abandonResult(): void {
     this.previousResults = undefined
-    this._highlights = undefined
   }
 
   public cancel(rangeOnly = false): void {
@@ -471,6 +470,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   public dispose(): void {
     this.cancel()
     this.abandonResult()
+    this._highlights = undefined
     this._onDidRefresh.dispose()
     this.doc = undefined
     this.regions = undefined
