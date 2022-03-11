@@ -38,21 +38,19 @@ export class SnippetSession {
     if (!document || !document.attached) return false
     range = range ?? await this.getEditRange()
     let position = range.start
-    await this.forceSynchronize()
     if (positionInRange(position, Range.create(0, 0, document.lineCount + 1, 0)) !== 0) return false
-    void events.fire('InsertSnippet', [])
-    const currentLine = document.getline(position.line)
-    const inserted = await this.normalizeInsertText(snippetString, currentLine, insertTextMode)
     let context: UltiSnippetContext
+    const currentLine = document.getline(position.line)
     if (ultisnip) {
       context = Object.assign({ range, line: currentLine }, ultisnip)
       if (!emptyRange(range)) {
         // same behavior as Ultisnips
         await document.applyEdits([{ range, newText: '' }])
-        await this.forceSynchronize()
         range.end = position
       }
     }
+    await this.forceSynchronize()
+    const inserted = await this.normalizeInsertText(snippetString, currentLine, insertTextMode)
     const placeholder = this.getReplacePlaceholder(range)
     const edits: TextEdit[] = []
     if (placeholder) {
@@ -114,7 +112,6 @@ export class SnippetSession {
     this.nvim.call('coc#snippet#disable', [], true)
     this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
     this._onCancelEvent.fire(void 0)
-    this._onCancelEvent.dispose()
     logger.debug(`session ${this.bufnr} cancelled`)
   }
 
@@ -325,9 +322,9 @@ export class SnippetSession {
       if (comparePosition(cursor, p.range.start) < 0) continue
       newText = this.snippet.getNewText(p, inserted)
       // p.range.start + newText
-      if (typeof newText === 'string' && checkCursor(p.range.start, cursor, newText)) {
+      if (newText != null) {
         placeholder = p
-        break
+        if (checkCursor(p.range.start, cursor, newText)) break
       }
     }
     if (!placeholder && inserted.endsWith(text)) {
@@ -417,11 +414,11 @@ export class SnippetSession {
   }
 
   public async normalizeInsertText(snippetString: string, currentLine: string, insertTextMode: InsertTextMode): Promise<string> {
-    const currentIndent = currentLine.match(/^\s*/)[0]
     let inserted = ''
     if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
       inserted = snippetString
     } else {
+      const currentIndent = currentLine.match(/^\s*/)[0]
       const formatOptions = await workspace.getFormatOptions(this.document.uri)
       inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     }
