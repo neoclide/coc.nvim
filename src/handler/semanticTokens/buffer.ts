@@ -277,7 +277,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (this.shouldRangeHighlight) {
       let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
       await this.doRangeHighlight(rangeTokenSource.token)
-      if (this.rangeProviderOnly) return
+      if (token.isCancellationRequested || this.rangeProviderOnly) return
     }
     if (token.isCancellationRequested) return
     const { doc } = this
