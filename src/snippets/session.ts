@@ -46,6 +46,7 @@ export class SnippetSession {
       if (!emptyRange(range)) {
         // same behavior as Ultisnips
         await document.applyEdits([{ range, newText: '' }])
+        await window.moveTo(range.start)
         range.end = position
       }
     }
@@ -108,9 +109,8 @@ export class SnippetSession {
     if (!this._isActive) return
     this._isActive = false
     this.current = null
-    this.textDocument = undefined
     this.nvim.call('coc#snippet#disable', [], true)
-    this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
+    if (this.enableHighlight) this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
     this._onCancelEvent.fire(void 0)
     logger.debug(`session ${this.bufnr} cancelled`)
   }
@@ -286,7 +286,7 @@ export class SnippetSession {
 
   private async _synchronize(): Promise<void> {
     let { document, textDocument } = this
-    if (!document || !document.attached || !textDocument) return
+    if (!document || !document.attached || !this._isActive) return
     let start = Date.now()
     let d = document.textDocument
     if (d.version == textDocument.version || equals(textDocument.lines, d.lines)) {
@@ -318,13 +318,14 @@ export class SnippetSession {
     let inserted = d.getText(Range.create(range.start, end))
     let newText: string | undefined
     let placeholder: CocSnippetPlaceholder
-    for (let p of this.snippet.getSortedPlaceholders(this.placeholder)) {
+    let curr = this.placeholder
+    for (let p of this.snippet.getSortedPlaceholders(curr)) {
       if (comparePosition(cursor, p.range.start) < 0) continue
       newText = this.snippet.getNewText(p, inserted)
       // p.range.start + newText
-      if (newText != null) {
+      if (newText != null && checkCursor(p.range.start, cursor, newText)) {
         placeholder = p
-        if (checkCursor(p.range.start, cursor, newText)) break
+        break
       }
     }
     if (!placeholder && inserted.endsWith(text)) {
