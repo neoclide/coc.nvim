@@ -68,6 +68,7 @@ export class SnippetManager {
     let snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
     let isActive = await session.start(snippetStr, select, range, insertTextMode, ultisnip)
     if (isActive) {
+      this.sessionMap.set(bufnr, session)
       this.statusItem.show()
     } else {
       this.statusItem.hide()
