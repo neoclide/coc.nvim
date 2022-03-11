@@ -903,7 +903,7 @@ Built-in configurations:~
 	Use highlight group 'CocSnippetVisual' to highlight placeholders with
 	same index of current one.
 
-	default: `true`
+	default: `false`
 
 "coc.preferences.snippetStatusText":~
 
