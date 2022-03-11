@@ -43,6 +43,28 @@ describe('snippet provider', () => {
   })
 
   describe('insertSnippet()', () => {
+    it('should throw when buffer not attached', async () => {
+      await nvim.command(`vnew +setl\\ buftype=nofile`)
+      let err
+      try {
+        await snippetManager.insertSnippet('foo')
+      } catch (e) {
+        err = e
+      }
+      expect(err).toBeDefined()
+    })
+
+    it('should throw with invalid range', async () => {
+      await nvim.command(`vnew +setl\\ buftype=nofile`)
+      let err
+      try {
+        await snippetManager.insertSnippet('foo', false, Range.create(3, 0, 3, 0))
+      } catch (e) {
+        err = e
+      }
+      expect(err).toBeDefined()
+    })
+
     it('should not active when insert plain snippet', async () => {
       await snippetManager.insertSnippet('foo')
       let line = await nvim.line

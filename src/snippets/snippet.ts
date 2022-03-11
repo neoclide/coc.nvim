@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, FormattingOptions, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../model/textdocument'
 import { emptyRange, getChangedPosition, positionInRange, rangeInRange } from '../util/position'
@@ -216,13 +216,13 @@ export class CocSnippet {
     let start = this.position
     let { marker, before } = placeholder
     let cloned = this.tmSnippet.clone()
-    let disposable = token.onCancellationRequested(() => {
+    token.onCancellationRequested(() => {
       this.tmSnippet = cloned
+      this.sychronize()
     })
     // range before placeholder
     let r = Range.create(start, getEnd(start, before))
     await this.tmSnippet.update(this.nvim, marker, newText)
-    disposable.dispose()
     if (token.isCancellationRequested) return undefined
     this.sychronize()
     let p = this._placeholders.find(o => o.marker == marker)
@@ -431,7 +431,7 @@ export function getParts(text: string, range: Range, r: Range): [string, string]
   return [before.join('\n'), after.join('\n')]
 }
 
-export function normalizeSnippetString(snippet: string, indent: string, opts: FormattingOptions): string {
+export function normalizeSnippetString(snippet: string, indent: string, opts: { tabSize: number, insertSpaces: boolean }): string {
   let lines = snippet.split(/\r?\n/)
   let ind = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
   let tabSize = opts.tabSize || 2

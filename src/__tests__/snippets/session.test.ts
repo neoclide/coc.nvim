@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import { InsertTextMode, Position, Range } from 'vscode-languageserver-protocol'
+import { Position, Range } from 'vscode-languageserver-protocol'
+import { UltiSnippetContext } from '../../snippets/eval'
 import { SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -20,28 +21,34 @@ afterEach(async () => {
 })
 
 describe('SnippetSession', () => {
+  const defaultRange = Range.create(0, 0, 0, 0)
+  const defaultContext = {
+    line: '',
+    range: defaultRange
+  }
+
+  async function start(inserted: string, range = defaultRange, select = true, context?: UltiSnippetContext): Promise<boolean> {
+    await nvim.input('i')
+    let session = new SnippetSession(nvim, workspace.bufnr)
+    return await session.start(inserted, range, select, context)
+  }
+
+  async function getCursorRange(): Promise<Range> {
+    let pos = await window.getCursorPosition()
+    return Range.create(pos, pos)
+  }
+
   describe('start()', () => {
-    it('should not start on invalid range', async () => {
-      let r = Range.create(3, 0, 3, 0)
-      await nvim.input('i')
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('bar$0', false, r)
-      expect(res).toBe(false)
-    })
 
     it('should insert escaped text', async () => {
-      await nvim.input('i')
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('\\`a\\` \\$ \\{\\}', false, undefined, InsertTextMode.adjustIndentation, {})
+      let res = await start('\\`a\\` \\$ \\{\\}', Range.create(0, 0, 0, 0), false, defaultContext)
       expect(res).toBe(true)
       let line = await nvim.line
       expect(line).toBe('`a` $ {}')
     })
 
-    it('should start with plain snippet', async () => {
-      await nvim.input('i')
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('bar$0')
+    it('should not start with plain snippet when jump to final palceholder', async () => {
+      let res = await start('bar$0', defaultRange)
       expect(res).toBe(false)
       let pos = await window.getCursorPosition()
       expect(pos).toEqual({ line: 0, character: 3 })
@@ -49,9 +56,7 @@ describe('SnippetSession', () => {
 
     it('should start with range replaced', async () => {
       await nvim.setLine('foo')
-      await nvim.input('i')
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('bar$0', true, Range.create(0, 0, 0, 3))
+      let res = await start('bar$0', Range.create(0, 0, 0, 3), true)
       expect(res).toBe(false)
       let line = await nvim.line
       expect(line).toBe('bar')
@@ -60,9 +65,9 @@ describe('SnippetSession', () => {
     it('should fix indent of next line when necessary', async () => {
       let buf = await nvim.buffer
       await nvim.setLine('  ab')
-      await nvim.input('i<right><right><right>')
+      await nvim.input('i')
       let session = new SnippetSession(nvim, buf.id)
-      let res = await session.start('${1:x}\n')
+      let res = await session.start('${1:x}\n', Range.create(0, 3, 0, 3))
       expect(res).toBe(true)
       let lines = await buf.lines
       expect(lines).toEqual(['  ax', '  b'])
@@ -74,7 +79,7 @@ describe('SnippetSession', () => {
       await nvim.command('startinsert')
       await nvim.call('cursor', [1, 3])
       let session = new SnippetSession(nvim, buf.id)
-      let res = await session.start('${1:foo}\n')
+      let res = await session.start('${1:foo}\n', Range.create(0, 2, 0, 2))
       expect(res).toBe(true)
       let lines = await buf.lines
       expect(lines).toEqual(['  foo', '  bar'])
@@ -82,7 +87,7 @@ describe('SnippetSession', () => {
 
     it('should start without select placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start(' ${1:aa} ', false)
+      let res = await session.start(' ${1:aa} ', defaultRange, false)
       expect(res).toBe(true)
       let { mode } = await nvim.mode
       expect(mode).toBe('n')
@@ -92,7 +97,7 @@ describe('SnippetSession', () => {
 
     it('should start with variable selected', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('${foo:bar}', false)
+      let res = await session.start('${foo:bar}', defaultRange, false)
       expect(res).toBe(true)
       let line = await nvim.getLine()
       expect(line).toBe('bar')
@@ -101,9 +106,7 @@ describe('SnippetSession', () => {
     })
 
     it('should select none transform placeholder', async () => {
-      await nvim.command('startinsert')
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${1/..*/ -> /}xy$1')
+      await start('${1/..*/ -> /}xy$1', defaultRange)
       let col = await nvim.call('col', '.')
       expect(col).toBe(3)
     })
@@ -112,9 +115,7 @@ describe('SnippetSession', () => {
       let buf = await nvim.buffer
       let text = 'abc\n  def'
       await nvim.setVar('coc_selected_text', text)
-      await nvim.input('i')
-      let session = new SnippetSession(nvim, buf.id)
-      await session.start('fun\n  ${0:${TM_SELECTED_TEXT:return}}\nend')
+      await start('fun\n  ${0:${TM_SELECTED_TEXT:return}}\nend')
       let lines = await buf.lines
       expect(lines.length).toBe(4)
       expect(lines).toEqual([
@@ -125,16 +126,14 @@ describe('SnippetSession', () => {
     it('should resolve VISUAL', async () => {
       let text = 'abc'
       await nvim.setVar('coc_selected_text', text)
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('$VISUAL')
+      await start('$VISUAL')
       let line = await nvim.line
       expect(line).toBe('abc')
     })
 
     it('should resolve default value of VISUAL', async () => {
       await nvim.setVar('coc_selected_text', '')
-      let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${VISUAL:foo}')
+      await start('${VISUAL:foo}')
       let line = await nvim.line
       expect(line).toBe('foo')
     })
@@ -143,13 +142,14 @@ describe('SnippetSession', () => {
   describe('nested snippet', () => {
     it('should start with nest snippet', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('${1:a} ${2:b}', false)
+      let res = await session.start('${1:a} ${2:b}', defaultRange, false)
       let line = await nvim.getLine()
       expect(line).toBe('a b')
       expect(res).toBe(true)
       let { placeholder } = session
       expect(placeholder.index).toBe(1)
-      res = await session.start('${1:foo} ${2:bar}')
+      let r = await getCursorRange()
+      res = await session.start('${1:foo} ${2:bar}', r)
       expect(res).toBe(true)
       placeholder = session.placeholder
       expect(placeholder.index).toBe(2)
@@ -172,9 +172,10 @@ describe('SnippetSession', () => {
       let buf = await nvim.buffer
       await nvim.command('startinsert')
       let session = new SnippetSession(nvim, buf.id)
-      let res = await session.start('${1:a} ${2:b}')
+      let res = await session.start('${1:a} ${2:b}', defaultRange)
       let line = await nvim.call('getline', ['.'])
-      res = await session.start('${1:foo} ${2:bar}', false)
+      let r = await getCursorRange()
+      res = await session.start('${1:foo} ${2:bar}', r, false)
       expect(res).toBe(true)
       line = await nvim.line
       expect(line).toBe('foo bara b')
@@ -187,7 +188,7 @@ describe('SnippetSession', () => {
       let session = new SnippetSession(nvim, buf.id)
       await nvim.setLine(' x')
       await nvim.input('i')
-      await session.start('${1:foo }bar')
+      await session.start('${1:foo }bar', defaultRange)
       await nvim.setLine('foo bar y')
       await session.forceSynchronize()
       expect(session.isActive).toBe(false)
@@ -198,7 +199,8 @@ describe('SnippetSession', () => {
       let session = new SnippetSession(nvim, buf.id)
       await nvim.setLine('x')
       await nvim.input('a')
-      await session.start('${1:foo} bar')
+      let r = await getCursorRange()
+      await session.start('${1:foo} bar', r)
       await nvim.setLine('yfoo bar')
       await session.forceSynchronize()
       expect(session.isActive).toBe(true)
@@ -211,7 +213,7 @@ describe('SnippetSession', () => {
       let session = new SnippetSession(nvim, buf.id)
       await nvim.setLine('x')
       await nvim.input('a')
-      await session.start('${1:foo }bar')
+      await session.start('${1:foo }bar', defaultRange)
       await nvim.setLine('yfoo  bar')
       await session.forceSynchronize()
       expect(session.isActive).toBe(false)
@@ -221,7 +223,7 @@ describe('SnippetSession', () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
       await nvim.input('i')
-      await session.start('${1:foo} bar')
+      await session.start('${1:foo} bar', defaultRange)
       await nvim.setLine('foobar')
       await session.forceSynchronize()
       expect(session.isActive).toBe(false)
@@ -231,7 +233,7 @@ describe('SnippetSession', () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
       await nvim.input('i')
-      await session.start('$1 $2')
+      await session.start('$1 $2', defaultRange)
       await nvim.input('<esc>A')
       await nvim.input(' ')
       await session.forceSynchronize()
@@ -244,7 +246,7 @@ describe('SnippetSession', () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
       await nvim.input('i')
-      await session.start('${1} ${1:foo}')
+      await session.start('${1} ${1:foo}', defaultRange)
       await nvim.input('b')
       await session.forceSynchronize()
       let pos = await window.getCursorPosition()
@@ -263,7 +265,7 @@ describe('SnippetSession', () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
       await nvim.input('i')
-      await session.start('${1} ${1:foo}')
+      await session.start('${1} ${1:foo}', defaultRange)
       await nvim.input('b')
       await session.forceSynchronize()
       let pos = await window.getCursorPosition()
@@ -283,7 +285,7 @@ describe('SnippetSession', () => {
     it('should deactivate on cursor outside', async () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
-      let res = await session.start('a${1:a}b')
+      let res = await session.start('a${1:a}b', defaultRange)
       expect(res).toBe(true)
       await buf.append(['foo', 'bar'])
       await nvim.call('cursor', [2, 1])
@@ -294,7 +296,7 @@ describe('SnippetSession', () => {
     it('should not throw when jump on deactivate session', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
       session.deactivate()
-      await session.start('${1:foo} $0')
+      await session.start('${1:foo} $0', defaultRange)
       await session.selectPlaceholder(undefined, true)
       await session.forceSynchronize()
       await session.previousPlaceholder()
@@ -304,7 +306,7 @@ describe('SnippetSession', () => {
     it('should cancel keymap on jump final placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
       await nvim.input('i')
-      await session.start('$0x${1:a}b$0')
+      await session.start('$0x${1:a}b$0', defaultRange)
       let line = await nvim.line
       expect(line).toBe('xab')
       let map = await nvim.call('maparg', ['<C-j>', 'i']) as string
@@ -318,7 +320,7 @@ describe('SnippetSession', () => {
   describe('nextPlaceholder()', () => {
     it('should jump to variable placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${foo} ${bar}', false)
+      await session.start('${foo} ${bar}', defaultRange, false)
       await session.selectCurrentPlaceholder()
       await session.nextPlaceholder()
       let pos = await window.getCursorPosition()
@@ -327,7 +329,7 @@ describe('SnippetSession', () => {
 
     it('should jump to variable placeholder after number placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${foo} ${1:bar}', false)
+      await session.start('${foo} ${1:bar}', defaultRange, false)
       await session.selectCurrentPlaceholder()
       await session.nextPlaceholder()
       let pos = await window.getCursorPosition()
@@ -336,7 +338,7 @@ describe('SnippetSession', () => {
 
     it('should jump to first placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${foo} ${foo} ${2:bar}', false)
+      await session.start('${foo} ${foo} ${2:bar}', defaultRange, false)
       await session.selectCurrentPlaceholder()
       let pos = await window.getCursorPosition()
       expect(pos).toEqual({ line: 0, character: 10 })
@@ -350,7 +352,7 @@ describe('SnippetSession', () => {
 
     it('should goto next placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('${1:a} ${2:b} c')
+      let res = await session.start('${1:a} ${2:b} c', defaultRange)
       expect(res).toBe(true)
       await session.nextPlaceholder()
       let { placeholder } = session
@@ -359,7 +361,7 @@ describe('SnippetSession', () => {
 
     it('should jump to none transform placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('${1} ${2/^_(.*)/$2/}bar$2')
+      let res = await session.start('${1} ${2/^_(.*)/$2/}bar$2', defaultRange)
       expect(res).toBe(true)
       let line = await nvim.line
       expect(line).toBe(' bar')
@@ -373,7 +375,7 @@ describe('SnippetSession', () => {
 
     it('should goto previous placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      let res = await session.start('${1:foo} ${2:bar}')
+      let res = await session.start('${1:foo} ${2:bar}', defaultRange)
       expect(res).toBe(true)
       await session.nextPlaceholder()
       expect(session.placeholder.index).toBe(2)
@@ -387,7 +389,7 @@ describe('SnippetSession', () => {
     it('should cancel snippet if position out of range', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
       await nvim.setLine('bar')
-      await session.start('${1:foo}')
+      await session.start('${1:foo}', defaultRange)
       await nvim.call('cursor', [1, 5])
       await session.checkPosition()
       expect(session.isActive).toBe(false)
@@ -395,7 +397,7 @@ describe('SnippetSession', () => {
 
     it('should not cancel snippet if position in range', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${1:foo}')
+      await session.start('${1:foo}', defaultRange)
       await nvim.call('cursor', [1, 3])
       await session.checkPosition()
       expect(session.isActive).toBe(true)
@@ -406,14 +408,14 @@ describe('SnippetSession', () => {
 
     it('should find current placeholder if possible', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${1:abc}${2:def}')
+      await session.start('${1:abc}${2:def}', defaultRange)
       let placeholder = session.findPlaceholder(Range.create(0, 3, 0, 3))
       expect(placeholder.index).toBe(1)
     })
 
     it('should return null if placeholder not found', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${1:abc}xyz${2:def}')
+      await session.start('${1:abc}xyz${2:def}', defaultRange)
       let placeholder = session.findPlaceholder(Range.create(0, 4, 0, 4))
       expect(placeholder).toBeNull()
     })
@@ -423,7 +425,7 @@ describe('SnippetSession', () => {
 
     it('should select range placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('${1:abc}')
+      await session.start('${1:abc}', defaultRange)
       let mode = await nvim.mode
       expect(mode.mode).toBe('s')
       await nvim.input('<backspace>')
@@ -433,7 +435,7 @@ describe('SnippetSession', () => {
 
     it('should select empty placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
-      await session.start('a ${1} ${2}')
+      await session.start('a ${1} ${2}', defaultRange)
       let mode = await nvim.mode
       expect(mode.mode).toBe('i')
       let col = await nvim.call('col', '.')
@@ -443,7 +445,7 @@ describe('SnippetSession', () => {
     it('should select choice placeholder', async () => {
       let session = new SnippetSession(nvim, workspace.bufnr)
       await nvim.input('i')
-      await session.start('${1|one,two,three|}')
+      await session.start('${1|one,two,three|}', defaultRange)
       let line = await nvim.line
       expect(line).toBe('one')
       await helper.waitPopup()

@@ -1,57 +1,42 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Emitter, Event, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../completion'
 import events from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { UltiSnippetOption } from '../types'
 import { equals } from '../util/object'
-import { comparePosition, emptyRange, positionInRange, rangeInRange } from '../util/position'
+import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
-import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from "./snippet"
+import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, getParts, reduceTextEdit } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
 const NAME_SPACE = 'snippets'
 
 export class SnippetSession {
-  private _isActive = false
   private current: Marker
   private textDocument: LinesTextDocument
-  private preferComplete = false
-  private _snippet: CocSnippet = null
-  private _onCancelEvent = new Emitter<void>()
   private tokenSource: CancellationTokenSource
   private timer: NodeJS.Timer
+  private _isActive = false
+  private _snippet: CocSnippet = null
+  private _onCancelEvent = new Emitter<void>()
   public readonly onCancel: Event<void> = this._onCancelEvent.event
 
-  constructor(private nvim: Neovim, public readonly bufnr: number, private enableHighlight = false) {
-    let suggest = workspace.getConfiguration('suggest')
-    this.preferComplete = suggest.get('preferCompleteThanJumpPlaceholder', false)
+  constructor(
+    private nvim: Neovim,
+    public readonly bufnr: number,
+    private enableHighlight = false,
+    private preferComplete = false
+  ) {
   }
 
-  public async start(snippetString: string, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
+  public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
     const { document } = this
-    if (!document || !document.attached) return false
-    range = range ?? await this.getEditRange()
-    let position = range.start
-    if (positionInRange(position, Range.create(0, 0, document.lineCount + 1, 0)) !== 0) return false
-    let context: UltiSnippetContext
-    const currentLine = document.getline(position.line)
-    if (ultisnip) {
-      context = Object.assign({ range, line: currentLine }, ultisnip)
-      if (!emptyRange(range)) {
-        // same behavior as Ultisnips
-        await document.applyEdits([{ range, newText: '' }])
-        await window.moveTo(range.start)
-        range.end = position
-      }
-    }
-    await this.forceSynchronize()
-    const inserted = await this.normalizeInsertText(snippetString, currentLine, insertTextMode)
     const placeholder = this.getReplacePlaceholder(range)
     const edits: TextEdit[] = []
     if (placeholder) {
@@ -62,13 +47,14 @@ export class SnippetSession {
       edits.push(TextEdit.replace(r, this.snippet.text))
     } else {
       const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
-      let snippet = new CocSnippet(inserted, position, this.nvim, resolver)
+      let snippet = new CocSnippet(inserted, range.start, this.nvim, resolver)
       await snippet.init(context)
       this._snippet = snippet
       this.current = snippet.firstPlaceholder?.marker
       edits.push(TextEdit.replace(range, snippet.text))
       // try fix indent of remain text
       if (inserted.replace(/\$0$/, '').endsWith('\n')) {
+        const currentLine = document.getline(range.start.line)
         const remain = currentLine.slice(range.end.character)
         if (remain.length) {
           let s = range.end.character
@@ -314,7 +300,7 @@ export class SnippetSession {
     }
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let cursor = await window.getCursorPosition()
-    if (tokenSource.token.isCancellationRequested) return
+    if (tokenSource.token.isCancellationRequested || document.dirty) return
     let inserted = d.getText(Range.create(range.start, end))
     let newText: string | undefined
     let placeholder: CocSnippetPlaceholder
@@ -340,6 +326,12 @@ export class SnippetSession {
       return
     }
     let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token)
+    if (document.dirty && !tokenSource.token.isCancellationRequested) {
+      tokenSource.cancel()
+      tokenSource.dispose()
+      return
+    }
+    tokenSource.dispose()
     if (!res) return
     this.current = placeholder.marker
     if (res.text !== inserted) {
@@ -395,35 +387,9 @@ export class SnippetSession {
     return workspace.getDocument(this.bufnr)
   }
 
-  public async insertPlainText(inserted: string, range: Range): Promise<void> {
-    let { document } = this
-    let text = inserted.replace(/\$0$/, '')
-    let edits = [TextEdit.replace(range, text)]
-    await document.applyEdits(edits)
-    let lines = text.split(/\r?\n/)
-    let len = lines.length
-    let pos = {
-      line: range.start.line + len - 1,
-      character: len == 1 ? range.start.character + text.length : lines[len - 1].length
-    }
-    await window.moveTo(pos)
-  }
-
   public async getEditRange(): Promise<Range> {
     let pos = await window.getCursorPosition()
     return Range.create(pos, pos)
-  }
-
-  public async normalizeInsertText(snippetString: string, currentLine: string, insertTextMode: InsertTextMode): Promise<string> {
-    let inserted = ''
-    if (insertTextMode === InsertTextMode.asIs || !shouldFormat(snippetString)) {
-      inserted = snippetString
-    } else {
-      const currentIndent = currentLine.match(/^\s*/)[0]
-      const formatOptions = await workspace.getFormatOptions(this.document.uri)
-      inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
-    }
-    return inserted
   }
 
   public static async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
