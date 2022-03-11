@@ -42,9 +42,14 @@ export class SnippetSession {
     if (placeholder) {
       // update all snippet.
       let r = this.snippet.range
+      let previous = document.textDocument.getText(r)
       let parts = getParts(placeholder.value, placeholder.range, range)
       this.current = await this.snippet.insertSnippet(placeholder, inserted, parts, context)
-      edits.push(TextEdit.replace(r, this.snippet.text))
+      let edit = reduceTextEdit({
+        range: r,
+        newText: this.snippet.text
+      }, previous)
+      edits.push(edit)
     } else {
       const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
       let snippet = new CocSnippet(inserted, range.start, this.nvim, resolver)
