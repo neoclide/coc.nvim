@@ -28,7 +28,7 @@ export class SnippetSession {
   private timer: NodeJS.Timer
   public readonly onCancel: Event<void> = this._onCancelEvent.event
 
-  constructor(private nvim: Neovim, public readonly bufnr: number) {
+  constructor(private nvim: Neovim, public readonly bufnr: number, private enableHighlight = false) {
     let suggest = workspace.getConfiguration('suggest')
     this.preferComplete = suggest.get('preferCompleteThanJumpPlaceholder', false)
   }
@@ -181,6 +181,8 @@ export class SnippetSession {
   }
 
   private highlights(placeholder: CocSnippetPlaceholder): void {
+    if (!this.enableHighlight) return
+    // this.checkPosition
     let buf = this.nvim.createBuffer(this.bufnr)
     this.nvim.pauseNotification()
     buf.clearNamespace(NAME_SPACE)

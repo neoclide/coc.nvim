@@ -12,18 +12,15 @@ export class SnippetManager {
   private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
   private statusItem: StatusBarItem
+  private highlight: boolean
 
   constructor() {
-    events.on(['TextChanged', 'TextChangedI', 'TextChangedP'], bufnr => {
+    events.on(['TextChanged', 'TextChangedI'], bufnr => {
       let session = this.getSession(bufnr as number)
       if (session) session.sychronize()
     }, null, this.disposables)
     events.on('CompleteDone', () => {
       let session = this.getSession(workspace.bufnr)
-      if (session) session.sychronize()
-    }, null, this.disposables)
-    events.on('InsertCharPre', (_, bufnr) => {
-      let session = this.getSession(bufnr)
       if (session) session.sychronize()
     }, null, this.disposables)
     events.on('BufUnload', bufnr => {
@@ -49,6 +46,7 @@ export class SnippetManager {
     let config = workspace.getConfiguration('coc.preferences')
     this.statusItem = window.createStatusBarItem(0)
     this.statusItem.text = config.get<string>('snippetStatusText', 'SNIP')
+    this.highlight = config.get<boolean>('snippetHighlight', false)
   }
 
   /**
@@ -60,7 +58,7 @@ export class SnippetManager {
     if (!doc || !doc.attached) return false
     let session = this.getSession(bufnr)
     if (!session) {
-      session = new SnippetSession(workspace.nvim, bufnr)
+      session = new SnippetSession(workspace.nvim, bufnr, this.highlight)
       this.sessionMap.set(bufnr, session)
       session.onCancel(() => {
         this.sessionMap.delete(bufnr)
