@@ -25,6 +25,10 @@ import workspace from './workspace'
 const logger = require('./util/logger')('window')
 let tab_global_id = 3000
 
+function generateTabId(): number {
+  return tab_global_id++
+}
+
 function converHighlightItem(item: HighlightItem): HighlightItemDef {
   return [item.hlGroup, item.lnum, item.colStart, item.colEnd, item.combine ? 1 : 0, item.start_incl ? 1 : 0, item.end_incl ? 1 : 0]
 }
@@ -44,10 +48,10 @@ class Window {
 
   public init(env: Env): void {
     for (let i = 1; i <= env.tabCount; i++) {
-      this.tabIds.push(Window.generateTabId())
+      this.tabIds.push(generateTabId())
     }
     events.on('TabNew', (nr: number) => {
-      this.tabIds.splice(nr - 1, 0, Window.generateTabId())
+      this.tabIds.splice(nr - 1, 0, generateTabId())
     })
     events.on('TabClosed', (nr: number) => {
       let id = this.tabIds[nr - 1]
@@ -112,7 +116,6 @@ class Window {
    * @param messageType Type of message, could be `error` `warning` and `more`, default to `more`
    */
   public showMessage(msg: string, messageType: MsgTypes = 'more'): void {
-    if (this.mutex.busy || !this.nvim) return
     let { messageLevel } = this
     let hl: 'Error' | 'MoreMsg' | 'WarningMsg' = 'Error'
     let level = MessageLevel.Error
@@ -779,10 +782,6 @@ class Window {
       default:
         return MessageLevel.More
     }
-  }
-
-  public static generateTabId(): number {
-    return tab_global_id++
   }
 }
 
