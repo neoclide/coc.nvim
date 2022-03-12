@@ -918,7 +918,7 @@ function! coc#util#get_format_opts(bufnr) abort
 endfunction
 
 function! coc#util#get_editoroption(winid) abort
-  if has('nvim')
+  if has('nvim') && exists('*nvim_win_get_config')
     " avoid float window
     let config = nvim_win_get_config(a:winid)
     if !empty(get(config, 'relative', ''))
@@ -962,6 +962,9 @@ endfunction
 function! s:visible_ranges(winid) abort
   let info = getwininfo(a:winid)[0]
   let res = []
+  if !has_key(info, 'topline') || !has_key(info, 'botline')
+    return res
+  endif
   let begin = 0
   let curr = info['topline']
   let max = info['botline']

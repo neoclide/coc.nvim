@@ -17,7 +17,7 @@ function! coc#window#is_float(winid) abort
       return index(popup_list(), a:winid) != -1
     endif
     return 0
-  else
+  elseif exists('*nvim_win_get_config')
     let config = nvim_win_get_config(a:winid)
     return !empty(config) && !empty(get(config, 'relative', ''))
   endif

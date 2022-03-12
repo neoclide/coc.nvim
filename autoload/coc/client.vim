@@ -88,10 +88,12 @@ function! s:start() dict
           \ 'TMPDIR': tmpdir
           \ }
     else
-      let original = {
-            \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
-            \ 'TMPDIR': getenv('TMPDIR'),
-            \ }
+      if exists('*getenv')
+        let original = {
+              \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
+              \ 'TMPDIR': getenv('TMPDIR'),
+              \ }
+      endif
       if exists('*setenv')
         call setenv('COC_NVIM', '1')
         call setenv('NODE_NO_WARNINGS', '1')
