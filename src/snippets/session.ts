@@ -113,23 +113,18 @@ export class SnippetSession {
   public async nextPlaceholder(): Promise<void> {
     await this.forceSynchronize()
     let curr = this.placeholder
-    if (curr) {
-      let next = this.snippet.getNextPlaceholder(curr.index)
-      if (next) await this.selectPlaceholder(next)
-    } else {
-      this.deactivate()
-    }
+    if (!curr) return
+    let next = this.snippet.getNextPlaceholder(curr.index)
+    if (next) await this.selectPlaceholder(next)
   }
 
   public async previousPlaceholder(): Promise<void> {
     await this.forceSynchronize()
     let curr = this.placeholder
-    if (curr) {
-      let prev = this.snippet.getPrevPlaceholder(curr.index)
-      if (prev) await this.selectPlaceholder(prev)
-    } else {
-      this.deactivate()
-    }
+    if (!curr) return
+    let prev = this.snippet.getPrevPlaceholder(curr.index)
+    if (prev) await this.selectPlaceholder(prev)
+
   }
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
@@ -272,10 +267,10 @@ export class SnippetSession {
       } catch (e) {
         this.nvim.echoError(e)
       }
-    }, 200)
+    }, global.__TEST__ ? 50 : 200)
   }
 
-  private async _synchronize(): Promise<void> {
+  public async _synchronize(): Promise<void> {
     let { document, textDocument } = this
     if (!document || !document.attached || !this._isActive) return
     let start = Date.now()
@@ -337,7 +332,7 @@ export class SnippetSession {
       return
     }
     tokenSource.dispose()
-    if (!res) return
+    if (!res || !this.document) return
     this.current = placeholder.marker
     if (res.text !== inserted) {
       let edit = reduceTextEdit({
@@ -380,7 +375,7 @@ export class SnippetSession {
   }
 
   public get placeholder(): CocSnippetPlaceholder | undefined {
-    if (!this.snippet) return undefined
+    if (!this.snippet || !this.current) return undefined
     return this.snippet.getPlaceholderByMarker(this.current)
   }
 
@@ -390,11 +385,6 @@ export class SnippetSession {
 
   private get document(): Document {
     return workspace.getDocument(this.bufnr)
-  }
-
-  public async getEditRange(): Promise<Range> {
-    let pos = await window.getCursorPosition()
-    return Range.create(pos, pos)
   }
 
   public static async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {

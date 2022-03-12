@@ -113,7 +113,7 @@ function! coc#_cancel()
     if s:is_vim || has('nvim-0.5.0')
       call feedkeys("\<C-x>\<C-x>\<Ignore>", 'in')
     else
-      call nvim_input('<C-x><C-x>')
+      call feedkeys("\<C-x>\<C-x>", 'in')
     endif
   endif
 endfunction
