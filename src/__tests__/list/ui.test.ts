@@ -33,7 +33,12 @@ class SlowTask extends EventEmitter implements ListTask {
     let i = 0
     let interval = this.interval = setInterval(() => {
       i++
-      this.emit('data', { label: i.toString() })
+      this.emit('data', {
+        label: i.toString(), highlights: {
+          spans: [[0, 1]],
+          hlGroup: 'Search'
+        }
+      })
       if (i == 5) {
         this.emit('end')
         clearInterval(interval)

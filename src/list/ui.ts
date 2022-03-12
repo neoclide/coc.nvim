@@ -74,8 +74,9 @@ export default class ListUI {
       if (bufnr != this.bufnr) return
       let [winid, start, end] = await nvim.eval('[win_getid(),line("w0"),line("w$")]') as number[]
       if (end < 300 || winid != this.winid) return
+      let h = end - start + 1
       let s = this.lnumToIndex(start)
-      let e = this.lnumToIndex(end + 1)
+      let e = this.lnumToIndex(start + h * 2)
       nvim.pauseNotification()
       this.doHighlight(s, e)
       nvim.command('redraw', true)
@@ -333,7 +334,7 @@ export default class ListUI {
       }
       const lines = this.items.map(item => item.label)
       let newIndex = reload ? this.currIndex : 0
-      this.setLines(lines, false, newIndex)
+      this.setLines(lines, 0, newIndex)
       this._onDidLineChange.fire()
     })
   }
@@ -346,12 +347,12 @@ export default class ListUI {
         let max = this.limitLines - curr
         let append = items.slice(0, max)
         this.items = this.items.concat(append)
-        this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
+        this.setLines(append.map(item => item.label), append.length, this.currIndex)
       }
     })
   }
 
-  private setLines(lines: string[], append = false, index: number): void {
+  private setLines(lines: string[], append: number, index: number): void {
     let { nvim, buffer, window, reversed, newTab } = this
     if (!buffer || !window) return
     nvim.pauseNotification()
@@ -378,8 +379,13 @@ export default class ListUI {
       let maxHeight = this.config.get<number>('height', 10)
       nvim.call('coc#window#set_heigth', [window.id, Math.max(Math.min(maxHeight, this.length), 1)], true)
     }
-    if (!append && index == 0) {
-      this.doHighlight(0, 299)
+    if (index == 0) {
+      if (append == 0) {
+        this.doHighlight(0, 299)
+      } else {
+        let s = this.length - append - 1
+        if (s < 300) this.doHighlight(s, Math.min(299, this.length - 1))
+      }
     } else {
       let height = newTab ? workspace.env.lines : this.height
       this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1))
@@ -437,11 +443,11 @@ export default class ListUI {
       }
     }
     if (reversed) {
-      for (let i = Math.min(end, items.length - 1); i >= start; i--) {
+      for (let i = Math.min(end, length - 1); i >= start; i--) {
         iterate(i)
       }
     } else {
-      for (let i = start; i <= Math.min(end, items.length - 1); i++) {
+      for (let i = start; i <= Math.min(end, length - 1); i++) {
         iterate(i)
       }
     }
@@ -450,6 +456,7 @@ export default class ListUI {
     if (start > end) {
       [start, end] = [end, start]
     }
+    if (highlightItems.length == 0) return
     buffer.updateHighlights('list', highlightItems, { start, end, priority: 99 })
   }
 
