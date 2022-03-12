@@ -164,6 +164,7 @@ describe('snippet provider', () => {
 
     it('should change status item on editor change', async () => {
       await nvim.command('tabe')
+      await workspace.document
       await nvim.input('i')
       await snippetManager.insertSnippet('${1:foo} $1 ')
       let val = await nvim.getVar('coc_status')
