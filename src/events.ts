@@ -160,11 +160,11 @@ class Events {
     } else if (event == 'MenuPopupChanged') {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
+      this._close = false
     } else if (event == 'CompleteDone') {
       this._pumVisible = false
       if (this._close) {
-        let obj = args[0]
-        if (obj) obj.close = true
+        if (args[0] != null) args[0].close = true
         this._close = false
       }
     } else if (event == 'InsertCharPre') {

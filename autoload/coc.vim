@@ -110,7 +110,11 @@ function! coc#_cancel()
   " Use of <C-e> could cause bad insert when cursor just moved.
   if pumvisible()
     call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-    call feedkeys("\<C-x>\<C-x>", 'in')
+    if s:is_vim || has('nvim-0.5.0')
+      call feedkeys("\<C-x>\<C-x>\<Ignore>", 'in')
+    else
+      call nvim_input('<C-x><C-x>')
+    endif
   endif
 endfunction
 
