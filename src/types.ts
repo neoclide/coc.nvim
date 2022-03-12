@@ -569,6 +569,8 @@ export interface VimCompleteItem {
   dup?: number
   empty?: number
   user_data?: string
+  // if there's ClosePum event just received.
+  close?: boolean
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {

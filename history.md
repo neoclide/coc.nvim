@@ -1,3 +1,7 @@
+# 2022-03-12
+
+- Avoid use `<sapce><bs>` for cancel completion.
+
 # 2022-03-05
 
 - Make `WinClosed` event fires on `CursorHold` to support vim8.

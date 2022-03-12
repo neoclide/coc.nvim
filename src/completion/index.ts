@@ -71,6 +71,7 @@ export class Completion implements Disposable {
       this.popupEvent = null
       if (!this.activated) return
       this.cancelResolve()
+      if (item.close) return this.stop()
       if (!Is.vimCompleteItem(item)) {
         let ev = await waitInsertEvent()
         if (ev == 'CursorMovedI') this.stop()
@@ -553,7 +554,7 @@ export class Completion implements Disposable {
       this.complete = null
     }
     nvim.pauseNotification()
-    if (events.pumvisible) nvim.call('coc#_hide', [], true)
+    if (events.pumvisible) nvim.call('coc#_cancel', [], true)
     if (!this.config.keepCompleteopt) {
       nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
     }

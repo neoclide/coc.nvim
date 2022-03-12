@@ -84,6 +84,7 @@ class Events {
   private _insertMode = false
   private _pumAlignTop = false
   private _pumVisible = false
+  private _close = false
   private _lastHold: LastHold | undefined
 
   public get cursor(): CursorPosition {
@@ -161,10 +162,17 @@ class Events {
       this._pumAlignTop = args[1] > args[0].row
     } else if (event == 'CompleteDone') {
       this._pumVisible = false
+      if (this._close) {
+        let obj = args[0]
+        if (obj) obj.close = true
+        this._close = false
+      }
     } else if (event == 'InsertCharPre') {
       this._recentInserts.push([args[1], args[0]])
     } else if (event == 'TextChanged') {
       this._lastChange = Date.now()
+    } else if (event == 'ClosePum') {
+      this._close = true
     }
     if (event == 'TextChangedI' || event == 'TextChangedP') {
       let arr = this._recentInserts.filter(o => o[0] == args[0])

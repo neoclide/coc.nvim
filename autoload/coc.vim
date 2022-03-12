@@ -45,8 +45,8 @@ function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
     if pumvisible()
-      let g:coc_disable_space_report = 1
-      let prefix = "\<space>\<bs>"
+      call coc#rpc#notify('CocAutocmd', ['ClosePum'])
+      let prefix = "\<C-x>\<C-x>"
     endif
   endif
   return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
@@ -96,20 +96,21 @@ function! coc#_selected()
   return coc#rpc#request('hasSelected', [])
 endfunction
 
+" Deprecated
 function! coc#_hide() abort
   if pumvisible()
     " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
-    let g:coc_disable_space_report = 1
-    call feedkeys("\<space>\<bs>", 'in')
+    call coc#rpc#notify('CocAutocmd', ['ClosePum'])
+    call feedkeys("\<C-x>\<C-x>", 'in')
   endif
 endfunction
 
 function! coc#_cancel()
   " hack for close pum
+  " Use of <C-e> could cause bad insert when cursor just moved.
   if pumvisible()
-    let g:coc_disable_space_report = 1
-    call feedkeys("\<space>\<bs>", 'in')
-    call coc#rpc#notify('stopCompletion', [])
+    call coc#rpc#notify('CocAutocmd', ['ClosePum'])
+    call feedkeys("\<C-x>\<C-x>", 'in')
   endif
 endfunction
 
