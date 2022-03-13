@@ -196,7 +196,7 @@ Built-in configurations:~
 	Enable floating window for documentation when possible, default: `true`
 
 *suggest.floatConfig*
-	
+
 	Configuration of floating window/popup, see |coc-config-float|.
 	Excludes properties: "title", "close" and "maxHeight".
 
@@ -1049,12 +1049,12 @@ Built-in configurations:~
 
 						*coc-config-tree*
 *tree.closedIcon*
-	
+
 	Closed icon of tree view, use '' to make it look better when you
 	have patched font, default: '+'.
 
 *tree.openedIcon*
-	
+
 	Opened icon of tree view, use '' to make it look better when you
 	have patched font, default: '-'
 
@@ -1123,7 +1123,7 @@ Built-in configurations:~
 	Recreate outline view after changed to another buffer on current tab.
 	Default `true`
 
-*outline.showLineNumber* 
+*outline.showLineNumber*
 
 	Show line number of document symbols.
 	Default `true`
@@ -1138,7 +1138,7 @@ Built-in configurations:~
 *callHierarchy.openCommand*
 
 	Open command for callHierarchy tree view, default to "edit".
-	
+
 *callHierarchy.splitCommand*
 
 	Window split command used by callHierarchy tree view.
@@ -1487,7 +1487,7 @@ line.
 	server.
 
 *<Plug>(coc-funcobj-a)*
-			
+
 	Select around function.  Works on both |visual-mode| and
 	|normal-mode|.  Recommended mapping:
 >
@@ -1545,7 +1545,7 @@ User defined variables:~
 
 ------------------------------------------------------------------------------
 
-Buffer variables 					*coc-buffer-variables*					
+Buffer variables 					*coc-buffer-variables*
 
 b:coc_enabled						*b:coc_enabled*
 
@@ -2249,10 +2249,10 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Show diagnostic message at the current position, do not truncate.
 
-"diagnosticToggle"					*CocAction('diagnosticToggle')*
+"diagnosticToggle" [{enable}]	 			*CocAction('diagnosticToggle')*
 
 	Enable/disable diagnostics on the fly, not work when `displayByAle` is
-	enabled.
+	enabled. You can toggle by specifying {enable}. {enable} can be 0 or 1
 
 "diagnosticPreview"					*CocAction('diagnosticPreview')*
 
@@ -2334,7 +2334,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	{hoverTarget}: optional specification for where to show hover info,
 	defaults to `coc.preferences.hoverTarget` in `coc-settings.json`.
 	Valid options: ["preview", "echo", "float"]
-	
+
 "definitionHover" [{hoverTarget}]			*CocAction('definitionHover')*
 
 	Same as |CocAction('doHover')|, but includes definition contents from
@@ -2575,10 +2575,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Resolve location for workspace {symbol}.
 
-"diagnosticToggleBuffer" [{bufnr}]		 *CocAction('diagnosticToggleBuffer')*
+"diagnosticToggleBuffer" [{bufnr}] [{enable}]	 *CocAction('diagnosticToggleBuffer')*
 
 	Toggle diagnostics for specific buffer, current buffer is used when
-	{bufnr} not provided.
+	{bufnr} not provided. 0 for current buffer
+	You can toggle by specifying {enable}. {enable} can be 0 or 1
 
 	Note: this will only affect diagnostics shown in the UI, list of all
 	diagnostics won't change.
@@ -2963,7 +2964,7 @@ Diagnostics related~
 default.
 *CocErrorLine* line highlight of sign which contains error.
 *CocWarningLine* line highlight of sign which contains warning.
-*CocInfoLine* line highlight of sign which information. 
+*CocInfoLine* line highlight of sign which information.
 *CocHintLine* line highlight of sign which contains hint.
 
 Document highlight related~
