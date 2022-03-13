@@ -1,15 +1,15 @@
+import { Neovim } from '@chemzqm/neovim'
+import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
 import fs from 'fs'
 import path from 'path'
-import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
+import { URI } from 'vscode-uri'
+import Document from '../../model/document'
+import { LinesTextDocument } from '../../model/textdocument'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { TextDocument } from 'vscode-languageserver-textdocument'
-import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
-import { disposeAll } from '../../util'
-import Document from '../../model/document'
-import { URI } from 'vscode-uri'
-import { LinesTextDocument } from '../../model/textdocument'
 
 let nvim: Neovim
 jest.setTimeout(5000)
@@ -21,7 +21,6 @@ function createTextDocument(lines: string[]): LinesTextDocument {
 describe('LinesTextDocument', () => {
   it('should apply edits', async () => {
     let textDocument = TextDocument.create('file:///a', 'vim', 1, 'use std::io::Result;')
-    let s = 'use std::io::Result;'
     // 1234567890
     let edits = [
       { range: { start: { line: 0, character: 7 }, end: { line: 0, character: 11 } }, newText: "" },
@@ -35,43 +34,62 @@ describe('LinesTextDocument', () => {
     expect(res).toBe('use std::io::{Result, Error};')
   })
 
-  it('should get line count and content', async () => {
-    let doc = createTextDocument(['a', 'b'])
+  it('should work when eol enabled', async () => {
+    let doc = createTextDocument(['foo', 'bar'])
     expect(doc.lineCount).toBe(3)
     let content = doc.getText()
-    expect(content).toBe('a\nb\n')
-  })
-
-  it('should get text by line', async () => {
-    const doc = createTextDocument(['foo', 'bar'])
-    const textLine = doc.lineAt(0)
+    expect(content).toBe('foo\nbar\n')
+    content = doc.getText(Range.create(0, 0, 0, 3))
+    expect(content).toBe('foo')
+    let textLine = doc.lineAt(0)
     expect(textLine.text).toBe('foo')
-  })
-
-  it('should get text by position', async () => {
-    const doc = createTextDocument(['foo', 'bar'])
-    const textLine = doc.lineAt(Position.create(0, 3))
+    textLine = doc.lineAt(Position.create(0, 3))
     expect(textLine.text).toBe('foo')
-  })
-
-  it('should get position', async () => {
-    let doc = createTextDocument(['foo', 'bar'])
     let pos = doc.positionAt(4)
     expect(pos).toEqual({ line: 1, character: 0 })
-  })
-
-  it('should get content by range', async () => {
-    let doc = createTextDocument(['foo', 'bar'])
-    let content = doc.getText(Range.create(0, 0, 0, 3))
+    content = doc.getText(Range.create(0, 0, 0, 3))
     expect(content).toBe('foo')
-  })
-
-  it('should get offset', async () => {
-    let doc = createTextDocument(['foo', 'bar'])
     let offset = doc.offsetAt(Position.create(0, 4))
     expect(offset).toBe(4)
     offset = doc.offsetAt(Position.create(2, 1))
     expect(offset).toBe(8)
+  })
+
+  it('should throw for invalid line', async () => {
+    let doc = createTextDocument(['foo', 'bar'])
+    let fn = () => {
+      doc.lineAt(-1)
+    }
+    expect(fn).toThrow(Error)
+    fn = () => {
+      doc.lineAt(3)
+    }
+    expect(fn).toThrow(Error)
+  })
+
+  it('should work when eol disabled', async () => {
+    let doc = new LinesTextDocument('file://a', 'txt', 1, ['foo'], 1, false)
+    expect(doc.getText()).toBe('foo')
+    expect(doc.lineCount).toBe(1)
+  })
+})
+
+describe('TextLine', () => {
+  it('should work with line not last one', async () => {
+    let doc = createTextDocument(['foo', 'bar'])
+    let textLine = doc.lineAt(0)
+    expect(textLine.lineNumber).toBe(0)
+    expect(textLine.text).toBe('foo')
+    expect(textLine.range).toEqual(Range.create(0, 0, 0, 3))
+    expect(textLine.rangeIncludingLineBreak).toEqual(Range.create(0, 0, 1, 0))
+    expect(textLine.isEmptyOrWhitespace).toBe(false)
+  })
+
+  it('should work with last line', async () => {
+    let doc = createTextDocument(['foo', 'bar'])
+    let textLine = doc.lineAt(2)
+    let r = textLine.rangeIncludingLineBreak
+    expect(textLine.rangeIncludingLineBreak).toEqual(Range.create(2, 0, 2, 0))
   })
 })
 
