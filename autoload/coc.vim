@@ -46,7 +46,7 @@ function! coc#_insert_key(method, key, ...) abort
   if get(a:, 1, 1)
     if pumvisible()
       call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-      let prefix = "\<C-x>\<C-x>"
+      let prefix = "\<C-x>\<C-z>"
     endif
   endif
   return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
@@ -101,7 +101,7 @@ function! coc#_hide() abort
   if pumvisible()
     " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
     call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-    call feedkeys("\<C-x>\<C-x>", 'in')
+    call feedkeys("\<C-x>\<C-z>", 'in')
   endif
 endfunction
 
@@ -111,9 +111,9 @@ function! coc#_cancel()
   if pumvisible()
     call coc#rpc#notify('CocAutocmd', ['ClosePum'])
     if s:is_vim || has('nvim-0.5.0')
-      call feedkeys("\<C-x>\<C-x>\<Ignore>", 'in')
+      call feedkeys("\<C-x>\<C-z>\<Ignore>", 'in')
     else
-      call feedkeys("\<C-x>\<C-x>", 'in')
+      call feedkeys("\<C-x>\<C-z>", 'in')
     endif
   endif
 endfunction
