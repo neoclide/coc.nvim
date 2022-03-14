@@ -41,15 +41,25 @@ function! coc#on_enter()
   return ''
 endfunction
 
+function! coc#_close_pum()
+  if !pumvisible()
+    return
+  endif
+  call coc#rpc#notify('CocAutocmd', ['ClosePum'])
+  if has('nvim-0.4.0')
+    call nvim_select_popupmenu_item(-1, v:false, v:true, {})
+  else
+    " Use of <C-e> could cause bad insert when cursor just moved.
+    call feedkeys("\<C-x>\<C-x>\<Ignore>", 'in')
+  endif
+endfunction
+
 function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
-    if pumvisible()
-      call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-      let prefix = "\<C-x>\<C-z>"
-    endif
+    call coc#_close_pum()
   endif
-  return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
+  return "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
 
 function! coc#_complete() abort
@@ -98,24 +108,11 @@ endfunction
 
 " Deprecated
 function! coc#_hide() abort
-  if pumvisible()
-    " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
-    call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-    call feedkeys("\<C-x>\<C-z>", 'in')
-  endif
+  call coc#_close_pum()
 endfunction
 
 function! coc#_cancel()
-  " hack for close pum
-  " Use of <C-e> could cause bad insert when cursor just moved.
-  if pumvisible()
-    call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-    if s:is_vim || has('nvim-0.5.0')
-      call feedkeys("\<C-x>\<C-z>\<Ignore>", 'in')
-    else
-      call feedkeys("\<C-x>\<C-z>", 'in')
-    endif
-  endif
+  call coc#_close_pum()
 endfunction
 
 function! coc#_select() abort
