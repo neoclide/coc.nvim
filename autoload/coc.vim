@@ -117,6 +117,8 @@ function! coc#_cancel()
     call coc#rpc#notify('CocAutocmd', ['ClosePum'])
     if has('nvim-0.6.0') || has('patch-8.2.3389')
       call feedkeys("\<C-x>\<C-z>", 'in')
+    elseif exists('*complete_info') && get(complete_info(['selected']), 'selected', -1) == -1
+      call feedkeys("\<C-e>", 'in')
     else
       let g:coc_disable_space_report = 1
       call feedkeys("\<space>\<bs>", 'in')
