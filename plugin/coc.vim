@@ -249,6 +249,16 @@ function! s:Autocmd(...) abort
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
+function! s:HandleCharInsert(char, bufnr) abort
+  if get(g:, 'coc_disable_space_report', 0)
+    let g:coc_disable_space_report = 0
+    if a:char ==# ' '
+      return
+    endif
+  endif
+  call s:Autocmd('InsertCharPre', a:char, a:bufnr)
+endfunction
+
 function! s:SyncAutocmd(...)
   if !get(g:, 'coc_workspace_initialized', 0)
     return
@@ -304,7 +314,7 @@ function! s:Enable(initialize)
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', get(v:, 'completed_item', {}))
-    autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char, bufnr('%'))
+    autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')
       autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'line': getline('.'), 'changedtick': b:changedtick})
     endif
