@@ -616,8 +616,8 @@ export class DiagnosticManager implements Disposable {
     return this.collections.filter(c => c.has(uri))
   }
 
-  public toggleDiagnostic(): void {
-    let { enabled } = this
+  public toggleDiagnostic(enable?: number): void {
+    let enabled = enable == undefined ? this.enabled : enable == 0
     this.enabled = !enabled
     for (let buf of this.buffers.items) {
       if (this.enabled) {
@@ -628,12 +628,12 @@ export class DiagnosticManager implements Disposable {
     }
   }
 
-  public async toggleDiagnosticBuffer(bufnr?: number): Promise<void> {
+  public async toggleDiagnosticBuffer(bufnr?: number, enable?: number): Promise<void> {
     if (!this.enabled) return
     bufnr = bufnr || workspace.bufnr
     let buf = this.buffers.getItem(bufnr)
     if (buf) {
-      let isEnabled = await buf.isEnabled()
+      let isEnabled = enable == undefined ? await buf.isEnabled() : enable == 0
       await this.nvim.call('setbufvar', [bufnr, 'coc_diagnostic_disable', isEnabled ? 1 : 0])
       if (isEnabled) {
         buf.clear()
