@@ -2263,6 +2263,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Force refresh diagnostics for special buffer with {bufnr} or all buffers
 	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
 
+	NOTE: Will refresh in any mode.
+
 	Useful when `diagnostic.autoRefresh` is `false`.
 
 "refreshSource" [{source}]				*CocAction('refreshSource')*
