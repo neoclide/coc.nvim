@@ -29,7 +29,9 @@ endfunction
 function! coc#snippet#show_choices(lnum, col, len, values) abort
   let m = mode()
   call cursor(a:lnum, a:col + a:len)
-  if m !=# 'i' | startinsert | endif
+  if m !=# 'i'
+    call feedkeys("\<Esc>i")
+  endif
   call timer_start(20, { -> coc#_do_complete(a:col - 1, a:values, 0)})
   redraw
 endfunction
