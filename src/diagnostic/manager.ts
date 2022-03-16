@@ -650,10 +650,10 @@ export class DiagnosticManager implements Disposable {
   /**
    * Refresh diagnostics by uri or bufnr
    */
-  public async refreshBuffer(uri: string | number): Promise<boolean> {
+  public async refreshBuffer(uri: string | number, force?: boolean): Promise<boolean> {
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
-    await buf.reset(this.getDiagnostics(buf.uri))
+    await buf.reset(this.getDiagnostics(buf.uri), force)
     return true
   }
 
@@ -661,15 +661,15 @@ export class DiagnosticManager implements Disposable {
    * Force diagnostics refresh.
    */
   public refresh(bufnr?: number): void {
+    let items: Iterable<DiagnosticBuffer>
     if (!bufnr) {
-      for (let item of this.buffers.items) {
-        void this.refreshBuffer(item.uri)
-      }
+      items = this.buffers.items
     } else {
       let item = this.buffers.getItem(bufnr)
-      if (item) {
-        void this.refreshBuffer(item.uri)
-      }
+      items = item ? [item] : []
+    }
+    for (let item of items) {
+      void this.refreshBuffer(item.uri, true)
     }
   }
 }

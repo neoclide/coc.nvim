@@ -153,7 +153,7 @@ export class DiagnosticBuffer implements SyncItem {
   /**
    * Reset all diagnostics of current buffer
    */
-  public async reset(diagnostics: { [collection: string]: Diagnostic[] }): Promise<void> {
+  public async reset(diagnostics: { [collection: string]: Diagnostic[] }, force?: boolean): Promise<void> {
     let { diagnosticsMap } = this
     for (let key of diagnosticsMap.keys()) {
       // make sure clear collection when it's empty.
@@ -162,7 +162,7 @@ export class DiagnosticBuffer implements SyncItem {
     for (let [key, value] of Object.entries(diagnostics)) {
       this.diagnosticsMap.set(key, value)
     }
-    let info = await this.getDiagnosticInfo()
+    let info = await this.getDiagnosticInfo(force)
     if (!info) {
       this._dirty = true
       return
@@ -173,12 +173,17 @@ export class DiagnosticBuffer implements SyncItem {
   /**
    * Get buffer info needed for refresh.
    */
-  private async getDiagnosticInfo(): Promise<DiagnosticInfo | undefined> {
+  private async getDiagnosticInfo(force?: boolean): Promise<DiagnosticInfo | undefined> {
     let { refreshOnInsertMode } = this.config
     let { nvim, bufnr } = this
-    let disabledByInsert = events.insertMode && !refreshOnInsertMode
-    if (disabledByInsert) return undefined
-    let info: DiagnosticInfo | undefined = await nvim.call('coc#util#diagnostic_info', [bufnr, !refreshOnInsertMode])
+    let checkInsert = !refreshOnInsertMode
+    if (force) {
+      checkInsert = false
+    } else {
+      let disabledByInsert = events.insertMode && !refreshOnInsertMode
+      if (disabledByInsert) return undefined
+    }
+    let info: DiagnosticInfo | undefined = await nvim.call('coc#util#diagnostic_info', [bufnr, checkInsert])
     return info
   }
 
