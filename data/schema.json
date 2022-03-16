@@ -720,11 +720,6 @@
       "default": null,
       "enum": ["hint", "information", "warning", "error"]
     },
-    "diagnostic.virtualTextAlignRight": {
-      "type": "boolean",
-      "description": "Make virtual text align to the right of window.",
-      "default": false
-    },
     "diagnostic.virtualTextWinCol": {
       "type": ["number", "null"],
       "description": "Window column number to align virtual text",

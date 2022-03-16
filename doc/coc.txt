@@ -547,10 +547,6 @@ Built-in configurations:~
 
 	Filter diagnostic message in virtual text by level, default: `null`
 
-*diagnostic.virtualTextAlignRight*
-
-	Make virtual text align to the right of window, default: `false`
-
 *diagnostic.virtualTextWinCol*
 
 	Window column number to align virtual text, default: `null`

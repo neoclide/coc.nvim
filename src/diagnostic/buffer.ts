@@ -314,7 +314,7 @@ export class DiagnosticBuffer implements SyncItem {
           virt_text: [[virtualTextPrefix + msg, highlight]]
         }
         if (config.virtualTextAlignRight) {
-          opts.virt_text_pos = 'right_align'
+          // opts.virt_text_pos = 'right_align'
         } else if (typeof config.virtualTextWinCol === 'number') {
           opts.virt_text_win_col = config.virtualTextWinCol
         }
