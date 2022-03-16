@@ -918,6 +918,9 @@ function! coc#util#get_format_opts(bufnr) abort
 endfunction
 
 function! coc#util#get_editoroption(winid) abort
+  if !coc#compat#win_is_valid(a:winid)
+    return v:null
+  endif
   if has('nvim') && exists('*nvim_win_get_config')
     " avoid float window
     let config = nvim_win_get_config(a:winid)
