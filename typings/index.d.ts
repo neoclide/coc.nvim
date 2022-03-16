@@ -8036,6 +8036,7 @@ declare module 'coc.nvim' {
 
   export interface ListItem {
     label: string
+    preselect?: boolean
     filterText?: string
     /**
      * A string that should be used when comparing this item

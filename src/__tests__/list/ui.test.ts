@@ -84,6 +84,28 @@ describe('list ui', () => {
     })
   })
 
+  describe('preselect', () => {
+    it('should select preselect item', async () => {
+      let list: IList = {
+        actions: [{
+          name: 'open',
+          execute: () => {}
+        }],
+        name: 'preselect',
+        defaultAction: 'open',
+        loadItems: () => {
+          return Promise.resolve([{ label: 'foo' }, { label: 'bar', preselect: true }])
+        }
+      }
+      disposables.push(manager.registerList(list))
+      await manager.start(['preselect'])
+      let ui = manager.session.ui
+      await ui.ready
+      let line = await nvim.line
+      expect(line).toBe('bar')
+    })
+  })
+
   describe('resume()', () => {
     it('should resume with selected lines', async () => {
       labels = ['foo', 'bar']

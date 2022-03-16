@@ -923,6 +923,7 @@ export interface LocationWithLine {
 export interface ListItem {
   label: string
   filterText?: string
+  preselect?: boolean
   /**
    * A string that should be used when comparing this item
    * with other items, only used for fuzzy filter.

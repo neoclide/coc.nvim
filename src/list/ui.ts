@@ -332,8 +332,13 @@ export default class ListUI {
         if (statusSegments) win.setOption('statusline', statusSegments.join(" "), true)
         this._onDidOpen.fire(this.bufnr)
       }
-      const lines = this.items.map(item => item.label)
-      let newIndex = reload ? this.currIndex : 0
+      const lines: string[] = []
+      let selectIndex = 0
+      this.items.forEach((item, idx) => {
+        lines.push(item.label)
+        if (!reload && selectIndex == 0 && item.preselect) selectIndex = idx
+      })
+      let newIndex = reload ? this.currIndex : selectIndex
       this.setLines(lines, 0, newIndex)
       this._onDidLineChange.fire()
     })
