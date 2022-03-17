@@ -134,6 +134,13 @@ function doEqualsIgnoreCase(a: string, b: string, stopAt = a.length): boolean {
   return true
 }
 
+/**
+ * Escapes regular expression characters in a given string
+ */
+export function escapeRegExpCharacters(value: string): string {
+	return value.replace(/[\\{}*+?|^$.[\]()]/g, '\\$&')
+}
+
 export function equalsIgnoreCase(a: string, b: string): boolean {
   const len1 = a ? a.length : 0
   const len2 = b ? b.length : 0
