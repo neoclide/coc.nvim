@@ -355,7 +355,7 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
               \ 'hl_mode': get(opts, 'combine', 1) ? 'combine' : 'replace',
               \ 'right_gravity': v:true,
               \ 'end_right_gravity': v:false,
-              \ 'priority': type(priority) == 0 ?  min([priority, 4096]) : 4096,
+              \ 'priority': type(priority) == 0 ?  max([priority, 101]) : 4096,
               \ })
       catch /^Vim\%((\a\+)\)\=:E5555/
         " the end_col could be invalid, ignore this error
