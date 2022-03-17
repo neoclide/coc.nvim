@@ -85,10 +85,10 @@ export default class FormatHandler {
       if (pre) await this.tryFormatOnType(pre, bufnr)
     }))
 
-    handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (bufnr?: number) => {
+    handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
       let doc: Document
-      if (bufnr) {
-        doc = workspace.getDocument(bufnr)
+      if (uri) {
+        doc = workspace.getDocument(uri)
       } else {
         doc  = (await this.handler.getCurrentState()).doc
       }
