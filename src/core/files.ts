@@ -85,7 +85,7 @@ export default class Files {
       nvim.pauseNotification()
       nvim.command(`silent! normal! m'`, true)
       nvim.command(`buffer ${bufnr}`, true)
-      nvim.command(`filetype detect`, true)
+      nvim.command(`if &filetype ==# '' | filetype detect | endif`, true)
       if (position) {
         let line = doc.getline(position.line)
         let col = byteLength(line.slice(0, position.character)) + 1
