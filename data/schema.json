@@ -1223,7 +1223,7 @@
     "semanticTokens.incrementTypes": {
       "type": "array",
       "description": "Semantic token types that should increase highlight when insert at the start and end position of token.",
-      "default": ["variable", "string"],
+      "default": ["variable", "string", "parameter"],
       "items": {
         "type": "string"
       }
