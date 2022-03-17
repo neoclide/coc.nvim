@@ -9,6 +9,7 @@ let s:ns_id = 1
 let g:coc_highlight_batch_lines = get(g:, 'coc_highlight_batch_lines', 300)
 " Maxium count to highlight each time.
 let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_batch_count', 300)
+let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 
 if has('nvim-0.5.0')
   try
@@ -130,7 +131,7 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
     let hi = a:highlights[idx]
     let opts = {}
     if type(priority) == 0
-      let opts['priority'] = priority
+      let opts['priority'] = s:get_priority(a:key, hi['hlGroup'], priority)
     endif
     for key in ['combine', 'start_incl', 'end_incl']
       if has_key(hi, key)
@@ -715,4 +716,11 @@ function! s:to_group(items) abort
     endif
   endfor
   return res
+endfunction
+
+function! s:get_priority(key, hlGroup, priority) abort
+  if strpart(a:key, 0, 10) !=# 'diagnostic'
+    return a:priority
+  endif
+  return a:priority - index(s:diagnostic_hlgroups, a:hlGroup)
 endfunction

@@ -1,7 +1,7 @@
 import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
-import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag, Position } from 'vscode-languageserver-types'
+import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag, Position, TextEdit } from 'vscode-languageserver-types'
 import workspace from '../../workspace'
 
 let nvim: Neovim
@@ -34,7 +34,7 @@ const config: any = {
 }
 
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
-  let doc = await helper.createDocument()
+  let doc = await workspace.document
   return new DiagnosticBuffer(nvim, doc.bufnr, doc.uri, config, () => {
     // noop
   })
@@ -318,6 +318,31 @@ describe('diagnostic buffer', () => {
       expect(res).toBe(false)
       let arr = buf.getHighlightItems([])
       expect(arr.length).toBe(0)
+    })
+  })
+
+  describe('getHighlightItems()', () => {
+    it('should get highlights', async () => {
+      let buf = await createDiagnosticBuffer()
+      let doc = workspace.getDocument(workspace.bufnr)
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar')])
+      let diagnostics = [
+        createDiagnostic('one', Range.create(0, 0, 0, 1), DiagnosticSeverity.Warning),
+        createDiagnostic('one', Range.create(0, 1, 0, 2), DiagnosticSeverity.Warning),
+        createDiagnostic('two', Range.create(0, 0, 2, 3), DiagnosticSeverity.Error),
+        createDiagnostic('three', Range.create(1, 0, 1, 2), DiagnosticSeverity.Hint),
+      ]
+      diagnostics[0].tags = [DiagnosticTag.Unnecessary]
+      diagnostics[1].tags = [DiagnosticTag.Deprecated]
+      let res = buf.getHighlightItems(diagnostics)
+      expect(res.length).toBe(5)
+      expect(res.map(o => o.hlGroup)).toEqual([
+        'CocUnusedHighlight',
+        'CocErrorHighlight',
+        'CocDeprecatedHighlight',
+        'CocHintHighlight',
+        'CocErrorHighlight'
+      ])
     })
   })
 

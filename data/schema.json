@@ -647,7 +647,8 @@
       "type": "number",
       "description": "Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0",
       "default": 4096,
-      "maximum": 4096
+      "maximum": 4096,
+      "minimum": 110
     },
     "diagnostic.autoRefresh": {
       "type": "boolean",
