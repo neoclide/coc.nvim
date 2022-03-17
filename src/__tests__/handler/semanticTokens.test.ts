@@ -428,8 +428,8 @@ describe('semanticTokens', () => {
       await helper.wait(100)
       expect(r).toBeDefined()
       let buf = nvim.createBuffer(doc.bufnr)
-      let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(1)
+      let hls = await buf.getHighlights('semanticTokens', 0, 0)
+      expect(hls.length).toBe(1)
     })
 
     it('should do range highlight after cursor moved', async () => {

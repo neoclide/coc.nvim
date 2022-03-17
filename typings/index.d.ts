@@ -2861,13 +2861,13 @@ declare module 'coc.nvim' {
     getSigns(opts: SignPlacedOption): Promise<SignItem[]>
 
     /**
-     * Get highlight items by namespace (end exclusive).
+     * Get highlight items by namespace (end inclusive).
      *
-     * @param {string | number} ns Namespace key or id.
+     * @param {string} ns Namespace key or id.
      * @param {number} start 0 based line number, default to 0.
      * @param {number} end 0 based line number, default to -1.
      */
-    getHighlights(ns: string | number, start?: number, end?: number): Promise<HighlightItem[]>
+    getHighlights(ns: string, start?: number, end?: number): Promise<HighlightItem[]>
 
     /**
      * Update namespaced highlights in range by notification.
