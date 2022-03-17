@@ -3,7 +3,7 @@ import { debounce } from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
-import { HighlightItem, LocationListItem } from '../types'
+import { HighlightItem, HighlightItemDef, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
@@ -338,17 +338,16 @@ export class DiagnosticBuffer implements SyncItem {
       let grouped = this.getHighlightItems(diagnostics).reduce((p, c) => {
         let hlGroup = c.hlGroup
         let arr = p.get(hlGroup) || []
-        arr.push(c)
+        arr.push([c.hlGroup, c.lnum, c.colStart, c.colEnd])
         p.set(hlGroup, arr)
         return p
-      }, new Map<string, HighlightItem[]>())
+      }, new Map<string, HighlightItemDef[]>())
       let highlightPriority = this.config.highlightPriority
       nvim.pauseNotification()
       this.clearHighlight(collection)
-      for (let [hlGroup, groupedItems] of grouped) {
+      for (let [hlGroup, items] of grouped) {
         let priority = highlightPriority + hlGroups.length - hlGroups.indexOf(hlGroup)
-        let arr = groupedItems.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
-        nvim.call('coc#highlight#set', [this.bufnr, NAMESPACE + collection, arr, priority], true)
+        nvim.call('coc#highlight#set', [this.bufnr, NAMESPACE + collection, items, priority], true)
       }
       void nvim.resumeNotification(true, true)
     }
