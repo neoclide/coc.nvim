@@ -86,12 +86,7 @@ export default class FormatHandler {
     }))
 
     handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
-      let doc: Document
-      if (uri) {
-        doc = workspace.getDocument(uri)
-      } else {
-        doc  = (await this.handler.getCurrentState()).doc
-      }
+      const doc = uri ? workspace.getDocument(uri) : (await this.handler.getCurrentState()).doc
       await this.documentFormat(doc)
     }))
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
