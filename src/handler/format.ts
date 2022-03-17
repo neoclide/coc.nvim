@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
@@ -83,6 +84,12 @@ export default class FormatHandler {
       let pre = info.pre[info.pre.length - 1]
       if (pre) await this.tryFormatOnType(pre, bufnr)
     }))
+
+    handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
+      const doc = uri ? workspace.getDocument(uri) : (await this.handler.getCurrentState()).doc
+      await this.documentFormat(doc)
+    }))
+    commandManager.titles.set('editor.action.formatDocument', 'Format Document')
   }
 
   private loadPreferences(e?: ConfigurationChangeEvent): void {
