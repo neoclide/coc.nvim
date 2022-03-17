@@ -63,24 +63,29 @@ describe('diagnostic manager', () => {
     })
   })
 
-  describe('refresh()', () => {
-    it('should refresh on buffer create', async () => {
-      let uri = URI.file(path.join(path.dirname(__dirname), 'doc')).toString()
-      let fn = jest.fn()
-      let disposable = manager.onDidRefresh(() => {
-        fn()
+  describe('events', () => {
+    it('should delay refresh when buffer visible', async () => {
+      let doc = await helper.createDocument()
+      await helper.edit()
+      let collection = manager.create('foo')
+      let diagnostics: Diagnostic[] = []
+      await doc.buffer.setLines(['foo bar foo bar', 'foo bar', 'foo', 'bar'], {
+        start: 0,
+        end: -1,
+        strictIndexing: false
       })
-      let collection = manager.create('tmp')
-      let diagnostic = createDiagnostic('My Error')
-      collection.set(uri, [diagnostic])
-      let doc = await helper.createDocument('doc')
-      await helper.wait(30)
-      let val = await doc.buffer.getVar('coc_diagnostic_info') as any
-      expect(fn).toBeCalled()
-      expect(val).toBeDefined()
-      expect(val.error).toBe(1)
-      collection.dispose()
-      disposable.dispose()
+      await doc.synchronize()
+      diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
+      collection.set(doc.uri, diagnostics)
+      await helper.wait(20)
+      let buf = doc.buffer
+      let val = await buf.getVar('coc_diagnostic_info') as any
+      expect(val == null).toBe(true)
+      let ns = await nvim.createNamespace('coc-diagnosticfoo')
+      let markers = await buf.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBe(0)
+      await nvim.command(`b ${buf.id}`)
+      await helper.waitFor('eval', ['empty(get(b:,"coc_diagnostic_info",{}))'], 0)
     })
 
     it('should delay refresh on InsertLeave', async () => {
@@ -110,30 +115,43 @@ describe('diagnostic manager', () => {
       expect(markers.length).toBe(1)
     })
 
-    it('should delay refresh for hidden buffer', async () => {
-      let doc = await helper.createDocument()
-      await helper.edit()
-      let collection = manager.create('foo')
-      let diagnostics: Diagnostic[] = []
-      await doc.buffer.setLines(['foo bar foo bar', 'foo bar', 'foo', 'bar'], {
-        start: 0,
-        end: -1,
-        strictIndexing: false
-      })
-      await doc.synchronize()
-      diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
-      collection.set(doc.uri, diagnostics)
-      await helper.wait(50)
-      let buf = doc.buffer
-      let val = await buf.getVar('coc_diagnostic_info') as any
-      expect(val == null).toBe(true)
-      let ns = await nvim.createNamespace('coc-diagnosticfoo')
-      let markers = await buf.getExtMarks(ns, 0, -1)
+    it('should show diagnostic virtual text on CursorMoved', async () => {
+      let config = workspace.getConfiguration('diagnostic')
+      config.update('virtualText', true)
+      config.update('virtualTextCurrentLineOnly', true)
+      let doc = await createDocument()
+      await helper.wait(30)
+      let lnum = await nvim.call('line', ['.'])
+      let markers = await doc.buffer.getExtMarks(manager.config.virtualTextSrcId, 0, -1, { details: true })
+      expect(markers.length).toBe(2)
+      expect(markers[0][1]).toBe(lnum - 1)
+      expect(markers[1][1]).toBe(lnum - 1)
+      await manager.toggleDiagnosticBuffer(doc.bufnr)
+      await nvim.call('cursor', [1, 3])
+      await helper.wait(30)
+      markers = await doc.buffer.getExtMarks(manager.config.virtualTextSrcId, 0, -1, { details: true })
       expect(markers.length).toBe(0)
-      await nvim.command(`b ${buf.id}`)
-      await helper.wait(100)
-      markers = await buf.getExtMarks(ns, 0, -1)
-      expect(markers.length).toBe(1)
+    })
+  })
+
+  describe('refresh()', () => {
+    it('should refresh on buffer create', async () => {
+      let uri = URI.file(path.join(path.dirname(__dirname), 'doc')).toString()
+      let fn = jest.fn()
+      let disposable = manager.onDidRefresh(() => {
+        fn()
+      })
+      let collection = manager.create('tmp')
+      let diagnostic = createDiagnostic('My Error')
+      collection.set(uri, [diagnostic])
+      let doc = await helper.createDocument('doc')
+      await helper.wait(30)
+      let val = await doc.buffer.getVar('coc_diagnostic_info') as any
+      expect(fn).toBeCalled()
+      expect(val).toBeDefined()
+      expect(val.error).toBe(1)
+      collection.dispose()
+      disposable.dispose()
     })
   })
 

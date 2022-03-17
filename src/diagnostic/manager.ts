@@ -104,11 +104,18 @@ export class DiagnosticManager implements Disposable {
       }, this.config.messageDelay)
     }, null, this.disposables)
 
-    let fn = debounce((bufnr, cursor) => {
+    let fn = debounce(async (bufnr, cursor) => {
       if (!this.config.virtualTextCurrentLineOnly) return
+      if (events.insertMode && !this.config.refreshOnInsertMode) return
       let buf = this.buffers.getItem(bufnr)
-      if (buf) buf.showVirtualText(cursor[0])
-    }, 100)
+      if (buf) {
+        let enabled = await buf.isEnabled()
+        if (enabled) buf.showVirtualText(cursor[0])
+      }
+    }, global.__TEST__ ? 10 : 100)
+    this.disposables.push(Disposable.create(() => {
+      fn.clear()
+    }))
     events.on('CursorMoved', fn, null, this.disposables)
     events.on('InsertLeave', async () => {
       if (this.config.refreshOnInsertMode || !this.autoRefresh) return
