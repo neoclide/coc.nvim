@@ -228,6 +228,7 @@ export default class Document {
       if (tick > this._changedtick) {
         this._changedtick = tick
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
+        if (lines.length == 0) lines = ['']
         this.lines = lines
         this.fireContentChanges()
       }
