@@ -334,9 +334,21 @@ export class DiagnosticBuffer implements SyncItem {
     if (!diagnostics.length) {
       this.clearHighlight(collection)
     } else {
-      let items = this.getHighlightItems(diagnostics)
-      let priority = this.config.highlightPriority
-      this.buffer.updateHighlights(NAMESPACE + collection, items, { priority })
+      let { nvim } = this
+      let grouped = this.getHighlightItems(diagnostics).reduce((p, c) => {
+        let hlGroup = c.hlGroup
+        let arr = p.get(hlGroup) || []
+        arr.push(c)
+        p.set(hlGroup, arr)
+        return p
+      }, new Map<string, HighlightItem[]>())
+      let highlightPriority = this.config.highlightPriority
+      nvim.pauseNotification()
+      for (let [hlGroup, groupedItems] of grouped) {
+        let priority = highlightPriority + hlGroups.length - hlGroups.indexOf(hlGroup)
+        this.buffer.updateHighlights(NAMESPACE + collection, groupedItems, { priority })
+      }
+      void nvim.resumeNotification(true, true)
     }
   }
 
