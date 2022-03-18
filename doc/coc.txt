@@ -3159,6 +3159,7 @@ When filter mode is activated, type normal character to insert filter input
 and following special keys are supported:
 
 <bs> 	- Delete last filter character when possible.
+<C-h> 	- Delete last filter character when possible.
 <C-u> 	- Clean up filter text.
 <C-p> 	- Navigate to previous filter text (stored on command invoke).
 <C-n> 	- Navigate to next filter text (stored on command invoke).
