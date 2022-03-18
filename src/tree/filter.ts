@@ -25,7 +25,7 @@ export default class Filter<T> {
           this._onDidUpdate.fire(this.text)
           return
         }
-        if (character == '<bs>') {
+        if (character == '<bs>' || character == '<C-h>') {
           this.text = this.text.slice(0, -1)
           this._onDidUpdate.fire(this.text)
           return
