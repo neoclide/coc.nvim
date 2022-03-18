@@ -78,10 +78,10 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
   " index list that exists with current highlights
   let exists = []
   let ns = coc#highlight#create_namespace(a:key)
-  let currIndex = 0
   if has('nvim-0.5.0') || exists('*prop_list')
     let endLnum = end == -1 ? end : end - 1
     let current = coc#highlight#get_highlights(bufnr, a:key, start, endLnum)
+    let currIndex = 0
     let clearLnums = []
     if !empty(current)
       for [lnum, items] in s:to_group(current)
@@ -96,6 +96,8 @@ function! coc#highlight#update_highlights(bufnr, key, highlights, ...) abort
               if hi['hlGroup'] ==# item[0] && hi['colStart'] == item[2] && hi['colEnd'] == item[3]
                 call add(indexes, currIndex)
                 call filter(currIndexes, 'v:val != '.idx)
+                break
+              elseif item[2] > hi['colStart']
                 break
               endif
             endfor

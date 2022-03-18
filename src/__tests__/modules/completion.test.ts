@@ -23,7 +23,6 @@ beforeEach(async () => {
   disposables = []
   helper.updateConfiguration('suggest.triggerCompletionWait', 0)
   await helper.createDocument()
-  await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
 })
 
 afterAll(async () => {
@@ -134,8 +133,9 @@ describe('completion resumeCompletion', () => {
     await helper.waitPopup()
     expect(completion.isActivated).toBe(true)
     await nvim.input('d')
-    await helper.wait(60)
-    expect(completion.isActivated).toBe(false)
+    await helper.waitValue(() => {
+      return completion.isActivated
+    }, false)
   })
 
   it('should deactivate without filtered items', async () => {
