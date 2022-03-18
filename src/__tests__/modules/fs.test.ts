@@ -172,12 +172,12 @@ describe('fs', () => {
     })
 
     it('should ignore glob pattern', () => {
-      let res = resolveRoot(__dirname, ['package.json'], undefined, false, false, ["**/__tests__/**"])
+      let res = resolveRoot(__dirname, [path.basename(__filename)], undefined, false, false, ["**/__tests__/**"])
       expect(res).toBeFalsy()
     })
 
     it('should ignore glob pattern bottom up', () => {
-      let res = resolveRoot(__dirname, ['package.json'], undefined, true, false, ["**/__tests__/**"])
+      let res = resolveRoot(__dirname, [path.basename(__filename)], undefined, true, false, ["**/__tests__/**"])
       expect(res).toBeFalsy()
     })
   })
