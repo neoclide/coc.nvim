@@ -2,10 +2,13 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import { MarkupContent, MarkupKind } from "vscode-languageserver-protocol"
 import { URI } from "vscode-uri"
 import { BaseMarkdownString } from "./baseMarkdownString"
 
-export class MarkdownString  {
+export class MarkdownString implements MarkupContent {
+  public kind: MarkupKind = MarkupKind.Markdown
+
   readonly #delegate: BaseMarkdownString
 
   public static isMarkdownString(thing: any): thing is MarkdownString {

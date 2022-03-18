@@ -14,8 +14,8 @@ export enum EndOfLine {
 
 export enum EnvironmentVariableMutatorType {
   Replace = 1,
-    Append = 2,
-    Prepend = 3
+  Append = 2,
+  Prepend = 3
 }
 
 export class TextEdit implements ITextEdit {
