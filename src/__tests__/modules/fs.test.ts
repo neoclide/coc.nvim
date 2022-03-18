@@ -170,6 +170,16 @@ describe('fs', () => {
       let res = resolveRoot(__dirname, ['.config'], undefined, false, false, [os.homedir()])
       expect(res != os.homedir()).toBeTruthy()
     })
+
+    it('should ignore glob pattern', () => {
+      let res = resolveRoot(__dirname, ['package.json'], undefined, false, false, ["**/__tests__/**"])
+      expect(res).toBeFalsy()
+    })
+
+    it('should ignore glob pattern bottom up', () => {
+      let res = resolveRoot(__dirname, ['package.json'], undefined, true, false, ["**/__tests__/**"])
+      expect(res).toBeFalsy()
+    })
   })
 
   describe('findUp', () => {
