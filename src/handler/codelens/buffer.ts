@@ -1,19 +1,17 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationTokenSource, CodeLens, Command } from 'vscode-languageserver-protocol'
-import { LinesTextDocument } from '../../model/textdocument'
+import { SyncItem } from '../../model/bufferSync'
 import commandManager from '../../commands'
 import languages from '../../languages'
-import { BufferSyncItem } from '../../types'
+import Document from '../../model/document'
 import window from '../../window'
 import workspace from '../../workspace'
-import Document from '../../model/document'
 const logger = require('../../util/logger')('codelens-buffer')
 
 export interface CodeLensInfo {
   codeLenses: CodeLens[]
   version: number
-  hasError: boolean
 }
 
 export interface CodeLensConfig {
@@ -21,74 +19,69 @@ export interface CodeLensConfig {
   enabled: boolean
   separator: string
   subseparator: string
+  srcId?: number
 }
 
 /**
  * CodeLens buffer
  */
-export default class CodeLensBuffer implements BufferSyncItem {
+export default class CodeLensBuffer implements SyncItem {
   private codeLenses: CodeLensInfo
   private tokenSource: CancellationTokenSource
   private resolveTokenSource: CancellationTokenSource
-  private srcId: number
-  public fetchCodelenses: (() => void) & { clear(): void }
   public resolveCodeLens: (() => void) & { clear(): void }
   constructor(
     private nvim: Neovim,
-    public readonly bufnr: number,
+    public readonly document: Document,
     private config: CodeLensConfig
   ) {
-    this.fetchCodelenses = debounce(() => {
-      void this._fetchCodeLenses()
-    }, 200)
     this.resolveCodeLens = debounce(() => {
       void this._resolveCodeLenses()
-    }, 200)
-    this.fetchCodelenses()
+    }, global.__TEST__ ? 20 : 200)
+    void this.fetchCodeLenses()
+  }
+
+  private get bufnr(): number {
+    return this.document.bufnr
   }
 
   public onChange(): void {
     this.cancel()
-    this.fetchCodelenses()
+    void this.fetchCodeLenses()
   }
 
-  public currentCodeLens(): CodeLens[] {
+  public get currentCodeLens(): CodeLens[] | undefined {
     return this.codeLenses?.codeLenses
   }
 
   private get enabled(): boolean {
-    return this.document && this.config.enabled && languages.hasProvider('codeLens', this.document.textDocument)
+    if (!this.document?.attached) return false
+    return this.config.enabled && languages.hasProvider('codeLens', this.document.textDocument)
   }
 
   public async forceFetch(): Promise<void> {
-    this.fetchCodelenses.clear()
-    await this._fetchCodeLenses()
+    if (!this.enabled) return
+    await this.document.synchronize()
+    this.cancel()
+    await this.fetchCodeLenses()
   }
 
-  private get document(): Document | undefined {
-    return workspace.getDocument(this.bufnr)
-  }
-
-  private async _fetchCodeLenses(): Promise<void> {
+  private async fetchCodeLenses(): Promise<void> {
     if (!this.enabled) return
     this.cancel()
-    let noFetch = !this.isChanged && !this.codeLenses?.hasError
+    let noFetch = this.codeLenses?.version == this.document.version
     if (!noFetch) {
       let { textDocument } = this.document
       let version = textDocument.version
       let tokenSource = this.tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
       let codeLenses = await languages.getCodeLens(textDocument, token)
+      codeLenses = Array.isArray(codeLenses) ? codeLenses.filter(o => o != null) : []
       this.tokenSource = undefined
-      if (token.isCancellationRequested) return
-      if (!Array.isArray(codeLenses) || codeLenses.length == 0) return
-      let hasError = codeLenses.some(o => o == null)
-      this.codeLenses = { version, codeLenses: codeLenses.filter(o => o != null), hasError }
+      if (token.isCancellationRequested || codeLenses.length == 0) return
+      this.codeLenses = { version, codeLenses }
     }
-    let codeLenses = this.codeLenses?.codeLenses
-    if (codeLenses?.length) {
-      await this._resolveCodeLenses()
-    }
+    await this._resolveCodeLenses()
   }
 
   /**
@@ -96,13 +89,12 @@ export default class CodeLensBuffer implements BufferSyncItem {
    */
   private async _resolveCodeLenses(): Promise<void> {
     if (!this.enabled || !this.codeLenses || this.isChanged) return
+    if (!workspace.has('nvim-0.4.0')) return
     let { codeLenses } = this.codeLenses
     let [bufnr, start, end] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$')]`) as [number, number, number]
     // only resolve current buffer
     if (this.isChanged || bufnr != this.bufnr) return
-    if (this.resolveTokenSource) {
-      this.resolveTokenSource.cancel()
-    }
+    if (this.resolveTokenSource) this.resolveTokenSource.cancel()
     codeLenses = codeLenses.filter(o => {
       let lnum = o.range.start.line + 1
       return lnum >= start && lnum <= end
@@ -114,7 +106,6 @@ export default class CodeLensBuffer implements BufferSyncItem {
       this.resolveTokenSource = undefined
       if (token.isCancellationRequested || this.isChanged) return
     }
-    if (!this.srcId) this.srcId = await this.nvim.createNamespace('coc-codelens')
     this.nvim.pauseNotification()
     this.clear(start - 1, end)
     this.setVirtualText(codeLenses)
@@ -122,7 +113,7 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   private get isChanged(): boolean {
-    if (!this.document || !this.codeLenses) return true
+    if (!this.codeLenses || this.document.dirty) return true
     let { version } = this.codeLenses
     return this.document.textDocument.version !== version
   }
@@ -161,69 +152,54 @@ export default class CodeLensBuffer implements BufferSyncItem {
       if (this.config.separator) {
         chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
       }
+      let { srcId } = this.config
       if (workspace.has('nvim-0.6.0')) {
-        let buf = this.nvim.createBuffer(this.bufnr)
-        if (lnum >= document.lineCount) continue
+        let buf = this.document.buffer
         let line = document.getline(lnum)
         if (position == 'top') {
           let indent = line.match(/^\s*/)[0]
           if (indent.length > 0) chunks.unshift([indent, 'Normal'])
-          buf.setExtMark(this.srcId, lnum, 0, {
+          buf.setExtMark(srcId, lnum, 0, {
             virt_lines: [chunks],
             virt_lines_above: true
           })
         } else {
-          buf.setExtMark(this.srcId, lnum, 0, {
+          buf.setExtMark(srcId, lnum, 0, {
             hl_mode: 'combine',
             virt_text: chunks,
             virt_text_pos: position
           })
         }
       } else {
-        this.nvim.call('nvim_buf_set_virtual_text', [this.bufnr, this.srcId, lnum, chunks, {}], true)
+        this.nvim.call('nvim_buf_set_virtual_text', [this.bufnr, srcId, lnum, chunks, {}], true)
       }
     }
   }
 
   public clear(start = 0, end = -1): void {
-    if (!this.srcId) return
+    let { srcId } = this.config
+    if (!srcId) return
     let buf = this.nvim.createBuffer(this.bufnr)
-    buf.clearNamespace(this.srcId, start, end)
-  }
-
-  public cleanUp(): void {
-    this.clear()
-    this.codeLenses = undefined
-  }
-
-  public getCodelenses(): CodeLens[] | undefined {
-    return this.codeLenses?.codeLenses
+    buf.clearNamespace(srcId, start, end)
   }
 
   public async doAction(line: number): Promise<void> {
-    let { codeLenses } = this.codeLenses ?? {}
-    if (!codeLenses?.length) return
-    let commands: Command[] = []
-    for (let codeLens of codeLenses) {
-      let { range, command } = codeLens
-      if (!command || !range) continue
-      if (line == range.start.line) {
-        commands.push(command)
-      }
-    }
-    if (!commands.length) return
+    let commands = getCommands(line, this.codeLenses?.codeLenses)
     if (commands.length == 1) {
       await commandManager.execute(commands[0])
-    } else {
+    } else if (commands.length > 1) {
       let res = await window.showMenuPicker(commands.map(c => c.title))
-      if (res == -1) return
-      await commandManager.execute(commands[res])
+      if (res != -1) await commandManager.execute(commands[res])
     }
   }
 
   private cancel(): void {
     this.resolveCodeLens.clear()
-    this.fetchCodelenses.clear()
+    if (this.resolveTokenSource) {
+      this.resolveTokenSource.cancel()
+      this.resolveTokenSource.dispose()
+      this.resolveTokenSource = null
+    }
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource.dispose()
@@ -232,8 +208,20 @@ export default class CodeLensBuffer implements BufferSyncItem {
   }
 
   public dispose(): void {
-    this.clear()
     this.cancel()
     this.codeLenses = undefined
   }
+}
+
+export function getCommands(line: number, codeLenses: CodeLens[] | undefined): Command[] {
+  if (!codeLenses?.length) return []
+  let commands: Command[] = []
+  for (let codeLens of codeLenses) {
+    let { range, command } = codeLens
+    if (!command) continue
+    if (line == range.start.line) {
+      commands.push(command)
+    }
+  }
+  return commands
 }

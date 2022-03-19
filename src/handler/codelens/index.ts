@@ -17,18 +17,19 @@ export default class CodeLensManager {
   public buffers: BufferSync<CodeLensBuffer>
   constructor(private nvim: Neovim) {
     this.setConfiguration()
+    this.nvim.createNamespace('coc-codelens').then(id => {
+      this.config.srcId = id
+    }).logError()
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
-      return new CodeLensBuffer(nvim, doc.bufnr, this.config)
+      return new CodeLensBuffer(nvim, doc, this.config)
     })
     this.disposables.push(this.buffers)
     this.listen()
   }
 
   private listen(): void {
-    // need neovim to work
-    if (!workspace.isNvim) return
     events.on('CursorMoved', bufnr => {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.resolveCodeLens()
