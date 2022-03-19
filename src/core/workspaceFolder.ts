@@ -1,4 +1,3 @@
-import fs from 'fs'
 import path from 'path'
 import { Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -94,7 +93,7 @@ export default class WorkspaceFolderController {
     if (ignoredFiletypes?.includes(document.filetype)) return null
     let curr = this.getWorkspaceFolder(URI.parse(document.uri))
     if (curr) return URI.parse(curr.uri).fsPath
-    ignored = Array.isArray(ignored) ? ignored.map(s => expand(s)) : []
+    ignored = Array.isArray(ignored) ? ignored.filter(s => s && s.length > 0).map(s => expand(s)) : []
     let res: string | null = null
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)

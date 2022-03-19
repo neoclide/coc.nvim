@@ -52,12 +52,16 @@ export function isFolderIgnored(folder: string, ignored: string[] = []): boolean
 
 export function resolveRoot(folder: string, subs: string[], cwd?: string, bottomup = false, checkCwd = true, ignored: string[] = []): string | null {
   let dir = fixDriver(folder)
-  if (checkCwd && cwd && isParentFolder(cwd, dir, true) && !isFolderIgnored(cwd, ignored) && inDirectory(cwd, subs)) return cwd
+  if (checkCwd
+    && cwd
+    && isParentFolder(cwd, dir, true)
+    && !isFolderIgnored(cwd, ignored)
+    && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
   if (bottomup) {
     while (parts.length > 0) {
       let dir = parts.join(path.sep)
-      if (!ignored.includes(dir) && inDirectory(dir, subs)) {
+      if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) {
         return dir
       }
       parts.pop()
@@ -68,7 +72,7 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string, bottom
     for (let part of parts) {
       curr.push(part)
       let dir = curr.join(path.sep)
-      if (!ignored.includes(dir) && inDirectory(dir, subs)) {
+      if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) {
         return dir
       }
     }

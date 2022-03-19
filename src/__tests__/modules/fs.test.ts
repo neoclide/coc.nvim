@@ -142,6 +142,16 @@ describe('fs', () => {
       expect(res).toMatch('coc.nvim')
     })
 
+    it('should ignore glob pattern', () => {
+      let res = resolveRoot(__dirname, [path.basename(__filename)], undefined, false, false, ["**/__tests__/**"])
+      expect(res).toBeFalsy()
+    })
+
+    it('should ignore glob pattern bottom up', () => {
+      let res = resolveRoot(__dirname, [path.basename(__filename)], undefined, true, false, ["**/__tests__/**"])
+      expect(res).toBeFalsy()
+    })
+
     it('should resolve from parent folders', () => {
       let root = path.resolve(__dirname, '../extensions/snippet-sample')
       let res = resolveRoot(root, ['package.json'])
