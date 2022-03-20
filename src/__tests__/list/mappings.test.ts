@@ -83,41 +83,97 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-beforeEach(async () => {
-  let m = await nvim.mode
-  if (m.blocking) {
-    console.error('nvim blocking', m)
-  }
-})
-
 afterEach(async () => {
   manager.reset()
   await helper.reset()
 })
 
-describe('list normal mappings', () => {
-  it('should tabopen by t', async () => {
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    await helper.wait(100)
-    let nr = await nvim.call('tabpagenr')
-    expect(nr).toBe(2)
+describe('isValidAction()', () => {
+  it('should check invalid action', async () => {
+    let mappings = manager.mappings
+    expect(mappings.isValidAction('foo')).toBe(false)
+    expect(mappings.isValidAction('do:switch')).toBe(true)
+    expect(mappings.isValidAction('eval:@*')).toBe(true)
+    expect(mappings.isValidAction('undefined:undefined')).toBe(false)
+  })
+})
+
+describe('doAction()', () => {
+  it('should throw when action not found', async () => {
+    let mappings = manager.mappings
+    let fn = async () => {
+      await mappings.doAction('foo:bar')
+    }
+    await expect(fn()).rejects.toThrow(/not exists/)
   })
 
-  it('should open by <cr>', async () => {
+  it('should not throw when session not exists', async () => {
+    let mappings = manager.mappings
+    await mappings.doAction('do:selectall')
+    await mappings.doAction('do:help')
+    await mappings.doAction('do:refresh')
+    await mappings.doAction('do:toggle')
+    await mappings.doAction('do:jumpback')
+    await mappings.doAction('prompt:previous')
+    await mappings.doAction('prompt:next')
+    await mappings.doAction('do:refresh')
+  })
+
+  it('should not throw when action name not exists', async () => {
+    await helper.mockFunction('MyExpr', '')
+    let mappings = manager.mappings
+    await mappings.doAction('expr', 'MyExpr')
+  })
+})
+
+describe('getAction()', () => {
+  it('should throw for invalid action', async () => {
+    let mappings = manager.mappings
+    let fn = () => {
+      mappings.getAction('foo')
+    }
+    expect(fn).toThrow(Error)
+    fn = () => {
+      mappings.getAction('do:bar')
+    }
+    expect(fn).toThrow(Error)
+  })
+})
+
+describe('Default normal mappings', () => {
+  it('should invoke action', async () => {
+    await manager.start(['--normal', '--no-quit', 'location'])
+    await manager.session.ui.ready
+    let winid = manager.session.ui.winid
+    await helper.listInput('t')
+    let nr = await nvim.call('tabpagenr')
+    expect(nr).toBe(2)
+    await nvim.call('win_gotoid', [winid])
+    await helper.listInput('s')
+    let winnr = await nvim.call('winnr', ['$'])
+    expect(winnr).toBe(3)
+    await nvim.call('win_gotoid', [winid])
+    await helper.listInput('d')
+    let filename = await nvim.call('expand', ['%'])
+    expect(filename).toMatch(path.basename(__filename))
+    await nvim.call('win_gotoid', [winid])
+    await helper.listInput('<cr>')
+    filename = await nvim.call('expand', ['%'])
+    expect(filename).toMatch(path.basename(__filename))
+  })
+
+  it('should select all items by <C-a>', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.listInput('<cr>')
-    let bufname = await nvim.call('expand', ['%:p'])
-    expect(bufname).toMatch('mappings.test.ts')
+    await helper.listInput('<C-a>')
+    let selected = manager.session?.ui.selectedItems
+    expect(selected.length).toBe(locations.length)
   })
 
   it('should stop by <C-c>', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput('<C-c>')
-    await helper.wait(50)
     let loading = manager.session?.worker.isLoading
     expect(loading).toBe(false)
   })
@@ -127,7 +183,6 @@ describe('list normal mappings', () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput('<C-o>')
-    await helper.wait(50)
     let bufnr = await nvim.call('bufnr', ['%'])
     expect(bufnr).toBe(doc.bufnr)
   })
@@ -151,9 +206,7 @@ describe('list normal mappings', () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput(':')
-    await helper.wait(50)
     await nvim.eval('feedkeys("let g:x = 1\\<cr>", "in")')
-    await helper.wait(50)
     let res = await nvim.getVar('x')
     expect(res).toBe(1)
   })
@@ -161,10 +214,10 @@ describe('list normal mappings', () => {
   it('should select action by <tab>', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    void helper.listInput('<tab>')
-    await helper.wait(100)
+    let p = helper.listInput('<tab>')
+    await helper.wait(50)
     await nvim.input('t')
-    await helper.wait(100)
+    await p
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
   })
@@ -173,7 +226,6 @@ describe('list normal mappings', () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput('p')
-    await helper.wait(50)
     let winnr = await nvim.call('coc#list#has_preview')
     expect(winnr).toBe(2)
   })
@@ -181,7 +233,7 @@ describe('list normal mappings', () => {
   it('should stop task by <C-c>', async () => {
     disposables.push(manager.registerList(new TestList(nvim)))
     let p = manager.start(['--normal', 'test'])
-    await helper.wait(100)
+    await helper.wait(50)
     await nvim.input('<C-c>')
     await p
     let len = manager.session?.ui.length
@@ -192,7 +244,6 @@ describe('list normal mappings', () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<esc>", "in")')
-    await helper.wait(100)
     expect(manager.isActivated).toBe(false)
   })
 
@@ -207,14 +258,6 @@ describe('list normal mappings', () => {
     await helper.wait(30)
     let line = await nvim.line
     expect(line).toMatch('new')
-  })
-
-  it('should select all items by <C-a>', async () => {
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-a>')
-    let selected = manager.session?.ui.selectedItems
-    expect(selected.length).toBe(locations.length)
   })
 
   it('should toggle selection <space>', async () => {
@@ -249,24 +292,6 @@ describe('list normal mappings', () => {
     await helper.listInput('?')
     let bufname = await nvim.call('bufname', '%')
     expect(bufname).toBe('[LIST HELP]')
-  })
-
-  it('should drop by d', async () => {
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('d')
-    await helper.wait(50)
-    let nr = await nvim.call('tabpagenr')
-    expect(nr).toBe(1)
-  })
-
-  it('should split by s', async () => {
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('s')
-    await helper.wait(50)
-    let nr = await nvim.call('winnr')
-    expect(nr).toBe(1)
   })
 })
 
@@ -313,10 +338,10 @@ describe('list insert mappings', () => {
   it('should select action by insert <tab>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
-    void helper.listInput('<tab>')
+    let p = helper.listInput('<tab>')
     await helper.wait(50)
     await nvim.input('d')
-    await helper.wait(50)
+    await p
     let bufname = await nvim.call('bufname', ['%'])
     expect(bufname).toMatch(path.basename(__filename))
   })
@@ -361,9 +386,7 @@ describe('list insert mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<down>", "in")')
-    await helper.wait(50)
     await nvim.eval('feedkeys("\\<up>", "in")')
-    await helper.wait(50)
     expect(manager.isActivated).toBe(true)
     let line = await nvim.line
     expect(line).toMatch('foo')
@@ -405,7 +428,6 @@ describe('list insert mappings', () => {
   it('should scroll window by <C-f> and <C-b>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
-    await helper.wait(30)
     await helper.listInput('<C-f>')
     await helper.listInput('<C-b>')
   })
@@ -415,12 +437,11 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('f')
     await helper.listInput('<backspace>')
-    await helper.wait(30)
     let input = manager.prompt.input
     expect(input).toBe('')
   })
 
-  it('should change input by <C-x>', async () => {
+  it('should change input by <C-b>', async () => {
     let revert = helper.updateConfiguration('list.insertMappings', {
       '<C-b>': 'prompt:removetail',
     })
@@ -431,7 +452,7 @@ describe('list insert mappings', () => {
     await helper.listInput('o')
     await helper.listInput('<C-a>')
     await helper.listInput('<C-b>')
-    await helper.wait(30)
+    expect(manager.mappings.hasUserMapping('insert', '<C-b>')).toBe(true)
     let input = manager.prompt.input
     revert()
     expect(input).toBe('')
@@ -501,37 +522,13 @@ describe('list insert mappings', () => {
 })
 
 describe('evalExpression', () => {
-  it('should throw for bad expression', async () => {
-    let revert = helper.updateConfiguration('list.normalMappings', {
-      t: 'expr',
-    })
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    await helper.wait(30)
-    revert()
-    let msg = await helper.getCmdline()
-    expect(msg).toMatch('Invalid list mapping expression')
-  })
-
-  it('should show help', async () => {
-    helper.updateConfiguration('list.normalMappings', {
-      t: 'do:help',
-    })
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    await helper.wait(30)
-    let bufname = await nvim.call('bufname', ['%'])
-    expect(bufname).toMatch('[LIST HELP]')
-  })
-
   it('should exit list', async () => {
     helper.updateConfiguration('list.normalMappings', {
       t: 'do:exit',
     })
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
+    expect(manager.mappings.hasUserMapping('normal', 't')).toBe(true)
     await helper.listInput('t')
     expect(manager.isActivated).toBe(false)
   })
@@ -545,18 +542,6 @@ describe('evalExpression', () => {
     await helper.listInput('t')
     let res = await nvim.call('coc#prompt#activated')
     expect(res).toBe(0)
-  })
-
-  it('should jump back', async () => {
-    let doc = await helper.createDocument()
-    helper.updateConfiguration('list.normalMappings', {
-      t: 'do:jumpback',
-    })
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    let bufnr = await nvim.call('bufnr', ['%'])
-    expect(bufnr).toBe(doc.bufnr)
   })
 
   it('should invoke normal command', async () => {
@@ -591,42 +576,6 @@ describe('evalExpression', () => {
     revert()
     expect(manager.isActivated).toBe(true)
   })
-
-  it('should show error when action not exists', async () => {
-    helper.updateConfiguration('list.normalMappings', {
-      t: 'do:invalid',
-    })
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    await helper.wait(10)
-    let cmd = await helper.getCmdline()
-    expect(cmd).toMatch('not supported')
-  })
-
-  it('should show error when prompt action not exists', async () => {
-    helper.updateConfiguration('list.normalMappings', {
-      t: 'prompt:invalid',
-    })
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    await helper.wait(10)
-    let cmd = await helper.getCmdline()
-    expect(cmd).toMatch('not supported')
-  })
-
-  it('should show error for invalid expression ', async () => {
-    helper.updateConfiguration('list.normalMappings', {
-      t: 'x:y',
-    })
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    await helper.wait(10)
-    let cmd = await helper.getCmdline()
-    expect(cmd).toMatch('Invalid expression')
-  })
 })
 
 describe('User mappings', () => {
@@ -638,14 +587,21 @@ describe('User mappings', () => {
     let msg = await helper.getCmdline()
     revert()
     await nvim.command('echo ""')
-    expect(msg).toMatch('Invalid list mappings key')
+    expect(msg).toMatch('Invalid configuration')
     revert = helper.updateConfiguration('list.insertMappings', {
       '<M-x>': 'action:tabe',
     })
     await helper.wait(30)
     msg = await helper.getCmdline()
     revert()
-    expect(msg).toMatch('Invalid list mappings key')
+    expect(msg).toMatch('Invalid configuration')
+    revert = helper.updateConfiguration('list.insertMappings', {
+      '<C-a>': 'foo:bar',
+    })
+    await helper.wait(30)
+    msg = await helper.getCmdline()
+    revert()
+    expect(msg).toMatch('Invalid configuration')
   })
 
   it('should execute action keymap', async () => {
@@ -655,7 +611,6 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-d>')
-    await helper.wait(50)
     let buftype = await nvim.eval('&buftype')
     expect(buftype).toBe('quickfix')
     revert()
@@ -672,71 +627,41 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-t>')
-    await helper.wait(50)
     let buftype = await nvim.eval('&buftype')
     expect(buftype).toBe('quickfix')
     await nvim.command('close')
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput('t')
-    await helper.wait(50)
     buftype = await nvim.eval('&buftype')
     expect(buftype).toBe('quickfix')
   })
 
   it('should execute do mappings', async () => {
-    helper.updateConfiguration('list.previousKeymap', '<c-j>')
-    helper.updateConfiguration('list.nextKeymap', '<c-k>')
+    helper.updateConfiguration('list.previousKeymap', '<C-j>')
+    helper.updateConfiguration('list.nextKeymap', '<C-k>')
     helper.updateConfiguration('list.insertMappings', {
-      '<C-r>': 'do:refresh',
-      '<C-a>': 'do:selectall',
-      '<C-s>': 'do:switch',
-      '<C-l>': 'do:cancel',
-      '<C-t>': 'do:toggle',
       '<C-n>': 'do:next',
       '<C-p>': 'do:previous',
-      '<C-x>': 'do:defaultaction',
-      '<C-h>': 'do:help',
       '<C-d>': 'do:exit',
-      '<C-b>': 'do:toggleMode'
     })
     await manager.start(['location'])
     await manager.session.ui.ready
-    await helper.listInput('<C-r>')
-    expect(manager.isActivated).toBe(true)
-    await helper.listInput('<C-a>')
-    await helper.wait(30)
-    expect(manager.session?.ui.selectedItems.length).toBe(locations.length)
-    await helper.listInput('<C-s>')
-    expect(manager.session?.listOptions.matcher).toBe('strict')
     await helper.listInput('<C-n>')
     let item = await manager.session?.ui.item
     expect(item.label).toMatch(locations[1].text)
     await helper.listInput('<C-p>')
     item = await manager.session?.ui.item
     expect(item.label).toMatch(locations[0].text)
-    await helper.listInput('<C-x>')
-    expect(manager.isActivated).toBe(false)
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-l>')
-    let res = await nvim.call('coc#prompt#activated')
-    expect(res).toBe(0)
-    await manager.session.hide()
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('?')
-    await helper.listInput('<cr>')
-    await manager.cancel()
-    await manager.start(['location'])
-    await manager.session.ui.ready
+    await helper.listInput('<C-k>')
+    item = await manager.session?.ui.item
+    expect(item.label).toMatch(locations[1].text)
+    await helper.listInput('<C-j>')
+    item = await manager.session?.ui.item
+    expect(item.label).toMatch(locations[0].text)
     await helper.listInput('<C-d>')
     expect(manager.isActivated).toBe(false)
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-b>')
-    expect(manager.isActivated).toBe(true)
-  }, 20000)
+  })
 
   it('should execute prompt mappings', async () => {
     helper.updateConfiguration('list.insertMappings', {

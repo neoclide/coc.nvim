@@ -29,9 +29,9 @@ const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'
 export class ListManager implements Disposable {
   public prompt: Prompt
   public config: ListConfiguration
+  public mappings: Mappings
   private nvim: Neovim
   private plugTs = 0
-  private mappings: Mappings
   private sessionsMap: Map<string, ListSession> = new Map()
   private lastSession: ListSession | undefined
   private disposables: Disposable[] = []
@@ -334,7 +334,10 @@ export class ListManager implements Disposable {
     if (n) return
     let done = await this.mappings.doInsertKeymap(ch)
     if (done || charmod) return
-    if (ch.startsWith('<') && ch.endsWith('>')) return
+    if (ch.startsWith('<') && ch.endsWith('>')) {
+      await this.feedkeys(ch, false)
+      return
+    }
     for (let s of ch) {
       let code = s.codePointAt(0)
       if (code == 65533) return
