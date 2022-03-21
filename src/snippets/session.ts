@@ -396,7 +396,7 @@ export class SnippetSession {
     if (ultisnip) context = Object.assign({ range: Range.create(position, position), line }, ultisnip)
     const resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
     let snippet = new CocSnippet(snippetString, position, nvim, resolver)
-    await snippet.init(context, false)
+    await snippet.init(context, true)
     return snippet.text
   }
 }

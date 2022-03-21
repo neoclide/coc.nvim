@@ -165,6 +165,10 @@ export class SnippetManager {
   }
 
   public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
+    if (ultisnip) {
+      let session = this.getSession(workspace.bufnr)
+      ultisnip.noPython = session != null && session.snippet.hasPython
+    }
     return await SnippetSession.resolveSnippet(workspace.nvim, snippetString, ultisnip)
   }
 

@@ -23,6 +23,10 @@ export interface UltiSnippetContext {
    * Regex trigger (python code)
    */
   regex?: string
+  /**
+   * Avoid python code eval when is true.
+   */
+  noPython?: boolean
 }
 
 /**

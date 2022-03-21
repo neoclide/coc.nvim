@@ -13,6 +13,8 @@ let doc: Document
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  let pyfile = path.join(__dirname, '../ultisnips.py')
+  await nvim.command(`execute 'pyxfile '.fnameescape('${pyfile}')`)
 })
 
 afterAll(async () => {
@@ -243,12 +245,20 @@ describe('snippet provider', () => {
 
   describe('resolveSnippet()', () => {
     it('should resolve snippet text', async () => {
-      let pyfile = path.join(__dirname, '../ultisnips.py')
-      await nvim.command(`execute 'pyxfile '.fnameescape('${pyfile}')`)
       let snippet = await snippetManager.resolveSnippet('${1:foo}')
       expect(snippet.toString()).toBe('foo')
       snippet = await snippetManager.resolveSnippet('${1:foo} ${2:`!p snip.rv = "foo"`}', {})
       expect(snippet.toString()).toBe('foo foo')
+    })
+
+    it('should avoid python resolve when necessary', async () => {
+      await nvim.command('startinsert')
+      let res = await snippetManager.insertSnippet('${1:foo} `!p snip.rv = t[1]`', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
+      expect(res).toBe(true)
+      let snippet = await snippetManager.resolveSnippet('${1:x} `!p snip.rv= t[1]`', {})
+      expect(snippet.toString()).toBe('x ')
+      res = await nvim.call('pyxeval', 't[1]')
+      expect(res).toBe('foo')
     })
   })
 

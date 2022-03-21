@@ -247,6 +247,7 @@ export interface Autocmd {
 export interface UltiSnippetOption {
   regex?: string
   context?: string
+  noPython?: boolean
 }
 
 export interface IWorkspace {

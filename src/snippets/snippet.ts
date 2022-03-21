@@ -34,15 +34,28 @@ export class CocSnippet {
   ) {
   }
 
-  public async init(ultisnip?: UltiSnippetContext, clear = true): Promise<void> {
+  public async init(ultisnip?: UltiSnippetContext, isResolve = false): Promise<void> {
     const parser = new Snippets.SnippetParser(!!ultisnip)
     const snippet = parser.parse(this.snippetString, true)
     this.tmSnippet = snippet
     await this.resolve(ultisnip)
     this.sychronize()
-    if (clear) {
+    if (!isResolve) {
       this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
       this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
+    }
+  }
+
+  private async resolve(ultisnip?: UltiSnippetContext): Promise<void> {
+    let { snippet } = this.tmSnippet
+    let { resolver, nvim } = this
+    if (resolver) {
+      await snippet.resolveVariables(resolver)
+    }
+    if (ultisnip && ultisnip.noPython !== true) {
+      let pyCodes: string[] = []
+      if (snippet.hasPython) pyCodes = preparePythonCodes(ultisnip)
+      await snippet.evalCodeBlocks(nvim, pyCodes)
     }
   }
 
@@ -91,17 +104,8 @@ export class CocSnippet {
     return res
   }
 
-  private async resolve(ultisnip?: UltiSnippetContext): Promise<void> {
-    let { snippet } = this.tmSnippet
-    let { resolver, nvim } = this
-    if (resolver) {
-      await snippet.resolveVariables(resolver)
-    }
-    if (ultisnip) {
-      let pyCodes: string[] = []
-      if (snippet.hasPython) pyCodes = preparePythonCodes(ultisnip)
-      await snippet.evalCodeBlocks(nvim, pyCodes)
-    }
+  public get hasPython(): boolean {
+    return this.tmSnippet.pyBlocks.length > 0
   }
 
   public resetStartPosition(pos: Position): void {

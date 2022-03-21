@@ -244,7 +244,9 @@ describe('Default normal mappings', () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<esc>", "in")')
-    expect(manager.isActivated).toBe(false)
+    await helper.waitValue(() => {
+      return manager.isActivated
+    }, false)
   })
 
   it('should reload list by <C-l>', async () => {

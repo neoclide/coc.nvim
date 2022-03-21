@@ -520,9 +520,7 @@ describe('completion TextChangedP', () => {
     let idx = items.findIndex(o => o.word == 'do' && o.menu == '[edit]')
     await helper.selectCompleteItem(idx)
     await helper.waitFor('getline', ['.'], 'bar do')
-    let [, lnum, col] = await nvim.call('getcurpos')
-    expect(lnum).toBe(1)
-    expect(col).toBe(7)
+    await helper.waitFor('col', ['.'], 7)
   })
 
   it('should fix cursor position with nested snippet on additionalTextEdits', async () => {
@@ -548,7 +546,6 @@ describe('completion TextChangedP', () => {
   })
 
   it('should fix cursor position and keep placeholder with snippet on additionalTextEdits', async () => {
-    let doc = await helper.createDocument()
     let text = 'foo0bar1'
     await nvim.setLine(text)
     let provider: CompletionItemProvider = {
