@@ -20,11 +20,11 @@ export class SnippetManager {
   private preferComplete: boolean
 
   constructor() {
-    events.on(['TextChanged', 'TextChangedI'], bufnr => {
+    events.on(['TextChanged', 'TextChangedI', 'TextChangedP'], bufnr => {
       let session = this.getSession(bufnr as number)
       if (session) session.sychronize()
     }, null, this.disposables)
-    events.on(['MenuPopupChanged', 'InsertCharPre'], () => {
+    events.on('InsertCharPre', () => {
       // avoid update session when pumvisible
       // Update may cause completion unexpcted terminated.
       this.session?.cancel()

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../completion'
 import events from '../events'
 import Document from '../model/document'
@@ -258,10 +258,8 @@ export class SnippetSession {
   public sychronize(): void {
     this.cancel()
     this.timer = setTimeout(async () => {
-      if (events.pumvisible) return
       let { document } = this
-      if (!document || !document.attached) return
-      if (document.dirty) return this.sychronize()
+      if (!document || !document.attached || document.dirty) return
       try {
         await this._synchronize()
       } catch (e) {
@@ -328,13 +326,13 @@ export class SnippetSession {
       return
     }
     let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token)
-    if (document.dirty && !tokenSource.token.isCancellationRequested) {
+    if (!res || !this.document) return
+    if (shouldCancel(tokenSource.token, document, res.delta)) {
       tokenSource.cancel()
       tokenSource.dispose()
       return
     }
     tokenSource.dispose()
-    if (!res || !this.document) return
     this.current = placeholder.marker
     if (res.text !== inserted) {
       let edit = reduceTextEdit({
@@ -347,10 +345,10 @@ export class SnippetSession {
       if (delta.line != 0 || delta.character != 0) {
         this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
       }
+      this.nvim.redrawVim()
     } else {
       this.highlights(placeholder)
     }
-    this.nvim.redrawVim()
     logger.debug('update cost:', Date.now() - start, res.delta)
     this.textDocument = this.document.textDocument
   }
@@ -399,4 +397,11 @@ export class SnippetSession {
     await snippet.init(context, true)
     return snippet.text
   }
+}
+
+export function shouldCancel(token: CancellationToken, document: Document, delta: Position): boolean {
+  if (token.isCancellationRequested) return false
+  if (document.dirty) return true
+  if (events.pumvisible && (delta.line != 0 || delta.character != 0)) return true
+  return false
 }

@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Position, Range } from 'vscode-languageserver-protocol'
 import { UltiSnippetContext } from '../../snippets/eval'
-import { SnippetSession } from '../../snippets/session'
+import { SnippetSession, shouldCancel } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -508,6 +508,18 @@ describe('SnippetSession', () => {
       let val = await nvim.eval('g:coc#_context') as any
       expect(val.start).toBe(0)
       expect(val.candidates).toEqual(['one', 'two', 'three'])
+    })
+  })
+
+  describe('shouldCancel()', () => {
+    it('should check cancel', async () => {
+      let doc = await workspace.document
+      let tokenSource = new CancellationTokenSource()
+      tokenSource.cancel()
+      expect(shouldCancel(tokenSource.token, doc, Position.create(0, 0))).toBe(false)
+      await nvim.setLine('foo')
+      tokenSource = new CancellationTokenSource()
+      expect(shouldCancel(tokenSource.token, doc, Position.create(0, 0))).toBe(true)
     })
   })
 })
