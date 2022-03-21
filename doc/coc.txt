@@ -3453,7 +3453,8 @@ The mapping expression should be `command:arguments`, available commands:
 	'togglemode'    - toggle between insert and normal mode.
 	'previous'      - move cursor to previous item.
 	'next'          - move cursor to next item.
-	'defaultaction' - do default action for selected items or current item.
+	'defaultaction' - do default action for selected item(s).
+	'chooseaction'  - choose action for selected item(s).
 	'jumpback'      - stop prompt and jump back to original window.
 	'previewtoggle' - toggle preview window, requires preview action exists.
 	'previewup'     - scroll preview window up.
@@ -3470,6 +3471,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'deletebackward' - remove next character.
 	'removetail'     - remove characters afterwards.
 	'removeahead'    - remove character ahead.
+	'removeword'     - remove word before cursor.
 	'insertregister' - insert content from Vim register.
 	'paste'          - append text from system clipboard to prompt.
 'eval'     - append text to prompt from result of VimL expression.
