@@ -1,29 +1,29 @@
 import { debounce } from 'debounce'
-import { parse, ParseError } from 'jsonc-parser'
 import fs from 'fs-extra'
 import isuri from 'isuri'
+import { parse, ParseError } from 'jsonc-parser'
 import path from 'path'
 import semver from 'semver'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import commandManager from './commands'
+import Watchman from './core/watchman'
 import events from './events'
 import DB from './model/db'
 import FloatFactory from './model/floatFactory'
 import InstallBuffer from './model/installBuffer'
 import { createInstallerFactory } from './model/installer'
 import Memos from './model/memos'
-import { disposeAll, wait, concurrent, watchFile } from './util'
+import { OutputChannel } from './types'
+import { concurrent, disposeAll, wait, watchFile } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
 import { inDirectory, readFile, statAsync } from './util/fs'
 import { objectLiteral } from './util/is'
-import Watchman from './core/watchman'
-import workspace from './workspace'
 import window from './window'
-import { OutputChannel } from './types'
+import workspace from './workspace'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -110,7 +110,7 @@ export class Extensions {
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
   constructor() {
-    let folder = global.hasOwnProperty('__TEST__') ? path.join(__dirname, '__tests__') : process.env.COC_DATA_HOME
+    let folder = global.__TEST__ ? path.join(__dirname, '__tests__') : process.env.COC_DATA_HOME
     let root = this.root = path.join(folder, 'extensions')
     let checked = this.checkRoot(root)
     if (checked) {
@@ -205,7 +205,7 @@ export class Extensions {
         await floatFactory.show(docs, { modes: ['n'] })
       }
     }, 500))
-    if (global.hasOwnProperty('__TEST__')) return
+    if (global.__TEST__) return
     // check extensions need watch & install
     this.checkExtensions().logError()
     let config = workspace.getConfiguration('coc.preferences')
@@ -1031,7 +1031,7 @@ export class Extensions {
   }
 
   private get modulesFolder(): string {
-    return path.join(this.root, global.hasOwnProperty('__TEST__') ? '' : 'node_modules')
+    return path.join(this.root, global.__TEST__ ? '' : 'node_modules')
   }
 
   private canActivate(id: string): boolean {

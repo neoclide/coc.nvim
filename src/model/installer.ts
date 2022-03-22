@@ -1,16 +1,18 @@
-import { EventEmitter } from 'events'
 import { spawn } from 'child_process'
-import { parse, ParseError } from 'jsonc-parser'
-import readline from 'readline'
+import { EventEmitter } from 'events'
 import fs from 'fs-extra'
+import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
 import path from 'path'
+import readline from 'readline'
 import semver from 'semver'
+import { statAsync } from '../util/fs'
+import { omit } from '../util/lodash'
 import workspace from '../workspace'
 import download from './download'
 import fetch from './fetch'
-import { statAsync } from '../util/fs'
 const logger = require('../util/logger')('model-installer')
+const HOME_DIR = global.__TEST__ ? os.tmpdir() : os.homedir()
 
 export interface Info {
   'dist.tarball'?: string
@@ -19,9 +21,11 @@ export interface Info {
   name?: string
 }
 
-function registryUrl(scope = 'coc.nvim'): string {
+export type Dependencies = Record<string, string>
+
+export function registryUrl(scope = 'coc.nvim'): string {
   let res = 'https://registry.npmjs.org/'
-  let filepath = path.join(os.homedir(), '.npmrc')
+  let filepath = path.join(HOME_DIR, '.npmrc')
   if (fs.existsSync(filepath)) {
     try {
       let content = fs.readFileSync(filepath, 'utf8')
@@ -44,6 +48,54 @@ function registryUrl(scope = 'coc.nvim'): string {
   return res.endsWith('/') ? res : res + '/'
 }
 
+export function isNpmComand(exePath: string): boolean {
+  let name = path.basename(exePath)
+  return name === 'npm' || name === 'npm.CMD'
+}
+
+export function isYarn(exePath: string) {
+  let name = path.basename(exePath)
+  return ['yarn', 'yarn.CMD', 'yarnpkg', 'yarnpkg.CMD'].includes(name)
+}
+
+export function getInstallArguments(exePath: string, url: string): string[] {
+  let args = ['install', '--ignore-scripts', '--no-lockfile', '--production']
+  if (url.startsWith('https://github.com')) {
+    args = ['install']
+  }
+  if (isNpmComand(exePath)) {
+    args.push('--legacy-peer-deps')
+    args.push('--no-global')
+  }
+  if (isYarn(exePath)) {
+    args.push('--ignore-engines')
+  }
+  return args
+}
+
+// remove properties that should be devDependencies.
+export function getDependencies(content: string): Dependencies {
+  let dependencies: Dependencies
+  try {
+    let obj = JSON.parse(content)
+    dependencies = obj.dependencies || {}
+  } catch (e) {
+    // noop
+    dependencies = {}
+  }
+  return omit(dependencies, ['coc.nvim', 'esbuild', 'webpack', '@types/node'])
+}
+
+function isSymbolicLink(folder: string): boolean {
+  if (fs.existsSync(folder)) {
+    let stat = fs.lstatSync(folder)
+    if (stat.isSymbolicLink()) {
+      return true
+    }
+  }
+  return false
+}
+
 export class Installer extends EventEmitter {
   private name: string
   private url: string
@@ -59,25 +111,12 @@ export class Installer extends EventEmitter {
     if (/^https?:/.test(def)) {
       this.url = def
     } else {
-      if (def.startsWith('@')) {
-        // @author/package
-        const idx = def.indexOf('@', 1)
-        if (idx > 1) {
-          // @author/package@1.0.0
-          this.name = def.substring(0, idx)
-          this.version = def.substring(idx + 1)
-        } else {
-          this.name = def
-        }
+      let ms = def.match(/(.+)@([^/]+)$/)
+      if (ms) {
+        this.name = ms[1]
+        this.version = ms[2]
       } else {
-        if (def.includes('@')) {
-          // name@1.0.0
-          let [name, version] = def.split('@', 2)
-          this.name = name
-          this.version = version
-        } else {
-          this.name = def
-        }
+        this.name = def
       }
     }
   }
@@ -102,8 +141,7 @@ export class Installer extends EventEmitter {
   public async update(url?: string): Promise<string> {
     this.url = url
     let folder = path.join(this.root, this.name)
-    let stat = await fs.lstat(folder)
-    if (stat.isSymbolicLink()) {
+    if (isSymbolicLink(folder)) {
       this.log(`Skipped update for symbol link`)
       return
     }
@@ -124,42 +162,23 @@ export class Installer extends EventEmitter {
     }
     await this.doInstall(info)
     let jsonFile = path.join(this.root, info.name, 'package.json')
-    if (fs.existsSync(jsonFile)) {
-      this.log(`Updated to v${info.version}`)
-      return path.dirname(jsonFile)
-    } else {
-      throw new Error(`Package.json not found: ${jsonFile}`)
-    }
+    this.log(`Updated to v${info.version}`)
+    return path.dirname(jsonFile)
   }
 
-  private async doInstall(info: Info): Promise<void> {
+  public async doInstall(info: Info): Promise<boolean> {
     let folder = path.join(this.root, info.name)
-    if (fs.existsSync(folder)) {
-      let stat = fs.statSync(folder)
-      if (!stat.isDirectory()) {
-        this.log(`${folder} is not directory skipped install`)
-        return
-      }
-    }
+    if (isSymbolicLink(folder)) return false
     let tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), `${info.name.replace('/', '-')}-`))
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     await download(url, { dest: tmpFolder, onProgress: p => this.log(`Download progress ${p}%`, true), extract: 'untar' })
     this.log(`Extension download at ${tmpFolder}`)
     let content = await fs.readFile(path.join(tmpFolder, 'package.json'), 'utf8')
-    let { dependencies } = JSON.parse(content)
-    if (dependencies && Object.keys(dependencies).length) {
+    let dependencies = getDependencies(content)
+    if (Object.keys(dependencies).length) {
       let p = new Promise<void>((resolve, reject) => {
-        let args = ['install', '--ignore-scripts', '--no-lockfile', '--production', '--no-global']
-        if (url.startsWith('https://github.com')) {
-          args = ['install']
-        }
-        if ((this.npm.endsWith('npm') || this.npm.endsWith('npm.CMD')) && !this.npm.endsWith('pnpm')) {
-          args.push('--legacy-peer-deps')
-        }
-        if (this.npm.endsWith('yarn')) {
-          args.push('--ignore-engines')
-        }
+        let args = getInstallArguments(this.npm, url)
         this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
         const child = spawn(this.npm, args, {
           cwd: tmpFolder,
@@ -188,8 +207,9 @@ export class Installer extends EventEmitter {
       })
       await p
     }
-    let jsonFile = path.resolve(this.root, global.hasOwnProperty('__TEST__') ? '' : '..', 'package.json')
+    let jsonFile = path.resolve(this.root, global.__TEST__ ? '' : '..', 'package.json')
     let errors: ParseError[] = []
+    if (!fs.existsSync(jsonFile)) fs.writeFileSync(jsonFile, '{}')
     let obj = parse(fs.readFileSync(jsonFile, 'utf8'), errors, { allowTrailingComma: true })
     if (errors && errors.length > 0) {
       throw new Error(`Error on load ${jsonFile}`)
@@ -214,11 +234,13 @@ export class Installer extends EventEmitter {
     }
     await fs.move(tmpFolder, folder, { overwrite: true })
     await fs.writeFile(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
+    if (fs.existsSync(tmpFolder)) fs.rmdirSync(tmpFolder)
     this.log(`Update package.json at ${jsonFile}`)
     this.log(`Installed extension ${this.name}@${info.version} at ${folder}`)
+    return true
   }
 
-  private async getInfo(): Promise<Info> {
+  public async getInfo(): Promise<Info> {
     if (this.url) return await this.getInfoFromUri()
     let registry = registryUrl()
     this.log(`Get info from ${registry}`)
@@ -239,9 +261,9 @@ export class Installer extends EventEmitter {
     } as Info
   }
 
-  private async getInfoFromUri(): Promise<Info> {
+  public async getInfoFromUri(): Promise<Info> {
     let { url } = this
-    if (!url.includes('github.com')) {
+    if (!url.startsWith('https://github.com')) {
       throw new Error(`"${url}" is not supported, coc.nvim support github.com only`)
     }
     url = url.replace(/\/$/, '')
