@@ -6,13 +6,13 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { UltiSnippetOption } from '../types'
 import { equals } from '../util/object'
-import { comparePosition, positionInRange, rangeInRange } from '../util/position'
+import { comparePosition, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
-import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEnd, getEndPosition, getParts, reduceTextEdit } from "./snippet"
+import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEndPosition, getParts, reduceTextEdit } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
 const NAME_SPACE = 'snippets'

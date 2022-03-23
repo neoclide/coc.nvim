@@ -87,3 +87,15 @@ export function getChangedFromEdits(start: Position, edits: TextEdit[]): Positio
   }
   return changed.line == 0 && changed.character == 0 ? null : changed
 }
+
+/*
+ * Get end position by content
+ */
+export function getEnd(start: Position, content: string): Position {
+  const lines = content.split(/\r?\n/)
+  const len = lines.length
+  const lastLine = lines[len - 1]
+  const end = len == 1 ? start.character + content.length : lastLine.length
+  return Position.create(start.line + len - 1, end)
+}
+

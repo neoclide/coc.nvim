@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
 import { addPythonTryCatch, convertRegex, executePythonCode, UltiSnippetContext } from '../../snippets/eval'
 import { Placeholder, TextmateSnippet } from '../../snippets/parser'
-import { checkContentBefore, CocSnippet, getContentBefore, getEnd, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
+import { checkContentBefore, CocSnippet, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
 import { parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
@@ -534,11 +534,6 @@ describe('CocSnippet', () => {
         start: undefined,
         single: '#'
       })
-    })
-
-    it('should get start end position by content', () => {
-      expect(getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
-      expect(getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
     })
 
     it('should reduce TextEdit', () => {

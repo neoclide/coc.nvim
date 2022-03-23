@@ -19,7 +19,7 @@ import * as Is from '../../util/is'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
-import { comparePosition, getChangedPosition, isSingleLine, positionInRange, rangeInRange, rangeOverlap } from '../../util/position'
+import { comparePosition, getEnd, getChangedPosition, isSingleLine, positionInRange, rangeInRange, rangeOverlap } from '../../util/position'
 import { terminate } from '../../util/processes'
 import { getMatchResult } from '../../util/score'
 import * as strings from '../../util/string'
@@ -345,6 +345,11 @@ describe('Position', () => {
   test('comparePosition', () => {
     let pos = Position.create(0, 0)
     expect(comparePosition(pos, pos)).toBe(0)
+  })
+
+  test('should get start end position by content', () => {
+    expect(getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
+    expect(getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
   })
 
   test('isSingleLine', () => {

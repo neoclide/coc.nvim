@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../model/textdocument'
-import { emptyRange, getChangedPosition, positionInRange, rangeInRange } from '../util/position'
+import { emptyRange, getChangedPosition, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { preparePythonCodes, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
@@ -337,17 +337,6 @@ export function reduceTextEdit(edit: TextEdit, oldText: string): TextEdit {
   if (bo > 0) start = getEnd(start, newText.slice(0, bo))
   if (eo > 0) end = getEnd(range.start, oldText.slice(0, -eo))
   return TextEdit.replace(Range.create(start, end), text)
-}
-
-/*
- * Get end position by content
- */
-export function getEnd(start: Position, content: string): Position {
-  const lines = content.split(/\r?\n/)
-  const len = lines.length
-  const lastLine = lines[len - 1]
-  const end = len == 1 ? start.character + content.length : lastLine.length
-  return Position.create(start.line + len - 1, end)
 }
 
 /*
