@@ -89,17 +89,12 @@ export default class Documents implements Disposable {
       }
       this.winids = new Set(winids)
     }, null, this.disposables)
-    const onInsertLeave = (bufnr: number) => {
-      let doc = this.getDocument(bufnr)
-      if (doc?.attached) doc._forceSync()
-    }
     const checkCurrentBuffer = (bufnr: number) => {
       this._bufnr = bufnr
       void this.createDocument(bufnr)
     }
     events.on('CursorMoved', checkCurrentBuffer, null, this.disposables)
     events.on('CursorMovedI', checkCurrentBuffer, null, this.disposables)
-    events.on('InsertLeave', onInsertLeave, null, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
     events.on('TermClose', this.onBufUnload, this, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
