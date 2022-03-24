@@ -105,7 +105,7 @@
     "isuri": "^2.0.3",
     "jsonc-parser": "^3.0.0",
     "log4js": "^6.4.0",
-    "marked": "^4.0.10",
+    "marked": "^4.0.12",
     "minimatch": "^3.0.4",
     "semver": "^7.3.2",
     "strip-ansi": "^6.0.0",
