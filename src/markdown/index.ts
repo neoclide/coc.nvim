@@ -121,7 +121,8 @@ export function getHighlightItems(content: string, currline: number, active: [nu
 export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
   marked.setOptions({
     renderer: new Renderer(),
-    gfm: true
+    gfm: true,
+    breaks: true
   })
   let lines: string[] = []
   let highlights: HighlightItem[] = []

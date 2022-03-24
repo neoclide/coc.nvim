@@ -99,6 +99,12 @@ example:
     expect(res.lines).toEqual(['foo', '', 'bar'])
   })
 
+  it('should merge lines', async () => {
+    let content = 'first\nsecond'
+    let res = parseMarkdown(content, {})
+    expect(res.lines).toEqual(['first', 'second'])
+  })
+
   it('should parse ansi highlights', async () => {
     let content = '__foo__\n[link](link)'
     let res = parseMarkdown(content, {})
@@ -112,10 +118,10 @@ example:
   it('should exclude images by option', async () => {
     let content = 'head\n![img](img)\ncontent ![img](img) ![img](img)'
     let res = parseMarkdown(content, { excludeImages: false })
-    expect(res.lines).toEqual(['head', '![img](img)', '', 'content ![img](img)', ' ![img](img)'])
+    expect(res.lines).toEqual(['head', '![img](img)', 'content ![img](img) ![img](img)'])
     content = 'head\n![img](img)\ncontent ![img](img) ![img](img)'
     res = parseMarkdown(content, { excludeImages: true })
-    expect(res.lines).toEqual(['head', '', 'content'])
+    expect(res.lines).toEqual(['head', 'content'])
   })
 
   it('should render hr', async () => {

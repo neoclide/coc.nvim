@@ -325,6 +325,7 @@ describe('Position', () => {
     let r = Range.create(pos, pos)
     expect(rangeInRange(r, r)).toBe(true)
     expect(rangeInRange(r, Range.create(addPosition(pos, 1, 0), pos))).toBe(false)
+    expect(rangeInRange(Range.create(0, 1, 0, 1), Range.create(0, 0, 0, 1))).toBe(true)
   })
 
   test('rangeOverlap', () => {

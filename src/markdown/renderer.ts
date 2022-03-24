@@ -16,7 +16,7 @@ let COLON_REPLACER_REGEXP = new RegExp(escapeRegExp(COLON_REPLACER), 'g')
 // to indicate a hard (non-reflowed) return.
 let HARD_RETURN = '\r'
 
-function identity(str) {
+function identity(str: string): string {
   return str
 }
 
@@ -333,7 +333,7 @@ class Renderer {
   public image(href, title, text): string {
     let out = '![' + text
     if (title) out += ' – ' + title
-    return out + '](' + href + ')\n'
+    return out + '](' + href + ')'
   }
 
   public compose(...funcs: Function[]): any {
