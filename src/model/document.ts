@@ -278,7 +278,7 @@ export default class Document {
     this._words = this.chars.matchKeywords(content)
   }
 
-  public async applyEdits(edits: TextEdit[]): Promise<void> {
+  public async applyEdits(edits: TextEdit[], joinUndo = false): Promise<void> {
     if (!Array.isArray(arguments[0]) && Array.isArray(arguments[1])) {
       edits = arguments[1]
     }
@@ -326,8 +326,10 @@ export default class Document {
           return [o.newText.split(/\r?\n/), r.start.line, sc, r.end.line, ec]
         })
       }
+      this.nvim.pauseNotification()
+      if (joinUndo) this.nvim.command('undojoin', true)
       this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, original, d.replacement, d.start, d.end, changes], true)
-      if (this.env.isVim) this.nvim.command('redraw', true)
+      void this.nvim.resumeNotification(true, true)
       await waitNextTick(() => {
         // can't wait vim sync buffer
         this.lines = newLines
