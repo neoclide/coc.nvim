@@ -5,6 +5,13 @@ export function singleLineEdit(edit: TextEdit): boolean {
   return range.start.line == range.end.line && newText.indexOf('\n') == -1
 }
 
+export function lineCountChange(edit: TextEdit): boolean {
+  let { newText } = edit
+  let range = getWellformedRange(edit.range)
+  let n = range.end.line - range.start.line
+  return newText.split(/\r?\n/).length - n !== 1
+}
+
 export function getWellformedRange(range: Range): Range {
   const start = range.start
   const end = range.end

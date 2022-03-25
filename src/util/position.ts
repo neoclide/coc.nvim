@@ -4,6 +4,16 @@ export function rangeInRange(r: Range, range: Range): boolean {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0
 }
 
+export function rangeAdjacent(r: Range, range: Range): boolean {
+  if (comparePosition(r.end, range.start) == 0) {
+    return true
+  }
+  if (comparePosition(range.end, r.start) == 0) {
+    return true
+  }
+  return false
+}
+
 /**
  * Check if two ranges have overlap character.
  */

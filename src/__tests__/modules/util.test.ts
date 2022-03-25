@@ -19,11 +19,11 @@ import * as Is from '../../util/is'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
-import { comparePosition, getEnd, getChangedPosition, isSingleLine, positionInRange, rangeInRange, rangeOverlap } from '../../util/position'
+import { comparePosition, getEnd, getChangedPosition, isSingleLine, positionInRange, rangeInRange, rangeAdjacent, rangeOverlap } from '../../util/position'
 import { terminate } from '../../util/processes'
 import { getMatchResult } from '../../util/score'
 import * as strings from '../../util/string'
-import { getWellformedEdit } from '../../util/textedit'
+import { getWellformedEdit, lineCountChange } from '../../util/textedit'
 import helper, { createTmpFile } from '../helper'
 const createLogger = require('../../util/logger')
 
@@ -126,6 +126,14 @@ describe('textedit', () => {
     let edit: TextEdit = { range: r, newText: 'foo' }
     let res = getWellformedEdit(edit)
     expect(res.range).toEqual(Range.create(0, 0, 1, 0))
+  })
+
+  it('should check line count change', async () => {
+    let r = Range.create(0, 0, 0, 5)
+    let edit: TextEdit = { range: r, newText: 'foo' }
+    expect(lineCountChange(edit)).toBe(false)
+    edit = { range: Range.create(0, 0, 1, 0), newText: 'foo' }
+    expect(lineCountChange(edit)).toBe(true)
   })
 })
 
@@ -335,6 +343,14 @@ describe('Position', () => {
     expect(rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 1, 0, 2))).toBe(false)
     expect(rangeOverlap(Range.create(0, 1, 0, 2), Range.create(0, 0, 0, 1))).toBe(false)
     expect(rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 2, 0, 3))).toBe(false)
+  })
+
+  test('rangeAdjacent', () => {
+    let r = Range.create(1, 1, 1, 2)
+    expect(rangeAdjacent(r, Range.create(0, 0, 0, 0))).toBe(false)
+    expect(rangeAdjacent(r, Range.create(1, 1, 1, 3))).toBe(false)
+    expect(rangeAdjacent(r, Range.create(0, 0, 1, 1))).toBe(true)
+    expect(rangeAdjacent(r, Range.create(1, 2, 1, 4))).toBe(true)
   })
 
   test('positionInRange', () => {
