@@ -251,12 +251,13 @@ export default class Document {
     if (!this.dirty) return
     let textDocument = this._textDocument
     let endOffset = null
+    let content = this.getDocumentContent()
+    let curr = textDocument.getText()
     // consider cursor position.
     if (cursor && cursor.bufnr == this.bufnr) {
-      endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert)
+      endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert || content.length < curr.length)
     }
-    let content = this.getDocumentContent()
-    let change = getChange(textDocument.getText(), content, endOffset)
+    let change = getChange(curr, content, endOffset)
     if (change == null) return
     let start = textDocument.positionAt(change.start)
     let end = textDocument.positionAt(change.end)
