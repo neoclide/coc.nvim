@@ -21,6 +21,7 @@ import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
+import Cursors from './cursors/index'
 import workspace from './workspace'
 const logger = require('./util/logger')('window')
 let tab_global_id = 3000
@@ -45,6 +46,7 @@ class Window {
   private terminalManager: Terminals = new Terminals()
   private readonly _onDidTabClose = new Emitter<number>()
   public readonly onDidTabClose: Event<number> = this._onDidTabClose.event
+  public readonly cursors: Cursors
 
   public init(env: Env): void {
     for (let i = 1; i <= env.tabCount; i++) {

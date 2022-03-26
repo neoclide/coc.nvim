@@ -31,6 +31,9 @@ export default class Plugin extends EventEmitter {
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
+    Object.defineProperty(window, 'cursors', {
+      get: () => this.cursors
+    })
     workspace.onDidChangeWorkspaceFolders(() => {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     }, null, this.disposables)
