@@ -38,7 +38,6 @@ export interface ChangeInfo {
 // getText, positionAt, offsetAt
 export default class Document {
   public buftype: string
-  public isIgnored = false
   public chars: Chars
   private eol = true
   private _disposed = false

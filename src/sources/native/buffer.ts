@@ -2,6 +2,8 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import Source from '../source'
 import { CompleteOption, CompleteResult, ISource } from '../../types'
 import workspace from '../../workspace'
+import { isGitIgnored } from '../../util/fs'
+import { URI } from 'vscode-uri'
 const logger = require('../../util/logger')('sources-buffer')
 
 export default class Buffer extends Source {
@@ -13,6 +15,7 @@ export default class Buffer extends Source {
   }
 
   public get ignoreGitignore(): boolean {
+    if (global.__TEST__) return false
     return this.getConfig('ignoreGitignore', true)
   }
 
@@ -21,7 +24,7 @@ export default class Buffer extends Source {
     let words: string[] = []
     workspace.documents.forEach(document => {
       if (document.bufnr == bufnr) return
-      if (ignoreGitignore && document.isIgnored) return
+      if (ignoreGitignore && isGitIgnored(URI.parse(document.uri).fsPath)) return
       for (let word of document.words) {
         if (!words.includes(word)) {
           words.push(word)
