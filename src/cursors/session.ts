@@ -4,7 +4,7 @@ import { Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-la
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../events'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams } from '../types'
+import { DidChangeTextDocumentParams, HighlightItem } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition, emptyRange, rangeAdjacent, rangeInRange, rangeIntersect, rangeOverlap } from '../util/position'
 import { byteSlice } from '../util/string'
@@ -203,10 +203,21 @@ export default class CursorSession {
   private doHighlights(): void {
     let { nvim, ranges, doc } = this
     let buffer = doc.buffer
-    buffer.clearNamespace('cursors')
-    let arr = ranges.map(o => o.range)
-    buffer.highlightRanges('cursors', 'CocCursorRange', arr)
-    nvim.command('redraw', true)
+    let items: HighlightItem[] = []
+    ranges.forEach(r => {
+      doc.addHighlights(items, 'CocCursorRange', r.range, {
+        combine: false,
+        start_incl: true,
+        end_incl: true
+      })
+    })
+    items.sort((a, b) => {
+      if (a.lnum != b.lnum) return a.lnum - b.lnum
+      if (a.colStart != b.colStart) return a.colStart - b.colStart
+      return 0
+    })
+    buffer.updateHighlights('cursors', items, { priority: 4096 })
+    nvim.redrawVim()
   }
 
   public get currentRanges(): Range[] {

@@ -92,6 +92,23 @@ describe('cursors', () => {
     })
   })
 
+  describe('cancel()', () => {
+    it('should cancel cursors session', async () => {
+      cursors.cancel(999)
+      let doc = await workspace.document
+      cursors.cancel(doc.bufnr)
+      await nvim.call('setline', [1, ['a', 'b']])
+      await nvim.call('cursor', [1, 1])
+      await doc.synchronize()
+      await cursors.select(doc.bufnr, 'position', 'n')
+      let activated = await cursors.isActivated()
+      expect(activated).toBe(true)
+      cursors.cancel(doc.bufnr)
+      activated = await cursors.isActivated()
+      expect(activated).toBe(false)
+    })
+  })
+
   describe('select()', () => {
     it('should throw with unsupported kind', async () => {
       let doc = await workspace.document
@@ -150,8 +167,6 @@ describe('cursors', () => {
       expect(n).toBe(0)
       let activated = await doc.buffer.getVar('coc_cursors_activated')
       expect(activated).toBe(0)
-      activated = await cursors.isActivated()
-      expect(activated).toBe(false)
     })
 
     it('should select last character', async () => {

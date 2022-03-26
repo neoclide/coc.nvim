@@ -23,6 +23,13 @@ export default class Cursors {
     }, null, this.disposables)
   }
 
+  public cancel(uri: number | string): void {
+    let doc = workspace.getDocument(uri)
+    if (!doc) return
+    let session = this.getSession(doc.bufnr)
+    if (session) session.cancel()
+  }
+
   public getSession(bufnr: number): CursorSession | undefined {
     return this.sessionsMap.get(bufnr)
   }
