@@ -186,7 +186,7 @@ export default class CursorSession {
   }
 
   public validChange(range: Range, text: string): boolean {
-    if (lineCountChange(TextEdit.replace(range, text))) return false
+    if (lineCountChange(TextEdit.replace(range, text)) != 0) return false
     if (!rangeInRange(range, this.range)) return false
     let first = this.ranges[0]
     let last = this.ranges[this.ranges.length - 1]

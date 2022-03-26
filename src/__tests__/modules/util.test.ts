@@ -131,9 +131,9 @@ describe('textedit', () => {
   it('should check line count change', async () => {
     let r = Range.create(0, 0, 0, 5)
     let edit: TextEdit = { range: r, newText: 'foo' }
-    expect(lineCountChange(edit)).toBe(false)
+    expect(lineCountChange(edit)).toBe(0)
     edit = { range: Range.create(0, 0, 1, 0), newText: 'foo' }
-    expect(lineCountChange(edit)).toBe(true)
+    expect(lineCountChange(edit)).toBe(-1)
   })
 })
 
