@@ -92,11 +92,25 @@ describe('workspace methods', () => {
   })
 
   it('should get the document', async () => {
-    let buf = await helper.edit()
-    let doc = workspace.getDocument(buf.id)
+    let doc = await workspace.document
+    let buf = await nvim.buffer
     expect(doc.buffer.equals(buf)).toBeTruthy()
     doc = workspace.getDocument(doc.uri)
     expect(doc.buffer.equals(buf)).toBeTruthy()
+  })
+
+  it('should get attached document', async () => {
+    let fn = () => {
+      workspace.getAttachedDocument('file://not_exists')
+    }
+    expect(fn).toThrow(Error)
+    await nvim.command(`edit +setl\\ buftype=nofile [tree]`)
+    let doc = await workspace.document
+    expect(doc.attached).toBe(false)
+    fn = () => {
+      workspace.getAttachedDocument(doc.bufnr)
+    }
+    expect(fn).toThrow(Error)
   })
 
   it('should get format options of without bufnr', async () => {
@@ -106,7 +120,7 @@ describe('workspace methods', () => {
   })
 
   it('should get format options of current buffer', async () => {
-    let buf = await helper.edit()
+    let buf = await nvim.buffer
     await buf.setVar('coc_trim_trailing_whitespace', 1)
     await buf.setVar('coc_trim_final_newlines', 1)
     await buf.setOption('shiftwidth', 8)

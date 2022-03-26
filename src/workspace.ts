@@ -307,6 +307,16 @@ export class Workspace implements IWorkspace {
   }
 
   /**
+   * Get attached document by uri or bufnr.
+   * Throw error when document not exists or not attached.
+   */
+  public getAttachedDocument(uri: number | string): Document {
+    let doc = this.getDocument(uri)
+    if (!doc) throw new Error(`Document of ${uri} not exists.`)
+    if (!doc.attached) throw new Error(`Document of ${uri} not attached, checkout :h CocAction('ensureDocument')`)
+    return doc
+  }
+  /**
    * Convert location to quickfix item.
    */
   public getQuickfixItem(loc: Location | LocationLink, text?: string, type = '', module?: string): Promise<QuickfixItem> {
