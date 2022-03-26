@@ -67,10 +67,7 @@ export class SnippetManager {
    */
   public async insertSnippet(snippet: string | SnippetString, select = true, range?: Range, insertTextMode?: InsertTextMode, ultisnip?: UltiSnippetOption): Promise<boolean> {
     let { bufnr } = workspace
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) {
-      throw new Error(`Unable to insert snippet, buffer ${bufnr} not attached.`)
-    }
+    let doc = workspace.getAttachedDocument(bufnr)
     if (range && !rangeInRange(range, Range.create(0, 0, doc.lineCount + 1, 0))) {
       throw new Error(`Unable to insert snippet, invalid range.`)
     }
