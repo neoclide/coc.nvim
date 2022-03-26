@@ -433,6 +433,21 @@ describe('CocSnippet', () => {
       expect(res.text).toBe('bar bar\nbar bar')
       expect(c.hasPython).toBe(true)
     })
+
+    it('should not change match for original placeholders', async () => {
+      let c = await createSnippet('`!p snip.rv = match.group(1)` $1', {
+        regex: '^(\\w+)'
+      }, Range.create(0, 0, 0, 3), 'foo')
+      let p = c.getPlaceholder(1)
+      expect(c.hasPython).toBe(true)
+      expect(c.text).toBe('foo ')
+      await c.insertSnippet(p, '`!p snip.rv = match.group(1)`', ['', ''], {
+        regex: '^(\\w+)',
+        line: 'bar',
+        range: Range.create(0, 0, 0, 3)
+      })
+      expect(c.text).toBe('foo bar')
+    })
   })
 
   describe('utils', () => {
@@ -493,14 +508,10 @@ describe('CocSnippet', () => {
     })
 
     it('should catch error with executePythonCode', async () => {
-      let err
-      try {
+      let fn = async () => {
         await executePythonCode(nvim, ['INVALID_CODE'])
-      } catch (e) {
-        err = e
       }
-      expect(err).toBeDefined()
-      expect(err.stack).toMatch('INVALID_CODE')
+      await expect(fn()).rejects.toThrow(Error)
     })
 
     it('should set error with addPythonTryCatch', async () => {
@@ -587,5 +598,4 @@ describe('CocSnippet', () => {
       expect(getParts('abc\ndef', Range.create(0, 1, 2, 3), Range.create(0, 1, 2, 3))).toEqual(['', ''])
     })
   })
-
 })

@@ -8,7 +8,7 @@ import unidecode from 'unidecode'
 import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
 import { getCharIndexes } from '../util/string'
-import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode } from './eval'
+import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode, prepareMatchCode, UltiSnippetContext } from './eval'
 const logger = require('../util/logger')('snippets-parser')
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
@@ -861,10 +861,11 @@ export class TextmateSnippet extends Marker {
     return finals.find(o => o.primary) ?? finals[0]
   }
 
-  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip = false): Placeholder | Variable {
+  public insertSnippet(snippet: string, marker: Placeholder | Variable, parts: [string, string], ultisnip?: UltiSnippetContext): Placeholder | Variable {
     let index = marker instanceof Placeholder ? marker.index : this.maxIndexNumber + 1
     let [before, after] = parts
-    let nested = new SnippetParser(ultisnip).parse(snippet, true)
+    let matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
+    let nested = new SnippetParser(!!ultisnip, matchCode).parse(snippet, true)
     let maxIndexAdded = nested.maxIndexNumber + 1
     let changed: Map<number, number> = new Map()
     for (let p of nested.placeholders) {
@@ -1070,7 +1071,8 @@ export class TextmateSnippet extends Marker {
 
 export class SnippetParser {
   constructor(
-    private ultisnip?: boolean
+    private ultisnip?: boolean,
+    private matchCode?: string
   ) {
   }
 
@@ -1652,8 +1654,9 @@ export class SnippetParser {
       }
       if (text.startsWith('!p')) {
         let code = text.slice(2)
+        let pre = this.matchCode ? this.matchCode + '\n' : ''
         if (code.indexOf('\n') == -1) {
-          let marker = new CodeBlock(code.trim(), 'python')
+          let marker = new CodeBlock(pre + code.trim(), 'python')
           parent.appendChild(marker)
         } else {
           let codes = code.split(/\r?\n/)
@@ -1664,7 +1667,7 @@ export class SnippetParser {
             codes = codes.map(s => s.slice(ind.length))
           }
           if (ind == ' ' && codes[0].startsWith(ind)) codes[0] = codes[0].slice(1)
-          let marker = new CodeBlock(codes.join('\n'), 'python')
+          let marker = new CodeBlock(pre + codes.join('\n'), 'python')
           parent.appendChild(marker)
         }
         return true

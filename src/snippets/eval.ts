@@ -50,8 +50,21 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr 
   return res.toString()
 }
 
+export function prepareMatchCode(snip: UltiSnippetContext): string {
+  let { range, regex, line } = snip
+  let pyCodes: string[] = []
+  if (regex && range != null) {
+    let converted = convertRegex(regex)
+    pyCodes.push(`pattern = re.compile("${escapeString(converted)}")`)
+    pyCodes.push(`match = pattern.search("${escapeString(line.slice(0, range.end.character))}")`)
+  } else {
+    pyCodes.push(`match = None`)
+  }
+  return pyCodes.join('\n')
+}
+
 export function preparePythonCodes(snip: UltiSnippetContext): string[] {
-  let { range, context, regex, line } = snip
+  let { range, context, line } = snip
   let pyCodes: string[] = [
     'import re, os, vim, string, random',
     `path = vim.eval('expand("%:p")') or ""`,
@@ -62,13 +75,6 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
     pyCodes.push(`context = ${context}`)
   } else {
     pyCodes.push(`context = True`)
-  }
-  if (regex) {
-    let converted = convertRegex(regex)
-    pyCodes.push(`pattern = re.compile("${escapeString(converted)}")`)
-    pyCodes.push(`match = pattern.search("${escapeString(line.slice(0, range.end.character))}")`)
-  } else {
-    pyCodes.push(`match = None`)
   }
   let start = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.start.character))})`
   let end = `(${range.start.line},${Buffer.byteLength(line.slice(0, range.end.character))})`

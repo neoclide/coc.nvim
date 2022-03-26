@@ -3,7 +3,7 @@ import { CancellationToken, Position, Range, TextEdit } from 'vscode-languageser
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../model/textdocument'
 import { emptyRange, getChangedPosition, getEnd, positionInRange, rangeInRange } from '../util/position'
-import { preparePythonCodes, UltiSnippetContext } from './eval'
+import { prepareMatchCode, preparePythonCodes, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -35,7 +35,8 @@ export class CocSnippet {
   }
 
   public async init(ultisnip?: UltiSnippetContext, isResolve = false): Promise<void> {
-    const parser = new Snippets.SnippetParser(!!ultisnip)
+    const matchCode = ultisnip ? prepareMatchCode(ultisnip) : undefined
+    const parser = new Snippets.SnippetParser(!!ultisnip, matchCode)
     const snippet = parser.parse(this.snippetString, true)
     this.tmSnippet = snippet
     await this.resolve(ultisnip)
@@ -198,7 +199,7 @@ export class CocSnippet {
         end: { line: end.line, col: end.character, character: end.character }
       }, true)
     }
-    let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, !!ultisnip)
+    let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, ultisnip)
     await this.resolve(ultisnip)
     this.sychronize()
     return select
