@@ -1043,6 +1043,10 @@ Built-in configurations:~
 
 	Key used for jump to previous cursors position, default: `<C-p>`
 
+*cursors.wrapscan*
+
+	Searches wrap around the first or last cursors range, default: `true`
+
 						*coc-config-tree*
 *tree.closedIcon*
 

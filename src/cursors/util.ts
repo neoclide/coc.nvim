@@ -1,5 +1,26 @@
-import { Range, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { Range, TextEdit } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
+import { equals } from '../util/object'
+import { getWellformedRange } from '../util/textedit'
+import type TextRange from './textRange'
+
+export interface TextChange {
+  offset: number
+  remove: number
+  insert: string
+  fromEnd?: boolean
+}
+
+export interface SurrondChange {
+  /**
+   * delete count & insert text
+   */
+  prepend: [number, string]
+  /**
+   * delete count & insert text
+   */
+  append: [number, string]
+}
 
 /**
  * Split to single line ranges
@@ -20,10 +41,7 @@ export function splitRange(doc: Document, range: Range): Range[] {
  * Get ranges of visual block
  */
 export function getVisualRanges(doc: Document, range: Range): Range[] {
-  let { start, end } = range
-  if (start.line > end.line) {
-    [start, end] = [end, start]
-  }
+  let { start, end } = getWellformedRange(range)
   let sc = start.character < end.character ? start.character : end.character
   let ec = start.character < end.character ? end.character : start.character
   let ranges: Range[] = []
@@ -34,16 +52,44 @@ export function getVisualRanges(doc: Document, range: Range): Range[] {
   return ranges
 }
 
-export function adjustPosition(position: Position, delta: Position): Position {
-  let { line, character } = delta
-  return Position.create(position.line + line, line == 0 ? position.character + character : character)
+export function isSurrondChange(change: TextChange | SurrondChange): change is SurrondChange {
+  return Array.isArray(change['prepend']) && Array.isArray(change['append'])
 }
 
-export function equalEdit(one: TextEdit, two: TextEdit): boolean {
-  if (one.newText.length != two.newText.length) return false
-  let { range } = one
-  if (range.end.character - range.start.character != two.range.end.character - two.range.start.character) {
-    return false
+export function isTextChange(change: TextChange | SurrondChange): change is TextChange {
+  return typeof change['offset'] === 'number' && typeof change['remove'] === 'number'
+}
+
+export function getDelta(change: TextChange | SurrondChange): number {
+  if (isSurrondChange(change)) {
+    return change.append[1].length + change.prepend[1].length - change.append[0] - change.prepend[0]
   }
-  return true
+  return change.insert.length - change.remove
+}
+
+export function getChange(r: TextRange, range: Range, newText: string): TextChange | SurrondChange {
+  let text = r.text
+  if (equals(r.range, range)) {
+    // surrond
+    let idx = text.indexOf(newText)
+    if (idx !== -1) {
+      let prepend: [number, string] = [idx, '']
+      let append: [number, string] = [text.length - newText.length - idx, '']
+      return { prepend, append }
+    }
+    idx = newText.indexOf(text)
+    if (idx !== -1) {
+      let prepend: [number, string] = [0, newText.slice(0, idx)]
+      let append: [number, string] = [0, newText.slice(- (newText.length - text.length - idx))]
+      return { prepend, append }
+    }
+  }
+  if (equals(r.range.end, range.end)) {
+    // end change
+    let remove = range.end.character - range.start.character
+    return { offset: remove, remove, insert: newText, fromEnd: true }
+  }
+  let remove = range.end.character - range.start.character
+  let offset = range.start.character - r.range.start.character
+  return { offset, remove, insert: newText }
 }

@@ -1,6 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-jsonrpc'
-import { Range } from 'vscode-languageserver-types'
+import { Disposable, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
 import { comparePosition } from '../util/position'
@@ -10,38 +9,18 @@ import CursorSession from './session'
 import { getVisualRanges, splitRange } from './util'
 const logger = require('../util/logger')('cursors')
 
-interface Config {
-  cancelKey: string
-  previousKey: string
-  nextKey: string
-}
-
 export default class Cursors {
   private sessionsMap: Map<number, CursorSession> = new Map()
   private disposables: Disposable[] = []
-  private config: Config
+  private readonly _onDidUpdate = new Emitter<number>()
+  public readonly onDidUpdate: Event<number> = this._onDidUpdate.event
   constructor(private nvim: Neovim) {
-    this.loadConfig()
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('cursors')) {
-        this.loadConfig()
-      }
-    }, null, this.disposables)
     events.on('BufUnload', bufnr => {
       let session = this.getSession(bufnr)
       if (!session) return
-      session.dispose()
       this.sessionsMap.delete(bufnr)
+      session.cancel()
     }, null, this.disposables)
-  }
-
-  private loadConfig(): void {
-    let config = workspace.getConfiguration('cursors')
-    this.config = {
-      nextKey: config.get('nextKey', '<C-n>'),
-      previousKey: config.get('previousKey', '<C-p>'),
-      cancelKey: config.get('cancelKey', '<esc>')
-    }
   }
 
   public getSession(bufnr: number): CursorSession | undefined {
@@ -54,11 +33,7 @@ export default class Cursors {
   }
 
   public async select(bufnr: number, kind: string, mode: string): Promise<void> {
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) {
-      window.showMessage(`buffer ${bufnr} not attached.`)
-      return
-    }
+    let doc = workspace.getAttachedDocument(bufnr)
     let { nvim } = this
     let session = this.createSession(doc)
     let pos = await window.getCursorPosition()
@@ -79,10 +54,7 @@ export default class Cursors {
         end.character = end.character + 1
       }
       let ranges = splitRange(doc, Range.create(start, end))
-      for (let r of ranges) {
-        let text = doc.textDocument.getText(r)
-        session.addRange(r, text)
-      }
+      session.addRanges(ranges)
     } else if (kind == 'word') {
       range = doc.getWordRangeAtPosition(pos)
       if (!range) {
@@ -93,9 +65,8 @@ export default class Cursors {
           range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
         }
       }
-      let line = doc.getline(pos.line)
-      let text = line.slice(range.start.character, range.end.character)
-      session.addRange(range, text)
+      session.addRange(range)
+      await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`)
     } else if (kind == 'position') {
       // make sure range contains character for highlight
       let line = doc.getline(pos.line)
@@ -104,33 +75,33 @@ export default class Cursors {
       } else {
         range = Range.create(pos.line, pos.character, pos.line, pos.character + 1)
       }
-      session.addRange(range, line.slice(range.start.character, range.end.character))
+      session.addRange(range)
+      await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`)
     } else if (kind == 'range') {
       await nvim.call('eval', 'feedkeys("\\<esc>", "in")')
       let range = await window.getSelectedRange(mode)
-      if (!range || comparePosition(range.start, range.end) == 0) return
+      if (!range) return
       let ranges = mode == '\x16' ? getVisualRanges(doc, range) : splitRange(doc, range)
       for (let r of ranges) {
-        let text = doc.textDocument.getText(r)
-        session.addRange(r, text)
+        session.addRange(r)
       }
     } else {
-      window.showMessage(`${kind} not supported`, 'error')
-      return
-    }
-    if (kind == 'word' || kind == 'position') {
-      await nvim.command(`silent! call repeat#set("\\<Plug>(coc-cursors-${kind})", -1)`)
+      throw new Error(`select kind "${kind}" not supported`)
     }
   }
 
-  private createSession(doc: Document): CursorSession {
-    let session = this.getSession(doc.bufnr)
+  public createSession(doc: Document): CursorSession {
+    let { bufnr } = doc
+    let session = this.getSession(bufnr)
     if (session) return session
-    session = new CursorSession(this.nvim, doc, this.config)
-    this.sessionsMap.set(doc.bufnr, session)
+    session = new CursorSession(this.nvim, doc)
+    this.sessionsMap.set(bufnr, session)
+    session.onDidUpdate(() => {
+      this._onDidUpdate.fire(bufnr)
+    })
     session.onDidCancel(() => {
       session.dispose()
-      this.sessionsMap.delete(doc.bufnr)
+      this.sessionsMap.delete(bufnr)
     })
     return session
   }
@@ -139,11 +110,7 @@ export default class Cursors {
   public async addRanges(ranges: Range[]): Promise<boolean> {
     let { nvim } = this
     let bufnr = await nvim.call('bufnr', ['%']) as number
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) {
-      window.showMessage('Document not attached', 'error')
-      return false
-    }
+    let doc = workspace.getAttachedDocument(bufnr)
     let session = this.createSession(doc)
     return session.addRanges(ranges)
   }
@@ -153,15 +120,5 @@ export default class Cursors {
       session.cancel()
     }
     this.sessionsMap.clear()
-  }
-
-  public dispose(): void {
-    for (let session of this.sessionsMap.values()) {
-      session.dispose()
-    }
-    this.sessionsMap.clear()
-    for (let disposable of this.disposables) {
-      disposable.dispose()
-    }
   }
 }

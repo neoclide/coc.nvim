@@ -1,21 +1,31 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import fastDiff from 'fast-diff'
-import { Disposable, Emitter, Event, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../events'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams } from '../types'
-import { comparePosition, emptyRange, positionInRange, rangeInRange, rangeIntersect, rangeOverlap } from '../util/position'
+import { disposeAll } from '../util'
+import { comparePosition, emptyRange, rangeAdjacent, rangeInRange, rangeIntersect, rangeOverlap } from '../util/position'
+import { byteSlice } from '../util/string'
+import { lineCountChange } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
-import TextRange from './range'
-import { adjustPosition, equalEdit } from './util'
+import TextRange from './textRange'
+import { getChange, getDelta, SurrondChange, TextChange } from './util'
 const logger = require('../util/logger')('cursors-session')
 
 export interface Config {
   cancelKey: string
   previousKey: string
   nextKey: string
+  wrapscan: boolean
+}
+
+export interface DiffItem {
+  offset: number
+  add?: string
+  remove?: string
 }
 
 /**
@@ -23,26 +33,23 @@ export interface Config {
  */
 export default class CursorSession {
   private readonly _onDidCancel = new Emitter<void>()
+  private readonly _onDidUpdate = new Emitter<void>()
   public readonly onDidCancel: Event<void> = this._onDidCancel.event
+  public readonly onDidUpdate: Event<void> = this._onDidUpdate.event
   private disposables: Disposable[] = []
   private ranges: TextRange[] = []
   private activated = true
   private changing = false
-  private changed = false
-  private textDocument: TextDocument
-  constructor(
-    private nvim: Neovim,
-    private doc: Document,
-    private config: Config) {
-    this.textDocument = this.doc.textDocument
-    this.buffer.setVar('coc_cursors_activated', 1, true)
+  private config: Config
+  constructor(private nvim: Neovim, private doc: Document) {
+    doc.buffer.setVar('coc_cursors_activated', 1, true)
+    this.loadConfig()
     let { cancelKey, nextKey, previousKey } = this.config
     this.disposables.push(workspace.registerLocalKeymap('n', cancelKey, () => {
       this.cancel()
-    }, true))
+    }))
     this.disposables.push(workspace.registerLocalKeymap('n', nextKey, async () => {
-      if (!this.activated) return
-      let ranges = this.ranges.map(o => o.currRange)
+      let ranges = this.ranges.map(o => o.range)
       let curr = await window.getCursorPosition()
       for (let r of ranges) {
         if (comparePosition(r.start, curr) > 0) {
@@ -50,101 +57,160 @@ export default class CursorSession {
           return
         }
       }
-      if (ranges.length) await window.moveTo(ranges[0].start)
-    }, true))
+      let wrap = this.config.wrapscan
+      if (ranges.length && wrap) await window.moveTo(ranges[0].start)
+    }))
     this.disposables.push(workspace.registerLocalKeymap('n', previousKey, async () => {
-      if (!this.activated) return
-      let ranges = this.ranges.map(o => o.currRange)
-      ranges.reverse()
+      let ranges = this.ranges.map(o => o.range)
       let curr = await window.getCursorPosition()
-      for (let r of ranges) {
+      for (let i = ranges.length - 1; i >= 0; i--) {
+        let r = ranges[i]
         if (comparePosition(r.end, curr) < 0) {
           await window.moveTo(r.start)
           return
         }
       }
-      if (ranges.length) await window.moveTo(ranges[ranges.length - 1].start)
-    }, true))
-    this.doc.onDocumentChange(this.onChange, this, this.disposables)
-  }
-
-  private async onChange(e: DidChangeTextDocumentParams): Promise<void> {
-    if (!this.activated || this.ranges.length == 0) return
-    if (this.changing) return
-    let change = e.contentChanges[0]
-    let { text, range } = change
-    let intersect = this.ranges.some(r => rangeIntersect(range, r.currRange))
-    let begin = this.ranges[0].currRange.start
-    if (text.endsWith('\n') && comparePosition(begin, range.end) == 0) {
-      // prepend lines
-      intersect = false
-    }
-    if (!intersect) {
-      this.ranges.forEach(r => {
-        r.adjustFromEdit({ range, newText: text })
-      })
-      this.doHighlights()
-      this.textDocument = this.doc.textDocument
-      return
-    }
-    this.changed = true
-    // get range from edit
-    let textRange = this.getTextRange(range, text)
-    if (textRange) {
-      await this.applySingleEdit(textRange, { range, newText: text })
-    } else {
-      this.applyComposedEdit(e.original, { range, newText: text })
-      if (this.activated) {
-        this.ranges.forEach(r => {
-          r.sync()
-        })
-        this.textDocument = this.doc.textDocument
+      let wrap = this.config.wrapscan
+      if (ranges.length && wrap) await window.moveTo(ranges[ranges.length - 1].start)
+    }))
+    this.doc.onDocumentChange(async e => {
+      await this.onChange(e)
+      if (this.activated && !this.changing) {
+        this._onDidUpdate.fire()
       }
+    }, this, this.disposables)
+  }
+
+  private loadConfig(): void {
+    let config = workspace.getConfiguration('cursors', this.doc.uri)
+    this.config = {
+      nextKey: config.get('nextKey', '<C-n>'),
+      previousKey: config.get('previousKey', '<C-p>'),
+      cancelKey: config.get('cancelKey', '<esc>'),
+      wrapscan: config.get('wrapscan', true),
     }
   }
 
-  private doHighlights(): void {
-    let { nvim, buffer, ranges } = this
-    buffer.clearNamespace('cursors')
-    let arr = ranges.map(o => o.currRange)
-    buffer.highlightRanges('cursors', 'CocCursorRange', arr)
-    nvim.command('redraw', true)
+  /**
+   * Add or remove range.
+   */
+  public addRange(range: Range): void {
+    let { ranges } = this
+    let idx = ranges.findIndex(o => rangeIntersect(o.range, range))
+    // remove range when intersect
+    if (idx !== -1) {
+      ranges.splice(idx, 1)
+    } else {
+      this.createRange(range)
+      ranges.sort((a, b) => comparePosition(a.range.start, b.range.start))
+    }
+    if (this.ranges.length == 0) {
+      this.cancel()
+    } else {
+      this.doHighlights()
+    }
   }
 
   public addRanges(ranges: Range[]): boolean {
     let { nvim, doc } = this
-    if (this.changed) {
-      window.showMessage(`Can't add ranges after range change.`)
-      return false
-    }
+    doc._forceSync()
     // filter overlap ranges
     this.ranges = this.ranges.filter(r => {
-      let { currRange } = r
-      return !ranges.some(range => rangeOverlap(range, currRange))
+      return !ranges.some(range => rangeOverlap(range, r.range))
     })
-    let { textDocument } = doc
     for (let range of ranges) {
-      let { line } = range.start
-      let textRange = new TextRange(line, range.start.character, range.end.character, textDocument.getText(range), 0)
-      this.ranges.push(textRange)
+      this.createRange(range)
     }
     this.ranges.sort((a, b) => comparePosition(a.range.start, b.range.start))
-    // fix preCount
-    let preCount = 0
-    let currline = -1
-    for (let range of this.ranges) {
-      let { line } = range
-      if (line != currline) {
-        preCount = 0
-      }
-      range.preCount = preCount
-      preCount = preCount + 1
-      currline = line
-    }
     nvim.pauseNotification()
     this.doHighlights()
     void nvim.resumeNotification(true, true)
     return true
+  }
+
+  private createRange(range: Range): void {
+    let { textDocument } = this.doc
+    let { line, character } = range.start
+    let text = textDocument.getText(range)
+    this.ranges.push(new TextRange(line, character, text))
+  }
+
+  public async onChange(e: DidChangeTextDocumentParams): Promise<void> {
+    if (!this.activated || this.ranges.length == 0 || this.changing) return
+    let change = e.contentChanges[0]
+    let { text, range } = change
+    let affected = this.ranges.filter(r => {
+      if (!rangeIntersect(range, r.range)) return false
+      if (rangeAdjacent(range, r.range)) {
+        if (text.includes('\n') || !emptyRange(range)) return false
+      }
+      return true
+    })
+    if (emptyRange(range) && affected.length > 0) {
+      affected = affected.slice(0, 1)
+    }
+    if (affected.length == 0) {
+      logger.debug('no affected ranges')
+      this.ranges.forEach(r => {
+        r.adjustFromEdit({ range, newText: text })
+      })
+      this.doHighlights()
+    } else if (affected.length == 1 && rangeInRange(range, affected[0].range)) {
+      logger.debug('affected single range')
+      if (text.includes('\n')) {
+        this.cancel()
+        return
+      }
+      // change textRange
+      await this.applySingleEdit(affected[0], { range, newText: text })
+    } else if (!text.length || !this.validChange(range, text)) {
+      logger.debug('filter affected ranges.')
+      let ranges = this.ranges.filter(r => !affected.includes(r))
+      if (ranges.length > 0) {
+        this.ranges = ranges
+        ranges.forEach(r => {
+          r.adjustFromEdit({ range, newText: text })
+        })
+        this.doHighlights()
+      } else {
+        this.cancel()
+      }
+    } else {
+      logger.debug('Check undo & redo')
+      let first = this.ranges[0]
+      let last = this.ranges[this.ranges.length - 1]
+      let originalLines = e.originalLines.slice(first.line, last.line + 1)
+      let newLines = this.doc.textDocument.lines.slice(first.line, last.line + 1)
+      this.applyComposedEdit(originalLines, newLines)
+    }
+  }
+
+  public validChange(range: Range, text: string): boolean {
+    if (lineCountChange(TextEdit.replace(range, text))) return false
+    if (!rangeInRange(range, this.range)) return false
+    let first = this.ranges[0]
+    let last = this.ranges[this.ranges.length - 1]
+    if (range.start.line != first.position.line || range.end.line != last.position.line) return false
+    return true
+  }
+
+  public get range(): Range {
+    let first = this.ranges[0]
+    let last = this.ranges[this.ranges.length - 1]
+    return Range.create(first.position, last.range.end)
+  }
+
+  private doHighlights(): void {
+    let { nvim, ranges, doc } = this
+    let buffer = doc.buffer
+    buffer.clearNamespace('cursors')
+    let arr = ranges.map(o => o.range)
+    buffer.highlightRanges('cursors', 'CocCursorRange', arr)
+    nvim.command('redraw', true)
+  }
+
+  public get currentRanges(): Range[] {
+    return this.ranges.map(r => r.range)
   }
 
   /**
@@ -152,13 +218,16 @@ export default class CursorSession {
    */
   public cancel(): void {
     if (!this.activated) return
-    let { nvim } = this
+    logger.debug('cursors cancel')
+    let { nvim, doc } = this
+    let buffer = doc.buffer
     this.activated = false
+    this.ranges = []
     nvim.pauseNotification()
-    this.buffer.clearNamespace('cursors')
-    this.buffer.setVar('coc_cursors_activated', 0, true)
-    nvim.command('redraw', true)
-    void nvim.resumeNotification(false, true)
+    buffer.clearNamespace('cursors')
+    buffer.setVar('coc_cursors_activated', 0, true)
+    void nvim.resumeNotification(true, true)
+    this._onDidUpdate.fire()
     this._onDidCancel.fire()
   }
 
@@ -168,274 +237,173 @@ export default class CursorSession {
   public dispose(): void {
     if (!this.doc) return
     this._onDidCancel.dispose()
-    for (let disposable of this.disposables) {
-      disposable.dispose()
-    }
+    this._onDidUpdate.dispose()
+    disposeAll(this.disposables)
     this.ranges = []
     this.doc = null
-    this.textDocument = null
-  }
-
-  private get buffer(): Buffer {
-    return this.nvim.createBuffer(this.doc.bufnr)
-  }
-
-  /**
-   * Find changed range from edit
-   */
-  private getTextRange(range: Range, text: string): TextRange | null {
-    let { ranges } = this
-    if (text.indexOf('\n') !== -1 || range.start.line != range.end.line) {
-      return null
-    }
-    ranges.sort((a, b) => {
-      if (a.line != b.line) return a.line - b.line
-      return a.currRange.start.character - b.currRange.start.character
-    })
-    for (let i = 0; i < ranges.length; i++) {
-      let r = ranges[i]
-      if (rangeInRange(range, r.currRange)) {
-        return r
-      }
-      if (r.line != range.start.line) {
-        continue
-      }
-      if (text.length && range.start.character == r.currRange.end.character) {
-        // end add
-        let next = ranges[i + 1]
-        if (!next) return r
-        return positionInRange(next.currRange.start, range) ? null : r
-      }
-    }
-    return null
-  }
-
-  /**
-   * Adjust change for current ranges
-   */
-  private adjustRanges(textRange: TextRange, range: Range, text: string): void {
-    let { ranges } = this
-    if (range.start.character == range.end.character) {
-      // add
-      let isEnd = textRange.currRange.end.character == range.start.character
-      if (isEnd) {
-        ranges.forEach(r => {
-          r.add(r.text.length, text)
-        })
-      } else {
-        let d = range.start.character - textRange.currRange.start.character
-        ranges.forEach(r => {
-          r.add(Math.min(r.text.length, d), text)
-        })
-      }
-    } else {
-      // replace
-      let d = range.end.character - range.start.character
-      let isEnd = textRange.currRange.end.character == range.end.character
-      if (isEnd) {
-        if (textRange.currRange.start.character == range.start.character) {
-          // changed both start and end
-          if (text.includes(textRange.text)) {
-            let idx = text.indexOf(textRange.text)
-            let pre = idx == 0 ? '' : text.slice(0, idx)
-            let post = text.slice(idx + textRange.text.length)
-            if (pre) ranges.forEach(r => r.add(0, pre))
-            if (post) ranges.forEach(r => r.add(r.text.length, post))
-          } else if (textRange.text.includes(text)) {
-            // delete
-            let idx = textRange.text.indexOf(text)
-            let offset = textRange.text.length - (idx + text.length)
-            if (idx != 0) ranges.forEach(r => r.replace(0, idx))
-            if (offset > 0) ranges.forEach(r => r.replace(r.text.length - offset, r.text.length))
-          } else {
-            this.cancel()
-          }
-        } else {
-          ranges.forEach(r => {
-            let l = r.text.length
-            r.replace(Math.max(0, l - d), l, text)
-          })
-        }
-      } else {
-        let start = range.start.character - textRange.currRange.start.character
-        ranges.forEach(r => {
-          let l = r.text.length
-          r.replace(start, Math.min(start + d, l), text)
-        })
-      }
-    }
-  }
-
-  public addRange(range: Range, text: string): void {
-    if (this.changed) {
-      window.showMessage(`Can't add range after range change.`)
-      return
-    }
-    let { ranges } = this
-    let idx = ranges.findIndex(o => rangeIntersect(o.range, range))
-    // remove range when intersect
-    if (idx !== -1) {
-      ranges.splice(idx, 1)
-      // adjust preCount after
-      for (let r of ranges) {
-        if (r.line == range.start.line && r.start > range.start.character) {
-          r.preCount = r.preCount - 1
-        }
-      }
-    } else {
-      let preCount = 0
-      let idx = 0
-      let { line } = range.start
-      // idx & preCount
-      for (let r of ranges) {
-        if (r.line > line || (r.line == line && r.start > range.end.character)) {
-          break
-        }
-        if (r.line == line) preCount++
-        idx++
-      }
-      let created = new TextRange(line, range.start.character, range.end.character, text, preCount)
-      ranges.splice(idx, 0, created)
-      // adjust preCount after
-      for (let r of ranges) {
-        if (r.line == range.start.line && r.start > range.start.character) {
-          r.preCount = r.preCount + 1
-        }
-      }
-    }
-    if (this.ranges.length == 0) {
-      this.cancel()
-    } else {
-      this.doHighlights()
-    }
   }
 
   private async applySingleEdit(textRange: TextRange, edit: TextEdit): Promise<void> {
     // single range change, calculate & apply changes for all ranges
-    let { range, newText } = edit
-    let { doc } = this
-    this.adjustRanges(textRange, range, newText)
-    if (this.ranges.length == 1) {
-      this.doHighlights()
-      return
-    }
-    let edits = this.ranges.map(o => o.textEdit)
-    let content = TextDocument.applyEdits(this.textDocument, edits)
-    let newLines = content.split('\n')
-    let changedLnum: Set<number> = new Set()
-    let arr: [number, string][] = []
-    for (let r of this.ranges) {
-      if (!changedLnum.has(r.line)) {
-        changedLnum.add(r.line)
-        arr.push([r.line, newLines[r.line]])
+    let { doc, ranges } = this
+    let after = ranges.filter(r => r !== textRange && r.position.line == textRange.position.line)
+    after.forEach(r => r.adjustFromEdit(edit))
+    let change = getChange(textRange, edit.range, edit.newText)
+    let delta = getDelta(change)
+    ranges.forEach(r => r.applyChange(change))
+    let edits = ranges.filter(r => r !== textRange).map(o => o.textEdit)
+    // logger.debug('edits:', JSON.stringify(edits, null, 2))
+    let pos = this.getCursorPosition(textRange.position.line)
+    this.changing = true
+    await doc.applyEdits(edits, true)
+    this.changing = false
+    let preCount = 0
+    if (delta != 0) {
+      for (let r of ranges) {
+        let n = this.getBeforeCount(r, textRange)
+        if (r == textRange) preCount = n
+        r.move(n * delta)
       }
     }
-    let { nvim } = this
-    this.changing = true
-    await doc.changeLines(arr)
-    this.changing = false
-    if (this.activated) {
-      this.ranges.forEach(r => {
-        r.sync()
-      })
-      this.textDocument = this.doc.textDocument
-    }
-    // apply changes
-    nvim.pauseNotification()
-    let { cursor } = events
-    if (textRange.preCount > 0 && cursor.bufnr == doc.bufnr && textRange.line + 1 == cursor.lnum) {
-      let changed = textRange.preCount * (newText.length - (range.end.character - range.start.character))
-      nvim.call('cursor', [cursor.lnum, cursor.col + changed], true)
+    if (preCount > 0 && pos) {
+      let changed = preCount * delta
+      await window.moveTo(Position.create(pos.line, pos.character + changed))
     }
     this.doHighlights()
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
   }
 
-  private applyComposedEdit(original: string, edit: TextEdit): void {
-    // check complex edit
-    let { range, newText } = edit
+  private getCursorPosition(line: number): Position | undefined {
+    let cursor = events.cursor
+    if (cursor.bufnr != this.doc.bufnr || cursor.lnum - 1 != line) return undefined
+    let character = byteSlice(this.doc.getline(line), 0, cursor.col - 1).length
+    return Position.create(line, character)
+  }
+
+  private getBeforeCount(textRange: TextRange, exclude?: TextRange): number {
     let { ranges } = this
-    let doc = TextDocument.create('file:///1', '', 0, original)
-    let edits: TextEdit[] = []
-    let diffs = fastDiff(original, newText)
-    let offset = 0
-    for (let i = 0; i < diffs.length; i++) {
-      let diff = diffs[i]
-      let pos = adjustPosition(range.start, doc.positionAt(offset))
-      if (diff[0] == fastDiff.EQUAL) {
-        offset = offset + diff[1].length
-      } else if (diff[0] == fastDiff.DELETE) {
-        let end = adjustPosition(range.start, doc.positionAt(offset + diff[1].length))
-        if (diffs[i + 1] && diffs[i + 1][0] == fastDiff.INSERT) {
-          // change
-          edits.push({ range: Range.create(pos, end), newText: diffs[i + 1][1] })
-          i = i + 1
-        } else {
-          // delete
-          edits.push({ range: Range.create(pos, end), newText: '' })
-        }
-        offset = offset + diff[1].length
-      } else if (diff[0] == fastDiff.INSERT) {
-        edits.push({ range: Range.create(pos, pos), newText: diff[1] })
+    let n = 0
+    for (let idx = 0; idx < ranges.length; idx++) {
+      const r = ranges[idx]
+      if (r.position.line < textRange.position.line || r === exclude) continue
+      if (r.isBefore(textRange)) {
+        n++
+        continue
       }
+      break
     }
-    if (edits.some(edit => edit.newText.includes('\n') || edit.range.start.line != edit.range.end.line)) {
+    return n
+  }
+
+  public applyComposedEdit(originalLines: string[], newLines: string[]): boolean {
+    // check complex edit
+    let diffs = fastDiff(originalLines[0], newLines[0])
+    let first = this.ranges[0]
+    // let ranges = this.ranges.filter(o => o.line == first.line)
+    let s = first.position.character
+    let firstLine = first.position.line
+    let len = first.text.length
+    let diff = diffs[0]
+    if (s > 0 && (diff[0] != fastDiff.EQUAL || !diff[1].startsWith(originalLines[0].slice(0, s)))) {
       this.cancel()
-      return
+      return false
     }
-    if (edits.length == ranges.length) {
-      let last: TextEdit
-      for (let i = 0; i < edits.length; i++) {
-        let edit = edits[i]
-        let textRange = this.ranges[i]
-        if (!rangeIntersect(textRange.currRange, edit.range)) {
-          this.cancel()
-          return
-        }
-        if (last && !equalEdit(edit, last)) {
-          this.cancel()
-          return
-        }
-        textRange.applyEdit(edit)
-        last = edit
+    let used = 0
+    let invalid = false
+    let changes: DiffItem[] = []
+    for (let i = 0; i < diffs.length; i++) {
+      let [kind, text] = diffs[i]
+      if (i == 0 && s > 0) {
+        text = text.slice(s)
       }
-    } else if (edits.length == ranges.length * 2) {
-      for (let i = 0; i < edits.length - 1; i = i + 2) {
-        let edit = edits[i]
-        let next = edits[i + 1]
-        if (edit.newText.length == 0 && next.newText.length == 0) {
-          // remove begin & end
-          let textRange = this.ranges[i / 2]
-          if (comparePosition(textRange.currRange.end, next.range.end) != 0) {
-            this.cancel()
-            return
-          }
-          let start = edit.range.start.character - textRange.currRange.start.character
-          textRange.replace(start, edit.range.end.character - edit.range.start.character, '')
-          let offset = next.range.end.character - next.range.start.character
-          let len = textRange.text.length
-          textRange.replace(len - offset, len)
-        } else if (emptyRange(edit.range) && emptyRange(next.range)) {
-          // add begin & end
-          let textRange = this.ranges[i / 2]
-          if (comparePosition(textRange.currRange.end, next.range.start) != 0) {
-            this.cancel()
-            return
-          }
-          let start = edit.range.start.character - textRange.currRange.start.character
-          textRange.add(start, edit.newText)
-          let len = textRange.text.length
-          textRange.add(len, next.newText)
-        } else {
-          this.cancel()
-          return
+      if (kind == fastDiff.EQUAL) {
+        used += text.length
+        if (used > len) break
+      } else if (kind == fastDiff.DELETE) {
+        let offset = used
+        used += text.length
+        if (used > len) {
+          invalid = true
+          break
         }
+        changes.push({ offset, remove: text })
+      } else {
+        let prev = diffs[i - 1]
+        if (prev && prev[0] == fastDiff.DELETE) {
+          changes[changes.length - 1].add = text
+        } else {
+          changes.push({ offset: used, add: text })
+        }
+      }
+    }
+    if (invalid || !changes.length) {
+      this.cancel()
+      return false
+    }
+    let doc = TextDocument.create('file:///1', '', 0, originalLines.join('\n'))
+    let change: TextChange | SurrondChange
+    if (changes.length == 1) {
+      change = {
+        offset: changes[0].offset,
+        remove: changes[0].remove ? changes[0].remove.length : 0,
+        insert: changes[0].add ?? ''
+      }
+    } else if (surrondChanges(changes, len)) {
+      change = {
+        prepend: [changes[0].remove ? changes[0].remove.length : 0, changes[0].add ?? ''],
+        append: [changes[1].remove ? changes[1].remove.length : 0, changes[1].add ?? '']
       }
     } else {
+      let text = first.text
+      let oldText = ''
+      let newText = ''
+      let offset = changes[0].offset
+      for (let c of changes) {
+        if (c.offset > offset + oldText.length) {
+          let s = text.slice(offset + oldText.length, c.offset)
+          oldText += s
+          newText += s
+        }
+        if (c.add) {
+          newText += c.add
+        }
+        if (c.remove) {
+          oldText += c.remove
+        }
+      }
+      change = {
+        offset,
+        remove: oldText.length,
+        insert: newText
+      }
+    }
+    let edits: TextEdit[] = this.ranges.map(o => {
+      let line = o.position.line - firstLine
+      let { start, end } = o.range
+      let range = Range.create(line, start.character, line, end.character)
+      o.applyChange(change)
+      return TextEdit.replace(range, o.text)
+    })
+    let content = TextDocument.applyEdits(doc, edits)
+    if (content !== newLines.join('\n')) {
       this.cancel()
-      return
+      return false
+    }
+
+    let delta = getDelta(change)
+    if (delta != 0) {
+      for (let r of this.ranges) {
+        let n = this.getBeforeCount(r)
+        r.move(n * delta)
+      }
     }
     this.doHighlights()
+    return true
   }
+}
+
+export function surrondChanges(changes: DiffItem[], len: number): boolean {
+  if (changes.length != 2 || changes[0].offset != 0) return false
+  let end = changes[1].offset + (changes[1].remove ? changes[1].remove.length : 0)
+  if (end !== len) return false
+  return true
 }

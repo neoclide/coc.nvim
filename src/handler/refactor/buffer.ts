@@ -4,7 +4,6 @@ import path from 'path'
 import { Disposable, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import commands from '../../commands'
 import Document from '../../model/document'
 import Highlighter from '../../model/highligher'
 import { BufferSyncItem, DidChangeTextDocumentParams } from '../../types'
@@ -82,6 +81,13 @@ export default class RefactorBuffer implements BufferSyncItem {
   ) {
     this.disposables.push(workspace.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true))
     workspace.onDidChangeTextDocument(this.onDocumentChange, this, this.disposables)
+    window.cursors.onDidUpdate(bufnr => {
+      if (bufnr == this.bufnr) {
+        nvim.pauseNotification()
+        this.highlightLineNr()
+        void nvim.resumeNotification(true, true)
+      }
+    }, null, this.disposables)
   }
 
   public get fileItems(): FileItem[] {
@@ -341,7 +347,7 @@ export default class RefactorBuffer implements BufferSyncItem {
       if (err) throw new Error(err[2])
       await document.patchChange()
       this.changing = false
-      await commands.executeCommand('editor.action.addRanges', hlRanges)
+      await window.cursors.addRanges(hlRanges)
     } catch (e) {
       this.changing = false
       logger.error(`Error on add file item:`, e)
@@ -473,7 +479,7 @@ export default class RefactorBuffer implements BufferSyncItem {
   }
 
   /**
-   * Use conceal to add lineNr
+   * Use conceal/virtual text to add lineNr
    */
   private highlightLineNr(): void {
     let { _fileItems: fileItems, nvim, srcId, bufnr } = this
