@@ -1207,6 +1207,11 @@
       "default": "<C-p>",
       "description": "Key used for jump to previous cursors position."
     },
+    "cursors.wrapscan": {
+      "type": "boolean",
+      "default": true,
+      "description": "Searches wrap around the first or last cursors range."
+    },
     "semanticTokens.filetypes": {
       "type": "array",
       "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
