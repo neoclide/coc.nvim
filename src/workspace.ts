@@ -312,7 +312,7 @@ export class Workspace implements IWorkspace {
    */
   public getAttachedDocument(uri: number | string): Document {
     let doc = this.getDocument(uri)
-    if (!doc) throw new Error(`Document of ${uri} not exists.`)
+    if (!doc) throw new Error(`Document of ${uri} not created.`)
     if (!doc.attached) throw new Error(`Document of ${uri} not attached, checkout :h CocAction('ensureDocument')`)
     return doc
   }
