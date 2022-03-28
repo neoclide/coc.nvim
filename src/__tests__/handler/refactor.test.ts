@@ -3,9 +3,12 @@ import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
 import fs from 'fs'
 import { Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { FileItem } from '../../handler/refactor/buffer'
-import Refactor, { emptyWorkspaceEdit } from '../../handler/refactor/index'
+import RefactorBuffer, { FileItemDef, fixChangeParams } from '../../handler/refactor/buffer'
+import Changes from '../../handler/refactor/changes'
+import Refactor from '../../handler/refactor/index'
 import languages from '../../languages'
+import { DidChangeTextDocumentParams } from '../../types'
+import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -32,16 +35,129 @@ function createEdit(uri: string): WorkspaceEdit {
   return { documentChanges: [TextDocumentEdit.create(doc, [edit])] }
 }
 
-describe('emptyWorkspaceEdit', () => {
-  it('should check empty workspaceEdit', async () => {
-    let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
-    expect(emptyWorkspaceEdit(workspaceEdit)).toBe(false)
-    expect(emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+// assert ranges is expected.
+async function assertSychronized(buf: RefactorBuffer) {
+  let buffer = nvim.createBuffer(buf.bufnr)
+  let lines = await buffer.lines
+  let items: { lnum: number, lines: string[] }[] = []
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i]
+    if (line.includes('\u3000') && line.length > 1) {
+      items.push({ lnum: i + 1, lines: [] })
+    }
+  }
+  let curr: { lnum: number, lines: string[] }[] = []
+  buf.fileItems.forEach(item => {
+    item.ranges.forEach(r => {
+      curr.push({ lnum: r.lnum, lines: [] })
+    })
+  })
+  curr.sort((a, b) => a.lnum - b.lnum)
+  expect(items).toEqual(curr)
+}
+
+describe('fixChangeParams', () => {
+  function createChangeParams(range: Range, text: string, original: string, originalLines: ReadonlyArray<string>): DidChangeTextDocumentParams {
+    return {
+      textDocument: {
+        uri: 'untitled:/1',
+        version: 1,
+      },
+      originalLines,
+      original,
+      bufnr: 1,
+      contentChanges: [{ range, text }]
+    }
+  }
+
+  it('should fix delete change params', async () => {
+    let e = createChangeParams(Range.create(0, 4, 2, 4), '', 'x\nfoo\n\u3000bar', [
+      '\u3000barx',
+      'foo',
+      '\u3000bara'
+    ])
+    e = fixChangeParams(e)
+    expect(e.original).toBe('\u3000barx\nfoo\n')
+    expect(e.contentChanges[0].range).toEqual(Range.create(0, 0, 2, 0))
+  })
+
+  it('should fix insert change params', async () => {
+    let e = createChangeParams(Range.create(0, 4, 0, 4), 'x\nfoo\n\u3000bar', '', [
+      '\u3000bara'
+    ])
+    e = fixChangeParams(e)
+    expect(e.original).toBe('')
+    let change = e.contentChanges[0]
+    expect(change.range).toEqual(Range.create(0, 0, 0, 0))
+    expect(change.text).toBe('\u3000barx\nfoo\n')
   })
 })
 
 describe('refactor', () => {
-  describe('fromWorkspaceEdit', () => {
+  describe('checkInsert()', () => {
+    it('should check inserted ranges', async () => {
+      let c = new Changes()
+      expect(c.checkInsert([1])).toBeUndefined()
+      c.add([{ filepath: __filename, start: 1, lnum: 1, lines: [''] }])
+      expect(c.checkInsert([2])).toBeUndefined()
+    })
+  })
+
+  describe('getFileRange()', () => {
+    it('should throw when range not exists', async () => {
+      let uri = URI.file(__filename).toString()
+      let locations = [{ uri, range: Range.create(0, 0, 0, 6) }]
+      let buf = await refactor.fromLocations(locations)
+      let fn = () => {
+        buf.getFileRange(1)
+      }
+      expect(fn).toThrow(Error)
+    })
+
+    it('should find file range', async () => {
+      let uri = URI.file(__filename).toString()
+      let locations = [{ uri, range: Range.create(0, 0, 0, 6) }]
+      let buf = await refactor.fromLocations(locations)
+      let res = buf.getFileRange(4)
+      expect(res).toBeDefined()
+    })
+  })
+
+  describe('getRange()', () => {
+    it('should get delete range', async () => {
+      let filename = await createTmpFile('foo\n\nbar\n')
+      let fileItem: FileItemDef = {
+        filepath: filename,
+        ranges: [{ start: 0, end: 1 }, { start: 2, end: 3 }]
+      }
+      let buf = await refactor.createRefactorBuffer()
+      await buf.addFileItems([fileItem])
+      let res = buf.getFileRange(4)
+      let r = buf.getDeleteRange(res)
+      expect(r).toEqual(Range.create(3, 0, 6, 0))
+      res = buf.getFileRange(7)
+      r = buf.getDeleteRange(res)
+      expect(r).toEqual(Range.create(6, 0, 8, 0))
+    })
+
+    it('should get replace range', async () => {
+      let filename = await createTmpFile('foo\n\nbar\n')
+      let fileItem: FileItemDef = {
+        filepath: filename,
+        ranges: [{ start: 0, end: 1 }, { start: 2, end: 3 }]
+      }
+      let buf = await refactor.createRefactorBuffer()
+      await buf.addFileItems([fileItem])
+      let res = buf.getFileRange(4)
+      let r = buf.getReplaceRange(res)
+      expect(r).toEqual(Range.create(4, 0, 4, 3))
+      res = buf.getFileRange(7)
+      r = buf.getReplaceRange(res)
+      expect(r).toEqual(Range.create(7, 0, 7, 3))
+    })
+  })
+
+  describe('fromWorkspaceEdit()', () => {
     it('should not create from invalid workspaceEdit', async () => {
       let res = await refactor.fromWorkspaceEdit(undefined)
       expect(res).toBeUndefined()
@@ -87,7 +203,7 @@ describe('refactor', () => {
     })
   })
 
-  describe('fromLocations', () => {
+  describe('fromLocations()', () => {
     it('should create from locations', async () => {
       let uri = URI.file(__filename).toString()
       let locations = [{
@@ -110,63 +226,112 @@ describe('refactor', () => {
     })
   })
 
-  describe('onChange', () => {
+  describe('onChange()', () => {
+    async function setup(): Promise<RefactorBuffer> {
+      let uri = URI.file(__filename).toString()
+      let locations = [{
+        uri,
+        range: Range.create(0, 0, 0, 6),
+      }, {
+        uri,
+        range: Range.create(1, 0, 1, 6),
+      }, {
+        uri,
+        range: Range.create(10, 0, 10, 6),
+      }]
+      return await refactor.fromLocations(locations)
+    }
+
+    it('should detect range delete and undo', async () => {
+      let buf = await setup()
+      let doc = workspace.getDocument(buf.bufnr)
+      let r = buf.getFileRange(4)
+      let end = r.lnum + r.lines.length
+      await nvim.command(`${r.lnum},${end + 1}d`)
+      await doc.synchronize()
+      await assertSychronized(buf)
+      await nvim.command('undo')
+      await doc.synchronize()
+      await assertSychronized(buf)
+    })
+
+    it('should detect normal delete', async () => {
+      let buf = await setup()
+      let doc = workspace.getDocument(buf.bufnr)
+      let r = buf.getFileRange(4)
+      await nvim.command(`${r.lnum + 1},${r.lnum + 1}d`)
+      await doc.synchronize()
+      await assertSychronized(buf)
+    })
+
+    it('should detect insert', async () => {
+      let buf = await setup()
+      let doc = workspace.getDocument(buf.bufnr)
+      let buffer = nvim.createBuffer(buf.bufnr)
+      await buffer.append(['foo'])
+      await doc.synchronize()
+      await assertSychronized(buf)
+      await buffer.append(['foo', '\u3000'])
+      await doc.synchronize()
+      await assertSychronized(buf)
+    })
+  })
+
+  describe('onDocumentChange()', () => {
     it('should ignore when change after range', async () => {
       let doc = await helper.createDocument()
       await doc.buffer.append(['foo', 'bar'])
-      await refactor.fromLocations([{ uri: doc.uri, range: Range.create(0, 0, 0, 3) }])
+      await doc.synchronize()
+      let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(0, 0, 0, 3) }])
       let lines = await nvim.call('getline', [1, '$'])
       await doc.buffer.append(['def'])
-      doc.forceSync()
-      await helper.wait(100)
+      await doc.synchronize()
       let newLines = await nvim.call('getline', [1, '$'])
       expect(lines).toEqual(newLines)
+      await assertSychronized(buf)
     })
 
     it('should adjust when change before range', async () => {
       let doc = await helper.createDocument()
       await doc.buffer.append(['', '', '', '', 'foo', 'bar'])
-      await helper.wait(50)
-      doc.forceSync()
+      await doc.synchronize()
       let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
       await doc.buffer.setLines(['def'], { start: 0, end: 0, strictIndexing: false })
-      doc.forceSync()
-      await helper.wait(100)
+      await doc.synchronize()
       let fileRange = buf.getFileRange(4)
       expect(fileRange.start).toBe(2)
-      expect(fileRange.end).toBe(8)
+      expect(fileRange.lines.length).toBe(6)
+      await assertSychronized(buf)
     })
 
-    it('should removed when lines empty', async () => {
+    it('should remove ranges when lines empty', async () => {
       let doc = await helper.createDocument()
       await doc.buffer.append(['', '', '', '', 'foo', 'bar'])
-      await helper.wait(50)
-      doc.forceSync()
+      await doc.synchronize()
       let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
       await doc.buffer.setLines([], { start: 0, end: -1, strictIndexing: false })
-      doc.forceSync()
-      await helper.wait(100)
+      await doc.synchronize()
       let lines = await nvim.call('getline', [1, '$'])
       expect(lines.length).toBe(3)
       let items = buf.fileItems
       expect(items.length).toBe(0)
+      await assertSychronized(buf)
     })
 
     it('should change when liens changed', async () => {
       let doc = await helper.createDocument()
       await doc.buffer.append(['', '', '', '', 'foo', 'bar'])
-      await helper.wait(50)
-      doc.forceSync()
-      await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
-      await doc.buffer.setLines(['def'], { start: 5, end: 6, strictIndexing: false })
-      doc.forceSync()
-      await helper.wait(30)
+      await doc.synchronize()
+      let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
+      await doc.buffer.setLines(['def', 'def'], { start: 5, end: 6, strictIndexing: false })
+      await doc.synchronize()
       let lines = await nvim.call('getline', [1, '$'])
       expect(lines[lines.length - 2]).toBe('def')
+      await assertSychronized(buf)
     })
   })
 
-  describe('refactor#getFileChanges', () => {
+  describe('getFileChanges()', () => {
     it('should get changes #1', async () => {
       await helper.createDocument()
       let lines = `
@@ -218,26 +383,67 @@ bar
     })
   })
 
-  describe('Refactor#createRefactorBuffer', () => {
+  describe('createRefactorBuffer()', () => {
     it('should create refactor buffer', async () => {
-      await helper.createDocument()
       let winid = await nvim.call('win_getid')
       let buf = await refactor.createRefactorBuffer()
       let curr = await nvim.call('win_getid')
       expect(curr).toBeGreaterThan(winid)
       let valid = await buf.valid
       expect(valid).toBe(true)
+      buf = await refactor.createRefactorBuffer('vim')
+      valid = await buf.valid
+      expect(valid).toBe(true)
     })
 
-    it('should jump to position by <CR>', async () => {
-      await helper.createDocument()
+    it('should use conceal for line numbers', async () => {
+      let buf = await refactor.createRefactorBuffer(undefined, true)
+      let fileItem: FileItemDef = {
+        filepath: __filename,
+        ranges: [{ start: 10, end: 11 }, { start: 15, end: 20 }]
+      }
+      await buf.addFileItems([fileItem])
+      let arr = await nvim.call('getmatches') as any[]
+      arr = arr.filter(o => o.group == 'Conceal')
+      expect(arr.length).toBeGreaterThan(0)
+      await buf.addFileItems([{
+        filepath: __filename,
+        ranges: [{ start: 1, end: 3 }]
+      }])
+      await nvim.command('normal! ggdG')
+      let doc = workspace.getDocument(buf.bufnr)
+      await doc.synchronize()
+      let b = nvim.createBuffer(buf.bufnr)
+      let res = await b.getVar('line_infos')
+      expect(res).toEqual({})
+    })
+  })
+
+  describe('splitOpen()', () => {
+    async function setup(): Promise<RefactorBuffer> {
       let buf = await refactor.createRefactorBuffer()
-      let fileItem: FileItem = {
+      let fileItem: FileItemDef = {
         filepath: __filename,
         ranges: [{ start: 10, end: 11 }, { start: 15, end: 20 }]
       }
       await buf.addFileItems([fileItem])
       await nvim.call('cursor', [5, 1])
+      return buf
+    }
+
+    it('should jump to position by <CR>', async () => {
+      let buf = await setup()
+      await buf.splitOpen()
+      let line = await nvim.eval('line(".")')
+      let bufname = await nvim.eval('bufname("%")')
+      expect(bufname).toMatch('refactor.test.ts')
+      expect(line).toBe(11)
+    })
+
+    it('should jump split window when orignal window not valid', async () => {
+      let win = await nvim.window
+      let buf = await setup()
+      await nvim.call('nvim_win_close', [win.id, true])
       await buf.splitOpen()
       let line = await nvim.eval('line(".")')
       let bufname = await nvim.eval('bufname("%")')
@@ -246,32 +452,100 @@ bar
     })
   })
 
-  describe('Refactor#saveRefactor', () => {
+  describe('showMenu()', () => {
+    async function setup(): Promise<RefactorBuffer> {
+      let buf = await refactor.createRefactorBuffer()
+      let fileItem: FileItemDef = {
+        filepath: __filename,
+        ranges: [{ start: 10, end: 11 }, { start: 15, end: 20 }]
+      }
+      await buf.addFileItems([fileItem])
+      await nvim.call('cursor', [5, 1])
+      return buf
+    }
+
+    it('should do nothing when cancelled or range not found', async () => {
+      let buf = await setup()
+      let p = buf.showMenu()
+      await helper.wait(30)
+      await nvim.input('<esc>')
+      await p
+      let bufnr = await nvim.call('bufnr', ['%'])
+      expect(bufnr).toBe(buf.bufnr)
+      await nvim.call('cursor', [1, 1])
+      p = buf.showMenu()
+      await helper.wait(30)
+      await nvim.input('1')
+      await p
+      bufnr = await nvim.call('bufnr', ['%'])
+      expect(bufnr).toBe(buf.bufnr)
+    })
+
+    it('should open file in new tab', async () => {
+      let buf = await setup()
+      await nvim.call('cursor', [4, 1])
+      let p = buf.showMenu()
+      await helper.wait(30)
+      await nvim.input('1')
+      await p
+      let nr = await nvim.call('tabpagenr')
+      expect(nr).toBe(2)
+      let lnum = await nvim.call('line', ['.'])
+      expect(lnum).toBe(11)
+    })
+
+    it('should remove current block', async () => {
+      let buf = await setup()
+      await nvim.call('cursor', [4, 1])
+      let p = buf.showMenu()
+      await helper.wait(30)
+      await nvim.input('2')
+      await p
+      let items = buf.fileItems
+      expect(items[0].ranges.length).toBe(1)
+      await assertSychronized(buf)
+    })
+  })
+
+  describe('saveRefactor()', () => {
     it('should adjust line ranges after change', async () => {
       let filename = await createTmpFile('foo\n\nbar\n')
-      let fileItem: FileItem = {
+      let fileItem: FileItemDef = {
         filepath: filename,
         ranges: [{ start: 0, end: 1 }, { start: 2, end: 3 }]
       }
       let buf = await refactor.createRefactorBuffer()
-      await buf.addFileItems([fileItem])
+      const getRanges = () => {
+        let items = buf.fileItems
+        let item = items.find(o => o.filepath == filename)
+        return item.ranges.map(o => {
+          return [o.start, o.start + o.lines.length]
+        })
+      }
+      await buf.addFileItems([fileItem, {
+        filepath: __filename,
+        ranges: [{ start: 1, end: 5 }]
+      }])
+      expect(getRanges()).toEqual([[0, 1], [2, 3]])
       nvim.pauseNotification()
-      nvim.call('setline', [5, ['xyz']], true)
+      nvim.call('setline', [5, ['xyoo']], true)
       nvim.command('undojoin', true)
       nvim.call('append', [5, ['de']], true)
       nvim.command('undojoin', true)
-      nvim.call('append', [8, ['bar']], true)
+      nvim.call('setline', [9, ['b']], true)
       await nvim.resumeNotification()
-      await helper.wait(100)
+      let doc = workspace.getDocument(buf.bufnr)
+      await doc.synchronize()
       let res = await refactor.save(buf.buffer.id)
       expect(res).toBe(true)
+      expect(getRanges()).toEqual([[0, 2], [3, 4]])
       let content = fs.readFileSync(filename, 'utf8')
-      expect(content).toBe('xyz\nde\n\nbar\nbar\n')
+      expect(content).toBe('xyoo\nde\n\nb\n')
     })
 
     it('should not save when no change made', async () => {
       let buf = await refactor.createRefactorBuffer()
-      let fileItem: FileItem = {
+      let fileItem: FileItemDef = {
         filepath: __filename,
         ranges: [{ start: 10, end: 11 }, { start: 15, end: 20 }]
       }
@@ -285,7 +559,7 @@ bar
       await doc.buffer.replace(['foo', 'bar', 'line'], 0)
       await helper.wait(30)
       let filename = URI.parse(doc.uri).fsPath
-      let fileItem: FileItem = {
+      let fileItem: FileItemDef = {
         filepath: filename,
         ranges: [{ start: 0, end: 2 }]
       }

@@ -1,4 +1,4 @@
-import { Range, TextEdit } from 'vscode-languageserver-protocol'
+import { Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 
 export function singleLineEdit(edit: TextEdit): boolean {
   let { range, newText } = edit
@@ -61,3 +61,9 @@ export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
   return data
 }
 
+export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
+  let { changes, documentChanges } = edit
+  if (documentChanges && documentChanges.length) return false
+  if (changes && Object.keys(changes).length) return false
+  return true
+}

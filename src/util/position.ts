@@ -44,6 +44,16 @@ export function rangeIntersect(r: Range, range: Range): boolean {
   return false
 }
 
+/**
+ * Adjust from start position
+ */
+export function adjustRangePosition(range: Range, position: Position): Range {
+  let { line, character } = position
+  let { start, end } = range
+  let endCharacter = end.line == start.line ? end.character + character : end.character
+  return Range.create(start.line + line, character + start.character, end.line + line, endCharacter)
+}
+
 export function lineInRange(line: number, range: Range): boolean {
   let { start, end } = range
   return line >= start.line && line <= end.line

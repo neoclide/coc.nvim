@@ -2377,6 +2377,9 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	Check |coc-config-cursors| and |coc-config-refactor| for related
 	configuration.
 
+	Use <CR> to open buffer at current position in split window.
+	Use <Tab> to show action menu which have tab open and remove actions.
+
 "format"						*CocAction('format')*
 
 	Format current buffer using the language server.

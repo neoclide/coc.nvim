@@ -4,7 +4,7 @@ import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import vm from 'vm'
-import { Color, Position, Range, SymbolKind, TextEdit } from 'vscode-languageserver-protocol'
+import { Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { concurrent, executable, getKeymapModifier, getUri, isRunning, runCommand, wait, watchFile } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
@@ -19,11 +19,11 @@ import * as Is from '../../util/is'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
-import { comparePosition, getEnd, getChangedPosition, isSingleLine, positionInRange, rangeInRange, rangeAdjacent, rangeOverlap } from '../../util/position'
+import { comparePosition, getChangedPosition, getEnd, isSingleLine, positionInRange, rangeAdjacent, rangeInRange, rangeOverlap } from '../../util/position'
 import { terminate } from '../../util/processes'
 import { getMatchResult } from '../../util/score'
 import * as strings from '../../util/string'
-import { getWellformedEdit, lineCountChange } from '../../util/textedit'
+import { emptyWorkspaceEdit, getWellformedEdit, lineCountChange } from '../../util/textedit'
 import helper, { createTmpFile } from '../helper'
 const createLogger = require('../../util/logger')
 
@@ -121,6 +121,19 @@ describe('logger', () => {
 })
 
 describe('textedit', () => {
+
+  function createEdit(uri: string): WorkspaceEdit {
+    let edit = TextEdit.insert(Position.create(0, 0), 'a')
+    let doc = { uri, version: null }
+    return { documentChanges: [TextDocumentEdit.create(doc, [edit])] }
+  }
+
+  it('should check empty workspaceEdit', async () => {
+    let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
+    expect(emptyWorkspaceEdit(workspaceEdit)).toBe(false)
+    expect(emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+  })
+
   it('should get well formed edit', async () => {
     let r = Range.create(1, 0, 0, 0)
     let edit: TextEdit = { range: r, newText: 'foo' }
@@ -395,6 +408,13 @@ describe('Position', () => {
     let edit = TextEdit.replace(r, 'a\nb\n')
     let res = getChangedPosition(pos, edit)
     expect(res).toEqual({ line: 2, character: -1 })
+  })
+
+  test('getChangedPosition #4', () => {
+    let pos = Position.create(0, 0)
+    let edit = TextEdit.replace(Range.create(pos, Position.create(0, 3)), 'abc')
+    let res = getChangedPosition(pos, edit)
+    expect(res).toEqual({ line: 0, character: 0 })
   })
 })
 

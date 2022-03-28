@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Mutex } from '../util/mutex'
 import { ChildProcess, spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import path from 'path'
@@ -7,8 +6,9 @@ import readline from 'readline'
 import { Range } from 'vscode-languageserver-types'
 import Highlighter from '../model/highligher'
 import { ansiparse } from '../util/ansiparse'
+import { Mutex } from '../util/mutex'
 import window from '../window'
-import RefactorBuffer, { FileItem, FileRange } from './refactor/buffer'
+import RefactorBuffer, { FileItem, FileItemDef } from './refactor/buffer'
 const logger = require('../util/logger')('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
@@ -24,7 +24,7 @@ class Task extends EventEmitter {
     })
     const rl = readline.createInterface(this.process.stdout)
     let start: number
-    let fileItem: FileItem
+    let fileItem: FileItemDef
     let lines: string[] = []
     let highlights: Range[] = []
     let create = true
@@ -58,13 +58,7 @@ class Task extends EventEmitter {
       } else {
         let fileEnd = content.trim().length == 0
         if (fileItem && (fileEnd || content.trim() == '--')) {
-          let fileRange: FileRange = {
-            lines,
-            highlights,
-            start,
-            end: start + lines.length
-          }
-          fileItem.ranges.push(fileRange)
+          fileItem.ranges.push({ lines, highlights, start })
         }
         if (fileEnd) {
           this.emit('item', fileItem)
@@ -78,13 +72,7 @@ class Task extends EventEmitter {
     rl.on('close', () => {
       if (fileItem) {
         if (lines.length) {
-          let fileRange: FileRange = {
-            lines,
-            highlights,
-            start,
-            end: start + lines.length
-          }
-          fileItem.ranges.push(fileRange)
+          fileItem.ranges.push({ lines, highlights, start, })
         }
         this.emit('item', fileItem)
       }

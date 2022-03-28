@@ -14,6 +14,11 @@ declare global {
     }
   }
 }
+export type Optional<T extends object, K extends keyof T = keyof T> = Omit<
+  T,
+  K
+> &
+  Partial<Pick<T, K>>
 
 export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
