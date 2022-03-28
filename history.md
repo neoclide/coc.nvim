@@ -1,3 +1,7 @@
+# 2022-03-29
+
+- Add menu actions to refactor buffer.
+
 # 2022-03-12
 
 - Avoid use `<sapce><bs>` for cancel completion.
