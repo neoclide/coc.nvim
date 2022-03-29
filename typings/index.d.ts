@@ -4952,7 +4952,7 @@ declare module 'coc.nvim' {
   type EventResult = void | Promise<void>
   type MoveEvents = 'CursorMoved' | 'CursorMovedI' | 'CursorHold' | 'CursorHoldI'
   type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
-    | 'InsertLeave' | 'TermOpen' | 'TermClose' | 'InsertEnter'
+    | 'InsertLeave' | 'TermOpen' | 'InsertEnter'
     | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'Enter'
   type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet'
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'

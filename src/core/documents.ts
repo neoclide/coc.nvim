@@ -97,7 +97,6 @@ export default class Documents implements Disposable {
     events.on('CursorMoved', checkCurrentBuffer, null, this.disposables)
     events.on('CursorMovedI', checkCurrentBuffer, null, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
-    events.on('TermClose', this.onBufUnload, this, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
     events.on('TermOpen', this.onBufCreate, this, this.disposables)
