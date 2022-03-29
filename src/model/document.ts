@@ -219,9 +219,9 @@ export default class Document {
     if (this.env.isVim) return
     let lines = this.lines
     this.buffer.attach(true).then(res => {
-      if (!res) void events.fire('BufDetach', [this.bufnr])
+      if (!res) fireDetach(this.bufnr)
     }, _e => {
-      void events.fire('BufDetach', [this.bufnr])
+      fireDetach(this.bufnr)
     })
     this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
       if (buf.id !== this.bufnr || !this._attached || tick == null) return
@@ -234,7 +234,7 @@ export default class Document {
       }
     }, this.disposables)
     this.buffer.listen('detach', () => {
-      void events.fire('BufDetach', [this.bufnr])
+      fireDetach(this.bufnr)
     }, this.disposables)
   }
 
@@ -754,4 +754,8 @@ function validRange(range: Range, total: number): boolean {
   if (range.end.line >= total) return false
   if (range.start.line < 0 || range.start.character < 0) return false
   return true
+}
+
+function fireDetach(bufnr: number): void {
+  void events.fire('BufDetach', [bufnr])
 }

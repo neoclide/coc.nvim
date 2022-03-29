@@ -359,16 +359,20 @@ export default class Documents implements Disposable {
 
   private onBufUnload(bufnr: number): void {
     this.creating.delete(bufnr)
-    this.onBufDetach(bufnr)
+    void this.onBufDetach(bufnr, false)
   }
 
-  private onBufDetach(bufnr: number): void {
+  private async onBufDetach(bufnr: number, checkReload = true): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (doc) {
       logger.debug('document detach', bufnr, doc.uri)
       if (doc.enabled) this._onDidCloseDocument.fire(doc.textDocument)
       this.buffers.delete(bufnr)
       doc.detach()
+    }
+    if (checkReload) {
+      let loaded = await this.nvim.call('bufloaded', [bufnr])
+      if (loaded) await this.createDocument(bufnr)
     }
   }
 
