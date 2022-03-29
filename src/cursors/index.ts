@@ -1,6 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event, Range } from 'vscode-languageserver-protocol'
-import events from '../events'
 import Document from '../model/document'
 import { comparePosition } from '../util/position'
 import window from '../window'
@@ -15,10 +14,10 @@ export default class Cursors {
   private readonly _onDidUpdate = new Emitter<number>()
   public readonly onDidUpdate: Event<number> = this._onDidUpdate.event
   constructor(private nvim: Neovim) {
-    events.on('BufUnload', bufnr => {
-      let session = this.getSession(bufnr)
+    workspace.onDidCloseTextDocument(e => {
+      let session = this.getSession(e.bufnr)
       if (!session) return
-      this.sessionsMap.delete(bufnr)
+      this.sessionsMap.delete(e.bufnr)
       session.cancel()
     }, null, this.disposables)
   }

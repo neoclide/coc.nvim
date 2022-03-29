@@ -4,12 +4,12 @@ import { EventEmitter } from 'events'
 import path from 'path'
 import readline from 'readline'
 import { Range } from 'vscode-languageserver-types'
-import Highlighter from '../model/highligher'
-import { ansiparse } from '../util/ansiparse'
-import { Mutex } from '../util/mutex'
-import window from '../window'
-import RefactorBuffer, { FileItem, FileItemDef } from './refactor/buffer'
-const logger = require('../util/logger')('handler-search')
+import Highlighter from '../../model/highligher'
+import { ansiparse } from '../../util/ansiparse'
+import { Mutex } from '../../util/mutex'
+import window from '../../window'
+import RefactorBuffer, { FileItem, FileItemDef } from './buffer'
+const logger = require('../../util/logger')('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
 const controlCode = '\x1b'
@@ -147,7 +147,8 @@ export default class Search {
             if (files == 0) {
               // eslint-disable-next-line @typescript-eslint/no-floating-promises
               buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false }, true)
-              buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' }).logError()
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' })
               buf.setOption('modified', false, true)
             } else {
               let highligher = new Highlighter()

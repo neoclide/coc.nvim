@@ -8,8 +8,8 @@ import { disposeAll } from '../../util'
 import { getFileLineCount } from '../../util/fs'
 import { emptyWorkspaceEdit } from '../../util/textedit'
 import workspace from '../../workspace'
-import Search from '../search'
 import RefactorBuffer, { FileItemDef, FileRangeDef, RefactorConfig, SEPARATOR } from './buffer'
+import Search from './search'
 const logger = require('../../util/logger')('handler-refactor')
 
 const name = '__coc_refactor__'

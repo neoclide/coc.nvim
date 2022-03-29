@@ -1,4 +1,4 @@
-import { Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
+import { Disposable, InsertTextMode, Position, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
@@ -29,10 +29,6 @@ export class SnippetManager {
       // Update may cause completion unexpcted terminated.
       this.session?.cancel()
     }, null, this.disposables)
-    events.on('BufUnload', bufnr => {
-      let session = this.getSession(bufnr)
-      if (session) session.deactivate()
-    }, null, this.disposables)
     window.onDidChangeActiveTextEditor(e => {
       if (!this.statusItem) return
       let session = this.getSession(e.document.bufnr)
@@ -45,6 +41,10 @@ export class SnippetManager {
     events.on('InsertEnter', async bufnr => {
       let session = this.getSession(bufnr)
       if (session) await session.checkPosition()
+    }, null, this.disposables)
+    workspace.onDidCloseTextDocument(e => {
+      let session = this.getSession(e.bufnr)
+      if (session) session.deactivate()
     }, null, this.disposables)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest') || e.affectsConfiguration('coc.preferences')) {
@@ -87,7 +87,7 @@ export class SnippetManager {
         // same behavior as Ultisnips
         await doc.applyEdits([{ range, newText: '' }])
         await window.moveTo(range.start)
-        range.end = Object.assign({}, range.start)
+        range.end = Position.create(range.start.line, range.start.character)
       }
     }
     if (session) {
