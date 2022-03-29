@@ -219,9 +219,9 @@ export default class Document {
     if (this.env.isVim) return
     let lines = this.lines
     this.buffer.attach(true).then(res => {
-      if (!res) this.detach()
+      if (!res) void events.fire('BufDetach', [this.bufnr])
     }, _e => {
-      this.detach()
+      void events.fire('BufDetach', [this.bufnr])
     })
     this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
       if (buf.id !== this.bufnr || !this._attached || tick == null) return
@@ -233,8 +233,8 @@ export default class Document {
         this.fireContentChanges()
       }
     }, this.disposables)
-    this.buffer.listen('detach', async () => {
-      this.detach()
+    this.buffer.listen('detach', () => {
+      void events.fire('BufDetach', [this.bufnr])
     }, this.disposables)
   }
 

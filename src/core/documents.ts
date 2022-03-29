@@ -69,6 +69,7 @@ export default class Documents implements Disposable {
     this.winids = new Set(winids)
     this._bufnr = bufnr
     await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
+    events.on('BufDetach', this.onBufDetach, this, this.disposables)
     events.on('WinEnter', (winid: number) => {
       this.winids.add(winid)
     }, null, this.disposables)
@@ -359,6 +360,10 @@ export default class Documents implements Disposable {
 
   private onBufUnload(bufnr: number): void {
     this.creating.delete(bufnr)
+    this.onBufDetach(bufnr)
+  }
+
+  private onBufDetach(bufnr: number): void {
     let doc = this.buffers.get(bufnr)
     if (doc) {
       logger.debug('document detach', bufnr, doc.uri)

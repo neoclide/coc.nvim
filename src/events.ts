@@ -33,7 +33,8 @@ export interface InsertChange {
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufWritePost'
-  | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'Enter'
+  | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload'
+  | 'BufDetach' | 'BufWritePre' | 'Enter'
 
 export type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet' | 'ready'
 
