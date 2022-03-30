@@ -54,9 +54,9 @@ export function prepareMatchCode(snip: UltiSnippetContext): string {
   let { range, regex, line } = snip
   let pyCodes: string[] = []
   if (regex && range != null) {
-    let converted = convertRegex(regex)
-    pyCodes.push(`pattern = re.compile("${escapeString(converted)}")`)
-    pyCodes.push(`match = pattern.search("${escapeString(line.slice(0, range.end.character))}")`)
+    let trigger = line.slice(range.start.character, range.end.character)
+    pyCodes.push(`pattern = re.compile("${escapeString(regex)}")`)
+    pyCodes.push(`match = pattern.search("${escapeString(trigger)}")`)
   } else {
     pyCodes.push(`match = None`)
   }

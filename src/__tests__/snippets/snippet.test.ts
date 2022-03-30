@@ -145,12 +145,11 @@ describe('CocSnippet', () => {
       await asssertPyxValue('t', [''])
       await asssertPyxValue('context', true)
       await createSnippet('`!p snip.rv = fn`', {
-        regex: '^(im)',
+        regex: '[ab]',
         context: 'False'
-      }, Range.create(0, 0, 0, 2), 'im')
+      }, Range.create(0, 2, 0, 3), 'a b')
       await asssertPyxValue('context', false)
-      await asssertPyxValue('match.group(0)', 'im')
-      await asssertPyxValue('match.group(1)', 'im')
+      await asssertPyxValue('match.group(0)', 'b')
     })
 
     it('should setup python match', async () => {
