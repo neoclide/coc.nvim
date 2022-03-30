@@ -1,11 +1,14 @@
-import { Disposable } from 'vscode-languageserver-protocol'
-import Source from '../source'
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import BufferSync from '../../model/bufferSync'
 import { CompleteOption, CompleteResult, ISource } from '../../types'
-import workspace from '../../workspace'
+import { waitImmediate } from '../../util'
+import { fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import KeywordsBuffer from '../keywords'
+import Source from '../source'
 const logger = require('../../util/logger')('sources-buffer')
 
 export default class Buffer extends Source {
-  constructor() {
+  constructor(private keywords: BufferSync<KeywordsBuffer>) {
     super({
       name: 'buffer',
       filepath: __filename
@@ -16,37 +19,53 @@ export default class Buffer extends Source {
     return this.getConfig('ignoreGitignore', true)
   }
 
-  private getWords(bufnr: number): string[] {
+  private async getWords(bufnr: number, opt: CompleteOption, token: CancellationToken): Promise<string[]> {
     let { ignoreGitignore } = this
-    let words: string[] = []
-    workspace.documents.forEach(document => {
-      if (document.bufnr == bufnr) return
-      if (ignoreGitignore && document.isIgnored) return
-      for (let word of document.words) {
-        if (!words.includes(word)) {
-          words.push(word)
+    let words: Set<string> = new Set()
+    // let ignored: Set<string> = curr ? curr.words : new Set()
+    let first = opt.input[0]
+    let fuzzy = first.length > 1
+    let min = opt.input.length
+    let code = first.charCodeAt(0)
+    let ignoreCase = code >= 97 && code <= 122
+    let needle = fuzzy ? getCharCodes(opt.input) : []
+    let ts = Date.now()
+    for (let item of this.keywords.items) {
+      if (item.bufnr === bufnr) continue
+      if (ignoreGitignore && item.gitIgnored) continue
+      if (Date.now() - ts > 15) {
+        await waitImmediate()
+        if (token.isCancellationRequested) return undefined
+        ts = Date.now()
+      }
+      for (let w of item.words) {
+        if (w.length < min) continue
+        let ch = ignoreCase ? w[0].toLowerCase() : w[0]
+        if (fuzzy) {
+          if (fuzzyMatch(needle, w)) words.add(w)
+        } else {
+          if (ch === first) words.add(w)
         }
       }
-    })
-    return words
+    }
+    return Array.from(words)
   }
 
-  public doComplete(opt: CompleteOption): Promise<CompleteResult> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
     let { bufnr, input } = opt
     if (input.length == 0) return null
-    let words = this.getWords(bufnr)
-    words = this.filterWords(words, opt)
-    return Promise.resolve({
+    let words = await this.getWords(bufnr, opt, token)
+    return {
       items: words.map(word => ({
         word,
         menu: this.menu
       }))
-    })
+    }
   }
 }
 
-export function regist(sourceMap: Map<string, ISource>): Disposable {
-  sourceMap.set('buffer', new Buffer())
+export function regist(sourceMap: Map<string, ISource>, keywords: BufferSync<KeywordsBuffer>): Disposable {
+  sourceMap.set('buffer', new Buffer(keywords))
   return Disposable.create(() => {
     sourceMap.delete('buffer')
   })

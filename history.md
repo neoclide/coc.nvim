@@ -1,5 +1,11 @@
 # 2022-03-30
 
+- Improve words parse performance.
+- Remove configurations `coc.source.around.firstMatch` and `coc.source.buffer.firstMatch`.
+- Fix `coc.source.buffer.ignoreGitignore` not works
+
+# 2022-03-30
+
 - Check document reload on detach.
 
 # 2022-03-29

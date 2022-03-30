@@ -93,26 +93,6 @@ export default class Source implements ISource {
   }
 
   /**
-   * Filter words that too short or doesn't match input
-   */
-  protected filterWords(words: string[], opt: CompleteOption): string[] {
-    let { firstMatch } = this
-    let res = []
-    let { input } = opt
-    let cword = opt.word
-    if (!input.length) return []
-    let cFirst = input[0]
-    for (let word of words) {
-      if (!word || word.length < 3) continue
-      if (firstMatch && cFirst != word[0]) continue
-      if (!firstMatch && cFirst.toLowerCase() != word[0].toLowerCase()) continue
-      if (word == cword || word == input) continue
-      res.push(word)
-    }
-    return res
-  }
-
-  /**
    * fix start column for new valid characters
    *
    * @protected

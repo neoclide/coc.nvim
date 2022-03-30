@@ -1,3 +1,6 @@
+import { CancellationToken } from 'vscode-jsonrpc'
+import { waitImmediate } from '../util'
+
 const logger = require('../util/logger')('model-chars')
 
 export class Range {
@@ -65,29 +68,32 @@ export class Chars {
     this.ranges = Range.fromKeywordOption(keywordOption)
   }
 
-  public matchKeywords(content: string, min = 3): string[] {
-    let length = content.length
-    if (length == 0) return []
+  public async matchLines(lines: ReadonlyArray<string>, min = 3, token?: CancellationToken): Promise<Set<string> | undefined> {
     let res: Set<string> = new Set()
-    let str = ''
-    let len = 0
-    for (let i = 0; i < length; i++) {
-      let ch = content[i]
-      let code = ch.codePointAt(0)
-      if (len == 0 && code == 45) continue
-      let isKeyword = this.isKeywordCode(code)
-      if (isKeyword) {
-        if (len == 48) continue
-        str = str + ch
-        len = len + 1
-      } else {
-        if (len >= min && len < 48) res.add(str)
-        str = ''
-        len = 0
+    let ts = Date.now()
+    for (let line of lines) {
+      if (line.length === 0) continue
+      let str = ''
+      if (Date.now() - ts > 15) {
+        await waitImmediate()
+        ts = Date.now()
       }
+      for (let codePoint of line) {
+        if (token && token.isCancellationRequested) return undefined
+        let code = codePoint.codePointAt(0)
+        let isKeyword = this.isKeywordCode(code)
+        if (isKeyword) {
+          str = str + codePoint
+        } else {
+          if (str.length > 0) {
+            if (str.length >= min && str.length < 48) res.add(str)
+            str = ''
+          }
+        }
+      }
+      if (str.length >= min && str.length < 48) res.add(str)
     }
-    if (len != 0) res.add(str)
-    return Array.from(res)
+    return res
   }
 
   public isKeywordCode(code: number): boolean {

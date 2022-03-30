@@ -558,7 +558,7 @@ describe('completion', () => {
       await helper.waitFor('getline', ['.'], 'end')
       await helper.wait(10)
       let items = await helper.getItems()
-      expect(items.length).toBe(2)
+      expect(items.length).toBeGreaterThan(0)
     })
   })
 

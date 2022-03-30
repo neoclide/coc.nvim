@@ -1,6 +1,6 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
@@ -48,7 +48,6 @@ export default class Document {
   private _filetype: string
   private _uri: string
   private _changedtick: number
-  private _words: string[] = []
   private variables: { [key: string]: any }
   private disposables: Disposable[] = []
   private _textDocument: LinesTextDocument
@@ -119,13 +118,6 @@ export default class Document {
 
   public get enabled(): boolean {
     return this.getVar('enabled', true)
-  }
-
-  /**
-   * All words, extracted by `iskeyword` option.
-   */
-  public get words(): string[] {
-    return this._words
   }
 
   /**
@@ -275,7 +267,7 @@ export default class Document {
       textDocument: { version: this.version, uri: this.uri },
       contentChanges: changes
     })
-    this._words = this.chars.matchKeywords(content)
+    // this._words = this.chars.matchKeywords(content)
   }
 
   public async applyEdits(edits: TextEdit[], joinUndo = false): Promise<void> {
@@ -383,31 +375,9 @@ export default class Document {
     return this.chars.isKeyword(word)
   }
 
-  /**
-   * Generate more words by split word with `-`
-   */
-  public getMoreWords(): string[] {
-    let res = []
-    let { words, chars } = this
-    if (!chars.isKeywordChar('-')) return res
-    for (let word of words) {
-      word = word.replace(/^-+/, '')
-      if (word.includes('-')) {
-        let parts = word.split('-')
-        for (let part of parts) {
-          if (
-            part.length > 2 &&
-            !res.includes(part) &&
-            !words.includes(part)
-          ) {
-            res.push(part)
-          }
-        }
-      }
-    }
-    return res
+  public async matchWords(token: CancellationToken): Promise<Set<string> | undefined> {
+    return await this.chars.matchLines(this.textDocument.lines, 3, token)
   }
-
   /**
    * Current word for replacement
    */
@@ -667,9 +637,9 @@ export default class Document {
         chars.addKeyword(ch)
       }
     }
-    let lines = this.lines.length > 30000 ? this.lines.slice(0, 30000) : this.lines
     // TODO not parse words
-    this._words = this.chars.matchKeywords(lines.join('\n'))
+    // this._words = this.chars.matchKeywords(lines.join('\n'))
+    // logger.debug('keywords cost:', Date.now() - t, this._words.length)
   }
 
   /**
@@ -682,7 +652,6 @@ export default class Document {
     this._disposed = true
     this._attached = false
     this.lines = []
-    this._words = []
     this.fetchContent.clear()
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()

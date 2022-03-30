@@ -133,8 +133,9 @@ export default class Complete {
         Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
           if (cancelled) return
           onFinished()
-          logger.debug(`Source "${name}" takes ${Date.now() - start}ms`)
-          if (result?.items && result.items.length > 0) {
+          let len = result ? result.items.length : 0
+          logger.debug(`Source "${name}" finished with ${len} items cost:`, Date.now() - start)
+          if (len > 0) {
             result.priority = result.priority ?? source.priority
             // make sure word exists.
             result.items = result.items.filter(o => o && typeof o.word === 'string')

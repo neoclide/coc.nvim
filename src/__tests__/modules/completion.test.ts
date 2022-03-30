@@ -316,11 +316,9 @@ describe('completion resumeCompletion', () => {
     await nvim.input('if')
     await helper.waitPopup()
     await nvim.input('<C-n>')
-    await helper.wait(50)
+    await helper.wait(20)
     await nvim.input('o')
-    await helper.wait(50)
-    let items = await helper.getItems()
-    expect(items.length).toBe(2)
+    await helper.waitPopup()
     expect(fn).toBeCalledTimes(0)
   })
 })
@@ -688,7 +686,9 @@ describe('completion TextChangedP', () => {
 
 describe('completion done', () => {
   it('should fix word on CompleteDone', async () => {
+    let doc = await workspace.document
     await nvim.setLine('fball football')
+    await doc.synchronize()
     await nvim.input('i')
     await nvim.call('cursor', [1, 2])
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')

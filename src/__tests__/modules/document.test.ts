@@ -112,14 +112,6 @@ describe('Document', () => {
   })
 
   describe('properties', () => {
-    it('should parse iskeyword', async () => {
-      let doc = await helper.createDocument()
-      await nvim.setLine('foo bar')
-      doc.forceSync()
-      let words = doc.words
-      expect(words).toEqual(['foo', 'bar'])
-    })
-
     it('should parse iskeyword of character range', async () => {
       await nvim.setOption('iskeyword', 'a-z,A-Z,48-57,_')
       let doc = await helper.createDocument()
@@ -127,8 +119,6 @@ describe('Document', () => {
       expect(opt).toBe('a-z,A-Z,48-57,_')
       await nvim.setLine('foo bar')
       await doc.synchronize()
-      let words = doc.words
-      expect(words).toEqual(['foo', 'bar'])
     })
 
     it('should get word range', async () => {

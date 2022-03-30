@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import helper from '../helper'
 import { ISource, SourceType, CompleteResult } from '../../types'
 import sources from '../../sources'
+import workspace from '../../workspace'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -20,9 +21,9 @@ afterEach(async () => {
 describe('native sources', () => {
 
   it('should works for around source', async () => {
-    await helper.createDocument()
+    let doc = await workspace.document
     await nvim.setLine('foo ')
-    await helper.wait(100)
+    await doc.synchronize()
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await nvim.input('Af')
@@ -32,12 +33,12 @@ describe('native sources', () => {
   })
 
   it('should works for buffer source', async () => {
+    await helper.createDocument()
     await nvim.command('set hidden')
-    await helper.createDocument()
-    await helper.createDocument()
+    let doc = await helper.createDocument()
     await nvim.setLine('other')
     await nvim.command('bp')
-    await helper.wait(300)
+    await doc.synchronize()
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await nvim.input('io')

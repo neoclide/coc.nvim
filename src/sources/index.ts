@@ -11,6 +11,8 @@ import { disposeAll, getUri } from '../util'
 import { intersect } from '../util/array'
 import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
+import BufferSync from '../model/bufferSync'
+import KeywordsBuffer from './keywords'
 import window from '../window'
 import workspace from '../workspace'
 import Source from './source'
@@ -22,10 +24,14 @@ export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
+  private keywords: BufferSync<KeywordsBuffer>
   private completeConfig: CompleteConfig
 
   public init(): void {
     this.loadCompleteConfig()
+    this.keywords = workspace.registerBufferSync(doc => {
+      return new KeywordsBuffer(doc, this.nvim)
+    })
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         this.loadCompleteConfig()
@@ -95,8 +101,8 @@ export class Sources {
 
   private createNativeSources(): void {
     try {
-      this.disposables.push((require('./native/around')).regist(this.sourceMap))
-      this.disposables.push((require('./native/buffer')).regist(this.sourceMap))
+      this.disposables.push((require('./native/around')).regist(this.sourceMap, this.keywords))
+      this.disposables.push((require('./native/buffer')).regist(this.sourceMap, this.keywords))
       this.disposables.push((require('./native/file')).regist(this.sourceMap))
     } catch (e) {
       console.error('Create source error:' + e.message)

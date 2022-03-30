@@ -4196,10 +4196,6 @@ declare module 'coc.nvim' {
      */
     readonly onDocumentChange: Event<DidChangeTextDocumentParams>
     /**
-     * Fired on document detach.
-     */
-    readonly onDocumentDetach: Event<number>
-    /**
      * Get current buffer changedtick.
      */
     readonly changedtick: number
