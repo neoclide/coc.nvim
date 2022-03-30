@@ -1,7 +1,7 @@
 import { Disposable } from 'vscode-languageserver-protocol'
 import { DidChangeTextDocumentParams, IWorkspace } from '../types'
 import { disposeAll } from '../util'
-import events from '../events'
+import events, { InsertChange } from '../events'
 import Document from './document'
 
 export interface SyncItem extends Disposable {
@@ -14,7 +14,7 @@ export interface SyncItem extends Disposable {
  */
 export default class BufferSync<T extends SyncItem> {
   private disposables: Disposable[] = []
-  private itemsMap: Map<number, { uri: string, item: T }> = new Map()
+  private itemsMap: Map<number, { uri: string, changedtick: number, item: T }> = new Map()
   constructor(private _create: (doc: Document) => T | undefined, workspace: IWorkspace) {
     let { disposables } = this
     for (let doc of workspace.documents) {
@@ -33,14 +33,23 @@ export default class BufferSync<T extends SyncItem> {
     workspace.onDidCloseTextDocument(e => {
       this.delete(e.bufnr)
     }, null, disposables)
-    const onTextChange = (bufnr: number) => {
+    const onTextChange = (bufnr: number, changedtick: number) => {
       let o = this.itemsMap.get(bufnr)
       if (o && typeof o.item.onTextChange == 'function') {
+        if (changedtick == o.changedtick) return
+        o.changedtick = changedtick
         o.item.onTextChange()
       }
     }
-    events.on('TextChanged', onTextChange, null, this.disposables)
-    events.on('TextChangedI', onTextChange, null, this.disposables)
+    events.on('TextChanged', (bufnr: number, changedtick: number) => {
+      onTextChange(bufnr, changedtick)
+    }, null, this.disposables)
+    events.on('TextChangedI', (bufnr: number, info: InsertChange) => {
+      onTextChange(bufnr, info.changedtick)
+    }, null, this.disposables)
+    events.on('BufWritePost', (bufnr: number, changedtick: number) => {
+      onTextChange(bufnr, changedtick)
+    }, null, this.disposables)
   }
 
   public get items(): Iterable<T> {
@@ -62,7 +71,7 @@ export default class BufferSync<T extends SyncItem> {
     let o = this.itemsMap.get(doc.bufnr)
     if (o) o.item.dispose()
     let item = this._create(doc)
-    if (item) this.itemsMap.set(doc.bufnr, { uri: doc.uri, item })
+    if (item) this.itemsMap.set(doc.bufnr, { uri: doc.uri, changedtick: doc.changedtick, item })
   }
 
   private onChange(e: DidChangeTextDocumentParams): void {
