@@ -63,7 +63,7 @@ export default class Editors {
     this.nvim = nvim
     let { documents } = this
     let doc = documents.getDocument(documents.bufnr)
-    if (doc) {
+    if (doc && doc.winid > 0) {
       this.winid = doc.winid
       await this.createTextEditor(this.winid)
     }
