@@ -280,9 +280,7 @@ export class Sources {
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && !!opt.triggerCharacter
     let uri = getUri(opt.filepath, opt.bufnr, '', workspace.env.isCygwin)
-    logger.debug('opt:', opt)
     disabled = Array.isArray(disabled) ? disabled : []
-    logger.debug('isTriggered:', isTriggered)
     if (isTriggered) return this.getTriggerSources(pre, filetype, uri, disabled)
     return this.getNormalSources(opt.filetype, uri, disabled)
   }

@@ -284,7 +284,7 @@ describe('workspace methods', () => {
   it('should rename buffer', async () => {
     await helper.createDocument('a')
     let p = workspace.renameCurrent()
-    await helper.wait(30)
+    await helper.wait(50)
     await nvim.input('<backspace>b<cr>')
     await p
     let name = await nvim.eval('bufname("%")') as string
@@ -297,14 +297,14 @@ describe('workspace methods', () => {
     fs.writeFileSync(file, 'foo', 'utf8')
     await helper.createDocument('a')
     let p = workspace.renameCurrent()
-    await helper.wait(30)
+    await helper.wait(50)
     await nvim.input('<backspace>b<cr>')
     await p
     let name = await nvim.eval('bufname("%")') as string
     expect(name.endsWith('b')).toBe(true)
     expect(fs.existsSync(path.join(cwd, 'b'))).toBe(true)
     fs.unlinkSync(path.join(cwd, 'b'))
-  })
+  }, 10000)
 })
 
 describe('workspace utility', () => {
