@@ -85,7 +85,6 @@ class Events {
   private _insertMode = false
   private _pumAlignTop = false
   private _pumVisible = false
-  private _close = false
   private _lastHold: LastHold | undefined
 
   public get cursor(): CursorPosition {
@@ -161,19 +160,12 @@ class Events {
     } else if (event == 'MenuPopupChanged') {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
-      this._close = false
     } else if (event == 'CompleteDone') {
       this._pumVisible = false
-      if (this._close) {
-        if (args[0] != null) args[0].close = true
-        this._close = false
-      }
     } else if (event == 'InsertCharPre') {
       this._recentInserts.push([args[1], args[0]])
     } else if (event == 'TextChanged') {
       this._lastChange = Date.now()
-    } else if (event == 'ClosePum') {
-      this._close = true
     }
     if (event == 'TextChangedI' || event == 'TextChangedP') {
       let arr = this._recentInserts.filter(o => o[0] == args[0])
