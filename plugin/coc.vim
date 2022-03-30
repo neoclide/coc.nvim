@@ -259,6 +259,15 @@ function! s:HandleCharInsert(char, bufnr) abort
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
 endfunction
 
+function! s:HandleCompleteDone(complete_item) abort
+  let item = copy(a:complete_item)
+  if get(g:, 'coc_hide_pum', 0)
+    let item['close'] = v:true
+    let g:coc_hide_pum = 0
+  endif
+  call s:Autocmd('CompleteDone', item)
+endfunction
+
 function! s:SyncAutocmd(...)
   if !get(g:, 'coc_workspace_initialized', 0)
     return
@@ -313,7 +322,7 @@ function! s:Enable(initialize)
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
-    autocmd CompleteDone        * call s:Autocmd('CompleteDone', get(v:, 'completed_item', {}))
+    autocmd CompleteDone        * call s:HandleCompleteDone(get(v:, 'completed_item', {}))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')
       autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'line': getline('.'), 'changedtick': b:changedtick})

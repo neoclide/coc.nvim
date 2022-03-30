@@ -11,6 +11,7 @@ let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' :
 let s:select_api = exists('*nvim_select_popupmenu_item')
 let s:complete_info_api = exists('*complete_info')
 let s:callbacks = {}
+let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
 
 function! coc#expandable() abort
   return coc#rpc#request('snippetCheck', [1, 0])
@@ -45,8 +46,8 @@ function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
     if pumvisible()
-      call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-      if has('nvim-0.6.0') || has('patch-8.2.3389')
+      let g:coc_hide_pum = 1
+      if s:hide_pum
         let prefix = "\<C-x>\<C-z>"
       else
         let g:coc_disable_space_report = 1
@@ -104,9 +105,7 @@ endfunction
 " Deprecated
 function! coc#_hide() abort
   if pumvisible()
-    " Make input as it is, it's not possible by `<C-e>` and `<C-p>`
-    call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-    call feedkeys("\<C-x>\<C-z>", 'in')
+    call feedkeys("\<C-e>", 'in')
   endif
 endfunction
 
@@ -114,8 +113,8 @@ function! coc#_cancel()
   " hack for close pum
   " Use of <C-e> could cause bad insert when cursor just moved.
   if pumvisible()
-    call coc#rpc#notify('CocAutocmd', ['ClosePum'])
-    if has('nvim-0.6.0') || has('patch-8.2.3389')
+    let g:coc_hide_pum = 1
+    if s:hide_pum
       call feedkeys("\<C-x>\<C-z>", 'in')
     elseif exists('*complete_info') && get(complete_info(['selected']), 'selected', -1) == -1
       call feedkeys("\<C-e>", 'in')
