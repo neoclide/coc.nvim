@@ -34,7 +34,7 @@ export interface InsertChange {
 
 export type BufEvents = 'BufHidden' | 'BufEnter'
   | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload'
-  | 'BufDetach' | 'BufWritePre' | 'Enter'
+  | 'BufDetach' | 'Enter'
 
 export type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet' | 'ready'
 
@@ -47,7 +47,7 @@ export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
 export type TabEvents = 'TabNew' | 'TabClosed'
 
 export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | WindowEvents | TabEvents
-  | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost'
+  | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert'
@@ -217,6 +217,7 @@ class Events {
   public on(event: TabEvents, handler: (tabnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'BufWritePre', handler: (bufnr: number, bufname: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextChanged' | 'BufWritePost', handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TaskStderr' | 'TaskStdout', handler: (id: string, lines: string[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

@@ -1,3 +1,7 @@
+# 2022-03-31
+
+- Check buffer rename on write.
+
 # 2022-03-30
 
 - Improve words parse performance.

@@ -46,6 +46,7 @@ export default class Document {
   private _previewwindow = false
   private _winid = -1
   private _filetype: string
+  private _bufname: string
   private _uri: string
   private _changedtick: number
   private variables: { [key: string]: any }
@@ -102,6 +103,10 @@ export default class Document {
    */
   public get bufnr(): number {
     return this.buffer.id
+  }
+
+  public get bufname(): string {
+    return this._bufname
   }
 
   public get filetype(): string {
@@ -191,6 +196,7 @@ export default class Document {
    */
   private init(opts: BufferOption): void {
     let buftype = this.buftype = opts.buftype
+    this._bufname = opts.bufname
     this._previewwindow = !!opts.previewwindow
     this._winid = opts.winid
     this.variables = opts.variables || {}
@@ -661,6 +667,7 @@ export default class Document {
    * Synchronize latest document content
    */
   public async synchronize(): Promise<void> {
+    if (!this.attached) return
     let { changedtick } = this
     await this.patchChange()
     if (changedtick != this.changedtick) {

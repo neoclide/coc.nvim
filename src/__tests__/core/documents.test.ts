@@ -1,6 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import events from '../../events'
+import os from 'os'
+import path from 'path'
+import fs from 'fs'
+import { v4 as uuid } from 'uuid'
 import Documents from '../../core/documents'
+import events from '../../events'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -37,6 +41,19 @@ describe('documents', () => {
     expect(doc).toBeUndefined()
     doc = await documents.createDocument(bufnr)
     expect(doc).toBeDefined()
+  })
+
+  it('should check buffer rename on save', async () => {
+    let doc = await workspace.document
+    let bufnr = doc.bufnr
+    let name = `${uuid()}.vim`
+    let tmpfile = path.join(os.tmpdir(), name)
+    await nvim.command(`write ${tmpfile}`)
+    doc = workspace.getDocument(bufnr)
+    expect(doc).toBeDefined()
+    expect(doc.filetype).toBe('vim')
+    expect(doc.bufname).toMatch(name)
+    fs.unlinkSync(tmpfile)
   })
 
   it('should get bufnrs', async () => {

@@ -340,7 +340,7 @@ function! s:Enable(initialize)
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'), [line('.'), col('.')])
     autocmd BufNewFile,BufReadPost * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
-    autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
+    autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'), bufname(+expand('<abuf>')))
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd FocusLost           * call s:Autocmd('FocusLost')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)

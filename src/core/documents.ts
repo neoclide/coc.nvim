@@ -363,17 +363,20 @@ export default class Documents implements Disposable {
   }
 
   private async onBufDetach(bufnr: number, checkReload = true): Promise<void> {
-    let doc = this.buffers.get(bufnr)
-    if (doc) {
-      logger.debug('document detach', bufnr, doc.uri)
-      if (doc.enabled) this._onDidCloseDocument.fire(doc.textDocument)
-      this.buffers.delete(bufnr)
-      doc.detach()
-    }
+    this.detachBuffer(bufnr)
     if (checkReload) {
       let loaded = await this.nvim.call('bufloaded', [bufnr])
       if (loaded) await this.createDocument(bufnr)
     }
+  }
+
+  private detachBuffer(bufnr: number): void {
+    let doc = this.buffers.get(bufnr)
+    if (!doc) return
+    logger.debug('document detach', bufnr, doc.uri)
+    this._onDidCloseDocument.fire(doc.textDocument)
+    this.buffers.delete(bufnr)
+    doc.detach()
   }
 
   private onBufWritePost(bufnr: number): void {
@@ -381,10 +384,16 @@ export default class Documents implements Disposable {
     if (doc) this._onDidSaveDocument.fire(doc.textDocument)
   }
 
-  private async onBufWritePre(bufnr: number): Promise<void> {
+  private async onBufWritePre(bufnr: number, bufname: string): Promise<void> {
     let doc = this.buffers.get(bufnr)
+    // name changed
+    if (!doc || doc.bufname !== bufname) {
+      this.detachBuffer(bufnr)
+      doc = await this.createDocument(bufnr)
+    } else if (doc?.attached) {
+      await doc.synchronize()
+    }
     if (!doc || !doc.attached) return
-    await doc.synchronize()
     let firing = true
     let thenables: Thenable<TextEdit[] | any>[] = []
     let event: TextDocumentWillSaveEvent = {

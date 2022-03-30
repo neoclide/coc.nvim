@@ -46,16 +46,18 @@ export default class FormatHandler {
           }
           let options = await workspace.getFormatOptions(event.document.uri)
           let tokenSource = new CancellationTokenSource()
-          let timer = setTimeout(() => {
-            logger.warn(`Format on save ${event.document.uri} timeout after 0.5s`)
-            tokenSource.cancel()
-          }, 500)
-          let textEdits = await languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
+          let timer: NodeJS.Timer
+          const tp = new Promise<undefined>(c => {
+            timer = setTimeout(() => {
+              logger.warn(`Format on save ${event.document.uri} timeout after 0.5s`)
+              tokenSource.cancel()
+              c(undefined)
+            }, 500)
+          })
+          const provideEdits = languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
+          let textEdits = await Promise.race([tp, provideEdits])
           clearTimeout(timer)
-          if (!textEdits && !tokenSource.token.isCancellationRequested) {
-            logger.want(`Format on save ${event.document.uri} get undefined result.`)
-          }
-          return textEdits
+          return Array.isArray(textEdits) ? textEdits : undefined
         }
         event.waitUntil(willSaveWaitUntil())
       }
