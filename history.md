@@ -1,3 +1,7 @@
+# 2022-03-30
+
+- Check document reload on detach.
+
 # 2022-03-29
 
 - Add menu actions to refactor buffer.
