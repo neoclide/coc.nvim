@@ -343,8 +343,9 @@ export class Completion implements Disposable {
     // try trigger on character type
     if (!this.activated) {
       if (!info.insertChar) return
-      if (sources.shouldTrigger(pretext, doc.filetype, doc.uri)) {
-        await this.triggerCompletion(doc, pretext)
+      let triggerSources = sources.getTriggerSources(pretext, doc.filetype, doc.uri)
+      if (triggerSources.length > 0) {
+        await this.triggerCompletion(doc, pretext, triggerSources)
         return
       }
       this.triggerTimer = setTimeout(async () => {
@@ -383,23 +384,26 @@ export class Completion implements Disposable {
     await this.resumeCompletion()
   }
 
-  private async triggerCompletion(doc: Document, pre: string): Promise<void> {
-    if (!doc?.attached || this.triggering) return
+  private async triggerCompletion(doc: Document, pre: string, sources?: ISource[]): Promise<boolean> {
+    if (!doc?.attached || this.triggering) return false
     // check trigger
     let shouldTrigger = this.shouldTrigger(doc, pre)
-    if (!shouldTrigger) return
+    if (!shouldTrigger) return false
     this.triggering = true
     let option = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
     this.triggering = false
     if (!option) {
       logger.warn(`Completion of ${doc.bufnr} disabled by b:coc_suggest_disable`)
-      return
+      return false
+    }
+    if (Array.isArray(sources) && sources.every(s => option.disabled.includes(s.name))) {
+      return false
     }
     // could be changed by indent
     pre = byteSlice(option.line, 0, option.colnr - 1)
     if (option.blacklist && option.blacklist.includes(option.input)) {
       logger.warn(`Suggest disabled by b:coc_suggest_blacklist`, option.blacklist)
-      return
+      return false
     }
     if (option.input && this.config.asciiCharactersOnly) {
       option.input = this.getInput(doc, pre)
@@ -411,6 +415,7 @@ export class Completion implements Disposable {
     option.filetype = doc.filetype
     logger.debug('trigger completion with', option)
     await this.startCompletion(option)
+    return true
   }
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {

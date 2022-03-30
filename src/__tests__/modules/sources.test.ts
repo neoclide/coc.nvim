@@ -185,12 +185,12 @@ describe('sources#getTriggerSources()', () => {
   })
 
   it('should filter disabled sources', async () => {
-    await helper.edit()
     await nvim.setLine('foo bar ')
     let buf = await nvim.buffer
     await buf.setVar('coc_disabled_sources', ['around', 'buffer', 'file'])
-    await helper.wait(30)
     await nvim.input('Af')
+    await helper.wait(30)
+    await nvim.input('/')
     await helper.wait(100)
     let visible = await nvim.call('pumvisible')
     expect(visible).toBe(0)
