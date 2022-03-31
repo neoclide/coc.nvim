@@ -39,6 +39,11 @@ export class Sources {
     }, null, this.disposables)
     this.createNativeSources()
     this.createRemoteSources()
+    events.on('InsertLeave', () => {
+      for (let item of this.keywords.items) {
+        item.parse()
+      }
+    }, this, this.disposables)
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
     workspace.onDidRuntimePathChange(newPaths => {
       for (let p of newPaths) {

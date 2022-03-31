@@ -224,6 +224,7 @@ describe('snippet provider', () => {
       await nvim.input('x')
       let s = snippetManager.getSession(doc.bufnr)
       await s.forceSynchronize()
+      await helper.wait(50)
       line = await nvim.line
       expect(line).toBe(' -> x')
       let col = await nvim.call('col', '.')

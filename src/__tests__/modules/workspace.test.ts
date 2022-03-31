@@ -517,7 +517,7 @@ describe('workspace events', () => {
     })
     await nvim.setLine('bar')
     await helper.wait(30)
-    await events.fire('BufWritePre', [doc.bufnr])
+    await events.fire('BufWritePre', [doc.bufnr, doc.bufname])
     await helper.wait(30)
     let content = doc.getDocumentContent()
     expect(content.startsWith('foobar')).toBe(true)

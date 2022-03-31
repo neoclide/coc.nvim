@@ -10,6 +10,7 @@ export default class KeywordsBuffer implements SyncItem {
   private _words: Set<string> = new Set()
   private _gitIgnored = false
   private version: number
+  private lineCount: number
   private tokenSource: CancellationTokenSource
   constructor(private doc: Document, private nvim: Neovim) {
     this.parse()
@@ -33,13 +34,19 @@ export default class KeywordsBuffer implements SyncItem {
     return this._words
   }
 
-  private parse(): void {
+  public parse(): void {
+    let lineCount = this.doc.textDocument.lineCount
+    let version = this.doc.version
+    if (version == this.version
+      || (events.insertMode && this.lineCount == lineCount && !global.__TEST__)) return
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
-    if (events.pumvisible) return
-    this.version = this.doc.version
     void this.doc.matchWords(tokenSource.token).then(res => {
-      if (res != null) this._words = res
+      if (res != null) {
+        this._words = res
+        this.lineCount = lineCount
+        this.version = version
+      }
     })
   }
 
@@ -52,12 +59,6 @@ export default class KeywordsBuffer implements SyncItem {
 
   public onChange(): void {
     this.parse()
-  }
-
-  public onTextChange(): void {
-    if (this.version !== this.doc.version) {
-      this.parse()
-    }
   }
 
   public dispose(): void {
