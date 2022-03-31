@@ -30,6 +30,9 @@ export default class Buffer extends Source {
     let ignoreCase = code >= 97 && code <= 122
     let needle = fuzzy ? getCharCodes(opt.input) : []
     let ts = Date.now()
+    let ignoreRegexps = this.getConfig('ignoreRegexps', []).map(p => {
+        return new RegExp(p)
+    })
     for (let item of this.keywords.items) {
       if (item.bufnr === bufnr) continue
       if (ignoreGitignore && item.gitIgnored) continue
@@ -48,7 +51,12 @@ export default class Buffer extends Source {
         }
       }
     }
-    return Array.from(words)
+    return Array.from(words).filter(f => {
+        for (let p of ignoreRegexps) {
+            if (p.test(f)) return false
+        }
+        return true
+    })
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {

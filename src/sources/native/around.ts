@@ -29,6 +29,9 @@ export default class Around extends Source {
     let needle = fuzzy ? getCharCodes(input) : []
     let checkInput = true
     let checkCword = true
+    let ignoreRegexps = this.getConfig('ignoreRegexps', []).map(p => {
+        return new RegExp(p)
+    })
     for (let word of words) {
       let len = word.length
       if (len < min) continue
@@ -47,7 +50,12 @@ export default class Around extends Source {
         if (ch === first) res.push(word)
       }
     }
-    return res
+    return res.filter(f => {
+        for (let p of ignoreRegexps) {
+            if (p.test(f)) return false
+        }
+        return true
+    })
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {

@@ -1600,6 +1600,22 @@
         "type": "string"
       }
     },
+    "coc.source.around.ignoreRegexps": {
+      "type": "array",
+      "default": [],
+      "description": "Ignore around completion matched by regexps",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.buffer.ignoreRegexps": {
+      "type": "array",
+      "default": [],
+      "description": "Ignore buffer completion matched by regexps",
+      "items": {
+        "type": "string"
+      }
+    },
     "languageserver": {
       "type": "object",
       "default": {},
