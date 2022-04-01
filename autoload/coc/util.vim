@@ -339,7 +339,7 @@ function! coc#util#get_data_home()
     endif
   endif
   if !isdirectory(dir)
-    echohl MoreMsg | echom '[coc.nvim] creating data directory: '.dir | echohl None
+    call coc#float#create_notification(['creating data directory: '.dir], {'timeout': 2000})
     call mkdir(dir, "p", 0755)
   endif
   return dir

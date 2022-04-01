@@ -1354,6 +1354,9 @@ endfunction
 " - maxWidth: default to 60
 " - highlight: highlight of window, default to 'CocFloating'
 function! coc#float#create_notification(lines, config) abort
+  if !s:float_supported
+    return
+  endif
   let close = get(a:config, 'close', 1)
   let timeout = get(a:config, 'timeout', 0)
   let borderhighlight = get(a:config, 'borderhighlight', 'CocFloating')
