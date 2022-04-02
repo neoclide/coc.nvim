@@ -1,4 +1,4 @@
-import { findUp, isGitIgnored, readFileLine, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
+import { findUp, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -64,21 +64,24 @@ describe('fs', () => {
     })
 
     it('should throw when file not exists', async () => {
-      let err
-      try {
+      const fn = async () => {
         await readFileLine(__filename + 'fooobar', 1)
-      } catch (e) {
-        err = e
       }
-      expect(err).toBeDefined()
+      await expect(fn()).rejects.toThrow(Error)
+    })
+  })
+
+  describe('readFileLines', () => {
+    it('should throw when file not exists', async () => {
+      const fn = async () => {
+        await readFileLines(__filename + 'fooobar', 0, 3)
+      }
+      await expect(fn()).rejects.toThrow(Error)
     })
 
-    it('should handle BOM', async () => {
-      let filepath = path.join(os.tmpdir(), 'foo')
-      await writeFile(filepath, '\uFEFFaa')
-      let res = await readFileLine(filepath, 0)
-      expect(res).toBe('aa')
-      fs.unlinkSync(filepath)
+    it('should read lines', async () => {
+      let res = await readFileLines(__filename, 0, 1)
+      expect(res.length).toBe(2)
     })
   })
 

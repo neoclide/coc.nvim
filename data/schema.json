@@ -488,13 +488,6 @@
       "description": "Trigger completion after InsertEnter, auto trigger should be 'always' to enable this option",
       "default": false
     },
-    "suggest.timeout": {
-      "type": "integer",
-      "default": 5000,
-      "minimum": 500,
-      "maximum": 15000,
-      "description": "Timeout for completion, in milliseconds."
-    },
     "suggest.minTriggerInputLength": {
       "type": "integer",
       "default": 1,
@@ -502,15 +495,17 @@
     },
     "suggest.triggerCompletionWait": {
       "type": "integer",
-      "default": 50,
-      "minimum": 30,
-      "maximum": 500,
+      "default": 0,
+      "minimum": 0,
+      "maximum": 50,
       "description": "Wait time between text change and completion start, cancel completion when text changed during wait."
     },
-    "suggest.echodocSupport": {
-      "type": "boolean",
-      "default": false,
-      "description": "When enabled, add function signature to user_data.signature to support echodoc.vim"
+    "suggest.timeout": {
+      "type": "integer",
+      "default": 5000,
+      "minimum": 500,
+      "maximum": 15000,
+      "description": "Timeout for completion, in milliseconds."
     },
     "suggest.acceptSuggestionOnCommitCharacter": {
       "type": "boolean",

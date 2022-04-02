@@ -598,6 +598,7 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   resolved?: boolean
   // saved line for apply TextEdit
   line?: string
+  recentScore?: number
 }
 
 export interface CompleteResult {

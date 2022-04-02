@@ -3,7 +3,7 @@ import { VimCompleteItem } from '../types'
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
 export function vimCompleteItem(value: any): value is VimCompleteItem {
-  return value && typeof value.word === 'string'
+  return value && typeof value.word === 'string' && value.user_data !== ''
 }
 
 export function boolean(value: any): value is boolean {

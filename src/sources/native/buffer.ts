@@ -54,6 +54,7 @@ export default class Buffer extends Source {
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
     let { bufnr, input } = opt
     if (input.length == 0) return null
+    await waitImmediate()
     let words = await this.getWords(bufnr, opt, token)
     return {
       items: words.map(word => ({

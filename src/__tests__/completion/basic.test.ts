@@ -51,7 +51,7 @@ describe('completion', () => {
   describe('suggest selection', () => {
     it('should not select when selection is none', async () => {
       helper.updateConfiguration('suggest.enablePreselect', true)
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('around')
       await doc.synchronize()
       await nvim.input('oa')
@@ -68,7 +68,7 @@ describe('completion', () => {
     it('should select recent used item', async () => {
       helper.updateConfiguration('suggest.selection', 'recentlyUsed')
       helper.updateConfiguration('suggest.enablePreselect', true)
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('result')
       await doc.synchronize()
       await nvim.input('or')
@@ -83,7 +83,7 @@ describe('completion', () => {
     it('should select recent item by prefix', async () => {
       helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix')
       helper.updateConfiguration('suggest.enablePreselect', true)
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('world')
       await doc.synchronize()
       await nvim.input('owo')
@@ -100,7 +100,7 @@ describe('completion', () => {
 
   describe('trigger completion', () => {
     it('should not show word of word source on empty input', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo bar')
       await doc.synchronize()
       await nvim.input('of')
@@ -111,7 +111,6 @@ describe('completion', () => {
     })
 
     it('should trigger on first letter insert', async () => {
-      await helper.edit()
       await nvim.setLine('foo bar')
       await helper.wait(30)
       await nvim.input('of')
@@ -120,7 +119,7 @@ describe('completion', () => {
     })
 
     it('should trigger on force refresh', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo f')
       await doc.synchronize()
       await nvim.input('A')
@@ -130,7 +129,7 @@ describe('completion', () => {
     })
 
     it('should filter and sort on increment search', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('forceDocumentSync format  fallback')
       await doc.synchronize()
       await nvim.input('of')
@@ -145,7 +144,7 @@ describe('completion', () => {
     })
 
     it('should not trigger on insert enter', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo bar')
       await doc.synchronize()
       await nvim.input('o')
@@ -154,7 +153,7 @@ describe('completion', () => {
     })
 
     it('should filter on fast input', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo bar')
       await doc.synchronize()
       await nvim.input('oba')
@@ -166,7 +165,6 @@ describe('completion', () => {
     })
 
     it('should filter completion when type none trigger character', async () => {
-      await helper.edit()
       let source: ISource = {
         name: 'test',
         priority: 10,
@@ -192,7 +190,6 @@ describe('completion', () => {
     })
 
     it('should trigger on triggerCharacters', async () => {
-      await helper.edit()
       let source: ISource = {
         name: 'trigger',
         priority: 10,
@@ -204,16 +201,13 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.input('i')
-      await helper.wait(30)
-      await nvim.input('.')
+      await nvim.input('i.')
       await helper.waitPopup()
       let res = await helper.visible('foo', 'trigger')
       expect(res).toBe(true)
     })
 
     it('should fix start column', async () => {
-      await helper.edit()
       let source: ISource = {
         name: 'test',
         priority: 10,
@@ -260,7 +254,6 @@ describe('completion', () => {
     })
 
     it('should show float window', async () => {
-      await helper.edit()
       let source: ISource = {
         name: 'float',
         priority: 10,
@@ -284,7 +277,6 @@ describe('completion', () => {
     })
 
     it('should trigger on triggerPatterns', async () => {
-      await helper.edit()
       let source: ISource = {
         name: 'pattern',
         priority: 10,
@@ -311,7 +303,6 @@ describe('completion', () => {
     })
 
     it('should not trigger triggerOnly source', async () => {
-      await helper.edit()
       await nvim.setLine('foo bar')
       let source: ISource = {
         name: 'pattern',
@@ -336,7 +327,6 @@ describe('completion', () => {
     })
 
     it('should not trigger when cursor moved', async () => {
-      await helper.edit()
       let source: ISource = {
         name: 'trigger',
         priority: 10,
@@ -359,7 +349,6 @@ describe('completion', () => {
     })
 
     it('should trigger when completion is not completed', async () => {
-      await helper.edit()
       let token: CancellationToken
       let promise = new Promise(resolve => {
         let source: ISource = {
@@ -401,7 +390,7 @@ describe('completion', () => {
 
   describe('completion results', () => {
     it('should limit results for low priority source', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
       await nvim.setLine('filename filepath find filter findIndex')
       await doc.synchronize()
@@ -414,7 +403,6 @@ describe('completion', () => {
 
     it('should limit result for high priority source', async () => {
       helper.updateConfiguration('suggest.highPrioritySourceLimit', 2)
-      await helper.edit()
       let source: ISource = {
         name: 'high',
         priority: 90,
@@ -426,9 +414,7 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.input('i')
-      await helper.wait(30)
-      await nvim.input('.')
+      await nvim.input('i.')
       await helper.waitPopup()
       let items = await helper.getItems()
       expect(items.length).toBeGreaterThan(1)
@@ -436,7 +422,6 @@ describe('completion', () => {
 
     it('should truncate label of complete items', async () => {
       helper.updateConfiguration('suggest.labelMaxLength', 10)
-      await helper.edit()
       let source: ISource = {
         name: 'high',
         priority: 90,
@@ -448,18 +433,16 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.input('i')
-      await helper.wait(30)
-      await nvim.input('.')
+      await nvim.input('i.')
       await helper.waitPopup()
       let items = await helper.getItems()
       for (let item of items) {
+        if (!item.abbr) continue
         expect(item.abbr.length).toBeLessThanOrEqual(10)
       }
     })
 
     it('should delete previous items when complete items is null', async () => {
-      await helper.edit()
       let source1: ISource = {
         name: 'source1',
         priority: 90,
@@ -492,6 +475,7 @@ describe('completion', () => {
       let items = await helper.getItems()
       expect(items.length).toEqual(2)
       await nvim.input('oo')
+      await helper.wait(100)
       await helper.waitPopup()
       items = await helper.getItems()
       expect(items.length).toEqual(1)
@@ -501,7 +485,7 @@ describe('completion', () => {
 
   describe('fix indent', () => {
     it('should indent lines on TextChangedP #1', async () => {
-      await helper.createDocument()
+      await workspace.document
       await helper.mockFunction('MyIndentExpr', 0)
       await nvim.command('setl indentexpr=MyIndentExpr()')
       await nvim.command('setl indentkeys=\\=~end,0\\=\\\\item')
@@ -533,7 +517,7 @@ describe('completion', () => {
     })
 
     it('should trigger completion after indent change', async () => {
-      await helper.createDocument()
+      await workspace.document
       await helper.mockFunction('MyIndentExpr', 0)
       await nvim.command('setl indentexpr=MyIndentExpr()')
       await nvim.command('setl indentkeys=\\=end')
@@ -556,7 +540,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('d')
       await helper.waitFor('getline', ['.'], 'end')
-      await helper.wait(10)
+      await helper.waitPopup()
       let items = await helper.getItems()
       expect(items.length).toBeGreaterThan(0)
     })
@@ -588,8 +572,10 @@ describe('completion', () => {
     })
 
     it('should keep selected text after text change', async () => {
+      let doc = await workspace.document
       let text = 'foo bar f'
       await nvim.setLine(text)
+      await doc.synchronize()
       await nvim.input('A')
       await helper.triggerCompletion('insert')
       await helper.waitPopup()
@@ -600,26 +586,22 @@ describe('completion', () => {
       noa call setline('.', '${text}oobar')
       noa call cursor(1,${text.length + 6})
       `)
-      await helper.wait(100)
+      await helper.wait(50)
       let res = await helper.pumvisible()
       expect(res).toBe(false)
       line = await nvim.line
       expect(line).toBe('foo bar foobar')
     })
 
-    it('should trigger on text change by api', async () => {
+    it('should trigger specific sources by api', async () => {
       let text = 'foo bar f'
       await nvim.setLine(text)
-      await nvim.input('A')
-      await helper.wait(50)
+      await nvim.input('A.')
+      await helper.wait(10)
       await helper.triggerCompletion('insert')
-      await helper.waitPopup()
-      await nvim.exec(`
-      noa call setline('.', '${text}oo.')
-      noa call cursor(1,${text.length + 4})
-      `)
-      await helper.wait(100)
-      expect(await helper.visible('one', 'insert')).toBe(true)
+      await helper.wait(60)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
     })
   })
 })

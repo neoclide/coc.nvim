@@ -1,7 +1,9 @@
 import { CompletionItemKind, TextEdit, Position } from 'vscode-languageserver-types'
 import { matchScore } from '../../completion/match'
+import { shouldStop } from '../../completion/util'
 import { getCharCodes } from '../../util/fuzzy'
 import { getStartColumn, getKindString } from '../../sources/source-language'
+import { CompleteOption } from '../../types'
 
 describe('getKindString()', () => {
   it('should get kind text', async () => {
@@ -15,6 +17,22 @@ describe('getKindString()', () => {
     let map = new Map()
     let res = getKindString(CompletionItemKind.Enum, map, 'D')
     expect(res).toBe('D')
+  })
+})
+
+describe('shouldStop', () => {
+  function createOption(bufnr: number, linenr: number, line: string, colnr: number): Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'> {
+    return { bufnr, linenr, line, colnr }
+  }
+
+  it('should check stop', async () => {
+    let opt = createOption(1, 1, 'a', 2)
+    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: '' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: ' ' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: 'fo' }, opt)).toBe(true)
+    expect(shouldStop(2, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { col: 2, lnum: 2, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: 'barb' }, opt)).toBe(true)
   })
 })
 

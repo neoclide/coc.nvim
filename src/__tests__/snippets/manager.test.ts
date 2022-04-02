@@ -210,6 +210,7 @@ describe('snippet provider', () => {
     it('should update placeholder on placeholder update', async () => {
       await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, {})
       await nvim.input('a,b')
+      await helper.wait(50)
       let s = snippetManager.getSession(doc.bufnr)
       await s.forceSynchronize()
       let lines = await nvim.call('getline', [1, '$'])
@@ -222,6 +223,7 @@ describe('snippet provider', () => {
       let line = await nvim.line
       expect(line).toBe('')
       await nvim.input('x')
+      await helper.wait(50)
       let s = snippetManager.getSession(doc.bufnr)
       await s.forceSynchronize()
       await helper.wait(50)

@@ -33,10 +33,9 @@ describe('Workspace hanlder', () => {
     })
 
     it('should get configuration of current document', async () => {
-      await helper.createDocument()
       let config = await handler.getConfiguration('suggest')
       let wait = config.get<number>('triggerCompletionWait')
-      expect(wait).toBe(10)
+      expect(wait).toBe(0)
     })
 
     it('should get root patterns', async () => {

@@ -1,3 +1,9 @@
+# 2022-04-02
+
+- Change `suggest.triggerCompletionWait` default to `0`.
+- Not trigger completion on `TextChangedP`.
+- Remove configuration `suggest.echodocSupport`.
+
 # 2022-03-31
 
 - Check buffer rename on write.

@@ -4,6 +4,7 @@ import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
+import { wait } from '../util'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { getChangedFromEdits, getChangedPosition, rangeOverlap } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
@@ -16,7 +17,6 @@ export interface CompleteConfig {
   snippetsSupport: boolean
   defaultKindText: string
   priority: number
-  echodocSupport: boolean
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
@@ -224,21 +224,21 @@ export default class LanguageSource implements ISource {
     return triggerKind
   }
 
-  private async applyAdditionalEdits(textEdits: TextEdit[], bufnr: number, snippet: boolean): Promise<void> {
-    if (!textEdits || textEdits.length == 0) return
+  private async applyAdditionalEdits(textEdits: TextEdit[] | undefined, bufnr: number, snippet: boolean): Promise<void> {
+    if (!textEdits || textEdits.length === 0) return
     let document = workspace.getDocument(bufnr)
-    if (!document) return
     await document.patchChange(true)
     // move cursor after edit
-    let changed = null
+    let changed: Position
     let pos = await window.getCursorPosition()
     if (!snippet) changed = getChangedFromEdits(pos, textEdits)
-    await document.applyEdits(textEdits)
+    await document.applyEdits(textEdits, true)
     if (changed) await window.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
+    await wait(20)
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
-    let { echodocSupport, detailMaxLength, invalidInsertCharacters, detailField, labels, defaultKindText } = this.completeConfig
+    let { detailMaxLength, invalidInsertCharacters, detailField, labels, defaultKindText } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits != null && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
@@ -284,15 +284,6 @@ export default class LanguageSource implements ISource {
     obj.line = opt.line
     if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
       obj.abbr = obj.abbr + '/'
-    }
-    if (echodocSupport && item.kind >= 2 && item.kind <= 4) {
-      let fields = [item.detail || '', obj.abbr, obj.word]
-      for (let s of fields) {
-        if (s.includes('(')) {
-          obj.signature = s
-          break
-        }
-      }
     }
     if (item.preselect) obj.preselect = true
     if (item.data?.optional) obj.abbr = obj.abbr + '?'

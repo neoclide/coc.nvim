@@ -93,7 +93,6 @@ export class Sources {
       detailField,
       defaultKindText: labels['default'] || '',
       priority: suggest.get<number>('languageSourcePriority', 99),
-      echodocSupport: suggest.get<boolean>('echodocSupport', false),
       snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
       detailMaxLength: suggest.get<number>('detailMaxLength', 100),
       invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', ['(', '<', '{', '[', '\r', '\n']),

@@ -109,7 +109,7 @@ export class Helper extends EventEmitter {
       let visible = await this.nvim.call('pumvisible')
       if (visible) return
     }
-    throw new Error('timeout after 2s')
+    throw new Error('wait pum timeout after 2s')
   }
 
   public async waitPreviewWindow(): Promise<void> {
@@ -145,7 +145,7 @@ export class Helper extends EventEmitter {
     } else if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
-    completion.reset()
+    completion.stop()
     workspace.reset()
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(30)
@@ -173,8 +173,8 @@ export class Helper extends EventEmitter {
     let item = items.find(o => o.word == word)
     if (!item || !item.user_data) return false
     try {
-      let o = JSON.parse(item.user_data)
-      if (source && o.source !== source) {
+      let arr = item.user_data.split(':', 2)
+      if (source && arr[0] !== source) {
         return false
       }
     } catch (e) {

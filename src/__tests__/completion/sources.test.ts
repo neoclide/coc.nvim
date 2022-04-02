@@ -27,6 +27,7 @@ describe('native sources', () => {
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await nvim.input('Af')
+    await helper.waitPopup()
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
     await nvim.input('<esc>')

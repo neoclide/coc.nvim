@@ -11,6 +11,8 @@ describe('Mru', () => {
     await mru.clean()
     let res = await mru.load()
     expect(res.length).toBe(0)
+    res = mru.loadSync()
+    expect(res.length).toBe(0)
   })
 
   it('should add items', async () => {
@@ -20,6 +22,14 @@ describe('Mru', () => {
     let res = await mru.load()
     expect(res.length).toBe(2)
     await mru.clean()
+  })
+
+  it('should add when file not exists', async () => {
+    let mru = new Mru('test', root)
+    await mru.clean()
+    await mru.add('a')
+    let res = await mru.load()
+    expect(res).toEqual(['a'])
   })
 
   it('should remove item', async () => {

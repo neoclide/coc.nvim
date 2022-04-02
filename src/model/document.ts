@@ -273,7 +273,6 @@ export default class Document {
       textDocument: { version: this.version, uri: this.uri },
       contentChanges: changes
     })
-    // this._words = this.chars.matchKeywords(content)
   }
 
   public async applyEdits(edits: TextEdit[], joinUndo = false): Promise<void> {
@@ -485,7 +484,6 @@ export default class Document {
     } else {
       // changedtick from buffer events could be not latest. #3003
       this._changedtick = await this.buffer.getVar('changedtick') as number
-      // we have latest lines aftet TextChange on neovim
       this._forceSync()
     }
   }

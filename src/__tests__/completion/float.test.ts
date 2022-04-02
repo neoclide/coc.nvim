@@ -1,7 +1,6 @@
-import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
-import sources from '../../sources'
 import Floating from '../../completion/floating'
+import sources from '../../sources'
 import { CompleteResult, FloatConfig, ISource, SourceType } from '../../types'
 import helper from '../helper'
 

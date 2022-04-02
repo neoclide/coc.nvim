@@ -1,6 +1,7 @@
 import { Disposable } from 'vscode-languageserver-protocol'
 import BufferSync from '../../model/bufferSync'
 import { CompleteOption, CompleteResult, ISource } from '../../types'
+import { waitImmediate } from '../../util'
 import { fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import KeywordsBuffer from '../keywords'
 import Source from '../source'
@@ -52,6 +53,7 @@ export default class Around extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let { bufnr, input } = opt
+    await waitImmediate()
     let item = this.keywords.getItem(bufnr)
     let words = item?.words
     if (!words || input.length === 0) return null
