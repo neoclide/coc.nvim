@@ -284,12 +284,7 @@ Built-in configurations:~
 *suggest.triggerCompletionWait*
 
 	Delay between typing the trigger character and completion start which
-	initiates server synchronization, default: `50`
-
-*suggest.echodocSupport*
-
-	Add function signature to `user_data.signature` to support `echodoc.vim`,
-	default: `false`
+	initiates server synchronization, default: `0`
 
 *suggest.acceptSuggestionOnCommitCharacter*
 
