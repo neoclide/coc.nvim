@@ -83,7 +83,7 @@ export class SnippetManager {
     if (session) session.cancel()
     if (ultisnip != null) {
       context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
-      if (!emptyRange(range)) {
+      if (!emptyRange(range) && inserted.includes('`!p')) {
         // same behavior as Ultisnips
         await doc.applyEdits([{ range, newText: '' }])
         await window.moveTo(range.start)

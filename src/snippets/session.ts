@@ -357,7 +357,7 @@ export class SnippetSession {
     this.cancel()
     let { document } = this
     if (document && document.attached) {
-      await document.synchronize()
+      await document.patchChange()
       await this._synchronize()
     }
   }
