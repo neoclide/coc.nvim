@@ -79,7 +79,7 @@ function! coc#_do_complete(start, items, preselect)
         \ 'candidates': a:items,
         \ 'preselect': a:preselect
         \}
-  if mode() =~# 'i' && &paste != 1
+  if mode() =~# 'i'
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
 endfunction
