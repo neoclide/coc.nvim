@@ -269,6 +269,7 @@ export class Completion implements Disposable {
       this.stop()
       if (!info.insertChar) return
     }
+    if (this.triggerTimer) clearTimeout(this.triggerTimer)
     let pretext = this.pretext = info.pre
     let doc = workspace.getDocument(bufnr)
     // check commit
@@ -298,7 +299,6 @@ export class Completion implements Disposable {
     }
     // trigger by normal character
     if (!this.complete) {
-      if (this.triggerTimer) clearTimeout(this.triggerTimer)
       if (!info.insertChar) return
       await this.triggerCompletion(doc, pretext)
       return
