@@ -1067,7 +1067,7 @@
     "list.interactiveDebounceTime": {
       "type": "number",
       "default": 100,
-      "description": "Debouce time for input change on interactive mode."
+      "description": "Debounce time for input change on interactive mode."
     },
     "list.height": {
       "type": "number",
@@ -1195,7 +1195,7 @@
     "cursors.nextKey": {
       "type": "string",
       "default": "<C-n>",
-      "description": "Key used for jump to next cursors position. "
+      "description": "Key used for jump to next cursors position."
     },
     "cursors.previousKey": {
       "type": "string",
