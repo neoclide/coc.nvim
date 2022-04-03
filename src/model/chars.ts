@@ -1,6 +1,5 @@
 import { CancellationToken } from 'vscode-jsonrpc'
 import { waitImmediate } from '../util'
-
 const logger = require('../util/logger')('model-chars')
 
 export class Range {

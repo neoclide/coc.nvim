@@ -1,10 +1,11 @@
-import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource } from 'vscode-jsonrpc'
+import { URI } from 'vscode-uri'
+import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { isGitIgnored } from '../util/fs'
-import events from '../events'
-import { URI } from 'vscode-uri'
+const logger = require('../util/logger')('sources-keywords')
+const MAX_LENGTH = 10 * 1024 // 10KB
 
 export default class KeywordsBuffer implements SyncItem {
   private _words: Set<string> = new Set()
@@ -12,7 +13,7 @@ export default class KeywordsBuffer implements SyncItem {
   private version: number
   private lineCount: number
   private tokenSource: CancellationTokenSource
-  constructor(private doc: Document, private nvim: Neovim) {
+  constructor(private doc: Document) {
     this.parse()
     let uri = URI.parse(doc.uri)
     if (uri.scheme === 'file') {
@@ -35,10 +36,14 @@ export default class KeywordsBuffer implements SyncItem {
   }
 
   public parse(): void {
-    let lineCount = this.doc.textDocument.lineCount
-    let version = this.doc.version
-    if (version == this.version
-      || (events.insertMode && this.lineCount == lineCount && !global.__TEST__)) return
+    if (!this.doc.attached) return
+    let { textDocument } = this.doc
+    let { version, lineCount } = textDocument
+    if (this.version === version) return
+    let text = textDocument.getText()
+    if (events.insertMode
+      && this.lineCount == lineCount
+      && text.length > MAX_LENGTH) return
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     void this.doc.matchWords(tokenSource.token).then(res => {

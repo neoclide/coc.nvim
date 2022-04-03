@@ -110,10 +110,8 @@ export default class Complete {
     await this.document.patchChange()
     if (token.isCancellationRequested) return true
     let { triggerCompletionWait, localityBonus } = this.config
-    if (triggerCompletionWait) {
-      await wait(Math.min(triggerCompletionWait, 50))
-      if (token.isCancellationRequested) return true
-    }
+    await wait(Math.min(triggerCompletionWait ?? 0, 50))
+    if (token.isCancellationRequested) return true
     let { colnr, linenr, col } = this.option
     if (localityBonus) {
       let line = linenr - 1

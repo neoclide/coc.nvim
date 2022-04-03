@@ -156,6 +156,11 @@ describe('strings', () => {
     expect(strings.getCharIndexes('abd', 'f')).toEqual([])
   })
 
+  it('should convert to lines', async () => {
+    expect(strings.contentToLines('foo', false)).toEqual(['foo'])
+    expect(strings.contentToLines('foo\n', true)).toEqual(['foo'])
+  })
+
   it('should get parts', async () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
     expect(res).toEqual(['', 'bar'])
@@ -291,7 +296,7 @@ describe('parseAnsiHighlights', () => {
 
 describe('Arrays', () => {
 
-  test('distinct', () => {
+  it('distinct()', () => {
     function compare(a: string): string {
       return a
     }
@@ -303,36 +308,43 @@ describe('Arrays', () => {
     assert.deepStrictEqual(arrays.distinct(['32', '4', '5', '32', '4', '5', '32', '4', '5', '5'], compare), ['32', '4', '5'])
   })
 
-  test('tail', () => {
+  it('tail()', () => {
     assert.strictEqual(arrays.tail([1, 2, 3]), 3)
   })
 
-  test('intersect', () => {
+  it('intersect()', () => {
     assert.ok(!arrays.intersect([1, 2, 3], [4, 5]))
   })
 
-  test('group', () => {
+  it('group()', () => {
     let res = arrays.group([1, 2, 3, 4, 5], 3)
     assert.deepStrictEqual(res, [[1, 2, 3], [4, 5]])
   })
 
-  test('groupBy', () => {
+  it('groupBy()', () => {
     let res = arrays.groupBy([0, 0, 3, 4], v => v != 0)
     assert.deepStrictEqual(res, [[3, 4], [0, 0]])
   })
 
-  test('lastIndex', () => {
+  it('lastIndex()', () => {
     let res = arrays.lastIndex([1, 2, 3], x => x < 3)
     assert.strictEqual(res, 1)
   })
 
-  test('flatMap', () => {
+  it('flatMap()', () => {
     let objs: { [key: string]: number[] }[] = [{ x: [1, 2] }, { y: [3, 4] }, { z: [5, 6] }]
     function values(item: { [key: string]: number[] }): number[] {
       return Object.keys(item).reduce((p, c) => p.concat(item[c]), [])
     }
     let res = arrays.flatMap(objs, values)
     assert.deepStrictEqual(res, [1, 2, 3, 4, 5, 6])
+  })
+
+  it('addSortedArray()', () => {
+    expect(arrays.addSortedArray('a', ['d', 'e'])).toEqual(['a', 'd', 'e'])
+    expect(arrays.addSortedArray('f', ['d', 'e'])).toEqual(['d', 'e', 'f'])
+    expect(arrays.addSortedArray('d', ['d', 'e'])).toEqual(['d', 'e'])
+    expect(arrays.addSortedArray('e', ['d', 'f'])).toEqual(['d', 'e', 'f'])
   })
 })
 

@@ -80,3 +80,24 @@ export function lastIndex<T>(array: T[], fn: (t: T) => boolean): number {
 
 export const flatMap = <T, U>(xs: T[], f: (item: T) => U[]): U[] =>
   xs.reduce((x: U[], y: T) => [...x, ...f(y)], [])
+
+/**
+ * Add text to sorted array
+ */
+export function addSortedArray(text: string, arr: string[]): string[] {
+  let idx: number
+  for (let i = 0; i < arr.length; i++) {
+    let s = arr[i]
+    if (text === s) return arr
+    if (s > text) {
+      idx = i
+      break
+    }
+  }
+  if (idx === undefined) {
+    arr.push(text)
+  } else {
+    arr.splice(idx, 0, text)
+  }
+  return arr
+}

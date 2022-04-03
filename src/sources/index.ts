@@ -30,7 +30,7 @@ export class Sources {
   public init(): void {
     this.loadCompleteConfig()
     this.keywords = workspace.registerBufferSync(doc => {
-      return new KeywordsBuffer(doc, this.nvim)
+      return new KeywordsBuffer(doc)
     })
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
