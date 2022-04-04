@@ -4,7 +4,7 @@ import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
@@ -82,7 +82,6 @@ export class Completion implements Disposable {
       if (!this.activated || this.document?.isCommandLine) return
       if (equals(this.popupEvent, ev)) return
       this.cancelResolve()
-
       this.popupEvent = ev
       await this.onPumChange()
     }, null, this.disposables)
@@ -233,14 +232,10 @@ export class Completion implements Disposable {
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
     let { option, document } = this
     if (!option || option.bufnr != bufnr) return
-    if (shouldIndent(option.indentkeys, info.pre)) {
+    if ((info.insertChar || this.pretext == info.pre) && shouldIndent(option.indentkeys, info.pre)) {
       logger.debug(`trigger indent by ${info.pre}`)
       let indentChanged = await this.nvim.call('coc#complete_indent', [])
       if (indentChanged) {
-        this.nvim.call('coc#_cancel', [], true)
-        await events.race(['CompleteDone'], 30)
-        // vim not trigger additional TextChangedP on indent change.
-        // await this.nvim.command('redraw')
         await this.triggerCompletion(document, info.pre)
         return
       }
@@ -470,16 +465,11 @@ export class Completion implements Disposable {
   public stop(): void {
     this.cancel()
     if (this.activated) {
-      let { nvim } = this
       this.activated = false
-      this.floating.close()
-      nvim.pauseNotification()
-      if (events.pumvisible) nvim.call('coc#_cancel', [], true)
-      if (!this.config.keepCompleteopt) {
-        nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
-      }
-      nvim.command(`let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}`, true)
-      void nvim.resumeNotification(false, true)
+      let { nvim, config } = this
+      let completeOpt = config.keepCompleteopt ? '' : workspace.completeOpt
+      nvim.call('coc#_cancel', [1, completeOpt], true)
+      nvim.redrawVim()
     }
   }
 

@@ -1,8 +1,14 @@
+# 2022-04-04
+
+- Avoid `CompleteDone` cancel next completion.
+- Avoid indent change on `<C-n>` and `<C-p>` during completion.
+
 # 2022-04-02
 
 - Change `suggest.triggerCompletionWait` default to `0`.
 - Not trigger completion on `TextChangedP`.
 - Remove configuration `suggest.echodocSupport`.
+- Fix complettion triggered after `<C-e>`.
 
 # 2022-03-31
 

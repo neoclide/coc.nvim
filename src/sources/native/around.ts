@@ -71,9 +71,11 @@ export default class Around extends Source {
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
     let { bufnr, input } = opt
+    if (input.length === 0) return null
+    await waitImmediate()
     let item = this.keywords.getItem(bufnr)
     let words = item?.words
-    if (!words || input.length === 0) return null
+    if (!words) return null
     let arr = []
     let isIncomplete = await this.filterWords(words, opt, token, arr)
     if (token.isCancellationRequested) return null

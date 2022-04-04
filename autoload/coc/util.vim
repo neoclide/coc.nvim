@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 25
+let s:vim_api_version = 26
 let s:activate = ""
 let s:quit = ""
 
@@ -605,9 +605,8 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
       endif
     endif
   endif
-  if exists('*nvim_buf_set_text') && !empty(a:changes) && len(a:changes) < 200
-    for item in a:changes
-      let lines = nvim_buf_get_lines(a:bufnr, 0, -1, v:false)
+  if exists('*nvim_buf_set_text') && !empty(a:changes)
+    for item in reverse(copy(a:changes))
       call nvim_buf_set_text(a:bufnr, item[1], item[2], item[3], item[4], item[0])
     endfor
   else

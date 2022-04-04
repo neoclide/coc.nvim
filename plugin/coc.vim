@@ -265,6 +265,10 @@ function! s:HandleCompleteDone(complete_item) abort
     let item['close'] = v:true
     let g:coc_hide_pum = 0
   endif
+  if get(g:, 'coc_disable_complete_done', 0)
+    let g:coc_disable_complete_done = 0
+    return
+  endif
   call s:Autocmd('CompleteDone', item)
 endfunction
 
