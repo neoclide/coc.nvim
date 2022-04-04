@@ -101,6 +101,16 @@ export class LinesTextDocument implements TextDocument {
     return this._content
   }
 
+  public get length(): number {
+    if (!this._content) {
+      let n = this.lines.reduce((p, c) => {
+        return p + c.length + 1
+      }, 0)
+      return this.eol ? n : n - 1
+    }
+    return this._content.length
+  }
+
   public get end(): Position {
     let line = this.lineCount - 1
     if (this.eol) return Position.create(line, 0)

@@ -40,10 +40,9 @@ export default class KeywordsBuffer implements SyncItem {
     let { textDocument } = this.doc
     let { version, lineCount } = textDocument
     if (this.version === version) return
-    let text = textDocument.getText()
     if (events.insertMode
       && this.lineCount == lineCount
-      && text.length > MAX_LENGTH) return
+      && textDocument.length > MAX_LENGTH) return
     this.cancel()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     void this.doc.matchWords(tokenSource.token).then(res => {

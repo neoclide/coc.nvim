@@ -38,6 +38,13 @@ describe('LinesTextDocument', () => {
     expect(res).toBe('use std::io::{Result, Error};')
   })
 
+  it('should get length', async () => {
+    let doc = createTextDocument(['foo'])
+    expect(doc.length).toBe(4)
+    expect(doc.getText().length).toBe(4)
+    expect(doc.length).toBe(4)
+  })
+
   it('should work when eol enabled', async () => {
     let doc = createTextDocument(['foo', 'bar'])
     expect(doc.lineCount).toBe(3)

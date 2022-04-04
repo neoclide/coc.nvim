@@ -1863,6 +1863,14 @@ declare module 'coc.nvim' {
 
   export interface LinesTextDocument extends TextDocument {
     /**
+     * Total length of TextDocument.
+     */
+    readonly length: number
+    /**
+     * End position of TextDocument.
+     */
+    readonly end: Position
+    /**
      * Returns a text line denoted by the line number. Note
      * that the returned object is *not* live and changes to the
      * document are not reflected.
