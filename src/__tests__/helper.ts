@@ -50,7 +50,7 @@ export class Helper extends EventEmitter {
 
   public setupNvim(): void {
     const vimrc = path.resolve(__dirname, 'vimrc')
-    let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
+    let proc = this.proc = cp.spawn(process.env.COC_TEST_NVIM ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
     let plugin = attach({ proc })
