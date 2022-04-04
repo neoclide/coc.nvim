@@ -219,13 +219,14 @@ describe('snippet provider', () => {
     })
 
     it('should adjust cursor position on update', async () => {
+      await nvim.call('cursor', [1, 1])
       await nvim.input('i')
       await snippetManager.insertSnippet('${1/..*/ -> /}$1')
       let line = await nvim.line
       expect(line).toBe('')
       await nvim.input('x')
-      await helper.wait(50)
       let s = snippetManager.getSession(doc.bufnr)
+      expect(s).toBeDefined()
       await s.forceSynchronize()
       line = await nvim.line
       expect(line).toBe(' -> x')

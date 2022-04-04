@@ -21,7 +21,6 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   disposables = []
-  await helper.createDocument()
 })
 
 afterAll(async () => {
@@ -62,6 +61,7 @@ describe('completion start', () => {
   })
 
   it('should deactivate on doComplete error', async () => {
+    await helper.createDocument()
     await nvim.command(`edit +setl\\ buftype=nofile`)
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     await completion.startCompletion(option)
@@ -106,7 +106,7 @@ describe('completion start', () => {
         setTimeout(() => {
           finished = true
           resolve({ items: [{ word: 'world' }] })
-        }, 300)
+        }, 100)
       })
     }
     disposables.push(sources.addSource(slowSource))
@@ -330,7 +330,7 @@ describe('completion InsertEnter', () => {
   it('should not trigger when input length too small', async () => {
     await nvim.setLine('foo ')
     await nvim.input('A')
-    await helper.wait(20)
+    await helper.wait(30)
     expect(completion.isActivated).toBe(false)
   })
 })

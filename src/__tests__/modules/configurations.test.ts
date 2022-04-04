@@ -41,12 +41,21 @@ describe('ConfigurationProxy', () => {
   })
 
   it('should create file and parent folder when necessary', async () => {
+    let folder = path.join(os.tmpdir(), 'a')
+    if (fs.existsSync(folder)) {
+      let isFile = fs.statSync(folder).isFile()
+      if (isFile) {
+        fs.unlinkSync(folder)
+      } else {
+        rmdir(folder)
+      }
+    }
     let uri = URI.file(path.join(os.tmpdir(), 'a/b/settings.json'))
     let proxy = new ConfigurationProxy({})
     proxy.modifyConfiguration(uri, 'foo', true)
     let content = fs.readFileSync(uri.fsPath, 'utf8')
     expect(JSON.parse(content)).toEqual({ foo: true })
-    rmdir(path.join(os.tmpdir(), 'a'))
+    rmdir(folder)
   })
 
   it('should get folder from resolver', async () => {

@@ -596,12 +596,9 @@ describe('completion', () => {
     it('should trigger specific sources by api', async () => {
       let text = 'foo bar f'
       await nvim.setLine(text)
-      await nvim.input('A.')
-      await helper.wait(10)
+      await nvim.input('A')
       await helper.triggerCompletion('insert')
-      await helper.wait(60)
-      let visible = await helper.pumvisible()
-      expect(visible).toBe(false)
+      await helper.waitPopup()
     })
   })
 })

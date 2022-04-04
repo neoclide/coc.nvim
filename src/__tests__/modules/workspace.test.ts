@@ -298,6 +298,8 @@ describe('workspace methods', () => {
     await helper.createDocument('a')
     let p = workspace.renameCurrent()
     await helper.wait(50)
+    let m = await nvim.mode
+    expect(m.mode).toBe('c')
     await nvim.input('<backspace>b<cr>')
     await p
     let name = await nvim.eval('bufname("%")') as string
