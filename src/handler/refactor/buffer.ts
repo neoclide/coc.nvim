@@ -69,6 +69,7 @@ export interface RefactorConfig {
   beforeContext: number
   afterContext: number
   saveToFile: boolean
+  showMenu: string
 }
 
 export interface RefactorBufferOpts {
@@ -94,7 +95,9 @@ export default class RefactorBuffer implements BufferSyncItem {
   ) {
     this.changes = new Changes()
     this.disposables.push(workspace.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true))
-    this.disposables.push(workspace.registerLocalKeymap('n', '<Tab>', this.showMenu.bind(this), true))
+    if (config.showMenu) {
+      this.disposables.push(workspace.registerLocalKeymap('n', config.showMenu, this.showMenu.bind(this), true))
+    }
     workspace.onDidChangeTextDocument(this.onDocumentChange, this, this.disposables)
     window.cursors.onDidUpdate(bufnr => {
       if (bufnr == this.bufnr && !this.changing) {

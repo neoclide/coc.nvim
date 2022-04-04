@@ -58,7 +58,8 @@ export default class Refactor {
       afterContext: config.get('afterContext', 3),
       beforeContext: config.get('beforeContext', 3),
       openCommand: config.get('openCommand', 'edit'),
-      saveToFile: config.get('saveToFile', true)
+      saveToFile: config.get('saveToFile', true),
+      showMenu: config.get('showMenu', '<Tab>')
     })
   }
 
