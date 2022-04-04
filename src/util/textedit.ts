@@ -87,6 +87,7 @@ export function filterSortEdits(textDocument: TextDocument & { end: Position, li
     let d = comparePosition(range.end, end)
     if (d > 0) continue
     if (textDocument.getText(range) !== newText) {
+      // Adjust textEdit to make it acceptable by nvim_buf_set_text
       if (d === 0 && checkEnd && newText.endsWith('\n')) {
         let isEmpty = comparePosition(end, range.start) == 0
         newText = newText.slice(0, -1)

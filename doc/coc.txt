@@ -1937,7 +1937,7 @@ coc#start([{option}]) 					*coc#start()*
 
 	inoremap <silent> <C-w> <C-R>=coc#start({'source': 'word'})<CR>
 <
-	Use `CocList sources` to get available sources.
+	Use `:CocList sources` to get available sources.
 
 coc#config({section}, {value})				*coc#config()*
 

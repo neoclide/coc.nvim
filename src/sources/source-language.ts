@@ -6,7 +6,6 @@ import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
-import { rangeOverlap } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -145,32 +144,24 @@ export default class LanguageSource implements ISource {
     try {
       let doc = workspace.getAttachedDocument(opt.bufnr)
       let isSnippet = await this.applyTextEdit(doc, item, vimItem.word, opt)
-      let { additionalTextEdits } = item
-      if (additionalTextEdits && item.textEdit) {
-        let r = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
-        additionalTextEdits = additionalTextEdits.filter(edit => {
-          let er = InsertReplaceEdit.is(edit) ? edit.replace : edit.range
-          if (rangeOverlap(r, er)) {
-            logger.error('Filtered overlap additionalTextEdit:', edit)
-            return false
-          }
-          return true
-        })
+      if (Array.isArray(item.additionalTextEdits)) {
+        await doc.patchChange(true)
+        // move cursor after edit
+        await doc.applyEdits(item.additionalTextEdits, true, !isSnippet)
       }
-      await this.applyAdditionalEdits(doc, additionalTextEdits, isSnippet)
       if (isSnippet) await snippetManager.selectCurrentPlaceholder()
       if (item.command && commands.has(item.command.command)) {
-        void commands.execute(item.command)
+        await commands.execute(item.command)
       }
     } catch (e) {
-      logger.error('Error on CompleteDone:', e)
+      workspace.nvim.echoError(e)
     }
   }
 
   private async applyTextEdit(doc: Document, item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
     let { line, linenr, colnr, col } = option
     let pos = await window.getCursorPosition()
-    if (pos.line != linenr - 1 || !doc.attached) return
+    if (pos.line != linenr - 1) return
     let { textEdit } = item
     let currline = doc.getline(linenr - 1)
     // before CompleteDone
@@ -217,13 +208,6 @@ export default class LanguageSource implements ISource {
       triggerKind = CompletionTriggerKind.TriggerCharacter
     }
     return triggerKind
-  }
-
-  private async applyAdditionalEdits(doc: Document, textEdits: TextEdit[] | undefined, snippet: boolean): Promise<void> {
-    if (!textEdits) return
-    await doc.patchChange(true)
-    // move cursor after edit
-    await doc.applyEdits(textEdits, true, !snippet)
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): ExtendedCompleteItem {

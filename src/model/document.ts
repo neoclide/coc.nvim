@@ -4,7 +4,7 @@ import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdi
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
-import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption } from '../types'
+import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
@@ -239,33 +239,42 @@ export default class Document {
     return !equals(this.lines, this.syncLines)
   }
 
-  private _fireContentChanges(): void {
+  private _fireContentChanges(edit?: TextEdit): void {
     let { cursor } = events
     if (!this.dirty) return
     let textDocument = this._textDocument
-    let endOffset = null
-    let content = this.getDocumentContent()
-    let curr = textDocument.getText()
-    // consider cursor position.
-    if (cursor && cursor.bufnr == this.bufnr) {
-      endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert || content.length < curr.length)
+    let changes: TextDocumentContentChange[]
+    let start: Position
+    let end: Position
+    if (!edit) {
+      let endOffset = null
+      let content = this.getDocumentContent()
+      let curr = textDocument.getText()
+      // consider cursor position.
+      if (cursor && cursor.bufnr == this.bufnr) {
+        endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert || content.length < curr.length)
+      }
+      let change = getChange(curr, content, endOffset)
+      if (change == null) return
+      start = textDocument.positionAt(change.start)
+      end = textDocument.positionAt(change.end)
+      changes = [{
+        range: { start, end },
+        text: change.newText
+      }]
+    } else {
+      let { range } = edit
+      start = range.start
+      end = range.end
+      changes = [{ range: { start, end }, text: edit.newText }]
     }
-    let change = getChange(curr, content, endOffset)
-    if (change == null) return
-    let start = textDocument.positionAt(change.start)
-    let end = textDocument.positionAt(change.end)
     let original = textDocument.getText(Range.create(start, end))
-    this.createTextDocument(this.version + 1, this.lines)
-    let changes = [{
-      range: { start, end },
-      rangeLength: change.end - change.start,
-      text: change.newText
-    }]
+    let created = this.createTextDocument(this.version + 1, this.lines)
     this._onDocumentChange.fire({
       bufnr: this.bufnr,
       original,
       originalLines: textDocument.lines,
-      textDocument: { version: this.version, uri: this.uri },
+      textDocument: { version: created.version, uri: this.uri },
       contentChanges: changes
     })
   }
@@ -285,11 +294,10 @@ export default class Document {
     let changed = diffLines(lines, newLines, edits[0].range.start.line)
     let original = lines.slice(changed.start, changed.end)
     let changes: TextChangeItem[] = []
-    let last = edits[edits.length - 1]
     // avoid out of range and lines replacement.
     if (this.nvim.hasFunction('nvim_buf_set_text')
       && edits.length < 200
-      && last.range.end.line < lines.length + (this.eol ? 0 : 1)
+      && edits[edits.length - 1].range.end.line < lines.length + (this.eol ? 0 : 1)
     ) {
       changes = toTextChanges(lines, edits)
     }
@@ -321,11 +329,17 @@ export default class Document {
       changes,
       cursor
     ], true)
-    void this.nvim.resumeNotification(true, true)
+    let redraw = events && events.cursor && events.cursor.bufnr === this.bufnr
+    void this.nvim.resumeNotification(redraw, true)
     await waitNextTick(() => {
       // can't wait vim sync buffer
       this.lines = newLines
-      this._forceSync()
+      if (edits.length == 1) {
+        this.fireContentChanges.clear()
+        this._fireContentChanges(edits[0])
+      } else {
+        this._forceSync()
+      }
     })
   }
 
@@ -408,9 +422,10 @@ export default class Document {
     return Range.create(position.line, start, position.line, end)
   }
 
-  private createTextDocument(version: number, lines: ReadonlyArray<string>): void {
+  private createTextDocument(version: number, lines: ReadonlyArray<string>): LinesTextDocument {
     let { uri, languageId, eol } = this
-    this._textDocument = new LinesTextDocument(uri, languageId, version, lines, this.bufnr, eol)
+    let textDocument = this._textDocument = new LinesTextDocument(uri, languageId, version, lines, this.bufnr, eol)
+    return textDocument
   }
 
   /**
