@@ -66,6 +66,7 @@ export default class Buffer extends Source {
     let { bufnr, input } = opt
     if (input.length == 0) return null
     await waitImmediate()
+    if (token.isCancellationRequested) return null
     let words: Set<string> = new Set()
     let isIncomplete = await this.getWords(bufnr, opt, token, words)
     return {

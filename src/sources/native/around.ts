@@ -73,6 +73,7 @@ export default class Around extends Source {
     let { bufnr, input } = opt
     if (input.length === 0) return null
     await waitImmediate()
+    if (token.isCancellationRequested) return null
     let item = this.keywords.getItem(bufnr)
     let words = item?.words
     if (!words) return null

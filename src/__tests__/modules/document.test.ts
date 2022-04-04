@@ -6,7 +6,7 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Document from '../../model/document'
-import { LinesTextDocument } from '../../model/textdocument'
+import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -57,6 +57,7 @@ describe('LinesTextDocument', () => {
     expect(offset).toBe(4)
     offset = doc.offsetAt(Position.create(2, 1))
     expect(offset).toBe(8)
+    expect(doc.end).toEqual(Position.create(2, 0))
   })
 
   it('should throw for invalid line', async () => {
@@ -75,6 +76,14 @@ describe('LinesTextDocument', () => {
     let doc = new LinesTextDocument('file://a', 'txt', 1, ['foo'], 1, false)
     expect(doc.getText()).toBe('foo')
     expect(doc.lineCount).toBe(1)
+    expect(doc.end).toEqual(Position.create(0, 3))
+  })
+})
+
+describe('computeLinesOffsets()', () => {
+  it('should computeLinesOffsets', async () => {
+    expect(computeLinesOffsets(['foo'], true)).toEqual([0, 4])
+    expect(computeLinesOffsets(['foo'], false)).toEqual([0])
   })
 })
 
@@ -114,15 +123,12 @@ describe('Document', () => {
   describe('properties', () => {
     it('should parse iskeyword of character range', async () => {
       await nvim.setOption('iskeyword', 'a-z,A-Z,48-57,_')
-      let doc = await helper.createDocument()
       let opt = await nvim.getOption('iskeyword')
       expect(opt).toBe('a-z,A-Z,48-57,_')
-      await nvim.setLine('foo bar')
-      await doc.synchronize()
     })
 
     it('should get word range', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo bar')
       await doc.synchronize()
       let range = doc.getWordRangeAtPosition({ line: 0, character: 0 })
@@ -136,14 +142,14 @@ describe('Document', () => {
     })
 
     it('should get symbol ranges', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo bar foo')
       let ranges = doc.getSymbolRanges('foo')
       expect(ranges.length).toBe(2)
     })
 
     it('should get localify bonus', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await setLines(doc, ['context content clearTimeout', '', 'product confirm'])
       let pos: Position = { line: 1, character: 0 }
       let res = doc.getLocalifyBonus(pos, pos)
@@ -152,7 +158,7 @@ describe('Document', () => {
     })
 
     it('should get current line', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await setLines(doc, ['first line', 'second line'])
       let line = doc.getline(1, true)
       expect(line).toBe('second line')
@@ -168,7 +174,7 @@ describe('Document', () => {
     })
 
     it('should attach change events', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('abc')
       await doc.synchronize()
       let content = doc.getDocumentContent()
@@ -187,7 +193,7 @@ describe('Document', () => {
     })
 
     it('should get lineCount, previewwindow, winid', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let { lineCount, winid, previewwindow } = doc
       expect(lineCount).toBe(1)
       expect(winid != -1).toBe(true)
@@ -195,7 +201,7 @@ describe('Document', () => {
     })
 
     it('should set filetype', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       doc.setFiletype('javascript.jsx')
       expect(doc.filetype).toBe('javascriptreact')
       doc.setFiletype('typescript.jsx')
@@ -211,7 +217,7 @@ describe('Document', () => {
 
   describe('applyEdits()', () => {
     it('should simple applyEdits', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let edits: TextEdit[] = []
       edits.push({
         range: Range.create(0, 0, 0, 0),
@@ -226,8 +232,18 @@ describe('Document', () => {
       expect(content).toBe('a\nb\n\n')
     })
 
+    it('should move cursor', async () => {
+      let doc = await workspace.document
+      let edits: TextEdit[] = []
+      edits.push({
+        range: Range.create(0, 0, 0, 0),
+        newText: 'foo'
+      })
+      await doc.applyEdits(edits, false, true)
+    })
+
     it('should applyEdits with range not sorted', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await doc.buffer.setLines([
         'aa',
         'bb',
@@ -245,7 +261,7 @@ describe('Document', () => {
     })
 
     it('should applyEdits with insert as same position', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await doc.buffer.setLines([
         'foo'
       ], { start: 0, end: -1, strictIndexing: false })
@@ -260,7 +276,7 @@ describe('Document', () => {
     })
 
     it('should applyEdits with bad range', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await doc.buffer.setLines([], { start: 0, end: -1, strictIndexing: false })
       await doc.patchChange()
       let edits = [{ range: { start: { line: -1, character: -1 }, end: { line: -1, character: -1 } }, newText: 'foo' },]
@@ -270,7 +286,7 @@ describe('Document', () => {
     })
 
     it('should applyEdits with lines', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await doc.buffer.setLines([
         'aa',
         'bb',
@@ -288,33 +304,28 @@ describe('Document', () => {
     })
 
     it('should applyEdits with changed lines', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
+      let buf = doc.buffer
+      const assertChange = async (sl, sc, el, ec, text, lines) => {
+        let r = Range.create(sl, sc, el, ec)
+        let edits = [TextEdit.replace(r, text)]
+        await doc.applyEdits(edits)
+        let curr = await buf.lines
+        expect(curr).toEqual(lines)
+      }
       await nvim.setLine('a')
       await doc.patchChange()
-      await doc.applyEdits([{
-        range: Range.create(0, 1, 0, 1),
-        newText: '\nb'
-      }])
-      let lines = await nvim.call('getline', [1, '$'])
-      expect(lines).toEqual(['a', 'b'])
-      await doc.applyEdits([{
-        range: Range.create(1, 0, 2, 0),
-        newText: 'c\n'
-      }])
-      lines = await nvim.call('getline', [1, '$'])
-      expect(lines).toEqual(['a', 'c'])
-      await doc.applyEdits([{
-        range: Range.create(1, 0, 2, 0),
-        newText: ''
-      }])
-      lines = await nvim.call('getline', [1, '$'])
-      expect(lines).toEqual(['a'])
+      await assertChange(0, 1, 0, 1, '\nb', ['a', 'b'])
+      await assertChange(1, 0, 2, 0, 'c\n', ['a', 'c'])
+      await assertChange(1, 0, 2, 0, '', ['a'])
+      await assertChange(1, 0, 1, 0, 'b\nc\n', ['a', 'b', 'c'])
+      await assertChange(2, 0, 3, 0, 'e\n', ['a', 'b', 'e'])
     })
   })
 
   describe('synchronize', () => {
     it('should synchronize on lines change', async () => {
-      let document = await helper.createDocument()
+      let document = await workspace.document
       let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
       let disposables = []
       document.onDocumentChange(e => {
@@ -328,7 +339,7 @@ describe('Document', () => {
     })
 
     it('should synchronize changes after applyEdits', async () => {
-      let document = await helper.createDocument()
+      let document = await workspace.document
       let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
       let disposables = []
       document.onDocumentChange(e => {
@@ -342,7 +353,7 @@ describe('Document', () => {
     })
 
     it('should consider empty lines', async () => {
-      let document = await helper.createDocument()
+      let document = await workspace.document
       await nvim.call('setline', [1, ['foo', 'bar']])
       await document.patchChange()
       await nvim.command('normal! ggdG')
@@ -418,7 +429,7 @@ describe('Document', () => {
 
   describe('getEndOffset', () => {
     it('should getEndOffset #1', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await setLines(doc, ['', ''])
       let end = doc.getEndOffset(1, 1, false)
       expect(end).toBe(2)
@@ -427,21 +438,21 @@ describe('Document', () => {
     })
 
     it('should getEndOffset #2', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await setLines(doc, ['a', ''])
       let end = doc.getEndOffset(1, 1, false)
       expect(end).toBe(2)
     })
 
     it('should getEndOffset #3', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await setLines(doc, ['a'])
       let end = doc.getEndOffset(1, 2, false)
       expect(end).toBe(1)
     })
 
     it('should getEndOffset #4', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await setLines(doc, ['你好', ''])
       let end = doc.getEndOffset(1, 1, false)
       expect(end).toBe(3)
@@ -452,7 +463,7 @@ describe('Document', () => {
 
   describe('applyEdits', () => {
     it('should synchronize content added', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo f')
       await doc.synchronize()
       await nvim.command('normal! ^2l')
@@ -465,7 +476,7 @@ describe('Document', () => {
     })
 
     it('should synchronize content delete', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await doc.buffer.setLines(['foo f'], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
       await nvim.command('normal! gg^2l')
@@ -477,7 +488,6 @@ describe('Document', () => {
 
   describe('highlights', () => {
     it('should add highlights to document', async () => {
-      await helper.createDocument()
       let buf = await nvim.buffer
       await buf.setLines(['你好', 'world'], { start: 0, end: -1, strictIndexing: false })
       let ranges = [
@@ -498,7 +508,6 @@ describe('Document', () => {
     })
 
     it('should add/clear highlights of current window', async () => {
-      await helper.createDocument()
       let buf = await nvim.buffer
       await buf.setLines(['你好', 'world'], { start: 0, end: -1, strictIndexing: false })
       let win = await nvim.window
@@ -518,7 +527,6 @@ describe('Document', () => {
     })
 
     it('should clear matches by ids', async () => {
-      await helper.createDocument()
       let buf = await nvim.buffer
       await buf.setLines(['你好', 'world'], { start: 0, end: -1, strictIndexing: false })
       let win = await nvim.window
