@@ -1,7 +1,6 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
@@ -10,7 +9,7 @@ import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice, contentToLines } from '../util/string'
-import { applyEdits, filterSortEdits, TextChangeItem, toTextChanges, getPositionFromEdits } from '../util/textedit'
+import { applyEdits, filterSortEdits, getPositionFromEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
@@ -683,49 +682,8 @@ export default class Document {
    *
    * @internal
    */
-  public getLocalifyBonus(sp: Position, ep: Position): Map<string, number> {
-    let res: Map<string, number> = new Map()
-    let { chars } = this
-    let startLine = Math.max(0, sp.line - 100)
-    let endLine = Math.min(this.lineCount, sp.line + 100)
-    let content = this.lines.slice(startLine, endLine).join('\n')
-    sp = Position.create(sp.line - startLine, sp.character)
-    ep = Position.create(ep.line - startLine, ep.character)
-    let doc = TextDocument.create(this.uri, this.languageId, 1, content)
-    let headCount = doc.offsetAt(sp)
-    let len = content.length
-    let tailCount = len - doc.offsetAt(ep)
-    let start = 0
-    let preKeyword = false
-    for (let i = 0; i < headCount; i++) {
-      let iskeyword = chars.isKeyword(content[i])
-      if (!preKeyword && iskeyword) {
-        start = i
-      } else if (preKeyword && (!iskeyword || i == headCount - 1)) {
-        if (i - start > 1) {
-          let str = content.slice(start, i)
-          res.set(str, i / headCount)
-        }
-      }
-      preKeyword = iskeyword
-    }
-    start = len - tailCount
-    preKeyword = false
-    for (let i = start; i < content.length; i++) {
-      let iskeyword = chars.isKeyword(content[i])
-      if (!preKeyword && iskeyword) {
-        start = i
-      } else if (preKeyword && (!iskeyword || i == len - 1)) {
-        if (i - start > 1) {
-          let end = i == len - 1 ? i + 1 : i
-          let str = content.slice(start, end)
-          let score = res.get(str) || 0
-          res.set(str, Math.max(score, (len - i + (end - start)) / tailCount))
-        }
-      }
-      preKeyword = iskeyword
-    }
-    return res
+  public getLocalifyBonus(sp: Position, ep: Position, max?: number): Map<string, number> {
+    return this.chars.getLocalifyBonus(sp, ep, this.lines, max)
   }
 }
 

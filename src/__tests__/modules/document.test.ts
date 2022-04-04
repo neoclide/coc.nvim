@@ -9,7 +9,6 @@ import Document from '../../model/document'
 import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -150,12 +149,37 @@ describe('Document', () => {
     })
 
     it('should get localify bonus', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['context content clearTimeout', '', 'product confirm'])
-      let pos: Position = { line: 1, character: 0 }
-      let res = doc.getLocalifyBonus(pos, pos)
-      expect(res.has('confirm')).toBe(true)
-      expect(res.has('clearTimeout')).toBe(true)
+      let assertBonus = async (lines: string[], position: Position, words: string[], limit?: number) => {
+        let doc = await helper.createDocument()
+        await doc.buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false })
+        await doc.patchChange()
+        let res = doc.getLocalifyBonus(position, position, limit)
+        for (let word of words) {
+          expect(res.has(word)).toBe(true)
+        }
+      }
+      await assertBonus(
+        ['context content clearTimeout', '', 'product confirm'],
+        Position.create(1, 0),
+        ['confirm', 'clearTimeout']
+      )
+      await assertBonus(
+        ['context content clearTimeout', '', 'product confirm', 'word', 'workspace', 'words'],
+        Position.create(2, 1),
+        ['confirm'],
+        50
+      )
+      await assertBonus(
+        ['context content clearTimeout', '', 'product confirm', 'word', 'workspace', 'words'],
+        Position.create(2, 1),
+        ['confirm'],
+        30
+      )
+      await assertBonus(
+        ['context content clearTimeout', '', 'product confirm'],
+        Position.create(0, 7),
+        ['confirm', 'clearTimeout']
+      )
     })
 
     it('should get current line', async () => {
