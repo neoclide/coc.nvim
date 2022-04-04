@@ -264,9 +264,8 @@ export default class CursorSession {
     ranges.forEach(r => r.applyChange(change))
     let edits = ranges.filter(r => r !== textRange).map(o => o.textEdit)
     // logger.debug('edits:', JSON.stringify(edits, null, 2))
-    let pos = this.getCursorPosition(textRange.position.line)
     this.changing = true
-    await doc.applyEdits(edits, true)
+    await doc.applyEdits(edits, true, true)
     this.changing = false
     let preCount = 0
     if (delta != 0) {
@@ -276,18 +275,7 @@ export default class CursorSession {
         r.move(n * delta)
       }
     }
-    if (preCount > 0 && pos) {
-      let changed = preCount * delta
-      await window.moveTo(Position.create(pos.line, pos.character + changed))
-    }
     this.doHighlights()
-  }
-
-  private getCursorPosition(line: number): Position | undefined {
-    let cursor = events.cursor
-    if (cursor.bufnr != this.doc.bufnr || cursor.lnum - 1 != line) return undefined
-    let character = byteSlice(this.doc.getline(line), 0, cursor.col - 1).length
-    return Position.create(line, character)
   }
 
   private getBeforeCount(textRange: TextRange, exclude?: TextRange): number {

@@ -6,7 +6,6 @@ import languages from '../languages'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
-import { getChangedFromEdits } from '../util/position'
 import { isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -74,19 +73,9 @@ export default class FormatHandler {
         await this.handleEnter(bufnr)
       }
     }))
-    let changedTs: number
-    let lastInsert: number
-    handler.addDisposable(events.on('InsertCharPre', async () => {
-      lastInsert = Date.now()
+    handler.addDisposable(events.on('TextInsert', async (bufnr: number, info, character: string) => {
+      if (!info.line) await this.tryFormatOnType(character, bufnr)
     }))
-    handler.addDisposable(events.on('TextChangedI', async (bufnr, info) => {
-      changedTs = Date.now()
-      if (!lastInsert || changedTs - lastInsert > 300) return
-      lastInsert = null
-      let pre = info.pre[info.pre.length - 1]
-      if (pre) await this.tryFormatOnType(pre, bufnr)
-    }))
-
     handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
       const doc = uri ? workspace.getDocument(uri) : (await this.handler.getCurrentState()).doc
       await this.documentFormat(doc)
@@ -131,10 +120,7 @@ export default class FormatHandler {
       return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, position, token)
     })
     if (!edits || !edits.length) return
-    let changed = getChangedFromEdits(position, edits)
-    await doc.applyEdits(edits)
-    let to = changed ? Position.create(position.line + changed.line, position.character + changed.character) : null
-    if (to) await window.moveTo(to)
+    await doc.applyEdits(edits, false, true)
   }
 
   public async formatCurrentBuffer(): Promise<boolean> {
@@ -157,7 +143,7 @@ export default class FormatHandler {
       return languages.provideDocumentFormattingEdits(doc.textDocument, options, token)
     })
     if (textEdits && textEdits.length > 0) {
-      await doc.applyEdits(textEdits)
+      await doc.applyEdits(textEdits, false, true)
       return true
     }
     return false
@@ -217,7 +203,7 @@ export default class FormatHandler {
       return languages.provideDocumentRangeFormattingEdits(doc.textDocument, range, options, token)
     })
     if (textEdits && textEdits.length > 0) {
-      await doc.applyEdits(textEdits)
+      await doc.applyEdits(textEdits, false, true)
       return 0
     }
     return -1

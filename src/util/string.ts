@@ -120,3 +120,10 @@ export function equalsIgnoreCase(a: string, b: string): boolean {
   if (len1 !== len2) return false
   return doEqualsIgnoreCase(a, b)
 }
+
+export function contentToLines(content: string, eol: boolean): string[] {
+  if (eol && content.endsWith('\n')) {
+    return content.slice(0, -1).split('\n')
+  }
+  return content.split('\n')
+}

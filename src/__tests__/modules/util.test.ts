@@ -6,26 +6,31 @@ import path from 'path'
 import vm from 'vm'
 import { Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { LinesTextDocument } from '../../model/textdocument'
 import { concurrent, executable, getKeymapModifier, getUri, isRunning, runCommand, wait, watchFile } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
 import * as arrays from '../../util/array'
 import * as color from '../../util/color'
 import { getSymbolKind } from '../../util/convert'
-import { ChangedLines, diffLines, getChange, patchLine } from '../../util/diff'
+import * as diff from '../../util/diff'
 import * as factory from '../../util/factory'
-import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
-import { groupPositions, positions, score } from '../../util/fzy'
+import * as fuzzy from '../../util/fuzzy'
+import * as fzy from '../../util/fzy'
 import * as Is from '../../util/is'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
-import { comparePosition, getChangedPosition, getEnd, isSingleLine, positionInRange, rangeAdjacent, rangeInRange, rangeOverlap } from '../../util/position'
+import * as positions from '../../util/position'
 import { terminate } from '../../util/processes'
 import { getMatchResult } from '../../util/score'
 import * as strings from '../../util/string'
-import { emptyWorkspaceEdit, getWellformedEdit, lineCountChange } from '../../util/textedit'
+import * as textedits from '../../util/textedit'
 import helper, { createTmpFile } from '../helper'
 const createLogger = require('../../util/logger')
+
+function createTextDocument(lines: string[]): LinesTextDocument {
+  return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
+}
 
 describe('factory', () => {
   const emptyLogger = {
@@ -128,25 +133,101 @@ describe('textedit', () => {
     return { documentChanges: [TextDocumentEdit.create(doc, [edit])] }
   }
 
+  function addPosition(position: Position, line: number, character: number): Position {
+    return Position.create(position.line + line, position.character + character)
+  }
+
+  test('getChangedPosition', () => {
+    const assertPosition = (start, edit, arr) => {
+      let res = textedits.getChangedPosition(start, edit)
+      expect(res).toEqual(Position.create(arr[0], arr[1]))
+    }
+    let pos = Position.create(0, 0)
+    assertPosition(pos, TextEdit.insert(pos, 'abc'), [0, 3])
+    assertPosition(pos, TextEdit.insert(pos, 'a\nb\nc'), [2, 1])
+    let edit = TextEdit.replace(Range.create(pos, Position.create(0, 3)), 'abc')
+    assertPosition(pos, edit, [0, 0])
+    pos = Position.create(0, 1)
+    let r = Range.create(addPosition(pos, 0, -1), pos)
+    assertPosition(pos, TextEdit.replace(r, 'a\nb\n'), [2, -1])
+    pos = Position.create(1, 3)
+    edit = TextEdit.replace(Range.create(Position.create(0, 1), Position.create(1, 0)), 'abc')
+    assertPosition(pos, edit, [-1, 4])
+  })
+
+  test('getChangedLineCount', () => {
+    let pos = Position.create(5, 0)
+    let edits: TextEdit[] = [
+      TextEdit.replace(Range.create(0, 1, 1, 0), ''),
+      TextEdit.replace(Range.create(2, 1, 3, 0), ''),
+      TextEdit.replace(Range.create(10, 1, 12, 0), 'foo'),
+    ]
+    expect(textedits.getChangedLineCount(pos, edits)).toBe(-2)
+  })
+
+  test('getPosition', () => {
+    let pos = Position.create(1, 3)
+    const assertChange = (rl, rc, el, ec, text, val): void => {
+      let edit = TextEdit.replace(Range.create(rl, rc, el, ec), text)
+      let res = textedits.getPosition(pos, edit)
+      expect(res).toEqual(val)
+    }
+    assertChange(0, 1, 1, 0, 'abc', Position.create(0, 7))
+    assertChange(0, 1, 1, 1, 'abc', Position.create(0, 6))
+    assertChange(0, 1, 1, 0, 'abc\n', Position.create(1, 3))
+    assertChange(1, 1, 1, 2, '', Position.create(1, 2))
+  })
+
+  test('getPositionFromEdits', async () => {
+    const assertEdits = (pos, edits, exp: [number, number]) => {
+      let res = textedits.getPositionFromEdits(pos, edits)
+      expect(res).toEqual(Position.create(exp[0], exp[1]))
+    }
+    let pos = Position.create(5, 1)
+    let edits: TextEdit[] = [
+      TextEdit.replace(Range.create(0, 3, 1, 0), ''),
+      TextEdit.replace(Range.create(2, 4, 3, 0), ''),
+      TextEdit.replace(Range.create(3, 4, 4, 0), ''),
+      TextEdit.replace(Range.create(4, 1, 5, 0), ''),
+      TextEdit.replace(Range.create(6, 1, 6, 1), 'foo'),
+    ]
+    assertEdits(pos, edits, [1, 10])
+  })
   it('should check empty workspaceEdit', async () => {
     let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
-    expect(emptyWorkspaceEdit(workspaceEdit)).toBe(false)
-    expect(emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+    expect(textedits.emptyWorkspaceEdit(workspaceEdit)).toBe(false)
+    expect(textedits.emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
   })
 
   it('should get well formed edit', async () => {
     let r = Range.create(1, 0, 0, 0)
     let edit: TextEdit = { range: r, newText: 'foo' }
-    let res = getWellformedEdit(edit)
+    let res = textedits.getWellformedEdit(edit)
     expect(res.range).toEqual(Range.create(0, 0, 1, 0))
   })
 
   it('should check line count change', async () => {
     let r = Range.create(0, 0, 0, 5)
     let edit: TextEdit = { range: r, newText: 'foo' }
-    expect(lineCountChange(edit)).toBe(0)
+    expect(textedits.lineCountChange(edit)).toBe(0)
     edit = { range: Range.create(0, 0, 1, 0), newText: 'foo' }
-    expect(lineCountChange(edit)).toBe(-1)
+    expect(textedits.lineCountChange(edit)).toBe(-1)
+  })
+
+  it('should filter and sort textedits', async () => {
+    let doc = createTextDocument(['foo'])
+    expect(textedits.filterSortEdits(doc, [TextEdit.insert(Position.create(0, 0), 'a\r\nb')])).toEqual([
+      TextEdit.insert(Position.create(0, 0), 'a\nb')
+    ])
+    expect(textedits.filterSortEdits(doc, [TextEdit.insert(Position.create(3, 0), 'a')])).toEqual([])
+    expect(textedits.filterSortEdits(doc, [TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')])).toEqual([])
+    expect(textedits.filterSortEdits(doc, [
+      TextEdit.insert(Position.create(0, 1), 'b'),
+      TextEdit.insert(Position.create(0, 0), 'a'),
+    ])).toEqual([
+      TextEdit.insert(Position.create(0, 0), 'a'),
+      TextEdit.insert(Position.create(0, 1), 'b'),
+    ])
   })
 })
 
@@ -356,78 +437,58 @@ describe('Position', () => {
   test('rangeInRange', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
-    expect(rangeInRange(r, r)).toBe(true)
-    expect(rangeInRange(r, Range.create(addPosition(pos, 1, 0), pos))).toBe(false)
-    expect(rangeInRange(Range.create(0, 1, 0, 1), Range.create(0, 0, 0, 1))).toBe(true)
+    expect(positions.rangeInRange(r, r)).toBe(true)
+    expect(positions.rangeInRange(r, Range.create(addPosition(pos, 1, 0), pos))).toBe(false)
+    expect(positions.rangeInRange(Range.create(0, 1, 0, 1), Range.create(0, 0, 0, 1))).toBe(true)
   })
 
   test('rangeOverlap', () => {
     let r = Range.create(0, 0, 0, 0)
-    expect(rangeOverlap(r, Range.create(0, 0, 0, 0))).toBe(false)
-    expect(rangeOverlap(Range.create(0, 0, 0, 10), Range.create(0, 1, 0, 2))).toBe(true)
-    expect(rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 1, 0, 2))).toBe(false)
-    expect(rangeOverlap(Range.create(0, 1, 0, 2), Range.create(0, 0, 0, 1))).toBe(false)
-    expect(rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 2, 0, 3))).toBe(false)
+    expect(positions.rangeOverlap(r, Range.create(0, 0, 0, 0))).toBe(false)
+    expect(positions.rangeOverlap(Range.create(0, 0, 0, 10), Range.create(0, 1, 0, 2))).toBe(true)
+    expect(positions.rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 1, 0, 2))).toBe(false)
+    expect(positions.rangeOverlap(Range.create(0, 1, 0, 2), Range.create(0, 0, 0, 1))).toBe(false)
+    expect(positions.rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 2, 0, 3))).toBe(false)
   })
 
   test('rangeAdjacent', () => {
     let r = Range.create(1, 1, 1, 2)
-    expect(rangeAdjacent(r, Range.create(0, 0, 0, 0))).toBe(false)
-    expect(rangeAdjacent(r, Range.create(1, 1, 1, 3))).toBe(false)
-    expect(rangeAdjacent(r, Range.create(0, 0, 1, 1))).toBe(true)
-    expect(rangeAdjacent(r, Range.create(1, 2, 1, 4))).toBe(true)
+    expect(positions.rangeAdjacent(r, Range.create(0, 0, 0, 0))).toBe(false)
+    expect(positions.rangeAdjacent(r, Range.create(1, 1, 1, 3))).toBe(false)
+    expect(positions.rangeAdjacent(r, Range.create(0, 0, 1, 1))).toBe(true)
+    expect(positions.rangeAdjacent(r, Range.create(1, 2, 1, 4))).toBe(true)
   })
 
   test('positionInRange', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
-    expect(positionInRange(pos, r)).toBe(0)
+    expect(positions.positionInRange(pos, r)).toBe(0)
   })
 
   test('comparePosition', () => {
     let pos = Position.create(0, 0)
-    expect(comparePosition(pos, pos)).toBe(0)
+    expect(positions.comparePosition(pos, pos)).toBe(0)
   })
 
   test('should get start end position by content', () => {
-    expect(getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
-    expect(getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
+    expect(positions.getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
+    expect(positions.getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
   })
 
   test('isSingleLine', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
-    expect(isSingleLine(r)).toBe(true)
+    expect(positions.isSingleLine(r)).toBe(true)
   })
 
-  test('getChangedPosition #1', () => {
-    let pos = Position.create(0, 0)
-    let edit = TextEdit.insert(pos, 'abc')
-    let res = getChangedPosition(pos, edit)
-    expect(res).toEqual({ line: 0, character: 3 })
+  test('toValidRange', () => {
+    expect(positions.toValidRange(Range.create(1, 0, 0, 1))).toEqual(Range.create(0, 1, 1, 0))
+    expect(positions.toValidRange({
+      start: { line: -1, character: -1 },
+      end: { line: -1, character: -1 },
+    })).toEqual(Range.create(0, 0, 0, 0))
   })
 
-  test('getChangedPosition #2', () => {
-    let pos = Position.create(0, 0)
-    let edit = TextEdit.insert(pos, 'a\nb\nc')
-    let res = getChangedPosition(pos, edit)
-    expect(res).toEqual({ line: 2, character: 1 })
-  })
-
-  test('getChangedPosition #3', () => {
-    let pos = Position.create(0, 1)
-    let r = Range.create(addPosition(pos, 0, -1), pos)
-    let edit = TextEdit.replace(r, 'a\nb\n')
-    let res = getChangedPosition(pos, edit)
-    expect(res).toEqual({ line: 2, character: -1 })
-  })
-
-  test('getChangedPosition #4', () => {
-    let pos = Position.create(0, 0)
-    let edit = TextEdit.replace(Range.create(pos, Position.create(0, 3)), 'abc')
-    let res = getChangedPosition(pos, edit)
-    expect(res).toEqual({ line: 0, character: 0 })
-  })
 })
 
 describe('match result', () => {
@@ -564,18 +625,18 @@ describe('utility', () => {
 describe('score test', () => {
 
   it('fzy#score', async () => {
-    let a = score("amuser", "app/models/user.rb")
-    let b = score("amuser", "app/models/customer.rb")
+    let a = fzy.score("amuser", "app/models/user.rb")
+    let b = fzy.score("amuser", "app/models/customer.rb")
     expect(a).toBeGreaterThan(b)
   })
 
   it('fzy#positions', async () => {
-    let arr = positions("amuser", "app/models/user.rb")
+    let arr = fzy.positions("amuser", "app/models/user.rb")
     expect(arr).toEqual([0, 4, 11, 12, 13, 14])
   })
 
   it('fzy#groupPositions', async () => {
-    let arr = groupPositions([1, 2, 3, 6, 7, 10])
+    let arr = fzy.groupPositions([1, 2, 3, 6, 7, 10])
     expect(arr).toEqual([[1, 4], [6, 8], [10, 11]])
   })
 })
@@ -583,24 +644,24 @@ describe('score test', () => {
 describe('fuzzy match test', () => {
   it('should be fuzzy match', () => {
     let needle = 'aBc'
-    let codes = getCharCodes(needle)
-    expect(fuzzyMatch(codes, 'abc')).toBeFalsy
-    expect(fuzzyMatch(codes, 'ab')).toBeFalsy
-    expect(fuzzyMatch(codes, 'addbdd')).toBeFalsy
-    expect(fuzzyMatch(codes, 'abbbBc')).toBeTruthy
-    expect(fuzzyMatch(codes, 'daBc')).toBeTruthy
-    expect(fuzzyMatch(codes, 'ABCz')).toBeTruthy
+    let codes = fuzzy.getCharCodes(needle)
+    expect(fuzzy.fuzzyMatch(codes, 'abc')).toBeFalsy
+    expect(fuzzy.fuzzyMatch(codes, 'ab')).toBeFalsy
+    expect(fuzzy.fuzzyMatch(codes, 'addbdd')).toBeFalsy
+    expect(fuzzy.fuzzyMatch(codes, 'abbbBc')).toBeTruthy
+    expect(fuzzy.fuzzyMatch(codes, 'daBc')).toBeTruthy
+    expect(fuzzy.fuzzyMatch(codes, 'ABCz')).toBeTruthy
   })
 
   it('should be fuzzy for character', () => {
-    expect(fuzzyChar('a', 'a')).toBeTruthy
-    expect(fuzzyChar('a', 'A')).toBeTruthy
-    expect(fuzzyChar('z', 'z')).toBeTruthy
-    expect(fuzzyChar('z', 'Z')).toBeTruthy
-    expect(fuzzyChar('A', 'a')).toBeFalsy
-    expect(fuzzyChar('A', 'A')).toBeTruthy
-    expect(fuzzyChar('Z', 'z')).toBeFalsy
-    expect(fuzzyChar('Z', 'Z')).toBeTruthy
+    expect(fuzzy.fuzzyChar('a', 'a')).toBeTruthy
+    expect(fuzzy.fuzzyChar('a', 'A')).toBeTruthy
+    expect(fuzzy.fuzzyChar('z', 'z')).toBeTruthy
+    expect(fuzzy.fuzzyChar('z', 'Z')).toBeTruthy
+    expect(fuzzy.fuzzyChar('A', 'a')).toBeFalsy
+    expect(fuzzy.fuzzyChar('A', 'A')).toBeTruthy
+    expect(fuzzy.fuzzyChar('Z', 'z')).toBeFalsy
+    expect(fuzzy.fuzzyChar('Z', 'Z')).toBeTruthy
   })
 })
 
@@ -734,18 +795,18 @@ describe('terminate', () => {
 
 describe('diff', () => {
   describe('diff lines', () => {
-    function diff(oldStr: string, newStr: string): ChangedLines {
+    function diffLines(oldStr: string, newStr: string): diff.ChangedLines {
       let oldLines = oldStr.split('\n')
-      return diffLines(oldLines, newStr.split('\n'), oldLines.length - 2)
+      return diff.diffLines(oldLines, newStr.split('\n'), oldLines.length - 2)
     }
 
     it('should diff changed lines', () => {
-      let res = diff('a\n', 'b\n')
+      let res = diffLines('a\n', 'b\n')
       expect(res).toEqual({ start: 0, end: 1, replacement: ['b'] })
     })
 
     it('should diff added lines', () => {
-      let res = diff('a\n', 'a\nb\n')
+      let res = diffLines('a\n', 'a\nb\n')
       expect(res).toEqual({
         start: 1,
         end: 1,
@@ -754,7 +815,7 @@ describe('diff', () => {
     })
 
     it('should diff remove lines', () => {
-      let res = diff('a\n\n', 'a\n')
+      let res = diffLines('a\n\n', 'a\n')
       expect(res).toEqual({
         start: 1,
         end: 2,
@@ -763,7 +824,7 @@ describe('diff', () => {
     })
 
     it('should diff remove multiple lines', () => {
-      let res = diff('a\n\n\n', 'a\n')
+      let res = diffLines('a\n\n\n', 'a\n')
       expect(res).toEqual({
         start: 1,
         end: 3,
@@ -772,7 +833,7 @@ describe('diff', () => {
     })
 
     it('should diff removed line', () => {
-      let res = diff('a\n\n\nb', 'a\n\nb')
+      let res = diffLines('a\n\n\nb', 'a\n\nb')
       expect(res).toEqual({
         start: 2,
         end: 3,
@@ -781,7 +842,7 @@ describe('diff', () => {
     })
 
     it('should reduce changed lines', async () => {
-      let res = diffLines(['a', 'b', 'c'], ['a', 'b', 'c', 'd'], 0)
+      let res = diff.diffLines(['a', 'b', 'c'], ['a', 'b', 'c', 'd'], 0)
       expect(res).toEqual({
         start: 3,
         end: 3,
@@ -792,7 +853,7 @@ describe('diff', () => {
 
   describe('patch line', () => {
     it('should patch line', () => {
-      let res = patchLine('foo', 'bar foo bar')
+      let res = diff.patchLine('foo', 'bar foo bar')
       expect(res.length).toBe(7)
       expect(res).toBe('    foo')
     })
@@ -802,7 +863,7 @@ describe('diff', () => {
 
     function applyEdits(oldStr: string, newStr: string): void {
       let doc = TextDocument.create('untitled://1', 'markdown', 0, oldStr)
-      let change = getChange(doc.getText(), newStr)
+      let change = diff.getChange(doc.getText(), newStr)
       let start = doc.positionAt(change.start)
       let end = doc.positionAt(change.end)
       let edit: TextEdit = {
@@ -817,7 +878,7 @@ describe('diff', () => {
       let oldStr = '/*\n *\n * \n'
       let newStr = '/*\n *\n *\n * \n'
       let doc = TextDocument.create('untitled://1', 'markdown', 0, oldStr)
-      let change = getChange(doc.getText(), newStr, 1)
+      let change = diff.getChange(doc.getText(), newStr, 1)
       let start = doc.positionAt(change.start)
       let end = doc.positionAt(change.end)
       let edit: TextEdit = {
@@ -829,9 +890,9 @@ describe('diff', () => {
     })
 
     it('should return null for same content', () => {
-      let change = getChange('', '')
+      let change = diff.getChange('', '')
       expect(change).toBeNull()
-      change = getChange('abc', 'abc')
+      change = diff.getChange('abc', 'abc')
       expect(change).toBeNull()
     })
 
@@ -880,30 +941,30 @@ describe('diff', () => {
     })
 
     it('should prefer cursor position for change', async () => {
-      let res = getChange(' int n', ' n', 0)
+      let res = diff.getChange(' int n', ' n', 0)
       expect(res).toEqual({ start: 1, end: 5, newText: '' })
-      res = getChange(' int n', ' n')
+      res = diff.getChange(' int n', ' n')
       expect(res).toEqual({ start: 0, end: 4, newText: '' })
     })
 
     it('should prefer next line for change', async () => {
-      let res = getChange('a\nb', 'a\nc\nb')
+      let res = diff.getChange('a\nb', 'a\nc\nb')
       expect(res).toEqual({ start: 2, end: 2, newText: 'c\n' })
       applyEdits('a\nb', 'a\nc\nb')
     })
 
     it('should prefer previous line for change', async () => {
-      let res = getChange('\n\na', '\na')
+      let res = diff.getChange('\n\na', '\na')
       expect(res).toEqual({ start: 0, end: 1, newText: '' })
     })
 
     it('should consider cursor', () => {
-      let res = getChange('\n\n\n', '\n\n\n\n', 1)
+      let res = diff.getChange('\n\n\n', '\n\n\n\n', 1)
       expect(res).toEqual({ start: 2, end: 2, newText: '\n' })
     })
 
     it('should get minimal diff', () => {
-      let res = getChange('foo\nbar', 'fab\nbar', 2)
+      let res = diff.getChange('foo\nbar', 'fab\nbar', 2)
       expect(res).toEqual({ start: 1, end: 3, newText: 'ab' })
     })
   })

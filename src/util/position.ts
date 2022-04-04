@@ -1,7 +1,22 @@
-import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { Position, Range } from 'vscode-languageserver-protocol'
 
 export function rangeInRange(r: Range, range: Range): boolean {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0
+}
+
+/**
+ * Convert to well formed range
+ */
+export function toValidRange(range: Range): Range {
+  let { start, end } = range
+  if (start.line > end.line || (start.line === end.line && start.character > end.character)) {
+    let m = start
+    start = end
+    end = m
+  }
+  start = Position.create(Math.max(0, start.line), Math.max(0, start.character))
+  end = Position.create(Math.max(0, end.line), Math.max(0, end.character))
+  return { start, end }
 }
 
 export function rangeAdjacent(r: Range, range: Range): boolean {
@@ -82,32 +97,6 @@ export function isSingleLine(range: Range): boolean {
   return range.start.line == range.end.line
 }
 
-export function getChangedPosition(start: Position, edit: TextEdit): { line: number; character: number } {
-  let { range, newText } = edit
-  if (comparePosition(range.end, start) <= 0) {
-    let lines = newText.split('\n')
-    let lineCount = lines.length - (range.end.line - range.start.line) - 1
-    let characterCount = 0
-    if (range.end.line == start.line) {
-      let single = isSingleLine(range) && lineCount == 0
-      let removed = single ? range.end.character - range.start.character : range.end.character
-      let added = single ? newText.length : lines[lines.length - 1].length
-      characterCount = added - removed
-    }
-    return { line: lineCount, character: characterCount }
-  }
-  return { line: 0, character: 0 }
-}
-
-export function getChangedFromEdits(start: Position, edits: TextEdit[]): Position | null {
-  let changed = { line: 0, character: 0 }
-  for (let edit of edits) {
-    let d = getChangedPosition(start, edit)
-    changed = { line: changed.line + d.line, character: changed.character + d.character }
-  }
-  return changed.line == 0 && changed.character == 0 ? null : changed
-}
-
 /*
  * Get end position by content
  */
@@ -118,4 +107,3 @@ export function getEnd(start: Position, content: string): Position {
   const end = len == 1 ? start.character + content.length : lastLine.length
   return Position.create(start.line + len - 1, end)
 }
-

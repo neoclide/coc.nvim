@@ -1,19 +1,17 @@
 import { Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 
-function computeLineOffsets(text: string, isAtLineStart: boolean, textOffset = 0): number[] {
-  const result: number[] = isAtLineStart ? [textOffset] : []
-  for (let i = 0; i < text.length; i++) {
-    let ch = text.charCodeAt(i)
-    if (ch === 13 || ch === 10) {
-      if (ch === 13 && i + 1 < text.length && text.charCodeAt(i + 1) === 10) {
-        i++
-      }
-      result.push(textOffset + i + 1)
-    }
+export function computeLinesOffsets(lines: ReadonlyArray<string>, eol: boolean): number[] {
+  const result: number[] = []
+  let textOffset = 0
+  for (let line of lines) {
+    result.push(textOffset)
+    textOffset += line.length + 1
   }
+  if (eol) result.push(textOffset)
   return result
 }
+
 /**
  * Represents a line of text, such as a line of source code.
  *
@@ -85,6 +83,7 @@ export class TextLine {
  */
 export class LinesTextDocument implements TextDocument {
   private _lineOffsets: number[] | undefined
+  private _content: string
   constructor(
     public readonly uri: string,
     public readonly languageId: string,
@@ -93,15 +92,19 @@ export class LinesTextDocument implements TextDocument {
     public readonly bufnr: number,
     private eol: boolean
   ) {
-
   }
 
-  public reset(): void {
-    this.lines = []
+  private get content(): string {
+    if (!this._content) {
+      this._content = this.lines.join('\n') + (this.eol ? '\n' : '')
+    }
+    return this._content
   }
 
-  private get _content(): string {
-    return this.lines.join('\n') + (this.eol ? '\n' : '')
+  public get end(): Position {
+    let line = this.lineCount - 1
+    if (this.eol) return Position.create(line, 0)
+    return Position.create(line, this.lines[line].length)
   }
 
   public get lineCount(): number {
@@ -112,9 +115,9 @@ export class LinesTextDocument implements TextDocument {
     if (range) {
       const start = this.offsetAt(range.start)
       const end = this.offsetAt(range.end)
-      return this._content.substring(start, end)
+      return this.content.substring(start, end)
     }
-    return this._content
+    return this.content
   }
 
   public lineAt(lineOrPos: number | Position): TextLine {
@@ -130,7 +133,7 @@ export class LinesTextDocument implements TextDocument {
   }
 
   public positionAt(offset: number): Position {
-    offset = Math.max(Math.min(offset, this._content.length), 0)
+    offset = Math.max(Math.min(offset, this.content.length), 0)
     let lineOffsets = this.getLineOffsets()
     let low = 0
     let high = lineOffsets.length
@@ -154,18 +157,18 @@ export class LinesTextDocument implements TextDocument {
   public offsetAt(position: Position) {
     let lineOffsets = this.getLineOffsets()
     if (position.line >= lineOffsets.length) {
-      return this._content.length
+      return this.content.length
     } else if (position.line < 0) {
       return 0
     }
     let lineOffset = lineOffsets[position.line]
-    let nextLineOffset = (position.line + 1 < lineOffsets.length) ? lineOffsets[position.line + 1] : this._content.length
+    let nextLineOffset = (position.line + 1 < lineOffsets.length) ? lineOffsets[position.line + 1] : this.content.length
     return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset)
   }
 
   private getLineOffsets(): number[] {
     if (this._lineOffsets === undefined) {
-      this._lineOffsets = computeLineOffsets(this._content, true)
+      this._lineOffsets = computeLinesOffsets(this.lines, this.eol)
     }
     return this._lineOffsets
   }

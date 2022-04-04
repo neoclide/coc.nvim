@@ -12,9 +12,9 @@ import { isParentFolder, readFileLines, sameFile } from '../../util/fs'
 import { omit } from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
 import { equals } from '../../util/object'
-import { adjustRangePosition, emptyRange, getChangedFromEdits } from '../../util/position'
+import { adjustRangePosition, emptyRange } from '../../util/position'
 import { byteLength } from '../../util/string'
-import { lineCountChange } from '../../util/textedit'
+import { getChangedLineCount, lineCountChange } from '../../util/textedit'
 import window from '../../window'
 import workspace from '../../workspace'
 import Changes, { LineInfo } from './changes'
@@ -294,8 +294,7 @@ export default class RefactorBuffer implements BufferSyncItem {
     for (let item of this._fileItems) {
       for (let fileRange of item.ranges) {
         let line = fileRange.lnum - 1
-        let change = getChangedFromEdits(Position.create(line, 0), edits)
-        if (change) fileRange.lnum += change.line
+        fileRange.lnum += getChangedLineCount(Position.create(line, 0), edits)
       }
     }
   }
@@ -497,8 +496,7 @@ export default class RefactorBuffer implements BufferSyncItem {
       let edits = changeMap[uri]
       if (edits && edits.length > 0) {
         item.ranges.forEach(r => {
-          let change = getChangedFromEdits(Position.create(r.start, 0), edits)
-          if (change && change.line) r.start += change.line
+          r.start += getChangedLineCount(Position.create(r.start, 0), edits)
         })
       }
     }

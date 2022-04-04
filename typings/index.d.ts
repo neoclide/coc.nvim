@@ -4239,9 +4239,14 @@ declare module 'coc.nvim' {
     readonly uri: string
     readonly version: number
     /**
-     * Apply textEdits to current buffer lines, fire content change event on next tick.
+     * Apply text edits to document. `nvim_buf_set_text()` is used when possible
+     *
+     * @param {TextEdit[]} edits
+     * @param {boolean} joinUndo - Join further changes with the previous undo block by `:undojoin`.
+     * @param {boolean | Position} move - Move the cursor when true or from custom position.
+     * @returns {Promise<void>}
      */
-    applyEdits(edits: TextEdit[]): Promise<void>
+    applyEdits(edits: TextEdit[], joinUndo?: boolean, move?: boolean | Position): Promise<void>
 
     /**
      * Change individual lines.

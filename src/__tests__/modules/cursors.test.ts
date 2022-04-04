@@ -309,10 +309,11 @@ describe('cursors', () => {
       await assertEdits([edit(0, 3, 0, 3, 'b')], [0, 4, 5, 9, 10, 14], 'foob foob foob')
       await assertEdits([edit(0, 3, 0, 4, '\n')], [0, 3, 0, 3, 4, 7], 'foo')
       await assertEdits([edit(1, 0, 1, 0, 'bar')], [0, 3, 4, 7, 8, 11])
-      await nvim.call('cursor', [1, 1])
+      await nvim.call('setline', [1, ['foo foo foo', '']])
+      await nvim.call('cursor', [1, 4])
       await assertEdits([edit(0, 8, 0, 8, 'b')], [0, 4, 5, 9, 10, 14], 'bfoo bfoo bfoo')
       let col = await nvim.call('col', ['.'])
-      expect(col).toBe(3)
+      expect(col).toBe(5)
     })
 
     it('should adjust on text detete', async () => {

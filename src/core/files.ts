@@ -13,7 +13,6 @@ import RelativePattern from '../model/relativePattern'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { wait } from '../util'
 import { fixDriver, isFile, isParentFolder, renameAsync, statAsync } from '../util/fs'
-import { getChangedFromEdits } from '../util/position'
 import { byteLength } from '../util/string'
 import Documents from './documents'
 import * as ui from './ui'
@@ -323,20 +322,24 @@ export default class Files {
     }
   }
 
+  private async currentUri(): Promise<string> {
+    let bufnr = await this.nvim.call('bufnr', ['%'])
+    let document = this.documents.getDocument(bufnr)
+    return document ? document.uri : null
+  }
+
   /**
    * Apply WorkspaceEdit.
    */
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim, documents, configurations } = this
     let { documentChanges, changes } = edit
-    let [bufnr, cursor] = await nvim.eval('[bufnr("%"),coc#cursor#position()]') as [number, [number, number]]
-    let document = documents.getDocument(bufnr)
-    let uri = document ? document.uri : null
-    let currEdits = null
+    let uri = await this.currentUri()
+    let currentChanged = false
     let locations: Location[] = []
     let changeCount = 0
     const preferences = configurations.getConfiguration('coc.preferences')
-    let promptUser = !global.hasOwnProperty('__TEST__') && preferences.get<boolean>('promptWorkspaceEdit', true)
+    let promptUser = !global.__TEST__ && preferences.get<boolean>('promptWorkspaceEdit', true)
     let listTarget = preferences.get<string>('listOfWorkspaceEdit', 'quickfix')
     try {
       if (documentChanges && documentChanges.length) {
@@ -356,8 +359,9 @@ export default class Files {
           if (TextDocumentEdit.is(change)) {
             let { textDocument, edits } = change
             let doc = await this.loadResource(textDocument.uri)
-            if (textDocument.uri == uri) currEdits = edits
-            await doc.applyEdits(edits)
+            let current = textDocument.uri === uri
+            if (current) currentChanged = true
+            await doc.applyEdits(edits, false, current)
             for (let edit of edits) {
               locations.push({ uri: doc.uri, range: edit.range })
             }
@@ -390,22 +394,17 @@ export default class Files {
         }
         for (let uri of Object.keys(changes)) {
           let document = documents.getDocument(uri)
-          if (URI.parse(uri).toString() == uri) currEdits = changes[uri]
+          let current = URI.parse(uri).toString() === uri
+          if (current) currentChanged = true
           let edits = changes[uri]
           for (let edit of edits) {
             locations.push({ uri: document.uri, range: edit.range })
           }
-          await document.applyEdits(edits)
+          await document.applyEdits(edits, false, current)
         }
         changeCount = uris.length
       }
-      if (currEdits) {
-        let changed = getChangedFromEdits({ line: cursor[0], character: cursor[1] }, currEdits)
-        if (changed) await ui.moveTo(this.nvim, {
-          line: cursor[0] + changed.line,
-          character: cursor[1] + changed.character
-        }, this.env.isVim)
-      }
+      if (currentChanged) this.nvim.redrawVim()
       if (locations.length) {
         let items = await this.documents.getQuickfixList(locations)
         let silent = locations.every(l => l.uri == uri)

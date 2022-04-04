@@ -8,19 +8,14 @@ import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItem
 import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
-import { emptyRange } from '../util/position'
-import { byteIndex, byteLength, byteSlice } from '../util/string'
-import { getWellformedEdit, mergeSort } from '../util/textedit'
+import { comparePosition, emptyRange } from '../util/position'
+import { byteIndex, byteLength, byteSlice, contentToLines } from '../util/string'
+import { applyEdits, filterSortEdits, TextChangeItem, toTextChanges, getPositionFromEdits } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
-
-/**
- * newText, startLine, startCol, endLine, endCol
- */
-export type TextChangeItem = [string[], number, number, number, number]
 
 export interface Env {
   readonly filetypeMap: { [index: string]: string }
@@ -275,64 +270,63 @@ export default class Document {
     })
   }
 
-  public async applyEdits(edits: TextEdit[], joinUndo = false): Promise<void> {
-    if (!Array.isArray(arguments[0]) && Array.isArray(arguments[1])) {
-      edits = arguments[1]
-    }
-    if (edits.length == 0 || !this._attached) return
-    let textDocument = TextDocument.create(this.uri, this.languageId, 1, this.getDocumentContent())
-    edits = edits.filter(o => textDocument.getText(o.range) !== o.newText)
+  public async applyEdits(edits: TextEdit[], joinUndo = false, move: boolean | Position = false): Promise<void> {
+    if (Array.isArray(arguments[1])) edits = arguments[1]
+    if (!this._attached || edits.length === 0) return
+    this._forceSync()
+    let textDocument = this.textDocument
+    edits = filterSortEdits(textDocument, edits)
+    if (edits.length === 0) return
     // apply edits to current textDocument
-    let applied = TextDocument.applyEdits(textDocument, edits)
-    let content: string
-    if (this.eol) {
-      if (applied.endsWith('\r\n')) {
-        content = applied.slice(0, -2)
-      } else {
-        content = applied.endsWith('\n') ? applied.slice(0, -1) : applied
-      }
-    } else {
-      content = applied
-    }
+    let applied = applyEdits(textDocument, edits)
+    if (applied === textDocument.getText()) return
     let lines = this.lines
-    let newLines = content.split(/\r?\n/)
-    // could be equal sometimes
-    if (!equals(lines, newLines)) {
-      let lnums = edits.map(o => o.range.start.line)
-      let d = diffLines(lines, newLines, Math.min.apply(null, lnums))
-      let original = lines.slice(d.start, d.end)
-      let changes: TextChangeItem[] = []
-      let total = lines.length
-      // avoid out of range and lines replacement.
-      if (this.nvim.hasFunction('nvim_buf_set_text')
-        && edits.every(o => validRange(o.range, total))) {
-        // keep the extmarks
-        let sortedEdits = mergeSort(edits.map(getWellformedEdit), (a, b) => {
-          let diff = a.range.start.line - b.range.start.line
-          if (diff === 0) {
-            return a.range.start.character - b.range.start.character
-          }
-          return diff
-        })
-        changes = sortedEdits.reverse().map(o => {
-          let r = o.range
-          let sl = this.getline(r.start.line)
-          let sc = byteLength(sl.slice(0, r.start.character))
-          let el = r.end.line == r.start.line ? sl : this.getline(r.end.line)
-          let ec = byteLength(el.slice(0, r.end.character))
-          return [o.newText.split(/\r?\n/), r.start.line, sc, r.end.line, ec]
-        })
-      }
-      this.nvim.pauseNotification()
-      if (joinUndo) this.nvim.command('undojoin', true)
-      this.nvim.call('coc#util#set_lines', [this.bufnr, this._changedtick, original, d.replacement, d.start, d.end, changes], true)
-      void this.nvim.resumeNotification(true, true)
-      await waitNextTick(() => {
-        // can't wait vim sync buffer
-        this.lines = newLines
-        this._forceSync()
-      })
+    let newLines = contentToLines(applied, this.eol)
+    let changed = diffLines(lines, newLines, edits[0].range.start.line)
+    let original = lines.slice(changed.start, changed.end)
+    let changes: TextChangeItem[] = []
+    let last = edits[edits.length - 1]
+    // avoid out of range and lines replacement.
+    if (this.nvim.hasFunction('nvim_buf_set_text')
+      && edits.length < 200
+      && last.range.end.line < lines.length + (this.eol ? 0 : 1)
+    ) {
+      changes = toTextChanges(lines, edits)
     }
+    let cursor: [number, number]
+    if (move) {
+      let pos = Position.is(move) ? move : undefined
+      if (move === true) {
+        let [bufnr, line, content] = await this.nvim.eval(`[bufnr('%'),line('.'),strpart(getline('.'),0,col('.') - 1)]`) as [number, number, string]
+        if (bufnr == this.bufnr) pos = Position.create(line - 1, content.length)
+      }
+      if (pos) {
+        let position = getPositionFromEdits(pos, edits)
+        if (comparePosition(pos, position) !== 0) {
+          let content = newLines[position.line] ?? ''
+          let col = byteIndex(content, position.character) + 1
+          cursor = [position.line + 1, col]
+        }
+      }
+    }
+    this.nvim.pauseNotification()
+    if (joinUndo) this.nvim.command('undojoin', true)
+    this.nvim.call('coc#util#set_lines', [
+      this.bufnr,
+      this._changedtick,
+      original,
+      changed.replacement,
+      changed.start,
+      changed.end,
+      changes,
+      cursor
+    ], true)
+    void this.nvim.resumeNotification(true, true)
+    await waitNextTick(() => {
+      // can't wait vim sync buffer
+      this.lines = newLines
+      this._forceSync()
+    })
   }
 
   public async changeLines(lines: [number, string][]): Promise<void> {
@@ -641,9 +635,6 @@ export default class Document {
         chars.addKeyword(ch)
       }
     }
-    // TODO not parse words
-    // this._words = this.chars.matchKeywords(lines.join('\n'))
-    // logger.debug('keywords cost:', Date.now() - t, this._words.length)
   }
 
   /**
@@ -652,7 +643,6 @@ export default class Document {
   public detach(): void {
     if (this._disposed) return
     disposeAll(this.disposables)
-    this.textDocument.reset()
     this._disposed = true
     this._attached = false
     this.lines = []
@@ -722,12 +712,6 @@ export default class Document {
     }
     return res
   }
-}
-
-function validRange(range: Range, total: number): boolean {
-  if (range.end.line >= total) return false
-  if (range.start.line < 0 || range.start.character < 0) return false
-  return true
 }
 
 function fireDetach(bufnr: number): void {

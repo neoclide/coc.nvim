@@ -1,12 +1,12 @@
 import { CancellationToken, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
+import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
-import { wait } from '../util'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
-import { getChangedFromEdits, getChangedPosition, rangeOverlap } from '../util/position'
+import { rangeOverlap } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -143,7 +143,8 @@ export default class LanguageSource implements ISource {
     if (!item) return
     if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
     try {
-      let isSnippet = await this.applyTextEdit(item, vimItem.word, opt)
+      let doc = workspace.getAttachedDocument(opt.bufnr)
+      let isSnippet = await this.applyTextEdit(doc, item, vimItem.word, opt)
       let { additionalTextEdits } = item
       if (additionalTextEdits && item.textEdit) {
         let r = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
@@ -156,7 +157,7 @@ export default class LanguageSource implements ISource {
           return true
         })
       }
-      await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, isSnippet)
+      await this.applyAdditionalEdits(doc, additionalTextEdits, isSnippet)
       if (isSnippet) await snippetManager.selectCurrentPlaceholder()
       if (item.command && commands.has(item.command.command)) {
         void commands.execute(item.command)
@@ -166,9 +167,8 @@ export default class LanguageSource implements ISource {
     }
   }
 
-  private async applyTextEdit(item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
-    let { line, bufnr, linenr, colnr, col } = option
-    let doc = workspace.getDocument(bufnr)
+  private async applyTextEdit(doc: Document, item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
+    let { line, linenr, colnr, col } = option
     let pos = await window.getCursorPosition()
     if (pos.line != linenr - 1 || !doc.attached) return
     let { textEdit } = item
@@ -203,12 +203,7 @@ export default class LanguageSource implements ISource {
       // can't select, since additionalTextEdits would break selection
       return await snippetManager.insertSnippet(newText, false, range, item.insertTextMode, opts ? opts : undefined)
     }
-    let edit = { range, newText }
-    await doc.applyEdits([edit])
-    let changed = getChangedPosition(pos, edit)
-    if (changed.line != 0 || changed.character != 0) {
-      await window.moveTo({ line: pos.line + changed.line, character: pos.character + changed.character })
-    }
+    await doc.applyEdits([TextEdit.replace(range, newText)], false, true)
     return false
   }
 
@@ -224,17 +219,11 @@ export default class LanguageSource implements ISource {
     return triggerKind
   }
 
-  private async applyAdditionalEdits(textEdits: TextEdit[] | undefined, bufnr: number, snippet: boolean): Promise<void> {
-    if (!textEdits || textEdits.length === 0) return
-    let document = workspace.getDocument(bufnr)
-    await document.patchChange(true)
+  private async applyAdditionalEdits(doc: Document, textEdits: TextEdit[] | undefined, snippet: boolean): Promise<void> {
+    if (!textEdits) return
+    await doc.patchChange(true)
     // move cursor after edit
-    let changed: Position
-    let pos = await window.getCursorPosition()
-    if (!snippet) changed = getChangedFromEdits(pos, textEdits)
-    await document.applyEdits(textEdits, true)
-    if (changed) await window.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
-    await wait(20)
+    await doc.applyEdits(textEdits, true, !snippet)
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): ExtendedCompleteItem {

@@ -1,5 +1,6 @@
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
-import { getChangedPosition, getEnd } from '../util/position'
+import { getEnd } from '../util/position'
+import { getChangedPosition } from '../util/textedit'
 import { isSurrondChange, SurrondChange, TextChange } from './util'
 const logger = require('../util/logger')('cursors-range')
 

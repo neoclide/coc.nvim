@@ -27,6 +27,7 @@ export class Completion implements Disposable {
   private pretext: string | undefined
   private hasInsert = false
   private activated = false
+  private triggering = false
   private triggerTimer: NodeJS.Timer
   private popupEvent: PopupChangeEvent
   private floating: Floating
@@ -264,6 +265,7 @@ export class Completion implements Disposable {
       this.stop()
       if (!info.insertChar) return
     }
+    if (info.pre === this.pretext) return
     if (this.triggerTimer) clearTimeout(this.triggerTimer)
     let pretext = this.pretext = info.pre
     let doc = workspace.getDocument(bufnr)
@@ -314,7 +316,10 @@ export class Completion implements Disposable {
       let shouldTrigger = this.shouldTrigger(doc, pre)
       if (!shouldTrigger) return false
     }
+    if (this.triggering) return false
+    this.triggering = true
     let option = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
+    this.triggering = false
     if (!option) {
       logger.warn(`Completion of ${doc.bufnr} disabled by b:coc_suggest_disable`)
       return false

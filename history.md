@@ -2,6 +2,7 @@
 
 - Avoid `CompleteDone` cancel next completion.
 - Avoid indent change on `<C-n>` and `<C-p>` during completion.
+- Support `joinUndo` and `move` with `document.applyEdits()`.
 
 # 2022-04-02
 

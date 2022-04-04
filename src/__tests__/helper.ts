@@ -104,12 +104,10 @@ export class Helper extends EventEmitter {
   }
 
   public async waitPopup(): Promise<void> {
-    for (let i = 0; i < 40; i++) {
-      await this.wait(50)
-      let visible = await this.nvim.call('pumvisible')
-      if (visible) return
-    }
-    throw new Error('wait pum timeout after 2s')
+    let visible = await this.nvim.call('pumvisible')
+    if (visible) return
+    let res = await events.race(['MenuPopupChanged'], 2000)
+    if (!res) throw new Error('wait pum timeout after 2s')
   }
 
   public async waitPreviewWindow(): Promise<void> {
@@ -136,6 +134,11 @@ export class Helper extends EventEmitter {
 
   public async doAction(method: string, ...args: any[]): Promise<any> {
     return await this.plugin.cocAction(method, ...args)
+  }
+
+  public async synchronize(): Promise<void> {
+    let doc = await workspace.document
+    doc.forceSync()
   }
 
   public async reset(): Promise<void> {

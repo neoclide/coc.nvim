@@ -581,7 +581,7 @@ function! coc#util#all_state()
         \ }
 endfunction
 
-function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes) abort
+function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes, cursor) abort
   if !bufloaded(a:bufnr)
     return
   endif
@@ -611,6 +611,9 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
     endfor
   else
     call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
+  endif
+  if !empty(a:cursor)
+    call cursor(a:cursor[0], a:cursor[1])
   endif
 endfunction
 
