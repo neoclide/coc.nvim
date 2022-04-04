@@ -79,7 +79,7 @@ function! coc#_do_complete(start, items, preselect)
         \ 'candidates': a:items,
         \ 'preselect': a:preselect
         \}
-  if mode() =~# 'i' && &paste != 1
+  if mode() =~# 'i'
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
 endfunction
@@ -109,11 +109,16 @@ function! coc#_hide() abort
   endif
 endfunction
 
-function! coc#_cancel()
+function! coc#_cancel(...)
   " hack for close pum
   " Use of <C-e> could cause bad insert when cursor just moved.
+  let g:coc#_context = {'start': 0, 'preselect': -1,'candidates': []}
   if pumvisible()
     let g:coc_hide_pum = 1
+    if get(a:, 1, 0)
+      " Avoid delayed CompleteDone cancel new completion
+      let g:coc_disable_complete_done = 1
+    endif
     if s:hide_pum
       call feedkeys("\<C-x>\<C-z>", 'in')
     elseif exists('*complete_info') && get(complete_info(['selected']), 'selected', -1) == -1
@@ -122,6 +127,15 @@ function! coc#_cancel()
       let g:coc_disable_space_report = 1
       call feedkeys("\<space>\<bs>", 'in')
     endif
+  endif
+  for winid in coc#float#get_float_win_list()
+    if getwinvar(winid, 'kind', '') ==# 'pum'
+      call coc#float#close(winid)
+    endif
+  endfor
+  let opt = get(a:, 2, '')
+  if !empty(opt)
+    execute 'noa set completeopt='.opt
   endif
 endfunction
 
@@ -232,6 +246,7 @@ function! coc#complete_indent() abort
   let l:curpos[4] += l:shift
   call cursor(l:curpos[1:])
   if l:shift != 0
+    call coc#_cancel()
     return 1
   endif
   return 0
