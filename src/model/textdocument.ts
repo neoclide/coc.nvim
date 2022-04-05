@@ -60,9 +60,13 @@ export class LinesTextDocument implements TextDocument {
 
   public getText(range?: Range): string {
     if (range) {
-      const start = this.offsetAt(range.start)
-      const end = this.offsetAt(range.end)
-      return this.content.substring(start, end)
+      let { start, end } = range
+      if (start.line === end.line) {
+        if (start.character === end.character) return ''
+        let line = this.lines[start.line] ?? ''
+        return line.substring(start.character, end.character)
+      }
+      return this.content.substring(this.offsetAt(range.start), this.offsetAt(range.end))
     }
     return this.content
   }
