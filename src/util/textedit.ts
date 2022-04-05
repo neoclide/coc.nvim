@@ -79,7 +79,6 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
 export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit[]): TextEdit[] {
   let res: TextEdit[] = []
   let end = textDocument.end
-  let checkEnd = end.line > 0 && end.character == 0
   let prevDelete: Position | undefined
   for (let i = 0; i < edits.length; i++) {
     let edit = edits[i]
@@ -100,16 +99,7 @@ export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit
     if (d > 0) continue
     if (textDocument.getText(range) !== newText) {
       // Adjust textEdit to make it acceptable by nvim_buf_set_text
-      if (d === 0 && checkEnd && newText.endsWith('\n')) {
-        let isEmpty = comparePosition(end, range.start) == 0
-        newText = newText.slice(0, -1)
-        let text = textDocument.lines[end.line - 1]
-        range.end = Position.create(end.line - 1, text.length)
-        if (isEmpty) {
-          newText = '\n' + newText
-          range.start = range.end
-        }
-      } else if (newText.length == 0) {
+      if (newText.length == 0) {
         prevDelete = range.start
       }
       res.push({ range, newText })
@@ -134,8 +124,10 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): stri
     let sl = lines[start.line] ?? ''
     let el = lines[end.line] ?? ''
     let content = sl.substring(0, start.character) + edits[0].newText + el.substring(end.character)
-    if (end.line === lines.length && document.eol && content == '') {
-      return [...lines.slice(0, start.line)]
+    if (end.line >= lines.length && document.eol) {
+      if (content == '') return [...lines.slice(0, start.line)]
+      if (content.endsWith('\n')) content = content.slice(0, -1)
+      return [...lines.slice(0, start.line), ...content.split('\n')]
     }
     return [...lines.slice(0, start.line), ...content.split('\n'), ...lines.slice(end.line + 1)]
   }

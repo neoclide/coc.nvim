@@ -298,7 +298,7 @@ export default class Document {
     // avoid out of range and lines replacement.
     if (this.nvim.hasFunction('nvim_buf_set_text')
       && edits.length < 200
-      && !isAppend
+      && changed.start !== changed.end
       && edits[edits.length - 1].range.end.line < lines.length + (this.eol ? 0 : 1)
     ) {
       changes = toTextChanges(lines, edits)
