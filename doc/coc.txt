@@ -618,6 +618,11 @@ Built-in configurations:~
 
 	Print num lines of trailing context after each match, default: `3`
 
+*refactor.showMenu*
+
+	Refactor buffer local mapping to bring up menu for this chunk,
+	default: `<Tab>`
+
 							*coc-config-hover*
 *hover.target*
 
@@ -1937,7 +1942,7 @@ coc#start([{option}]) 					*coc#start()*
 
 	inoremap <silent> <C-w> <C-R>=coc#start({'source': 'word'})<CR>
 <
-	Use `CocList sources` to get available sources.
+	Use `:CocList sources` to get available sources.
 
 coc#config({section}, {value})				*coc#config()*
 

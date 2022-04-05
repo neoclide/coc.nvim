@@ -912,6 +912,11 @@
       "default": 3,
       "description": "Print num lines of trailing context after each match."
     },
+    "refactor.showMenu": {
+      "type": "string",
+      "default": "<Tab>",
+      "description": "Refactor buffer local mapping to bring up menu for this chunk."
+    },
     "hover.target": {
       "type": "string",
       "description": "Target to show hover information, default is floating window when possible.",
