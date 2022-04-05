@@ -4,6 +4,10 @@ export function rangeInRange(r: Range, range: Range): boolean {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0
 }
 
+export function samePosition(one: Position, two: Position): boolean {
+  return one.line === two.line && one.character === two.character
+}
+
 /**
  * Convert to well formed range
  */

@@ -1,6 +1,6 @@
 import { Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { comparePosition, toValidRange } from './position'
+import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
 import { byteLength } from './string'
 
 export type TextChangeItem = [string[], number, number, number, number]
@@ -80,9 +80,21 @@ export function filterSortEdits(textDocument: TextDocument & { end: Position, li
   let res: TextEdit[] = []
   let end = textDocument.end
   let checkEnd = end.line > 0 && end.character == 0
-  for (let edit of edits) {
+  let prevDelete: Position | undefined
+  for (let i = 0; i < edits.length; i++) {
+    let edit = edits[i]
     let { newText } = edit
     let range = toValidRange(edit.range)
+    if (prevDelete) {
+      // merge possible delete, insert edits.
+      if (samePosition(prevDelete, range.start) && emptyRange(range) && newText.length > 0) {
+        let last = res[res.length - 1]
+        last.newText = newText
+        prevDelete = undefined
+        continue
+      }
+      prevDelete = undefined
+    }
     if (newText.includes('\r')) newText = newText.replace(/\r\n/g, '\n')
     let d = comparePosition(range.end, end)
     if (d > 0) continue
@@ -97,6 +109,8 @@ export function filterSortEdits(textDocument: TextDocument & { end: Position, li
           newText = '\n' + newText
           range.start = range.end
         }
+      } else if (newText.length == 0) {
+        prevDelete = range.start
       }
       res.push({ range, newText })
     }

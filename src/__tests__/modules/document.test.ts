@@ -8,6 +8,7 @@ import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
 import { disposeAll } from '../../util'
+import { applyEdits, filterSortEdits } from '../../util/textedit'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -24,7 +25,9 @@ async function setLines(doc: Document, lines: string[]): Promise<void> {
 
 describe('LinesTextDocument', () => {
   it('should apply edits', async () => {
-    let textDocument = TextDocument.create('file:///a', 'vim', 1, 'use std::io::Result;')
+    let textDocument = new LinesTextDocument('', '', 1, [
+      'use std::io::Result;'
+    ], 1, true)
     // 1234567890
     let edits = [
       { range: { start: { line: 0, character: 7 }, end: { line: 0, character: 11 } }, newText: "" },
@@ -34,8 +37,9 @@ describe('LinesTextDocument', () => {
         range: { start: { line: 0, character: 19 }, end: { line: 0, character: 19 } }, newText: "{Result, Error}"
       }
     ]
-    let res = TextDocument.applyEdits(textDocument, edits)
-    expect(res).toBe('use std::io::{Result, Error};')
+    edits = filterSortEdits(textDocument, edits)
+    let res = applyEdits(textDocument, edits)
+    expect(res).toBe('use std::io::{Result, Error};\n')
   })
 
   it('should get length', async () => {
@@ -262,6 +266,24 @@ describe('Document', () => {
       await doc.applyEdits(edits)
       let content = doc.getDocumentContent()
       expect(content).toBe('a\nb\n\n')
+    })
+
+    it('should apply merged edits', async () => {
+      let doc = await workspace.document
+      await nvim.setLine('foo')
+      await doc.patchChange()
+      let edits: TextEdit[] = []
+      edits.push({
+        range: Range.create(0, 0, 0, 3),
+        newText: ''
+      })
+      edits.push({
+        range: Range.create(0, 0, 0, 0),
+        newText: 'bar'
+      })
+      await doc.applyEdits(edits)
+      let line = await nvim.line
+      expect(line).toBe('bar')
     })
 
     it('should move cursor', async () => {

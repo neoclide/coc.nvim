@@ -434,6 +434,11 @@ describe('Position', () => {
     return Position.create(position.line + line, position.character + character)
   }
 
+  test('samePosition', () => {
+    let pos = Position.create(0, 0)
+    expect(positions.samePosition(pos, Position.create(0, 0))).toBe(true)
+  })
+
   test('rangeInRange', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
