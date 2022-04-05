@@ -276,20 +276,20 @@ describe('Document', () => {
 
     it('should apply merged edits', async () => {
       let doc = await workspace.document
-      await nvim.setLine('foo')
+      await nvim.setLine("import {A } from './a'")
       await doc.patchChange()
       let edits: TextEdit[] = []
       edits.push({
-        range: Range.create(0, 0, 0, 3),
+        range: Range.create(0, 0, 1, 0),
         newText: ''
       })
       edits.push({
-        range: Range.create(0, 0, 0, 0),
-        newText: 'bar'
+        range: Range.create(0, 22, 0, 22),
+        newText: "\nimport { A } from './a'"
       })
       await doc.applyEdits(edits)
       let line = await nvim.line
-      expect(line).toBe('bar')
+      expect(line).toBe("import { A } from './a'")
     })
 
     it('should move cursor', async () => {

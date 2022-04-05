@@ -140,7 +140,7 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): stri
     return [...lines.slice(0, start.line), ...content.split('\n'), ...lines.slice(end.line + 1)]
   }
   let text = document.getText()
-  let lastModifiedOffset = 0
+  let lastModifiedOffset = -1
   const spans = []
   for (const e of edits) {
     let startOffset = document.offsetAt(e.range.start)
@@ -148,12 +148,12 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): stri
       throw new Error('Overlapping edit')
     }
     else if (startOffset > lastModifiedOffset) {
-      spans.push(text.substring(lastModifiedOffset, startOffset))
+      spans.push(text.substring(lastModifiedOffset + 1, startOffset))
     }
     if (e.newText.length) {
       spans.push(e.newText)
     }
-    lastModifiedOffset = document.offsetAt(e.range.end)
+    lastModifiedOffset = document.offsetAt(e.range.end) - 1
   }
   spans.push(text.substring(lastModifiedOffset))
   let result = spans.join('')
