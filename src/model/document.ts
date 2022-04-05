@@ -8,7 +8,7 @@ import { diffLines, getChange } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
-import { byteIndex, byteLength, byteSlice, contentToLines } from '../util/string'
+import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
@@ -286,22 +286,26 @@ export default class Document {
     edits = filterSortEdits(textDocument, edits)
     if (edits.length === 0) return
     // apply edits to current textDocument
-    let applied = applyEdits(textDocument, edits)
-    if (applied === textDocument.getText()) return
-    let lines = this.lines
-    let newLines = contentToLines(applied, this.eol)
+    let newLines = applyEdits(textDocument, edits)
+    if (!newLines) return
+    let lines = textDocument.lines
     let changed = diffLines(lines, newLines, edits[0].range.start.line)
+    if (changed.start === changed.end && changed.replacement.length == 0) return
+    // append new lines
+    let isAppend = changed.start === changed.end && changed.start === lines.length + (this.eol ? 0 : 1)
     let original = lines.slice(changed.start, changed.end)
     let changes: TextChangeItem[] = []
     // avoid out of range and lines replacement.
     if (this.nvim.hasFunction('nvim_buf_set_text')
       && edits.length < 200
+      && !isAppend
       && edits[edits.length - 1].range.end.line < lines.length + (this.eol ? 0 : 1)
     ) {
       changes = toTextChanges(lines, edits)
     }
     let cursor: [number, number]
-    if (move) {
+    let isCurrent = events.bufnr == this.bufnr
+    if (move && isCurrent && !isAppend) {
       let pos = Position.is(move) ? move : undefined
       if (move === true) {
         let [bufnr, line, content] = await this.nvim.eval(`[bufnr('%'),line('.'),strpart(getline('.'),0,col('.') - 1)]`) as [number, number, string]
@@ -317,19 +321,22 @@ export default class Document {
       }
     }
     this.nvim.pauseNotification()
-    if (joinUndo) this.nvim.command('undojoin', true)
-    this.nvim.call('coc#util#set_lines', [
-      this.bufnr,
-      this._changedtick,
-      original,
-      changed.replacement,
-      changed.start,
-      changed.end,
-      changes,
-      cursor
-    ], true)
-    let redraw = events && events.cursor && events.cursor.bufnr === this.bufnr
-    void this.nvim.resumeNotification(redraw, true)
+    if (isCurrent && joinUndo) this.nvim.command('undojoin', true)
+    if (isAppend) {
+      this.buffer.setLines(changed.replacement, { start: -1, end: -1, strictIndexing: false }, true)
+    } else {
+      this.nvim.call('coc#util#set_lines', [
+        this.bufnr,
+        this._changedtick,
+        original,
+        changed.replacement,
+        changed.start,
+        changed.end,
+        changes,
+        cursor
+      ], true)
+    }
+    void this.nvim.resumeNotification(isCurrent, true)
     await waitNextTick(() => {
       // can't wait vim sync buffer
       this.lines = newLines

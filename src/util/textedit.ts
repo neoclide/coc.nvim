@@ -1,7 +1,7 @@
 import { Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import { LinesTextDocument } from '../model/textdocument'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
-import { byteLength } from './string'
+import { byteLength, contentToLines } from './string'
 
 export type TextChangeItem = [string[], number, number, number, number]
 
@@ -76,7 +76,7 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
 /**
  * Filter unnessary edits and fix edits.
  */
-export function filterSortEdits(textDocument: TextDocument & { end: Position, lines: ReadonlyArray<string> }, edits: TextEdit[]): TextEdit[] {
+export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit[]): TextEdit[] {
   let res: TextEdit[] = []
   let end = textDocument.end
   let checkEnd = end.line > 0 && end.character == 0
@@ -127,7 +127,18 @@ export function filterSortEdits(textDocument: TextDocument & { end: Position, li
 /**
  * Apply valid & sorted edits
  */
-export function applyEdits(document: TextDocument, edits: TextEdit[]): string {
+export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): string[] | undefined {
+  if (edits.length == 1) {
+    let { start, end } = edits[0].range
+    let { lines } = document
+    let sl = lines[start.line] ?? ''
+    let el = lines[end.line] ?? ''
+    let content = sl.substring(0, start.character) + edits[0].newText + el.substring(end.character)
+    if (end.line === lines.length && document.eol && content == '') {
+      return [...lines.slice(0, start.line)]
+    }
+    return [...lines.slice(0, start.line), ...content.split('\n'), ...lines.slice(end.line + 1)]
+  }
   let text = document.getText()
   let lastModifiedOffset = 0
   const spans = []
@@ -144,8 +155,10 @@ export function applyEdits(document: TextDocument, edits: TextEdit[]): string {
     }
     lastModifiedOffset = document.offsetAt(e.range.end)
   }
-  spans.push(text.substr(lastModifiedOffset))
-  return spans.join('')
+  spans.push(text.substring(lastModifiedOffset))
+  let result = spans.join('')
+  if (result === text) return undefined
+  return contentToLines(result, document.eol)
 }
 
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {

@@ -247,6 +247,7 @@ describe('snippet provider', () => {
     })
 
     it('should not synchronize when position changed and pum visible', async () => {
+      let buf = await nvim.buffer
       await nvim.setLine('foo')
       await nvim.input('o')
       let res = await snippetManager.insertSnippet("`!p snip.rv = ' '*(4- len(t[1]))`${1}", true, undefined, InsertTextMode.asIs, {})
@@ -262,7 +263,9 @@ describe('snippet provider', () => {
       let visible = await nvim.call('pumvisible')
       expect(visible).toBe(1)
       await nvim.input('<C-e>')
-      await helper.wait(100)
+      let s = snippetManager.getSession(buf.id)
+      expect(s).toBeDefined()
+      await s.forceSynchronize()
       line = await nvim.line
       expect(line).toBe(' foo')
     })

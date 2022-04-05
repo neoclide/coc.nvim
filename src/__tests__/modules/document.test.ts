@@ -39,7 +39,7 @@ describe('LinesTextDocument', () => {
     ]
     edits = filterSortEdits(textDocument, edits)
     let res = applyEdits(textDocument, edits)
-    expect(res).toBe('use std::io::{Result, Error};\n')
+    expect(res).toEqual(['use std::io::{Result, Error};'])
   })
 
   it('should get length', async () => {
@@ -47,6 +47,12 @@ describe('LinesTextDocument', () => {
     expect(doc.length).toBe(4)
     expect(doc.getText().length).toBe(4)
     expect(doc.length).toBe(4)
+  })
+
+  it('should getText by range', async () => {
+    let doc = createTextDocument(['foo', 'bar'])
+    expect(doc.getText(Range.create(0, 0, 0, 1))).toBe('f')
+    expect(doc.getText(Range.create(0, 0, 1, 0))).toBe('foo\n')
   })
 
   it('should work when eol enabled', async () => {
@@ -378,6 +384,25 @@ describe('Document', () => {
       await assertChange(1, 0, 2, 0, '', ['a'])
       await assertChange(1, 0, 1, 0, 'b\nc\n', ['a', 'b', 'c'])
       await assertChange(2, 0, 3, 0, 'e\n', ['a', 'b', 'e'])
+    })
+
+    it('should apply single textedit', async () => {
+      let doc = await workspace.document
+      let buf = doc.buffer
+      const assertChange = async (sl, sc, el, ec, text, lines) => {
+        let r = Range.create(sl, sc, el, ec)
+        let edits = [TextEdit.replace(r, text)]
+        await doc.applyEdits(edits)
+        let curr = await buf.lines
+        expect(curr).toEqual(lines)
+      }
+      await nvim.setLine('foo')
+      await doc.patchChange()
+      await assertChange(1, 0, 1, 0, 'bar', ['foo', 'bar'])
+      await assertChange(2, 0, 2, 0, 'do\n', ['foo', 'bar', 'do'])
+      await assertChange(2, 1, 3, 0, '', ['foo', 'bar', 'd'])
+      await assertChange(2, 0, 3, 0, 'if', ['foo', 'bar', 'if'])
+      await assertChange(2, 0, 2, 2, 'x', ['foo', 'bar', 'x'])
     })
   })
 
