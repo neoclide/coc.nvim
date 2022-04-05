@@ -79,6 +79,7 @@ class Events {
 
   private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
   private _cursor: CursorPosition
+  private _bufnr: number
   // bufnr & character
   private _recentInserts: [number, string][] = []
   private _lastChange = 0
@@ -89,6 +90,10 @@ class Events {
 
   public get cursor(): CursorPosition {
     return this._cursor
+  }
+
+  public get bufnr(): number {
+    return this._bufnr
   }
 
   public get pumvisible(): boolean {
@@ -166,6 +171,8 @@ class Events {
       this._recentInserts.push([args[1], args[0]])
     } else if (event == 'TextChanged') {
       this._lastChange = Date.now()
+    } else if (event == 'BufEnter') {
+      this._bufnr = args[0]
     }
     if (event == 'TextChangedI' || event == 'TextChangedP') {
       let arr = this._recentInserts.filter(o => o[0] == args[0])
@@ -185,11 +192,13 @@ class Events {
       }
     }
     if ((event == 'CursorHold' || event == 'CursorHoldI') && args[1]) {
+      this._bufnr = args[0]
       let ev: LastHold = { bufnr: args[0], lnum: args[1][0], col: args[1][1] }
       if (this._lastHold && equals(this._lastHold, ev)) return
       this._lastHold = ev
     }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
+      this._bufnr = args[0]
       let cursor = {
         bufnr: args[0],
         lnum: args[1][0],
