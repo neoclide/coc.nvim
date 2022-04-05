@@ -152,7 +152,7 @@ export default class RefactorBuffer implements BufferSyncItem {
     let change = e.contentChanges[0]
     let { original } = e
     if (change.range.end.line > 2) {
-      nvim.call('setbufvar', ['&modified', 1], true)
+      nvim.call('setbufvar', [e.bufnr, '&modified', 1], true)
     }
     let { range, text } = change
     let lineChange = lineCountChange(TextEdit.replace(range, text))
