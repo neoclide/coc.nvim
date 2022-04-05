@@ -62,33 +62,4 @@ describe('native sources', () => {
     let item = items.find(o => o.word == 'vimrc')
     expect(item).toBeTruthy()
   })
-
-  it('should works for file source with other source use same triggerCharacter', async () => {
-    await helper.edit()
-    let source: ISource = {
-      name: 'test',
-      priority: 50,
-      enable: true,
-      firstMatch: false,
-      sourceType: SourceType.Native,
-      triggerCharacters: ['.', '/'],
-      doComplete: async (): Promise<CompleteResult> => {
-        let result: CompleteResult = {
-          items: [{ word: 'foo' }]
-        }
-        return Promise.resolve(result)
-      }
-    }
-    let disposable = sources.addSource(source)
-    await nvim.input('i.')
-    await helper.waitPopup()
-    let items = await helper.getItems()
-    expect(items.length).toBe(1)
-    await nvim.input('/')
-    await helper.waitPopup()
-    items = await helper.getItems()
-    expect(items.length).toBeGreaterThan(1)
-    expect(items[0].word).toBe('foo')
-    disposable.dispose()
-  })
 })

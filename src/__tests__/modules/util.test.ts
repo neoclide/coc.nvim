@@ -805,6 +805,50 @@ describe('diff', () => {
       return diff.diffLines(oldLines, newStr.split('\n'), oldLines.length - 2)
     }
 
+    function toEdit(sl, sc, el, ec, text): TextEdit {
+      return TextEdit.replace(Range.create(sl, sc, el, ec), text)
+    }
+
+    it('should get textedit without cursor', () => {
+      let res = diff.getTextEdit(['a', 'b'], ['a', 'b'])
+      expect(res).toBeUndefined()
+      res = diff.getTextEdit(['a', 'b'], ['a', 'b', 'c'])
+      expect(res).toEqual(toEdit(2, 0, 2, 0, 'c\n'))
+      res = diff.getTextEdit(['a', 'b', 'c'], ['a'])
+      expect(res).toEqual(toEdit(1, 0, 3, 0, ''))
+      res = diff.getTextEdit(['a', 'b'], ['a', 'd'])
+      expect(res).toEqual(toEdit(1, 0, 2, 0, 'd\n'))
+      res = diff.getTextEdit(['a', 'b'], ['a', 'd', 'e'])
+      expect(res).toEqual(toEdit(1, 0, 2, 0, 'd\ne\n'))
+      res = diff.getTextEdit(['a', 'b', 'e'], ['a', 'd', 'e'])
+      expect(res).toEqual(toEdit(1, 0, 2, 0, 'd\n'))
+      res = diff.getTextEdit(['a', 'b', 'e'], ['e'])
+      expect(res).toEqual(toEdit(0, 0, 2, 0, ''))
+      res = diff.getTextEdit(['a', 'b', 'e'], ['d', 'c', 'a', 'b', 'e'])
+      expect(res).toEqual(toEdit(0, 0, 0, 0, 'd\nc\n'))
+      res = diff.getTextEdit(['a', 'b'], ['a', 'b', ''])
+      expect(res).toEqual(toEdit(2, 0, 2, 0, '\n'))
+      res = diff.getTextEdit(['a', 'b'], ['a', 'b', '', ''])
+      expect(res).toEqual(toEdit(2, 0, 2, 0, '\n\n'))
+    })
+
+    it('should get textedit for single line change', async () => {
+      let res = diff.getTextEdit(['foo', 'c'], ['', 'c'], Position.create(0, 0), false)
+      expect(res).toEqual(toEdit(0, 0, 0, 3, ''))
+      res = diff.getTextEdit([''], ['foo'], Position.create(0, 0), false)
+      expect(res).toEqual(toEdit(0, 0, 0, 0, 'foo'))
+      res = diff.getTextEdit(['foo bar'], ['foo r'], Position.create(0, 4), false)
+      expect(res).toEqual(toEdit(0, 4, 0, 6, ''))
+      res = diff.getTextEdit(['f'], ['foo f'], Position.create(0, 0), false)
+      expect(res).toEqual(toEdit(0, 0, 0, 0, 'foo '))
+      res = diff.getTextEdit([' foo '], [' bar '], Position.create(0, 0), false)
+      expect(res).toEqual(toEdit(0, 1, 0, 4, 'bar'))
+      res = diff.getTextEdit(['foo'], ['bar'], Position.create(0, 0), true)
+      expect(res).toEqual(toEdit(0, 0, 0, 3, 'bar'))
+      res = diff.getTextEdit(['aa'], ['aaaa'], Position.create(0, 1), true)
+      expect(res).toEqual(toEdit(0, 0, 0, 0, 'aa'))
+    })
+
     it('should diff changed lines', () => {
       let res = diffLines('a\n', 'b\n')
       expect(res).toEqual({ start: 0, end: 1, replacement: ['b'] })

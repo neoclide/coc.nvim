@@ -4,11 +4,11 @@ import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdi
 import { URI } from 'vscode-uri'
 import events from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
-import { diffLines, getChange } from '../util/diff'
+import { diffLines, getTextEdit } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
-import { byteIndex, byteLength, byteSlice } from '../util/string'
+import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
@@ -239,39 +239,26 @@ export default class Document {
   }
 
   private _fireContentChanges(edit?: TextEdit): void {
-    let { cursor } = events
-    if (!this.dirty) return
+    if (this.lines === this.syncLines) return
     let textDocument = this._textDocument
     let changes: TextDocumentContentChange[]
-    let start: Position
-    let end: Position
     if (!edit) {
-      let endOffset = null
-      let content = this.getDocumentContent()
-      let curr = textDocument.getText()
+      let { cursor, insertMode } = events
+      let pos: Position
       // consider cursor position.
       if (cursor && cursor.bufnr == this.bufnr) {
-        endOffset = this.getEndOffset(cursor.lnum, cursor.col, cursor.insert || content.length < curr.length)
+        let line = cursor.lnum - 1
+        let content = this.lines[line] ?? ''
+        pos = Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
       }
-      let change = getChange(curr, content, endOffset)
-      if (change == null) return
-      start = textDocument.positionAt(change.start)
-      end = textDocument.positionAt(change.end)
-      changes = [{
-        range: { start, end },
-        text: change.newText
-      }]
-    } else {
-      let { range } = edit
-      start = range.start
-      end = range.end
-      changes = [{ range: { start, end }, text: edit.newText }]
+      edit = getTextEdit(textDocument.lines, this.lines, pos, insertMode)
+      if (edit == null) return
     }
-    let original = textDocument.getText(Range.create(start, end))
+    changes = [{ range: edit.range, text: edit.newText }]
     let created = this.createTextDocument(this.version + 1, this.lines)
     this._onDocumentChange.fire({
       bufnr: this.bufnr,
-      original,
+      original: textDocument.getText(changes[0].range),
       originalLines: textDocument.lines,
       textDocument: { version: created.version, uri: this.uri },
       contentChanges: changes
@@ -323,7 +310,7 @@ export default class Document {
     this.nvim.pauseNotification()
     if (isCurrent && joinUndo) this.nvim.command('undojoin', true)
     if (isAppend) {
-      this.buffer.setLines(changed.replacement, { start: -1, end: -1, strictIndexing: false }, true)
+      this.buffer.setLines(changed.replacement, { start: -1, end: -1 }, true)
     } else {
       this.nvim.call('coc#util#set_lines', [
         this.bufnr,

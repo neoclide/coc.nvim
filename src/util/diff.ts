@@ -1,4 +1,5 @@
 import fastDiff from 'fast-diff'
+import { Position, TextEdit, Range } from 'vscode-languageserver-types'
 import { byteLength } from './string'
 const logger = require('./logger')('util-diff')
 
@@ -137,4 +138,65 @@ export function patchLine(from: string, to: string, fill = ' '): string {
     }
   }
   return str
+}
+
+export function getTextEdit(oldLines: ReadonlyArray<string>, newLines: ReadonlyArray<string>, cursor?: Position, insertMode?: boolean): TextEdit | undefined {
+  let ol = oldLines.length
+  let nl = newLines.length
+  let n = cursor ? cursor.line : Math.min(ol, nl)
+  let used = 0
+  for (let i = 0; i < n; i++) {
+    if (newLines[i] === oldLines[i]) {
+      used += 1
+    } else {
+      break
+    }
+  }
+  if (ol == nl && used == ol) return undefined
+  let delta = nl - ol
+  let r = Math.min(ol - used, nl - used)
+  let e = 0
+  for (let i = 0; i < r; i++) {
+    if (newLines[nl - i - 1] === oldLines[ol - i - 1]) {
+      e += 1
+    } else {
+      break
+    }
+  }
+  let inserted = e == 0 ? newLines.slice(used) : newLines.slice(used, -e)
+  if (delta == 0 && cursor && inserted.length == 1) {
+    let newLine = newLines[used]
+    let oldLine = oldLines[used]
+    let nl = newLine.length
+    let ol = oldLine.length
+    if (nl === 0) return TextEdit.del(Range.create(used, 0, used, ol))
+    if (ol === 0) return TextEdit.insert(Position.create(used, 0), newLine)
+    let character = Math.min(cursor.character, nl)
+    if (!insertMode && nl >= ol && character !== nl) {
+      // insert text
+      character += 1
+    }
+    let r = 0
+    for (let i = 0; i < nl - character; i++) {
+      let idx = ol - 1 - i
+      if (idx === -1) break
+      if (newLine[nl - 1 - i] === oldLine[idx]) {
+        r += 1
+      } else {
+        break
+      }
+    }
+    let l = 0
+    for (let i = 0; i < Math.min(ol - r, nl - r); i++) {
+      if (newLine[i] === oldLine[i]) {
+        l += 1
+      } else {
+        break
+      }
+    }
+    let newText = r === 0 ? newLine.slice(l) : newLine.slice(l, -r)
+    return TextEdit.replace(Range.create(used, l, used, ol - r), newText)
+  }
+  let text = inserted.length > 0 ? inserted.join('\n') + '\n' : ''
+  return TextEdit.replace(Range.create(used, 0, ol - e, 0), text)
 }

@@ -192,19 +192,26 @@ describe('completion', () => {
     it('should trigger on triggerCharacters', async () => {
       let source: ISource = {
         name: 'trigger',
-        priority: 10,
         enable: true,
-        sourceType: SourceType.Native,
         triggerCharacters: ['.'],
         doComplete: async (): Promise<CompleteResult> => Promise.resolve({
           items: [{ word: 'foo' }]
         })
       }
       disposables.push(sources.addSource(source))
+      let source1: ISource = {
+        name: 'trigger1',
+        enable: true,
+        triggerCharacters: ['.'],
+        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+          items: [{ word: 'bar' }]
+        })
+      }
+      disposables.push(sources.addSource(source1))
       await nvim.input('i.')
       await helper.waitPopup()
-      let res = await helper.visible('foo', 'trigger')
-      expect(res).toBe(true)
+      let items = await helper.getItems()
+      expect(items.length).toBe(2)
     })
 
     it('should fix start column', async () => {
