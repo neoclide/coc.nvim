@@ -37,6 +37,7 @@ export interface CompleteConfig {
   removeDuplicateItems: boolean
   defaultSortMethod: string
   asciiCharactersOnly: boolean
+  ignoreRegexps: string[]
   floatConfig: FloatConfig
 }
 

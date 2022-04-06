@@ -48,6 +48,25 @@ describe('completion', () => {
     })
   })
 
+  describe('suggest ignore by regex', () => {
+    it('should trigger with number input', async () => {
+      await nvim.setLine('1357')
+      await nvim.input('o')
+      await nvim.input('1')
+      let visible = await helper.visible('1357', 'around')
+      expect(visible).toBe(true)
+    })
+
+    it('should not trigger with number input', async () => {
+      helper.updateConfiguration('suggest.ignoreRegexps', ['[0-9]+'])
+      await nvim.setLine('1357')
+      await nvim.input('o')
+      await nvim.input('1')
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
+    })
+  })
+
   describe('suggest selection', () => {
     it('should not select when selection is none', async () => {
       helper.updateConfiguration('suggest.enablePreselect', true)
