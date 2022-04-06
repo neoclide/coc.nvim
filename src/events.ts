@@ -151,6 +151,13 @@ class Events {
       let info = args[1]
       let pre = byteSlice(info.line || '', 0, info.col - 1)
       info.pre = pre
+      // fix cursor since vim not send CursorMovedI event
+      this._cursor = {
+        bufnr: args[0],
+        lnum: info.lnum,
+        col: info.col,
+        insert: true
+      }
     } else if (event == 'InsertEnter') {
       this._insertMode = true
     } else if (event == 'InsertLeave') {
