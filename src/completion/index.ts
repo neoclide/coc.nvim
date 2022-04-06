@@ -150,6 +150,7 @@ export class Completion implements Disposable {
       localityBonus: getConfig<boolean>('localityBonus', true),
       highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),
       lowPrioritySourceLimit: getConfig<number>('lowPrioritySourceLimit', null),
+      ignoreRegexps: getConfig<string[]>('ignoreRegexps', []),
       asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false)
     }
   }
@@ -337,6 +338,15 @@ export class Completion implements Disposable {
     if (option.input && this.config.asciiCharactersOnly) {
       option.input = this.getInput(doc, pre)
       option.col = byteLength(pre) - byteLength(option.input)
+    }
+    if (this.config.ignoreRegexps.length > 0 && option.input.length > 0) {
+      const ignore = this.config.ignoreRegexps.some(regexp => {
+        if (new RegExp(regexp).test(option.input)) {
+          logger.warn(`Suggest disabled by ignore regexp: ${regexp}`)
+          return true
+        }
+      })
+      if (ignore) return false
     }
     if (pre.length) option.triggerCharacter = pre[pre.length - 1]
     await this.startCompletion(option, sources)

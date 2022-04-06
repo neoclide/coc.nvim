@@ -597,6 +597,14 @@
       "description": "Trigger suggest with ASCII characters only",
       "default": false
     },
+    "suggest.ignoreRegexps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Regexps to ignore when trigger suggest",
+      "default": []
+    },
     "documentHighlight.priority": {
       "type": "number",
       "default": -1,
