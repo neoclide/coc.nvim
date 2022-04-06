@@ -22,6 +22,7 @@ import OutlineList from './source/outline'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
+import commands from '../commands'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -69,6 +70,9 @@ export class ListManager implements Disposable {
         debounced.clear()
       }
     })
+    this.disposables.push(commands.registerCommand('list.loadItems', async (name: string) => {
+      return await this.loadItems(name)
+    }, null, true))
     // filter history on input
     this.prompt.onDidChangeInput(() => {
       let { session } = this
