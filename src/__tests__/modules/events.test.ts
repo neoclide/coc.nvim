@@ -1,6 +1,6 @@
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
-import { disposeAll } from '../../util'
+import { disposeAll, wait } from '../../util'
 
 const disposables: Disposable[] = []
 afterEach(async () => {
@@ -101,6 +101,19 @@ describe('register handler', () => {
     expect(res.name).toBe('InsertCharPre')
     res = await events.race(['TextChanged'], 50)
     expect(res).toBeUndefined()
+  })
+
+  it('should race same events', async () => {
+    let arr: any[] = []
+    void events.race(['TextChangedI'], 200).then(res => {
+      arr.push(res)
+    })
+    void events.race(['TextChangedI'], 200).then(res => {
+      arr.push(res)
+    })
+    await events.fire('TextChangedI', [])
+    expect(arr.length).toBe(2)
+    expect(arr.map(o => o.name)).toEqual(['TextChangedI', 'TextChangedI'])
   })
 
   it('should cancel race by CancellationToken', async () => {

@@ -119,11 +119,10 @@ class Events {
    * Resolved when first event fired or timeout
    */
   public race(events: AllEvents[], token?: number | CancellationToken): Promise<{ name: AllEvents, args: unknown[] } | undefined> {
-    let timer: NodeJS.Timeout
     let disposables: Disposable[] = []
     return new Promise(resolve => {
       if (typeof token === 'number') {
-        timer = setTimeout(() => {
+        let timer = setTimeout(() => {
           disposeAll(disposables)
           resolve(undefined)
         }, token)
@@ -183,6 +182,7 @@ class Events {
     }
     if (event == 'TextChangedI' || event == 'TextChangedP') {
       let arr = this._recentInserts.filter(o => o[0] == args[0])
+      this._bufnr = args[0]
       this._recentInserts = []
       this._pumVisible = event == 'TextChangedP'
       this._lastChange = Date.now()
@@ -218,7 +218,8 @@ class Events {
     }
     if (cbs) {
       try {
-        await Promise.all(cbs.map(fn => fn(args)))
+        // need slice since the array might changed when execute fn
+        await Promise.all(cbs.slice().map(fn => fn(args)))
       } catch (e) {
         if (e.message?.indexOf('transport disconnected') != -1) return
         logger.error(`Error on event: ${event}`, e.stack)
