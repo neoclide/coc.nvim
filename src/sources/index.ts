@@ -337,8 +337,8 @@ export class Sources {
       if (!enable || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }
-      if (documentSelector && languageIds.every(languageId => workspace.match(documentSelector, { uri, languageId }) == 0)) {
-        return false
+      if (documentSelector && languageIds.some(languageId => workspace.match(documentSelector, { uri, languageId }))) {
+        return true
       }
       return this.checkTrigger(source, pre, character)
     })
