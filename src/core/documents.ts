@@ -119,6 +119,14 @@ export default class Documents implements Disposable {
       }, null, this.disposables)
       events.on('TextChangedI', onChange, null, this.disposables)
       events.on('TextChanged', onChange, null, this.disposables)
+    } else {
+      events.on('CompleteDone', async () => {
+        let ev = await events.race(['TextChangedI', 'TextChanged', 'MenuPopupChanged'], 100)
+        if (ev && (ev.name === 'TextChangedI' || ev.name === 'TextChanged')) {
+          let doc = this.buffers.get(events.bufnr)
+          if (doc?.attached) doc._forceSync()
+        }
+      }, null, this.disposables)
     }
     this._initialized = true
   }

@@ -575,8 +575,15 @@ export interface VimCompleteItem {
   dup?: number
   empty?: number
   user_data?: string
+}
+
+export interface CompleteDoneItem {
+  word: string
+  user_data?: string
   // if there's ClosePum event just received.
   close?: boolean
+  // already cancelled by completion.stop()
+  closed?: boolean
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {

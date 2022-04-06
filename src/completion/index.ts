@@ -69,7 +69,7 @@ export class Completion implements Disposable {
       this.previousItem = this.popupEvent?.completed_item
       this.popupEvent = null
       this.hasInsert = false
-      if (!this.activated) return
+      if (!this.activated || item.closed) return
       this.cancelResolve()
       if (item.close) return this.stop()
       if (!Is.vimCompleteItem(item)) {

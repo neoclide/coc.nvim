@@ -1,5 +1,5 @@
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
-import { VimCompleteItem } from './types'
+import { VimCompleteItem, CompleteDoneItem } from './types'
 import { disposeAll } from './util'
 import { equals } from './util/object'
 import { byteSlice } from './util/string'
@@ -186,7 +186,7 @@ class Events {
       this._recentInserts = []
       this._pumVisible = event == 'TextChangedP'
       this._lastChange = Date.now()
-      const info = args[1]
+      let info: InsertChange = args[1]
       if (arr.length && info.pre.length) {
         let character = info.pre.slice(-1)
         if (arr.findIndex(o => o[1] == character) !== -1) {
@@ -242,7 +242,7 @@ class Events {
   public on(event: 'VimResized', handler: (columns: number, lines: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteDone', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteDone', handler: (item: CompleteDoneItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

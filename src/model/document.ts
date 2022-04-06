@@ -222,6 +222,7 @@ export default class Document {
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']
         this.lines = lines
+        if (events.pumvisible) return
         this.fireContentChanges()
       }
     }, this.disposables)
