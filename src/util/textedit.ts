@@ -101,7 +101,7 @@ export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit
     }
     if (newText.includes('\r')) newText = newText.replace(/\r\n/g, '\n')
     let d = comparePosition(range.end, end)
-    if (d > 0) continue
+    if (d > 0) range.end = { line: end.line, character: end.character }
     if (textDocument.getText(range) !== newText) {
       // Adjust textEdit to make it acceptable by nvim_buf_set_text
       if (d === 0 && checkEnd && !emptyRange(range) && newText.endsWith('\n')) {

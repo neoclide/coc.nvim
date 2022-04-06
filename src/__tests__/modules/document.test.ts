@@ -292,6 +292,18 @@ describe('Document', () => {
       expect(line).toBe('bar')
     })
 
+    it('should apply textedit exceed end', async () => {
+      let doc = await workspace.document
+      let edits: TextEdit[] = []
+      edits.push({
+        range: Range.create(0, 0, 999999, 99999),
+        newText: 'foo\n'
+      })
+      await doc.applyEdits(edits)
+      let content = doc.getDocumentContent()
+      expect(content).toBe('foo\n')
+    })
+
     it('should move cursor', async () => {
       await nvim.call('cursor', [1, 1])
       let doc = await workspace.document

@@ -11,7 +11,7 @@ export function samePosition(one: Position, two: Position): boolean {
 /**
  * Convert to well formed range
  */
-export function toValidRange(range: Range): Range {
+export function toValidRange(range: Range, max?: Position): Range {
   let { start, end } = range
   if (start.line > end.line || (start.line === end.line && start.character > end.character)) {
     let m = start
