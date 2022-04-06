@@ -235,31 +235,30 @@ export default class Document {
    * Check if document changed after last synchronize
    */
   public get dirty(): boolean {
-    if (this.lines === this.syncLines) return false
-    return !equals(this.lines, this.syncLines)
+    // if (this.lines === this.syncLines) return false
+    // return !equals(this.lines, this.syncLines)
+    return this.lines !== this.syncLines
   }
 
   private _fireContentChanges(edit?: TextEdit): void {
     if (this.lines === this.syncLines) return
     let textDocument = this._textDocument
-    let changes: TextDocumentContentChange[]
+    let changes: TextDocumentContentChange[] = []
     if (!edit) {
       let { cursor, insertMode } = events
       let pos: Position
       // consider cursor position.
       if (cursor && cursor.bufnr == this.bufnr) {
-        let line = cursor.lnum - 1
-        let content = this.lines[line] ?? ''
+        let content = this.lines[cursor.lnum - 1] ?? ''
         pos = Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
       }
       edit = getTextEdit(textDocument.lines, this.lines, pos, insertMode)
-      if (edit == null) return
     }
-    changes = [{ range: edit.range, text: edit.newText }]
-    let created = this.createTextDocument(this.version + 1, this.lines)
+    if (edit) changes.push({ range: edit.range, text: edit.newText })
+    let created = this.createTextDocument(this.version + (edit ? 1 : 0), this.lines)
     this._onDocumentChange.fire({
       bufnr: this.bufnr,
-      original: textDocument.getText(changes[0].range),
+      original: edit ? textDocument.getText(edit.range) : '',
       originalLines: textDocument.lines,
       textDocument: { version: created.version, uri: this.uri },
       contentChanges: changes

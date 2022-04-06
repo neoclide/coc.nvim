@@ -361,6 +361,19 @@ describe('cursors', () => {
       await helper.wait(50)
       expect(session.currentRanges).toEqual(ranges)
     })
+
+    it('should highlight on empty content change', async () => {
+      let doc = await workspace.document
+      await nvim.call('setline', [1, ['foo', '']])
+      await doc.synchronize()
+      let ranges = [Range.create(0, 0, 0, 3)]
+      await cursors.addRanges(ranges)
+      session = cursors.getSession(doc.bufnr)
+      await nvim.call('setline', [1, ['foo', '']])
+      await doc.synchronize()
+      let c = await rangeCount()
+      expect(c).toBe(1)
+    })
   })
 
   describe('applyComposedEdit()', () => {

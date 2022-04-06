@@ -2,6 +2,7 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, SymbolTag, TextDocument } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
+import { DidChangeTextDocumentParams } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import { isDocumentSymbols } from './util'
@@ -35,7 +36,8 @@ export default class SymbolsBuffer implements SyncItem {
     return this.symbols
   }
 
-  public onChange(): void {
+  public onChange(e: DidChangeTextDocumentParams): void {
+    if (e.contentChanges.length === 0) return
     this.cancel()
     if (this.autoUpdateBufnrs.has(this.bufnr)) {
       this.fetchSymbols()

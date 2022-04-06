@@ -51,11 +51,6 @@ export default class ColorBuffer implements SyncItem {
     this.highlight()
   }
 
-  public onTextChange(): void {
-    this.cancel()
-    this.highlight()
-  }
-
   public get buffer(): Buffer {
     return this.nvim.createBuffer(this.bufnr)
   }

@@ -198,5 +198,6 @@ export function getTextEdit(oldLines: ReadonlyArray<string>, newLines: ReadonlyA
     return TextEdit.replace(Range.create(used, l, used, ol - r), newText)
   }
   let text = inserted.length > 0 ? inserted.join('\n') + '\n' : ''
+  if (text.length === 0 && used === ol - e) return undefined
   return TextEdit.replace(Range.create(used, 0, ol - e, 0), text)
 }

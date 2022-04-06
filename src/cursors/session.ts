@@ -112,8 +112,7 @@ export default class CursorSession {
   }
 
   public addRanges(ranges: Range[]): boolean {
-    let { nvim, doc } = this
-    doc._forceSync()
+    this.doc._forceSync()
     // filter overlap ranges
     this.ranges = this.ranges.filter(r => {
       return !ranges.some(range => rangeOverlap(range, r.range))
@@ -122,9 +121,7 @@ export default class CursorSession {
       this.createRange(range)
     }
     this.ranges.sort((a, b) => comparePosition(a.range.start, b.range.start))
-    nvim.pauseNotification()
     this.doHighlights()
-    void nvim.resumeNotification(true, true)
     return true
   }
 
@@ -136,7 +133,11 @@ export default class CursorSession {
   }
 
   public async onChange(e: DidChangeTextDocumentParams): Promise<void> {
-    if (!this.activated || this.ranges.length == 0 || this.changing) return
+    if (!this.activated || this.changing) return
+    if (e.contentChanges.length === 0) {
+      this.doHighlights()
+      return
+    }
     let change = e.contentChanges[0]
     let { text, range } = change
     let affected = this.ranges.filter(r => {
@@ -267,11 +268,9 @@ export default class CursorSession {
     this.changing = true
     await doc.applyEdits(edits, true, true)
     this.changing = false
-    let preCount = 0
     if (delta != 0) {
       for (let r of ranges) {
         let n = this.getBeforeCount(r, textRange)
-        if (r == textRange) preCount = n
         r.move(n * delta)
       }
     }

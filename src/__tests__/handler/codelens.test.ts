@@ -3,10 +3,11 @@ import { Command, CodeLens, Disposable, Position, Range, TextEdit } from 'vscode
 import commands from '../../commands'
 import events from '../../events'
 import CodeLensHandler from '../../handler/codelens/index'
-import { getCommands } from '../../handler/codelens/buffer'
+import CodeLensBuffer, { getCommands } from '../../handler/codelens/buffer'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import helper from '../helper'
+import workspace from '../../workspace'
 
 let nvim: Neovim
 let codeLens: CodeLensHandler
@@ -33,35 +34,43 @@ afterEach(async () => {
   disposeAll(disposables)
 })
 
+async function createBufferWithCodeLens(): Promise<CodeLensBuffer> {
+  disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
+    provideCodeLenses: () => {
+      return [{
+        range: Range.create(0, 0, 0, 1)
+      }]
+    },
+    resolveCodeLens: codeLens => {
+      codeLens.command = Command.create('save', '__save', 1, 2, 3)
+      return codeLens
+    }
+  }))
+  let doc = await helper.createDocument('e.js')
+  await nvim.call('setline', [1, ['a', 'b', 'c']])
+  await doc.synchronize()
+  await codeLens.checkProvider()
+  return codeLens.buffers.getItem(doc.bufnr)
+}
+
 describe('codeLenes featrue', () => {
-
   it('should do codeLenes request and resolve codeLenes', async () => {
-    let doc = await helper.createDocument('example.js')
-    let buf = codeLens.buffers.getItem(doc.bufnr)
-    expect(buf.currentCodeLens).toBeUndefined()
-    disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
-      provideCodeLenses: () => {
-        return [{
-          range: Range.create(0, 0, 0, 1)
-        }, {
-          range: Range.create(1, 0, 1, 1)
-        }]
-      },
-      resolveCodeLens: codeLens => {
-        codeLens.command = Command.create('save', '__save')
-        return codeLens
-      }
-    }))
-    await nvim.call('setline', [1, ['a', 'b', 'c']])
-    await doc.synchronize()
-    await codeLens.checkProvider()
-
+    let buf = await createBufferWithCodeLens()
+    let doc = await workspace.document
     let codelens = buf.currentCodeLens
     expect(codelens).toBeDefined()
     expect(codelens[0].command).toBeDefined()
-    expect(codelens[1].command).toBeDefined()
     let markers = await helper.getMarkers(doc.bufnr, srcId)
-    expect(markers.length).toBe(2)
+    expect(markers.length).toBe(1)
+  })
+
+  it('should refresh on empty changes', async () => {
+    await createBufferWithCodeLens()
+    let doc = await workspace.document
+    await nvim.call('setline', [1, ['a', 'b', 'c']])
+    await doc.synchronize()
+    let markers = await helper.getMarkers(doc.bufnr, srcId)
+    expect(markers.length).toBe(1)
   })
 
   it('should work with empty codeLens', async () => {
@@ -196,20 +205,7 @@ describe('codeLenes featrue', () => {
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
-    disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
-      provideCodeLenses: () => {
-        return [{
-          range: Range.create(0, 0, 0, 1)
-        }]
-      },
-      resolveCodeLens: codeLens => {
-        codeLens.command = Command.create('save', '__save', 1, 2, 3)
-        return codeLens
-      }
-    }))
-    await helper.createDocument('example.js')
-    await nvim.call('setline', [1, ['a', 'b', 'c']])
-    await codeLens.checkProvider()
+    await createBufferWithCodeLens()
     await helper.doAction('codeLensAction')
     expect(fn).toBeCalledWith(1, 2, 3)
     await nvim.command('normal! G')

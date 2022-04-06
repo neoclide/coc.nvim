@@ -268,31 +268,6 @@ describe('semanticTokens', () => {
       expect(fn).toBeCalledTimes(1)
     })
 
-    it('should not highlight when pumvisible', async () => {
-      let doc = await helper.createDocument('t.vim')
-      await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
-      await nvim.setLine('foo f')
-      await nvim.input('A')
-      await nvim.input('<C-n>')
-      await helper.waitPopup()
-      let fn = jest.fn()
-      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
-      disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
-        provideDocumentSemanticTokens: () => {
-          fn()
-          return new Promise(resolve => {
-            resolve({
-              resultId: '1',
-              data: [0, 0, 3, 1, 0]
-            })
-          })
-        }
-      }, legend))
-      let item = await highlighter.getCurrentItem()
-      await item.doHighlight()
-      expect(fn).toBeCalledTimes(0)
-    })
-
     it('should only highlight limited range on update', async () => {
       let doc = await helper.createDocument('t.vim')
       let fn = jest.fn()

@@ -1,3 +1,8 @@
+# 2022-04-06
+
+- `workspace.onDidOpenTextDocument` fire `contentChanges` as empty array when
+  document changed with same lines.
+
 # 2022-04-04
 
 - Avoid `CompleteDone` cancel next completion.

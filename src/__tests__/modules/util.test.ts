@@ -193,10 +193,16 @@ describe('textedit', () => {
     ]
     assertEdits(pos, edits, [1, 10])
   })
+
   it('should check empty workspaceEdit', async () => {
     let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
     expect(textedits.emptyWorkspaceEdit(workspaceEdit)).toBe(false)
     expect(textedits.emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+  })
+
+  it('should check empty TextEdit', async () => {
+    expect(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), ''))).toBe(true)
+    expect(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), 'a'))).toBe(false)
   })
 
   it('should get well formed edit', async () => {
@@ -811,6 +817,8 @@ describe('diff', () => {
 
     it('should get textedit without cursor', () => {
       let res = diff.getTextEdit(['a', 'b'], ['a', 'b'])
+      expect(res).toBeUndefined()
+      res = diff.getTextEdit(['a', 'b'], ['a', 'b'], Position.create(0, 0))
       expect(res).toBeUndefined()
       res = diff.getTextEdit(['a', 'b'], ['a', 'b', 'c'])
       expect(res).toEqual(toEdit(2, 0, 2, 0, 'c\n'))

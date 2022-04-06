@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import { Disposable, Range } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { comparePosition } from '../util/position'
 import window from '../window'
@@ -11,8 +11,6 @@ const logger = require('../util/logger')('cursors')
 export default class Cursors {
   private sessionsMap: Map<number, CursorSession> = new Map()
   private disposables: Disposable[] = []
-  private readonly _onDidUpdate = new Emitter<number>()
-  public readonly onDidUpdate: Event<number> = this._onDidUpdate.event
   constructor(private nvim: Neovim) {
     workspace.onDidCloseTextDocument(e => {
       let session = this.getSession(e.bufnr)
@@ -102,9 +100,6 @@ export default class Cursors {
     if (session) return session
     session = new CursorSession(this.nvim, doc)
     this.sessionsMap.set(bufnr, session)
-    session.onDidUpdate(() => {
-      this._onDidUpdate.fire(bufnr)
-    })
     session.onDidCancel(() => {
       session.dispose()
       this.sessionsMap.delete(bufnr)

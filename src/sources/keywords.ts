@@ -3,6 +3,7 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
+import { DidChangeTextDocumentParams } from '../types'
 import { isGitIgnored } from '../util/fs'
 const logger = require('../util/logger')('sources-keywords')
 const MAX_LENGTH = 10 * 1024 // 10KB
@@ -61,7 +62,8 @@ export default class KeywordsBuffer implements SyncItem {
     }
   }
 
-  public onChange(): void {
+  public onChange(e: DidChangeTextDocumentParams): void {
+    if (e.contentChanges.length == 0) return
     this.parse()
   }
 

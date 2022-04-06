@@ -7,6 +7,7 @@ import languages from '../../languages'
 import Document from '../../model/document'
 import window from '../../window'
 import workspace from '../../workspace'
+import { DidChangeTextDocumentParams } from '../../types'
 const logger = require('../../util/logger')('codelens-buffer')
 
 export interface CodeLensInfo {
@@ -45,9 +46,13 @@ export default class CodeLensBuffer implements SyncItem {
     return this.document.bufnr
   }
 
-  public onChange(): void {
-    this.cancel()
-    void this.fetchCodeLenses()
+  public onChange(e: DidChangeTextDocumentParams): void {
+    if (e.contentChanges.length === 0 && this.codeLenses != null) {
+      void this._resolveCodeLenses()
+    } else {
+      this.cancel()
+      void this.fetchCodeLenses()
+    }
   }
 
   public get currentCodeLens(): CodeLens[] | undefined {

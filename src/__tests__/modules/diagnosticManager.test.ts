@@ -89,8 +89,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should delay refresh on InsertLeave', async () => {
-      let doc = await helper.createDocument()
-      await helper.wait(30)
+      let doc = await workspace.document
       await nvim.input('i')
       let collection = manager.create('foo')
       let diagnostics: Diagnostic[] = []
@@ -209,7 +208,6 @@ describe('diagnostic manager', () => {
 
   describe('preview()', () => {
     it('should not throw with empty diagnostics', async () => {
-      await helper.createDocument()
       await manager.preview()
       let tabpage = await nvim.tabpage
       let wins = await tabpage.windows
@@ -227,7 +225,7 @@ describe('diagnostic manager', () => {
 
   describe('setConfigurationErrors()', () => {
     it('should set configuration errors', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let errors = [{
         location: Location.create(doc.uri, Range.create(0, 0, 1, 0)),
         message: 'foo',
@@ -248,7 +246,7 @@ describe('diagnostic manager', () => {
 
   describe('create()', () => {
     it('should create diagnostic collection', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let collection = manager.create('test')
       collection.set(doc.uri, [createDiagnostic('foo')])
       await helper.wait(50)
@@ -261,7 +259,7 @@ describe('diagnostic manager', () => {
 
   describe('getSortedRanges()', () => {
     it('should get sorted ranges of document', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.call('setline', [1, ['a', 'b', 'c']])
       let collection = manager.create('test')
       let diagnostics: Diagnostic[] = []
@@ -281,7 +279,7 @@ describe('diagnostic manager', () => {
 
   describe('getDiagnosticsInRange', () => {
     it('should get diagnostics in range', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let collection = manager.create('test')
       let diagnostics: Diagnostic[] = []
       await doc.buffer.setLines(['foo bar foo bar', 'foo bar'], {
@@ -315,7 +313,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should get empty diagnostic at end of line', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo')
       doc.forceSync()
       await nvim.command('normal! $')
@@ -331,7 +329,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should get diagnostic next to end of line', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo')
       doc.forceSync()
       await nvim.command('normal! $')
@@ -346,7 +344,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should get diagnostic with empty range at end of line', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo')
       doc.forceSync()
       await nvim.command('normal! $')
@@ -361,7 +359,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should get diagnostic pass end of the buffer lines', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.setLine('foo')
       doc.forceSync()
       await nvim.command('normal! ^')
@@ -379,7 +377,7 @@ describe('diagnostic manager', () => {
 
   describe('jumpRelated', () => {
     it('should does nothing when no diagnostic exists', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await nvim.call('cursor', [1, 1])
       await manager.jumpRelated()
       let bufnr = await nvim.eval('bufnr("%")')
@@ -395,7 +393,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should jump to related position', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let range = Range.create(0, 0, 0, 10)
       let location = Location.create(URI.file(__filename).toString(), range)
       let diagnostic = Diagnostic.create(range, 'msg', DiagnosticSeverity.Error, 1000, 'test',
@@ -411,7 +409,7 @@ describe('diagnostic manager', () => {
     })
 
     it('should open location list', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let range = Range.create(0, 0, 0, 10)
       let diagnostic = Diagnostic.create(range, 'msg', DiagnosticSeverity.Error, 1000, 'test',
         [{
@@ -602,7 +600,7 @@ describe('diagnostic manager', () => {
 
   describe('toggleDiagnosticBuffer', () => {
     it('should not throw when bufnr is invliad or disabled', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       await manager.toggleDiagnosticBuffer(99)
       helper.updateConfiguration('diagnostic.enable', false)
       await manager.toggleDiagnosticBuffer(doc.bufnr)

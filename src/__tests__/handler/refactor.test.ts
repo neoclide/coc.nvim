@@ -242,6 +242,17 @@ describe('refactor', () => {
       return await refactor.fromLocations(locations)
     }
 
+    it('should refresh on empty text change', async () => {
+      let buf = await setup()
+      let line = await nvim.call('getline', [4])
+      let doc = workspace.getDocument(buf.bufnr)
+      await nvim.call('setline', [4, line])
+      doc._forceSync()
+      let srcId = await nvim.createNamespace('coc-refactor')
+      let markers = await helper.getMarkers(doc.bufnr, srcId)
+      expect(markers.length).toBe(2)
+    })
+
     it('should detect range delete and undo', async () => {
       let buf = await setup()
       let doc = workspace.getDocument(buf.bufnr)

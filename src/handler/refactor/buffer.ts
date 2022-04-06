@@ -99,13 +99,6 @@ export default class RefactorBuffer implements BufferSyncItem {
       this.disposables.push(workspace.registerLocalKeymap('n', config.showMenu, this.showMenu.bind(this), true))
     }
     workspace.onDidChangeTextDocument(this.onDocumentChange, this, this.disposables)
-    window.cursors.onDidUpdate(bufnr => {
-      if (bufnr == this.bufnr && !this.changing) {
-        nvim.pauseNotification()
-        this.highlightLineNr()
-        void nvim.resumeNotification(true, true)
-      }
-    }, null, this.disposables)
   }
 
   public async showMenu(): Promise<void> {
@@ -147,6 +140,11 @@ export default class RefactorBuffer implements BufferSyncItem {
 
   public onChange(e: DidChangeTextDocumentParams): void {
     if (this.changing) return
+    if (e.contentChanges.length === 0) {
+      this.highlightLineNr()
+      this.nvim.redrawVim()
+      return
+    }
     let { nvim } = this
     e = fixChangeParams(e)
     let change = e.contentChanges[0]
@@ -244,7 +242,7 @@ export default class RefactorBuffer implements BufferSyncItem {
    * Handle changes of other buffers.
    */
   private async onDocumentChange(e: DidChangeTextDocumentParams): Promise<void> {
-    if (this.changing) return
+    if (this.changing || e.contentChanges.length === 0) return
     let { uri } = e.textDocument
     let fileItem = this.getFileItem(uri)
     // not affected

@@ -188,6 +188,22 @@ describe('diagnostic buffer', () => {
       await buf.update('c', [diagnostic])
       expect(fn).toBeCalledTimes(1)
     })
+
+    it('should refresh when content changes is empty', async () => {
+      let diagnostic = createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error)
+      let buf = await createDiagnosticBuffer()
+      let doc = workspace.getDocument(buf.bufnr)
+      await nvim.setLine('foo')
+      doc._forceSync()
+      nvim.pauseNotification()
+      buf.updateHighlights('', [diagnostic])
+      await nvim.resumeNotification()
+      await nvim.setLine('foo')
+      await doc.patchChange(true)
+      doc._forceSync()
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      expect(res.length).toBe(1)
+    })
   })
 
   describe('showVirtualText()', () => {

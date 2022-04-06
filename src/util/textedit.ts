@@ -66,6 +66,10 @@ export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
   return data
 }
 
+export function emptyTextEdit(edit: TextEdit): boolean {
+  return emptyRange(edit.range) && edit.newText.length === 0
+}
+
 export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
   let { changes, documentChanges } = edit
   if (documentChanges && documentChanges.length) return false

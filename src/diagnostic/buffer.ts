@@ -3,7 +3,7 @@ import { debounce } from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
-import { HighlightItem, LocationListItem } from '../types'
+import { DidChangeTextDocumentParams, HighlightItem, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
@@ -57,14 +57,16 @@ export class DiagnosticBuffer implements SyncItem {
     return this._dirty
   }
 
-  public onChange(): void {
+  public onChange(e: DidChangeTextDocumentParams): void {
     this._changeTs = Date.now()
     this.refreshHighlights.clear()
+    if (e.contentChanges.length === 0) {
+      void this._refresh()
+    }
   }
 
   public onTextChange(): void {
     this._textChangeTs = Date.now()
-    this.refreshHighlights()
   }
 
   private get displayByAle(): boolean {

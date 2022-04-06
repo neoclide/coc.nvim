@@ -1,7 +1,6 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-protocol'
-import events from '../../events'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
@@ -89,7 +88,6 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public onTextChange(): void {
     this.cancel()
-    this.highlight()
   }
 
   public async forceHighlight(): Promise<void> {
@@ -269,7 +267,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public async doHighlight(forceFull = false): Promise<void> {
     this.cancel()
-    if (!this.enabled || events.pumvisible) return
+    if (!this.enabled) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let hidden = await this.nvim.eval(`get(get(getbufinfo(${this.bufnr}),0,{}),'hidden',0)`)
