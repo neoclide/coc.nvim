@@ -267,7 +267,7 @@ function! s:HandleCompleteDone(complete_item) abort
   endif
   if get(g:, 'coc_disable_complete_done', 0)
     let g:coc_disable_complete_done = 0
-    return
+    let item['closed'] = v:true
   endif
   call s:Autocmd('CompleteDone', item)
 endfunction
