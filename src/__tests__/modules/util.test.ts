@@ -225,7 +225,6 @@ describe('textedit', () => {
     expect(textedits.filterSortEdits(doc, [TextEdit.insert(Position.create(0, 0), 'a\r\nb')])).toEqual([
       TextEdit.insert(Position.create(0, 0), 'a\nb')
     ])
-    expect(textedits.filterSortEdits(doc, [TextEdit.insert(Position.create(3, 0), 'a')])).toEqual([])
     expect(textedits.filterSortEdits(doc, [TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')])).toEqual([])
     expect(textedits.filterSortEdits(doc, [
       TextEdit.insert(Position.create(0, 1), 'b'),
