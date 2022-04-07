@@ -32,6 +32,10 @@ function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
 }
 
+function toEdit(sl, sc, el, ec, text): TextEdit {
+  return TextEdit.replace(Range.create(sl, sc, el, ec), text)
+}
+
 describe('factory', () => {
   const emptyLogger = {
     log: () => {},
@@ -233,6 +237,27 @@ describe('textedit', () => {
       TextEdit.insert(Position.create(0, 0), 'a'),
       TextEdit.insert(Position.create(0, 1), 'b'),
     ])
+  })
+
+  it('should merge textedits #1', async () => {
+    let edits = [toEdit(0, 0, 0, 0, 'foo'), toEdit(0, 1, 0, 1, 'bar')]
+    let lines = ['ab']
+    let res = textedits.mergeTextEdits(edits, lines, ['fooabarb'])
+    expect(res).toEqual(toEdit(0, 0, 0, 1, 'fooabar'))
+  })
+
+  it('should merge textedits #2', async () => {
+    let edits = [toEdit(0, 0, 1, 0, 'foo\n')]
+    let lines = ['bar']
+    let res = textedits.mergeTextEdits(edits, lines, ['foo'])
+    expect(res).toEqual(toEdit(0, 0, 1, 0, 'foo\n'))
+  })
+
+  it('should merge textedits #3', async () => {
+    let edits = [toEdit(0, 0, 0, 1, 'd'), toEdit(1, 0, 1, 1, 'e'), toEdit(2, 0, 3, 0, 'f\n')]
+    let lines = ['a', 'b', 'c']
+    let res = textedits.mergeTextEdits(edits, lines, ['d', 'e', 'f'])
+    expect(res).toEqual(toEdit(0, 0, 3, 0, 'd\ne\nf\n'))
   })
 })
 
@@ -808,10 +833,6 @@ describe('diff', () => {
     function diffLines(oldStr: string, newStr: string): diff.ChangedLines {
       let oldLines = oldStr.split('\n')
       return diff.diffLines(oldLines, newStr.split('\n'), oldLines.length - 2)
-    }
-
-    function toEdit(sl, sc, el, ec, text): TextEdit {
-      return TextEdit.replace(Range.create(sl, sc, el, ec), text)
     }
 
     it('should get textedit without cursor', () => {

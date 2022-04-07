@@ -241,3 +241,35 @@ export function getChangedLineCount(start: Position, edits: TextEdit[]): number 
   }
   return total
 }
+
+/**
+ * Merge sorted edits to single textedit
+ */
+export function mergeTextEdits(edits: TextEdit[], oldLines: ReadonlyArray<string>, newLines: ReadonlyArray<string>): TextEdit {
+  let start = edits[0].range.start
+  let end = edits[edits.length - 1].range.end
+  let lr = oldLines.length - end.line
+  let cr = (oldLines[end.line] ?? '').length - end.character
+  let line = newLines.length - lr
+  let character = (newLines[line] ?? '').length - cr
+  let newText = getText(start, Position.create(line, character), newLines)
+  return TextEdit.replace(Range.create(start, end), newText)
+}
+
+function getText(start: Position, end: Position, lines: ReadonlyArray<string>): string {
+  if (start.line === end.line) {
+    return (lines[start.line] ?? '').slice(start.character, end.character)
+  }
+  let spans: string[] = []
+  for (let i = start.line; i <= end.line; i++) {
+    let s = lines[i] ?? ''
+    if (i === start.line) {
+      spans.push(s.slice(start.character))
+    } else if (i === end.line) {
+      spans.push(s.slice(0, end.character))
+    } else {
+      spans.push(s)
+    }
+  }
+  return spans.join('\n')
+}

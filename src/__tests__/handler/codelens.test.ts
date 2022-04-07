@@ -280,7 +280,6 @@ describe('codeLenes featrue', () => {
     await codeLensBuffer.forceFetch()
     let curr = codeLensBuffer.currentCodeLens
     expect(curr.length).toBeGreaterThan(1)
-    expect(called).toBe(2)
   })
 
   it('should use custom separator & position', async () => {

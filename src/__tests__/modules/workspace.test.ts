@@ -191,7 +191,7 @@ describe('workspace methods', () => {
   })
 
   it('should get line of document', async () => {
-    let doc = await helper.createDocument()
+    let doc = await workspace.document
     await nvim.setLine('abc')
     let line = await workspace.getLine(doc.uri, 0)
     expect(line).toBe('abc')
@@ -205,7 +205,7 @@ describe('workspace methods', () => {
   })
 
   it('should read content from buffer', async () => {
-    let doc = await helper.createDocument()
+    let doc = await workspace.document
     await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'foo' }])
     let line = await workspace.readFile(doc.uri)
     expect(line).toBe('foo\n')
@@ -215,15 +215,6 @@ describe('workspace methods', () => {
     let filepath = await createTmpFile('content')
     let content = await workspace.readFile(URI.file(filepath).toString())
     expect(content).toBe(content)
-  })
-
-  it('should get current document', async () => {
-    let buf = await helper.edit('foo')
-    let doc = await workspace.document
-    expect(doc.bufnr).toBe(buf.id)
-    buf = await helper.edit('tmp')
-    doc = await workspace.document
-    expect(doc.bufnr).toBe(buf.id)
   })
 
   it('should expand filepath', async () => {
@@ -482,7 +473,6 @@ describe('workspace events', () => {
   })
 
   it('should fire onDidChangeConfiguration', async () => {
-    await helper.createDocument()
     let fn = jest.fn()
     let disposable = workspace.onDidChangeConfiguration(e => {
       disposable.dispose()
@@ -503,7 +493,7 @@ describe('workspace events', () => {
   })
 
   it('should fire onWillSaveUntil', async () => {
-    let doc = await helper.createDocument()
+    let doc = await workspace.document
     let filepath = URI.parse(doc.uri).fsPath
     let fn = jest.fn()
     let disposable = workspace.onWillSaveTextDocument(event => {
@@ -556,7 +546,11 @@ describe('workspace events', () => {
   it('should only use first returned textEdits', async () => {
     let doc = await helper.createDocument()
     let filepath = URI.parse(doc.uri).fsPath
-    let disposables: Disposable[] = []
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(filepath)) {
+        fs.unlinkSync(filepath)
+      }
+    }))
     workspace.onWillSaveTextDocument(event => {
       event.waitUntil(Promise.resolve(undefined))
     }, null, disposables)
@@ -589,10 +583,6 @@ describe('workspace events', () => {
     await nvim.command('wa')
     let content = doc.getDocumentContent()
     expect(content).toMatch('foo')
-    disposeAll(disposables)
-    if (fs.existsSync(filepath)) {
-      fs.unlinkSync(filepath)
-    }
   })
 
   it('should attach & detach', async () => {

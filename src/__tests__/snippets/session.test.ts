@@ -513,7 +513,7 @@ describe('SnippetSession', () => {
 
   describe('shouldCancel()', () => {
     it('should check cancel', async () => {
-      let doc = await workspace.document
+      let doc = await helper.createDocument()
       let tokenSource = new CancellationTokenSource()
       tokenSource.cancel()
       expect(shouldCancel(tokenSource.token, doc, Position.create(0, 0))).toBe(false)

@@ -5,10 +5,10 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
+import { disposeAll, getUri, wait } from '../util/index'
 import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
-import { applyEdits, filterSortEdits, getPositionFromEdits, TextChangeItem, toTextChanges } from '../util/textedit'
+import { applyEdits, filterSortEdits, getPositionFromEdits, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
@@ -329,16 +329,10 @@ export default class Document {
       ], true)
     }
     void this.nvim.resumeNotification(isCurrent, true)
-    await waitNextTick(() => {
-      // can't wait vim sync buffer
-      this.lines = newLines
-      if (edits.length == 1) {
-        this.fireContentChanges.clear()
-        this._fireContentChanges(edits[0])
-      } else {
-        this._forceSync()
-      }
-    })
+    let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
+    this.lines = newLines
+    this.fireContentChanges.clear()
+    this._fireContentChanges(textEdit)
   }
 
   public async changeLines(lines: [number, string][]): Promise<void> {
