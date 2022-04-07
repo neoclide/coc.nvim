@@ -518,6 +518,12 @@ export interface TextDocumentContentChange {
    */
   range: Range
   /**
+   * The optional length of the range that got replaced.
+   *
+   * @deprecated use range instead.
+   */
+  rangeLength?: number
+  /**
    * The new text for the provided range.
    */
   text: string

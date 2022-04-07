@@ -6,7 +6,6 @@ import events from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
-import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, TextChangeItem, toTextChanges } from '../util/textedit'
@@ -254,7 +253,13 @@ export default class Document {
       }
       edit = getTextEdit(textDocument.lines, this.lines, pos, insertMode)
     }
-    if (edit) changes.push({ range: edit.range, text: edit.newText })
+    let original: string
+    if (edit) {
+      original = textDocument.getText(edit.range)
+      changes.push({ range: edit.range, text: edit.newText, rangeLength: original.length })
+    } else {
+      original = ''
+    }
     let created = this.createTextDocument(this.version + (edit ? 1 : 0), this.lines)
     this._onDocumentChange.fire({
       bufnr: this.bufnr,
