@@ -74,6 +74,9 @@ function! coc#_complete() abort
 endfunction
 
 function! coc#_do_complete(start, items, preselect)
+  if pumvisible()
+    let g:coc_disable_complete_done = 1
+  endif
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
