@@ -7,7 +7,7 @@ import { CompleteOption, ExtendedCompleteItem, FloatConfig, ISource, VimComplete
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { equals } from '../util/object'
-import { byteLength, byteSlice } from '../util/string'
+import { byteLength, byteSlice, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating, { PumBounding } from './floating'
@@ -287,7 +287,7 @@ export class Completion implements Disposable {
       }
     }
     // trigger character
-    if (info.insertChar) {
+    if (info.insertChar && !isWord(info.insertChar)) {
       let disabled = doc.getVar('disabled_sources', [])
       let triggerSources = sources.getTriggerSources(pretext, doc.filetype, doc.uri, disabled)
       if (triggerSources.length > 0) {
