@@ -400,8 +400,9 @@ describe('semanticTokens', () => {
       fs.renameSync(filepath, filepath + '.vim')
       let doc = await helper.createDocument(filepath + '.vim')
       expect(doc.filetype).toBe('vim')
-      await helper.wait(100)
-      expect(r).toBeDefined()
+      await helper.waitValue(() => {
+        return typeof r !== 'undefined'
+      }, true)
       let buf = nvim.createBuffer(doc.bufnr)
       let hls = await buf.getHighlights('semanticTokens', 0, 0)
       expect(hls.length).toBe(1)
