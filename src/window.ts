@@ -702,7 +702,7 @@ class Window {
       nvim.call('coc#highlight#set', [bufnr, ns, add, priority], true)
     }
     if (notify) {
-      void nvim.resumeNotification(true, true)
+      nvim.resumeNotification(true, true)
     } else {
       await nvim.resumeNotification(true)
     }

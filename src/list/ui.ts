@@ -81,7 +81,7 @@ export default class ListUI {
       nvim.pauseNotification()
       this.doHighlight(s, e)
       nvim.command('redraw', true)
-      void nvim.resumeNotification(false, true)
+      nvim.resumeNotification(false, true)
     }, global.hasOwnProperty('__TEST__') ? 20 : 100)
     this.disposables.push({
       dispose: () => {
@@ -127,7 +127,7 @@ export default class ListUI {
     nvim.pauseNotification()
     this.setCursor(lnum)
     nvim.command('redraw', true)
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 
   public get index(): number {
@@ -216,7 +216,7 @@ export default class ListUI {
       nvim.call('win_gotoid', winid, true)
       nvim.call('cursor', [lnum, col], true)
       nvim.command('redraw', true)
-      void nvim.resumeNotification(false, true)
+      nvim.resumeNotification(false, true)
     }
   }
 
@@ -229,7 +229,7 @@ export default class ListUI {
       this.buffer?.placeSign({ lnum, id: this.signOffset + lnum, name: 'CocSelected', group: 'coc-list' })
     }
     nvim.command('redraw', true)
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 
   public async toggleSelection(): Promise<void> {
@@ -402,7 +402,7 @@ export default class ListUI {
     }
     if (reversed) nvim.command('normal! zb', true)
     nvim.command('redraws', true)
-    void nvim.resumeNotification(true, true)
+    nvim.resumeNotification(true, true)
   }
 
   public restoreWindow(): void {

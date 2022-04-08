@@ -64,7 +64,6 @@ export default class SourcesList extends BasicList {
     nvim.command('highlight default link CocSourcesPriority Number', true)
     nvim.command('highlight default link CocSourcesFileTypes Comment', true)
     nvim.command('highlight default link CocSourcesType Statement', true)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
   }
 }

@@ -307,6 +307,6 @@ export default class Mappings {
     nvim.pauseNotification()
     nvim.call('coc#list#scroll_preview', [dir], true)
     nvim.command('redraw', true)
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 }

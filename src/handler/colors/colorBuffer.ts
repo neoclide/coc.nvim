@@ -84,7 +84,7 @@ export default class ColorBuffer implements SyncItem {
     if (token.isCancellationRequested || !diff) return
     nvim.pauseNotification()
     this.defineColors(colors)
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
     await window.applyDiffHighlights(this.bufnr, NAMESPACE, this.config.highlightPriority, diff, true)
   }
 

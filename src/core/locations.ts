@@ -43,7 +43,6 @@ export default class Locations implements Disposable {
       nvim.pauseNotification()
       nvim.call('setqflist', [items], true)
       nvim.command(openCommand, true)
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
     } else {
       await nvim.setVar('coc_jump_locations', items)

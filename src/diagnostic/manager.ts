@@ -156,7 +156,7 @@ export class DiagnosticManager implements Disposable {
       if (enableHighlightLineNumber) cmd += ` numhl=Coc${kind}Sign`
       nvim.command(cmd, true)
     }
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 
   /**

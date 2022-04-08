@@ -43,7 +43,7 @@ export default class ListsList extends BasicList {
     nvim.pauseNotification()
     nvim.command('syntax match CocListsDesc /\\t.*$/ contained containedin=CocListsLine', true)
     nvim.command('highlight default link CocListsDesc Comment', true)
-    void nvim.resumeNotification()
+    nvim.resumeNotification(false, true)
   }
 }
 

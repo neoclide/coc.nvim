@@ -43,6 +43,6 @@ export default class ServicesList extends BasicList {
     nvim.command('highlight default link CocServicesName Type', true)
     nvim.command('highlight default link CocServicesStat Statement', true)
     nvim.command('highlight default link CocServicesLanguages Comment', true)
-    void nvim.resumeNotification()
+    nvim.resumeNotification(false, true)
   }
 }

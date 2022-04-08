@@ -139,7 +139,7 @@ export default class Picker {
       this.setCursor(idx)
       this.win.refreshScrollbar()
       nvim.command('redraw', true)
-      void nvim.resumeNotification(false, true)
+      nvim.resumeNotification(false, true)
     }
     this.addKeys(['j', '<down>', '<tab>', '<C-n>'], () => {
       // next
@@ -166,7 +166,7 @@ export default class Picker {
         this.setCursor(this.currIndex + 1)
       }
       nvim.command('redraw', true)
-      void await nvim.resumeNotification()
+      await nvim.resumeNotification()
     })
     this.addKeys('<C-f>', async () => {
       await this.win?.scrollForward()

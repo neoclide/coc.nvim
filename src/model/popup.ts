@@ -51,7 +51,7 @@ export default class Popup {
     this.execute(`normal! ${botline}Gzt`)
     this.refreshScrollbar()
     nvim.command('redraw', true)
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 
   /**
@@ -73,7 +73,7 @@ export default class Popup {
     this.execute(`normal! ${topline}Gzb`)
     this.refreshScrollbar()
     nvim.command('redraw', true)
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 
   /**

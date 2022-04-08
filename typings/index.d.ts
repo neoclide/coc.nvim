@@ -2365,7 +2365,7 @@ declare module 'coc.nvim' {
     /**
      * Echo error message to vim and log error stack.
      */
-    echoError(msg: string | Error): void
+    echoError(msg: unknown): void
 
     /**
      * Check if `nvim_` function exists.
@@ -2406,7 +2406,7 @@ declare module 'coc.nvim' {
      * **Note**: avoid call async function between pauseNotification and
      * resumeNotification.
      */
-    resumeNotification(redrawVim: boolean): Promise<[any[], [string, number, string] | null]>
+    resumeNotification(redrawVim?: boolean): Promise<[VimValue[], [string, number, string] | null]>
 
     /**
      * Send paused notifications by nvim_call_atomic notification

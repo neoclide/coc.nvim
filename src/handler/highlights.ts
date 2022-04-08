@@ -81,7 +81,7 @@ export default class Highlights {
     for (let hlGroup of Object.keys(groups)) {
       win.highlightRanges(hlGroup, groups[hlGroup], this.config.priority, true)
     }
-    void nvim.resumeNotification(true, true)
+    nvim.resumeNotification(true, true)
     this.highlights.set(winid, highlights)
   }
 

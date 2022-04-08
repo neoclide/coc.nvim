@@ -238,7 +238,7 @@ export default class CursorSession {
     nvim.pauseNotification()
     buffer.clearNamespace('cursors')
     buffer.setVar('coc_cursors_activated', 0, true)
-    void nvim.resumeNotification(true, true)
+    nvim.resumeNotification(true, true)
     this._onDidUpdate.fire()
     this._onDidCancel.fire()
   }

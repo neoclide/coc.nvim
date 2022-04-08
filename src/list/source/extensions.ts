@@ -160,9 +160,7 @@ export default class ExtensionList extends BasicList {
     nvim.command('highlight default link CocExtensionsName String', true)
     nvim.command('highlight default link CocExtensionsLocal MoreMsg', true)
     nvim.command('highlight default link CocExtensionsRoot Comment', true)
-    nvim.resumeNotification().catch(_e => {
-      // noop
-    })
+    nvim.resumeNotification(false, true)
   }
 }
 

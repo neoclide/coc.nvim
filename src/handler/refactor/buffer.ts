@@ -202,7 +202,7 @@ export default class RefactorBuffer implements BufferSyncItem {
     this.adjustLnums(edits)
     nvim.pauseNotification()
     this.highlightLineNr()
-    void nvim.resumeNotification(true, false)
+    nvim.resumeNotification(true, true)
     if (addRanges.length) {
       addRanges.forEach(info => {
         let item = this._fileItems.find(o => o.filepath == info.filepath)
@@ -288,7 +288,7 @@ export default class RefactorBuffer implements BufferSyncItem {
     this.nvim.pauseNotification()
     this.highlightLineNr()
     this.buffer.setOption('modified', false, true)
-    await this.nvim.resumeNotification(true, false)
+    await this.nvim.resumeNotification(true)
   }
 
   private adjustLnums(edits: TextEdit[]): void {
@@ -358,7 +358,7 @@ export default class RefactorBuffer implements BufferSyncItem {
         this.nvim.call('coc#util#jump', ['belowright vs', bufname, [fileRange.line, character]], true)
       }
       nvim.command('normal! zz', true)
-      await nvim.resumeNotification(true, false)
+      await nvim.resumeNotification(true)
       if (!valid) {
         this.opts.fromWinid = await nvim.call('win_getid')
       }
@@ -435,8 +435,7 @@ export default class RefactorBuffer implements BufferSyncItem {
         let pos = hlRanges[0].start
         nvim.call('coc#cursor#move_to', [pos.line, pos.character], true)
       }
-      let [, err] = await nvim.resumeNotification(true)
-      if (err) throw new Error(err[2])
+      await nvim.resumeNotification(true)
       await document.patchChange()
       this.changing = false
       await window.cursors.addRanges(hlRanges)

@@ -229,7 +229,7 @@ export default class SemanticTokens {
     nvim.pauseNotification()
     let bufnr = res[0][2] as number
     hl.render(nvim.createBuffer(bufnr))
-    void nvim.resumeNotification(true, true)
+    nvim.resumeNotification(true, true)
   }
 
   public dispose(): void {

@@ -201,7 +201,7 @@ export class DiagnosticBuffer implements SyncItem {
       for (let [collection, diagnostics] of diagnosticsMap.entries()) {
         this.refreshAle(collection, diagnostics)
       }
-      void nvim.resumeNotification(true, true)
+      nvim.resumeNotification(true, true)
     } else {
       let emptyCollections: string[] = []
       logger.debug('Update UI', this.bufnr, Array.from(diagnosticsMap.keys()))
@@ -214,7 +214,7 @@ export class DiagnosticBuffer implements SyncItem {
       this.showVirtualText(info.lnum, info.bufnr)
       this.updateLocationList(info.winid, info.locationlist)
       this.setDiagnosticInfo()
-      void nvim.resumeNotification(true, true)
+      nvim.resumeNotification(true, true)
       // cleanup unnecessary collections
       emptyCollections.forEach(name => {
         this.diagnosticsMap.delete(name)
@@ -391,7 +391,7 @@ export class DiagnosticBuffer implements SyncItem {
       if (this.config.virtualText) {
         this.buffer.clearNamespace(this.config.virtualTextSrcId)
       }
-      void nvim.resumeNotification(true, true)
+      nvim.resumeNotification(true, true)
     }
   }
 

@@ -79,7 +79,6 @@ export default class Menu {
       this.setCursor(idx)
       this.win?.refreshScrollbar()
       nvim.command('redraw', true)
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
     }
     this.addKeys('<C-f>', async () => {

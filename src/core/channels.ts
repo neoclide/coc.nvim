@@ -36,10 +36,8 @@ export class Channels {
         nvim.command('setlocal buftype=nofile bufhidden=hide', true)
         nvim.command('setfiletype log', true)
         let res = await nvim.resumeNotification()
-        if (!res[1]) {
-          this.bufnrs.set(res[0][0], channel.name)
-          channel.created = true
-        }
+        this.bufnrs.set(res[0][0] as number, channel.name)
+        channel.created = true
         return channel.content
       }
     }

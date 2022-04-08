@@ -328,7 +328,7 @@ export default class Document {
         cursor
       ], true)
     }
-    void this.nvim.resumeNotification(isCurrent, true)
+    this.nvim.resumeNotification(isCurrent, true)
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
     this.lines = newLines
     this.fireContentChanges.clear()

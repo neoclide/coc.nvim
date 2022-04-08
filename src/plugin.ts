@@ -197,7 +197,6 @@ export default class Plugin extends EventEmitter {
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       nvim.resumeNotification(false, true)
       this._ready = true
       await events.fire('ready', [])

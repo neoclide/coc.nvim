@@ -173,7 +173,7 @@ export class SnippetSession {
     if (ranges.length) {
       buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
     }
-    void this.nvim.resumeNotification(true, true)
+    this.nvim.resumeNotification(true, true)
   }
 
   private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {

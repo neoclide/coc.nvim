@@ -30,7 +30,6 @@ export default class BufferChannel implements OutputChannel {
     if (append.length) {
       nvim.call('appendbufline', [this.bufname, '$', append], true)
     }
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     nvim.resumeNotification(false, true)
   }
 
@@ -54,8 +53,7 @@ export default class BufferChannel implements OutputChannel {
     if (this.lines.length) {
       nvim.call('appendbufline', [this.bufname, '$', this.lines], true)
     }
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nvim.resumeNotification(false, true)
+    nvim.resumeNotification(true, true)
   }
 
   public hide(): void {
@@ -74,7 +72,7 @@ export default class BufferChannel implements OutputChannel {
     if (preserveFocus) {
       nvim.command('wincmd p', true)
     }
-    void nvim.resumeNotification(true, true)
+    nvim.resumeNotification(true, true)
     this.created = true
   }
 

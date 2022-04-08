@@ -312,8 +312,9 @@ export default class ListSession {
     if (window && this.savedHeight && this.listOptions.position !== 'tab') {
       nvim.call('coc#window#set_heigth', [window.id, this.savedHeight], true)
     }
-    await nvim.resumeNotification(false, notify)
-    if (isVim && !notify) {
+    if (notify) return nvim.resumeNotification(false, true)
+    await nvim.resumeNotification(false)
+    if (isVim) {
       // otherwise we could receive <esc> for new list.
       await wait(10)
       nvim.call('feedkeys', ['\x1b', 'int'], true)
@@ -493,7 +494,7 @@ export default class ListSession {
       nvim.pauseNotification()
       nvim.call('coc#prompt#stop_prompt', ['list'], true)
       this.nvim.call('win_gotoid', [window.id], true)
-      nvim.resumeNotification(false, true).logError()
+      nvim.resumeNotification(false, true)
     }
   }
 

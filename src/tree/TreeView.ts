@@ -608,7 +608,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     nvim.call('coc#compat#execute', [this.winid, cmd], true)
     buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
     if (!noRedraw) this.redraw()
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
     if (!exists) this._onDidChangeSelection.fire({ selection: this._selection })
   }
 
@@ -754,7 +754,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
     buf.setOption('modifiable', false, true)
     if (!noRedraw) this.redraw()
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 
   public async reveal(element: T, options: { select?: boolean; focus?: boolean; expand?: number | boolean } = {}): Promise<void> {
@@ -833,8 +833,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
         this.refreshSigns()
       }
     } catch (e) {
-      this.nvim.errWriteLine('[coc.nvim] Error on update head lines:' + e.message)
-      if (!e?.message.includes('Test error')) logger.error('Error on update head lines:', e)
+      this.nvim.echoError(e)
     }
   }
 
@@ -852,7 +851,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       if (row == null) continue
       buf.placeSign({ id: signOffset + row, lnum: row + 1, name: 'CocTreeSelected', group: 'CocTree' })
     }
-    void nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true)
   }
 
   // Render all tree items
@@ -943,12 +942,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
     nvim.call('bufnr', ['%'], true)
     nvim.call('win_getid', [], true)
     let res = await nvim.resumeNotification()
-    if (res[1]) throw new Error(`Error on buffer create:` + JSON.stringify(res[1]))
     if (!this.bufnr) this.registerKeymaps()
     let arr = res[0]
-    this.bufname = arr[arr.length - 3]
-    this.bufnr = arr[arr.length - 2]
-    this.winid = arr[arr.length - 1]
+    this.bufname = arr[arr.length - 3] as string
+    this.bufnr = arr[arr.length - 2] as number
+    this.winid = arr[arr.length - 1] as number
     if (!oldWinId) this._onDidChangeVisibility.fire({ visible: true })
     if (oldWinId && oldWinId !== this.winid) {
       nvim.call('coc#window#close', [oldWinId], true)
