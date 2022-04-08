@@ -36,10 +36,11 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
   redraw
 endfunction
 
-function! coc#snippet#enable()
+function! coc#snippet#enable(...)
   if get(b:, 'coc_snippet_active', 0) == 1
     return
   endif
+  let complete = get(a:, 1, 0)
   let b:coc_snippet_active = 1
   call coc#snippet#_select_mappings()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
@@ -48,12 +49,21 @@ function! coc#snippet#enable()
     let s:map_next = 0
   endif
   if s:map_next
-    execute 'inoremap <buffer><nowait><silent>'.nextkey." <C-R>=coc#rpc#request('snippetNext', [])<cr>"
+    execute 'inoremap <buffer><nowait><silent>'.nextkey." <C-R>=coc#snippet#jump(1, ".complete.")<cr>"
   endif
-  let pre = s:cmd_mapping ? '<Cmd>' : '<Esc>'
-  execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#rpc#request('snippetPrev', [])<cr>"
-  execute 'snoremap <buffer><nowait><silent>'.prevkey." ".pre.":call coc#rpc#request('snippetPrev', [])<cr>"
-  execute 'snoremap <buffer><nowait><silent>'.nextkey." ".pre.":call coc#rpc#request('snippetNext', [])<cr>"
+  execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#snippet#jump(0, ".complete.")<cr>"
+  execute 'snoremap <buffer><nowait><silent>'.prevkey." <Esc>:call coc#snippet#jump(0, ".complete.")<cr>"
+  execute 'snoremap <buffer><nowait><silent>'.nextkey." <Esc>:call coc#snippet#jump(1, ".complete.")<cr>"
+endfunction
+
+function! coc#snippet#jump(direction, complete) abort
+  if a:direction == 1 && a:complete && pumvisible()
+    let pre = exists('*complete_info') && complete_info()['selected'] == -1 ? "\<C-n>" : ''
+    call feedkeys(pre."\<C-y>", 'in')
+    return ''
+  endif
+  call coc#rpc#request(a:direction == 1 ? 'snippetNext' : 'snippetPrev', [])
+  return ''
 endfunction
 
 function! coc#snippet#disable()
@@ -69,4 +79,40 @@ function! coc#snippet#disable()
   silent! execute 'iunmap <buffer> <silent> '.prevkey
   silent! execute 'sunmap <buffer> <silent> '.prevkey
   silent! execute 'sunmap <buffer> <silent> '.nextkey
+endfunction
+
+function! coc#snippet#select(position, text) abort
+  if mode() == 's'
+    call feedkeys("\<Esc>", 'in')
+  endif
+  let cursor = coc#snippet#to_cursor(a:position)
+  call cursor([cursor[0], cursor[1] - (&selection !~# 'exclusive')])
+  let len = strchars(a:text) - (&selection !~# 'exclusive')
+  let cmd = ''
+  let cmd .= mode()[0] ==# 'i' ? "\<Esc>l" : ''
+  let cmd .= printf('v%s', len > 0 ? len . 'h' : '')
+  let cmd .= "o\<C-g>"
+  call feedkeys(cmd, 'n')
+endfunction
+
+function! coc#snippet#move(position) abort
+  if mode() == 's'
+    call feedkeys("\<Esc>", 'in')
+  endif
+  let pos = coc#snippet#to_cursor(a:position)
+  call cursor(pos)
+  if pos[1] > strlen(getline(pos[0]))
+    startinsert!
+  else
+    startinsert
+  endif
+endfunction
+
+
+function! coc#snippet#to_cursor(position) abort
+  let line = getline(a:position.line + 1)
+  if line is v:null
+    return [a:position.line + 1, a:position.character + 1]
+  endif
+  return [a:position.line + 1, byteidx(line, a:position.character) + 1]
 endfunction

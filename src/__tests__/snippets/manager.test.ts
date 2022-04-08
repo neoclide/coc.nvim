@@ -132,7 +132,7 @@ describe('snippet provider', () => {
       await snippetManager.insertSnippet('${1:foo} ${2:bar}')
       await nvim.input('f')
       await helper.waitPopup()
-      await snippetManager.nextPlaceholder()
+      await nvim.input('<C-j>')
       await helper.waitFor('getline', ['.'], 'foo bar')
       config.update('preferCompleteThanJumpPlaceholder', false)
     })

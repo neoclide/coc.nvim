@@ -1,7 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import completion from '../completion'
 import events from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
@@ -93,7 +92,7 @@ export class SnippetSession {
   private activate(): void {
     if (this._isActive) return
     this._isActive = true
-    this.nvim.call('coc#snippet#enable', [], true)
+    this.nvim.call('coc#snippet#enable', [this.preferComplete ? 1 : 0], true)
   }
 
   public deactivate(): void {
@@ -178,67 +177,14 @@ export class SnippetSession {
   }
 
   private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
-    let { range } = placeholder
-    let { document, nvim } = this
-    let { start, end } = range
-    let { textDocument } = document
-    let len = textDocument.offsetAt(end) - textDocument.offsetAt(start)
-    let line = document.getline(start.line)
-    let col = line ? byteLength(line.slice(0, start.character)) : 0
-    let endLine = document.getline(end.line)
-    let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
-    let [ve, selection, pumvisible, mode] = await nvim.eval('[&virtualedit, &selection, pumvisible(), mode()]') as [string, string, number, string]
-    let move_cmd = ''
-    if (pumvisible && this.preferComplete) {
-      let pre = completion.hasSelected() ? '' : '\\<C-n>'
-      await nvim.eval(`feedkeys("${pre}\\<C-y>", 'in')`)
-      return
-    }
-    // create move cmd
-    if (mode != 'n') move_cmd += "\\<Esc>"
-    if (len == 0) {
-      if (col == 0 || (!mode.startsWith('i') && col < byteLength(line))) {
-        move_cmd += 'i'
-      } else {
-        move_cmd += 'a'
-      }
-    } else {
-      move_cmd += 'v'
-      endCol = await this.getVirtualCol(end.line + 1, endCol)
-      if (selection == 'inclusive') {
-        if (end.character == 0) {
-          move_cmd += `${end.line}G`
-        } else {
-          move_cmd += `${end.line + 1}G${endCol}|`
-        }
-      } else if (selection == 'old') {
-        move_cmd += `${end.line + 1}G${endCol}|`
-      } else {
-        move_cmd += `${end.line + 1}G${endCol + 1}|`
-      }
-      col = await this.getVirtualCol(start.line + 1, col)
-      move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`
-    }
-    if (mode == 'i' && move_cmd == "\\<Esc>a") {
-      move_cmd = ''
-    }
-    nvim.pauseNotification()
-    nvim.setOption('virtualedit', 'onemore', true)
-    nvim.call('cursor', [start.line + 1, col + (move_cmd == 'a' ? 0 : 1)], true)
-    if (move_cmd) {
-      nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
-    }
-    if (pumvisible) {
-      nvim.call('coc#_cancel', [], true)
-    }
-    nvim.setOption('virtualedit', ve, true)
-    await nvim.resumeNotification(true)
-    if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
-  }
-
-  private async getVirtualCol(line: number, col: number): Promise<number> {
+    let { range, value } = placeholder
     let { nvim } = this
-    return await nvim.eval(`virtcol([${line}, ${col}])`) as number
+    if (value.length > 0) {
+      await nvim.call('coc#snippet#select', [range.end, value])
+    } else {
+      await nvim.call('coc#snippet#move', [range.start])
+    }
+    if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
   }
 
   public async checkPosition(): Promise<void> {

@@ -179,7 +179,7 @@ describe('SnippetSession', () => {
       res = await session.start('${1:foo} ${2:bar}', r, false)
       expect(res).toBe(true)
       line = await nvim.line
-      expect(line).toBe('foo bara b')
+      expect(line).toBe('afoo bar b')
     })
   })
 
@@ -344,7 +344,7 @@ describe('SnippetSession', () => {
       let line = await nvim.line
       expect(line).toBe('xab')
       let map = await nvim.call('maparg', ['<C-j>', 'i']) as string
-      expect(map).toMatch('snippetNext')
+      expect(map).toMatch('coc#snippet#jump')
       await session.nextPlaceholder()
       map = await nvim.call('maparg', ['<C-j>', 'i']) as string
       expect(map).toBe('')
