@@ -3,7 +3,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 26
+let s:vim_api_version = 27
 let s:activate = ""
 let s:quit = ""
 
@@ -581,9 +581,13 @@ function! coc#util#all_state()
         \ }
 endfunction
 
-function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes, cursor) abort
+function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, end, changes, cursor, col) abort
   if !bufloaded(a:bufnr)
     return
+  endif
+  let delta = 0
+  if !empty(a:col)
+    let delta = col('.') - a:col
   endif
   if getbufvar(a:bufnr, 'changedtick') != a:changedtick && bufnr('%') == a:bufnr
     " try apply current line change
@@ -613,7 +617,7 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
     call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, a:replacement)
   endif
   if !empty(a:cursor)
-    call cursor(a:cursor[0], a:cursor[1])
+    call cursor(a:cursor[0], a:cursor[1] + delta)
   endif
 endfunction
 

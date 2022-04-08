@@ -305,17 +305,18 @@ describe('Document', () => {
     })
 
     it('should move cursor', async () => {
-      await nvim.call('cursor', [1, 1])
+      await nvim.input('ia')
+      await helper.wait(30)
       let doc = await workspace.document
       let edits: TextEdit[] = []
       edits.push({
-        range: Range.create(0, 0, 0, 0),
+        range: Range.create(0, 0, 0, 1),
         newText: 'foo'
       })
       await doc.applyEdits(edits, false, true)
       let cursor = await nvim.call('getcurpos') as number[]
       expect(cursor[1]).toBe(1)
-      expect(cursor[2]).toBe(3)
+      expect(cursor[2]).toBe(4)
     })
 
     it('should applyEdits with range not sorted', async () => {

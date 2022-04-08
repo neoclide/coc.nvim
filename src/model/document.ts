@@ -298,11 +298,12 @@ export default class Document {
     }
     let cursor: [number, number]
     let isCurrent = events.bufnr == this.bufnr
+    let col: number
     if (move && isCurrent && !isAppend) {
       let pos = Position.is(move) ? move : undefined
-      if (move === true) {
-        let [bufnr, line, content] = await this.nvim.eval(`[bufnr('%'),line('.'),strpart(getline('.'),0,col('.') - 1)]`) as [number, number, string]
-        if (bufnr == this.bufnr) pos = Position.create(line - 1, content.length)
+      if (move === true && this.bufnr === events.cursor?.bufnr) {
+        let { col, lnum } = events.cursor
+        pos = Position.create(lnum - 1, characterIndex(this.lines[lnum - 1], col - 1))
       }
       if (pos) {
         let position = getPositionFromEdits(pos, edits)
@@ -311,6 +312,7 @@ export default class Document {
           let col = byteIndex(content, position.character) + 1
           cursor = [position.line + 1, col]
         }
+        col = byteIndex(this.lines[pos.line], pos.character) + 1
       }
     }
     this.nvim.pauseNotification()
@@ -326,7 +328,8 @@ export default class Document {
         changed.start,
         changed.end,
         changes,
-        cursor
+        cursor,
+        col
       ], true)
     }
     this.nvim.resumeNotification(isCurrent, true)
