@@ -81,7 +81,8 @@ describe('register handler', () => {
       lnum: 1,
       col: 2,
       pre: 'i',
-      changedtick: 1
+      changedtick: 1,
+      line: 'i'
     }])
     expect(events.lastChangeTs).toBeDefined()
     await events.race(['TextInsert'])
@@ -111,7 +112,7 @@ describe('register handler', () => {
     void events.race(['TextChangedI'], 200).then(res => {
       arr.push(res)
     })
-    await events.fire('TextChangedI', [])
+    await events.fire('TextChangedI', [2, {}])
     expect(arr.length).toBe(2)
     expect(arr.map(o => o.name)).toEqual(['TextChangedI', 'TextChangedI'])
   })

@@ -27,12 +27,12 @@ describe('shouldStop', () => {
 
   it('should check stop', async () => {
     let opt = createOption(1, 1, 'a', 2)
-    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: '' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: ' ' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: 'fo' }, opt)).toBe(true)
-    expect(shouldStop(2, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { col: 2, lnum: 2, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { col: 2, lnum: 1, changedtick: 1, pre: 'barb' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: '' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: ' ' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'fo' }, opt)).toBe(true)
+    expect(shouldStop(2, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 2, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
+    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'barb' }, opt)).toBe(true)
   })
 })
 

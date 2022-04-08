@@ -3,7 +3,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import events from '../events'
+import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
 import { disposeAll, getUri, wait } from '../util/index'
@@ -35,6 +35,7 @@ export default class Document {
   public isIgnored = false
   public chars: Chars
   private eol = true
+  private _noFetch: boolean
   private _disposed = false
   private _attached = false
   private _previewwindow = false
@@ -199,6 +200,7 @@ export default class Document {
     this._uri = getUri(opts.fullpath, this.bufnr, buftype, this.env.isCygwin)
     if (Array.isArray(opts.lines)) {
       this.lines = opts.lines
+      this._noFetch = true
       this._attached = true
       this.attach()
     }
@@ -431,6 +433,7 @@ export default class Document {
     if (!this.env.isVim || !this._attached) return
     let { nvim, bufnr, changedtick } = this
     let o = await nvim.call('coc#util#get_buf_lines', [bufnr, changedtick])
+    this._noFetch = true
     if (o) {
       this._changedtick = o.changedtick
       this.lines = o.lines
@@ -450,11 +453,9 @@ export default class Document {
   public changeLine(lnum: number, line: string, changedtick: number): void {
     let curr = this.lines[lnum - 1]
     if (curr === undefined) return
-    if (curr !== line) {
-      let newLines = this.lines.slice()
-      newLines[lnum - 1] = line
-      this.lines = newLines
-    }
+    let newLines = this.lines.slice()
+    newLines[lnum - 1] = line
+    this.lines = newLines
     this._changedtick = changedtick
   }
 
@@ -663,6 +664,13 @@ export default class Document {
   }
 
   /**
+   * Get localify bonus map.
+   */
+  public getLocalifyBonus(sp: Position, ep: Position, max?: number): Map<string, number> {
+    return this.chars.getLocalifyBonus(sp, ep, this.lines, max)
+  }
+
+  /**
    * Synchronize latest document content
    */
   public async synchronize(): Promise<void> {
@@ -675,12 +683,20 @@ export default class Document {
   }
 
   /**
-   * Get localify bonus map.
-   *
-   * @internal
+   * Used by vim8 to fetch lines.
    */
-  public getLocalifyBonus(sp: Position, ep: Position, max?: number): Map<string, number> {
-    return this.chars.getLocalifyBonus(sp, ep, this.lines, max)
+  public onTextChange(event: string, change?: InsertChange): void {
+    if (event === 'TextChanged'
+      || (event === 'TextChangedI' && !change.insertChar)
+      || !this._noFetch) {
+      this._noFetch = false
+      this.fetchContent()
+      return
+    }
+    let { line, changedtick, lnum } = change
+    if (changedtick === this.changedtick) return
+    this.changeLine(lnum, line, changedtick)
+    if (event !== 'TextChangedP') this._forceSync()
   }
 }
 

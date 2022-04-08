@@ -22,15 +22,12 @@ export interface InsertChange {
   lnum: number
   col: number
   pre: string
+  line: string
+  changedtick: number
   /**
    * Insert character that cause change of this time.
    */
   insertChar?: string
-  /**
-   * Current line, TextChangedP only.
-   */
-  line?: string
-  changedtick: number
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter'
@@ -147,18 +144,7 @@ class Events {
 
   public async fire(event: string, args: any[]): Promise<void> {
     let cbs = this.handlers.get(event)
-    if (event == 'TextChangedP') {
-      let info = args[1]
-      let pre = byteSlice(info.line || '', 0, info.col - 1)
-      info.pre = pre
-      // fix cursor since vim not send CursorMovedI event
-      this._cursor = {
-        bufnr: args[0],
-        lnum: info.lnum,
-        col: info.col,
-        insert: true
-      }
-    } else if (event == 'InsertEnter') {
+    if (event == 'InsertEnter') {
       this._insertMode = true
     } else if (event == 'InsertLeave') {
       this._insertMode = false
@@ -188,8 +174,17 @@ class Events {
       this._pumVisible = event == 'TextChangedP'
       this._lastChange = Date.now()
       let info: InsertChange = args[1]
-      if (arr.length && info.pre.length) {
-        let character = info.pre.slice(-1)
+      let pre = byteSlice(info.line ?? '', 0, info.col - 1)
+      info.pre = pre
+      // fix cursor since vim not send CursorMovedI event
+      this._cursor = {
+        bufnr: args[0],
+        lnum: info.lnum,
+        col: info.col,
+        insert: true
+      }
+      if (arr.length && pre.length) {
+        let character = pre.slice(-1)
         if (arr.findIndex(o => o[1] == character) !== -1) {
           info.insertChar = character
           // make it fires after TextChangedI & TextChangedP

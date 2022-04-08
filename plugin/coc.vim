@@ -331,7 +331,7 @@ function! s:Enable(initialize)
     if exists('##TextChangedP')
       autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'line': getline('.'), 'changedtick': b:changedtick})
     endif
-    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'pre': strpart(getline('.'), 0, col('.') - 1), 'changedtick': b:changedtick})
+    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), {'lnum': line('.'), 'col': col('.'), 'line': getline('.'), 'changedtick': b:changedtick})
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))

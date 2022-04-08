@@ -75,7 +75,7 @@ export default class FormatHandler {
       }
     }))
     handler.addDisposable(events.on('TextInsert', async (bufnr: number, info, character: string) => {
-      if (!info.line) await this.tryFormatOnType(character, bufnr)
+      if (!events.pumvisible) await this.tryFormatOnType(character, bufnr)
     }))
     handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
       const doc = uri ? workspace.getDocument(uri) : (await this.handler.getCurrentState()).doc

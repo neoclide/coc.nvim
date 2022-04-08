@@ -149,7 +149,7 @@ export default class LanguageSource implements ISource {
       // move cursor after edit
       await doc.applyEdits(item.additionalTextEdits, true, !isSnippet)
     }
-    if (isSnippet) await snippetManager.selectCurrentPlaceholder()
+    if (isSnippet) await snippetManager.selectCurrentPlaceholder(true)
     if (item.command && commands.has(item.command.command)) {
       await commands.execute(item.command)
     }
@@ -179,7 +179,6 @@ export default class LanguageSource implements ISource {
     if (range.end.character < beginIdx) range.end.character = beginIdx
     // fix range by count cursor moved to replace insernt word on complete done.
     if (pos.character > beginIdx) range.end.character += pos.character - beginIdx
-
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     if (isSnippet && this.completeConfig.snippetsSupport === false) {
       // could be wrong, but maybe best we can do.

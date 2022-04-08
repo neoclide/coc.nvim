@@ -110,16 +110,12 @@ export default class Documents implements Disposable {
       void this.createDocument(bufnr)
     }, null, this.disposables)
     if (this._env.isVim) {
-      const onChange = (bufnr: number) => {
-        let doc = this.buffers.get(bufnr)
-        if (doc?.attached) doc.fetchContent()
-      }
-      events.on('TextChangedP', (bufnr, info: InsertChange) => {
-        let doc = this.buffers.get(bufnr)
-        if (doc?.attached) doc.changeLine(info.lnum, info.line, info.changedtick)
-      }, null, this.disposables)
-      events.on('TextChangedI', onChange, null, this.disposables)
-      events.on('TextChanged', onChange, null, this.disposables)
+      ['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
+        events.on(event as any, (bufnr: number, info?: InsertChange) => {
+          let doc = this.buffers.get(bufnr)
+          if (doc?.attached) doc.onTextChange(event, info)
+        }, null, this.disposables)
+      })
     } else {
       events.on('CompleteDone', async () => {
         let ev = await events.race(['TextChangedI', 'TextChanged', 'MenuPopupChanged'], 100)

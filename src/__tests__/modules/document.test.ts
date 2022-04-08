@@ -5,6 +5,7 @@ import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
+import events from '../../events'
 import Document from '../../model/document'
 import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
 import { disposeAll } from '../../util'
@@ -636,6 +637,53 @@ describe('Document', () => {
       await nvim.resumeNotification()
       let matches = await nvim.call('getmatches', [win.id])
       expect(matches.length).toBe(0)
+    })
+  })
+
+  describe('onTextChange', () => {
+    async function createVimDocument(): Promise<Document> {
+      let doc = await workspace.document
+      doc.detach()
+      let opts = await nvim.call('coc#util#get_bufoptions', doc.bufnr)
+      let buf = nvim.createBuffer(doc.bufnr)
+      let env = Object.assign({ isVim: true }, workspace.env)
+      return new Document(buf, env, nvim, opts)
+    }
+
+    it('should fetch lines on TextChanged', async () => {
+      let doc = await createVimDocument()
+      expect(doc.attached).toBe(true)
+      let disposable = events.on('TextChanged', (bufnr: number) => {
+        if (bufnr == doc.bufnr) doc.onTextChange('TextChanged')
+      })
+      let p = new Promise<void>(resolve => {
+        doc.onDocumentChange(() => {
+          resolve()
+        })
+      })
+      await nvim.setLine('foo')
+      await p
+      disposable.dispose()
+      let line = doc.getline(0)
+      expect(line).toBe('foo')
+    })
+
+    it('should update on insert change', async () => {
+
+      let doc = await createVimDocument()
+      await nvim.setLine('foo')
+      let disposables: Disposable[] = []
+        ;['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
+          events.on(event as any, (bufnr: number, info) => {
+            if (bufnr === doc.bufnr) doc.onTextChange(event, info)
+          }, null, disposables)
+        })
+      await nvim.input('o')
+      await nvim.input('f')
+      await nvim.input('<C-n>')
+      await helper.waitPopup()
+      let line = doc.getline(1)
+      expect(line).toBe('f')
     })
   })
 })

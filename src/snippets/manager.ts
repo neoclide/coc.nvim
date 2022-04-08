@@ -95,6 +95,8 @@ export class SnippetManager {
       await session.forceSynchronize()
       // current session could be canceled on sychronize.
       session = this.getSession(bufnr)
+    } else {
+      await doc.patchChange(true)
     }
     if (!session) {
       session = new SnippetSession(workspace.nvim, bufnr, this.highlight, this.preferComplete)
