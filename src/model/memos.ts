@@ -1,3 +1,4 @@
+'use strict'
 import fs from 'fs'
 import { deepClone } from '../util/object'
 const logger = require('../util/logger')('model-memos')

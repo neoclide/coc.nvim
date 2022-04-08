@@ -1,3 +1,4 @@
+'use strict'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { getEnd } from '../util/position'
 import { getChangedPosition } from '../util/textedit'

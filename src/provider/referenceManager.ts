@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, Disposable, DocumentSelector, Location, Position, ReferenceContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { ReferenceProvider } from './index'

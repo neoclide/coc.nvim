@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, Definition, DefinitionLink, Disposable, DocumentSelector, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DefinitionProvider } from './index'

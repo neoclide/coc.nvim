@@ -1,3 +1,4 @@
+'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
 import os from 'os'

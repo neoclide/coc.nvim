@@ -1,3 +1,4 @@
+'use strict'
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'

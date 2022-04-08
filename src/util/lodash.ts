@@ -1,3 +1,4 @@
+'use strict'
 
 /** Used for built-in method references. */
 const objectProto = Object.prototype

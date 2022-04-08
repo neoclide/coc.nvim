@@ -1,3 +1,4 @@
+'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { debounce } from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver-protocol'

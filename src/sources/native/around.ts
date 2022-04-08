@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BufferSync from '../../model/bufferSync'
 import { CompleteOption, CompleteResult, ISource } from '../../types'

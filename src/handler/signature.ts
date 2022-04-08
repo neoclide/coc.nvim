@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, MarkupContent, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
 import events from '../events'

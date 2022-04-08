@@ -1,3 +1,4 @@
+'use strict'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, Disposable, DocumentSelector, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyProvider } from './index'

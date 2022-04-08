@@ -1,3 +1,4 @@
+'use strict'
 import contentDisposition from 'content-disposition'
 import { http, https } from 'follow-redirects'
 import fs, { Stats } from 'fs-extra'

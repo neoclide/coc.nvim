@@ -1,3 +1,4 @@
+'use strict'
 /* eslint-disable no-redeclare */
 import cp from 'child_process'
 import fs from 'fs'

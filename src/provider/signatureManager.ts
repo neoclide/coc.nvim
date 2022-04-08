@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, Disposable, DocumentSelector, Position, SignatureHelp, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SignatureHelpProvider } from './index'

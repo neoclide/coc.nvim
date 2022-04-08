@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Definition, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'

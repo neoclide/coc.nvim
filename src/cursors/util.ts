@@ -1,3 +1,4 @@
+'use strict'
 import { Range, TextEdit } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { equals } from '../util/object'

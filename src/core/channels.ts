@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'

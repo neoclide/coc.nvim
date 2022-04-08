@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "lib",
+    "strict": true,
     "noEmit": true,
     "sourceMap": true,
     "importHelpers": true,

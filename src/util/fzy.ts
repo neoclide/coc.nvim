@@ -1,3 +1,4 @@
+'use strict'
 let SCORE_MIN = -Infinity
 let SCORE_MAX = Infinity
 

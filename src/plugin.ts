@@ -1,3 +1,4 @@
+'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import { CodeActionKind, Disposable } from 'vscode-languageserver-protocol'

@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 const isVim = process.env.VIM_NODE_RPC == '1'
 

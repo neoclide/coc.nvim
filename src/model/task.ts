@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'

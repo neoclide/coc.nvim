@@ -1,3 +1,4 @@
+'use strict'
 import { SymbolKind } from 'vscode-languageserver-protocol'
 
 export function getSymbolKind(kind: SymbolKind): string {

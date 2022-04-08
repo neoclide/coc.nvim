@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import fastDiff from 'fast-diff'
 import { Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'

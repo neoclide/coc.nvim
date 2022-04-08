@@ -1,3 +1,4 @@
+'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationTokenSource, Color, ColorInformation, Position, Range } from 'vscode-languageserver-protocol'

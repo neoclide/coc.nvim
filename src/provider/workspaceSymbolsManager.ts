@@ -1,3 +1,4 @@
+'use strict'
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, SymbolInformation } from 'vscode-languageserver-protocol'
 import { WorkspaceSymbolProvider } from './index'

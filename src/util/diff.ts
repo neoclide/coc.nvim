@@ -1,3 +1,4 @@
+'use strict'
 import fastDiff from 'fast-diff'
 import { Position, TextEdit, Range } from 'vscode-languageserver-types'
 import { byteLength } from './string'

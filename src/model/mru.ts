@@ -1,3 +1,4 @@
+'use strict'
 import path from 'path'
 import fs from 'fs-extra'
 import { readFileLines, writeFile } from '../util/fs'

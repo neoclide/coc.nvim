@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationTokenSource } from 'vscode-jsonrpc'
 import { URI } from 'vscode-uri'
 import events from '../events'

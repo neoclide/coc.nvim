@@ -1,3 +1,4 @@
+'use strict'
 import { exec } from 'child_process'
 import fs from 'fs-extra'
 import minimatch from 'minimatch'

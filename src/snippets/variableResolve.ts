@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Variable, VariableResolver } from "./parser"

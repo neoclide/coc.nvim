@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { ChildProcess, spawn } from 'child_process'
 import { EventEmitter } from 'events'

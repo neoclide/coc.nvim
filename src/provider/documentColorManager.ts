@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, ColorInformation, ColorPresentation, Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentColorProvider } from './index'

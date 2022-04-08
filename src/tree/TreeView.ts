@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, MarkupKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
@@ -378,7 +379,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       release()
     } catch (e) {
       release()
-      logger.error(`Error on tree filter: ${e.message}`, e)
+      logger.error(`Error on tree filter:`, e)
     }
   }
 
@@ -482,7 +483,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       }
       release()
     } catch (e) {
-      let errMsg = `Error on tree refresh: ${e.message}`
+      let errMsg = `Error on tree refresh: ${e}`
       logger.error(errMsg, e)
       this.nvim.errWriteLine('[coc.nvim] ' + errMsg)
       release()
@@ -888,7 +889,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.nodesMap.clear()
       this.lineState = { titleCount: 0, messageCount: 1 }
       release()
-      let errMsg = `${e.message}`.replace(/\r?\n/g, ' ')
+      let errMsg = `${e}`.replace(/\r?\n/g, ' ')
       this.updateUI([errMsg], [{ hlGroup: 'WarningMsg', colStart: 0, colEnd: byteLength(errMsg), lnum: 0 }])
       if (this.retryTimers == 5) return
       this.timer = setTimeout(() => {

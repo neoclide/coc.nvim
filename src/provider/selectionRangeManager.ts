@@ -1,3 +1,4 @@
+'use strict'
 import { SelectionRange, CancellationToken, Disposable, DocumentSelector, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SelectionRangeProvider } from './index'

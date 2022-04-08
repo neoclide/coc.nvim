@@ -1,3 +1,4 @@
+'use strict'
 import * as Is from './is'
 
 export function isEmpty(obj: object | null | undefined): boolean {

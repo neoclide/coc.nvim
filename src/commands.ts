@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
 import { CodeAction, Disposable, InsertTextMode, Location, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
@@ -304,10 +305,7 @@ export class CommandManager implements Disposable {
   }
 
   public execute(command: language.Command): Promise<any> {
-    let args = [command.command]
-    let arr = command.arguments
-    if (arr) args.push(...arr)
-    return this.executeCommand.apply(this, args)
+    return this.executeCommand(command.command, ...command.arguments)
   }
 
   public register<T extends Command>(command: T, internal = false, description?: string): T {

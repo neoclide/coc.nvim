@@ -1,3 +1,4 @@
+'use strict'
 import { byteLength, upperFirst } from './string'
 
 export interface AnsiItem {

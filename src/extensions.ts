@@ -1,3 +1,4 @@
+'use strict'
 import { debounce } from 'debounce'
 import fs from 'fs-extra'
 import isuri from 'isuri'
@@ -138,7 +139,7 @@ export class Extensions {
         fs.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8')
       }
     } catch (e) {
-      console.error(`Unexpected error when check data home: ${e.message}`)
+      console.error(`Unexpected error when check data home: ${e}`)
       return false
     }
     return true
@@ -460,7 +461,7 @@ export class Extensions {
       fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
       window.showMessage(`Removed: ${globals.join(' ')}`)
     } catch (e) {
-      window.showMessage(`Uninstall failed: ${e.message}`, 'error')
+      window.showMessage(`Uninstall failed: ${e}`, 'error')
     }
   }
 
@@ -502,7 +503,7 @@ export class Extensions {
       this.createExtension(folder, Object.freeze(packageJSON), isLocal ? ExtensionType.Local : ExtensionType.Global)
       return true
     } catch (e) {
-      window.showMessage(`Error on load extension from "${folder}": ${e.message}`, 'error')
+      window.showMessage(`Error on load extension from "${folder}": ${e}`, 'error')
       logger.error(`Error on load extension from ${folder}`, e)
       return false
     }
@@ -896,7 +897,7 @@ export class Extensions {
               reject(e)
             })
           } catch (e) {
-            logger.error(`Error on active extension ${id}: ${e.stack}`, e)
+            logger.error(`Error on active extension ${id}: ${e}`, e instanceof Error ? e.stack : e)
             reject(e)
           }
         })
@@ -1078,7 +1079,7 @@ export class Extensions {
       }
       return true
     } catch (e) {
-      return e
+      return e as Error
     }
   }
 

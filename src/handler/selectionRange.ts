@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, SelectionRange } from 'vscode-languageserver-protocol'
 import languages from '../languages'

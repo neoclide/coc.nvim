@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { v1 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'

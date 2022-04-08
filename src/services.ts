@@ -1,14 +1,15 @@
+'use strict'
 import { SpawnOptions } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import net from 'net'
-import { CancellationToken, Event, CancellationTokenSource, Disposable, DocumentSelector, Emitter } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, DocumentSelector, Emitter, Event } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
-import workspace from './workspace'
 import window from './window'
+import workspace from './workspace'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
@@ -202,7 +203,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
         await service.restart()
       }
     } catch (e) {
-      window.showMessage(`Service error: ${e.message}`, 'error')
+      window.showMessage(`Service error: ${e}`, 'error')
     }
   }
 

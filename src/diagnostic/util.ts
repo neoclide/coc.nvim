@@ -1,3 +1,4 @@
+'use strict'
 import { DiagnosticSeverity, Diagnostic, DiagnosticTag } from 'vscode-languageserver-protocol'
 import { FloatConfig, LocationListItem } from '../types'
 import { comparePosition } from '../util/position'

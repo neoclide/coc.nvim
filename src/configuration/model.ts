@@ -1,3 +1,4 @@
+'use strict'
 import { IConfigurationModel } from '../types'
 import { objectLiteral } from '../util/is'
 import { deepClone } from '../util/object'

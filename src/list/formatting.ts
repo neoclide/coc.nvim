@@ -1,3 +1,4 @@
+'use strict'
 import { ListItem } from '../types'
 import path from 'path'
 

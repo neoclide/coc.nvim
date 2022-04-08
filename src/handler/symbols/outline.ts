@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CodeActionKind, Disposable, DocumentSymbol, Position, Range, SymbolKind, SymbolTag } from 'vscode-languageserver-protocol'
 import events from '../../events'

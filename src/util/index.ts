@@ -1,3 +1,4 @@
+'use strict'
 import { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
@@ -125,7 +126,7 @@ export function isRunning(pid: number): boolean {
     return res == true
   }
   catch (e) {
-    return e.code === 'EPERM'
+    return e['code'] === 'EPERM'
   }
 }
 

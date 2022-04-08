@@ -1,3 +1,4 @@
+'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { CodeActionContext, CodeActionKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'

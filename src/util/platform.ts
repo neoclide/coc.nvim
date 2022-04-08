@@ -1,3 +1,4 @@
+'use strict'
 let _isWindows = false
 let _isMacintosh = false
 let _isLinux = false

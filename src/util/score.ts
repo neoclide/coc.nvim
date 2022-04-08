@@ -1,3 +1,4 @@
+'use strict'
 import { sep as pathSeparator } from 'path'
 import { getCharCodes, fuzzyMatch, fuzzyChar, caseMatch } from './fuzzy'
 

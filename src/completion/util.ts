@@ -1,3 +1,4 @@
+'use strict'
 import events, { InsertChange } from '../events'
 import { CompleteOption } from '../types'
 import { byteSlice } from '../util/string'

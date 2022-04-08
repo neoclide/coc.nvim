@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Range } from 'vscode-languageserver-protocol'
 import Document from '../model/document'

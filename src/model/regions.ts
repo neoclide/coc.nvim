@@ -1,3 +1,4 @@
+'use strict'
 /**
  * Remember used regions
  */

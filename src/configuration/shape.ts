@@ -1,3 +1,4 @@
+'use strict'
 import fs from 'fs'
 import { applyEdits, modify } from 'jsonc-parser'
 import os from 'os'

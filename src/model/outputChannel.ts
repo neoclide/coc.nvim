@@ -1,7 +1,6 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
-import { disposeAll } from '../util'
 const logger = require('../util/logger')('outpubChannel')
 
 export default class BufferChannel implements OutputChannel {

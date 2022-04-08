@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'

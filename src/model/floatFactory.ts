@@ -1,12 +1,13 @@
+'use strict'
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events, { BufEvents } from '../events'
 import { parseDocuments } from '../markdown'
+import { Documentation, FloatConfig } from '../types'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
-import { FloatConfig, Documentation } from '../types'
 const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('model-float')
 
@@ -54,7 +55,7 @@ export default class FloatFactory implements Disposable {
   private mutex: Mutex = new Mutex()
   private disposables: Disposable[] = []
   private cursor: [number, number]
-  private onCursorMoved: ((bufnr: number, cursor: [number, number]) => void) & { clear(): void }
+  private onCursorMoved: Function & { clear(): void }
   constructor(private nvim: Neovim) {
     this.onCursorMoved = debounce(this._onCursorMoved.bind(this), 100)
   }

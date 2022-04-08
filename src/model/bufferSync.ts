@@ -1,3 +1,4 @@
+'use strict'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { DidChangeTextDocumentParams, IWorkspace } from '../types'
 import { disposeAll } from '../util'

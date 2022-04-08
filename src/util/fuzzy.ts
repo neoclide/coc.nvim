@@ -1,3 +1,4 @@
+'use strict'
 
 export function getCharCodes(str: string): number[] {
   let res = []

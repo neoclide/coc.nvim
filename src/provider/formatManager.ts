@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, Disposable, DocumentSelector, FormattingOptions, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentFormattingEditProvider } from './index'

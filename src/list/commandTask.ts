@@ -1,3 +1,4 @@
+'use strict'
 import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import readline from 'readline'

@@ -1,3 +1,4 @@
+'use strict'
 import { Definition, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import workspace from '../workspace'

@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
@@ -104,13 +105,9 @@ export class Sources {
   }
 
   private createNativeSources(): void {
-    try {
-      this.disposables.push((require('./native/around')).regist(this.sourceMap, this.keywords))
-      this.disposables.push((require('./native/buffer')).regist(this.sourceMap, this.keywords))
-      this.disposables.push((require('./native/file')).regist(this.sourceMap))
-    } catch (e) {
-      console.error('Create source error:' + e.message)
-    }
+    this.disposables.push((require('./native/around')).regist(this.sourceMap, this.keywords))
+    this.disposables.push((require('./native/buffer')).regist(this.sourceMap, this.keywords))
+    this.disposables.push((require('./native/file')).regist(this.sourceMap))
   }
 
   public createLanguageSource(
@@ -227,7 +224,7 @@ export class Sources {
         this.removeSource(source)
       })
     } catch (e) {
-      window.showMessage(`Error on create vim source ${name}: ${e.message}`, 'error')
+      window.showMessage(`Error on create vim source ${name}: ${e}`, 'error')
     }
   }
 

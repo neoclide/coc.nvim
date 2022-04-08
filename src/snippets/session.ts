@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../completion'

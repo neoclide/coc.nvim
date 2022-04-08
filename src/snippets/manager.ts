@@ -1,3 +1,4 @@
+'use strict'
 import { Disposable, InsertTextMode, Position, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { StatusBarItem } from '../model/status'

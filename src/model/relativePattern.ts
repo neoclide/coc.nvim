@@ -1,3 +1,4 @@
+'use strict'
 import { URI } from 'vscode-uri'
 import { illegalArgument } from '../util/errors'
 import { WorkspaceFolder } from 'vscode-languageserver-protocol'

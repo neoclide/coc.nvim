@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import languages from '../../languages'
 import workspace from '../../workspace'

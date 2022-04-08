@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import services from '../../services'
 import { ListContext, ListItem } from '../../types'

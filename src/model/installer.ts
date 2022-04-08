@@ -1,3 +1,4 @@
+'use strict'
 import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs-extra'
@@ -42,7 +43,7 @@ export function registryUrl(scope = 'coc.nvim'): string {
         res = obj['registry']
       }
     } catch (e) {
-      logger.error('Error on read .npmrc:', e.message)
+      logger.error('Error on read .npmrc:', e)
     }
   }
   return res.endsWith('/') ? res : res + '/'

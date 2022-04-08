@@ -1,3 +1,4 @@
+'use strict'
 import { Range, SemanticTokens, SemanticTokensLegend } from "vscode-languageserver-protocol"
 
 function isStringArray(value: any): value is string[] {

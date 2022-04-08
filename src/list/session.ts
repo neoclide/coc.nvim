@@ -1,3 +1,4 @@
+'use strict'
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
@@ -543,8 +544,7 @@ export default class ListSession {
       }
       if (action.reload && persist) await this.worker.loadItems(this.context, true)
     } catch (e) {
-      window.showMessage(e.message, 'error')
-      logger.error(`Error on action "${action.name}"`, e)
+      this.nvim.echoError(e)
     }
   }
 

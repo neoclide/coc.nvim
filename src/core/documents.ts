@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import bytes from 'bytes'
 import fs from 'fs'

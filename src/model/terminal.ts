@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 const logger = require('../util/logger')('model-terminal')
 

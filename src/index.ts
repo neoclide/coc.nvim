@@ -1,3 +1,4 @@
+'use strict'
 import commands from './commands'
 import events from './events'
 import languages from './languages'

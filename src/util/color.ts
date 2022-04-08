@@ -1,3 +1,4 @@
+'use strict'
 import { Color } from 'vscode-languageserver-protocol'
 
 function pad(str: string): string {

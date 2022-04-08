@@ -1,3 +1,4 @@
+'use strict'
 import { attach, Attach, NeovimClient } from '@chemzqm/neovim'
 import log4js from 'log4js'
 import events from './events'
@@ -77,8 +78,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
           await plugin.ready
           await plugin.cocAction(method, ...args)
         } catch (e) {
-          console.error(`Error on "${method}": ${e.message || e.toString()}`)
-          logger.error(`Notification error:`, method, args, e)
+          nvim.echoError(e)
         }
       }
     }
@@ -111,7 +111,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       clearTimeout(timer)
     } catch (e) {
       clearTimeout(timer)
-      resp.send(e.message || e.toString(), true)
+      resp.send(e instanceof Error ? e.message : e.toString(), true)
       logger.error(`Request error:`, method, args, e)
     }
   })

@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, Disposable, DocumentSelector, DocumentSymbol, SymbolInformation } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentSymbolProvider, DocumentSymbolProviderMetadata } from './index'

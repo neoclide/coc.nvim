@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, CodeLens, Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeLensProvider } from './index'

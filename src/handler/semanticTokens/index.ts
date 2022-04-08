@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
@@ -224,7 +225,7 @@ export default class SemanticTokens {
         hl.addLine('No token modifiers exists', 'Comment')
       }
     } catch (e) {
-      hl.addLine(e.message, 'Error')
+      hl.addLine(e instanceof Error ? e.message : e.toString(), 'Error')
     }
     nvim.pauseNotification()
     let bufnr = res[0][2] as number

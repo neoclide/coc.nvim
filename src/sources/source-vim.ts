@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
@@ -17,7 +18,7 @@ export default class VimSource extends Source {
     try {
       res = await this.nvim.call(name, args)
     } catch (e) {
-      window.showMessage(`Vim error from source ${this.name}: ${e.message}`, 'error')
+      window.showMessage(`Vim error from source ${this.name}: ${e}`, 'error')
       return null
     }
     return res

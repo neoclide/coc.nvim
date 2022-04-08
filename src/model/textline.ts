@@ -1,3 +1,4 @@
+'use strict'
 import { Range } from 'vscode-languageserver-protocol'
 
 /**

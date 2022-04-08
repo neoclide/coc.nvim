@@ -1,3 +1,4 @@
+'use strict'
 import { getCharCodes, caseMatch, wordChar } from '../util/fuzzy'
 
 function nextWordIndex(start = 0, codes: number[]): number {

@@ -1,3 +1,4 @@
+'use strict'
 import workspace from '../workspace'
 import window from '../window'
 import { WorkspaceConfiguration } from '../types'

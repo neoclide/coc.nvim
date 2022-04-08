@@ -1,3 +1,4 @@
+'use strict'
 import { Position, CancellationToken } from 'vscode-languageserver-protocol'
 import { waitImmediate } from '../util'
 import { TextDocument } from 'vscode-languageserver-textdocument'

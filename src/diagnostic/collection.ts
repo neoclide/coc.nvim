@@ -1,3 +1,4 @@
+'use strict'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import workspace from '../workspace'

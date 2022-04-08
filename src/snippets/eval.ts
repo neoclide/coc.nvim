@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Range } from '@chemzqm/neovim/lib/types'
 import { exec } from 'child_process'
@@ -87,15 +88,15 @@ export async function executePythonCode(nvim: Neovim, codes: string[]) {
   try {
     await nvim.command(`pyx ${addPythonTryCatch(codes.join('\n'))}`)
   } catch (e) {
-    let err = new Error(e.message)
-    err.stack = `Error on execute python code:\n${codes.join('\n')}\n` + e.stack
+    let err = new Error(e instanceof Error ? e.message : e.toString())
+    err.stack = `Error on execute python code:\n${codes.join('\n')}\n` + (e instanceof Error ? e.stack : e)
     throw err
   }
 }
 
 export function getVariablesCode(values: { [index: number]: string }): string {
   let keys = Object.keys(values)
-  let maxIndex = keys.length ? Math.max.apply(null, keys) : 0
+  let maxIndex = keys.length ? Math.max.apply(null, keys.map(v => Number(v))) : 0
   let vals = (new Array(maxIndex)).fill('""')
   for (let [idx, val] of Object.entries(values)) {
     vals[idx] = `"${escapeString(val)}"`

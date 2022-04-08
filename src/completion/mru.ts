@@ -1,3 +1,4 @@
+'use strict'
 import Mru from '../model/mru'
 import { ExtendedCompleteItem } from '../types'
 

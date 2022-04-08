@@ -1,3 +1,4 @@
+'use strict'
 
 export function intersect<T>(array: T[], other: T[]): boolean {
   for (let item of other) {

@@ -1,3 +1,4 @@
+'use strict'
 import path from 'path'
 import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'

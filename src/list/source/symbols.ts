@@ -1,3 +1,4 @@
+'use strict'
 import path from 'path'
 import minimatch from 'minimatch'
 import { URI } from 'vscode-uri'

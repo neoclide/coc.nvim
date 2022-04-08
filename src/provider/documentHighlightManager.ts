@@ -1,3 +1,4 @@
+'use strict'
 import { CancellationToken, Disposable, DocumentHighlight, DocumentSelector, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentHighlightProvider } from './index'

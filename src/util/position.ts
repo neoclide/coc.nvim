@@ -1,3 +1,4 @@
+'use strict'
 import { Position, Range } from 'vscode-languageserver-protocol'
 
 export function rangeInRange(r: Range, range: Range): boolean {

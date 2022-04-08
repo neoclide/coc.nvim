@@ -1,3 +1,4 @@
+'use strict'
 Object.defineProperty(console, 'log', {
   value() {
     if (logger) logger.info(...arguments)

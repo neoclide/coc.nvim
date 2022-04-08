@@ -1,3 +1,4 @@
+'use strict'
 import { Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../model/textdocument'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'

@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import path from 'path'

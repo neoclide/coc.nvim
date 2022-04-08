@@ -1,3 +1,4 @@
+'use strict'
 import TerminalModel, { TerminalOptions } from '../model/terminal'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'

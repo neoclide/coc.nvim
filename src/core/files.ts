@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
 import glob from 'glob'
@@ -274,7 +275,7 @@ export default class Files {
         if (doc) await this.nvim.command(`silent! bwipeout! ${doc.bufnr}`)
       }
     } catch (e) {
-      ui.showMessage(this.nvim, `Error on delete ${filepath}: ${e.message}`, 'Error')
+      ui.showMessage(this.nvim, `Error on delete ${filepath}: ${e}`, 'Error')
     }
   }
 
@@ -318,7 +319,7 @@ export default class Files {
         }
       }
     } catch (e) {
-      ui.showMessage(this.nvim, `Rename error: ${e.message}`, 'Error')
+      ui.showMessage(this.nvim, `Rename error: ${e}`, 'Error')
     }
   }
 
@@ -418,7 +419,7 @@ export default class Files {
       }
     } catch (e) {
       logger.error('Error on applyEdits:', edit, e)
-      ui.showMessage(this.nvim, `Error on applyEdits: ${e.message}`, 'Error')
+      ui.showMessage(this.nvim, `Error on applyEdits: ${e}`, 'Error')
       return false
     }
     await wait(50)

@@ -1,11 +1,10 @@
-
+'use strict'
 /* ---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as cp from 'child_process'
 import { join, dirname, resolve } from 'path'
-import fs from 'fs'
 import ChildProcess = cp.ChildProcess
 
 declare const ESBUILD

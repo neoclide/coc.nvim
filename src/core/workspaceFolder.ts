@@ -1,3 +1,4 @@
+'use strict'
 import path from 'path'
 import { Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'

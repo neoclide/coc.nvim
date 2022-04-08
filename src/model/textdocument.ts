@@ -1,3 +1,4 @@
+'use strict'
 import { Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { TextLine } from './textline'

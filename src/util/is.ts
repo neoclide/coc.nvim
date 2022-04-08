@@ -1,3 +1,4 @@
+'use strict'
 import { VimCompleteItem } from '../types'
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty

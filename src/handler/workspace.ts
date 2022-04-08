@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
 import fs from 'fs'

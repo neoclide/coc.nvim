@@ -1,3 +1,4 @@
+'use strict'
 import watchman, { Client } from 'fb-watchman'
 import minimatch from 'minimatch'
 import os from 'os'
@@ -164,7 +165,7 @@ export default class Watchman {
       return watchman
     } catch (e) {
       if (watchman) watchman.dispose()
-      logger.error(`Error on watchman create: ${e.message}`)
+      logger.error(`Error on watchman create`, e)
       return null
     }
   }

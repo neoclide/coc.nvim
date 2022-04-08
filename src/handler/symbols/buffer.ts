@@ -1,3 +1,4 @@
+'use strict'
 import debounce from 'debounce'
 import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, SymbolTag, TextDocument } from 'vscode-languageserver-protocol'
 import languages from '../../languages'

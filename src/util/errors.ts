@@ -1,3 +1,4 @@
+'use strict'
 
 export function illegalArgument(name?: string): Error {
   if (name) {

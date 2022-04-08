@@ -1,3 +1,4 @@
+'use strict'
 import { http, https } from 'follow-redirects'
 import { Readable } from 'stream'
 import { parse, UrlWithStringQuery } from 'url'

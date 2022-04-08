@@ -1,3 +1,4 @@
+'use strict'
 import { equals } from '../../util/object'
 
 export interface LineInfo {

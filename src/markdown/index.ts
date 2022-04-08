@@ -1,3 +1,4 @@
+'use strict'
 import { marked } from 'marked'
 import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'

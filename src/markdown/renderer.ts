@@ -1,3 +1,4 @@
+'use strict'
 /**
  * Renderer for convert markdown to terminal string
  */

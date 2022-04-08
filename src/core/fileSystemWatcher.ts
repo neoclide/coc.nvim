@@ -1,3 +1,4 @@
+'use strict'
 import minimatch from 'minimatch'
 import path from 'path'
 import { Disposable, Emitter, WorkspaceFolder, Event } from 'vscode-languageserver-protocol'
@@ -79,7 +80,7 @@ export class FileSystemWatcherManager {
       }
       this._onDidCreateClient.fire(root)
     } catch (e) {
-      if (this.channel) this.channel.appendLine(`Error on create watchman client:` + e.message)
+      if (this.channel) this.channel.appendLine(`Error on create watchman client:` + e)
     }
   }
 

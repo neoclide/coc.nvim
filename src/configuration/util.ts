@@ -1,3 +1,4 @@
+'use strict'
 import { Location, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { parse, ParseError } from 'jsonc-parser'

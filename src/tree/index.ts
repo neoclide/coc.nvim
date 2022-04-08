@@ -1,3 +1,4 @@
+'use strict'
 import { Disposable, Event, CancellationToken } from 'vscode-languageserver-protocol'
 import { ProviderResult } from '../provider'
 import { TreeItem, TreeItemIcon, TreeItemCollapsibleState } from './TreeItem'

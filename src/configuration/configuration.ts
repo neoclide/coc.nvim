@@ -1,6 +1,6 @@
+'use strict'
 import { ConfigurationModel } from './model'
 import { IConfigurationData } from '../types'
-
 export class Configuration {
   private _consolidateConfiguration: ConfigurationModel
 

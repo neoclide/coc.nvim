@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
@@ -245,7 +246,7 @@ export default abstract class BasicList implements IList, Disposable {
         let content = await readFile(u.fsPath, 'utf8')
         lines = content.split(/\r?\n/)
       } catch (e) {
-        [`Error on read file ${u.fsPath}`, e.message]
+        [`Error on read file ${u.fsPath}`, e.toString()]
       }
     }
     let config: PreviewConfig = {

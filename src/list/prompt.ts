@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
 import { ListMode, ListOptions, Matcher } from '../types'

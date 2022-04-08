@@ -1,3 +1,4 @@
+'use strict'
 import { Range } from 'vscode-languageserver-protocol'
 
 export function rangeParts(text: string, range: Range): [string, string] {

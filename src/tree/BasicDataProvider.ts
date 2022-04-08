@@ -1,3 +1,4 @@
+'use strict'
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, MarkupContent, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import commandsManager from '../commands'

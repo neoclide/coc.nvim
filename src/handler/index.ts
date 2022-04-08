@@ -1,3 +1,4 @@
+'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, CodeActionKind, Disposable, Position, Range, SymbolKind } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -159,8 +160,7 @@ export default class Handler implements HandlerDelegate {
     try {
       res = await Promise.resolve(fn(token))
     } catch (e) {
-      window.showMessage(e.message, 'error')
-      logger.error(`Error on ${name}`, e)
+      this.nvim.echoError(e)
     }
     if (this.requestTokenSource) {
       this.requestTokenSource.dispose()

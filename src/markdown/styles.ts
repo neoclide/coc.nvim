@@ -1,3 +1,4 @@
+'use strict'
 import style from 'ansi-styles'
 
 export function gray(str: string): string {

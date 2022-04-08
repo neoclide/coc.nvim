@@ -1,3 +1,4 @@
+'use strict'
 export class Mutex {
   private tasks: (() => void)[] = []
   private count = 1

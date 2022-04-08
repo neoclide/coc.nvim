@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Range, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import languages from '../languages'

@@ -1,3 +1,4 @@
+'use strict'
 import fs from 'fs'
 import log4js from 'log4js'
 import path from 'path'

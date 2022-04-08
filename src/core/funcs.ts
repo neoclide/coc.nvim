@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import minimatch from 'minimatch'
 import os from 'os'

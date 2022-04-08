@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import Notification, { NotificationPreferences } from './notification'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'

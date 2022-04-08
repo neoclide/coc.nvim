@@ -1,3 +1,4 @@
+'use strict'
 import { Buffer } from '@chemzqm/neovim'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteLength } from '../util/string'

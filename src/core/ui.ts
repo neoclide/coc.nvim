@@ -1,3 +1,4 @@
+'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-protocol'
 import { ScreenPosition } from '../types'

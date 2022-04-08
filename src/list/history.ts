@@ -1,3 +1,4 @@
+'use strict'
 import DB from '../model/db'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import workspace from '../workspace'

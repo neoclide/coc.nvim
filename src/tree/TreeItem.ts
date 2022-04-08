@@ -1,3 +1,4 @@
+'use strict'
 import { Command, MarkupContent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import path from 'path'
