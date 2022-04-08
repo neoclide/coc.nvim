@@ -1,3 +1,4 @@
+'use strict'
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
@@ -110,7 +111,7 @@ export default class ListUI {
     return this.window?.id
   }
   private get limitLines(): number {
-    return this.config.get<number>('limitLines', 30000)
+    return this.config.get<number>('limitLines', Infinity)
   }
 
   private onLineChange(index: number): void {

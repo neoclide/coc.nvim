@@ -789,7 +789,7 @@ Built-in configurations:~
 
 *list.limitLines*
 
-	Limit lines shown in the list buffer, default: `30000`
+	Limit lines shown in the list buffer, no limit by default, default: `null`
 
 *list.maxPreviewHeight*
 
