@@ -108,7 +108,6 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     let { remains } = this
     let first = remains == 0 ? `${this.isUpdate ? 'Update' : 'Install'} finished` : `Installing, ${remains} remaining...`
     let lines = [first, '', ...this.getLines()]
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (remains == 0 && this.interval) {
       clearInterval(this.interval)
@@ -138,10 +137,8 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     }
     this.highlight(nvim)
     let res = await nvim.resumeNotification()
-    let bufnr = res && res[1] == null ? res[0][1] : null
-    if (!bufnr) return
-    this.bufnr = bufnr
-    let buffer = nvim.createBuffer(bufnr)
+    this.bufnr = res[0][1] as number
+    let buffer = nvim.createBuffer(this.bufnr)
     this.interval = setInterval(() => {
       this.draw(nvim, buffer)
     }, 100)
