@@ -305,7 +305,7 @@ export class CommandManager implements Disposable {
   }
 
   public execute(command: language.Command): Promise<any> {
-    return this.executeCommand(command.command, ...command.arguments)
+    return this.executeCommand(command.command, ...(command.arguments ?? []))
   }
 
   public register<T extends Command>(command: T, internal = false, description?: string): T {
