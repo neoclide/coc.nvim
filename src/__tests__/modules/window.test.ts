@@ -1,17 +1,17 @@
-import { Neovim, Buffer } from '@chemzqm/neovim'
-import { Disposable, Emitter, Range } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
-import { TreeItem, TreeItemCollapsibleState } from '../../tree'
-import { disposeAll } from '../../util'
-import path from 'path'
-import os from 'os'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
 import fs from 'fs-extra'
+import os from 'os'
+import path from 'path'
+import { Disposable, Emitter } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import events from '../../events'
+import { TreeItem, TreeItemCollapsibleState } from '../../tree'
+import { MessageLevel } from '../../types'
+import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper, { createTmpFile } from '../helper'
-import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
-import { MessageLevel } from '../../types'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -131,13 +131,12 @@ describe('window functions', () => {
     let buf = await nvim.buffer
     let bufnr = buf.id
     window.showOutputChannel('NONE')
-    await helper.wait(10)
+    await helper.wait(20)
     buf = await nvim.buffer
     expect(buf.id).toBe(bufnr)
   })
 
   it('should get cursor position', async () => {
-    await helper.createDocument()
     await nvim.setLine('       ')
     await nvim.call('cursor', [1, 3])
     let pos = await window.getCursorPosition()
@@ -148,7 +147,6 @@ describe('window functions', () => {
   })
 
   it('should moveTo position in insert mode', async () => {
-    await helper.edit()
     await nvim.setLine('foo')
     await nvim.input('i')
     await window.moveTo({ line: 0, character: 3 })
@@ -407,7 +405,7 @@ describe('window notifications', () => {
       return Promise.resolve()
     })
     await p
-    await helper.wait(120)
+    await helper.wait(100)
     let floats = await helper.getFloats()
     expect(called).toBe(1)
     expect(floats.length).toBe(0)

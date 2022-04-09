@@ -4971,40 +4971,40 @@ declare module 'coc.nvim' {
   type OptionValue = string | number | boolean
 
   export interface CursorPosition {
-    bufnr: number
-    lnum: number
-    col: number
-    insert: boolean
+    readonly bufnr: number
+    readonly lnum: number
+    readonly col: number
+    readonly insert: boolean
   }
 
   export interface InsertChange {
     /**
      * 1 based line number
      */
-    lnum: number
+    readonly lnum: number
     /**
      * 1 based column number
      */
-    col: number
+    readonly col: number
     /**
      * Text before cursor.
      */
-    pre: string
+    readonly pre: string
     /**
      * Insert character that cause change of this time.
      */
-    insertChar: string | undefined
-    changedtick: number
+    readonly insertChar: string | undefined
+    readonly changedtick: number
   }
 
   export interface PopupChangeEvent {
-    completed_item: VimCompleteItem
-    height: number
-    width: number
-    row: number
-    col: number
-    size: number
-    scrollbar: boolean
+    readonly completed_item: VimCompleteItem
+    readonly height: number
+    readonly width: number
+    readonly row: number
+    readonly col: number
+    readonly size: number
+    readonly scrollbar: boolean
   }
 
   /**
@@ -5084,7 +5084,7 @@ declare module 'coc.nvim' {
 
     /**
      * Fired after user insert character and made change to the buffer.
-     * Fired after TextChangedI & TextChanged event.
+     * Fired after TextChangedI & TextChangedP event.
      */
     export function on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
 

@@ -9,21 +9,21 @@ const logger = require('./util/logger')('events')
 export type Result = void | Promise<void>
 
 export interface PopupChangeEvent {
-  completed_item: VimCompleteItem | {}
-  height: number
-  width: number
-  row: number
-  col: number
-  size: number
-  scrollbar: boolean
+  readonly completed_item: VimCompleteItem | {}
+  readonly height: number
+  readonly width: number
+  readonly row: number
+  readonly col: number
+  readonly size: number
+  readonly scrollbar: boolean
 }
 
 export interface InsertChange {
-  lnum: number
-  col: number
+  readonly lnum: number
+  readonly col: number
+  readonly line: string
+  readonly changedtick: number
   pre: string
-  line: string
-  changedtick: number
   /**
    * Insert character that cause change of this time.
    */
@@ -55,22 +55,16 @@ export type CursorEvents = 'CursorMoved' | 'CursorMovedI' | 'CursorHold' | 'Curs
 export type OptionValue = string | number | boolean
 
 export interface CursorPosition {
-  bufnr: number
-  lnum: number
-  col: number
-  insert: boolean
+  readonly bufnr: number
+  readonly lnum: number
+  readonly col: number
+  readonly insert: boolean
 }
 
 export interface LatestInsert {
-  bufnr: number
-  character: string
-  timestamp: number
-}
-
-export interface LastHold {
-  bufnr: number
-  lnum: number
-  col: number
+  readonly bufnr: number
+  readonly character: string
+  readonly timestamp: number
 }
 
 class Events {
@@ -84,7 +78,6 @@ class Events {
   private _insertMode = false
   private _pumAlignTop = false
   private _pumVisible = false
-  private _lastHold: LastHold | undefined
 
   public get cursor(): CursorPosition {
     return this._cursor
@@ -149,6 +142,7 @@ class Events {
     } else if (event == 'InsertLeave') {
       this._insertMode = false
       this._pumVisible = false
+      this._recentInserts = []
     } else if (!this._insertMode && (event == 'CursorHoldI' || event == 'CursorMovedI')) {
       this._insertMode = true
       void this.fire('InsertEnter', [args[0]])
@@ -177,12 +171,12 @@ class Events {
       let pre = byteSlice(info.line ?? '', 0, info.col - 1)
       info.pre = pre
       // fix cursor since vim not send CursorMovedI event
-      this._cursor = {
+      this._cursor = Object.freeze({
         bufnr: args[0],
         lnum: info.lnum,
         col: info.col,
         insert: true
-      }
+      })
       if (arr.length && pre.length) {
         let character = pre.slice(-1)
         if (arr.findIndex(o => o[1] == character) !== -1) {
@@ -196,9 +190,6 @@ class Events {
     }
     if ((event == 'CursorHold' || event == 'CursorHoldI') && args[1]) {
       this._bufnr = args[0]
-      let ev: LastHold = { bufnr: args[0], lnum: args[1][0], col: args[1][1] }
-      if (this._lastHold && equals(this._lastHold, ev)) return
-      this._lastHold = ev
     }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
       this._bufnr = args[0]
@@ -210,10 +201,13 @@ class Events {
       }
       // Avoid CursorMoved event when it's not moved at all
       if (this._cursor && equals(this._cursor, cursor)) return
-      this._cursor = cursor
+      this._cursor = Object.freeze(cursor)
     }
     if (cbs) {
       try {
+        args.forEach(val => {
+          if (typeof val === 'object') Object.freeze(val)
+        })
         // need slice since the array might changed when execute fn
         await Promise.all(cbs.slice().map(fn => fn(args)))
       } catch (e) {
@@ -260,20 +254,13 @@ class Events {
       })
     } else {
       let arr = this.handlers.get(event) || []
-      let stack = Error().stack
       let wrappedhandler = args => new Promise((resolve, reject) => {
-        let timer
         try {
-          Promise.resolve(handler.apply(thisArg || null, args)).then(() => {
-            if (timer) clearTimeout(timer)
+          Promise.resolve(handler.apply(thisArg ?? null, args)).then(() => {
             resolve(undefined)
           }, e => {
-            if (timer) clearTimeout(timer)
             reject(e)
           })
-          timer = setTimeout(() => {
-            logger.warn(`Handler of "${event}" blocked more than 2s:`, stack)
-          }, 2000)
         } catch (e) {
           reject(e)
         }

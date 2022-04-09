@@ -585,8 +585,8 @@ export interface VimCompleteItem {
 }
 
 export interface CompleteDoneItem {
-  word: string
-  user_data?: string
+  readonly word: string
+  readonly user_data?: string
   // if there's ClosePum event just received.
   close?: boolean
   // already cancelled by completion.stop()
