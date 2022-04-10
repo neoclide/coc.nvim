@@ -1,4 +1,5 @@
 'use strict'
+import { Neovim } from '@chemzqm/neovim'
 import { Disposable, InsertTextMode, Position, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { StatusBarItem } from '../model/status'
@@ -54,6 +55,10 @@ export class SnippetManager {
     }, null, this.disposables)
   }
 
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
   public init(): void {
     if (!this.statusItem) this.statusItem = window.createStatusBarItem(0)
     let config = workspace.getConfiguration('coc.preferences')
@@ -73,6 +78,7 @@ export class SnippetManager {
       throw new Error(`Unable to insert snippet, invalid range.`)
     }
     let context: UltiSnippetContext
+    if (events.pumvisible) this.nvim.call('coc#_cancel', [], true)
     if (!range) {
       let pos = await window.getCursorPosition()
       range = Range.create(pos, pos)
@@ -99,7 +105,7 @@ export class SnippetManager {
       await doc.patchChange(true)
     }
     if (!session) {
-      session = new SnippetSession(workspace.nvim, bufnr, this.highlight, this.preferComplete)
+      session = new SnippetSession(this.nvim, bufnr, this.highlight, this.preferComplete)
       session.onCancel(() => {
         this.sessionMap.delete(bufnr)
         this.statusItem.hide()
@@ -126,7 +132,7 @@ export class SnippetManager {
     if (session) {
       await session.nextPlaceholder()
     } else {
-      workspace.nvim.call('coc#snippet#disable', [], true)
+      this.nvim.call('coc#snippet#disable', [], true)
       this.statusItem.hide()
     }
     return ''
@@ -137,7 +143,7 @@ export class SnippetManager {
     if (session) {
       await session.previousPlaceholder()
     } else {
-      workspace.nvim.call('coc#snippet#disable', [], true)
+      this.nvim.call('coc#snippet#disable', [], true)
       this.statusItem.hide()
     }
     return ''
@@ -146,7 +152,7 @@ export class SnippetManager {
   public cancel(): void {
     let session = this.getSession(workspace.bufnr)
     if (session) return session.deactivate()
-    workspace.nvim.call('coc#snippet#disable', [], true)
+    this.nvim.call('coc#snippet#disable', [], true)
     if (this.statusItem) this.statusItem.hide()
   }
 
@@ -169,7 +175,7 @@ export class SnippetManager {
       let session = this.getSession(workspace.bufnr)
       ultisnip.noPython = session != null && session.snippet.hasPython
     }
-    return await SnippetSession.resolveSnippet(workspace.nvim, snippetString, ultisnip)
+    return await SnippetSession.resolveSnippet(this.nvim, snippetString, ultisnip)
   }
 
   public async normalizeInsertText(uri: string, snippetString: string, currentLine: string, insertTextMode: InsertTextMode): Promise<string> {
