@@ -70,6 +70,7 @@ function! coc#_complete() abort
   else
     call complete(startcol, items)
   endif
+  let g:coc_disable_complete_done = 0
   return ''
 endfunction
 
