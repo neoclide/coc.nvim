@@ -1453,7 +1453,7 @@ invoke |CocAction('refactor')|
 *<plug>(coc-codeaction-cursor)* Get and run code action(s) using empty range
 at current cursor.
 
-*<plug>(Coc-codeaction-selected)* Get and run code action(s) with the selected
+*<plug>(coc-codeaction-selected)* Get and run code action(s) with the selected
 region.  Works on both |visual-mode| and |normal-mode|.
 
 *<plug>(coc-openlink)* Open link under cursor.
