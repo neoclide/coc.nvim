@@ -68,15 +68,15 @@ function! coc#_complete() abort
     " use <cmd> specific key to preselect item at once
     call feedkeys("\<Cmd>\<CR>" , 'i')
   else
+    if pumvisible()
+      let g:coc_disable_complete_done = 1
+    endif
     call complete(startcol, items)
   endif
   return ''
 endfunction
 
 function! coc#_do_complete(start, items, preselect)
-  if pumvisible()
-    let g:coc_disable_complete_done = 1
-  endif
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
