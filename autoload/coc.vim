@@ -82,6 +82,7 @@ function! coc#_do_complete(start, items, preselect)
         \ 'candidates': a:items,
         \ 'preselect': a:preselect
         \}
+
   if mode() =~# 'i'
     call feedkeys("\<Plug>CocRefresh", 'i')
   endif
@@ -124,8 +125,6 @@ function! coc#_cancel(...)
     endif
     if s:hide_pum
       call feedkeys("\<C-x>\<C-z>", 'in')
-    elseif exists('*complete_info') && get(complete_info(['selected']), 'selected', -1) == -1
-      call feedkeys("\<C-e>", 'in')
     else
       let g:coc_disable_space_report = 1
       call feedkeys("\<space>\<bs>", 'in')
@@ -249,7 +248,6 @@ function! coc#complete_indent() abort
   let l:curpos[4] += l:shift
   call cursor(l:curpos[1:])
   if l:shift != 0
-    call coc#_cancel()
     return 1
   endif
   return 0
