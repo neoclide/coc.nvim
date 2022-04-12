@@ -143,6 +143,7 @@ export default class LanguageSource implements ISource {
     if (!item) return
     if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
     let doc = workspace.getAttachedDocument(opt.bufnr)
+    await doc.patchChange(true)
     let isSnippet = await this.applyTextEdit(doc, item, vimItem.word, opt)
     if (Array.isArray(item.additionalTextEdits)) {
       await doc.patchChange(true)
