@@ -186,7 +186,7 @@ function! s:show_documentation()
   elseif (coc#rpc#ready())
     call CocActionAsync('doHover')
   else
-    execute '!' . &keywordprg . " " . expand('<cword>')
+    execute &keywordprg . " " . expand('<cword>')
   endif
 endfunction
 
