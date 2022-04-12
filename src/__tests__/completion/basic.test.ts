@@ -1240,10 +1240,8 @@ describe('completion', () => {
 
   describe('fix indent', () => {
     it('should indent lines on TextChangedP #1', async () => {
-      await workspace.document
-      await helper.mockFunction('MyIndentExpr', 0)
-      await nvim.command('setl indentexpr=MyIndentExpr()')
-      await nvim.command('setl indentkeys=\\=~end,0\\=\\\\item')
+      let doc = await workspace.document as any
+      doc._indentkeys = '=~end,0=\\item'
       let source: ISource = {
         name: 'source1',
         priority: 90,
@@ -1266,16 +1264,14 @@ describe('completion', () => {
       await nvim.input('m')
       await helper.waitFor('getline', ['.'], '\\item')
       await nvim.input('<cr>')
-      await helper.wait(10)
+      await helper.wait(30)
       await nvim.input('  END')
       await helper.waitFor('getline', ['.'], 'END')
     })
 
     it('should trigger completion after indent change', async () => {
-      await workspace.document
-      await helper.mockFunction('MyIndentExpr', 0)
-      await nvim.command('setl indentexpr=MyIndentExpr()')
-      await nvim.command('setl indentkeys=\\=end')
+      let doc = await workspace.document as any
+      doc._indentkeys = '=end'
       let source: ISource = {
         name: 'source1',
         priority: 90,

@@ -42,18 +42,19 @@ export interface CurrentState {
 }
 
 export interface BufferOption {
-  eol: number
-  size: number
-  winid: number
-  lines: null | string[]
-  variables: { [key: string]: any }
-  bufname: string
-  fullpath: string
-  buftype: string
-  filetype: string
-  iskeyword: string
-  changedtick: number
-  previewwindow: number
+  readonly eol: number
+  readonly size: number
+  readonly winid: number
+  readonly lines: null | string[]
+  readonly variables: { [key: string]: any }
+  readonly bufname: string
+  readonly fullpath: string
+  readonly buftype: string
+  readonly filetype: string
+  readonly iskeyword: string
+  readonly changedtick: number
+  readonly previewwindow: number
+  readonly indentkeys: string
 }
 
 export interface HandlerDelegate {
@@ -633,17 +634,16 @@ export interface CompleteOption {
   filetype: string
   readonly filepath: string
   readonly word: string
-  triggerCharacter: string
   // cursor position
   colnr: number
   readonly linenr: number
   readonly synname: string
   readonly source?: string
-  readonly sources?: string[]
   readonly blacklist: string[]
   readonly disabled: ReadonlyArray<string>
   readonly changedtick: number
   readonly indentkeys: string
+  readonly triggerCharacter?: string
   triggerForInComplete?: boolean
 }
 

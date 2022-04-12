@@ -109,6 +109,10 @@ export default class Documents implements Disposable {
     events.on('BufEnter', (bufnr: number) => {
       void this.createDocument(bufnr)
     }, null, this.disposables)
+    events.on('CursorHold', (bufnr: number, _, variables) => {
+      let buf = this.getDocument(bufnr)
+      if (buf) buf.onCursorHold(variables)
+    }, null, this.disposables)
     if (this._env.isVim) {
       ['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
         events.on(event as any, (bufnr: number, info?: InsertChange) => {

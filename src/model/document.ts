@@ -1,5 +1,5 @@
 'use strict'
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim, VimValue } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -43,8 +43,9 @@ export default class Document {
   private _filetype: string
   private _bufname: string
   private _uri: string
+  private _indentkeys: string
   private _changedtick: number
-  private variables: { [key: string]: any }
+  private variables: { [key: string]: VimValue }
   private disposables: Disposable[] = []
   private _textDocument: LinesTextDocument
   // real current lines
@@ -177,6 +178,10 @@ export default class Document {
     return this._winid
   }
 
+  public get indentkeys(): string {
+    return this._indentkeys
+  }
+
   /**
    * Returns if current document is opended with previewwindow
    *
@@ -191,6 +196,7 @@ export default class Document {
    */
   private init(opts: BufferOption): void {
     let buftype = this.buftype = opts.buftype
+    this._indentkeys = opts.indentkeys
     this._bufname = opts.bufname
     this._previewwindow = !!opts.previewwindow
     this._winid = opts.winid
@@ -585,8 +591,8 @@ export default class Document {
   /**
    * Get variable value by key, defined by `b:coc_{key}`
    */
-  public getVar<T>(key: string, defaultValue?: T): T {
-    let val = this.variables[`coc_${key}`]
+  public getVar<T extends VimValue>(key: string, defaultValue?: T): T {
+    let val = this.variables[`coc_${key}`] as T
     return val === undefined ? defaultValue : val
   }
 
@@ -697,6 +703,10 @@ export default class Document {
     if (changedtick === this.changedtick) return
     this.changeLine(lnum, line, changedtick)
     if (event !== 'TextChangedP') this._forceSync()
+  }
+
+  public onCursorHold(variables: { [key: string]: VimValue }): void {
+    this.variables = variables
   }
 }
 

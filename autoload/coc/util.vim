@@ -70,6 +70,10 @@ function! coc#util#version()
   return lines[0]
 endfunction
 
+function! coc#util#change_info() abort
+  return {'lnum': line('.'), 'col': col('.'), 'line': getline('.'), 'changedtick': b:changedtick}
+endfunction
+
 function! coc#util#check_refresh(bufnr)
   if !bufloaded(a:bufnr)
     return 0
@@ -255,7 +259,8 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'buftype': buftype,
         \ 'previewwindow': v:false,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
-        \ 'variables': s:variables(a:bufnr),
+        \ 'indentkeys': coc#util#get_indentkeys(),
+        \ 'variables': coc#util#variables(a:bufnr),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
@@ -263,7 +268,7 @@ function! coc#util#get_bufoptions(bufnr) abort
         \}
 endfunction
 
-function! s:variables(bufnr) abort
+function! coc#util#variables(bufnr) abort
   let info = getbufinfo(a:bufnr)
   let variables = empty(info) ? {} : copy(info[0]['variables'])
   for key in keys(variables)

@@ -1,6 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
@@ -28,7 +29,6 @@ export class Completion implements Disposable {
   private pretext: string | undefined
   private hasInsert = false
   private activated = false
-  private triggering = false
   private triggerTimer: NodeJS.Timer
   private popupEvent: PopupChangeEvent
   private floating: Floating
@@ -238,15 +238,16 @@ export class Completion implements Disposable {
     if ((info.insertChar || this.pretext == info.pre) && shouldIndent(option.indentkeys, info.pre)) {
       logger.debug(`trigger indent by ${info.pre}`)
       let indentChanged = await this.nvim.call('coc#complete_indent', [])
-      if (indentChanged) {
-        await this.triggerCompletion(document, info.pre)
-        return
-      }
+      if (indentChanged) return
     }
     if (this.pretext == info.pre) return
     let pretext = this.pretext = info.pre
     if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
-      await this.triggerCompletion(document, pretext)
+      this.stop()
+      let res = await events.race(['TextChangedI', 'InsertCharPre'], 50)
+      if (res.name === 'TextChangedI') {
+        await this.triggerCompletion(document, res.args[1] as InsertChange)
+      }
       return
     }
     // Avoid resume when TextChangedP caused by <C-n> or <C-p>
@@ -262,7 +263,8 @@ export class Completion implements Disposable {
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     if (!this.isEnabled(bufnr)) return
-    let { option } = this
+    let { option, activated } = this
+    if (!activated && info.pre === this.pretext) return
     if (option && shouldStop(bufnr, this.pretext, info, option)) {
       this.stop()
       if (!info.insertChar) return
@@ -272,10 +274,11 @@ export class Completion implements Disposable {
     let pretext = this.pretext = info.pre
     let doc = workspace.getDocument(bufnr)
     // check commit
-    if (this.activated && Is.vimCompleteItem(this.previousItem) && this.config.acceptSuggestionOnCommitCharacter) {
+    if (this.activated && this.config.acceptSuggestionOnCommitCharacter && Is.vimCompleteItem(this.previousItem)) {
       let resolvedItem = this.getCompleteItem(this.previousItem)
       let last = pretext.slice(-1)
       if (sources.shouldCommit(resolvedItem, last)) {
+        logger.debug('commit by commit character.')
         let { linenr, col, line, colnr } = this.option
         this.stop()
         let { word } = resolvedItem
@@ -292,53 +295,65 @@ export class Completion implements Disposable {
       let disabled = doc.getVar('disabled_sources', [])
       let triggerSources = sources.getTriggerSources(pretext, doc.filetype, doc.uri, disabled)
       if (triggerSources.length > 0) {
-        await this.triggerCompletion(doc, pretext, triggerSources)
+        await this.triggerCompletion(doc, info, triggerSources)
         return
       }
     }
     // trigger by normal character
     if (!this.complete) {
       if (!info.insertChar) return
-      await this.triggerCompletion(doc, pretext)
+      await this.triggerCompletion(doc, info)
       return
     }
     if (info.insertChar && this.complete.isEmpty) {
       // triggering without results
       this.triggerTimer = setTimeout(async () => {
-        await this.triggerCompletion(doc, pretext)
-      }, 150)
+        await this.triggerCompletion(doc, info)
+      }, 200)
       return
     }
     await this.filterResults()
   }
 
-  private async triggerCompletion(doc: Document, pre: string, sources?: ISource[]): Promise<boolean> {
+  private async triggerCompletion(doc: Document, info: InsertChange, sources?: ISource[]): Promise<boolean> {
+    let { minTriggerInputLength } = this.config
+    let { pre } = info
     // check trigger
     if (!sources) {
       let shouldTrigger = this.shouldTrigger(doc, pre)
       if (!shouldTrigger) return false
     }
-    if (this.triggering) return false
-    this.triggering = true
-    let option = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
-    this.triggering = false
-    if (!option) {
+    let disable = doc.getVar<number>('suggest_disable')
+    if (disable) {
       logger.warn(`Completion of ${doc.bufnr} disabled by b:coc_suggest_disable`)
       return false
     }
-    if (option.disabled?.length && sources) {
-      sources = sources.filter(s => !option.disabled.includes(s.name))
-      if (!sources.length) return false
+    let input = this.getInput(doc, pre)
+    let option: CompleteOption = {
+      input,
+      line: info.line,
+      filetype: doc.filetype,
+      linenr: info.lnum,
+      col: info.col - 1 - byteLength(input),
+      colnr: info.col,
+      bufnr: doc.bufnr,
+      word: input + this.getPrependWord(doc, info.line.slice(pre.length)),
+      changedtick: info.changedtick,
+      indentkeys: doc.indentkeys,
+      synname: events.synname,
+      filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',
+      triggerCharacter: pre.length ? pre.slice(-1) : undefined,
+      blacklist: doc.getVar<string[]>('suggest_blacklist', []),
+      disabled: doc.getVar<string[]>('disabled_sources', []),
     }
-    // could be changed by indent
-    pre = byteSlice(option.line, 0, option.colnr - 1)
+    // logger.debug('option:', option)
+    if (sources == null && input.length < minTriggerInputLength) {
+      logger.warn(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
+      return false
+    }
     if (option.blacklist && option.blacklist.includes(option.input)) {
       logger.warn(`Suggest disabled by b:coc_suggest_blacklist`, option.blacklist)
       return false
-    }
-    if (option.input && this.config.asciiCharactersOnly) {
-      option.input = this.getInput(doc, pre)
-      option.col = byteLength(pre) - byteLength(option.input)
     }
     if (this.config.ignoreRegexps.length > 0 && option.input.length > 0) {
       const ignore = this.config.ignoreRegexps.some(regexp => {
@@ -349,7 +364,7 @@ export class Completion implements Disposable {
       })
       if (ignore) return false
     }
-    if (pre.length) option.triggerCharacter = pre[pre.length - 1]
+    // if (pre.length) option.triggerCharacter = pre[pre.length - 1]
     await this.startCompletion(option, sources)
     return true
   }
@@ -408,28 +423,19 @@ export class Completion implements Disposable {
   private async onInsertEnter(bufnr: number): Promise<void> {
     if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== 'always') return
     if (!this.isEnabled(bufnr)) return
-    let pre = await this.nvim.eval(`strpart(getline('.'), 0, col('.') - 1)`) as string
-    if (!pre) return
+    let change = await this.nvim.call('coc#util#change_info') as InsertChange
+    change.pre = byteSlice(change.line, 0, change.col - 1)
+    if (!change.pre) return
     let doc = workspace.getDocument(bufnr)
-    await this.triggerCompletion(doc, pre)
+    await this.triggerCompletion(doc, change)
   }
 
   public shouldTrigger(doc: Document, pre: string): boolean {
-    let { autoTrigger, asciiCharactersOnly, minTriggerInputLength } = this.config
+    let { autoTrigger } = this.config
     if (autoTrigger == 'none') return false
     if (sources.shouldTrigger(pre, doc.filetype, doc.uri)) return true
     if (autoTrigger !== 'always') return false
-    let last = pre.slice(-1)
-    // eslint-disable-next-line no-control-regex
-    if (asciiCharactersOnly && !/[\x00-\x7F]/.test(last)) {
-      return false
-    }
-    if (last && (doc.isWord(last) || last.codePointAt(0) > 255)) {
-      if (minTriggerInputLength == 1) return true
-      let input = this.getInput(doc, pre)
-      return input.length >= minTriggerInputLength
-    }
-    return false
+    return true
   }
 
   private async onPumChange(): Promise<void> {
@@ -490,16 +496,30 @@ export class Completion implements Disposable {
 
   private getInput(document: Document, pre: string): string {
     let { asciiCharactersOnly } = this.config
-    let input = ''
+    let len = 0
+    // let input = ''
     for (let i = pre.length - 1; i >= 0; i--) {
-      let ch = i == 0 ? null : pre[i - 1]
-      // eslint-disable-next-line no-control-regex
-      if (!ch || !document.isWord(ch) || (asciiCharactersOnly && !/[\x00-\x7F]/.test(ch))) {
-        input = pre.slice(i, pre.length)
+      let ch = pre[i]
+      let word = asciiCharactersOnly ? isWord(ch) : document.isWord(ch)
+      if (word) {
+        len += 1
+      } else {
         break
       }
     }
-    return input
+    return len == 0 ? '' : pre.slice(-len)
+  }
+
+  private getPrependWord(document: Document, remain: string): string {
+    let idx = 0
+    for (let i = 0; i < remain.length; i++) {
+      if (document.isWord(remain[i])) {
+        idx = i + 1
+      } else {
+        break
+      }
+    }
+    return idx == 0 ? '' : remain.slice(0, idx)
   }
 
   public getResumeInput(): string {
@@ -535,10 +555,8 @@ export class Completion implements Disposable {
 
   public isEnabled(bufnr: number): boolean {
     let doc = workspace.getDocument(bufnr)
-    if (!doc
-      || !doc.attached
-      || doc.getVar('suggest_disable', 0)) return false
-    return this.config.autoTrigger !== 'none'
+    if (!doc || !doc.attached) return false
+    return true
   }
 
   private get completeOpt(): string {
