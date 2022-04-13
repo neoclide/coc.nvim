@@ -12,9 +12,10 @@ export function wordChar(ch: number): boolean {
   return (ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90)
 }
 
-export function caseMatch(input: number, code: number): boolean {
+export function caseMatch(input: number, code: number, ignorecase = false): boolean {
   if (input == code) return true
   if (input >= 97 && input <= 122 && code + 32 === input) return true
+  if (ignorecase && input <= 90 && input + 32 === code) return true
   return false
 }
 

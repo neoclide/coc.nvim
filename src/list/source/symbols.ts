@@ -83,7 +83,7 @@ export default class Symbols extends LocationList {
       file = path.relative(this.cwd, file)
     }
     return {
-      label: `${s.name} [${kind}]\t${file}`,
+      label: `${s.name}\t[${kind}]\t${file}`,
       filterText: `${s.name}`,
       location: s.location
     }

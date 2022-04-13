@@ -154,18 +154,19 @@ export default class ListUI {
     this.nvim.callTimer('coc#util#echo_lines', [[msg]], true)
   }
 
-  public async updateItem(item: ListItem, index: number): Promise<void> {
-    if (!this.buffer) return
-    let obj: ListItem = Object.assign({ resolved: true }, item)
-    if (index >= this.length) return
-    this.items[index] = obj
+  public updateItem(item: ListItemWithHighlights, index: number, labelChanged: boolean): void {
+    if (!this.buffer || index >= this.length) return
+    let prev = this.items[index]
+    Object.assign(prev, item, { resolved: true })
+    if (!labelChanged) return
     let { nvim } = this
     let lnum = this.indexToLnum(index)
     nvim.pauseNotification()
     this.buffer.setOption('modifiable', true, true)
-    nvim.call('setbufline', [this.bufnr, lnum, obj.label], true)
+    nvim.call('setbufline', [this.bufnr, lnum, prev.label], true)
+    this.doHighlight(index, index + 1)
     this.buffer.setOption('modifiable', false, true)
-    await nvim.resumeNotification()
+    nvim.resumeNotification(true, true)
   }
 
   public async getItems(): Promise<ListItem[]> {

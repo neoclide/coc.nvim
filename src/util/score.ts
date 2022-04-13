@@ -21,6 +21,7 @@ export function getMatchResult(text: string, query: string, filename = ''): Matc
   let score = 0
   let c = query[0]
   let idx = 0
+  let first = text[0]
   // base => start => pathSeparator => fuzzy
   if (matchBase) {
     if (filename.startsWith(c)) {
@@ -41,8 +42,8 @@ export function getMatchResult(text: string, query: string, filename = ''): Matc
         }
       }
     }
-  } else if (text.startsWith(c)) {
-    score = score + 1
+  } else if (first.toLowerCase() === c.toLowerCase()) {
+    score = score + (first == c ? 1 : 0.5)
     matches.push(0)
     idx = 1
   } else {
@@ -57,8 +58,8 @@ export function getMatchResult(text: string, query: string, filename = ''): Matc
     }
     if (idx == 0) {
       for (let i = 0; i < text.length; i++) {
-        if (fuzzyChar(c, text[i])) {
-          score = score + 0.5
+        if (fuzzyChar(c.toLowerCase(), text[i])) {
+          score = score + (c === text[i] ? 0.5 : 0.3)
           matches.push(i)
           idx = i + 1
           break
@@ -101,7 +102,7 @@ function nextResult(codes: number[], text: string, idx: number, curr: MatchResul
   if (followed == c) {
     result = { score: score + 1, matches: matches.concat([idx]) }
     getRemianResult(idx + 1)
-  } else if (caseMatch(c, followed)) {
+  } else if (caseMatch(c, followed, true)) {
     result = { score: score + 0.5, matches: matches.concat([idx]) }
     getRemianResult(idx + 1)
   }
@@ -109,7 +110,7 @@ function nextResult(codes: number[], text: string, idx: number, curr: MatchResul
     // follow path
     for (let i = idx + 1; i < text.length; i++) {
       let ch = text[i].charCodeAt(0)
-      if (text[i - 1] == pathSeparator && caseMatch(c, ch)) {
+      if (text[i - 1] == pathSeparator && caseMatch(c, ch, true)) {
         let add = c == ch ? 1 : 0.5
         result = { score: score + add, matches: matches.concat([i]) }
         getRemianResult(i + 1)
@@ -119,7 +120,7 @@ function nextResult(codes: number[], text: string, idx: number, curr: MatchResul
     // next fuzzy
     for (let i = idx + 1; i < text.length; i++) {
       let ch = text[i].charCodeAt(0)
-      if (caseMatch(c, ch)) {
+      if (caseMatch(c, ch, true)) {
         let add = c == ch ? 0.5 : 0.2
         result = { score: score + add, matches: matches.concat([i]) }
         getRemianResult(i + 1)

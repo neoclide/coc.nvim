@@ -192,13 +192,11 @@ export default class Worker {
   private convertToHighlightItems(items: ListItem[]): ListItemWithHighlights[] {
     let { input } = this
     if (!input) return []
-    return items.map(item => {
-      let filterLabel = getFilterLabel(item)
-      let res = getMatchResult(filterLabel, input)
-      if (!res?.score) return item
-      let highlights = this.getHighlights(filterLabel, res.matches)
+    let res = items.map(item => {
+      let highlights = getItemHighlights(input, item)
       return Object.assign({}, item, { highlights })
     })
+    return res
   }
 
   private filterItems(items: ListItem[]): ListItemWithHighlights[] {
@@ -278,7 +276,7 @@ export default class Worker {
       let obj = Object.assign({}, item, {
         sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
         score: matchScore,
-        highlights: this.getHighlights(filterLabel, matches)
+        highlights: getHighlights(filterLabel, matches)
       })
       filtered.push(obj)
       idx = idx + 1
@@ -291,28 +289,6 @@ export default class Worker {
       })
     }
     return filtered
-  }
-
-  private getHighlights(text: string, matches?: number[]): ListHighlights {
-    let spans: [number, number][] = []
-    if (matches && matches.length) {
-      let start = matches.shift()
-      let next = matches.shift()
-      let curr = start
-      while (next) {
-        if (next == curr + 1) {
-          curr = next
-          next = matches.shift()
-          continue
-        }
-        spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
-        start = next
-        curr = start
-        next = matches.shift()
-      }
-      spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
-    }
-    return { spans }
   }
 
   // set correct label, add ansi highlights
@@ -364,4 +340,33 @@ export function parseInput(input): string[] {
     res.push(input.slice(startIdx, input.length))
   }
   return res.map(s => s.replace(/\\\s/g, ' ').trim()).filter(s => s.length > 0)
+}
+
+export function getHighlights(text: string, matches?: number[]): ListHighlights {
+  let spans: [number, number][] = []
+  if (matches && matches.length) {
+    let start = matches.shift()
+    let next = matches.shift()
+    let curr = start
+    while (next) {
+      if (next == curr + 1) {
+        curr = next
+        next = matches.shift()
+        continue
+      }
+      spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
+      start = next
+      curr = start
+      next = matches.shift()
+    }
+    spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
+  }
+  return { spans }
+}
+
+export function getItemHighlights(input: string, item: ListItem): ListHighlights {
+  let filterLabel = getFilterLabel(item)
+  let res = getMatchResult(filterLabel, input)
+  if (!res?.score) return { spans: [] }
+  return getHighlights(filterLabel, res.matches)
 }

@@ -568,6 +568,14 @@ describe('match result', () => {
   it('should find fuzzy result #1', () => {
     let res = getMatchResult('LICENSES/preferred/MIT', 'lsit')
     expect(res).toEqual({ score: 1.4, matches: [0, 5, 20, 21] })
+    expect(getMatchResult('foo', 'Fo')).toEqual({ score: 1.5, matches: [0, 1] })
+  })
+
+  it('should find fuzzy result #2', async () => {
+    let res = getMatchResult('_api', 'AP')
+    expect(res).toEqual({ score: 0.8, matches: [1, 2] })
+    res = getMatchResult('_api', 'API')
+    expect(res).toEqual({ score: 1.3, matches: [1, 2, 3] })
   })
 })
 
