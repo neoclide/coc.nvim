@@ -356,9 +356,11 @@ Try these steps when you have problem with coc.nvim.
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
-## Support the project
+## Contributors
 
-Buy cloud service from [www.vultr.com](https://www.vultr.com/?ref=8890170-6G)
+<a href="https://github.com/neoclide/coc.nvim/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=neoclide/coc.nvim" />
+</a>
 
 ## License
 
