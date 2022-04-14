@@ -53,15 +53,9 @@ export class Completion implements Disposable {
     events.on('InsertLeave', () => {
       this.stop()
     }, null, this.disposables)
-    events.on('CursorMovedI', (bufnr, cursor) => {
-      let { option } = this
-      if (!option) return
+    events.on('CursorMovedI', (_bufnr, _cursor, _synname, hasInsert) => {
       if (this.triggerTimer) clearTimeout(this.triggerTimer)
-      if (bufnr !== option.bufnr
-        || cursor[0] !== option.linenr
-        || cursor[1] < option.colnr) {
-        this.stop()
-      }
+      if (this.complete && !hasInsert) this.stop()
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)

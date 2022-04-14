@@ -148,12 +148,18 @@ class Events {
       this._insertMode = false
       this._pumVisible = false
       this._recentInserts = []
-    } else if (!this._insertMode && (event == 'CursorHoldI' || event == 'CursorMovedI')) {
-      this._insertMode = true
-      void this.fire('InsertEnter', [args[0]])
-    } else if (this._insertMode && (event == 'CursorHold' || event == 'CursorMoved')) {
-      this._insertMode = false
-      void this.fire('InsertLeave', [args[0]])
+    } else if (event == 'CursorHoldI' || event == 'CursorMovedI') {
+      this._bufnr = args[0]
+      if (!this._insertMode) {
+        this._insertMode = true
+        void this.fire('InsertEnter', [args[0]])
+      }
+    } else if (event == 'CursorHold' || event == 'CursorMoved') {
+      this._bufnr = args[0]
+      if (this._insertMode) {
+        this._insertMode = false
+        void this.fire('InsertLeave', [args[0]])
+      }
     } else if (event == 'MenuPopupChanged') {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
@@ -165,8 +171,7 @@ class Events {
       this._lastChange = Date.now()
     } else if (event == 'BufEnter') {
       this._bufnr = args[0]
-    }
-    if (event == 'TextChangedI' || event == 'TextChangedP') {
+    } else if (event == 'TextChangedI' || event == 'TextChangedP') {
       let arr = this._recentInserts.filter(o => o[0] == args[0])
       this._bufnr = args[0]
       this._recentInserts = []
@@ -193,12 +198,9 @@ class Events {
         }
       }
     }
-    if ((event == 'CursorHold' || event == 'CursorHoldI') && args[1]) {
-      this._bufnr = args[0]
-    }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
-      this._bufnr = args[0]
       this._synname = args[2]
+      args.push(this._recentInserts.length > 0)
       let cursor = {
         bufnr: args[0],
         lnum: args[1][0],
