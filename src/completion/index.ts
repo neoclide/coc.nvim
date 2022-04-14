@@ -230,6 +230,7 @@ export class Completion implements Disposable {
     })
     if (vimItems.length) this.start()
     nvim.call('coc#_do_complete', [option.col, vimItems, preselect], true)
+    nvim.redrawVim()
   }
 
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {

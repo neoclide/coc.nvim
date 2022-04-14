@@ -84,7 +84,8 @@ function! coc#_do_complete(start, items, preselect)
         \}
 
   if mode() =~# 'i'
-    call feedkeys("\<Plug>CocRefresh", 'i')
+    "call feedkeys("\<Plug>CocRefresh", 'i')
+    call coc#_complete()
   endif
 endfunction
 
