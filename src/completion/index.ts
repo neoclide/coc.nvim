@@ -29,6 +29,7 @@ export class Completion implements Disposable {
   private pretext: string | undefined
   private hasInsert = false
   private activated = false
+  private changedtick: number
   private triggerTimer: NodeJS.Timer
   private popupEvent: PopupChangeEvent
   private floating: Floating
@@ -159,6 +160,7 @@ export class Completion implements Disposable {
       this.pretext = byteSlice(option.line, 0, option.colnr - 1)
       sourceList = sourceList ?? this.getSources(option)
       if (!sourceList || sourceList.length === 0) return
+      this.changedtick = option.changedtick
       let complete = this.complete = new Complete(
         option,
         doc,
@@ -200,7 +202,7 @@ export class Completion implements Disposable {
   }
 
   private async showCompletion(items: ExtendedCompleteItem[]): Promise<void> {
-    let { nvim, option } = this
+    let { nvim, option, changedtick } = this
     if (!option) return
     let { disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
@@ -223,7 +225,7 @@ export class Completion implements Disposable {
       return obj
     })
     if (vimItems.length) this.start()
-    nvim.call('coc#_do_complete', [option.col, vimItems, preselect], true)
+    nvim.call('coc#_do_complete', [option.col, vimItems, preselect, changedtick], true)
     nvim.redrawVim()
   }
 
@@ -235,6 +237,7 @@ export class Completion implements Disposable {
       let indentChanged = await this.nvim.call('coc#complete_indent', [])
       if (indentChanged) return
     }
+    this.changedtick = info.changedtick
     if (this.pretext == info.pre) return
     let pretext = this.pretext = info.pre
     if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
@@ -300,6 +303,7 @@ export class Completion implements Disposable {
       await this.triggerCompletion(doc, info)
       return
     }
+    this.changedtick = info.changedtick
     if (info.insertChar && this.complete.isEmpty) {
       // triggering without results
       this.triggerTimer = setTimeout(async () => {

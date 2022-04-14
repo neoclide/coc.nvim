@@ -76,13 +76,15 @@ function! coc#_complete() abort
   return ''
 endfunction
 
-function! coc#_do_complete(start, items, preselect)
+function! coc#_do_complete(start, items, preselect, changedtick)
+  if b:changedtick != a:changedtick
+    return
+  endif
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
         \ 'preselect': a:preselect
         \}
-
   if mode() =~# 'i'
     "call feedkeys("\<Plug>CocRefresh", 'i')
     call coc#_complete()
