@@ -235,22 +235,20 @@ function! coc#do_notify(id, method, result)
 endfunction
 
 function! coc#complete_indent() abort
-  let l:curpos = getcurpos()
-  let l:indent_pre = indent('.')
-
-  let l:startofline = &startofline
-  let l:virtualedit = &virtualedit
+  let curpos = getcurpos()
+  let indent_len = len(matchstr(getline('.'), '^\s*'))
+  let startofline = &startofline
+  let virtualedit = &virtualedit
   set nostartofline
   set virtualedit=all
   normal! ==
-  let &startofline = l:startofline
-  let &virtualedit = l:virtualedit
-
-  let l:shift = indent('.') - l:indent_pre
-  let l:curpos[2] += l:shift
-  let l:curpos[4] += l:shift
-  call cursor(l:curpos[1:])
-  if l:shift != 0
+  let &startofline = startofline
+  let &virtualedit = virtualedit
+  let shift = len(matchstr(getline('.'), '^\s*')) - indent_len
+  let curpos[2] += shift
+  let curpos[4] += shift
+  call cursor(curpos[1:])
+  if shift != 0
     return 1
   endif
   return 0
