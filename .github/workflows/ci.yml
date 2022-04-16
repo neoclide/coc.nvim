@@ -57,7 +57,7 @@ jobs:
       - if: matrix.os == 'macos-latest'
         name: yarn test on macOS
         run: |
-          curl -LO https://github.com/neovim/neovim/releases/download/v0.6.1/nvim-macos.tar.gz
+          curl -LO https://github.com/neovim/neovim/releases/download/v0.7.0/nvim-macos.tar.gz
           tar xzf nvim-macos.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-osx64/bin"
           nvim --version
@@ -70,7 +70,7 @@ jobs:
           sudo apt-get install ripgrep -y
           rg --version
           sudo apt-get install ctags -y
-          curl -LO https://github.com/neovim/neovim/releases/download/v0.6.1/nvim-linux64.tar.gz
+          curl -LO https://github.com/neovim/neovim/releases/download/v0.7.0/nvim-linux64.tar.gz
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           nvim --version
