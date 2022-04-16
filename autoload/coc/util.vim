@@ -366,7 +366,6 @@ function! coc#util#get_complete_option()
   let line = getline(pos[1])
   let input = matchstr(strpart(line, 0, pos[2] - 1), '\k*$')
   let col = pos[2] - strlen(input)
-  let synname = synIDattr(synID(pos[1], col, 1), 'name')
   return {
         \ 'word': matchstr(strpart(line, col - 1), '^\k\+'),
         \ 'input': empty(input) ? '' : input,
@@ -377,12 +376,15 @@ function! coc#util#get_complete_option()
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': col - 1,
-        \ 'synname': synname,
         \ 'changedtick': b:changedtick,
         \ 'blacklist': get(b:, 'coc_suggest_blacklist', []),
         \ 'disabled': get(b:, 'coc_disabled_sources', []),
         \ 'indentkeys': coc#util#get_indentkeys()
         \}
+endfunction
+
+function! coc#util#synname() abort
+  return synIDattr(synID(line('.'), col('.') - 1, 1), 'name')
 endfunction
 
 function! coc#util#with_callback(method, args, cb)
