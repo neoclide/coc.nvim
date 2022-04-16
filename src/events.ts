@@ -78,11 +78,6 @@ class Events {
   private _insertMode = false
   private _pumAlignTop = false
   private _pumVisible = false
-  private _synname = ''
-
-  public get synname(): string {
-    return this._synname
-  }
 
   public get cursor(): CursorPosition {
     return this._cursor
@@ -199,7 +194,6 @@ class Events {
       }
     }
     if (event == 'CursorMoved' || event == 'CursorMovedI') {
-      this._synname = args[2]
       args.push(this._recentInserts.length > 0)
       let cursor = {
         bufnr: args[0],

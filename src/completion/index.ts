@@ -54,7 +54,7 @@ export class Completion implements Disposable {
     events.on('InsertLeave', () => {
       this.stop()
     }, null, this.disposables)
-    events.on('CursorMovedI', (_bufnr, _cursor, _synname, hasInsert) => {
+    events.on('CursorMovedI', (_bufnr, _cursor, hasInsert) => {
       if (this.triggerTimer) clearTimeout(this.triggerTimer)
       if (this.complete && !hasInsert) this.stop()
     }, null, this.disposables)
@@ -339,7 +339,7 @@ export class Completion implements Disposable {
       word: input + this.getPrependWord(doc, info.line.slice(pre.length)),
       changedtick: info.changedtick,
       indentkeys: doc.indentkeys,
-      synname: events.synname,
+      synname: '',
       filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',
       triggerCharacter: pre.length ? pre.slice(-1) : undefined,
       blacklist: doc.getVar<string[]>('suggest_blacklist', []),

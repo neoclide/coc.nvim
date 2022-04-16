@@ -636,8 +636,8 @@ export interface CompleteOption {
   readonly word: string
   // cursor position
   colnr: number
+  synname?: string
   readonly linenr: number
-  readonly synname: string
   readonly source?: string
   readonly blacklist: string[]
   readonly disabled: ReadonlyArray<string>

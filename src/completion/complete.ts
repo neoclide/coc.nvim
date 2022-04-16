@@ -109,7 +109,11 @@ export default class Complete {
 
   public async doComplete(): Promise<boolean> {
     let token = this.tokenSource.token
-    await this.document.patchChange()
+    let res = await Promise.all([
+      this.nvim.call('coc#util#synname', []),
+      this.document.patchChange()
+    ])
+    this.option.synname = res[0]
     if (token.isCancellationRequested) return true
     let { triggerCompletionWait, localityBonus } = this.config
     await wait(Math.min(triggerCompletionWait ?? 0, 50))
