@@ -65,7 +65,7 @@ export default class LanguageSource implements ISource {
     let position = this.getPosition(opt)
     let context: any = { triggerKind, option: opt }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
-    let doc = workspace.getDocument(bufnr)
+    let doc = workspace.getAttachedDocument(bufnr)
     let result = await Promise.resolve(this.provider.provideCompletionItems(doc.textDocument, position, token, context))
     if (!result || token.isCancellationRequested) return null
     let completeItems = Array.isArray(result) ? result : result.items
@@ -113,7 +113,7 @@ export default class LanguageSource implements ISource {
       }
       if (documentation) {
         if (typeof documentation == 'string') {
-          docs.push({ filetype: 'markdown', content: documentation })
+          docs.push({ filetype: 'txt', content: documentation })
         } else if (documentation.value) {
           docs.push({
             filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',

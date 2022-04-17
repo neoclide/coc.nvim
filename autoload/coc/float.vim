@@ -957,6 +957,7 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
   let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
   let opts = {
         \ 'lines': lines,
+        \ 'highlights': get(a:config, 'highlights', []),
         \ 'relative': 'editor',
         \ 'col': showRight ? pumbounding['col'] + pw : pumbounding['col'] - width - 1,
         \ 'row': pumbounding['row'],
