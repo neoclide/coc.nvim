@@ -65,6 +65,8 @@ jobs:
       - if: matrix.os == 'ubuntu-latest'
         name: yarn test on Ubuntu
         run: |
+          sudo apt-get install -y xclip
+          xclip -version
           sudo apt-get install ripgrep -y
           rg --version
           sudo apt-get install ctags -y
