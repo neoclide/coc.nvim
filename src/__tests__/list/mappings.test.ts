@@ -486,6 +486,8 @@ describe('list insert mappings', () => {
   })
 
   it('should paste input by <C-v>', async () => {
+    await nvim.command('let @* = "foo"')
+    await nvim.command('let @@ = "foo"')
     await nvim.call('setreg', ['*', 'foo'])
     await manager.start(['location'])
     await manager.session.ui.ready
@@ -495,6 +497,8 @@ describe('list insert mappings', () => {
   })
 
   it('should insert register content by <C-r>', async () => {
+    await nvim.command('let @* = "foo"')
+    await nvim.command('let @@ = "foo"')
     await nvim.call('setreg', ['*', 'foo'])
     await manager.start(['location'])
     await manager.session.ui.ready
