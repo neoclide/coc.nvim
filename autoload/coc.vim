@@ -249,6 +249,9 @@ function! coc#complete_indent() abort
   let curpos[4] += shift
   call cursor(curpos[1:])
   if shift != 0
+    if s:is_vim
+      doautocmd TextChangedP
+    endif
     return 1
   endif
   return 0
