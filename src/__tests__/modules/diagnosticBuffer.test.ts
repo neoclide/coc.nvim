@@ -119,35 +119,15 @@ describe('diagnostic buffer', () => {
         createDiagnostic('bar', Range.create(0, 0, 0, 1), DiagnosticSeverity.Warning)
       ])
       await nvim.resumeNotification()
-      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
-      expect(res).toEqual([
-        [
-          1,
-          0,
-          0,
-          {
-            hl_group: 'CocWarningHighlight',
-            priority: 4096,
-            end_col: 1,
-            end_row: 0
-          }
-        ],
-        [
-          2,
-          0,
-          0,
-          {
-            hl_group: 'CocErrorHighlight',
-            priority: 4096,
-            end_col: 1,
-            end_row: 0
-          }
-        ]
+      let markers = await helper.getExtmarkers(buf.bufnr, ns)
+      expect(markers).toEqual([
+        [0, 0, 0, 1, 'CocWarningHighlight'],
+        [0, 0, 0, 1, 'CocErrorHighlight']
       ])
       nvim.pauseNotification()
       buf.updateHighlights('', [])
       await nvim.resumeNotification()
-      res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any[]
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any[]
       expect(res.length).toBe(0)
     })
 

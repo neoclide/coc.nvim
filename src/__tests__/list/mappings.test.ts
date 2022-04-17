@@ -98,6 +98,185 @@ describe('isValidAction()', () => {
   })
 })
 
+describe('User mappings', () => {
+  it('should show warning for invalid key', async () => {
+    let revert = helper.updateConfiguration('list.insertMappings', {
+      xy: 'action:tabe',
+    })
+    await helper.wait(30)
+    let msg = await helper.getCmdline()
+    revert()
+    await nvim.command('echo ""')
+    expect(msg).toMatch('Invalid configuration')
+    revert = helper.updateConfiguration('list.insertMappings', {
+      '<M-x>': 'action:tabe',
+    })
+    await helper.wait(30)
+    msg = await helper.getCmdline()
+    revert()
+    expect(msg).toMatch('Invalid configuration')
+    revert = helper.updateConfiguration('list.insertMappings', {
+      '<C-a>': 'foo:bar',
+    })
+    await helper.wait(30)
+    msg = await helper.getCmdline()
+    revert()
+    expect(msg).toMatch('Invalid configuration')
+  })
+
+  it('should execute action keymap', async () => {
+    let revert = helper.updateConfiguration('list.insertMappings', {
+      '<C-d>': 'action:quickfix',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-d>')
+    let buftype = await nvim.eval('&buftype')
+    expect(buftype).toBe('quickfix')
+    revert()
+  })
+
+  it('should execute expr keymap', async () => {
+    await helper.mockFunction('TabOpen', 'quickfix')
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-t>': 'expr:TabOpen',
+    })
+    helper.updateConfiguration('list.normalMappings', {
+      t: 'expr:TabOpen',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-t>')
+    let buftype = await nvim.eval('&buftype')
+    expect(buftype).toBe('quickfix')
+    await nvim.command('close')
+    await manager.start(['--normal', 'location'])
+    await manager.session.ui.ready
+    await helper.listInput('t')
+    buftype = await nvim.eval('&buftype')
+    expect(buftype).toBe('quickfix')
+  })
+
+  it('should execute do mappings', async () => {
+    helper.updateConfiguration('list.previousKeymap', '<C-j>')
+    helper.updateConfiguration('list.nextKeymap', '<C-k>')
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-n>': 'do:next',
+      '<C-p>': 'do:previous',
+      '<C-d>': 'do:exit',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-n>')
+    let item = await manager.session?.ui.item
+    expect(item.label).toMatch(locations[1].text)
+    await helper.listInput('<C-p>')
+    item = await manager.session?.ui.item
+    expect(item.label).toMatch(locations[0].text)
+    await helper.listInput('<C-k>')
+    item = await manager.session?.ui.item
+    expect(item.label).toMatch(locations[1].text)
+    await helper.listInput('<C-j>')
+    item = await manager.session?.ui.item
+    expect(item.label).toMatch(locations[0].text)
+    await helper.listInput('<C-d>')
+    expect(manager.isActivated).toBe(false)
+  })
+
+  it('should execute prompt mappings', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-p>': 'prompt:previous',
+      '<C-n>': 'prompt:next',
+      '<C-a>': 'prompt:start',
+      '<C-e>': 'prompt:end',
+      '<Left>': 'prompt:left',
+      '<Right>': 'prompt:right',
+      '<backspace>': 'prompt:deleteforward',
+      '<C-x>': 'prompt:deletebackward',
+      '<C-k>': 'prompt:removetail',
+      '<C-u>': 'prompt:removeahead',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    for (let key of ['<C-p>', '<C-n>', '<C-a>', '<C-e>', '<Left>', '<Right>', '<backspace>', '<C-x>', '<C-k>', '<C-u>']) {
+      await helper.listInput(key)
+    }
+    expect(manager.isActivated).toBe(true)
+  })
+
+  it('should execute feedkeys keymap', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-f>': 'feedkeys:\\<C-f>',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-f>')
+    let line = await nvim.call('line', '.')
+    expect(line).toBe(locations.length)
+  })
+
+  it('should execute normal keymap', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-g>': 'normal:G',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-g>')
+    let line = await nvim.call('line', '.')
+    expect(line).toBe(locations.length)
+  })
+
+  it('should execute command keymap', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-w>': 'command:wincmd p',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-w>')
+    expect(manager.isActivated).toBe(true)
+    let winnr = await nvim.call('winnr')
+    expect(winnr).toBe(1)
+  })
+
+  it('should execute call keymap', async () => {
+    await helper.mockFunction('Test', 1)
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-t>': 'call:Test',
+    })
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-t>')
+    expect(manager.isActivated).toBe(true)
+  })
+
+  it('should insert clipboard register to prompt', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-r>': 'prompt:paste',
+    })
+    await nvim.command('let @* = "foobar"')
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-r>')
+    let { input } = manager.prompt
+    expect(input).toMatch('foobar')
+    await nvim.command('let @* = ""')
+    await helper.listInput('<C-r>')
+    expect(manager.prompt.input).toMatch('foobar')
+  })
+
+  it('should insert text from default register to prompt', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-v>': 'eval:@@',
+    })
+    await nvim.command('let @@ = "bar"')
+    await manager.start(['location'])
+    await manager.session.ui.ready
+    await helper.listInput('<C-v>')
+    let { input } = manager.prompt
+    expect(input).toMatch('bar')
+  })
+})
+
 describe('doAction()', () => {
   it('should throw when action not found', async () => {
     let mappings = manager.mappings
@@ -577,184 +756,5 @@ describe('evalExpression', () => {
     }
     revert()
     expect(manager.isActivated).toBe(true)
-  })
-})
-
-describe('User mappings', () => {
-  it('should show warning for invalid key', async () => {
-    let revert = helper.updateConfiguration('list.insertMappings', {
-      xy: 'action:tabe',
-    })
-    await helper.wait(30)
-    let msg = await helper.getCmdline()
-    revert()
-    await nvim.command('echo ""')
-    expect(msg).toMatch('Invalid configuration')
-    revert = helper.updateConfiguration('list.insertMappings', {
-      '<M-x>': 'action:tabe',
-    })
-    await helper.wait(30)
-    msg = await helper.getCmdline()
-    revert()
-    expect(msg).toMatch('Invalid configuration')
-    revert = helper.updateConfiguration('list.insertMappings', {
-      '<C-a>': 'foo:bar',
-    })
-    await helper.wait(30)
-    msg = await helper.getCmdline()
-    revert()
-    expect(msg).toMatch('Invalid configuration')
-  })
-
-  it('should execute action keymap', async () => {
-    let revert = helper.updateConfiguration('list.insertMappings', {
-      '<C-d>': 'action:quickfix',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-d>')
-    let buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('quickfix')
-    revert()
-  })
-
-  it('should execute expr keymap', async () => {
-    await helper.mockFunction('TabOpen', 'quickfix')
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-t>': 'expr:TabOpen',
-    })
-    helper.updateConfiguration('list.normalMappings', {
-      t: 'expr:TabOpen',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-t>')
-    let buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('quickfix')
-    await nvim.command('close')
-    await manager.start(['--normal', 'location'])
-    await manager.session.ui.ready
-    await helper.listInput('t')
-    buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('quickfix')
-  })
-
-  it('should execute do mappings', async () => {
-    helper.updateConfiguration('list.previousKeymap', '<C-j>')
-    helper.updateConfiguration('list.nextKeymap', '<C-k>')
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-n>': 'do:next',
-      '<C-p>': 'do:previous',
-      '<C-d>': 'do:exit',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-n>')
-    let item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[1].text)
-    await helper.listInput('<C-p>')
-    item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[0].text)
-    await helper.listInput('<C-k>')
-    item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[1].text)
-    await helper.listInput('<C-j>')
-    item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[0].text)
-    await helper.listInput('<C-d>')
-    expect(manager.isActivated).toBe(false)
-  })
-
-  it('should execute prompt mappings', async () => {
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-p>': 'prompt:previous',
-      '<C-n>': 'prompt:next',
-      '<C-a>': 'prompt:start',
-      '<C-e>': 'prompt:end',
-      '<Left>': 'prompt:left',
-      '<Right>': 'prompt:right',
-      '<backspace>': 'prompt:deleteforward',
-      '<C-x>': 'prompt:deletebackward',
-      '<C-k>': 'prompt:removetail',
-      '<C-u>': 'prompt:removeahead',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    for (let key of ['<C-p>', '<C-n>', '<C-a>', '<C-e>', '<Left>', '<Right>', '<backspace>', '<C-x>', '<C-k>', '<C-u>']) {
-      await helper.listInput(key)
-    }
-    expect(manager.isActivated).toBe(true)
-  })
-
-  it('should execute feedkeys keymap', async () => {
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-f>': 'feedkeys:\\<C-f>',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-f>')
-    let line = await nvim.call('line', '.')
-    expect(line).toBe(locations.length)
-  })
-
-  it('should execute normal keymap', async () => {
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-g>': 'normal:G',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-g>')
-    let line = await nvim.call('line', '.')
-    expect(line).toBe(locations.length)
-  })
-
-  it('should execute command keymap', async () => {
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-w>': 'command:wincmd p',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-w>')
-    expect(manager.isActivated).toBe(true)
-    let winnr = await nvim.call('winnr')
-    expect(winnr).toBe(1)
-  })
-
-  it('should execute call keymap', async () => {
-    await helper.mockFunction('Test', 1)
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-t>': 'call:Test',
-    })
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-t>')
-    expect(manager.isActivated).toBe(true)
-  })
-
-  it('should insert clipboard register to prompt', async () => {
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-r>': 'prompt:paste',
-    })
-    await nvim.command('let @* = "foobar"')
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-r>')
-    let { input } = manager.prompt
-    expect(input).toMatch('foobar')
-    await nvim.command('let @* = ""')
-    await helper.listInput('<C-r>')
-    expect(manager.prompt.input).toMatch('foobar')
-  })
-
-  it('should insert text from default register to prompt', async () => {
-    helper.updateConfiguration('list.insertMappings', {
-      '<C-v>': 'eval:@@',
-    })
-    await nvim.command('let @@ = "bar"')
-    await manager.start(['location'])
-    await manager.session.ui.ready
-    await helper.listInput('<C-v>')
-    let { input } = manager.prompt
-    expect(input).toMatch('bar')
   })
 })

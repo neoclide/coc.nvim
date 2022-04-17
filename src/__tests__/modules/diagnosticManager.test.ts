@@ -496,6 +496,7 @@ describe('diagnostic manager', () => {
       await manager.echoMessage(false)
       let win = await helper.getFloat()
       await nvim.call('win_gotoid', [win.id])
+      await helper.wait(50)
       await nvim.command('normal! $')
       let res = await nvim.eval('synIDattr(synID(line("."),col("."),1),"name")')
       expect(res).toMatch(/javascript/i)

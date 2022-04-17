@@ -384,7 +384,7 @@ describe('semanticTokens', () => {
       let buf = await createRustBuffer()
       let item = highlighter.getItem(buf.id)
       await item.waitRefresh()
-      await helper.wait(30)
+      await helper.wait(50)
       expect(fn).toBeCalled()
     })
 

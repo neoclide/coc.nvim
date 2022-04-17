@@ -151,6 +151,7 @@ export class Helper extends EventEmitter {
     completion.stop()
     workspace.reset()
     await this.nvim.command('silent! %bwipeout!')
+    await this.nvim.command('setl nopreviewwindow')
     await this.wait(30)
     await workspace.document
   }
@@ -283,6 +284,13 @@ export class Helper extends EventEmitter {
     let ids = await this.nvim.call('coc#float#get_float_win_list', [])
     if (!ids) return []
     return ids.map(id => this.nvim.createWindow(id))
+  }
+
+  public async getExtmarkers(bufnr: number, ns: number): Promise<[number, number, number, number, string][]> {
+    let res = await this.nvim.call('nvim_buf_get_extmarks', [bufnr, ns, 0, -1, { details: true }]) as any
+    return res.map(o => {
+      return [o[1], o[2], o[3].end_row, o[3].end_col, o[3].hl_group]
+    })
   }
 
   public async waitFor<T>(method: string, args: any[], value: T): Promise<void> {
