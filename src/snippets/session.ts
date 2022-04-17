@@ -141,10 +141,7 @@ export class SnippetSession {
     const len = end.character - start.character
     const col = byteLength(document.getline(start.line).slice(0, start.character)) + 1
     let marker = this.current = placeholder.marker
-    if (marker instanceof Placeholder
-      && marker.choice
-      && marker.choice.options.length
-    ) {
+    if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
       let arr = marker.choice.options.map(o => o.value)
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
@@ -185,6 +182,7 @@ export class SnippetSession {
       await nvim.call('coc#snippet#move', [range.start])
     }
     if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
+    nvim.redrawVim()
   }
 
   public async checkPosition(): Promise<void> {
