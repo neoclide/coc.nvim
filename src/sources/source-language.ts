@@ -58,7 +58,6 @@ export default class LanguageSource implements ISource {
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
-    let { provider, name } = this
     let { triggerCharacter, bufnr } = opt
     this.filetype = opt.filetype
     this.completeItems = []
@@ -66,15 +65,8 @@ export default class LanguageSource implements ISource {
     let position = this.getPosition(opt)
     let context: any = { triggerKind, option: opt }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
-    let result: CompletionItem[] | CompletionList | undefined
-    try {
-      let doc = workspace.getDocument(bufnr)
-      result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, token, context))
-    } catch (e) {
-      // don't disturb user
-      logger.error(`Complete "${name}" error:`, e)
-      return null
-    }
+    let doc = workspace.getDocument(bufnr)
+    let result = await Promise.resolve(this.provider.provideCompletionItems(doc.textDocument, position, token, context))
     if (!result || token.isCancellationRequested) return null
     let completeItems = Array.isArray(result) ? result : result.items
     if (!completeItems || completeItems.length == 0) return null
@@ -83,15 +75,11 @@ export default class LanguageSource implements ISource {
     let option: CompleteOption = Object.assign({}, opt)
     let prefix: string
     let isIncomplete = typeof result['isIncomplete'] === 'boolean' ? result['isIncomplete'] : false
-    if (startcol == null && isIncomplete && this.triggerCharacters.includes(opt.input.slice(-1))) {
-      if (completeItems.every(o => o.insertText && !o.insertText.startsWith(opt.input))) {
-        startcol = option.col + option.input.length
-      }
+    if (startcol == null && opt.input.length > 0 && this.triggerCharacters.includes(opt.triggerCharacter)) {
+      startcol = opt.col + byteLength(opt.input)
     }
     if (startcol != null) {
-      if (startcol < option.col) {
-        prefix = byteSlice(opt.line, startcol, option.col)
-      }
+      prefix = startcol < option.col ? byteSlice(opt.line, startcol, option.col) : ''
       option.col = startcol
     }
     let items: ExtendedCompleteItem[] = completeItems.map((o, index) => {
@@ -226,11 +214,11 @@ export default class LanguageSource implements ISource {
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
-          obj.filterText = item.textEdit.newText.split(/\r?\n/)[0]
+          obj.filterText = item.textEdit.newText.replace(/\r?\n/g, '')
         }
       }
       if (!item.textEdit && !obj.word.startsWith(prefix)) {
-        // fix remains completeItem that should not change startcol
+        // fix possible wrong word
         obj.word = `${prefix}${obj.word}`
       }
     }
@@ -273,16 +261,16 @@ export default class LanguageSource implements ISource {
 /*
  * Check new startcol by check start characters.
  */
-export function getStartColumn(line: string, items: CompletionItem[]): number | null {
+export function getStartColumn(line: string, items: CompletionItem[]): number | undefined {
   let first = items[0]
-  if (!first.textEdit) return null
+  if (first.textEdit == null) return undefined
   let range = InsertReplaceEdit.is(first.textEdit) ? first.textEdit.replace : first.textEdit.range
   let { character } = range.start
   for (let i = 1; i < Math.min(10, items.length); i++) {
     let o = items[i]
-    if (!o.textEdit) return null
+    if (!o.textEdit) return undefined
     let r = InsertReplaceEdit.is(o.textEdit) ? o.textEdit.replace : o.textEdit.range
-    if (r.start.character !== character) return null
+    if (r.start.character !== character) return undefined
   }
   return byteIndex(line, character)
 }

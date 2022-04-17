@@ -5,7 +5,7 @@ import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
 import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
-import { byteSlice, characterIndex } from '../util/string'
+import { byteSlice, characterIndex, isWord } from '../util/string'
 import { matchScore } from './match'
 import MruLoader from './mru'
 const isVim = process.env.VIM_NODE_RPC == '1'
@@ -231,11 +231,12 @@ export default class Complete {
     await document.patchChange(true)
     if (token.isCancellationRequested) return undefined
     let { input, colnr, linenr } = this.option
+    let character = resumeInput[resumeInput.length - 1]
     Object.assign(this.option, {
       input: resumeInput,
       line: document.getline(linenr - 1),
       colnr: colnr + (resumeInput.length - input.length),
-      triggerCharacter: null,
+      triggerCharacter: !character || isWord(character) ? undefined : character,
       triggerForInComplete: true
     })
     let sources = this.sources.filter(s => names.includes(s.name))

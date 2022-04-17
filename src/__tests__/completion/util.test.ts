@@ -38,13 +38,13 @@ describe('shouldStop', () => {
 
 describe('getStartColumn()', () => {
   it('should get start col', async () => {
-    expect(getStartColumn('', [{ label: 'foo' }])).toBe(null)
+    expect(getStartColumn('', [{ label: 'foo' }])).toBe(undefined)
     expect(getStartColumn('', [
       { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), 'a') },
-      { label: 'bar' }])).toBe(null)
+      { label: 'bar' }])).toBe(undefined)
     expect(getStartColumn('foo', [
       { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), 'a') },
-      { label: 'bar', textEdit: TextEdit.insert(Position.create(0, 1), 'b') }])).toBe(null)
+      { label: 'bar', textEdit: TextEdit.insert(Position.create(0, 1), 'b') }])).toBe(undefined)
     expect(getStartColumn('foo', [
       { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 2), 'a') },
       { label: 'bar', textEdit: TextEdit.insert(Position.create(0, 2), 'b') }])).toBe(2)
