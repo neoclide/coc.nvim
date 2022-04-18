@@ -11,20 +11,20 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - "ubuntu-latest"
         node:
           - "16"
           - "14"
+        nvim:
+          - "0.6.1"
+          - "0.7.0"
         include:
           # only enable coverage on the fastest job
-          - os: "ubuntu-latest"
-            node: "16"
+          - node: "16"
             ENABLE_CODE_COVERAGE: true
 
     env:
@@ -54,23 +54,13 @@ jobs:
           yarn global add typescript
           yarn install --frozen-lockfile
 
-      - if: matrix.os == 'macos-latest'
-        name: yarn test on macOS
+      - name: Setup nvim ${{ matrix.nvim }}
         run: |
-          curl -LO https://github.com/neovim/neovim/releases/download/v0.7.0/nvim-macos.tar.gz
-          tar xzf nvim-macos.tar.gz
-          export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-osx64/bin"
-          nvim --version
-          yarn test-build --maxWorkers=4
-      - if: matrix.os == 'ubuntu-latest'
-        name: yarn test on Ubuntu
-        run: |
-          sudo apt-get install -y xclip
+          sudo apt-get install -y xclip ripgrep ctags
           xclip -version
-          sudo apt-get install ripgrep -y
           rg --version
-          sudo apt-get install ctags -y
-          curl -LO https://github.com/neovim/neovim/releases/download/v0.7.0/nvim-linux64.tar.gz
+          ctags --version
+          curl -LO https://github.com/neovim/neovim/releases/download/v${{ matrix.nvim }}/nvim-linux64.tar.gz
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           nvim --version
