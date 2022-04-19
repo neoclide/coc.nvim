@@ -6,11 +6,10 @@ export type Selection = 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
 
 export default class MruLoader {
   private mru: Mru
-  private items: Map<string, number> = new Map()
   private max = 0
-  constructor(
-    private selection: Selection
-  ) {
+  private items: Map<string, number> = new Map()
+  private itemsNoPrefex: Map<string, number> = new Map()
+  constructor(private selection: Selection) {
     this.mru = new Mru(`suggest${globalThis.__TEST__ ? process.pid : ''}.txt`, process.env.COC_DATA_HOME, 1000)
   }
 
@@ -22,31 +21,36 @@ export default class MruLoader {
     for (let i = total - 1; i >= 0; i--) {
       let line = lines[i]
       if (!line.includes('|')) continue
-      let [prefix, label, source, kind] = line.split('|')
-      let key = this.toKey(prefix, label, source, kind)
-      this.items.set(key, total - 1 - i)
+      let [_prefix, label, source, kind] = line.split('|')
+      if (!source) continue
+      this.items.set(line, total - 1 - i)
+      this.itemsNoPrefex.set(`${label}|${source}|${kind || ''}`, total - 1 - i)
     }
     this.max = total - 1
   }
 
-  private toKey(prefix: string, label: string, source: string, kind?: string): string {
-    let { selection } = this
-    return selection == 'recentlyUsed' ? `${label}|${source}|${kind || ''}` : `${prefix}|${label}|${source}|${kind || ''}`
-  }
-
   public getScore(input: string, item: ExtendedCompleteItem): number {
-    let key = this.toKey(input, item.filterText, item.source, item.kind)
-    return this.items.get(key) ?? -1
+    let key = toItemKey(item)
+    if (input.length == 0) return this.itemsNoPrefex.get(key) ?? -1
+    if (this.selection === 'recentlyUsedByPrefix') key = `${input}|${key}`
+    let map = this.selection === 'recentlyUsed' ? this.itemsNoPrefex : this.items
+    return map.get(key) ?? -1
   }
 
   public add(prefix: string, item: ExtendedCompleteItem): void {
-    let label = item.filterText
-    let source = item.source
-    let kind = item.kind ?? ''
-    let line = `${prefix}|${label}|${source}|${kind}`
-    let key = this.toKey(prefix, label, source, kind)
+    if (this.selection == 'none') return
+    let key = toItemKey(item)
+    let line = `${prefix}|key`
+    this.items.set(line, this.max)
+    this.itemsNoPrefex.set(key, this.max)
     this.max += 1
-    this.items.set(key, this.max)
     void this.mru.add(line)
   }
+}
+
+function toItemKey(item: ExtendedCompleteItem): string {
+  let label = item.filterText
+  let source = item.source
+  let kind = item.kind ?? ''
+  return `${label}|${source}|${kind}`
 }
