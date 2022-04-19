@@ -51,6 +51,18 @@ describe('completion', () => {
       })
     })
 
+    describe('keepCompleteopt', () => {
+      it('should show error when keepCompleteopt unable to work', async () => {
+        let prev = workspace.env.completeOpt
+        workspace.env.completeOpt = 'menu,preview'
+        helper.updateConfiguration('suggest.keepCompleteopt', true)
+        expect(completion.config.keepCompleteopt).toBe(false)
+        let line = await helper.getCmdline()
+        expect(line).toMatch('disabled')
+        workspace.env.completeOpt = prev
+      })
+    })
+
     describe('characters only', () => {
       beforeEach(() => {
         helper.updateConfiguration('suggest.asciiCharactersOnly', true)

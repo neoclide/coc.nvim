@@ -125,7 +125,8 @@ export class Completion implements Disposable {
     if (keepCompleteopt && autoTrigger != 'none') {
       let { completeOpt } = workspace
       if (!completeOpt.includes('noinsert') && !completeOpt.includes('noselect')) {
-        autoTrigger = 'none'
+        keepCompleteopt = false
+        this.nvim.echoError('suggest.keepCompleteopt disabled, completeopt should includes noinsert or noselect')
       }
     }
     let floatEnable = workspace.floatSupported && getConfig<boolean>('floatEnable', true)

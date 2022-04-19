@@ -300,9 +300,9 @@ Built-in configurations:~
 
 *suggest.keepCompleteopt*
 
-	When enabled, 'completeopt' is not overridden. Autocompletion will be
-	disabled if 'completeopt' doesn't have 'noinsert' and 'noselect',
-	default: `false`
+	When enabled, 'completeopt' is not overridden during completion. Won't
+	work if 'completeopt' doesn't includes 'noinsert' and 'noselect' which
+	are required by auto completion, default: `false`
 
 *suggest.lowPrioritySourceLimit*
 
