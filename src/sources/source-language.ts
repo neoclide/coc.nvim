@@ -58,7 +58,7 @@ export default class LanguageSource implements ISource {
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
-    let { triggerCharacter, bufnr } = opt
+    let { triggerCharacter, input, bufnr } = opt
     this.filetype = opt.filetype
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
@@ -75,8 +75,10 @@ export default class LanguageSource implements ISource {
     let option: CompleteOption = Object.assign({}, opt)
     let prefix: string
     let isIncomplete = typeof result['isIncomplete'] === 'boolean' ? result['isIncomplete'] : false
-    if (startcol == null && opt.input.length > 0 && this.triggerCharacters.includes(opt.triggerCharacter)) {
-      startcol = opt.col + byteLength(opt.input)
+    if (startcol == null && input.length > 0 && this.triggerCharacters.includes(opt.triggerCharacter)) {
+      if (!completeItems.every(item => (item.insertText ?? item.label).startsWith(opt.input))) {
+        startcol = opt.col + byteLength(opt.input)
+      }
     }
     if (startcol != null) {
       prefix = startcol < option.col ? byteSlice(opt.line, startcol, option.col) : ''

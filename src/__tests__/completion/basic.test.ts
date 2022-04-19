@@ -73,6 +73,12 @@ describe('completion', () => {
         let visible = await helper.pumvisible()
         expect(visible).toBe(false)
       })
+
+      it('should consider none word character as input', async () => {
+        let doc = await helper.createDocument('t.vim')
+        let res = completion.getInput(doc, 'a#b#')
+        expect(res).toBe('a#b#')
+      })
     })
 
     describe('ignore by regex', () => {

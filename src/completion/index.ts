@@ -354,7 +354,6 @@ export class Completion implements Disposable {
       blacklist: doc.getVar<string[]>('suggest_blacklist', []),
       disabled: doc.getVar<string[]>('disabled_sources', []),
     }
-    // logger.debug('option:', option)
     if (sources == null && input.length < minTriggerInputLength) {
       logger.warn(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
       return false
@@ -502,13 +501,12 @@ export class Completion implements Disposable {
     }
   }
 
-  private getInput(document: Document, pre: string): string {
+  public getInput(document: Document, pre: string): string {
     let { asciiCharactersOnly } = this.config
     let len = 0
-    // let input = ''
     for (let i = pre.length - 1; i >= 0; i--) {
       let ch = pre[i]
-      let word = asciiCharactersOnly ? isWord(ch) : document.isWord(ch)
+      let word = document.isWord(ch) && (asciiCharactersOnly ? ch.charCodeAt(0) < 255 : true)
       if (word) {
         len += 1
       } else {
