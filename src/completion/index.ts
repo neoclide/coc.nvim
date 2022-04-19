@@ -9,7 +9,7 @@ import { CompleteOption, ExtendedCompleteItem, FloatConfig, ISource, VimComplete
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { equals } from '../util/object'
-import { byteLength, byteSlice, isWord } from '../util/string'
+import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating, { PumBounding } from './floating'
@@ -54,9 +54,20 @@ export class Completion implements Disposable {
     events.on('InsertLeave', () => {
       this.stop()
     }, null, this.disposables)
-    events.on('CursorMovedI', (_bufnr, _cursor, hasInsert) => {
+    events.on('CursorMovedI', (bufnr, cursor, hasInsert) => {
       if (this.triggerTimer) clearTimeout(this.triggerTimer)
-      if (this.complete && !hasInsert) this.stop()
+      if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
+      if (this.option.linenr === cursor[0]) {
+        let doc = workspace.getDocument(bufnr)
+        let line = doc.getline(cursor[0] - 1)
+        let idx = characterIndex(line, cursor[1] - 1)
+        let start = characterIndex(line, this.option.colnr - 1)
+        if (start < idx) {
+          let text = line.substring(start, idx)
+          if (doc.isWord(text)) return
+        }
+      }
+      this.stop()
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
@@ -260,13 +271,12 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
-    if (!this.isEnabled(bufnr)) return
-    let { option, activated } = this
-    if (!activated && info.pre === this.pretext) return
-    if (option && shouldStop(bufnr, this.pretext, info, option)) {
+    if (!this.isEnabled(bufnr) || this.config.autoTrigger === 'none') return
+    if (this.option && shouldStop(bufnr, this.pretext, info, this.option)) {
       this.stop()
       if (!info.insertChar) return
     }
+    this.changedtick = info.changedtick
     if (info.pre === this.pretext) return
     if (this.triggerTimer) clearTimeout(this.triggerTimer)
     let pretext = this.pretext = info.pre
@@ -303,7 +313,6 @@ export class Completion implements Disposable {
       await this.triggerCompletion(doc, info)
       return
     }
-    this.changedtick = info.changedtick
     if (info.insertChar && this.complete.isEmpty) {
       // triggering without results
       this.triggerTimer = setTimeout(async () => {
