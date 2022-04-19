@@ -234,3 +234,11 @@ function! coc#compat#execute(winid, command, ...) abort
     throw 'win_execute not exists, please upgrade vim.'
   endif
 endfunc
+
+function! coc#compat#trim(str)
+  if exists('*trim')
+    return trim(a:str)
+  endif
+  " TODO trim from beginning
+  return substitute(a:str, '\s\+$', '', '')
+endfunction
