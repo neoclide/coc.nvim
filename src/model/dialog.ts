@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
+import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
 const logger = require('../util/logger')('model-dialog')
 
@@ -43,6 +44,10 @@ export interface DialogConfig {
    */
   highlight?: string
   /**
+   * highlight items of content.
+   */
+  highlights?: ReadonlyArray<HighlightItem>
+  /**
    * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
    */
   borderhighlight?: string
@@ -81,7 +86,7 @@ export default class Dialog {
 
   public async show(preferences: DialogPreferences): Promise<void> {
     let { nvim } = this
-    let { title, close, buttons } = this.config
+    let { title, close, highlights, buttons } = this.config
     let borderhighlight = this.config.borderhighlight || preferences.floatBorderHighlight
     let highlight = this.config.highlight || preferences.floatHighlight
     let opts: any = { maxwidth: preferences.maxWidth || 80, }
@@ -90,6 +95,7 @@ export default class Dialog {
     if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (highlight) opts.highlight = highlight
+    if (highlights) opts.highlights = highlights
     if (borderhighlight) opts.borderhighlight = [borderhighlight]
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
     let res = await nvim.call('coc#float#create_dialog', [this.lines, opts])

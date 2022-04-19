@@ -7302,6 +7302,10 @@ declare module 'coc.nvim' {
      */
     highlight?: string
     /**
+     * highlight items of content.
+     */
+    highlights?: ReadonlyArray<HighlightItem>
+    /**
      * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
      */
     borderhighlight?: string
