@@ -604,10 +604,10 @@ function! coc#util#set_lines(bufnr, changedtick, original, replacement, start, e
     if type(previous) == 1
       let content = getline('.')
       if previous !=# content
-        let diff = coc#helper#str_diff(content, previous, col('.'))
+        let diff = coc#string#diff(content, previous, col('.'))
         let changed = get(a:replacement, idx, 0)
         if type(changed) == 1 && strcharpart(previous, 0, diff['end']) ==# strcharpart(changed, 0, diff['end'])
-          let applied = coc#helper#str_apply(changed, diff)
+          let applied = coc#string#apply(changed, diff)
           let replacement = copy(a:replacement)
           let replacement[idx] = applied
           call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, replacement)

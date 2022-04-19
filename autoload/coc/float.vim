@@ -498,7 +498,7 @@ function! coc#float#create_border_lines(border, title, width, height, hasbtn) ab
           \.repeat(s:borderchars[0], a:width)
           \.(a:border[1] ? s:borderchars[5] : '')
     if !empty(a:title)
-      let top = coc#helper#str_compose(top, 1, a:title.' ')
+      let top = coc#string#compose(top, 1, a:title.' ')
     endif
     call add(list, top)
   endif
@@ -570,7 +570,7 @@ function! coc#float#create_prompt_win(title, default, opts) abort
   call coc#float#close_auto_hide_wins()
   " Calculate col
   let curr = win_screenpos(winnr())[1] + wincol() - 2
-  let width = coc#helper#min(max([strdisplaywidth(a:default) + 2, s:prompt_win_width]), &columns - 2)
+  let width = min([max([strdisplaywidth(a:default) + 2, s:prompt_win_width]), &columns - 2])
   if width == &columns - 2
     let col = 0 - curr
   else
@@ -775,7 +775,7 @@ endfunction
 
 function! s:convert_config_nvim(config) abort
   let valids = ['relative', 'win', 'anchor', 'width', 'height', 'bufpos', 'col', 'row', 'focusable', 'style']
-  let result = coc#helper#dict_pick(a:config, valids)
+  let result = coc#dict#pick(a:config, valids)
   let border = get(a:config, 'border', [])
   if !s:empty_border(border)
     if result['relative'] ==# 'cursor' && result['row'] < 0
@@ -895,28 +895,28 @@ function! coc#float#get_config_cursor(lines, config) abort
   if vh <= 0
     return v:null
   endif
-  let maxWidth = coc#helper#min(get(a:config, 'maxWidth', &columns - 1), &columns - 1)
+  let maxWidth = s:min(get(a:config, 'maxWidth', &columns - 1), &columns - 1)
   if maxWidth < 3
     return v:null
   endif
-  let maxHeight = coc#helper#min(get(a:config, 'maxHeight', vh), vh)
+  let maxHeight = s:min(get(a:config, 'maxHeight', vh), vh)
   let ch = 0
-  let width = coc#helper#min(40, strdisplaywidth(title)) + 3
+  let width = s:min(40, strdisplaywidth(title)) + 3
   for line in a:lines
     let dw = max([1, strdisplaywidth(line)])
     let width = max([width, dw + 2])
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
-  let width = coc#helper#min(maxWidth, width)
+  let width = s:min(maxWidth, width)
   let [lineIdx, colIdx] = coc#cursor#screen_pos()
   " How much we should move left
-  let offsetX = coc#helper#min(get(a:config, 'offsetX', 0), colIdx)
+  let offsetX = s:min(get(a:config, 'offsetX', 0), colIdx)
   let showTop = 0
   let hb = vh - lineIdx -1
   if lineIdx > bh + 2 && (preferTop || (lineIdx > hb && hb < ch + bh))
     let showTop = 1
   endif
-  let height = coc#helper#min(maxHeight, ch + bh, showTop ? lineIdx - 1 : hb)
+  let height = s:min(maxHeight, ch + bh, showTop ? lineIdx - 1 : hb)
   if height <= bh
     return v:null
   endif
@@ -938,7 +938,7 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
   let pw = pumbounding['width'] + get(pumbounding, 'scrollbar', 0)
   let rp = &columns - pumbounding['col'] - pw
   let showRight = pumbounding['col'] > rp ? 0 : 1
-  let maxWidth = showRight ? coc#helper#min(rp - 1, a:config['maxWidth']) : coc#helper#min(pumbounding['col'] - 1, a:config['maxWidth'])
+  let maxWidth = showRight ? s:min(rp - 1, a:config['maxWidth']) : s:min(pumbounding['col'] - 1, a:config['maxWidth'])
   let border = get(a:config, 'border', [])
   let bh = get(border, 0 ,0) + get(border, 2, 0)
   let maxHeight = &lines - pumbounding['row'] - &cmdheight - 1 - bh
@@ -952,8 +952,8 @@ function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
     let width = max([width, dw + 2])
     let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
-  let width = float2nr(coc#helper#min(maxWidth, width))
-  let height = float2nr(coc#helper#min(maxHeight, ch))
+  let width = float2nr(s:min(maxWidth, width))
+  let height = float2nr(s:min(maxHeight, ch))
   let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
   let opts = {
         \ 'lines': lines,
@@ -1010,10 +1010,10 @@ function! coc#float#prompt_confirm(title, cb) abort
   endif
   if has('nvim-0.4.0')
     let text = ' '. a:title . ' (y/n)? '
-    let maxWidth = coc#helper#min(78, &columns - 2)
-    let width = coc#helper#min(maxWidth, strdisplaywidth(text))
+    let maxWidth = s:min(78, &columns - 2)
+    let width = s:min(maxWidth, strdisplaywidth(text))
     let maxHeight = &lines - &cmdheight - 1
-    let height = coc#helper#min(maxHeight, float2nr(ceil(str2float(string(strdisplaywidth(text)))/width)))
+    let height = s:min(maxHeight, float2nr(ceil(str2float(string(strdisplaywidth(text)))/width)))
     call coc#float#close_auto_hide_wins()
     let arr =  coc#float#create_float_win(0, s:prompt_win_bufnr, {
           \ 'col': &columns/2 - width/2 - 1,
@@ -1215,15 +1215,15 @@ function! coc#float#create_dialog(lines, config) abort
   let buttons = get(a:config, 'buttons', [])
   let highlight = get(a:config, 'highlight', 'CocFloating')
   let borderhighlight = get(a:config, 'borderhighlight', [highlight])
-  let maxheight = coc#helper#min(get(a:config, 'maxHeight', 78), &lines - &cmdheight - 6)
-  let maxwidth = coc#helper#min(get(a:config, 'maxWidth', 78), &columns - 2)
+  let maxheight = s:min(get(a:config, 'maxHeight', 78), &lines - &cmdheight - 6)
+  let maxwidth = s:min(get(a:config, 'maxWidth', 78), &columns - 2)
   let close = get(a:config, 'close', 1)
   let minwidth = s:min_btns_width(buttons)
   if maxheight <= 0 || maxwidth <= 0 || minwidth > maxwidth
     throw 'Not enough spaces for dialog'
   endif
   let ch = 0
-  let width = coc#helper#min(strdisplaywidth(title) + 1, maxwidth)
+  let width = s:min(strdisplaywidth(title) + 1, maxwidth)
   for line in a:lines
     let dw = max([1, strdisplaywidth(line)])
     if dw < maxwidth && dw > width
@@ -1234,7 +1234,7 @@ function! coc#float#create_dialog(lines, config) abort
     let ch += float2nr(ceil(str2float(string(dw))/maxwidth))
   endfor
   let width = max([minwidth, width])
-  let height = coc#helper#min(ch ,maxheight)
+  let height = s:min(ch ,maxheight)
   let opts = {
     \ 'relative': 'editor',
     \ 'col': &columns/2 - (width + 2)/2,
@@ -1471,7 +1471,7 @@ function! coc#float#nvim_scroll_adjust(winid) abort
   endif
   let bufnr = winbufnr(winid)
   let lines = nvim_buf_get_lines(bufnr, 0, -1, 0)
-  if len(lines) > 2 && coc#helper#last_character(lines[1]) ==# s:borderchars[1]
+  if len(lines) > 2 && coc#string#last_character(lines[1]) ==# s:borderchars[1]
     let cw = nvim_win_get_width(a:winid)
     let width = nvim_win_get_width(winid)
     if width - cw != 1 + (strcharpart(lines[1], 0, 1) ==# s:borderchars[3] ? 1 : 0)
@@ -1489,7 +1489,7 @@ function! coc#float#nvim_scroll_adjust(winid) abort
         let add = ' '
       endif
       let prev = strcharpart(line, 0, strchars(line) - 1)
-      let lines[i] = prev . add . coc#helper#last_character(line)
+      let lines[i] = prev . add . coc#string#last_character(line)
     endfor
     call nvim_buf_set_lines(bufnr, 0, -1, 0, lines)
     let id = coc#float#get_related(a:winid, 'close')
@@ -1675,7 +1675,7 @@ function! s:nvim_get_botline(topline, height, width, bufnr) abort
   let botline = a:topline
   let count = 0
   for i in range(0, len(lines) - 1)
-    let w = coc#helper#max(1, strdisplaywidth(lines[i]))
+    let w = max([1, strdisplaywidth(lines[i])])
     let lh = float2nr(ceil(str2float(string(w))/a:width))
     let count = count + lh
     let botline = a:topline + i
@@ -1879,4 +1879,15 @@ function! s:add_highlights(winid, config, create) abort
     endif
   endfor
   call coc#highlight#add_highlights(a:winid, codes, highlights)
+endfunction
+
+" support for float values
+function! s:min(first, ...) abort
+  let val = a:first
+  for i in range(0, len(a:000) - 1)
+    if a:000[i] < val
+      let val = a:000[i]
+    endif
+  endfor
+  return val
 endfunction
