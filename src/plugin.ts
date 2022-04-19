@@ -61,6 +61,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('snippetPrev', () => snippetManager.previousPlaceholder())
     this.addAction('snippetCancel', () => snippetManager.cancel())
     this.addAction('openLocalConfig', () => window.openLocalConfig())
+    this.addAction('bufferCheck', () => window.bufferCheck())
     this.addAction('showInfo', () => this.handler.workspace.showInfo())
     this.addAction('hasProvider', id => this.handler.hasProvider(id))
     this.addAction('hasSelected', () => completion.hasSelected())

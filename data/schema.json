@@ -960,7 +960,7 @@
     },
     "dialog.maxHeight": {
       "type": "number",
-      "default": 20,
+      "default": 30,
       "description": "Maximum height of dialog window."
     },
     "dialog.maxWidth": {

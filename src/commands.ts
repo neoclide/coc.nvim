@@ -287,6 +287,12 @@ export class CommandManager implements Disposable {
         await window.moveTo(ranges[ranges.length - 1].start)
       }
     }, false, 'Jump to previous symbol highlight position.')
+    this.register({
+      id: 'document.checkBuffer',
+      execute: async () => {
+        await plugin.cocAction('bufferCheck')
+      }
+    }, false, 'Check providers for current buffer.')
   }
 
   public get commandList(): CommandItem[] {

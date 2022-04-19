@@ -24,8 +24,37 @@ import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import Cursors from './cursors/index'
 import workspace from './workspace'
+import languages from './languages'
+import Highligher from './model/highligher'
 const logger = require('./util/logger')('window')
 let tab_global_id = 3000
+
+export const PROVIDER_NAMES = [
+  'formatOnType',
+  'rename',
+  'onTypeEdit',
+  'documentLink',
+  'documentColor',
+  'foldingRange',
+  'format',
+  'codeAction',
+  'formatRange',
+  'hover',
+  'signature',
+  'documentSymbol',
+  'documentHighlight',
+  'definition',
+  'declaration',
+  'typeDefinition',
+  'reference',
+  'implementation',
+  'codeLens',
+  'selectionRange',
+  'callHierarchy',
+  'semanticTokens',
+  'semanticTokensRange',
+  'linkedEditing'
+]
 
 function generateTabId(): number {
   return tab_global_id++
@@ -707,6 +736,46 @@ class Window {
     } else {
       await nvim.resumeNotification(true)
     }
+  }
+
+  public async bufferCheck(): Promise<void> {
+    let doc = await workspace.document
+    let msg: string
+    if (!doc.attached) {
+      if (!doc.enabled) {
+        msg = 'Document not attached, b:coc_enabled is 0'
+      } else if (doc.buftype !== '' && doc.buftype !== 'acwrite') {
+        msg = `Document not attached with buftype '${doc.buftype}'`
+      } else {
+        msg = `Document not attached, file size exceed coc.preferences.maxFileSize`
+      }
+    }
+    if (msg) {
+      await this.showDialog({
+        title: 'Buffer check result',
+        content: msg,
+        highlight: 'WarningMsg'
+      })
+      return
+    }
+    let hi = new Highligher()
+    hi.addLine('Provider state', 'Title')
+    hi.addLine('')
+    for (let name of PROVIDER_NAMES) {
+      let exists = languages.hasProvider(name, doc.textDocument)
+      hi.addTexts([
+        { text: '-', hlGroup: 'Comment' },
+        { text: ' ' },
+        exists ? { text: '✓', hlGroup: 'CocListFgGreen' } : { text: '✗', hlGroup: 'CocListFgRed' },
+        { text: ' ' },
+        { text: name, hlGroup: exists ? 'Normal' : 'CocFadeOut' }
+      ])
+    }
+    await this.showDialog({
+      title: 'Buffer check result',
+      content: hi.content,
+      highlights: hi.highlights
+    })
   }
 
   private createNotification(borderhighlight: string, message: string, items: string[]): Promise<number> {

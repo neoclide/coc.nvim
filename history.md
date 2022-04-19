@@ -2,6 +2,7 @@
 
 - Select recent item when input is empty and selection is `recentUsedByPrefix`.
 - Add `coc#snippet#prev()` and `coc#snippet#next()`.
+- Add command `document.checkBuffer`.
 
 # 2022-04-06
 
