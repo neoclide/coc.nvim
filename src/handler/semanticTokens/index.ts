@@ -197,8 +197,8 @@ export default class SemanticTokens {
       const groups = distinct(highlights.filter(o => o.hlGroup != null).map(({ hlGroup }) => hlGroup))
       for (const hlGroup of groups) {
         hl.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text: hlGroup, hlGroup }])
-        hl.addLine('')
       }
+      hl.addLine('')
       hl.addLine('Tokens types that current Language Server supported:', headGroup)
       hl.addLine('')
       let doc = workspace.getDocument(item.bufnr)
@@ -208,8 +208,8 @@ export default class SemanticTokens {
         for (const t of [...new Set(legend.tokenTypes)]) {
           let text = HLGROUP_PREFIX + upperFirst(t)
           hl.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
-          hl.addLine('')
         }
+        hl.addLine('')
       } else {
         hl.addLine('No token types supported', 'Comment')
       }
@@ -219,8 +219,8 @@ export default class SemanticTokens {
         for (const t of [...new Set(legend.tokenModifiers)]) {
           let text = HLGROUP_PREFIX + upperFirst(t)
           hl.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
-          hl.addLine('')
         }
+        hl.addLine('')
       } else {
         hl.addLine('No token modifiers exists', 'Comment')
       }
