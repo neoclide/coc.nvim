@@ -1,7 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, FoldingRange } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, FoldingRange, Range } from 'vscode-languageserver-protocol'
 import FoldHandler from '../../handler/fold'
 import languages from '../../languages'
+import workspace from '../../workspace'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -28,6 +29,11 @@ afterEach(async () => {
 })
 
 describe('Folds', () => {
+  it('should return null when provider not exists', async () => {
+    let doc = await workspace.document
+    let token = (new CancellationTokenSource()).token
+    expect(await languages.provideFoldingRanges(doc.textDocument, {}, token)).toBe(null)
+  })
 
   it('should return false when no fold ranges found', async () => {
     disposables.push(languages.registerFoldingRangeProvider([{ language: '*' }], {

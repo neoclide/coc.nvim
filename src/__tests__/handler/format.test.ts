@@ -1,9 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Format from '../../handler/format'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import window from '../../window'
+import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -108,6 +109,17 @@ describe('format handler', () => {
   })
 
   describe('rangeFormat', () => {
+    it('should return null when provider not exists', async () => {
+      let doc = (await workspace.document).textDocument
+      let range = Range.create(0, 0, 1, 0)
+      let options = await workspace.getFormatOptions()
+      let token = (new CancellationTokenSource()).token
+      expect(await languages.provideDocumentRangeFormattingEdits(doc, range, options, token)).toBe(null)
+      expect(languages.hasProvider('onTypeEdit', doc)).toBe(false)
+      let edits = await languages.provideDocumentFormattingEdits(doc, options, token)
+      expect(edits).toBe(null)
+    })
+
     it('should invoke range format', async () => {
       disposables.push(languages.registerDocumentRangeFormatProvider(['text'], {
         provideDocumentRangeFormattingEdits: (_document, range) => {
@@ -125,10 +137,16 @@ describe('format handler', () => {
       await nvim.command('setf text')
       await nvim.command('normal! ggvG')
       await nvim.input('<esc>')
+      expect(languages.hasFormatProvider(doc.textDocument)).toBe(true)
+      expect(languages.hasProvider('format', doc.textDocument)).toBe(true)
       await helper.doAction('formatSelected', 'v')
       let buf = nvim.createBuffer(doc.bufnr)
       let lines = await buf.lines
       expect(lines).toEqual(['  a', '  b', '  c'])
+      let options = await workspace.getFormatOptions(doc.uri)
+      let token = (new CancellationTokenSource()).token
+      let edits = await languages.provideDocumentFormattingEdits(doc.textDocument, options, token)
+      expect(edits.length).toBeGreaterThan(0)
     })
 
     it('should format range by formatexpr option', async () => {
@@ -232,4 +250,3 @@ describe('format handler', () => {
     })
   })
 })
-

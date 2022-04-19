@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, LocationLink, Location, Range } from 'vscode-languageserver-protocol'
+import { Disposable, LocationLink, Location, Range, Position, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import LocationHandler from '../../handler/locations'
 import languages from '../../languages'
 import services from '../../services'
@@ -39,6 +39,21 @@ function createLocation(name: string, sl: number, sc: number, el: number, ec: nu
 }
 
 describe('locations', () => {
+  describe('no provider', () => {
+    it('should return null when provider not exists', async () => {
+      let doc = (await workspace.document).textDocument
+      let pos = Position.create(0, 0)
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      expect(await languages.getDefinition(doc, pos, token)).toBe(null)
+      expect(await languages.getDefinitionLinks(doc, pos, token)).toBe(null)
+      expect(await languages.getDeclaration(doc, pos, token)).toBe(null)
+      expect(await languages.getTypeDefinition(doc, pos, token)).toBe(null)
+      expect(await languages.getImplementation(doc, pos, token)).toBe(null)
+      expect(await languages.getReferences(doc, { includeDeclaration: false }, pos, token)).toBe(null)
+    })
+  })
+
   describe('reference', () => {
     beforeEach(() => {
       disposables.push(languages.registerReferencesProvider([{ language: '*' }], {

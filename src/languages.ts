@@ -312,9 +312,7 @@ class Languages {
   }
 
   public async provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[] | null> {
-    if (!this.foldingRangeManager.hasProvider(document)) {
-      return null
-    }
+    if (!this.foldingRangeManager.hasProvider(document)) return null
     return await this.foldingRangeManager.provideFoldingRanges(document, context, token)
   }
 
