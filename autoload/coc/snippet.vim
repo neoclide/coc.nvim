@@ -1,6 +1,7 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:map_next = 1
+let s:map_prev = 1
 let s:cmd_mapping = has('nvim') || has('patch-8.2.1978')
 
 function! coc#snippet#_select_mappings()
@@ -46,8 +47,11 @@ function! coc#snippet#enable(...)
   call coc#snippet#_select_mappings()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
-  if maparg(nextkey, 'i') =~# 'expand-jump'
+  if maparg(nextkey, 'i') =~# 'snippet'
     let s:map_next = 0
+  endif
+  if maparg(prevkey, 'i') =~# 'snippet'
+    let s:map_prev = 0
   endif
   if !empty(nextkey)
     if s:map_next
@@ -56,9 +60,21 @@ function! coc#snippet#enable(...)
     execute 'snoremap <buffer><nowait><silent>'.nextkey." <Esc>:call coc#snippet#jump(1, ".complete.")<cr>"
   endif
   if !empty(prevkey)
-    execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#snippet#jump(0, ".complete.")<cr>"
+    if s:map_prev
+      execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#snippet#jump(0, ".complete.")<cr>"
+    endif
     execute 'snoremap <buffer><nowait><silent>'.prevkey." <Esc>:call coc#snippet#jump(0, ".complete.")<cr>"
   endif
+endfunction
+
+function! coc#snippet#prev() abort
+  call coc#rpc#request('snippetPrev', [])
+  return ''
+endfunction
+
+function! coc#snippet#next() abort
+  call coc#rpc#request('snippetNext', [])
+  return ''
 endfunction
 
 function! coc#snippet#jump(direction, complete) abort
@@ -81,12 +97,17 @@ function! coc#snippet#disable()
   if s:map_next
     silent! execute 'iunmap <buffer> <silent> '.nextkey
   endif
-  silent! execute 'iunmap <buffer> <silent> '.prevkey
+  if s:map_prev
+    silent! execute 'iunmap <buffer> <silent> '.prevkey
+  endif
   silent! execute 'sunmap <buffer> <silent> '.prevkey
   silent! execute 'sunmap <buffer> <silent> '.nextkey
 endfunction
 
 function! coc#snippet#select(position, text) abort
+  if pumvisible()
+    call coc#_cancel()
+  endif
   if mode() == 's'
     call feedkeys("\<Esc>", 'in')
   endif
@@ -104,6 +125,9 @@ function! coc#snippet#move(position) abort
   if mode() == 's'
     call feedkeys("\<Esc>", 'in')
   endif
+  if pumvisible()
+    call coc#_cancel()
+  endif
   let pos = coc#snippet#to_cursor(a:position)
   call cursor(pos)
   if pos[1] > strlen(getline(pos[0]))
@@ -112,7 +136,6 @@ function! coc#snippet#move(position) abort
     startinsert
   endif
 endfunction
-
 
 function! coc#snippet#to_cursor(position) abort
   let line = getline(a:position.line + 1)

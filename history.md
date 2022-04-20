@@ -1,3 +1,10 @@
+# 2022-04-20
+
+- Select recent item when input is empty and selection is `recentUsedByPrefix`.
+- Add `coc#snippet#prev()` and `coc#snippet#next()`.
+- Add command `document.checkBuffer`.
+- Add `region` param to `window.diffHighlights()`.
+
 # 2022-04-06
 
 - `workspace.onDidOpenTextDocument` fire `contentChanges` as empty array when

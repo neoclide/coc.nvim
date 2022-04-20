@@ -279,6 +279,14 @@ function! coc#util#variables(bufnr) abort
   return variables
 endfunction
 
+function! coc#util#suggest_variables(bufnr) abort
+  return {
+      \ 'coc_suggest_disable': getbufvar(a:bufnr, 'coc_suggest_disable', 0),
+      \ 'coc_disabled_sources': getbufvar(a:bufnr, 'coc_disabled_sources', []),
+      \ 'coc_suggest_blacklist': getbufvar(a:bufnr, 'coc_suggest_blacklist', []),
+      \ }
+endfunction
+
 function! coc#util#root_patterns() abort
   return coc#rpc#request('rootPatterns', [bufnr('%')])
 endfunction

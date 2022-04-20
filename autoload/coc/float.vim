@@ -181,7 +181,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
   call setwinvar(winid, '&wrap', 1)
   call setwinvar(winid, '&linebreak', 1)
   call setwinvar(winid, '&conceallevel', 0)
-  call s:add_highlights(winid, a:config, 0)
+  call s:add_highlights(winid, a:config, 1)
   let g:coc_last_float_win = winid
   call coc#util#do_autocmd('CocOpenFloat')
   return [winid, bufnr]
@@ -1245,6 +1245,7 @@ function! coc#float#create_dialog(lines, config) abort
     \ 'title': title,
     \ 'close': close,
     \ 'highlight': highlight,
+    \ 'highlights': get(a:config, 'highlights', []),
     \ 'buttons': buttons,
     \ 'borderhighlight': borderhighlight,
     \ }

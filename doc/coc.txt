@@ -300,9 +300,9 @@ Built-in configurations:~
 
 *suggest.keepCompleteopt*
 
-	When enabled, 'completeopt' is not overridden. Autocompletion will be
-	disabled if 'completeopt' doesn't have 'noinsert' and 'noselect',
-	default: `false`
+	When enabled, 'completeopt' is not overridden during completion. Won't
+	work if 'completeopt' doesn't includes 'noinsert' and 'noselect' which
+	are required by auto completion, default: `false`
 
 *suggest.lowPrioritySourceLimit*
 
@@ -1899,6 +1899,11 @@ g:coc_last_hover_message				*g:coc_last_hover_message*
 
 	Note: not used when floating or preview window used for `doHover`.
 
+b:coc_snippet_active					*b:coc_snippet_active*
+
+	Is `1` when snippet session is activated, use |coc#jumpable| to check
+	if it's possible to jump placeholder.
+
 b:coc_diagnostic_info					*b:coc_diagnostic_info*
 
 	Diagnostic information of current buffer, the format would look like:
@@ -2078,6 +2083,14 @@ coc#util#get_config({key})				*coc#util#get_config()*
 	example: >
 
 	:echo coc#util#get_config('coc.preferences')
+
+coc#snippet#next() 					*coc#snippet#next()*
+
+	Jump to next placeholder, does nothing when |coc#jumpable| is 0.
+
+coc#snippet#prev() 					*coc#snippet#prev()*
+
+	Jump to previous placeholder, does nothing when |coc#jumpable| is 0.
 
 coc#float#has_float([{all}]) 				*coc#float#has_float()*
 
