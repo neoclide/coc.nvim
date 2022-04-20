@@ -640,13 +640,17 @@ class Window {
    * Get diff from highlight items and current highlights on vim.
    * Return null when buffer not loaded
    *
-   * @param {number} bufnr Buffer number
-   * @param {string} ns Highlight namespace
-   * @param {HighlightItem[]} items Highlight items
+   * @param bufnr Buffer number
+   * @param ns Highlight namespace
+   * @param items Highlight items
+   * @param region 0 based start and end line count (end exclusive)
+   * @param token CancellationToken
    * @returns {Promise<HighlightDiff | null>}
    */
-  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], token?: CancellationToken): Promise<HighlightDiff | null> {
-    let curr = await this.nvim.call('coc#highlight#get_highlights', [bufnr, ns]) as HighlightItemResult[]
+  public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number] | undefined, token?: CancellationToken): Promise<HighlightDiff | null> {
+    let args = [bufnr, ns]
+    if (Array.isArray(region)) args.push(region[0], region[1])
+    let curr = await this.nvim.call('coc#highlight#get_highlights', args) as HighlightItemResult[]
     if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRmove = []
@@ -659,42 +663,48 @@ class Window {
     // highlights on vim
     let map: Map<number, HighlightItemResult[]> = new Map()
     curr.forEach(o => {
-      let arr = map.get(o[1]) || []
-      arr.push(o)
       maxLnum = Math.max(maxLnum, o[1])
-      map.set(o[1], arr)
-    })
-    for (let i = 0; i <= maxLnum; i++) {
-      let exists = map.get(i) || []
-      let added: HighlightItem[] = []
-      for (let j = itemIndex; j <= maxIndex; j++) {
-        let o = items[j]
-        if (o.lnum == i) {
-          itemIndex = j + 1
-          added.push(o)
-        } else {
-          itemIndex = j
-          break
-        }
-      }
-      if (added.length == 0) {
-        if (exists.length) {
-          if (checkMarkers) {
-            removeMarkers.push(...exists.map(o => o[4]))
-          } else {
-            linesToRmove.push(i)
-          }
-        }
+      let arr = map.get(o[1])
+      if (arr) {
+        arr.push(o)
       } else {
-        if (exists.length == 0) {
-          newItems.push(...added.map(o => converHighlightItem(o)))
-        } else if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
-          if (checkMarkers) {
-            removeMarkers.push(...exists.map(o => o[4]))
+        map.set(o[1], [o])
+      }
+    })
+    if (curr.length > 0) {
+      let start = Array.isArray(region) ? region[0] : 0
+      for (let i = start; i <= maxLnum; i++) {
+        let exists = map.get(i) || []
+        let added: HighlightItem[] = []
+        for (let j = itemIndex; j <= maxIndex; j++) {
+          let o = items[j]
+          if (o.lnum == i) {
+            itemIndex = j + 1
+            added.push(o)
           } else {
-            linesToRmove.push(i)
+            itemIndex = j
+            break
           }
-          newItems.push(...added.map(o => converHighlightItem(o)))
+        }
+        if (added.length == 0) {
+          if (exists.length) {
+            if (checkMarkers) {
+              removeMarkers.push(...exists.map(o => o[4]))
+            } else {
+              linesToRmove.push(i)
+            }
+          }
+        } else {
+          if (exists.length == 0) {
+            newItems.push(...added.map(o => converHighlightItem(o)))
+          } else if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
+            if (checkMarkers) {
+              removeMarkers.push(...exists.map(o => o[4]))
+            } else {
+              linesToRmove.push(i)
+            }
+            newItems.push(...added.map(o => converHighlightItem(o)))
+          }
         }
       }
     }

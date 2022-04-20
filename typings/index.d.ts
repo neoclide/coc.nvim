@@ -7790,14 +7790,16 @@ declare module 'coc.nvim' {
     export function selectRange(range: Range): Promise<void>
 
     /**
-     * Get diff from highlight items and current highlights requested from vim
+     * Get diff between new highlight items and current highlights requested from vim
      *
-     * @param {number} bufnr Buffer number
-     * @param {string} ns Highlight namespace
-     * @param {HighlightItem[]} items Highlight items
+     * @param {number} bufnr - Buffer number
+     * @param {string} ns - Highlight namespace
+     * @param {HighlightItem[]} items - Highlight items
+     * @param {[number, number] | undefined} - region 0 based start line and end line (end exclusive)
+     * @param {CancellationToken} token - CancellationToken
      * @returns {Promise<HighlightDiff>}
      */
-    export function diffHighlights(bufnr: number, ns: string, items: ExtendedHighlightItem[]): Promise<HighlightDiff | null>
+    export function diffHighlights(bufnr: number, ns: string, items: ExtendedHighlightItem[], region?: [number, number] | undefined, token?: CancellationToken): Promise<HighlightDiff | null>
 
     /**
      * Apply highlight diffs, normally used with `window.diffHighlights`
