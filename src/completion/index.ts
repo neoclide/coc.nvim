@@ -273,7 +273,7 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
-    if (!this.isEnabled(bufnr) || this.config.autoTrigger === 'none') return
+    if (!workspace.isAttached(bufnr) || this.config.autoTrigger === 'none') return
     if (this.option && shouldStop(bufnr, this.pretext, info, this.option)) {
       this.stop()
       if (!info.insertChar) return
@@ -431,7 +431,7 @@ export class Completion implements Disposable {
 
   private async onInsertEnter(bufnr: number): Promise<void> {
     if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== 'always') return
-    if (!this.isEnabled(bufnr)) return
+    if (!workspace.isAttached(bufnr)) return
     let change = await this.nvim.call('coc#util#change_info') as InsertChange
     change.pre = byteSlice(change.line, 0, change.col - 1)
     if (!change.pre) return
@@ -559,12 +559,6 @@ export class Completion implements Disposable {
       return
     }
     await this.showCompletion(items)
-  }
-
-  public isEnabled(bufnr: number): boolean {
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return false
-    return true
   }
 
   private get completeOpt(): string {

@@ -307,6 +307,11 @@ export class Workspace implements IWorkspace {
     return this.documentsManager.getDocument(uri)
   }
 
+  public isAttached(bufnr: number): boolean {
+    let doc = this.documentsManager.getDocument(bufnr)
+    return doc != null && doc.attached
+  }
+
   /**
    * Get attached document by uri or bufnr.
    * Throw error when document not exists or not attached.
