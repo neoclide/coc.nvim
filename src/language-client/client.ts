@@ -4396,7 +4396,7 @@ export abstract class BaseLanguageClient {
     return lang.split('.')[0]
   }
 
-  public handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: any, defaultValue: T): T {
+  public handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: unknown, defaultValue: T): T {
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {
       if (error.code === LSPErrorCodes.RequestCancelled) {

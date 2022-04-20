@@ -66,13 +66,12 @@ export default class SemanticTokens {
     })
     languages.onDidSemanticTokensRefresh(async selector => {
       let visibleBufs = await this.nvim.call('coc#window#bufnrs') as number[]
-      let pumvisible = await this.nvim.call('pumvisible')
       for (let item of this.highlighters.items) {
         let doc = workspace.getDocument(item.bufnr)
         if (!doc || !workspace.match(selector, doc.textDocument)) continue
         item.abandonResult()
         if (visibleBufs.includes(item.bufnr)) {
-          if (!pumvisible) item.highlight()
+          item.highlight()
         }
       }
     }, null, this.disposables)
@@ -202,9 +201,8 @@ export default class SemanticTokens {
       hl.addLine('Tokens types that current Language Server supported:', headGroup)
       hl.addLine('')
       let doc = workspace.getDocument(item.bufnr)
-      let legend = languages.getLegend(doc.textDocument)
-      if (!legend) legend = languages.getLegend(doc.textDocument, true)
-      if (legend?.tokenTypes.length) {
+      let legend = languages.getLegend(doc.textDocument) ?? languages.getLegend(doc.textDocument, true)
+      if (legend.tokenTypes.length) {
         for (const t of [...new Set(legend.tokenTypes)]) {
           let text = HLGROUP_PREFIX + upperFirst(t)
           hl.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
@@ -212,10 +210,11 @@ export default class SemanticTokens {
         hl.addLine('')
       } else {
         hl.addLine('No token types supported', 'Comment')
+        hl.addLine('')
       }
       hl.addLine('Tokens modifiers that current Language Server supported:', headGroup)
       hl.addLine('')
-      if (legend?.tokenModifiers.length) {
+      if (legend.tokenModifiers.length) {
         for (const t of [...new Set(legend.tokenModifiers)]) {
           let text = HLGROUP_PREFIX + upperFirst(t)
           hl.addTexts([{ text: '-', hlGroup: 'Comment' }, { text: ' ' }, { text, hlGroup: text }])
@@ -223,6 +222,7 @@ export default class SemanticTokens {
         hl.addLine('')
       } else {
         hl.addLine('No token modifiers exists', 'Comment')
+        hl.addLine('')
       }
     } catch (e) {
       hl.addLine(e instanceof Error ? e.message : e.toString(), 'Error')

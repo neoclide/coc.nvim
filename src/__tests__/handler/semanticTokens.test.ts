@@ -195,6 +195,23 @@ describe('semanticTokens', () => {
       let content = lines.join('\n')
       expect(content).toMatch('Semantic highlight groups used by current buffer')
     })
+
+    it('should show highlight info for empty legend', async () => {
+      helper.updateConfiguration('semanticTokens.filetypes', ['*'])
+      disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
+        provideDocumentRangeSemanticTokens: (_, range) => {
+          return {
+            data: []
+          }
+        }
+      }, { tokenModifiers: [], tokenTypes: [] }))
+      await highlighter.showHiglightInfo()
+      await highlighter.showHiglightInfo()
+      let buf = await nvim.buffer
+      let lines = await buf.lines
+      let content = lines.join('\n')
+      expect(content).toMatch('No token')
+    })
   })
 
   describe('highlightCurrent()', () => {
@@ -210,6 +227,10 @@ describe('semanticTokens', () => {
       let lines = await buf.lines
       let content = lines.join('\n')
       expect(content).toMatch('CocSemDeclarationFunction')
+      await window.moveTo({ line: 1, character: 0 })
+      await commandManager.executeCommand('semanticTokens.inspect')
+      win = await helper.getFloat()
+      expect(win).toBeUndefined()
     })
 
     it('should refresh highlights by command', async () => {
@@ -515,39 +536,54 @@ describe('semanticTokens', () => {
 
   describe('checkState', () => {
     it('should throw for invalid state', async () => {
-      let doc = await helper.createDocument()
-      const fn = (cb: () => void) => {
-        let err
-        try {
-          cb()
-        } catch (e) {
-          err = e
-        }
-        expect(err).toBeDefined()
+      let doc = await workspace.document
+      const toThrow = (cb: () => void) => {
+        expect(cb).toThrow(Error)
       }
       let item = highlighter.getItem(doc.bufnr)
-      fn(() => {
+      toThrow(() => {
         item.checkState()
       })
       helper.updateConfiguration('semanticTokens.filetypes', ['*'])
-      fn(() => {
+      toThrow(() => {
         item.checkState()
       })
-      await nvim.command(`bd! ${doc.bufnr}`)
-      await helper.wait(10)
-      fn(() => {
-        item.checkState()
-      })
-
-      fn(() => {
+      toThrow(() => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         workspace._env.updateHighlight = false
         item.checkState()
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        workspace._env.updateHighlight = true
       })
+      let enabled = item.enabled
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      workspace._env.updateHighlight = true
+      expect(enabled).toBe(false)
+      doc.detach()
+      toThrow(() => {
+        item.checkState()
+      })
+    })
+  })
+
+  describe('enabled', () => {
+    it('should check if buffer enabled for semanticTokens', async () => {
+      let doc = await workspace.document
+      let item = highlighter.getItem(doc.bufnr)
+      disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
+        provideDocumentRangeSemanticTokens: (_, range) => {
+          return {
+            data: []
+          }
+        }
+      }, { tokenModifiers: [], tokenTypes: [] }))
+      expect(item.enabled).toBe(false)
+      helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
+      expect(item.enabled).toBe(false)
+      helper.updateConfiguration('semanticTokens.filetypes', ['*'])
+      expect(item.enabled).toBe(true)
+      doc.detach()
+      expect(item.enabled).toBe(false)
     })
   })
 })
