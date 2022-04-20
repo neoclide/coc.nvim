@@ -184,13 +184,14 @@ export class Completion implements Disposable {
         if (this.triggerTimer != null) {
           clearTimeout(this.triggerTimer)
         }
+        if (complete.isEmpty) {
+          this.stop()
+          return
+        }
         if (this.hasInsert) return
         await this.filterResults()
       })
-      let cancelled = await complete.doComplete()
-      if (!cancelled && complete.isEmpty) {
-        this.stop()
-      }
+      await complete.doComplete()
     } catch (e) {
       this.stop()
       this.nvim.echoError(e)

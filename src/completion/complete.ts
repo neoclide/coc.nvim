@@ -71,11 +71,18 @@ export default class Complete {
   private fireRefresh(waitTime: number): void {
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
-      let exists = Array.from(this.results.keys())
-      let { filtered } = this
-      if (exists.every(name => filtered.has(name))) return
+      if (this.allFiltered) return
       this._onDidRefresh.fire()
     }, waitTime)
+  }
+
+  private get allFiltered(): boolean {
+    let { filtered, results } = this
+    if (filtered.size === 0) return false
+    for (let key of results.keys()) {
+      if (!filtered.has(key)) return false
+    }
+    return true
   }
 
   public get isCompleting(): boolean {
@@ -133,13 +140,11 @@ export default class Complete {
     let col = this.option.col
     let isFilter = results.size > 0
     let followPart = !fixInsertedWord ? '' : this.getFollowPart()
-    if (typeof timeout !== 'number') timeout = 500
     let names = sources.map(s => s.name)
     let total = names.length
     this._completing = true
     let token = tokenSource.token
     let timer: NodeJS.Timer
-    let ts = Date.now()
     let tp = new Promise<void>(resolve => {
       timer = setTimeout(() => {
         if (!tokenSource.token.isCancellationRequested) {
@@ -149,24 +154,21 @@ export default class Complete {
           this.nvim.setVar(`coc_timeout_sources`, names, true)
         }
         resolve()
-      }, timeout)
+      }, typeof timeout === 'number' ? timeout : 500)
     })
     const finished: string[] = []
     await Promise.race([
       tp,
       Promise.all(sources.map(s => this.completeSource(s, token, followPart).then(() => {
-        if (token.isCancellationRequested) return
         finished.push(s.name)
-        if (isFilter || !results.has(s.name)) return
-        let optionChangd = this.option.col !== col
-        if (optionChangd) this.cancel()
-        let waitTime: number
-        if (optionChangd || finished.length === total) {
-          waitTime = Math.max(0, 20 - (Date.now() - ts))
-        } else {
-          waitTime = 16
+        if (token.isCancellationRequested || isFilter) return
+        let colChanged = this.option.col !== col
+        if (colChanged) this.cancel()
+        if (colChanged || finished.length === total) {
+          this.fireRefresh(0)
+        } else if (results.has(s.name)) {
+          this.fireRefresh(16)
         }
-        this.fireRefresh(waitTime)
       })))])
     clearTimeout(timer)
     this._completing = false
@@ -191,7 +193,7 @@ export default class Complete {
             resolve(undefined)
             return
           }
-          logger.debug(`Source "${name}" finished with ${len} items`, Date.now() - start)
+          logger.debug(`Source "${name}" finished with ${len} items ${Date.now() - start}ms`)
           if (len > 0) {
             result.priority = priority
             let hasFollow = followPart.length > 0
