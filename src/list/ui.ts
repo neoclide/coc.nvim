@@ -99,7 +99,7 @@ export default class ListUI {
 
   public indexToLnum(index: number): number {
     let { reversed, length } = this
-    if (!reversed) return index + 1
+    if (!reversed) return Math.min(index + 1, length)
     return Math.max(Math.min(length, length - index), 1)
   }
 
@@ -464,7 +464,7 @@ export default class ListUI {
       [start, end] = [end, start]
     }
     if (highlightItems.length == 0) return
-    buffer.updateHighlights('list', highlightItems, { start, end, priority: 99 })
+    buffer.updateHighlights('list', highlightItems, { start, end: end + 1, priority: 99 })
   }
 
   public setCursor(lnum: number, col = 0): void {
