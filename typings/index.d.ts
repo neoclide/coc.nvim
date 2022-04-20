@@ -605,15 +605,29 @@ declare module 'coc.nvim' {
     /**
      * If indentation is based on spaces (`insertSpaces` = true), the number of spaces that make an indent.
      */
-    tabSize?: number
+    tabSize: number
     /**
      * Is indentation based on spaces?
      */
-    insertSpaces?: boolean
+    insertSpaces: boolean
     /**
-     * The default 'end of line' character. If not set, '\n' is used as default.
+     * Trim trailing whitespaces on a line.
+     *
+     * @since 3.15.0
      */
-    eol?: string
+    trimTrailingWhitespace?: boolean
+    /**
+     * Insert a newline character at the end of the file if one does not exist.
+     *
+     * @since 3.15.0
+     */
+    insertFinalNewline?: boolean
+    /**
+     * Trim all newlines after the final newline at the end of the file.
+     *
+     * @since 3.15.0
+     */
+    trimFinalNewlines?: boolean
   }
 
   /**
