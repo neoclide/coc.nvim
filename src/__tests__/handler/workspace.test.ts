@@ -24,7 +24,7 @@ afterEach(async () => {
   await helper.reset()
 })
 
-describe('Workspace hanlder', () => {
+describe('Workspace handler', () => {
   describe('methods', () => {
     it('should open log', async () => {
       await handler.openLog()

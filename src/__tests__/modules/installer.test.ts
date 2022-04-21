@@ -73,7 +73,7 @@ describe('Installer', () => {
     fs.unlinkSync(tmpDir)
   })
 
-  it('should skip update when current version is lastest', async () => {
+  it('should skip update when current version is latest', async () => {
     let dir = path.join(os.tmpdir(), 'coc-pairs')
     let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
     let info = await installer.getInfo()

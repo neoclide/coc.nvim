@@ -166,7 +166,7 @@ export default class LanguageSource implements ISource {
     // adjust range by indent
     let n = fixIndent(line, currline, range)
     if (n) beginIdx += n
-    // attampt to fix range from textEdit, range should include trigger position
+    // attempt to fix range from textEdit, range should include trigger position
     if (range.end.character < beginIdx) range.end.character = beginIdx
     // fix range by count cursor moved to replace insernt word on complete done.
     if (pos.character > beginIdx) range.end.character += pos.character - beginIdx

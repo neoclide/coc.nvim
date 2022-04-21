@@ -150,7 +150,7 @@ export function ansiparse(str: string): AnsiItem[] {
     if (matchingControl != null) {
       if (matchingControl == '\x1b' && str[i] == '[') {
         //
-        // We've matched full control code. Lets start matching formating data.
+        // We've matched full control code. Lets start matching formatting data.
         //
 
         //

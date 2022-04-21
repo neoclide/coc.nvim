@@ -24,7 +24,7 @@ export class SnippetManager {
   constructor() {
     events.on('InsertCharPre', () => {
       // avoid update session when pumvisible
-      // Update may cause completion unexpcted terminated.
+      // Update may cause completion unexpected terminated.
       this.session?.cancel()
     }, null, this.disposables)
     window.onDidChangeActiveTextEditor(e => {
@@ -99,7 +99,7 @@ export class SnippetManager {
     }
     if (session) {
       await session.forceSynchronize()
-      // current session could be canceled on sychronize.
+      // current session could be canceled on synchronize.
       session = this.getSession(bufnr)
     } else {
       await doc.patchChange(true)

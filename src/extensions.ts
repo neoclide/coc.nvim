@@ -1040,7 +1040,7 @@ export class Extensions {
   }
 
   /**
-   * Deactive & unregist extension
+   * Deactivate & unregist extension
    */
   private async unloadExtension(id: string): Promise<void> {
     let item = this.extensions.get(id)

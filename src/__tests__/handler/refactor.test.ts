@@ -451,7 +451,7 @@ bar
       expect(line).toBe(11)
     })
 
-    it('should jump split window when orignal window not valid', async () => {
+    it('should jump split window when original window not valid', async () => {
       let win = await nvim.window
       let buf = await setup()
       await nvim.call('nvim_win_close', [win.id, true])

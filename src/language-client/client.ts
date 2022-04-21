@@ -276,7 +276,7 @@ export enum CloseAction {
 }
 
 /**
- * A plugable error handler that is invoked when the connection is either
+ * A pluggable error handler that is invoked when the connection is either
  * producing errors or got closed.
  */
 export interface ErrorHandler {
@@ -893,7 +893,7 @@ export interface StaticFeature {
    * to the server.
    *
    * @param capabilities the server capabilities
-   * @param documentSelector the document selector pass to the client's constuctor.
+   * @param documentSelector the document selector pass to the client's constructor.
    *  May be `undefined` if the client was created without a selector.
    */
   initialize(
@@ -3670,7 +3670,7 @@ export abstract class BaseLanguageClient {
           // ignored
         })
         connection.listen()
-        // Error is handled in the intialize call.
+        // Error is handled in the initialize call.
         return this.initialize(connection)
       }).then(undefined, error => {
         this.state = ClientState.StartFailed

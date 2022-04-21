@@ -39,7 +39,7 @@ function! coc#cursor#char_offset() abort
   return offset
 endfunction
 
-" Returns lastest selection range
+" Returns latest selection range
 function! coc#cursor#get_selection(char) abort
   let m = a:char ? 'char' : visualmode()
   if empty(m)

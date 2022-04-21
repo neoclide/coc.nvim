@@ -7,7 +7,7 @@ declare interface Promise<T> {
 }
 
 /**
- * Explicitly tells that promise should be run asynchonously.
+ * Explicitly tells that promise should be run asynchronously.
  */
 Promise.prototype.logError = function <T>(this: Promise<T>): void {
   this.catch(e => {

@@ -700,7 +700,7 @@ function! coc#float#scrollable(winid) abort
     let height = nvim_win_get_height(a:winid)
     let width = nvim_win_get_width(a:winid)
     if width > 1 && getwinvar(a:winid, '&foldcolumn', 0)
-      " since we use foldcolumn for left pading
+      " since we use foldcolumn for left padding
       let width = width - 1
     endif
     let ch = coc#float#content_height(bufnr, width, getwinvar(a:winid, '&wrap'))

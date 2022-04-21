@@ -745,7 +745,7 @@ declare module 'coc.nvim' {
    */
   export interface ColorInformation {
     /**
-     * The range in the document where this color appers.
+     * The range in the document where this color appears.
      */
     range: Range
     /**
@@ -2915,12 +2915,12 @@ declare module 'coc.nvim' {
     getLines(opts?: { start: number, end: number, strictIndexing?: boolean }): Promise<string[]>
 
     /**
-     * Set lines of buffer given indeces use request.
+     * Set lines of buffer given indices use request.
      */
     setLines(lines: string[], opts?: { start: number, end: number, strictIndexing?: boolean }): Promise<void>
 
     /**
-     * Set lines of buffer given indeces use notification.
+     * Set lines of buffer given indices use notification.
      */
     setLines(lines: string[], opts: { start: number, end: number, strictIndexing?: boolean }, isNotify: true): void
 
@@ -3652,7 +3652,7 @@ declare module 'coc.nvim' {
   }
 
   /**
-   * The implemenetation provider interface defines the contract between extensions and
+   * The implementation provider interface defines the contract between extensions and
    * the go to implementation feature.
    */
   export interface ImplementationProvider {
@@ -6416,7 +6416,7 @@ declare module 'coc.nvim' {
   }
 
   /**
-   * Store & retrive most recent used items.
+   * Store & retrieve most recent used items.
    */
   export interface Mru {
     /**
@@ -7025,7 +7025,7 @@ declare module 'coc.nvim' {
 
     /**
      * Create a FileSystemWatcher instance, when watchman not exists, the
-     * returned FileSystemWatcher can stil be used, but not work at all.
+     * returned FileSystemWatcher can still be used, but not work at all.
      */
     export function createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
     /**
@@ -8228,7 +8228,7 @@ declare module 'coc.nvim' {
      */
     doHighlight?(): void
     /**
-     * Called on list unregisted.
+     * Called on list unregistered.
      */
     dispose?(): void
   }
@@ -8962,7 +8962,7 @@ declare module 'coc.nvim' {
   export type WindowMiddleware = _WindowMiddleware
 
   /**
-   * The Middleware lets extensions intercept the request and notications send and received
+   * The Middleware lets extensions intercept the request and notifications send and received
    * from the server
    */
   interface _Middleware {
@@ -9083,7 +9083,7 @@ declare module 'coc.nvim' {
      * to the server.
      *
      * @param capabilities the server capabilities
-     * @param documentSelector the document selector pass to the client's constuctor.
+     * @param documentSelector the document selector pass to the client's constructor.
      *  May be `undefined` if the client was created without a selector.
      */
     initialize(capabilities: any, documentSelector: DocumentSelector | undefined): void

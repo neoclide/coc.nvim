@@ -277,7 +277,7 @@ export interface DocumentSymbolProvider {
 }
 
 /**
- * The implemenetation provider interface defines the contract between extensions and
+ * The implementation provider interface defines the contract between extensions and
  * the go to implementation feature.
  */
 export interface ImplementationProvider {

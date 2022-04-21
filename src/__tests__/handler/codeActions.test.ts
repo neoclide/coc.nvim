@@ -96,7 +96,7 @@ describe('handler codeActions', () => {
       expect(line).toMatch(/No quickfix code action/)
     })
 
-    it('should apply choosen action', async () => {
+    it('should apply chosen action', async () => {
       let doc = await helper.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
@@ -266,7 +266,7 @@ describe('handler codeActions', () => {
       expect(lines).toEqual(['bar'])
     })
 
-    it('should show diabled code action', async () => {
+    it('should show disabled code action', async () => {
       let doc = await helper.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
