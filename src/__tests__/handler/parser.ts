@@ -33,7 +33,7 @@ export default class Parser {
         this.currSymbol = undefined
       }
     }
-    let remain = this.getLineRemian()
+    let remain = this.getLineRemain()
     let ms = remain.match(/^(class)\s(\w+)\s\{\s*/)
     if (ms) {
       // find class
@@ -95,7 +95,7 @@ export default class Parser {
     throw new Error(`Can't find matched }`)
   }
 
-  private getLineRemian(): string {
+  private getLineRemain(): string {
     let chars = ''
     for (let i = this._curr; i < this.len; i++) {
       let ch = this._content[i]

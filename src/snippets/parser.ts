@@ -547,7 +547,7 @@ export class Variable extends TransformableMarker {
     }
   }
 
-  public get resovled(): boolean {
+  public get resolved(): boolean {
     return this._resolved
   }
 
@@ -598,7 +598,7 @@ export class Variable extends TransformableMarker {
   }
 
   public clone(): Variable {
-    const ret = new Variable(this.name, this.resovled)
+    const ret = new Variable(this.name, this.resolved)
     if (this.transform) {
       ret.transform = this.transform.clone()
     }
@@ -926,7 +926,7 @@ export class TextmateSnippet extends Marker {
       let newText = p.transform ? p.transform.resolve(val) : val
       p.setOnlyChild(new Text(newText || ''))
     }
-    this.sychronizeParents(markers)
+    this.synchronizeParents(markers)
     this.reset()
   }
 
@@ -947,10 +947,10 @@ export class TextmateSnippet extends Marker {
       let newText = p.transform ? p.transform.resolve(val) : val
       p.setOnlyChild(new Text(newText || ''))
     }
-    this.sychronizeParents(markers)
+    this.synchronizeParents(markers)
   }
 
-  public sychronizeParents(markers: Marker[]): void {
+  public synchronizeParents(markers: Marker[]): void {
     let arr: Placeholder[] = []
     markers.forEach(m => {
       let p = m.parent
@@ -1023,14 +1023,14 @@ export class TextmateSnippet extends Marker {
   public async resolveVariables(resolver: VariableResolver): Promise<void> {
     let items: Variable[] = []
     this.walk(candidate => {
-      if (candidate instanceof Variable && !candidate.resovled) {
+      if (candidate instanceof Variable && !candidate.resolved) {
         items.push(candidate)
       }
       return true
     })
     if (items.length) {
       await Promise.all(items.map(o => o.resolve(resolver)))
-      this.sychronizeParents(items)
+      this.synchronizeParents(items)
     }
   }
 

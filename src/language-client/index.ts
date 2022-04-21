@@ -249,7 +249,7 @@ export class LanguageClient extends BaseLanguageClient {
       case ClientState.Stopping:
         return 'Stopping'
       default:
-        return 'Unknonw'
+        return 'Unknown'
     }
   }
 

@@ -311,7 +311,7 @@ export default class ListSession {
     if (window) nvim.call('win_gotoid', [window.id], true)
     if (winid) nvim.call('coc#window#close', [winid], true)
     if (window && this.savedHeight && this.listOptions.position !== 'tab') {
-      nvim.call('coc#window#set_heigth', [window.id, this.savedHeight], true)
+      nvim.call('coc#window#set_height', [window.id, this.savedHeight], true)
     }
     if (notify) return nvim.resumeNotification(false, true)
     await nvim.resumeNotification(false)

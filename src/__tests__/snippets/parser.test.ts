@@ -589,7 +589,7 @@ describe('SnippetParser', () => {
     assertIdent('this ${1:is ${2:nested with $var}} and repeating $1')
   })
 
-  test('Parser, choise marker', () => {
+  test('Parser, choice marker', () => {
     const { placeholders } = new SnippetParser().parse('${1|one,two,three|}')
 
     assert.equal(placeholders.length, 1)

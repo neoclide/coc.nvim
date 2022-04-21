@@ -169,10 +169,10 @@ afterEach(async () => {
 })
 
 describe('semanticTokens', () => {
-  describe('showHiglightInfo()', () => {
+  describe('showHighlightInfo()', () => {
     it('should show error when buffer not attached', async () => {
       await nvim.command('h')
-      await highlighter.showHiglightInfo()
+      await highlighter.showHighlightInfo()
       let line = await helper.getCmdline()
       expect(line).toMatch('not attached')
       await highlighter.inspectSemanticToken()
@@ -180,7 +180,7 @@ describe('semanticTokens', () => {
 
     it('should show message when not enabled', async () => {
       await helper.edit('t.txt')
-      await highlighter.showHiglightInfo()
+      await highlighter.showHighlightInfo()
       let buf = await nvim.buffer
       let lines = await buf.lines
       expect(lines[2]).toMatch('not enabled for current filetype')
@@ -205,8 +205,8 @@ describe('semanticTokens', () => {
           }
         }
       }, { tokenModifiers: [], tokenTypes: [] }))
-      await highlighter.showHiglightInfo()
-      await highlighter.showHiglightInfo()
+      await highlighter.showHighlightInfo()
+      await highlighter.showHighlightInfo()
       let buf = await nvim.buffer
       let lines = await buf.lines
       let content = lines.join('\n')

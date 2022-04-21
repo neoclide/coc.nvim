@@ -43,7 +43,7 @@ describe('CocSnippet', () => {
     expect(c.text).toBe(resolved)
   }
 
-  async function asssertPyxValue(code: string, res: any) {
+  async function assertPyxValue(code: string, res: any) {
     let val = await nvim.call(`pyxeval`, code) as string
     if (typeof res === 'number' || typeof res === 'string' || typeof res === 'boolean') {
       expect(val).toBe(res)
@@ -140,16 +140,16 @@ describe('CocSnippet', () => {
     it('should setup python globals', async () => {
       await helper.edit('t.js')
       await createSnippet('`!p snip.rv = fn`', {})
-      await asssertPyxValue('fn', 't.js')
-      await asssertPyxValue('path', /t\.js$/)
-      await asssertPyxValue('t', [''])
-      await asssertPyxValue('context', true)
+      await assertPyxValue('fn', 't.js')
+      await assertPyxValue('path', /t\.js$/)
+      await assertPyxValue('t', [''])
+      await assertPyxValue('context', true)
       await createSnippet('`!p snip.rv = fn`', {
         regex: '[ab]',
         context: 'False'
       }, Range.create(0, 2, 0, 3), 'a b')
-      await asssertPyxValue('context', false)
-      await asssertPyxValue('match.group(0)', 'b')
+      await assertPyxValue('context', false)
+      await assertPyxValue('match.group(0)', 'b')
     })
 
     it('should setup python match', async () => {
@@ -157,8 +157,8 @@ describe('CocSnippet', () => {
         regex: '((\\d+)|(\\d*)(\\\\)?([A-Za-z]+)((\\^|_)(\\{\\d+\\}|\\d))*)/',
         context: 'True'
       }, Range.create(0, 0, 0, 3), '20/')
-      await asssertPyxValue('context', true)
-      await asssertPyxValue('match.group(1)', '20')
+      await assertPyxValue('context', true)
+      await assertPyxValue('match.group(1)', '20')
       expect(c.text).toBe('\\frac{20}{}')
     })
 
@@ -171,24 +171,24 @@ describe('CocSnippet', () => {
         'snip += ""',
         'newLine = snip.mkline("foo")'
       ])
-      await asssertPyxValue('newLine', '        foo')
+      await assertPyxValue('newLine', '        foo')
       await executePythonCode(nvim, [
         'snip.unshift(1)',
         'newLine = snip.mkline("b")'
       ])
-      await asssertPyxValue('newLine', '    b')
+      await assertPyxValue('newLine', '    b')
       await executePythonCode(nvim, [
         'snip.shift(1)',
         'snip.reset_indent()',
         'newLine = snip.mkline("f")'
       ])
-      await asssertPyxValue('newLine', '    f')
+      await assertPyxValue('newLine', '    f')
       await executePythonCode(nvim, [
         'fff = snip.opt("&fff", "foo")',
         'ft = snip.opt("&ft", "ft")',
       ])
-      await asssertPyxValue('fff', 'foo')
-      await asssertPyxValue('ft', 'txt')
+      await assertPyxValue('fff', 'foo')
+      await assertPyxValue('ft', 'txt')
     })
 
     it('should init python code block', async () => {

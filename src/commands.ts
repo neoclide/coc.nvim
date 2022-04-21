@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import diagnosticManager from './diagnostic/manager'
 import Mru from './model/mru'
 import Plugin from './plugin'
-import snipetsManager from './snippets/manager'
+import snippetsManager from './snippets/manager'
 import { UltiSnippetOption } from './types'
 import { wait } from './util'
 import window from './window'
@@ -63,7 +63,7 @@ export class CommandManager implements Disposable {
       id: 'editor.action.insertSnippet',
       execute: async (edit: TextEdit, ultisnip?: UltiSnippetOption) => {
         const opts = ultisnip === true ? {} : ultisnip
-        return await snipetsManager.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : undefined)
+        return await snippetsManager.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : undefined)
       }
     }, true)
     this.register({

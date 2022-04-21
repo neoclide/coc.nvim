@@ -508,7 +508,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     return this.winid != null
   }
 
-  public get vaild(): boolean {
+  public get valid(): boolean {
     return typeof this.bufnr === 'number'
   }
 

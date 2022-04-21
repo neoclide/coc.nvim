@@ -282,7 +282,7 @@ export default class Configurations {
         }
         this.changeConfiguration(target, model, target == ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile)
         if (!isUser && !localConfig) {
-          if (!global.__TEST__) console.error(`Unable to locate workspace configuration ${resource ? 'for ' + resource : ''}, workspace folder not resovled.`)
+          if (!global.__TEST__) console.error(`Unable to locate workspace configuration ${resource ? 'for ' + resource : ''}, workspace folder not resolved.`)
           logger.error(`Unable to locate workspace configuration`, resource)
           return
         }

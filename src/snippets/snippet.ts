@@ -42,7 +42,7 @@ export class CocSnippet {
     const snippet = parser.parse(this.snippetString, true)
     this.tmSnippet = snippet
     await this.resolve(ultisnip)
-    this.sychronize()
+    this.synchronize()
     if (!isResolve) {
       this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
       this.nvim.call('coc#compat#del_var', ['coc_last_placeholder'], true)
@@ -113,7 +113,7 @@ export class CocSnippet {
 
   public resetStartPosition(pos: Position): void {
     this.position = pos
-    this.sychronize()
+    this.synchronize()
   }
 
   public get start(): Position {
@@ -203,7 +203,7 @@ export class CocSnippet {
     }
     let select = this.tmSnippet.insertSnippet(snippet, placeholder.marker, parts, ultisnip)
     await this.resolve(ultisnip)
-    this.sychronize()
+    this.synchronize()
     return select
   }
 
@@ -225,19 +225,19 @@ export class CocSnippet {
     let cloned = this.tmSnippet.clone()
     token.onCancellationRequested(() => {
       this.tmSnippet = cloned
-      this.sychronize()
+      this.synchronize()
     })
     // range before placeholder
     let r = Range.create(start, getEnd(start, before))
     await this.tmSnippet.update(this.nvim, marker, newText)
     if (token.isCancellationRequested) return undefined
-    this.sychronize()
+    this.synchronize()
     let p = this._placeholders.find(o => o.marker == marker)
     let after = p ? p.before : before
     return { text: this._text, delta: getChangedPosition(cursor, TextEdit.replace(r, after)) }
   }
 
-  private sychronize(): void {
+  private synchronize(): void {
     const snippet = this.tmSnippet
     const { line, character } = this.position
     const document = TextDocument.create('untitled:/1', 'snippet', 0, snippet.toString())

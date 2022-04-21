@@ -49,7 +49,7 @@ export function registryUrl(scope = 'coc.nvim'): string {
   return res.endsWith('/') ? res : res + '/'
 }
 
-export function isNpmComand(exePath: string): boolean {
+export function isNpmCommand(exePath: string): boolean {
   let name = path.basename(exePath)
   return name === 'npm' || name === 'npm.CMD'
 }
@@ -64,7 +64,7 @@ export function getInstallArguments(exePath: string, url: string): string[] {
   if (url.startsWith('https://github.com')) {
     args = ['install']
   }
-  if (isNpmComand(exePath)) {
+  if (isNpmCommand(exePath)) {
     args.push('--legacy-peer-deps')
     args.push('--no-global')
   }

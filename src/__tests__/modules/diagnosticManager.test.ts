@@ -298,7 +298,7 @@ describe('diagnostic manager', () => {
   })
 
   describe('getCurrentDiagnostics', () => {
-    it('should get diagnostics under corsor', async () => {
+    it('should get diagnostics under cursor', async () => {
       let config = workspace.getConfiguration('diagnostic')
       await createDocument()
       let diagnostics = await manager.getCurrentDiagnostics()

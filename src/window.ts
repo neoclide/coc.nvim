@@ -60,7 +60,7 @@ function generateTabId(): number {
   return tab_global_id++
 }
 
-function converHighlightItem(item: HighlightItem): HighlightItemDef {
+function convertHighlightItem(item: HighlightItem): HighlightItemDef {
   return [item.hlGroup, item.lnum, item.colStart, item.colEnd, item.combine ? 1 : 0, item.start_incl ? 1 : 0, item.end_incl ? 1 : 0]
 }
 
@@ -653,7 +653,7 @@ class Window {
     let curr = await this.nvim.call('coc#highlight#get_highlights', args) as HighlightItemResult[]
     if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
-    let linesToRmove = []
+    let linesToRemove = []
     let checkMarkers = workspace.has('nvim-0.6.0')
     let removeMarkers = []
     let newItems: HighlightItemDef[] = []
@@ -691,27 +691,27 @@ class Window {
             if (checkMarkers) {
               removeMarkers.push(...exists.map(o => o[4]))
             } else {
-              linesToRmove.push(i)
+              linesToRemove.push(i)
             }
           }
         } else {
           if (exists.length == 0) {
-            newItems.push(...added.map(o => converHighlightItem(o)))
+            newItems.push(...added.map(o => convertHighlightItem(o)))
           } else if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
             if (checkMarkers) {
               removeMarkers.push(...exists.map(o => o[4]))
             } else {
-              linesToRmove.push(i)
+              linesToRemove.push(i)
             }
-            newItems.push(...added.map(o => converHighlightItem(o)))
+            newItems.push(...added.map(o => convertHighlightItem(o)))
           }
         }
       }
     }
     for (let i = itemIndex; i <= maxIndex; i++) {
-      newItems.push(converHighlightItem(items[i]))
+      newItems.push(convertHighlightItem(items[i]))
     }
-    return { remove: linesToRmove, add: newItems, removeMarkers }
+    return { remove: linesToRemove, add: newItems, removeMarkers }
   }
 
   /**

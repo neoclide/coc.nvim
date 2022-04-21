@@ -51,7 +51,7 @@ export class SnippetManager {
     }, null, this.disposables)
     workspace.onDidChangeTextDocument(e => {
       let session = this.getSession(e.bufnr)
-      if (session) session.sychronize()
+      if (session) session.synchronize()
     }, null, this.disposables)
   }
 
