@@ -2160,7 +2160,7 @@ CocNotify({id}, {method}, [{params}])			*CocNotify()*
 
 CocRegistNotification({id}, {method}, {callback})
 
-	Regist notification callback for specified client {id} and {method},
+	Register notification callback for specified client {id} and {method},
 	example: >
 
 	autocmd User CocNvimInit call CocRegistNotification('ccls',
