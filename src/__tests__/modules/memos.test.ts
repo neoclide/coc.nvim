@@ -16,7 +16,7 @@ afterEach(() => {
 })
 
 describe('Memos', () => {
-  it('should udpate and get', async () => {
+  it('should update and get', async () => {
     let memo = memos.createMemento('x')
     await memo.update('foo.bar', 'memo')
     let res = memo.get<string>('foo.bar')

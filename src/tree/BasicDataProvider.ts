@@ -33,7 +33,7 @@ function isIcon(obj: any): obj is TreeItemIcon {
 }
 
 /**
- * Check lable and key, children not checked.
+ * Check label and key, children not checked.
  */
 function sameTreeNode<T extends TreeNode>(one: T, two: T): boolean {
   if (one.label === two.label

@@ -473,7 +473,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
       })
     })
   }
-  // compatiable
+  // compatible
   let disabledFeatures: string[] = Array.from(config.disabledFeatures || [])
   for (let key of ['disableWorkspaceFolders', 'disableCompletion', 'disableDiagnostics']) {
     if (config[key] === true) {

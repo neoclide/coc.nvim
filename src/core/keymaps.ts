@@ -31,7 +31,7 @@ export default class Keymaps {
   }
 
   /**
-   * Regist <Plug>(coc-${key}) key mapping.
+   * Register <Plug>(coc-${key}) key mapping.
    */
   public registerKeymap(modes: MapMode[], key: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
     if (!key) throw new Error(`Invalid key ${key} of registerKeymap`)

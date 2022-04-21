@@ -109,7 +109,7 @@ describe('fs', () => {
   })
 
   describe('inDirectory', () => {
-    it('should suport wildcard', async () => {
+    it('should support wildcard', async () => {
       let res = inDirectory(__dirname, ['**/file_not_exist.json'])
       expect(res).toBe(false)
     })
