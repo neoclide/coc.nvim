@@ -30,7 +30,7 @@ export default class SemanticTokens {
     commands.register({
       id: 'semanticTokens.checkCurrent',
       execute: async () => {
-        await this.showHiglightInfo()
+        await this.showHighlightInfo()
       }
     }, false, 'show semantic tokens highlight information of current buffer')
     commands.register({
@@ -172,7 +172,7 @@ export default class SemanticTokens {
   /**
    * Show semantic highlight info in temporarily buffer
    */
-  public async showHiglightInfo(): Promise<void> {
+  public async showHighlightInfo(): Promise<void> {
     let buf = await this.nvim.buffer
     let { nvim } = this
     let item = this.highlighters.getItem(buf.id)

@@ -206,7 +206,7 @@ describe('TreeView', () => {
       await nvim.command('normal! 1gt')
       await nvim.command('tabonly')
       await helper.waitValue(() => {
-        return treeView.vaild
+        return treeView.valid
       }, false)
     })
   })

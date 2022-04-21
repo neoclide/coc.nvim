@@ -200,7 +200,7 @@ export class SnippetSession {
     return this.snippet.getPlaceholderByRange(range) || null
   }
 
-  public sychronize(): void {
+  public synchronize(): void {
     this.cancel()
     this.timer = setTimeout(async () => {
       let { document } = this

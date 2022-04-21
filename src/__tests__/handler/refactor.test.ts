@@ -36,7 +36,7 @@ function createEdit(uri: string): WorkspaceEdit {
 }
 
 // assert ranges is expected.
-async function assertSychronized(buf: RefactorBuffer) {
+async function assertSynchronized(buf: RefactorBuffer) {
   let buffer = nvim.createBuffer(buf.bufnr)
   let lines = await buffer.lines
   let items: { lnum: number, lines: string[] }[] = []
@@ -260,10 +260,10 @@ describe('refactor', () => {
       let end = r.lnum + r.lines.length
       await nvim.command(`${r.lnum},${end + 1}d`)
       await doc.synchronize()
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
       await nvim.command('undo')
       await doc.synchronize()
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
 
     it('should detect normal delete', async () => {
@@ -272,7 +272,7 @@ describe('refactor', () => {
       let r = buf.getFileRange(4)
       await nvim.command(`${r.lnum + 1},${r.lnum + 1}d`)
       await doc.synchronize()
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
 
     it('should detect insert', async () => {
@@ -281,10 +281,10 @@ describe('refactor', () => {
       let buffer = nvim.createBuffer(buf.bufnr)
       await buffer.append(['foo'])
       await doc.synchronize()
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
       await buffer.append(['foo', '\u3000'])
       await doc.synchronize()
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
   })
 
@@ -299,7 +299,7 @@ describe('refactor', () => {
       await doc.synchronize()
       let newLines = await nvim.call('getline', [1, '$'])
       expect(lines).toEqual(newLines)
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
 
     it('should adjust when change before range', async () => {
@@ -312,7 +312,7 @@ describe('refactor', () => {
       let fileRange = buf.getFileRange(4)
       expect(fileRange.start).toBe(2)
       expect(fileRange.lines.length).toBe(6)
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
 
     it('should remove ranges when lines empty', async () => {
@@ -326,7 +326,7 @@ describe('refactor', () => {
       expect(lines.length).toBe(3)
       let items = buf.fileItems
       expect(items.length).toBe(0)
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
 
     it('should change when liens changed', async () => {
@@ -338,7 +338,7 @@ describe('refactor', () => {
       await doc.synchronize()
       let lines = await nvim.call('getline', [1, '$'])
       expect(lines[lines.length - 2]).toBe('def')
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
   })
 
@@ -514,7 +514,7 @@ bar
       await p
       let items = buf.fileItems
       expect(items[0].ranges.length).toBe(1)
-      await assertSychronized(buf)
+      await assertSynchronized(buf)
     })
   })
 

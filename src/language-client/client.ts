@@ -1865,7 +1865,7 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
     completion.completionItem = {
       snippetSupport,
       commitCharactersSupport: true,
-      documentationFormat: this._client.supporedMarkupKind,
+      documentationFormat: this._client.supportedMarkupKind,
       deprecatedSupport: true,
       preselectSupport: true,
       insertReplaceSupport: true,
@@ -1963,7 +1963,7 @@ class HoverFeature extends TextDocumentFeature<
       'hover'
     )!
     hoverCapability.dynamicRegistration = true
-    hoverCapability.contentFormat = this._client.supporedMarkupKind
+    hoverCapability.contentFormat = this._client.supportedMarkupKind
   }
 
   public initialize(
@@ -2019,7 +2019,7 @@ class SignatureHelpFeature extends TextDocumentFeature<
     config.dynamicRegistration = true
     config.contextSupport = true
     config.signatureInformation = {
-      documentationFormat: this._client.supporedMarkupKind,
+      documentationFormat: this._client.supportedMarkupKind,
       activeParameterSupport: true,
       parameterInformation: {
         labelOffsetSupport: true
@@ -3263,7 +3263,7 @@ export abstract class BaseLanguageClient {
     this.registerBuiltinFeatures()
   }
 
-  public get supporedMarkupKind(): MarkupKind[] {
+  public get supportedMarkupKind(): MarkupKind[] {
     if (this._markdownSupport) return [MarkupKind.Markdown, MarkupKind.PlainText]
     return [MarkupKind.PlainText]
   }

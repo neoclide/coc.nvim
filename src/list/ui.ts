@@ -384,7 +384,7 @@ export default class ListUI {
     buffer.setOption('modifiable', false, true)
     if (reversed && !newTab) {
       let maxHeight = this.config.get<number>('height', 10)
-      nvim.call('coc#window#set_heigth', [window.id, Math.max(Math.min(maxHeight, this.length), 1)], true)
+      nvim.call('coc#window#set_height', [window.id, Math.max(Math.min(maxHeight, this.length), 1)], true)
     }
     if (index == 0) {
       if (append == 0) {
@@ -410,7 +410,7 @@ export default class ListUI {
     if (this.newTab) return
     let { winid, height } = this
     if (winid && height) {
-      this.nvim.call('coc#window#set_heigth', [winid, height], true)
+      this.nvim.call('coc#window#set_height', [winid, height], true)
     }
   }
 

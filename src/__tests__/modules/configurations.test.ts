@@ -199,7 +199,7 @@ describe('Configurations', () => {
       assert.deepStrictEqual(target, { a: [1] })
     })
 
-    it('removeFromValueTree: remove when key is the first segmenet', () => {
+    it('removeFromValueTree: remove when key is the first segment', () => {
       let target = { a: { b: 1 } }
 
       removeFromValueTree(target, 'a')

@@ -8,7 +8,7 @@ const logger = require('../util/logger')('model-installBuffer')
 
 export enum State {
   Waiting,
-  Faild,
+  Failed,
   Progressing,
   Success,
 }
@@ -57,14 +57,14 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
         this.channel.appendLine(`[${name}] install failed!`)
       }
     }
-    this.statMap.set(name, succeed ? State.Success : State.Faild)
+    this.statMap.set(name, succeed ? State.Success : State.Failed)
   }
 
   public get remains(): number {
     let count = 0
     for (let name of this.names) {
       let stat = this.statMap.get(name)
-      if (![State.Success, State.Faild].includes(stat)) {
+      if (![State.Success, State.Failed].includes(stat)) {
         count = count + 1
       }
     }
@@ -83,7 +83,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
           processText = frames[idx]
           break
         }
-        case State.Faild:
+        case State.Failed:
           processText = '✗'
           break
         case State.Success:

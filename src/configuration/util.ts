@@ -113,7 +113,7 @@ export function convertErrors(uri: string, content: string, errors: ParseError[]
         msg = 'invaliad character'
         break
       case 10:
-        msg = 'invalid commment token'
+        msg = 'invalid comment token'
         break
       case 15:
         msg = 'invalid escape character'
@@ -140,7 +140,7 @@ export function convertErrors(uri: string, content: string, errors: ParseError[]
         msg = 'value expected'
         break
       default:
-        msg = 'Unknwn error'
+        msg = 'Unknown error'
         break
     }
     let range: Range = {

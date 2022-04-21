@@ -8167,7 +8167,7 @@ declare module 'coc.nvim' {
     execute: (item: ListItem | ListItem[], context: ListContext) => ProviderResult<void>
   }
 
-  export interface MutipleListAction extends ListAction {
+  export interface MultipleListAction extends ListAction {
     multiple: true
     execute: (item: ListItem[], context: ListContext) => ProviderResult<void>
   }
@@ -8380,7 +8380,7 @@ declare module 'coc.nvim' {
     /**
      * Check if snippet activated for bufnr.
      */
-    export function isActived(bufnr: number): boolean
+    export function isActivated(bufnr: number): boolean
   }
   // }}
 

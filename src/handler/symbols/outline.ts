@@ -132,7 +132,7 @@ export default class SymbolsOutline {
   }
 
   private setMessage(bufnr: number, msg: string | undefined): void {
-    let views = this.treeViewList.filter(v => v.vaild && v.targetBufnr == bufnr)
+    let views = this.treeViewList.filter(v => v.valid && v.targetBufnr == bufnr)
     if (views) {
       views.forEach(view => {
         view.message = msg
@@ -174,7 +174,7 @@ export default class SymbolsOutline {
         }
         let meta = languages.getDocumentSymbolMetadata(doc.textDocument)
         if (meta && meta.label) {
-          let views = this.treeViewList.filter(v => v.vaild && v.targetBufnr == bufnr)
+          let views = this.treeViewList.filter(v => v.valid && v.targetBufnr == bufnr)
           views.forEach(view => view.description = meta.label)
         }
         this.setMessage(bufnr, 'Loading document symbols')
@@ -241,7 +241,7 @@ export default class SymbolsOutline {
     if (!this.providersMap.has(bufnr)) {
       this.providersMap.set(bufnr, this.createProvider(bufnr))
     }
-    let treeView = this.treeViewList.find(v => v.vaild && v.targetBufnr == bufnr && v.targetTabnr == tabnr)
+    let treeView = this.treeViewList.find(v => v.valid && v.targetBufnr == bufnr && v.targetTabnr == tabnr)
     if (!treeView) {
       treeView = new BasicTreeView('OUTLINE', {
         bufhidden: 'hide',

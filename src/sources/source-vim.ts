@@ -10,7 +10,7 @@ const logger = require('../util/logger')('sources-source-vim')
 
 export default class VimSource extends Source {
 
-  private async callOptinalFunc(fname: string, args: any[]): Promise<any> {
+  private async callOptionalFunc(fname: string, args: any[]): Promise<any> {
     let exists = this.optionalFns.includes(fname)
     if (!exists) return null
     let name = `coc#source#${this.name}#${fname}`
@@ -28,17 +28,17 @@ export default class VimSource extends Source {
     let shouldRun = await super.shouldComplete(opt)
     if (!shouldRun) return false
     if (!this.optionalFns.includes('should_complete')) return true
-    let res = await this.callOptinalFunc('should_complete', [opt])
+    let res = await this.callOptionalFunc('should_complete', [opt])
     return !!res
   }
 
   public async refresh(): Promise<void> {
-    await this.callOptinalFunc('refresh', [])
+    await this.callOptionalFunc('refresh', [])
   }
 
   public async onCompleteDone(item: ExtendedCompleteItem, _opt: CompleteOption): Promise<void> {
     if (!this.optionalFns.includes('on_complete')) return
-    await this.callOptinalFunc('on_complete', [item])
+    await this.callOptionalFunc('on_complete', [item])
   }
 
   public onEnter(bufnr: number): void {
@@ -47,7 +47,7 @@ export default class VimSource extends Source {
     if (!doc) return
     let { filetypes } = this
     if (filetypes && !filetypes.includes(doc.filetype)) return
-    this.callOptinalFunc('on_enter', [{
+    this.callOptionalFunc('on_enter', [{
       bufnr,
       uri: doc.uri,
       languageId: doc.filetype
@@ -56,7 +56,7 @@ export default class VimSource extends Source {
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
     let { col, input, line, colnr } = opt
-    let startcol: number | null = await this.callOptinalFunc('get_startcol', [opt])
+    let startcol: number | null = await this.callOptionalFunc('get_startcol', [opt])
     if (token.isCancellationRequested) return
     if (startcol) {
       if (startcol < 0) return null

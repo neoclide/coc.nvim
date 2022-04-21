@@ -48,7 +48,7 @@ describe('SnippetSession', () => {
       expect(line).toBe('`a` $ {}')
     })
 
-    it('should not start with plain snippet when jump to final palceholder', async () => {
+    it('should not start with plain snippet when jump to final placeholder', async () => {
       let res = await start('bar$0', defaultRange)
       expect(res).toBe(false)
       let pos = await window.getCursorPosition()
@@ -183,8 +183,8 @@ describe('SnippetSession', () => {
     })
   })
 
-  describe('sychronize()', () => {
-    it('should sychronize content change', async () => {
+  describe('synchronize()', () => {
+    it('should synchronize content change', async () => {
       let pyfile = path.join(__dirname, '../ultisnips.py')
       await nvim.command(`execute 'pyxfile '.fnameescape('${pyfile}')`)
       let session = new SnippetSession(nvim, workspace.bufnr, true)
@@ -193,13 +193,13 @@ describe('SnippetSession', () => {
         range: defaultRange
       })
       await nvim.input('b')
-      session.sychronize()
+      session.synchronize()
       await helper.wait(20)
       await nvim.input('a')
-      session.sychronize()
+      session.synchronize()
       await helper.wait(30)
       await nvim.input('r')
-      session.sychronize()
+      session.synchronize()
       await helper.wait(40)
       await session._synchronize()
       let line = await nvim.line
@@ -276,7 +276,7 @@ describe('SnippetSession', () => {
       expect(p.index).toBe(2)
     })
 
-    it('should update cursor column after sychronize', async () => {
+    it('should update cursor column after synchronize', async () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
       await nvim.input('i')
@@ -295,7 +295,7 @@ describe('SnippetSession', () => {
       expect(pos).toEqual(Position.create(0, 3))
     })
 
-    it('should update cursor line after sychronize', async () => {
+    it('should update cursor line after synchronize', async () => {
       let buf = await nvim.buffer
       let session = new SnippetSession(nvim, buf.id)
       await nvim.input('i')

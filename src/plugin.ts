@@ -169,7 +169,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('showOutgoingCalls', () => this.handler.callHierarchy.showCallHierarchyTree('outgoing'))
     this.addAction('inspectSemanticToken', () => this.handler.semanticHighlighter.inspectSemanticToken())
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
-    this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHiglightInfo())
+    this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHighlightInfo())
   }
 
   private addAction(key: string, fn: Function): void {

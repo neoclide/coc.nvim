@@ -88,7 +88,7 @@ function nextResult(codes: number[], text: string, idx: number, curr: MatchResul
   let remain = codes.slice(1)
   let result: MatchResult
 
-  function getRemianResult(index: number): void {
+  function getRemainResult(index: number): void {
     if (!result) return
     if (remain.length == 0) {
       results.push(result)
@@ -101,10 +101,10 @@ function nextResult(codes: number[], text: string, idx: number, curr: MatchResul
   if (!followed) return null
   if (followed == c) {
     result = { score: score + 1, matches: matches.concat([idx]) }
-    getRemianResult(idx + 1)
+    getRemainResult(idx + 1)
   } else if (caseMatch(c, followed, true)) {
     result = { score: score + 0.5, matches: matches.concat([idx]) }
-    getRemianResult(idx + 1)
+    getRemainResult(idx + 1)
   }
   if (idx + 1 < text.length) {
     // follow path
@@ -113,7 +113,7 @@ function nextResult(codes: number[], text: string, idx: number, curr: MatchResul
       if (text[i - 1] == pathSeparator && caseMatch(c, ch, true)) {
         let add = c == ch ? 1 : 0.5
         result = { score: score + add, matches: matches.concat([i]) }
-        getRemianResult(i + 1)
+        getRemainResult(i + 1)
         break
       }
     }
@@ -123,7 +123,7 @@ function nextResult(codes: number[], text: string, idx: number, curr: MatchResul
       if (caseMatch(c, ch, true)) {
         let add = c == ch ? 0.5 : 0.2
         result = { score: score + add, matches: matches.concat([i]) }
-        getRemianResult(i + 1)
+        getRemainResult(i + 1)
         break
       }
     }
