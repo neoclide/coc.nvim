@@ -7,6 +7,7 @@ import Colors from '../../handler/colors/index'
 import languages from '../../languages'
 import { ProviderResult } from '../../provider'
 import { disposeAll } from '../../util'
+import path from 'path'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -17,6 +18,7 @@ let colorPresentations: ColorPresentation[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  await nvim.command(`source ${path.join(process.cwd(), 'autoload/coc/color.vim')}`)
   colors = helper.plugin.getHandler().colors
   disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
     provideColorPresentations: (
@@ -82,7 +84,7 @@ describe('Colors', () => {
 
   describe('commands', () => {
     it('should register editor.action.pickColor command', async () => {
-      await helper.mockFunction('coc#util#pick_color', [0, 0, 0])
+      await helper.mockFunction('coc#color#pick_color', [0, 0, 0])
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
       doc.forceSync()
@@ -238,7 +240,7 @@ describe('Colors', () => {
     })
 
     it('should pickColor', async () => {
-      await helper.mockFunction('coc#util#pick_color', [0, 0, 0])
+      await helper.mockFunction('coc#color#pick_color', [0, 0, 0])
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
       doc.forceSync()
@@ -249,7 +251,7 @@ describe('Colors', () => {
     })
 
     it('should not throw when pick color return 0', async () => {
-      await helper.mockFunction('coc#util#pick_color', 0)
+      await helper.mockFunction('coc#color#pick_color', 0)
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
       doc.forceSync()

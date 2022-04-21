@@ -75,7 +75,7 @@ export default class Colors {
     if (!info) return window.showMessage('Color not found at current position', 'warning')
     let { color } = info
     let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
-    let res = await this.nvim.call('coc#util#pick_color', [colorArr])
+    let res = await this.nvim.call('coc#color#pick_color', [colorArr])
     if (!res) return
     let hex = toHexString({
       red: (res[0] / 65535),

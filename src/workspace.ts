@@ -33,7 +33,7 @@ import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
-const APIVERSION = 27
+const APIVERSION = 28
 const logger = require('./util/logger')('workspace')
 const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',

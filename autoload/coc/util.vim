@@ -2,22 +2,7 @@ scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
-let s:clear_match_by_id = has('nvim-0.5.0') || has('patch-8.1.1084')
-let s:vim_api_version = 27
-let s:activate = ""
-let s:quit = ""
-
-if has("gui_macvim") && has('gui_running')
-  let s:app = "MacVim"
-elseif $TERM_PROGRAM ==# "Apple_Terminal"
-  let s:app = "Terminal"
-elseif $TERM_PROGRAM ==# "iTerm.app"
-  let s:app = "iTerm2"
-elseif has('mac')
-  let s:app = "System Events"
-  let s:quit = "quit"
-  let s:activate = 'activate'
-endif
+let s:vim_api_version = 28
 
 function! coc#util#api_version() abort
   return s:vim_api_version
@@ -758,81 +743,6 @@ function! coc#util#rebuild()
         \ 'cmd': 'npm rebuild',
         \ 'keepfocus': 1,
         \})
-endfunction
-
-" [r, g, b] ['255', '255', '255']
-" return ['65535', '65535', '65535'] or return v:false to cancel
-function! coc#util#pick_color(default_color)
-  if has('mac')
-    let default_color = map(a:default_color, {idx, val -> str2nr(val) * 65535 / 255 })
-    " This is the AppleScript magic:
-    let s:ascrpt = ['-e "tell application \"' . s:app . '\""',
-          \ '-e "' . s:activate . '"',
-          \ "-e \"set AppleScript's text item delimiters to {\\\",\\\"}\"",
-          \ '-e "set theColor to (choose color default color {' . default_color[0] . ", " . default_color[1] . ", " . default_color[2] . '}) as text"',
-          \ '-e "' . s:quit . '"',
-          \ '-e "end tell"',
-          \ '-e "return theColor"']
-    let res = trim(system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null"))
-    if empty(res)
-      return v:false
-    else
-      return split(trim(res), ',')
-    endif
-  endif
-
-  let hex_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
-
-  if has('unix')
-    if executable('zenity')
-      let res = trim(system('zenity --title="Select a color" --color-selection --color="' . hex_color . '" 2> /dev/null'))
-      if empty(res)
-        return v:false
-      else
-        " res format is rgb(255,255,255)
-        return map(split(res[4:-2], ','), {idx, val -> string(str2nr(trim(val)) * 65535 / 255)})
-      endif
-    endif
-  endif
-
-  let rgb = v:false
-  if !has('python')
-    echohl Error | echom 'python support required, checkout :echo has(''python'')' | echohl None
-    return
-  endif
-  try
-    execute 'py import gtk'
-  catch /.*/
-    echohl Error | echom 'python gtk module not found' | echohl None
-    return
-  endtry
-python << endpython
-
-import vim
-import gtk, sys
-
-# message strings
-wnd_title_insert = "Insert a color"
-
-csd = gtk.ColorSelectionDialog(wnd_title_insert)
-cs = csd.colorsel
-
-cs.set_current_color(gtk.gdk.color_parse(vim.eval("hex_color")))
-
-cs.set_current_alpha(65535)
-cs.set_has_opacity_control(False)
-# cs.set_has_palette(int(vim.eval("s:display_palette")))
-
-if csd.run()==gtk.RESPONSE_OK:
-    c = cs.get_current_color()
-    s = [str(int(c.red)),',',str(int(c.green)),',',str(int(c.blue))]
-    thecolor = ''.join(s)
-    vim.command(":let rgb = split('%s',',')" % thecolor)
-
-csd.destroy()
-
-endpython
-  return rgb
 endfunction
 
 function! coc#util#iterm_open(dir)
