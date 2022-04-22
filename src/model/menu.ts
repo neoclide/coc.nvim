@@ -71,7 +71,7 @@ export default class Menu {
       this._onDidClose.fire(-1)
       this.dispose()
     })
-    this.addKeys(['\r', '<cr>'], () => {
+    this.addKeys(['\r', '<cr>', 'o', '<C-o>', '<C-y>'], () => {
       this.selectCurrent()
     })
     let setCursorIndex = idx => {

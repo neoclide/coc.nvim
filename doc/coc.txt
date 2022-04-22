@@ -3696,7 +3696,7 @@ dialog.
 Supported key-mappings:
 
 <Esc> <C-c>          - cancel selection.
-<cr>                 - confirm selection of current item.
+<cr> o <C-o> <C-y>   - confirm selection of current item.
 1-9                  - select item with 1 based index.
 g                    - move to first item.
 G                    - move to last item.
