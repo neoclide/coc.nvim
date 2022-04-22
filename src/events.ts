@@ -40,7 +40,7 @@ export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 
 export type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
 
-export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed'
+export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed' | 'WinScrolled'
 
 export type TabEvents = 'TabNew' | 'TabClosed'
 
