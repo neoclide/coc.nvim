@@ -23,7 +23,7 @@ function! coc#window#is_float(winid) abort
   endif
 endfunction
 
-function! coc#window#set_heigth(winid, height) abort
+function! coc#window#set_height(winid, height) abort
   if empty(getwininfo(a:winid))
     return
   endif

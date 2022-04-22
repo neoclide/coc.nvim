@@ -86,8 +86,12 @@ function! coc#_do_complete(start, items, preselect, changedtick)
         \ 'preselect': a:preselect
         \}
   if mode() =~# 'i'
-    "call feedkeys("\<Plug>CocRefresh", 'i')
-    call coc#_complete()
+    if s:is_vim
+      " when the completeopt has longest, the input would be removed sometimes when not use feedkeys!
+      call feedkeys("\<Plug>CocRefresh", 'i')
+    else
+      call coc#_complete()
+    endif
   endif
 endfunction
 

@@ -1235,7 +1235,7 @@ languageserver:~
 	  "selectionRange", "progress", "callHierarchy", "linkedEditing",
 	  "fileEvents", "semanticTokens"]
 <
-	- "formatterPriority": Priority of this languageserver's fomatter.
+	- "formatterPriority": Priority of this languageserver's formatter.
 
 	- "revealOutputChannelOn": Configure message level to show the output
 	  channel buffer.
@@ -2160,7 +2160,7 @@ CocNotify({id}, {method}, [{params}])			*CocNotify()*
 
 CocRegistNotification({id}, {method}, {callback})
 
-	Regist notification callback for specified client {id} and {method},
+	Register notification callback for specified client {id} and {method},
 	example: >
 
 	autocmd User CocNvimInit call CocRegistNotification('ccls',
@@ -2621,7 +2621,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	500ms when provider not registered, which avoid the necessary to check
 	provider existence.
 
-	Note: error is shown when current buffer is not attatched, checkout
+	Note: error is shown when current buffer is not attached, checkout
 	|CocAction('ensureDocument')|, for possible reasons.
 
 	Checkout |coc-config-tree| and |coc-config-outline| for available
@@ -2838,7 +2838,7 @@ COMMANDS						*coc-commands*
 	Note: By default, vcs ignore files including `.gitignore` and
 	`.ignore` are respected
 
-	Excape arguments:~
+	Escape arguments:~
 
 	|<f-args>| is used to convert command line arguments to arguments of
 	rg, which means you have to escape space for single argument. For

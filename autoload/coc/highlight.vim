@@ -7,7 +7,7 @@ let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
 let s:namespace_map = {}
 let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
-" Maxium count to highlight each time.
+" Maximum count to highlight each time.
 let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 100)
 
 if has('nvim-0.5.0') && s:clear_match_by_window == 0
@@ -191,11 +191,11 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
     endif
   elseif has('nvim-0.5.0')
     let start = [start, 0]
-    let maxium = end == -1 ? nvim_buf_line_count(a:bufnr) : end + 1
+    let maximum = end == -1 ? nvim_buf_line_count(a:bufnr) : end + 1
     let end = end == -1 ? -1 : [end + 1, 0]
     let markers = nvim_buf_get_extmarks(a:bufnr, ns, start, -1, {'details': v:true})
     for [marker_id, line, start_col, details] in markers
-      if line >= maxium
+      if line >= maximum
         " Could be markers exceed end of line
         continue
       endif
@@ -628,11 +628,11 @@ function! s:prop_type_hlgroup(type) abort
   return get(prop_type_get(a:type), 'highlight', '')
 endfunction
 
-function! s:update_highlights_timer(bufnr, changedtick, key, priority, gruops, idx) abort
+function! s:update_highlights_timer(bufnr, changedtick, key, priority, groups, idx) abort
   if getbufvar(a:bufnr, 'changedtick', 0) != a:changedtick
     return
   endif
-  let group = get(a:gruops, a:idx, v:null)
+  let group = get(a:groups, a:idx, v:null)
   if empty(group)
     return
   endif
@@ -641,8 +641,8 @@ function! s:update_highlights_timer(bufnr, changedtick, key, priority, gruops, i
   else
     call coc#highlight#update_highlights(a:bufnr, a:key, group['highlights'], group['start'], group['end'], a:priority)
   endif
-  if a:idx < len(a:gruops) - 1
-    call timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, a:gruops, a:idx + 1)})
+  if a:idx < len(a:groups) - 1
+    call timer_start(50, { -> s:update_highlights_timer(a:bufnr, a:changedtick, a:key, a:priority, a:groups, a:idx + 1)})
   endif
 endfunction
 
