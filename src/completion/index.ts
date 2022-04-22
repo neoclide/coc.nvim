@@ -214,7 +214,7 @@ export class Completion implements Disposable {
     return false
   }
 
-  private async showCompletion(items: ExtendedCompleteItem[]): Promise<void> {
+  private showCompletion(items: ExtendedCompleteItem[]): void {
     let { nvim, option, changedtick } = this
     if (!option) return
     let { disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
@@ -237,9 +237,10 @@ export class Completion implements Disposable {
       }
       return obj
     })
+    nvim.pauseNotification()
     if (vimItems.length) this.start()
     nvim.call('coc#_do_complete', [option.col, vimItems, preselect, changedtick], true)
-    nvim.redrawVim()
+    nvim.resumeNotification(false, true)
   }
 
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
@@ -558,7 +559,7 @@ export class Completion implements Disposable {
       if (!complete.isCompleting) this.stop()
       return
     }
-    await this.showCompletion(items)
+    this.showCompletion(items)
   }
 
   private get completeOpt(): string {
