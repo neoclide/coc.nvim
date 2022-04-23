@@ -1,4 +1,3 @@
-// vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
 /******************************************************************
 MIT License http://www.opensource.org/licenses/mit-license.php
 Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
@@ -637,7 +636,7 @@ declare module 'coc.nvim' {
   export interface CodeActionContext {
     /**
      * An array of diagnostics known on the client side overlapping the range provided to the
-     * `textDocument/codeAction` request. They are provied so that the server knows which
+     * `textDocument/codeAction` request. They are provided so that the server knows which
      * errors are currently presented to the user for the given range. There is no guarantee
      * that these accurately reflect the error state of the resource. The primary parameter
      * to compute code actions is the provided range.
@@ -1884,6 +1883,15 @@ declare module 'coc.nvim' {
      * End position of TextDocument.
      */
     readonly end: Position
+    /**
+     * 'eol' option of related buffer. When enabled additional `\n` will be
+     * added to the end of document content
+     */
+    readonly rol: boolean
+    /**
+     * Lines of TextDocument.
+     */
+    readonly lines: ReadonlyArray<string>
     /**
      * Returns a text line denoted by the line number. Note
      * that the returned object is *not* live and changes to the
@@ -8167,7 +8175,7 @@ declare module 'coc.nvim' {
     execute: (item: ListItem | ListItem[], context: ListContext) => ProviderResult<void>
   }
 
-  export interface MultipleListAction extends ListAction {
+  export interface MultipleListAction extends Omit<ListAction, 'execute'> {
     multiple: true
     execute: (item: ListItem[], context: ListContext) => ProviderResult<void>
   }
@@ -9537,7 +9545,7 @@ declare module 'coc.nvim' {
     restart(): void
 
     /**
-     * Regist custom feature.
+     * Register custom feature.
      */
     registerFeature(feature: StaticFeature | DynamicFeature<any>): void
 
@@ -9556,3 +9564,4 @@ declare module 'coc.nvim' {
   }
   // }}
 }
+// vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
