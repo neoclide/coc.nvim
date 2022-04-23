@@ -2760,12 +2760,12 @@ COMMANDS						*coc-commands*
 
 	May be required when environment nodejs get upgraded.
 
-:CocCommand {name} [{args}] ...				*:CocCommand*
+:CocCommand {name} [{args}] ... 			*:CocCommand*
 
 	Run a command contributed by extensions, use `<tab>` for name
 	completion.
 
-:{range}CocAction  [{only}]                            *:CocAction*
+:{range}CocAction  [{only}] 				*:CocAction*
 
 	Get codeActions of current document in actions list,
 	with optional {range}.
@@ -2773,7 +2773,7 @@ COMMANDS						*coc-commands*
 	{only} can be `quickfix`, `refactor`, `source.fixAll` as
 	CodeActionKind.
 
-:{range}CocFix                                         *:CocFix*
+:{range}CocFix 						*:CocFix*
 
 	Same as `:CocAction quickfix` for quickfix actions.
 
@@ -3680,7 +3680,8 @@ Supported key-mappings:
 <C-a>         - move cursor to first col.
 <C-e>         - move cursor to last col.
 <esc>         - cancel input, an empty string is received by callback.
-<cr>          - confirm current input.
+<cr>          - confirm selection of current item, use
+|dialog.confirmKey| to override.
 
 And other insert mode key-mappings that your neovim provided.
 
@@ -3696,7 +3697,8 @@ dialog.
 Supported key-mappings:
 
 <Esc> <C-c>          - cancel selection.
-<cr>                 - confirm selection of current item.
+<cr>                 - confirm selection of current item, use
+|dialog.confirmKey| to override.
 1-9                  - select item with 1 based index.
 g                    - move to first item.
 G                    - move to last item.
@@ -3716,7 +3718,8 @@ toggle selection by mouse click inside the bracket. Extensions could use
 Supported key-mappings:
 
 <Esc> <C-c>          - cancel selection.
-<cr>                 - confirm selection of selected items.
+<cr>                 - confirm selection of current item, use
+|dialog.confirmKey| to override.
 <space>              - toggle selection of current item.
 g                    - move to first item.
 G                    - move to last item.
