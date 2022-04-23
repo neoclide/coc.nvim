@@ -55,7 +55,7 @@ describe('Connection Tests', () => {
     expect(paramsCorrect).toBe(true)
   })
 
-  it('should provid token', async () => {
+  it('should provide token', async () => {
     serverConnection.onRequest(DocumentSymbolRequest.type, params => {
       expect(params.partialResultToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
       return []

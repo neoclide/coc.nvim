@@ -59,7 +59,7 @@ function indentLines(indent, text) {
   return text.replace(/(^|\n)(.+)/g, '$1' + indent + '$2')
 }
 
-function indentify(indent, text) {
+function identify(indent, text) {
   if (!text) return text
   return indent + text.split('\n').join('\n' + indent)
 }
@@ -214,7 +214,7 @@ class Renderer {
   }
 
   public blockquote(quote: string): string {
-    return section(this.o.blockquote(indentify(this.tab, quote.trim())))
+    return section(this.o.blockquote(identify(this.tab, quote.trim())))
   }
 
   public html(html: string): string {

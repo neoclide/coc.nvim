@@ -89,7 +89,7 @@ namespace Transport {
  * process, waits until the server process has connected to the pipe / socket
  * and then signals that the connection has been established and messages can
  * be send back and forth. If the language server is implemented in a different
- * programm language the server simply needs to create a connection to the
+ * program language the server simply needs to create a connection to the
  * passed pipe name or port number.
  */
 export type Transport = TransportKind | SocketTransport
@@ -254,11 +254,7 @@ export class LanguageClient extends BaseLanguageClient {
   }
 
   private checkProcessDied(childProcess: ChildProcess | undefined): void {
-    if (!childProcess || global.hasOwnProperty('__TEST__')) return
-    if (global.hasOwnProperty('__TEST__')) {
-      process.kill(childProcess.pid, 0)
-      return
-    }
+    if (!childProcess || global.__TEST__) return
     setTimeout(() => {
       // Test if the process is still alive. Throws an exception if not
       try {

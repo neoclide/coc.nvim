@@ -274,8 +274,8 @@ class Languages {
 
   public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
     if (!this.formatManager.hasProvider(document)) {
-      let hasRangeFormater = this.formatRangeManager.hasProvider(document)
-      if (!hasRangeFormater) return null
+      let hasRangeFormatter = this.formatRangeManager.hasProvider(document)
+      if (!hasRangeFormatter) return null
       let end = document.positionAt(document.getText().length)
       let range = Range.create(Position.create(0, 0), end)
       return await this.provideDocumentRangeFormattingEdits(document, range, options, token)
