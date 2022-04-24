@@ -272,6 +272,13 @@ function! s:HandleCompleteDone(complete_item) abort
   call s:Autocmd('CompleteDone', item)
 endfunction
 
+function! s:HandleWinScrolled(winid) abort
+  if getwinvar(a:winid, 'float', 0)
+    call coc#float#nvim_scrollbar(a:winid)
+  endif
+  call s:Autocmd('WinScrolled', a:winid)
+endfunction
+
 function! s:SyncAutocmd(...)
   if !get(g:, 'coc_workspace_initialized', 0)
     return
@@ -318,6 +325,9 @@ function! s:Enable(initialize)
     endif
     if has('nvim-0.4.0') || has('patch-8.1.1719')
       autocmd CursorHold        * call coc#float#check_related()
+    endif
+    if exists('##WinScrolled')
+      autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'))
     endif
     autocmd TabNew              * call s:Autocmd('TabNew', tabpagenr())
     autocmd TabClosed           * call s:Autocmd('TabClosed', +expand('<afile>'))
@@ -397,6 +407,7 @@ function! s:Hi() abort
   hi default link CocHighlightText       CursorColumn
   hi default link CocHoverRange          Search
   hi default link CocCursorRange         Search
+  hi default link CocLinkedEditing       CocCursorRange
   hi default link CocHighlightRead       CocHighlightText
   hi default link CocHighlightWrite      CocHighlightText
   " Snippet

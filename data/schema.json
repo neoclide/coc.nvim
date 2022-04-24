@@ -810,7 +810,7 @@
     },
     "diagnostic.filetypeMap": {
       "type": "object",
-      "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics withs their parent buffer type use `\"default\": \"bufferType\"`",
+      "description": "A map between buffer filetype and the filetype assigned to diagnostics. To syntax highlight diagnostics with their parent buffer type use `\"default\": \"bufferType\"`",
       "default": {}
     },
     "diagnostic.format": {
@@ -1364,6 +1364,11 @@
       "type": "boolean",
       "default": true,
       "description": "Enable tooltip to show relative filepath of call hierarchy."
+    },
+    "coc.preferences.enableLinkedEditing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable linked editing support."
     },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",

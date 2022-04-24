@@ -1,3 +1,11 @@
+# 2022-04-25
+
+- Add `LinkedEditing` support
+
+# 2022-04-23
+
+- Add `WinScrolled` event to events.
+
 # 2022-04-20
 
 - Select recent item when input is empty and selection is `recentUsedByPrefix`.
@@ -255,7 +263,7 @@
 - feat(plugin): add highligher module
 - feat(refactor): add `<Plug>(coc-refactor)` for refactor window
 - feat(extension): use mv module for folder rename
-- feat(extension): support install taged extension
+- feat(extension): support install tagged extension
 - feat(extension): support custom extension root `g:coc_extension_root`
 - feat(handler): close signature float window on ')'
 - feat(list): support `g:coc_quickfix_open_command`
@@ -327,7 +335,7 @@
 - Add `disableDiagnostics` & `disableCompletion` to languageclient configuration.
 - Add `signature.triggerSignatureWait` configuration.
 - Add vim-repeat support for run command and quickfix.
-- Add prefered `codeAction` support.
+- Add preferred `codeAction` support.
 - Add `prompt.paste` action to list.
 - Add title as argument support for `codeAction` action.
 - Add `suggest.floatEnable` configuration.
@@ -384,10 +392,10 @@
 - Add support for do action with visual select lines of list.
 - Add expand tilder support for language server command.
 - Add switch matcher support to list.
-- Add select all support to lsit.
+- Add select all support to list.
 - Add quickfix action to list.
 - Add `selectionRanges` of LSP.
-- Add load extentions for &rtp support.
+- Add load extensions for &rtp support.
 - Add `coc#on_enter()` for formatOnType and add new lines on enter.
 - Improve completion by support trigger completion when pumvisible.
 - Remove document check on `BufWritePre`.
@@ -397,7 +405,7 @@
 - **Break change** not using vim-node-rpc from npm modules any more.
 - **Break change** rename `<Plug>_` to `<Plug>CocRefresh`.
 - Fix wrong format options send to server.
-- Fix throw eror when extention root not created.
+- Fix throw error when extension root not created.
 - Fix MarkedString not considered as markdown.
 - Fix echo message on vim exit.
 - Fix error throw on file watch.
@@ -408,11 +416,11 @@
 - Add `workspace.resolveRootFolder`.
 - Add `diagnostic.joinMessageLines` setting.
 - Add `suggest.completionItemKindLabels` setting.
-- Add `memento` support for extention.
+- Add `memento` support for extension.
 - Add `workspace.getSelectedRange`.
 - Add `Terminal` module.
 - Add command `workbench.action.reloadWindow`.
-- Fix extention not activated by command.
+- Fix extension not activated by command.
 - Fix broken undo with floating window.
 - Fix document create possible wrong uri & filetype.
 - Improve highlight with floating window.
@@ -443,7 +451,7 @@
 - Fix critical performance issue on diff text.
 - Improve color of `CocHighlightText`.
 - Improve sort of complete items.
-- Improve extention list with version and open action.
+- Improve extension list with version and open action.
 
 # 2019-03-16
 
@@ -463,14 +471,14 @@
 
 - **Break change** change buffers instead of disk file for `workspace.applyEdits`.
 - **Break change** add config errors to diagnostic list instead of jump locations.
-- **Break change** hack for popup menu flicker is remvoed, use `suggest.reloadPumOnInsertChar` to enable it.
+- **Break change** hack for popup menu flicker is removed, use `suggest.reloadPumOnInsertChar` to enable it.
 - **Break change** use `nvim_select_popupmenu_item` for number select completion.
 - Add floating window for completion items.
 - Add floating window support for diagnostics.
 - Add floating window support for hover documentation.
 - Add `coc#on_enter()` for notify enter pressed.
 - Add setting `coc.preferences.useQuickfixForLocations`.
-- Add support of `g:coc_watch_extensions` for automatic reload extentions.
+- Add support of `g:coc_watch_extensions` for automatic reload extensions.
 - Add command: `editor.action.doCodeAction`.
 - Fix service on restarted on windows after rebuild.
 - Fix config of airline.
@@ -495,7 +503,7 @@
 
 - **Break change** default of `suggest.detailMaxLength` changed to 100.
 - **Break change** option of `workspace.registerKeymap` changed.
-- Add settings: `suggest.defailField`.
+- Add settings: `suggest.detailField`.
 - Add check for autocmd in health check.
 - Add trigger patterns support for complete sources.
 - Add support of `coc-snippets-expand-jump`
@@ -508,7 +516,7 @@
 - **Break change** no longer automatic trigger for CursorHoldI #452.
 - **Break change** add preview option of `completeopt` according to `suggest.enablePreview`.
 - Add statusItem for CocUpdate.
-- Add `-sycn` option for `:CocInstall`
+- Add `-sync` option for `:CocInstall`
 - Add support for floating preview window.
 - Add more module export.
 - Fix check of vim-node-rpc throw error.
@@ -565,15 +573,15 @@
   not found.
 - Add support for configure sign in statusline.
 - Add help action for list.
-- Fix parse error on extentions update.
+- Fix parse error on extensions update.
 - Fix wrong uri on windows.
 - Fix cancel list without close ui.
 - Improve startup time by remove jobwait.
 
 # 2019-02-02
 
-- **Break change:** extentions now update automatically, prompt is removed.
-- Add check for extention compatibility.
+- **Break change:** extensions now update automatically, prompt is removed.
+- Add check for extension compatibility.
 - Add transform support for placeholder.
 - Add check for node version.
 - Add error check for list.
@@ -581,7 +589,7 @@
 - Fix preview window not shown.
 - Fix highlight not cleared on vim.
 - Fix highlight commands of list block vim on start.
-- Improve extention load.
+- Improve extension load.
 - Improve list experience.
 
 # 2019-01-28
@@ -596,7 +604,7 @@
 
 # 2019-01-24
 
-- **Break change:** python code for denite support moved to seperated repo.
+- **Break change:** python code for denite support moved to separated repo.
 - **Break change:** Quickfix list no longer used.
 - Add list support.
 - Add configuration: `coc.preferences.diagnostic.virtualText`.
@@ -641,7 +649,7 @@
 
 - **Break change:** created keymaps use rpcrequest instead of rpcnotify.
 - **Break change:** snippets provider is removed, use `coc-snippets` for
-  extention snippets.
+  extension snippets.
 - Add command: `coc.action.insertSnippet`
 - Fix position of snippets.
 - Fix modifier of registered keymaps.
@@ -659,7 +667,7 @@
 # 2018-12-27
 
 - **Break change:** no more message on service ready.
-- **Break change:** vim source now registered as extention.
+- **Break change:** vim source now registered as extension.
 - **Break change:** complete item sort have reworked.
 - **Break change:** request send to coc would throw when service not ready.
 - Add support for check current state on diagnostic update.
@@ -689,7 +697,7 @@
 - Add command `workspace.clearWatchman`.
 - Add `quickfixs`, `doCodeAction` and `doQuickfix` actions.
 - Add `g:vim_node_rpc_args` for debug purpose.
-- Add `coc#add_extension()` for specify extentions to install.
+- Add `coc#add_extension()` for specify extensions to install.
 - Fix clients not restarted on CocRestart.
 - Fix `execArgv` and `runtime` not work for node language server.
 - Fix detail of complete item not echoed sometimes.
@@ -700,7 +708,7 @@
 
 # 2018-12-17
 
-- **Break change** `vim-node-rpc` now upgrade in bacground.
+- **Break change** `vim-node-rpc` now upgrade in background.
 - Add `ignoredRootPaths` to `languageserver` option.
 - Add detect of vim running state.
 - Add `client.vim` for create clients.
@@ -714,7 +722,7 @@
 - **Break change** `fixInsertedWord` fix inserted word which ends with word
   after.
 - **Break change** `onCompleteSelect` is removed.
-- Add `workspace.registerKeymap` for regist keymap.
+- Add `workspace.registerKeymap` for register keymap.
 - Add match score for sort complete items.
 - Fix possible connection lost.
 - Fix priority of diagnostic signs.
@@ -741,7 +749,7 @@
   `never`.
 - Fix can't install on windows vim.
 - Fix `displayByAle` not clearing diagnostics.
-- Add check for `vim-node-rpc` udpate on vim.
+- Add check for `vim-node-rpc` update on vim.
 - Add `Resolver` module.
 - Improve apply `WorkspaceEdit`, support `0` as document version and merge
   edits for same document.
@@ -753,7 +761,7 @@
 - Add setting: `coc.preferences.hoverTarget`, support use echo.
 - Add setting `coc.preferences.diagnostic.displayByAle` for use ale to display errors.
 - Add setting `coc.preferences.extensionUpdateCheck` for control update check of
-  extentions.
+  extensions.
 - Add `coc#config` for set configuration in vim.
 - Fix rootPath not resolved on initialize.
 - Fix possible wrong `tabSize` by use `shiftwidth` option.
@@ -777,7 +785,7 @@
 - Add echo message when provider not found for some actions.
 - Add support for `formatexpr`
 - Add support for locality bonus like VSCode.
-- Add support of `applyAdditionaLEdits` on item selected by `<esc>`
+- Add support of `applyAdditionalLEdits` on item selected by `<esc>`
 - Add `coc.preferences.useQuickfixForLocations`
 - Add `coc.preferences.messageLevel`
 - Add support for trigger command which not registered by server.
@@ -794,13 +802,13 @@
 
 # 2018-11-24
 
-- **Break change** sources exluding `around`, `buffer` or `file` are extracted
+- **Break change** sources excluding `around`, `buffer` or `file` are extracted
   as extensions.
 - **Break change** custom source not exists any more.
 - Add `coc.preferences.preferCompleteThanJumpPlaceholder` to make jump
   placeholder behavior as confirm completion when possible.
 - Add `CocDiagnosticChange` autocmd for force statusline update.
-- Add `onDidUnloadExtension` event on extention unload.
+- Add `onDidUnloadExtension` event on extension unload.
 - Fix `getDiagnosticsInRange`, consider all interactive ranges.
 - Fix completion throw when `data` on complete item is `string`.
 - Fix `commitCharacters` not works.
@@ -1064,7 +1072,7 @@
 
 # 2018-09-07
 
-- **Break change**: all extension all seperated from core, checkout
+- **Break change**: all extension all separated from core, checkout
   [Using coc extension](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 - Fix `textDocumentSync` option not work when received as object.
 - Fix wrong diagnostic info when using multiple lint servers.
