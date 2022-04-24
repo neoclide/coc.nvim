@@ -78,7 +78,8 @@ export default (opts: Attach, requestApi = true): Plugin => {
           await plugin.ready
           await plugin.cocAction(method, ...args)
         } catch (e) {
-          nvim.echoError(e)
+          nvim.echoError(`Error on notification "${method}": ${(e instanceof Error ? e.message : e)}`)
+          logger.error(e)
         }
       }
     }
