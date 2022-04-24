@@ -3,17 +3,15 @@ import { Neovim } from '@chemzqm/neovim'
 import fastDiff from 'fast-diff'
 import { Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import events from '../events'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, HighlightItem } from '../types'
 import { disposeAll } from '../util'
-import { comparePosition, emptyRange, rangeAdjacent, rangeInRange, rangeIntersect, rangeOverlap } from '../util/position'
-import { byteSlice } from '../util/string'
+import { comparePosition, emptyRange, positionInRange, rangeAdjacent, rangeInRange, rangeIntersect, rangeOverlap } from '../util/position'
 import { lineCountChange } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import TextRange from './textRange'
-import { getChange, getDelta, SurrondChange, TextChange } from './util'
+import { getBeforeCount, getChange, getDelta, SurrondChange, TextChange } from './util'
 const logger = require('../util/logger')('cursors-session')
 
 export interface Config {
@@ -271,26 +269,11 @@ export default class CursorSession {
     this.changing = false
     if (delta != 0) {
       for (let r of ranges) {
-        let n = this.getBeforeCount(r, textRange)
+        let n = getBeforeCount(r, this.ranges, textRange)
         r.move(n * delta)
       }
     }
     this.doHighlights()
-  }
-
-  private getBeforeCount(textRange: TextRange, exclude?: TextRange): number {
-    let { ranges } = this
-    let n = 0
-    for (let idx = 0; idx < ranges.length; idx++) {
-      const r = ranges[idx]
-      if (r.position.line < textRange.position.line || r === exclude) continue
-      if (r.isBefore(textRange)) {
-        n++
-        continue
-      }
-      break
-    }
-    return n
   }
 
   public applyComposedEdit(originalLines: string[], newLines: string[]): boolean {
@@ -391,7 +374,7 @@ export default class CursorSession {
     let delta = getDelta(change)
     if (delta != 0) {
       for (let r of this.ranges) {
-        let n = this.getBeforeCount(r)
+        let n = getBeforeCount(r, this.ranges)
         r.move(n * delta)
       }
     }

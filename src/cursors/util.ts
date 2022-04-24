@@ -1,5 +1,5 @@
 'use strict'
-import { Range, TextEdit } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { equals } from '../util/object'
 import { getWellformedRange } from '../util/textedit'
@@ -93,4 +93,18 @@ export function getChange(r: TextRange, range: Range, newText: string): TextChan
   let remove = range.end.character - range.start.character
   let offset = range.start.character - r.range.start.character
   return { offset, remove, insert: newText }
+}
+
+export function getBeforeCount(textRange: TextRange, ranges: TextRange[], exclude?: TextRange): number {
+  let n = 0
+  for (let idx = 0; idx < ranges.length; idx++) {
+    const r = ranges[idx]
+    if (r.position.line < textRange.position.line || r === exclude) continue
+    if (r.isBefore(textRange)) {
+      n++
+      continue
+    }
+    break
+  }
+  return n
 }

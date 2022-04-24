@@ -871,6 +871,10 @@ Built-in configurations:~
 	default: `true`
 
 							*coc-config-preferences*
+*coc.preferences.enableLinkedEditing*
+
+	Enable linked editing support, default: `false`
+
 *coc.preferences.enableMessageDialog*
 
 	Enable messages shown in notification dialog, default: `false`
@@ -3062,7 +3066,8 @@ Others~
 
 *CocDisabled* highlight for disabled items, eg: menu item.
 *CocCodeLens* for virtual text of codeLens.
-*CocCursorRange* for ranges of activated cursors.
+*CocCursorRange* for highlight of activated cursors ranges.
+*CocLinkedEditing* for highlight of activated linked editing ranges.
 *CocHoverRange* for range of current hovered symbol.
 *CocMenuSel* for current menu item in menu dialog, works on neovim only since
 vim doesn't support change highlight group of cursorline inside popup.

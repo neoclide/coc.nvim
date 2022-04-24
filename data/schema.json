@@ -1365,6 +1365,11 @@
       "default": true,
       "description": "Enable tooltip to show relative filepath of call hierarchy."
     },
+    "coc.preferences.enableLinkedEditing": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable linked editing support."
+    },
     "coc.preferences.enableMessageDialog": {
       "type": "boolean",
       "default": false,

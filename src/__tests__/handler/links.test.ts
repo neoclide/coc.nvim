@@ -20,10 +20,6 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-beforeEach(async () => {
-  await helper.createDocument()
-})
-
 afterEach(async () => {
   disposeAll(disposables)
   await helper.reset()

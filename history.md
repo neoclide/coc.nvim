@@ -1,3 +1,7 @@
+# 2022-04-25
+
+- Add `LinkedEditing` support
+
 # 2022-04-23
 
 - Add `WinScrolled` event to events.

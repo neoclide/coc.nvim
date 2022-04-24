@@ -125,6 +125,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   private get invalid(): boolean {
+    if (!this.doc) return true
     return !this.doc.attached || this.doc.dirty
   }
 
