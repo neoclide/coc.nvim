@@ -407,16 +407,13 @@ export default class Document {
       }
     }
     let line = this.getline(position.line, current)
-    if (line.length == 0 || position.character >= line.length) return null
-    if (!chars.isKeywordChar(line[position.character])) return null
+    let ch = line[position.character]
+    if (ch == null || !chars.isKeywordChar(ch)) return null
     let start = position.character
     let end = position.character + 1
-    if (!chars.isKeywordChar(line[start])) {
-      return Range.create(position, { line: position.line, character: position.character + 1 })
-    }
     while (start >= 0) {
       let ch = line[start - 1]
-      if (!ch || !chars.isKeyword(ch)) break
+      if (!ch || !chars.isKeywordChar(ch)) break
       start = start - 1
     }
     while (end <= line.length) {
