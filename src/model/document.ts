@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, getUri, wait } from '../util/index'
+import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
@@ -342,6 +342,7 @@ export default class Document {
     }
     this.nvim.resumeNotification(isCurrent, true)
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
+    await waitNextTick()
     this.lines = newLines
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)

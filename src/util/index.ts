@@ -31,10 +31,10 @@ export function wait(ms: number): Promise<void> {
   })
 }
 
-export function waitNextTick(fn: () => void): Promise<void> {
+export function waitNextTick(fn?: () => void): Promise<void> {
   return new Promise(resolve => {
     process.nextTick(() => {
-      fn()
+      if (fn) fn()
       resolve(undefined)
     })
   })
