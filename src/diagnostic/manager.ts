@@ -388,6 +388,7 @@ export class DiagnosticManager implements Disposable {
     const { level } = this.config
     for (let collection of this.collections) {
       for (let [uri, diagnostics] of collection.entries()) {
+        if (diagnostics.length == 0) continue
         let file = URI.parse(uri).fsPath
         let lines = workspace.getDocument(uri)?.getLines()
         if (!lines) {
