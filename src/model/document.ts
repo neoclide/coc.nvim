@@ -394,7 +394,7 @@ export default class Document {
   }
 
   public async matchWords(token: CancellationToken): Promise<Set<string> | undefined> {
-    return await this.chars.matchLines(this.textDocument.lines, 3, token)
+    return await this.chars.matchLines(this.textDocument.lines, 2, token)
   }
   /**
    * Current word for replacement

@@ -250,7 +250,7 @@ describe('completion', () => {
       await nvim.call('cursor', [2, 3])
       await helper.wait(50)
       let items = await helper.getItems()
-      expect(items.length).toBe(1)
+      expect(items.length).toBe(2)
     })
 
     it('should stop with bad insert on CursorMovedI', async () => {

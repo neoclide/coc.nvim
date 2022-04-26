@@ -8,6 +8,7 @@ describe('chars keyword option', () => {
     expect(chars.isKeywordChar('z')).toBe(true)
     expect(chars.isKeywordChar('A')).toBe(true)
     expect(chars.isKeywordChar('Z')).toBe(true)
+    expect(chars.isKeywordChar('\u205f')).toBe(false)
   })
 
   it('should match letter range', () => {

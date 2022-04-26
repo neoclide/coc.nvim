@@ -69,7 +69,7 @@ export class Chars {
     this.ranges = Range.fromKeywordOption(keywordOption)
   }
 
-  public async matchLines(lines: ReadonlyArray<string>, min = 3, token?: CancellationToken): Promise<Set<string> | undefined> {
+  public async matchLines(lines: ReadonlyArray<string>, min = 2, token?: CancellationToken): Promise<Set<string> | undefined> {
     let res: Set<string> = new Set()
     let ts = Date.now()
     for (let line of lines) {
@@ -105,6 +105,7 @@ export class Chars {
 
   public isKeywordChar(ch: string): boolean {
     let { ranges } = this
+    if (/\s/.test(ch)) return false
     let c = ch.charCodeAt(0)
     if (c > 255) return true
     if (c < 33) return false
@@ -112,13 +113,8 @@ export class Chars {
   }
 
   public isKeyword(word: string): boolean {
-    let { ranges } = this
     for (let i = 0, l = word.length; i < l; i++) {
-      let ch = word.charCodeAt(i)
-      // for speed
-      if (ch > 255) return false
-      if (ranges.some(r => r.contains(ch))) continue
-      return false
+      if (!this.isKeywordChar(word[i])) return false
     }
     return true
   }
