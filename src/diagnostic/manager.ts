@@ -9,13 +9,15 @@ import BufferSync from '../model/bufferSync'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, Documentation, ErrorItem, LocationListItem } from '../types'
 import { disposeAll } from '../util'
+import { readFile } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
-import { characterIndex } from '../util/string'
+import { byteIndex, characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { DiagnosticConfig, getLocationListItem, getSeverityName, severityLevel } from './util'
+'use strict'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticEventParams {
@@ -166,12 +168,14 @@ export class DiagnosticManager implements Disposable {
   public async setLocationlist(bufnr: number): Promise<void> {
     let { locationlistLevel } = this.config
     let buf = this.buffers.getItem(bufnr)
+    let doc = workspace.getDocument(bufnr)
+    let lines = doc?.getLines()
     let diagnosticsMap = buf ? this.getDiagnostics(buf.uri) : {}
     let items: LocationListItem[] = []
     for (let diagnostics of Object.values(diagnosticsMap)) {
       for (let diagnostic of diagnostics) {
         if (locationlistLevel && diagnostic.severity && diagnostic.severity > locationlistLevel) continue
-        let item = getLocationListItem(bufnr, diagnostic)
+        let item = getLocationListItem(bufnr, diagnostic, lines)
         items.push(item)
       }
     }
@@ -379,12 +383,19 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get all sorted diagnostics of current workspace
    */
-  public getDiagnosticList(): DiagnosticItem[] {
+  public async getDiagnosticList(): Promise<DiagnosticItem[]> {
     let res: DiagnosticItem[] = []
     const { level } = this.config
     for (let collection of this.collections) {
-      collection.forEach((uri, diagnostics) => {
+      for (let [uri, diagnostics] of collection.entries()) {
         let file = URI.parse(uri).fsPath
+        let lines = workspace.getDocument(uri)?.getLines()
+        if (!lines) {
+          try {
+            let content = await readFile(file, 'utf8')
+            lines = content.split(/\r?\n/)
+          } catch (e) {}
+        }
         for (let diagnostic of diagnostics) {
           if (diagnostic.severity && diagnostic.severity > level) {
             continue
@@ -394,8 +405,8 @@ export class DiagnosticManager implements Disposable {
             file,
             lnum: start.line + 1,
             end_lnum: end.line + 1,
-            col: start.character + 1,
-            end_col: end.character + 1,
+            col: lines && lines[start.line] ? byteIndex(lines[start.line], start.character) + 1 : start.character + 1,
+            end_col: lines && lines[end.line] ? byteIndex(lines[end.line], end.character) + 1 : end.character + 1,
             code: diagnostic.code,
             source: diagnostic.source || collection.name,
             message: diagnostic.message,
@@ -405,7 +416,7 @@ export class DiagnosticManager implements Disposable {
           }
           res.push(o)
         }
-      })
+      }
     }
     res.sort((a, b) => {
       if (a.level !== b.level) {

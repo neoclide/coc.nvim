@@ -180,7 +180,7 @@ describe('diagnostic manager', () => {
       diagnostics.push(createDiagnostic('error', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error))
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 3), DiagnosticSeverity.Warning))
       collection.set(doc.uri, diagnostics)
-      let list = manager.getDiagnosticList()
+      let list = await manager.getDiagnosticList()
       expect(list).toBeDefined()
       expect(list.length).toBeGreaterThanOrEqual(5)
       expect(list[0].severity).toBe('Error')
@@ -197,7 +197,7 @@ describe('diagnostic manager', () => {
       let diagnostics = manager.getDiagnostics(doc.uri)['test']
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
       diagnostics[2].tags = [DiagnosticTag.Deprecated]
-      let list = manager.getDiagnosticList()
+      let list = await manager.getDiagnosticList()
       expect(list.length).toBe(3)
       let res = manager.getDiagnostics(doc.uri)['test']
       expect(res.length).toBe(1)

@@ -228,9 +228,11 @@ export class DiagnosticBuffer implements SyncItem {
     if (!this.config.locationlistUpdate || winid == -1 || title !== 'Diagnostics of coc') return
     let items: LocationListItem[] = []
     let { diagnostics } = this
+    let doc = workspace.getDocument(this.uri)
+    let lines = doc?.getLines()
     diagnostics.sort(sortDiagnostics)
     for (let diagnostic of diagnostics) {
-      let item = getLocationListItem(this.bufnr, diagnostic)
+      let item = getLocationListItem(this.bufnr, diagnostic, lines)
       items.push(item)
     }
     this.nvim.call('setloclist', [winid, [], 'r', { title: 'Diagnostics of coc', items }], true)

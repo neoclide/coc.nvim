@@ -22,7 +22,7 @@ export default class DiagnosticsList extends LocationList {
   }
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
-    let list = diagnosticManager.getDiagnosticList()
+    let list = await diagnosticManager.getDiagnosticList()
     let { cwd } = context
     const config = this.getConfig()
     const shouldIncludeCode = config.get<boolean>('includeCode', true)
