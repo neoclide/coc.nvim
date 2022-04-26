@@ -1012,7 +1012,7 @@ Built-in configurations:~
 *semanticTokens.filetypes*
 
 	Filetypes that should enable semantic tokens highlight feature. Use
-	`[***]` for all filetypes, default: `[]`
+	`["*"]` for all filetypes, default: `[]`
 
 	Note: semantic tokens highlight requires nvim >= 0.5.0 and vim >=
 	8.1.0579 to work.
