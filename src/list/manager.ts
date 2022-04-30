@@ -4,7 +4,7 @@ import debounce from 'debounce'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extensions'
-import { IList, ListOptions, Matcher } from '../types'
+import { IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
 import window from '../window'
@@ -23,6 +23,7 @@ import OutlineList from './source/outline'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
+import stripAnsi from 'strip-ansi'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -450,7 +451,7 @@ export class ListManager implements Disposable {
   }
 
   /**
-   * Get items of {name} list, not work with interactive list and list return task.
+   * Get items of {name} list, not work with interactive list.
    *
    * @param {string} name
    * @returns {Promise<any>}
@@ -472,7 +473,24 @@ export class ListManager implements Disposable {
       buffer: this.nvim.createBuffer(arr[1]),
       listWindow: null
     }, token)
-    return items
+    if (!items || Array.isArray(items)) {
+      return items
+    }
+    let task = items as ListTask
+    let newItems = await new Promise<ListItem[]>((resolve, reject) => {
+      let items = []
+      task.on('data', item => {
+        item.label = stripAnsi(item.label)
+        items.push(item)
+      })
+      task.on('end', () => {
+        resolve(items)
+      })
+      task.on('error', msg => {
+        reject(msg)
+      })
+    })
+    return newItems
   }
 
   public toggleMode(): void {
