@@ -35,7 +35,7 @@ const config: any = {
 
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
   let doc = await workspace.document
-  return new DiagnosticBuffer(nvim, doc.bufnr, doc.uri, config, () => {
+  return new DiagnosticBuffer(nvim, doc, config, () => {
     // noop
   })
 }

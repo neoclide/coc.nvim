@@ -503,17 +503,19 @@ export default class Documents implements Disposable {
     }
     let doc = this.getDocument(loc.uri)
     let { uri, range } = loc
+    let { start, end } = range
     let u = URI.parse(uri)
     if (!text && u.scheme == 'file') {
-      text = await this.getLine(uri, range.start.line)
+      text = await this.getLine(uri, start.line)
     }
+    let endLine = start.line == end.line ? text : await this.getLine(uri, end.line)
     let item: QuickfixItem = {
       uri,
       filename: u.scheme == 'file' ? u.fsPath : uri,
-      lnum: range.start.line + 1,
-      end_lnum: range.end.line + 1,
-      col: text ? byteIndex(text, range.start.character) + 1 : range.start.character + 1,
-      end_col: text ? byteIndex(text, range.end.character) + 1 : range.end.character + 1,
+      lnum: start.line + 1,
+      end_lnum: end.line + 1,
+      col: text ? byteIndex(text, start.character) + 1 : start.character + 1,
+      end_col: endLine ? byteIndex(endLine, end.character) + 1 : end.character + 1,
       text: text || '',
       range
     }
@@ -528,7 +530,7 @@ export default class Documents implements Disposable {
    */
   public async getLine(uri: string, line: number): Promise<string> {
     let document = this.getDocument(uri)
-    if (document) return document.getline(line) || ''
+    if (document && document.attached) return document.getline(line) || ''
     if (!uri.startsWith('file:')) return ''
     let fsPath = URI.parse(uri).fsPath
     if (!fs.existsSync(fsPath)) return ''

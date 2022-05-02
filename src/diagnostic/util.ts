@@ -2,6 +2,7 @@
 import { DiagnosticSeverity, Diagnostic, DiagnosticTag } from 'vscode-languageserver-protocol'
 import { FloatConfig, LocationListItem } from '../types'
 import { comparePosition } from '../util/position'
+import { byteIndex } from '../util/string'
 
 export enum DiagnosticHighlight {
   Error = 'CocErrorHighlight',
@@ -107,7 +108,7 @@ export function getNameFromSeverity(severity: DiagnosticSeverity): string {
   }
 }
 
-export function getLocationListItem(bufnr: number, diagnostic: Diagnostic): LocationListItem {
+export function getLocationListItem(bufnr: number, diagnostic: Diagnostic, lines?: ReadonlyArray<string>): LocationListItem {
   let { start, end } = diagnostic.range
   let owner = diagnostic.source || 'coc.nvim'
   let msg = diagnostic.message.split('\n')[0]
@@ -116,8 +117,8 @@ export function getLocationListItem(bufnr: number, diagnostic: Diagnostic): Loca
     bufnr,
     lnum: start.line + 1,
     end_lnum: end.line + 1,
-    col: start.character + 1,
-    end_col: end.character + 1,
+    col: Array.isArray(lines) ? byteIndex(lines[start.line] ?? '', start.character) + 1 : start.character + 1,
+    end_col: Array.isArray(lines) ? byteIndex(lines[end.line] ?? '', end.character) + 1 : end.character + 1,
     text: `[${owner}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg} [${type}]`,
     type
   }

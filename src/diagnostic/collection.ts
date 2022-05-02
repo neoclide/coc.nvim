@@ -75,6 +75,10 @@ export default class DiagnosticCollection {
     }
   }
 
+  public entries(): IterableIterator<[string, Diagnostic[]]> {
+    return this.diagnosticsMap.entries()
+  }
+
   public get(uri: string): Diagnostic[] {
     let arr = this.diagnosticsMap.get(uri)
     return arr == null ? [] : arr.slice()

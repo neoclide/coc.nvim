@@ -61,6 +61,24 @@ describe('diagnostic manager', () => {
       res = await nvim.call('getloclist', [doc.bufnr]) as any[]
       expect(res.length).toBe(2)
     })
+
+    it('should throw when diagnostic disabled', async () => {
+      helper.updateConfiguration('diagnostic.enable', false)
+      let fn = async () => {
+        let bufnr = await nvim.call('bufnr', ['%'])
+        await manager.setLocationlist(bufnr)
+      }
+      await expect(fn()).rejects.toThrow(/not enabled/)
+    })
+
+    it('should throw when buffer not attached', async () => {
+      await nvim.command(`vnew +setl\\ buftype=nofile`)
+      let doc = await workspace.document
+      let fn = async () => {
+        await manager.setLocationlist(doc.bufnr)
+      }
+      await expect(fn()).rejects.toThrow(/not/)
+    })
   })
 
   describe('events', () => {
@@ -180,7 +198,7 @@ describe('diagnostic manager', () => {
       diagnostics.push(createDiagnostic('error', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error))
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 3), DiagnosticSeverity.Warning))
       collection.set(doc.uri, diagnostics)
-      let list = manager.getDiagnosticList()
+      let list = await manager.getDiagnosticList()
       expect(list).toBeDefined()
       expect(list.length).toBeGreaterThanOrEqual(5)
       expect(list[0].severity).toBe('Error')
@@ -197,7 +215,7 @@ describe('diagnostic manager', () => {
       let diagnostics = manager.getDiagnostics(doc.uri)['test']
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
       diagnostics[2].tags = [DiagnosticTag.Deprecated]
-      let list = manager.getDiagnosticList()
+      let list = await manager.getDiagnosticList()
       expect(list.length).toBe(3)
       let res = manager.getDiagnostics(doc.uri)['test']
       expect(res.length).toBe(1)
@@ -495,11 +513,10 @@ describe('diagnostic manager', () => {
       await nvim.call('cursor', [1, 2])
       await manager.echoMessage(false)
       let win = await helper.getFloat()
-      await nvim.call('win_gotoid', [win.id])
-      await helper.wait(50)
-      let res = await nvim.eval('synIDattr(synID(1,13,1),"name")')
-      expect(res).toMatch(/javascript/i)
-      await nvim.command('q')
+      let bufnr = await nvim.call('winbufnr', [win.id])
+      let buf = nvim.createBuffer(bufnr)
+      let lines = await buf.lines
+      expect(lines.join('\n')).toMatch('www.example.com')
     })
 
     it('should show floating window on cursor hold', async () => {

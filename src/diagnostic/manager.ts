@@ -7,15 +7,16 @@ import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
 import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, Documentation, ErrorItem, LocationListItem } from '../types'
+import { ConfigurationChangeEvent, Documentation, ErrorItem } from '../types'
 import { disposeAll } from '../util'
+import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
-import { characterIndex } from '../util/string'
+import { byteIndex, characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { DiagnosticConfig, getLocationListItem, getSeverityName, severityLevel } from './util'
+import { DiagnosticConfig, getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticEventParams {
@@ -61,9 +62,9 @@ export class DiagnosticManager implements Disposable {
 
     this.floatFactory = new FloatFactory(this.nvim)
     this.buffers = workspace.registerBufferSync(doc => {
-      if (doc.buftype !== '') return undefined
+      if (!this.enabled) return undefined
       let buf = new DiagnosticBuffer(
-        this.nvim, doc.bufnr, doc.uri, this.config,
+        this.nvim, doc, this.config,
         diagnostics => {
           this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
           if (buf.bufnr === workspace.bufnr && this.config.messageTarget === 'float') {
@@ -72,7 +73,6 @@ export class DiagnosticManager implements Disposable {
             })
           }
         })
-      if (!this.enabled) return
       let diagnostics = this.getDiagnostics(doc.uri)
       // ignore empty diagnostics on first time.
       if (Object.keys(diagnostics).length > 0) {
@@ -164,18 +164,15 @@ export class DiagnosticManager implements Disposable {
    * Fill location list with diagnostics
    */
   public async setLocationlist(bufnr: number): Promise<void> {
-    let { locationlistLevel } = this.config
+    if (!this.enabled) throw new Error(`Diagnostic not enabled.`)
     let buf = this.buffers.getItem(bufnr)
-    let diagnosticsMap = buf ? this.getDiagnostics(buf.uri) : {}
-    let items: LocationListItem[] = []
-    for (let diagnostics of Object.values(diagnosticsMap)) {
-      for (let diagnostic of diagnostics) {
-        if (locationlistLevel && diagnostic.severity && diagnostic.severity > locationlistLevel) continue
-        let item = getLocationListItem(bufnr, diagnostic)
-        items.push(item)
-      }
+    if (!buf) throw new Error(`buffer ${bufnr} not attached.`)
+    let diagnostics: Diagnostic[] = []
+    for (let diags of Object.values(this.getDiagnostics(buf.uri))) {
+      diagnostics.push(...diags)
     }
-    let curr = await this.nvim.call('getloclist', [0, { title: 1 }]) as any
+    let items = buf.toLocationListItems(diagnostics)
+    let curr = await this.nvim.call('getloclist', [0, { title: 1 }]) as { title?: string }
     let action = curr.title && curr.title.indexOf('Diagnostics of coc') != -1 ? 'r' : ' '
     await this.nvim.call('setloclist', [0, [], action, { title: 'Diagnostics of coc', items }])
   }
@@ -377,25 +374,34 @@ export class DiagnosticManager implements Disposable {
   }
 
   /**
-   * Get all sorted diagnostics of current workspace
+   * Get all sorted diagnostics
    */
-  public getDiagnosticList(): DiagnosticItem[] {
+  public async getDiagnosticList(): Promise<DiagnosticItem[]> {
     let res: DiagnosticItem[] = []
     const { level } = this.config
     for (let collection of this.collections) {
-      collection.forEach((uri, diagnostics) => {
-        let file = URI.parse(uri).fsPath
+      for (let [uri, diagnostics] of collection.entries()) {
+        if (diagnostics.length == 0) continue
+        let u = URI.parse(uri)
+        let doc = workspace.getDocument(uri)
+        let lines = doc && doc.attached ? doc.textDocument.lines : undefined
+        if (!lines && u.scheme === 'file') {
+          try {
+            const max = diagnostics.reduce((p, c) => {
+              return Math.max(c.range.end.line, p)
+            }, 0)
+            lines = await readFileLines(u.fsPath, 0, max)
+          } catch (e) {}
+        }
         for (let diagnostic of diagnostics) {
-          if (diagnostic.severity && diagnostic.severity > level) {
-            continue
-          }
+          if (diagnostic.severity && diagnostic.severity > level) continue
           let { start, end } = diagnostic.range
           let o: DiagnosticItem = {
-            file,
+            file: u.fsPath,
             lnum: start.line + 1,
             end_lnum: end.line + 1,
-            col: start.character + 1,
-            end_col: end.character + 1,
+            col: Array.isArray(lines) ? byteIndex(lines[start.line] ?? '', start.character) + 1 : start.character + 1,
+            end_col: Array.isArray(lines) ? byteIndex(lines[end.line] ?? '', end.character) + 1 : end.character + 1,
             code: diagnostic.code,
             source: diagnostic.source || collection.name,
             message: diagnostic.message,
@@ -405,7 +411,7 @@ export class DiagnosticManager implements Disposable {
           }
           res.push(o)
         }
-      })
+      }
     }
     res.sort((a, b) => {
       if (a.level !== b.level) {

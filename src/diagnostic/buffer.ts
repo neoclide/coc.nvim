@@ -7,6 +7,7 @@ import { SyncItem } from '../model/bufferSync'
 import { DidChangeTextDocumentParams, HighlightItem, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { lineInRange, positionInRange } from '../util/position'
+import Document from '../model/document'
 import workspace from '../workspace'
 import { DiagnosticConfig, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
@@ -45,8 +46,7 @@ export class DiagnosticBuffer implements SyncItem {
   public refreshHighlights: Function & { clear(): void }
   constructor(
     private readonly nvim: Neovim,
-    public readonly bufnr: number,
-    public readonly uri: string,
+    public readonly doc: Document,
     private config: DiagnosticConfig,
     private onRefresh: (diagnostics: ReadonlyArray<Diagnostic>) => void
   ) {
@@ -56,6 +56,14 @@ export class DiagnosticBuffer implements SyncItem {
 
   public get dirty(): boolean {
     return this._dirty
+  }
+
+  public get bufnr(): number {
+    return this.doc.bufnr
+  }
+
+  public get uri(): string {
+    return this.doc.uri
   }
 
   public onChange(e: DidChangeTextDocumentParams): void {
@@ -72,11 +80,6 @@ export class DiagnosticBuffer implements SyncItem {
 
   private get displayByAle(): boolean {
     return this.config.displayByAle
-  }
-
-  private get changedTick(): number {
-    let doc = workspace.getDocument(this.uri)
-    return doc ? doc.changedtick : 0
   }
 
   private clearHighlight(collection: string): void {
@@ -128,7 +131,7 @@ export class DiagnosticBuffer implements SyncItem {
     diagnosticsMap.set(collection, diagnostics)
     // avoid refresh when no change happened between previous refresh
     if (this._dirty === false
-      && this.changedTick == this._changedTick
+      && this.doc.changedtick == this._changedTick
       && equals(curr, diagnostics)) {
       return
     }
@@ -196,7 +199,7 @@ export class DiagnosticBuffer implements SyncItem {
   private refresh(diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>>, info: DiagnosticInfo): void {
     let { nvim, displayByAle } = this
     this._dirty = false
-    this._changedTick = this.changedTick
+    this._changedTick = this.doc.changedtick
     if (displayByAle) {
       nvim.pauseNotification()
       for (let [collection, diagnostics] of diagnosticsMap.entries()) {
@@ -226,14 +229,20 @@ export class DiagnosticBuffer implements SyncItem {
 
   public updateLocationList(winid: number, title: string): void {
     if (!this.config.locationlistUpdate || winid == -1 || title !== 'Diagnostics of coc') return
+    let items = this.toLocationListItems(this.diagnostics)
+    this.nvim.call('setloclist', [winid, [], 'r', { title: 'Diagnostics of coc', items }], true)
+  }
+
+  public toLocationListItems(diagnostics: Diagnostic[]): LocationListItem[] {
+    let { locationlistLevel } = this.config
     let items: LocationListItem[] = []
-    let { diagnostics } = this
+    let lines = this.doc.textDocument.lines
     diagnostics.sort(sortDiagnostics)
     for (let diagnostic of diagnostics) {
-      let item = getLocationListItem(this.bufnr, diagnostic)
-      items.push(item)
+      if (locationlistLevel && diagnostic.severity && diagnostic.severity > locationlistLevel) continue
+      items.push(getLocationListItem(this.bufnr, diagnostic, lines))
     }
-    this.nvim.call('setloclist', [winid, [], 'r', { title: 'Diagnostics of coc', items }], true)
+    return items
   }
 
   public addSigns(collection: string, diagnostics: ReadonlyArray<Diagnostic>): void {
