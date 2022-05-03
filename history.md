@@ -1,3 +1,7 @@
+# 2022-05-04
+
+- Add `languages.registerInlayHintsProvider()` for inlay hint support.
+
 # 2022-04-25
 
 - Add `LinkedEditing` support

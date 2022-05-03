@@ -410,6 +410,7 @@ function! s:Hi() abort
   hi default link CocLinkedEditing       CocCursorRange
   hi default link CocHighlightRead       CocHighlightText
   hi default link CocHighlightWrite      CocHighlightText
+  hi default link CocInlayHint           CocHintSign
   " Snippet
   hi default link CocSnippetVisual       Visual
   " Tree view highlights

@@ -31,6 +31,7 @@ import Symbols from './symbols/index'
 import { HandlerDelegate } from '../types'
 import { getSymbolKind } from '../util/convert'
 import LinkedEditingHandler from './linkedEditing'
+import InlayHintHandler from './inlayHint/index'
 const logger = require('../util/logger')('Handler')
 
 export interface CurrentState {
@@ -61,6 +62,7 @@ export default class Handler implements HandlerDelegate {
   public readonly semanticHighlighter: SemanticTokens
   public readonly workspace: WorkspaceHandler
   public readonly linkedEditingHandler: LinkedEditingHandler
+  public readonly inlayHintHandler: InlayHintHandler
   private labels: { [key: string]: string }
   private requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
@@ -95,6 +97,7 @@ export default class Handler implements HandlerDelegate {
     this.semanticHighlighter = new SemanticTokens(nvim, this)
     this.selectionRange = new SelectionRange(nvim, this)
     this.linkedEditingHandler = new LinkedEditingHandler(nvim, this)
+    this.inlayHintHandler = new InlayHintHandler(nvim, this)
     this.disposables.push({
       dispose: () => {
         this.callHierarchy.dispose()

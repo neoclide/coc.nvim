@@ -17,6 +17,10 @@ export default class Regions {
     return res
   }
 
+  public clear(): void {
+    this.ranges = []
+  }
+
   public add(start: number, end: number): void {
     if (start > end) {
       [start, end] = [end, start]

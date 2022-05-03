@@ -2094,6 +2094,119 @@ declare module 'coc.nvim' {
     */
     fromRanges: Range[]
   }
+
+  export type InlayHintKind = 1 | 2
+
+  /**
+   * An inlay hint label part allows for interactive and composite labels
+   * of inlay hints.
+   *
+   * @since 3.17.0
+   * @proposed
+   */
+  export interface InlayHintLabelPart {
+
+    /**
+     * The value of this label part.
+     */
+    value: string
+
+    /**
+     * The tooltip text when you hover over this label part. Depending on
+     * the client capability `inlayHint.resolveSupport` clients might resolve
+     * this property late using the resolve request.
+     */
+    tooltip?: string | MarkupContent
+
+    /**
+     * An optional source code location that represents this
+     * label part.
+     *
+     * The editor will use this location for the hover and for code navigation
+     * features: This part will become a clickable link that resolves to the
+     * definition of the symbol at the given location (not necessarily the
+     * location itself), it shows the hover that shows at the given location,
+     * and it shows a context menu with further code navigation commands.
+     *
+     * Depending on the client capability `inlayHint.resolveSupport` clients
+     * might resolve this property late using the resolve request.
+     */
+    location?: Location
+
+    /**
+     * An optional command for this label part.
+     *
+     * Depending on the client capability `inlayHint.resolveSupport` clients
+     * might resolve this property late using the resolve request.
+     */
+    command?: Command
+  }
+
+  /**
+   * Inlay hint information.
+   *
+   * @since 3.17.0
+   * @proposed
+   */
+  export interface InlayHint {
+
+    /**
+     * The position of this hint.
+     */
+    position: Position
+
+    /**
+     * The label of this hint. A human readable string or an array of
+     * InlayHintLabelPart label parts.
+     *
+     * *Note* that neither the string nor the label part can be empty.
+     */
+    label: string | InlayHintLabelPart[]
+
+    /**
+     * The kind of this hint. Can be omitted in which case the client
+     * should fall back to a reasonable default.
+     */
+    kind?: InlayHintKind
+
+    /**
+     * Optional text edits that are performed when accepting this inlay hint.
+     *
+     * *Note* that edits are expected to change the document so that the inlay
+     * hint (or its nearest variant) is now part of the document and the inlay
+     * hint itself is now obsolete.
+     */
+    textEdits?: TextEdit[]
+
+    /**
+     * The tooltip text when you hover over this item.
+     */
+    tooltip?: string | MarkupContent
+
+    /**
+     * Render padding before the hint.
+     *
+     * Note: Padding should use the editor's background color, not the
+     * background color of the hint itself. That means padding can be used
+     * to visually align/separate an inlay hint.
+     */
+    paddingLeft?: boolean
+
+    /**
+     * Render padding after the hint.
+     *
+     * Note: Padding should use the editor's background color, not the
+     * background color of the hint itself. That means padding can be used
+     * to visually align/separate an inlay hint.
+     */
+    paddingRight?: boolean
+
+    /**
+     * A data entry field that is preserved on a inlay hint between
+     * a `textDocument/inlayHint` and a `inlayHint/resolve` request.
+     */
+    data?: any
+  }
   // }}
 
   // nvim interfaces {{
@@ -4200,6 +4313,42 @@ declare module 'coc.nvim' {
      */
     provideLinkedEditingRanges(document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
   }
+
+  /**
+   * The inlay hints provider interface defines the contract between extensions and
+   * the inlay hints feature.
+   */
+  export interface InlayHintsProvider<T extends InlayHint = InlayHint> {
+
+    /**
+     * An optional event to signal that inlay hints from this provider have changed.
+     */
+    onDidChangeInlayHints?: Event<void>
+
+    /**
+     * Provide inlay hints for the given range and document.
+     *
+     * *Note* that inlay hints that are not {@link Range.contains contained} by the given range are ignored.
+     *
+     * @param document The document in which the command was invoked.
+     * @param range The range for which inlay hints should be computed.
+     * @param token A cancellation token.
+     * @return An array of inlay hints or a thenable that resolves to such.
+     */
+    provideInlayHints(document: TextDocument, range: Range, token: CancellationToken): ProviderResult<T[]>
+
+    /**
+     * Given an inlay hint fill in {@link InlayHint.tooltip tooltip}, {@link InlayHint.textEdits text edits},
+     * or complete label {@link InlayHintLabelPart parts}.
+     *
+     * *Note* that the editor will resolve an inlay hint at most once.
+     *
+     * @param hint An inlay hint.
+     * @param token A cancellation token.
+     * @return The resolved inlay hint or a thenable that resolves to such. It is OK to return the given `item`. When no result is returned, the given `item` will be used.
+     */
+    resolveInlayHint?(hint: T, token: CancellationToken): ProviderResult<T>
+  }
   // }}
 
   // Classes {{
@@ -5622,6 +5771,19 @@ declare module 'coc.nvim' {
      * @return A {@link Disposable} that unregisters this provider when being disposed.
      */
     export function registerLinkedEditingRangeProvider(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable
+
+    /**
+     * Register a inlay hints provider.
+     *
+     * Multiple providers can be registered for a language. In that case providers are asked in
+     * parallel and the results are merged. A failing provider (rejected promise or exception) will
+     * not cause a failure of the whole operation.
+     *
+     * @param selector A selector that defines the documents this provider is applicable to.
+     * @param provider An inlay hints provider.
+     * @return A {@link Disposable} that unregisters this provider when being disposed.
+     */
+    export function registerInlayHintsProvider(selector: DocumentSelector, provider: InlayHintsProvider): Disposable
   }
   // }}
 

@@ -3,7 +3,7 @@ import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CallHierarchyManager from './provider/callHierarchyManager'
 import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
@@ -28,12 +28,16 @@ import SemanticTokensRangeManager from './provider/semanticTokensRangeManager'
 import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
+import InlayHintManger, { InlayHintWithProvider } from './provider/inlayHintManager'
 import { ExtendedCodeAction } from './types'
+import { disposeAll } from './util'
 const logger = require('./util/logger')('languages')
 
 class Languages {
-  private _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()
+  private readonly _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()
+  private readonly _onDidInlayHintRefresh = new Emitter<DocumentSelector>()
   public readonly onDidSemanticTokensRefresh: Event<DocumentSelector> = this._onDidSemanticTokensRefresh.event
+  public readonly onDidInlayHintRefresh: Event<DocumentSelector> = this._onDidInlayHintRefresh.event
   private onTypeFormatManager = new OnTypeFormatManager()
   private documentLinkManager = new DocumentLinkManager()
   private documentColorManager = new DocumentColorManager()
@@ -58,6 +62,7 @@ class Languages {
   private semanticTokensManager = new SemanticTokensManager()
   private semanticTokensRangeManager = new SemanticTokensRangeManager()
   private linkedEditingManager = new LinkedEditingRangeManager()
+  private inlayHintManager = new InlayHintManger()
 
   public hasFormatProvider(doc: TextDocument): boolean {
     if (this.formatManager.hasProvider(doc)) {
@@ -195,6 +200,21 @@ class Languages {
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
     this._onDidSemanticTokensRefresh.fire(selector)
     return this.semanticTokensRangeManager.register(selector, provider, legend)
+  }
+
+  public registerInlayHintsProvider(selector: DocumentSelector, provider: InlayHintsProvider): Disposable {
+    let disposables: Disposable[] = []
+    disposables.push(this.inlayHintManager.register(selector, provider))
+    this._onDidInlayHintRefresh.fire(selector)
+    if (typeof provider.onDidChangeInlayHints === 'function') {
+      provider.onDidChangeInlayHints(() => {
+        this._onDidInlayHintRefresh.fire(selector)
+      }, null, disposables)
+    }
+    return Disposable.create(() => {
+      disposeAll(disposables)
+      this._onDidInlayHintRefresh.fire(selector)
+    })
   }
 
   public registerLinkedEditingRangeProvider(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {
@@ -379,6 +399,14 @@ class Languages {
     return this.semanticTokensRangeManager.provideDocumentRangeSemanticTokens(document, range, token)
   }
 
+  public async provideInlayHints(document: TextDocument, range: Range, token: CancellationToken): Promise<InlayHintWithProvider[] | null> {
+    return this.inlayHintManager.provideInlayHints(document, range, token)
+  }
+
+  public async resolveInlayHint(hint: InlayHintWithProvider, token: CancellationToken): Promise<InlayHintWithProvider> {
+    return this.inlayHintManager.resolveInlayHint(hint, token)
+  }
+
   public hasLinkedEditing(document: TextDocument): boolean {
     return this.linkedEditingManager.hasProvider(document)
   }
@@ -443,6 +471,8 @@ class Languages {
         return this.semanticTokensRangeManager.hasProvider(document)
       case 'linkedEditing':
         return this.linkedEditingManager.hasProvider(document)
+      case 'inlayHint':
+        return this.inlayHintManager.hasProvider(document)
       default:
         throw new Error(`Invalid provider name: ${id}`)
     }
