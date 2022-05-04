@@ -49,10 +49,6 @@ export class SnippetManager {
         this.init()
       }
     }, null, this.disposables)
-    workspace.onDidChangeTextDocument(e => {
-      let session = this.getSession(e.bufnr)
-      if (session) session.synchronize()
-    }, null, this.disposables)
   }
 
   private get nvim(): Neovim {
@@ -105,7 +101,7 @@ export class SnippetManager {
       await doc.patchChange(true)
     }
     if (!session) {
-      session = new SnippetSession(this.nvim, bufnr, this.highlight, this.preferComplete)
+      session = new SnippetSession(this.nvim, doc, this.highlight, this.preferComplete)
       session.onCancel(() => {
         this.sessionMap.delete(bufnr)
         this.statusItem.hide()

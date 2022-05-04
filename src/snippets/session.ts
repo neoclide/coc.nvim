@@ -1,10 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { UltiSnippetOption } from '../types'
+import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { comparePosition, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
@@ -21,7 +22,9 @@ export class SnippetSession {
   private current: Marker
   private textDocument: LinesTextDocument
   private tokenSource: CancellationTokenSource
-  private timer: NodeJS.Timer
+  private disposable: Disposable
+  private mutex = new Mutex()
+  private _applying = false
   private _isActive = false
   private _snippet: CocSnippet = null
   private _onCancelEvent = new Emitter<void>()
@@ -29,10 +32,14 @@ export class SnippetSession {
 
   constructor(
     private nvim: Neovim,
-    public readonly bufnr: number,
+    public readonly document: Document,
     private enableHighlight = false,
     private preferComplete = false
   ) {
+    this.disposable = document.onDocumentChange(async e => {
+      if (this._applying || !this._isActive) return
+      await this.synchronize()
+    })
   }
 
   public async start(inserted: string, range: Range, select = true, context?: UltiSnippetContext): Promise<boolean> {
@@ -69,7 +76,7 @@ export class SnippetSession {
         }
       }
     }
-    await document.applyEdits(edits)
+    await this.applyEdits(edits)
     this.textDocument = document.textDocument
     this.activate()
     if (select && this.current) {
@@ -77,6 +84,12 @@ export class SnippetSession {
       await this.selectPlaceholder(placeholder, true)
     }
     return this._isActive
+  }
+
+  private async applyEdits(edits: TextEdit[]): Promise<void> {
+    this._applying = true
+    await this.document.applyEdits(edits)
+    this._applying = false
   }
 
   /**
@@ -98,6 +111,7 @@ export class SnippetSession {
   public deactivate(): void {
     this.cancel()
     if (!this._isActive) return
+    this.disposable.dispose()
     this._isActive = false
     this.current = null
     this.nvim.call('coc#snippet#disable', [], true)
@@ -108,6 +122,10 @@ export class SnippetSession {
 
   public get isActive(): boolean {
     return this._isActive
+  }
+
+  public get bufnr(): number {
+    return this.document.bufnr
   }
 
   public async nextPlaceholder(): Promise<void> {
@@ -163,7 +181,7 @@ export class SnippetSession {
   private highlights(placeholder: CocSnippetPlaceholder): void {
     if (!this.enableHighlight) return
     // this.checkPosition
-    let buf = this.nvim.createBuffer(this.bufnr)
+    let buf = this.document.buffer
     this.nvim.pauseNotification()
     buf.clearNamespace(NAME_SPACE)
     let ranges = this.snippet.getRanges(placeholder)
@@ -200,17 +218,11 @@ export class SnippetSession {
     return this.snippet.getPlaceholderByRange(range) || null
   }
 
-  public synchronize(): void {
+  public async synchronize(): Promise<void> {
     this.cancel()
-    this.timer = setTimeout(async () => {
-      let { document } = this
-      if (!document || !document.attached || document.dirty) return
-      try {
-        await this._synchronize()
-      } catch (e) {
-        this.nvim.echoError(e)
-      }
-    }, global.__TEST__ ? 50 : 200)
+    await this.mutex.use(() => {
+      return this._synchronize()
+    })
   }
 
   public async _synchronize(): Promise<void> {
@@ -271,8 +283,8 @@ export class SnippetSession {
       return
     }
     let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token)
-    if (!res || !this.document) return
-    if (shouldCancel(tokenSource.token, document, res.delta)) {
+    if (res == null || tokenSource.token.isCancellationRequested) return
+    if (shouldCancel(document, res.delta)) {
       tokenSource.cancel()
       tokenSource.dispose()
       return
@@ -284,7 +296,7 @@ export class SnippetSession {
         range: Range.create(this.snippet.start, end),
         newText: res.text
       }, inserted)
-      await this.document.applyEdits([edit])
+      await this.applyEdits([edit])
       this.highlights(placeholder)
       let { delta } = res
       if (delta.line != 0 || delta.character != 0) {
@@ -300,18 +312,12 @@ export class SnippetSession {
 
   public async forceSynchronize(): Promise<void> {
     this.cancel()
-    let { document } = this
-    if (document && document.attached) {
-      await document.patchChange()
-      await this._synchronize()
-    }
+    await this.document.patchChange()
+    let release = await this.mutex.acquire()
+    release()
   }
 
   public cancel(): void {
-    if (this.timer) {
-      clearTimeout(this.timer)
-      this.timer = undefined
-    }
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource.dispose()
@@ -328,10 +334,6 @@ export class SnippetSession {
     return this._snippet
   }
 
-  private get document(): Document {
-    return workspace.getDocument(this.bufnr)
-  }
-
   public static async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
     let position = await window.getCursorPosition()
     let line = await nvim.line
@@ -344,8 +346,7 @@ export class SnippetSession {
   }
 }
 
-export function shouldCancel(token: CancellationToken, document: Document, delta: Position): boolean {
-  if (token.isCancellationRequested) return false
+export function shouldCancel(document: Document, delta: Position): boolean {
   if (document.dirty) return true
   if (events.pumvisible && (delta.line != 0 || delta.character != 0)) return true
   return false
