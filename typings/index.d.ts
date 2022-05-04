@@ -1562,9 +1562,9 @@ declare module 'coc.nvim' {
   }
 
   /**
- * The Position namespace provides helper functions to work with
- * [Position](#Position) literals.
- */
+   * The Position namespace provides helper functions to work with
+   * [Position](#Position) literals.
+   */
   export namespace Position {
     /**
      * Creates a new Position literal from the given line and character.
@@ -1964,42 +1964,6 @@ declare module 'coc.nvim' {
   }
 
   /**
-   * A semantic tokens builder can help with creating a `SemanticTokens` instance
-   * which contains delta encoded semantic tokens.
-   */
-  export class SemanticTokensBuilder {
-    constructor(legend?: SemanticTokensLegend)
-
-    /**
-     * Add another token.
-     *
-     * @public
-     * @param line The token start line number (absolute value).
-     * @param char The token start character (absolute value).
-     * @param length The token length in characters.
-     * @param tokenType The encoded token type.
-     * @param tokenModifiers The encoded token modifiers.
-     */
-    push(line: number, char: number, length: number, tokenType: number, tokenModifiers?: number): void
-    /**
-     * Add another token. Use only when providing a legend.
-     *
-     * @public
-     * @param range The range of the token. Must be single-line.
-     * @param tokenType The token type.
-     * @param tokenModifiers The token modifiers.
-     */
-    push(range: Range, tokenType: string, tokenModifiers?: string[]): void
-
-    /**
-     * Finish and create a `SemanticTokens` instance.
-     *
-     * @public
-     */
-    build(resultId?: string): SemanticTokens
-  }
-
-  /**
   * The result of a linked editing range request.
   *
   * @since 3.16.0
@@ -2093,6 +2057,91 @@ declare module 'coc.nvim' {
     * and not [`this.to`](#CallHierarchyOutgoingCall.to).
     */
     fromRanges: Range[]
+  }
+
+  /**
+   * Moniker uniqueness level to define scope of the moniker.
+   *
+   * @since 3.16.0
+   */
+  export namespace UniquenessLevel {
+    /**
+     * The moniker is only unique inside a document
+     */
+    export const document = 'document'
+
+    /**
+     * The moniker is unique inside a project for which a dump got created
+     */
+    export const project = 'project'
+
+    /**
+     * The moniker is unique inside the group to which a project belongs
+     */
+    export const group = 'group'
+
+    /**
+     * The moniker is unique inside the moniker scheme.
+     */
+    export const scheme = 'scheme'
+
+    /**
+     * The moniker is globally unique
+     */
+    export const global = 'global'
+  }
+
+  export type UniquenessLevel = 'document' | 'project' | 'group' | 'scheme' | 'global'
+
+  /**
+   * The moniker kind.
+   *
+   * @since 3.16.0
+   */
+  export enum MonikerKind {
+    /**
+     * The moniker represent a symbol that is imported into a project
+     */
+    import = 'import',
+
+    /**
+     * The moniker represents a symbol that is exported from a project
+     */
+    export = 'export',
+
+    /**
+     * The moniker represents a symbol that is local to a project (e.g. a local
+     * variable of a function, a class not visible outside the project, ...)
+     */
+    local = 'local'
+  }
+
+  /**
+   * Moniker definition to match LSIF 0.5 moniker definition.
+   *
+   * @since 3.16.0
+   */
+  export interface Moniker {
+    /**
+     * The scheme of the moniker. For example tsc or .Net
+     */
+    scheme: string
+
+    /**
+     * The identifier of the moniker. The value is opaque in LSIF however
+     * schema owners are allowed to define the structure if they want.
+     */
+    identifier: string
+
+    /**
+     * The scope in which the moniker is unique
+     */
+    unique: UniquenessLevel
+
+    /**
+     * The moniker kind if known.
+     */
+    kind?: MonikerKind
   }
 
   export type InlayHintKind = 1 | 2
@@ -4352,6 +4401,42 @@ declare module 'coc.nvim' {
   // }}
 
   // Classes {{
+  /**
+   * A semantic tokens builder can help with creating a `SemanticTokens` instance
+   * which contains delta encoded semantic tokens.
+   */
+  export class SemanticTokensBuilder {
+    constructor(legend?: SemanticTokensLegend)
+
+    /**
+     * Add another token.
+     *
+     * @public
+     * @param line The token start line number (absolute value).
+     * @param char The token start character (absolute value).
+     * @param length The token length in characters.
+     * @param tokenType The encoded token type.
+     * @param tokenModifiers The encoded token modifiers.
+     */
+    push(line: number, char: number, length: number, tokenType: number, tokenModifiers?: number): void
+    /**
+     * Add another token. Use only when providing a legend.
+     *
+     * @public
+     * @param range The range of the token. Must be single-line.
+     * @param tokenType The token type.
+     * @param tokenModifiers The token modifiers.
+     */
+    push(range: Range, tokenType: string, tokenModifiers?: string[]): void
+
+    /**
+     * Finish and create a `SemanticTokens` instance.
+     *
+     * @public
+     */
+    build(resultId?: string): SemanticTokens
+  }
+
   export interface Document {
     readonly buffer: Buffer
     /**

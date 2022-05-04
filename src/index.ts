@@ -49,6 +49,8 @@ import {
   CompletionTriggerKind,
   DiagnosticTag,
   ProgressType,
+  UniquenessLevel,
+  MonikerKind,
 } from 'vscode-languageserver-protocol'
 
 import { PatternType, SourceType, MessageLevel, ConfigurationTarget, ServiceStat, FileType } from './types'
@@ -90,6 +92,8 @@ module.exports = {
   SemanticTokensBuilder,
   FloatFactory,
   RelativePattern,
+  UniquenessLevel,
+  MonikerKind,
   PatternType,
   SourceType,
   MessageLevel,
