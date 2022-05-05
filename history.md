@@ -1,3 +1,7 @@
+# 2022-05-05
+
+- Add key bindings to dialog (created by `window.showDialog()`) on neovim.
+
 # 2022-05-04
 
 - Add `languages.registerInlayHintsProvider()` for inlay hint support.

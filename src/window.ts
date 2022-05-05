@@ -313,8 +313,19 @@ class Window {
    */
   public async showDialog(config: DialogConfig): Promise<Dialog | null> {
     if (!this.checkDialog()) return null
+    let release = await this.mutex.acquire()
     let dialog = new Dialog(this.nvim, config)
-    await dialog.show(this.dialogPreference)
+    let disposable = dialog.onDidClose(() => {
+      disposable.dispose()
+      release()
+    })
+    try {
+      await dialog.show(this.dialogPreference)
+    } catch (e) {
+      release()
+      logger.error(`Error on show dialog`, e)
+      return null
+    }
     return dialog
   }
 

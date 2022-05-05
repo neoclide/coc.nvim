@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
@@ -8,7 +8,7 @@ const logger = require('../util/logger')('model-dialog')
 
 export interface DialogButton {
   /**
-   * Use by callback, should >= 0
+   * Used by callback, should >= 0
    */
   index: number
   text: string
@@ -40,7 +40,7 @@ export interface DialogConfig {
    */
   close?: boolean
   /**
-   * highlight group for dialog window, default to `"dialog.floatHighlight"` or 'CocFlating'
+   * highlight group for dialog window, default to `"dialog.floatHighlight"` or 'CocFloating'
    */
   highlight?: string
   /**
@@ -48,7 +48,7 @@ export interface DialogConfig {
    */
   highlights?: ReadonlyArray<HighlightItem>
   /**
-   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
+   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFloating'
    */
   borderhighlight?: string
   /**
@@ -64,6 +64,8 @@ export interface DialogConfig {
 export default class Dialog {
   private disposables: Disposable[] = []
   private bufnr: number
+  private readonly _onDidClose = new Emitter<void>()
+  public readonly onDidClose: Event<void> = this._onDidClose.event
   constructor(private nvim: Neovim, private config: DialogConfig) {
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
@@ -110,6 +112,7 @@ export default class Dialog {
   }
 
   public dispose(): void {
+    this._onDidClose.fire()
     this.bufnr = undefined
     disposeAll(this.disposables)
     this.disposables = []

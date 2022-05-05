@@ -83,7 +83,7 @@ let s:char_map = {
 
 function! coc#prompt#getc() abort
   let c = getchar()
-  return type(c) == type(0) ? nr2char(c) : c
+  return type(c) is 0 ? nr2char(c) : c
 endfunction
 
 function! coc#prompt#getchar() abort

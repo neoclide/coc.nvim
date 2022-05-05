@@ -385,6 +385,8 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
     endif
   endif
   if bufnr && a:hlgroup != a:borderhighlight
+    let keys = s:gen_filter_keys(getbufline(bufnr, 2)[0])
+    call matchaddpos('MoreMsg', map(keys[0], "[2,v:val]"), 99, -1, {'window': winid})
     call nvim_buf_clear_namespace(bufnr, -1, 0, -1)
     call nvim_buf_add_highlight(bufnr, 1, a:borderhighlight, 0, 0, -1)
     if a:borderbottom
@@ -395,7 +397,41 @@ function! coc#float#nvim_buttons(config, winid, buttons, borderbottom, pad, hlgr
     for col in vcols
       call nvim_buf_add_highlight(bufnr, 1, a:borderhighlight, 1, col, col + 3)
     endfor
+    call timer_start(10, {-> coc#float#getchar(winid, keys[1])})
   endif
+endfunction
+
+function! coc#float#getchar(winid, keys) abort
+  let ch = coc#prompt#getc()
+  let target = getwinvar(a:winid, 'target_winid', 0)
+  if ch ==# "\<esc>"
+    call coc#float#close(target)
+    return
+  endif
+  if ch ==# "\<LeftMouse>"
+    if getwinvar(v:mouse_winid, 'kind', '') ==# 'close'
+      call coc#float#close(target)
+      return
+    endif
+    if v:mouse_winid == a:winid && v:mouse_lnum == 2
+      let vcols = getbufvar(winbufnr(a:winid), 'vcols', [])
+      let col = v:mouse_col - 1
+      if index(vcols, col) < 0
+        let filtered = filter(vcols, 'v:val < col')
+        call coc#rpc#notify('FloatBtnClick', [winbufnr(target), len(filtered)])
+        call coc#float#close(target)
+        return
+      endif
+    endif
+  else
+    let idx = index(a:keys, ch)
+    if idx >= 0
+      call coc#rpc#notify('FloatBtnClick', [winbufnr(target), idx])
+      call coc#float#close(target)
+      return
+    endif
+  endif
+  call coc#float#getchar(a:winid, a:keys)
 endfunction
 
 " Create or refresh scrollbar for winid
@@ -1619,7 +1655,7 @@ function! s:gen_filter_keys(line) abort
     if next
       if (nr >= 65 && nr <= 90) || (nr >= 97 && nr <= 122)
         let lc = tolower(ch)
-        if index(used, lc) < 0 && empty(maparg(lc, 'n'))
+        if index(used, lc) < 0
           let col = len(strcharpart(a:line, 0, idx)) + 1
           call add(used, lc)
           call add(cols, col)
