@@ -10,6 +10,7 @@ on:
 
 jobs:
   lint:
+    if: github.event.pull_request.draft == false
     name: Lint
     runs-on: ubuntu-latest
     steps:
