@@ -22,6 +22,7 @@ import { SelectionRangeFeature } from './selectionRange'
 import ChildProcess = cp.ChildProcess
 import { CallHierarchyFeature } from './callHierarchy'
 import { SemanticTokensFeature } from './semanticTokens'
+import { InlayHintsFeature } from './inlayHint'
 import { LinkedEditingFeature } from './linkedEditingRange'
 import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
 
@@ -578,6 +579,9 @@ export class LanguageClient extends BaseLanguageClient {
     }
     if (!disabledFeatures.includes('semanticTokens')) {
       this.registerFeature(new SemanticTokensFeature(this))
+    }
+    if (!disabledFeatures.includes('inlayHint')) {
+      this.registerFeature(new InlayHintsFeature(this))
     }
     if (!disabledFeatures.includes('workspaceFolders')) {
       this.registerFeature(new WorkspaceFoldersFeature(this))
