@@ -7,15 +7,8 @@ import { CancellationToken, ClientCapabilities, Definition, DefinitionLink, Disp
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ImplementationProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, TextDocumentFeature } from './client'
+import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
 import * as cv from './utils/converter'
-
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
-    target[key] = {} as any
-  }
-  return target[key]
-}
 
 export interface ProvideImplementationSignature {
   (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>

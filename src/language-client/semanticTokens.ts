@@ -12,16 +12,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, ProviderResult } from '../provider'
 import * as Is from '../util/is'
-import { BaseLanguageClient, Middleware, TextDocumentFeature } from './client'
+import { BaseLanguageClient, ensure, Middleware, TextDocumentFeature } from './client'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('languageclient-semanticTokens')
-
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
-    target[key] = {} as any
-  }
-  return target[key]
-}
 
 export interface DocumentSemanticsTokensSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>

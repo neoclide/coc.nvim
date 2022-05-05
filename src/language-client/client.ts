@@ -851,7 +851,7 @@ const SupportedSymbolTags: SymbolTag[] = [
   SymbolTag.Deprecated
 ]
 
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
+export function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === undefined) {
     target[key] = {} as any
   }
