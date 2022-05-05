@@ -8,16 +8,9 @@ import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Li
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { LinkedEditingRangeProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, TextDocumentFeature } from './client'
+import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('languageclient-linkedEditingRange')
-
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
-    target[key] = {} as any
-  }
-  return target[key]
-}
 
 export interface ProvideLinkedEditingRangeSignature {
   (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>

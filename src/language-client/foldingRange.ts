@@ -9,14 +9,7 @@ import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Fo
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { FoldingContext, FoldingRangeProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, TextDocumentFeature } from './client'
-
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
-    target[key] = {} as any
-  }
-  return target[key]
-}
+import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
 
 export type ProvideFoldingRangeSignature = (
   this: void,
@@ -43,10 +36,7 @@ export class FoldingRangeFeature extends TextDocumentFeature<
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    let capability = ensure(
-      ensure(capabilities, 'textDocument')!,
-      'foldingRange'
-    )!
+    let capability = ensure(ensure(capabilities, 'textDocument')!, 'foldingRange')!
     capability.dynamicRegistration = true
     capability.rangeLimit = 5000
     capability.lineFoldingOnly = true

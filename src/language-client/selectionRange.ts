@@ -9,14 +9,7 @@ import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Po
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ProviderResult, SelectionRangeProvider } from '../provider'
-import { BaseLanguageClient, TextDocumentFeature } from './client'
-
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
-    target[key] = {} as any
-  }
-  return target[key]
-}
+import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
 
 export interface ProvideSelectionRangeSignature {
   (this: void, document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>

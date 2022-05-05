@@ -9,14 +9,7 @@ import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPr
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentColorProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, TextDocumentFeature } from './client'
-
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
-    target[key] = {} as any
-  }
-  return target[key]
-}
+import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
 
 export type ProvideDocumentColorsSignature = (document: TextDocument, token: CancellationToken) => ProviderResult<ColorInformation[]>
 
@@ -50,10 +43,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    ensure(
-      ensure(capabilities, 'textDocument')!,
-      'colorProvider'
-    )!.dynamicRegistration = true
+    ensure(ensure(capabilities, 'textDocument')!, 'colorProvider')!.dynamicRegistration = true
   }
 
   public initialize(

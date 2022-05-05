@@ -10,16 +10,9 @@ import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileType, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { statAsync } from '../util/fs'
 import workspace from '../workspace'
-import { BaseLanguageClient, DynamicFeature, NextSignature, RegistrationData } from './client'
+import { BaseLanguageClient, DynamicFeature, ensure, NextSignature, RegistrationData } from './client'
 import * as UUID from './utils/uuid'
 const logger = require('../util/logger')('language-client-fileOperations')
-
-function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
-    target[key] = {} as any
-  }
-  return target[key]
-}
 
 function access<T, K extends keyof T>(target: T, key: K): T[K] {
   return target[key]
