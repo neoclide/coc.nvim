@@ -1113,6 +1113,11 @@ Built-in configurations:~
 
 	Jump back to original window after outline is shown, default `false`
 
+*outline.autoWidth*
+
+	Automatically increase window width to avoid wrapped lines, default
+	`true`
+
 *outline.sortBy*
 
 	Sort method for symbols, default: 'category'

@@ -28,6 +28,7 @@ interface OutlineConfig {
   expandLevel: number
   checkBufferSwitch: boolean
   showLineNumber: boolean
+  autoWidth: boolean
   codeActionKinds: CodeActionKind[]
   sortBy: 'position' | 'name' | 'category'
 }
@@ -107,6 +108,7 @@ export default class SymbolsOutline {
         followCursor: c.get<boolean>('followCursor'),
         keepWindow: c.get<boolean>('keepWindow'),
         expandLevel: c.get<number>('expandLevel'),
+        autoWidth: c.get<boolean>('autoWidth'),
         checkBufferSwitch: c.get<boolean>('checkBufferSwitch'),
         sortBy: c.get<'position' | 'name' | 'category'>('sortBy'),
         showLineNumber: c.get<boolean>('showLineNumber'),
@@ -244,6 +246,7 @@ export default class SymbolsOutline {
     let treeView = this.treeViewList.find(v => v.valid && v.targetBufnr == bufnr && v.targetTabnr == tabnr)
     if (!treeView) {
       treeView = new BasicTreeView('OUTLINE', {
+        autoWidth: this.config.autoWidth,
         bufhidden: 'hide',
         enableFilter: true,
         treeDataProvider: this.providersMap.get(bufnr),

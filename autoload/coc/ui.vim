@@ -314,4 +314,3 @@ function! coc#ui#open_url(url)
     return
   endif
 endfunction
-

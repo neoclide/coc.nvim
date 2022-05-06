@@ -13,6 +13,34 @@ export interface TreeItemAction<T> {
   handler: (item: T) => ProviderResult<void>
 }
 
+export interface LineState {
+  /**
+   * Line count used by message
+   */
+  messageCount: number
+  /**
+   * Line count used by title
+   */
+  titleCount: number
+}
+
+export interface TreeViewKeys {
+  invoke: string
+  toggle: string
+  actions: string
+  collapseAll: string
+  toggleSelection: string
+  close: string
+  activeFilter: string
+  selectNext: string
+  selectPrevious: string
+}
+
+export interface TreeItemData {
+  item: TreeItem
+  resolved: boolean
+}
+
 /**
  * Options for creating a {@link TreeView}
  */
@@ -21,6 +49,10 @@ export interface TreeViewOptions<T> {
    * bufhidden option for TreeView, default to 'wipe'
    */
   bufhidden?: 'hide' | 'unload' | 'delete' | 'wipe'
+  /**
+   * Increase width to avoid wrapped lines.
+   */
+  autoWidth?: boolean
   /**
    * Fixed width for window, default to true
    */

@@ -1320,6 +1320,11 @@
       "default": true,
       "description": "Reveal item in outline tree on cursor hold."
     },
+    "outline.autoWidth": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically increase window width to avoid wrapped lines."
+    },
     "outline.keepWindow": {
       "type": "boolean",
       "default": false,

@@ -6,14 +6,14 @@ import events from '../events'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, Documentation, HighlightItem } from '../types'
 import { disposeAll } from '../util'
+import { groupPositions, hasMatch, positions, score } from '../util/fzy'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { byteLength, byteSlice } from '../util/string'
-import { hasMatch, positions, score, groupPositions } from '../util/fzy'
-import workspace from '../workspace'
 import window from '../window'
+import workspace from '../workspace'
 import Filter, { sessionKey } from './filter'
-import { TreeDataProvider, TreeView, TreeViewExpansionEvent, TreeViewOptions, TreeViewSelectionChangeEvent, TreeViewVisibilityChangeEvent } from './index'
+import { LineState, TreeDataProvider, TreeItemData, TreeView, TreeViewExpansionEvent, TreeViewKeys, TreeViewOptions, TreeViewSelectionChangeEvent, TreeViewVisibilityChangeEvent } from './index'
 import { TreeItem, TreeItemCollapsibleState, TreeItemLabel } from './TreeItem'
 const logger = require('../util/logger')('BasicTreeView')
 const highlightNamespace = 'tree'
@@ -37,34 +37,6 @@ interface ExtendedItem<T> extends RenderedItem<T> {
   highlights: HighlightItem[]
 }
 
-interface LineState {
-  /**
-   * Line count used by message
-   */
-  messageCount: number
-  /**
-   * Line count used by title
-   */
-  titleCount: number
-}
-
-interface Keys {
-  invoke: string
-  toggle: string
-  actions: string
-  collapseAll: string
-  toggleSelection: string
-  close: string
-  activeFilter: string
-  selectNext: string
-  selectPrevious: string
-}
-
-interface TreeItemData {
-  item: TreeItem
-  resolved: boolean
-}
-
 /**
  * Basic TreeView implementation
  */
@@ -73,7 +45,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private bufname: string | undefined
   private winid: number | undefined
   private config: TreeViewConfig
-  private keys: Keys
+  private keys: TreeViewKeys
   private _targetBufnr: number
   private _targetWinId: number
   private _targetTabId: number | undefined
@@ -109,6 +81,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private itemsToFilter: T[] | undefined
   private readonly leafIndent: boolean
   private readonly winfixwidth: boolean
+  private readonly autoWidth: boolean
   constructor(private viewId: string, private opts: TreeViewOptions<T>) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
@@ -119,6 +92,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.provider = opts.treeDataProvider
     this.leafIndent = opts.disableLeafIndent !== true
     this.winfixwidth = opts.winfixwidth !== false
+    this.autoWidth = opts.autoWidth === true
     let message: string | undefined
     Object.defineProperty(this, 'message', {
       set: (msg: string | undefined) => {
@@ -743,11 +717,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   private updateUI(lines: string[], highlights: HighlightItem[], start = 0, end = -1, noRedraw = false): void {
     if (!this.bufnr) return
-    let { nvim } = this
+    let { nvim, winid } = this
     let buf = nvim.createBuffer(this.bufnr)
     nvim.pauseNotification()
     buf.setOption('modifiable', true, true)
     void buf.setLines(lines, { start, end, strictIndexing: false }, true)
+    if (this.autoWidth) this.nvim.call('coc#window#adjust_width', [winid], true)
     if (highlights.length) {
       let highlightEnd = end == -1 ? -1 : start + lines.length
       nvim.call('coc#highlight#update_highlights', [this.bufnr, highlightNamespace, highlights, start, highlightEnd], true)

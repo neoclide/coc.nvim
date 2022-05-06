@@ -269,6 +269,18 @@ describe('TreeView', () => {
       await checkLines(['test', '+ a', '+ b', 'g'])
     })
 
+    it('should should adjust window width', async () => {
+      let def: NodeDef[] = [
+        ['a', [['c'], ['d']]],
+        ['very long line']
+      ]
+      createTreeView(def, { autoWidth: true })
+      await treeView.show('belowright 10vs')
+      await events.race(['TextChanged'])
+      let width = await nvim.call('winwidth', [0])
+      expect(width).toBeGreaterThan(10)
+    })
+
     it('should support many selection', async () => {
       createTreeView(defaultDef, { canSelectMany: true })
       await treeView.show()

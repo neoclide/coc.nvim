@@ -34,6 +34,22 @@ function! coc#window#set_height(winid, height) abort
   endif
 endfunction
 
+function! coc#window#adjust_width(winid) abort
+  let bufnr = winbufnr(a:winid)
+  if bufloaded(bufnr)
+    let maxwidth = 0
+    for line in getbufline(bufnr, 1, '$')
+      let w = strwidth(line)
+      if w > maxwidth
+        let maxwidth = w
+      endif
+    endfor
+    if maxwidth > winwidth(a:winid)
+      call coc#compat#execute(a:winid, 'vertical resize '.maxwidth)
+    endif
+  endif
+endfunction
+
 " Get single window by window variable, current tab only
 function! coc#window#find(key, val) abort
   for i in range(1, winnr('$'))
