@@ -198,19 +198,7 @@ class Window {
    * @returns Index of selected item, or -1 when canceled.
    */
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
-    let release = await this.mutex.acquire()
-    try {
-      let title = placeholder + ':'
-      items = items.map((s, idx) => `${idx + 1}. ${s}`)
-      let res = await this.nvim.callAsync('coc#util#quickpick', [title, items.map(s => s.trim())])
-      release()
-      let n = parseInt(res, 10)
-      if (isNaN(n) || n <= 0 || n > items.length) return -1
-      return n - 1
-    } catch (e) {
-      release()
-      return -1
-    }
+    return await this.showMenuPicker(items, placeholder)
   }
 
   /**
@@ -247,11 +235,23 @@ class Window {
         release()
       }
     } else {
-      let titles: string[] = items.map(item => {
-        if (isMenuItem(item) && item.disabled) return null
-        return isMenuItem(item) ? item.text : item
-      })
-      return await this.showQuickpick(titles.filter(t => t != null))
+      let release = await this.mutex.acquire()
+      try {
+        let placeholder = typeof option === 'string' ? option : option.title ?? 'Choose by number'
+        let title = placeholder + ':'
+        let titles: string[] = items.map((item, idx) => {
+          if (isMenuItem(item) && item.disabled) return null
+          return `${idx + 1}. ${isMenuItem(item) ? item.text : item}`
+        })
+        let res = await this.nvim.callAsync('coc#ui#quickpick', [title, titles.map(s => s.trim())])
+        release()
+        let n = parseInt(res, 10)
+        if (isNaN(n) || n <= 0 || n > items.length) return -1
+        return n - 1
+      } catch (e) {
+        release()
+        return -1
+      }
     }
   }
 
