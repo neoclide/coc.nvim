@@ -130,7 +130,7 @@ function! s:on_stderr(name, msgs)
   if empty(data) | return | endif
   let client = a:name ==# 'coc' ? '[coc.nvim]' : '['.a:name.']'
   let data[0] = client.': '.data[0]
-  call coc#util#echo_messages('Error', data)
+  call coc#ui#echo_messages('Error', data)
 endfunction
 
 function! s:on_exit(name, code) abort
