@@ -114,7 +114,7 @@ export default class Files {
     let { nvim } = this
     let u = URI.parse(uri)
     if (/^https?/.test(u.scheme)) {
-      await nvim.call('coc#util#open_url', uri)
+      await nvim.call('coc#ui#open_url', uri)
       return
     }
     let wildignore = await nvim.getOption('wildignore')
@@ -129,15 +129,8 @@ export default class Files {
   public loadResource(uri: string): Promise<Document> {
     let doc = this.documents.getDocument(uri)
     if (doc) return Promise.resolve(doc)
-    let filepath = uri.startsWith('file') ? URI.parse(uri).fsPath : uri
-    return new Promise<Document>((resolve, reject) => {
-      this.nvim.call('coc#util#open_files', [[filepath]]).then(res => {
-        return this.documents.createDocument(res[0]).then(doc => {
-          resolve(doc)
-        })
-      }, e => {
-        reject(e)
-      })
+    return this.loadResources([uri]).then(arr => {
+      return Array.isArray(arr) ? arr[0] : undefined
     })
   }
 
@@ -150,7 +143,7 @@ export default class Files {
       let u = URI.parse(uri)
       return u.scheme == 'file' ? u.fsPath : uri
     })
-    let bufnrs = await this.nvim.call('coc#util#open_files', [files]) as number[]
+    let bufnrs = await this.nvim.call('coc#ui#open_files', [files]) as number[]
     return await Promise.all(bufnrs.map(bufnr => {
       return documents.createDocument(bufnr)
     }))
@@ -302,7 +295,7 @@ export default class Files {
           await fs.writeFile(newPath, content, 'utf8')
           // open renamed file
           if (!isCurrent) {
-            await nvim.call('coc#util#open_files', [[newPath]])
+            await nvim.call('coc#ui#open_files', [[newPath]])
             await nvim.command(`silent ${doc.bufnr}bwipeout!`)
           } else {
             let view = await nvim.call('winsaveview')

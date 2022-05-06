@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Position, ParameterInformation, SignatureInformation } from 'vscode-languageserver-protocol'
+import { Disposable, ParameterInformation, SignatureInformation } from 'vscode-languageserver-protocol'
+import Signature from '../../handler/signature'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
-import Signature from '../../handler/signature'
 import workspace from '../../workspace'
 import helper from '../helper'
 

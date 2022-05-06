@@ -60,7 +60,7 @@ export async function getCursorScreenPosition(nvim: Neovim): Promise<ScreenPosit
  */
 export function showMessage(nvim: Neovim, msg: string, hl: 'MoreMsg' | 'Error' | 'ErrorMsg' | 'WarningMsg' = 'MoreMsg', forceTimer = false): void {
   let method = forceTimer || isVim ? 'callTimer' : 'call'
-  nvim[method]('coc#util#echo_messages', [hl, ('[coc.nvim] ' + msg).split('\n')], true)
+  nvim[method]('coc#ui#echo_messages', [hl, ('[coc.nvim] ' + msg).split('\n')], true)
 }
 
 /**

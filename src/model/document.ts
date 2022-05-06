@@ -328,7 +328,7 @@ export default class Document {
     if (isAppend) {
       this.buffer.setLines(changed.replacement, { start: -1, end: -1 }, true)
     } else {
-      this.nvim.call('coc#util#set_lines', [
+      this.nvim.call('coc#ui#set_lines', [
         this.bufnr,
         this._changedtick,
         original,
@@ -358,7 +358,7 @@ export default class Document {
       }
     }
     if (!filtered.length) return
-    this.nvim.call('coc#util#change_lines', [this.bufnr, filtered], true)
+    this.nvim.call('coc#ui#change_lines', [this.bufnr, filtered], true)
     this.nvim.redrawVim()
     this.lines = newLines
     this._forceSync()

@@ -11,6 +11,7 @@ let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  await nvim.command(`source ${path.join(process.cwd(), 'autoload/coc/ui.vim')}`)
 })
 
 afterAll(async () => {
@@ -136,7 +137,7 @@ describe('openResource()', () => {
   })
 
   it('should open url', async () => {
-    await helper.mockFunction('coc#util#open_url', 0)
+    await helper.mockFunction('coc#ui#open_url', 0)
     let buf = await helper.edit()
     let uri = 'http://example.com'
     await workspace.openResource(uri)

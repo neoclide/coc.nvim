@@ -44,9 +44,9 @@ export default class ExtensionList extends BasicList {
     this.addAction('open', async item => {
       let { root } = item.data
       if (workspace.env.isiTerm) {
-        nvim.call('coc#util#iterm_open', [root], true)
+        nvim.call('coc#ui#iterm_open', [root], true)
       } else {
-        nvim.call('coc#util#open_url', [root], true)
+        nvim.call('coc#ui#open_url', [root], true)
       }
     })
 

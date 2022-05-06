@@ -171,7 +171,7 @@ export default class HoverHandler {
     }, [])
     if (target == 'echo') {
       const msg = lines.join('\n').trim()
-      await this.nvim.call('coc#util#echo_hover', [msg])
+      await this.nvim.call('coc#ui#echo_hover', [msg])
     } else {
       this.documentLines = lines
       await this.nvim.command(`noswapfile pedit coc://document`)

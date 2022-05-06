@@ -174,7 +174,7 @@ class Window {
    */
   public async runTerminalCommand(cmd: string, cwd?: string, keepfocus = false): Promise<TerminalResult> {
     cwd = cwd || workspace.cwd
-    return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
+    return await this.nvim.callAsync('coc#ui#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
   }
 
   /**
@@ -182,16 +182,17 @@ class Window {
    *
    * @param cmd Command to run.
    * @param opts Terminal option.
-   * @returns buffer number of terminal.
+   * @returns number buffer number of terminal
    */
   public async openTerminal(cmd: string, opts: OpenTerminalOption = {}): Promise<number> {
-    let bufnr = await this.nvim.call('coc#util#open_terminal', { cmd, ...opts })
+    let bufnr = await this.nvim.call('coc#ui#open_terminal', { cmd, ...opts })
     return bufnr as number
   }
 
   /**
    * Show quickpick for single item, use `window.menuPick` for menu at current current position.
    *
+   * @deprecated Use 'window.showMenuPicker()' instead.
    * @param items Label list.
    * @param placeholder Prompt text, default to 'choose by number'.
    * @returns Index of selected item, or -1 when canceled.
@@ -443,7 +444,7 @@ class Window {
       let last = lines[lines.length - 1]
       lines[cmdHeight - 1] = `${last.length == maxLen ? last.slice(0, -4) : last} ...`
     }
-    await nvim.call('coc#util#echo_lines', [lines])
+    await nvim.call('coc#ui#echo_lines', [lines])
   }
 
   /**

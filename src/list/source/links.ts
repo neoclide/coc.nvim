@@ -22,7 +22,7 @@ export default class LinksList extends BasicList {
       let { target } = item.data
       let uri = URI.parse(target)
       if (uri.scheme.startsWith('http')) {
-        await nvim.call('coc#util#open_url', target)
+        await nvim.call('coc#ui#open_url', target)
       } else {
         await workspace.jumpTo(target)
       }

@@ -316,7 +316,7 @@ export class DiagnosticManager implements Disposable {
       lines.push(...message.split(/\r?\n/))
       lines.push('')
     }
-    this.nvim.call('coc#util#preview_info', [lines, 'txt'], true)
+    this.nvim.call('coc#ui#preview_info', [lines, 'txt'], true)
   }
 
   /**

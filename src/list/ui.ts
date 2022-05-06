@@ -151,7 +151,7 @@ export default class ListUI {
     let { items } = this
     let idx = items.indexOf(item)
     let msg = `[${idx + 1}/${items.length}] ${item.label || ''}`
-    this.nvim.callTimer('coc#util#echo_lines', [[msg]], true)
+    this.nvim.callTimer('coc#ui#echo_lines', [[msg]], true)
   }
 
   public updateItem(item: ListItemWithHighlights, index: number, labelChanged: boolean): void {

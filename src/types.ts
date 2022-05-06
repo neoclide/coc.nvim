@@ -331,9 +331,13 @@ export interface OpenTerminalOption {
    */
   autoclose?: boolean
   /**
-   * Keep foucus current window, default to false,
+   * Keep focus current window, default to false.
    */
   keepfocus?: boolean
+  /**
+   * Position of terminal window, default to 'right'.
+   */
+  position?: 'bottom' | 'right'
 }
 
 export interface TerminalResult {
@@ -391,6 +395,10 @@ export type MenuOption = {
    * Create and highlight shortcut characters.
    */
   shortcuts?: boolean
+  /**
+   * Position of menu picker, default to 'cursor'
+   */
+  position?: 'cursor' | 'center'
 } | string
 // }}
 

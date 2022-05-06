@@ -262,7 +262,7 @@ export default class Signature {
       }
       signatureList.push(parts)
     }
-    this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
+    this.nvim.callTimer('coc#ui#echo_signatures', [signatureList], true)
   }
 
   public dispose(): void {

@@ -50,7 +50,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'vscode.open',
       execute: async (url: string | URI) => {
-        nvim.call('coc#util#open_url', url.toString(), true)
+        nvim.call('coc#ui#open_url', url.toString(), true)
       }
     }, true)
     this.register({

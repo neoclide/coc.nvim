@@ -35,7 +35,7 @@ describe('documents', () => {
 
   it('should create document', async () => {
     await helper.createDocument()
-    let bufnrs = await nvim.call('coc#util#open_files', [[__filename]]) as number[]
+    let bufnrs = await nvim.call('coc#ui#open_files', [[__filename]]) as number[]
     let bufnr = bufnrs[0]
     let doc = workspace.getDocument(bufnr)
     expect(doc).toBeUndefined()

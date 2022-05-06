@@ -7631,9 +7631,13 @@ declare module 'coc.nvim' {
      */
     autoclose?: boolean
     /**
-     * Keep foucus current window, default to false,
+     * Keep focus current window, default to false.
      */
     keepfocus?: boolean
+    /**
+     * Position of terminal window, default to 'right'.
+     */
+    position?: 'bottom' | 'right'
   }
 
   /**
