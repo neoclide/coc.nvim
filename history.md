@@ -4,6 +4,7 @@
 - Add configuration `outline.switchSortKey`, default to `<C-s>`.
 - Add configuration `outline.detailAsDescription`, default to `true`.
 - Add variable `g:coc_max_treeview_width`.
+- Add `position: 'center'` support to `window.showMenuPicker()`
 
 # 2022-05-06
 
