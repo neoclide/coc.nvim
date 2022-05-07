@@ -1,5 +1,5 @@
 'use strict'
-import { DocumentSymbol, Range, SymbolInformation } from 'vscode-languageserver-protocol'
+import { DocumentSymbol, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-protocol'
 import { getSymbolKind } from '../../util/convert'
 import { comparePosition } from '../../util/position'
 
@@ -10,6 +10,8 @@ export interface SymbolInfo {
   text: string
   kind: string
   level?: number
+  detail?: string
+  deprecated?: boolean
   containerName?: string
   range: Range
   selectionRange?: Range
@@ -30,9 +32,9 @@ export function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): numbe
 }
 
 export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
-  let { name, selectionRange, kind, children, range } = sym
+  let { name, selectionRange, detail, kind, children, range, tags } = sym
   let { start } = selectionRange || range
-  res.push({
+  let obj: SymbolInfo = {
     col: start.character + 1,
     lnum: start.line + 1,
     text: name,
@@ -40,7 +42,10 @@ export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level:
     kind: getSymbolKind(kind),
     range,
     selectionRange
-  })
+  }
+  if (detail) obj.detail = detail
+  if (tags && tags.includes(SymbolTag.Deprecated)) obj.deprecated = true
+  res.push(obj)
   if (children && children.length) {
     children.sort(sortDocumentSymbols)
     for (let sym of children) {

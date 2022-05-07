@@ -22,7 +22,8 @@ beforeAll(async () => {
 beforeEach(() => {
   disposables.push(languages.registerDocumentSymbolProvider([{ language: 'javascript' }], {
     provideDocumentSymbols: document => {
-      let parser = new Parser(document.getText())
+      let text = document.getText()
+      let parser = new Parser(text, text.includes('detail'))
       let res = parser.parse()
       return Promise.resolve(res)
     }
@@ -90,12 +91,13 @@ describe('symbols handler', () => {
 
   describe('documentSymbols', () => {
     it('should get symbols of current buffer', async () => {
-      let code = `class myClass {
+      let code = `class detail {
       fun1() { }
     }`
       await createBuffer(code)
       let res = await helper.plugin.cocAction('documentSymbols')
       expect(res.length).toBe(2)
+      expect(res[1].detail).toBeDefined()
     })
 
     it('should get current function symbols', async () => {
