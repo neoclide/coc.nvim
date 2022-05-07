@@ -18,6 +18,7 @@ export interface MenuConfig {
   items: string[] | MenuItem[]
   title?: string
   shortcuts?: boolean
+  position?: 'cursor' | 'center'
 }
 
 export function isMenuItem(item: any): item is MenuItem {
@@ -166,9 +167,10 @@ export default class Menu {
 
   public async show(preferences: DialogPreferences = {}): Promise<number> {
     let { nvim, shortcutIndexes } = this
-    let { title, items } = this.config
+    let { title, items, position } = this.config
     let opts: any = {}
     if (title) opts.title = title
+    if (position === 'center') opts.relative = 'editor'
     if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
@@ -220,7 +222,6 @@ export default class Menu {
       let item = this.config.items[this.currIndex] as MenuItem
       if (item.disabled['reason']) {
         this.nvim.outWriteLine(`Item disabled: ${item.disabled['reason']}`)
-        // this.nvim.command('redraw', true)
       }
       return
     }

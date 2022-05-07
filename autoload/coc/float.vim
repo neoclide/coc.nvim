@@ -966,6 +966,36 @@ function! coc#float#get_config_cursor(lines, config) abort
         \ }
 endfunction
 
+function! coc#float#get_config_editor(lines, config) abort
+  let title = get(a:config, 'title', '')
+  let maxheight = min([get(a:config, 'maxHeight', 78), &lines - &cmdheight - 6])
+  let maxwidth = min([get(a:config, 'maxWidth', 78), &columns - 2])
+  let buttons = get(a:config, 'buttons', [])
+  let minwidth = s:min_btns_width(buttons)
+  if maxheight <= 0 || maxwidth <= 0 || minwidth > maxwidth
+    throw 'Not enough spaces for float window'
+  endif
+  let ch = 0
+  let width = min([strdisplaywidth(title) + 1, maxwidth])
+  for line in a:lines
+    let dw = max([1, strdisplaywidth(line)])
+    if dw < maxwidth && dw > width
+      let width = dw
+    elseif dw >= maxwidth
+      let width = maxwidth
+    endif
+    let ch += float2nr(ceil(str2float(string(dw))/maxwidth))
+  endfor
+  let width = max([minwidth, width])
+  let height = s:min(ch ,maxheight)
+  return {
+      \ 'row': &lines/2 - (height + 4)/2,
+      \ 'col': &columns/2 - (width + 2)/2,
+      \ 'width': width,
+      \ 'height': height,
+      \ }
+endfunction
+
 function! coc#float#create_pum_float(winid, bufnr, lines, config) abort
   if !pumvisible() || !s:float_supported
     return v:null
@@ -1251,35 +1281,11 @@ function! coc#float#create_dialog(lines, config) abort
   let buttons = get(a:config, 'buttons', [])
   let highlight = get(a:config, 'highlight', 'CocFloating')
   let borderhighlight = get(a:config, 'borderhighlight', [highlight])
-  let maxheight = s:min(get(a:config, 'maxHeight', 78), &lines - &cmdheight - 6)
-  let maxwidth = s:min(get(a:config, 'maxWidth', 78), &columns - 2)
-  let close = get(a:config, 'close', 1)
-  let minwidth = s:min_btns_width(buttons)
-  if maxheight <= 0 || maxwidth <= 0 || minwidth > maxwidth
-    throw 'Not enough spaces for dialog'
-  endif
-  let ch = 0
-  let width = s:min(strdisplaywidth(title) + 1, maxwidth)
-  for line in a:lines
-    let dw = max([1, strdisplaywidth(line)])
-    if dw < maxwidth && dw > width
-      let width = dw
-    elseif dw > maxwidth
-      let width = maxwidth
-    endif
-    let ch += float2nr(ceil(str2float(string(dw))/maxwidth))
-  endfor
-  let width = max([minwidth, width])
-  let height = s:min(ch ,maxheight)
   let opts = {
-    \ 'relative': 'editor',
-    \ 'col': &columns/2 - (width + 2)/2,
-    \ 'row': &lines/2 - (height + 4)/2,
-    \ 'width': width,
-    \ 'height': height,
-    \ 'border': [1,1,1,1],
     \ 'title': title,
-    \ 'close': close,
+    \ 'relative': 'editor',
+    \ 'border': [1,1,1,1],
+    \ 'close': get(a:config, 'close', 1),
     \ 'highlight': highlight,
     \ 'highlights': get(a:config, 'highlights', []),
     \ 'buttons': buttons,
@@ -1288,6 +1294,7 @@ function! coc#float#create_dialog(lines, config) abort
   if get(a:config, 'cursorline', 0)
     let opts['cursorline'] = 1
   endif
+  call extend(opts, coc#float#get_config_editor(a:lines, a:config))
   let bufnr = coc#float#create_buf(0, a:lines)
   call coc#float#close_auto_hide_wins()
   let res =  coc#float#create_float_win(0, bufnr, opts)
@@ -1348,6 +1355,7 @@ endfunction
 function! coc#float#create_menu(lines, config) abort
   let highlight = get(a:config, 'highlight', 'CocFloating')
   let borderhighlight = get(a:config, 'borderhighlight', [highlight])
+  let relative = get(a:config, 'relative', 'cursor')
   let opts = {
     \ 'lines': a:lines,
     \ 'highlight': highlight,
@@ -1357,12 +1365,16 @@ function! coc#float#create_menu(lines, config) abort
     \ 'maxHeight': get(a:config, 'maxHeight', 80),
     \ 'border': [1, 1, 1, 1],
     \ 'highlights': get(a:config, 'highlights', []),
-    \ 'relative': 'cursor',
+    \ 'relative': relative,
     \ }
   if s:is_vim
     let opts['cursorline'] = 1
   endif
-  let dimension = coc#float#get_config_cursor(a:lines, opts)
+  if relative ==# 'editor'
+    let dimension = coc#float#get_config_editor(a:lines, opts)
+  else
+    let dimension = coc#float#get_config_cursor(a:lines, opts)
+  endif
   call extend(opts, dimension)
   call coc#float#close_auto_hide_wins()
   let res = coc#float#create_float_win(0, s:prompt_win_bufnr, opts)

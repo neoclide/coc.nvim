@@ -80,6 +80,12 @@ describe('Menu', () => {
     expect(res).toBe(1)
   })
 
+  it('should show menu in center', async () => {
+    menu = new Menu(nvim, { items: ['foo', 'bar'], position: 'center' })
+    await menu.show()
+    expect(menu.buffer).toBeDefined()
+  })
+
   it('should ignore invalid index', async () => {
     menu = new Menu(nvim, { items: ['foo', 'bar'] })
     await menu.show()

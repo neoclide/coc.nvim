@@ -7725,11 +7725,18 @@ declare module 'coc.nvim' {
   }
 
   export interface MenuOption {
+    /**
+     * Title in menu window.
+     */
     title: string,
     /**
      * Create and highlight shortcut characters.
      */
     shortcuts?: boolean
+    /**
+     * Position of menu, default to 'cursor'
+     */
+    position?: 'center' | 'cursor'
   }
 
   export namespace window {
@@ -7829,7 +7836,7 @@ declare module 'coc.nvim' {
      * @param token A token that can be used to signal cancellation.
      * @returns Selected index (0 based), -1 when canceled.
      */
-    export function showMenuPicker(items: string[] | MenuItem[], option?: MenuOption, token?: CancellationToken): Promise<number>
+    export function showMenuPicker(items: string[] | MenuItem[], option?: MenuOption | string, token?: CancellationToken): Promise<number>
 
     /**
      * Open local config file
