@@ -1,3 +1,5 @@
+let g:coc_max_treeview_width = get(g:, 'coc_max_treeview_width', 40)
+
 function! coc#window#tabnr(winid) abort
   if exists('*win_execute')
     let ref = {}
@@ -40,6 +42,7 @@ function! coc#window#adjust_width(winid) abort
     let maxwidth = 0
     let lines = getbufline(bufnr, 1, '$')
     if len(lines) > 2
+      call coc#compat#execute(a:winid, 'setl nowrap')
       for line in lines
         let w = strwidth(line)
         if w > maxwidth
@@ -48,7 +51,7 @@ function! coc#window#adjust_width(winid) abort
       endfor
     endif
     if maxwidth > winwidth(a:winid)
-      call coc#compat#execute(a:winid, 'vertical resize '.maxwidth)
+      call coc#compat#execute(a:winid, 'vertical resize '.min([maxwidth, g:coc_max_treeview_width]))
     endif
   endif
 endfunction

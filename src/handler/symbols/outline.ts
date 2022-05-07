@@ -30,6 +30,7 @@ interface OutlineConfig {
   checkBufferSwitch: boolean
   showLineNumber: boolean
   autoWidth: boolean
+  detailAsDescription: boolean
   codeActionKinds: CodeActionKind[]
   sortBy: 'position' | 'name' | 'category'
 }
@@ -113,6 +114,7 @@ export default class SymbolsOutline {
         expandLevel: c.get<number>('expandLevel'),
         autoWidth: c.get<boolean>('autoWidth'),
         checkBufferSwitch: c.get<boolean>('checkBufferSwitch'),
+        detailAsDescription: c.get<boolean>('detailAsDescription'),
         sortBy: c.get<'position' | 'name' | 'category'>('sortBy'),
         showLineNumber: c.get<boolean>('showLineNumber'),
         codeActionKinds: c.get<string[]>('codeActionKinds')
@@ -121,10 +123,14 @@ export default class SymbolsOutline {
   }
 
   private convertSymbolToNode(documentSymbol: DocumentSymbol, sortFn: (a: OutlineNode, b: OutlineNode) => number): OutlineNode {
+    let descs = []
+    let { detailAsDescription, showLineNumber } = this.config
+    if (detailAsDescription && documentSymbol.detail) descs.push(documentSymbol.detail)
+    if (showLineNumber) descs.push(`${documentSymbol.selectionRange.start.line + 1}`)
     return {
       label: documentSymbol.name,
-      tooltip: documentSymbol.detail,
-      description: this.config.showLineNumber ? `${documentSymbol.selectionRange.start.line + 1}` : undefined,
+      tooltip: detailAsDescription ? undefined : documentSymbol.detail,
+      description: descs.join(' '),
       icon: this.handler.getIcon(documentSymbol.kind),
       deprecated: documentSymbol.tags?.includes(SymbolTag.Deprecated),
       kind: documentSymbol.kind,

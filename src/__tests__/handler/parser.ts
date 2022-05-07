@@ -10,7 +10,7 @@ export default class Parser {
   private currSymbol: DocumentSymbol | undefined
   private len: number
   private textDocument: TextDocument
-  constructor(private _content: string) {
+  constructor(private _content: string, private showDetail = false) {
     this.len = _content.length
     this.textDocument = TextDocument.create('test:///a', 'txt', 1, _content)
   }
@@ -56,7 +56,7 @@ export default class Parser {
       }
       this.currSymbol = symbolInfo
     } else if (this.currSymbol && this.currSymbol.kind == SymbolKind.Class) {
-      let ms = remain.match(/(\w+)\(.*\)\s*\{/)
+      let ms = remain.match(/(\w+)\((.*)\)\s*\{/)
       if (ms) {
         // find method
         let start = this._curr
@@ -68,6 +68,7 @@ export default class Parser {
           range,
           selectionRange,
           kind: SymbolKind.Method,
+          detail: this.showDetail ? `(${ms[2]})` : undefined,
           name: ms[1]
         }
         if (this.currSymbol && this.currSymbol.children) {

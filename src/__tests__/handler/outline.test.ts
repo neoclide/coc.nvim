@@ -22,7 +22,9 @@ beforeAll(async () => {
 beforeEach(() => {
   disposables.push(languages.registerDocumentSymbolProvider([{ language: 'javascript' }], {
     provideDocumentSymbols: document => {
-      let parser = new Parser(document.getText())
+      let content = document.getText()
+      let showDetail = content.includes('detail')
+      let parser = new Parser(content, showDetail)
       let res: DocumentSymbol[] = parser.parse()
       if (res.length) {
         res[0].tags = [SymbolTag.Deprecated]
@@ -199,7 +201,10 @@ describe('symbols outline', () => {
     })
 
     it('should change sort method', async () => {
-      let code = `class myClass {
+      workspace.configurations.updateUserConfig({
+        'outline.detailAsDescription': false
+      })
+      let code = `class detail {
   fun2() {}
   fun1() {}
 }`
@@ -214,6 +219,22 @@ describe('symbols outline', () => {
       await helper.waitFloat()
       await nvim.input('3')
       await helper.waitFor('getline', [1], 'OUTLINE Position')
+    })
+
+    it('should show detail as description', async () => {
+      workspace.configurations.updateUserConfig({
+        'outline.detailAsDescription': true
+      })
+      let code = `class detail {
+  fun2() {}
+}`
+      await createBuffer(code)
+      await symbols.showOutline(1)
+      let buf = await getOutlineBuffer()
+      let lines = await buf.lines
+      expect(lines.slice(1)).toEqual([
+        '- c detail 1', '    m fun2 () 2'
+      ])
     })
   })
 

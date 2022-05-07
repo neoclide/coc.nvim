@@ -470,7 +470,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.previousResults = undefined
     this._highlights = undefined
     this._onDidRefresh.dispose()
-    this.doc = undefined
     this.regions = undefined
   }
 }
