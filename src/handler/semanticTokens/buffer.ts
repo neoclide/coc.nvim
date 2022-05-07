@@ -60,7 +60,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   private _highlights: [number, SemanticTokenRange[]]
   private _dirty = false
   private _version: number | undefined
-  private regions: Regions | undefined
+  private regions = new Regions()
   private tokenSource: CancellationTokenSource
   private rangeTokenSource: CancellationTokenSource
   private previousResults: SemanticTokensPreviousResult | undefined
@@ -98,10 +98,10 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public async onShown(): Promise<void> {
     // Should be refreshed by onCursorMoved
-    if (this.shouldRangeHighlight || this.regions) return
+    if (this.shouldRangeHighlight) return
     const { doc } = this
     if (doc.dirty || doc.version === this._version) return
-    await this.doHighlight(false)
+    await this.doHighlight(false, true)
   }
 
   public get hasProvider(): boolean {
@@ -264,19 +264,20 @@ export default class SemanticTokensBuffer implements SyncItem {
     return res
   }
 
-  public async doHighlight(forceFull = false): Promise<void> {
+  public async doHighlight(forceFull = false, onShown = false): Promise<void> {
     this.cancel()
     if (!this.enabled) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    let hidden = await this.nvim.eval(`get(get(getbufinfo(${this.bufnr}),0,{}),'hidden',0)`)
-    if (hidden == 1 || token.isCancellationRequested) return
+    if (!onShown) {
+      let hidden = await this.nvim.eval(`get(get(getbufinfo(${this.bufnr}),0,{}),'hidden',0)`)
+      if (hidden == 1 || token.isCancellationRequested) return
+    }
     if (this.shouldRangeHighlight) {
       let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
       await this.doRangeHighlight(rangeTokenSource.token)
       if (token.isCancellationRequested || this.rangeProviderOnly) return
     }
-    if (token.isCancellationRequested) return
     const { doc } = this
     const version = doc.version
     let tokenRanges: SemanticTokenRange[] | undefined
@@ -306,7 +307,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       const priority = this.config.highlightPriority
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff)
     } else {
-      this.regions = new Regions()
+      this.regions.clear()
       await this.highlightRegions(token)
     }
     this._onDidRefresh.fire()
@@ -361,10 +362,10 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   public async highlightRegions(token: CancellationToken): Promise<void> {
     let { regions, highlights, config, lineCount, bufnr } = this
-    if (this.invalid || !regions) return
+    if (this.invalid) return
     let priority = config.highlightPriority
     let spans: [number, number][] = await this.nvim.call('coc#window#visible_ranges', [bufnr])
-    if (this.invalid || !regions || token.isCancellationRequested || spans.length === 0) return
+    if (this.invalid || token.isCancellationRequested || spans.length === 0) return
     let height = workspace.env.lines
     spans.forEach(o => {
       let s = o[0]
@@ -456,7 +457,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.rangeTokenSource = null
     }
     if (rangeOnly) return
-    this.regions = undefined
+    this.regions.clear()
     this.highlight.clear()
     if (this.tokenSource) {
       this.tokenSource.cancel()
@@ -470,6 +471,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.previousResults = undefined
     this._highlights = undefined
     this._onDidRefresh.dispose()
-    this.regions = undefined
+    this.regions.clear()
   }
 }

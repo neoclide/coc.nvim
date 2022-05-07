@@ -70,7 +70,7 @@ export default class Files {
       return doc
     }
     doc = await this.loadResource(uri.toString())
-    await this.jumpTo(doc.uri)
+    if (doc) await this.jumpTo(doc.uri)
     return doc
   }
 

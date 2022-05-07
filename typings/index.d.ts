@@ -4627,7 +4627,7 @@ declare module 'coc.nvim' {
     /**
      * Text editor options.
      */
-    options: TextEditorOptions
+    readonly options: TextEditorOptions
   }
 
   export interface FloatWinConfig {
@@ -6386,8 +6386,9 @@ declare module 'coc.nvim' {
      * **NOTE:** TreeView with same viewId in current tab would be disposed.
      *
      * @param splitCommand The command to open TreeView window, default to 'belowright 30vs'
+     * @return `true` if window shown.
      */
-    show(splitCommand?: string): Promise<void>
+    show(splitCommand?: string): Promise<boolean>
   }
 
   /**
@@ -6881,7 +6882,7 @@ declare module 'coc.nvim' {
      */
     dispose: () => void
     /**
-     * Called on buffer change.
+     * Called on buffer content change.
      */
     onChange?(e: DidChangeTextDocumentParams): void
     /**
