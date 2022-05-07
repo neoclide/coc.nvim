@@ -8770,9 +8770,9 @@ declare module 'coc.nvim' {
      */
     export function getDiagnosticsInRange(doc: TextDocumentIdentifier, range: Range): ReadonlyArray<Diagnostic>
     /**
-     * All diagnostics of current workspace
+     * Get all sorted diagnostics
      */
-    export function getDiagnosticList(): ReadonlyArray<DiagnosticItem>
+    export function getDiagnosticList(): Promise<ReadonlyArray<DiagnosticItem>>
 
     /**
      * All diagnostics at current cursor position.
