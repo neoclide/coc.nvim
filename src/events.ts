@@ -34,7 +34,7 @@ export type BufEvents = 'BufHidden' | 'BufEnter'
   | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload'
   | 'BufDetach' | 'Enter'
 
-export type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet' | 'ready'
+export type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet' | 'ready' | 'VimLeavePre'
 
 export type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
 

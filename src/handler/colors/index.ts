@@ -53,18 +53,17 @@ export default class Colors {
     this.handler.checkProvier('documentColor', doc.textDocument)
     let info = await this.getColorInformation(doc.bufnr)
     if (!info) return window.showMessage('Color not found at current position', 'warning')
-    let document = await workspace.document
     let tokenSource = new CancellationTokenSource()
-    let presentations = await languages.provideColorPresentations(info, document.textDocument, tokenSource.token)
+    let presentations = await languages.provideColorPresentations(info, doc.textDocument, tokenSource.token)
     if (!presentations?.length) return
     let res = await window.showMenuPicker(presentations.map(o => o.label), 'choose color:')
     if (res == -1) return
     let presentation = presentations[res]
     let { textEdit, additionalTextEdits, label } = presentation
     if (!textEdit) textEdit = { range: info.range, newText: label }
-    await document.applyEdits([textEdit])
+    await doc.applyEdits([textEdit])
     if (additionalTextEdits) {
-      await document.applyEdits(additionalTextEdits)
+      await doc.applyEdits(additionalTextEdits)
     }
   }
 
@@ -83,8 +82,7 @@ export default class Colors {
       blue: (res[2] / 65535),
       alpha: 1
     })
-    let document = await workspace.document
-    await document.applyEdits([{
+    await doc.applyEdits([{
       range: info.range,
       newText: `#${hex}`
     }])

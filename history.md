@@ -1,3 +1,8 @@
+# 2022-05-06
+
+- Use menu for `window.showQuickpick()`.
+- Add configuration `outline.autoWidth`, default to `true`.
+
 # 2022-05-05
 
 - Add key bindings to dialog (created by `window.showDialog()`) on neovim.

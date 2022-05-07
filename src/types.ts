@@ -42,6 +42,7 @@ export interface CurrentState {
 }
 
 export interface BufferOption {
+  readonly bufnr: number
   readonly eol: number
   readonly size: number
   readonly winid: number

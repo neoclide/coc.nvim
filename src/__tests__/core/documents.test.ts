@@ -56,6 +56,13 @@ describe('documents', () => {
     fs.unlinkSync(tmpfile)
   })
 
+  it('should get current document', async () => {
+    let p1 = workspace.document
+    let p2 = workspace.document
+    let arr = await Promise.all([p1, p2])
+    expect(arr[0]).toBe(arr[1])
+  })
+
   it('should get bufnrs', async () => {
     await workspace.document
     let bufnrs = documents.bufnrs

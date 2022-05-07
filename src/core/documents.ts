@@ -31,6 +31,7 @@ export default class Documents implements Disposable {
   private _root: string
   private _initialized = false
   private _attached = false
+  private _currentResolve = false
   private nvim: Neovim
   private maxFileSize: number
   private disposables: Disposable[] = []
@@ -71,6 +72,9 @@ export default class Documents implements Disposable {
     this._bufnr = bufnr
     await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
     events.on('BufDetach', this.onBufDetach, this, this.disposables)
+    events.on('VimLeavePre', () => {
+      this.resolveCurrent(undefined)
+    }, null, this.disposables)
     events.on('WinEnter', (winid: number) => {
       this.winids.add(winid)
     }, null, this.disposables)
@@ -234,19 +238,34 @@ export default class Documents implements Disposable {
   /**
    * Current document.
    */
-  public get document(): Promise<Document> {
-    return new Promise<Document>((resolve, reject) => {
-      this.nvim.buffer.then(buf => {
-        let bufnr = buf.id
-        this._bufnr = bufnr
-        if (this.buffers.has(bufnr)) {
-          resolve(this.buffers.get(bufnr))
-          return
-        }
-        void this.createDocument(bufnr)
+  public get document(): Promise<Document | undefined> {
+    if (this._currentResolve) {
+      return new Promise<Document>(resolve => {
         this.resolves.push(resolve)
+      })
+    }
+    this._currentResolve = true
+    return new Promise<Document>((resolve, reject) => {
+      this.nvim.eval('coc#util#get_bufoptions(bufnr("%"))').then((opts: BufferOption) => {
+        let doc: Document | undefined
+        if (opts != null) {
+          this.creating.delete(opts.bufnr)
+          doc = this._createDocument(opts)
+        }
+        this.resolveCurrent(doc)
+        resolve(doc)
+        this._currentResolve = false
       }, reject)
     })
+  }
+
+  private resolveCurrent(document: Document | undefined): void {
+    if (this.resolves.length > 0) {
+      while (this.resolves.length) {
+        const fn = this.resolves.pop()
+        if (fn) fn(document)
+      }
+    }
   }
 
   public get uri(): string {
@@ -313,7 +332,7 @@ export default class Documents implements Disposable {
           resolve(undefined)
           return
         }
-        doc = this._createDocument(bufnr, opts)
+        doc = this._createDocument(opts)
         resolve(doc)
       }, () => {
         this.creating.delete(bufnr)
@@ -329,7 +348,8 @@ export default class Documents implements Disposable {
     await this.createDocument(bufnr)
   }
 
-  private _createDocument(bufnr: number, opts: BufferOption): Document | undefined {
+  private _createDocument(opts: BufferOption): Document {
+    let { bufnr } = opts
     if (this.buffers.has(bufnr)) return this.buffers.get(bufnr)
     let buffer = this.nvim.createBuffer(bufnr)
     let doc = new Document(buffer, this._env, this.nvim, opts)
@@ -345,12 +365,6 @@ export default class Documents implements Disposable {
       }
       this._onDidOpenTextDocument.fire(doc.textDocument)
       doc.onDocumentChange(e => this._onDidChangeDocument.fire(e))
-    }
-    if (this.resolves.length) {
-      while (this.resolves.length) {
-        const fn = this.resolves.pop()
-        if (fn) fn(doc)
-      }
     }
     logger.debug('buffer created', bufnr, doc.attached, doc.uri)
     return doc
@@ -565,7 +579,6 @@ export default class Documents implements Disposable {
     for (let bufnr of this.buffers.keys()) {
       this.onBufUnload(bufnr)
     }
-    this.resolves = []
     this._attached = false
     this.buffers.clear()
     disposeAll(this.disposables)
