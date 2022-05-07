@@ -14,9 +14,9 @@ export class Selection extends Range {
       return false
     }
     return Range.isRange(thing)
-    && Position.isPosition((thing as Selection).anchor)
-    && Position.isPosition((thing as Selection).active)
-    && typeof (thing as Selection).isReversed === 'boolean'
+      && Position.isPosition((thing as Selection).anchor)
+      && Position.isPosition((thing as Selection).active)
+      && typeof (thing as Selection).isReversed === 'boolean'
   }
 
   private _anchor: Position

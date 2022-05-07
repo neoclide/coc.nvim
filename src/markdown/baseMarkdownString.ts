@@ -21,7 +21,6 @@ export const enum MarkdownStringTextNewlineStyle {
 }
 
 export class BaseMarkdownString implements IMarkdownString {
-
   public value: string
   public isTrusted?: boolean
   public supportThemeIcons?: boolean

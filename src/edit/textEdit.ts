@@ -27,7 +27,7 @@ export class TextEdit implements ITextEdit {
       return false
     }
     return Range.isRange((thing as TextEdit))
-    && typeof (thing as TextEdit).newText === 'string'
+      && typeof (thing as TextEdit).newText === 'string'
   }
 
   public static replace(range: Range, newText: string): TextEdit {

@@ -16,7 +16,7 @@ export class Location implements ILocation {
       return false
     }
     return Range.isRange((thing as Location).range)
-    && URI.isUri((thing as Location).uri)
+      && URI.isUri((thing as Location).uri)
   }
 
   /**

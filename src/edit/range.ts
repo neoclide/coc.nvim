@@ -15,7 +15,7 @@ export class Range implements IRange {
       return false
     }
     return Position.isPosition((thing as Range).start)
-    && Position.isPosition(thing.end)
+      && Position.isPosition(thing.end)
   }
 
   public static of(obj: IRange): Range {
@@ -101,7 +101,7 @@ export class Range implements IRange {
   public contains(positionOrRange: Position | Range): boolean {
     if (Range.isRange(positionOrRange)) {
       return this.contains(positionOrRange.start)
-      && this.contains(positionOrRange.end)
+        && this.contains(positionOrRange.end)
 
     } else if (Position.isPosition(positionOrRange)) {
       if (Position.of(positionOrRange).isBefore(this._start)) {

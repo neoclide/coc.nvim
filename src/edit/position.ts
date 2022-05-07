@@ -59,6 +59,23 @@ export class Position implements IPosition {
     throw new Error('Invalid argument, is NOT a position-like object')
   }
 
+  /**
+   * Creates a new Position literal from the given line and character.
+   *
+   * @param line The position's line.
+   * @param character The position's character.
+   */
+  public static create(line: number, character: number): Position {
+    return new Position(line, character)
+  }
+
+  /**
+   * Checks whether the given liternal conforms to the [Position](#Position) interface.
+   */
+  public static is(value: any): value is IPosition {
+    return IPosition.is(value)
+  }
+
   private _line: number
   private _character: number
 
