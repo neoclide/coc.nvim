@@ -1310,6 +1310,11 @@
       "default": true,
       "description": "Show line number of symbols."
     },
+    "outline.detailAsDescription": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show detail as description aside with label, when false detail will be shown in tooltip on cursor hold."
+    },
     "outline.splitCommand": {
       "type": "string",
       "default": "botright 30vs",
@@ -1319,6 +1324,11 @@
       "type": "boolean",
       "default": true,
       "description": "Reveal item in outline tree on cursor hold."
+    },
+    "outline.autoWidth": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically increase window width to avoid wrapped lines."
     },
     "outline.keepWindow": {
       "type": "boolean",
@@ -1330,6 +1340,11 @@
       "default": "category",
       "description": "Sort method for symbols.",
       "enum": ["position", "name", "category"]
+    },
+    "outline.switchSortKey": {
+      "type": "string",
+      "default": "<C-s>",
+      "description": "The key used to switch sort method for symbols provider of current tree view."
     },
     "outline.expandLevel": {
       "type": "number",

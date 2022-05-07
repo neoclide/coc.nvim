@@ -1113,10 +1113,20 @@ Built-in configurations:~
 
 	Jump back to original window after outline is shown, default `false`
 
+*outline.autoWidth*
+
+	Automatically increase window width to avoid wrapped lines, default
+	`true`, use |g:coc_max_treeview_width| to change maximum width.
+
 *outline.sortBy*
 
 	Sort method for symbols, default: 'category'
 	Could be 'position', 'name' or 'category'.
+
+*outline.switchSortKey*
+
+	The key used to switch sort method for symbols provider of current
+	tree view. Default <C-s>
 
 *outline.expandLevel*
 
@@ -1131,6 +1141,11 @@ Built-in configurations:~
 
 	Show line number of document symbols.
 	Default `true`
+
+*outline.detailAsDescription*
+
+	Show detail as description aside with label.
+	Default: `true`
 
 *outline.codeActionKinds*
 
@@ -1852,6 +1867,12 @@ g:coc_default_semantic_highlight_groups         *g:coc_default_semantic_highligh
 	Create default semantic highlight groups for |coc-semantic-highlights|
 
 	Default: `1`
+
+g:coc_max_treeview_width 			*g:coc_max_treeview_width*
+
+	Maximum width of tree view when adjusted by auto width.
+
+	Default: `40`
 
 ------------------------------------------------------------------------------
 

@@ -454,6 +454,7 @@ function! coc#util#get_bufoptions(bufnr) abort
     let lines = getbufline(a:bufnr, 1, '$')
   endif
   return {
+        \ 'bufnr': a:bufnr,
         \ 'size': size,
         \ 'lines': lines,
         \ 'winid': winid,

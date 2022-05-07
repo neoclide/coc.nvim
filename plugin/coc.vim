@@ -359,6 +359,7 @@ function! s:Enable(initialize)
     autocmd FocusLost           * call s:Autocmd('FocusLost')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
+    autocmd VimLeavePre         * call s:Autocmd('VimLeavePre')
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
     autocmd ColorScheme * call s:Hi()

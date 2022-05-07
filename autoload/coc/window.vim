@@ -1,3 +1,5 @@
+let g:coc_max_treeview_width = get(g:, 'coc_max_treeview_width', 40)
+
 function! coc#window#tabnr(winid) abort
   if exists('*win_execute')
     let ref = {}
@@ -31,6 +33,26 @@ function! coc#window#set_height(winid, height) abort
     call nvim_win_set_height(a:winid, a:height)
   else
     call coc#compat#execute(a:winid, 'noa resize '.a:height, 'silent')
+  endif
+endfunction
+
+function! coc#window#adjust_width(winid) abort
+  let bufnr = winbufnr(a:winid)
+  if bufloaded(bufnr)
+    let maxwidth = 0
+    let lines = getbufline(bufnr, 1, '$')
+    if len(lines) > 2
+      call coc#compat#execute(a:winid, 'setl nowrap')
+      for line in lines
+        let w = strwidth(line)
+        if w > maxwidth
+          let maxwidth = w
+        endif
+      endfor
+    endif
+    if maxwidth > winwidth(a:winid)
+      call coc#compat#execute(a:winid, 'vertical resize '.min([maxwidth, g:coc_max_treeview_width]))
+    endif
   endif
 endfunction
 

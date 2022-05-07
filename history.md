@@ -1,3 +1,15 @@
+# 2022-05-07
+
+- Show sort method as description in outline view.
+- Add configuration `outline.switchSortKey`, default to `<C-s>`.
+- Add configuration `outline.detailAsDescription`, default to `true`.
+- Add variable `g:coc_max_treeview_width`.
+
+# 2022-05-06
+
+- Use menu for `window.showQuickpick()`.
+- Add configuration `outline.autoWidth`, default to `true`.
+
 # 2022-05-05
 
 - Add key bindings to dialog (created by `window.showDialog()`) on neovim.
