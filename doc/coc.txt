@@ -1123,6 +1123,11 @@ Built-in configurations:~
 	Sort method for symbols, default: 'category'
 	Could be 'position', 'name' or 'category'.
 
+*outline.switchSortKey*
+
+	The key used to switch sort method for symbols provider of current
+	tree view. Default <C-s>
+
 *outline.expandLevel*
 
 	Default expand level of tree nodes, default `1`

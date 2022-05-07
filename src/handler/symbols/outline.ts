@@ -23,6 +23,7 @@ interface OutlineNode extends TreeNode {
 
 interface OutlineConfig {
   splitCommand: string
+  switchSortKey: string
   followCursor: boolean
   keepWindow: boolean
   expandLevel: number
@@ -39,6 +40,7 @@ interface OutlineConfig {
 export default class SymbolsOutline {
   private treeViewList: BasicTreeView<OutlineNode>[] = []
   private providersMap: Map<number, BasicDataProvider<OutlineNode>> = new Map()
+  private sortByMap: Map<number, string> = new Map()
   private config: OutlineConfig
   private disposables: Disposable[] = []
   constructor(
@@ -105,6 +107,7 @@ export default class SymbolsOutline {
       let c = workspace.getConfiguration('outline')
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
+        switchSortKey: c.get<string>('switchSortKey'),
         followCursor: c.get<boolean>('followCursor'),
         keepWindow: c.get<boolean>('keepWindow'),
         expandLevel: c.get<number>('expandLevel'),
@@ -142,8 +145,8 @@ export default class SymbolsOutline {
     }
   }
 
-  private convertSymbols(symbols: DocumentSymbol[]): OutlineNode[] {
-    let { sortBy } = this.config
+  private convertSymbols(bufnr: number, symbols: DocumentSymbol[]): OutlineNode[] {
+    let sortBy = this.getSortBy(bufnr)
     let sortFn = (a: OutlineNode, b: OutlineNode): number => {
       if (sortBy === 'name') {
         return a.label < b.label ? -1 : 1
@@ -159,7 +162,7 @@ export default class SymbolsOutline {
 
   public onSymbolsUpdate(bufnr: number, symbols: DocumentSymbol[]): void {
     let provider = this.providersMap.get(bufnr)
-    if (provider) provider.update(this.convertSymbols(symbols))
+    if (provider) provider.update(this.convertSymbols(bufnr, symbols))
   }
 
   private createProvider(bufnr: number): BasicDataProvider<OutlineNode> {
@@ -186,7 +189,7 @@ export default class SymbolsOutline {
           throw new Error('Empty symbols returned from language server. ')
         }
         this.setMessage(bufnr, undefined)
-        return this.convertSymbols(arr)
+        return this.convertSymbols(bufnr, arr)
       },
       handleClick: async item => {
         let winnr = await nvim.call('bufwinnr', [bufnr])
@@ -239,6 +242,10 @@ export default class SymbolsOutline {
     return provider
   }
 
+  private getSortBy(bufnr: number): string {
+    return this.sortByMap.get(bufnr) ?? this.config.sortBy
+  }
+
   private async showOutline(bufnr: number, tabnr: number): Promise<BasicTreeView<OutlineNode>> {
     if (!this.providersMap.has(bufnr)) {
       this.providersMap.set(bufnr, this.createProvider(bufnr))
@@ -251,13 +258,34 @@ export default class SymbolsOutline {
         enableFilter: true,
         treeDataProvider: this.providersMap.get(bufnr),
       })
+      let sortBy = this.getSortBy(bufnr)
+      treeView.description = `${sortBy[0].toUpperCase()}${sortBy.slice(1)}`
       this.treeViewList.push(treeView)
       treeView.onDispose(() => {
         let idx = this.treeViewList.findIndex(v => v === treeView)
         if (idx !== -1) this.treeViewList.splice(idx, 1)
       })
     }
-    await treeView.show(this.config.splitCommand)
+    let shown = await treeView.show(this.config.splitCommand)
+    if (shown) {
+      treeView.registerLocalKeymap('n', this.config.switchSortKey, async () => {
+        let arr = ['category', 'name', 'position']
+        let curr = this.getSortBy(bufnr)
+        let items = arr.map(s => {
+          return { text: s, disabled: s === curr }
+        })
+        let res = await window.showMenuPicker(items, { title: 'Choose sort method' })
+        if (res < 0) return
+        let sortBy = arr[res]
+        this.sortByMap.set(bufnr, sortBy)
+        let views = this.treeViewList.filter(o => o.targetBufnr == bufnr)
+        views.forEach(view => {
+          view.description = `${sortBy[0].toUpperCase()}${sortBy.slice(1)}`
+        })
+        let item = this.buffers.getItem(bufnr)
+        if (item && item.symbols) this.onSymbolsUpdate(bufnr, item.symbols)
+      })
+    }
     return treeView
   }
 

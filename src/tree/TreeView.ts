@@ -4,7 +4,7 @@ import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, Mar
 import commandManager from '../commands'
 import events from '../events'
 import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, Documentation, HighlightItem } from '../types'
+import { ConfigurationChangeEvent, Documentation, HighlightItem, LocalMode } from '../types'
 import { disposeAll } from '../util'
 import { groupPositions, hasMatch, positions, score } from '../util/fzy'
 import { Mutex } from '../util/mutex'
@@ -830,7 +830,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   }
 
   // Render all tree items
-  private async render(): Promise<void> {
+  public async render(): Promise<void> {
     if (!this.bufnr) return
     let release = await this.mutex.acquire()
     try {
@@ -873,8 +873,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
   }
 
-  public async show(splitCommand = 'belowright 30vs'): Promise<void> {
-    if (this._creating || !this.provider) return
+  public async show(splitCommand = 'belowright 30vs'): Promise<boolean> {
+    if (this._creating) return false
     this._creating = true
     let { nvim } = this
     let oldWinId = this.winid
@@ -929,18 +929,25 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this._creating = false
     this.updateHeadLines(true)
     void this.render()
+    return true
+  }
+
+  public registerLocalKeymap(mode: LocalMode, key: string, fn: (element: T | undefined) => Promise<void>, notify = false): void {
+    this.disposables.push(workspace.registerLocalKeymap(mode, key, async () => {
+      let lnum = await this.nvim.call('line', ['.'])
+      let element = this.getElementByLnum(lnum - 1)
+      await Promise.resolve(fn(element))
+    }, notify))
   }
 
   private registerKeymaps(): void {
     let { toggleSelection, actions, close, invoke, toggle, collapseAll, activeFilter } = this.keys
     let { nvim } = this
-    const regist = (mode: 'n' | 'v' | 's' | 'x', key: string, fn: (element: T | undefined) => Promise<void>, notify = false) => {
-      this.disposables.push(workspace.registerLocalKeymap(mode, key, async () => {
-        let lnum = await nvim.call('line', ['.'])
-        let element = this.getElementByLnum(lnum - 1)
+    const regist = (mode: LocalMode, key: string, fn: (element: T | undefined) => Promise<void>) => {
+      this.registerLocalKeymap(mode, key, async (element: T | undefined) => {
         if (element && !this.nodesMap.has(element)) return
         await Promise.resolve(fn(element))
-      }, notify))
+      }, true)
     }
     this.disposables.push(workspace.registerLocalKeymap('n', '<C-o>', () => {
       nvim.call('win_gotoid', [this._targetWinId], true)
@@ -952,19 +959,19 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this.nvim.command(`exe ${this.startLnum}`, true)
       this.filter.active()
       this.filterText = ''
-    }, true)
+    })
     toggleSelection && regist('n', toggleSelection, async element => {
       if (element) this.toggleSelection(element)
     })
     invoke && regist('n', invoke, async element => {
       if (element) await this.invokeCommand(element)
-    }, true)
+    })
     actions && regist('n', actions, async element => {
       if (element) await this.invokeActions(element)
-    }, true)
+    })
     toggle && regist('n', toggle, async element => {
       if (element) await this.toggleExpand(element)
-    }, true)
+    })
     collapseAll && regist('n', collapseAll, async () => {
       for (let obj of this.nodesMap.values()) {
         let item = obj.item
@@ -976,7 +983,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     })
     close && regist('n', close, async () => {
       this.hide()
-    }, true)
+    })
   }
 
   private hide(): void {

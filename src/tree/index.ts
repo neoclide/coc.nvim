@@ -183,7 +183,7 @@ export interface TreeView<T> extends Disposable {
    *
    * @param splitCommand The command to open TreeView window, default to 'belowright 30vs'
    */
-  show(splitCommand?: string): Promise<void>
+  show(splitCommand?: string): Promise<boolean>
 }
 
 /**

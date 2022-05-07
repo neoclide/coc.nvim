@@ -1336,6 +1336,11 @@
       "description": "Sort method for symbols.",
       "enum": ["position", "name", "category"]
     },
+    "outline.switchSortKey": {
+      "type": "string",
+      "default": "<C-s>",
+      "description": "The key used to switch sort method for symbols provider of current tree view."
+    },
     "outline.expandLevel": {
       "type": "number",
       "default": 1,

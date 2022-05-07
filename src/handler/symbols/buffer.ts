@@ -12,7 +12,7 @@ export default class SymbolsBuffer implements SyncItem {
   private disposables: Disposable[] = []
   public fetchSymbols: (() => void) & { clear(): void }
   private version: number
-  private symbols: DocumentSymbol[]
+  public symbols: DocumentSymbol[]
   private tokenSource: CancellationTokenSource
   private readonly _onDidUpdate = new Emitter<DocumentSymbol[]>()
   public readonly onDidUpdate: Event<DocumentSymbol[]> = this._onDidUpdate.event

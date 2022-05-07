@@ -33,6 +33,8 @@ export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentC
   | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
   | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
 
+export type LocalMode = 'n' | 'v' | 's' | 'x'
+
 export interface CurrentState {
   doc: Document
   winid: number

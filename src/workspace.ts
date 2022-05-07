@@ -30,7 +30,7 @@ import Mru from './model/mru'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, LocalMode, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
 const APIVERSION = 29
@@ -420,7 +420,7 @@ export class Workspace implements IWorkspace {
     return this.keymaps.registerExprKeymap(mode, key, fn, buffer)
   }
 
-  public registerLocalKeymap(mode: 'n' | 'v' | 's' | 'x', key: string, fn: Function, notify = false): Disposable {
+  public registerLocalKeymap(mode: LocalMode, key: string, fn: Function, notify = false): Disposable {
     return this.keymaps.registerLocalKeymap(mode, key, fn, notify)
   }
 

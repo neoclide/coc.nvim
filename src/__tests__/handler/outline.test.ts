@@ -81,8 +81,8 @@ describe('symbols outline', () => {
       await helper.wait(50)
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.getLines()
-      expect(lines).toEqual([
-        'OUTLINE', '- c myClass 1', '    m fun1 2', '    m fun2 3'
+      expect(lines.slice(1)).toEqual([
+        '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
       let signs = await buf.getSigns({ group: 'CocTree' })
       expect(signs.length).toBe(1)
@@ -147,8 +147,8 @@ describe('symbols outline', () => {
       await helper.wait(100)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines).toEqual([
-        'OUTLINE', '- c myClass 1', '    m fun1 2', '    m fun2 3'
+      expect(lines.slice(1)).toEqual([
+        '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
     })
 
@@ -177,7 +177,7 @@ describe('symbols outline', () => {
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
       expect(lines).toEqual([
-        'OUTLINE', '- c myClass 1', '    m fun2 2', '    m fun1 3'
+        'OUTLINE Position', '- c myClass 1', '    m fun2 2', '    m fun1 3'
       ])
     })
 
@@ -194,8 +194,26 @@ describe('symbols outline', () => {
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
       expect(lines).toEqual([
-        'OUTLINE', '- c myClass 1', '    m fun1 3', '    m fun2 2'
+        'OUTLINE Name', '- c myClass 1', '    m fun1 3', '    m fun2 2'
       ])
+    })
+
+    it('should change sort method', async () => {
+      let code = `class myClass {
+  fun2() {}
+  fun1() {}
+}`
+      await createBuffer(code)
+      await symbols.showOutline(0)
+      await helper.wait(30)
+      await nvim.input('<C-s>')
+      await helper.waitFloat()
+      await nvim.input('<esc>')
+      await helper.wait(30)
+      await nvim.input('<C-s>')
+      await helper.waitFloat()
+      await nvim.input('3')
+      await helper.waitFor('getline', [1], 'OUTLINE Position')
     })
   })
 
@@ -248,8 +266,8 @@ describe('symbols outline', () => {
       let buf = await getOutlineBuffer()
       expect(buf).toBeDefined()
       let lines = await buf.lines
-      expect(lines).toEqual([
-        'OUTLINE', '- c myClass 1', '    m fun1 2', '    m fun2 3'
+      expect(lines.slice(1)).toEqual([
+        '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
     })
 
@@ -320,7 +338,7 @@ describe('symbols outline', () => {
       expect(lines).toEqual([
         'No results',
         '',
-        'OUTLINE'
+        'OUTLINE Category'
       ])
     })
 

@@ -38,12 +38,15 @@ function! coc#window#adjust_width(winid) abort
   let bufnr = winbufnr(a:winid)
   if bufloaded(bufnr)
     let maxwidth = 0
-    for line in getbufline(bufnr, 1, '$')
-      let w = strwidth(line)
-      if w > maxwidth
-        let maxwidth = w
-      endif
-    endfor
+    let lines = getbufline(bufnr, 1, '$')
+    if len(lines) > 2
+      for line in lines
+        let w = strwidth(line)
+        if w > maxwidth
+          let maxwidth = w
+        endif
+      endfor
+    endif
     if maxwidth > winwidth(a:winid)
       call coc#compat#execute(a:winid, 'vertical resize '.maxwidth)
     endif

@@ -1,3 +1,8 @@
+# 2022-05-07
+
+- Show sort method as description in outline view.
+- Add configuration `outline.switchSortKey`, default to `<C-s>`
+
 # 2022-05-06
 
 - Use menu for `window.showQuickpick()`.
