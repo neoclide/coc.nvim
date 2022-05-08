@@ -389,8 +389,8 @@ export class Completion implements Disposable {
     if (!resolvedItem) return
     this.mru.add(input, resolvedItem)
     let insertChange = await waitTextChangedI()
-    if (!insertChange) return
-    if (insertChange.lnum != opt.linenr || insertChange.pre !== byteSlice(opt.line, 0, opt.col) + item.word) return
+    if (typeof insertChange === 'string') return
+    if (insertChange && (insertChange.lnum != opt.linenr || insertChange.pre !== byteSlice(opt.line, 0, opt.col) + item.word)) return
     let res = await events.race(['InsertCharPre', 'CursorMovedI'], 20)
     if (res) return
     let source = new CancellationTokenSource()

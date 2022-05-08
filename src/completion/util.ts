@@ -9,9 +9,9 @@ export async function waitInsertEvent(): Promise<string | undefined> {
   return res?.name
 }
 
-export async function waitTextChangedI(): Promise<InsertChange | undefined> {
-  let res = await events.race(['InsertCharPre', 'CursorMoved', 'InsertLeave', 'TextChangedI'], 300)
-  if (!res || res.name !== 'TextChangedI') return
+export async function waitTextChangedI(): Promise<InsertChange | string | undefined> {
+  let res = await events.race(['InsertCharPre', 'CursorMoved', 'InsertLeave', 'TextChangedI'], 100)
+  if (!res || res.name !== 'TextChangedI') return res ? res.name : undefined
   return res.args[1] as InsertChange
 }
 

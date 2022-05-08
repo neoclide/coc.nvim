@@ -232,6 +232,22 @@ describe('language source', () => {
       await helper.waitFor('getline', ['.'], 'foo')
     })
 
+    it('should applyEdits for empty word', async () => {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: '',
+          filterText: '!',
+          textEdit: { range: Range.create(0, 0, 0, 1), newText: 'foo' },
+          data: { word: '' }
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['!']))
+      await nvim.input('i!')
+      await helper.waitPopup()
+      await helper.selectCompleteItem(0)
+      await helper.waitFor('getline', ['.'], 'foo')
+    })
+
     it('should provide word when textEdit after startcol', async () => {
       // some LS would send textEdit after first character,
       // need fix the word from newText
