@@ -166,9 +166,9 @@ describe('completion', () => {
   describe('doComplete()', () => {
     it('should start completion', async () => {
       let doc = await workspace.document
-      await nvim.setLine('foo football')
+      await nvim.setLine('foo football f')
       await doc.synchronize()
-      await nvim.input('of')
+      await nvim.input('A')
       let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
       await completion.startCompletion(option)
       await helper.waitPopup()

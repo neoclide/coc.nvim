@@ -24,7 +24,6 @@ export default class ListSession {
   public readonly ui: UI
   public readonly worker: Worker
   private cwd: string
-  private interval: NodeJS.Timer
   private loadingFrame = ''
   private timer: NodeJS.Timer
   private hidden = false
@@ -109,21 +108,30 @@ export default class ListSession {
         await this.ui.drawItems(items, Math.max(1, height), reload)
       }
     }, null, this.disposables)
+    let start = 0
+    let timer: NodeJS.Timeout
+    let interval: NodeJS.Timeout
+    this.disposables.push(Disposable.create(() => {
+      if (timer) clearTimeout(timer)
+      if (interval) clearInterval(interval)
+    }))
     this.worker.onDidChangeLoading(loading => {
       if (this.hidden) return
+      if (timer) clearTimeout(timer)
       if (loading) {
-        this.interval = setInterval(() => {
-          let idx = Math.floor((new Date()).getMilliseconds() / 100)
+        start = Date.now()
+        interval = setInterval(() => {
+          let idx = Math.floor((Date.now() - start) % 1000 / 100)
           this.loadingFrame = frames[idx]
           this.updateStatus()
         }, 100)
       } else {
-        if (this.interval) {
+        timer = setTimeout(() => {
           this.loadingFrame = ''
-          clearInterval(this.interval)
-          this.interval = null
-        }
-        this.updateStatus()
+          if (interval) clearInterval(interval)
+          interval = null
+          this.updateStatus()
+        }, Math.max(0, 200 - (Date.now() - start)))
       }
     }, null, this.disposables)
   }
@@ -143,7 +151,7 @@ export default class ListSession {
   }
 
   public async reloadItems(): Promise<void> {
-    if (!this.window || !this.ui.winid) return
+    if (!this.ui.winid) return
     await this.worker.loadItems(this.context, true)
   }
 
@@ -296,14 +304,13 @@ export default class ListSession {
 
   public async hide(notify = false): Promise<void> {
     if (this.hidden) return
-    let { nvim, timer, interval, window } = this
+    let { nvim, timer, window } = this
     let { winid, tabnr } = this.ui
     if (timer) clearTimeout(timer)
-    if (interval) clearInterval(interval)
-    this.hidden = true
     this.worker.stop()
     this.history.add()
     this.ui.reset()
+    this.hidden = true
     let { isVim } = workspace
     nvim.pauseNotification()
     if (!isVim) nvim.call('coc#prompt#stop_prompt', ['list'], true)
@@ -434,7 +441,7 @@ export default class ListSession {
 
   private updateStatus(): void {
     let { ui, list, nvim } = this
-    if (!ui.winid) return
+    if (!ui.bufnr) return
     let buf = nvim.createBuffer(ui.bufnr)
     let status = {
       mode: this.prompt.mode.toUpperCase(),
@@ -544,7 +551,7 @@ export default class ListSession {
       if (persist) {
         this.ui.restoreWindow()
       }
-      if (action.reload && persist) await this.worker.loadItems(this.context, true)
+      if (action.reload && persist) await this.reloadItems()
     } catch (e) {
       this.nvim.echoError(e)
     }

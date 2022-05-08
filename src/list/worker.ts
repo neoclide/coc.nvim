@@ -52,7 +52,6 @@ export default class Worker {
   }
 
   public async loadItems(context: ListContext, reload = false): Promise<void> {
-    if (reload) void window.showNotification({ content: 'Reloading list', timeout: 500 })
     let { list, listOptions } = this
     this.loading = true
     let { interactive } = listOptions
