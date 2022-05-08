@@ -25,6 +25,7 @@ import { terminate } from '../../util/processes'
 import { getMatchResult } from '../../util/score'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
+import { filter } from '../../util/async'
 import helper, { createTmpFile } from '../helper'
 const createLogger = require('../../util/logger')
 
@@ -1050,6 +1051,43 @@ describe('diff', () => {
     it('should get minimal diff', () => {
       let res = diff.getChange('foo\nbar', 'fab\nbar', 2)
       expect(res).toEqual({ start: 1, end: 3, newText: 'ab' })
+    })
+  })
+
+  function blockMilliseconds(ms: number): void {
+    let ts = Date.now()
+    let i = 0
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (Date.now() - ts > ms) {
+        break
+      }
+      i++
+    }
+  }
+
+  describe('async', () => {
+    it('should do async filter', async () => {
+      await filter([{ label: 'a' }, { label: 'b' }, { label: 'c' }], v => {
+        return { code: v.label.charCodeAt(0) }
+      }, (items, done) => {
+        expect(items.length).toBe(3)
+        expect(done).toBe(true)
+      })
+      let n = 0
+      let res: string[] = []
+      let finished: boolean
+      await filter<string>(['a', 'b', 'c'], () => {
+        blockMilliseconds(30)
+        return true
+      }, (items, done) => {
+        n++
+        res.push(...items)
+        finished = done
+      })
+      expect(n).toBe(3)
+      expect(res).toEqual(['a', 'b', 'c'])
+      expect(finished).toEqual(true)
     })
   })
 })
