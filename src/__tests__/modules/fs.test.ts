@@ -1,10 +1,10 @@
-import { findUp, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
+import { findUp, checkFolder, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
 
 describe('fs', () => {
-  describe('stat', () => {
+  describe('stat()', () => {
     it('fs statAsync', async () => {
       let res = await statAsync(__filename)
       expect(res).toBeDefined
@@ -17,7 +17,19 @@ describe('fs', () => {
     })
   })
 
-  describe('renameAsync', () => {
+  describe('checkFolder()', () => {
+    it('should check file in folder', async () => {
+      let cwd = process.cwd()
+      let res = await checkFolder(cwd, 'package.json')
+      expect(res).toBe(true)
+      res = await checkFolder(cwd, '**/schema.json')
+      expect(res).toBe(true)
+      res = await checkFolder(cwd, 'not_exists_fs')
+      expect(res).toBe(false)
+    })
+  })
+
+  describe('renameAsync()', () => {
     it('should rename file', async () => {
       let filepath = path.join(os.tmpdir(), 'foo')
       await writeFile(filepath, 'foo')

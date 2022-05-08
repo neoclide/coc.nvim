@@ -21,7 +21,7 @@ import { concurrent, disposeAll, wait, watchFile } from './util'
 import { distinct, splitArray } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
-import { inDirectory, readFile, statAsync } from './util/fs'
+import { checkFolder, readFile, statAsync } from './util/fs'
 import { objectLiteral } from './util/is'
 import window from './window'
 import workspace from './workspace'
@@ -778,22 +778,19 @@ export class Extensions {
       return
     }
     let disposables: Disposable[] = []
+    let called = false
     let active = (): Promise<void> => {
+      if (called) return
+      called = true
       disposeAll(disposables)
       return new Promise(resolve => {
         if (!this.canActivate(id)) {
           this.outputChannel.appendLine(`Extension ${id} is disabled or not loaded.`)
           return resolve()
         }
-        let timer = setTimeout(() => {
-          this.outputChannel.appendLine(`Extension ${id} activate cost more than 1s`)
-          resolve()
-        }, 1000)
         this.activate(id).then(() => {
-          clearTimeout(timer)
           resolve()
         }, e => {
-          clearTimeout(timer)
           window.showMessage(`Error on activate extension ${id}: ${e.message}`)
           this.outputChannel.appendLine(`Error on activate extension ${id}:${e.message}\n ${e.stack}`)
           resolve()
@@ -828,15 +825,19 @@ export class Extensions {
         let check = async () => {
           let folders = workspace.workspaceFolders.map(o => URI.parse(o.uri).fsPath)
           for (let folder of folders) {
-            if (inDirectory(folder, parts[1].split(/\s+/))) {
-              await active()
-              return true
+            for (let pattern of parts[1].split(/\s+/)) {
+              let exists = await checkFolder(folder, pattern)
+              if (exists) {
+                await active()
+                return true
+              }
             }
           }
+          return false
         }
-        let res = await check()
-        if (res) return
         workspace.onDidChangeWorkspaceFolders(check, null, disposables)
+        let checked = await check()
+        if (checked) return
       } else if (ev == 'onFileSystem') {
         for (let doc of workspace.documents) {
           let u = URI.parse(doc.uri)

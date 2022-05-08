@@ -6,6 +6,7 @@ import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import util from 'util'
+import glob from 'glob'
 import * as platform from './platform'
 const logger = require('./logger')('util-fs')
 
@@ -79,6 +80,29 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string, bottom
     }
     return null
   }
+}
+
+export async function checkFolder(dir: string, pattern: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    let find = false
+    let gl = glob(pattern, {
+      nosort: true,
+      dot: true,
+      cwd: dir,
+      nodir: true,
+      absolute: false
+    }, err => {
+      if (err) reject(err)
+    })
+    gl.on('match', () => {
+      find = true
+      gl.abort()
+      resolve(true)
+    })
+    gl.on('end', () => {
+      resolve(find)
+    })
+  })
 }
 
 export function inDirectory(dir: string, subs: string[]): boolean {
