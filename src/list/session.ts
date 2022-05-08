@@ -428,7 +428,7 @@ export default class ListSession {
     await nvim.resumeNotification()
   }
 
-  public switchMatcher(): void {
+  public async switchMatcher(): Promise<void> {
     let { matcher, interactive } = this.listOptions
     if (interactive) return
     const list: Matcher[] = ['fuzzy', 'strict', 'regex']
@@ -436,7 +436,7 @@ export default class ListSession {
     if (idx >= list.length) idx = 0
     this.listOptions.matcher = list[idx]
     this.prompt.matcher = list[idx]
-    this.worker.drawItems()
+    await this.worker.drawItems()
   }
 
   private updateStatus(): void {
@@ -559,7 +559,6 @@ export default class ListSession {
 
   public onInputChange(): void {
     if (this.timer) clearTimeout(this.timer)
-    let len = this.worker.length
     this.listOptions.input = this.prompt.input
     // reload or filter items
     if (this.listOptions.interactive) {
@@ -567,11 +566,8 @@ export default class ListSession {
       this.timer = setTimeout(async () => {
         await this.worker.loadItems(this.context)
       }, this.interactiveDebounceTime)
-    } else if (len) {
-      let wait = Math.max(Math.min(Math.floor(len / 200), 300), 50)
-      this.timer = setTimeout(() => {
-        this.worker.drawItems()
-      }, wait)
+    } else {
+      void this.worker.drawItems()
     }
   }
 

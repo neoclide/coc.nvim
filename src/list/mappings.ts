@@ -17,8 +17,8 @@ export default class Mappings {
     private nvim: Neovim,
     private config: ListConfiguration) {
     let { prompt } = manager
-    this.addAction('do:switch', () => {
-      manager.switchMatcher()
+    this.addAction('do:switch', async () => {
+      await manager.switchMatcher()
     })
     this.addAction('do:selectall', async () => {
       await manager.session?.ui.selectAll()

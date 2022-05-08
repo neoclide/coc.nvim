@@ -956,15 +956,16 @@ export interface ListItem {
   label: string
   filterText?: string
   preselect?: boolean
+  location?: Location | LocationWithLine | string
+  data?: any
+  ansiHighlights?: AnsiHighlight[]
+  resolved?: boolean
   /**
    * A string that should be used when comparing this item
    * with other items, only used for fuzzy filter.
    */
   sortText?: string
-  location?: Location | LocationWithLine | string
-  data?: any
-  ansiHighlights?: AnsiHighlight[]
-  resolved?: boolean
+  converted?: boolean
 }
 
 export interface ListHighlights {
@@ -974,6 +975,7 @@ export interface ListHighlights {
 }
 
 export interface ListItemWithHighlights extends ListItem {
+  score?: number
   highlights?: ListHighlights
 }
 

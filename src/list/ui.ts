@@ -309,19 +309,9 @@ export default class ListUI {
     })
   }
 
-  private async withMutex(fn: () => Promise<void>): Promise<void> {
-    let release = await this.mutex.acquire()
-    try {
-      await fn()
-    } catch (e) {
-      logger.error(e)
-    }
-    release()
-  }
-
   public async drawItems(items: ListItem[], height: number, reload = false): Promise<void> {
     const { nvim, name, listOptions } = this
-    await this.withMutex(async () => {
+    await this.mutex.use(async () => {
       this.items = items.length > this.limitLines ? items.slice(0, this.limitLines) : items
       if (!this.window) {
         let { position, numberSelect } = listOptions
@@ -348,7 +338,7 @@ export default class ListUI {
 
   public async appendItems(items: ListItem[]): Promise<void> {
     if (!this.window) return
-    await this.withMutex(async () => {
+    await this.mutex.use(async () => {
       let curr = this.items.length
       if (curr < this.limitLines) {
         let max = this.limitLines - curr
@@ -386,6 +376,7 @@ export default class ListUI {
       let maxHeight = this.config.get<number>('height', 10)
       nvim.call('coc#window#set_height', [window.id, Math.max(Math.min(maxHeight, this.length), 1)], true)
     }
+    if (index > this.items.length - 1) index = 0
     if (index == 0) {
       if (append == 0) {
         this.doHighlight(0, 299)

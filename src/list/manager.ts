@@ -195,8 +195,8 @@ export class ListManager implements Disposable {
     this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
   }
 
-  public switchMatcher(): void {
-    this.session?.switchMatcher()
+  public async switchMatcher(): Promise<void> {
+    await this.session?.switchMatcher()
   }
 
   public async togglePreview(): Promise<void> {

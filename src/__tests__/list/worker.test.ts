@@ -18,6 +18,17 @@ class DataList extends BasicList {
   }
 }
 
+class EmptyList extends BasicList {
+  public name = 'empty'
+  public loadItems(): Promise<ListItem[]> {
+    let emitter: any = new EventEmitter()
+    setTimeout(() => {
+      emitter.emit('end')
+    }, 20)
+    return emitter
+  }
+}
+
 class IntervalTaskList extends BasicList {
   public name = 'task'
   public timeout = 3000
@@ -117,6 +128,8 @@ describe('parseInput', () => {
   it('should parse input with space', async () => {
     let res = parseInput('a b')
     expect(res).toEqual(['a', 'b'])
+    res = parseInput('a b ')
+    expect(res).toEqual(['a', 'b'])
   })
 
   it('should parse input with escaped space', async () => {
@@ -147,13 +160,21 @@ describe('list worker', () => {
     }]
     disposables.push(manager.registerList(new DataList(nvim)))
     await manager.start(['data'])
-    await helper.wait(100)
+    await manager.session.ui.ready
     await nvim.input('a')
-    await helper.wait(100)
+    await helper.wait(50)
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual(['ade', 'abc'])
     await manager.cancel()
+  })
+
+  it('should show empty line for empty task', async () => {
+    disposables.push(manager.registerList(new EmptyList(nvim)))
+    await manager.start(['empty'])
+    await manager.session.ui.ready
+    let line = await nvim.call('getline', [1])
+    expect(line).toMatch('No results')
   })
 
   it('should cancel task by use CancellationToken', async () => {
