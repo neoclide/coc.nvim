@@ -3840,8 +3840,7 @@ export abstract class BaseLanguageClient {
     })
   }
 
-  public stop(): Promise<void> {
-    this._initializeResult = undefined
+  public async stop(): Promise<void> {
     if (!this._connectionPromise) {
       this.state = ClientState.Stopped
       return Promise.resolve()
@@ -3849,33 +3848,32 @@ export abstract class BaseLanguageClient {
     if (this.state === ClientState.Stopping && this._onStop) {
       return this._onStop
     }
+    const connection = await this.resolveConnection()
+    this._initializeResult = undefined
     this.state = ClientState.Stopping
     this.cleanUp()
-    const shutdown = this.resolveConnection().then(connection => {
-      let disposed = false
-      let timer = setTimeout(() => {
-        disposed = true
+
+    const tp = new Promise<undefined>(c => { setTimeout(c, 2000) })
+    const shutdown = (async (connection) => {
+      await connection.shutdown()
+      await connection.exit()
+      return connection
+    })(connection)
+
+    return this._onStop = Promise.race([tp, shutdown]).then((connection) => {
+      // The connection won the race with the timeout.
+      if (connection !== undefined) {
+        if (global.__TEST__) return
         connection.end()
         connection.dispose()
-      }, 2000)
-      return connection.shutdown().then(() => {
-        clearTimeout(timer)
-        connection.exit()
-        return connection
-      }, err => {
-        if (disposed) return
-        connection.end()
-        connection.dispose()
-        throw err
-      })
-    })
-    // unkook listeners
-    return (this._onStop = shutdown.then(connection => {
-    }, err => {
-      logger.error(`Stopping server failed:`, err)
-      this.error(`Stopping server failed`, err)
-      throw err
-    })).finally(() => {
+      } else {
+        this.error(`Stopping server timed out`)
+        throw new Error(`Stopping the server timed out`)
+      }
+    }, (error) => {
+      this.error(`Stopping server failed`, error)
+      throw error
+    }).finally(() => {
       this.state = ClientState.Stopped
       this.cleanUpChannel()
       this._onStop = undefined

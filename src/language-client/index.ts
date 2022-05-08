@@ -254,7 +254,11 @@ export class LanguageClient extends BaseLanguageClient {
   }
 
   private checkProcessDied(childProcess: ChildProcess | undefined): void {
-    if (!childProcess || global.__TEST__) return
+    if (!childProcess) return
+    if (global.__TEST__) {
+      process.kill(childProcess.pid, 0)
+      return
+    }
     setTimeout(() => {
       // Test if the process is still alive. Throws an exception if not
       try {

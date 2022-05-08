@@ -78,6 +78,16 @@ describe('Client integration', () => {
     })
   })
 
+  it('should initialize as command', async () => {
+    let serverModule = path.join(__dirname, './server/testInitializeResult.js')
+    let serverOptions: lsclient.ServerOptions = {
+      command: 'node',
+      args: [serverModule, '--stdio']
+    }
+    let client = await testLanguageServer(serverOptions)
+    await client.stop()
+  })
+
   it('should initialize use stdio', async () => {
     let serverModule = path.join(__dirname, './server/testInitializeResult.js')
     let serverOptions: lsclient.ServerOptions = {
@@ -106,16 +116,6 @@ describe('Client integration', () => {
         kind: lsclient.TransportKind.socket,
         port: 8088
       }
-    }
-    let client = await testLanguageServer(serverOptions)
-    await client.stop()
-  })
-
-  it('should initialize as command', async () => {
-    let serverModule = path.join(__dirname, './server/testInitializeResult.js')
-    let serverOptions: lsclient.ServerOptions = {
-      command: 'node',
-      args: [serverModule, '--stdio']
     }
     let client = await testLanguageServer(serverOptions)
     await client.stop()
