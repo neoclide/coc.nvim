@@ -548,7 +548,7 @@ export interface DidChangeTextDocumentParams {
    * to the version after all provided content changes have
    * been applied.
    */
-  textDocument: {
+  readonly textDocument: {
     version: number
     uri: string
   }
@@ -559,19 +559,19 @@ export interface DidChangeTextDocumentParams {
    * S to S' and c2 from S' to S''. So c1 is computed on the state S and c2 is computed
    * on the state S'.
    */
-  contentChanges: TextDocumentContentChange[]
+  readonly contentChanges: ReadonlyArray<TextDocumentContentChange>
   /**
    * Buffer number of document.
    */
-  bufnr: number
+  readonly bufnr: number
   /**
    * Original content before change
    */
-  original: string
+  readonly original: string
   /**
    * Changed lines
    */
-  originalLines: ReadonlyArray<string>
+  readonly originalLines: ReadonlyArray<string>
 }
 // }}
 

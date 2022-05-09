@@ -7,7 +7,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import Highlighter from '../../model/highligher'
-import { BufferSyncItem, DidChangeTextDocumentParams, Optional } from '../../types'
+import { BufferSyncItem, DidChangeTextDocumentParams, Optional, TextDocumentContentChange } from '../../types'
 import { disposeAll } from '../../util'
 import { isParentFolder, readFileLines, sameFile } from '../../util/fs'
 import { omit } from '../../util/lodash'
@@ -632,40 +632,41 @@ function adjustRange(range: Range, offset: number): Range {
 }
 
 export function fixChangeParams(e: DidChangeTextDocumentParams): DidChangeTextDocumentParams {
-  let { contentChanges, original, originalLines } = e
+  let { contentChanges, bufnr, textDocument, original, originalLines } = e
   let { range, text } = contentChanges[0]
+  let changes: TextDocumentContentChange[] = [{ range, text }]
   if (!original) {
     if (emptyRange(range) && range.start.character != 0) {
       let lines = text.split(/\r?\n/)
       let last = lines[lines.length - 1]
       let before = originalLines[range.start.line].slice(0, range.start.character)
       if (last.startsWith(SEPARATOR) && before == last) {
-        contentChanges[0].text = before + lines.slice(0, -1).join('\n') + '\n'
+        changes[0].text = before + lines.slice(0, -1).join('\n') + '\n'
         let { start, end } = range
-        contentChanges[0].range = Range.create(start.line, 0, end.line, 0)
+        changes[0].range = Range.create(start.line, 0, end.line, 0)
       }
     }
-    return e
-  }
-  let lines = original.split(/\r?\n/)
-  let last = lines[lines.length - 1]
-  if (last.startsWith(SEPARATOR)) {
-    let before = originalLines[range.start.line].slice(0, range.start.character)
-    if (before == last) {
-      e.original = before + lines.slice(0, -1).join('\n') + '\n'
+  } else {
+    let lines = original.split(/\r?\n/)
+    let last = lines[lines.length - 1]
+    if (last.startsWith(SEPARATOR)) {
+      let before = originalLines[range.start.line].slice(0, range.start.character)
+      if (before == last) {
+        original = before + lines.slice(0, -1).join('\n') + '\n'
+        let { start, end } = range
+        changes[0].range = Range.create(start.line, 0, end.line, 0)
+      }
+    }
+    let prev = originalLines[range.start.line - 1]
+    let nest = lines.length > 1 ? lines[lines.length - 2] : ''
+    if (last == '' &&
+      nest.startsWith(SEPARATOR) &&
+      prev == nest &&
+      range.start.character == 0 && range.end.character == 0) {
+      original = prev + '\n' + lines.slice(0, -2).join('\n') + '\n'
       let { start, end } = range
-      contentChanges[0].range = Range.create(start.line, 0, end.line, 0)
+      changes[0].range = Range.create(start.line - 1, 0, end.line - 1, 0)
     }
   }
-  let prev = originalLines[range.start.line - 1]
-  let nest = lines.length > 1 ? lines[lines.length - 2] : ''
-  if (last == '' &&
-    nest.startsWith(SEPARATOR) &&
-    prev == nest &&
-    range.start.character == 0 && range.end.character == 0) {
-    e.original = prev + '\n' + lines.slice(0, -2).join('\n') + '\n'
-    let { start, end } = range
-    contentChanges[0].range = Range.create(start.line - 1, 0, end.line - 1, 0)
-  }
-  return e
+  return { contentChanges: changes, bufnr, textDocument, original, originalLines }
 }

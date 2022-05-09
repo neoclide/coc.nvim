@@ -426,7 +426,7 @@ describe('Document', () => {
       let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
       let disposables = []
       document.onDocumentChange(e => {
-        TextDocument.update(doc, e.contentChanges, 2)
+        TextDocument.update(doc, e.contentChanges.slice(), 2)
       }, null, disposables)
       // document.on
       await nvim.setLine('abc')
@@ -440,7 +440,7 @@ describe('Document', () => {
       let doc = TextDocument.create('untitled:1', 'txt', 1, document.getDocumentContent())
       let disposables = []
       document.onDocumentChange(e => {
-        TextDocument.update(doc, e.contentChanges, e.textDocument.version)
+        TextDocument.update(doc, e.contentChanges.slice(), e.textDocument.version)
       }, null, disposables)
       await nvim.setLine('abc')
       await document.patchChange()
@@ -480,7 +480,7 @@ describe('Document', () => {
         if (e.uri == doc.uri) doc = null
       }, null, disposables)
       workspace.onDidChangeTextDocument(e => {
-        TextDocument.update(doc, e.contentChanges, e.textDocument.version)
+        TextDocument.update(doc, e.contentChanges.slice(), e.textDocument.version)
       }, null, disposables)
       await fn(document)
       document = await workspace.document

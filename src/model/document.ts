@@ -270,13 +270,13 @@ export default class Document {
       original = ''
     }
     let created = this.createTextDocument(this.version + (edit ? 1 : 0), this.lines)
-    this._onDocumentChange.fire({
+    this._onDocumentChange.fire(Object.freeze({
       bufnr: this.bufnr,
-      original: edit ? textDocument.getText(edit.range) : '',
+      original,
       originalLines: textDocument.lines,
       textDocument: { version: created.version, uri: this.uri },
       contentChanges: changes
-    })
+    }))
   }
 
   public async applyEdits(edits: TextEdit[], joinUndo = false, move: boolean | Position = false): Promise<void> {

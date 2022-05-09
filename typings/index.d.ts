@@ -6528,7 +6528,7 @@ declare module 'coc.nvim' {
      * to the version after all provided content changes have
      * been applied.
      */
-    textDocument: {
+    readonly textDocument: {
       version: number
       uri: string
     }
@@ -6539,19 +6539,19 @@ declare module 'coc.nvim' {
      * S to S' and c2 from S' to S''. So c1 is computed on the state S and c2 is computed
      * on the state S'.
      */
-    contentChanges: TextDocumentContentChange[]
+    readonly contentChanges: ReadonlyArray<TextDocumentContentChange>
     /**
      * Buffer number of document.
      */
-    bufnr: number
+    readonly bufnr: number
     /**
      * Original content before change
      */
-    original: string
+    readonly original: string
     /**
      * Original lines before change
      */
-    originalLines: string[]
+    readonly originalLines: ReadonlyArray<string>
   }
 
   export interface EditerState {

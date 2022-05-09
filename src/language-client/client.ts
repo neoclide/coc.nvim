@@ -1283,7 +1283,9 @@ class DidChangeTextDocumentFeature
       return
     }
     if (!this._listener) {
-      this._listener = workspace.onDidChangeTextDocument(this.callback, this)
+      this._listener = workspace.onDidChangeTextDocument(event => {
+        this.callback({ textDocument: event.textDocument, contentChanges: event.contentChanges.slice() })
+      }, this)
     }
     this._changeData.set(data.id, {
       documentSelector: data.registerOptions.documentSelector,
