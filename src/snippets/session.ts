@@ -4,10 +4,10 @@ import { CancellationTokenSource, Disposable, Emitter, Event, Position, Range, T
 import events from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import { UltiSnippetOption } from '../types'
+import { TextDocumentContentChange, UltiSnippetOption } from '../types'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
-import { comparePosition, getEnd, positionInRange, rangeInRange } from '../util/position'
+import { comparePosition, emptyRange, getEnd, isSingleLine, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -17,6 +17,11 @@ import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, get
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
 const NAME_SPACE = 'snippets'
+
+interface DocumentChange {
+  version: number
+  change: TextDocumentContentChange
+}
 
 export class SnippetSession {
   private current: Marker
@@ -38,7 +43,9 @@ export class SnippetSession {
   ) {
     this.disposable = document.onDocumentChange(async e => {
       if (this._applying || !this._isActive) return
-      await this.synchronize()
+      let changes = e.contentChanges
+      if (changes.length === 0) return
+      await this.synchronize({ version: e.textDocument.version, change: changes[0] })
     })
   }
 
@@ -178,7 +185,7 @@ export class SnippetSession {
     }
   }
 
-  private highlights(placeholder: CocSnippetPlaceholder): void {
+  private highlights(placeholder: CocSnippetPlaceholder, redrawVim = true): void {
     if (!this.enableHighlight) return
     // this.checkPosition
     let buf = this.document.buffer
@@ -188,7 +195,7 @@ export class SnippetSession {
     if (ranges.length) {
       buf.highlightRanges(NAME_SPACE, 'CocSnippetVisual', ranges)
     }
-    this.nvim.resumeNotification(true, true)
+    this.nvim.resumeNotification(redrawVim, true)
   }
 
   private async select(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
@@ -218,22 +225,26 @@ export class SnippetSession {
     return this.snippet.getPlaceholderByRange(range) || null
   }
 
-  public async synchronize(): Promise<void> {
+  public async synchronize(change?: DocumentChange): Promise<void> {
     this.cancel()
     await this.mutex.use(() => {
-      return this._synchronize()
+      let version = this.textDocument ? this.textDocument.version : -1
+      if (change && (this.document.version != change.version || change.version - version !== 1)) {
+        // can't be used any more
+        change = undefined
+      }
+      return this._synchronize(change ? change.change : undefined)
     })
   }
 
-  public async _synchronize(): Promise<void> {
+  public async _synchronize(change?: TextDocumentContentChange): Promise<void> {
     let { document, textDocument } = this
-    if (!document || !document.attached || !this._isActive) return
+    if (!document.attached || !this._isActive) return
     let start = Date.now()
     let d = document.textDocument
-    if (d.version == textDocument.version || equals(textDocument.lines, d.lines)) {
-      return
-    }
+    if (d.version == textDocument.version || equals(textDocument.lines, d.lines)) return
     let { range, text } = this.snippet
+    if (change && !rangeInRange(change.range, range)) change = undefined
     let end = getEndPosition(range.end, textDocument, d)
     if (!end) {
       logger.info('Content change after snippet, cancel snippet session')
@@ -257,17 +268,36 @@ export class SnippetSession {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let cursor = await window.getCursorPosition()
     if (tokenSource.token.isCancellationRequested || document.dirty) return
-    let inserted = d.getText(Range.create(range.start, end))
-    let newText: string | undefined
     let placeholder: CocSnippetPlaceholder
+    let newText: string | undefined
+    let inserted = d.getText(Range.create(range.start, end))
     let curr = this.placeholder
-    for (let p of this.snippet.getSortedPlaceholders(curr)) {
-      if (comparePosition(cursor, p.range.start) < 0) continue
-      newText = this.snippet.getNewText(p, inserted)
-      // p.range.start + newText
-      if (newText != null && checkCursor(p.range.start, cursor, newText)) {
-        placeholder = p
-        break
+    if (change) {
+      for (let p of this.snippet.getSortedPlaceholders(curr)) {
+        if (rangeInRange(change.range, p.range)) {
+          placeholder = p
+          newText = this.snippet.getNewText(p, inserted)
+          break
+        }
+      }
+      // Check Text delete
+      if (!placeholder && change.text.length == 0 && !emptyRange(change.range) && isSingleLine(change.range)) {
+        let length = change.range.end.character - change.range.start.character
+        let offset = d.getText(Range.create(range.start, change.range.start)).length
+        if (this.snippet.removeText(offset, length)) {
+          this.textDocument = d
+          return
+        }
+      }
+    } else {
+      for (let p of this.snippet.getSortedPlaceholders(curr)) {
+        if (comparePosition(cursor, p.range.start) < 0) continue
+        newText = this.snippet.getNewText(p, inserted)
+        // p.range.start + newText
+        if (newText != null && checkCursor(p.range.start, cursor, newText)) {
+          placeholder = p
+          break
+        }
       }
     }
     if (!placeholder && inserted.endsWith(text)) {
@@ -297,11 +327,11 @@ export class SnippetSession {
         newText: res.text
       }, inserted)
       await this.applyEdits([edit])
-      this.highlights(placeholder)
       let { delta } = res
       if (delta.line != 0 || delta.character != 0) {
         this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
       }
+      this.highlights(placeholder, false)
       this.nvim.redrawVim()
     } else {
       this.highlights(placeholder)

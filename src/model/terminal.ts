@@ -105,9 +105,7 @@ export default class TerminalModel {
   public async hide(): Promise<void> {
     let { bufnr, nvim } = this
     if (!bufnr) return
-    let winnr = await nvim.call('bufwinnr', bufnr)
-    if (winnr == -1) return
-    await nvim.command(`${winnr}close!`)
+    await nvim.eval(`coc#window#close(bufwinid(${bufnr}))`)
   }
 
   public dispose(): void {

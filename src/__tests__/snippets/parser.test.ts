@@ -811,6 +811,15 @@ describe('SnippetParser', () => {
     assert.equal(snippet.offset(new Text('foo')), -1)
   })
 
+  test('TextmateSnippet#deleteText', () => {
+    let snippet = new SnippetParser().parse('foo ${1:bar}', true)
+    let res = snippet.deleteText(2, 2)
+    expect(res).toBe(true)
+    expect(snippet.toString()).toBe('fobar')
+    res = snippet.deleteText(2, 5)
+    expect(res).toBe(false)
+  })
+
   test('TextmateSnippet#placeholder', () => {
     let snippet = new SnippetParser().parse('te$1xt$0', true)
     let placeholders = snippet.placeholders

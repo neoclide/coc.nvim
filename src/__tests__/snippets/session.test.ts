@@ -255,9 +255,33 @@ describe('SnippetSession', () => {
       let session = await createSession()
       await nvim.input('i')
       await session.start('${1:foo} bar', defaultRange)
-      await nvim.setLine('foobar')
+      await nvim.setLine('foodbar')
       await session.forceSynchronize()
       expect(session.isActive).toBe(false)
+    })
+
+    it('should cancel when unable to find removed Text', async () => {
+      let session = await createSession()
+      await nvim.input('i')
+      await session.start('${1:foo} bar', defaultRange)
+      await nvim.setLine('fobar')
+      await session.forceSynchronize()
+      expect(session.isActive).toBe(false)
+    })
+
+    it('should adjust with removed text', async () => {
+      let session = await createSession()
+      await nvim.input('i')
+      await session.start('${1:foo} bar$0', defaultRange)
+      await nvim.input('<esc>')
+      await nvim.call('cursor', [1, 5])
+      await nvim.input('i')
+      await nvim.input('<backspace>')
+      await session.forceSynchronize()
+      expect(session.isActive).toBe(true)
+      await session.nextPlaceholder()
+      let col = await nvim.call('col', ['.'])
+      expect(col).toBe(7)
     })
 
     it('should prefer range contains current cursor', async () => {

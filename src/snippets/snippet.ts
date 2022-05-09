@@ -237,6 +237,12 @@ export class CocSnippet {
     return { text: this._text, delta: getChangedPosition(cursor, TextEdit.replace(r, after)) }
   }
 
+  public removeText(offset: number, length: number): boolean {
+    let succeed = this.tmSnippet.deleteText(offset, length)
+    if (succeed) this.synchronize()
+    return succeed
+  }
+
   private synchronize(): void {
     const snippet = this.tmSnippet
     const { line, character } = this.position

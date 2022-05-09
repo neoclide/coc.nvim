@@ -915,6 +915,32 @@ export class TextmateSnippet extends Marker {
     }
   }
 
+  public deleteText(offset: number, length: number): boolean {
+    let pos = 0
+    let marker: Text | undefined
+    let end = offset + length
+    let start = 0
+    this.walk(candidate => {
+      let len = candidate.len()
+      if (candidate instanceof Text && offset >= pos && pos + len >= end) {
+        marker = candidate
+        start = offset - pos
+        return false
+      }
+      pos += len
+      return true
+    })
+    if (!marker) return false
+    let parent = marker.parent
+    let text = marker.value
+    let value = text.slice(0, start) + text.slice(start + length)
+    let children = parent.children.slice()
+    let idx = children.indexOf(marker)
+    children.splice(idx, 1, new Text(value))
+    parent.replaceChildren(children)
+    return true
+  }
+
   public resetMarker(marker: Placeholder | Variable, val: string): void {
     let markers: (Placeholder | Variable)[]
     if (marker instanceof Placeholder) {
