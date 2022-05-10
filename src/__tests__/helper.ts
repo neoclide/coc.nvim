@@ -122,7 +122,7 @@ export class Helper extends EventEmitter {
   public async waitFloat(): Promise<number> {
     for (let i = 0; i < 50; i++) {
       await this.wait(20)
-      let winid = await this.nvim.call('coc#float#get_float_win')
+      let winid = await this.nvim.call('GetFloatWin')
       if (winid) return winid
     }
     throw new Error('timeout after 2s')

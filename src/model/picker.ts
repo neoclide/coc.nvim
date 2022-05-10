@@ -2,6 +2,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
+import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
@@ -184,14 +185,8 @@ export default class Picker {
     if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (title) opts.title = title
-    opts.close = 1
-    opts.cursorline = 1
-    if (preferences.floatHighlight) {
-      opts.highlight = preferences.floatHighlight
-    }
-    if (preferences.floatBorderHighlight) {
-      opts.borderhighlight = [preferences.floatBorderHighlight]
-    }
+    if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
+    if (preferences.floatBorderHighlight) opts.borderhighlight = [preferences.floatBorderHighlight]
     if (preferences.pickerButtons) {
       let shortcut = preferences.pickerButtonShortcut
       opts.buttons = ['Submit' + (shortcut ? ' <cr>' : ''), 'Cancel' + (shortcut ? ' <esc>' : '')]
@@ -203,27 +198,24 @@ export default class Picker {
       })
     }
     let lines = []
-    let positions: [number, number][] = []
+    let highlights: HighlightItem[] = []
     for (let i = 0; i < items.length; i++) {
       let item = items[i]
       let line = `[${item.picked ? 'x' : ' '}] ${item.label}`
-      positions.push([i, byteLength(line)])
-      if (item.description) line = line + ` ${item.description}`
+      if (item.description) {
+        let start = byteLength(line)
+        line = line + ` ${item.description}`
+        highlights.push({ hlGroup: 'Comment', lnum: i, colStart: start, colEnd: byteLength(line) })
+      }
       lines.push(line)
     }
+    if (highlights.length) opts.highlights = highlights
     let res = await nvim.call('coc#float#create_dialog', [lines, opts]) as [number, number]
     this.win = new Popup(nvim, res[0], res[1])
     this.bufnr = res[1]
-    this.attachEvents()
-    let buf = nvim.createBuffer(this.bufnr)
-    nvim.pauseNotification()
-    for (let pos of positions) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      buf.addHighlight({ hlGroup: 'Comment', line: pos[0], srcId: 1, colStart: pos[1], colEnd: -1 })
-    }
-    nvim.command('redraw', true)
-    await nvim.resumeNotification()
     nvim.call('coc#prompt#start_prompt', ['picker'], true)
+    this.attachEvents()
+    nvim.command('redraw', true)
     return res[0]
   }
 
@@ -258,11 +250,9 @@ export default class Picker {
     let col = byteLength(line)
     if (item.description) line = line + ` ${item.description}`
     nvim.call('setbufline', [this.bufnr, index + 1, line], true)
-    if (!isVim) {
-      let buf = nvim.createBuffer(this.bufnr)
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      buf.addHighlight({ hlGroup: 'Comment', line: index, srcId: 1, colStart: col, colEnd: -1 })
-    }
+    let buf = nvim.createBuffer(this.bufnr)
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    buf.addHighlight({ hlGroup: 'Comment', line: index, srcId: 1, colStart: col, colEnd: -1 })
   }
 
   private setCursor(index: number): void {

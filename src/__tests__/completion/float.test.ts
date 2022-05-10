@@ -157,13 +157,13 @@ describe('float config', () => {
 
   it('should not shown with empty lines', async () => {
     await createFloat({}, [{ filetype: 'txt', content: '' }])
-    let winid = await nvim.call('coc#float#get_float_win')
+    let winid = await nvim.call('GetFloatWin')
     expect(winid).toBe(0)
   })
 
   it('should shown on vim', async () => {
     let float = await createFloat({}, [{ filetype: 'txt', content: 'ff' }], true)
-    let winid = await nvim.call('coc#float#get_float_win')
+    let winid = await nvim.call('GetFloatWin')
     expect(winid).toBeGreaterThan(0)
     float.close()
   })

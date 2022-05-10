@@ -523,7 +523,7 @@ endfunction
 function! s:funcs.win_get_var(win_id, name) abort
   let tabnr = s:get_tabnr(a:win_id)
   if tabnr
-    return gettabwinvar(tabnr, a:win_id, a:name)
+    return gettabwinvar(tabnr, a:win_id, a:name, v:null)
   endif
   throw 'window '.a:win_id. ' not a valid window'
 endfunction

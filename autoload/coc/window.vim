@@ -1,11 +1,12 @@
 let g:coc_max_treeview_width = get(g:, 'coc_max_treeview_width', 40)
+let s:is_vim = !has('nvim')
 
 function! coc#window#tabnr(winid) abort
   if exists('*win_execute')
     let ref = {}
     call win_execute(a:winid, 'let ref["out"] = tabpagenr()')
     return get(ref, 'out', -1)
-  elseif has('nvim')
+  elseif !s:is_vim
     let info = getwininfo(a:winid)
     return empty(info) ? -1 : info[0]['tabnr']
   else
@@ -13,8 +14,21 @@ function! coc#window#tabnr(winid) abort
   endif
 endfunction
 
+" Return v:null when window or name not exists
+function! coc#window#get_var(winid, name) abort
+  if !s:is_vim
+    try
+      return nvim_win_get_var(a:winid, a:name)
+    catch /.*/
+      return v:null
+    endtry
+  endif
+  let result = coc#api#call('win_get_var', [a:winid, a:name])
+  return result[1]
+endfunction
+
 function! coc#window#is_float(winid) abort
-  if !has('nvim')
+  if s:is_vim
     if exists('*popup_list')
       return index(popup_list(), a:winid) != -1
     endif

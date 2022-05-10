@@ -25,3 +25,22 @@ let g:coc_vim_commands = [{
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
 
 execute 'set runtimepath+='.s:root
+
+" Float window id on current tab.
+function! GetFloatWin() abort
+  if has('nvim')
+    for i in range(1, winnr('$'))
+      let id = win_getid(i)
+      let config = nvim_win_get_config(id)
+      if (!empty(config) && config['focusable'] == v:true && !empty(config['relative']))
+        if !getwinvar(id, 'button', 0)
+          return id
+        endif
+      endif
+    endfor
+  else
+    let ids = popup_list()
+    return get(filter(ids, 'get(popup_getpos(v:val),"visible",0)'), 0, 0)
+  endif
+  return 0
+endfunction

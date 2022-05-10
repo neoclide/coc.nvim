@@ -100,6 +100,7 @@ export default class Dialog {
     if (highlights) opts.highlights = highlights
     if (borderhighlight) opts.borderhighlight = [borderhighlight]
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
+    if (Array.isArray(opts.buttons)) opts.getchar = 1
     let res = await nvim.call('coc#float#create_dialog', [this.lines, opts])
     if (!res[1]) return
     this.bufnr = res[1]

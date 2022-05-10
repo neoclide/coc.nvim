@@ -114,7 +114,7 @@ describe('Menu', () => {
     menu = new Menu(nvim, { items: ['one', 'two', 'three'] })
     await menu.show()
     await helper.wait(50)
-    let id = await nvim.call('coc#float#get_float_win')
+    let id = await nvim.call('GetFloatWin')
     expect(id).toBeGreaterThan(0)
     let win = nvim.createWindow(id)
     await nvim.input('j')
