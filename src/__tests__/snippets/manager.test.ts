@@ -235,7 +235,7 @@ describe('snippet provider', () => {
     })
 
     it('should synchronize text on change final placeholder', async () => {
-      await nvim.command('startinsert')
+      await nvim.input('i')
       let res = await snippetManager.insertSnippet('$0empty$0')
       expect(res).toBe(true)
       await nvim.input('abc')

@@ -128,8 +128,9 @@ function! coc#snippet#move(position) abort
   elseif m =~# '^i'
     if pumvisible()
       call coc#_cancel()
-    else
-      call feedkeys("\<Esc>a", 'in')
+    elseif has('nvim-0.7.0')
+      let g:coc_disable_space_report = 1
+      call feedkeys("\<space>\<bs>", 'in')
     endif
   endif
   let pos = coc#snippet#to_cursor(a:position)
