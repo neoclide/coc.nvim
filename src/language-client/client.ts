@@ -39,11 +39,13 @@ import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 import { LinkedEditingRangeMiddleware } from './linkedEditingRange'
 import { comparePosition } from '../util/position'
+import { disposeAll } from '../util'
 
 const logger = require('../util/logger')('language-client-client')
 
 interface IConnection {
   listen(): void
+  unlisten(): void
 
   sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
   sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>
@@ -164,12 +166,16 @@ function createConnection(
 ): IConnection {
   let logger = new ConsoleLogger()
   let connection = createProtocolConnection(input, output, logger, options)
+  let disposables: Disposable[] = []
   connection.onError(data => {
     errorHandler(data[0], data[1], data[2])
-  })
-  connection.onClose(closeHandler)
+  }, null, disposables)
+  connection.onClose(closeHandler, null, disposables)
   let result: IConnection = {
     listen: (): void => connection.listen(),
+    unlisten: (): void => {
+      disposeAll(disposables)
+    },
 
     sendRequest: <R>(type: string | MessageSignature, ...params: any[]): Promise<R> => connection.sendRequest(Is.string(type) ? type : type.method, ...params),
     onRequest: <R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable => connection.onRequest(Is.string(type) ? type : type.method, handler),
@@ -3873,6 +3879,7 @@ export abstract class BaseLanguageClient {
     })
     // unkook listeners
     return (this._onStop = shutdown.then(connection => {
+      if (connection) connection.unlisten()
     }, err => {
       logger.error(`Stopping server failed:`, err)
       this.error(`Stopping server failed`, err)
