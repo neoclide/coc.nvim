@@ -71,7 +71,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
             range: context.range
           }
           return client.sendRequest(ColorPresentationRequest.type, requestParams, token).then(
-            res => res,
+            res => token.isCancellationRequested ? null : res,
             (error: any) => {
               return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
             }
@@ -89,7 +89,7 @@ export class ColorProviderFeature extends TextDocumentFeature<
             textDocument: { uri: document.uri }
           }
           return client.sendRequest(DocumentColorRequest.type, requestParams, token).then(
-            res => res,
+            res => token.isCancellationRequested ? null : res,
             (error: any) => {
               return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
             }

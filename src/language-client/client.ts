@@ -181,7 +181,7 @@ function createConnection(
     sendRequest: <R>(type: string | MessageSignature, ...params: any[]): Promise<R> => connection.sendRequest(Is.string(type) ? type : type.method, ...params),
     onRequest: <R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable => connection.onRequest(Is.string(type) ? type : type.method, handler),
 
-    sendNotification: (type: string | MessageSignature, params?: any): void => connection.sendNotification(Is.string(type) ? type : type.method, params),
+    sendNotification: (type: string | MessageSignature, params?: any): void => void connection.sendNotification(Is.string(type) ? type : type.method, params),
     onNotification: (type: string | MessageSignature, handler: GenericNotificationHandler): Disposable => connection.onNotification(Is.string(type) ? type : type.method, handler),
 
     onProgress: connection.onProgress,
@@ -1915,8 +1915,10 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
             CompletionRequest.type,
             cv.asCompletionParams(document, position, context),
             token
-          ).then(result => result ?? [], error => {
-            return client.handleFailedRequest(CompletionRequest.type, token, error, [])
+          ).then(
+            res => token.isCancellationRequested ? [] : res ?? [],
+            error => {
+              return client.handleFailedRequest(CompletionRequest.type, token, error, [])
           })
         }
 
@@ -1933,8 +1935,10 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
               CompletionResolveRequest.type,
               item,
               token
-            ).then(res => res, error => {
-              return client.handleFailedRequest(CompletionResolveRequest.type, token, error, item)
+            ).then(
+              res => token.isCancellationRequested ? item : res,
+              error => {
+                return client.handleFailedRequest(CompletionResolveRequest.type, token, error, item)
             })
           }
 
@@ -2001,8 +2005,10 @@ class HoverFeature extends TextDocumentFeature<
             HoverRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(HoverRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(HoverRequest.type, token, error, null)
           })
         }
 
@@ -2062,10 +2068,11 @@ class SignatureHelpFeature extends TextDocumentFeature<
             SignatureHelpRequest.type,
             cv.asSignatureHelpParams(document, position, context),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(SignatureHelpRequest.type, token, error, null)
-          }
-          )
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(SignatureHelpRequest.type, token, error, null)
+          })
         }
 
         const middleware = client.clientOptions.middleware!
@@ -2119,8 +2126,10 @@ class DefinitionFeature extends TextDocumentFeature<
             DefinitionRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(DefinitionRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DefinitionRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2173,8 +2182,10 @@ class ReferencesFeature extends TextDocumentFeature<
             ReferencesRequest.type,
             cv.asReferenceParams(document, position, options),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(ReferencesRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(ReferencesRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2226,8 +2237,10 @@ class DocumentHighlightFeature extends TextDocumentFeature<
             DocumentHighlightRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(DocumentHighlightRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentHighlightRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2287,7 +2300,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
             token
           ).then(
             (data) => {
-              if (data === null) {
+              if (token.isCancellationRequested || data === undefined || data === null) {
                 return undefined
               }
               if (data.length === 0) {
@@ -2355,7 +2368,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistratio
         const client = this._client
         const provideWorkspaceSymbols: ProvideWorkspaceSymbolsSignature = (query, token) => {
           return client.sendRequest(WorkspaceSymbolRequest.type, { query }, token).then(
-            res => res,
+            res => token.isCancellationRequested ? null : res,
             error => {
               return client.handleFailedRequest(WorkspaceSymbolRequest.type, token, error, null)
             })
@@ -2453,7 +2466,7 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
           }
           return client.sendRequest(CodeActionRequest.type, params, token).then(
             (values) => {
-              if (values === null) {
+              if (token.isCancellationRequested || values === undefined || values === null) {
                 return undefined
               }
               // some server may not registered commands to client.
@@ -2479,7 +2492,7 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
           const middleware = this._client.clientOptions.middleware!
           const resolveCodeAction: ResolveCodeActionSignature = (item, token) => {
             return client.sendRequest(CodeActionResolveRequest.type, item, token).then(
-              (values) => values,
+              (values) => token.isCancellationRequested ? item : values,
               (error) => {
                 return client.handleFailedRequest(CodeActionResolveRequest.type, token, error, item)
               }
@@ -2556,8 +2569,10 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
             CodeLensRequest.type,
             cv.asCodeLensParams(document),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(CodeLensRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(CodeLensRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2573,8 +2588,10 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
               CodeLensResolveRequest.type,
               codeLens,
               token
-            ).then(res => res, error => {
-              return client.handleFailedRequest(CodeLensResolveRequest.type, token, error, codeLens)
+            ).then(
+              res => token.isCancellationRequested ? codeLens : res,
+              error => {
+                return client.handleFailedRequest(CodeLensResolveRequest.type, token, error, codeLens)
             })
           }
           const middleware = client.clientOptions.middleware!
@@ -2629,8 +2646,10 @@ class DocumentFormattingFeature extends TextDocumentFeature<
             textDocument: { uri: document.uri },
             options
           }
-          return client.sendRequest(DocumentFormattingRequest.type, params, token).then(res => res, (error) => {
-            return client.handleFailedRequest(DocumentFormattingRequest.type, token, error, null)
+          return client.sendRequest(DocumentFormattingRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentFormattingRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2687,8 +2706,10 @@ class DocumentRangeFormattingFeature extends TextDocumentFeature<
             range,
             options,
           }
-          return client.sendRequest(DocumentRangeFormattingRequest.type, params, token).then(res => res, error => {
-            return client.handleFailedRequest(DocumentRangeFormattingRequest.type, token, error, null)
+          return client.sendRequest(DocumentRangeFormattingRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentRangeFormattingRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2736,8 +2757,10 @@ class DocumentOnTypeFormattingFeature extends TextDocumentFeature<
             ch,
             options
           }
-          return client.sendRequest(DocumentOnTypeFormattingRequest.type, params, token).then(res => res, (error) => {
-            return client.handleFailedRequest(DocumentOnTypeFormattingRequest.type, token, error, null)
+          return client.sendRequest(DocumentOnTypeFormattingRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentOnTypeFormattingRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2799,8 +2822,10 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
             position,
             newName: newName
           }
-          return client.sendRequest(RenameRequest.type, params, token).then(res => res, (error: ResponseError<void>) => {
-            return client.handleFailedRequest(RenameRequest.type, token, error, null)
+          return client.sendRequest(RenameRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(RenameRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2818,6 +2843,9 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
             }
             return client.sendRequest(PrepareRenameRequest.type, params, token).then(
               (result) => {
+                if (token.isCancellationRequested) {
+                  return null
+                }
                 if (Range.is(result)) {
                   return result
                 } else if (this.isDefaultBehavior(result)) {
@@ -2891,8 +2919,10 @@ class DocumentLinkFeature extends TextDocumentFeature<DocumentLinkOptions, Docum
               textDocument: { uri: document.uri }
             },
             token
-          ).then(res => res, (error: ResponseError<void>) => {
-            return client.handleFailedRequest(DocumentLinkRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentLinkRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2904,8 +2934,10 @@ class DocumentLinkFeature extends TextDocumentFeature<DocumentLinkOptions, Docum
         ? (link, token) => {
           const client = this._client
           let resolveDocumentLink: ResolveDocumentLinkSignature = (link, token) => {
-            return client.sendRequest(DocumentLinkResolveRequest.type, link, token).then(res => res, (error: ResponseError<void>) => {
-              return client.handleFailedRequest(DocumentLinkResolveRequest.type, token, error, link)
+            return client.sendRequest(DocumentLinkResolveRequest.type, link, token).then(
+              res => token.isCancellationRequested ? link : res,
+              error => {
+                return client.handleFailedRequest(DocumentLinkResolveRequest.type, token, error, link)
             })
           }
           const middleware = client.clientOptions.middleware!

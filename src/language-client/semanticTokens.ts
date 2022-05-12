@@ -130,7 +130,8 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
             const params: SemanticTokensParams = {
               textDocument: cv.asTextDocumentIdentifier(document)
             }
-            return client.sendRequest(SemanticTokensRequest.type, params, token).then(result => result, (error: any) => {
+            return client.sendRequest(SemanticTokensRequest.type, params, token).then(
+              res => token.isCancellationRequested ? null : res, (error: any) => {
               return client.handleFailedRequest(SemanticTokensRequest.type, token, error, null)
             })
           }
@@ -147,7 +148,8 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
                 textDocument: cv.asTextDocumentIdentifier(document),
                 previousResultId
               }
-              return client.sendRequest(SemanticTokensDeltaRequest.type, params, token).then(result => result, (error: any) => {
+              return client.sendRequest(SemanticTokensDeltaRequest.type, params, token).then(
+                res => token.isCancellationRequested ? null : res, (error: any) => {
                 return client.handleFailedRequest(SemanticTokensDeltaRequest.type, token, error, null)
               })
             }
@@ -171,7 +173,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
               range
             }
             return client.sendRequest(SemanticTokensRangeRequest.type, params, token).then(
-              result => result,
+              res => token.isCancellationRequested ? null : res,
               (error: any) => {
                 return client.handleFailedRequest(SemanticTokensRangeRequest.type, token, error, null)
               })

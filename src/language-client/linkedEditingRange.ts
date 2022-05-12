@@ -50,7 +50,8 @@ export class LinkedEditingFeature extends TextDocumentFeature<boolean | LinkedEd
         const client = this._client
         const provideLinkedEditing: ProvideLinkedEditingRangeSignature = (document, position, token) => {
           const params = cv.asTextDocumentPositionParams(document, position)
-          return client.sendRequest(LinkedEditingRangeRequest.type, params, token).then(result => result, error => {
+          return client.sendRequest(LinkedEditingRangeRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res, error => {
             return client.handleFailedRequest(LinkedEditingRangeRequest.type, token, error, null)
           })
         }

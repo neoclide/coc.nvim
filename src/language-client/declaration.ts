@@ -45,7 +45,7 @@ export class DeclarationFeature extends TextDocumentFeature<boolean | Declaratio
       provideDeclaration: (document: TextDocument, position: Position, token: CancellationToken) => {
         const client = this._client
         const provideDeclaration: ProvideDeclarationSignature = (document, position, token) => client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
-          res => res, error => {
+          res => token.isCancellationRequested ? null : res, error => {
             return client.handleFailedRequest(DeclarationRequest.type, token, error, null)
           }
         )
