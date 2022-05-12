@@ -1,7 +1,15 @@
 let g:coc_max_treeview_width = get(g:, 'coc_max_treeview_width', 40)
 let s:is_vim = !has('nvim')
 
+" Get tabpagenr of winid, return -1 if window not exists
 function! coc#window#tabnr(winid) abort
+  if exists('*nvim_win_get_tabpage')
+    try
+      return nvim_win_get_tabpage(a:winid)
+    catch /Invalid window id/
+      return -1
+    endtry
+  endif
   if exists('*win_execute')
     let ref = {}
     call win_execute(a:winid, 'let ref["out"] = tabpagenr()')
@@ -14,23 +22,69 @@ function! coc#window#tabnr(winid) abort
   endif
 endfunction
 
-" Return v:null when window or name not exists
-function! coc#window#get_var(winid, name) abort
-  if !s:is_vim
+" Check if winid visible on current tabpage
+function! coc#window#visible(winid) abort
+  if s:is_vim
+    if coc#window#tabnr(a:winid) != tabpagenr()
+      return 0
+    endif
+    " Check possible hidden popup
     try
-      return nvim_win_get_var(a:winid, a:name)
-    catch /.*/
-      return v:null
+      return get(popup_getpos(a:winid), 'visible', 0) == 1
+    catch /^Vim\%((\a\+)\)\=:E993/
+      return 1
     endtry
   endif
-  let result = coc#api#call('win_get_var', [a:winid, a:name])
-  return result[1]
+  if !nvim_win_is_valid(a:winid)
+    return 0
+  endif
+  return coc#window#tabnr(a:winid) == tabpagenr()
+endfunction
+
+" Return v:null when name or window not exists,
+" 'getwinvar' only works on window of current tab
+function! coc#window#get_var(winid, name, ...) abort
+  if !s:is_vim
+    try
+      if a:name =~# '^&'
+        return nvim_win_get_option(a:winid, a:name[1:])
+      else
+        return nvim_win_get_var(a:winid, a:name)
+      endif
+    catch /E5555/
+      return get(a:, 1, v:null)
+    endtry
+  endif
+  return coc#api#exec('win_get_var', [a:winid, a:name, get(a:, 1, v:null)])
+endfunction
+
+" Not throw like setwinvar
+function! coc#window#set_var(winid, name, value) abort
+  try
+    if !s:is_vim
+      if a:name =~# '^&'
+        call nvim_win_set_option(a:winid, a:name[1:], a:value)
+      else
+        call nvim_win_set_var(a:winid, a:name, a:value)
+      endif
+    else
+      call coc#api#exec('win_set_var', [a:winid, a:name, a:value])
+    endif
+  catch /Invalid window id/
+    " ignore
+  endtry
 endfunction
 
 function! coc#window#is_float(winid) abort
   if s:is_vim
     if exists('*popup_list')
       return index(popup_list(), a:winid) != -1
+    else
+      try
+        return !empty(popup_getpos(a:winid))
+      catch /^Vim\%((\a\+)\)\=:E993/
+        return 0
+      endtry
     endif
     return 0
   elseif exists('*nvim_win_get_config')
@@ -90,14 +144,6 @@ function! coc#window#bufnrs() abort
     let winids = map(getwininfo(), 'v:val["winid"]')
   endif
   return uniq(map(winids, 'winbufnr(v:val)'))
-endfunction
-
-" Make sure window exists
-function! coc#window#gotoid(winid) abort
-  noa let res = win_gotoid(a:winid)
-  if res == 0
-    throw 'Invalid window number'
-  endif
 endfunction
 
 " Avoid errors
