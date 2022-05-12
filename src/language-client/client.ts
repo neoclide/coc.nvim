@@ -4339,6 +4339,12 @@ export abstract class BaseLanguageClient {
     //   generalCapabilities.markdown.allowedTags = ['ul', 'li', 'p', 'code', 'blockquote', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'em', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'del', 'a', 'strong', 'br', 'img', 'span']
     // }
 
+    // generalCapabilities.positionEncodings = ['utf-16'];
+    // generalCapabilities.staleRequestSupport = {
+    //   cancel: true,
+    //   retryOnContentModified: Array.from(BaseLanguageClient.RequestsToCancelOnContentModified)
+    // }
+
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
     }

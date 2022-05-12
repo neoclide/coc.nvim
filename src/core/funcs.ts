@@ -4,7 +4,7 @@ import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
 import semver from 'semver'
-import { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
+import { DocumentFilter, DocumentSelector, TextDocumentFilter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import Configurations from '../configuration'
@@ -115,7 +115,7 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     } else {
       return 0
     }
-  } else if (selector) {
+  } else if (selector && TextDocumentFilter.is(selector)) {
     let u = URI.parse(uri)
     // filter -> select accordingly, use defaults for scheme
     const { language, pattern, scheme } = selector

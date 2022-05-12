@@ -76,9 +76,9 @@ describe('Connection Tests', () => {
         range: { start: { line: 0, character: 1 }, end: { line: 2, character: 3 } }
       }
     }
-    serverConnection.onRequest(DocumentSymbolRequest.type, params => {
+    serverConnection.onRequest(DocumentSymbolRequest.type, async params => {
       expect(params.partialResultToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
-      serverConnection.sendProgress(progressType, params.partialResultToken, [result])
+      await serverConnection.sendProgress(progressType, params.partialResultToken, [result])
       return []
     })
 
@@ -108,17 +108,17 @@ describe('Connection Tests', () => {
   })
 
   it('should report work done progress', async () => {
-    serverConnection.onRequest(DocumentSymbolRequest.type, params => {
+    serverConnection.onRequest(DocumentSymbolRequest.type, async params => {
       expect(params.workDoneToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
-      serverConnection.sendProgress(progressType, params.workDoneToken, {
+      await serverConnection.sendProgress(progressType, params.workDoneToken, {
         kind: 'begin',
         title: 'progress'
       })
-      serverConnection.sendProgress(progressType, params.workDoneToken, {
+      await serverConnection.sendProgress(progressType, params.workDoneToken, {
         kind: 'report',
         message: 'message'
       })
-      serverConnection.sendProgress(progressType, params.workDoneToken, {
+      await serverConnection.sendProgress(progressType, params.workDoneToken, {
         kind: 'end',
         message: 'message'
       })
