@@ -520,12 +520,12 @@ function! s:funcs.win_get_cursor(win_id) abort
   return get(ref, 'out', 0)
 endfunction
 
-function! s:funcs.win_get_var(win_id, name) abort
+function! s:funcs.win_get_var(win_id, name, ...) abort
   let tabnr = s:get_tabnr(a:win_id)
   if tabnr
-    return gettabwinvar(tabnr, a:win_id, a:name, v:null)
+    return gettabwinvar(tabnr, a:win_id, a:name, get(a:, 1, v:null))
   endif
-  throw 'window '.a:win_id. ' not a valid window'
+  throw 'window '.a:win_id. ' not a visible window'
 endfunction
 
 function! s:funcs.win_set_width(win_id, width) abort
@@ -654,6 +654,10 @@ function! coc#api#call(method, args) abort
     let err = v:exception
   endtry
   return [err, res]
+endfunction
+
+function! coc#api#exec(method, args) abort
+  return call(s:funcs[a:method], a:args)
 endfunction
 
 function! coc#api#notify(method, args) abort
