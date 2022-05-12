@@ -33,9 +33,7 @@ describe('OutputChannel', () => {
     let c = new OutputChannel('0', nvim)
     let bufnr = (await nvim.buffer).id
     c.show(true)
-    await wait(100)
-    let nr = (await nvim.buffer).id
-    expect(bufnr).toBe(nr)
+    await helper.waitFor('bufnr', ['%'], bufnr)
   })
 
   test('outputChannel.show(false)', async () => {
@@ -53,9 +51,7 @@ describe('OutputChannel', () => {
     await wait(100)
     let buf = await nvim.buffer
     c.appendLine('foo')
-    await wait(500)
-    let lines = await buf.lines
-    expect(lines).toContain('foo')
+    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /foo/)
   })
 
   test('outputChannel.append()', async () => {
@@ -64,10 +60,9 @@ describe('OutputChannel', () => {
     await wait(60)
     c.append('foo')
     c.append('bar')
-    await wait(500)
+    await wait(50)
     let buf = await nvim.buffer
-    let lines = await buf.lines
-    expect(lines.join('\n')).toMatch('foo')
+    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /foo/)
   })
 
   test('outputChannel.clear()', async () => {

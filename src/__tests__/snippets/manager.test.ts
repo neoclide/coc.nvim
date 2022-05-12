@@ -235,11 +235,12 @@ describe('snippet provider', () => {
     })
 
     it('should synchronize text on change final placeholder', async () => {
+      let doc = await workspace.document
       await nvim.input('i')
       let res = await snippetManager.insertSnippet('$0empty$0')
       expect(res).toBe(true)
-      await nvim.input('abc')
-      await nvim.input('<esc>')
+      await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 0, 0, 0, ['abc']])
+      await doc.synchronize()
       let s = snippetManager.getSession(doc.bufnr)
       await s.forceSynchronize()
       let line = await nvim.line
