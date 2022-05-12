@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, CancellationToken } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -21,6 +21,11 @@ describe('Client integration', () => {
     assert.strictEqual(range.start.character, sc)
     assert.strictEqual(range.end.line, el)
     assert.strictEqual(range.end.character, ec)
+  }
+
+  function positionEqual(pos: Position, l: number, c: number): void {
+    assert.strictEqual(pos.line, l)
+    assert.strictEqual(pos.character, c)
   }
 
   function colorEqual(color: Color, red: number, green: number, blue: number, alpha: number): void {
@@ -161,6 +166,15 @@ describe('Client integration', () => {
             },
             willDelete: { filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }] },
           },
+        },
+        diagnosticProvider: {
+          identifier: 'da348dc5-c30a-4515-9d98-31ff3be38d14',
+          interFileDependencies: true,
+          workspaceDiagnostics: true
+        },
+        typeHierarchyProvider: true,
+        workspaceSymbolProvider: {
+          resolveProvider: true
         },
         linkedEditingRangeProvider: true
       },
@@ -381,7 +395,7 @@ describe('Client integration', () => {
     for (let i = 0; i < 2; i++) {
       await new Promise<unknown>((resolve, reject) => {
         currentProgressResolver = resolve
-        client.sendRequest(
+        void client.sendRequest(
           new ProtocolRequestType<any, null, never, any, any>('testing/sendSampleProgress'),
           {},
           tokenSource.token,
@@ -1035,6 +1049,35 @@ describe('Client integration', () => {
     await fullProvider.provideDocumentSemanticTokensEdits!(document, '2', tokenSource.token)
     middleware.provideDocumentSemanticTokensEdits = undefined
     assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('Inlay Hints', async () => {
+    const providerData = client.getFeature(InlayHintRequest.method).getProvider(document)
+    isDefined(providerData)
+    const provider = providerData.provider
+    const results = (await provider.provideInlayHints(document, range, tokenSource.token))
+
+    isArray(results, undefined, 2)
+
+    const hint = results[0]
+    positionEqual(hint.position, 1, 1)
+    assert.strictEqual(hint.kind, InlayHintKind.Type)
+    const label = hint.label
+    isArray(label as [], InlayHintLabelPart, 1)
+    assert.strictEqual((label as InlayHintLabelPart[])[0].value, 'type')
+
+    let middlewareCalled = false
+    middleware.provideInlayHints = (d, r, t, n) => {
+      middlewareCalled = true
+      return n(d, r, t)
+    }
+    await provider.provideInlayHints(document, range, tokenSource.token)
+    middleware.provideInlayHints = undefined
+    assert.strictEqual(middlewareCalled, true)
+    assert.ok(typeof provider.resolveInlayHint === 'function')
+
+    const resolvedHint = await provider.resolveInlayHint!(hint, tokenSource.token)
+    assert.strictEqual((resolvedHint?.label as InlayHintLabelPart[])[0].tooltip, 'tooltip')
   })
 
   test('Linked Editing Ranges', async () => {
