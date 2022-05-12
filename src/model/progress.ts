@@ -28,9 +28,8 @@ export default class ProgressNotification<R> extends Notification {
   private tokenSource: CancellationTokenSource
   constructor(nvim: Neovim, private option: ProgressOptions<R>) {
     super(nvim, {
-      content: '\n',
-      close: option.cancellable == true,
-      title: option.title
+      title: option.title,
+      buttons: [{ index: 1, text: 'Cancel' }]
     }, false)
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this.bufnr) {
@@ -51,25 +50,26 @@ export default class ProgressNotification<R> extends Notification {
       tokenSource.token.onCancellationRequested(() => {
         resolve(undefined)
       })
-      super.show(Object.assign({ minWidth: preferences.minProgressWidth || 30, progress: 1 }, preferences)).then(shown => {
+      super.show(preferences).then(shown => {
         if (!shown) reject(new Error('Failed to create float window'))
       }).catch(reject)
       task({
         report: p => {
-          if (!this.bufnr) return
-          let text = ''
-          if (p.message) text += p.message.replace(/\r?\n/g, ' ')
+          if (!this.winid) return
+          let { nvim } = this
+          nvim.pauseNotification()
           if (p.increment) {
             total += p.increment
-            text = text + (text.length ? ` ${total}%` : `${total}%`)
+            nvim.call('coc#window#set_var', [this.winid, 'percent', `${total}%`], true)
           }
-          this.nvim.call('setbufline', [this.bufnr, 2, text], true)
+          if (p.message) nvim.call('coc#window#set_var', [this.winid, 'message', p.message.replace(/\r?\n/g, ' ')], true)
+          nvim.resumeNotification(false, true)
         }
       }, tokenSource.token).then(res => {
         if (this._disposed) return
-        setTimeout(() => {
+        setImmediate(() => {
           this.dispose()
-        }, 100)
+        })
         resolve(res)
       }, err => {
         if (this._disposed) return

@@ -7,32 +7,26 @@ import { DialogButton } from './dialog'
 const logger = require('../util/logger')('model-notification')
 
 export interface NotificationPreferences {
-  top: number
-  right: number
   maxWidth: number
   maxHeight: number
   highlight: string
-  minProgressWidth: number
+  winblend: number
+  broder: boolean
+  timeout: number
+  marginRight: number
+  focusable: boolean
 }
 
+export type NotificationKind = 'error' | 'info' | 'warning' | 'progress'
+
 export interface NotificationConfig {
-  content: string
+  kind?: NotificationKind
+
+  content?: string
   /**
    * Optional title text.
    */
   title?: string
-  /**
-   * Timeout in milliseconds to dismiss notification.
-   */
-  timeout?: number
-  /**
-   * show close button, default to true when not specified.
-   */
-  close?: boolean
-  /**
-   * highlight groups for border, default to `"dialog.borderhighlight"` or 'CocFlating'
-   */
-  borderhighlight?: string
   /**
    * Buttons as bottom of dialog.
    */
@@ -67,19 +61,20 @@ export default class Notification {
   }
 
   protected get lines(): string[] {
-    return this.config.content.split(/\r?\n/)
+    return this.config.content ? this.config.content.split(/\r?\n/) : []
   }
 
   public async show(preferences: Partial<NotificationPreferences>): Promise<any> {
     let { nvim } = this
-    let { title, close, timeout, buttons, borderhighlight } = this.config
+    let { buttons, kind, title } = this.config
     let opts: any = Object.assign({}, preferences)
-    opts.close = close ? 1 : 0
+    opts.kind = kind ?? ''
     if (title) opts.title = title
-    if (borderhighlight) opts.borderhighlight = borderhighlight
-    if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
-    if (timeout) opts.timeout = timeout
-    let res = await nvim.call('coc#float#create_notification', [this.lines, opts]) as [number, number]
+    if (preferences.broder) {
+      opts.borderhighlight = kind ? `CocNotification${kind[0].toUpperCase()}${kind.slice(1)}` : 'CocFloating'
+    }
+    if (buttons) opts.actions = buttons.filter(o => !o.disabled).map(o => o.text)
+    let res = await nvim.call('coc#notify#create', [this.lines, opts]) as [number, number]
     if (!res) return false
     if (this._disposed) {
       this.nvim.call('coc#float#close', [res[0]], true)
@@ -106,6 +101,5 @@ export default class Notification {
     this.bufnr = undefined
     this._winid = undefined
     disposeAll(this.disposables)
-    this.disposables = []
   }
 }

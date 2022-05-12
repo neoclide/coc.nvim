@@ -46,6 +46,7 @@ Dialog 						|coc-dialog|
   Dialog input 						|coc-dialog-input|
   Dialog menu 						|coc-dialog-menu|
   Dialog picker                                 	|coc-dialog-picker|
+Notification					|coc-notification|	
 Statusline support				|coc-status|
   Manual						|coc-status-manual|
   Airline						|coc-status-airline|
@@ -722,14 +723,6 @@ Dialog~
 ------------------------------------------------------------------------------
 Notification~
 							*coc-config-notification*
-"notification.marginTop"				*coc-config-notification-marginTop*
-
-	Margin top for notification dialog, default to `1`.
-
-"notification.marginRight"				*coc-config-notification-marginRight*
-
-	Margin right for notification dialog, default to `1`.
-
 "notification.maxWidth"					*coc-config-notification-maxWidth*
 
 	Maximum content width of notification dialog, default to `60`.
@@ -742,9 +735,26 @@ Notification~
 
 	Highlight group of notification dialog, default to `CocFloating`.
 
-"notification.minProgressWidth"				*coc-config-notification-minProgressWidth*
+"notification.winblend" 				 *coc-config-notification-winblend*
 
-	Minimum width of progress notification, default to `30`.
+	Winblend option of notification window, neovim only, default `30`.
+
+"notification.border" 					*coc-config-notification-border*
+
+	Enable rounded border for notification windows, default `true`.
+
+"notification.timeout" 					*coc-config-notification-timeout*
+
+	Timeout for auto close notifications, in miniseconds, default `10000`.
+
+"notification.marginRight" 				*coc-config-notification-marginRight*
+
+	Margin right to the right of editor window, default `10`.
+
+"notification.focusable" 				*coc-config-notification-focusable*
+
+	Enable focus by user actions (wincmds, mouse events), neovim only,
+	default `true`.
 
 ------------------------------------------------------------------------------
 CodeLens~
@@ -1863,26 +1873,6 @@ g:coc_data_home						*g:coc_data_home*
 	Windows: `~/AppData/Local/coc`
 	Other: `~/.config/coc`
 
-g:coc_borderchars 					*g:coc_borderchars*
-
-	Border characters used by border window, default to:
->
-	['─', '│', '─', '│', '┌', '┐', '┘', '└']
-<
-	Note: you may need special font like Nerd font to show them.
-
-g:coc_border_joinchars 					*g:coc_border_joinchars*
-
-	Border join characters used by float window/popup, default to:
->
-	['┬', '┤', '┴', '├']
-<
-	Note: you may need special font like Nerd font to show them.
-
-g:coc_prompt_win_width 					*g:coc_prompt_win_width*
-
-	Width of input prompt window, default `32`.
-
 g:coc_terminal_height					*g:coc_terminal_height*
 
 	Height of terminal window, default `8`.
@@ -1912,6 +1902,39 @@ g:coc_max_treeview_width 			*g:coc_max_treeview_width*
 	Maximum width of tree view when adjusted by auto width.
 
 	Default: `40`
+
+g:coc_borderchars 					*g:coc_borderchars*
+
+	Border characters used by border window, default to:
+>
+	['─', '│', '─', '│', '┌', '┐', '┘', '└']
+<
+	Note: you may need special font like Nerd font to show them.
+
+g:coc_border_joinchars 					*g:coc_border_joinchars*
+
+	Border join characters used by float window/popup, default to:
+>
+	['┬', '┤', '┴', '├']
+<
+	Note: you may need special font like Nerd font to show them.
+
+g:coc_prompt_win_width 					*g:coc_prompt_win_width*
+
+	Width of input prompt window, default `32`.
+
+							*g:coc_notify*
+g:coc_notify_error_icon 				*g:coc_notify_error_icon*
+
+	Error icon for notification, default to: 
+
+g:coc_notify_warning_icon 				*g:coc_notify_warning_icon*
+
+	Warning icon for notification, default to: ⚠
+
+g:coc_notify_info_icon 					*g:coc_notify_info_icon*
+
+	Info icon for notification, default to: 
 
 ------------------------------------------------------------------------------
 
@@ -2299,6 +2322,28 @@ CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 >
 	:echo exists('&tagfunc')
 <
+							*coc#notify*
+coc#notify#close_all()					*coc#notify#close_all()*
+
+	Close all notification windows.
+
+coc#notify#do_action([{winid}]) 			*coc#notify#do_action()*
+
+	Invoke action for all notification windows, or particular window with
+	winid.
+
+coc#notify#copy() 					*coc#notify#copy()*
+
+	Copy all content from notifications to system clipboard.
+
+coc#notify#show_sources() 				*coc#notify#show_sources()*
+
+	Show source name (extension name) in notification windows.
+
+coc#notify#keep() 					*coc#notify#keep()*
+
+	Stop auto hide timer of notification windows.
+
 ------------------------------------------------------------------------------
 							*coc-actions*
 Available Actions ~
@@ -3069,6 +3114,16 @@ Default link to |NormalFloat| on neovim and|`Pmenu| on vim.
 *CocInfoFloat* for infos in floating windows/popups.
 *CocHintFloat* for hints in floating windows/popups.
 
+Notification window/popup related~
+
+CocNotification 					*CocNotification*
+
+*CocNotificationProgress* for progress line in progress notification.
+*CocNotificationButton* for action buttons in notification window.
+*CocNotificationError* for highlight border of error notification.
+*CocNotificationWarning* for highlight border of warning notification.
+*CocNotificationInfo* for highlight border of info notification.
+
 List related~
 
 *CocSelectedText* for sign text of selected lines.
@@ -3616,7 +3671,7 @@ location						*coc-list-location*
 
 extensions						*coc-list-extensions*
 
-	Manage coc extensions.
+	Manage coc.nvim extensions.
 
 	Actions:
 
@@ -3800,6 +3855,41 @@ result (same as <esc>).
 
 ==============================================================================
 
+NOTIFICATION SUPPORT					*coc-notification*
+
+Notification windows are shown from bottom right of the screen. Notifications
+behavior like notifications on VSCode.
+
+Notifications are created by javascript APIs: `window.showErrorMessage()`,
+`window.showWarningMessage()`, `window.showInformationMessage()`,
+`window.showNotification()` and `window.withProgress()`.
+
+Possible kind of notifications: 'error', 'warning', 'info' and 'progress'.
+
+Message notifications (not progress) requires
+|coc-preferences-enableMessageDialog| to be `true`. Message notifications
+without actions would be automatically closed after milliseconds specified by
+|coc-config-notification-timeout|.
+
+Features:
+
+- Animated position and 'winblend' on show and hide.
+- Reposition current tab notification windows when notification dismissed.
+- Notification with same options will be replaced to avoid duplicated windows.
+- Percent and message update for progress notification.
+- Click the button (neovim only) or use |coc#notify#do_action()| to invoke
+  actions.
+- Click the window would cancel auto close (on neovim and focusable is true).
+- For customize icons, see |g:coc_notify|.
+- For customize highlights, see |CocNotification|.
+- For customize other behaviors, see |coc-config-notification|.
+- For available user actions (ex: "close_all", "do_action" "show_sources"), see
+  |coc#notify|.
+
+Note notification feature requires neovim >= 0.4.0 or vim >= 8.2.0750 to work.
+
+==============================================================================
+
 STATUSLINE SUPPORT					*coc-status*
 
 Diagnostics info and other status info contributed by extensions could be
@@ -3890,20 +3980,8 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
 FAQ							*coc-faq*
 
 ------------------------------------------------------------------------------
-Q:	I got the error message with xxx provider not found.
 
-A:	It means you don't have coc extension or languageserver that provide
-	this feature, you have to install extension for it or configure
-	languageserver.
-
-	Note some languageserver may not have that feature supported, please
-	checkout its documentation.
-
-Q: 	I don't have float/popup window shown up.
-
-A: 	For vim8,  make sure `echo has('textprop') && has('patch-8.1.1719')`
-	echo 1. For neovim, you need neovim >= 0.4.0.
-
+Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
 
 ==============================================================================
 vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:fdm=marker:

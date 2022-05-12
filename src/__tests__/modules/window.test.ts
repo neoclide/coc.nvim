@@ -245,7 +245,6 @@ describe('window', () => {
 
     it('should show information message', async () => {
       let p = window.showInformationMessage('information message', 'first', 'second')
-      await helper.wait(50)
       await ensureNotification(0)
       let res = await p
       expect(res).toBe('first')
@@ -253,7 +252,6 @@ describe('window', () => {
 
     it('should show warning message', async () => {
       let p = window.showWarningMessage('warning message', 'first', 'second')
-      await helper.wait(50)
       await ensureNotification(1)
       let res = await p
       expect(res).toBe('second')
@@ -261,7 +259,6 @@ describe('window', () => {
 
     it('should show error message', async () => {
       let p = window.showErrorMessage('error message', 'first', 'second')
-      await helper.wait(50)
       await ensureNotification(0)
       let res = await p
       expect(res).toBe('first')
@@ -330,9 +327,7 @@ describe('window', () => {
     it('should show notification with options', async () => {
       let res = await window.showNotification({
         content: 'my notification',
-        close: true,
         title: 'title',
-        timeout: 50
       })
       expect(res).toBe(true)
       let ids = await nvim.call('coc#float#get_float_win_list')
@@ -345,9 +340,6 @@ describe('window', () => {
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.lines
       expect(lines[0].includes('title')).toBe(true)
-      await helper.wait(60)
-      let valid = await nvim.call('coc#float#valid', [win.id])
-      expect(valid).toBeFalsy()
     })
 
     it('should show progress notification', async () => {

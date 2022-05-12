@@ -8,10 +8,13 @@ import channels from './core/channels'
 import { TextEditor } from './core/editors'
 import Terminals from './core/terminals'
 import * as ui from './core/ui'
+import Cursors from './cursors/index'
 import events from './events'
+import languages from './languages'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
+import Highligher from './model/highligher'
 import Menu, { isMenuItem, MenuItem } from './model/menu'
-import Notification, { NotificationConfig, NotificationPreferences } from './model/notification'
+import Notification, { NotificationConfig, NotificationKind, NotificationPreferences } from './model/notification'
 import Picker, { QuickPickItem } from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
 import StatusLine, { StatusBarItem } from './model/status'
@@ -22,10 +25,7 @@ import { CONFIG_FILE_NAME, disposeAll } from './util'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
-import Cursors from './cursors/index'
 import workspace from './workspace'
-import languages from './languages'
-import Highligher from './model/highligher'
 const logger = require('./util/logger')('window')
 let tab_global_id = 3000
 
@@ -554,7 +554,7 @@ class Window {
   public async showInformationMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Info') as any
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
-    let idx = await this.createNotification('CocInfoFloat', message, texts)
+    let idx = await this.createNotification('info', message, texts)
     return idx == -1 ? undefined : items[idx]
   }
 
@@ -571,7 +571,7 @@ class Window {
   public async showWarningMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Warning') as any
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
-    let idx = await this.createNotification('CocWarningFloat', message, texts)
+    let idx = await this.createNotification('warning', message, texts)
     return idx == -1 ? undefined : items[idx]
   }
 
@@ -588,7 +588,7 @@ class Window {
   public async showErrorMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Error') as any
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
-    let idx = await this.createNotification('CocErrorFloat', message, texts)
+    let idx = await this.createNotification('error', message, texts)
     return idx == -1 ? undefined : items[idx]
   }
 
@@ -800,12 +800,11 @@ class Window {
     })
   }
 
-  private createNotification(borderhighlight: string, message: string, items: string[]): Promise<number> {
+  private createNotification(kind: NotificationKind, message: string, items: string[]): Promise<number> {
     return new Promise(resolve => {
       let config: NotificationConfig = {
+        kind,
         content: message,
-        borderhighlight,
-        close: true,
         buttons: items.map((s, index) => {
           return { text: s, index }
         }),
@@ -844,12 +843,14 @@ class Window {
   private get notificationPreference(): NotificationPreferences {
     let config = workspace.getConfiguration('notification')
     return {
-      top: config.get<number>('marginTop'),
-      right: config.get<number>('marginRight'),
+      broder: config.get<boolean>('border', true),
+      focusable: config.get<boolean>('focusable', true),
+      marginRight: config.get<number>('marginRight', 10),
+      timeout: config.get<number>('timeout', 10),
       maxWidth: config.get<number>('maxWidth'),
       maxHeight: config.get<number>('maxHeight'),
       highlight: config.get<string>('highlightGroup'),
-      minProgressWidth: config.get<number>('minProgressWidth'),
+      winblend: config.get<number>('winblend'),
     }
   }
 

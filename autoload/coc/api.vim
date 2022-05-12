@@ -568,7 +568,7 @@ function! s:funcs.win_set_var(win_id, name, value) abort
   if tabnr
     call settabwinvar(tabnr, a:win_id, a:name, a:value)
   else
-    throw 'window '.a:win_id. ' not a valid window'
+    throw "Invalid window id ".a:win_id
   endif
 endfunction
 

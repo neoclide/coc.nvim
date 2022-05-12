@@ -998,23 +998,33 @@
       "default": "MoreMsg",
       "description": "Highlight group for shortcut character in menu dialog, default to 'MoreMsg'"
     },
-    "notification.marginTop": {
-      "type": "number",
-      "default": 1,
-      "description": "Margin top for notification dialog."
+    "notification.border": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable rounded border for notification windows."
+    },
+    "notification.timeout": {
+      "type": "integer",
+      "default": 10000,
+      "description": "Timeout for auto close notifications, in miniseconds."
     },
     "notification.marginRight": {
-      "type": "number",
-      "default": 1,
-      "description": "Margin right for notification dialog."
+      "type": "integer",
+      "default": 10,
+      "description": "Margin right to the right of editor window."
+    },
+    "notification.focusable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable focus by user actions (wincmds, mouse events), neovim only."
     },
     "notification.maxWidth": {
-      "type": "number",
+      "type": "integer",
       "default": 60,
       "description": "Maximum content width of notification dialog."
     },
     "notification.maxHeight": {
-      "type": "number",
+      "type": "integer",
       "default": 10,
       "description": "Maximum content height of notification dialog."
     },
@@ -1023,10 +1033,12 @@
       "default": "CocFloating",
       "description": "Highlight group of notification dialog."
     },
-    "notification.minProgressWidth": {
-      "type": "number",
+    "notification.winblend": {
+      "type": "integer",
       "default": 30,
-      "description": "Minimum width of progress notification."
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Winblend option of notification window, neovim only."
     },
     "workspace.ignoredFiletypes": {
       "type": "array",

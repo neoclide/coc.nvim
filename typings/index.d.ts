@@ -7589,11 +7589,24 @@ declare module 'coc.nvim' {
     callback?: (index: number) => void
   }
 
-  export interface NotificationConfig extends DialogConfig {
+  export type NotificationKind = 'error' | 'info' | 'warning' | 'progress'
+
+  export interface NotificationConfig {
+    kind?: NotificationKind
+
+    content?: string
     /**
-     * Timeout in milliseconds to dismiss notification, default no timeout.
+     * Optional title text.
      */
-    timeout?: number
+    title?: string
+    /**
+     * Buttons as bottom of dialog.
+     */
+    buttons?: DialogButton[]
+    /**
+     * index is -1 for window close without button click
+     */
+    callback?: (index: number) => void
   }
 
   /**
@@ -8022,7 +8035,7 @@ declare module 'coc.nvim' {
     export function showErrorMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
 
     /**
-     * Show notification window at right of screen.
+     * Show notification window at bottom right of screen.
      */
     export function showNotification(config: NotificationConfig): Promise<boolean>
 
