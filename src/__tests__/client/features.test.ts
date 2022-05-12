@@ -127,6 +127,9 @@ describe('Client integration', () => {
         foldingRangeProvider: true,
         implementationProvider: true,
         selectionRangeProvider: true,
+        inlayHintProvider: {
+          resolveProvider: true
+        },
         typeDefinitionProvider: true,
         callHierarchyProvider: true,
         semanticTokensProvider: {

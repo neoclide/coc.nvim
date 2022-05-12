@@ -38,6 +38,9 @@ connection.onInitialize(params => {
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[0], DiagnosticTag.Unnecessary)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[1], DiagnosticTag.Deprecated)
   assert.equal(params.capabilities.textDocument.documentLink.tooltipSupport, true)
+  assert.equal(params.capabilities.textDocument.inlayHint.dynamicRegistration, true)
+  assert.equal(params.capabilities.textDocument.inlayHint.resolveSupport.properties[0], 'tooltip')
+
   let valueSet = params.capabilities.textDocument.completion.completionItemKind.valueSet
   assert.equal(valueSet[0], 1)
   assert.equal(valueSet[valueSet.length - 1], CompletionItemKind.TypeParameter)
@@ -74,6 +77,9 @@ connection.onInitialize(params => {
     foldingRangeProvider: true,
     implementationProvider: true,
     selectionRangeProvider: true,
+    inlayHintProvider: {
+      resolveProvider: true
+    },
     typeDefinitionProvider: true,
     callHierarchyProvider: true,
     semanticTokensProvider: {
