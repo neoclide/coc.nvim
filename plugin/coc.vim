@@ -319,9 +319,12 @@ function! s:Enable(initialize)
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd CursorMoved       * call coc#float#nvim_refresh_scrollbar(win_getid())
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
-      if exists('##WinClosed')
-        autocmd WinClosed       * call coc#float#close_related(+expand('<afile>'))
-      endif
+    endif
+    if exists('##WinClosed')
+      autocmd WinClosed         * call coc#float#close_related(+expand('<amatch>'))
+      autocmd WinClosed         * call coc#notify#on_close(+expand('<amatch>'))
+    elseif exists('##TabEnter')
+      autocmd TabEnter          * call coc#notify#reflow()
     endif
     if has('nvim-0.4.0') || has('patch-8.1.1719')
       autocmd CursorHold        * call coc#float#check_related()
@@ -339,7 +342,7 @@ function! s:Enable(initialize)
     autocmd CompleteDone        * call s:HandleCompleteDone(get(v:, 'completed_item', {}))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')
-      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
+      autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
     endif
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), coc#util#change_info())
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
@@ -412,6 +415,12 @@ function! s:Hi() abort
   hi default link CocHighlightRead       CocHighlightText
   hi default link CocHighlightWrite      CocHighlightText
   hi default link CocInlayHint           CocHintSign
+  " Notification
+  hi default CocNotificationProgress  ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default link CocNotificationButton  CocUnderline
+  hi default link CocNotificationError   CocErrorFloat
+  hi default link CocNotificationWarning CocWarningFloat
+  hi default link CocNotificationInfo    CocInfoFloat
   " Snippet
   hi default link CocSnippetVisual       Visual
   " Tree view highlights

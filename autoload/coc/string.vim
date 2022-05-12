@@ -8,6 +8,37 @@ function! coc#string#last_character(line) abort
   return strcharpart(a:line, strchars(a:line) - 1, 1)
 endfunction
 
+function! coc#string#reflow(lines, width) abort
+  let lines = []
+  let currlen = 0
+  let parts = []
+  for line in a:lines
+    for part in split(line, '\s\+')
+      let w = strwidth(part)
+      if currlen + w + 1 >= a:width
+        if len(parts) > 0
+          call add(lines, join(parts, ' '))
+        endif
+        if w >= a:width
+          call add(lines, part)
+          let currlen = 0
+          let parts = []
+        else
+          let currlen = w
+          let parts = [part]
+        endif
+        continue
+      endif
+      call add(parts, part)
+      let currlen = currlen + w + 1
+    endfor
+  endfor
+  if len(parts) > 0
+    call add(lines, join(parts, ' '))
+  endif
+  return empty(lines) ? [''] : lines
+endfunction
+
 " get change between two lines
 function! coc#string#diff(curr, previous, col) abort
   let end = strpart(a:curr, a:col - 1)

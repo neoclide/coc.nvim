@@ -122,11 +122,16 @@ function! coc#snippet#select(position, text) abort
 endfunction
 
 function! coc#snippet#move(position) abort
-  if mode() == 's'
+  let m = mode()
+  if m == 's'
     call feedkeys("\<Esc>", 'in')
-  endif
-  if pumvisible()
-    call coc#_cancel()
+  elseif m =~# '^i'
+    if pumvisible()
+      call coc#_cancel()
+    elseif has('nvim-0.7.0')
+      let g:coc_disable_space_report = 1
+      call feedkeys("\<space>\<bs>", 'in')
+    endif
   endif
   let pos = coc#snippet#to_cursor(a:position)
   call cursor(pos)
