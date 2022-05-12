@@ -198,7 +198,7 @@ class Window {
    * @returns Index of selected item, or -1 when canceled.
    */
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
-    return await this.showMenuPicker(items, placeholder)
+    return await this.showMenuPicker(items, { title: placeholder, position: 'center' })
   }
 
   /**
