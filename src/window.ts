@@ -26,7 +26,9 @@ import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import workspace from './workspace'
+import { isParentFolder, sameFile } from './util/fs'
 const logger = require('./util/logger')('window')
+const PLUGIN_ROOT = path.dirname(__dirname)
 let tab_global_id = 3000
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 
@@ -553,7 +555,8 @@ class Window {
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
   public async showInformationMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    return await this._showMessage('Info', message, items)
+    let stack = Error().stack
+    return await this._showMessage('Info', message, items, stack)
   }
 
   /**
@@ -565,7 +568,8 @@ class Window {
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
   public async showWarningMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    return await this._showMessage('Warning', message, items)
+    let stack = Error().stack
+    return await this._showMessage('Warning', message, items, stack)
   }
 
   /**
@@ -577,28 +581,29 @@ class Window {
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
   public async showErrorMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    return await this._showMessage('Error', message, items)
+    let stack = Error().stack
+    return await this._showMessage('Error', message, items, stack)
   }
 
   private async showMessagePicker<T extends MessageItem | string>(message: string, hlGroup: string, items: T[]): Promise<T | undefined> {
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
     let res = await this.showMenuPicker(texts, { title: message.replace(/\r?\n/, ' '), borderhighlight: hlGroup })
-    if (res == -1) return undefined
     return items[res]
   }
 
-  private async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
+  private async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[], stack: string): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind) as any
     if (this.preferMenuPicker && items.length > 0) return await this.showMessagePicker(message, `Coc${kind}Float`, items)
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
-    let idx = await this.createNotification('error', message, texts)
+    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts, stack)
     return idx == -1 ? undefined : items[idx]
   }
 
   public async showNotification(config: NotificationConfig): Promise<boolean> {
     if (!this.checkDialog()) return false
+    let stack = Error().stack
     let notification = new Notification(this.nvim, config)
-    return await notification.show(this.notificationPreference)
+    return await notification.show(this.getNotificationPreference(stack))
   }
 
   // fallback for vim without dialog
@@ -629,7 +634,8 @@ class Window {
    *
    * @return The thenable the task-callback returned.
    */
-  public async withProgress<R>(options: ProgressOptions, task: (progress: Progress<{ message?: string; increment?: number }>, token: CancellationToken) => Thenable<R>): Promise<R> {
+  public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
+    let stack = Error().stack
     if (!this.checkDialog()) return undefined
     let progress = new ProgressNotification(this.nvim, {
       task,
@@ -639,7 +645,7 @@ class Window {
     let config = workspace.getConfiguration('notification')
     let minWidth = config.get<number>('minProgressWidth', 30)
     let promise = new Promise<R>((resolve, reject) => {
-      progress.show(Object.assign(this.notificationPreference, { minWidth })).then(shown => {
+      progress.show(Object.assign(this.getNotificationPreference(stack), { minWidth })).then(shown => {
         if (!shown) reject(new Error('Unable to create notification window.'))
       }, reject)
       progress.onDidFinish(resolve)
@@ -811,7 +817,7 @@ class Window {
     })
   }
 
-  private createNotification(kind: NotificationKind, message: string, items: string[]): Promise<number> {
+  private createNotification(kind: NotificationKind, message: string, items: string[], stack: string): Promise<number> {
     return new Promise(resolve => {
       let config: NotificationConfig = {
         kind,
@@ -824,7 +830,7 @@ class Window {
         }
       }
       let notification = new Notification(this.nvim, config)
-      notification.show(this.notificationPreference).then(shown => {
+      notification.show(this.getNotificationPreference(stack)).then(shown => {
         if (!shown) {
           logger.error('Unable to open notification window')
           resolve(-1)
@@ -835,6 +841,30 @@ class Window {
         resolve(-1)
       })
     })
+  }
+
+  /**
+   * Get extension name from error stack
+   */
+  public parseSource(stack: string): string | undefined {
+    let line = stack.split(/\r?\n/).slice(2)[0]
+    if (!line) return undefined
+    line = line.replace(/^\s*at\s*/, '')
+    let filepath: string
+    if (line.endsWith(')')) {
+      let ms = line.match(/(\((.*?):\d+:\d+\))$/)
+      if (ms) filepath = ms[2]
+    } else {
+      let ms = line.match(/(.*?):\d+:\d+$/)
+      if (ms) filepath = ms[1]
+    }
+    if (!filepath) return undefined
+    let arr = require('./extensions').default.getExtensionsInfo()
+    let find = arr.find(o => sameFile(o.filepath, filepath))
+    if (find) return find.name.startsWith('single') ? path.basename(find.filepath) : find.name
+    find = arr.find(o => isParentFolder(o.directory, filepath))
+    if (find) return find.name
+    if (isParentFolder(PLUGIN_ROOT, filepath)) return 'coc.nvim'
   }
 
   private get dialogPreference(): DialogPreferences {
@@ -851,7 +881,8 @@ class Window {
     }
   }
 
-  private get notificationPreference(): NotificationPreferences {
+  private getNotificationPreference(stack: string): NotificationPreferences {
+    let source = this.parseSource(stack)
     let config = workspace.getConfiguration('notification')
     return {
       broder: config.get<boolean>('border', true),
@@ -862,6 +893,7 @@ class Window {
       maxHeight: config.get<number>('maxHeight'),
       highlight: config.get<string>('highlightGroup'),
       winblend: config.get<number>('winblend'),
+      source,
     }
   }
 

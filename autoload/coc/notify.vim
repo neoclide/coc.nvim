@@ -79,6 +79,19 @@ function! coc#notify#show_sources() abort
   redra
 endfunction
 
+function! coc#notify#close_by_source(source) abort
+  let winids = filter(coc#notify#win_list(), 'coc#window#get_var(v:val,"closing") != 1')
+  for winid in winids
+    let key = getwinvar(winid, 'key', v:null)
+    if type(key) == v:t_string
+      let obj = json_decode(key)
+      if get(obj, 'source', '') ==# a:source
+        call coc#notify#close(winid)
+      endif
+    endif
+  endfor
+endfunction
+
 " Cancel auto hide
 function! coc#notify#keep() abort
   for winid in coc#notify#win_list()

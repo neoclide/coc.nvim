@@ -13,6 +13,7 @@ import { MessageLevel } from '../../types'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
+import extensions from '../../extensions'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -330,6 +331,18 @@ describe('window', () => {
       await nvim.input('1')
       let res = await p
       expect(res).toBe('first')
+    })
+  })
+
+  describe('window parseSource()', () => {
+    it('should parse sour name', async () => {
+      expect(window.parseSource('\n\n')).toBeUndefined()
+      expect(window.parseSource(`\n\n${path.join(process.cwd(), 'a/b.js')}:1:1`)).toBe('coc.nvim')
+      expect(window.parseSource(`\n\n at Foo(${path.join(process.cwd(), 'a/b.js')}:1:1)`)).toBe('coc.nvim')
+      let info = extensions.getExtensionsInfo()
+      expect(window.parseSource(`\n\n${info[0].filepath}:1:1`)).toBe(info[0].name)
+      let filepath = path.join(info[0].directory, 'a/b/c.js')
+      expect(window.parseSource(`\n\n${filepath}:1:1`)).toBe(info[0].name)
     })
   })
 

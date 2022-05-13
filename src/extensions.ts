@@ -59,13 +59,13 @@ export interface Extension<T> {
 }
 
 export interface ExtensionItem {
-  id: Readonly<string>
-  type: Readonly<ExtensionType>
+  readonly id: string
+  readonly type: ExtensionType
   extension: Extension<API>
   deactivate: () => void | Promise<void>
   filepath?: string
   directory?: string
-  isLocal: Readonly<boolean>
+  readonly isLocal: boolean
 }
 
 export interface ExtensionJson {
@@ -188,6 +188,21 @@ export class Extensions {
         }
       }
     }, null, this.disposables)
+  }
+
+  public getExtensionsInfo(): { name: string, directory: string, filepath?: string }[] {
+    let res: { name: string, directory: string, filepath?: string }[] = []
+    for (let [key, entry] of this.extensions.entries()) {
+      let { directory, filepath } = entry
+      if (!directory) directory = filepath
+      entry.type
+      if (directory) res.push({
+        name: key,
+        filepath,
+        directory: directory.endsWith(path.sep) ? directory : directory + path.sep
+      })
+    }
+    return res
   }
 
   public activateExtensions(): void {

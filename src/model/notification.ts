@@ -16,6 +16,7 @@ export interface NotificationPreferences {
   marginRight: number
   focusable: boolean
   minWidth?: number
+  source?: string
 }
 
 export type NotificationKind = 'error' | 'info' | 'warning' | 'progress'

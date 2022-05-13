@@ -3,6 +3,7 @@
 - Notification support like VSCode https://github.com/neoclide/coc.nvim/discussions/3813
 - Add configuration `notification.minProgressWidth`
 - Add configuration `notification.preferMenuPicker`
+- Support `source` in notification windows.
 
 # 2022-05-07
 
