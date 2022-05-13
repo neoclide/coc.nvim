@@ -126,6 +126,28 @@ describe('language source', () => {
       expect(lnum).toBe(1)
       expect(col).toBe(3)
     })
+
+    it('should cancel current snippet session when additionalTextEdits inside snippet', async () => {
+      await nvim.input('i')
+      await snippetManager.insertSnippet('foo($1, $2)$0', true)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'bar',
+          insertTextFormat: InsertTextFormat.Snippet,
+          textEdit: { range: Range.create(0, 4, 0, 5), newText: 'bar($1)' },
+          additionalTextEdits: [TextEdit.del(Range.create(0, 0, 0, 3))]
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
+      await nvim.input('b')
+      await helper.waitPopup()
+      let res = await helper.getItems()
+      let idx = res.findIndex(o => o.menu == '[edit]')
+      await helper.selectCompleteItem(idx)
+      await helper.waitFor('getline', ['.'], '(bar(), )')
+      let col = await nvim.call('col', ['.'])
+      expect(col).toBe(6)
+    })
   })
 
   describe('filterText', () => {

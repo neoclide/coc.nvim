@@ -1,11 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, InsertTextMode, Position, Range } from 'vscode-languageserver-protocol'
+import { Disposable, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
 import { deepClone } from '../util/object'
-import { emptyRange, rangeInRange } from '../util/position'
+import { emptyRange, rangeInRange, rangeOverlap } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
@@ -164,6 +164,17 @@ export class SnippetManager {
     let { session } = this
     if (!session) return false
     return session.placeholder != null && session.placeholder.index != 0
+  }
+
+  public async editsInsideSnippet(edits: TextEdit[]): Promise<boolean> {
+    let session = this.getSession(workspace.bufnr)
+    if (!session || !session.snippet) return false
+    await session.forceSynchronize()
+    let range = session.snippet.range
+    if (edits.some(e => rangeOverlap(e.range, range))) {
+      return true
+    }
+    return false
   }
 
   public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {

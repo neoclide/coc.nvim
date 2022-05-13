@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemKind, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
@@ -134,19 +134,28 @@ export default class LanguageSource implements ISource {
     if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
     let doc = workspace.getAttachedDocument(opt.bufnr)
     await doc.patchChange(true)
-    let isSnippet = await this.applyTextEdit(doc, item, vimItem.word, opt)
-    if (Array.isArray(item.additionalTextEdits)) {
-      await doc.patchChange(true)
-      // move cursor after edit
-      await doc.applyEdits(item.additionalTextEdits, true, !isSnippet)
+    let additionalEdits = Array.isArray(item.additionalTextEdits) && item.additionalTextEdits.length > 0
+    if (additionalEdits) {
+      let shouldCancel = await snippetManager.editsInsideSnippet(item.additionalTextEdits)
+      if (shouldCancel) snippetManager.cancel()
     }
-    if (isSnippet) await snippetManager.selectCurrentPlaceholder(true)
-    if (item.command && commands.has(item.command.command)) {
-      await commands.execute(item.command)
+    let version = doc.version
+    let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, vimItem.word, opt)
+    if (additionalEdits) {
+      // move cursor after edit
+      await doc.applyEdits(item.additionalTextEdits, doc.version != version, !isSnippet)
+      if (isSnippet) await snippetManager.selectCurrentPlaceholder()
+    }
+    if (item.command) {
+      if (commands.has(item.command.command)) {
+        await commands.execute(item.command)
+      } else {
+        logger.warn(`Command "${item.command.command}" not registered to coc.nvim`)
+      }
     }
   }
 
-  private async applyTextEdit(doc: Document, item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
+  private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
     let { line, linenr, colnr, col } = option
     let pos = await window.getCursorPosition()
     if (pos.line != linenr - 1) return
@@ -178,10 +187,9 @@ export default class LanguageSource implements ISource {
     }
     if (isSnippet) {
       let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip
-      // can't select, since additionalTextEdits would break selection
-      return await snippetManager.insertSnippet(newText, false, range, item.insertTextMode, opts ? opts : undefined)
+      return await snippetManager.insertSnippet(newText, !additionalEdits, range, item.insertTextMode, opts ? opts : undefined)
     }
-    await doc.applyEdits([TextEdit.replace(range, newText)], false, true)
+    await doc.applyEdits([TextEdit.replace(range, newText)], false, pos)
     return false
   }
 
