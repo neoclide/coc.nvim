@@ -11,7 +11,7 @@ const {
   DidCreateFilesNotification,
   DidRenameFilesNotification,
   DidDeleteFilesNotification,
-  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind
+  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity
 } = require('vscode-languageserver-protocol')
 
 let connection = createConnection()
@@ -23,6 +23,7 @@ connection.onInitialize(params => {
   assert.equal((params.capabilities.workspace).applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, FailureHandlingKind.Undo)
+  assert.equal(params.capabilities.workspace.symbol.resolveSupport.properties[0], 'location.range')
   assert.equal(params.capabilities.textDocument.completion.completionItem.deprecatedSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet.length, 1)
@@ -38,6 +39,7 @@ connection.onInitialize(params => {
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[0], DiagnosticTag.Unnecessary)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[1], DiagnosticTag.Deprecated)
   assert.equal(params.capabilities.textDocument.documentLink.tooltipSupport, true)
+  // assert.equal(params.capabilities.textDocument.inlineValue.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.resolveSupport.properties[0], 'tooltip')
 
@@ -46,6 +48,10 @@ connection.onInitialize(params => {
   assert.equal(valueSet[valueSet.length - 1], CompletionItemKind.TypeParameter)
   assert.deepEqual(params.capabilities.workspace.workspaceEdit.resourceOperations, [ResourceOperationKind.Create, ResourceOperationKind.Rename, ResourceOperationKind.Delete])
   assert.equal(params.capabilities.workspace.fileOperations.willCreate, true)
+
+  // let diagnosticClientCapabilities = params.capabilities.textDocument.diagnostic
+  // assert.equal(diagnosticClientCapabilities.dynamicRegistration, true)
+  // assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, false)
 
   let capabilities = {
     textDocumentSync: TextDocumentSyncKind.Full,
@@ -77,6 +83,7 @@ connection.onInitialize(params => {
     foldingRangeProvider: true,
     implementationProvider: true,
     selectionRangeProvider: true,
+    inlineValueProvider: {},
     inlayHintProvider: {
       resolveProvider: true
     },
@@ -402,6 +409,60 @@ connection.languages.semanticTokens.onDelta(() => {
   }
 })
 
+connection.languages.diagnostics.on(() => {
+  return {
+    kind: DocumentDiagnosticReportKind.Full,
+    items: [
+      Diagnostic.create(Range.create(1, 1, 1, 1), 'diagnostic', DiagnosticSeverity.Error)
+    ]
+  }
+})
+
+connection.languages.diagnostics.onWorkspace(() => {
+  return {
+    items: [ {
+      kind: DocumentDiagnosticReportKind.Full,
+      uri: 'uri',
+      version: 1,
+      items: [
+        Diagnostic.create(Range.create(1, 1, 1, 1), 'diagnostic', DiagnosticSeverity.Error)
+      ]
+    }]
+  }
+})
+
+const typeHierarchySample = {
+  superTypes: [],
+  subTypes: []
+}
+connection.languages.typeHierarchy.onPrepare(params => {
+  const currentItem = {
+    kind: SymbolKind.Class,
+    name: 'ClazzB',
+    range: Range.create(1, 1, 1, 1),
+    selectionRange: Range.create(2, 2, 2, 2),
+    uri: params.textDocument.uri
+  }
+  typeHierarchySample.superTypes = [ {...currentItem, name: 'classA', uri: 'uri-for-A'}]
+  typeHierarchySample.subTypes = [ {...currentItem, name: 'classC', uri: 'uri-for-C'}]
+  return [currentItem]
+})
+
+connection.languages.typeHierarchy.onSupertypes(_params => {
+  return typeHierarchySample.superTypes
+})
+
+connection.languages.typeHierarchy.onSubtypes(_params => {
+  return typeHierarchySample.subTypes
+})
+
+connection.languages.inlineValue.on(_params => {
+  return [
+    InlineValueText.create(Range.create(1, 2, 3, 4), 'text'),
+    InlineValueVariableLookup.create(Range.create(1, 2, 3, 4), 'variableName', false),
+    InlineValueEvaluatableExpression.create(Range.create(1, 2, 3, 4), 'expression'),
+  ]
+})
 connection.languages.inlayHint.on(() => {
 	const one = InlayHint.create(Position.create(1,1), [InlayHintLabelPart.create('type')], InlayHintKind.Type)
 	one.data = '1'
@@ -436,6 +497,17 @@ connection.onRequest(
     void connection.sendProgress(WorkDoneProgress.type, progressToken, {kind: 'end', message: 'Completed!'})
   },
 )
+
+connection.onWorkspaceSymbol(() => {
+    return [
+        { name: 'name', kind: SymbolKind.Array, location: { uri: 'file:///abc.txt' }}
+    ]
+})
+
+connection.onWorkspaceSymbolResolve(symbol => {
+    symbol.location = Location.create(symbol.location.uri, Range.create(1,2,3,4))
+    return symbol
+})
 
 // Listen on the connection
 connection.listen()
