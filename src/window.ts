@@ -633,7 +633,9 @@ class Window {
       title: options.title,
       cancellable: options.cancellable
     })
-    return await progress.show(this.notificationPreference)
+    let config = workspace.getConfiguration('notification')
+    let minWidth = config.get<number>('minProgressWidth', 30)
+    return await progress.show(Object.assign(this.notificationPreference, { minWidth }))
   }
 
   /**

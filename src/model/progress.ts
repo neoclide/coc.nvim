@@ -28,6 +28,7 @@ export default class ProgressNotification<R> extends Notification {
   private tokenSource: CancellationTokenSource
   constructor(nvim: Neovim, private option: ProgressOptions<R>) {
     super(nvim, {
+      kind: 'progress',
       title: option.title,
       buttons: [{ index: 1, text: 'Cancel' }]
     }, false)
@@ -66,6 +67,7 @@ export default class ProgressNotification<R> extends Notification {
           nvim.resumeNotification(false, true)
         }
       }, tokenSource.token).then(res => {
+        this.tokenSource = undefined
         if (this._disposed) return
         setImmediate(() => {
           this.dispose()
@@ -82,10 +84,5 @@ export default class ProgressNotification<R> extends Notification {
       })
     })
     return res
-  }
-
-  public dispose(): void {
-    super.dispose()
-    this.tokenSource = undefined
   }
 }

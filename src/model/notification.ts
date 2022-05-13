@@ -15,6 +15,7 @@ export interface NotificationPreferences {
   timeout: number
   marginRight: number
   focusable: boolean
+  minWidth?: number
 }
 
 export type NotificationKind = 'error' | 'info' | 'warning' | 'progress'
@@ -71,7 +72,7 @@ export default class Notification {
     opts.kind = kind ?? ''
     if (title) opts.title = title
     if (preferences.broder) {
-      opts.borderhighlight = kind ? `CocNotification${kind[0].toUpperCase()}${kind.slice(1)}` : 'CocFloating'
+      opts.borderhighlight = kind ? `CocNotification${kind[0].toUpperCase()}${kind.slice(1)}` : preferences.highlight
     }
     if (buttons) opts.actions = buttons.filter(o => !o.disabled).map(o => o.text)
     let res = await nvim.call('coc#notify#create', [this.lines, opts]) as [number, number]

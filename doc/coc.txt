@@ -731,6 +731,10 @@ Notification~
 
 	Maximum content height of notification dialog, default to `10`.
 
+"notification.minProgressWidth" 			*coc-config-notification-minProgressWidth*
+
+	Minimal with of progress notification.
+
 "notification.highlightGroup"				*coc-config-notification-highlightGroup*
 
 	Highlight group of notification dialog, default to `CocFloating`.

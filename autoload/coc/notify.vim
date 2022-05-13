@@ -87,6 +87,7 @@ endfunction
 
 " borderhighlight - border highlight [string]
 " maxWidth - max content width, default 60 [number]
+" minWidth - minimal width [number]
 " maxHeight - max content height, default 10 [number]
 " highlight - default highlight [string]
 " winblend - winblend [number]
@@ -112,7 +113,11 @@ function! coc#notify#create(lines, config) abort
   let opts = coc#dict#pick(a:config, ['highlight', 'borderhighlight', 'focusable', 'shadow'])
   let border = has_key(opts, 'borderhighlight') ? [1, 1, 1, 1] : []
   let icon = s:get_icon(kind, get(a:config, 'highlight', 'CocFloating'))
-  let maxWidth = get(a:config, 'maxWidth', 60)
+  let margin = get(a:config, 'marginRight', 10)
+  let maxWidth = min([&columns - margin - 2,  get(a:config, 'maxWidth', 80)])
+  if maxWidth <= 0
+    throw 'No enough spaces for notification'
+  endif
   let lines = map(copy(a:lines), 'tr(v:val, "\t", " ")')
   if has_key(a:config, 'title')
     if !empty(border)
@@ -138,7 +143,9 @@ function! coc#notify#create(lines, config) abort
   endif
   let actionText = join(actions, ' ')
   call map(lines, 'v:key == 0 ? v:val : repeat(" ", '.(empty(icon) ? 0 : 2).').v:val')
-  let width = max(map(copy(lines), 'strwidth(v:val)') + [kind ==# 'progress' ? 30 : 10, strwidth(actionText) + 1])
+  let minWidth = get(a:config, 'minWidth', kind ==# 'progress' ? 30 : 10)
+  let width = max(extend(map(lines + [get(opts, 'title', '').'   '], 'strwidth(v:val)'), [minWidth, strwidth(actionText) + 1]))
+  let width = min([maxWidth, width])
   let height = min([get(a:config, 'maxHeight', 3), len(lines)])
   if kind ==# 'progress'
     let lines = [repeat(s:progress_char, width)] + lines
@@ -157,7 +164,7 @@ function! coc#notify#create(lines, config) abort
       let row = row + 1
     endif
   endif
-  let col = &columns - get(a:config, 'marginRight', 10) - width
+  let col = &columns - margin - width
   if s:is_vim && !empty(border)
     let col = col - 2
   endif

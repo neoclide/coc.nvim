@@ -1028,6 +1028,11 @@
       "default": 10,
       "description": "Maximum content height of notification dialog."
     },
+    "notification.minProgressWidth": {
+      "type": "integer",
+      "default": 30,
+      "description": "Minimal with of progress notification."
+    },
     "notification.highlightGroup": {
       "type": "string",
       "default": "CocFloating",
