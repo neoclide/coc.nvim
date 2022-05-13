@@ -38,6 +38,7 @@ import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 import { InlayHintsMiddleware, InlayHintsProviderShape } from './inlayHint'
+import { TypeHierarchyMiddleware } from './typeHierarchy'
 import { LinkedEditingRangeMiddleware } from './linkedEditingRange'
 import { WorkspaceSymbolMiddleware } from './workspaceSymbol'
 import { comparePosition } from '../util/position'
@@ -708,6 +709,7 @@ export type Middleware = _Middleware &
   CallHierarchyMiddleware &
   SemanticTokensMiddleware &
   InlayHintsMiddleware &
+  TypeHierarchyMiddleware &
   WorkspaceSymbolMiddleware &
   LinkedEditingRangeMiddleware &
   SelectionRangeProviderMiddleware

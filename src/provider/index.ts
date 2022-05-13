@@ -1,5 +1,5 @@
 'use strict'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, LinkedEditingRanges, Location, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, LinkedEditingRanges, Location, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { InlayHint } from '../inlayHint'
@@ -857,4 +857,48 @@ export interface InlayHintsProvider<T extends InlayHint = InlayHint> {
    * @return The resolved inlay hint or a thenable that resolves to such. It is OK to return the given `item`. When no result is returned, the given `item` will be used.
    */
   resolveInlayHint?(hint: T, token: CancellationToken): ProviderResult<T>
+}
+
+/**
+ * The type hierarchy provider interface describes the contract between extensions
+ * and the type hierarchy feature.
+ */
+export interface TypeHierarchyProvider {
+
+  /**
+   * Bootstraps type hierarchy by returning the item that is denoted by the given document
+   * and position. This item will be used as entry into the type graph. Providers should
+   * return `undefined` or `null` when there is no item at the given location.
+   *
+   * @param document The document in which the command was invoked.
+   * @param position The position at which the command was invoked.
+   * @param token A cancellation token.
+   * @returns One or multiple type hierarchy items or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined`, `null`, or an empty array.
+   */
+  prepareTypeHierarchy(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<TypeHierarchyItem[]>
+
+  /**
+   * Provide all supertypes for an item, e.g all types from which a type is derived/inherited. In graph terms this describes directed
+   * and annotated edges inside the type graph, e.g the given item is the starting node and the result is the nodes
+   * that can be reached.
+   *
+   * @param item The hierarchy item for which super types should be computed.
+   * @param token A cancellation token.
+   * @returns A set of direct supertypes or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined` or `null`.
+   */
+  provideTypeHierarchySupertypes(item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]>
+
+  /**
+   * Provide all subtypes for an item, e.g all types which are derived/inherited from the given item. In
+   * graph terms this describes directed and annotated edges inside the type graph, e.g the given item is the starting
+   * node and the result is the nodes that can be reached.
+   *
+   * @param item The hierarchy item for which subtypes should be computed.
+   * @param token A cancellation token.
+   * @returns A set of direct subtypes or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined` or `null`.
+   */
+  provideTypeHierarchySubtypes(item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]>
 }
