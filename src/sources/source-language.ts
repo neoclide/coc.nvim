@@ -133,6 +133,10 @@ export default class LanguageSource implements ISource {
     if (!item) return
     if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
     let doc = workspace.getAttachedDocument(opt.bufnr)
+    if (workspace.has('nvim-0.7.0') && item.insertTextFormat === InsertTextFormat.Snippet) {
+      // Without the fix neovim may do indent after type #
+      workspace.nvim.call('coc#_insert_space_bs', [], true)
+    }
     await doc.patchChange(true)
     let additionalEdits = Array.isArray(item.additionalTextEdits) && item.additionalTextEdits.length > 0
     if (additionalEdits) {
