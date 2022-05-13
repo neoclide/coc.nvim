@@ -65,7 +65,7 @@ export default class Notification {
     return this.config.content ? this.config.content.split(/\r?\n/) : []
   }
 
-  public async show(preferences: Partial<NotificationPreferences>): Promise<any> {
+  public async show(preferences: Partial<NotificationPreferences>): Promise<boolean> {
     let { nvim } = this
     let { buttons, kind, title } = this.config
     let opts: any = Object.assign({}, preferences)
@@ -74,7 +74,10 @@ export default class Notification {
     if (preferences.broder) {
       opts.borderhighlight = kind ? `CocNotification${kind[0].toUpperCase()}${kind.slice(1)}` : preferences.highlight
     }
-    if (buttons) opts.actions = buttons.filter(o => !o.disabled).map(o => o.text)
+    if (Array.isArray(buttons)) {
+      let actions: string[] = buttons.filter(o => !o.disabled).map(o => o.text)
+      if (actions.length) opts.actions = actions
+    }
     let res = await nvim.call('coc#notify#create', [this.lines, opts]) as [number, number]
     if (!res) return false
     if (this._disposed) {
@@ -96,7 +99,7 @@ export default class Notification {
     this._disposed = true
     let { winid } = this
     if (winid) {
-      this.nvim.call('coc#float#close', [winid], true)
+      this.nvim.call('coc#notify#close', [winid], true)
       this.nvim.redrawVim()
     }
     this.bufnr = undefined

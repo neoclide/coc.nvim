@@ -260,7 +260,11 @@ endfunction
 
 " Close with timer
 function! coc#notify#close(winid) abort
-  if !coc#float#valid(a:winid)
+  if !coc#float#valid(a:winid) || coc#window#get_var(a:winid, 'closing', 0) == 1
+    return
+  endif
+  if !coc#window#visible(a:winid)
+    call coc#float#close(a:winid)
     return
   endif
   let row = coc#window#get_var(a:winid, 'top')

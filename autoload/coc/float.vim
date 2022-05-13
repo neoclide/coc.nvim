@@ -857,25 +857,19 @@ function! coc#float#close_related(winid, ...) abort
   if !coc#float#valid(a:winid)
     return
   endif
-  let timer = coc#window#get_var(a:winid, 'timer')
+  let timer = coc#window#get_var(a:winid, 'timer', 0)
   if timer
     call timer_stop(timer)
   endif
   let kind = get(a:, 1, '')
-  let winids = coc#window#get_var(a:winid, 'related')
-  if type(winids) != v:t_list
-    return
-  endif
+  let winids = coc#window#get_var(a:winid, 'related', [])
   for id in winids
     if s:is_vim
       " vim doesn't throw
       noa call popup_close(id)
     else
-      if kind && coc#window#get_var(id, 'kind') ==# kind
-        return
-      endif
-      if empty(kind) && nvim_win_is_valid(id)
-        noa call nvim_win_close(id, 1)
+      if empty(kind) || coc#window#get_var(id, 'kind', '') ==# kind
+        silent! noa call nvim_win_close(id, 1)
       endif
     endif
   endfor

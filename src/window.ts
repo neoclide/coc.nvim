@@ -28,6 +28,7 @@ import { isWindows } from './util/platform'
 import workspace from './workspace'
 const logger = require('./util/logger')('window')
 let tab_global_id = 3000
+export type MessageKind = 'Error' | 'Warning' | 'Info'
 
 export const PROVIDER_NAMES = [
   'formatOnType',
@@ -226,7 +227,9 @@ class Window {
             resolve(selected)
           })
         })
-        await menu.show(this.dialogPreference)
+        let preferences = this.dialogPreference
+        if (option.borderhighlight) preferences.floatBorderHighlight = option.borderhighlight
+        await menu.show(preferences)
         let res = await promise
         release()
         return res
@@ -549,13 +552,8 @@ class Window {
    * @param items A set of items that will be rendered as actions in the message.
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
-  public async showInformationMessage(message: string, ...items: string[]): Promise<string | undefined>
-  public async showInformationMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
   public async showInformationMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Info') as any
-    let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
-    let idx = await this.createNotification('info', message, texts)
-    return idx == -1 ? undefined : items[idx]
+    return await this._showMessage('Info', message, items)
   }
 
   /**
@@ -566,13 +564,8 @@ class Window {
    * @param items A set of items that will be rendered as actions in the message.
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
-  public async showWarningMessage(message: string, ...items: string[]): Promise<string | undefined>
-  public async showWarningMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
   public async showWarningMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Warning') as any
-    let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
-    let idx = await this.createNotification('warning', message, texts)
-    return idx == -1 ? undefined : items[idx]
+    return await this._showMessage('Warning', message, items)
   }
 
   /**
@@ -583,10 +576,20 @@ class Window {
    * @param items A set of items that will be rendered as actions in the message.
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
-  public async showErrorMessage(message: string, ...items: string[]): Promise<string | undefined>
-  public async showErrorMessage<T extends MessageItem>(message: string, ...items: T[]): Promise<T | undefined>
   public async showErrorMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
-    if (!this.enableMessageDialog) return await this.showConfirm(message, items, 'Error') as any
+    return await this._showMessage('Error', message, items)
+  }
+
+  private async showMessagePicker<T extends MessageItem | string>(message: string, hlGroup: string, items: T[]): Promise<T | undefined> {
+    let texts = items.map(o => typeof o === 'string' ? o : o.title)
+    let res = await this.showMenuPicker(texts, { title: message.replace(/\r?\n/, ' '), borderhighlight: hlGroup })
+    if (res == -1) return undefined
+    return items[res]
+  }
+
+  private async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[]): Promise<T | undefined> {
+    if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind) as any
+    if (this.preferMenuPicker && items.length > 0) return await this.showMessagePicker(message, `Coc${kind}Float`, items)
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
     let idx = await this.createNotification('error', message, texts)
     return idx == -1 ? undefined : items[idx]
@@ -599,7 +602,7 @@ class Window {
   }
 
   // fallback for vim without dialog
-  private async showConfirm<T extends MessageItem | string>(message: string, items: T[], kind: 'Info' | 'Warning' | 'Error'): Promise<T> {
+  private async showConfirm<T extends MessageItem | string>(message: string, items: T[], kind: MessageKind): Promise<T> {
     if (!items || items.length == 0) {
       let msgType: MsgTypes = kind == 'Info' ? 'more' : kind == 'Error' ? 'error' : 'warning'
       this.showMessage(message, msgType)
@@ -635,7 +638,13 @@ class Window {
     })
     let config = workspace.getConfiguration('notification')
     let minWidth = config.get<number>('minProgressWidth', 30)
-    return await progress.show(Object.assign(this.notificationPreference, { minWidth }))
+    let promise = new Promise<R>((resolve, reject) => {
+      progress.show(Object.assign(this.notificationPreference, { minWidth })).then(shown => {
+        if (!shown) reject(new Error('Unable to create notification window.'))
+      }, reject)
+      progress.onDidFinish(resolve)
+    })
+    return await promise
   }
 
   /**
@@ -866,6 +875,12 @@ class Window {
     if (!workspace.env.dialog) return false
     let config = workspace.getConfiguration('coc.preferences')
     return config.get<boolean>('enableMessageDialog', false)
+  }
+
+  private get preferMenuPicker(): boolean {
+    if (!workspace.env.dialog) return false
+    let config = workspace.getConfiguration('notification')
+    return config.get<boolean>('preferMenuPicker', false)
   }
 
   public get messageLevel(): MessageLevel {

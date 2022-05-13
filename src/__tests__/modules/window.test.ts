@@ -5,14 +5,14 @@ import os from 'os'
 import path from 'path'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
 import events from '../../events'
+import languages from '../../languages'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { MessageLevel } from '../../types'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import languages from '../../languages'
-import commands from '../../commands'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -60,20 +60,6 @@ describe('window', () => {
       expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 6 } })
     })
 
-    it('should echo lines', async () => {
-      await window.echoLines(['a', 'b'])
-      let ch = await nvim.call('screenchar', [79, 1])
-      let s = String.fromCharCode(ch)
-      expect(s).toBe('a')
-    })
-
-    it('should echo multiple lines with truncate', async () => {
-      await window.echoLines(['a', 'b', 'd', 'e'], true)
-      let ch = await nvim.call('screenchar', [79, 1])
-      let s = String.fromCharCode(ch)
-      expect(s).toBe('a')
-    })
-
     it('should run terminal command', async () => {
       let res = await window.runTerminalCommand('ls', __dirname)
       expect(res.success).toBe(true)
@@ -85,12 +71,6 @@ describe('window', () => {
       expect(curr).toBe(bufnr)
       let buftype = await nvim.eval('&buftype')
       expect(buftype).toBe('terminal')
-    })
-
-    it('should show messages', async () => {
-      window.showMessage('error', 'error')
-      window.showMessage('warning', 'warning')
-      window.showMessage('moremsg', 'more')
     })
 
     it('should create outputChannel', () => {
@@ -233,37 +213,6 @@ describe('window', () => {
       expect(res).toEqual(['foo'])
     })
 
-    async function ensureNotification(idx: number): Promise<void> {
-      let ids = await nvim.call('coc#float#get_float_win_list')
-      expect(ids.length).toBe(1)
-      let win = nvim.createWindow(ids[0])
-      let kind = await win.getVar('kind')
-      expect(kind).toBe('notification')
-      let bufnr = await nvim.call('winbufnr', [win.id])
-      await events.fire('FloatBtnClick', [bufnr, idx])
-    }
-
-    it('should show information message', async () => {
-      let p = window.showInformationMessage('information message', 'first', 'second')
-      await ensureNotification(0)
-      let res = await p
-      expect(res).toBe('first')
-    })
-
-    it('should show warning message', async () => {
-      let p = window.showWarningMessage('warning message', 'first', 'second')
-      await ensureNotification(1)
-      let res = await p
-      expect(res).toBe('second')
-    })
-
-    it('should show error message', async () => {
-      let p = window.showErrorMessage('error message', 'first', 'second')
-      await ensureNotification(0)
-      let res = await p
-      expect(res).toBe('first')
-    })
-
     it('should throw when workspace folder not exists', async () => {
       helper.updateConfiguration('coc.preferences.rootPatterns', [])
       await nvim.command('enew')
@@ -323,6 +272,67 @@ describe('window', () => {
     })
   })
 
+  describe('window showMessage', () => {
+    async function ensureNotification(idx: number): Promise<void> {
+      let ids = await nvim.call('coc#float#get_float_win_list')
+      expect(ids.length).toBe(1)
+      let win = nvim.createWindow(ids[0])
+      let kind = await win.getVar('kind')
+      expect(kind).toBe('notification')
+      let bufnr = await nvim.call('winbufnr', [win.id])
+      await events.fire('FloatBtnClick', [bufnr, idx])
+    }
+    it('should echo lines', async () => {
+      await window.echoLines(['a', 'b'])
+      let ch = await nvim.call('screenchar', [79, 1])
+      let s = String.fromCharCode(ch)
+      expect(s).toBe('a')
+    })
+
+    it('should echo multiple lines with truncate', async () => {
+      await window.echoLines(['a', 'b', 'd', 'e'], true)
+      let ch = await nvim.call('screenchar', [79, 1])
+      let s = String.fromCharCode(ch)
+      expect(s).toBe('a')
+    })
+
+    it('should show messages', async () => {
+      window.showMessage('error', 'error')
+      window.showMessage('warning', 'warning')
+      window.showMessage('moremsg', 'more')
+    })
+
+    it('should show information message', async () => {
+      let p = window.showInformationMessage('information message', 'first', 'second')
+      await ensureNotification(0)
+      let res = await p
+      expect(res).toBe('first')
+    })
+
+    it('should show warning message', async () => {
+      let p = window.showWarningMessage('warning message', 'first', 'second')
+      await ensureNotification(1)
+      let res = await p
+      expect(res).toBe('second')
+    })
+
+    it('should show error message', async () => {
+      let p = window.showErrorMessage('error message', 'first', 'second')
+      await ensureNotification(0)
+      let res = await p
+      expect(res).toBe('first')
+    })
+
+    it('should prefer menu picker for notification message', async () => {
+      helper.updateConfiguration('notification.preferMenuPicker', true)
+      let p = window.showErrorMessage('error message', 'first', 'second')
+      await helper.waitFloat()
+      await nvim.input('1')
+      let res = await p
+      expect(res).toBe('first')
+    })
+  })
+
   describe('window notifications', () => {
     it('should show notification with options', async () => {
       let res = await window.showNotification({
@@ -340,6 +350,28 @@ describe('window', () => {
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.lines
       expect(lines[0].includes('title')).toBe(true)
+    })
+
+    it('should not show notification when no dialog support', async () => {
+      Object.assign(workspace.env, { dialog: false })
+      let res = await window.showNotification({
+        content: 'my notification',
+        title: 'title',
+      })
+      Object.assign(workspace.env, { dialog: true })
+      expect(res).toBe(false)
+    })
+
+    it('should show notification without border', async () => {
+      helper.updateConfiguration('notification.border', false)
+      let res = await window.showNotification({
+        content: 'my notification',
+        title: 'title',
+      })
+      expect(res).toBe(true)
+      let win = await helper.getFloat()
+      let height = await nvim.call('coc#float#get_height', [win.id])
+      expect(height).toBe(2)
     })
 
     it('should show progress notification', async () => {
@@ -393,17 +425,29 @@ describe('window', () => {
       expect(res).toBe(undefined)
     })
 
-    it('should cancel progress when window not shown', async () => {
+    it('should cancel progress when resolved', async () => {
       let called = 0
       let p = window.withProgress({ title: 'Process' }, () => {
         called = called + 1
         return Promise.resolve()
       })
       await p
-      await helper.wait(100)
-      let floats = await helper.getFloats()
+      let win = await helper.getFloat()
+      if (win) {
+        let res = await nvim.call('coc#window#get_var', [win.id, 'closing'])
+        expect(res).toBe(1)
+      }
       expect(called).toBe(1)
-      expect(floats.length).toBe(0)
+    })
+
+    it('should show error message when rejected', async () => {
+      let p = window.withProgress({ title: 'Process' }, () => {
+        return Promise.reject(new Error('Unable to fetch'))
+      })
+      let res = await p
+      expect(res).toBe(undefined)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline).toMatch(/Unable to fetch/)
     })
   })
 

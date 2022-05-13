@@ -402,6 +402,10 @@ export type MenuOption = {
    * Position of menu picker, default to 'cursor'
    */
   position?: 'cursor' | 'center'
+  /**
+   * Border highlight that override user configuration.
+   */
+  borderhighlight?: string
 } | string
 // }}
 

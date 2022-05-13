@@ -723,6 +723,12 @@ Dialog~
 ------------------------------------------------------------------------------
 Notification~
 							*coc-config-notification*
+
+"notification.preferMenuPicker"  			*coc-config-notification-preferMenuPicker*
+
+	Use menu picker for message notifications with actions, default
+	`false`.
+
 "notification.maxWidth"					*coc-config-notification-maxWidth*
 
 	Maximum content width of notification dialog, default to `60`.
@@ -2335,6 +2341,9 @@ coc#notify#do_action([{winid}]) 			*coc#notify#do_action()*
 
 	Invoke action for all notification windows, or particular window with
 	winid.
+
+	Use `"notification.preferMenuPicker": true` if you would like to
+	choose action on notification shown.
 
 coc#notify#copy() 					*coc#notify#copy()*
 

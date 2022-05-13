@@ -7808,6 +7808,7 @@ declare module 'coc.nvim' {
     /**
      * Reveal message with message type.
      *
+     * @deprecated Use `window.showErrorMessage`, `window.showWarningMessage` and `window.showInformationMessage` instead.
      * @param msg Message text to show.
      * @param messageType Type of message, could be `error` `warning` and `more`, default to `more`
      */
