@@ -76,6 +76,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
       SemanticTokenTypes.string,
       SemanticTokenTypes.number,
       SemanticTokenTypes.regexp,
+      SemanticTokenTypes.decorator,
       SemanticTokenTypes.operator
     ]
     capability.tokenModifiers = [
@@ -99,6 +100,8 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
     }
     capability.multilineTokenSupport = false
     capability.overlappingTokenSupport = false
+    capability.serverCancelSupport = false
+    capability.augmentsSyntaxTokens = false
     ensure(ensure(capabilities, 'workspace')!, 'semanticTokens')!.refreshSupport = true
   }
 
