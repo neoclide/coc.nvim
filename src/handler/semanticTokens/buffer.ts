@@ -375,8 +375,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     for (let [start, end] of Regions.mergeSpans(spans)) {
       if (regions.has(start, end)) continue
       let items = this.toHighlightItems(highlights, start, end)
-      regions.add(start, end)
       let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
+      if (!token.isCancellationRequested) regions.add(start, end)
       if (diff) await window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
     }
   }
