@@ -30,7 +30,8 @@ function! coc#notify#do_action(...) abort
       let actions = getwinvar(winid, 'actions', [])
       if !empty(actions)
         let items = map(copy(actions), '(v:key + 1).". ".v:val')
-        call coc#ui#quickpick('Choose action', items, {err, res -> s:on_action(err, res, winid) })
+        let msg = join(getbufline(winbufnr(winid), 1, '$'), ' ')
+        call coc#ui#quickpick(msg, items, {err, res -> s:on_action(err, res, winid) })
         break
       endif
     endif
