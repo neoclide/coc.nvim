@@ -518,8 +518,8 @@ describe('SnippetSession', () => {
     })
 
     it('should select choice placeholder', async () => {
-      let session = await createSession()
       await nvim.input('i')
+      let session = await createSession()
       await session.start('${1|one,two,three|}', defaultRange)
       let line = await nvim.line
       expect(line).toBe('one')

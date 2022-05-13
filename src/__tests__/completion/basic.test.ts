@@ -165,14 +165,24 @@ describe('completion', () => {
 
   describe('doComplete()', () => {
     it('should start completion', async () => {
+      let source: ISource = {
+        enable: true,
+        name: 'slow',
+        sourceType: SourceType.Service,
+        triggerCharacters: [],
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo' }] })
+        })
+      }
+      disposables.push(sources.addSource(source))
       let doc = await workspace.document
-      await nvim.setLine('foo football f')
+      await nvim.setLine('f')
       await doc.synchronize()
       await nvim.input('A')
+      await helper.waitFor('mode', [], 'i')
       let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
       await completion.startCompletion(option)
       await helper.waitPopup()
-      expect(completion.isActivated).toBe(true)
     })
 
     it('should deactivate on doComplete error', async () => {
