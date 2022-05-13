@@ -647,8 +647,8 @@ export class SettingMonitor {
 }
 
 // Exporting proposed protocol.
-export namespace ProposedFeatures {
-  export function createAll(_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] {
+export const ProposedFeatures = {
+  createAll: (_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] => {
     let result: (StaticFeature | DynamicFeature<any>)[] = []
     return result
   }

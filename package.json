@@ -60,8 +60,8 @@
     "coverageDirectory": "./coverage/"
   },
   "devDependencies": {
-    "@swc/core": "^1.2.136",
-    "@swc/jest": "^0.2.17",
+    "@swc/core": "^1.2.183",
+    "@swc/jest": "^0.2.21",
     "@types/cli-table": "^0.3.0",
     "@types/debounce": "^3.0.0",
     "@types/fb-watchman": "^2.0.0",

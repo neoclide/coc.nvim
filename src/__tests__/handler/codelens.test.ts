@@ -14,6 +14,7 @@ let codeLens: CodeLensHandler
 let disposables: Disposable[] = []
 let srcId: number
 
+jest.setTimeout(10000)
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
