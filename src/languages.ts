@@ -3,7 +3,7 @@ import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineValuesProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
 import CallHierarchyManager from './provider/callHierarchyManager'
 import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
@@ -30,6 +30,7 @@ import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import InlayHintManger, { InlayHintWithProvider } from './provider/inlayHintManager'
+import InlineValueManager from './provider/inlineValueManager'
 import { ExtendedCodeAction } from './types'
 import { disposeAll } from './util'
 const logger = require('./util/logger')('languages')
@@ -65,6 +66,7 @@ class Languages {
   private semanticTokensRangeManager = new SemanticTokensRangeManager()
   private linkedEditingManager = new LinkedEditingRangeManager()
   private inlayHintManager = new InlayHintManger()
+  private inlineValueManager = new InlineValueManager()
 
   public hasFormatProvider(doc: TextDocument): boolean {
     if (this.formatManager.hasProvider(doc)) {
@@ -221,6 +223,11 @@ class Languages {
       disposeAll(disposables)
       this._onDidInlayHintRefresh.fire(selector)
     })
+  }
+
+  public registerInlineValuesProvider(selector: DocumentSelector, provider: InlineValuesProvider): Disposable {
+    // TODO onDidChangeInlineValues
+    return this.inlineValueManager.register(selector, provider)
   }
 
   public registerLinkedEditingRangeProvider(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {

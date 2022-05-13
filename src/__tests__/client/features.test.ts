@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, CancellationToken } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -1181,34 +1181,34 @@ describe('Client integration', () => {
   })
 
   test('Inline Values', async () => {
-    // const providerData = client.getFeature(InlineValueRequest.method).getProvider(document)
-    // isDefined(providerData)
-    // const provider = providerData.provider
-    // const results = (await provider.provideInlineValues(document, range, { frameId: 1, stoppedLocation: range }, tokenSource.token))
-    //
-    // isArray(results, undefined, 3)
-    //
-    // for (const r of results) {
-    //  rangeEqual(r.range, 1, 2, 3, 4)
-    // }
-    //
+    const providerData = client.getFeature(InlineValueRequest.method).getProvider(document)
+    isDefined(providerData)
+    const provider = providerData.provider
+    const results = (await provider.provideInlineValues(document, range, { frameId: 1, stoppedLocation: range }, tokenSource.token))
+
+    isArray(results, undefined, 3)
+
+    for (const r of results) {
+      rangeEqual(r.range, 1, 2, 3, 4)
+    }
+
     // assert.ok(results[0] instanceof InlineValueText)
-    // assert.strictEqual((results[0] as InlineValueText).text, 'text')
-    //
+    assert.strictEqual((results[0] as InlineValueText).text, 'text')
+
     // assert.ok(results[1] instanceof InlineValueVariableLookup)
-    // assert.strictEqual((results[1] as InlineValueVariableLookup).variableName, 'variableName')
-    //
+    assert.strictEqual((results[1] as InlineValueVariableLookup).variableName, 'variableName')
+
     // assert.ok(results[2] instanceof InlineValueEvaluatableExpression)
-    // assert.strictEqual((results[2] as InlineValueEvaluatableExpression).expression, 'expression')
-    //
-    // let middlewareCalled = false
-    // middleware.provideInlineValues = (d, r, c, t, n) => {
-    //  middlewareCalled = true
-    //  return n(d, r, c, t)
-    // }
-    // await provider.provideInlineValues(document, range, { frameId: 1, stoppedLocation: range }, tokenSource.token)
-    // middleware.provideInlineValues = undefined
-    // assert.strictEqual(middlewareCalled, true)
+    assert.strictEqual((results[2] as InlineValueEvaluatableExpression).expression, 'expression')
+
+    let middlewareCalled = false
+    middleware.provideInlineValues = (d, r, c, t, n) => {
+      middlewareCalled = true
+      return n(d, r, c, t)
+    }
+    await provider.provideInlineValues(document, range, { frameId: 1, stoppedLocation: range }, tokenSource.token)
+    middleware.provideInlineValues = undefined
+    assert.strictEqual(middlewareCalled, true)
   })
 
   test('Inlay Hints', async () => {

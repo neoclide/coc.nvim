@@ -23,6 +23,7 @@ import ChildProcess = cp.ChildProcess
 import { CallHierarchyFeature } from './callHierarchy'
 import { SemanticTokensFeature } from './semanticTokens'
 import { InlayHintsFeature } from './inlayHint'
+import { InlineValueFeature } from './inlineValue'
 import { TypeHierarchyFeature } from './typeHierarchy'
 import { WorkspaceSymbolFeature } from './workspaceSymbol'
 import { LinkedEditingFeature } from './linkedEditingRange'
@@ -584,6 +585,9 @@ export class LanguageClient extends BaseLanguageClient {
     }
     if (!disabledFeatures.includes('inlayHint')) {
       this.registerFeature(new InlayHintsFeature(this))
+    }
+    if (!disabledFeatures.includes('inlineValue')) {
+      this.registerFeature(new InlineValueFeature(this))
     }
     if (!disabledFeatures.includes('typeHierarchy')) {
       this.registerFeature(new TypeHierarchyFeature(this))

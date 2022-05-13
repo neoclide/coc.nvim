@@ -1,5 +1,5 @@
 'use strict'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, LinkedEditingRanges, Location, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { InlayHint } from '../inlayHint'
@@ -901,4 +901,33 @@ export interface TypeHierarchyProvider {
    * signaled by returning `undefined` or `null`.
    */
   provideTypeHierarchySubtypes(item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]>
+}
+
+/**
+ * The inline values provider interface defines the contract between extensions and the editor's debugger inline values feature.
+ * In this contract the provider returns inline value information for a given document range
+ * and the editor shows this information in the editor at the end of lines.
+ */
+export interface InlineValuesProvider {
+
+  /**
+   * An optional event to signal that inline values have changed.
+   *
+   * @see {@link EventEmitter}
+   */
+  onDidChangeInlineValues?: Event<void> | undefined
+
+  /**
+   * Provide "inline value" information for a given document and range.
+   * The editor calls this method whenever debugging stops in the given document.
+   * The returned inline values information is rendered in the editor at the end of lines.
+   *
+   * @param document The document for which the inline values information is needed.
+   * @param viewPort The visible document range for which inline values should be computed.
+   * @param context A bag containing contextual information like the current location.
+   * @param token A cancellation token.
+   * @return An array of InlineValueDescriptors or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined` or `null`.
+   */
+  provideInlineValues(document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken): ProviderResult<InlineValue[]>
 }
