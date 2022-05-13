@@ -76,7 +76,7 @@ export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOp
             return client.handleFailedRequest(InlayHintRequest.type, token, error, [])
           }
         }
-        const middleware = client.clientOptions.middleware! as Middleware & InlayHintsMiddleware
+        const middleware = client.clientOptions.middleware!
         return middleware.provideInlayHints
           ? middleware.provideInlayHints(document, range, token, provideInlayHints)
           : provideInlayHints(document, range, token)
@@ -96,7 +96,7 @@ export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOp
             return client.handleFailedRequest(InlayHintResolveRequest.type, token, error, null)
           }
         }
-        const middleware = client.clientOptions.middleware! as Middleware & InlayHintsMiddleware
+        const middleware = client.clientOptions.middleware!
         return middleware.resolveInlayHint
           ? middleware.resolveInlayHint(hint, token, resolveInlayHint)
           : resolveInlayHint(hint, token)

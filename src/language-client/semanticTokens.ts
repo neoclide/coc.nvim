@@ -125,7 +125,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
         onDidChangeSemanticTokens: eventEmitter.event,
         provideDocumentSemanticTokens: (document, token) => {
           const client = this._client
-          const middleware = client.clientOptions.middleware! as Middleware & SemanticTokensMiddleware
+          const middleware = client.clientOptions.middleware!
           const provideDocumentSemanticTokens: DocumentSemanticsTokensSignature = (document, token) => {
             const params: SemanticTokensParams = {
               textDocument: cv.asTextDocumentIdentifier(document)
@@ -142,7 +142,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
         provideDocumentSemanticTokensEdits: hasEditProvider
           ? (document, previousResultId, token) => {
             const client = this._client
-            const middleware = client.clientOptions.middleware! as Middleware & SemanticTokensMiddleware
+            const middleware = client.clientOptions.middleware!
             const provideDocumentSemanticTokensEdits: DocumentSemanticsTokensEditsSignature = (document, previousResultId, token) => {
               const params: SemanticTokensDeltaParams = {
                 textDocument: cv.asTextDocumentIdentifier(document),
@@ -166,7 +166,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
       ? {
         provideDocumentRangeSemanticTokens: (document: TextDocument, range: Range, token: CancellationToken) => {
           const client = this._client
-          const middleware = client.clientOptions.middleware! as Middleware & SemanticTokensMiddleware
+          const middleware = client.clientOptions.middleware!
           const provideDocumentRangeSemanticTokens: DocumentRangeSemanticTokensSignature = (document, range, token) => {
             const params: SemanticTokensRangeParams = {
               textDocument: cv.asTextDocumentIdentifier(document),
