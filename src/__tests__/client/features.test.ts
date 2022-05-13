@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, CancellationToken } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -1141,43 +1141,43 @@ describe('Client integration', () => {
   })
 
   test('Type Hierarchy', async () => {
-    // const provider = client.getFeature(TypeHierarchyPrepareRequest.method).getProvider(document)
-    // isDefined(provider)
-    // const result = (await provider.prepareTypeHierarchy(document, position, tokenSource.token)) as TypeHierarchyItem[]
-    //
-    // isArray(result, TypeHierarchyItem, 1)
-    // const item = result[0]
-    //
-    // let middlewareCalled = false
-    // middleware.prepareTypeHierarchy = (d, p, t, n) => {
-    //  middlewareCalled = true
-    //  return n(d, p, t)
-    // }
-    // await provider.prepareTypeHierarchy(document, position, tokenSource.token)
-    // middleware.prepareTypeHierarchy = undefined
-    // assert.strictEqual(middlewareCalled, true)
-    //
-    // const incoming = (await provider.provideTypeHierarchySupertypes(item, tokenSource.token)) as TypeHierarchyItem[]
-    // isArray(incoming, TypeHierarchyItem, 1)
-    // middlewareCalled = false
-    // middleware.provideTypeHierarchySupertypes = (i, t, n) => {
-    //  middlewareCalled = true
-    //  return n(i, t)
-    // }
-    // await provider.provideTypeHierarchySupertypes(item, tokenSource.token)
-    // middleware.provideTypeHierarchySupertypes = undefined
-    // assert.strictEqual(middlewareCalled, true)
-    //
-    // const outgoing = (await provider.provideTypeHierarchySubtypes(item, tokenSource.token)) as TypeHierarchyItem[]
-    // isArray(outgoing, TypeHierarchyItem, 1)
-    // middlewareCalled = false
-    // middleware.provideTypeHierarchySubtypes = (i, t, n) => {
-    //  middlewareCalled = true
-    //  return n(i, t)
-    // }
-    // await provider.provideTypeHierarchySubtypes(item, tokenSource.token)
-    // middleware.provideTypeHierarchySubtypes = undefined
-    // assert.strictEqual(middlewareCalled, true)
+    const provider = client.getFeature(TypeHierarchyPrepareRequest.method).getProvider(document)
+    isDefined(provider)
+    const result = await provider.prepareTypeHierarchy(document, position, tokenSource.token)
+
+    isArray(result, undefined, 1)
+    const item = result[0]
+
+    let middlewareCalled = false
+    middleware.prepareTypeHierarchy = (d, p, t, n) => {
+      middlewareCalled = true
+      return n(d, p, t)
+    }
+    await provider.prepareTypeHierarchy(document, position, tokenSource.token)
+    middleware.prepareTypeHierarchy = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    const incoming = await provider.provideTypeHierarchySupertypes(item, tokenSource.token)
+    isArray(incoming, undefined, 1)
+    middlewareCalled = false
+    middleware.provideTypeHierarchySupertypes = (i, t, n) => {
+      middlewareCalled = true
+      return n(i, t)
+    }
+    await provider.provideTypeHierarchySupertypes(item, tokenSource.token)
+    middleware.provideTypeHierarchySupertypes = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    const outgoing = await provider.provideTypeHierarchySubtypes(item, tokenSource.token)
+    isArray(outgoing, undefined, 1)
+    middlewareCalled = false
+    middleware.provideTypeHierarchySubtypes = (i, t, n) => {
+      middlewareCalled = true
+      return n(i, t)
+    }
+    await provider.provideTypeHierarchySubtypes(item, tokenSource.token)
+    middleware.provideTypeHierarchySubtypes = undefined
+    assert.strictEqual(middlewareCalled, true)
   })
 
   test('Inline Values', async () => {
@@ -1244,7 +1244,6 @@ describe('Client integration', () => {
     const providers = client.getFeature(WorkspaceSymbolRequest.method).getProviders()
     isDefined(providers)
     assert.strictEqual(providers.length, 1)
-    console.error(providers)
     const provider = providers[0]
     const results = await provider.provideWorkspaceSymbols('', tokenSource.token)
     isArray(results, undefined, 1)

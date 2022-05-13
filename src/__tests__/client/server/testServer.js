@@ -11,7 +11,7 @@ const {
   DidCreateFilesNotification,
   DidRenameFilesNotification,
   DidDeleteFilesNotification,
-  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity
+  WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, InlayHint, InlayHintLabelPart, InlayHintKind, DocumentDiagnosticReportKind, Diagnostic, DiagnosticSeverity, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression
 } = require('vscode-languageserver-protocol')
 
 let connection = createConnection()
