@@ -1823,10 +1823,17 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       insertReplaceSupport: true,
       tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
       resolveSupport: { properties: ['documentation', 'detail', 'additionalTextEdits'] },
+      labelDetailsSupport: true,
       insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
     completion.insertTextMode = InsertTextMode.adjustIndentation
+    // TODO
+    // completion.completionList = {
+    //   itemDefaults: [
+    //     'commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode'
+    //   ]
+    // }
   }
 
   public initialize(
