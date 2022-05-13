@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, DocumentDiagnosticRequest, DocumentDiagnosticReport, FullDocumentDiagnosticReport, DocumentDiagnosticReportKind, CancellationToken } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -53,6 +53,10 @@ describe('Client integration', () => {
     if (value === undefined || value === null) {
       throw new Error(`Value is null or undefined`)
     }
+  }
+
+  function isFullDocumentDiagnosticReport(value: DocumentDiagnosticReport): asserts value is FullDocumentDiagnosticReport {
+    assert.ok(value.kind === DocumentDiagnosticReportKind.Full)
   }
 
   beforeAll(async () => {
@@ -1100,44 +1104,43 @@ describe('Client integration', () => {
   })
 
   test('Document diagnostic pull', async () => {
-    // const provider = client.getFeature(DocumentDiagnosticRequest.method)?.getProvider(document)
-    // isDefined(provider)
-    // const result: DocumentDiagnosticReport | undefined | null = (await provider.diagnostics.provideDiagnostics(document, undefined, tokenSource.token))
-    // isDefined(result)
-    // isFullDocumentDiagnosticReport(result)
-    // isArray(result.items, undefined, 1)
-    //
-    // const diag = result.items[0]
-    // rangeEqual(diag.range, 1, 1, 1, 1)
-    // assert.strictEqual(diag.message, 'diagnostic')
-    //
-    // let middlewareCalled = false
-    // (middleware as DiagnosticProviderMiddleware).provideDiagnostics = (document, previousResultId, token, next) => {
-    //  middlewareCalled = true
-    //  return next(document, previousResultId, token)
-    // }
-    // await provider.diagnostics.provideDiagnostics(document, undefined, tokenSource.token)
-    // (middleware as DiagnosticProviderMiddleware).provideDiagnostics = undefined
-    // assert.strictEqual(middlewareCalled, true)
+    const provider = client.getFeature(DocumentDiagnosticRequest.method)?.getProvider(document)
+    isDefined(provider)
+    const result = await provider.diagnostics.provideDiagnostics(document, undefined, tokenSource.token)
+    isDefined(result)
+    isFullDocumentDiagnosticReport(result)
+
+    const diag = result.items[0]
+    rangeEqual(diag.range, 1, 1, 1, 1)
+    assert.strictEqual(diag.message, 'diagnostic')
+
+    let middlewareCalled = false
+    middleware.provideDiagnostics = (document, previousResultId, token, next) => {
+      middlewareCalled = true
+      return next(document, previousResultId, token)
+    }
+    await provider.diagnostics.provideDiagnostics(document, undefined, tokenSource.token)
+    middleware.provideDiagnostics = undefined
+    assert.strictEqual(middlewareCalled, true)
   })
 
   test('Workspace diagnostic pull', async () => {
-    // const provider = client.getFeature(DocumentDiagnosticRequest.method)?.getProvider(document)
-    // isDefined(provider)
-    // isDefined(provider.diagnostics.provideWorkspaceDiagnostics)
-    // await provider.diagnostics.provideWorkspaceDiagnostics([], tokenSource.token, result => {
-    //  isDefined(result)
-    //  isArray(result.items, undefined, 1)
-    // })
-    //
-    // let middlewareCalled = false
-    // (middleware as DiagnosticProviderMiddleware).provideWorkspaceDiagnostics = (resultIds, token, reporter, next) => {
-    //  middlewareCalled = true
-    //  return next(resultIds, token, reporter)
-    // }
-    // await provider.diagnostics.provideWorkspaceDiagnostics([], tokenSource.token, () => {});
-    // (middleware as DiagnosticProviderMiddleware).provideWorkspaceDiagnostics = undefined
-    // assert.strictEqual(middlewareCalled, true)
+    const provider = client.getFeature(DocumentDiagnosticRequest.method)?.getProvider(document)
+    isDefined(provider)
+    isDefined(provider.diagnostics.provideWorkspaceDiagnostics)
+    await provider.diagnostics.provideWorkspaceDiagnostics([], tokenSource.token, result => {
+      isDefined(result)
+      isArray(result.items, undefined, 1)
+    })
+
+    let middlewareCalled = false
+    middleware.provideWorkspaceDiagnostics = (resultIds, token, reporter, next) => {
+      middlewareCalled = true
+      return next(resultIds, token, reporter)
+    }
+    await provider.diagnostics.provideWorkspaceDiagnostics([], tokenSource.token, () => {})
+    middleware.provideWorkspaceDiagnostics = undefined
+    assert.strictEqual(middlewareCalled, true)
   })
 
   test('Type Hierarchy', async () => {

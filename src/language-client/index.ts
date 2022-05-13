@@ -24,6 +24,7 @@ import { CallHierarchyFeature } from './callHierarchy'
 import { SemanticTokensFeature } from './semanticTokens'
 import { InlayHintsFeature } from './inlayHint'
 import { InlineValueFeature } from './inlineValue'
+import { DiagnosticFeature } from './diagnostic'
 import { TypeHierarchyFeature } from './typeHierarchy'
 import { WorkspaceSymbolFeature } from './workspaceSymbol'
 import { LinkedEditingFeature } from './linkedEditingRange'
@@ -588,6 +589,9 @@ export class LanguageClient extends BaseLanguageClient {
     }
     if (!disabledFeatures.includes('inlineValue')) {
       this.registerFeature(new InlineValueFeature(this))
+    }
+    if (!disabledFeatures.includes('pullDiagnostic')) {
+      this.registerFeature(new DiagnosticFeature(this))
     }
     if (!disabledFeatures.includes('typeHierarchy')) {
       this.registerFeature(new TypeHierarchyFeature(this))

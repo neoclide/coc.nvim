@@ -1,5 +1,5 @@
 'use strict'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { InlayHint } from '../inlayHint'
@@ -930,4 +930,14 @@ export interface InlineValuesProvider {
    * signaled by returning `undefined` or `null`.
    */
   provideInlineValues(document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken): ProviderResult<InlineValue[]>
+}
+
+export interface ResultReporter {
+  (chunk: WorkspaceDiagnosticReportPartialResult | null): void
+}
+
+export interface DiagnosticProvider {
+  onDidChangeDiagnostics: Event<void> | undefined
+  provideDiagnostics(document: TextDocument | URI, previousResultId: string | undefined, token: CancellationToken): ProviderResult<DocumentDiagnosticReport>
+  provideWorkspaceDiagnostics?(resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter): ProviderResult<WorkspaceDiagnosticReport>
 }
