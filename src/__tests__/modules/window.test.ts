@@ -182,25 +182,6 @@ describe('window', () => {
       expect(res).toBe(1)
     })
 
-    it('should request input', async () => {
-      let winid = await nvim.call('win_getid')
-      let p = window.requestInput('Name')
-      await helper.wait(50)
-      await nvim.input('bar<enter>')
-      let res = await p
-      let curr = await nvim.call('win_getid')
-      expect(curr).toBe(winid)
-      expect(res).toBe('bar')
-    })
-
-    it('should return null when input empty', async () => {
-      let p = window.requestInput('Name')
-      await helper.wait(30)
-      await nvim.input('<enter>')
-      let res = await p
-      expect(res).toBeNull()
-    })
-
     it('should return select items for picker', async () => {
       let curr = await nvim.call('win_getid')
       let p = window.showPickerDialog(['foo', 'bar'], 'select')
@@ -270,6 +251,62 @@ describe('window', () => {
       helper.updateConfiguration('coc.preferences.messageLevel', 'warning')
       level = window.messageLevel
       expect(level).toBe(MessageLevel.Warning)
+    })
+  })
+
+  describe('window input', () => {
+    it('should request input', async () => {
+      let winid = await nvim.call('win_getid')
+      let p = window.requestInput('Name')
+      await helper.wait(50)
+      await nvim.input('bar<enter>')
+      let res = await p
+      let curr = await nvim.call('win_getid')
+      expect(curr).toBe(winid)
+      expect(res).toBe('bar')
+    })
+
+    it('should return empty string when input empty', async () => {
+      let p = window.requestInput('Name')
+      await helper.wait(30)
+      await nvim.input('<enter>')
+      let res = await p
+      expect(res).toBe('')
+    })
+
+    it('should emit change event', async () => {
+      let input = await window.createInputBox('', '', {})
+      disposables.push(input)
+      let curr: string
+      input.onDidChange(text => {
+        curr = text
+      })
+      await nvim.input('abc')
+      await helper.waitValue((() => {
+        return curr
+      }), 'abc')
+    })
+
+    it('should not check bufnr for events', async () => {
+      let input = await window.createInputBox('', undefined, {})
+      disposables.push(input)
+      let bufnr = input.bufnr
+      let called = false
+      input.onDidChange(() => {
+        called = true
+      })
+      await events.fire('BufWinLeave', [bufnr + 1])
+      await events.fire('PromptInsert', ['', bufnr + 1])
+      await events.fire('TextChangedI', [bufnr + 1, {
+        lnum: 1,
+        col: 1,
+        line: '',
+        changedtick: 0,
+        pre: ''
+      }])
+      expect(called).toBe(false)
+      expect(input.bufnr).toBeDefined()
+      expect(input.dimension).toBeDefined()
     })
   })
 

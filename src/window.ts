@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
-import { CancellationToken, Disposable, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import channels from './core/channels'
 import { TextEditor } from './core/editors'
@@ -13,6 +13,7 @@ import events from './events'
 import languages from './languages'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
 import Highligher from './model/highligher'
+import InputBox, { InputOptions, InputPreference } from './model/input'
 import Menu, { isMenuItem, MenuItem } from './model/menu'
 import Notification, { NotificationConfig, NotificationKind, NotificationPreferences } from './model/notification'
 import Picker, { QuickPickItem } from './model/picker'
@@ -21,12 +22,12 @@ import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
 import { Env, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
-import { CONFIG_FILE_NAME, disposeAll } from './util'
+import { CONFIG_FILE_NAME } from './util'
+import { isParentFolder, sameFile } from './util/fs'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import workspace from './workspace'
-import { isParentFolder, sameFile } from './util/fs'
 const logger = require('./util/logger')('window')
 const PLUGIN_ROOT = path.dirname(__dirname)
 let tab_global_id = 3000
@@ -340,53 +341,40 @@ class Window {
    *
    * @param title Title text of prompt window.
    * @param defaultValue Default value of input, empty text by default.
+   * @param {InputOptions} option for input window
+   * @returns {Promise<string>}
    */
-  public async requestInput(title: string, defaultValue?: string): Promise<string> {
+  public async requestInput(title: string, defaultValue?: string, option?: InputOptions): Promise<string | undefined> {
     let { nvim } = this
     const preferences = workspace.getConfiguration('coc.preferences')
     if (workspace.env.dialog && preferences.get<boolean>('promptInput', true) && !isWindows) {
-      let release = await this.mutex.acquire()
-      let preferences = this.dialogPreference
-      try {
-        let opts: any = {}
-        if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
-        if (preferences.floatBorderHighlight) opts.borderhighlight = preferences.floatBorderHighlight
-        let arr = await nvim.call('coc#float#create_prompt_win', [title, defaultValue || '', opts]) as [number, number]
-        let [bufnr, winid] = arr
-        let res = await new Promise<string>(resolve => {
-          let disposables: Disposable[] = []
-          events.on('BufWinLeave', nr => {
-            if (nr == bufnr) {
-              disposeAll(disposables)
-              resolve(null)
-            }
-          }, null, disposables)
-          events.on('PromptInsert', async value => {
-            disposeAll(disposables)
-            await nvim.call('coc#float#close', [winid])
-            if (!value) {
-              this.showMessage('Empty word, canceled', 'warning')
-              resolve(null)
-            } else {
-              resolve(value)
-            }
-          }, null, disposables)
+      return await this.mutex.use(async () => {
+        let input = new InputBox(nvim, defaultValue ?? '')
+        await input.show(title, Object.assign(this.inputPreference, option ?? {}))
+        return await new Promise<string>(resolve => {
+          input.onDidFinish(text => {
+            resolve(text)
+          })
         })
-        release()
-        return res
-      } catch (e) {
-        logger.error('Error on requestInput:', e)
-        release()
-      }
+      })
     } else {
-      let res = await workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
-      nvim.command('normal! :<C-u>', true)
-      if (!res) {
-        this.showMessage('Empty word, canceled', 'warning')
-        return null
-      }
-      return res
+      return await this.mutex.use(async () => {
+        let res = await workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
+        nvim.command('normal! :<C-u>', true)
+        return res
+      })
     }
+  }
+
+  /**
+   * Creates a {@link InputBox} to let the user enter some text input.
+   *
+   * @return A new {@link InputBox}.
+   */
+  public async createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox> {
+    let input = new InputBox(this.nvim, defaultValue ?? '')
+    await input.show(title, option)
+    return input
   }
 
   /**
@@ -878,6 +866,16 @@ class Window {
       pickerButtonShortcut: config.get<boolean>('pickerButtonShortcut'),
       confirmKey: config.get<string>('confirmKey'),
       shortcutHighlight: config.get<string>('shortcutHighlight')
+    }
+  }
+
+  private get inputPreference(): InputPreference {
+    let config = workspace.getConfiguration('dialog')
+    return {
+      rounded: config.get<boolean>('rounded', true),
+      maxWidth: config.get<number>('maxWidth'),
+      highlight: config.get<string>('floatHighlight'),
+      borderhighlight: config.get<string>('floatBorderHighlight'),
     }
   }
 

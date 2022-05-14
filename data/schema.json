@@ -968,6 +968,11 @@
       "default": 80,
       "description": "Maximum width of dialog window."
     },
+    "dialog.rounded": {
+      "type": "boolean",
+      "default": true,
+      "description": "use rounded border for dialog window."
+    },
     "dialog.confirmKey": {
       "type": "string",
       "default": "<cr>",

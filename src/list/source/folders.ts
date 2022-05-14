@@ -33,6 +33,7 @@ export default class FoldList extends BasicList {
 
     this.addAction('newfile', async (item, context) => {
       let file = await window.requestInput('File name', item.label + '/')
+      if (!file) return
       let dir = path.dirname(file)
       let stat = await statAsync(dir)
       if (!stat || !stat.isDirectory()) {

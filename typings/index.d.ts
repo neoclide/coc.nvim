@@ -7752,6 +7752,72 @@ declare module 'coc.nvim' {
     position?: 'center' | 'cursor'
   }
 
+  export interface InputOptions {
+    /**
+     * Position to show input, default to 'cursor'
+     */
+    position?: 'cursor' | 'center'
+    /**
+     * Margin top editor when position is 'center'
+     */
+    marginTop?: number
+    /**
+     * Border highlight of float window/popup.
+     */
+    borderhighlight?: string
+  }
+
+  export interface InputPreference extends InputOptions {
+    /**
+     * Top, right, bottom, left border existence, default to [1,1,1,1]
+     */
+    border?: [0 | 1, 0 | 1, 0 | 1, 0 | 1]
+    /**
+     * Rounded border, default to true.
+     */
+    rounded?: boolean
+    /**
+     * Minimal window width.
+     */
+    minWidth?: number
+    /**
+     * Maximum window width.
+     */
+    maxWidth?: number
+  }
+
+  export interface InputDimension {
+    readonly width: number
+    readonly height: number
+    /**
+     * 0 based screen row
+     */
+    readonly row: number
+    /**
+     * O based screen col
+     */
+    readonly col: number
+  }
+
+  export interface InputBox {
+    /**
+     * Dimension of float window/popup
+     */
+    readonly dimension: InputDimension
+    /**
+     * Buffer number of float window/popup
+     */
+    readonly bufnr: number
+    /**
+     * An event signaling when the value has changed.
+     */
+    readonly onDidChange: Event<string>
+    /**
+     * An event signaling input finished, emit input value or null when canceled.
+     */
+    readonly onDidFinish: Event<string | null>
+  }
+
   export namespace window {
     /**
      * The currently active editor or `undefined`. The active editor is the one
@@ -7877,12 +7943,22 @@ declare module 'coc.nvim' {
     export function showDialog(config: DialogConfig): Promise<Dialog | null>
 
     /**
-     * Request input from user
+     * Request input from user, throw error when float window can't be created.
      *
      * @param title Title text of prompt window.
      * @param defaultValue Default value of input, empty text by default.
+     * @param {InputOptions} option for input window, other preferences are read from user configuration.
      */
-    export function requestInput(title: string, defaultValue?: string): Promise<string>
+    export function requestInput(title: string, defaultValue?: string, option?: InputOptions): Promise<string>
+
+    /**
+     * Creates a {@link InputBox} to let the user enter some text input.
+     * Throw error when float window can't be created.
+     * Use `workspace.env.dialog` to check if float window can be created.
+     *
+     * @return A new {@link InputBox}.
+     */
+    export function createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox>
 
     /**
      * Create statusbar item that would be included in `g:coc_status`.

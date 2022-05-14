@@ -44,7 +44,7 @@ export default class Rename {
     let token = (new CancellationTokenSource()).token
     let res = await languages.prepareRename(doc.textDocument, position, token)
     if (res === false) {
-      window.showMessage('Invalid position for rename', 'warning')
+      void window.showWarningMessage('Invalid position for rename')
       return false
     }
     let curname: string
@@ -58,12 +58,9 @@ export default class Rename {
         curname = await this.nvim.eval('expand("<cword>")') as string
       }
       const config = workspace.getConfiguration('coc.preferences')
-      if (config.get<boolean>('renameFillCurrent', true)) {
-        newName = await window.requestInput('New name', curname)
-      } else {
-        newName = await window.requestInput('New name')
-      }
+      newName = await window.requestInput('New name', config.get<boolean>('renameFillCurrent', true) ? curname : undefined)
     }
+    if (newName === '') void window.showWarningMessage('Empty word, rename canceled')
     if (!newName) return false
     let edit = await languages.provideRenameEdits(doc.textDocument, position, newName, token)
     if (token.isCancellationRequested || !edit) return false
