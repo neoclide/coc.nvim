@@ -9,11 +9,6 @@ describe('converter', () => {
     return TextDocument.create('file:///1', 'css', 1, '')
   }
 
-  it('should asLanguageIds', () => {
-    let selector = ['css', { language: 'javascript' }]
-    expect(cv.asLanguageIds(selector)).toEqual(['css', 'javascript'])
-  })
-
   it('should convertToTextDocumentItem', () => {
     let doc = createDocument()
     expect(cv.convertToTextDocumentItem(doc).uri).toBe(doc.uri)
@@ -31,7 +26,7 @@ describe('converter', () => {
   })
 
   it('should asWillSaveTextDocumentParams', () => {
-    let res = cv.asWillSaveTextDocumentParams({ document: createDocument(), reason: TextDocumentSaveReason.Manual, waitUntil: () => { } })
+    let res = cv.asWillSaveTextDocumentParams({ document: createDocument(), reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
     expect(res.textDocument).toBeDefined()
     expect(res.reason).toBeDefined()
   })
@@ -46,6 +41,8 @@ describe('converter', () => {
     let res = cv.asSaveTextDocumentParams(createDocument(), true)
     expect(res.textDocument.uri).toBeDefined()
     expect(res.text).toBeDefined()
+    res = cv.asSaveTextDocumentParams(createDocument(), false)
+    expect(res.text).toBeUndefined()
   })
 
   it('should asUri', () => {

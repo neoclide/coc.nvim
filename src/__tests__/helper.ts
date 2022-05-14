@@ -8,14 +8,15 @@ import os from 'os'
 import path from 'path'
 import util from 'util'
 import { v4 as uuid } from 'uuid'
+import { Disposable } from 'vscode-languageserver-protocol'
 import attach from '../attach'
+import completion from '../completion'
 import events from '../events'
 import Document from '../model/document'
 import Plugin from '../plugin'
 import { OutputChannel, VimCompleteItem } from '../types'
 import { terminate } from '../util/processes'
 import workspace from '../workspace'
-import completion from '../completion'
 
 export interface CursorPosition {
   bufnum: number
@@ -332,7 +333,7 @@ export function rmdir(dir: string): void {
   }
 }
 
-export async function createTmpFile(content: string): Promise<string> {
+export async function createTmpFile(content: string, disposables?: Disposable[]): Promise<string> {
   let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
   if (!fs.existsSync(tmpFolder)) {
     fs.mkdirSync(tmpFolder)

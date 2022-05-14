@@ -3,22 +3,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSelector, DocumentSymbolParams, Position, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
+import { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, Position, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { TextDocumentWillSaveEvent } from '../../types'
 import { omit } from '../../util/lodash'
-
-export function asLanguageIds(documentSelector: DocumentSelector): string[] {
-  let res = documentSelector.map(filter => {
-    if (typeof filter == 'string') {
-      return filter
-    }
-    return filter.language
-  })
-  res = res.filter(s => s != null)
-  return res.length == 0 ? null : res
-}
 
 export function convertToTextDocumentItem(document: TextDocument): TextDocumentItem {
   return {
