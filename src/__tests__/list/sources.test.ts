@@ -1,6 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Emitter } from 'vscode-jsonrpc'
-import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Diagnostic, DiagnosticSeverity, Disposable, Emitter, Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import diagnosticManager from '../../diagnostic/manager'
 import events from '../../events'

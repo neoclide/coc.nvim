@@ -1,4 +1,4 @@
-import { CancellationTokenSource } from 'vscode-jsonrpc'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Chars } from '../../model/chars'
 
 describe('chars keyword option', () => {

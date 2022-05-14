@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationTokenSource } from 'vscode-jsonrpc'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'

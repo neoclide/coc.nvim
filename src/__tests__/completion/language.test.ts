@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-jsonrpc'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { CompletionItem, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable } from 'vscode-jsonrpc'
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
 import events from '../../events'
 import sources from '../../sources'

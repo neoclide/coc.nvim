@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { CancellationTokenSource } from 'vscode-jsonrpc'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'

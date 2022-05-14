@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
-import helper from '../helper'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import Menu from '../../model/menu'
-import { CancellationTokenSource } from 'vscode-jsonrpc'
+import helper from '../helper'
 
 let nvim: Neovim
 let menu: Menu

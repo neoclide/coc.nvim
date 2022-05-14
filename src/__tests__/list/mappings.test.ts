@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable } from 'vscode-jsonrpc'
 import path from 'path'
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
-import window from '../../window'
-import { ListContext, IList, ListItem, QuickfixItem } from '../../types'
-import helper from '../helper'
+import { IList, ListContext, ListItem, QuickfixItem } from '../../types'
 import { disposeAll } from '../../util/index'
+import window from '../../window'
+import helper from '../helper'
 
 class TestList extends BasicList {
   public name = 'test'

@@ -1,4 +1,4 @@
-import { CancellationToken } from 'vscode-jsonrpc'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 
 const defaultYieldTimeout = 15
 
