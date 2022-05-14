@@ -175,6 +175,7 @@ export default class Menu {
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
     if (preferences.floatBorderHighlight) opts.borderhighlight = [preferences.floatBorderHighlight]
+    if (preferences.rounded) opts.rounded = 1
     let highlights: HighlightItem[] = []
     let lines = items.map((v, i) => {
       let text: string = isMenuItem(v) ? v.text : v

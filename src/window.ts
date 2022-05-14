@@ -858,6 +858,7 @@ class Window {
   private get dialogPreference(): DialogPreferences {
     let config = workspace.getConfiguration('dialog')
     return {
+      rounded: config.get<boolean>('rounded', true),
       maxWidth: config.get<number>('maxWidth'),
       maxHeight: config.get<number>('maxHeight'),
       floatHighlight: config.get<string>('floatHighlight'),

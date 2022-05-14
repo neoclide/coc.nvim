@@ -191,6 +191,7 @@ export default class Picker {
       let shortcut = preferences.pickerButtonShortcut
       opts.buttons = ['Submit' + (shortcut ? ' <cr>' : ''), 'Cancel' + (shortcut ? ' <esc>' : '')]
     }
+    if (preferences.rounded) opts.rounded = 1
     if (preferences.confirmKey && preferences.confirmKey != '<cr>') {
       this.addKeys(preferences.confirmKey, () => {
         this._onDidClose.fire(undefined)

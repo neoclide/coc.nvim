@@ -19,6 +19,7 @@ export interface DialogButton {
 }
 
 export interface DialogPreferences {
+  rounded?: boolean
   maxWidth?: number
   maxHeight?: number
   floatHighlight?: string
@@ -100,6 +101,7 @@ export default class Dialog {
     if (highlights) opts.highlights = highlights
     if (borderhighlight) opts.borderhighlight = [borderhighlight]
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
+    if (preferences.rounded) opts.rounded = 1
     if (Array.isArray(opts.buttons)) opts.getchar = 1
     let res = await nvim.call('coc#float#create_dialog', [this.lines, opts])
     if (!res[1]) return
