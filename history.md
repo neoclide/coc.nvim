@@ -1,3 +1,8 @@
+# 2022-05-14
+
+- Add `InputOption` support to `window.requestInput`
+- Add API `window.createInputBox()`.
+
 # 2022-05-13
 
 - Notification support like VSCode https://github.com/neoclide/coc.nvim/discussions/3813

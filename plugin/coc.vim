@@ -60,7 +60,7 @@ endfunction
 function! CocPopupCallback(bufnr, arglist) abort
   if len(a:arglist) == 2
     if a:arglist[0] == 'confirm'
-      call coc#rpc#notify('PromptInsert', [a:arglist[1]])
+      call coc#rpc#notify('PromptInsert', [a:arglist[1], a:bufnr])
     elseif a:arglist[0] == 'exit'
       execute 'silent! bd! '.a:bufnr
       "call coc#rpc#notify('PromptUpdate', [a:arglist[1]])

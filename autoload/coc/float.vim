@@ -598,19 +598,8 @@ endfunction
 " Create float window for input
 function! coc#float#create_prompt_win(title, default, opts) abort
   call coc#float#close_auto_hide_wins()
-  " Calculate col
-  let curr = win_screenpos(winnr())[1] + wincol() - 2
-  let width = min([max([strdisplaywidth(a:default) + 2, s:prompt_win_width]), &columns - 2])
-  if width == &columns - 2
-    let col = 0 - curr
-  else
-    let col = curr + width <= &columns - 2 ? 0 : &columns - s:prompt_win_width
-  endif
-  let [lineIdx, colIdx] = coc#cursor#screen_pos()
-  let bufnr = 0
-  if has('nvim')
-    let bufnr = s:prompt_win_bufnr
-  else
+  let bufnr = has('nvim') ? s:prompt_win_bufnr : 0
+  if s:is_vim
     execute 'hi link CocPopupTerminal '.get(a:opts, 'highlight', 'CocFloating')
     let node =  expand(get(g:, 'coc_node_path', 'node'))
     let bufnr = term_start([node, s:root . '/bin/prompt.js', a:default], {
@@ -618,23 +607,21 @@ function! coc#float#create_prompt_win(title, default, opts) abort
           \ 'hidden': 1,
           \ 'term_finish': 'close'
           \ })
-    call term_setapi(bufnr, "Coc")
+    call term_setapi(bufnr, 'Coc')
+    call timer_start(100, { -> s:check_term_buffer(a:default, bufnr)})
   endif
-  let res = coc#float#create_float_win(0, bufnr, {
-        \ 'relative': 'cursor',
-        \ 'row': lineIdx == 0 ? 1 : 0,
-        \ 'col': colIdx == 0 ? 0 : col - 1,
-        \ 'width': width,
-        \ 'height': 1,
+  let config = s:get_prompt_dimension(a:title, a:default, a:opts)
+  let res = coc#float#create_float_win(0, bufnr, extend(config, {
         \ 'style': 'minimal',
-        \ 'border': [1,1,1,1],
+        \ 'border': get(a:opts, 'border', [1,1,1,1]),
+        \ 'rounded': get(a:opts, 'rounded', 1),
         \ 'prompt': 1,
         \ 'title': a:title,
         \ 'lines': s:is_vim ? v:null : [a:default],
         \ 'highlight': get(a:opts, 'highlight', 'CocFloating'),
         \ 'borderhighlight': [get(a:opts, 'borderhighlight', 'CocFloating')],
-        \ })
-  if empty(res) || res[0] == 0
+        \ }))
+  if empty(res)
     return
   endif
   let winid = res[0]
@@ -651,11 +638,20 @@ function! coc#float#create_prompt_win(title, default, opts) abort
     call feedkeys('A', 'in')
   endif
   call coc#util#do_autocmd('CocOpenFloatPrompt')
-  return [bufnr, winid]
+  if s:is_vim
+    let pos = popup_getpos(winid)
+    " width height row col
+    let dimension = [pos['width'], pos['height'], pos['line'], pos['col'] - 1]
+  else
+    let id = coc#float#get_related(winid, 'border')
+    let pos = nvim_win_get_position(id)
+    let dimension = [nvim_win_get_width(id), nvim_win_get_height(id), pos[0], pos[1]]
+  endif
+  return [bufnr, winid, dimension]
 endfunction
 
 function! coc#float#prompt_insert(text) abort
-  call coc#rpc#notify('PromptInsert', [a:text])
+  call coc#rpc#notify('PromptInsert', [a:text, bufnr('%')])
   return ''
 endfunction
 
@@ -1763,6 +1759,58 @@ function! s:nvim_enable_foldcolumn(border) abort
     return 0
   endif
   return 1
+endfunction
+
+" Could be center(with optional marginTop) or cursor
+function! s:get_prompt_dimension(title, default, opts) abort
+  let relative = get(a:opts, 'position', 'cursor') ==# 'cursor' ? 'cursor' : 'editor'
+  let curr = win_screenpos(winnr())[1] + wincol() - 2
+  let minWidth = get(a:opts, 'minWidth', s:prompt_win_width)
+  let width = min([max([strwidth(a:default) + 2, strwidth(a:title) + 2, minWidth]), &columns - 2])
+  if get(a:opts, 'maxWidth', 0)
+    let width = min([width, a:opts['maxWidth']])
+  endif
+  if relative ==# 'cursor'
+    let [lineIdx, colIdx] = coc#cursor#screen_pos()
+    if width == &columns - 2
+      let col = 0 - curr
+    else
+      let col = curr + width <= &columns - 2 ? 0 : curr + width - &columns + 2
+    endif
+    let config = {
+        \ 'row': lineIdx == 0 ? 1 : 0,
+        \ 'col': colIdx == 0 ? 0 : col - 1,
+        \ }
+  else
+    let marginTop = get(a:opts, 'marginTop', v:null)
+    if marginTop is v:null
+      let row = (&lines - &cmdheight - 2) / 2
+    else
+      let row = marginTop < 2 ? 1 : min([marginTop, &columns - &cmdheight])
+    endif
+    let config = {
+          \ 'col': float2nr((&columns - width) / 2),
+          \ 'row': row,
+          \ }
+  endif
+  return extend(config, {'relative': relative, 'width': width, 'height': 1})
+endfunction
+
+function! s:check_term_buffer(current, bufnr) abort
+  if bufloaded(a:bufnr)
+    let text = term_getline(a:bufnr, '.')
+    if text !=# a:current
+      let cursor = term_getcursor(a:bufnr)
+      let info = {
+          \ 'lnum': cursor[0],
+          \ 'col': cursor[1],
+          \ 'line': text ==# ' ' && cursor[1] == 1 ? '' : text,
+          \ 'changedtick': 0
+          \ }
+      call coc#rpc#notify('CocAutocmd', ['TextChangedI', a:bufnr, info])
+    endif
+    call timer_start(50, { -> s:check_term_buffer(text, a:bufnr)})
+  endif
 endfunction
 
 function! s:add_highlights(winid, config, create) abort

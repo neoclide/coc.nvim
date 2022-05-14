@@ -692,6 +692,10 @@ Dialog~
 
 	Maximum height of dialog window.
 
+"dialog.rounded" 					*coc-config-dialog-rounded*
+
+	Use rounded border for dialog window, default `true`.
+
 "dialog.confirmKey"					*coc-config-dialog-confirmKey*
 
 	Confirm key for confirm selection used by menu and picker, you can

@@ -120,11 +120,6 @@ function! coc#_hide() abort
   endif
 endfunction
 
-function! coc#_insert_space_bs() abort
-  let g:coc_disable_space_report = 1
-  call feedkeys("\<space>\<bs>", 'in')
-endfunction
-
 function! coc#_cancel(...)
   " hack for close pum
   " Use of <C-e> could cause bad insert when cursor just moved.
