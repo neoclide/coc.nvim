@@ -49,9 +49,9 @@ connection.onInitialize(params => {
   assert.deepEqual(params.capabilities.workspace.workspaceEdit.resourceOperations, [ResourceOperationKind.Create, ResourceOperationKind.Rename, ResourceOperationKind.Delete])
   assert.equal(params.capabilities.workspace.fileOperations.willCreate, true)
 
-  // let diagnosticClientCapabilities = params.capabilities.textDocument.diagnostic
-  // assert.equal(diagnosticClientCapabilities.dynamicRegistration, true)
-  // assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, false)
+  let diagnosticClientCapabilities = params.capabilities.textDocument.diagnostic
+  assert.equal(diagnosticClientCapabilities.dynamicRegistration, true)
+  assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, false)
 
   let capabilities = {
     textDocumentSync: TextDocumentSyncKind.Full,
