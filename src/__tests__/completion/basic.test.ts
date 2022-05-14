@@ -24,6 +24,10 @@ afterEach(async () => {
   await helper.reset()
 })
 
+async function triggerCompletion(source: string): Promise<void> {
+  await nvim.call('coc#start', { source })
+}
+
 describe('completion', () => {
   describe('preferences', () => {
     describe('autoTrigger', () => {
@@ -164,27 +168,6 @@ describe('completion', () => {
   })
 
   describe('doComplete()', () => {
-    it('should start completion', async () => {
-      let source: ISource = {
-        enable: true,
-        name: 'slow',
-        sourceType: SourceType.Service,
-        triggerCharacters: [],
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          resolve({ items: [{ word: 'foo' }] })
-        })
-      }
-      disposables.push(sources.addSource(source))
-      let doc = await workspace.document
-      await nvim.setLine('f')
-      await doc.synchronize()
-      await nvim.input('A')
-      await helper.waitFor('mode', [], 'i')
-      let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
-      await completion.startCompletion(option)
-      await helper.waitPopup()
-    })
-
     it('should deactivate on doComplete error', async () => {
       await helper.createDocument()
       await nvim.command(`edit +setl\\ buftype=nofile`)
@@ -612,8 +595,10 @@ describe('completion', () => {
     })
 
     it('should trigger completion if triggerAfterInsertEnter is true', async () => {
+      let doc = await workspace.document
       await nvim.setLine('foo fo')
       await nvim.input('A')
+      await doc.synchronize()
       await helper.waitPopup()
       expect(completion.isActivated).toBe(true)
     })
@@ -1102,7 +1087,6 @@ describe('completion', () => {
     beforeAll(() => {
       let source: ISource = {
         name: 'insert',
-        priority: 10,
         firstMatch: false,
         sourceType: SourceType.Native,
         triggerCharacters: ['.'],
@@ -1124,31 +1108,30 @@ describe('completion', () => {
 
     it('should keep selected text after text change', async () => {
       let doc = await workspace.document
-      let text = 'foo bar f'
-      await nvim.setLine(text)
-      await doc.synchronize()
+      await nvim.setLine('f')
       await nvim.input('A')
-      await helper.triggerCompletion('insert')
+      await doc.synchronize()
+      await triggerCompletion('insert')
       await helper.waitPopup()
       await nvim.call('nvim_select_popupmenu_item', [0, true, false, {}])
       let line = await nvim.line
-      expect(line).toBe('foo bar foo')
+      expect(line).toBe('foo')
       await nvim.exec(`
-         noa call setline('.', '${text}oobar')
-         noa call cursor(1,${text.length + 6})
+         noa call setline('.', 'foobar')
+         noa call cursor(1, 7)
          `)
       await helper.wait(50)
       let res = await helper.pumvisible()
       expect(res).toBe(false)
       line = await nvim.line
-      expect(line).toBe('foo bar foobar')
+      expect(line).toBe('foobar')
     })
 
     it('should trigger specific sources by api', async () => {
       let text = 'foo bar f'
       await nvim.setLine(text)
       await nvim.input('A')
-      await helper.triggerCompletion('insert')
+      await triggerCompletion('insert')
       await helper.waitPopup()
     })
   })
