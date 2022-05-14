@@ -285,7 +285,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     }
     let client = service.client
     client.onNotification(method, async result => {
-      await workspace.nvim.call('coc#do_notify', [id, method, result])
+      workspace.nvim.call('coc#do_notify', [id, method, result], true)
     })
   }
 
