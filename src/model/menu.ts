@@ -208,7 +208,8 @@ export default class Menu {
         this.selectCurrent()
       })
     }
-    let res = await nvim.call('coc#float#create_menu', [lines, opts]) as [number, number]
+    let res = await nvim.call('coc#dialog#create_menu', [lines, opts]) as [number, number]
+    if (!res) throw new Error('Unable to create menu window')
     nvim.command('redraw', true)
     if (this._disposed) return
     this.win = new Popup(nvim, res[0], res[1])

@@ -48,7 +48,7 @@ export default class Floating {
       opts.focusable = config.focusable === true ? 1 : 0
       if (config.shadow) opts.shadow = 1
     }
-    let res = await nvim.call('coc#float#create_pum_float', [this.winid, this.bufnr, lines, opts])
+    let res = await nvim.call('coc#dialog#create_pum_float', [this.winid, this.bufnr, lines, opts])
     nvim.redrawVim()
     if (!res || res.length == 0) return
     this.winid = res[0]

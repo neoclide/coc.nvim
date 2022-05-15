@@ -73,7 +73,7 @@ export default class InputBox implements Disposable {
   }
 
   public async show(title: string, preferences: InputPreference): Promise<boolean> {
-    let res = await this.nvim.call('coc#float#create_prompt_win', [title, this._input, preferences]) as RequestResult
+    let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, preferences]) as RequestResult
     if (!res) throw new Error('Unable to open input window')
     this._bufnr = res[0]
     this._winid = res[1]

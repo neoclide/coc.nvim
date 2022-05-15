@@ -216,12 +216,10 @@ class Window {
    */
   public async showMenuPicker(items: string[] | MenuItem[], option?: MenuOption, token?: CancellationToken): Promise<number> {
     if (workspace.env.dialog) {
-      let release = await this.mutex.acquire()
-      if (token && token.isCancellationRequested) {
-        release()
-        return -1
-      }
-      try {
+      return await this.mutex.use(async () => {
+        if (token && token.isCancellationRequested) {
+          return -1
+        }
         option = option || {}
         if (typeof option === 'string') option = { title: option }
         let menu = new Menu(this.nvim, { items, ...option }, token)
@@ -234,12 +232,8 @@ class Window {
         if (option.borderhighlight) preferences.floatBorderHighlight = option.borderhighlight
         await menu.show(preferences)
         let res = await promise
-        release()
         return res
-      } catch (e) {
-        logger.error(`Error on showMenuPicker:`, e)
-        release()
-      }
+      })
     } else {
       let release = await this.mutex.acquire()
       try {
@@ -299,15 +293,9 @@ class Window {
    * @returns Result of confirm.
    */
   public async showPrompt(title: string): Promise<boolean> {
-    let release = await this.mutex.acquire()
-    try {
-      let res = await ui.showPrompt(this.nvim, title)
-      release()
-      return res
-    } catch (e) {
-      release()
-      return false
-    }
+    return await this.mutex.use(() => {
+      return ui.showPrompt(this.nvim, title)
+    })
   }
 
   /**
@@ -320,20 +308,11 @@ class Window {
    */
   public async showDialog(config: DialogConfig): Promise<Dialog | null> {
     if (!this.checkDialog()) return null
-    let release = await this.mutex.acquire()
-    let dialog = new Dialog(this.nvim, config)
-    let disposable = dialog.onDidClose(() => {
-      disposable.dispose()
-      release()
-    })
-    try {
+    return await this.mutex.use(async () => {
+      let dialog = new Dialog(this.nvim, config)
       await dialog.show(this.dialogPreference)
-    } catch (e) {
-      release()
-      logger.error(`Error on show dialog`, e)
-      return null
-    }
-    return dialog
+      return dialog
+    })
   }
 
   /**

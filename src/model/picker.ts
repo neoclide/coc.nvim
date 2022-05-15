@@ -211,7 +211,7 @@ export default class Picker {
       lines.push(line)
     }
     if (highlights.length) opts.highlights = highlights
-    let res = await nvim.call('coc#float#create_dialog', [lines, opts]) as [number, number]
+    let res = await nvim.call('coc#dialog#create_dialog', [lines, opts]) as [number, number]
     this.win = new Popup(nvim, res[0], res[1])
     this.bufnr = res[1]
     nvim.call('coc#prompt#start_prompt', ['picker'], true)

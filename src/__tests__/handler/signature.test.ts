@@ -201,7 +201,7 @@ describe('signatureHelp', () => {
       expect(win).toBeDefined()
       let lines = await helper.getWinLines(win.id)
       expect(lines[2]).toMatch('my signature')
-      let res = await nvim.call('coc#float#cursor_relative', [win.id]) as any
+      let res = await nvim.call('GetFloatCursorRelative', [win.id]) as any
       expect(res.row).toBeLessThan(0)
     })
 

@@ -103,8 +103,8 @@ export default class Dialog {
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
     if (preferences.rounded) opts.rounded = 1
     if (Array.isArray(opts.buttons)) opts.getchar = 1
-    let res = await nvim.call('coc#float#create_dialog', [this.lines, opts])
-    if (!res[1]) return
+    let res = await nvim.call('coc#dialog#create_dialog', [this.lines, opts])
+    if (!res) throw new Error('Unable to open dialog window.')
     this.bufnr = res[1]
     nvim.command('redraw', true)
   }

@@ -20,7 +20,7 @@ export async function getCursorPosition(nvim: Neovim): Promise<Position> {
  * @returns Result of confirm.
  */
 export async function showPrompt(nvim: Neovim, title: string): Promise<boolean> {
-  let res = await nvim.callAsync('coc#float#prompt_confirm', [title])
+  let res = await nvim.callAsync('coc#dialog#prompt_confirm', [title])
   return res == 1
 }
 
