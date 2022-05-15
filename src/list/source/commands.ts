@@ -20,8 +20,8 @@ export default class CommandsList extends BasicList {
     this.addAction('run', async item => {
       let { cmd } = item.data
       await events.fire('Command', [cmd])
-      commandManager.executeCommand(cmd).logError()
-      await commandManager.addRecent(cmd)
+      await commandManager.executeCommand(cmd)
+      void commandManager.addRecent(cmd)
     })
     this.addAction('append', async item => {
       let { cmd } = item.data

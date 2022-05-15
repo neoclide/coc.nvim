@@ -11,6 +11,6 @@ declare interface Promise<T> {
  */
 Promise.prototype.logError = function <T>(this: Promise<T>): void {
   this.catch(e => {
-    require('./logger')('extensions').error(e)
+    require('./logger')('util-extensions').error(e)
   })
 }
