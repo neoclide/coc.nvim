@@ -7801,6 +7801,18 @@ declare module 'coc.nvim' {
 
   export interface InputBox {
     /**
+     * Change or get title of input box.
+     */
+    title: string
+    /**
+     * Change or get loading state of input box.
+     */
+    loading: boolean
+    /**
+     * Change or get borderhighlight of input box.
+     */
+    borderhighlight: string
+    /**
      * Dimension of float window/popup
      */
     readonly dimension: InputDimension

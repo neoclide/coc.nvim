@@ -285,6 +285,12 @@ describe('window', () => {
       await helper.waitValue((() => {
         return curr
       }), 'abc')
+      input.title = 'foo'
+      expect(input.title).toBe('foo')
+      input.loading = true
+      expect(input.loading).toBe(true)
+      input.borderhighlight = 'WarningMsg'
+      expect(input.borderhighlight).toBe('WarningMsg')
     })
 
     it('should not check bufnr for events', async () => {

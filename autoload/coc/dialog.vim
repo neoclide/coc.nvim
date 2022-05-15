@@ -4,6 +4,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:prompt_win_bufnr = 0
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
 let s:float_supported = exists('*nvim_open_win') || has('patch-8.1.1719')
+let s:frames = ['·  ', '·· ', '···', ' ··', '  ·', '   ']
 
 " Float window aside pum
 function! coc#dialog#create_pum_float(winid, bufnr, lines, config) abort
@@ -397,6 +398,89 @@ function! coc#dialog#get_config_cursor(lines, config) abort
         \ }
 endfunction
 
+function! coc#dialog#change_border_hl(winid, hlgroup) abort
+  if !hlexists(a:hlgroup)
+    return
+  endif
+  if s:is_vim
+    if coc#float#valid(a:winid)
+      call popup_setoptions(a:winid, {'borderhighlight': repeat([a:hlgroup], 4)})
+      redraw
+    endif
+  else
+    let winid = coc#float#get_related(a:winid, 'border')
+    if winid > 0
+      call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
+    endif
+  endif
+endfunction
+
+function! coc#dialog#change_title(winid, title) abort
+  if s:is_vim
+    if coc#float#valid(a:winid)
+      call popup_setoptions(a:winid, {'title': a:title})
+      redraw
+    endif
+  else
+    let winid = coc#float#get_related(a:winid, 'border')
+    if winid > 0
+      let bufnr = winbufnr(winid)
+      let line = getbufline(bufnr, 1)[0]
+      let top = strcharpart(line, 0, 1)
+            \.repeat('─', strchars(line) - 2)
+            \.strcharpart(line, strchars(line) - 1, 1)
+      if !empty(a:title)
+        let top = coc#string#compose(top, 1, a:title.' ')
+      endif
+      call nvim_buf_set_lines(bufnr, 0, 1, v:false, [top])
+    endif
+  endif
+endfunction
+
+function! coc#dialog#change_loading(winid, loading) abort
+  if coc#float#valid(a:winid)
+    let winid = coc#float#get_related(a:winid, 'loading')
+    if !a:loading && winid > 0
+      call coc#float#close(winid)
+    endif
+    if a:loading && winid == 0
+      let bufnr = s:create_loading_buf()
+      if s:is_vim
+        let pos = popup_getpos(a:winid)
+        let winid = popup_create(bufnr, {
+            \ 'line': pos['line'] + 1,
+            \ 'col': pos['col'] + pos['width'] - 4,
+            \ 'maxheight': 1,
+            \ 'maxwidth': 3,
+            \ 'zindex': 999,
+            \ 'highlight': get(popup_getoptions(a:winid), 'highlight', 'CocFloating')
+            \ })
+      else
+        let pos = nvim_win_get_position(a:winid)
+        let width = nvim_win_get_width(a:winid)
+        let opts = {
+            \ 'relative': 'editor',
+            \ 'row': pos[0],
+            \ 'col': pos[1] + width - 3,
+            \ 'focusable': v:false,
+            \ 'width': 3,
+            \ 'height': 1,
+            \ 'style': 'minimal',
+            \ }
+        if has('nvim-0.5.1')
+          let opts['zindex'] = 900
+        endif
+        let winid = nvim_open_win(bufnr, v:false, opts)
+        call setwinvar(winid, '&winhl', getwinvar(a:winid, '&winhl'))
+      endif
+      call setwinvar(winid, 'kind', 'loading')
+      call setbufvar(bufnr, 'target', a:winid)
+      call setbufvar(bufnr, 'popup', winid)
+      call coc#float#add_related(winid, a:winid)
+    endif
+  endif
+endfunction
+
 " Could be center(with optional marginTop) or cursor
 function! s:get_prompt_dimension(title, default, opts) abort
   let relative = get(a:opts, 'position', 'cursor') ==# 'cursor' ? 'cursor' : 'editor'
@@ -472,4 +556,25 @@ function! s:close_auto_hide_wins(...) abort
       call coc#float#close(id)
     endif
   endfor
+endfunction
+
+function! s:create_loading_buf() abort
+  let bufnr = coc#float#create_buf(0)
+  call s:change_loading_buf(bufnr, 0)
+  return bufnr
+endfunction
+
+function! s:change_loading_buf(bufnr, idx) abort
+  if bufloaded(a:bufnr)
+    let target = getbufvar(a:bufnr, 'target', v:null)
+    if !empty(target) && !coc#float#valid(target)
+      call coc#float#close(getbufvar(a:bufnr, 'popup'))
+      return
+    endif
+    let line = get(s:frames, a:idx, '   ')
+    call setbufline(a:bufnr, 1, line)
+    call coc#highlight#add_highlight(a:bufnr, -1, 'CocNotificationProgress', 0, 0, -1)
+    let idx = a:idx == len(s:frames) - 1 ? 0 : a:idx + 1
+    call timer_start(100, { -> s:change_loading_buf(a:bufnr, idx)})
+  endif
 endfunction

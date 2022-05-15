@@ -32,6 +32,9 @@ export default class InputBox implements Disposable {
   private _winid: number | undefined
   private _bufnr: number | undefined
   private _input: string
+  public title: string
+  public loading: boolean
+  public borderhighlight: string
   // width, height, row, col
   private _dimension: [number, number, number, number] = [0, 0, 0, 0]
   private readonly _onDidFinish = new Emitter<string>()
@@ -42,6 +45,36 @@ export default class InputBox implements Disposable {
     this._input = defaultValue
     this.disposables.push(this._onDidFinish)
     this.disposables.push(this._onDidChange)
+    let _title: string | undefined
+    Object.defineProperty(this, 'title', {
+      set: (newTitle: string) => {
+        _title = newTitle
+        if (this._winid) nvim.call('coc#dialog#change_title', [this._winid, newTitle], true)
+      },
+      get: () => {
+        return _title
+      }
+    })
+    let _loading = false
+    Object.defineProperty(this, 'loading', {
+      set: (loading: boolean) => {
+        _loading = loading
+        if (this._winid) nvim.call('coc#dialog#change_loading', [this._winid, loading], true)
+      },
+      get: () => {
+        return _loading
+      }
+    })
+    let _borderhighlight: string
+    Object.defineProperty(this, 'borderhighlight', {
+      set: (borderhighlight: string) => {
+        _borderhighlight = borderhighlight
+        if (this._winid) nvim.call('coc#dialog#change_border_hl', [this._winid, borderhighlight], true)
+      },
+      get: () => {
+        return _borderhighlight
+      }
+    })
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this._bufnr) {
         this._winid = undefined
@@ -73,6 +106,9 @@ export default class InputBox implements Disposable {
   }
 
   public async show(title: string, preferences: InputPreference): Promise<boolean> {
+    this.title = title
+    this.borderhighlight = preferences.borderhighlight ?? 'CocFloating'
+    this.loading = false
     let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, preferences]) as RequestResult
     if (!res) throw new Error('Unable to open input window')
     this._bufnr = res[0]

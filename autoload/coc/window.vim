@@ -54,8 +54,13 @@ function! coc#window#get_var(winid, name, ...) abort
     catch /E5555/
       return get(a:, 1, v:null)
     endtry
+  else
+    try
+      return coc#api#exec('win_get_var', [a:winid, a:name, get(a:, 1, v:null)])
+    catch /.*/
+      return get(a:, 1, v:null)
+    endtry
   endif
-  return coc#api#exec('win_get_var', [a:winid, a:name, get(a:, 1, v:null)])
 endfunction
 
 " Not throw like setwinvar

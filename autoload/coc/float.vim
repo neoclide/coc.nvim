@@ -486,7 +486,7 @@ function! coc#float#nvim_scrollbar(winid) abort
     endif
     call setwinvar(id, 'kind', 'scrollbar')
     call setwinvar(id, 'target_winid', a:winid)
-    call s:add_related(id, a:winid)
+    call coc#float#add_related(id, a:winid)
   endif
   call coc#float#nvim_scroll_adjust(a:winid)
   let thumb_height = max([1, float2nr(floor(height * (height + 0.0)/ch))])
@@ -895,7 +895,7 @@ function! coc#float#create_buf(bufnr, ...) abort
     call setbufvar(bufnr, '&modifiable', 1)
   endif
   let lines = get(a:, 1, v:null)
-  if type(lines) != 7
+  if type(lines) == v:t_list
     if has('nvim')
       call nvim_buf_set_lines(bufnr, 0, -1, v:false, lines)
     else
@@ -1145,7 +1145,7 @@ function! s:popup_position(config) abort
   return [a:config['row'] + 1, a:config['col'] + 1]
 endfunction
 
-function! s:add_related(winid, target) abort
+function! coc#float#add_related(winid, target) abort
   let arr = coc#window#get_var(a:target, 'related', [])
   if index(arr, a:winid) >= 0
     return
