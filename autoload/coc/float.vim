@@ -1255,6 +1255,7 @@ function! coc#float#create_dialog(lines, config) abort
   let borderhighlight = get(a:config, 'borderhighlight', [highlight])
   let opts = {
     \ 'title': title,
+    \ 'rounded': get(a:config, 'rounded', 0),
     \ 'relative': 'editor',
     \ 'border': [1,1,1,1],
     \ 'close': get(a:config, 'close', 1),
@@ -1338,6 +1339,7 @@ function! coc#float#create_menu(lines, config) abort
     \ 'borderhighlight': borderhighlight,
     \ 'maxWidth': get(a:config, 'maxWidth', 80),
     \ 'maxHeight': get(a:config, 'maxHeight', 80),
+    \ 'rounded': get(a:config, 'rounded', 0),
     \ 'border': [1, 1, 1, 1],
     \ 'highlights': get(a:config, 'highlights', []),
     \ 'relative': relative,
