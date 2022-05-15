@@ -159,6 +159,15 @@ describe('Document', () => {
       expect(range).toBeNull()
     })
 
+    it('should check has changed', async () => {
+      let doc = await workspace.document
+      expect(doc.hasChanged).toBe(false)
+      await nvim.setLine('foo bar')
+      await helper.waitValue(() => {
+        return doc.hasChanged
+      }, false)
+    })
+
     it('should get symbol ranges', async () => {
       let doc = await workspace.document
       await nvim.setLine('foo bar foo')

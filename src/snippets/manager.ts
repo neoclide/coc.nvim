@@ -88,8 +88,8 @@ export class SnippetManager {
       context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
       if (!emptyRange(range) && inserted.includes('`!p')) {
         // same behavior as Ultisnips
+        this.nvim.call('coc#cursor#move_to', [range.start.line, range.start.character], true)
         await doc.applyEdits([{ range, newText: '' }])
-        await window.moveTo(range.start)
         range.end = Position.create(range.start.line, range.start.character)
       }
     }

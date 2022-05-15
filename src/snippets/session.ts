@@ -267,7 +267,7 @@ export class SnippetSession {
     }
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let cursor = await window.getCursorPosition()
-    if (tokenSource.token.isCancellationRequested || document.dirty) return
+    if (tokenSource.token.isCancellationRequested || document.hasChanged) return
     let placeholder: CocSnippetPlaceholder
     let newText: string | undefined
     let inserted = d.getText(Range.create(range.start, end))
@@ -377,7 +377,7 @@ export class SnippetSession {
 }
 
 export function shouldCancel(document: Document, delta: Position): boolean {
-  if (document.dirty) return true
+  if (document.hasChanged) return true
   if (events.pumvisible && (delta.line != 0 || delta.character != 0)) return true
   return false
 }

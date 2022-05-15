@@ -7,6 +7,7 @@ import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
 import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
+import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
@@ -246,6 +247,11 @@ export default class Document {
     // if (this.lines === this.syncLines) return false
     // return !equals(this.lines, this.syncLines)
     return this.lines !== this.syncLines
+  }
+
+  public get hasChanged(): boolean {
+    if (!this.dirty) return false
+    return !equals(this.lines, this.syncLines)
   }
 
   private _fireContentChanges(edit?: TextEdit): void {
