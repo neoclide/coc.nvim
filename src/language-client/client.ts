@@ -1913,8 +1913,8 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
             CompletionRequest.type,
             cv.asCompletionParams(document, position, context),
             token
-          ).then(result => result, error => {
-            return client.handleFailedRequest(CompletionRequest.type, token, error, null)
+          ).then(result => result ?? [], error => {
+            return client.handleFailedRequest(CompletionRequest.type, token, error, [])
           })
         }
 
