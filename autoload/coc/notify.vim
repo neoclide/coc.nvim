@@ -182,6 +182,11 @@ function! coc#notify#create(lines, config) abort
   if s:is_vim && !empty(border)
     let col = col - 2
   endif
+  let winblend = 60
+  " Avoid animate for transparent background.
+  if get(a:config, 'winblend', 30) == 0 && empty(synIDattr(synIDtrans(hlID(get(opts, 'highlight', 'CocFloating'))), 'bg', 'gui'))
+    let winblend = 0
+  endif
   call extend(opts, {
       \ 'relative': 'editor',
       \ 'width': width,
@@ -191,7 +196,7 @@ function! coc#notify#create(lines, config) abort
       \ 'lines': lines,
       \ 'rounded': 1,
       \ 'highlights': highlights,
-      \ 'winblend': 60,
+      \ 'winblend': winblend,
       \ 'border': border,
       \ })
   let result = coc#float#create_float_win(0, 0, opts)

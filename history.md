@@ -1,3 +1,7 @@
+# 2022-05-16
+
+- Add properties `title`, `loading` & `borderhighlight` to `InputBox`
+
 # 2022-05-14
 
 - Add `InputOption` support to `window.requestInput`
