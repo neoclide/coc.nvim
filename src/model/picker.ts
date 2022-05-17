@@ -22,7 +22,6 @@ export default class Picker {
   private bufnr: number
   private win: Popup | undefined
   private picked: Set<number> = new Set()
-  private currIndex = 0
   private total: number
   private disposables: Disposable[] = []
   private keyMappings: Map<string, (character: string) => void> = new Map()
@@ -41,6 +40,10 @@ export default class Picker {
     }
     this.disposables.push(this._onDidClose)
     this.addKeymappings()
+  }
+
+  public get currIndex(): number {
+    return this.win ? this.win.currIndex : 0
   }
 
   private attachEvents(): void {
@@ -114,37 +117,24 @@ export default class Picker {
       }
       this.dispose()
     })
-    let setCursorIndex = idx => {
-      nvim.pauseNotification()
-      this.setCursor(idx)
-      this.win.refreshScrollbar()
-      nvim.command('redraw', true)
-      nvim.resumeNotification(false, true)
-    }
     this.addKeys(['j', '<down>', '<tab>', '<C-n>'], () => {
-      // next
-      let idx = this.currIndex == this.total - 1 ? 0 : this.currIndex + 1
-      setCursorIndex(idx)
+      this.win.setCursor(this.currIndex + 1, true)
     })
     this.addKeys(['k', '<up>', '<s-tab>', '<C-p>'], () => {
-      // previous
-      let idx = this.currIndex == 0 ? this.total - 1 : this.currIndex - 1
-      setCursorIndex(idx)
+      this.win.setCursor(this.currIndex - 1, true)
     })
     this.addKeys(['g'], () => {
-      setCursorIndex(0)
+      this.win.setCursor(0, true)
     })
     this.addKeys(['G'], () => {
-      setCursorIndex(this.total - 1)
+      this.win.setCursor(this.total - 1, true)
     })
     this.addKeys(' ', async () => {
       let idx = this.currIndex
       toggleSelect(idx)
       nvim.pauseNotification()
       this.changeLine(idx)
-      if (this.currIndex != this.total - 1) {
-        this.setCursor(this.currIndex + 1)
-      }
+      this.setCursor(this.currIndex + 1)
       nvim.command('redraw', true)
       await nvim.resumeNotification()
     })
@@ -194,7 +184,7 @@ export default class Picker {
     this.bufnr = res[1]
     nvim.call('coc#prompt#start_prompt', ['picker'], true)
     this.attachEvents()
-    nvim.command('redraw', true)
+    this.win.setCursor(0, true)
     return res[0]
   }
 
@@ -236,7 +226,6 @@ export default class Picker {
 
   private setCursor(index: number): void {
     if (!this.win) return
-    this.currIndex = index
     this.win.setCursor(index)
   }
 
