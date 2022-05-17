@@ -1161,7 +1161,7 @@
     },
     "list.matchHighlightGroup": {
       "type": "string",
-      "default": "Search",
+      "default": "CocSearch",
       "description": "Highlight group used for matched texts in list window."
     },
     "list.previewHighlightGroup": {

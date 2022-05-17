@@ -509,7 +509,11 @@ function! coc#util#get_data_home()
     endif
   endif
   if !isdirectory(dir)
-    call coc#float#create_notification(['creating data directory: '.dir], {'timeout': 2000})
+    call coc#notify#create(['creating data directory: '.dir], {
+          \ 'borderhighlight': 'CocInfoSign',
+          \ 'timeout': 5000,
+          \ 'kind': 'info',
+          \ })
     call mkdir(dir, "p", 0755)
   endif
   return dir

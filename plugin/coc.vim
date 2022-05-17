@@ -157,7 +157,7 @@ function! s:OpenConfig()
   let home = coc#util#get_config_home()
   if !isdirectory(home)
     echohl MoreMsg
-    echom 'Config directory "'.home.'" not exists, create? (y/n)'
+    echom 'Config directory "'.home.'" does not exist, create? (y/n)'
     echohl None
     let confirm = nr2char(getchar())
     redraw!
@@ -391,7 +391,8 @@ function! s:Hi() abort
     hi default CocStrikeThrough guifg=#989898 ctermfg=gray
   endif
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
-  hi default CocDisabled guifg=#999999 ctermfg=gray
+  hi default CocDisabled      guifg=#999999   ctermfg=gray
+  hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1

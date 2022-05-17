@@ -4,7 +4,7 @@ let s:borderchars = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌
 let s:rounded_borderchars = s:borderchars[0:3] + ['╭', '╮', '╯', '╰']
 let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '├'])
 let s:popup_list_api = exists('*popup_list')
-" Popup ids, used when popup_list() not exists
+" Popup ids, used when popup_list() doesn't exist
 let s:popup_list = []
 let s:pad_bufnr = -1
 
@@ -1007,7 +1007,7 @@ function! s:convert_config_nvim(config, create) abort
   else
     let result['width'] = float2nr(result['width'] + 1)
   endif
-  if has('nvim-0.5.0') && a:create
+  if has('nvim-0.5.1') && a:create
     let result['noautocmd'] = v:true
   endif
   let result['height'] = float2nr(result['height'])
