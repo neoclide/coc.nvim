@@ -82,8 +82,11 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string, bottom
   }
 }
 
-export async function checkFolder(dir: string, pattern: string): Promise<boolean> {
+export async function checkFolder(dir: string, pattern: string, timeout = 500): Promise<boolean> {
   return new Promise((resolve, reject) => {
+    let timer = setTimeout(() => {
+      resolve(false)
+    }, timeout)
     let find = false
     let gl = glob(pattern, {
       nosort: true,
@@ -92,14 +95,17 @@ export async function checkFolder(dir: string, pattern: string): Promise<boolean
       nodir: true,
       absolute: false
     }, err => {
+      clearTimeout(timer)
       if (err) reject(err)
     })
     gl.on('match', () => {
+      clearTimeout(timer)
       find = true
       gl.abort()
       resolve(true)
     })
     gl.on('end', () => {
+      clearTimeout(timer)
       resolve(find)
     })
   })
