@@ -1007,7 +1007,7 @@ function! s:convert_config_nvim(config, create) abort
   else
     let result['width'] = float2nr(result['width'] + 1)
   endif
-  if has('nvim-0.5.0') && a:create
+  if has('nvim-0.5.1') && a:create
     let result['noautocmd'] = v:true
   endif
   let result['height'] = float2nr(result['height'])
