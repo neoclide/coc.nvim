@@ -212,7 +212,7 @@ export default class Menu {
     if (!res) throw new Error('Unable to create menu window')
     nvim.command('redraw', true)
     if (this._disposed) return
-    this.win = new Popup(nvim, res[0], res[1])
+    this.win = new Popup(nvim, res[0], res[1], lines.length)
     this.bufnr = res[1]
     this.attachEvents()
     nvim.call('coc#prompt#start_prompt', ['menu'], true)

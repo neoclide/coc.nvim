@@ -1,4 +1,5 @@
 'use strict'
+const isVim = process.env.VIM_NODE_RPC == '1'
 import { Neovim } from '@chemzqm/neovim'
 import Notification, { NotificationPreferences } from './notification'
 import { CancellationToken, CancellationTokenSource, Event, Emitter } from 'vscode-languageserver-protocol'

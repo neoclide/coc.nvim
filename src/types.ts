@@ -435,6 +435,47 @@ export interface QuickfixItem {
   valid?: boolean
   nr?: number
 }
+
+/**
+ * Options to configure the behavior of the quick pick UI.
+ */
+export interface QuickPickOptions {
+
+  /**
+   * An optional string that represents the title of the quick pick.
+   */
+  title?: string
+
+  /**
+   * An optional flag to include the description when filtering the picks.
+   */
+  matchOnDescription?: boolean
+
+  /**
+   * An optional flag to make the picker accept multiple selections, if true the result is an array of picks.
+   */
+  canPickMany?: boolean
+}
+
+/**
+ * Represents an item that can be selected from
+ * a list of items.
+ */
+export interface QuickPickItem {
+  /**
+   * A human-readable string which is rendered prominent
+   */
+  label: string
+  /**
+   * A human-readable string which is rendered less prominent in the same line
+   */
+  description?: string
+
+  /**
+   * Optional flag indicating if this item is picked initially.
+   */
+  picked?: boolean
+}
 // }}
 
 // Enums{{

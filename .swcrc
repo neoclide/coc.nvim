@@ -1,5 +1,8 @@
 {
   "sourceMaps": false,
+  "module": {
+    "type": "es6"
+  },
   "jsc": {
     "parser": {
       "syntax": "typescript",

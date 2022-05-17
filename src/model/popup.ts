@@ -6,10 +6,17 @@ const isVim = process.env.VIM_NODE_RPC == '1'
  * More methods for float window/popup
  */
 export default class Popup {
+  private _currIndex = 0
   constructor(
     private nvim: Neovim,
     public readonly winid,
-    public readonly bufnr) {
+    public readonly bufnr,
+    public linecount: number
+  ) {
+  }
+
+  public get currIndex(): number {
+    return this._currIndex
   }
 
   public get valid(): Promise<boolean> {
@@ -80,15 +87,18 @@ export default class Popup {
   /**
    * Move cursor and highlight.
    */
-  public setCursor(index: number): void {
-    let { nvim, bufnr, winid } = this
-    if (isVim) {
-      nvim.call('win_execute', [winid, `exe ${index + 1}`], true)
-    } else {
-      let win = nvim.createWindow(winid)
-      win.notify('nvim_win_set_cursor', [[index + 1, 0]])
-      nvim.command(`sign unplace 6 buffer=${bufnr}`, true)
-      nvim.command(`sign place 6 line=${index + 1} name=CocCurrentLine buffer=${bufnr}`, true)
+  public setCursor(index: number, redraw = false): void {
+    let { nvim, bufnr, winid, linecount } = this
+    if (index < 0) {
+      index = 0
+    } else if (index > linecount - 1) {
+      index = linecount - 1
+    }
+    this._currIndex = index
+    nvim.call('coc#dialog#set_cursor', [winid, bufnr, index + 1], true)
+    if (redraw) {
+      this.refreshScrollbar()
+      nvim.command('redraw', true)
     }
   }
 }

@@ -89,6 +89,7 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "^5.7.9",
+    "@chemzqm/string-width": "^5.1.2",
     "ansi-styles": "^5.0.0",
     "bytes": "^3.1.0",
     "cli-table": "^0.3.4",
@@ -108,8 +109,7 @@
     "marked": "^4.0.12",
     "minimatch": "^3.0.4",
     "semver": "^7.3.2",
-    "string-width": "^5.1.2",
-    "strip-ansi": "^7.0.1",
+    "strip-ansi": "^6.0.0",
     "tar": "^6.1.9",
     "tslib": "^2.0.3",
     "unidecode": "^0.1.8",

@@ -16,12 +16,13 @@ import Highligher from './model/highligher'
 import InputBox, { InputOptions, InputPreference } from './model/input'
 import Menu, { isMenuItem, MenuItem } from './model/menu'
 import Notification, { NotificationConfig, NotificationKind, NotificationPreferences } from './model/notification'
-import Picker, { QuickPickItem } from './model/picker'
+import Picker from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
+import QuickPick, { QuickPickConfig } from './model/quickpick'
 import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
-import { Env, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
+import { Env, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, ScreenPosition, StatusItemOption, TerminalResult, QuickPickOptions } from './types'
 import { CONFIG_FILE_NAME } from './util'
 import { isParentFolder, sameFile } from './util/fs'
 import { Mutex } from './util/mutex'
@@ -32,6 +33,7 @@ const logger = require('./util/logger')('window')
 const PLUGIN_ROOT = path.dirname(__dirname)
 let tab_global_id = 3000
 export type MessageKind = 'Error' | 'Warning' | 'Info'
+export type Item = QuickPickItem | string
 
 export const PROVIDER_NAMES = [
   'formatOnType',
@@ -74,7 +76,7 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
 }
 
 class Window {
-  private mutex = new Mutex()
+  public mutex = new Mutex()
   private tabIds: number[] = []
   private statusLine: StatusLine | undefined
   private terminalManager: Terminals = new Terminals()
@@ -196,13 +198,61 @@ class Window {
   /**
    * Show quickpick for single item, use `window.menuPick` for menu at current current position.
    *
-   * @deprecated Use 'window.showMenuPicker()' instead.
+   * @deprecated Use 'window.showMenuPicker()' or `window.showQuickPick` instead.
    * @param items Label list.
    * @param placeholder Prompt text, default to 'choose by number'.
    * @returns Index of selected item, or -1 when canceled.
    */
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
     return await this.showMenuPicker(items, { title: placeholder, position: 'center' })
+  }
+
+  /**
+   * Shows a selection list.
+   */
+  public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options?: QuickPickOptions, token: CancellationToken = CancellationToken.None): Promise<Item | Item[] | undefined> {
+    if (!this.checkDialog()) return undefined
+    options = options || {}
+    const items = await Promise.resolve(itemsOrItemsPromise)
+    let isText = items.some(s => typeof s === 'string')
+    if (token.isCancellationRequested) return undefined
+    return await this.mutex.use(() => {
+      return new Promise<Item | Item[] | undefined>((resolve, reject) => {
+        if (token.isCancellationRequested) return resolve(undefined)
+        let quickpick = new QuickPick<QuickPickItem>(this.nvim, {
+          items: items.map(o => typeof o === 'string' ? { label: o } : o),
+          title: options.title ?? '',
+          canSelectMany: options.canPickMany
+        })
+        quickpick.matchOnDescription = options.matchOnDescription
+        quickpick.onDidFinish(items => {
+          if (items == null) return resolve(undefined)
+          let arr = isText ? items.map(o => o.label) : items
+          if (options.canPickMany) return resolve(arr)
+          resolve(arr[0])
+        })
+        quickpick.show(this.dialogPreference).catch(reject)
+      })
+    })
+  }
+
+  /**
+   * Creates a {@link QuickPick} to let the user pick an item or items from a
+   * list of items of type T.
+   *
+   * Note that in many cases the more convenient {@link window.showQuickPick}
+   * is easier to use. {@link window.createQuickPick} should be used
+   * when {@link window.showQuickPick} does not offer the required flexibility.
+   *
+   * @return A new {@link QuickPick}.
+   */
+  public async createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T>): Promise<QuickPick<T>> {
+    if (!this.checkDialog()) return undefined
+    return await this.mutex.use(async () => {
+      let quickpick = new QuickPick<T>(this.nvim, config)
+      await quickpick.show(this.dialogPreference)
+      return quickpick
+    })
   }
 
   /**
@@ -346,13 +396,13 @@ class Window {
   }
 
   /**
-   * Creates a {@link InputBox} to let the user enter some text input.
+   * Creates and show a {@link InputBox} to let the user enter some text input.
    *
    * @return A new {@link InputBox}.
    */
   public async createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox> {
     let input = new InputBox(this.nvim, defaultValue ?? '')
-    await input.show(title, option)
+    await input.show(title, Object.assign(this.inputPreference, option))
     return input
   }
 
@@ -484,12 +534,10 @@ class Window {
   public async showPickerDialog<T extends QuickPickItem>(items: T[], title: string, token?: CancellationToken): Promise<T[] | undefined>
   public async showPickerDialog(items: any, title: string, token?: CancellationToken): Promise<any | undefined> {
     if (!this.checkDialog()) return undefined
-    let release = await this.mutex.acquire()
-    if (token && token.isCancellationRequested) {
-      release()
-      return undefined
-    }
-    try {
+    return await this.mutex.use(async () => {
+      if (token && token.isCancellationRequested) {
+        return undefined
+      }
       let useString = typeof items[0] === 'string'
       let picker = new Picker(this.nvim, {
         title,
@@ -505,12 +553,8 @@ class Window {
       await picker.show(this.dialogPreference)
       let picked = await promise
       let res = picked == undefined ? undefined : items.filter((_, i) => picked.includes(i))
-      release()
       return res
-    } catch (e) {
-      logger.error(`Error on showPickerDialog:`, e)
-      release()
-    }
+    })
   }
 
   /**

@@ -1,6 +1,7 @@
-import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
-import Picker, { QuickPickItem } from '../../model/picker'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
+import Picker from '../../model/picker'
+import { QuickPickItem } from '../../types'
 import helper from '../helper'
 
 let nvim: Neovim

@@ -2,7 +2,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { HighlightItem } from '../types'
+import { HighlightItem, QuickPickItem } from '../types'
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
@@ -13,28 +13,6 @@ const isVim = process.env.VIM_NODE_RPC == '1'
 interface PickerConfig {
   title: string
   items: QuickPickItem[]
-}
-
-/**
- * Represents an item that can be selected from
- * a list of items.
- */
-export interface QuickPickItem {
-
-  /**
-   * A human-readable string which is rendered prominent
-   */
-  label: string
-
-  /**
-   * A human-readable string which is rendered less prominent in the same line
-   */
-  description?: string
-
-  /**
-   * Optional flag indicating if this item is picked initially.
-   */
-  picked?: boolean
 }
 
 /**
@@ -212,7 +190,7 @@ export default class Picker {
     }
     if (highlights.length) opts.highlights = highlights
     let res = await nvim.call('coc#dialog#create_dialog', [lines, opts]) as [number, number]
-    this.win = new Popup(nvim, res[0], res[1])
+    this.win = new Popup(nvim, res[0], res[1], lines.length)
     this.bufnr = res[1]
     nvim.call('coc#prompt#start_prompt', ['picker'], true)
     this.attachEvents()

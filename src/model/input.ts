@@ -14,6 +14,10 @@ export interface InputPreference {
   maxWidth?: number
   highlight?: string
   borderhighlight?: string
+  /**
+   * map list key-mappings
+   */
+  list?: boolean
 }
 
 export interface Dimension {
@@ -32,6 +36,7 @@ export default class InputBox implements Disposable {
   private _winid: number | undefined
   private _bufnr: number | undefined
   private _input: string
+  private accepted = false
   public title: string
   public loading: boolean
   public borderhighlight: string
@@ -78,13 +83,13 @@ export default class InputBox implements Disposable {
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this._bufnr) {
         this._winid = undefined
-        this._input = null
         this.dispose()
       }
     }, null, this.disposables)
     events.on('PromptInsert', (value, bufnr) => {
       if (bufnr == this._bufnr) {
         this._input = value
+        this.accepted = true
         this.dispose()
       }
     }, null, this.disposables)
@@ -105,6 +110,14 @@ export default class InputBox implements Disposable {
     return this._bufnr
   }
 
+  public get winid(): number | undefined {
+    return this._winid
+  }
+
+  public get value(): string {
+    return this._input
+  }
+
   public async show(title: string, preferences: InputPreference): Promise<boolean> {
     this.title = title
     this.borderhighlight = preferences.borderhighlight ?? 'CocFloating'
@@ -118,7 +131,7 @@ export default class InputBox implements Disposable {
   }
 
   public dispose(): void {
-    this._onDidFinish.fire(this._input)
+    this._onDidFinish.fire(this.accepted ? this._input : null)
     if (this._winid) {
       this.nvim.call('coc#float#close', [this._winid], true)
     }

@@ -54,6 +54,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       case 'InputChar':
       case 'MenuInput':
       case 'OptionSet':
+      case 'PromptKeyPress':
       case 'FloatBtnClick':
         logger.trace('Event: ', method, ...args)
         await events.fire(method, args)

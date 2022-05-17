@@ -5223,8 +5223,9 @@ declare module 'coc.nvim' {
   type InsertChangeEvents = 'TextChangedP' | 'TextChangedI'
   type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
   type WindowEvents = 'WinLeave' | 'WinEnter'
-  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet'
+  type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents | WindowEvents | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'PromptKeyPress'
   type OptionValue = string | number | boolean
+  type PromptWidowKeys = 'C-j' | 'C-k' | 'C-n' | 'C-p' | 'up' | 'down'
 
   export interface CursorPosition {
     readonly bufnr: number
@@ -5313,6 +5314,11 @@ declare module 'coc.nvim' {
      * Attach handler to float button click.
      */
     export function on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
+    /**
+     * Attach handler to keypress in prompt window.
+     * Key could only be 'C-j', 'C-k', 'C-n', 'C-p', 'up' and 'down'
+     */
+    export function on(event: 'PromptKeyPress', handler: (bufnr: number, key: PromptWidowKeys) => EventResult, thisArg?: any, disposables?: Disposable[]): Disposable
     /**
      * Fired on vim's TextChanged event.
      */
@@ -7610,6 +7616,27 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * Options to configure the behavior of the quick pick UI.
+   */
+  export interface QuickPickOptions {
+
+    /**
+     * An optional string that represents the title of the quick pick.
+     */
+    title?: string
+
+    /**
+     * An optional flag to include the description when filtering the picks.
+     */
+    matchOnDescription?: boolean
+
+    /**
+     * An optional flag to make the picker accept multiple selections, if true the result is an array of picks.
+     */
+    canPickMany?: boolean
+  }
+
+  /**
    * Represents an item that can be selected from
    * a list of items.
    */
@@ -7626,6 +7653,71 @@ declare module 'coc.nvim' {
      * Optional flag indicating if this item is picked initially.
      */
     picked?: boolean
+  }
+
+  export interface QuickPickConfig<T extends QuickPickItem> {
+    /**
+     * An optional title.
+     */
+    title?: string
+    /**
+     * Items to pick from.
+     */
+    items: readonly T[]
+    /**
+     * Initial value of the filter text.
+     */
+    value?: string
+    /**
+     * If multiple items can be selected at the same time. Defaults to false.
+     */
+    canSelectMany?: boolean
+    /**
+     * Max height of list window.
+     */
+    maxHeight?: number
+  }
+
+  export interface QuickPick<T extends QuickPickItem> {
+    /**
+     * An optional title.
+     */
+    title: string | undefined
+    /**
+     * If the UI should show a progress indicator. Defaults to false.
+     *
+     * Change this to true, e.g., while loading more data or validating
+     * user input.
+     */
+    loading: boolean
+    /**
+     * Items to pick from. This can be read and updated by the extension.
+     */
+    items: readonly T[]
+    /**
+     * Active items. This can be read and updated by the extension.
+     */
+    activeItems: readonly T[]
+    /**
+     * If the filter text should also be matched against the description of the items. Defaults to false.
+     */
+    matchOnDescription: boolean
+    /**
+     * Current input value
+     */
+    readonly value: string
+    /**
+     * An event signaling when QuickPick closed, fired with selected items or null when canceled.
+     */
+    readonly onDidFinish: Event<T[] | null>
+    /**
+     * An event signaling when the value of the filter text has changed.
+     */
+    readonly onDidChangeValue: Event<string>
+    /**
+     * An event signaling when the selected items have changed.
+     */
+    readonly onDidChangeSelection: Event<readonly T[]>
   }
 
   export interface ScreenPosition {
@@ -7762,9 +7854,13 @@ declare module 'coc.nvim' {
      */
     marginTop?: number
     /**
-     * Border highlight of float window/popup.
+     * Border highlight of float window/popup, configuration `dialog.borderhighlight` used as default.
      */
     borderhighlight?: string
+    /**
+     * Create key-mappings for quickpick list.
+     */
+    list?: boolean
   }
 
   export interface InputPreference extends InputOptions {
@@ -7773,15 +7869,15 @@ declare module 'coc.nvim' {
      */
     border?: [0 | 1, 0 | 1, 0 | 1, 0 | 1]
     /**
-     * Rounded border, default to true.
+     * Rounded border, default to true, configuration `dialog.rounded` used as default.
      */
     rounded?: boolean
     /**
-     * Minimal window width.
+     * Minimal window width, `g:coc_prompt_win_width` or 32 used as default.
      */
     minWidth?: number
     /**
-     * Maximum window width.
+     * Maximum window width, configuration `dialog.maxWidth` used as default.
      */
     maxWidth?: number
   }
@@ -7920,6 +8016,50 @@ declare module 'coc.nvim' {
     export function showQuickpick(items: string[], placeholder?: string): Promise<number>
 
     /**
+     * Shows a selection list allowing multiple selections.
+     * Throw error when 'workspace.env.dialog' is not true.
+     *
+     * @param items An array of strings, or a promise that resolves to an array of strings.
+     * @param options Configures the behavior of the selection list.
+     * @param token A token that can be used to signal cancellation.
+     * @return A promise that resolves to the selected items or `undefined`.
+     */
+    export function showQuickPick(items: readonly string[] | Thenable<readonly string[]>, options: QuickPickOptions & { canPickMany: true }, token?: CancellationToken): Thenable<string[] | undefined>
+
+    /**
+     * Shows a selection list.
+     * Throw error when 'workspace.env.dialog' is not true.
+     *
+     * @param items An array of strings, or a promise that resolves to an array of strings.
+     * @param options Configures the behavior of the selection list.
+     * @param token A token that can be used to signal cancellation.
+     * @return A promise that resolves to the selection or `undefined`.
+     */
+    export function showQuickPick(items: readonly string[] | Thenable<readonly string[]>, options?: QuickPickOptions, token?: CancellationToken): Thenable<string | undefined>
+
+    /**
+     * Shows a selection list allowing multiple selections.
+     * Throw error when 'workspace.env.dialog' is not true.
+     *
+     * @param items An array of items, or a promise that resolves to an array of items.
+     * @param options Configures the behavior of the selection list.
+     * @param token A token that can be used to signal cancellation.
+     * @return A promise that resolves to the selected items or `undefined`.
+     */
+    export function showQuickPick<T extends QuickPickItem>(items: readonly T[] | Thenable<readonly T[]>, options: QuickPickOptions & { canPickMany: true }, token?: CancellationToken): Thenable<T[] | undefined>
+
+    /**
+     * Shows a selection list.
+     * Throw error when `workspace.env.dialog` is not true.
+     *
+     * @param items An array of items, or a promise that resolves to an array of items.
+     * @param options Configures the behavior of the selection list.
+     * @param token A token that can be used to signal cancellation.
+     * @return A promise that resolves to the selected item or `undefined`.
+     */
+    export function showQuickPick<T extends QuickPickItem>(items: readonly T[] | Thenable<readonly T[]>, options?: QuickPickOptions, token?: CancellationToken): Thenable<T | undefined>
+
+    /**
      * Show menu picker at current cursor position, |inputlist()| is used as fallback.
      * Use `workspace.env.dialog` to check if the picker window/popup could work.
      *
@@ -7929,11 +8069,6 @@ declare module 'coc.nvim' {
      * @returns Selected index (0 based), -1 when canceled.
      */
     export function showMenuPicker(items: string[] | MenuItem[], option?: MenuOption | string, token?: CancellationToken): Promise<number>
-
-    /**
-     * Open local config file
-     */
-    export function openLocalConfig(): Promise<void>
 
     /**
      * Prompt user for confirm, a float/popup window would be used when possible,
@@ -7964,13 +8099,25 @@ declare module 'coc.nvim' {
     export function requestInput(title: string, defaultValue?: string, option?: InputOptions): Promise<string>
 
     /**
-     * Creates a {@link InputBox} to let the user enter some text input.
+     * Creates and show a {@link InputBox} to let the user enter some text input.
      * Throw error when float window can't be created.
      * Use `workspace.env.dialog` to check if float window can be created.
      *
      * @return A new {@link InputBox}.
      */
     export function createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox>
+
+    /**
+     * Creates and show a {@link QuickPick} to let the user pick an item or items from a
+     * list of items of type T.  Throw error when `workspace.env.dialog` is not true.
+     *
+     * Note that in many cases the more convenient {@link window.showQuickPick}
+     * is easier to use. {@link window.createQuickPick} should be used
+     * when {@link window.showQuickPick} does not offer the required flexibility.
+     *
+     * @return A new {@link QuickPick}.
+     */
+    export function createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T>): Promise<QuickPick<T>>
 
     /**
      * Create statusbar item that would be included in `g:coc_status`.
@@ -7980,6 +8127,11 @@ declare module 'coc.nvim' {
      * @return A new status bar item.
      */
     export function createStatusBarItem(priority?: number, option?: StatusItemOption): StatusBarItem
+
+    /**
+     * Open local config file
+     */
+    export function openLocalConfig(): Promise<void>
 
     /**
      * Create a new output channel
@@ -9171,7 +9323,7 @@ declare module 'coc.nvim' {
   }
 
   export interface ProvideCompletionItemsSignature {
-    (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList>
+    (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList | null>
   }
 
   export interface ResolveCompletionItemSignature {
@@ -9342,7 +9494,7 @@ declare module 'coc.nvim' {
     didSave?: NextSignature<LinesTextDocument, void>
     didClose?: NextSignature<LinesTextDocument, void>
     handleDiagnostics?: (this: void, uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void
-    provideCompletionItem?: (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature) => ProviderResult<CompletionItem[] | CompletionList>
+    provideCompletionItem?: (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature) => ProviderResult<CompletionItem[] | CompletionList | null>
     resolveCompletionItem?: (this: void, item: CompletionItem, token: CancellationToken, next: ResolveCompletionItemSignature) => ProviderResult<CompletionItem>
     provideHover?: (this: void, document: LinesTextDocument, position: Position, token: CancellationToken, next: ProvideHoverSignature) => ProviderResult<Hover>
     provideSignatureHelp?: (this: void, document: LinesTextDocument, position: Position, context: SignatureHelpContext, token: CancellationToken, next: ProvideSignatureHelpSignature) => ProviderResult<SignatureHelp>
