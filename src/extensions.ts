@@ -606,7 +606,7 @@ export class Extensions {
   }
 
   /**
-   * Activate extension, throw error if disabled or not exists
+   * Activate extension, throw error if disabled or doesn't exist.
    * Returns true if extension successfully activated.
    */
   public async activate(id): Promise<boolean> {

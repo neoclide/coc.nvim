@@ -195,7 +195,7 @@ describe('window', () => {
       expect(res).toEqual(['foo'])
     })
 
-    it('should throw when workspace folder not exists', async () => {
+    it('should throw when workspace folder does not exist', async () => {
       helper.updateConfiguration('coc.preferences.rootPatterns', [])
       await nvim.command('enew')
       let err

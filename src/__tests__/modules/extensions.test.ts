@@ -21,7 +21,7 @@ jest.setTimeout(30000)
 
 describe('extensions', () => {
 
-  it('should create root when not exists', async () => {
+  it('should create root when it does not exist', async () => {
     let root = path.join(os.tmpdir(), 'foo-bar')
     let res = extensions.checkRoot(root)
     expect(res).toBe(true)

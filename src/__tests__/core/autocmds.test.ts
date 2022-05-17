@@ -58,7 +58,7 @@ describe('setupDynamicAutocmd()', () => {
 })
 
 describe('doAutocmd()', () => {
-  it('should not throw when command id not exists', async () => {
+  it('should not throw when command id does not exist', async () => {
     await workspace.autocmds.doAutocmd(999, [])
   })
 

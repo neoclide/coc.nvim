@@ -59,7 +59,7 @@ afterEach(async () => {
 
 describe('list session', () => {
   describe('doDefaultAction()', () => {
-    it('should throw error when default action not exists', async () => {
+    it('should throw error when default action does not exist', async () => {
       labels = ['a', 'b', 'c']
       let list = new SimpleList(nvim)
       list.defaultAction = 'foo'

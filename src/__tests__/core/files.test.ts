@@ -163,7 +163,7 @@ describe('applyEdits()', () => {
     await nvim.command('silent! %bwipeout!')
   })
 
-  it('should apply edits when file not exists', async () => {
+  it('should apply edits when file does not exist', async () => {
     let filepath = path.join(__dirname, 'not_exists')
     disposables.push({
       dispose: () => {
@@ -320,7 +320,7 @@ describe('applyEdits()', () => {
 })
 
 describe('createFile()', () => {
-  it('should create file if parent folder not exists', async () => {
+  it('should create file if parent folder does not exist', async () => {
     const folder = path.join(__dirname, 'foo')
     const filepath = path.join(folder, 'bar')
     await workspace.createFile(filepath)
@@ -337,7 +337,7 @@ describe('createFile()', () => {
     expect(content).toBe('foo')
   })
 
-  it('should create file if not exists', async () => {
+  it('should create file if does not exist', async () => {
     await helper.edit()
     let filepath = path.join(__dirname, 'foo')
     await workspace.createFile(filepath, { ignoreIfExists: true })
@@ -346,7 +346,7 @@ describe('createFile()', () => {
     fs.unlinkSync(filepath)
   })
 
-  it('should create folder if not exists', async () => {
+  it('should create folder if it does not exist', async () => {
     let filepath = path.join(__dirname, 'bar/')
     await workspace.createFile(filepath)
     expect(fs.existsSync(filepath)).toBe(true)
@@ -363,7 +363,7 @@ describe('createFile()', () => {
 })
 
 describe('renameFile', () => {
-  it('should rename if file not exists', async () => {
+  it('should rename if file does not exist', async () => {
     let filepath = path.join(__dirname, 'foo')
     let newPath = path.join(__dirname, 'bar')
     await workspace.createFile(filepath)
@@ -451,7 +451,7 @@ describe('openTextDocument()', () => {
     expect(curr.uri).toBe(doc.uri)
   })
 
-  it('should throw when file not exists', async () => {
+  it('should throw when file does not exist', async () => {
     let err
     try {
       await workspace.openTextDocument('/a/b/c')

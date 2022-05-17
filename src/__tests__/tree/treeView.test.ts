@@ -600,7 +600,7 @@ describe('TreeView', () => {
   })
 
   describe('invokeActions', () => {
-    it('should show warning when resolveActions not exists', async () => {
+    it('should show warning when resolveActions does not exist', async () => {
       createTreeView(defaultDef)
       await treeView.show()
       await helper.wait(50)
@@ -877,7 +877,7 @@ describe('TreeView', () => {
   })
 
   describe('reveal()', () => {
-    it('should throw error when getParent not exists', async () => {
+    it('should throw error when getParent does not exist', async () => {
       createTreeView(defaultDef)
       provider.getParent = undefined
       await treeView.show()

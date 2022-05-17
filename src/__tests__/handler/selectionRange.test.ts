@@ -29,7 +29,7 @@ afterEach(async () => {
 
 describe('selectionRange', () => {
   describe('getSelectionRanges()', () => {
-    it('should throw error when selectionRange provider not exists', async () => {
+    it('should throw error when selectionRange provider does not exist', async () => {
       let doc = await helper.createDocument()
       await doc.synchronize()
       let err

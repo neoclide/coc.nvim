@@ -23,13 +23,13 @@ describe('Memos', () => {
     expect(res).toBe('memo')
   })
 
-  it('should get value for key not exists', async () => {
+  it('should get value for key if it does not exist', async () => {
     let memo = memos.createMemento('y')
     let res = memo.get<any>('xyz')
     expect(res).toBeUndefined()
   })
 
-  it('should use defaultValue when not exists', async () => {
+  it('should use defaultValue when it does not exist', async () => {
     let memo = memos.createMemento('y')
     let res = memo.get<any>('f.o.o', 'default')
     expect(res).toBe('default')

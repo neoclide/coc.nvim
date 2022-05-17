@@ -4,7 +4,7 @@ let s:borderchars = get(g:, 'coc_borderchars', ['─', '│', '─', '│', '┌
 let s:rounded_borderchars = s:borderchars[0:3] + ['╭', '╮', '╯', '╰']
 let s:borderjoinchars = get(g:, 'coc_border_joinchars', ['┬', '┤', '┴', '├'])
 let s:popup_list_api = exists('*popup_list')
-" Popup ids, used when popup_list() not exists
+" Popup ids, used when popup_list() doesn't exist
 let s:popup_list = []
 let s:pad_bufnr = -1
 

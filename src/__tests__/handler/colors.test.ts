@@ -167,7 +167,7 @@ describe('Colors', () => {
   })
 
   describe('hasColor()', () => {
-    it('should return false when bufnr not exists', async () => {
+    it('should return false when bufnr does not exist', async () => {
       let res = colors.hasColor(99)
       colors.clearHighlight(99)
       expect(res).toBe(false)
@@ -175,7 +175,7 @@ describe('Colors', () => {
   })
 
   describe('getColorInformation()', () => {
-    it('should return null when highlighter not exists', async () => {
+    it('should return null when highlighter does not exist', async () => {
       let res = await colors.getColorInformation(99)
       expect(res).toBe(null)
     })
@@ -192,21 +192,21 @@ describe('Colors', () => {
   })
 
   describe('hasColorAtPosition()', () => {
-    it('should return false when bufnr not exists', async () => {
+    it('should return false when bufnr does not exist', async () => {
       let res = colors.hasColorAtPosition(99, Position.create(0, 0))
       expect(res).toBe(false)
     })
   })
 
   describe('pickPresentation()', () => {
-    it('should show warning when color not exists', async () => {
+    it('should show warning when color does not exist', async () => {
       await helper.createDocument()
       await colors.pickPresentation()
       let msg = await helper.getCmdline()
       expect(msg).toMatch('Color not found')
     })
 
-    it('should not throw when presentations not exists', async () => {
+    it('should not throw when presentations do not exist', async () => {
       colorPresentations = []
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
@@ -232,7 +232,7 @@ describe('Colors', () => {
   })
 
   describe('pickColor()', () => {
-    it('should show warning when color not exists', async () => {
+    it('should show warning when color does not exist', async () => {
       await helper.createDocument()
       await colors.pickColor()
       let msg = await helper.getCmdline()

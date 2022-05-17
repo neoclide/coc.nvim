@@ -363,7 +363,7 @@ describe('fileSystemWatcher', () => {
 })
 
 describe('create FileSystemWatcherManager', () => {
-  it('should attach to exists workspace folder', async () => {
+  it('should attach to existing workspace folder', async () => {
     let workspaceFolder = new WorkspaceFolderController(configurations)
     workspaceFolder.addWorkspaceFolder(cwd, false)
     let watcherManager = new FileSystemWatcherManager(workspaceFolder, '')

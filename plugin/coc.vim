@@ -157,7 +157,7 @@ function! s:OpenConfig()
   let home = coc#util#get_config_home()
   if !isdirectory(home)
     echohl MoreMsg
-    echom 'Config directory "'.home.'" not exists, create? (y/n)'
+    echom 'Config directory "'.home.'" does not exist, create? (y/n)'
     echohl None
     let confirm = nr2char(getchar())
     redraw!

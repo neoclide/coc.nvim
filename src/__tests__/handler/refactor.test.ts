@@ -104,7 +104,7 @@ describe('refactor', () => {
   })
 
   describe('getFileRange()', () => {
-    it('should throw when range not exists', async () => {
+    it('should throw when range does not exist', async () => {
       let uri = URI.file(__filename).toString()
       let locations = [{ uri, range: Range.create(0, 0, 0, 6) }]
       let buf = await refactor.fromLocations(locations)

@@ -312,7 +312,7 @@ describe('symbols outline', () => {
       await symbols.showOutline(1)
     })
 
-    it('should not throw when provider not exists', async () => {
+    it('should not throw when provider does not exist', async () => {
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
       expect(buf).toBeDefined()
@@ -445,7 +445,7 @@ describe('symbols outline', () => {
       expect(buf).toBeUndefined()
     })
 
-    it('should not throw when outline not exists', async () => {
+    it('should not throw when outline does not exist', async () => {
       await symbols.hideOutline()
       let buf = await getOutlineBuffer()
       expect(buf).toBeUndefined()

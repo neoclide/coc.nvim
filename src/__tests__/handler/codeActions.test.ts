@@ -333,7 +333,7 @@ describe('handler codeActions', () => {
   })
 
   describe('doQuickfix', () => {
-    it('should throw when quickfix action not exists', async () => {
+    it('should throw when quickfix action does not exist', async () => {
       let err
       currActions = []
       await helper.createDocument()

@@ -117,7 +117,7 @@ describe('symbols handler', () => {
       expect(res).toBe('')
     })
 
-    it('should reset coc_current_function when symbols not exists', async () => {
+    it('should reset coc_current_function when symbols do not exist', async () => {
       let code = `class myClass {
       fun1() {
       }
@@ -149,7 +149,7 @@ describe('symbols handler', () => {
   })
 
   describe('selectSymbolRange', () => {
-    it('should show warning when no symbols exists', async () => {
+    it('should show warning when no symbols exist', async () => {
       disposables.push(languages.registerDocumentSymbolProvider(['*'], {
         provideDocumentSymbols: () => {
           return []

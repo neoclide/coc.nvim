@@ -210,7 +210,7 @@ describe('BasicDataProvider', () => {
   })
 
   describe('getParent()', () => {
-    it('should get undefined when data not exists', async () => {
+    it('should get undefined when data does not exist', async () => {
       let node = createNode('a')
       let provider = new BasicDataProvider({
         provideData: () => {
