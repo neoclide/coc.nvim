@@ -67,7 +67,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       default: {
         let exists = plugin.hasAction(method)
         if (!exists) {
-          console.error(`action "${method}" not exists`)
+          console.error(`action "${method}" does not exist`)
           return
         }
         try {

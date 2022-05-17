@@ -24,7 +24,7 @@ describe('Mru', () => {
     await mru.clean()
   })
 
-  it('should add when file not exists', async () => {
+  it('should add when file it does not exist', async () => {
     let mru = new Mru('test', root)
     await mru.clean()
     await mru.add('a')

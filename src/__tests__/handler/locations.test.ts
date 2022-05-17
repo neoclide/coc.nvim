@@ -40,7 +40,7 @@ function createLocation(name: string, sl: number, sc: number, el: number, ec: nu
 
 describe('locations', () => {
   describe('no provider', () => {
-    it('should return null when provider not exists', async () => {
+    it('should return null when provider does not exist', async () => {
       let doc = (await workspace.document).textDocument
       let pos = Position.create(0, 0)
       let tokenSource = new CancellationTokenSource()
@@ -205,12 +205,12 @@ describe('locations', () => {
   })
 
   describe('getTagList', () => {
-    it('should return null when cword not exists', async () => {
+    it('should return null when cword does not exist', async () => {
       let res = await locations.getTagList()
       expect(res).toBe(null)
     })
 
-    it('should return null when provider not exists', async () => {
+    it('should return null when provider does not exist', async () => {
       await nvim.setLine('foo')
       await nvim.command('normal! ^')
       let res = await locations.getTagList()

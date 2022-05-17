@@ -2145,7 +2145,7 @@ coc#_select_confirm()					*coc#_select_confirm()*
 	confirm the completion.
 
 	Note: for this function to work as expected, either |CompleteChanged|
-	autocmd should exists or only <C-n> and <C-p> should be used to select
+	autocmd should exist or only <C-n> and <C-p> should be used to select
 	a completion item.
 
 coc#util#api_version() 					 *coc#util#api_version()*
@@ -2402,7 +2402,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 "diagnosticRefresh" [{bufnr}] 			*CocAction('diagnosticRefresh')*
 
 	Force refresh diagnostics for special buffer with {bufnr} or all buffers
-	when {bufnr} not exists, returns `v:null` before diagnostics are shown.
+	when {bufnr} doesn't exist, returns `v:null` before diagnostics are shown.
 
 	NOTE: Will refresh in any mode.
 

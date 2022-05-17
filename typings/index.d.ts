@@ -2505,7 +2505,7 @@ declare module 'coc.nvim' {
     notify(name: string, args?: VimValue[]): void
 
     /**
-     * Retrieves scoped variable, returns null when value not exists.
+     * Retrieves scoped variable, returns null when value doesn't exist.
      */
     getVar(name: string): Promise<VimValue | null>
 
@@ -2529,17 +2529,17 @@ declare module 'coc.nvim' {
     deleteVar(name: string): void
 
     /**
-     * Retrieves a scoped option, not exists for tabpage.
+     * Retrieves a scoped option, doesn't exist for tabpage.
      */
     getOption(name: string): Promise<VimValue>
 
     /**
-     * Set scoped option by request, not exists for tabpage.
+     * Set scoped option by request, doesn't exist for tabpage.
      */
     setOption(name: string, value: VimValue): Promise<void>
 
     /**
-     * Set scoped  variable by notification, not exists for tabpage.
+     * Set scoped  variable by notification, doesn't exist for tabpage.
      */
     setOption(name: string, value: VimValue, isNotify: true): void
   }
@@ -7280,7 +7280,7 @@ declare module 'coc.nvim' {
     export function registerBufferSync<T extends BufferSyncItem>(create: (doc: Document) => T | undefined): BufferSync<T>
 
     /**
-     * Create a FileSystemWatcher instance, when watchman not exists, the
+     * Create a FileSystemWatcher instance, when watchman doesn't exist, the
      * returned FileSystemWatcher can still be used, but not work at all.
      */
     export function createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
@@ -7861,7 +7861,7 @@ declare module 'coc.nvim' {
      */
     export const terminals: readonly Terminal[]
     /**
-     * onDidChangeTerminalState not exists since we can't detect window resize on vim.
+     * onDidChangeTerminalState doesn't exist since we can't detect window resize on vim.
      */
     /**
      * Event fired after terminal created, only fired with Terminal that
@@ -7992,7 +7992,7 @@ declare module 'coc.nvim' {
     /**
      * Create a {@link TreeView} instance, call `show()` method to render.
      *
-     * @param viewId Id of the view, used as title of TreeView when title not exists.
+     * @param viewId Id of the view, used as title of TreeView when title doesn't exist.
      * @param options Options for creating the {@link TreeView}
      * @returns a {@link TreeView}.
      */
@@ -8336,7 +8336,7 @@ declare module 'coc.nvim' {
 
     /**
      * The absolute directory path for extension to download persist data.
-     * The directory could be not exists.
+     * The directory might not exist.
      */
     storagePath: string
 
@@ -8453,7 +8453,7 @@ declare module 'coc.nvim' {
      */
     spans: [number, number][]
     /**
-     * `list.matchHighlightGroup` is used when not exists.
+     * `list.matchHighlightGroup` is used when it doesn't exist.
      */
     hlGroup?: string
   }

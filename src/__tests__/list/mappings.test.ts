@@ -283,10 +283,10 @@ describe('doAction()', () => {
     let fn = async () => {
       await mappings.doAction('foo:bar')
     }
-    await expect(fn()).rejects.toThrow(/not exists/)
+    await expect(fn()).rejects.toThrow(/doesn't exist/)
   })
 
-  it('should not throw when session not exists', async () => {
+  it('should not throw when session does not exist', async () => {
     let mappings = manager.mappings
     await mappings.doAction('do:selectall')
     await mappings.doAction('do:help')
@@ -298,7 +298,7 @@ describe('doAction()', () => {
     await mappings.doAction('do:refresh')
   })
 
-  it('should not throw when action name not exists', async () => {
+  it('should not throw when action name does not exist', async () => {
     await helper.mockFunction('MyExpr', '')
     let mappings = manager.mappings
     await mappings.doAction('expr', 'MyExpr')

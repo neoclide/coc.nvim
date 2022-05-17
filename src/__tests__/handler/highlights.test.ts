@@ -64,7 +64,7 @@ describe('document highlights', () => {
     }))
   }
 
-  it('should return null when highlights provide not exists', async () => {
+  it('should return null when highlights provide does not exist', async () => {
     let doc = await helper.createDocument()
     let res = await highlights.getHighlights(doc, Position.create(0, 0))
     expect(res).toBeNull()

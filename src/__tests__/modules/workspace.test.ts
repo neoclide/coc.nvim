@@ -136,7 +136,7 @@ describe('workspace methods', () => {
     })
   })
 
-  it('should get format options when uri not exists', async () => {
+  it('should get format options when uri does not exist', async () => {
     let uri = URI.file('/tmp/foo').toString()
     let opts = await workspace.getFormatOptions(uri)
     expect(opts.insertSpaces).toBe(true)
@@ -253,7 +253,7 @@ describe('workspace methods', () => {
     expect(res).toBeTruthy()
   })
 
-  it('should not resolve module if not exists', async () => {
+  it('should not resolve module if it does not exist', async () => {
     let res = await workspace.resolveModule('foo')
     res = await workspace.resolveModule('foo')
     expect(res).toBeFalsy()

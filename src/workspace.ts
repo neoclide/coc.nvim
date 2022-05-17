@@ -314,7 +314,7 @@ export class Workspace implements IWorkspace {
 
   /**
    * Get attached document by uri or bufnr.
-   * Throw error when document not exists or not attached.
+   * Throw error when document doesn't exist or isn't attached.
    */
   public getAttachedDocument(uri: number | string): Document {
     let doc = this.getDocument(uri)

@@ -40,7 +40,7 @@ describe('fs', () => {
       fs.unlinkSync(dest)
     })
 
-    it('should throw when file not exists', async () => {
+    it('should throw when file does not exist', async () => {
       let err
       try {
         await renameAsync('/foo/bar', '/a')
@@ -52,7 +52,7 @@ describe('fs', () => {
   })
 
   describe('getFileLineCount', () => {
-    it('should throw when file not exists', async () => {
+    it('should throw when file does not exist', async () => {
       let err
       try {
         await getFileLineCount('/foo/bar')
@@ -75,7 +75,7 @@ describe('fs', () => {
       expect(res).toBeDefined()
     })
 
-    it('should throw when file not exists', async () => {
+    it('should throw when file does not exist', async () => {
       const fn = async () => {
         await readFileLine(__filename + 'fooobar', 1)
       }
@@ -84,7 +84,7 @@ describe('fs', () => {
   })
 
   describe('readFileLines', () => {
-    it('should throw when file not exists', async () => {
+    it('should throw when file does not exist', async () => {
       const fn = async () => {
         await readFileLines(__filename + 'fooobar', 0, 3)
       }

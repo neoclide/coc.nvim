@@ -46,7 +46,7 @@ describe('Workspace handler', () => {
   })
 
   describe('doKeymap()', () => {
-    it('should return default value when key mapping not exists', async () => {
+    it('should return default value when key mapping does not exist', async () => {
       let res = await handler.doKeymap('not_exists', '', '<C-a')
       expect(res).toBe('')
     })

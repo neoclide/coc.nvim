@@ -323,7 +323,7 @@ describe('list', () => {
       expect(msg).toMatch('Invalid list option')
     })
 
-    it('should show error for option not exists', async () => {
+    it('should show error for option that does not exist', async () => {
       manager.parseArgs(['-xyz', 'location'])
       let msg = await helper.getCmdline()
       expect(msg).toMatch('Invalid option')

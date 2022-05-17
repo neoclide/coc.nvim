@@ -36,7 +36,7 @@ function createCallItem(name: string, kind: SymbolKind, uri: string, range: Rang
 }
 
 describe('CallHierarchy', () => {
-  it('should throw for when provider not exists', async () => {
+  it('should throw for when provider does not exist', async () => {
     let err
     try {
       await callHierarchy.getIncoming()
@@ -89,7 +89,7 @@ describe('CallHierarchy', () => {
     expect(res.length).toBe(1)
   })
 
-  it('should show message when provider not exists', async () => {
+  it('should show message when provider does not exist', async () => {
     await callHierarchy.showCallHierarchyTree('incoming')
     let buf = await nvim.buffer
     let lines = await buf.lines

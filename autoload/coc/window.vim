@@ -1,7 +1,7 @@
 let g:coc_max_treeview_width = get(g:, 'coc_max_treeview_width', 40)
 let s:is_vim = !has('nvim')
 
-" Get tabpagenr of winid, return -1 if window not exists
+" Get tabpagenr of winid, return -1 if window doesn't exist
 function! coc#window#tabnr(winid) abort
   if exists('*nvim_win_get_tabpage')
     try
@@ -18,7 +18,7 @@ function! coc#window#tabnr(winid) abort
     let info = getwininfo(a:winid)
     return empty(info) ? -1 : info[0]['tabnr']
   else
-    throw 'win_execute() not exists, please upgrade your vim.'
+    throw 'win_execute() does not exist, please upgrade your vim.'
   endif
 endfunction
 
@@ -41,7 +41,7 @@ function! coc#window#visible(winid) abort
   return coc#window#tabnr(a:winid) == tabpagenr()
 endfunction
 
-" Return v:null when name or window not exists,
+" Return v:null when name or window doesn't exist,
 " 'getwinvar' only works on window of current tab
 function! coc#window#get_var(winid, name, ...) abort
   if !s:is_vim

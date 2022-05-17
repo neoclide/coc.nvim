@@ -159,7 +159,7 @@ export default class Watchman {
     try {
       watchman = new Watchman(binaryPath, channel)
       let valid = await watchman.checkCapability()
-      if (!valid) throw new Error('required capabilities not exists.')
+      if (!valid) throw new Error('required capabilities do not exist.')
       let watching = await watchman.watchProject(root)
       if (!watching) throw new Error('unable to watch')
       return watchman

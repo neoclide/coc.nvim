@@ -228,7 +228,7 @@ export default class Plugin extends EventEmitter {
 
   public async cocAction(method: string, ...args: any[]): Promise<any> {
     let fn = this.actions.get(method)
-    if (!fn) throw new Error(`Action "${method}" not exists`)
+    if (!fn) throw new Error(`Action "${method}" doesn't exist`)
     let ts = Date.now()
     let res = await Promise.resolve(fn.apply(null, args))
     let dt = Date.now() - ts

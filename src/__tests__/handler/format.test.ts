@@ -109,7 +109,7 @@ describe('format handler', () => {
   })
 
   describe('rangeFormat', () => {
-    it('should return null when provider not exists', async () => {
+    it('should return null when provider does not exist', async () => {
       let doc = (await workspace.document).textDocument
       let range = Range.create(0, 0, 1, 0)
       let options = await workspace.getFormatOptions()

@@ -221,7 +221,7 @@ export default class SemanticTokens {
         }
         hl.addLine('')
       } else {
-        hl.addLine('No token modifiers exists', 'Comment')
+        hl.addLine('No token modifiers exist', 'Comment')
         hl.addLine('')
       }
     } catch (e) {

@@ -60,7 +60,7 @@ export default class Files {
     }
     const scheme = uri.scheme
     if (scheme == 'file') {
-      if (!fs.existsSync(uri.fsPath)) throw new Error(`${uri.fsPath} not exists.`)
+      if (!fs.existsSync(uri.fsPath)) throw new Error(`${uri.fsPath} doesn't exist.`)
       fs.accessSync(uri.fsPath, fs.constants.R_OK)
     }
     if (scheme == 'untitled') {
@@ -246,7 +246,7 @@ export default class Files {
       return
     }
     if (!stat && !ignoreIfNotExists) {
-      ui.showMessage(this.nvim, `${filepath} not exists`, 'Error')
+      ui.showMessage(this.nvim, `${filepath} doesn't exist`, 'Error')
       return
     }
     if (stat == null) return

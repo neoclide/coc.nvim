@@ -29,7 +29,7 @@ afterEach(async () => {
 })
 
 describe('Folds', () => {
-  it('should return null when provider not exists', async () => {
+  it('should return null when provider does not exist', async () => {
     let doc = await workspace.document
     let token = (new CancellationTokenSource()).token
     expect(await languages.provideFoldingRanges(doc.textDocument, {}, token)).toBe(null)

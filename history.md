@@ -841,7 +841,7 @@
 
 - **Break change** sources excluding `around`, `buffer` or `file` are extracted
   as extensions.
-- **Break change** custom source not exists any more.
+- **Break change** custom source doesn't exist any more.
 - Add `coc.preferences.preferCompleteThanJumpPlaceholder` to make jump
   placeholder behavior as confirm completion when possible.
 - Add `CocDiagnosticChange` autocmd for force statusline update.
@@ -1229,7 +1229,7 @@
 - Add support filetype change of buffer.
 - Add basic test for completion.
 - Improve loading speed, use child process to initialize vim sources.
-- Improve install.sh, install node when not exists.
+- Improve install.sh, install node when it doesn't exist.
 - Improve interface of workspace.
 - Fix loading of configuration content.
 

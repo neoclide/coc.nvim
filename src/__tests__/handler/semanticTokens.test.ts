@@ -396,7 +396,7 @@ describe('semanticTokens', () => {
   })
 
   describe('rangeProvider', () => {
-    it('should invoke range provider first time when both kind exists', async () => {
+    it('should invoke range provider first time when both kinds exist', async () => {
       let fn = jest.fn()
       disposables.push(registerRangeProvider('rust', () => {
         fn()

@@ -299,7 +299,7 @@ export default class Mappings {
 
   public async doAction(key: string, expr?: string): Promise<void> {
     let fn = this.actions.get(key)
-    if (!fn) throw new Error(`Action ${key} not exists`)
+    if (!fn) throw new Error(`Action ${key} doesn't exist`)
     await Promise.resolve(fn(expr))
   }
 

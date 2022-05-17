@@ -623,7 +623,7 @@ class Window {
   /**
    * Create a {@link TreeView} instance.
    *
-   * @param viewId Id of the view, used as title of TreeView when title not exists.
+   * @param viewId Id of the view, used as title of TreeView when title doesn't exist.
    * @param options Options for creating the {@link TreeView}
    * @returns a {@link TreeView}.
    */
