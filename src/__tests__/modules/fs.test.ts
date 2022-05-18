@@ -26,6 +26,8 @@ describe('fs', () => {
       expect(res).toBe(true)
       res = await checkFolder(cwd, 'not_exists_fs')
       expect(res).toBe(false)
+      res = await checkFolder(os.homedir(), 'not_exists_fs', 10)
+      expect(res).toBe(false)
     })
   })
 
