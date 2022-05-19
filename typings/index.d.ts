@@ -8050,7 +8050,7 @@ declare module 'coc.nvim' {
 
     /**
      * Shows a selection list.
-     * Throw error when `workspace.env.dialog` is not true.
+     * Throw error when `workspace.env.dialog` not true.
      *
      * @param items An array of items, or a promise that resolves to an array of items.
      * @param options Configures the behavior of the selection list.
@@ -8061,7 +8061,7 @@ declare module 'coc.nvim' {
 
     /**
      * Show menu picker at current cursor position, |inputlist()| is used as fallback.
-     * Use `workspace.env.dialog` to check if the picker window/popup could work.
+     * Throw error when `workspace.env.dialog` not true.
      *
      * @param items Array of texts or menu items.
      * @param title Optional title of float/popup window.
@@ -8082,7 +8082,7 @@ declare module 'coc.nvim' {
     /**
      * Show dialog window at the center of screen.
      * Note that the dialog would always be closed after button click.
-     * Use `workspace.env.dialog` to check if dialog could work.
+     * Throw error when `workspace.env.dialog` not true.
      *
      * @param config Dialog configuration.
      * @returns Dialog or null when dialog can't work.
@@ -8090,7 +8090,7 @@ declare module 'coc.nvim' {
     export function showDialog(config: DialogConfig): Promise<Dialog | null>
 
     /**
-     * Request input from user, throw error when float window can't be created.
+     * Request input from user, `input()` is used when `window.env.dialog` not true.
      *
      * @param title Title text of prompt window.
      * @param defaultValue Default value of input, empty text by default.
@@ -8100,8 +8100,7 @@ declare module 'coc.nvim' {
 
     /**
      * Creates and show a {@link InputBox} to let the user enter some text input.
-     * Throw error when float window can't be created.
-     * Use `workspace.env.dialog` to check if float window can be created.
+     * Throw error when `workspace.env.dialog` not true.
      *
      * @return A new {@link InputBox}.
      */
@@ -8109,7 +8108,8 @@ declare module 'coc.nvim' {
 
     /**
      * Creates and show a {@link QuickPick} to let the user pick an item or items from a
-     * list of items of type T.  Throw error when `workspace.env.dialog` is not true.
+     * list of items of type T.
+     * Throw error when `workspace.env.dialog` not true.
      *
      * Note that in many cases the more convenient {@link window.showQuickPick}
      * is easier to use. {@link window.createQuickPick} should be used

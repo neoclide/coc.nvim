@@ -408,14 +408,18 @@ describe('window', () => {
       expect(lines[0].includes('title')).toBe(true)
     })
 
-    it('should not show notification when no dialog support', async () => {
+    it('should throw on showNotification when no dialog support', async () => {
       Object.assign(workspace.env, { dialog: false })
-      let res = await window.showNotification({
-        content: 'my notification',
-        title: 'title',
-      })
-      Object.assign(workspace.env, { dialog: true })
-      expect(res).toBe(false)
+      disposables.push(Disposable.create(() => {
+        Object.assign(workspace.env, { dialog: true })
+      }))
+      let fn = async () => {
+        await window.showNotification({
+          content: 'my notification',
+          title: 'title',
+        })
+      }
+      await expect(fn()).rejects.toThrow(Error)
     })
 
     it('should show notification without border', async () => {

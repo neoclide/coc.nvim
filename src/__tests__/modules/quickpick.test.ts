@@ -58,15 +58,17 @@ describe('window', () => {
       }
     }
 
-    it('should not throw when dialog not supported ', async () => {
+    it('should throw when dialog not supported ', async () => {
       Object.assign(workspace.env, { dialog: false })
       disposables.push({
         dispose: () => {
           Object.assign(workspace.env, { dialog: true })
         }
       })
-      let res = await window.showQuickPick(['foo', 'bar'])
-      expect(res).toBeUndefined()
+      let fn = async () => {
+        await window.showQuickPick(['foo', 'bar'])
+      }
+      await expect(fn()).rejects.toThrow(Error)
     })
 
     it('should resolve undefined when token cancelled', async () => {
@@ -148,17 +150,6 @@ describe('window', () => {
         })
       }
       await expect(fun()).rejects.toThrow(/Unable to open/)
-    })
-
-    it('should return undefined when unable to create', async () => {
-      Object.assign(workspace.env, { dialog: false })
-      disposables.push({
-        dispose: () => {
-          Object.assign(workspace.env, { dialog: true })
-        }
-      })
-      let res = await window.createQuickPick({ items: [{ label: 'foo' }] })
-      expect(res).toBeUndefined()
     })
 
     it('should respect initial value', async () => {

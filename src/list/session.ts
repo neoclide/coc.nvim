@@ -223,7 +223,7 @@ export default class ListSession {
     if (name != null) {
       action = list.actions.find(o => o.name == name)
       if (!action) {
-        window.showMessage(`Action ${name} not found`, 'error')
+        void window.showErrorMessage(`Action ${name} not found`)
         return
       }
     } else {

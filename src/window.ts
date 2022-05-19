@@ -211,7 +211,7 @@ class Window {
    * Shows a selection list.
    */
   public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options?: QuickPickOptions, token: CancellationToken = CancellationToken.None): Promise<Item | Item[] | undefined> {
-    if (!this.checkDialog()) return undefined
+    this.checkDialog('showQuickPick')
     options = options || {}
     const items = await Promise.resolve(itemsOrItemsPromise)
     let isText = items.some(s => typeof s === 'string')
@@ -247,7 +247,7 @@ class Window {
    * @return A new {@link QuickPick}.
    */
   public async createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T>): Promise<QuickPick<T>> {
-    if (!this.checkDialog()) return undefined
+    this.checkDialog('createQuickPick')
     return await this.mutex.use(async () => {
       let quickpick = new QuickPick<T>(this.nvim, config)
       await quickpick.show(this.dialogPreference)
@@ -357,7 +357,7 @@ class Window {
    * @returns Dialog or null when dialog can't work.
    */
   public async showDialog(config: DialogConfig): Promise<Dialog | null> {
-    if (!this.checkDialog()) return null
+    this.checkDialog('showDialog')
     return await this.mutex.use(async () => {
       let dialog = new Dialog(this.nvim, config)
       await dialog.show(this.dialogPreference)
@@ -401,6 +401,7 @@ class Window {
    * @return A new {@link InputBox}.
    */
   public async createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox> {
+    this.checkDialog('createInputBox')
     let input = new InputBox(this.nvim, defaultValue ?? '')
     await input.show(title, Object.assign(this.inputPreference, option))
     return input
@@ -533,7 +534,7 @@ class Window {
   public async showPickerDialog(items: string[], title: string, token?: CancellationToken): Promise<string[] | undefined>
   public async showPickerDialog<T extends QuickPickItem>(items: T[], title: string, token?: CancellationToken): Promise<T[] | undefined>
   public async showPickerDialog(items: any, title: string, token?: CancellationToken): Promise<any | undefined> {
-    if (!this.checkDialog()) return undefined
+    this.checkDialog('showPickerDialog')
     return await this.mutex.use(async () => {
       if (token && token.isCancellationRequested) {
         return undefined
@@ -611,7 +612,7 @@ class Window {
   }
 
   public async showNotification(config: NotificationConfig): Promise<boolean> {
-    if (!this.checkDialog()) return false
+    this.checkDialog('showNotification')
     let stack = Error().stack
     let notification = new Notification(this.nvim, config)
     return await notification.show(this.getNotificationPreference(stack))
@@ -633,21 +634,10 @@ class Window {
   /**
    * Show progress in the editor. Progress is shown while running the given callback
    * and while the promise it returned isn't resolved nor rejected.
-   *
-   * @param task A callback returning a promise. Progress state can be reported with
-   * the provided [progress](#Progress)-object.
-   *
-   * To report discrete progress, use `increment` to indicate how much work has been completed. Each call with
-   * a `increment` value will be summed up and reflected as overall progress until 100% is reached (a value of
-   * e.g. `10` accounts for `10%` of work done).
-   *
-   * To monitor if the operation has been cancelled by the user, use the provided [`CancellationToken`](#CancellationToken).
-   *
-   * @return The thenable the task-callback returned.
    */
   public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
+    this.checkDialog('withProgress')
     let stack = Error().stack
-    if (!this.checkDialog()) return undefined
     let progress = new ProgressNotification(this.nvim, {
       task,
       title: options.title,
@@ -857,8 +847,8 @@ class Window {
   /**
    * Get extension name from error stack
    */
-  public parseSource(stack: string): string | undefined {
-    let line = stack.split(/\r?\n/).slice(2)[0]
+  public parseSource(stack: string, level = 2): string | undefined {
+    let line = stack.split(/\r?\n/).slice(level)[0]
     if (!line) return undefined
     line = line.replace(/^\s*at\s*/, '')
     let filepath: string
@@ -919,10 +909,9 @@ class Window {
     }
   }
 
-  private checkDialog(): boolean {
-    if (workspace.env.dialog) return true
-    this.showMessage('Dialog requires vim >= 8.2.0750 or neovim >= 0.4.0, please upgrade your vim', 'warning')
-    return false
+  private checkDialog(name: string): void {
+    if (workspace.env.dialog) return
+    throw new Error(`API window.${name} requires vim >= 8.2.0750 or neovim >= 0.4.0, please upgrade your vim`)
   }
 
   private get enableMessageDialog(): boolean {
