@@ -66,7 +66,7 @@ export default class Notification {
     return this.config.content ? this.config.content.split(/\r?\n/) : []
   }
 
-  public async show(preferences: Partial<NotificationPreferences>): Promise<boolean> {
+  public async show(preferences: Partial<NotificationPreferences>): Promise<void> {
     let { nvim } = this
     let { buttons, kind, title } = this.config
     let opts: any = Object.assign({}, preferences)
@@ -80,15 +80,9 @@ export default class Notification {
       if (actions.length) opts.actions = actions
     }
     let res = await nvim.call('coc#notify#create', [this.lines, opts]) as [number, number]
-    if (!res) return false
-    if (this._disposed) {
-      this.nvim.call('coc#float#close', [res[0]], true)
-      this.nvim.redrawVim()
-    } else {
-      this._winid = res[0]
-      this.bufnr = res[1]
-    }
-    return this._winid != undefined
+    if (!res) throw new Error(`Unable to create notification window`)
+    this._winid = res[0]
+    this.bufnr = res[1]
   }
 
   public get winid(): number | undefined {

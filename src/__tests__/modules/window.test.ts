@@ -14,6 +14,7 @@ import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 import extensions from '../../extensions'
+import Notification from '../../model/notification'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -391,11 +392,10 @@ describe('window', () => {
 
   describe('window notifications', () => {
     it('should show notification with options', async () => {
-      let res = await window.showNotification({
+      await window.showNotification({
         content: 'my notification',
         title: 'title',
       })
-      expect(res).toBe(true)
       let ids = await nvim.call('coc#float#get_float_win_list')
       expect(ids.length).toBe(1)
       let win = nvim.createWindow(ids[0])
@@ -406,6 +406,14 @@ describe('window', () => {
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.lines
       expect(lines[0].includes('title')).toBe(true)
+    })
+
+    it('should ignore events of other buffers', async () => {
+      let bufnr = workspace.bufnr
+      let notification = new Notification(nvim, {})
+      await events.fire('BufWinLeave', [bufnr + 1])
+      await events.fire('FloatBtnClick', [bufnr + 1, 1])
+      notification.dispose()
     })
 
     it('should throw on showNotification when no dialog support', async () => {
@@ -424,11 +432,10 @@ describe('window', () => {
 
     it('should show notification without border', async () => {
       helper.updateConfiguration('notification.border', false)
-      let res = await window.showNotification({
+      await window.showNotification({
         content: 'my notification',
         title: 'title',
       })
-      expect(res).toBe(true)
       let win = await helper.getFloat()
       let height = await nvim.call('coc#float#get_height', [win.id])
       expect(height).toBe(2)

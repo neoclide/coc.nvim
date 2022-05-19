@@ -8278,7 +8278,7 @@ declare module 'coc.nvim' {
     /**
      * Show notification window at bottom right of screen.
      */
-    export function showNotification(config: NotificationConfig): Promise<boolean>
+    export function showNotification(config: NotificationConfig): Promise<void>
 
     /**
      * Show progress in the editor. Progress is shown while running the given callback

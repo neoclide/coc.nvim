@@ -611,11 +611,11 @@ class Window {
     return idx == -1 ? undefined : items[idx]
   }
 
-  public async showNotification(config: NotificationConfig): Promise<boolean> {
+  public async showNotification(config: NotificationConfig): Promise<void> {
     this.checkDialog('showNotification')
     let stack = Error().stack
     let notification = new Notification(this.nvim, config)
-    return await notification.show(this.getNotificationPreference(stack))
+    await notification.show(this.getNotificationPreference(stack))
   }
 
   // fallback for vim without dialog
@@ -645,12 +645,10 @@ class Window {
     })
     let config = workspace.getConfiguration('notification')
     let minWidth = config.get<number>('minProgressWidth', 30)
-    let promise = new Promise<R>((resolve, reject) => {
-      progress.show(Object.assign(this.getNotificationPreference(stack), { minWidth })).then(shown => {
-        if (!shown) reject(new Error('Unable to create notification window.'))
-      }, reject)
+    let promise = new Promise<R>(resolve => {
       progress.onDidFinish(resolve)
     })
+    await progress.show(Object.assign(this.getNotificationPreference(stack), { minWidth }))
     return await promise
   }
 
@@ -819,7 +817,7 @@ class Window {
   }
 
   private createNotification(kind: NotificationKind, message: string, items: string[], stack: string): Promise<number> {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       let config: NotificationConfig = {
         kind,
         content: message,
@@ -831,16 +829,7 @@ class Window {
         }
       }
       let notification = new Notification(this.nvim, config)
-      notification.show(this.getNotificationPreference(stack)).then(shown => {
-        if (!shown) {
-          logger.error('Unable to open notification window')
-          resolve(-1)
-        }
-        if (!items.length) resolve(-1)
-      }, e => {
-        logger.error('Unable to open notification window', e)
-        resolve(-1)
-      })
+      notification.show(this.getNotificationPreference(stack)).catch(reject)
     })
   }
 

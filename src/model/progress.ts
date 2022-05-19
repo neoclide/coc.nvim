@@ -1,5 +1,4 @@
 'use strict'
-const isVim = process.env.VIM_NODE_RPC == '1'
 import { Neovim } from '@chemzqm/neovim'
 import Notification, { NotificationPreferences } from './notification'
 import { CancellationToken, CancellationTokenSource, Event, Emitter } from 'vscode-languageserver-protocol'
@@ -36,12 +35,12 @@ export default class ProgressNotification<R> extends Notification {
     }, null, this.disposables)
   }
 
-  public async show(preferences: Partial<NotificationPreferences>): Promise<boolean> {
+  public async show(preferences: Partial<NotificationPreferences>): Promise<void> {
     let { task } = this.option
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     this.disposables.push(tokenSource)
     let total = 0
-    let shown = await super.show(preferences)
+    await super.show(preferences)
     task({
       report: p => {
         if (!this.winid) return
@@ -62,6 +61,5 @@ export default class ProgressNotification<R> extends Notification {
       this._onDidFinish.fire(undefined)
       this.dispose()
     })
-    return shown
   }
 }
