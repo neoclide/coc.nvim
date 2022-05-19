@@ -213,7 +213,7 @@ describe('codeLenes featrue', () => {
     await helper.doAction('codeLensAction')
   })
 
-  it('should use picker fo multiple codeLenses', async () => {
+  it('should use picker for multiple codeLenses', async () => {
     let fn = jest.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
@@ -237,7 +237,7 @@ describe('codeLenes featrue', () => {
     await doc.synchronize()
     await codeLens.checkProvider()
     let p = helper.doAction('codeLensAction')
-    await helper.wait(30)
+    await helper.waitFloat()
     await nvim.input('<cr>')
     await p
     expect(fn).toBeCalledWith(1, 2, 3)

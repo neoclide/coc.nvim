@@ -593,14 +593,15 @@ describe('utility', () => {
 
   it('should watch file', async () => {
     let filepath = await createTmpFile('my file')
-    let fn = jest.fn()
+    let called = false
     let disposable = watchFile(filepath, () => {
-      fn()
+      called = true
     })
     await wait(10)
     fs.writeFileSync(filepath, 'new file', 'utf8')
-    await wait(200)
-    expect(fn).toBeCalled()
+    await helper.waitValue(() => {
+      return called
+    }, true)
     disposable.dispose()
   })
 
