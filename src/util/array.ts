@@ -9,6 +9,17 @@ export function intersect<T>(array: T[], other: T[]): boolean {
   return false
 }
 
+export function findIndex<T>(array: ReadonlyArray<T>, val: T, start = 0): number {
+  let idx = -1
+  for (let i = start; i < array.length; i++) {
+    if (array[i] === val) {
+      idx = i
+      break
+    }
+  }
+  return idx
+}
+
 export function splitArray<T>(array: T[], fn: (item: T) => boolean): [T[], T[]] {
   let res: [T[], T[]] = [[], []]
   for (let item of array) {

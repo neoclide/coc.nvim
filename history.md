@@ -1,3 +1,7 @@
+# 2022-05-22
+
+- Check for previous position when not able to find completion match.
+
 # 2022-05-17
 
 - Add `QuickPick` module.

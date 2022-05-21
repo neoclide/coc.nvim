@@ -263,6 +263,23 @@ describe('textedit', () => {
 })
 
 describe('strings', () => {
+  it('should get case', async () => {
+    expect(strings.getCase('a'.charCodeAt(0))).toBe(1)
+    expect(strings.getCase('A'.charCodeAt(0))).toBe(2)
+    expect(strings.getCase('#'.charCodeAt(0))).toBe(0)
+  })
+
+  it('should get next word code', async () => {
+    function assertNext(text: string, index: number, res: [number, string] | undefined): void {
+      let arr = res === undefined ? undefined : [res[0], res[1].charCodeAt(0)]
+      let result = strings.getNextWord(fuzzy.getCharCodes(text), index)
+      expect(result).toEqual(arr)
+    }
+    assertNext('abc', 0, [0, 'a'])
+    assertNext('abc', 1, undefined)
+    assertNext('abC', 1, [2, 'C'])
+  })
+
   it('should get character indexes', async () => {
     expect(strings.getCharIndexes('abaca', 'a')).toEqual([0, 2, 4])
     expect(strings.getCharIndexes('abd', 'f')).toEqual([])

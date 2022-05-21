@@ -1,27 +1,12 @@
 'use strict'
-import { getCharCodes, caseMatch, wordChar } from '../util/fuzzy'
+import { findIndex } from '../util/array'
+import { getCharCodes, wordChar } from '../util/fuzzy'
+import { getNextWord } from '../util/string'
 
-function nextWordIndex(start = 0, codes: number[]): number {
-  for (let i = start; i < codes.length; i++) {
-    if (isWordIndex(i, codes)) {
-      return i
-    }
-  }
-  return -1
-}
-
-function upperCase(code: number): boolean {
-  return code >= 65 && code <= 90
-}
-
-function isWordIndex(index: number, codes: number[]): boolean {
-  if (index == 0) return true
-  let curr = codes[index]
-  if (!wordChar(curr)) return false
-  let pre = codes[index - 1]
-  if (!wordChar(pre)) return true
-  if (upperCase(curr) && !upperCase(pre)) return true
-  return false
+export function caseScore(input: number, curr: number, divide = 1): number {
+  if (input === curr) return 1 / divide
+  if (curr + 32 === input) return 0.5 / divide
+  return 0
 }
 
 /**
@@ -40,93 +25,72 @@ function isWordIndex(index: number, codes: number[]): boolean {
  */
 export function matchScore(word: string, input: number[]): number {
   if (input.length == 0 || word.length < input.length) return 0
-  let codes = getCharCodes(word)
-  let curr = codes[0]
-  let score = 0
-  let first = input[0]
-  let idx = 1
-  if (caseMatch(first, curr)) {
-    score = first == curr ? 5 : 2.5
-    idx = 1
-  } else {
-    // first word 2.5/2
-    let next = nextWordIndex(1, codes)
-    if (next != -1) {
-      if (caseMatch(first, codes[next])) {
-        score = first == codes[next] ? 2.5 : 2
-        idx = next + 1
-      }
-    }
-    if (score == 0) {
-      // first fuzzy 1/0.5
-      for (let i = 1; i < codes.length; i++) {
-        if (caseMatch(first, codes[i])) {
-          score = first == codes[i] ? 1 : 0.5
-          idx = i + 1
-        }
-      }
-    }
-  }
-  if (input.length == 1 || score == 0) return score
-  let next = nextScore(codes, idx, input.slice(1))
-  return next == 0 ? 0 : score + next
+  let next = nextScore(getCharCodes(word), 0, input, [])
+  return next == null ? 0 : next[0]
 }
 
-function nextScore(codes: number[], index: number, inputCodes: number[]): number {
-  if (index >= codes.length) return 0
-  let scores: number[] = []
-  let input = inputCodes[0]
+export function matchScoreWithPositions(word: string, input: number[]): [number, ReadonlyArray<number>] | undefined {
+  if (input.length == 0 || word.length < input.length) return undefined
+  return nextScore(getCharCodes(word), 0, input, [])
+}
+
+/**
+ * Return score and positions.
+ */
+function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: ReadonlyArray<number>, positions: ReadonlyArray<number>): [number, ReadonlyArray<number>] | undefined {
+  if (inputCodes.length === 0) return [0, positions]
   let len = codes.length
-  let isFinal = inputCodes.length == 1
+  if (index >= len) return undefined
+  let input = inputCodes[0]
+  let nextCodes = inputCodes.slice(1)
+  // not alphabet
   if (!wordChar(input)) {
-    for (let i = index; i < len; i++) {
-      if (codes[i] == input) {
-        if (isFinal) return 1
-        let next = nextScore(codes, i + 1, inputCodes.slice(1))
-        return next == 0 ? 0 : 1 + next
-      }
-    }
-    return 0
+    let idx = findIndex(codes, input, index)
+    if (idx == -1) return undefined
+    let score = idx == 0 ? 5 : 1
+    let next = nextScore(codes, idx + 1, nextCodes, [...positions, idx])
+    return next === undefined ? undefined : [score + next[0], next[1]]
   }
-  let curr = codes[index]
-  let match = caseMatch(input, curr)
-  if (match) {
-    let score = input == curr ? 1 : 0.5
-    if (!isFinal) {
-      let next = nextScore(codes, index + 1, inputCodes.slice(1))
-      score = next == 0 ? 0 : score + next
-    }
-    scores.push(score)
+  // check beginning
+  let isStart = positions.length == 0
+  let score = caseScore(input, codes[index], isStart ? 0.2 : 1)
+  if (score > 0) {
+    let next = nextScore(codes, index + 1, nextCodes, [...positions, index])
+    return next === undefined ? undefined : [score + next[0], next[1]]
   }
-  // should not find if current is word index
-  if (wordChar(input) && !isWordIndex(index, codes)) {
-    let idx = nextWordIndex(index + 1, codes)
-    if (idx !== -1) {
-      let next = codes[idx]
-      if (caseMatch(input, next)) {
-        let score = input == next ? 1 : 0.75
-        if (!isFinal) {
-          let next = nextScore(codes, idx + 1, inputCodes.slice(1))
-          score = next == 0 ? 0 : score + next
-        }
-        scores.push(score)
-      }
+  // check next word
+  let positionMap: Map<number, ReadonlyArray<number>> = new Map()
+  let word = getNextWord(codes, index + 1)
+  if (word != null) {
+    let score = caseScore(input, word[1], isStart ? 0.5 : 1)
+    if (score > 0) {
+      let ps = [...positions, word[0]]
+      if (score === 0.5) score = 0.75
+      let next = nextScore(codes, word[0] + 1, nextCodes, ps)
+      if (next !== undefined) positionMap.set(score + next[0], next[1])
     }
   }
   // find fuzzy
-  if (!match) {
-    for (let i = index + 1; i < len; i++) {
-      let code = codes[i]
-      if (caseMatch(input, code)) {
-        let score = input == code ? 0.1 : 0.05
-        if (!isFinal) {
-          let next = nextScore(codes, i + 1, inputCodes.slice(1))
-          score = next == 0 ? 0 : score + next
-        }
-        scores.push(score)
-      }
+  for (let i = index + 1; i < len; i++) {
+    let score = caseScore(input, codes[i], isStart ? 1 : 10)
+    if (score > 0) {
+      let next = nextScore(codes, i + 1, nextCodes, [...positions, i])
+      if (next !== undefined) positionMap.set(score + next[0], next[1])
+      break
     }
   }
-  if (!scores.length) return 0
-  return Math.max(...scores)
+  // Try match previous position
+  if (positionMap.size == 0 && positions.length > 0) {
+    let last = positions[positions.length - 1]
+    if (last > 0 && codes[last] !== input && codes[last - 1] === input) {
+      let ps = positions.slice()
+      ps.splice(positions.length - 1, 0, last - 1)
+      let next = nextScore(codes, last + 1, nextCodes, ps)
+      if (next === undefined) return undefined
+      return [0.5 + next[0], next[1]]
+    }
+    return undefined
+  }
+  let max = Math.max(...positionMap.keys())
+  return [max, positionMap.get(max)]
 }

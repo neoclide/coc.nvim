@@ -1,5 +1,5 @@
 import { CompletionItemKind, TextEdit, Position } from 'vscode-languageserver-types'
-import { matchScore } from '../../completion/match'
+import { matchScore, matchScoreWithPositions } from '../../completion/match'
 import { shouldStop } from '../../completion/util'
 import { getCharCodes } from '../../util/fuzzy'
 import { getStartColumn, getKindString } from '../../sources/source-language'
@@ -63,18 +63,18 @@ describe('matchScore', () => {
   it('should match first letter', () => {
     expect(score('abc', 'a')).toBe(5)
     expect(score('Abc', 'a')).toBe(2.5)
-    expect(score('__abc', 'a')).toBe(2.5)
-    expect(score('$Abc', 'a')).toBe(2)
-    expect(score('$Abc', 'A')).toBe(2.5)
+    expect(score('__abc', 'a')).toBe(2)
+    expect(score('$Abc', 'a')).toBe(1)
+    expect(score('$Abc', 'A')).toBe(2)
     expect(score('$Abc', '$A')).toBe(6)
     expect(score('$Abc', '$a')).toBe(5.5)
-    expect(score('foo_bar', 'b')).toBe(2.5)
-    expect(score('foo_Bar', 'b')).toBe(2)
+    expect(score('foo_bar', 'b')).toBe(2)
+    expect(score('foo_Bar', 'b')).toBe(1)
     expect(score('_foo_Bar', 'b')).toBe(0.5)
-    expect(score('_foo_Bar', 'f')).toBe(2.5)
+    expect(score('_foo_Bar', 'f')).toBe(2)
     expect(score('bar', 'a')).toBe(1)
-    expect(score('fooBar', 'B')).toBe(2.5)
-    expect(score('fooBar', 'b')).toBe(2)
+    expect(score('fooBar', 'B')).toBe(2)
+    expect(score('fooBar', 'b')).toBe(1)
   })
 
   it('should match follow letters', () => {
@@ -110,6 +110,34 @@ describe('matchScore', () => {
   })
 
   it('should find highest score', () => {
-    expect(score('ArrayRotateTail', 'art')).toBe(4)
+    expect(score('ArrayRotateTail', 'art')).toBe(3.6)
+  })
+})
+
+describe('matchScoreWithPositions', () => {
+  function assertMatch(word: string, input: string, res: [number, ReadonlyArray<number>] | undefined): void {
+    let result = matchScoreWithPositions(word, getCharCodes(input))
+    if (!res) {
+      expect(result).toBeUndefined()
+    } else {
+      expect(result).toEqual(res)
+    }
+  }
+
+  it('should return undefined when not match found', async () => {
+    assertMatch('a', 'abc', undefined)
+    assertMatch('a', '', undefined)
+    assertMatch('ab', 'ac', undefined)
+  })
+
+  it('should find matches by position fix', async () => {
+    assertMatch('this', 'tih', [5.6, [0, 1, 2]])
+    assertMatch('globalThis', 'tihs', [2.6, [6, 7, 8, 9]])
+  })
+
+  it('should find matched positions', async () => {
+    assertMatch('this', 'th', [6, [0, 1]])
+    assertMatch('foo_bar', 'fb', [6, [0, 4]])
+    assertMatch('assertMatch', 'am', [5.75, [0, 6]])
   })
 })

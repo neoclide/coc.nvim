@@ -75,14 +75,16 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'editor.action.triggerSuggest',
       execute: async () => {
-        await wait(60)
+        let doc = workspace.getDocument(workspace.bufnr)
+        if (doc) await doc.synchronize()
         nvim.call('coc#start', [], true)
       }
     }, true)
     this.register({
       id: 'editor.action.triggerParameterHints',
       execute: async () => {
-        await wait(60)
+        let doc = workspace.getDocument(workspace.bufnr)
+        if (doc) await doc.synchronize()
         await plugin.cocAction('showSignatureHelp')
       }
     }, true)

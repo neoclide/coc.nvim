@@ -28,6 +28,25 @@ export function rangeParts(text: string, range: Range): [string, string] {
   return [before, after]
 }
 
+// lowerCase 1, upperCase 2
+export function getCase(code: number): number {
+  if (code >= 97 && code <= 122) return 1
+  if (code >= 65 && code <= 90) return 2
+  return 0
+}
+
+export function getNextWord(codes: ReadonlyArray<number>, index: number): [number, number] | undefined {
+  let preCase = index == 0 ? 0 : getCase(codes[index - 1])
+  for (let i = index; i < codes.length; i++) {
+    let curr = getCase(codes[i])
+    if (curr > 0 && curr != preCase) {
+      return [i, codes[i]]
+    }
+    preCase = curr
+  }
+  return undefined
+}
+
 export function getCharIndexes(input: string, character: string): number[] {
   let res: number[] = []
   for (let i = 0; i < input.length; i++) {
