@@ -1,7 +1,9 @@
-import { CompletionTriggerKind, Position, TextDocumentItem, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
+import { CompletionList, CompletionTriggerKind, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextDocumentItem, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
+import * as assert from 'assert'
 import * as cv from '../../language-client/utils/converter'
+import { SnippetString } from '../../snippets/string'
 
 describe('converter', () => {
 
@@ -82,5 +84,98 @@ describe('converter', () => {
   it('should asCodeLensParams', () => {
     let doc = cv.asCodeLensParams(createDocument())
     expect(doc.textDocument.uri).toBeDefined()
+  })
+
+  it('Completion Result - edit range', async () => {
+    const completionResult: CompletionList = {
+      isIncomplete: true,
+      itemDefaults:  { editRange: Range.create(1,2,3,4) },
+      items: [{ label: 'item', data: 'data' }]
+    }
+    const result = cv.asCompletionList(completionResult)
+    assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
+    assert.strictEqual(result.items.length, 1)
+    assert.strictEqual(result.items[0].label, 'item')
+  })
+
+  it('Completion Result - edit range with textEditText', async () => {
+    const completionResult: CompletionList = {
+      isIncomplete: true,
+      itemDefaults:  { editRange: Range.create(1,2,3,4) },
+      items: [{ label: 'item', textEditText: 'text', data: 'data' }]
+    }
+    const result = cv.asCompletionList(completionResult)
+    assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
+    assert.strictEqual(result.items.length, 1)
+    assert.strictEqual(result.items[0].label, 'item')
+    assert.strictEqual(result.items[0].insertText, 'text')
+  })
+
+  it('Completion Result - insert / replace range', async () => {
+    const completionResult: CompletionList = {
+      isIncomplete: true,
+      itemDefaults: { editRange: { insert: Range.create(1,1,1,1), replace: Range.create(1,2,3,4) } },
+      items: [{ label: 'item', data: 'data' }]
+    }
+    const result = cv.asCompletionList(completionResult)
+    assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
+    assert.strictEqual(result.items.length, 1)
+    assert.strictEqual(result.items[0].label, 'item')
+    assert.strictEqual(InsertReplaceEdit.is(result.items[0].textEdit), true)
+  })
+
+  it('Completion Result - insert / replace range with textEditText', async () => {
+    const completionResult: CompletionList = {
+      isIncomplete: true,
+      itemDefaults: { editRange: { insert: Range.create(1,1,1,1), replace: Range.create(1,2,3,4) } },
+      items: [{ label: 'item', textEditText: 'text', data: 'data' }]
+    }
+    const result = cv.asCompletionList(completionResult)
+    assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
+    assert.strictEqual(result.items.length, 1)
+    assert.strictEqual(result.items[0].label, 'item')
+    assert.strictEqual(result.items[0].insertText, 'text')
+  })
+
+  it('Completion Result - commit characters', async () => {
+    const completionResult: CompletionList = {
+      isIncomplete: true,
+      itemDefaults: { commitCharacters: ['.', ',']},
+      items: [{ label: 'item', data: 'data' }]
+    }
+    const result = cv.asCompletionList(completionResult)
+    assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
+    assert.strictEqual(result.items.length, 1)
+    assert.strictEqual(result.items[0].label, 'item')
+    const commitCharacters = result.items[0].commitCharacters!
+    assert.strictEqual(commitCharacters?.length, 2)
+    assert.strictEqual(commitCharacters[0], '.')
+    assert.strictEqual(commitCharacters[1], ',')
+  })
+
+  it('Completion Result - insert text mode', async () => {
+    const completionResult: CompletionList = {
+      isIncomplete: true,
+      itemDefaults: { insertTextMode: InsertTextMode.asIs },
+      items: [{ label: 'item', data: 'data' }]
+    }
+    const result = cv.asCompletionList(completionResult)
+    assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
+    assert.strictEqual(result.items.length, 1)
+    assert.strictEqual(result.items[0].label, 'item')
+    assert.strictEqual(result.items[0].insertTextMode, InsertTextMode.asIs)
+  })
+
+  it('Completion Result - insert text format', async () => {
+    const completionResult: CompletionList = {
+      isIncomplete: true,
+      itemDefaults: { insertTextFormat: InsertTextFormat.Snippet },
+      items: [{ label: 'item', insertText: '${value}', data: 'data' }]
+    }
+    const result = cv.asCompletionList(completionResult)
+    assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
+    assert.strictEqual(result.items.length, 1)
+    assert.strictEqual(result.items[0].label, 'item')
+    assert.strictEqual(result.items[0].insertTextFormat , InsertTextFormat.Snippet)
   })
 })

@@ -74,7 +74,7 @@ export function asCompletionParams(textDocument: TextDocument, position: Positio
     context: omit(context, ['option']),
   }
 }
-export function asCompletionList(value: CompletionList, allCommitCharacters: string[], token: CancellationToken): CompletionList {
+export function asCompletionList(value: CompletionList, allCommitCharacters?: string[], token?: CancellationToken): CompletionList {
   if (!value) return
   if (!value.itemDefaults) return value
 
@@ -86,6 +86,7 @@ export function asCompletionList(value: CompletionList, allCommitCharacters: str
     const editRange = value.itemDefaults.editRange
     if (editRange) {
       item.textEditText = item.textEditText ?? item.label
+      item.insertText = item.insertText ?? item.textEditText
       if (Range.is(editRange)) {
         item.textEdit = item.textEdit ?? { range: editRange, newText: item.textEditText }
       } else {
