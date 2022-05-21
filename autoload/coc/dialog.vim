@@ -78,6 +78,10 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif
+  if mode ==# 's' && has('patch-8.2.4969')
+    echohl WarningMsg | echon 'Popup not created to avoid issue #10466 on vim >= 8.2.4969' | echohl None
+    return v:null
+  endif
   let dimension = coc#dialog#get_config_cursor(a:lines, a:config)
   if empty(dimension)
     return v:null
