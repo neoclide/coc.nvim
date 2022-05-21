@@ -79,15 +79,17 @@ function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: Read
       break
     }
   }
-  // Try match previous position
-  if (positionMap.size == 0 && positions.length > 0) {
-    let last = positions[positions.length - 1]
-    if (last > 0 && codes[last] !== input && codes[last - 1] === input) {
-      let ps = positions.slice()
-      ps.splice(positions.length - 1, 0, last - 1)
-      let next = nextScore(codes, last + 1, nextCodes, ps)
-      if (next === undefined) return undefined
-      return [0.5 + next[0], next[1]]
+  if (positionMap.size == 0) {
+    // Try match previous position
+    if (positions.length > 0) {
+      let last = positions[positions.length - 1]
+      if (last > 0 && codes[last] !== input && codes[last - 1] === input) {
+        let ps = positions.slice()
+        ps.splice(positions.length - 1, 0, last - 1)
+        let next = nextScore(codes, last + 1, nextCodes, ps)
+        if (next === undefined) return undefined
+        return [0.5 + next[0], next[1]]
+      }
     }
     return undefined
   }

@@ -58,6 +58,7 @@ describe('matchScore', () => {
 
   it('should match score for last letter', () => {
     expect(score('#!3', '3')).toBe(1)
+    expect(score('bar', 'f')).toBe(0)
   })
 
   it('should match first letter', () => {
