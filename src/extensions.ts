@@ -306,7 +306,7 @@ export class Extensions {
         let directory = path.join(this.modulesFolder, name)
         this.loadExtension(directory).logError()
         let ms = key.match(/(.+)@([^/]+)$/)
-        if (ms != null) this.lockExtension(name, true)
+        if (ms != null) void this.lockExtension(name, true)
       }, err => {
         installBuffer.addMessage(key, err.message)
         installBuffer.finishProgress(key, false)
