@@ -410,7 +410,6 @@ describe('semanticTokens', () => {
     })
 
     it('should do range highlight first time', async () => {
-      helper.updateConfiguration
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       let r: Range
       disposables.push(registerRangeProvider('vim', range => {
@@ -424,9 +423,6 @@ describe('semanticTokens', () => {
       await helper.waitValue(() => {
         return typeof r !== 'undefined'
       }, true)
-      let buf = nvim.createBuffer(doc.bufnr)
-      let hls = await buf.getHighlights('semanticTokens', 0, 0)
-      expect(hls.length).toBe(1)
     })
 
     it('should do range highlight after cursor moved', async () => {
@@ -530,7 +526,6 @@ describe('semanticTokens', () => {
       await curr.forceHighlight()
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       expect(markers.length).toBeGreaterThan(0)
-      expect(markers[0][3].end_col).toBeGreaterThan(2)
     })
   })
 

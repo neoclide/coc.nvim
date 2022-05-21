@@ -54,7 +54,7 @@ interface RangeHighlights {
 }
 
 // should be higher than document debounce
-const debounceInterval = global.hasOwnProperty('__TEST__') ? 30 : 300
+const debounceInterval = global.__TEST__ ? 50 : 300
 
 export default class SemanticTokensBuffer implements SyncItem {
   private _highlights: [number, SemanticTokenRange[]]
@@ -74,7 +74,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.highlight = debounce(() => {
       void this.doHighlight()
     }, debounceInterval)
-    void this.doHighlight()
+    this.highlight()
   }
 
   public get bufnr(): number {
@@ -82,15 +82,13 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public onChange(): void {
-    void this.doHighlight()
-  }
-
-  public onTextChange(): void {
     this.cancel()
+    this.highlight()
   }
 
   public async forceHighlight(): Promise<void> {
     this.previousResults = undefined
+    this._highlights = undefined
     this.clearHighlight()
     this.cancel()
     await this.doHighlight(true)
@@ -124,9 +122,8 @@ export default class SemanticTokensBuffer implements SyncItem {
     return languages.hasProvider('semanticTokensRange', textDocument) && this.previousResults == null
   }
 
-  private get invalid(): boolean {
-    if (!this.doc) return true
-    return !this.doc.attached || this.doc.dirty
+  public validate(version: number): boolean {
+    return this.doc.attached && this.doc.version == version
   }
 
   private get lineCount(): number {
@@ -334,7 +331,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!this.enabled) return
     let { version } = this.doc
     let res = await this.requestRangeHighlights(token)
-    if (!res || token.isCancellationRequested) return
+    if (!res || !this.validate(version) || token.isCancellationRequested) return
     const { highlights, start, end } = res
     if (this.rangeProviderOnly || !this.previousResults) {
       if (!this._highlights || version !== this._highlights[0]) {
@@ -351,7 +348,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const items = this.toHighlightItems(highlights)
     const priority = this.config.highlightPriority
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, [start, end], token)
-    if (diff) {
+    if (this.validate(version) && diff) {
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff, true)
       this._dirty = true
     }
@@ -362,10 +359,9 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   public async highlightRegions(token: CancellationToken): Promise<void> {
     let { regions, highlights, config, lineCount, bufnr } = this
-    if (this.invalid) return
     let priority = config.highlightPriority
     let spans: [number, number][] = await this.nvim.call('coc#window#visible_ranges', [bufnr])
-    if (this.invalid || token.isCancellationRequested || spans.length === 0) return
+    if (!this.couldHighlight || token.isCancellationRequested || spans.length === 0) return
     let height = workspace.env.lines
     spans.forEach(o => {
       let s = o[0]
@@ -376,9 +372,17 @@ export default class SemanticTokensBuffer implements SyncItem {
       if (regions.has(start, end)) continue
       let items = this.toHighlightItems(highlights, start, end)
       let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
-      if (!token.isCancellationRequested) regions.add(start, end)
+      if (!this.couldHighlight || token.isCancellationRequested) break
+      regions.add(start, end)
       if (diff) await window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
     }
+  }
+
+  private get couldHighlight(): boolean {
+    if (!this.doc.attached) return false
+    let version = this._highlights ? this._highlights[0] : undefined
+    if (this.doc.dirty || this.doc.version !== version) return false
+    return true
   }
 
   public async onCursorMoved(): Promise<void> {
