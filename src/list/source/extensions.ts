@@ -62,7 +62,7 @@ export default class ExtensionList extends BasicList {
 
     this.addAction('lock', async item => {
       let { id } = item.data
-      await extensions.toggleLock(id)
+      await extensions.lockExtension(id)
     }, { persist: true, reload: true })
 
     this.addAction('help', async item => {

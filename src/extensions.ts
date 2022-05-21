@@ -223,7 +223,7 @@ export class Extensions {
     }, 500))
     if (global.__TEST__) return
     // check extensions need watch & install
-    this.checkExtensions().logError()
+    this.checkExtensions()
     let config = workspace.getConfiguration('coc.preferences')
     let interval = config.get<string>('extensionUpdateCheck', 'never')
     let silent = config.get<boolean>('silentAutoupdate', true)
@@ -272,11 +272,11 @@ export class Extensions {
     await concurrent(stats, fn, silent ? 1 : 3)
   }
 
-  private async checkExtensions(): Promise<void> {
+  private checkExtensions(): void {
     let { globalExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
       let names = this.filterGlobalExtensions(globalExtensions)
-      this.installExtensions(names).logError()
+      void this.installExtensions(names)
     }
   }
 
@@ -305,6 +305,8 @@ export class Extensions {
         installBuffer.finishProgress(key, true)
         let directory = path.join(this.modulesFolder, name)
         this.loadExtension(directory).logError()
+        let ms = key.match(/(.+)@([^/]+)$/)
+        if (ms != null) this.lockExtension(name, true)
       }, err => {
         installBuffer.addMessage(key, err.message)
         installBuffer.finishProgress(key, false)
@@ -381,13 +383,14 @@ export class Extensions {
     return Object.keys(obj).filter(id => obj[id].locked === true)
   }
 
-  public async toggleLock(id: string): Promise<void> {
+  public async lockExtension(id: string, lock?: boolean): Promise<void> {
     let key = `extension.${id}.locked`
     let locked = await this.db.fetch(key)
-    if (locked) {
-      this.db.delete(key)
-    } else {
+    lock = lock === undefined ? !locked : lock
+    if (lock) {
       this.db.push(key, true)
+    } else {
+      this.db.delete(key)
     }
   }
 
