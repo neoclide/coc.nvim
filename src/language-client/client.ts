@@ -1834,12 +1834,11 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
     completion.insertTextMode = InsertTextMode.adjustIndentation
-    // TODO
-    // completion.completionList = {
-    //   itemDefaults: [
-    //     'commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode'
-    //   ]
-    // }
+    completion.completionList = {
+      itemDefaults: [
+        'commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode'
+      ]
+    }
   }
 
   public initialize(
@@ -1871,10 +1870,16 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
             cv.asCompletionParams(document, position, context),
             token
           ).then(
-            res => token.isCancellationRequested ? [] : res ?? [],
-            error => {
-              return client.handleFailedRequest(CompletionRequest.type, token, error, [])
-          })
+              res => {
+                if (token.isCancellationRequested) return []
+                if (Array.isArray(res)) return res
+
+                return cv.asCompletionList(res, allCommitCharacters, token)
+              },
+              error => {
+                return client.handleFailedRequest(CompletionRequest.type, token, error, [])
+              }
+            )
         }
 
         return middleware.provideCompletionItem

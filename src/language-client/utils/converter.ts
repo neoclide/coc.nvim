@@ -3,7 +3,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, Position, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeLensParams, CompletionContext, CompletionList, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, InsertReplaceEdit, Position, Range, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { TextDocumentWillSaveEvent } from '../../types'
@@ -73,6 +73,30 @@ export function asCompletionParams(textDocument: TextDocument, position: Positio
     position,
     context: omit(context, ['option']),
   }
+}
+export function asCompletionList(value: CompletionList, allCommitCharacters: string[], token: CancellationToken): CompletionList {
+  if (!value) return
+  if (!value.itemDefaults) return value
+
+  const items = value.items.map(item => {
+    item.data = item.data ?? value.itemDefaults.data
+    item.commitCharacters = item.commitCharacters ?? value.itemDefaults.commitCharacters
+    item.insertTextMode = item.insertTextMode ?? value.itemDefaults.insertTextMode
+    item.insertTextFormat = item.insertTextFormat ?? value.itemDefaults.insertTextFormat
+    const editRange = value.itemDefaults.editRange
+    if (editRange) {
+      item.textEditText = item.textEditText ?? item.label
+      if (Range.is(editRange)) {
+        item.textEdit = item.textEdit ?? { range: editRange, newText: item.textEditText }
+      } else {
+        item.textEdit = item.textEdit ?? InsertReplaceEdit.create(item.textEditText, editRange.insert, editRange.replace)
+      }
+    }
+
+    return item
+  })
+
+  return CompletionList.create(items, value.isIncomplete)
 }
 
 export function asTextDocumentPositionParams(textDocument: TextDocument, position: Position): TextDocumentPositionParams {
