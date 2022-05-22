@@ -402,21 +402,25 @@ export default class Documents implements Disposable {
     doc.detach()
   }
 
-  private onBufWritePost(bufnr: number): void {
+  private async onBufWritePost(bufnr: number, changedtick: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
-    if (doc) this._onDidSaveDocument.fire(doc.textDocument)
+    if (doc) {
+      if (doc.changedtick != changedtick) await doc.patchChange()
+      this._onDidSaveDocument.fire(doc.textDocument)
+    }
   }
 
-  private async onBufWritePre(bufnr: number, bufname: string): Promise<void> {
+  private async onBufWritePre(bufnr: number, bufname: string, changedtick: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
-    // name changed
-    if (!doc || doc.bufname !== bufname) {
+    if (!doc || !doc.attached) return
+    if (doc.bufname != bufname) {
       this.detachBuffer(bufnr)
       doc = await this.createDocument(bufnr)
-    } else if (doc?.attached) {
+      if (!doc.attached) return
+    }
+    if (doc.changedtick != changedtick) {
       await doc.synchronize()
     }
-    if (!doc || !doc.attached) return
     let firing = true
     let thenables: Thenable<TextEdit[] | any>[] = []
     let event: TextDocumentWillSaveEvent = {
@@ -465,7 +469,7 @@ export default class Documents implements Disposable {
         }
       })
       let edits = await promise
-      if (edits) await doc.applyEdits(edits)
+      if (edits) await doc.applyEdits(edits, false, this.bufnr === doc.bufnr)
     }
   }
 
