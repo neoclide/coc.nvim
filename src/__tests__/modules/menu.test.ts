@@ -64,6 +64,14 @@ describe('Menu', () => {
     expect(res).toBe(1)
   })
 
+  it('should support content', async () => {
+    menu = new Menu(nvim, { items: [{ text: 'foo' }, { text: 'bar' }], content: 'content' })
+    await menu.show()
+    let lines = await menu.buffer.lines
+    menu.dispose()
+    expect(lines[0]).toBe('content')
+  })
+
   it('should select by CR', async () => {
     menu = new Menu(nvim, { items: ['foo', 'bar'] })
     let p = new Promise(resolve => {

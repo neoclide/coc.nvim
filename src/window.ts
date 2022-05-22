@@ -267,9 +267,7 @@ class Window {
   public async showMenuPicker(items: string[] | MenuItem[], option?: MenuOption, token?: CancellationToken): Promise<number> {
     if (workspace.env.dialog) {
       return await this.mutex.use(async () => {
-        if (token && token.isCancellationRequested) {
-          return -1
-        }
+        if (token && token.isCancellationRequested) return -1
         option = option || {}
         if (typeof option === 'string') option = { title: option }
         let menu = new Menu(this.nvim, { items, ...option }, token)
@@ -278,30 +276,22 @@ class Window {
             resolve(selected)
           })
         })
-        let preferences = this.dialogPreference
-        if (option.borderhighlight) preferences.floatBorderHighlight = option.borderhighlight
-        await menu.show(preferences)
-        let res = await promise
-        return res
+        await menu.show(this.dialogPreference)
+        return await promise
       })
     } else {
-      let release = await this.mutex.acquire()
-      try {
-        let placeholder = typeof option === 'string' ? option : option.title ?? 'Choose by number'
+      return await this.mutex.use(async () => {
+        let placeholder = typeof option === 'string' ? option : option.title ?? (option.content ?? '') + 'Choose by number'
         let title = placeholder + ':'
         let titles: string[] = items.map((item, idx) => {
           if (isMenuItem(item) && item.disabled) return null
           return `${idx + 1}. ${isMenuItem(item) ? item.text : item}`
         })
         let res = await this.nvim.callAsync('coc#ui#quickpick', [title, titles.map(s => s.trim())])
-        release()
         let n = parseInt(res, 10)
         if (isNaN(n) || n <= 0 || n > items.length) return -1
         return n - 1
-      } catch (e) {
-        release()
-        return -1
-      }
+      })
     }
   }
 
@@ -597,15 +587,19 @@ class Window {
     return await this._showMessage('Error', message, items, stack)
   }
 
-  private async showMessagePicker<T extends MessageItem | string>(message: string, hlGroup: string, items: T[]): Promise<T | undefined> {
+  private async showMessagePicker<T extends MessageItem | string>(title: string, content: string, hlGroup: string, items: T[]): Promise<T | undefined> {
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
-    let res = await this.showMenuPicker(texts, { title: message.replace(/\r?\n/, ' '), borderhighlight: hlGroup })
+    let res = await this.showMenuPicker(texts, {
+      content,
+      title: title.replace(/\r?\n/, ' '),
+      borderhighlight: hlGroup
+    })
     return items[res]
   }
 
   private async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[], stack: string): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind) as any
-    if (this.preferMenuPicker && items.length > 0) return await this.showMessagePicker(message, `Coc${kind}Float`, items)
+    if (this.preferMenuPicker && items.length > 0) return await this.showMessagePicker('Choose action', message, `Coc${kind}Float`, items)
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
     let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts, stack)
     return idx == -1 ? undefined : items[idx]

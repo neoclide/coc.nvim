@@ -6,12 +6,12 @@ const isVim = process.env.VIM_NODE_RPC == '1'
  * More methods for float window/popup
  */
 export default class Popup {
-  private _currIndex = 0
   constructor(
     private nvim: Neovim,
     public readonly winid,
     public readonly bufnr,
-    public linecount: number
+    public linecount: number,
+    private _currIndex = 0
   ) {
   }
 

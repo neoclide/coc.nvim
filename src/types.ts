@@ -394,6 +394,7 @@ export interface MessageItem {
 
 export type MenuOption = {
   title?: string,
+  content?: string
   /**
    * Create and highlight shortcut characters.
    */

@@ -7833,7 +7833,11 @@ declare module 'coc.nvim' {
     /**
      * Title in menu window.
      */
-    title: string,
+    title?: string,
+    /**
+     * Content in menu window as normal text.
+     */
+    content?: string
     /**
      * Create and highlight shortcut characters.
      */

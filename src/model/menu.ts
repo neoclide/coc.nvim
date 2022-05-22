@@ -17,8 +17,10 @@ export interface MenuItem {
 export interface MenuConfig {
   items: string[] | MenuItem[]
   title?: string
+  content?: string
   shortcuts?: boolean
   position?: 'cursor' | 'center'
+  borderhighlight?: string
 }
 
 export function isMenuItem(item: any): item is MenuItem {
@@ -33,6 +35,7 @@ export default class Menu {
   private bufnr: number
   private win: Popup
   private currIndex = 0
+  private contentHeight = 0
   private total: number
   private disposables: Disposable[] = []
   private keyMappings: Map<string, (character: string) => void> = new Map()
@@ -78,7 +81,7 @@ export default class Menu {
     let setCursorIndex = idx => {
       if (!this.win) return
       nvim.pauseNotification()
-      this.setCursor(idx)
+      this.setCursor(idx + this.contentHeight)
       this.win?.refreshScrollbar()
       nvim.command('redraw', true)
       nvim.resumeNotification(false, true)
@@ -165,17 +168,22 @@ export default class Menu {
     return false
   }
 
-  public async show(preferences: DialogPreferences = {}): Promise<number> {
+  public async show(preferences: DialogPreferences = {}): Promise<void> {
     let { nvim, shortcutIndexes } = this
-    let { title, items, position } = this.config
+    let { title, items, borderhighlight, position, content } = this.config
     let opts: any = {}
     if (title) opts.title = title
     if (position === 'center') opts.relative = 'editor'
     if (preferences.maxHeight) opts.maxHeight = preferences.maxHeight
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
-    if (preferences.floatBorderHighlight) opts.borderhighlight = [preferences.floatBorderHighlight]
+    if (borderhighlight) {
+      opts.borderhighlight = [borderhighlight]
+    } else if (preferences.floatBorderHighlight) {
+      opts.borderhighlight = [preferences.floatBorderHighlight]
+    }
     if (preferences.rounded) opts.rounded = 1
+    if (typeof content === 'string') opts.content = content
     let highlights: HighlightItem[] = []
     let lines = items.map((v, i) => {
       let text: string = isMenuItem(v) ? v.text : v
@@ -208,15 +216,15 @@ export default class Menu {
         this.selectCurrent()
       })
     }
-    let res = await nvim.call('coc#dialog#create_menu', [lines, opts]) as [number, number]
+    let res = await nvim.call('coc#dialog#create_menu', [lines, opts]) as [number, number, number]
     if (!res) throw new Error('Unable to create menu window')
     nvim.command('redraw', true)
     if (this._disposed) return
-    this.win = new Popup(nvim, res[0], res[1], lines.length)
+    this.win = new Popup(nvim, res[0], res[1], lines.length + res[2], res[2])
     this.bufnr = res[1]
+    this.contentHeight = res[2]
     this.attachEvents()
     nvim.call('coc#prompt#start_prompt', ['menu'], true)
-    return res[0]
   }
 
   private selectCurrent(): void {
@@ -258,7 +266,7 @@ export default class Menu {
 
   private setCursor(index: number): void {
     if (!this.win) return
-    this.currIndex = index
+    this.currIndex = index - this.contentHeight
     this.win.setCursor(index)
   }
 

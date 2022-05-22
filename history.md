@@ -1,6 +1,7 @@
 # 2022-05-22
 
 - Check for previous position when not able to find completion match.
+- Add `content` support to `window.showMenuPicker()`
 
 # 2022-05-17
 
