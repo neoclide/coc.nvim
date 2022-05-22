@@ -314,3 +314,36 @@ function! coc#ui#open_url(url)
     return
   endif
 endfunction
+
+function! coc#ui#rename_file(oldPath, newPath) abort
+  let bufnr = bufnr(a:oldPath)
+  if bufnr == -1
+    return -1
+  endif
+  if bufloaded(a:newPath)
+    execute 'silent bdelete! '.bufnr(a:newPath)
+  endif
+  let current = bufnr == bufnr('%')
+  let bufname = fnamemodify(a:newPath, ":~:.")
+  let filepath = fnamemodify(bufname(bufnr), '%:p')
+  let winid = coc#compat#buf_win_id(bufnr)
+  let curr = -1
+  if winid == -1
+    let curr = win_getid()
+    let file = fnamemodify(bufname(bufnr), ':.')
+    execute 'keepalt tab drop '.bufname(bufnr)
+    let winid = win_getid()
+  endif
+  if exists('*nvim_buf_set_name')
+    call nvim_buf_set_name(bufnr, bufname)
+  else
+    call coc#compat#execute(winid, 'file '.bufname, 'silent')
+  endif
+  call coc#compat#execute(winid, 'doautocmd BufEnter')
+  call coc#compat#execute(winid, 'noa write!', 'silent')
+  call delete(filepath, '')
+  if curr != -1
+    call win_gotoid(curr)
+  endif
+  return bufnr
+endfunction
