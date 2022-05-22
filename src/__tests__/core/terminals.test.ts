@@ -72,6 +72,7 @@ describe('create terminal', () => {
     await helper.wait(50)
     terminal.sendText('exit', true)
     await helper.waitFor('bufloaded', [terminal.bufnr], 0)
+    await helper.wait(50)
     expect(exitStatus).toBeDefined()
     expect(exitStatus.code).toBeDefined()
   })

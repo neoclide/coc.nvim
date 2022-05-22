@@ -32,7 +32,7 @@ export interface InsertChange {
 
 export type BufEvents = 'BufHidden' | 'BufEnter'
   | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload'
-  | 'BufDetach' | 'Enter'
+  | 'BufDetach' | 'Enter' | 'LinesChanged'
 
 export type EmptyEvents = 'FocusGained' | 'FocusLost' | 'InsertSnippet' | 'ready' | 'VimLeavePre'
 

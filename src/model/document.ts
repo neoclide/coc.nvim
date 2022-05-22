@@ -231,6 +231,7 @@ export default class Document {
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']
         this.lines = lines
+        fireLinesChanged(buf.id)
         if (events.pumvisible) return
         this.fireContentChanges()
       }
@@ -350,6 +351,7 @@ export default class Document {
     let textEdit = edits.length == 1 ? edits[0] : mergeTextEdits(edits, lines, newLines)
     await waitNextTick()
     this.lines = newLines
+    fireLinesChanged(this.bufnr)
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)
   }
@@ -367,6 +369,7 @@ export default class Document {
     this.nvim.call('coc#ui#change_lines', [this.bufnr, filtered], true)
     this.nvim.redrawVim()
     this.lines = newLines
+    fireLinesChanged(this.bufnr)
     this._forceSync()
   }
 
@@ -447,6 +450,7 @@ export default class Document {
     if (o) {
       this._changedtick = o.changedtick
       this.lines = o.lines
+      fireLinesChanged(this.bufnr)
       if (sync) {
         this._forceSync()
       } else {
@@ -466,6 +470,7 @@ export default class Document {
     let newLines = this.lines.slice()
     newLines[lnum - 1] = line
     this.lines = newLines
+    fireLinesChanged(this.bufnr)
     this._changedtick = changedtick
   }
 
@@ -491,6 +496,7 @@ export default class Document {
           let newLines = this.lines.slice()
           newLines[lnum - 1] = line
           this.lines = newLines
+          fireLinesChanged(this.bufnr)
           this._forceSync()
         }
       } else {
@@ -716,4 +722,8 @@ export default class Document {
 
 function fireDetach(bufnr: number): void {
   void events.fire('BufDetach', [bufnr])
+}
+
+function fireLinesChanged(bufnr: number): void {
+  void events.fire('LinesChanged', [bufnr])
 }

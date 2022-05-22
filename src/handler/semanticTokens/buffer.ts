@@ -54,7 +54,7 @@ interface RangeHighlights {
 }
 
 // should be higher than document debounce
-const debounceInterval = global.__TEST__ ? 50 : 300
+const debounceInterval = 50
 
 export default class SemanticTokensBuffer implements SyncItem {
   private _highlights: [number, SemanticTokenRange[]]
@@ -82,8 +82,11 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public onChange(): void {
-    this.cancel()
     this.highlight()
+  }
+
+  public onTextChange(): void {
+    this.cancel()
   }
 
   public async forceHighlight(): Promise<void> {
@@ -122,10 +125,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     return languages.hasProvider('semanticTokensRange', textDocument) && this.previousResults == null
   }
 
-  public validate(version: number): boolean {
-    return this.doc.attached && this.doc.version == version
-  }
-
   private get lineCount(): number {
     return this.doc.lineCount
   }
@@ -133,8 +132,10 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * Get current highlight items
    */
-  public get highlights(): ReadonlyArray<SemanticTokenRange> {
-    return this._highlights ? this._highlights[1] : []
+  public get highlights(): ReadonlyArray<SemanticTokenRange> | undefined {
+    if (!this._highlights) return undefined
+    if (this._highlights[0] == this.doc.version) return this._highlights[1]
+    return undefined
   }
 
   private get buffer(): Buffer {
@@ -331,7 +332,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!this.enabled) return
     let { version } = this.doc
     let res = await this.requestRangeHighlights(token)
-    if (!res || !this.validate(version) || token.isCancellationRequested) return
+    if (!res || token.isCancellationRequested) return
     const { highlights, start, end } = res
     if (this.rangeProviderOnly || !this.previousResults) {
       if (!this._highlights || version !== this._highlights[0]) {
@@ -348,7 +349,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const items = this.toHighlightItems(highlights)
     const priority = this.config.highlightPriority
     let diff = await window.diffHighlights(this.bufnr, NAMESPACE, items, [start, end], token)
-    if (this.validate(version) && diff) {
+    if (diff) {
       await window.applyDiffHighlights(this.bufnr, NAMESPACE, priority, diff, true)
       this._dirty = true
     }
@@ -359,9 +360,10 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   public async highlightRegions(token: CancellationToken): Promise<void> {
     let { regions, highlights, config, lineCount, bufnr } = this
+    if (!highlights) return
     let priority = config.highlightPriority
     let spans: [number, number][] = await this.nvim.call('coc#window#visible_ranges', [bufnr])
-    if (!this.couldHighlight || token.isCancellationRequested || spans.length === 0) return
+    if (token.isCancellationRequested || spans.length === 0) return
     let height = workspace.env.lines
     spans.forEach(o => {
       let s = o[0]
@@ -372,22 +374,15 @@ export default class SemanticTokensBuffer implements SyncItem {
       if (regions.has(start, end)) continue
       let items = this.toHighlightItems(highlights, start, end)
       let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
-      if (!this.couldHighlight || token.isCancellationRequested) break
+      if (token.isCancellationRequested) break
       regions.add(start, end)
-      if (diff) await window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
+      if (diff) void window.applyDiffHighlights(bufnr, NAMESPACE, priority, diff, true)
     }
-  }
-
-  private get couldHighlight(): boolean {
-    if (!this.doc.attached) return false
-    let version = this._highlights ? this._highlights[0] : undefined
-    if (this.doc.dirty || this.doc.version !== version) return false
-    return true
   }
 
   public async onCursorMoved(): Promise<void> {
     this.cancel(true)
-    if (!this.enabled) return
+    if (!this.enabled || this.doc.dirty) return
     let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
     let token = rangeTokenSource.token
     await wait(global.__TEST__ ? 10 : 100)

@@ -447,7 +447,7 @@ export class Workspace implements IWorkspace {
   }
 
   public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T | undefined): BufferSync<T> {
-    return new BufferSync(create, this)
+    return new BufferSync(create, this.documentsManager)
   }
 
   public async attach(): Promise<void> {

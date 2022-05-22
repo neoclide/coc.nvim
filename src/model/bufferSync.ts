@@ -1,9 +1,10 @@
 'use strict'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { DidChangeTextDocumentParams, IWorkspace } from '../types'
+import type Documents from '../core/documents'
+import events from '../events'
+import { DidChangeTextDocumentParams } from '../types'
 import { disposeAll } from '../util'
-import events, { InsertChange } from '../events'
-import Document from './document'
+import type Document from './document'
 
 export interface SyncItem extends Disposable {
   onChange?(e: DidChangeTextDocumentParams): void
@@ -15,39 +16,27 @@ export interface SyncItem extends Disposable {
  */
 export default class BufferSync<T extends SyncItem> {
   private disposables: Disposable[] = []
-  private itemsMap: Map<number, { uri: string, changedtick: number, item: T }> = new Map()
-  constructor(private _create: (doc: Document) => T | undefined, workspace: IWorkspace) {
+  private itemsMap: Map<number, { uri: string, item: T }> = new Map()
+  constructor(private _create: (doc: Document) => T | undefined, documents: Documents) {
     let { disposables } = this
-    for (let doc of workspace.documents) {
+    for (let doc of documents.documents) {
       this.create(doc)
     }
-    workspace.onDidOpenTextDocument(e => {
-      let doc = workspace.getDocument(e.bufnr)
-      if (doc) this.create(doc)
+    documents.onDidOpenTextDocument(e => {
+      this.create(documents.getDocument(e.bufnr))
     }, null, disposables)
-    workspace.onDidChangeTextDocument(e => {
+    documents.onDidChangeDocument(e => {
       this.onChange(e)
     }, null, disposables)
-    workspace.onDidCloseTextDocument(e => {
+    documents.onDidCloseDocument(e => {
       this.delete(e.bufnr)
     }, null, disposables)
-    const onTextChange = (bufnr: number, changedtick: number) => {
+    events.on('LinesChanged', bufnr => {
       let o = this.itemsMap.get(bufnr)
       if (o && typeof o.item.onTextChange == 'function') {
-        if (changedtick == o.changedtick) return
-        o.changedtick = changedtick
         o.item.onTextChange()
       }
-    }
-    events.on('TextChanged', (bufnr: number, changedtick: number) => {
-      onTextChange(bufnr, changedtick)
-    }, null, this.disposables)
-    events.on('TextChangedI', (bufnr: number, info: InsertChange) => {
-      onTextChange(bufnr, info.changedtick)
-    }, null, this.disposables)
-    events.on('BufWritePost', (bufnr: number, changedtick: number) => {
-      onTextChange(bufnr, changedtick)
-    }, null, this.disposables)
+    }, null, disposables)
   }
 
   public get items(): Iterable<T> {
@@ -69,7 +58,7 @@ export default class BufferSync<T extends SyncItem> {
     let o = this.itemsMap.get(doc.bufnr)
     if (o) o.item.dispose()
     let item = this._create(doc)
-    if (item) this.itemsMap.set(doc.bufnr, { uri: doc.uri, changedtick: doc.changedtick, item })
+    if (item) this.itemsMap.set(doc.bufnr, { uri: doc.uri, item })
   }
 
   private onChange(e: DidChangeTextDocumentParams): void {

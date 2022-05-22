@@ -665,7 +665,8 @@ describe('workspace registerBufferSync', () => {
       }
     }))
     let doc = await helper.createDocument()
-    await events.fire('TextChanged', [doc.bufnr])
+    await nvim.setLine('foo')
+    await doc.synchronize()
     expect(called).toBe(1)
   })
 })

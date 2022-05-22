@@ -111,7 +111,8 @@ export default class SemanticTokens {
       return
     }
     let [_, line, col] = await this.nvim.call('getcurpos', [])
-    let highlight = item.highlights.find(o => {
+    let highlights = item.highlights ?? []
+    let highlight = highlights.find(o => {
       let column = col - 1
       return o.range[0] === line - 1 && column >= o.range[1] && column < o.range[2]
     })
@@ -187,7 +188,7 @@ export default class SemanticTokens {
     hl.addLine('')
     try {
       item.checkState()
-      let highlights = item.highlights || []
+      let highlights = item.highlights ?? []
       hl.addLine('The number of semantic tokens: ')
       hl.addText(String(highlights.length), 'Number')
       hl.addLine('')
