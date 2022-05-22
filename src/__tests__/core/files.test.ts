@@ -255,8 +255,8 @@ describe('applyEdits()', () => {
   })
 
   it('should support changes with edit and rename', async () => {
-    let file = await createTmpFile('test')
-    let doc = await helper.createDocument(file)
+    let fsPath = await createTmpFile('test')
+    let doc = await helper.createDocument(fsPath)
     let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
     let newUri = URI.file(newFile).toString()
     let edit: WorkspaceEdit = {
@@ -373,15 +373,18 @@ describe('renameFile', () => {
     fs.unlinkSync(newPath)
   })
 
-  it('should rename current buffer with another buffer', async () => {
+  it('should rename current buffer with same bufnr', async () => {
     let file = await createTmpFile('test')
     let doc = await helper.createDocument(file)
     await nvim.setLine('bar')
-    await helper.wait(50)
+    await doc.patchChange()
     let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
+    }))
     await workspace.renameFile(file, newFile)
     let bufnr = await nvim.call('bufnr', ['%'])
-    expect(bufnr).toBeGreaterThan(doc.bufnr)
+    expect(bufnr).toBe(doc.bufnr)
     let line = await nvim.line
     expect(line).toBe('bar')
     let exists = fs.existsSync(newFile)

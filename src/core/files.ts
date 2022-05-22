@@ -12,8 +12,8 @@ import Configurations from '../configuration'
 import Document from '../model/document'
 import RelativePattern from '../model/relativePattern'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
-import { wait } from '../util'
-import { fixDriver, isFile, isParentFolder, renameAsync, statAsync } from '../util/fs'
+import { platform, wait } from '../util'
+import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
 import Documents from './documents'
 import * as ui from './ui'
@@ -26,6 +26,7 @@ const logger = require('../util/logger')('core-files')
 export default class Files {
   private nvim: Neovim
   private env: Env
+  private caseInsensitive = false
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
   private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
@@ -44,6 +45,7 @@ export default class Files {
     private configurations: Configurations,
     private workspaceFolderControl: WorkspaceFolderController
   ) {
+    this.caseInsensitive = platform.isWindows || platform.isMacintosh
   }
 
   public attach(nvim: Neovim, env: Env): void {
@@ -150,60 +152,17 @@ export default class Files {
   }
 
   public async renameCurrent(): Promise<void> {
-    let { nvim, documents } = this
-    let bufnr = await nvim.call('bufnr', '%')
-    let cwd = await nvim.call('getcwd')
-    let doc = documents.getDocument(bufnr)
-    if (!doc || doc.buftype != '' || doc.schema != 'file') {
-      nvim.echoError('current buffer is not file.')
-      return
-    }
-    let oldPath = URI.parse(doc.uri).fsPath
+    let { nvim } = this
+    let oldPath = await nvim.call('expand', ['%:p'])
     // await nvim.callAsync()
     let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']])
     newPath = newPath ? newPath.trim() : null
-    if (newPath == oldPath || !newPath) return
-    let lines = await doc.buffer.lines
-    let exists = fs.existsSync(oldPath)
-    if (exists) {
-      let modified = await nvim.eval('&modified')
-      if (modified) await nvim.command('noa w')
-      if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
-        let overwrite = await ui.showPrompt(this.nvim, `${newPath} exists, overwrite?`)
-        if (!overwrite) return
-        fs.unlinkSync(newPath)
-      }
-      fs.renameSync(oldPath, newPath)
+    if (newPath === oldPath || !newPath) return
+    if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
+      let overwrite = await ui.showPrompt(this.nvim, `${newPath} exists, overwrite?`)
+      if (!overwrite) return
     }
-    // TODO need wait for thenable resolve
-    this._onWillRenameFiles.fire({
-      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
-      waitUntil: async thenable => {
-        const edit = await Promise.resolve(thenable)
-        if (edit && WorkspaceEdit.is(edit)) {
-          await this.applyEdit(edit)
-        }
-      }
-    })
-    this._onDidRenameFiles.fire({
-      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
-    })
-    let filepath = isParentFolder(cwd, newPath) ? path.relative(cwd, newPath) : newPath
-    let view = await nvim.call('winsaveview')
-    nvim.pauseNotification()
-    if (oldPath.toLowerCase() == newPath.toLowerCase()) {
-      nvim.command(`keepalt ${bufnr}bwipeout!`, true)
-      nvim.call('coc#util#open_file', ['keepalt edit', filepath], true)
-    } else {
-      nvim.call('coc#util#open_file', ['keepalt edit', filepath], true)
-      nvim.command(`${bufnr}bwipeout!`, true)
-    }
-    if (!exists && lines.join('\n') != '\n') {
-      nvim.call('append', [0, lines], true)
-      nvim.command('normal! Gdd', true)
-    }
-    nvim.call('winrestview', [view], true)
-    await nvim.resumeNotification()
+    await this.renameFile(oldPath, newPath, { overwrite: true })
   }
 
   /**
@@ -276,44 +235,43 @@ export default class Files {
    * Rename file in vim and disk
    */
   public async renameFile(oldPath: string, newPath: string, opts: RenameFileOptions = {}): Promise<void> {
+    let { nvim } = this
     let { overwrite, ignoreIfExists } = opts
-    let { nvim, documents } = this
-    try {
-      let stat = await statAsync(newPath)
-      if (stat && !overwrite && !ignoreIfExists) {
-        throw new Error(`${newPath} already exists`)
-      }
-      if (!stat || overwrite) {
-        let uri = URI.file(oldPath).toString()
-        let newUri = URI.file(newPath).toString()
-        let doc = documents.getDocument(uri)
-        if (doc != null) {
-          let isCurrent = doc.bufnr == documents.bufnr
-          let newDoc = documents.getDocument(newUri)
-          if (newDoc) await this.nvim.command(`silent ${newDoc.bufnr}bwipeout!`)
-          let content = doc.getDocumentContent()
-          await fs.writeFile(newPath, content, 'utf8')
-          // open renamed file
-          if (!isCurrent) {
-            await nvim.call('coc#ui#open_files', [[newPath]])
-            await nvim.command(`silent ${doc.bufnr}bwipeout!`)
-          } else {
-            let view = await nvim.call('winsaveview')
-            nvim.pauseNotification()
-            nvim.call('coc#util#open_file', ['keepalt edit', newPath], true)
-            nvim.command(`silent ${doc.bufnr}bwipeout!`, true)
-            nvim.call('winrestview', [view], true)
-            await nvim.resumeNotification()
-          }
-          // avoid vim detect file unlink
-          await fs.unlink(oldPath)
-        } else {
-          await renameAsync(oldPath, newPath)
+    if (newPath === oldPath) return
+    let exists = fs.existsSync(newPath)
+    if (exists && ignoreIfExists && !overwrite) return
+    if (exists && !overwrite) throw new Error(`${newPath} already exists`)
+    await this.onWillRename(oldPath, newPath)
+    let loaded = await nvim.call('bufloaded', [oldPath])
+    if (loaded) {
+      if (this.caseInsensitive && newPath.toLowerCase() == oldPath.toLowerCase()) {
+        let bufnr = await nvim.call('bufnr', oldPath)
+        let winid = await nvim.call('win_getid')
+        let lines = await nvim.call('getbufline', [bufnr, 1, '$'])
+        await nvim.call('coc#util#open_file', ['keepalt tab drop', oldPath])
+        let view = await nvim.call('winsaveview')
+        await nvim.command(`keepalt ${bufnr}bwipeout!`)
+        // have to unload the buffer first
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
+        nvim.pauseNotification()
+        nvim.call('coc#util#open_file', ['keepalt edit', newPath], true)
+        if (lines.join('\n') != '\n') {
+          nvim.call('coc#compat#buf_set_lines', [0, 0, -1, lines], true)
+          nvim.command('noa w', true)
         }
+        nvim.call('winrestview', [view], true)
+        nvim.call('win_gotoid', [winid], true)
+        await nvim.resumeNotification(true)
+        bufnr = await nvim.call('bufnr', newPath)
+        if (bufnr != -1) await this.documents.createDocument(bufnr)
+      } else {
+        let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath])
+        if (bufnr != -1) await this.documents.onBufCreate(bufnr)
       }
-    } catch (e) {
-      ui.showMessage(this.nvim, `Rename error: ${e}`, 'Error')
+    } else {
+      fs.renameSync(oldPath, newPath)
     }
+    this._onDidRenameFiles.fire({ files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }] })
   }
 
   private async currentUri(): Promise<string> {
@@ -484,6 +442,28 @@ export default class Files {
       }
     }
     return res
+  }
+
+  private async onWillRename(oldPath: string, newPath: string): Promise<void> {
+    let firing = true
+    let promises: Promise<any>[] = []
+    this._onWillRenameFiles.fire({
+      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
+      waitUntil: thenable => {
+        if (!firing) throw new Error(`waitUntil should not be called in an asynchronize manner.`)
+        let tp = new Promise(resolve => {
+          setTimeout(resolve, 500)
+        })
+        let promise = Promise.race([thenable, tp]).then(edit => {
+          if (edit && WorkspaceEdit.is(edit)) {
+            return this.applyEdit(edit)
+          }
+        })
+        promises.push(promise)
+      }
+    })
+    firing = false
+    await Promise.all(promises)
   }
 }
 

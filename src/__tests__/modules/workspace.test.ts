@@ -14,10 +14,12 @@ import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
+let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
 
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  if (!fs.existsSync(tmpFolder)) fs.mkdirSync(tmpFolder)
 })
 
 afterAll(async () => {
@@ -273,7 +275,11 @@ describe('workspace methods', () => {
   })
 
   it('should rename buffer', async () => {
-    await helper.createDocument('a')
+    let doc = await helper.createDocument('a')
+    let fsPath = URI.parse(doc.uri).fsPath.replace(/a$/, 'b')
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
+    }))
     let p = workspace.renameCurrent()
     await helper.wait(50)
     await nvim.input('<backspace>b<cr>')
@@ -283,21 +289,57 @@ describe('workspace methods', () => {
   })
 
   it('should rename file', async () => {
-    let cwd = await nvim.call('getcwd')
-    let file = path.join(cwd, 'a')
-    fs.writeFileSync(file, 'foo', 'utf8')
-    await helper.createDocument('a')
+    let fsPath = path.join(tmpFolder, 'x')
+    let newPath = path.join(tmpFolder, 'b')
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
+      if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+    }))
+    fs.writeFileSync(fsPath, 'foo', 'utf8')
+    await helper.createDocument(fsPath)
     let p = workspace.renameCurrent()
-    await helper.wait(50)
-    let m = await nvim.mode
-    expect(m.mode).toBe('c')
+    await helper.waitFor('mode', [], 'c')
     await nvim.input('<backspace>b<cr>')
     await p
     let name = await nvim.eval('bufname("%")') as string
     expect(name.endsWith('b')).toBe(true)
-    expect(fs.existsSync(path.join(cwd, 'b'))).toBe(true)
-    fs.unlinkSync(path.join(cwd, 'b'))
-  }, 10000)
+    expect(fs.existsSync(newPath)).toBe(true)
+    let content = fs.readFileSync(newPath, 'utf8')
+    expect(content).toMatch(/foo/)
+  })
+
+  it('should handle will save event', async () => {
+    async function doRename() {
+      let fsPath = await createTmpFile('foo', disposables)
+      let newPath = path.join(path.dirname(fsPath), 'new_file')
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+      }))
+      await workspace.renameFile(fsPath, newPath, { overwrite: true })
+      if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+    }
+    let called = false
+    let disposable = workspace.onWillRenameFiles(e => {
+      let p = new Promise<void>(resolve => {
+        setTimeout(() => {
+          called = true
+          resolve()
+        }, 10)
+      })
+      e.waitUntil(p)
+    })
+    await doRename()
+    disposable.dispose()
+    expect(called).toBe(true)
+    called = false
+    disposable = workspace.onWillRenameFiles(e => {
+      called = true
+      e.waitUntil(Promise.resolve({ changes: {} }))
+    })
+    await doRename()
+    expect(called).toBe(true)
+    disposable.dispose()
+  })
 })
 
 describe('workspace utility', () => {

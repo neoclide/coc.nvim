@@ -340,6 +340,11 @@ export async function createTmpFile(content: string, disposables?: Disposable[])
   }
   let fsPath = path.join(tmpFolder, uuid())
   await util.promisify(fs.writeFile)(fsPath, content, 'utf8')
+  if (disposables) {
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
+    }))
+  }
   return fsPath
 }
 

@@ -343,7 +343,7 @@ export default class Documents implements Disposable {
     return await promise
   }
 
-  private async onBufCreate(bufnr: number): Promise<void> {
+  public async onBufCreate(bufnr: number): Promise<void> {
     this.onBufUnload(bufnr)
     await this.createDocument(bufnr)
   }
