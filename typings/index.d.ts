@@ -5378,6 +5378,11 @@ declare module 'coc.nvim' {
   export interface FileWillCreateEvent {
 
     /**
+    * A cancellation token.
+    */
+    readonly token: CancellationToken
+
+    /**
      * The files that are going to be created.
      */
     readonly files: ReadonlyArray<Uri>

@@ -204,8 +204,7 @@ describe('SnippetSession', () => {
       await nvim.input('r')
       await helper.wait(40)
       await session.forceSynchronize()
-      let line = await nvim.line
-      expect(line).toBe('bar bar')
+      await helper.waitFor('getline', ['.'], 'bar bar')
     })
 
     it('should cancel when change after snippet', async () => {

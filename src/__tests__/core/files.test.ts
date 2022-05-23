@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
+import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { Disposable, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { RecoverFunc } from '../../core/files'
@@ -321,14 +321,28 @@ describe('applyEdits()', () => {
 })
 
 describe('createFile()', () => {
-  it('should create file if parent folder does not exist', async () => {
-    const folder = path.join(__dirname, 'foo')
+  it('should create and revert parent folder', async () => {
+    const folder = path.join(os.tmpdir(), uuid())
     const filepath = path.join(folder, 'bar')
-    await workspace.createFile(filepath)
-    const exists = fs.existsSync(filepath)
-    expect(exists).toBe(true)
-    fs.unlinkSync(filepath)
-    fs.rmdirSync(folder)
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(folder)) fs.removeSync(folder)
+    }))
+    let fns: RecoverFunc[] = []
+    expect(fs.existsSync(folder)).toBe(false)
+    await workspace.files.createFile(filepath, {}, fns)
+    expect(fs.existsSync(filepath)).toBe(true)
+    for (let i = fns.length - 1; i >= 0; i--) {
+      await fns[i]()
+    }
+    expect(fs.existsSync(folder)).toBe(false)
+  })
+
+  it('should throw when file already exists', async () => {
+    let filepath = await createTmpFile('foo', disposables)
+    let fn = async () => {
+      await workspace.createFile(filepath, {})
+    }
+    await expect(fn()).rejects.toThrow(Error)
   })
 
   it('should not create file if file exists with ignoreIfExists', async () => {
@@ -347,19 +361,24 @@ describe('createFile()', () => {
     fs.unlinkSync(filepath)
   })
 
-  it('should create folder if it does not exist', async () => {
-    let filepath = path.join(__dirname, 'bar/')
-    await workspace.createFile(filepath)
+  it('should revert file create', async () => {
+    let filepath = path.join(os.tmpdir(), uuid())
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+    }))
+    let fns: RecoverFunc[] = []
+    await workspace.files.createFile(filepath, { overwrite: true }, fns)
     expect(fs.existsSync(filepath)).toBe(true)
-    fs.rmdirSync(filepath)
-  })
-
-  it('should not throw on folder create if overwrite is true', async () => {
-    let filepath = path.join(__dirname, 'bar/')
-    await workspace.createFile(filepath)
-    await workspace.createFile(filepath, { overwrite: true })
-    expect(fs.existsSync(filepath)).toBe(true)
-    fs.rmdirSync(filepath)
+    let bufnr = await nvim.call('bufnr', [filepath])
+    expect(bufnr).toBeGreaterThan(0)
+    let doc = workspace.getDocument(bufnr)
+    expect(doc).toBeDefined()
+    for (let fn of fns) {
+      await fn()
+    }
+    expect(fs.existsSync(filepath)).toBe(false)
+    let loaded = await nvim.call('bufloaded', [filepath])
+    expect(loaded).toBe(0)
   })
 })
 
@@ -428,9 +447,100 @@ describe('renameFile', () => {
     expect(fs.existsSync(filepath)).toBe(false)
     fs.unlinkSync(newPath)
   })
+
+  it('should rename buffer in directory and revert', async () => {
+    let folder = path.join(os.tmpdir(), uuid())
+    let newFolder = path.join(os.tmpdir(), uuid())
+    fs.mkdirSync(folder)
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(folder)) fs.removeSync(folder)
+      if (fs.existsSync(newFolder)) fs.removeSync(newFolder)
+    }))
+    let filepath = path.join(folder, 'new_file')
+    await workspace.createFile(filepath)
+    let bufnr = await nvim.call('bufnr', [filepath])
+    expect(bufnr).toBeGreaterThan(0)
+    let fns: RecoverFunc[] = []
+    await workspace.files.renameFile(folder, newFolder, { overwrite: true }, fns)
+    bufnr = await nvim.call('bufnr', [path.join(newFolder, 'new_file')])
+    expect(bufnr).toBeGreaterThan(0)
+    for (let i = fns.length - 1; i >= 0; i--) {
+      await fns[i]()
+    }
+    bufnr = await nvim.call('bufnr', [filepath])
+    expect(bufnr).toBeGreaterThan(0)
+  })
 })
 
 describe('deleteFile()', () => {
+  it('should throw when file not exists', async () => {
+    let filepath = path.join(__dirname, 'not_exists')
+    let fn = async () => {
+      await workspace.deleteFile(filepath)
+    }
+    await expect(fn()).rejects.toThrow(Error)
+  })
+
+  it('should ignore when ignoreIfNotExists set', async () => {
+    let filepath = path.join(__dirname, 'not_exists')
+    let fns: RecoverFunc[] = []
+    await workspace.files.deleteFile(filepath, { ignoreIfNotExists: true }, fns)
+    expect(fns.length).toBe(0)
+  })
+
+  it('should unload loaded buffer', async () => {
+    let filepath = await createTmpFile('file to delete')
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+    }))
+    await workspace.files.loadResource(URI.file(filepath).toString())
+    let fns: RecoverFunc[] = []
+    await workspace.files.deleteFile(filepath, {}, fns)
+    let loaded = await nvim.call('bufloaded', [filepath])
+    expect(loaded).toBe(0)
+    for (let i = fns.length - 1; i >= 0; i--) {
+      await fns[i]()
+    }
+    expect(fs.existsSync(filepath)).toBe(true)
+    loaded = await nvim.call('bufloaded', [filepath])
+    expect(loaded).toBe(1)
+  })
+
+  it('should delete and recover folder', async () => {
+    let folder = path.join(os.tmpdir(), uuid())
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(folder)) fs.rmdirSync(folder)
+    }))
+    fs.mkdirSync(folder)
+    expect(fs.existsSync(folder)).toBe(true)
+    let fns: RecoverFunc[] = []
+    await workspace.files.deleteFile(folder, {}, fns)
+    expect(fs.existsSync(folder)).toBe(false)
+    for (let i = fns.length - 1; i >= 0; i--) {
+      await fns[i]()
+    }
+    expect(fs.existsSync(folder)).toBe(true)
+    await workspace.files.deleteFile(folder, {})
+  })
+
+  it('should delete and recover folder recursive', async () => {
+    let folder = path.join(os.tmpdir(), uuid())
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(folder)) fs.removeSync(folder)
+    }))
+    fs.mkdirSync(folder)
+    await fs.writeFile(path.join(folder, 'new_file'), '', 'utf8')
+    let fns: RecoverFunc[] = []
+    await workspace.files.deleteFile(folder, { recursive: true }, fns)
+    expect(fs.existsSync(folder)).toBe(false)
+    for (let i = fns.length - 1; i >= 0; i--) {
+      await fns[i]()
+    }
+    expect(fs.existsSync(folder)).toBe(true)
+    expect(fs.existsSync(path.join(folder, 'new_file'))).toBe(true)
+    await workspace.files.deleteFile(folder, { recursive: true })
+  })
+
   it('should delete file if exists', async () => {
     let filepath = path.join(__dirname, 'foo')
     await workspace.createFile(filepath)
@@ -438,24 +548,16 @@ describe('deleteFile()', () => {
     await workspace.deleteFile(filepath)
     expect(fs.existsSync(filepath)).toBe(false)
   })
-
-  it('should delete folder if exists', async () => {
-    let filepath = path.join(__dirname, 'foo/')
-    await workspace.createFile(filepath)
-    expect(fs.existsSync(filepath)).toBe(true)
-    await workspace.deleteFile(filepath, { recursive: true })
-    expect(fs.existsSync(filepath)).toBe(false)
-  })
 })
 
 describe('loadFile()', () => {
   it('should single loadFile', async () => {
-    let doc = await helper.createDocument()
+    await helper.createDocument()
     let newFile = URI.file(path.join(__dirname, 'abc')).toString()
     let document = await workspace.loadFile(newFile)
     let bufnr = await nvim.call('bufnr', '%')
     expect(document.uri.endsWith('abc')).toBe(true)
-    expect(bufnr).toBe(doc.bufnr)
+    expect(bufnr).toBe(document.bufnr)
   })
 })
 

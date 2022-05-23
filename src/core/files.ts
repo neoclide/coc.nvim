@@ -6,27 +6,35 @@ import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
-import { CancellationToken, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { v4 as uuid } from 'uuid'
+import { CancellationToken, CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Document from '../model/document'
 import RelativePattern from '../model/relativePattern'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { wait } from '../util'
+import * as errors from '../util/errors'
 import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
 import Documents from './documents'
 import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
+import events from '../events'
 
 export type GlobPattern = string | RelativePattern
-export type RecoverFunc = (revert?: RecoverFunc[]) => Promise<void>
+export type RecoverFunc = () => Promise<any>
+
+interface WaitUntilEvent {
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+}
 
 const logger = require('../util/logger')('core-files')
 
 export default class Files {
   private nvim: Neovim
   private env: Env
+  private operationTimeout = 500
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
   private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
@@ -61,14 +69,12 @@ export default class Files {
     }
     const scheme = uri.scheme
     if (scheme == 'file') {
-      if (!fs.existsSync(uri.fsPath)) throw new Error(`${uri.fsPath} doesn't exist.`)
+      if (!fs.existsSync(uri.fsPath)) throw errors.fileNotExists(uri.fsPath)
       fs.accessSync(uri.fsPath, fs.constants.R_OK)
     }
     if (scheme == 'untitled') {
-      await this.nvim.command(`edit ${uri.path}`)
-      doc = await this.documents.document
-      await this.jumpTo(doc.uri)
-      return doc
+      await this.nvim.call('coc#util#open_file', ['tab drop', uri.path])
+      return await this.documents.document
     }
     doc = await this.loadResource(uri.toString())
     if (doc) await this.jumpTo(doc.uri)
@@ -127,12 +133,13 @@ export default class Files {
   /**
    * Load uri as document.
    */
-  public loadResource(uri: string): Promise<Document> {
-    let doc = this.documents.getDocument(uri)
-    if (doc) return Promise.resolve(doc)
-    return this.loadResources([uri]).then(arr => {
-      return Array.isArray(arr) ? arr[0] : undefined
-    })
+  public async loadResource(uri: string): Promise<Document> {
+    let u = URI.parse(uri)
+    let bufname = u.scheme === 'file' ? u.fsPath : uri
+    let bufnr = await this.nvim.call('coc#util#open_file', ['tab drop', bufname])
+    let doc = this.documents.getDocument(bufnr)
+    if (doc) return doc
+    return await this.documents.createDocument(bufnr)
   }
 
   /**
@@ -153,71 +160,105 @@ export default class Files {
   /**
    * Create a file in vim and disk
    */
-  public async createFile(filepath: string, opts: CreateFileOptions = {}): Promise<void> {
-    let { documents } = this
-    let stat = await statAsync(filepath)
-    if (stat && !opts.overwrite && !opts.ignoreIfExists) {
-      ui.showMessage(this.nvim, `${filepath} already exists!`, 'Error')
-      return
+  public async createFile(filepath: string, opts: CreateFileOptions = {}, recovers?: RecoverFunc[]): Promise<void> {
+    let { nvim } = this
+    let exists = fs.existsSync(filepath)
+    if (exists && !opts.overwrite && !opts.ignoreIfExists) {
+      throw errors.fileExists(filepath)
     }
-    if (!stat || opts.overwrite) {
-      // directory
-      if (filepath.endsWith('/')) {
-        filepath = documents.expand(filepath)
-        await fs.mkdirp(filepath)
-      } else {
-        let uri = URI.file(filepath).toString()
-        let doc = documents.getDocument(uri)
-        if (doc) return
-        if (!fs.existsSync(path.dirname(filepath))) {
-          fs.mkdirpSync(path.dirname(filepath))
+    if (!exists || opts.overwrite) {
+      let tokenSource = new CancellationTokenSource()
+      await this.fireWaitUntilEvent(this._onWillCreateFiles, {
+        files: [URI.file(filepath)],
+        token: tokenSource.token
+      }, recovers)
+      tokenSource.cancel()
+      let dir = path.dirname(filepath)
+      if (!fs.existsSync(dir)) {
+        let folder: string
+        let curr = dir
+        while (!['.', '/', path.parse(dir).root].includes(curr)) {
+          if (fs.existsSync(path.dirname(curr))) {
+            folder = curr
+            break
+          }
+          curr = path.dirname(curr)
         }
-        fs.writeFileSync(filepath, '', 'utf8')
-        await this.loadResource(uri)
+        await fs.mkdirp(dir)
+        recovers && recovers.push(async () => {
+          if (fs.existsSync(folder)) {
+            await fs.remove(folder)
+          }
+        })
       }
+      fs.writeFileSync(filepath, '', 'utf8')
+      recovers && recovers.push(async () => {
+        if (fs.existsSync(filepath)) {
+          await fs.unlink(filepath)
+        }
+      })
+      let doc = await this.loadResource(filepath)
+      let bufnr = doc.bufnr
+      recovers && recovers.push(() => {
+        void events.fire('BufUnload', [bufnr])
+        return nvim.command(`silent! bd! ${bufnr}`)
+      })
+      this._onDidCreateFiles.fire({ files: [URI.file(filepath)] })
     }
   }
 
   /**
-   * Delete file from vim and disk.
+   * Delete a file or folder from vim and disk.
    */
-  public async deleteFile(filepath: string, opts: DeleteFileOptions = {}): Promise<void> {
+  public async deleteFile(filepath: string, opts: DeleteFileOptions = {}, recovers?: RecoverFunc[]): Promise<void> {
     let { ignoreIfNotExists, recursive } = opts
-    let stat = await statAsync(filepath.replace(/\/$/, ''))
+    let stat = await statAsync(filepath)
     let isDir = stat && stat.isDirectory()
-    if (filepath.endsWith('/') && !isDir) {
-      ui.showMessage(this.nvim, `${filepath} is not directory`, 'Error')
-      return
-    }
     if (!stat && !ignoreIfNotExists) {
-      ui.showMessage(this.nvim, `${filepath} doesn't exist`, 'Error')
-      return
+      throw errors.fileNotExists(filepath)
     }
     if (stat == null) return
-    if (isDir && !recursive) {
-      ui.showMessage(this.nvim, `Can't remove directory, recursive not set`, 'Error')
-      return
-    }
-    try {
-      if (isDir && recursive) {
-        await fs.remove(filepath)
-      } else if (isDir) {
-        await fs.rmdir(filepath)
-      } else {
-        await fs.unlink(filepath)
+    let uri = URI.file(filepath)
+    await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers)
+    if (!isDir) {
+      let bufnr = await this.nvim.call('bufnr', [filepath])
+      if (bufnr) {
+        void events.fire('BufUnload', [bufnr])
+        await this.nvim.command(`silent! bwipeout ${bufnr}`)
+        recovers && recovers.push(() => {
+          return this.loadResource(uri.toString())
+        })
       }
-      if (!isDir) {
-        let uri = URI.file(filepath).toString()
-        let doc = this.documents.getDocument(uri)
-        if (doc) await this.nvim.command(`silent! bwipeout! ${doc.bufnr}`)
-      }
-    } catch (e) {
-      ui.showMessage(this.nvim, `Error on delete ${filepath}: ${e}`, 'Error')
     }
+    if (isDir && recursive) {
+      // copy files for recover
+      let folder = path.join(os.tmpdir(), 'coc-' + uuid())
+      await fs.mkdir(folder)
+      await fs.copy(filepath, folder, { recursive: true })
+      await fs.remove(filepath)
+      recovers && recovers.push(async () => {
+        await fs.mkdir(filepath)
+        await fs.copy(folder, filepath, { recursive: true })
+        await fs.remove(folder)
+      })
+    } else if (isDir) {
+      await fs.rmdir(filepath)
+      recovers && recovers.push(() => {
+        return fs.mkdir(filepath)
+      })
+    } else {
+      let dest = path.join(os.tmpdir(), 'coc-' + uuid())
+      await fs.copyFile(filepath, dest)
+      await fs.unlink(filepath)
+      recovers && recovers.push(() => {
+        return fs.move(dest, filepath, { overwrite: true })
+      })
+    }
+    this._onDidDeleteFiles.fire({ files: [uri] })
   }
 
   /**
-   * Rename file in vim and disk
+   * Rename a file or folder on vim and disk
    */
   public async renameFile(oldPath: string, newPath: string, opts: RenameFileOptions & { skipEvent?: boolean } = {}, recovers?: RecoverFunc[]): Promise<void> {
     let { nvim } = this
@@ -225,24 +266,34 @@ export default class Files {
     if (newPath === oldPath) return
     let exists = fs.existsSync(newPath)
     if (exists && ignoreIfExists && !overwrite) return
-    if (exists && !overwrite) throw new Error(`${newPath} already exists`)
-    let loaded = await nvim.call('bufloaded', [oldPath])
-    let oldExists = fs.existsSync(oldPath)
+    if (exists && !overwrite) throw errors.fileExists(newPath)
+    let oldStat = await statAsync(oldPath)
+    let loaded = (oldStat && oldStat.isDirectory()) ? 0 : await nvim.call('bufloaded', [oldPath])
+    if (!loaded && !oldStat) throw errors.fileNotExists(oldPath)
+    let file = { newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }
+    if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers)
     if (loaded) {
-      if (!opts.skipEvent) await this.onWillRename(oldPath, newPath, recovers)
-      let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldExists])
+      let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null])
       await this.documents.onBufCreate(bufnr)
     } else {
-      if (!oldExists) throw new Error(`Unable to rename, ${oldPath} not exists.`)
-      if (!opts.skipEvent) await this.onWillRename(oldPath, newPath, recovers)
+      if (oldStat?.isDirectory()) {
+        for (let doc of this.documents.documents) {
+          let u = URI.parse(doc.uri)
+          if (u.scheme === 'file' && isParentFolder(oldPath, u.fsPath, false)) {
+            let filepath = u.fsPath.replace(oldPath, newPath)
+            let bufnr = await nvim.call('coc#ui#rename_file', [u.fsPath, filepath, false])
+            await this.documents.onBufCreate(bufnr)
+          }
+        }
+      }
       fs.renameSync(oldPath, newPath)
     }
     if (recovers) {
-      recovers.push(revert => {
-        return this.renameFile(newPath, oldPath, { skipEvent: true }, revert)
+      recovers.push(() => {
+        return this.renameFile(newPath, oldPath, { skipEvent: true })
       })
     }
-    if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }] })
+    if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [file] })
   }
 
   public async renameCurrent(): Promise<void> {
@@ -429,15 +480,15 @@ export default class Files {
     return res
   }
 
-  private async onWillRename(oldPath: string, newPath: string, recovers?: RecoverFunc[]): Promise<void> {
+  private async fireWaitUntilEvent<T extends WaitUntilEvent>(emitter: Emitter<T>, properties: Omit<T, 'waitUntil'>, recovers?: RecoverFunc[]): Promise<void> {
     let firing = true
     let promises: Promise<any>[] = []
-    this._onWillRenameFiles.fire({
-      files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }],
+    emitter.fire({
+      ...properties,
       waitUntil: thenable => {
-        if (!firing) throw new Error(`waitUntil should not be called in an asynchronize manner.`)
+        if (!firing) throw errors.shouldNotAsync('waitUntil')
         let tp = new Promise(resolve => {
-          setTimeout(resolve, 500)
+          setTimeout(resolve, this.operationTimeout)
         })
         let promise = Promise.race([thenable, tp]).then(edit => {
           if (edit && WorkspaceEdit.is(edit)) {
@@ -446,7 +497,7 @@ export default class Files {
         })
         promises.push(promise)
       }
-    })
+    } as any)
     firing = false
     await Promise.all(promises)
   }
