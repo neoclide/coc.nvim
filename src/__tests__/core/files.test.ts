@@ -6,6 +6,7 @@ import { v4 as uuid } from 'uuid'
 import { Disposable, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { RecoverFunc } from '../../core/files'
 import RelativePattern from '../../model/relativePattern'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
@@ -363,6 +364,32 @@ describe('createFile()', () => {
 })
 
 describe('renameFile', () => {
+  it('should throw when oldPath not exists', async () => {
+    let filepath = path.join(__dirname, 'not_exists_file')
+    let newPath = path.join(__dirname, 'bar')
+    let fn = async () => {
+      await workspace.renameFile(filepath, newPath)
+    }
+    await expect(fn()).rejects.toThrow(Error)
+  })
+
+  it('should rename file on disk', async () => {
+    let filepath = await createTmpFile('test')
+    let newPath = path.join(path.dirname(filepath), 'new_file')
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+    }))
+    let fns: RecoverFunc[] = []
+    await workspace.files.renameFile(filepath, newPath, { overwrite: true }, fns)
+    expect(fs.existsSync(newPath)).toBe(true)
+    for (let fn of fns) {
+      await fn()
+    }
+    expect(fs.existsSync(newPath)).toBe(false)
+    expect(fs.existsSync(filepath)).toBe(true)
+  })
+
   it('should rename if file does not exist', async () => {
     let filepath = path.join(__dirname, 'foo')
     let newPath = path.join(__dirname, 'bar')

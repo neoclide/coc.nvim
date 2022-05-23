@@ -1,5 +1,6 @@
 let s:is_vim = !has('nvim')
 let s:is_win = has('win32') || has('win64')
+let s:is_mac = has('mac')
 
 function! coc#ui#quickpick(title, items, cb) abort
   if exists('*popup_menu')
@@ -315,10 +316,13 @@ function! coc#ui#open_url(url)
   endif
 endfunction
 
-function! coc#ui#rename_file(oldPath, newPath) abort
+function! coc#ui#rename_file(oldPath, newPath, write) abort
   let bufnr = bufnr(a:oldPath)
   if bufnr == -1
-    return -1
+    throw 'Unable to get bufnr of '.a:oldPath
+  endif
+  if a:oldPath =~? a:newPath && (s:is_mac || s:is_win)
+    return coc#ui#safe_rename(bufnr, a:oldPath, a:newPath, a:write)
   endif
   if bufloaded(a:newPath)
     execute 'silent bdelete! '.bufnr(a:newPath)
@@ -340,10 +344,33 @@ function! coc#ui#rename_file(oldPath, newPath) abort
     call coc#compat#execute(winid, 'file '.bufname, 'silent')
   endif
   call coc#compat#execute(winid, 'doautocmd BufEnter')
-  call coc#compat#execute(winid, 'noa write!', 'silent')
-  call delete(filepath, '')
+  if a:write
+    call coc#compat#execute(winid, 'noa write!', 'silent')
+    call delete(filepath, '')
+  endif
   if curr != -1
     call win_gotoid(curr)
   endif
+  return bufnr
+endfunction
+
+" System is case in sensitive and newPath have different case.
+function! coc#ui#safe_rename(bufnr, oldPath, newPath, write) abort
+  let winid = win_getid()
+  let lines = getbufline(a:bufnr, 1, '$')
+  execute 'keepalt tab drop '.fnamemodify(a:oldPath, ':.')
+  let view = winsaveview()
+  execute 'keepalt bwipeout! '.a:bufnr
+  if a:write
+    call delete(a:oldPath, '')
+  endif
+  execute 'keepalt edit '.fnamemodify(a:newPath, ':~:.')
+  let bufnr = bufnr('%')
+  call coc#compat#buf_set_lines(bufnr, 0, -1, lines)
+  if a:write
+    execute 'noa write'
+  endif
+  call winrestview(view)
+  call win_gotoid(winid)
   return bufnr
 endfunction

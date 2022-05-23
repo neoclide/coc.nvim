@@ -12,7 +12,7 @@ import Configurations from '../configuration'
 import Document from '../model/document'
 import RelativePattern from '../model/relativePattern'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
-import { platform, wait } from '../util'
+import { wait } from '../util'
 import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
 import Documents from './documents'
@@ -20,13 +20,13 @@ import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
 
 export type GlobPattern = string | RelativePattern
+export type RecoverFunc = (revert?: RecoverFunc[]) => Promise<void>
 
 const logger = require('../util/logger')('core-files')
 
 export default class Files {
   private nvim: Neovim
   private env: Env
-  private caseInsensitive = false
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
   private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
@@ -45,7 +45,6 @@ export default class Files {
     private configurations: Configurations,
     private workspaceFolderControl: WorkspaceFolderController
   ) {
-    this.caseInsensitive = platform.isWindows || platform.isMacintosh
   }
 
   public attach(nvim: Neovim, env: Env): void {
@@ -151,20 +150,6 @@ export default class Files {
     }))
   }
 
-  public async renameCurrent(): Promise<void> {
-    let { nvim } = this
-    let oldPath = await nvim.call('expand', ['%:p'])
-    // await nvim.callAsync()
-    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']])
-    newPath = newPath ? newPath.trim() : null
-    if (newPath === oldPath || !newPath) return
-    if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
-      let overwrite = await ui.showPrompt(this.nvim, `${newPath} exists, overwrite?`)
-      if (!overwrite) return
-    }
-    await this.renameFile(oldPath, newPath, { overwrite: true })
-  }
-
   /**
    * Create a file in vim and disk
    */
@@ -234,44 +219,44 @@ export default class Files {
   /**
    * Rename file in vim and disk
    */
-  public async renameFile(oldPath: string, newPath: string, opts: RenameFileOptions = {}): Promise<void> {
+  public async renameFile(oldPath: string, newPath: string, opts: RenameFileOptions & { skipEvent?: boolean } = {}, recovers?: RecoverFunc[]): Promise<void> {
     let { nvim } = this
     let { overwrite, ignoreIfExists } = opts
     if (newPath === oldPath) return
     let exists = fs.existsSync(newPath)
     if (exists && ignoreIfExists && !overwrite) return
     if (exists && !overwrite) throw new Error(`${newPath} already exists`)
-    await this.onWillRename(oldPath, newPath)
     let loaded = await nvim.call('bufloaded', [oldPath])
+    let oldExists = fs.existsSync(oldPath)
     if (loaded) {
-      if (this.caseInsensitive && newPath.toLowerCase() == oldPath.toLowerCase()) {
-        let bufnr = await nvim.call('bufnr', oldPath)
-        let winid = await nvim.call('win_getid')
-        let lines = await nvim.call('getbufline', [bufnr, 1, '$'])
-        await nvim.call('coc#util#open_file', ['keepalt tab drop', oldPath])
-        let view = await nvim.call('winsaveview')
-        await nvim.command(`keepalt ${bufnr}bwipeout!`)
-        // have to unload the buffer first
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
-        nvim.pauseNotification()
-        nvim.call('coc#util#open_file', ['keepalt edit', newPath], true)
-        if (lines.join('\n') != '\n') {
-          nvim.call('coc#compat#buf_set_lines', [0, 0, -1, lines], true)
-          nvim.command('noa w', true)
-        }
-        nvim.call('winrestview', [view], true)
-        nvim.call('win_gotoid', [winid], true)
-        await nvim.resumeNotification(true)
-        bufnr = await nvim.call('bufnr', newPath)
-        if (bufnr != -1) await this.documents.createDocument(bufnr)
-      } else {
-        let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath])
-        if (bufnr != -1) await this.documents.onBufCreate(bufnr)
-      }
+      if (!opts.skipEvent) await this.onWillRename(oldPath, newPath, recovers)
+      let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldExists])
+      await this.documents.onBufCreate(bufnr)
     } else {
+      if (!oldExists) throw new Error(`Unable to rename, ${oldPath} not exists.`)
+      if (!opts.skipEvent) await this.onWillRename(oldPath, newPath, recovers)
       fs.renameSync(oldPath, newPath)
     }
-    this._onDidRenameFiles.fire({ files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }] })
+    if (recovers) {
+      recovers.push(revert => {
+        return this.renameFile(newPath, oldPath, { skipEvent: true }, revert)
+      })
+    }
+    if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [{ newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }] })
+  }
+
+  public async renameCurrent(): Promise<void> {
+    let { nvim } = this
+    let oldPath = await nvim.call('expand', ['%:p'])
+    // await nvim.callAsync()
+    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']])
+    newPath = newPath ? newPath.trim() : null
+    if (newPath === oldPath || !newPath) return
+    if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
+      let overwrite = await ui.showPrompt(this.nvim, `${newPath} exists, overwrite?`)
+      if (!overwrite) return
+    }
+    await this.renameFile(oldPath, newPath, { overwrite: true })
   }
 
   private async currentUri(): Promise<string> {
@@ -283,7 +268,7 @@ export default class Files {
   /**
    * Apply WorkspaceEdit.
    */
-  public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
+  public async applyEdit(edit: WorkspaceEdit, recovers?: RecoverFunc[]): Promise<boolean> {
     let { nvim, documents, configurations } = this
     let { documentChanges, changes } = edit
     let uri = await this.currentUri()
@@ -444,7 +429,7 @@ export default class Files {
     return res
   }
 
-  private async onWillRename(oldPath: string, newPath: string): Promise<void> {
+  private async onWillRename(oldPath: string, newPath: string, recovers?: RecoverFunc[]): Promise<void> {
     let firing = true
     let promises: Promise<any>[] = []
     this._onWillRenameFiles.fire({
@@ -456,7 +441,7 @@ export default class Files {
         })
         let promise = Promise.race([thenable, tp]).then(edit => {
           if (edit && WorkspaceEdit.is(edit)) {
-            return this.applyEdit(edit)
+            return this.applyEdit(edit, recovers)
           }
         })
         promises.push(promise)
