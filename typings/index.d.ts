@@ -9301,6 +9301,20 @@ declare module 'coc.nvim' {
     ) => ProviderResult<SemanticTokens>
   }
 
+
+  /**
+   * File operation middleware
+   * @since 3.16.0
+   */
+  export interface FileOperationsMiddleware {
+    didCreateFiles?: NextSignature<FileCreateEvent, void>
+    willCreateFiles?: NextSignature<FileWillCreateEvent, Thenable<WorkspaceEdit | null | undefined>>
+    didRenameFiles?: NextSignature<FileRenameEvent, void>
+    willRenameFiles?: NextSignature<FileWillRenameEvent, Thenable<WorkspaceEdit | null | undefined>>
+    didDeleteFiles?: NextSignature<FileDeleteEvent, void>
+    willDeleteFiles?: NextSignature<FileWillDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
+  }
+
   export interface ProvideLinkedEditingRangeSignature {
     (this: void, document: LinesTextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>
   }
@@ -9437,7 +9451,7 @@ declare module 'coc.nvim' {
     didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => void
   }
 
-  export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware & WorkspaceFolderWorkspaceMiddleware
+  export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware & WorkspaceFolderWorkspaceMiddleware & FileOperationsMiddleware
 
   /**
    * Params to show a document.

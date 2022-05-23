@@ -41,11 +41,11 @@ function asRenameFilesParams(e: FileRenameEvent | FileWillRenameEvent): RenameFi
  */
 export interface FileOperationsMiddleware {
   didCreateFiles?: NextSignature<FileCreateEvent, void>
-  willCreateFiles?: NextSignature<FileCreateEvent, Thenable<WorkspaceEdit | null | undefined>>
+  willCreateFiles?: NextSignature<FileWillCreateEvent, Thenable<WorkspaceEdit | null | undefined>>
   didRenameFiles?: NextSignature<FileRenameEvent, void>
-  willRenameFiles?: NextSignature<FileRenameEvent, Thenable<WorkspaceEdit | null | undefined>>
+  willRenameFiles?: NextSignature<FileWillRenameEvent, Thenable<WorkspaceEdit | null | undefined>>
   didDeleteFiles?: NextSignature<FileDeleteEvent, void>
-  willDeleteFiles?: NextSignature<FileDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
+  willDeleteFiles?: NextSignature<FileWillDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
 }
 
 interface EventWithFiles<I> {
@@ -403,7 +403,7 @@ export class WillRenameFilesFeature extends RequestFileOperationFeature<{ oldUri
     )
   }
 
-  protected doSend(event: FileWillRenameEvent, next: (event: FileRenameEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
+  protected doSend(event: FileWillRenameEvent, next: (event: FileWillRenameEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
     const middleware = this._client.clientOptions.middleware?.workspace
     return middleware?.willRenameFiles ? middleware.willRenameFiles(event, next) : next(event)
   }
@@ -422,7 +422,7 @@ export class WillDeleteFilesFeature extends RequestFileOperationFeature<URI, Fil
     )
   }
 
-  protected doSend(event: FileWillDeleteEvent, next: (event: FileDeleteEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
+  protected doSend(event: FileWillDeleteEvent, next: (event: FileWillDeleteEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
     const middleware = this._client.clientOptions.middleware?.workspace
     return middleware?.willDeleteFiles ? middleware.willDeleteFiles(event, next) : next(event)
   }
