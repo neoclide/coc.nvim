@@ -24,13 +24,13 @@ function assign<T, K extends keyof T>(target: T, key: K, value: T[K]): void {
 
 function asCreateDeleteFilesParams(e: FileCreateEvent | FileDeleteEvent): CreateFilesParams | DeleteFilesParams {
   return {
-    files: e.files.map(f => ({uri: f.toString()}))
+    files: e.files.map(f => ({ uri: f.toString() }))
   }
 }
 
 function asRenameFilesParams(e: FileRenameEvent | FileWillRenameEvent): RenameFilesParams {
   return {
-    files: e.files.map(f => ({oldUri: f.oldUri.toString(), newUri: f.newUri.toString()}))
+    files: e.files.map(f => ({ oldUri: f.oldUri.toString(), newUri: f.newUri.toString() }))
   }
 }
 
@@ -40,16 +40,16 @@ function asRenameFilesParams(e: FileRenameEvent | FileWillRenameEvent): RenameFi
  * @since 3.16.0
  */
 export interface FileOperationsMiddleware {
-  didCreateFiles?: NextSignature<FileCreateEvent, void>;
-  willCreateFiles?: NextSignature<FileCreateEvent, Thenable<WorkspaceEdit | null | undefined>>;
-  didRenameFiles?: NextSignature<FileRenameEvent, void>;
-  willRenameFiles?: NextSignature<FileRenameEvent, Thenable<WorkspaceEdit | null | undefined>>;
-  didDeleteFiles?: NextSignature<FileDeleteEvent, void>;
-  willDeleteFiles?: NextSignature<FileDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>;
+  didCreateFiles?: NextSignature<FileCreateEvent, void>
+  willCreateFiles?: NextSignature<FileCreateEvent, Thenable<WorkspaceEdit | null | undefined>>
+  didRenameFiles?: NextSignature<FileRenameEvent, void>
+  willRenameFiles?: NextSignature<FileRenameEvent, Thenable<WorkspaceEdit | null | undefined>>
+  didDeleteFiles?: NextSignature<FileDeleteEvent, void>
+  willDeleteFiles?: NextSignature<FileDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
 }
 
 interface EventWithFiles<I> {
-  readonly files: ReadonlyArray<I>;
+  readonly files: ReadonlyArray<I>
 }
 
 abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
@@ -63,9 +63,9 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
   private _filters = new Map<
     string,
     Array<{
-      scheme?: string;
-      matcher: minimatch.IMinimatch;
-      kind?: FileOperationPatternKind;
+      scheme?: string
+      matcher: minimatch.IMinimatch
+      kind?: FileOperationPatternKind
     }>
   >()
 
@@ -227,7 +227,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
   }
 }
 
-abstract class NotificationFileOperationFeature<I, E extends { readonly files: ReadonlyArray<I>; }, P> extends FileOperationFeature<I, E> {
+abstract class NotificationFileOperationFeature<I, E extends { readonly files: ReadonlyArray<I> }, P> extends FileOperationFeature<I, E> {
 
   private _notificationType: ProtocolNotificationType<P, FileOperationRegistrationOptions>
   private _accessUri: (i: I) => URI
@@ -324,8 +324,8 @@ export class DidDeleteFilesFeature extends NotificationFileOperationFeature<URI,
 }
 
 interface RequestEvent<I> {
-  readonly files: ReadonlyArray<I>;
-  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void;
+  readonly files: ReadonlyArray<I>
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
 
 abstract class RequestFileOperationFeature<I, E extends RequestEvent<I>, P> extends FileOperationFeature<I, E> {
@@ -384,7 +384,7 @@ export class WillCreateFilesFeature extends RequestFileOperationFeature<URI, Fil
     )
   }
 
-  protected doSend(event: FileWillCreateEvent, next: (event: FileCreateEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
+  protected doSend(event: FileWillCreateEvent, next: (event: FileWillCreateEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
     const middleware = this._client.clientOptions.middleware?.workspace
     return middleware?.willCreateFiles ? middleware.willCreateFiles(event, next) : next(event)
   }
