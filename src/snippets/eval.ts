@@ -47,8 +47,7 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr 
   let lines = [`snip._reset("${escapeString(curr)}")`]
   lines.push(...code.split(/\r?\n/).map(line => line.replace(/\t/g, '    ')))
   await executePythonCode(nvim, lines)
-  let res = await nvim.call(`pyxeval`, 'snip.rv') as string
-  return res.toString()
+  return await nvim.call(`pyxeval`, 'str(snip.rv)') as string
 }
 
 export function prepareMatchCode(snip: UltiSnippetContext): string {
