@@ -2605,7 +2605,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	File and URL links are supported, return `v:false` when failed.
 
-	Note: it needs language server support documentLink feature to work.
+	Uri under cursor is searched when no link returned from documentLink
+	provider.
 
 "extensionStats"					*CocAction('extensionStats')*
 
