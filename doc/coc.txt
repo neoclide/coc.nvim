@@ -955,11 +955,6 @@ Preferences~
 
 	Maximum file size in bytes that coc.nvim should handle, default: `'10MB'`
 
-"coc.preferences.promptWorkspaceEdit"			*coc-preferences-promptWorkspaceEdit*
-
-	Prompt confirm from user for workspace edit.
-	default: `true`
-
 "coc.preferences.useQuickfixForLocations"		*coc-preferences-useQuickfixForLocations*
 
 	Use Vim's quickfix list for jump locations. Requires restart on change,
@@ -2610,7 +2605,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	File and URL links are supported, return `v:false` when failed.
 
-	Note: it needs language server support documentLink feature to work.
+	Uri under cursor is searched when no link returned from documentLink
+	provider.
 
 "extensionStats"					*CocAction('extensionStats')*
 
@@ -2890,18 +2886,6 @@ COMMANDS						*coc-commands*
 
 	Run a command contributed by extensions, use `<tab>` for name
 	completion.
-
-:{range}CocAction  [{only}] 				*:CocAction*
-
-	Get codeActions of current document in actions list,
-	with optional {range}.
-
-	{only} can be `quickfix`, `refactor`, `source.fixAll` as
-	CodeActionKind.
-
-:{range}CocFix 						*:CocFix*
-
-	Same as `:CocAction quickfix` for quickfix actions.
 
 :CocOpenLog						*:CocOpenLog*
 

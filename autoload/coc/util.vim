@@ -135,8 +135,8 @@ function! coc#util#diagnostic_info(bufnr, checkInsert) abort
 endfunction
 
 function! coc#util#open_file(cmd, file)
-  let file = fnamemodify(fnameescape(a:file), ':.')
-  execute a:cmd .' '.file
+  execute a:cmd .' '.fnameescape(fnamemodify(a:file, ':~:.'))
+  return bufnr('%')
 endfunction
 
 function! coc#util#job_command()

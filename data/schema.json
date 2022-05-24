@@ -1422,11 +1422,6 @@
       "default": "10MB",
       "description": "Maximum file size in bytes that coc.nvim should handle, default '10MB'"
     },
-    "coc.preferences.promptWorkspaceEdit": {
-      "type": "boolean",
-      "description": "Prompt confirm from user when apply workspace edit for unloaded files.",
-      "default": true
-    },
     "coc.preferences.listOfWorkspaceEdit": {
       "type": "string",
       "default": "quickfix",
