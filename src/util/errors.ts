@@ -23,3 +23,7 @@ export function fileNotExists(filepath: string) {
 export function shouldNotAsync(method: string) {
   return new Error(`${method} should not be called in an asynchronize manner`)
 }
+
+export function badScheme(scheme: string) {
+  return new Error(`Change of ${scheme} not supported`)
+}

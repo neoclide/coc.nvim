@@ -298,11 +298,9 @@ export default class Files {
       }
       fs.renameSync(oldPath, newPath)
     }
-    if (recovers) {
-      recovers.push(() => {
-        return this.renameFile(newPath, oldPath, { skipEvent: true })
-      })
-    }
+    recovers && recovers.push(() => {
+      return this.renameFile(newPath, oldPath, { skipEvent: true })
+    })
     if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [file] })
   }
 
@@ -388,23 +386,22 @@ export default class Files {
       }
       this.nvim.redrawVim()
     } catch (e) {
+      logger.error('Error on applyEdits:', edit, e)
       if (recovers.length) await this.undoChanges(recovers)
       if (nested) throw e
-      logger.error('Error on applyEdits:', edit, e)
-      ui.showMessage(this.nvim, `Error on applyEdits: ${e}`, 'Error')
+      void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
       return false
     }
-    if (locations.length) {
+    if (locations.length && !nested) {
       let items = await this.documents.getQuickfixList(locations)
-      let silent = locations.every(l => l.uri == this.currentUri)
       const preferences = this.configurations.getConfiguration('coc.preferences')
       let listTarget = preferences.get<string>('listOfWorkspaceEdit', 'quickfix')
       if (listTarget == 'quickfix') {
         await this.nvim.call('setqflist', [items])
-        if (!silent && !nested) ui.showMessage(this.nvim, `use :wa to save changes to disk and :copen to open quickfix list`, 'MoreMsg')
+        ui.showMessage(this.nvim, `use :wa to save changes to disk and :copen to open quickfix list`, 'MoreMsg')
       } else if (listTarget == 'location') {
         await this.nvim.setVar('coc_jump_locations', items)
-        if (!silent && !nested) ui.showMessage(this.nvim, `use :wa to save changes to disk and :CocList location to manage changed locations`, 'MoreMsg')
+        ui.showMessage(this.nvim, `use :wa to save changes to disk and :CocList location to manage changed locations`, 'MoreMsg')
       }
     }
     return true
@@ -442,16 +439,18 @@ export default class Files {
     for (let change of documentChanges) {
       if (TextDocumentEdit.is(change)) {
         let { uri, version } = change.textDocument
+        let doc = documents.getDocument(uri)
         if (typeof version === 'number' && version > 0) {
-          let doc = documents.getDocument(uri)
           if (!doc) throw new Error(`File ${uri} not loaded`)
           if (doc.version != version) throw new Error(`${uri} changed before apply edit`)
+        } else if (!doc) {
+          if (!isFile(uri)) throw errors.badScheme(URI.parse(uri).scheme)
         }
       } else if (CreateFile.is(change) || DeleteFile.is(change)) {
-        if (!isFile(change.uri)) throw new Error(`change of scheme ${change.uri} not supported`)
+        if (!isFile(change.uri)) throw errors.badScheme(URI.parse(change.uri).scheme)
       } else if (RenameFile.is(change)) {
         if (!isFile(change.oldUri) || !isFile(change.newUri)) {
-          throw new Error(`change of scheme ${change.oldUri} not supported`)
+          throw errors.badScheme(URI.parse(change.oldUri).scheme)
         }
       }
     }
