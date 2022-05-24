@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-import { CreateFile, DeleteFile, Position, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
+import { CreateFile, DeleteFile, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { RecoverFunc } from '../../core/files'
 import RelativePattern from '../../model/relativePattern'
@@ -350,6 +350,49 @@ describe('applyEdits()', () => {
     assertContent('\n', '\n')
     await workspace.redoEdit()
     assertContent('foo\n', 'bar\n')
+  })
+
+  it('should should support annotations', async () => {
+    async function assertEdit(confirm: boolean): Promise<void> {
+      let doc = await helper.createDocument(uuid())
+      let edit: WorkspaceEdit = {
+        documentChanges: [
+          {
+            textDocument: { version: doc.version, uri: doc.uri },
+            edits: [
+              {
+                range: Range.create(0, 0, 0, 0),
+                newText: 'bar',
+                annotationId: '85bc78e2-5ef0-4949-b10c-13f476faf430'
+              }
+            ]
+          },
+        ],
+        changeAnnotations: {
+          '85bc78e2-5ef0-4949-b10c-13f476faf430': {
+            needsConfirmation: true,
+            label: 'Text changes',
+            description: 'description'
+          }
+        }
+      }
+      let p = workspace.files.applyEdit(edit)
+      await helper.waitPrompt()
+      if (confirm) {
+        await nvim.input('<cr>')
+      } else {
+        await nvim.input('<esc>')
+      }
+      await p
+      let content = doc.getDocumentContent()
+      if (confirm) {
+        expect(content).toBe('bar\n')
+      } else {
+        expect(content).toBe('\n')
+      }
+    }
+    await assertEdit(true)
+    await assertEdit(false)
   })
 })
 

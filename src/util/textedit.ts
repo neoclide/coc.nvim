@@ -1,5 +1,5 @@
 'use strict'
-import { ChangeAnnotation, AnnotatedTextEdit, CreateFile, DeleteFile, Position, Range, RenameFile, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
@@ -79,6 +79,27 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
   return true
 }
 
+export function getConfirmAnnotations(changes: ReadonlyArray<DocumentChange>, changeAnnotations: { [id: string]: ChangeAnnotation }): ReadonlyArray<string> {
+  let keys: string[] = []
+  for (let change of changes) {
+    let key = getAnnotationKey(change)
+    if (key && !keys.includes(key) && changeAnnotations[key]?.needsConfirmation) keys.push(key)
+  }
+  return keys
+}
+
+export function getAnnotationKey(change: DocumentChange): string | undefined {
+  let key: string
+  if (TextDocumentEdit.is(change)) {
+    if (AnnotatedTextEdit.is(change.edits[0])) {
+      key = change.edits[0].annotationId
+    }
+  } else {
+    key = change.annotationId
+  }
+  return key
+}
+
 export function toDocumentChanges(edit: WorkspaceEdit): DocumentChange[] {
   if (edit.documentChanges) return edit.documentChanges
   let changes: DocumentChange[] = []
@@ -88,28 +109,6 @@ export function toDocumentChanges(edit: WorkspaceEdit): DocumentChange[] {
     }
   }
   return changes
-}
-
-export function groupByAnnotation(changes: ReadonlyArray<DocumentChange>, changeAnnotations: { [id: string]: ChangeAnnotation }): Map<ChangeAnnotation | null, ReadonlyArray<DocumentChange>> {
-  let map: Map<ChangeAnnotation | null, DocumentChange[]> = new Map()
-  for (let change of changes) {
-    let key: string | null = null
-    if (TextDocumentEdit.is(change)) {
-      if (AnnotatedTextEdit.is(change.edits[0])) {
-        key = change.edits[0].annotationId
-      }
-    } else {
-      key = change.annotationId ?? null
-    }
-    let annotation = key == null ? null : changeAnnotations[key] ?? null
-    let curr = map.get(annotation)
-    if (curr) {
-      curr.push(change)
-    } else {
-      map.set(annotation, [change])
-    }
-  }
-  return map
 }
 
 /**

@@ -116,6 +116,15 @@ export class Helper extends EventEmitter {
     throw new Error('timeout after 2s')
   }
 
+  public async waitPrompt(): Promise<void> {
+    for (let i = 0; i < 40; i++) {
+      await this.wait(50)
+      let prompt = await this.nvim.call('coc#prompt#activated')
+      if (prompt) return
+    }
+    throw new Error('Wait prompt timeout after 2s')
+  }
+
   public async waitFloat(): Promise<number> {
     for (let i = 0; i < 50; i++) {
       await this.wait(20)
