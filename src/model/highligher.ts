@@ -78,6 +78,14 @@ export default class Highlighter {
   public addText(text: string, hlGroup?: string): void {
     let { lines } = this
     let pre = lines[lines.length - 1] || ''
+    if (text.includes('\n')) {
+      let parts = text.split('\n')
+      this.addText(parts[0], hlGroup)
+      for (let line of parts.slice(1)) {
+        this.addLine(line, hlGroup)
+      }
+      return
+    }
     if (hlGroup) {
       let colStart = byteLength(pre)
       this._highlights.push({

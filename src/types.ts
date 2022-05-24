@@ -568,6 +568,13 @@ export interface TextDocumentWillSaveEvent {
 
 export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile
 
+export interface LinesChange {
+  uri: string
+  lnum: number
+  oldLines: ReadonlyArray<string>
+  newLines: ReadonlyArray<string>
+}
+
 /**
  * An event describing a change to a text document.
  */

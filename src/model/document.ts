@@ -153,7 +153,7 @@ export default class Document {
         return 'latex'
       default: {
         let map = this.env.filetypeMap
-        return map[filetype] || filetype
+        return String(map[filetype] || filetype)
       }
     }
   }

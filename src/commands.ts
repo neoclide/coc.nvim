@@ -261,15 +261,21 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workspace.undo',
       execute: async () => {
-        await workspace.undoEdit()
+        await workspace.files.undoWorkspaceEdit()
       }
-    }, false, 'Undo last workspace edit')
+    }, false, 'Undo previous workspace edit')
     this.register({
       id: 'workspace.redo',
       execute: async () => {
-        await workspace.redoEdit()
+        await workspace.files.redoWorkspaceEdit()
       }
-    }, false, 'Redo last workspace edit')
+    }, false, 'Redo previous workspace edit')
+    this.register({
+      id: 'workspace.inspectEdit',
+      execute: async () => {
+        await workspace.files.inspectEdit()
+      }
+    }, false, 'Inspect previous workspace edit in new tab')
     this.register({
       id: 'workspace.openLocation',
       execute: async (winid: number, loc: Location, openCommand?: string) => {

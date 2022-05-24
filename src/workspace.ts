@@ -85,7 +85,7 @@ export class Workspace implements IWorkspace {
     this.autocmds = new Autocmds(this.contentProvider, this.watchers)
     this.keymaps = new Keymaps(documents)
     this.locations = new Locations(this.configurations, documents, this.contentProvider)
-    this.files = new Files(documents, this.configurations, this.workspaceFolderControl)
+    this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
     this.editors = new Editors(documents)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
@@ -528,14 +528,6 @@ export class Workspace implements IWorkspace {
 
   public async findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Promise<URI[]> {
     return this.files.findFiles(include, exclude, maxResults, token)
-  }
-
-  public undoEdit(): Promise<void> {
-    return this.files.undoWorkspaceEdit()
-  }
-
-  public redoEdit(): Promise<void> {
-    return this.files.redoWorkspaceEdit()
   }
 
   public detach(): void {

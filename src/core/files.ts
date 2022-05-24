@@ -7,33 +7,28 @@ import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import events from '../events'
 import Document from '../model/document'
+import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import RelativePattern from '../model/relativePattern'
-import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
+import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, LinesChange } from '../types'
 import * as errors from '../util/errors'
 import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
 import { getAnnotationKey, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
 import Documents from './documents'
+import type Keymaps from './keymaps'
 import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
 
 export type GlobPattern = string | RelativePattern
-export type RecoverFunc = () => Promise<any>
 
 interface WaitUntilEvent {
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
-}
-
-interface EditState {
-  edit: WorkspaceEdit
-  recovers: RecoverFunc[]
-  applied: boolean
 }
 
 const logger = require('../util/logger')('core-files')
@@ -60,7 +55,8 @@ export default class Files {
   constructor(
     private documents: Documents,
     private configurations: Configurations,
-    private workspaceFolderControl: WorkspaceFolderController
+    private workspaceFolderControl: WorkspaceFolderController,
+    private keymaps: Keymaps
   ) {
   }
 
@@ -330,9 +326,8 @@ export default class Files {
     let documentChanges = toDocumentChanges(edit)
     let nested = Array.isArray(recovers)
     recovers = recovers ?? []
-    let locations: Location[] = []
+    let changes: { [uri: string]: LinesChange } = {}
     try {
-      let changedMap: Map<string, string> = new Map()
       let { changeAnnotations } = edit
       let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : []
       let denied: string[] = []
@@ -357,6 +352,13 @@ export default class Files {
           let revertEdit = await doc.applyEdits(edits, false, textDocument.uri === this.currentUri)
           if (revertEdit) {
             let version = doc.version
+            let { newText, range } = revertEdit
+            changes[uri] = {
+              uri,
+              lnum: range.start.line + 1,
+              newLines: doc.getLines(range.start.line, range.end.line),
+              oldLines: newText.endsWith('\n') ? newText.slice(0, -1).split('\n') : newText.split('\n')
+            }
             recovers.push(async () => {
               let doc = this.documents.getDocument(uri)
               if (!doc || !doc.attached || doc.version !== version) return
@@ -364,26 +366,15 @@ export default class Files {
               textDocument.version = doc.version
             })
           }
-          for (let edit of edits) {
-            locations.push({ uri: doc.uri, range: edit.range })
-          }
         } else if (CreateFile.is(change)) {
           await this.createFile(fsPath(change.uri), change.options, recovers)
         } else if (DeleteFile.is(change)) {
           await this.deleteFile(fsPath(change.uri), change.options, recovers)
         } else if (RenameFile.is(change)) {
-          changedMap.set(change.oldUri, change.newUri)
           await this.renameFile(fsPath(change.oldUri), fsPath(change.newUri), change.options, recovers)
         }
       }
-      if (!nested) this.editState = { edit: { documentChanges, changeAnnotations: edit.changeAnnotations }, recovers, applied: true }
-      // fix location uris on renameFile
-      if (changedMap.size) {
-        locations.forEach(location => {
-          let newUri = changedMap.get(location.uri)
-          if (newUri) location.uri = newUri
-        })
-      }
+      if (!nested) this.editState = { edit: { documentChanges, changeAnnotations: edit.changeAnnotations }, changes, recovers, applied: true }
       this.nvim.redrawVim()
     } catch (e) {
       logger.error('Error on applyEdits:', edit, e)
@@ -392,17 +383,12 @@ export default class Files {
       void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
       return false
     }
-    if (locations.length && !nested) {
-      let items = await this.documents.getQuickfixList(locations)
-      const preferences = this.configurations.getConfiguration('coc.preferences')
-      let listTarget = preferences.get<string>('listOfWorkspaceEdit', 'quickfix')
-      if (listTarget == 'quickfix') {
-        await this.nvim.call('setqflist', [items])
-        ui.showMessage(this.nvim, `use :wa to save changes to disk and :copen to open quickfix list`, 'MoreMsg')
-      } else if (listTarget == 'location') {
-        await this.nvim.setVar('coc_jump_locations', items)
-        ui.showMessage(this.nvim, `use :wa to save changes to disk and :CocList location to manage changed locations`, 'MoreMsg')
-      }
+    let uris = Object.keys(changes)
+    let silent = uris.length == 1 && uris[0] == this.currentUri
+    // avoid message when change current file only.
+    if (silent) return true
+    if (!global.__TEST__) {
+      void this.window.showInformationMessage(`Changes applied for ${uris.length} buffers, use ':wa' to save changes.\nUse 'workspace.undo', 'workspace.inspectEdit' from ':CocCommand'to undo/inspect changes.`)
     }
     return true
   }
@@ -412,6 +398,15 @@ export default class Files {
       let fn = recovers.pop()
       await fn()
     }
+  }
+
+  public async inspectEdit(): Promise<void> {
+    if (!this.editState) {
+      void this.window.showWarningMessage('No workspace edit to inspect')
+      return
+    }
+    let inspect = new EditInspect(this.nvim, this.keymaps)
+    await inspect.show(this.editState)
   }
 
   public async undoWorkspaceEdit(): Promise<void> {

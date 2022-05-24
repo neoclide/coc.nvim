@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
@@ -6,12 +6,13 @@ import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { RecoverFunc } from '../../core/files'
+import { RecoverFunc } from '../../model/editInspect'
 import RelativePattern from '../../model/relativePattern'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
 import window from '../../window'
 import workspace from '../../workspace'
+import events from '../../events'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -346,9 +347,9 @@ describe('applyEdits()', () => {
     ]))
     await workspace.applyEdit({ documentChanges: edits })
     assertContent('foo\n', 'bar\n')
-    await workspace.undoEdit()
+    await workspace.files.undoWorkspaceEdit()
     assertContent('\n', '\n')
-    await workspace.redoEdit()
+    await workspace.files.redoWorkspaceEdit()
     assertContent('foo\n', 'bar\n')
   })
 
@@ -393,6 +394,108 @@ describe('applyEdits()', () => {
     }
     await assertEdit(true)
     await assertEdit(false)
+  })
+})
+
+describe('inspectEdit', () => {
+  async function inspect(edit: WorkspaceEdit): Promise<Buffer> {
+    await workspace.applyEdit(edit)
+    await workspace.files.inspectEdit()
+    let buf = await nvim.buffer
+    return buf
+  }
+
+  it('should show wanring when edit not exists', async () => {
+    (workspace.files as any).editState = undefined
+    await workspace.files.inspectEdit()
+  })
+
+  it('should render with changes', async () => {
+    let fsPath = await createTmpFile('foo\n1\n2\nbar')
+    let doc = await helper.createDocument(fsPath)
+    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+    let newUri = URI.file(newFile).toString()
+    let createFile = path.join(os.tmpdir(), `coc-${process.pid}/create-${uuid()}`)
+    let deleteFile = await createTmpFile('delete')
+    disposables.push(Disposable.create(() => {
+      if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
+      if (fs.existsSync(createFile)) fs.unlinkSync(createFile)
+      if (fs.existsSync(deleteFile)) fs.unlinkSync(deleteFile)
+    }))
+    let edit: WorkspaceEdit = {
+      documentChanges: [
+        {
+          textDocument: { version: null, uri: doc.uri, },
+          edits: [
+            TextEdit.del(Range.create(0, 0, 1, 0)),
+            TextEdit.replace(Range.create(3, 0, 3, 3), 'xyz'),
+          ]
+        },
+        {
+          kind: 'rename',
+          oldUri: doc.uri,
+          newUri
+        }, {
+          kind: 'create',
+          uri: URI.file(createFile).toString()
+        }, {
+          kind: 'delete',
+          uri: URI.file(deleteFile).toString()
+        }
+      ]
+    }
+    let buf = await inspect(edit)
+    let lines = await buf.lines
+    let content = lines.join('\n')
+    expect(content).toMatch('Change')
+    expect(content).toMatch('Rename')
+    expect(content).toMatch('Create')
+    expect(content).toMatch('Delete')
+    await nvim.command('exe 5')
+    await nvim.input('<CR>')
+    await helper.waitFor('expand', ['%:p'], newFile)
+    let line = await nvim.call('line', ['.'])
+    expect(line).toBe(3)
+  })
+
+  it('should render annotation label', async () => {
+    let doc = await helper.createDocument(uuid())
+    let edit: WorkspaceEdit = {
+      documentChanges: [
+        {
+          textDocument: { version: doc.version, uri: doc.uri },
+          edits: [
+            {
+              range: Range.create(0, 0, 0, 0),
+              newText: 'bar',
+              annotationId: 'dd866f37-a24c-4503-9c35-c139fb28e25b'
+            }
+          ]
+        },
+      ],
+      changeAnnotations: {
+        'dd866f37-a24c-4503-9c35-c139fb28e25b': {
+          needsConfirmation: false,
+          label: 'Text changes'
+        }
+      }
+    }
+    let buf = await inspect(edit)
+    await events.fire('BufUnload', [buf.id + 1])
+    let winid = await nvim.call('win_getid')
+    let lines = await buf.lines
+    expect(lines[0]).toBe('Text changes')
+    await nvim.command('exe 1')
+    await nvim.input('<CR>')
+    let bufnr = await nvim.call('bufnr', ['%'])
+    expect(bufnr).toBe(buf.id)
+    await nvim.command('exe 3')
+    await nvim.input('<CR>')
+    let fsPath = URI.parse(doc.uri).fsPath
+    await helper.waitFor('expand', ['%:p'], fsPath)
+    await nvim.call('win_gotoid', [winid])
+    await nvim.input('<esc>')
+    await helper.wait(10)
   })
 })
 
