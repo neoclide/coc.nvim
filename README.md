@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.vim.org/scripts/script.php?script_id=5779">
-    <img alt="Logo" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220522/coc.svg" height="220" />
+    <img alt="Logo" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220525/c.png" height="220" />
   </a>
   <p align="center">Make your Vim/Neovim as smart as VSCode.</p>
   <p align="center">
