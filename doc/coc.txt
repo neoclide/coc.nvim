@@ -955,11 +955,6 @@ Preferences~
 
 	Maximum file size in bytes that coc.nvim should handle, default: `'10MB'`
 
-"coc.preferences.promptWorkspaceEdit"			*coc-preferences-promptWorkspaceEdit*
-
-	Prompt confirm from user for workspace edit.
-	default: `true`
-
 "coc.preferences.useQuickfixForLocations"		*coc-preferences-useQuickfixForLocations*
 
 	Use Vim's quickfix list for jump locations. Requires restart on change,

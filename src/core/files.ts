@@ -10,17 +10,18 @@ import { v4 as uuid } from 'uuid'
 import { CancellationToken, CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Location, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
+import events from '../events'
 import Document from '../model/document'
 import RelativePattern from '../model/relativePattern'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
-import { wait } from '../util'
 import * as errors from '../util/errors'
 import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
+import { groupByAnnotation, toDocumentChanges } from '../util/textedit'
+import type { Window } from '../window'
 import Documents from './documents'
 import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
-import events from '../events'
 
 export type GlobPattern = string | RelativePattern
 export type RecoverFunc = () => Promise<any>
@@ -29,11 +30,19 @@ interface WaitUntilEvent {
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
 
+interface EditState {
+  edit: WorkspaceEdit
+  recovers: RecoverFunc[]
+  applied: boolean
+}
+
 const logger = require('../util/logger')('core-files')
 
 export default class Files {
   private nvim: Neovim
   private env: Env
+  private window: Window
+  private editState: EditState | undefined
   private operationTimeout = 500
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
@@ -55,9 +64,10 @@ export default class Files {
   ) {
   }
 
-  public attach(nvim: Neovim, env: Env): void {
+  public attach(nvim: Neovim, env: Env, window: Window): void {
     this.nvim = nvim
     this.env = env
+    this.window = window
   }
 
   public async openTextDocument(uri: URI | string): Promise<Document> {
@@ -76,9 +86,7 @@ export default class Files {
       await this.nvim.call('coc#util#open_file', ['tab drop', uri.path])
       return await this.documents.document
     }
-    doc = await this.loadResource(uri.toString())
-    if (doc) await this.jumpTo(doc.uri)
-    return doc
+    return await this.loadResource(uri.toString())
   }
 
   public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
@@ -320,100 +328,118 @@ export default class Files {
    * Apply WorkspaceEdit.
    */
   public async applyEdit(edit: WorkspaceEdit, recovers?: RecoverFunc[]): Promise<boolean> {
-    let { nvim, documents, configurations } = this
-    let { documentChanges, changes } = edit
-    let uri = await this.currentUri()
-    let currentChanged = false
+    let { nvim, configurations } = this
+    let documentChanges = toDocumentChanges(edit)
+    if (documentChanges.length == 0) return true
+    let nested = Array.isArray(recovers)
+    recovers = recovers ?? []
+    let currentUri = await this.currentUri()
     let locations: Location[] = []
     let changeCount = 0
-    const preferences = configurations.getConfiguration('coc.preferences')
-    let promptUser = !global.__TEST__ && preferences.get<boolean>('promptWorkspaceEdit', true)
-    let listTarget = preferences.get<string>('listOfWorkspaceEdit', 'quickfix')
     try {
-      if (documentChanges && documentChanges.length) {
-        let changedUris = this.getChangedUris(documentChanges)
-        changeCount = changedUris.length
-        if (promptUser) {
-          let diskCount = changedUris.reduce((p, c) => {
-            return p + (documents.getDocument(c) == null ? 1 : 0)
-          }, 0)
-          if (diskCount) {
-            let res = await ui.showPrompt(this.nvim, `${diskCount} documents on disk would be loaded for change, confirm?`)
-            if (!res) return
-          }
+      let changedUris = this.getChangedUris(documentChanges)
+      changeCount = changedUris.length
+      let changedMap: Map<string, string> = new Map()
+      let grouped = groupByAnnotation(documentChanges, edit.changeAnnotations ?? {})
+      for (let [annotation, changes] of grouped.entries()) {
+        if (annotation && annotation.needsConfirmation) {
+          annotation.needsConfirmation = false
+          let res = await this.window.showMenuPicker(['Yes', 'No'], {
+            position: 'center',
+            title: 'Confirm edits',
+            content: annotation.label + (annotation.description ? ' ' + annotation.description : '')
+          })
+          if (res != 0) continue
         }
-        let changedMap: Map<string, string> = new Map()
-        for (const change of documentChanges) {
+        for (const change of changes) {
           if (TextDocumentEdit.is(change)) {
             let { textDocument, edits } = change
+            let { uri } = textDocument
             let doc = await this.loadResource(textDocument.uri)
-            let current = textDocument.uri === uri
-            if (current) currentChanged = true
-            await doc.applyEdits(edits, false, current)
+            let current = textDocument.uri === currentUri
+            let revertEdit = await doc.applyEdits(edits, false, current)
+            let version = doc.version
+            if (revertEdit) {
+              recovers.push(async () => {
+                let doc = this.documents.getDocument(uri)
+                if (!doc || !doc.attached || doc.version !== version) return
+                await doc.applyEdits([revertEdit])
+                textDocument.version = doc.version
+              })
+            }
             for (let edit of edits) {
               locations.push({ uri: doc.uri, range: edit.range })
             }
           } else if (CreateFile.is(change)) {
-            let file = URI.parse(change.uri).fsPath
-            await this.createFile(file, change.options)
+            await this.createFile(fsPath(change.uri), change.options, recovers)
+          } else if (DeleteFile.is(change)) {
+            await this.deleteFile(fsPath(change.uri), change.options, recovers)
           } else if (RenameFile.is(change)) {
             changedMap.set(change.oldUri, change.newUri)
-            await this.renameFile(URI.parse(change.oldUri).fsPath, URI.parse(change.newUri).fsPath, change.options)
-          } else if (DeleteFile.is(change)) {
-            await this.deleteFile(URI.parse(change.uri).fsPath, change.options)
+            await this.renameFile(fsPath(change.oldUri), fsPath(change.newUri), change.options, recovers)
           }
-        }
-        // fix location uris on renameFile
-        if (changedMap.size) {
-          locations.forEach(location => {
-            let newUri = changedMap.get(location.uri)
-            if (newUri) location.uri = newUri
-          })
-        }
-      } else if (changes) {
-        let uris = Object.keys(changes)
-        let unloaded = uris.filter(uri => documents.getDocument(uri) == null)
-        if (unloaded.length) {
-          if (promptUser) {
-            let res = await ui.showPrompt(this.nvim, `${unloaded.length} documents on disk would be loaded for change, confirm?`)
-            if (!res) return
-          }
-          await this.loadResources(unloaded)
-        }
-        for (let uri of Object.keys(changes)) {
-          let document = documents.getDocument(uri)
-          let current = URI.parse(uri).toString() === uri
-          if (current) currentChanged = true
-          let edits = changes[uri]
-          for (let edit of edits) {
-            locations.push({ uri: document.uri, range: edit.range })
-          }
-          await document.applyEdits(edits, false, current)
-        }
-        changeCount = uris.length
-      }
-      if (currentChanged) this.nvim.redrawVim()
-      if (locations.length) {
-        let items = await this.documents.getQuickfixList(locations)
-        let silent = locations.every(l => l.uri == uri)
-        if (listTarget == 'quickfix') {
-          await this.nvim.call('setqflist', [items])
-          if (!silent) ui.showMessage(this.nvim, `changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'MoreMsg')
-        } else if (listTarget == 'location') {
-          await nvim.setVar('coc_jump_locations', items)
-          if (!silent) ui.showMessage(this.nvim, `changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'MoreMsg')
         }
       }
+      this.editState = { edit: { documentChanges, changeAnnotations: edit.changeAnnotations }, recovers, applied: true }
+      // fix location uris on renameFile
+      if (changedMap.size) {
+        locations.forEach(location => {
+          let newUri = changedMap.get(location.uri)
+          if (newUri) location.uri = newUri
+        })
+      }
+      this.nvim.redrawVim()
     } catch (e) {
+      await this.undoChanges(recovers)
+      if (nested) throw e
       logger.error('Error on applyEdits:', edit, e)
       ui.showMessage(this.nvim, `Error on applyEdits: ${e}`, 'Error')
       return false
     }
-    await wait(50)
+    if (locations.length) {
+      let items = await this.documents.getQuickfixList(locations)
+      let silent = locations.every(l => l.uri == currentUri)
+      const preferences = configurations.getConfiguration('coc.preferences')
+      let listTarget = preferences.get<string>('listOfWorkspaceEdit', 'quickfix')
+      if (listTarget == 'quickfix') {
+        await this.nvim.call('setqflist', [items])
+        if (!silent && !nested) ui.showMessage(this.nvim, `changed ${changeCount} buffers, use :wa to save changes to disk and :copen to open quickfix list`, 'MoreMsg')
+      } else if (listTarget == 'location') {
+        await nvim.setVar('coc_jump_locations', items)
+        if (!silent && !nested) ui.showMessage(this.nvim, `changed ${changeCount} buffers, use :wa to save changes to disk and :CocList location to manage changed locations`, 'MoreMsg')
+      }
+    }
     return true
   }
 
-  public getChangedUris(documentChanges: DocumentChange[] | null): string[] {
+  private async undoChanges(recovers: RecoverFunc[]): Promise<void> {
+    while (recovers.length > 0) {
+      let fn = recovers.pop()
+      await fn()
+    }
+  }
+
+  public async undoWorkspaceEdit(): Promise<void> {
+    let { editState } = this
+    if (!editState || !editState.applied) {
+      void this.window.showWarningMessage(`No workspace edit to undo`)
+      return
+    }
+    editState.applied = false
+    await this.undoChanges(editState.recovers)
+  }
+
+  public async redoWorkspaceEdit(): Promise<void> {
+    let { editState } = this
+    if (!editState || editState.applied) {
+      void this.window.showWarningMessage(`No workspace edit to redo`)
+      return
+    }
+    this.editState = undefined
+    await this.applyEdit(editState.edit)
+  }
+
+  public getChangedUris(documentChanges: ReadonlyArray<DocumentChange>): string[] {
     let { documents } = this
     let uris: Set<string> = new Set()
     let createUris: Set<string> = new Set()
@@ -424,28 +450,18 @@ export default class Files {
         uris.add(uri)
         if (typeof version === 'number' && version > 0) {
           let doc = documents.getDocument(uri)
-          if (!doc) throw new Error(`${uri} not loaded`)
-          if (doc.version != version) {
-            throw new Error(`${uri} changed before apply edit`)
-          }
+          if (!doc) throw new Error(`File ${uri} not loaded`)
+          if (doc.version != version) throw new Error(`${uri} changed before apply edit`)
         }
       } else if (CreateFile.is(change) || DeleteFile.is(change)) {
-        if (!isFile(change.uri)) {
-          throw new Error(`change of scheme ${change.uri} not supported`)
-        }
+        if (!isFile(change.uri)) throw new Error(`change of scheme ${change.uri} not supported`)
         createUris.add(change.uri)
         uris.add(change.uri)
       } else if (RenameFile.is(change)) {
         if (!isFile(change.oldUri) || !isFile(change.newUri)) {
           throw new Error(`change of scheme ${change.oldUri} not supported`)
         }
-        let newFile = URI.parse(change.newUri).fsPath
-        if (fs.existsSync(newFile)) {
-          throw new Error(`file "${newFile}" already exists for rename`)
-        }
         uris.add(change.oldUri)
-      } else {
-        throw new Error(`Invalid document change: ${JSON.stringify(change, null, 2)}`)
       }
     }
     return Array.from(uris)
@@ -512,4 +528,8 @@ function fileMatch(root: string, relpath: string, pattern: GlobPattern): boolean
     return minimatch(rp, pattern.pattern, { dot: true })
   }
   return minimatch(relpath, pattern, { dot: true })
+}
+
+function fsPath(uri: string): string {
+  return URI.parse(uri).fsPath
 }

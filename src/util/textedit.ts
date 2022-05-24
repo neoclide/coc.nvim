@@ -1,6 +1,7 @@
 'use strict'
-import { Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { ChangeAnnotation, AnnotatedTextEdit, CreateFile, DeleteFile, Position, Range, RenameFile, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../model/textdocument'
+import { DocumentChange } from '../types'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
 import { byteLength, contentToLines } from './string'
 
@@ -76,6 +77,39 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
   if (documentChanges && documentChanges.length) return false
   if (changes && Object.keys(changes).length) return false
   return true
+}
+
+export function toDocumentChanges(edit: WorkspaceEdit): DocumentChange[] {
+  if (edit.documentChanges) return edit.documentChanges
+  let changes: DocumentChange[] = []
+  if (edit.changes) {
+    for (let [uri, edits] of Object.entries(edit.changes)) {
+      changes.push({ textDocument: { uri, version: null }, edits })
+    }
+  }
+  return changes
+}
+
+export function groupByAnnotation(changes: ReadonlyArray<DocumentChange>, changeAnnotations: { [id: string]: ChangeAnnotation }): Map<ChangeAnnotation | null, ReadonlyArray<DocumentChange>> {
+  let map: Map<ChangeAnnotation | null, DocumentChange[]> = new Map()
+  for (let change of changes) {
+    let key: string | null = null
+    if (TextDocumentEdit.is(change)) {
+      if (AnnotatedTextEdit.is(change.edits[0])) {
+        key = change.edits[0].annotationId
+      }
+    } else {
+      key = change.annotationId ?? null
+    }
+    let annotation = key == null ? null : changeAnnotations[key] ?? null
+    let curr = map.get(annotation)
+    if (curr) {
+      curr.push(change)
+    } else {
+      map.set(annotation, [change])
+    }
+  }
+  return map
 }
 
 /**

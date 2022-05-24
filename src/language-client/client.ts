@@ -4278,12 +4278,11 @@ export abstract class BaseLanguageClient {
     const workspaceEdit = ensure(ensure(result, 'workspace')!, 'workspaceEdit')!
     workspaceEdit.documentChanges = true
     workspaceEdit.resourceOperations = [ResourceOperationKind.Create, ResourceOperationKind.Rename, ResourceOperationKind.Delete]
-    workspaceEdit.failureHandling = FailureHandlingKind.TextOnlyTransactional
+    workspaceEdit.failureHandling = FailureHandlingKind.Undo
     workspaceEdit.normalizesLineEndings = true
-    // TODO: capabilities
-    // workspaceEdit.changeAnnotationSupport = {
-    //   groupsOnLabel: true
-    // }
+    workspaceEdit.changeAnnotationSupport = {
+      groupsOnLabel: false
+    }
     const diagnostics = ensure(ensure(result, 'textDocument')!, 'publishDiagnostics')!
     diagnostics.relatedInformation = true
     diagnostics.versionSupport = true

@@ -22,7 +22,7 @@ import QuickPick, { QuickPickConfig } from './model/quickpick'
 import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
-import { Env, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, ScreenPosition, StatusItemOption, TerminalResult, QuickPickOptions } from './types'
+import { Env, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME } from './util'
 import { isParentFolder, sameFile } from './util/fs'
 import { Mutex } from './util/mutex'
@@ -75,7 +75,7 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
   return equals(arr, curr.slice(0, 4))
 }
 
-class Window {
+export class Window {
   public mutex = new Mutex()
   private tabIds: number[] = []
   private statusLine: StatusLine | undefined

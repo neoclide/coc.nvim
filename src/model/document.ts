@@ -286,7 +286,7 @@ export default class Document {
     }))
   }
 
-  public async applyEdits(edits: TextEdit[], joinUndo = false, move: boolean | Position = false): Promise<void> {
+  public async applyEdits(edits: TextEdit[], joinUndo = false, move: boolean | Position = false): Promise<TextEdit | undefined> {
     if (Array.isArray(arguments[1])) edits = arguments[1]
     if (!this._attached || edits.length === 0) return
     this._forceSync()
@@ -354,6 +354,8 @@ export default class Document {
     fireLinesChanged(this.bufnr)
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)
+    let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
+    return TextEdit.replace(range, original.join('\n') + '\n')
   }
 
   public async changeLines(lines: [number, string][]): Promise<void> {

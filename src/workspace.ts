@@ -134,7 +134,7 @@ export class Workspace implements IWorkspace {
     }
     this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
     this.configurations.updateUserConfig(this._env.config)
-    this.files.attach(nvim, env)
+    this.files.attach(nvim, env, window)
     this.contentProvider.attach(nvim)
     this.keymaps.attach(nvim)
     this.autocmds.attach(nvim, env)
@@ -528,6 +528,14 @@ export class Workspace implements IWorkspace {
 
   public async findFiles(include: GlobPattern, exclude?: GlobPattern | null, maxResults?: number, token?: CancellationToken): Promise<URI[]> {
     return this.files.findFiles(include, exclude, maxResults, token)
+  }
+
+  public undoEdit(): Promise<void> {
+    return this.files.undoWorkspaceEdit()
+  }
+
+  public redoEdit(): Promise<void> {
+    return this.files.redoWorkspaceEdit()
   }
 
   public detach(): void {

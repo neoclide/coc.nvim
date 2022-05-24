@@ -112,6 +112,11 @@ describe('findFiles()', () => {
 })
 
 describe('applyEdits()', () => {
+  it('should not throw when unable to undo & redo', async () => {
+    await workspace.files.undoWorkspaceEdit()
+    await workspace.files.redoWorkspaceEdit()
+  })
+
   it('should apply TextEdit of documentChanges', async () => {
     let doc = await helper.createDocument()
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, doc.version)
@@ -317,6 +322,34 @@ describe('applyEdits()', () => {
     let line = doc.getline(0)
     expect(line).toBe('foo bar')
     await workspace.deleteFile(file, { ignoreIfNotExists: true })
+  })
+
+  it('should undo and redo workspace edit', async () => {
+    const folder = path.join(os.tmpdir(), uuid())
+    const pathone = path.join(folder, 'a')
+    const pathtwo = path.join(folder, 'b')
+    await workspace.files.createFile(pathone, { overwrite: true })
+    await workspace.files.createFile(pathtwo, { overwrite: true })
+    let uris = [URI.file(pathone).toString(), URI.file(pathtwo).toString()]
+    const assertContent = (one: string, two: string) => {
+      let doc = workspace.getDocument(uris[0])
+      expect(doc.getDocumentContent()).toBe(one)
+      doc = workspace.getDocument(uris[1])
+      expect(doc.getDocumentContent()).toBe(two)
+    }
+    let edits: TextDocumentEdit[] = []
+    edits.push(TextDocumentEdit.create({ uri: uris[0], version: null }, [
+      TextEdit.insert(Position.create(0, 0), 'foo')
+    ]))
+    edits.push(TextDocumentEdit.create({ uri: uris[1], version: null }, [
+      TextEdit.insert(Position.create(0, 0), 'bar')
+    ]))
+    await workspace.applyEdit({ documentChanges: edits })
+    assertContent('foo\n', 'bar\n')
+    await workspace.undoEdit()
+    assertContent('\n', '\n')
+    await workspace.redoEdit()
+    assertContent('foo\n', 'bar\n')
   })
 })
 

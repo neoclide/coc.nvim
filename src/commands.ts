@@ -259,6 +259,18 @@ export class CommandManager implements Disposable {
       }
     }, false, 'Jump to next symbol highlight position.')
     this.register({
+      id: 'workspace.undo',
+      execute: async () => {
+        await workspace.undoEdit()
+      }
+    }, false, 'Undo last workspace edit')
+    this.register({
+      id: 'workspace.redo',
+      execute: async () => {
+        await workspace.redoEdit()
+      }
+    }, false, 'Redo last workspace edit')
+    this.register({
       id: 'workspace.openLocation',
       execute: async (winid: number, loc: Location, openCommand?: string) => {
         if (winid) await nvim.call('win_gotoid', [winid])

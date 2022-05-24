@@ -279,9 +279,21 @@ describe('Document', () => {
         range: Range.create(0, 0, 0, 0),
         newText: 'b\n'
       })
-      await doc.applyEdits(edits)
+      let edit = await doc.applyEdits(edits)
       let content = doc.getDocumentContent()
       expect(content).toBe('a\nb\n\n')
+      await doc.applyEdits([edit])
+      expect(doc.getDocumentContent()).toEqual('\n')
+    })
+
+    it('should return revert edit', async () => {
+      let doc = await workspace.document
+      let edit = await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 0, 0), 'foo')])
+      expect(doc.getDocumentContent()).toBe('foo\n')
+      edit = await doc.applyEdits([edit])
+      expect(doc.getDocumentContent()).toBe('\n')
+      edit = await doc.applyEdits([edit])
+      expect(doc.getDocumentContent()).toBe('foo\n')
     })
 
     it('should apply merged edits', async () => {
@@ -297,9 +309,11 @@ describe('Document', () => {
         range: Range.create(0, 0, 0, 0),
         newText: 'bar'
       })
-      await doc.applyEdits(edits)
+      let edit = await doc.applyEdits(edits)
       let line = await nvim.line
       expect(line).toBe('bar')
+      await doc.applyEdits([edit])
+      expect(doc.getDocumentContent()).toBe('foo\n')
     })
 
     it('should apply textedit exceed end', async () => {
