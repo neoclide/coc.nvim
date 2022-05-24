@@ -3,6 +3,7 @@
 - Add transition and annotation support for `workspace.applyEdits()`.
 - Add command `workspace.undo` and `workspace.redo`.
 - Remove configuration `coc.preferences.promptWorkspaceEdit`.
+- Remove command `CocAction` and `CocFix`.
 
 # 2022-05-22
 
