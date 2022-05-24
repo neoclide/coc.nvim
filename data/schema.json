@@ -1422,12 +1422,6 @@
       "default": "10MB",
       "description": "Maximum file size in bytes that coc.nvim should handle, default '10MB'"
     },
-    "coc.preferences.listOfWorkspaceEdit": {
-      "type": "string",
-      "default": "quickfix",
-      "description": "List should contains changed locations after workspace edit, default to vim's quickfix",
-      "enum": ["quickfix", "location", "none"]
-    },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
       "description": "Use vim's quickfix list for jump locations,\n need restart on change.",
