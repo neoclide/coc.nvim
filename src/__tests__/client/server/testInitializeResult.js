@@ -11,7 +11,7 @@ connection.onInitialize((params) => {
   assert.equal(params.capabilities.workspace.applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
   assert.deepEqual(params.capabilities.workspace.workspaceEdit.resourceOperations, [vscode_languageserver_1.ResourceOperationKind.Create, vscode_languageserver_1.ResourceOperationKind.Rename, vscode_languageserver_1.ResourceOperationKind.Delete])
-  assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, vscode_languageserver_1.FailureHandlingKind.TextOnlyTransactional)
+  assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, vscode_languageserver_1.FailureHandlingKind.Undo)
   assert.equal(params.capabilities.textDocument.completion.completionItem.deprecatedSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true)
   assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.parameterInformation.labelOffsetSupport, true)

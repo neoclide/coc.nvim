@@ -22,7 +22,7 @@ console.error = connection.console.error.bind(connection.console)
 connection.onInitialize(params => {
   assert.equal((params.capabilities.workspace).applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
-  assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, FailureHandlingKind.TextOnlyTransactional)
+  assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, FailureHandlingKind.Undo)
   assert.equal(params.capabilities.textDocument.completion.completionItem.deprecatedSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet.length, 1)

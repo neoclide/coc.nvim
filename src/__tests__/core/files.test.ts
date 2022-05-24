@@ -585,12 +585,12 @@ describe('deleteFile()', () => {
 
 describe('loadFile()', () => {
   it('should single loadFile', async () => {
-    await helper.createDocument()
+    let doc = await helper.createDocument()
     let newFile = URI.file(path.join(__dirname, 'abc')).toString()
     let document = await workspace.loadFile(newFile)
     let bufnr = await nvim.call('bufnr', '%')
     expect(document.uri.endsWith('abc')).toBe(true)
-    expect(bufnr).toBe(document.bufnr)
+    expect(bufnr).toBe(doc.bufnr)
   })
 })
 
