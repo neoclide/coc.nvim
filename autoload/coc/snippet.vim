@@ -112,11 +112,11 @@ function! coc#snippet#select(position, text) abort
     call feedkeys("\<Esc>", 'in')
   endif
   let cursor = coc#snippet#to_cursor(a:position)
-  call cursor([cursor[0], cursor[1] - (&selection !~# 'exclusive')])
   let len = strchars(a:text) - (&selection !~# 'exclusive')
+  call cursor([cursor[0], cursor[1] - (&selection !~# 'exclusive') - len])
   let cmd = ''
   let cmd .= mode()[0] ==# 'i' ? "\<Esc>l" : ''
-  let cmd .= printf('v%s', len > 0 ? len . 'h' : '')
+  let cmd .= printf('v%s', len > 0 ? len . 'l' : '')
   let cmd .= "o\<C-g>"
   call feedkeys(cmd, 'n')
 endfunction
