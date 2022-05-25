@@ -23,6 +23,7 @@ Interface					|coc-interface|
     Semantic highlights 				 |coc-semantic-highlights|
 Snippets 					|coc-snippets|
 Workspace					|coc-wrokspace|
+Cursors 					|coc-cursors|
 Tree 						|coc-tree|
   Tree mappings 				|coc-tree-mappings|
   Tree filter 					|coc-tree-filter|
@@ -129,11 +130,11 @@ The global configuration file can be created in another directory by setting
 	let g:coc_config_home = '/path/you/prefer'
 
 When creating a local configuration file, it's possible to use
-|b:coc_root_patterns| for resolve the root directory from the filepath of
+|b:coc_root_patterns| for resolve the workspace folder from the filepath of
 opened buffer.
 
-Since the configuration files are all in JSON format, it's suggested to enable
-JSON completion and validation by install the `coc-json` extension: >
+The configuration files are all in JSON format, it's recommended to
+enable JSON completion and validation by install the `coc-json` extension: >
 
 	:CocInstall coc-json
 <
@@ -3333,6 +3334,31 @@ To undo and redo workspace edit just applied, use command
 To inspect previous workspace edit, use command
 `:CocCommand workspace.inspectEdit`, in opened buffer, use <CR> for jump to
 change position under cursor.
+
+==============================================================================
+CURSORS SUPPORT						*coc-cursors*
+
+Multiple cursors supported is added to allow edit multiple locations at once.
+
+Cursors session could be started by following ways:
+
+- Use command `:CocCommand document.renameCurrentWord` to rename variable
+  under cursor.
+- Use |<plug>(coc-refactor)| to open refactor buffer.
+- Use |:CocSearch| to open searched locations.
+- Use cursors related key-mappings to add text range, including
+  |<plug>(coc-cursors-operator)|, |<Plug>(coc-cursors-word)|,
+  |<Plug>(coc-cursors-position)| and |<plug>(coc-cursors-range)|
+- Ranges added by command `editor.action.addRanges` from coc extensions.
+
+Default key-mappings when cursors activated:
+
+- <esc> cancel cursors session.
+- <C-n> jump to next cursors range.
+- <C-p> jump to previous cursors range.
+
+Use |coc-config-cursors| to change cursors related key-mappings.
+Use highlight group |CocCursorRange| to alter default range highlight.
 
 ==============================================================================
 TREE SUPPORT 						*coc-tree*
