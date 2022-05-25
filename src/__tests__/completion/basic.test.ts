@@ -46,7 +46,9 @@ describe('completion', () => {
       it('should hide kind and menu when configured', async () => {
         helper.updateConfiguration('suggest.disableKind', true)
         helper.updateConfiguration('suggest.disableMenu', true)
+        let doc = await workspace.document
         await nvim.setLine('fball football')
+        await doc.synchronize()
         await nvim.input('of')
         await helper.waitPopup()
         let items = await helper.getItems()
@@ -73,7 +75,9 @@ describe('completion', () => {
       })
 
       it('should trigger with none ascii characters', async () => {
+        let doc = await workspace.document
         await nvim.setLine('world')
+        await doc.synchronize()
         await nvim.input('o')
         await nvim.input('你')
         await nvim.input('w')
@@ -82,7 +86,9 @@ describe('completion', () => {
       })
 
       it('should not trigger with none ascii characters', async () => {
+        let doc = await workspace.document
         await nvim.setLine('你好')
+        await doc.synchronize()
         await nvim.input('o')
         await nvim.input('你')
         await helper.wait(50)
@@ -99,7 +105,9 @@ describe('completion', () => {
 
     describe('ignore by regex', () => {
       it('should trigger with number input', async () => {
+        let doc = await workspace.document
         await nvim.setLine('1357')
+        await doc.synchronize()
         await nvim.input('o')
         await nvim.input('1')
         let visible = await helper.visible('1357', 'around')
@@ -108,7 +116,9 @@ describe('completion', () => {
 
       it('should not trigger with number input', async () => {
         helper.updateConfiguration('suggest.ignoreRegexps', ['[0-9]+'])
+        let doc = await workspace.document
         await nvim.setLine('1357')
+        await doc.synchronize()
         await nvim.input('o')
         await nvim.input('1')
         let visible = await helper.pumvisible()
@@ -237,13 +247,16 @@ describe('completion', () => {
     })
 
     it('should resume with inserted characters', async () => {
+      let doc = await workspace.document
       await nvim.setLine('foo fat')
+      await doc.synchronize()
       await nvim.input('of')
       await nvim.setLine('fo')
+      await doc.synchronize()
       await nvim.call('cursor', [2, 3])
       await helper.wait(50)
       let items = await helper.getItems()
-      expect(items.length).toBe(2)
+      expect(items.length).toBe(1)
     })
 
     it('should stop with bad insert on CursorMovedI', async () => {
@@ -257,7 +270,9 @@ describe('completion', () => {
     })
 
     it('should deactivate without filtered items', async () => {
+      let doc = await workspace.document
       await nvim.setLine('foo fbi ')
+      await doc.synchronize()
       await nvim.input('Af')
       await helper.waitPopup()
       await nvim.input('c')
@@ -463,7 +478,9 @@ describe('completion', () => {
 
   describe('TextChangedP', () => {
     it('should stop when input length below option input length', async () => {
+      let doc = await workspace.document
       await nvim.setLine('foo fbi ')
+      await doc.synchronize()
       await nvim.input('Af')
       await helper.waitPopup()
       await nvim.input('<backspace>')
@@ -595,6 +612,7 @@ describe('completion', () => {
     it('should trigger completion if triggerAfterInsertEnter is true', async () => {
       let doc = await workspace.document
       await nvim.setLine('foo fo')
+      await doc.synchronize()
       await nvim.input('A')
       await doc.synchronize()
       await helper.waitPopup()

@@ -79,6 +79,7 @@ class Events {
   private _insertMode = false
   private _pumAlignTop = false
   private _pumVisible = false
+  public completing = false
 
   public get cursor(): CursorPosition {
     return this._cursor

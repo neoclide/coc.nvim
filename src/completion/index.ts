@@ -172,6 +172,7 @@ export class Completion implements Disposable {
       this.pretext = byteSlice(option.line, 0, option.colnr - 1)
       sourceList = sourceList ?? this.getSources(option)
       if (!sourceList || sourceList.length === 0) return
+      events.completing = true
       this.changedtick = option.changedtick
       let complete = this.complete = new Complete(
         option,
@@ -494,6 +495,7 @@ export class Completion implements Disposable {
   }
 
   public stop(): void {
+    events.completing = false
     this.cancel()
     if (this.activated) {
       this.activated = false

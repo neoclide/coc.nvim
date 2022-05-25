@@ -38,7 +38,7 @@ export default class KeywordsBuffer implements SyncItem {
   }
 
   public parse(): void {
-    if (!this.doc.attached) return
+    if (!this.doc.attached || events.completing) return
     let { textDocument } = this.doc
     let { version, lineCount } = textDocument
     if (this.version === version) return
