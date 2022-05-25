@@ -203,7 +203,7 @@ export default class Complete {
               item.source = name
               item.priority = priority
               item.filterText = item.filterText ?? word
-              if (hasFollow && word.endsWith(followPart)) {
+              if (hasFollow && word != followPart && word.endsWith(followPart)) {
                 item.word = word.slice(0, - followPart.length)
               }
               if (item.isSnippet === true) item.abbr = `${item.abbr || word}${snippetIndicator}`
