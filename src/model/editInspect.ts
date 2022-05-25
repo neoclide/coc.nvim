@@ -84,8 +84,8 @@ export default class EditInspect {
           highligher.addTexts([
             { text: 'Change', hlGroup: 'Title' },
             { text: ' ' },
-            { text: fsPath, hlGroup: 'Comment' },
-            { text: `:${linesChange.lnum}`, hlGroup: 'Comment' },
+            { text: fsPath, hlGroup: 'Directory' },
+            { text: `:${linesChange.lnum}`, hlGroup: 'LineNr' },
           ])
           this.addFile(fsPath, highligher, linesChange.lnum)
           highligher.addLine('')
@@ -97,7 +97,7 @@ export default class EditInspect {
           highligher.addTexts([
             { text: title, hlGroup: 'Title' },
             { text: ' ' },
-            { text: fsPath, hlGroup: 'Comment' }
+            { text: fsPath, hlGroup: 'Directory' }
           ])
           this.addFile(fsPath, highligher)
           highligher.addLine('')
@@ -107,9 +107,9 @@ export default class EditInspect {
           highligher.addTexts([
             { text: 'Rename', hlGroup: 'Title' },
             { text: ' ' },
-            { text: oldPath, hlGroup: 'Comment' },
+            { text: oldPath, hlGroup: 'Directory' },
             { text: '->', hlGroup: 'Comment' },
-            { text: newPath, hlGroup: 'Comment' }
+            { text: newPath, hlGroup: 'Directory' }
           ])
           this.renameMap.set(oldPath, newPath)
           this.addFile(newPath, highligher)
@@ -177,8 +177,8 @@ export default class EditInspect {
           highligher.addTexts([
             { text: 'Change', hlGroup: 'Title' },
             { text: ' ' },
-            { text: fsPath, hlGroup: 'Comment' },
-            { text: `:${curr}`, hlGroup: 'Comment' },
+            { text: fsPath, hlGroup: 'Directory' },
+            { text: `:${curr}`, hlGroup: 'LineNr' },
           ])
           this.addFile(fsPath, highligher, curr)
           highligher.addLine('')
