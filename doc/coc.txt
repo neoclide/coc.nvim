@@ -786,6 +786,10 @@ CodeLens~
 ------------------------------------------------------------------------------
 Workspace related~
 							*coc-config-workspace*
+"workspace.openResourceCommand" 			*coc-config-workspace-openResourceCommand*
+
+	Command to open files that not loaded, default: `tab drop`
+
 "workspace.ignoredFiletypes				*coc-config-workspace-ignoredFiletypes*
 
 	Filetypes to ignore for workspace folder resolution, default: `[]`
@@ -3320,11 +3324,14 @@ file/directory delete and file/directory rename).
 When the edit failed to apply, coc.nvim will revert the changes (including
 document edits and file operations) that previous made.
 
+Files not loaded would be loaded by `tab drop` command, configured by
+|coc-config-workspace-openResourceCommand|.
+
 To undo and redo workspace edit just applied, use command
 `:CocCommand workspace.undo` and `:CocCommand workspace.redo`
 
 To inspect previous workspace edit, use command
-`:CocCommand workspace.inspectEdit`, in opened buffer, use `<CR>` for jump to
+`:CocCommand workspace.inspectEdit`, in opened buffer, use <CR> for jump to
 change position under cursor.
 
 ==============================================================================

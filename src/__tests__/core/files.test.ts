@@ -651,6 +651,17 @@ describe('renameFile', () => {
   })
 })
 
+describe('loadResource()', () => {
+  it('should load file as hidden buffer', async () => {
+    helper.updateConfiguration('workspace.openResourceCommand', '')
+    let filepath = await createTmpFile('foo')
+    let uri = URI.file(filepath).toString()
+    let doc = await workspace.files.loadResource(uri)
+    let bufnrs = await nvim.call('coc#window#bufnrs') as number[]
+    expect(bufnrs.indexOf(doc.bufnr)).toBe(-1)
+  })
+})
+
 describe('deleteFile()', () => {
   it('should throw when file not exists', async () => {
     let filepath = path.join(__dirname, 'not_exists')

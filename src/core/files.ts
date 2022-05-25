@@ -138,13 +138,21 @@ export default class Files {
    * Load uri as document.
    */
   public async loadResource(uri: string): Promise<Document> {
+    let doc = this.documents.getDocument(uri)
+    if (doc) return doc
+    const preferences = this.configurations.getConfiguration('workspace')
+    let cmd = preferences.get<string>('openResourceCommand', 'tab drop')
     let u = URI.parse(uri)
     let bufname = u.scheme === 'file' ? u.fsPath : uri
-    let winid = await this.nvim.call('win_getid')
-    let bufnr = await this.nvim.call('coc#util#open_file', ['tab drop', bufname])
-    await this.nvim.call('win_gotoid', [winid])
-    let doc = this.documents.getDocument(bufnr)
-    if (doc) return doc
+    let bufnr: number
+    if (cmd) {
+      let winid = await this.nvim.call('win_getid')
+      bufnr = await this.nvim.call('coc#util#open_file', ['tab drop', bufname])
+      await this.nvim.call('win_gotoid', [winid])
+    } else {
+      let arr = await this.nvim.call('coc#ui#open_files', [[bufname]])
+      bufnr = arr[0]
+    }
     return await this.documents.createDocument(bufnr)
   }
 

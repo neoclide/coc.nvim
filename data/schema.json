@@ -1055,6 +1055,11 @@
       "maximum": 100,
       "description": "Winblend option of notification window, neovim only."
     },
+    "workspace.openResourceCommand": {
+      "type": "string",
+      "default": "tab drop",
+      "description": "Command to open files that not loaded, load files as hidden buffers when empty."
+    },
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": [],
