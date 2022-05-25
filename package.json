@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim-master",
-  "version": "0.0.80",
+  "version": "0.0.81",
   "description": "LSP based intellisense engine for neovim & vim8.",
   "main": "./build/index.js",
   "engines": {
