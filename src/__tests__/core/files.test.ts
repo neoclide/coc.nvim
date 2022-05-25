@@ -132,6 +132,22 @@ describe('applyEdits()', () => {
     expect(line).toBe('bar')
   })
 
+  it('should apply edit with out change buffers', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('bar')
+    await doc.synchronize()
+    let version = doc.version
+    let versioned = VersionedTextDocumentIdentifier.create(doc.uri, doc.version)
+    let edit = TextEdit.replace(Range.create(0, 0, 0, 3), 'bar')
+    let change = TextDocumentEdit.create(versioned, [edit])
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [change]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(true)
+    expect(doc.version).toBe(version)
+  })
+
   it('should not apply TextEdit if version miss match', async () => {
     let doc = await helper.createDocument()
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, 10)

@@ -384,6 +384,8 @@ export default class Files {
           await this.renameFile(fsPath(change.oldUri), fsPath(change.newUri), change.options, recovers)
         }
       }
+      // nothing changed
+      if (recovers.length === 0) return true
       if (!nested) this.editState = { edit: { documentChanges, changeAnnotations: edit.changeAnnotations }, changes, recovers, applied: true }
       this.nvim.redrawVim()
     } catch (e) {
