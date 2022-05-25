@@ -147,7 +147,7 @@ export default class Files {
     let bufnr: number
     if (cmd) {
       let winid = await this.nvim.call('win_getid')
-      bufnr = await this.nvim.call('coc#util#open_file', ['tab drop', bufname])
+      bufnr = await this.nvim.call('coc#util#open_file', [cmd, bufname])
       await this.nvim.call('win_gotoid', [winid])
     } else {
       let arr = await this.nvim.call('coc#ui#open_files', [[bufname]])
