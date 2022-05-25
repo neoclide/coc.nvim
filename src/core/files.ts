@@ -330,14 +330,15 @@ export default class Files {
   /**
    * Apply WorkspaceEdit.
    */
-  public async applyEdit(edit: WorkspaceEdit, recovers?: RecoverFunc[]): Promise<boolean> {
+  public async applyEdit(edit: WorkspaceEdit, nested?: boolean): Promise<boolean> {
     let documentChanges = toDocumentChanges(edit)
-    let nested = Array.isArray(recovers)
-    recovers = recovers ?? []
-    let changes: { [uri: string]: LinesChange } = {}
+    let recovers: RecoverFunc[] = []
+    let currentOnly = false
     try {
       let { changeAnnotations } = edit
+      let { currentUri } = this
       let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : []
+      let changes: { [uri: string]: LinesChange } = {}
       let denied: string[] = []
       for (let key of toConfirm) {
         let annotation = changeAnnotations[key]
@@ -351,13 +352,14 @@ export default class Files {
       }
       documentChanges = documentChanges.filter(c => !denied.includes(getAnnotationKey(c)))
       if (!documentChanges.length) return true
+      currentOnly = documentChanges.every(o => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri)
       this.validateChanges(documentChanges)
       for (const change of documentChanges) {
         if (TextDocumentEdit.is(change)) {
           let { textDocument, edits } = change
           let { uri } = textDocument
-          let doc = this.documents.getDocument(uri) ?? await this.loadResource(textDocument.uri)
-          let revertEdit = await doc.applyEdits(edits, false, textDocument.uri === this.currentUri)
+          let doc = await this.loadResource(uri)
+          let revertEdit = await doc.applyEdits(edits, false, uri === currentUri)
           if (revertEdit) {
             let version = doc.version
             let { newText, range } = revertEdit
@@ -386,18 +388,13 @@ export default class Files {
       this.nvim.redrawVim()
     } catch (e) {
       logger.error('Error on applyEdits:', edit, e)
-      if (recovers.length) await this.undoChanges(recovers)
-      if (nested) throw e
-      void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
+      await this.undoChanges(recovers)
+      if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
       return false
     }
-    let uris = Object.keys(changes)
-    let silent = uris.length == 1 && uris[0] == this.currentUri
     // avoid message when change current file only.
-    if (silent) return true
-    if (!global.__TEST__) {
-      void this.window.showInformationMessage(`Changes applied for ${uris.length} buffers, use ':wa' to save changes.\nUse 'workspace.undo', 'workspace.inspectEdit' from ':CocCommand'to undo/inspect changes.`)
-    }
+    if (nested || currentOnly) return true
+    void this.window.showInformationMessage(`Use ':wa' to save changes or ':CocCommand workspace.inspectEdit' to inspect.`)
     return true
   }
 
@@ -500,7 +497,7 @@ export default class Files {
         })
         let promise = Promise.race([thenable, tp]).then(edit => {
           if (edit && WorkspaceEdit.is(edit)) {
-            return this.applyEdit(edit, recovers)
+            return this.applyEdit(edit, true)
           }
         })
         promises.push(promise)
