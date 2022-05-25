@@ -202,7 +202,7 @@ export class SnippetSession {
     let { range, value } = placeholder
     let { nvim } = this
     if (value.length > 0) {
-      await nvim.call('coc#snippet#select', [range.end, value])
+      await nvim.call('coc#snippet#select', [range.start, range.end, value])
     } else {
       await nvim.call('coc#snippet#move', [range.start])
     }
