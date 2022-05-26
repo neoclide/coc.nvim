@@ -243,6 +243,19 @@ Default behavior of coc.nvim's completion:
 
 Use configurations |coc-config-suggest| to change behavior of completion.
 
+Related variables:~
+
+- |b:coc_suggest_disable|
+- |b:coc_disabled_sources|
+- |b:coc_suggest_blacklist|
+- |b:coc_additional_keywords|
+
+Related APIs:~
+
+- |coc#start()|
+- |coc#refresh()|
+- |coc#_select_confirm()|
+
 Tips:~
 
 - 'completeopt' used by coc.nvim default to `noselect,menuone`.
@@ -372,7 +385,7 @@ Use |coc-config-signature| to change default signature help behavior.
 ==============================================================================
 CODE ACTION 						*coc-code-actions*
 
-Code actions are used for make specific code changes.
+Code actions are used for make some specific code changes.
 
 There're different kinds of code actions:
 
@@ -441,7 +454,7 @@ snippet.
 A snippet session would be deactivated under the following conditions:
 
 - |InsertEnter| triggered outside snippet.
-- Content change at final placeholder.
+- Jump to final placeholder.
 - Content change detected after snippet.
 - Content changed in a snippet outside placeholder (except for deletion of
   plain text).
