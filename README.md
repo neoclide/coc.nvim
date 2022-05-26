@@ -621,6 +621,7 @@ Try these steps when you have problem with coc.nvim.
     <td align="center"><a href="http://todesking.com/"><img src="https://avatars.githubusercontent.com/u/112881?v=4?s=50" width="50px;" alt=""/><br /><sub><b>todesking</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=todesking" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/typicode"><img src="https://avatars.githubusercontent.com/u/5502029?v=4?s=50" width="50px;" alt=""/><br /><sub><b>typicode</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=typicode" title="Code">💻</a></td>
     <td align="center"><a href="https://limingfei56.github.io/"><img src="https://avatars.githubusercontent.com/u/8553407?v=4?s=50" width="50px;" alt=""/><br /><sub><b>李鸣飞</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=LiMingFei56" title="Code">💻</a></td>
+    <td align="center"><a href="https://bandism.net/"><img src="https://avatars.githubusercontent.com/u/22633385?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Ikko Ashimine</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=eltociear" title="Documentation">📖</a></td>
   </tr>
 </table>
 
