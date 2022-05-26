@@ -305,7 +305,7 @@ Try these steps when you have problem with coc.nvim.
 
 ## Backers
 
-[Become a backer](https://opencollective.com/cocnvim#backer) and get your image on our README on Github with a link to your site.
+[Become a backer](https://opencollective.com/cocnvim#backer) and get your image on our README on GitHub with a link to your site.
 
 <a href="https://opencollective.com/cocnvim/backer/0/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/0/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/1/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/1/avatar.svg?requireActive=false"></a>
