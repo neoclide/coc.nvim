@@ -3524,21 +3524,25 @@ declare module 'coc.nvim' {
   export interface LocationListItem {
     bufnr: number
     lnum: number
+    end_lnum: number
     col: number
+    end_col: number
     text: string
     type: string
   }
 
   export interface QuickfixItem {
     uri?: string
-    bufnr?: number
     module?: string
     range?: Range
     text?: string
     type?: string
     filename?: string
+    bufnr?: number
     lnum?: number
+    end_lnum?: number
     col?: number
+    end_col?: number
     valid?: boolean
     nr?: number
   }
