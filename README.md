@@ -623,6 +623,9 @@ Try these steps when you have problem with coc.nvim.
     <td align="center"><a href="https://limingfei56.github.io/"><img src="https://avatars.githubusercontent.com/u/8553407?v=4?s=50" width="50px;" alt=""/><br /><sub><b>李鸣飞</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=LiMingFei56" title="Code">💻</a></td>
     <td align="center"><a href="https://bandism.net/"><img src="https://avatars.githubusercontent.com/u/22633385?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Ikko Ashimine</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=eltociear" title="Documentation">📖</a></td>
   </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/rammiah"><img src="https://avatars.githubusercontent.com/u/26727562?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Rammiah</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Arammiah" title="Bug reports">🐛</a></td>
+  </tr>
 </table>
 
 <!-- markdownlint-restore -->

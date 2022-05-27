@@ -1836,6 +1836,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "rammiah",
+      "name": "Rammiah",
+      "avatar_url": "https://avatars.githubusercontent.com/u/26727562?v=4",
+      "profile": "https://github.com/rammiah",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
