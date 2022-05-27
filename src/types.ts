@@ -364,6 +364,10 @@ export interface ProgressOptions {
    * cancel the long running operation.
    */
   cancellable?: boolean
+  /**
+   * Extension or language-client id
+   */
+  source?: string
 }
 
 /**

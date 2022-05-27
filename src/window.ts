@@ -642,7 +642,7 @@ export class Window {
     let promise = new Promise<R>(resolve => {
       progress.onDidFinish(resolve)
     })
-    await progress.show(Object.assign(this.getNotificationPreference(stack), { minWidth }))
+    await progress.show(Object.assign(this.getNotificationPreference(stack, options.source), { minWidth }))
     return await promise
   }
 
@@ -876,8 +876,8 @@ export class Window {
     }
   }
 
-  private getNotificationPreference(stack: string): NotificationPreferences {
-    let source = this.parseSource(stack)
+  private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
+    if (!source) source = this.parseSource(stack)
     let config = workspace.getConfiguration('notification')
     return {
       broder: config.get<boolean>('border', true),

@@ -25,7 +25,7 @@ export class ProgressFeature implements StaticFeature {
       this.activeParts.delete(part)
     }
     const createHandler = (params: WorkDoneProgressCreateParams) => {
-      this.activeParts.add(new ProgressPart(this._client, params.token, deleteHandler))
+      this.activeParts.add(new ProgressPart(this._client.id, this._client, params.token, deleteHandler))
     }
     client.onRequest(WorkDoneProgressCreateRequest.type, createHandler)
   }
