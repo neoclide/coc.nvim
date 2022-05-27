@@ -14,8 +14,10 @@ LSP features 					|coc-lsp|
   Completion					|coc-completion|
   Diagnostics 					|coc-diagnostics|
   Signature help 				|coc-signature|
+  Format 					|coc-format|
   Code action 					|coc-code-actions|
   Document highlights 				|coc-document-highlights|
+  Document color 				|coc-document-color|
   Snippets 					|coc-snippets|
   Workspace					|coc-workspace|
   Cursors 					|coc-cursors|
@@ -145,36 +147,34 @@ Features automatically work by default:~
 Note the features could be disabled by |coc-configuration| and some vim
 variables.
 
-Features require configuration:~
+Features require enabled by configuration:~
 
-- Semantic highlights, enabled by |coc-config-semanticTokens-filetypes|.
-- CodeLens (requires neovim with virtual text support), enabled by
-  |coc-config-codeLens-enable|.
-- Document color, enabled by |coc-config-colors-filetypes|.
+- Semantic highlights |coc-semantic-highlights|.
+- Document color highlights |coc-document-color|.
+- Code lens, enabled by |coc-config-codeLens-enable|.
 - Linked editing, enabled by |coc-preferences-enableLinkedEditing|.
+- Format on type, enabled by |coc-preferences-formatOnType|
 - Format on save, enabled by |coc-preferences-formatOnSaveFiletypes|.
 
 Features requested by user:~
 
-- Highlight document symbols |coc-document-highlights|.
-- Invoke code action |coc-code-actions|
-- Outline of document symbols |coc-outline| and |coc-list-symbols|.
+- Invoke code action |coc-code-actions|.
 - Show call hierarchy tree |coc-callHierarchy|.
+- Format, range format and on type format |coc-format|.
+- Highlight same symbol ranges |coc-document-highlights|.
+- Outline of document symbols |coc-outline| and |coc-list-symbols|.
 - Show hover message |CocAction('doHover')| and |CocAction('definitionHover')|.
-- Jump to definition |CocAction('jumpDefinition')|.
-- Jump to declaration |CocAction('jumpDeclaration')|.
-- Jump to implementation |CocAction('jumpImplementation')|.
-- Jump to type definition |CocAction('jumpTypeDefinition')|.
-- Jump to references |CocAction('jumpReferences')|.
 - Rename current symbol |CocAction('rename')|.
-- Format current document |CocAction('format')|.
-- Create folds |CocAction('fold')|.
-- Format select region |CocAction('formatSelected')|.
-- Pick color |CocAction('pickColor')|.
-- Change color presentation |CocAction('colorPresentation')|.
+- Jump to definition locations |CocAction('jumpDefinition')|.
+- Jump to declaration locations |CocAction('jumpDeclaration')|.
+- Jump to implementation locations |CocAction('jumpImplementation')|.
+- Jump to type definition locations |CocAction('jumpTypeDefinition')|.
+- Jump to references |CocAction('jumpReferences')| and |CocAction('jumpUsed')|.
 - Open link under cursor |CocAction('openlink')|.
-- Range selection |<plug>(coc-range-select)| and
-  |<plug>(coc-range-select-backward)|.
+- Range selection |CocAction('rangeSelect').|
+- Create folds |CocAction('fold')|.
+
+For convenient, some actions have associated |coc-key-mappings| provided.
 
 Features triggered by languageserver or extension:~
 
@@ -209,11 +209,11 @@ The buffer must match following conditions to get attached:
 
 - The 'buftype' option should be <empty> or 'acwrite'.
 - Buffer variable |b:coc_enabled| should not be `0`.
-- Byte length of buffer should not exceed |coc-preferences-maxFileSize|
+- Byte length should not exceed |coc-preferences-maxFileSize|.
 - Buffer should not be used for command line window.
 
-Use |CocAction('ensureDocument')| to attach and check attached state of
-current buffer.
+Use |CocAction('ensureDocument')| or `:CocCommand document.checkBuffer` to
+check attached state of current buffer.
 
 Filetype map:~
 							*coc-document-filetype*
@@ -227,10 +227,11 @@ including:
 - tex -> latex
 
 Use |g:coc_filetype_map| to create additional filetype maps.
+
 Use `:CocCommand document.echoFiletype` to echo mapped filetype of current
 document.
 
-Note make sure use mapped filetypes for configurations that should be filetypes.
+Note make sure use mapped filetypes for configurations that expect filetypes.
 
 ==============================================================================
 COMPLETION						*coc-completion*
@@ -242,6 +243,19 @@ Default behavior of coc.nvim's completion:
 - Snippet complete item would only be expanded after confirm completion.
 
 Use configurations |coc-config-suggest| to change behavior of completion.
+
+Related variables:~
+
+- |b:coc_suggest_disable|
+- |b:coc_disabled_sources|
+- |b:coc_suggest_blacklist|
+- |b:coc_additional_keywords|
+
+Related APIs:~
+
+- |coc#start()|
+- |coc#refresh()|
+- |coc#_select_confirm()|
 
 Tips:~
 
@@ -319,14 +333,14 @@ Changes on diagnostics refresh~
 - |coc-highlights-diagnostics| Highlights for diagnostics ranges and virtual
   text (when enabled on neovim with virtual text support).
 - Diagnostic signs added to 'signcolumn', use `set signcolumn=yes` to avoid
-  unnecessary UI refreshSource.
-- Update variable |b:coc_diagnostic_info| which used by |coc#status()|.
+  unnecessary UI refresh.
+- Update variable |b:coc_diagnostic_info|.
 - Refresh related |location-list| when the location list is opened by
   |:CocDiagnostics|.
 
 Enable and disable diagnostics~
 
-Use |coc-config-diagnostic-enable| to enable/disable diagnostics feature.
+Use |coc-config-diagnostic-enable| to toggle diagnostics feature.
 
 Use |CocAction('diagnosticToggle')| for enable/disable diagnostics of current
 buffer.
@@ -349,10 +363,10 @@ Use key-mappings |<Plug>(coc-diagnostic-next)|, |<Plug>(coc-diagnostic-prev)|,
 
 Inspect all diagnostics~
 
+Use |coc-list-diagnostics| to open |CocList| with all diagnostics.
+
 Use |CocAction('diagnosticList')| to get list of all diagnostics, mostly used
 by other vim plugins.
-
-Use |coc-list-diagnostics| to open |CocList| with all diagnostics.
 
 ==============================================================================
 SIGNATURE HELP 						*coc-signature*
@@ -370,9 +384,45 @@ state of current buffer.
 Use |coc-config-signature| to change default signature help behavior.
 
 ==============================================================================
+FORMAT 							*coc-format*
+
+There're various ways to format document.
+
+Format full document:~
+
+Use |CocAction('format')|.
+
+Format on type:~
+
+Enable format when insert specific characters by configurations:
+
+- |coc-preferences-formatOnType|
+- |coc-preferences-formatOnTypeFiletypes|
+
+requires `onTypeEdit` provider |CocHasProvider|.
+
+Format selected code:~
+
+Use 'formatexpr' for specific filetypes: >
+
+  autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
+>
+Setup visual mode and operator key-mappings: >
+
+  xmap <leader>f  <Plug>(coc-format-selected)
+  nmap <leader>f  <Plug>(coc-format-selected)
+<
+Format on save:~
+
+Use configuration |coc-preferences-formatOnSaveFiletypes|.
+
+Note since vim's autocmd not nested by default, coc.nvim may not receive latest
+code when you're using other vim plugin to format document at the same time.
+
+==============================================================================
 CODE ACTION 						*coc-code-actions*
 
-Code actions are used for make specific code changes.
+Code actions are used for make some specific code changes.
 
 There're different kinds of code actions:
 
@@ -385,18 +435,20 @@ Invoke code action~
 
 To fix diagnostic at current line, use |<plug>(coc-fix-current)|.
 
-|coc-dialog-menu| would be used as a picker when there're many codeActions
-exists with followed key-mappings.
+Key-mappings for choose code action:~
 
 - |<plug>(coc-codeaction-cursor)|
 - |<plug>(coc-codeaction-line)|
 - |<plug>(coc-codeaction)|
 - |<plug>(coc-codeaction-selected)|
 
-To invoke organize import code action, use command like:
+|coc-dialog-menu| would be shown for pick specific code action.
+
+To invoke organize import action, use command like:
 >
 	command! -nargs=0 OR :call CocAction('runCommand',
 				\ 'editor.action.organizeImport')
+
 Related APIs~
 
 - |CocAction('codeActions')|
@@ -405,6 +457,7 @@ Related APIs~
 - |CocAction('quickfixes')|
 - |CocAction('doCodeAction')|
 - |CocAction('doQuickfix')|
+- |CocAction('codeActionRange')|
 
 ==============================================================================
 DOCUMENT HIGHLIGHTS 					*coc-document-highlights*
@@ -429,6 +482,23 @@ To jump between previous/next symbol position, use
 `:CocCommand document.jumpToNextSymbol`
 
 ==============================================================================
+DOCUMENT COLOR 						*coc-document-color*
+
+Document colors added color highlights to your documents.  To enable document
+color highlights, use ||coc-config-colors-filetypes||.
+
+Install `coc-highlights` to provide a general document highlights for all
+filetypes.
+
+To pick a color from system color picker, use |CocAction('pickColor')| or
+choose `editor.action.pickColor` from |:CocCommand|.
+
+Note: may not work on your system.
+
+To change color presentation, use |CocAction('colorPresentation')| or choose
+`editor.action.colorPresentation` from |:CocCommand|.
+
+==============================================================================
 SNIPPETS SUPPORT 					*coc-snippets*
 
 Snippets engine of coc.nvim support both VSCode snippets and ultisnips
@@ -441,7 +511,7 @@ snippet.
 A snippet session would be deactivated under the following conditions:
 
 - |InsertEnter| triggered outside snippet.
-- Content change at final placeholder.
+- Jump to final placeholder.
 - Content change detected after snippet.
 - Content changed in a snippet outside placeholder (except for deletion of
   plain text).
@@ -633,9 +703,7 @@ SEMANTIC HIGHLIGHTS					*coc-semantic-highlights*
 coc.nvim can use semantic tokens from language server to add additional color
 information that depends on language specific symbol information.
 
-Semantic tokens highlighting is disabled by default, you can enable it by use
-configuration "semanticTokens.filetypes", see |coc-config-semanticTokens| for
-details.
+Use |coc-config-semanticTokens-filetypes| to enable semantic tokens highlights.
 
 To create custom highlights for symbol under cursor, follow these steps:
 
@@ -657,6 +725,7 @@ Use `:CocCommand semanticTokens.checkCurrent` to check semantic highlight
 information with current buffer.
 
 See |CocSem| to customize semantic token highlight groups.
+See |coc-config-semanticTokens| for related configurations.
 
 ==============================================================================
 CONFIGURATION						*coc-configuration*
@@ -1528,7 +1597,10 @@ Preferences~
 
 "coc.preferences.formatOnSaveFiletypes"			*coc-preferences-formatOnSaveFiletypes*
 
-	Filetypes for which formatting triggers after saving, default: `[]`
+	Filetypes for which formatting triggers when saving, default: `[]`
+	The operation only format the document by one format provider that
+	have highest priority, timeout is 500ms to avoid vim blocked for too
+	long time.
 
 	Note: This is the filetype after mapping by `g:coc_filetype_map`.
 
@@ -1556,10 +1628,6 @@ Preferences~
 
 	Valid options: ["more", "warning", "error"]
 
-"coc.preferences.formatOnType"				*coc-preferences-formatOnType*
-
-	Set to true to enable format on type, default: `false`
-
 "coc.preferences.bracketEnterImprove"			*coc-preferences-bracketEnterImprove*
 
 	Improve handling of pressing enter inside brackets (`<> {} [] ()`) by
@@ -1568,12 +1636,17 @@ Preferences~
 
 	Works with |coc#on_enter()|, default: `true`
 
+"coc.preferences.formatOnType"				*coc-preferences-formatOnType*
+
+	Set to true to enable format on type, default: `false`
+
 "coc.preferences.formatOnTypeFiletypes"			*coc-preferences-formatOnTypeFiletypes*
 
-	Filetypes that should run format on typing, default: `[]`
+	Filetypes that should run format on typing specific characters,
+	default: `[]`, requires `onTypeEdit` provider |CocHasProvider|.
 
 	Note: takes effect when `coc.preferences.formatOnType` set `true`.
-	Note: This is the filetype after mapping by `g:coc_filetype_map`.
+	Note: Use filetypes after mapped by `g:coc_filetype_map`.
 
 "coc.preferences.floatActions"				*coc-preferences-floatActions*
 
@@ -1970,7 +2043,7 @@ declarations.
 	Format the whole buffer by invoke |CocAction('format')|, normally you
 	would like to use a command like: >
 
-	command! -nargs=0 Format :call CocAction('format')
+	command! -nargs=0 Format :call CocActionAsync('format')
 <
 	to format current buffer.
 
@@ -1993,7 +2066,7 @@ at current cursor.
 *<plug>(coc-codeaction-selected)* Get and run code action(s) with the selected
 region.  Works on both |visual-mode| and |normal-mode|.
 
-*<plug>(coc-openlink)* Open link under cursor.
+*<plug>(coc-openlink)* Open link under cursor by use |CocAction('openlink')|.
 
 *<plug>(coc-codelens-action)* Do command from codeLens of current line.
 
@@ -2862,7 +2935,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "jumpDefinition" [{openCommand}]			*CocAction('jumpDefinition')*
 
-	jump to definition position of the current symbol.
+	jump to definition locations of the current symbol.
 	Return `v:false` when location not found.
 
 	|coc-list-location| is used when more than one position is available,
@@ -2876,7 +2949,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "jumpDeclaration" [{openCommand}]			*CocAction('jumpDeclaration')*
 
-	jump to declaration position of the current symbol.
+	jump to declaration locations of the current symbol.
 	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition".
@@ -2885,22 +2958,30 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "jumpImplementation" [{openCommand}]			*CocAction('jumpImplementation')*
 
-	Jump to implementation position of the current symbol.
+	Jump to implementation locations of the current symbol.
 	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "jumpTypeDefinition" [{openCommand}]			*CocAction('jumpTypeDefinition')*
 
-	Jump to type definition position of the current symbol.
+	Jump to type definition locations of the current symbol.
 	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "jumpReferences" [{openCommand}]			*CocAction('jumpReferences')*
 
-	Jump to references position of the current symbol.
+	Jump to references locations of the current symbol, use
+	|CocAction('jumpUsed')| to exclude declaration locations.
+
 	Return `v:false` when location not found.
+
+	same behavior as "jumpDefinition"
+
+"jumpUsed" [{openCommand}] 				*CocAction('jumpUsed')*
+
+	Jump references locations withtout declarations.
 
 	same behavior as "jumpDefinition"
 
@@ -3004,6 +3085,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	{kind} code action kind, see |CocAction('codeActions')| for available
 	action kind.
 
+	Can be used to create autocmd like: >
+
+	command! -nargs=* -range CocAction :call CocActionAsync('codeActionRange', [<line1>, <line2>, <f-args>])
+	command! -nargs=* -range CocFix    :call CocActionAsync('codeActionRange', [<line1>, <line2>, 'quickfix'])
+<
 "codeLensAction"					*CocAction('codeLensAction')*
 
 	Invoke the command for codeLens of current line (or the line that
@@ -3076,19 +3162,16 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 "pickColor"						*CocAction('pickColor')*
 
-	Change the color at the current cursor position.
-
-	Requires language server support for the document color request.
+	Change the color at the current cursor position, requires
+	`documentColor` provider |CocHasProvider|.
 
 	Note: only works on mac or when you have python support on Vim and
 	have the gtk module installed.
 
 "colorPresentation"					*CocAction('colorPresentation')*
 
-	Change the color presentation at the current color position.
-
-	Requires a language server that supports color representation
-	requests.
+	Change the color presentation at the current color position, requires
+	`documentColor` provider |CocHasProvider|.
 
 "codeActions" [{mode}] [{only}]				*CocAction('codeActions')*
 
@@ -3206,6 +3289,15 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 "inspectSemanticToken" 					*CocAction('inspectSemanticToken')*
 
 	Inspect semantic token information at cursor position.
+
+"rangeSelect" {visualmode} {forward} 		 	*CocAction('rangeSelect')*
+
+	Visual select previous or next code range, requires `selectionRange`
+	provider.
+
+	{visualmode} should be result of {visualmode} or "" for current cursor
+	position.
+	{forward} select backward when it's falsy value.
 
 ------------------------------------------------------------------------------
 COMMANDS						*coc-commands*
