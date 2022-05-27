@@ -175,8 +175,9 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
     return Promise.reject(new Error(`file does not exist: ${fullpath}`))
   }
   let res: string[] = []
+  const input = fs.createReadStream(fullpath, { encoding: 'utf8' })
   const rl = readline.createInterface({
-    input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
+    input: input,
     crlfDelay: Infinity,
     terminal: false
   } as any)
@@ -193,6 +194,7 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
     })
     rl.on('close', () => {
       resolve(res)
+      input.close()
     })
     rl.on('error', reject)
   })
@@ -202,8 +204,9 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
   if (!fs.existsSync(fullpath)) {
     return Promise.reject(new Error(`file does not exist: ${fullpath}`))
   }
+  const input = fs.createReadStream(fullpath, { encoding: 'utf8' })
   const rl = readline.createInterface({
-    input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
+    input: input,
     crlfDelay: Infinity,
     terminal: false
   } as any)
@@ -216,6 +219,7 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
           line = line.slice(1)
         }
         rl.close()
+        input.close()
         resolve(line)
         return
       }
