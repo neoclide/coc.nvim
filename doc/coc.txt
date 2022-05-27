@@ -487,7 +487,7 @@ DOCUMENT COLOR 						*coc-document-color*
 Document colors added color highlights to your documents.  To enable document
 color highlights, use ||coc-config-colors-filetypes||.
 
-Install `coc-highlights` to provide a general document highlights for all
+Install `coc-highlights` to provide document color highlights for all
 filetypes.
 
 To pick a color from system color picker, use |CocAction('pickColor')| or
@@ -669,6 +669,18 @@ To close outline when it's the last window automatically, use
       else
         bdelete
       endif
+    endif
+  endfunction
+<
+Create a key-mapping to toggle outline, like:
+>
+  nnoremap <silent><nowait> <space>o  :call ToggleOutline()<CR>
+  function! ToggleOutline() abort
+    let winid = coc#window#find('cocViewId', 'OUTLINE')
+    if winid == -1
+      call CocActionAsync('showOutline', 1)
+    else
+      call coc#window#close(winid)
     endif
   endfunction
 <
