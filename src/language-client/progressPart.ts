@@ -22,6 +22,7 @@ export class ProgressPart {
   private disposables: Disposable[] = []
   private _cancelled = false
   private _percent = 0
+  private _started = false
   private progress: Progress
   private _resolve: () => void
 
@@ -44,6 +45,8 @@ export class ProgressPart {
   }
 
   public begin(params: WorkDoneProgressBegin): void {
+    if (this._started) return
+    this._started = true
     window.withProgress<void>({
       source: `language-client-${this.id}`,
       cancellable: params.cancellable,
@@ -92,12 +95,11 @@ export class ProgressPart {
       if (this._percent > 0) msg.increment = 100 - this._percent
       this.progress.report(msg)
     }
-    if (message && this.progress) this.progress.report({ message })
-    if (this._resolve) {
-      setTimeout(() => {
+    setTimeout(() => {
+      if (this._resolve) {
         this._resolve()
-      }, 300)
-    }
+      }
+    }, 300)
     this.cancel()
   }
 }
