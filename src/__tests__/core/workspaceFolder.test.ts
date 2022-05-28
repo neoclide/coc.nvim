@@ -229,7 +229,10 @@ describe('WorkspaceFolderController', () => {
         updateConfiguration('workspace.bottomUpFiletypes', ['vim'], [])
         let root = path.join(os.tmpdir(), 'a')
         let dir = path.join(root, '.vim')
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true})
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, {recursive: true})
+          await helper.wait(30)
+        }
         let file = path.join(dir, 'foo')
         await nvim.command(`edit ${file}`)
         await nvim.command('setf vim')
@@ -243,7 +246,10 @@ describe('WorkspaceFolderController', () => {
         updateConfiguration('workspace.bottomUpFiletypes', ['*'], [])
         let root = path.join(os.tmpdir(), 'a')
         let dir = path.join(root, '.vim')
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true})
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, {recursive: true})
+          await helper.wait(30)
+        }
         let file = path.join(dir, 'foo')
         await nvim.command(`edit ${file}`)
         let doc = await workspace.document
