@@ -9,6 +9,7 @@ CONTENTS					*coc-contents*
 Introduction					|coc-introduction|
 Requirements					|coc-requirements|
 Installation					|coc-installation|
+Configuration					|coc-configuration|
 LSP features 					|coc-lsp|
   Document 					|coc-document|
   Completion					|coc-completion|
@@ -24,7 +25,6 @@ LSP features 					|coc-lsp|
   Outline 					|coc-outline|
   Call hierarchy 				|coc-callHierarchy|
   Semantic highlights 				|coc-semantic-highlights|
-Configuration					|coc-configuration|
 Interface					|coc-interface|
   Key mappings					|coc-key-mappings|
   Variables					|coc-variables|
@@ -50,7 +50,7 @@ Dialog 						|coc-dialog|
   Dialog menu 					|coc-dialog-menu|
   Dialog picker                                 |coc-dialog-picker|
 Notification					|coc-notification|	
-Statusline support				|coc-status|
+Statusline integration				|coc-status|
   Manual					|coc-status-manual|
   Airline					|coc-status-airline|
   Lightline					|coc-status-lightline|
@@ -123,6 +123,32 @@ You can also use Vim's native package management like: >
   mkdir -p ~/.local/share/nvim/site/pack/coc/start
   cd ~/.local/share/nvim/site/pack/coc/start
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
+
+==============================================================================
+CONFIGURATION						*coc-configuration*
+
+The configuration of coc.nvim is stored in file `coc-settings.json`.
+
+Command |:CocConfig| will open (create when necessary) a user settings
+file in the folder returned by |coc#util#get_config_home()|
+
+To create a local configuration file for a specific workspace, use
+|:CocLocalConfig|.
+
+The global configuration file can be created in another directory by setting
+`g:coc_config_home` in your `.vimrc` or `init.vim`: >
+
+	let g:coc_config_home = '/path/to/folder'
+
+The configuration files are all in JSON format, it's recommended to
+enable JSON completion and validation by install the `coc-json` extension: >
+
+	:CocInstall coc-json
+<
+The user configuration can also be changed by |coc#config()|.
+
+Configurations are composed with builtin configurations and configurations
+contributed by coc extensions, see |coc-config| for builtin configurations.
 
 ==============================================================================
 LSP FEATURES 						*coc-lsp*
@@ -325,7 +351,7 @@ Note most language servers only send diagnostics for opened buffers for
 performance reason, some lint tools could provide diagnostics for all files in
 workspace.
 
-Note pull diagnostics feature is added in LSP 3.17, which not available for
+Note pull diagnostics feature is added in LSP 3.17, which is not available for
 now.
 
 Changes on diagnostics refresh~
@@ -347,21 +373,23 @@ buffer.
 
 Show diagnostic messages~
 
-Diagnostic messages would be automatically shown when cursor position contains
-diagnostics(use float window/popup when possible or echo) by default.
+Diagnostic messages would be automatically shown/hide when the diagnostics
+under cursor position changed (use float window/popup when possible) by
+default.
 
-Use |<Plug>(coc-diagnostic-info)| to refresh diagnostic messages at cursor
-position.
-
-Use |CocAction('diagnosticPreview')| to show diagnostic messages in preview
-window.
+To manually refresh diagnostics messages, use |<Plug>(coc-diagnostic-info)|
+and |CocAction('diagnosticPreview')|.
 
 Jump between diagnostics~
 
-Use key-mappings |<Plug>(coc-diagnostic-next)|, |<Plug>(coc-diagnostic-prev)|,
-|<Plug>(coc-diagnostic-next-error)| and |<Plug>(coc-diagnostic-prev-error)|.
+Use key-mappings:
 
-Inspect all diagnostics~
+- |<Plug>(coc-diagnostic-next)| jump to next diagnostic.
+- |<Plug>(coc-diagnostic-prev)| jump to previous diagnostic.
+- |<Plug>(coc-diagnostic-next-error)| jump to next error.
+- |<Plug>(coc-diagnostic-prev-error)| jump to previous error.
+
+Check all diagnostics~
 
 Use |coc-list-diagnostics| to open |CocList| with all diagnostics.
 
@@ -372,7 +400,7 @@ by other vim plugins.
 SIGNATURE HELP 						*coc-signature*
 
 Signature help of function is automatically triggered by default(when user
-type trigger characters defined by provider), which will use float
+type trigger characters defined by the provider), which will use float
 window/popup to show the signature messages when possible.
 
 Use |CocAction('showSignatureHelp')| to trigger signature help manually.
@@ -390,7 +418,11 @@ There're various ways to format document.
 
 Format full document:~
 
-Use |CocAction('format')|.
+Use |CocAction('format')|, you can create a command like: >
+
+	command! -nargs=0 Format :call CocActionAsync('format')
+<
+to format current buffer.
 
 Format on type:~
 
@@ -416,8 +448,11 @@ Format on save:~
 
 Use configuration |coc-preferences-formatOnSaveFiletypes|.
 
-Note since vim's autocmd not nested by default, coc.nvim may not receive latest
-code when you're using other vim plugin to format document at the same time.
+Or create |BufWritePre| autocmd like: >
+
+	autocmd BufWritePre * call CocAction('format')
+<
+Note avoid use |CocActionAsync| with |BufWritePre|.
 
 ==============================================================================
 CODE ACTION 						*coc-code-actions*
@@ -712,10 +747,13 @@ Use <CR> in call hierarchy tree to open location in original window.
 ==============================================================================
 SEMANTIC HIGHLIGHTS					*coc-semantic-highlights*
 
-coc.nvim can use semantic tokens from language server to add additional color
-information that depends on language specific symbol information.
+Semantic tokens are used to add additional color information to a file that
+depends on language specific symbol information.
 
 Use |coc-config-semanticTokens-filetypes| to enable semantic tokens highlights.
+
+Use `:CocCommand semanticTokens.checkCurrent` to check semantic highlight
+information with current buffer.
 
 To create custom highlights for symbol under cursor, follow these steps:
 
@@ -733,10 +771,8 @@ To create custom highlights for symbol under cursor, follow these steps:
 >
   :CocCommand semanticTokens.refreshCurrent
 <
-Use `:CocCommand semanticTokens.checkCurrent` to check semantic highlight
-information with current buffer.
-
 See |CocSem| to customize semantic token highlight groups.
+
 See |coc-config-semanticTokens| for related configurations.
 
 ==============================================================================
@@ -2050,15 +2086,7 @@ declarations.
 	makes `<leader>p` format the visually selected range, and you can use
 	`<leader>pap` to format a paragraph.
 
-*<plug>(coc-format)*
-
-	Format the whole buffer by invoke |CocAction('format')|, normally you
-	would like to use a command like: >
-
-	command! -nargs=0 Format :call CocActionAsync('format')
-<
-	to format current buffer.
-
+*<plug>(coc-format)* Format the whole buffer by invoke |CocAction('format')|
 *<plug>(coc-rename)* Rename symbol under cursor to a new word by invoke
 |CocAction('rename')|
 
@@ -3674,28 +3702,15 @@ Highlight groups for symbol icons, including:
 Note: Use configuration `suggest.completionItemKindLabels` for customized icon
 characters.
 
-Others~
+Semantic token highlight groups~
+								*CocSem*
 
-*CocSearch* highlight group for matched characters in list.
-*CocDisabled* highlight for disabled items, eg: menu item.
-*CocCodeLens* for virtual text of codeLens.
-*CocCursorRange* for highlight of activated cursors ranges.
-*CocLinkedEditing* for highlight of activated linked editing ranges.
-*CocHoverRange* for range of current hovered symbol.
-*CocMenuSel* for current menu item in menu dialog.
-*CocSelectedRange* for highlight ranges of outgoing calls.
-*CocSnippetVisual* for highlight snippet placeholders.
-*CocInlayHint* for highlight inlay hint virtual text block, default linked to
-|CocHintSign|
-
-*CocSem*
-
-Semantic highlight groups are starts with 'CocSem' which links to related
+Semantic highlight groups are starts with `CocSem` which links to related
 |nvim-treesitter| highlight groups when possible and fallback to builtin
 highlight groups, use variable |g:coc_default_semantic_highlight_groups| to
 disable creation of these highlight groups.
 
-Currently only semantic tokens types and `deprecated` modifier have default
+Only semantic tokens types and `deprecated` modifier have default
 highlight groups.
 
 You need create highlight groups for highlight other modifiers and/or specific
@@ -3718,6 +3733,20 @@ modifier with type, for example:
 	hi link CocSemDeclarationNamespace TSTypeDeclaration
 <
 The modifier highlight groups have higher priority.
+
+Others~
+
+*CocSearch* highlight group for matched characters in list.
+*CocDisabled* highlight for disabled items, eg: menu item.
+*CocCodeLens* for virtual text of codeLens.
+*CocCursorRange* for highlight of activated cursors ranges.
+*CocLinkedEditing* for highlight of activated linked editing ranges.
+*CocHoverRange* for range of current hovered symbol.
+*CocMenuSel* for current menu item in menu dialog.
+*CocSelectedRange* for highlight ranges of outgoing calls.
+*CocSnippetVisual* for highlight snippet placeholders.
+*CocInlayHint* for highlight inlay hint virtual text block, default linked to
+|CocHintSign|
 
 ==============================================================================
 TREE SUPPORT 						*coc-tree*
