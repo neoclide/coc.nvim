@@ -434,7 +434,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else if (previousResult && Array.isArray(result.edits)) {
       tokens = previousResult.tokens
       result.edits.forEach(e => {
-        tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data)
+        tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data ?? [])
       })
     }
     this.previousResults = { resultId: result.resultId, tokens, version }
