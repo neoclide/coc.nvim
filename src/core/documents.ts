@@ -420,6 +420,8 @@ export default class Documents implements Disposable {
     }
     if (doc.changedtick != changedtick) {
       await doc.synchronize()
+    } else {
+      await doc.patchChange()
     }
     let firing = true
     let thenables: Thenable<TextEdit[] | any>[] = []
