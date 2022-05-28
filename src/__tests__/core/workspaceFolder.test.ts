@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { Disposable, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
@@ -221,6 +222,35 @@ describe('WorkspaceFolderController', () => {
       let res = workspaceFolder.resolveRoot(doc, path.join(os.homedir(), 'foo'), true, expand)
       expect(res).toBe(null)
     })
+
+    describe('bottomUpFileTypes', () => {
+      it('should respect specific filetype', async () => {
+        updateConfiguration('coc.preferences.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+        updateConfiguration('workspace.bottomUpFiletypes', ['vim'], [])
+        let root = path.join(os.tmpdir(), 'a')
+        let dir = path.join(root, '.vim')
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true})
+        let file = path.join(dir, 'foo')
+        await nvim.command(`edit ${file}`)
+        await nvim.command('setf vim')
+        let doc = await workspace.document
+        let res = workspaceFolder.resolveRoot(doc, file, true, expand)
+        expect(res).toBe(root)
+      })
+
+      it('should respect wildcard', async () => {
+        updateConfiguration('coc.preferences.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+        updateConfiguration('workspace.bottomUpFiletypes', ['*'], [])
+        let root = path.join(os.tmpdir(), 'a')
+        let dir = path.join(root, '.vim')
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, {recursive: true})
+        let file = path.join(dir, 'foo')
+        await nvim.command(`edit ${file}`)
+        let doc = await workspace.document
+        let res = workspaceFolder.resolveRoot(doc, file, true, expand)
+        expect(res).toBe(root)
+      })
+    })
   })
 
   describe('renameWorkspaceFolder()', () => {
@@ -236,9 +266,7 @@ describe('WorkspaceFolderController', () => {
       expect(e.removed.length).toBe(1)
       expect(e.added.length).toBe(1)
     })
-  })
 
-  describe('removeWorkspaceFolder()', () => {
     it('should remote workspaceFolder', async () => {
       let e: WorkspaceFoldersChangeEvent
       disposables.push(workspaceFolder.onDidChangeWorkspaceFolders(ev => {
