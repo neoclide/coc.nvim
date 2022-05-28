@@ -1,3 +1,7 @@
+# 2022-05-28
+
+- Support `repeat#set` for commands that make changes only.
+
 # 2022-05-24
 
 - Add transition and annotation support for `workspace.applyEdits()`.

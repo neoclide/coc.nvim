@@ -74,7 +74,7 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
   if index(modes, mode) == -1
     return v:null
   endif
-  if has('nvim') && mode ==# 'i'
+  if !s:is_vim && !has('nvim-0.5.0') && mode ==# 'i'
     " helps to fix undo issue, don't know why.
     call feedkeys("\<C-g>u", 'n')
   endif
