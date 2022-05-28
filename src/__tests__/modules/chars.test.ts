@@ -11,15 +11,8 @@ describe('chars keyword option', () => {
     expect(chars.isKeywordChar('\u205f')).toBe(false)
   })
 
-  it('should match letter range', () => {
-    let chars = new Chars('a-z')
-    expect(chars.isKeywordChar('a')).toBe(true)
-    expect(chars.isKeywordChar('A')).toBe(false)
-  })
-
   it('should match code range', () => {
     let chars = new Chars('48-57')
-    expect(chars.isKeywordChar('a')).toBe(false)
     expect(chars.isKeywordChar('0')).toBe(true)
     expect(chars.isKeywordChar('9')).toBe(true)
   })

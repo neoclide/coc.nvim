@@ -15,16 +15,13 @@ export class Range {
   public static fromKeywordOption(keywordOption: string): Range[] {
     let parts = keywordOption.split(',')
     let ranges: Range[] = []
+    ranges.push(new Range(65, 90))
+    ranges.push(new Range(97, 122))
     for (let part of parts) {
       if (part == '@') {
-        // isalpha() of c
-        ranges.push(new Range(65, 90))
-        ranges.push(new Range(97, 122))
+        ranges.push(new Range(256, 65535))
       } else if (part == '@-@') {
         ranges.push(new Range(64))
-      } else if (/^([A-Za-z])-([A-Za-z])$/.test(part)) {
-        let ms = part.match(/^([A-Za-z])-([A-Za-z])$/)
-        ranges.push(new Range(ms[1].charCodeAt(0), ms[2].charCodeAt(0)))
       } else if (/^\d+-\d+$/.test(part)) {
         let ms = part.match(/^(\d+)-(\d+)$/)
         ranges.push(new Range(Number(ms[1]), Number(ms[2])))
@@ -107,7 +104,6 @@ export class Chars {
     let { ranges } = this
     if (/\s/.test(ch)) return false
     let c = ch.charCodeAt(0)
-    if (c > 255) return true
     if (c < 33) return false
     return ranges.some(r => r.contains(c))
   }
