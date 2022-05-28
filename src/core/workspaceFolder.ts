@@ -87,7 +87,7 @@ export default class WorkspaceFolderController {
     let dir = path.dirname(u.fsPath)
     let config = this.configurations.getConfiguration('workspace', document.uri)
     let ignoredFiletypes = config.get<string[]>('ignoredFiletypes', [])
-    let bottomUpFileTypes = config.get<string[]>('bottomUpFiletypes', [])
+    let bottomUpFiletypes = config.get<string[]>('bottomUpFiletypes', [])
     let checkCwd = config.get<boolean>('workspaceFolderCheckCwd', true)
     let ignored = config.get<string[]>('ignoredFolders', [])
     let fallbackCwd = config.get<boolean>('workspaceFolderFallbackCwd', true)
@@ -99,7 +99,7 @@ export default class WorkspaceFolderController {
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
-        let isBottomUp = bottomUpFileTypes.includes(document.filetype)
+        let isBottomUp = bottomUpFiletypes.includes('*') || bottomUpFiletypes.includes(document.filetype)
         let root = resolveRoot(dir, patterns, cwd, isBottomUp, checkCwd, ignored)
         if (root) {
           res = root
