@@ -272,7 +272,9 @@ describe('WorkspaceFolderController', () => {
       expect(e.removed.length).toBe(1)
       expect(e.added.length).toBe(1)
     })
+  })
 
+  describe('removeWorkspaceFolder()', () => {
     it('should remote workspaceFolder', async () => {
       let e: WorkspaceFoldersChangeEvent
       disposables.push(workspaceFolder.onDidChangeWorkspaceFolders(ev => {
