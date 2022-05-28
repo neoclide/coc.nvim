@@ -177,7 +177,7 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
   let res: string[] = []
   const input = fs.createReadStream(fullpath, { encoding: 'utf8' })
   const rl = readline.createInterface({
-    input: input,
+    input,
     crlfDelay: Infinity,
     terminal: false
   } as any)
@@ -206,7 +206,7 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
   }
   const input = fs.createReadStream(fullpath, { encoding: 'utf8' })
   const rl = readline.createInterface({
-    input: input,
+    input,
     crlfDelay: Infinity,
     terminal: false
   } as any)
