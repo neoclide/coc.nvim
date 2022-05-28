@@ -101,9 +101,6 @@ class Events {
     return this._insertMode
   }
 
-  /**
-   * @deprecated
-   */
   public get lastChangeTs(): number {
     return this._lastChange
   }

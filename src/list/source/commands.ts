@@ -1,7 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../../commands'
-import events from '../../events'
 import Mru from '../../model/mru'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
@@ -18,10 +17,7 @@ export default class CommandsList extends BasicList {
     super(nvim)
     this.mru = workspace.createMru('commands')
     this.addAction('run', async item => {
-      let { cmd } = item.data
-      await events.fire('Command', [cmd])
-      await commandManager.executeCommand(cmd)
-      void commandManager.addRecent(cmd)
+      await commandManager.fireCommand(item.data.cmd)
     })
     this.addAction('append', async item => {
       let { cmd } = item.data

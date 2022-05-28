@@ -11,6 +11,7 @@ import { UltiSnippetOption } from './types'
 import { wait } from './util'
 import window from './window'
 import workspace from './workspace'
+import events from './events'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -393,9 +394,23 @@ export class CommandManager implements Disposable {
     return Promise.resolve(cmd.execute.apply(cmd, rest))
   }
 
-  public async addRecent(cmd: string): Promise<void> {
+  /**
+   * Used for user invoked command.
+   */
+  public async fireCommand(id: string, ...args: any[]): Promise<unknown> {
+    // needed to load onCommand extensions
+    await events.fire('Command', [id])
+    let start = Date.now()
+    let res = await this.executeCommand(id, ...args)
+    if (args.length == 0) {
+      await this.addRecent(id, events.lastChangeTs > start)
+    }
+    return res
+  }
+
+  public async addRecent(cmd: string, repeat: boolean): Promise<void> {
     await this.mru.add(cmd)
-    await workspace.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
+    if (repeat) await workspace.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
   }
 
   public async repeatCommand(): Promise<void> {

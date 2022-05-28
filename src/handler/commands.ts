@@ -1,9 +1,8 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../commands'
-import events from '../events'
-import { Env } from '../types'
 import listManager from '../list/manager'
+import { Env } from '../types'
 const logger = require('../util/logger')('handler-commands')
 
 interface CommandItem {
@@ -35,18 +34,9 @@ export default class Commands {
     await commandManager.repeatCommand()
   }
 
-  public async runCommand(id?: string, ...args: any[]): Promise<any> {
-    if (id) {
-      // needed to load onCommand extensions
-      await events.fire('Command', [id])
-      let res = await commandManager.executeCommand(id, ...args)
-      if (args.length == 0) {
-        await commandManager.addRecent(id)
-      }
-      return res
-    } else {
-      await listManager.start(['commands'])
-    }
+  public async runCommand(id?: string, ...args: any[]): Promise<unknown> {
+    if (id) return await commandManager.fireCommand(id, ...args)
+    await listManager.start(['commands'])
   }
 
   public getCommands(): CommandItem[] {
