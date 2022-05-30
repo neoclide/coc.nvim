@@ -1,3 +1,7 @@
+# 2022-05-30
+
+- Disable `progressOnInitialization` for language client by default.
+
 # 2022-05-28
 
 - Support `repeat#set` for commands that make changes only.

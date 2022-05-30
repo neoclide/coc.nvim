@@ -497,7 +497,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
     diagnosticCollectionName: name,
     outputChannelName: id,
     stdioEncoding: config.stdioEncoding || 'utf8',
-    progressOnInitialization: config.progressOnInitialization !== false,
+    progressOnInitialization: config.progressOnInitialization === true,
     initializationOptions: config.initializationOptions || {}
   }
   return [clientOptions, serverOptions]
