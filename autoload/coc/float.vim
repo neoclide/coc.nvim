@@ -114,6 +114,8 @@ endfunction
 " - scrollinside: (optional) neovim only, create scrollbar inside window.
 " - rounded: (optional) use rounded borderchars, ignored when borderchars exists.
 " - borderchars: (optional) borderchars, should be length of 8
+" - nopad: (optional) not add pad when 1
+" - index: (optional) line index
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
@@ -143,7 +145,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let config = s:convert_config_nvim(a:config, 0)
       call nvim_win_set_buf(a:winid, bufnr)
       call nvim_win_set_config(a:winid, config)
-      call nvim_win_set_cursor(a:winid, [1, 0])
+      call nvim_win_set_cursor(a:winid, [get(a:config, 'index', 0) + 1, 0])
       call coc#float#nvim_create_related(a:winid, config, a:config)
       call s:add_highlights(a:winid, a:config, 0)
       return [a:winid, bufnr]
@@ -155,13 +157,14 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     let title = get(a:config, 'title', '')
     let buttons = get(a:config, 'buttons', [])
     let hlgroup = get(a:config, 'highlight',  'CocFloating')
+    let nopad = get(a:config, 'nopad', 0)
     let border = s:empty_border(get(a:config, 'border', [])) ? [0, 0, 0, 0] : a:config['border']
     let opts = {
           \ 'title': title,
           \ 'line': line,
           \ 'col': col,
           \ 'fixed': 1,
-          \ 'padding': [0, !border[1], 0, !border[3]],
+          \ 'padding': [0, !nopad && !border[1], 0, !nopad && !border[3]],
           \ 'borderchars': s:get_borderchars(a:config),
           \ 'highlight': hlgroup,
           \ 'cursorline': get(a:config, 'cursorline', 0),
@@ -198,11 +201,13 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     call setwinvar(winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
     call setwinvar(winid, 'border', get(a:config, 'border', []))
     call setwinvar(winid, 'scrollinside', get(a:config, 'scrollinside', 0))
-    call setwinvar(winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
+    if !get(a:config, 'nopad', 0)
+      call setwinvar(winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
+    endif
     call setwinvar(winid, '&cursorline', get(a:config, 'cursorline', 0))
     " cursorline highlight not work on old neovim
     call s:nvim_set_defaults(winid)
-    call nvim_win_set_cursor(winid, [1, 0])
+    call nvim_win_set_cursor(winid, [get(a:config, 'index', 0) + 1, 0])
     call coc#float#nvim_create_related(winid, config, a:config)
     call coc#float#nvim_set_winblend(winid, get(a:config, 'winblend', v:null))
   endif
@@ -233,7 +238,7 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   let borderhighlight = type(highlights) == 1 ? highlights : get(highlights, 0, 'CocFloating')
   let borderhighlight =  coc#highlight#compose_hlgroup(borderhighlight, get(a:opts, 'highlight', 'CocFloating'))
   let buttons = get(a:opts, 'buttons', [])
-  let pad = empty(border) || get(border, 1, 0) == 0
+  let pad = !get(a:opts, 'nopad', 0) && (empty(border) || get(border, 1, 0) == 0)
   let shadow = get(a:opts, 'shadow', 0)
   if get(a:opts, 'close', 0)
     call coc#float#nvim_close_btn(a:config, a:winid, border, borderhighlight, related)
@@ -630,6 +635,9 @@ function! coc#float#scroll(forward, ...)
     return ''
   endif
   for winid in winids
+    if getwinvar(id, 'kind', '') ==# 'pum'
+      continue
+    endif
     if s:is_vim
       call coc#float#scroll_win(winid, a:forward, amount)
     else
@@ -737,7 +745,7 @@ function! coc#float#check_related() abort
   let ids = coc#float#get_float_win_list(1)
   for id in ids
     let target = getwinvar(id, 'target_winid', 0)
-    if (target && index(ids, target) == -1) || getwinvar(id, 'kind', '') == 'pum'
+    if (target && index(ids, target) == -1) || getwinvar(id, 'kind', '') == 'pumdetail'
       call add(invalids, id)
     endif
   endfor
@@ -1041,7 +1049,7 @@ function! s:convert_config_nvim(config, create) abort
     endif
     let result['width'] = float2nr(result['width'] + 1 - get(border,3, 0))
   else
-    let result['width'] = float2nr(result['width'] + 1)
+    let result['width'] = float2nr(result['width'] + (get(a:config, 'nopad', 0) ? 0 : 1))
   endif
   if has('nvim-0.5.1') && a:create
     let result['noautocmd'] = v:true

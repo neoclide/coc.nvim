@@ -53,9 +53,6 @@ export default class Floating {
     if (!res || res.length == 0) return
     this.winid = res[0]
     this.bufnr = res[1]
-    if (!events.pumvisible) {
-      this.close()
-    }
   }
 
   public close(): void {

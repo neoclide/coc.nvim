@@ -154,7 +154,7 @@ export class Helper extends EventEmitter {
     } else if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
-    completion.stop()
+    completion.stop(true)
     workspace.reset()
     await this.nvim.command('silent! %bwipeout!')
     await this.nvim.command('setl nopreviewwindow')

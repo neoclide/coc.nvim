@@ -382,24 +382,9 @@
     },
     "suggest.selection": {
       "type": "string",
-      "default": "none",
+      "default": "recentlyUsed",
       "description": "Controls how suggestions are pre-selected when showing the suggest list.",
       "enum": ["none", "recentlyUsed", "recentlyUsedByPrefix"]
-    },
-    "suggest.enablePreselect": {
-      "type": "boolean",
-      "description": "Enable preselect feature of LSP, only works on neovim, required for suggest.selection config.",
-      "default": false
-    },
-    "suggest.enablePreview": {
-      "type": "boolean",
-      "description": "Add preview option to completeopt, default: false.",
-      "default": false
-    },
-    "suggest.floatEnable": {
-      "type": "boolean",
-      "description": "Enable floating window for documentation when possible.",
-      "default": true
     },
     "suggest.floatConfig": {
       "type": "object",
@@ -430,7 +415,7 @@
       "type": "string",
       "default": "preview",
       "description": "Where to show the detail text of CompleteItem from LS.",
-      "enum": ["abbr", "menu", "preview"]
+      "enum": ["abbr", "preview"]
     },
     "suggest.autoTrigger": {
       "type": "string",
@@ -442,16 +427,6 @@
       "type": "number",
       "default": 99,
       "description": "Priority of language sources."
-    },
-    "suggest.disableKind": {
-      "type": "boolean",
-      "description": "Remove kind field from vim complete item.",
-      "default": false
-    },
-    "suggest.disableMenu": {
-      "type": "boolean",
-      "description": "Remove menu field from vim complete item.",
-      "default": false
     },
     "suggest.disableMenuShortcut": {
       "type": "boolean",
@@ -511,16 +486,6 @@
       "type": "boolean",
       "default": false,
       "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character. Requires CompleteChanged event to work."
-    },
-    "suggest.noselect": {
-      "type": "boolean",
-      "description": "Not make vim select first item on completion start",
-      "default": true
-    },
-    "suggest.keepCompleteopt": {
-      "type": "boolean",
-      "description": "When enabled, completeopt is not overridden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
-      "default": false
     },
     "suggest.lowPrioritySourceLimit": {
       "type": "integer",

@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemKind, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
@@ -20,7 +20,34 @@ export interface CompleteConfig {
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
-  floatEnable: boolean
+}
+
+const highlightsMap = {
+  [CompletionItemKind.Text]: 'CocSymbolText',
+  [CompletionItemKind.Method]: 'CocSymbolMethod',
+  [CompletionItemKind.Function]: 'CocSymbolFunction',
+  [CompletionItemKind.Constructor]: 'CocSymbolConstructor',
+  [CompletionItemKind.Field]: 'CocSymbolField',
+  [CompletionItemKind.Variable]: 'CocSymbolVariable',
+  [CompletionItemKind.Class]: 'CocSymbolClass',
+  [CompletionItemKind.Interface]: 'CocSymbolInterface',
+  [CompletionItemKind.Module]: 'CocSymbolModule',
+  [CompletionItemKind.Property]: 'CocSymbolProperty',
+  [CompletionItemKind.Unit]: 'CocSymbolUnit',
+  [CompletionItemKind.Value]: 'CocSymbolValue',
+  [CompletionItemKind.Enum]: 'CocSymbolEnum',
+  [CompletionItemKind.Keyword]: 'CocSymbolKeyword',
+  [CompletionItemKind.Snippet]: 'CocSymbolSnippet',
+  [CompletionItemKind.Color]: 'CocSymbolColor',
+  [CompletionItemKind.File]: 'CocSymbolFile',
+  [CompletionItemKind.Reference]: 'CocSymbolReference',
+  [CompletionItemKind.Folder]: 'CocSymbolFolder',
+  [CompletionItemKind.EnumMember]: 'CocSymbolEnumMember',
+  [CompletionItemKind.Constant]: 'CocSymbolConstant',
+  [CompletionItemKind.Struct]: 'CocSymbolStruct',
+  [CompletionItemKind.Event]: 'CocSymbolEvent',
+  [CompletionItemKind.Operator]: 'CocSymbolOperator',
+  [CompletionItemKind.TypeParameter]: 'CocSymbolTypeParameter',
 }
 
 export default class LanguageSource implements ISource {
@@ -206,7 +233,7 @@ export default class LanguageSource implements ISource {
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
-    let { detailMaxLength, invalidInsertCharacters, detailField, labels, defaultKindText } = this.completeConfig
+    let { detailMaxLength, detailField, invalidInsertCharacters, labels, defaultKindText } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits != null && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
@@ -215,12 +242,14 @@ export default class LanguageSource implements ISource {
       abbr: label,
       menu: `[${shortcut}]`,
       kind: getKindString(item.kind, labels, defaultKindText),
+      kindHighlight: highlightsMap[item.kind],
       sortText: item.sortText || null,
       sourceScore: item['score'] || null,
       filterText: item.filterText || label,
       isSnippet,
       dup: item.data && item.data.dup == 0 ? 0 : 1
     }
+    if (item.tags?.includes(CompletionItemTag.Deprecated)) obj.deprecated = true
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
@@ -232,14 +261,10 @@ export default class LanguageSource implements ISource {
         obj.word = `${prefix}${obj.word}`
       }
     }
-    if (item && item.detail && detailField != 'preview') {
-      let detail = item.detail.replace(/\n\s*/g, ' ')
-      if (byteLength(detail) < detailMaxLength) {
-        if (detailField == 'menu') {
-          obj.menu = `${detail} ${obj.menu}`
-        } else if (detailField == 'abbr') {
-          obj.abbr = `${obj.abbr} - ${detail}`
-        }
+    if (item && item.detail) {
+      let detail = item.detail.replace(/\r?\n\s*/g, ' ')
+      if (byteLength(detail) < detailMaxLength && detailField == 'abbr') {
+        obj.abbr = `${obj.abbr} - ${detail}`
         obj.detailShown = 1
       }
     }

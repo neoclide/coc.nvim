@@ -78,7 +78,7 @@ export class CommandManager implements Disposable {
       execute: async () => {
         let doc = workspace.getDocument(workspace.bufnr)
         if (doc) await doc.synchronize()
-        nvim.call('coc#start', [], true)
+        nvim.call('coc#pum#refresh', [], true)
       }
     }, true)
     this.register({

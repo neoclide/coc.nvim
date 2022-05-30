@@ -5,18 +5,16 @@ import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteOption, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
+import { CompleteOption, ConfigurationChangeEvent, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
 import { disposeAll } from '../util'
-import * as Is from '../util/is'
-import { equals } from '../util/object'
 import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating, { PumBounding } from './floating'
 import MruLoader from './mru'
-import { shouldIndent, shouldStop, waitInsertEvent, waitTextChangedI } from './util'
+import PopupMenu from './pum'
+import { shouldStop } from './util'
 const logger = require('../util/logger')('completion')
-const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
 
 export interface LastInsert {
   character: string
@@ -25,10 +23,11 @@ export interface LastInsert {
 
 export class Completion implements Disposable {
   public config: CompleteConfig
+  private _activated = false
   private nvim: Neovim
+  private pum: PopupMenu
+  private mru: MruLoader
   private pretext: string | undefined
-  private hasInsert = false
-  private activated = false
   private changedtick: number
   private triggerTimer: NodeJS.Timer
   private popupEvent: PopupChangeEvent
@@ -36,23 +35,18 @@ export class Completion implements Disposable {
   private disposables: Disposable[] = []
   private complete: Complete | null = null
   private resolveTokenSource: CancellationTokenSource
-  // saved for commit character.
-  private previousItem: VimCompleteItem | {} | undefined
-  private mru: MruLoader
+  private activeItems: ReadonlyArray<ExtendedCompleteItem> | undefined
 
   public init(): void {
     this.nvim = workspace.nvim
-    this.config = this.getCompleteConfig()
+    this.getCompleteConfig()
+    workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
+    this.pum = new PopupMenu(this.nvim, this.config)
     this.mru = new MruLoader(this.config.selection)
     void this.mru.load()
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('suggest')) {
-        this.config = this.getCompleteConfig()
-      }
-    }, null, this.disposables)
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on('InsertLeave', () => {
-      this.stop()
+      this.stop(true)
     }, null, this.disposables)
     events.on('CursorMovedI', (bufnr, cursor, hasInsert) => {
       if (this.triggerTimer) clearTimeout(this.triggerTimer)
@@ -67,31 +61,16 @@ export class Completion implements Disposable {
           if (doc.isWord(text)) return
         }
       }
-      this.stop()
+      this.stop(true)
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
-    events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
-    events.on('CompleteDone', async item => {
-      this.previousItem = this.popupEvent?.completed_item
-      this.popupEvent = null
-      this.hasInsert = false
-      if (!this.activated || item.closed) return
-      this.cancelResolve()
-      if (item.close) return this.stop()
-      if (!Is.vimCompleteItem(item)) {
-        let ev = await waitInsertEvent()
-        if (ev == 'CursorMovedI') this.stop()
-      } else {
-        await this.onCompleteDone(item)
-      }
-    }, null, this.disposables)
     events.on('MenuPopupChanged', async ev => {
-      if (!this.activated || this.document?.isCommandLine) return
-      if (equals(this.popupEvent, ev)) return
-      this.cancelResolve()
       this.popupEvent = ev
-      await this.onPumChange()
+      await this.onPumChange(ev)
+    }, null, this.disposables)
+    events.on('CompleteStop', kind => {
+      this.stop(false, kind)
     }, null, this.disposables)
   }
 
@@ -100,14 +79,12 @@ export class Completion implements Disposable {
     return this.complete.option
   }
 
-  private get selectedItem(): VimCompleteItem | null {
-    if (!this.popupEvent) return null
-    let { completed_item } = this.popupEvent
-    return Is.vimCompleteItem(completed_item) ? completed_item : null
+  public get isActivated(): boolean {
+    return this._activated
   }
 
-  public get isActivated(): boolean {
-    return this.activated
+  public get inserted(): boolean {
+    return this.popupEvent != null && this.popupEvent.inserted
   }
 
   private get document(): Document | null {
@@ -115,41 +92,29 @@ export class Completion implements Disposable {
     return workspace.getDocument(this.option.bufnr)
   }
 
-  private getCompleteConfig(): CompleteConfig {
+  private get selectedItem(): ExtendedCompleteItem | undefined {
+    if (!this.popupEvent || !this.activeItems) return undefined
+    return this.activeItems[this.popupEvent.index]
+  }
+
+  private getCompleteConfig(e?: ConfigurationChangeEvent): CompleteConfig {
+    if (e && !e.affectsConfiguration('suggest')) return
     let suggest = workspace.getConfiguration('suggest')
     function getConfig<T>(key, defaultValue: T): T {
       return suggest.get<T>(key, defaultValue)
     }
-    let keepCompleteopt = getConfig<boolean>('keepCompleteopt', false)
-    let autoTrigger = getConfig<string>('autoTrigger', 'always')
-    if (keepCompleteopt && autoTrigger != 'none') {
-      let { completeOpt } = workspace
-      if (!completeOpt.includes('noinsert') && !completeOpt.includes('noselect')) {
-        keepCompleteopt = false
-        this.nvim.echoError('suggest.keepCompleteopt disabled, completeopt should includes noinsert or noselect')
-      }
-    }
-    let floatEnable = workspace.floatSupported && getConfig<boolean>('floatEnable', true)
-    let acceptSuggestionOnCommitCharacter = workspace.env.pumevent && getConfig<boolean>('acceptSuggestionOnCommitCharacter', false)
-    return {
-      autoTrigger,
-      floatEnable,
-      keepCompleteopt,
+    let acceptSuggestionOnCommitCharacter = getConfig<boolean>('acceptSuggestionOnCommitCharacter', false)
+    this.config = Object.assign(this.config ?? {}, {
+      autoTrigger: getConfig<string>('autoTrigger', 'always'),
       selection: getConfig<'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'>('selection', 'recentlyUsed'),
       floatConfig: getConfig<FloatConfig>('floatConfig', {}),
       defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
       disableMenuShortcut: getConfig<boolean>('disableMenuShortcut', false),
       acceptSuggestionOnCommitCharacter,
-      disableKind: getConfig<boolean>('disableKind', false),
-      disableMenu: getConfig<boolean>('disableMenu', false),
-      previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
-      enablePreview: getConfig<boolean>('enablePreview', false),
-      enablePreselect: getConfig<boolean>('enablePreselect', false),
       triggerCompletionWait: getConfig<number>('triggerCompletionWait', 0),
       labelMaxLength: getConfig<number>('labelMaxLength', 200),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
-      noselect: getConfig<boolean>('noselect', true),
       maxItemCount: getConfig<number>('maxCompleteItemCount', 50),
       timeout: getConfig<number>('timeout', 500),
       minTriggerInputLength: getConfig<number>('minTriggerInputLength', 1),
@@ -160,7 +125,35 @@ export class Completion implements Disposable {
       lowPrioritySourceLimit: getConfig<number>('lowPrioritySourceLimit', null),
       ignoreRegexps: getConfig<string[]>('ignoreRegexps', []),
       asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false)
+    })
+  }
+
+  public stop(close: boolean, kind?: 'cancel' | 'confirm'): void {
+    if (!this._activated) return
+    this._activated = false
+    let input = this.complete.input
+    let option = this.complete.option
+    let item = this.selectedItem
+    events.completing = false
+    this.activeItems = undefined
+    this.popupEvent = undefined
+    this.cancel()
+    if (close) {
+      this.nvim.call('coc#pum#close', ['', 1], true)
+      this.nvim.redrawVim()
     }
+    if (kind == 'confirm' && item) {
+      void this.confirmCompletion(item, input, option)
+    }
+  }
+
+  private async confirmCompletion(item: ExtendedCompleteItem, input: string, option: CompleteOption): Promise<void> {
+    this.mru.add(input, item)
+    let source = new CancellationTokenSource()
+    let { token } = source
+    await this.doCompleteResolve(item, source)
+    if (token.isCancellationRequested) return
+    await this.doCompleteDone(item, option)
   }
 
   public async startCompletion(option: CompleteOption, sourceList?: ISource[]): Promise<void> {
@@ -168,11 +161,12 @@ export class Completion implements Disposable {
       let doc = workspace.getAttachedDocument(option.bufnr)
       option.filetype = doc.filetype
       logger.debug('trigger completion with', option)
-      this.stop()
+      this.stop(true)
       this.pretext = byteSlice(option.line, 0, option.colnr - 1)
       sourceList = sourceList ?? this.getSources(option)
       if (!sourceList || sourceList.length === 0) return
       events.completing = true
+      this._activated = true
       this.changedtick = option.changedtick
       let complete = this.complete = new Complete(
         option,
@@ -186,15 +180,15 @@ export class Completion implements Disposable {
           clearTimeout(this.triggerTimer)
         }
         if (complete.isEmpty) {
-          this.stop()
+          this.stop(true)
           return
         }
-        if (this.hasInsert) return
+        if (this.inserted) return
         await this.filterResults()
       })
       await complete.doComplete()
     } catch (e) {
-      this.stop()
+      this.stop(true)
       this.nvim.echoError(e)
     }
   }
@@ -208,76 +202,31 @@ export class Completion implements Disposable {
     return sources.getCompleteSources(option)
   }
 
-  public hasSelected(): boolean {
-    if (workspace.env.pumevent) return this.selectedItem != null
-    // it's not correct
-    if (!this.config.noselect) return true
-    return false
-  }
-
   private showCompletion(items: ExtendedCompleteItem[]): void {
-    let { nvim, option, changedtick } = this
+    let { option, changedtick } = this
     if (!option) return
-    let { disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
-    let preselect = this.config.enablePreselect ? items.findIndex(o => o.preselect) : -1
-    let validKeys = completeItemKeys.slice()
-    if (disableKind) validKeys = validKeys.filter(s => s != 'kind')
-    if (disableMenu) validKeys = validKeys.filter(s => s != 'menu')
-    let vimItems = items.map(item => {
-      let obj = { word: item.word, equal: 1 }
-      for (let key of validKeys) {
-        if (item.hasOwnProperty(key)) {
-          if (disableMenuShortcut && key == 'menu') {
-            obj[key] = item[key].replace(/\[.+\]$/, '')
-          } else if (key == 'abbr' && item[key].length > labelMaxLength) {
-            obj[key] = item[key].slice(0, labelMaxLength)
-          } else {
-            obj[key] = item[key]
-          }
-        }
-      }
-      return obj
-    })
-    nvim.pauseNotification()
-    if (vimItems.length) this.start()
-    nvim.call('coc#_do_complete', [option.col, vimItems, preselect, changedtick], true)
-    nvim.resumeNotification(false, true)
-  }
-
-  private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
-    let { option, document } = this
-    if (!option || option.bufnr != bufnr) return
-    if ((info.insertChar || this.pretext == info.pre) && shouldIndent(option.indentkeys, info.pre)) {
-      logger.debug(`trigger indent by ${info.pre}`)
-      let indentChanged = await this.nvim.call('coc#complete_indent', [])
-      if (indentChanged) return
+    if (items.length == 0) {
+      this.stop(true)
+    } else {
+      this.activeItems = items
+      this.pum.show(items, option, changedtick)
     }
-    this.changedtick = info.changedtick
-    if (this.pretext == info.pre) return
-    let pretext = this.pretext = info.pre
-    if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
-      this.stop()
-      let res = await events.race(['TextChangedI', 'InsertCharPre'], 50)
-      if (res.name === 'TextChangedI') {
-        await this.triggerCompletion(document, res.args[1] as InsertChange)
-      }
-      return
-    }
-    // Avoid resume when TextChangedP caused by <C-n> or <C-p>
-    if (this.selectedItem && !info.insertChar) {
-      let expected = byteSlice(option.line, 0, option.col) + this.selectedItem.word
-      if (expected == pretext) {
-        this.hasInsert = true
-        return
-      }
-    }
-    await this.filterResults()
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     if (!workspace.isAttached(bufnr) || this.config.autoTrigger === 'none') return
-    if (this.option && shouldStop(bufnr, this.pretext, info, this.option)) {
-      this.stop()
+    let { option } = this
+    // detect item word insert
+    if (this.selectedItem && option && !info.insertChar) {
+      let expected = byteSlice(option.line, 0, option.col) + this.selectedItem.word
+      if (expected == info.pre) return
+    }
+    if (option && info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
+      await this.triggerCompletion(this.document, info)
+      return
+    }
+    if (option && shouldStop(bufnr, this.pretext, info, option)) {
+      this.stop(true)
       if (!info.insertChar) return
     }
     this.changedtick = info.changedtick
@@ -286,13 +235,13 @@ export class Completion implements Disposable {
     let pretext = this.pretext = info.pre
     let doc = workspace.getDocument(bufnr)
     // check commit
-    if (this.activated && this.config.acceptSuggestionOnCommitCharacter && Is.vimCompleteItem(this.previousItem)) {
-      let resolvedItem = this.getCompleteItem(this.previousItem)
+    if (this.config.acceptSuggestionOnCommitCharacter && this.selectedItem) {
       let last = pretext.slice(-1)
+      let resolvedItem = this.selectedItem
       if (sources.shouldCommit(resolvedItem, last)) {
         logger.debug('commit by commit character.')
         let { linenr, col, line, colnr } = this.option
-        this.stop()
+        this.stop(true)
         let { word } = resolvedItem
         let newLine = `${line.slice(0, col)}${word}${info.insertChar}${line.slice(colnr - 1)}`
         await this.nvim.call('coc#util#setline', [linenr, newLine])
@@ -380,27 +329,6 @@ export class Completion implements Disposable {
     return true
   }
 
-  private async onCompleteDone(item: VimCompleteItem): Promise<void> {
-    let { document, complete } = this
-    if (!document || !Is.vimCompleteItem(item)) return
-    let input = complete.input
-    let opt = Object.assign({}, this.option)
-    let resolvedItem = this.getCompleteItem(item)
-    this.stop()
-    if (!resolvedItem) return
-    this.mru.add(input, resolvedItem)
-    let insertChange = await waitTextChangedI()
-    if (typeof insertChange === 'string') return
-    if (insertChange && (insertChange.lnum != opt.linenr || insertChange.pre !== byteSlice(opt.line, 0, opt.col) + item.word)) return
-    let res = await events.race(['InsertCharPre', 'CursorMovedI'], 20)
-    if (res) return
-    let source = new CancellationTokenSource()
-    let { token } = source
-    await this.doCompleteResolve(resolvedItem, source)
-    if (token.isCancellationRequested) return
-    await this.doCompleteDone(resolvedItem, opt)
-  }
-
   private doCompleteResolve(item: ExtendedCompleteItem, tokenSource: CancellationTokenSource): Promise<void> {
     let source = sources.getSource(item.source)
     return new Promise<void>(resolve => {
@@ -449,11 +377,10 @@ export class Completion implements Disposable {
     return true
   }
 
-  private async onPumChange(): Promise<void> {
-    if (!this.popupEvent) return
-    let { col, row, height, width, scrollbar } = this.popupEvent
+  private async onPumChange(ev: PopupChangeEvent): Promise<void> {
+    let { col, row, height, width, scrollbar } = ev
     let bounding: PumBounding = { col, row, height, width, scrollbar }
-    let resolvedItem = this.getCompleteItem(this.selectedItem)
+    let resolvedItem = this.selectedItem
     if (!resolvedItem) {
       this.floating.close()
       return
@@ -468,7 +395,6 @@ export class Completion implements Disposable {
       let isText = /^[\w-\s.,\t]+$/.test(info)
       docs = [{ filetype: isText ? 'txt' : this.document.filetype, content: info }]
     }
-    if (!this.config.floatEnable) return
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
@@ -478,31 +404,11 @@ export class Completion implements Disposable {
     }
   }
 
-  public start(): void {
-    if (this.activated) return
-    this.activated = true
-    if (!this.config.keepCompleteopt) {
-      this.nvim.command(`noa set completeopt=${this.completeOpt}`, true)
-    }
-  }
-
   private cancelResolve(): void {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource.dispose()
       this.resolveTokenSource = null
-    }
-  }
-
-  public stop(): void {
-    events.completing = false
-    this.cancel()
-    if (this.activated) {
-      this.activated = false
-      let { nvim, config } = this
-      let completeOpt = config.keepCompleteopt ? '' : workspace.completeOpt
-      nvim.call('coc#_cancel', [1, completeOpt], true)
-      nvim.redrawVim()
     }
   }
 
@@ -551,29 +457,17 @@ export class Completion implements Disposable {
     let { complete } = this
     let search = this.getResumeInput()
     if (search == null) {
-      this.stop()
+      this.stop(true)
       return
     }
     let items = await complete.filterResults(search)
     // cancelled
     if (items === undefined) return
     if (items.length == 0) {
-      if (!complete.isCompleting) this.stop()
+      if (!complete.isCompleting) this.stop(true)
       return
     }
     this.showCompletion(items)
-  }
-
-  private get completeOpt(): string {
-    let { noselect, enablePreview } = this.config
-    let preview = enablePreview && !workspace.env.pumevent ? ',preview' : ''
-    if (noselect) return `noselect,menuone${preview}`
-    return `noinsert,menuone${preview}`
-  }
-
-  private getCompleteItem(item: VimCompleteItem | {} | null): ExtendedCompleteItem | null {
-    if (!this.complete || !Is.vimCompleteItem(item)) return null
-    return this.complete.resolveCompletionItem(item)
   }
 
   private cancel(): void {
@@ -586,13 +480,10 @@ export class Completion implements Disposable {
       this.triggerTimer = null
     }
     this.cancelResolve()
-    this.previousItem = undefined
     this.pretext = undefined
-    this.hasInsert = false
   }
 
   public dispose(): void {
-    this.cancelResolve()
     disposeAll(this.disposables)
   }
 }

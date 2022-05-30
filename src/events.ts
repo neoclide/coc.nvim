@@ -1,6 +1,6 @@
 'use strict'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
-import { VimCompleteItem, CompleteDoneItem } from './types'
+import { CompleteDoneItem } from './types'
 import { disposeAll } from './util'
 import { equals } from './util/object'
 import { byteSlice } from './util/string'
@@ -9,13 +9,14 @@ const logger = require('./util/logger')('events')
 export type Result = void | Promise<void>
 
 export interface PopupChangeEvent {
-  readonly completed_item: VimCompleteItem | {}
+  readonly index: number
   readonly height: number
   readonly width: number
   readonly row: number
   readonly col: number
   readonly size: number
   readonly scrollbar: boolean
+  readonly inserted: boolean
 }
 
 export interface InsertChange {
@@ -45,7 +46,7 @@ export type WindowEvents = 'WinLeave' | 'WinEnter' | 'WinClosed' | 'WinScrolled'
 export type TabEvents = 'TabNew' | 'TabClosed'
 
 export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | WindowEvents | TabEvents
-  | InsertChangeEvents | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
+  | InsertChangeEvents | 'CompleteStop' | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert'
@@ -157,7 +158,7 @@ class Events {
     } else if (event == 'MenuPopupChanged') {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
-    } else if (event == 'CompleteDone') {
+    } else if (event == 'CompleteStop') {
       this._pumVisible = false
     } else if (event == 'InsertCharPre') {
       this._recentInserts.push([args[1], args[0]])
@@ -235,6 +236,7 @@ class Events {
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteDone', handler: (item: CompleteDoneItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteStop', handler: (kind?: 'confirm' | 'cancel') => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

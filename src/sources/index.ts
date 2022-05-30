@@ -83,14 +83,9 @@ export class Sources {
       [CompletionItemKind.Operator, labels['operator'] || 'O'],
       [CompletionItemKind.TypeParameter, labels['typeParameter'] || 'T'],
     ])
-    let floatEnable = suggest.get<boolean>('floatEnable', true)
     let detailField = suggest.get<string>('detailField', 'preview')
-    if (detailField == 'preview' && (!floatEnable || !workspace.floatSupported)) {
-      detailField = 'menu'
-    }
     this.completeConfig = Object.assign(this.completeConfig || {}, {
       labels: map,
-      floatEnable,
       detailField,
       defaultKindText: labels['default'] || '',
       priority: suggest.get<number>('languageSourcePriority', 99),

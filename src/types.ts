@@ -682,6 +682,9 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   // saved line for apply TextEdit
   line?: string
   recentScore?: number
+  deprecated?: boolean
+  positions?: ReadonlyArray<number>
+  kindHighlight?: string
 }
 
 export interface CompleteResult {

@@ -2,32 +2,24 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
 import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex, isWord } from '../util/string'
-import { matchScore } from './match'
+import { matchScoreWithPositions } from './match'
 import MruLoader from './mru'
 const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
   selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
-  disableKind: boolean
-  disableMenu: boolean
   disableMenuShortcut: boolean
-  enablePreview: boolean
-  enablePreselect: boolean
   labelMaxLength: number
-  floatEnable: boolean
   autoTrigger: string
-  previewIsKeyword: string
   triggerCompletionWait: number
   minTriggerInputLength: number
   triggerAfterInsertEnter: boolean
   acceptSuggestionOnCommitCharacter: boolean
-  noselect: boolean
-  keepCompleteopt: boolean
   maxItemCount: number
   timeout: number
   snippetIndicator: string
@@ -207,6 +199,7 @@ export default class Complete {
                 item.word = word.slice(0, - followPart.length)
               }
               if (item.isSnippet === true) item.abbr = `${item.abbr || word}${snippetIndicator}`
+              if (!item.abbr) item.abbr = word
               item.localBonus = this.localBonus.get(item.filterText) || 0
               item.user_data = `${name}:${idx}`
             })
@@ -253,7 +246,7 @@ export default class Complete {
     if (results.size == 0) return []
     let len = input.length
     let emptyInput = len == 0
-    let { maxItemCount, selection, enablePreselect, defaultSortMethod, removeDuplicateItems } = this.config
+    let { maxItemCount, selection, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
@@ -266,13 +259,29 @@ export default class Complete {
       let items = result.items
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
-        let { word, filterText, dup } = item
+        let { word, filterText, abbr, dup } = item
         if (dup !== 1 && words.has(word)) continue
         if (filterText.length < len) continue
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         if (!emptyInput) {
-          let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
+          let positions: ReadonlyArray<number> | undefined
+          let score: number
+          if (item.kind && filterText === input) {
+            score = 64
+            positions = Array.from({ length: filterText.length }, (x, i) => i)
+          } else {
+            let res = matchScoreWithPositions(filterText, codes)
+            score = res == null ? 0 : res[0]
+            if (res != null) positions = res[1]
+          }
+          // let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
           if (score === 0) continue
+          if (abbr == filterText) {
+            item.positions = positions
+          } else if (positions && positions.length > 0) {
+            let idx = abbr.indexOf(filterText.slice(0, positions[positions.length - 1] + 1))
+            if (idx !== -1) item.positions = positions.map(i => i + idx)
+          }
           if (snippetSource && word === input) {
             item.score = 99
           } else {
@@ -307,22 +316,9 @@ export default class Complete {
           return a.filterText.length - b.filterText.length
       }
     })
-    let sourceNames = results.keys()
-    process.nextTick(() => {
-      let { results } = this
-      for (let name of sourceNames) {
-        let result = results.get(name)
-        if (result) result.items = arr.filter(o => o.source === name)
-      }
-    })
     if (maxMru !== -1) {
       let idx = arr.findIndex(o => o.recentScore === maxMru)
-      if (enablePreselect && !isVim) {
-        arr[idx].preselect = true
-      } else {
-        let removed = arr.splice(idx, 1)
-        arr.unshift(removed[0])
-      }
+      arr[idx].preselect = true
     }
     return this.limitCompleteItems(arr.slice(0, maxItemCount))
   }
@@ -375,17 +371,6 @@ export default class Complete {
     if (timer) clearTimeout(timer)
     tokenSource.cancel()
     this._completing = false
-  }
-
-  public resolveCompletionItem(item: VimCompleteItem | undefined): ExtendedCompleteItem | null {
-    if (typeof item.user_data !== 'string') return null
-    try {
-      let arr = item.user_data.split(':', 2)
-      let res = this.results.get(arr[0])
-      return res ? res.items.find(o => o.user_data == item.user_data) : null
-    } catch (e) {
-      return null
-    }
   }
 
   private getFollowPart(): string {

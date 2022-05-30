@@ -7,31 +7,21 @@ function! s:checkVersion() abort
   let l:unsupported = 0
   if get(g:, 'coc_disable_startup_warning', 0) != 1
     if has('nvim')
-      let l:unsupported = !has('nvim-0.3.2')
+      let l:unsupported = !has('nvim-0.4.0')
     else
-      let l:unsupported = !has('patch-8.0.1453')
+      let l:unsupported = !has('patch-8.1.1719')
     endif
 
     if l:unsupported == 1
       echohl Error
-      echom "coc.nvim requires at least Vim 8.0.1453 or Neovim 0.3.2, but you're using an older version."
+      echom "coc.nvim requires at least Vim 8.1.1719 or Neovim 0.4.0, but you're using an older version."
       echom "Please upgrade your (neo)vim."
       echom "You can add this to your vimrc to avoid this message:"
       echom "    let g:coc_disable_startup_warning = 1"
       echom "Note that some features may error out or behave incorrectly."
-      echom "Please do not report bugs unless you're using at least Vim 8.0.1453 or Neovim 0.3.2."
+      echom "Please do not report bugs unless you're using at least Vim 8.1.1719 or Neovim 0.4.0."
       echohl None
       sleep 2
-    else
-      if !has('nvim-0.4.0') && !has('patch-8.1.1719')
-        echohl WarningMsg
-        echom "coc.nvim works best on vim >= 8.1.1719 and neovim >= 0.4.0, consider upgrade your vim."
-        echom "You can add this to your vimrc to avoid this message:"
-        echom "    let g:coc_disable_startup_warning = 1"
-        echom "Note that some features may behave incorrectly."
-        echohl None
-        sleep 2
-      endif
     endif
   endif
 endfunction
@@ -277,19 +267,6 @@ function! s:HandleCharInsert(char, bufnr) abort
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
 endfunction
 
-function! s:HandleCompleteDone(complete_item) abort
-  let item = copy(a:complete_item)
-  if get(g:, 'coc_hide_pum', 0)
-    let item['close'] = v:true
-    let g:coc_hide_pum = 0
-  endif
-  if get(g:, 'coc_disable_complete_done', 0)
-    let g:coc_disable_complete_done = 0
-    let item['closed'] = v:true
-  endif
-  call s:Autocmd('CompleteDone', item)
-endfunction
-
 function! s:HandleWinScrolled(winid) abort
   if getwinvar(a:winid, 'float', 0)
     call coc#float#nvim_scrollbar(a:winid)
@@ -312,13 +289,6 @@ function! s:Enable(initialize)
 
   augroup coc_nvim
     autocmd!
-
-    if exists('##MenuPopupChanged') && exists('*nvim_open_win')
-      autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
-    endif
-    if exists('##CompleteChanged')
-      autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
-    endif
 
     if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
@@ -357,7 +327,6 @@ function! s:Enable(initialize)
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
-    autocmd CompleteDone        * call s:HandleCompleteDone(get(v:, 'completed_item', {}))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')
       autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
@@ -414,7 +383,7 @@ function! s:Hi() abort
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
-  hi default link CocMenuSel             PmenuSel
+  hi default link CocMenuSel             CursorLine
   hi default link CocErrorFloat          CocErrorSign
   hi default link CocWarningFloat        CocWarningSign
   hi default link CocInfoFloat           CocInfoSign
@@ -449,6 +418,14 @@ function! s:Hi() abort
   hi default link CocTreeSelected    CursorLine
   hi default link CocSelectedRange   CocHighlightText
   " Symbol highlights
+  hi default link CocSymbolText          CocSymbolDefault
+  hi default link CocSymbolUnit          CocSymbolDefault
+  hi default link CocSymbolValue         CocSymbolDefault
+  hi default link CocSymbolKeyword       CocSymbolDefault
+  hi default link CocSymbolSnippet       CocSymbolDefault
+  hi default link CocSymbolColor         CocSymbolDefault
+  hi default link CocSymbolReference     CocSymbolDefault
+  hi default link CocSymbolFolder        CocSymbolDefault
   hi default link CocSymbolDefault       MoreMsg
   hi default link CocSymbolFile          Statement
   hi default link CocSymbolModule        Statement
@@ -476,6 +453,10 @@ function! s:Hi() abort
   hi default link CocSymbolEvent         Keyword
   hi default link CocSymbolOperator      Operator
   hi default link CocSymbolTypeParameter Operator
+  "Pum
+  hi default link CocPumSearch           CocSearch
+  hi default link CocPumMenu             Comment
+  hi default link CocPumDeprecated       CocStrikeThrough
 
   if has('nvim')
     hi default link CocFloating NormalFloat

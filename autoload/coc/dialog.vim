@@ -10,7 +10,7 @@ let s:sign_group = 'PopUpCocDialog'
 
 " Float window aside pum
 function! coc#dialog#create_pum_float(winid, bufnr, lines, config) abort
-  if !pumvisible() || !s:float_supported
+  if !coc#pum#visible() || !s:float_supported
     return v:null
   endif
   let pumbounding = a:config['pumbounding']
@@ -54,7 +54,7 @@ function! coc#dialog#create_pum_float(winid, bufnr, lines, config) abort
   if empty(res)
     return v:null
   endif
-  call setwinvar(res[0], 'kind', 'pum')
+  call setwinvar(res[0], 'kind', 'pumdetail')
   if has('nvim')
     call coc#float#nvim_scrollbar(res[0])
   endif
@@ -86,7 +86,7 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
   if empty(dimension)
     return v:null
   endif
-  if pumvisible() && ((pumAlignTop && dimension['row'] <0)|| (!pumAlignTop && dimension['row'] > 0))
+  if coc#pum#visible() && ((pumAlignTop && dimension['row'] <0)|| (!pumAlignTop && dimension['row'] > 0))
     return v:null
   endif
   let width = dimension['width']

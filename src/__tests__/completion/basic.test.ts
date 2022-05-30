@@ -42,33 +42,6 @@ describe('completion', () => {
       })
     })
 
-    describe('disableKind & disableMenu', () => {
-      it('should hide kind and menu when configured', async () => {
-        helper.updateConfiguration('suggest.disableKind', true)
-        helper.updateConfiguration('suggest.disableMenu', true)
-        let doc = await workspace.document
-        await nvim.setLine('fball football')
-        await doc.synchronize()
-        await nvim.input('of')
-        await helper.waitPopup()
-        let items = await helper.getItems()
-        expect(items[0].kind).toBeUndefined()
-        expect(items[0].menu).toBeUndefined()
-      })
-    })
-
-    describe('keepCompleteopt', () => {
-      it('should show error when keepCompleteopt unable to work', async () => {
-        let prev = workspace.env.completeOpt
-        workspace.env.completeOpt = 'menu,preview'
-        helper.updateConfiguration('suggest.keepCompleteopt', true)
-        expect(completion.config.keepCompleteopt).toBe(false)
-        let line = await helper.getCmdline()
-        expect(line).toMatch('disabled')
-        workspace.env.completeOpt = prev
-      })
-    })
-
     describe('characters only', () => {
       beforeEach(() => {
         helper.updateConfiguration('suggest.asciiCharactersOnly', true)
@@ -127,22 +100,6 @@ describe('completion', () => {
     })
 
     describe('selection', () => {
-      it('should not select when selection is none', async () => {
-        helper.updateConfiguration('suggest.enablePreselect', true)
-        let doc = await workspace.document
-        await nvim.setLine('around')
-        await doc.synchronize()
-        await nvim.input('oa')
-        await helper.visible('around')
-        await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
-        await nvim.input('<C-y>')
-        await nvim.input('<esc>')
-        await nvim.input('oa')
-        await helper.visible('around')
-        let context = await nvim.getVar('coc#_context') as any
-        expect(context.preselect).toBe(-1)
-      })
-
       it('should select recent used item', async () => {
         helper.updateConfiguration('suggest.selection', 'recentlyUsed')
         helper.updateConfiguration('suggest.enablePreselect', true)
@@ -402,26 +359,6 @@ describe('completion', () => {
       expect(completion.isActivated).toBe(true)
     })
 
-    it('should filter when item has selected with noselect', async () => {
-      helper.updateConfiguration('suggest.noselect', false)
-      let source: ISource = {
-        priority: 0,
-        enable: true,
-        name: 'filter',
-        sourceType: SourceType.Service,
-        doComplete: (): Promise<CompleteResult> => {
-          return Promise.resolve({ items: [{ word: 'foo' }, { word: 'fox' }, { word: 'fat' }] })
-        }
-      }
-      disposables.push(sources.addSource(source))
-      await nvim.input('if')
-      await helper.waitPopup()
-      await nvim.input('o')
-      await helper.waitFor('eval', ['len(coc#_context["candidates"])'], 2)
-      await nvim.input('o')
-      await helper.waitFor('eval', ['len(coc#_context["candidates"])'], 1)
-    })
-
     it('should filter when type character after item selected without handle complete done', async () => {
       let input: string
       let fn = jest.fn()
@@ -454,7 +391,6 @@ describe('completion', () => {
   describe('TextChangedI', () => {
     it('should respect commitCharacter on TextChangedI', async () => {
       helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
-      helper.updateConfiguration('suggest.noselect', false)
       let source: ISource = {
         enable: true,
         name: 'commit',

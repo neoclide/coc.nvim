@@ -59,28 +59,13 @@ Completion related~
 "suggest.selection"					*coc-config-suggest-selection*
 
 	Controls how suggestions are pre-selected when showing the suggest
-	list. Default: "none".
+	list. Default: "recentlyUsed".
 
 	Could be "none", "recentlyUsed" and "recentlyUsedByPrefix".
-
-	Note: the selected item would be moved to first place when
-	"suggest.enablePreselect" is not enabled.
-
-"suggest.enablePreselect"				*coc-config-suggest-enablePreselect*
-
-	Enable preselect feature on Neovim, default: `false`
 
 "suggest.labelMaxLength"				*coc-config-suggest-labelMaxLength*
 
 	Maximum length of label shown in 'pum', default: `200`
-
-"suggest.enablePreview"					*coc-config-suggest-enablePreview*
-
-	Add preview option to 'completeopt', default: `false`
-
-"suggest.floatEnable"					*coc-config-suggest-floatEnable*
-
-	Enable floating window for documentation when possible, default: `true`
 
 "suggest.floatConfig"					*coc-config-suggest-floatConfig*
 
@@ -112,14 +97,6 @@ Completion related~
 "suggest.languageSourcePriority"			*coc-config-suggest-languageSourcePriority*
 
 	Priority of language sources, default: `99`
-
-"suggest.disableKind"					*coc-config-suggest-disableKind*
-
-	Remove kind field from Vim complete item, default: `false`
-
-"suggest.disableMenu"					*coc-config-suggest-disableMenu*
-
-	Remove menu field from Vim complete item, default: `false`
 
 "suggest.snippetIndicator"				*coc-config-suggest-snippetIndicator*
 
@@ -179,17 +156,6 @@ Completion related~
 	trigger completion item acceptance. This also inserts commit character
 	after the completion item text. Requires `CompleteChanged` event to work,
 	default: `false`
-
-"suggest.noselect"					*coc-config-suggest-noselect*
-
-	Prevent Vim from selecting the first item on completion start,
-	default: `true`
-
-"suggest.keepCompleteopt"				*coc-config-suggest-keepCompleteopt*
-
-	When enabled, 'completeopt' is not overridden during completion. Won't
-	work if 'completeopt' doesn't includes 'noinsert' and 'noselect' which
-	are required by auto completion, default: `false`
 
 "suggest.lowPrioritySourceLimit"			*coc-config-suggest-lowPrioritySourceLimit*
 

@@ -89,8 +89,7 @@ automatic completion of coc.nvim through `"suggest.autoTrigger": "none"` (or
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
 
-Neovim >= 0.3.2 or Vim >= 8.0.1453, for best experience, use neovim >= 0.4.0
-or vim >= 8.2.0750.
+Neovim >= 0.4.0 or Vim >= 8.1.1719.
 
 NodeJS https://nodejs.org/ >= 12.12.0.
 
@@ -262,11 +261,13 @@ Note make sure use mapped filetypes for configurations that expect filetypes.
 ==============================================================================
 COMPLETION						*coc-completion*
 
-Default behavior of coc.nvim's completion:
+The builtin completion of vim is no longer used, the behavior of coc.nvim's
+completion works like VSCode:
 
-- Completion is automatically triggered.
-- 'completeopt' is temporarily changed to `noinsert,menuone`.
-- Snippet complete item would only be expanded after confirm completion.
+- Completion is automatically triggered by default.
+- Selection is always enabled, which enables preselect feature.
+- Snippet and additional edits only work after confirm completion.
+- Not use 'completeopt' and related configurations are removed.
 
 Use configurations |coc-config-suggest| to change behavior of completion.
 
@@ -277,67 +278,85 @@ Related variables:~
 - |b:coc_suggest_blacklist|
 - |b:coc_additional_keywords|
 
-Related APIs:~
+Related functions:~
 
 - |coc#start()|
 - |coc#refresh()|
-- |coc#_select_confirm()|
+- |coc#pum#visible()|
+- |coc#pum#next()|
+- |coc#pum#prev()|
+- |coc#pum#cancel()|
+- |coc#pum#confirm()|
+- |coc#pum#stop()|
 
-Tips:~
+Related highlights:~
 
-- 'completeopt' used by coc.nvim default to `noselect,menuone`.
-- Your 'completeopt' option would be changed and restored during completion,
-  so you can still use `menu,preview` for Vim's built in completion.
-- Snippet expand and additional edit feature of LSP requires confirm
-  completion by <C-y> to work.
+- |CocPum| for highlight groups of customized pum.
+- |CocSymbol| for kind icons.
+- |CocMenuSel| for selected item.
 
 ------------------------------------------------------------------------------
 
 Example completion key-mappings:~
 
-Map <tab> to trigger completion and navigate to the next item: >
+Use <C-n> and <C-p> to navigate completion list: >
 
-    function! s:check_back_space() abort
-      let col = col('.') - 1
-      return !col || getline('.')[col - 1]  =~ '\s'
-    endfunction
-
-    inoremap <silent><expr> <TAB>
-		  \ pumvisible() ? "\<C-n>" :
-		  \ <SID>check_back_space() ? "\<TAB>" :
-		  \ coc#refresh()
-
-
-Map <c-space> to trigger completion: >
-
-	inoremap <silent><expr> <c-space> coc#refresh()
+  inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
+  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-n>"
 <
-<CR> to confirm completion, use: >
+Use <C-e> and <C-y> to cancel and confirm completion: >
 
-	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<CR>"
+  inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
+  inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
+>
+Use <tab> and <S-tab> to navigate completion list: >
+
+  function! s:check_back_space() abort
+    let col = col('.') - 1
+    return !col || getline('.')[col - 1]  =~ '\s'
+  endfunction
+
+  " Insert <tab> when previous text is space, refresh completion if not.
+  inoremap <silent><expr> <TAB>
+	\ coc#pum#visible() ? coc#pum#next(1):
+	\ <SID>check_back_space() ? "\<Tab>" :
+	\ coc#refresh()
+  inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+
+Use <c-space> to trigger completion: >
+
+  if has('nvim')
+    inoremap <silent><expr> <c-space> coc#refresh()
+  else
+    inoremap <silent><expr> <c-@> coc#refresh()
+  endif
 <
-To make <CR> auto-select the first completion item and notify coc.nvim to
-format on enter, use: >
+Use <CR> to confirm completion, use: >
 
-	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+  inoremap <expr> <cr> coc#pum#visible() ? coc#pum#confirm() : "\<CR>"
+<
+To make <CR> to confirm selection of selected complete item or notify coc.nvim
+to format on enter, use: >
+
+  inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
 				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 Map <tab> for trigger completion, completion confirm, snippet expand and jump
-like VSCode. >
+like VSCode: >
 
-	inoremap <silent><expr> <TAB>
-	  \ pumvisible() ? coc#_select_confirm() :
-	  \ coc#expandableOrJumpable() ?
-	  \ "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
-	  \ <SID>check_back_space() ? "\<TAB>" :
-	  \ coc#refresh()
+  inoremap <silent><expr> <TAB>
+    \ coc#pum#visible() ? coc#pum#confirm() :
+    \ coc#expandableOrJumpable() ?
+    \ "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
+    \ <SID>check_back_space() ? "\<TAB>" :
+    \ coc#refresh()
 
-	function! s:check_back_space() abort
-	  let col = col('.') - 1
-	  return !col || getline('.')[col - 1]  =~# '\s'
-	endfunction
+  function! s:check_back_space() abort
+    let col = col('.') - 1
+    return !col || getline('.')[col - 1]  =~# '\s'
+  endfunction
 
-	let g:coc_snippet_next = '<tab>'
+  let g:coc_snippet_next = '<tab>'
 <
 Note: the `coc-snippets` extension is required for this to work.
 
@@ -1374,6 +1393,14 @@ coc#start([{option}]) 					*coc#start()*
 <
 	Use `:CocList sources` to get available sources.
 
+coc#refresh()						*coc#refresh()*
+
+	Start or refresh completion at current cursor position, bind this to
+	'imap' to trigger completion, example: >
+
+	inoremap <silent><expr> <c-space> coc#refresh()
+<
+
 coc#config({section}, {value})				*coc#config()*
 
 	Change user configuration by Vim script, no changes would be made to
@@ -1421,13 +1448,6 @@ coc#add_command({id}, {command}, [{title}])		*coc#add_command()*
 	call coc#add_command('mundoToggle', 'MundoToggle',
 		\ 'toggle mundo window')
 <
-coc#refresh()						*coc#refresh()*
-
-	Start or refresh completion at current cursor position, bind this to
-	'imap' to trigger completion, example: >
-
-	inoremap <silent><expr> <c-space> coc#refresh()
-<
 coc#expandable()					*coc#expandable()*
 
 	Check if a snippet is expandable at the current position.
@@ -1448,10 +1468,10 @@ coc#on_enter()						*coc#on_enter()*
 
 	Used for the format on type and improvement of brackets, example: >
 
-	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
-				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+	inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                    	          \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 <
-	Note：to enable formatOnType, add ` "coc.preferences.formatOnType": true`
+	Note：to enable format on type, add ` "coc.preferences.formatOnType": true`
 	in your settings file.
 
 coc#status()						*coc#status()*
@@ -1460,15 +1480,6 @@ coc#status()						*coc#status()*
 	includes diagnostic information from `b:coc_diagnostic_info` and
 	extension contributed statuses from `g:coc_status`. For statusline
 	integration, see |coc-status|
-
-coc#_select_confirm()					*coc#_select_confirm()*
-
-	Select first completion item if no completion item is selected, then
-	confirm the completion.
-
-	Note: for this function to work as expected, either |CompleteChanged|
-	autocmd should exist or only <C-n> and <C-p> should be used to select
-	a completion item.
 
 coc#util#api_version() 					*coc#util#api_version()*
 
@@ -1516,6 +1527,60 @@ coc#snippet#next() 					*coc#snippet#next()*
 coc#snippet#prev() 					*coc#snippet#prev()*
 
 	Jump to previous placeholder, does nothing when |coc#jumpable| is 0.
+
+							*coc#pum*
+coc#pum#visible() 					*coc#pum#visible()*
+
+	Check if customized pum of coc.nvim is visible.
+
+coc#pum#next([{insert}]) 				*coc#pum#next()*
+
+	Select next item of customized pum.
+
+coc#pum#prev([{insert}]) 				*coc#pum#prev()*
+
+	Select previous item of customized pum.
+
+coc#pum#stop() 						*coc#pum#stop()*
+	
+	Close the customized pum, works like <C-x><C-z> of vim.
+	Return <Ignore>
+
+coc#pum#cancel() 					*coc#pum#cancel()*
+
+	Cancel the customized pum and revert trigger input, like <C-e> of vim.
+	Return empty string.
+
+coc#pum#confirm() 					*coc#pum#confirm()*
+
+	Confirm completion and close the customized pum, like <C-y> of vim.
+	Return empty string.
+
+							*coc#notify*
+coc#notify#close_all()					*coc#notify#close_all()*
+
+	Close all notification windows.
+
+coc#notify#do_action([{winid}]) 			*coc#notify#do_action()*
+
+	Invoke action for all notification windows, or particular window with
+	winid.
+
+	Use `"notification.preferMenuPicker": true` if you would like to
+	choose action on notification shown.
+
+coc#notify#copy() 					*coc#notify#copy()*
+
+	Copy all content from notifications to system clipboard.
+
+coc#notify#show_sources() 				*coc#notify#show_sources()*
+
+	Show source name (extension name) in notification windows.
+
+coc#notify#keep() 					*coc#notify#keep()*
+
+	Stop auto hide timer of notification windows.
+
 
 coc#float#has_float([{all}]) 				*coc#float#has_float()*
 
@@ -1658,31 +1723,6 @@ CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 >
 	:echo exists('&tagfunc')
 <
-							*coc#notify*
-coc#notify#close_all()					*coc#notify#close_all()*
-
-	Close all notification windows.
-
-coc#notify#do_action([{winid}]) 			*coc#notify#do_action()*
-
-	Invoke action for all notification windows, or particular window with
-	winid.
-
-	Use `"notification.preferMenuPicker": true` if you would like to
-	choose action on notification shown.
-
-coc#notify#copy() 					*coc#notify#copy()*
-
-	Copy all content from notifications to system clipboard.
-
-coc#notify#show_sources() 				*coc#notify#show_sources()*
-
-	Show source name (extension name) in notification windows.
-
-coc#notify#keep() 					*coc#notify#keep()*
-
-	Stop auto hide timer of notification windows.
-
 ------------------------------------------------------------------------------
 							*coc-actions*
 Available Actions ~
@@ -2427,12 +2467,27 @@ CocTree 						*CocTree*
 *CocTreeOpenClose* for open and close icon in tree view.
 *CocTreeSelected* for highlight lines contains selected node.
 
+Pum related~
+							*CocPum*
+*CocPumSearch* for matched input characters.
+*CocPumMenu* for menu of complete items (normally includes source shortcut).
+*CocPumDeprecated* for highlight deprecated label.
+
 Symbol icons~
 
 CocSymbol 						*CocSymbol*
 
 Highlight groups for symbol icons, including:
 
+*CocSymbolText*
+*CocSymbolUnit*
+*CocSymbolValue*
+*CocSymbolDefault*
+*CocSymbolSnippet*
+*CocSymbolColor*
+*CocSymbolReference*
+*CocSymbolFolder*
+*CocSymbolDefault*
 *CocSymbolFile*
 *CocSymbolModule*
 *CocSymbolNamespace*
@@ -2459,7 +2514,6 @@ Highlight groups for symbol icons, including:
 *CocSymbolEvent*
 *CocSymbolOperator*
 *CocSymbolTypeParameter*
-*CocSymbolDefault*
 
 Note: Use configuration `suggest.completionItemKindLabels` for customized icon
 characters.
