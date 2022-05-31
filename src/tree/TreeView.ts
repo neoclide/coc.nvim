@@ -679,7 +679,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       for (let o of label.highlights) {
         highlights.push({
           lnum,
-          hlGroup: 'Search',
+          hlGroup: 'CocSearch',
           colStart: colStart + o[0],
           colEnd: colStart + o[1]
         })
