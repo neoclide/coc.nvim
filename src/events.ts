@@ -80,7 +80,17 @@ class Events {
   private _insertMode = false
   private _pumAlignTop = false
   private _pumVisible = false
-  public completing = false
+  private _completing = false
+  // public completing = false
+
+  public set completing(completing: boolean) {
+    this._completing = completing
+    this._pumVisible = completing
+  }
+
+  public get completing(): boolean {
+    return this._completing
+  }
 
   public get cursor(): CursorPosition {
     return this._cursor
@@ -158,8 +168,6 @@ class Events {
     } else if (event == 'MenuPopupChanged') {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
-    } else if (event == 'CompleteStop') {
-      this._pumVisible = false
     } else if (event == 'InsertCharPre') {
       this._recentInserts.push([args[1], args[0]])
     } else if (event == 'TextChanged') {
@@ -170,7 +178,6 @@ class Events {
       let arr = this._recentInserts.filter(o => o[0] == args[0])
       this._bufnr = args[0]
       this._recentInserts = []
-      this._pumVisible = event == 'TextChangedP'
       this._lastChange = Date.now()
       let info: InsertChange = args[1]
       let pre = byteSlice(info.line ?? '', 0, info.col - 1)
