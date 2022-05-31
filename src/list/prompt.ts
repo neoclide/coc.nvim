@@ -69,6 +69,7 @@ export default class Prompt {
   }
 
   public drawPrompt(): void {
+    logger.debug('drawPrompt:', Error().stack)
     let indicator = this.config.get<string>('indicator', '>')
     let { cusorIndex, interactive, input, _matcher } = this
     let cmds = ['echo ""']

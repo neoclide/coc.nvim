@@ -264,7 +264,6 @@ export default abstract class BasicList implements IList, Disposable {
       toplineOffset: this.toplineOffset,
     }
     await nvim.call('coc#list#preview', [lines, config])
-    nvim.command('redraw', true)
   }
 
   public async preview(options: PreviewOptions, context: ListContext): Promise<void> {
