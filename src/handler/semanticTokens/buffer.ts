@@ -171,7 +171,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     let currentCharacter = 0
     let tickStart = Date.now()
     let highlights: SemanticTokenRange[] = []
-    if (!tokens) return null
     for (let i = 0; i < tokens.length; i += 5) {
       if (Date.now() - tickStart > yieldEveryMilliseconds) {
         await waitImmediate()
@@ -405,7 +404,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const endLine = Math.min(region[0] + workspace.env.lines * 2, region[1])
     let range = Range.create(region[0] - 1, 0, endLine, 0)
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
-    if (!res || token.isCancellationRequested) return null
+    if (!res || !res.data || token.isCancellationRequested) return null
     let legend = languages.getLegend(doc.textDocument, true)
     let highlights = await this.getTokenRanges(res.data, legend, token)
     if (token.isCancellationRequested) return null
@@ -428,7 +427,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else {
       result = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
     }
-    if (token.isCancellationRequested || !result) return
+    if (token.isCancellationRequested || !result || !result.data) return
     let tokens: uinteger[] = []
     if (SemanticTokens.is(result)) {
       tokens = result.data
