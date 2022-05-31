@@ -171,6 +171,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let currentCharacter = 0
     let tickStart = Date.now()
     let highlights: SemanticTokenRange[] = []
+    if (!tokens) return null
     for (let i = 0; i < tokens.length; i += 5) {
       if (Date.now() - tickStart > yieldEveryMilliseconds) {
         await waitImmediate()
