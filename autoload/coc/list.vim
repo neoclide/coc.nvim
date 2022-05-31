@@ -272,7 +272,6 @@ function! coc#list#preview(lines, config) abort
     call sign_place(1, 'coc', 'CocCurrentLine', bufnr, {'lnum': lnum})
     call coc#highlight#match_ranges(winid, bufnr, [range], hlGroup, 10)
   endif
-  redraw
 endfunction
 
 function! s:get_height(lines, config) abort
