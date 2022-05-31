@@ -400,7 +400,7 @@ export class Completion implements Disposable {
     } else {
       let excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
       let config = Object.assign({}, this.config.floatConfig, { excludeImages })
-      await this.floating.show(docs, bounding, config)
+      this.floating.show(docs, bounding, config)
     }
   }
 

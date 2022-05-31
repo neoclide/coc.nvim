@@ -8,12 +8,21 @@ function! coc#pum#visible() abort
   if !s:float || !s:pum_winid
     return 0
   endif
+  let winid = coc#float#get_float_by_kind('pum')
+  return winid > 0
+endfunction
+
+function! coc#pum#close_detail() abort
+  let closed = 0
   for winid in coc#float#get_float_win_list()
-    if getwinvar(winid, 'kind', '') ==# 'pum'
-      return 1
+    if getwinvar(winid, 'kind', '') ==# 'pumdetail'
+      let closed = 1
+      call coc#float#close(winid)
     endif
   endfor
-  return 0
+  if s:is_vim && closed
+    call timer_start(0, { -> execute('redraw')})
+  endif
 endfunction
 
 function! coc#pum#close(...) abort

@@ -4,15 +4,16 @@ let s:root = expand('<sfile>:h:h:h')
 let s:prompt_win_bufnr = 0
 let s:list_win_bufnr = 0
 let s:prompt_win_width = get(g:, 'coc_prompt_win_width', 32)
-let s:float_supported = exists('*nvim_open_win') || has('patch-8.1.1719')
 let s:frames = ['·  ', '·· ', '···', ' ··', '  ·', '   ']
 let s:sign_group = 'PopUpCocDialog'
+let s:detail_bufnr = 0
 
 " Float window aside pum
-function! coc#dialog#create_pum_float(winid, bufnr, lines, config) abort
-  if !coc#pum#visible() || !s:float_supported
-    return v:null
+function! coc#dialog#create_pum_float(lines, config) abort
+  if !coc#pum#visible()
+    return
   endif
+  let winid = coc#float#get_float_by_kind('pumdetail')
   let pumbounding = a:config['pumbounding']
   let pw = pumbounding['width'] + get(pumbounding, 'scrollbar', 0)
   let rp = &columns - pumbounding['col'] - pw
@@ -49,21 +50,21 @@ function! coc#dialog#create_pum_float(winid, bufnr, lines, config) abort
       let opts[key] = a:config[key]
     endif
   endfor
-  call s:close_auto_hide_wins(a:winid)
-  let res = coc#float#create_float_win(a:winid, a:bufnr, opts)
-  if empty(res)
-    return v:null
+  call s:close_auto_hide_wins(winid)
+  let result = coc#float#create_float_win(winid, s:detail_bufnr, opts)
+  if empty(result)
+    return
   endif
-  call setwinvar(res[0], 'kind', 'pumdetail')
-  if has('nvim')
-    call coc#float#nvim_scrollbar(res[0])
+  let s:detail_bufnr = result[1]
+  call setwinvar(result[0], 'kind', 'pumdetail')
+  if !s:is_vim
+    call coc#float#nvim_scrollbar(result[0])
   endif
-  return res
 endfunction
 
 " Float window below/above cursor
 function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
-  if !s:float_supported || coc#prompt#activated()
+  if coc#prompt#activated()
     return v:null
   endif
   let pumAlignTop = get(a:config, 'pumAlignTop', 0)

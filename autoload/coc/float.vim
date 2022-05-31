@@ -595,6 +595,25 @@ function! coc#float#get_float_win_list(...) abort
   return []
 endfunction
 
+function! coc#float#get_float_by_kind(kind) abort
+  if s:is_vim
+    if s:popup_list_api
+      return get(filter(popup_list(), 'popup_getpos(v:val)["visible"] && getwinvar(v:val, "kind", "") ==# "'.a:kind.'"'), 0, 0)
+    endif
+    return get(filter(s:popup_list, 's:popup_visible(v:val) && getwinvar(v:val, "kind", "") ==# "'.a:kind.'"'), 0, 0)
+  else
+    let res = []
+    for i in range(1, winnr('$'))
+      let winid = win_getid(i)
+      let config = nvim_win_get_config(winid)
+      if !empty(config['relative']) && getwinvar(winid, 'kind', '') ==# a:kind
+        return winid
+      endif
+    endfor
+  endif
+  return 0
+endfunction
+
 " Check if a float window is scrollable
 function! coc#float#scrollable(winid) abort
   let bufnr = winbufnr(a:winid)

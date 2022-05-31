@@ -119,7 +119,7 @@ describe('float config', () => {
   async function createFloat(config: Partial<FloatConfig>, docs = [{ filetype: 'txt', content: 'doc' }], isVim = false): Promise<Floating> {
     let floating = new Floating(nvim, isVim)
     let bounding = { col: 6, row: 2, height: 3, width: 16, scrollbar: false }
-    await floating.show(docs, bounding, Object.assign({
+    floating.show(docs, bounding, Object.assign({
       excludeImages: true,
       border: false,
     }, config))

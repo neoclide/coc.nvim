@@ -92,7 +92,7 @@ function! coc#_do_complete(start, items, preselect, changedtick)
 endfunction
 
 function! coc#_cancel(...)
-  call coc#pum#stop()
+  call coc#pum#close()
 endfunction
 
 " used for statusline

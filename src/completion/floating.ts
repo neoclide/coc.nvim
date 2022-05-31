@@ -1,8 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import events from '../events'
 import { parseDocuments } from '../markdown'
-import { FloatConfig, Documentation } from '../types'
+import { Documentation, FloatConfig } from '../types'
 const logger = require('../util/logger')('floating')
 
 export interface PumBounding {
@@ -18,15 +17,12 @@ export interface FloatingConfig extends FloatConfig {
 }
 
 export default class Floating {
-  private winid = 0
-  private bufnr = 0
-
   constructor(
     private nvim: Neovim,
     private isVim: boolean) {
   }
 
-  public async show(docs: Documentation[], bounding: PumBounding, config: FloatingConfig): Promise<void> {
+  public show(docs: Documentation[], bounding: PumBounding, config: FloatingConfig): void {
     let { nvim } = this
     docs = docs.filter(o => o.content.trim().length > 0)
     let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: config.excludeImages })
@@ -48,18 +44,11 @@ export default class Floating {
       opts.focusable = config.focusable === true ? 1 : 0
       if (config.shadow) opts.shadow = 1
     }
-    let res = await nvim.call('coc#dialog#create_pum_float', [this.winid, this.bufnr, lines, opts])
+    nvim.call('coc#dialog#create_pum_float', [lines, opts], true)
     nvim.redrawVim()
-    if (!res || res.length == 0) return
-    this.winid = res[0]
-    this.bufnr = res[1]
   }
 
   public close(): void {
-    let { winid, nvim } = this
-    this.winid = 0
-    if (!winid) return
-    nvim.call('coc#float#close', [winid], true)
-    nvim.redrawVim()
+    this.nvim.call('coc#pum#close_detail', [], true)
   }
 }
