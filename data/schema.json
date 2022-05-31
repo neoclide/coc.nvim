@@ -187,7 +187,7 @@
         },
         "progressOnInitialization": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable progress report on languageserver initialize."
         },
         "initializationOptions": {
