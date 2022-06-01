@@ -33,7 +33,7 @@ function! coc#pum#close(...) abort
       doautocmd TextChangedI
     elseif get(a:, 1, '') ==# 'confirm'
       let words = getwinvar(s:pum_winid, 'words', [])
-      let index = sign_getplaced(s:pum_bufnr, {'group': 'PopUpCocDialog'})[0]['signs'][0]['lnum'] - 1
+      let index = coc#window#get_cursor(s:pum_winid)[0] - 1
       let word = get(words, index, '')
       call s:insert_word(word)
       doautocmd TextChangedI
@@ -137,7 +137,7 @@ function! coc#pum#create_pum(lines, opt, config) abort
   if empty(config)
     return
   endif
-  call extend(config, {'lines': a:lines, 'relative': 'cursor', 'nopad': 1})
+  call extend(config, {'lines': a:lines, 'relative': 'cursor', 'nopad': 1, 'focusable': v:false})
   call extend(config, coc#dict#pick(a:config, ['highlight', 'highlights', 'winblend', 'shadow', 'border', 'borderhighlight']))
   let config['rounded'] = 1
   let result =  coc#float#create_float_win(s:pum_winid, s:pum_bufnr, config)
@@ -190,38 +190,38 @@ function! s:get_pum_dimension(lines, col, config) abort
   let height = showTop ? min([lineIdx - bh - !empty(&tabline), linecount, pumheight]) : min([vh - lineIdx - bh - 1, linecount, pumheight])
   let offsetX = col('.') - a:col - 1
   let col = - min([max([offsetX, colIdx - (&columns - 1 - width)]) + 1, colIdx])
-  let row = showTop ? - height + bh : 1
+  let row = showTop ? - height : 1
   return {
         \ 'row': row,
         \ 'col': col,
         \ 'width': width,
-        \ 'height': height - bh
+        \ 'height': height
         \ }
 endfunction
 
 function! s:get_pum_event(winid) abort
   let bufnr = winbufnr(a:winid)
   let size = coc#compat#buf_line_count(bufnr)
+  let index = coc#window#get_cursor(s:pum_winid)[0] - 1
   if s:is_vim
     let pos = popup_getpos(a:winid)
-    let sign = sign_getplaced(bufnr, {'group': 'PopUpCocDialog'})[0]['signs'][0]
+    let add = pos['scrollbar'] && has_key(popup_getoptions(a:winid), 'border') ? 1 : 0
     return {
-        \ 'index': sign['lnum'] - 1,
+        \ 'index': index,
         \ 'scrollbar': pos['scrollbar'],
         \ 'row': pos['line'] - 1,
         \ 'col': pos['col'] - 1,
-        \ 'width': pos['width'],
+        \ 'width': pos['width'] + add,
         \ 'height': pos['height'],
         \ 'size': size,
         \ 'inserted': s:inserted ? v:true : v:false,
         \ }
   else
-    let cursor = nvim_win_get_cursor(a:winid)
     let scrollbar = coc#float#get_related(a:winid, 'scrollbar')
     let winid = coc#float#get_related(a:winid, 'border', a:winid)
     let pos = nvim_win_get_position(winid)
     return {
-        \ 'index': cursor[0] - 1,
+        \ 'index': index,
         \ 'scrollbar': scrollbar && nvim_win_is_valid(scrollbar) ? v:true : v:false,
         \ 'row': pos[0],
         \ 'col': pos[1],
@@ -237,6 +237,6 @@ function! s:get_index_size() abort
   if !coc#float#valid(s:pum_winid)
     return v:null
   endif
-  let sign = sign_getplaced(s:pum_bufnr, {'group': 'PopUpCocDialog'})[0]['signs'][0]
-  return [sign['lnum'] - 1, coc#compat#buf_line_count(s:pum_bufnr)]
+  let index = coc#window#get_cursor(s:pum_winid)[0] - 1
+  return [index, coc#compat#buf_line_count(s:pum_bufnr)]
 endfunction

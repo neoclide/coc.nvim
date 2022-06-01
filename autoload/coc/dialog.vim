@@ -15,11 +15,11 @@ function! coc#dialog#create_pum_float(lines, config) abort
   endif
   let winid = coc#float#get_float_by_kind('pumdetail')
   let pumbounding = a:config['pumbounding']
-  let pw = pumbounding['width'] + get(pumbounding, 'scrollbar', 0)
+  let border = get(a:config, 'border', [])
+  let pw = pumbounding['width'] + (empty(border) ? get(pumbounding, 'scrollbar', 0) : 0)
   let rp = &columns - pumbounding['col'] - pw
   let showRight = pumbounding['col'] > rp ? 0 : 1
   let maxWidth = showRight ? coc#math#min(rp - 1, a:config['maxWidth']) : coc#math#min(pumbounding['col'] - 1, a:config['maxWidth'])
-  let border = get(a:config, 'border', [])
   let bh = get(border, 0 ,0) + get(border, 2, 0)
   let maxHeight = &lines - pumbounding['row'] - &cmdheight - 1 - bh
   if maxWidth <= 2 || maxHeight < 1
@@ -39,10 +39,11 @@ function! coc#dialog#create_pum_float(lines, config) abort
         \ 'lines': lines,
         \ 'highlights': get(a:config, 'highlights', []),
         \ 'relative': 'editor',
-        \ 'col': showRight ? pumbounding['col'] + pw : pumbounding['col'] - width - 1,
+        \ 'col': showRight ? pumbounding['col'] + pw : pumbounding['col'] - width,
         \ 'row': pumbounding['row'],
         \ 'height': height,
         \ 'width': width - 2 + (s:is_vim && ch > height ? -1 : 0),
+        \ 'scrollinside': showRight ? 0 : 1,
         \ 'codes': get(a:config, 'codes', []),
         \ }
   for key in ['border', 'highlight', 'borderhighlight', 'winblend', 'focusable', 'shadow']

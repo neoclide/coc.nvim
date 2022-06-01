@@ -65,7 +65,7 @@ export default class PopupMenu {
     if (floatConfig.shadow) config.shadow = floatConfig.shadow
     if (border) {
       config.border = [1, 1, 1, 1]
-      config.borderhighlight = floatConfig.borderhighlight
+      config.borderhighlight = floatConfig.borderhighlight ?? 'CocFloating'
     }
     this.nvim.call('coc#pum#create_pum', [lines, opt, config], true)
     this.nvim.redrawVim()
