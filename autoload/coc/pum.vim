@@ -9,8 +9,11 @@ function! coc#pum#visible() abort
   if !s:float || !s:pum_winid
     return 0
   endif
-  let winid = coc#float#get_float_by_kind('pum')
-  return winid > 0
+  return getwinvar(s:pum_winid, 'float', 0) == 1
+endfunction
+
+function! coc#pum#winid() abort
+  return s:pum_winid
 endfunction
 
 function! coc#pum#close_detail() abort
@@ -53,27 +56,27 @@ function! coc#pum#close(...) abort
 endfunction
 
 function! coc#pum#next(insert) abort
-  call timer_start(0, { -> s:navigate(1, a:insert)})
+  call timer_start(10, { -> s:navigate(1, a:insert)})
   return ''
 endfunction
 
 function! coc#pum#prev(insert) abort
-  call timer_start(0, { -> s:navigate(0, a:insert)})
+  call timer_start(10, { -> s:navigate(0, a:insert)})
   return ''
 endfunction
 
 function! coc#pum#stop() abort
-  call timer_start(0, { -> coc#pum#close()})
+  call timer_start(10, { -> coc#pum#close()})
   return "\<Ignore>"
 endfunction
 
 function! coc#pum#cancel() abort
-  call timer_start(0, { -> coc#pum#close('cancel')})
+  call timer_start(10, { -> coc#pum#close('cancel')})
   return ''
 endfunction
 
 function! coc#pum#confirm() abort
-  call timer_start(0, { -> coc#pum#close('confirm')})
+  call timer_start(10, { -> coc#pum#close('confirm')})
   return ''
 endfunction
 
@@ -164,7 +167,7 @@ function! coc#pum#create_pum(lines, opt, config) abort
       call coc#float#close_related(s:pum_winid, 'scrollbar')
     endif
   endif
-  call timer_start(0, { -> s:on_pum_change(0)})
+  call timer_start(10, { -> s:on_pum_change(0)})
 endfunction
 
 function! s:on_pum_change(move) abort
