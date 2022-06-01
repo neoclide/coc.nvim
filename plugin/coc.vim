@@ -418,6 +418,7 @@ function! s:Hi() abort
   hi default link CocTreeSelected    CursorLine
   hi default link CocSelectedRange   CocHighlightText
   " Symbol highlights
+  hi default link CocSymbolDefault       MoreMsg
   hi default link CocSymbolText          CocSymbolDefault
   hi default link CocSymbolUnit          CocSymbolDefault
   hi default link CocSymbolValue         CocSymbolDefault
@@ -426,7 +427,6 @@ function! s:Hi() abort
   hi default link CocSymbolColor         CocSymbolDefault
   hi default link CocSymbolReference     CocSymbolDefault
   hi default link CocSymbolFolder        CocSymbolDefault
-  hi default link CocSymbolDefault       MoreMsg
   hi default link CocSymbolFile          Statement
   hi default link CocSymbolModule        Statement
   hi default link CocSymbolNamespace     Statement

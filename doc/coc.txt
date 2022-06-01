@@ -264,9 +264,11 @@ completion works like VSCode:
 - Completion is automatically triggered by default.
 - Selection is always enabled, which enables preselect feature.
 - Snippet and additional edits only work after confirm completion.
-- Not use 'completeopt' and related configurations are removed.
+- 'completeopt' is not used and pum related APIs not work.
+- Global options 'pumwidth' and 'pumheight' are used for minimum width and
+  maximum height.
 
-Use configurations |coc-config-suggest| to change behavior of completion.
+Use |coc-config-suggest| to change behavior of completion.
 
 Key-mappings:~
 
@@ -2485,15 +2487,15 @@ CocSymbol 						*CocSymbol*
 
 Highlight groups for symbol icons, including:
 
+*CocSymbolDefault*
 *CocSymbolText*
 *CocSymbolUnit*
 *CocSymbolValue*
-*CocSymbolDefault*
+*CocSymbolKeyword*
 *CocSymbolSnippet*
 *CocSymbolColor*
 *CocSymbolReference*
 *CocSymbolFolder*
-*CocSymbolDefault*
 *CocSymbolFile*
 *CocSymbolModule*
 *CocSymbolNamespace*
