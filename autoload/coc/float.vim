@@ -654,7 +654,7 @@ function! coc#float#scroll(forward, ...)
     return ''
   endif
   for winid in winids
-    if getwinvar(id, 'kind', '') ==# 'pum'
+    if getwinvar(winid, 'kind', '') ==# 'pum'
       continue
     endif
     if s:is_vim
