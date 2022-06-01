@@ -6,7 +6,7 @@ import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, ConfigurationChangeEvent, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, wait } from '../util'
 import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
@@ -386,6 +386,10 @@ export class Completion implements Disposable {
     }
     let source = this.resolveTokenSource = new CancellationTokenSource()
     let { token } = source
+    if (!ev.move) {
+      await wait(50)
+      if (token.isCancellationRequested) return
+    }
     await this.doCompleteResolve(resolvedItem, source)
     if (token.isCancellationRequested) return
     let docs = resolvedItem.documentation

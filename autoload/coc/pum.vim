@@ -1,3 +1,4 @@
+scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:float = has('nvim-0.4.0') || has('patch-8.1.1719')
 let s:pum_bufnr = 0
@@ -52,12 +53,12 @@ function! coc#pum#close(...) abort
 endfunction
 
 function! coc#pum#next(insert) abort
-  call timer_start(0, { -> s:move_cursor(1, a:insert)})
+  call timer_start(0, { -> s:navigate(1, a:insert)})
   return ''
 endfunction
 
 function! coc#pum#prev(insert) abort
-  call timer_start(0, { -> s:move_cursor(0, a:insert)})
+  call timer_start(0, { -> s:navigate(0, a:insert)})
   return ''
 endfunction
 
@@ -76,7 +77,7 @@ function! coc#pum#confirm() abort
   return ''
 endfunction
 
-function! s:move_cursor(next, insert) abort
+function! s:navigate(next, insert) abort
   if !coc#float#valid(s:pum_winid)
     return
   endif
@@ -101,7 +102,7 @@ function! s:move_cursor(next, insert) abort
     call s:insert_word(word)
     doautocmd TextChangedP
   endif
-  call s:on_pum_change()
+  call s:on_pum_change(1)
 endfunction
 
 function! s:insert_word(word) abort
@@ -163,12 +164,12 @@ function! coc#pum#create_pum(lines, opt, config) abort
       call coc#float#close_related(s:pum_winid, 'scrollbar')
     endif
   endif
-  call timer_start(0, { -> s:on_pum_change()})
+  call timer_start(0, { -> s:on_pum_change(0)})
 endfunction
 
-function! s:on_pum_change() abort
+function! s:on_pum_change(move) abort
   if coc#float#valid(s:pum_winid)
-    let ev = s:get_pum_event(s:pum_winid)
+    let ev = s:get_pum_event(s:pum_winid, a:move)
     call coc#rpc#notify('CocAutocmd', ['MenuPopupChanged', ev, win_screenpos(winnr())[0] + winline() - 2])
   endif
 endfunction
@@ -188,6 +189,9 @@ function! s:get_pum_dimension(lines, col, config) abort
     let showTop = 1
   endif
   let height = showTop ? min([lineIdx - bh - !empty(&tabline), linecount, pumheight]) : min([vh - lineIdx - bh - 1, linecount, pumheight])
+  if height <= 0
+    return v:null
+  endif
   let offsetX = col('.') - a:col - 1
   let col = - min([max([offsetX, colIdx - (&columns - 1 - width)]) + 1, colIdx])
   let row = showTop ? - height : 1
@@ -199,7 +203,7 @@ function! s:get_pum_dimension(lines, col, config) abort
         \ }
 endfunction
 
-function! s:get_pum_event(winid) abort
+function! s:get_pum_event(winid, move) abort
   let bufnr = winbufnr(a:winid)
   let size = coc#compat#buf_line_count(bufnr)
   let index = coc#window#get_cursor(s:pum_winid)[0] - 1
@@ -215,6 +219,7 @@ function! s:get_pum_event(winid) abort
         \ 'height': pos['height'],
         \ 'size': size,
         \ 'inserted': s:inserted ? v:true : v:false,
+        \ 'move': a:move  ? v:true : v:false,
         \ }
   else
     let scrollbar = coc#float#get_related(a:winid, 'scrollbar')
@@ -229,6 +234,7 @@ function! s:get_pum_event(winid) abort
         \ 'height': nvim_win_get_height(winid),
         \ 'size': size,
         \ 'inserted': s:inserted ? v:true : v:false,
+        \ 'move': a:move  ? v:true : v:false,
         \ }
   endif
 endfunction

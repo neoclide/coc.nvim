@@ -17,6 +17,7 @@ export interface PopupChangeEvent {
   readonly size: number
   readonly scrollbar: boolean
   readonly inserted: boolean
+  readonly move: boolean
 }
 
 export interface InsertChange {
