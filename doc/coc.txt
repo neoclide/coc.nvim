@@ -197,6 +197,7 @@ Features requested by user:~
 - Create folds |CocAction('fold')|.
 
 For convenient, some actions have associated |coc-key-mappings| provided.
+Prefer |CocAction()| for more options.
 
 Features triggered by languageserver or extension:~
 
@@ -272,8 +273,8 @@ Use |coc-config-suggest| to change behavior of completion.
 
 Key-mappings:~
 
-To make the completion could work without configuration, following
-key-mappings is used when the specific key is not mapped:
+To make the completion feature work without configuration, following
+key-mappings are used when the specific key is not mapped:
 
 Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
 
@@ -296,14 +297,14 @@ Related variables:~
 
 Related functions:~
 
-- |coc#start()|
-- |coc#refresh()|
-- |coc#pum#visible()|
-- |coc#pum#next()|
-- |coc#pum#prev()|
-- |coc#pum#cancel()|
-- |coc#pum#confirm()|
-- |coc#pum#stop()|
+- Trigger completion with options: |coc#start()|.
+- Trigger completion: |coc#refresh()|.
+- Check if customized pum is visible: |coc#pum#visible()|.
+- Select next complete item: |coc#pum#next()|.
+- Select previous complete item: |coc#pum#prev()|.
+- Cancel completion and reset trigger text: |coc#pum#cancel()|.
+- Confirm completion: |coc#pum#confirm()|.
+- Close the pum only: |coc#pum#stop()|.
 
 Related highlights:~
 
@@ -2477,8 +2478,8 @@ CocTree 						*CocTree*
 
 Pum related~
 							*CocPum*
-*CocPumSearch* for matched input characters.
-*CocPumMenu* for menu of complete items (normally includes source shortcut).
+*CocPumSearch* for matched input characters, linked to |CocSearch| by default.
+*CocPumMenu* for menu of complete items (mostly used for source shortcut).
 *CocPumDeprecated* for highlight deprecated label.
 
 Symbol icons~
@@ -2566,7 +2567,8 @@ Others~
 *CocCursorRange* for highlight of activated cursors ranges.
 *CocLinkedEditing* for highlight of activated linked editing ranges.
 *CocHoverRange* for range of current hovered symbol.
-*CocMenuSel* for current menu item in menu dialog.
+*CocMenuSel* for current menu item in menu dialog (should only provide
+background color).
 *CocSelectedRange* for highlight ranges of outgoing calls.
 *CocSnippetVisual* for highlight snippet placeholders.
 *CocInlayHint* for highlight inlay hint virtual text block, default linked to
