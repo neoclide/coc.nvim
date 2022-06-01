@@ -404,7 +404,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     const endLine = Math.min(region[0] + workspace.env.lines * 2, region[1])
     let range = Range.create(region[0] - 1, 0, endLine, 0)
     let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, range, token)
-    if (!res || token.isCancellationRequested) return null
+    if (!res || !SemanticTokens.is(res) || token.isCancellationRequested) return null
     let legend = languages.getLegend(doc.textDocument, true)
     let highlights = await this.getTokenRanges(res.data, legend, token)
     if (token.isCancellationRequested) return null
@@ -427,14 +427,14 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else {
       result = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
     }
-    if (token.isCancellationRequested || !result) return
+    if (token.isCancellationRequested || result == null) return
     let tokens: uinteger[] = []
     if (SemanticTokens.is(result)) {
       tokens = result.data
     } else if (previousResult && Array.isArray(result.edits)) {
       tokens = previousResult.tokens
       result.edits.forEach(e => {
-        tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...e.data ?? [])
+        tokens.splice(e.start, e.deleteCount ? e.deleteCount : 0, ...(e.data ?? []))
       })
     }
     this.previousResults = { resultId: result.resultId, tokens, version }
