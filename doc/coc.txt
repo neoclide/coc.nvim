@@ -79,9 +79,6 @@ Note: This plugin doesn't come with support for any specific language. You
 will need to install a coc.nvim extension or set up the language server by
 configuration.
 
-Note: This plugin doesn't change any of your existing key-mappings. You will
-need to create key-mappings by yourself, see README.md for examples.
-
 Note: Automatic completion plugins can't play nicely together, you can disable
 automatic completion of coc.nvim through `"suggest.autoTrigger": "none"` (or
 `"suggest.autoTrigger": "trigger"`) in your configuration file.
@@ -271,6 +268,21 @@ completion works like VSCode:
 
 Use configurations |coc-config-suggest| to change behavior of completion.
 
+Key-mappings:~
+
+To make the completion could work without configuration, following
+key-mappings is used when the specific key is not mapped:
+
+Use <C-n> and <C-p> to navigate completion list: >
+
+  inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
+  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-n>"
+<
+Use <C-e> and <C-y> to cancel and confirm completion: >
+
+  inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
+  inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
+>
 Related variables:~
 
 - |b:coc_suggest_disable|
@@ -299,16 +311,6 @@ Related highlights:~
 
 Example completion key-mappings:~
 
-Use <C-n> and <C-p> to navigate completion list: >
-
-  inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
-  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-n>"
-<
-Use <C-e> and <C-y> to cancel and confirm completion: >
-
-  inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
-  inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
->
 Use <tab> and <S-tab> to navigate completion list: >
 
   function! s:check_back_space() abort
@@ -559,8 +561,8 @@ Snippets engine of coc.nvim support both VSCode snippets and ultisnips
 snippets format.
 
 The complete item with snippet format has label ends with `~` by default.
-Select the complete item and confirm the completion by <C-y> to expand the
-snippet.
+Select the complete item and confirm the completion by |coc#pum#confirm()| to
+expand the snippet.
 
 A snippet session would be deactivated under the following conditions:
 
@@ -573,7 +575,7 @@ A snippet session would be deactivated under the following conditions:
 To load and expand custom snippets, install `coc-snippets` extension is
 recommended.
 
-Related configurations:
+Related configurations:~
 
 - |g:coc_snippet_prev|
 - |g:coc_snippet_next|
@@ -582,7 +584,7 @@ Related configurations:
 - |coc-preferences-snippetStatusText|
 - |coc-preferences-snippetHighlight|
 
-Related functions:
+Related functions:~
 
 - |coc#snippet#next()|
 - |coc#snippet#prev()|
@@ -590,9 +592,11 @@ Related functions:
 - |coc#jumpable()|
 - |coc#expandableOrJumpable()|
 
-Related variables: |b:coc_snippet_active|
-Related highlights: |CocSnippetVisual|
-Related autocmds: |CocJumpPlaceholder|
+Related variables, highlights and autocmds:~
+
+- |b:coc_snippet_active|
+- |CocSnippetVisual|
+- |CocJumpPlaceholder|
 
 ==============================================================================
 WROKSPACE SUPPORT 					*coc-workspace*
