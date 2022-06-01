@@ -283,10 +283,13 @@ export class Window {
       return await this.mutex.use(async () => {
         let placeholder = typeof option === 'string' ? option : option.title ?? (option.content ?? '') + 'Choose by number'
         let title = placeholder + ':'
-        let titles: string[] = items.map((item, idx) => {
-          if (isMenuItem(item) && item.disabled) return null
-          return `${idx + 1}. ${isMenuItem(item) ? item.text : item}`
-        })
+        let titles: string[] = []
+        let idx = 1
+        for (const item of items) {
+          if (isMenuItem(item) && item.disabled) continue
+          titles.push(`${idx}. ${isMenuItem(item) ? item.text : item}`)
+          idx++
+        }
         let res = await this.nvim.callAsync('coc#ui#quickpick', [title, titles.map(s => s.trim())])
         let n = parseInt(res, 10)
         if (isNaN(n) || n <= 0 || n > items.length) return -1
