@@ -185,7 +185,7 @@ function! s:get_pum_dimension(lines, col, config) abort
     return v:null
   endif
   let pumheight = empty(&pumheight) ? vh : &pumheight
-  if vh - lineIdx < min([pumheight, linecount]) && lineIdx > vh - lineIdx
+  if vh - lineIdx - bh - 1 < min([pumheight, linecount]) && lineIdx > vh - lineIdx
     let showTop = 1
   endif
   let height = showTop ? min([lineIdx - bh - !empty(&tabline), linecount, pumheight]) : min([vh - lineIdx - bh - 1, linecount, pumheight])
