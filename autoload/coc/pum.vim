@@ -94,7 +94,7 @@ function! s:navigate(next, insert) abort
   else
     let index = index == 0 ? size - 1 : index - 1
   endif
-  call coc#dialog#set_cursor(s:pum_winid, s:pum_bufnr, index + 1)
+  call s:set_cursor(s:pum_winid, index + 1)
   if !s:is_vim
     call coc#float#nvim_scrollbar(s:pum_winid)
   endif
@@ -139,7 +139,15 @@ function! coc#pum#create_pum(lines, opt, config) abort
   if empty(config)
     return
   endif
-  call extend(config, {'lines': a:lines, 'relative': 'cursor', 'nopad': 1, 'focusable': v:false})
+  let selected = a:opt['index'] + 1
+  call extend(config, {
+        \ 'lines': a:lines,
+        \ 'relative': 'cursor',
+        \ 'nopad': 1,
+        \ 'cursorline': 1,
+        \ 'index': a:opt['index'],
+        \ 'focusable': v:false
+        \ })
   call extend(config, coc#dict#pick(a:config, ['highlight', 'highlights', 'winblend', 'shadow', 'border', 'borderhighlight']))
   let config['rounded'] = 1
   let result =  coc#float#create_float_win(s:pum_winid, s:pum_bufnr, config)
@@ -149,6 +157,13 @@ function! coc#pum#create_pum(lines, opt, config) abort
   let s:inserted = 0
   let s:pum_winid = result[0]
   let s:pum_bufnr = result[1]
+  let lnum = a:opt['index'] + 1
+  if s:is_vim && lnum > config['height']
+    call popup_setoptions(s:pum_winid, {
+          \ 'firstline': lnum  - (config['height']*2/3),
+          \ })
+  endif
+  call coc#dialog#place_sign(s:pum_bufnr, config['index'] + 1)
   call setwinvar(s:pum_winid, 'kind', 'pum')
   " content before col and content after cursor
   let linetext = getline('.')
@@ -156,7 +171,6 @@ function! coc#pum#create_pum(lines, opt, config) abort
   call setwinvar(s:pum_winid, 'input', input)
   call setwinvar(s:pum_winid, 'parts', parts)
   call setwinvar(s:pum_winid, 'words', a:opt['words'])
-  call coc#dialog#set_cursor(s:pum_winid, s:pum_bufnr, a:opt['index'] + 1)
   if !s:is_vim
     if len(a:lines) > config['height']
       redraw
@@ -246,4 +260,24 @@ function! s:get_index_size() abort
   endif
   let index = coc#window#get_cursor(s:pum_winid)[0] - 1
   return [index, coc#compat#buf_line_count(s:pum_bufnr)]
+endfunction
+
+" can't use coc#dialog#set_cursor on vim8, don't know why
+function! s:set_cursor(winid, line) abort
+  if s:is_vim
+    let pos = popup_getpos(a:winid)
+    if a:line > pos['lastline']
+      call popup_setoptions(a:winid, {
+            \ 'firstline': pos['firstline'] + a:line - pos['lastline'],
+            \ })
+    elseif a:line < pos['firstline']
+      call popup_setoptions(a:winid, {
+            \ 'firstline': a:line,
+            \ })
+    endif
+    call coc#compat#execute(a:winid, 'exe '.a:line)
+  else
+    call nvim_win_set_cursor(a:winid, [a:line, 0])
+  endif
+  call coc#dialog#place_sign(winbufnr(a:winid), a:line)
 endfunction

@@ -250,7 +250,6 @@ function! coc#dialog#create_menu(lines, config) abort
     return
   endif
   let s:prompt_win_bufnr = ids[1]
-  call s:place_sign(s:prompt_win_bufnr, 1)
   call coc#dialog#set_cursor(ids[0], ids[1], contentCount + 1)
   redraw
   if has('nvim')
@@ -286,7 +285,7 @@ function! coc#dialog#create_dialog(lines, config) abort
     return
   endif
   if get(a:config, 'cursorline', 0)
-    call s:place_sign(bufnr, 1)
+    call coc#dialog#place_sign(bufnr, 1)
   endif
   if has('nvim')
     redraw
@@ -586,21 +585,18 @@ endfunction
 
 function! coc#dialog#set_cursor(winid, bufnr, line) abort
   if s:is_vim
-    let pos = popup_getpos(a:winid)
-    if a:line > pos['lastline']
-      call popup_setoptions(a:winid, {
-            \ 'firstline': pos['firstline'] + a:line - pos['lastline'],
-            \ })
-    elseif a:line < pos['firstline']
-      call popup_setoptions(a:winid, {
-            \ 'firstline': a:line,
-            \ })
-    endif
-    call coc#compat#execute(a:winid, 'exe '.a:line)
+    call coc#compat#execute(a:winid, 'exe '.a:line, 'silent!')
+    call popup_setoptions(a:winid, {'cursorline' : 1})
+    call popup_setoptions(a:winid, {'cursorline' : 0})
   else
     call nvim_win_set_cursor(a:winid, [a:line, 0])
   endif
-  call s:place_sign(a:bufnr, a:line)
+  call coc#dialog#place_sign(a:bufnr, a:line)
+endfunction
+
+function! coc#dialog#place_sign(bufnr, line) abort
+  call sign_unplace(s:sign_group, { 'buffer': a:bufnr })
+  call sign_place(6, s:sign_group, 'CocCurrentLine', a:bufnr, {'lnum': a:line})
 endfunction
 
 " Could be center(with optional marginTop) or cursor
@@ -682,9 +678,4 @@ function! s:change_loading_buf(bufnr, idx) abort
     let idx = a:idx == len(s:frames) - 1 ? 0 : a:idx + 1
     call timer_start(100, { -> s:change_loading_buf(a:bufnr, idx)})
   endif
-endfunction
-
-function! s:place_sign(bufnr, line) abort
-  call sign_unplace(s:sign_group, { 'buffer': a:bufnr })
-  call sign_place(6, s:sign_group, 'CocCurrentLine', a:bufnr, {'lnum': a:line})
 endfunction

@@ -119,6 +119,7 @@ endfunction
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
+  let lnum = get(a:config, 'index', 0) + 1
   " use exists
   if a:winid && coc#float#valid(a:winid)
     if s:is_vim
@@ -131,13 +132,13 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
             \ 'minheight': a:config['height'],
             \ 'maxwidth': a:config['width'],
             \ 'maxheight': a:config['height'],
-            \ 'cursorline': get(a:config, 'cursorline', 0),
             \ 'title': get(a:config, 'title', ''),
             \ }
       if !s:empty_border(get(a:config, 'border', []))
         let opts['border'] = a:config['border']
       endif
       call popup_setoptions(a:winid, opts)
+      call win_execute(a:winid, 'exe '.lnum)
       call coc#float#vim_buttons(a:winid, a:config)
       call s:add_highlights(a:winid, a:config, 0)
       return [a:winid, winbufnr(a:winid)]
@@ -145,7 +146,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let config = s:convert_config_nvim(a:config, 0)
       call nvim_win_set_buf(a:winid, bufnr)
       call nvim_win_set_config(a:winid, config)
-      call nvim_win_set_cursor(a:winid, [get(a:config, 'index', 0) + 1, 0])
+      call nvim_win_set_cursor(a:winid, [lnum, 0])
       call coc#float#nvim_create_related(a:winid, config, a:config)
       call s:add_highlights(a:winid, a:config, 0)
       return [a:winid, bufnr]
@@ -167,7 +168,6 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'padding': [0, !nopad && !border[1], 0, !nopad && !border[3]],
           \ 'borderchars': s:get_borderchars(a:config),
           \ 'highlight': hlgroup,
-          \ 'cursorline': get(a:config, 'cursorline', 0),
           \ 'minwidth': a:config['width'],
           \ 'minheight': a:config['height'],
           \ 'maxwidth': a:config['width'],
@@ -186,6 +186,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if !s:popup_list_api
       call add(s:popup_list, winid)
     endif
+    call win_execute(winid, 'exe '.lnum)
     call coc#float#vim_buttons(winid, a:config)
   else
     let config = s:convert_config_nvim(a:config, 1)
@@ -204,16 +205,13 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if !get(a:config, 'nopad', 0)
       call setwinvar(winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
     endif
-    call setwinvar(winid, '&cursorline', get(a:config, 'cursorline', 0))
     " cursorline highlight not work on old neovim
     call s:nvim_set_defaults(winid)
-    call nvim_win_set_cursor(winid, [get(a:config, 'index', 0) + 1, 0])
+    call nvim_win_set_cursor(winid, [lnum, 0])
     call coc#float#nvim_create_related(winid, config, a:config)
     call coc#float#nvim_set_winblend(winid, get(a:config, 'winblend', v:null))
   endif
-  if get(a:config, 'autohide', 0)
-    call setwinvar(winid, 'autohide', 1)
-  endif
+  call setwinvar(winid, 'autohide', get(a:config, 'autohide', 0))
   if s:is_vim || has('nvim-0.5.0')
     call setwinvar(winid, '&scrolloff', 0)
   endif
