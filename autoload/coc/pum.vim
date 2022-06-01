@@ -111,7 +111,6 @@ endfunction
 function! s:insert_word(word) abort
   let parts = getwinvar(s:pum_winid, 'parts', [])
   if !empty(parts)
-    call coc#rpc#notify('Log', ['change start'])
     if !exists('*nvim_buf_set_text')
       noa call setline('.', parts[0].a:word.parts[1])
       noa call cursor(line('.'), strlen(parts[0].a:word) + 1)
@@ -122,7 +121,6 @@ function! s:insert_word(word) abort
       call nvim_buf_set_text(bufnr('%'), row, startCol, row, endCol, [a:word])
       call cursor(line('.'), strlen(parts[0].a:word) + 1)
     endif
-    call coc#rpc#notify('Log', ['change end'])
   endif
 endfunction
 

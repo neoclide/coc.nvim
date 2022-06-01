@@ -586,15 +586,17 @@ endfunction
 
 function! coc#dialog#set_cursor(winid, bufnr, line) abort
   if s:is_vim
-    call coc#compat#execute(a:winid, 'exe '.a:line, 'silent!')
-    call popup_setoptions(a:winid, {'cursorline' : 1})
-    call popup_setoptions(a:winid, {'cursorline' : 0})
     let pos = popup_getpos(a:winid)
     if a:line > pos['lastline']
-      call coc#float#scroll_win(a:winid, 1, a:line - pos['lastline'])
+      call popup_setoptions(a:winid, {
+            \ 'firstline': pos['firstline'] + a:line - pos['lastline'],
+            \ })
     elseif a:line < pos['firstline']
-      call coc#float#scroll_win(a:winid, 0, pos['firstline'] - a:line)
+      call popup_setoptions(a:winid, {
+            \ 'firstline': a:line,
+            \ })
     endif
+    call coc#compat#execute(a:winid, 'exe '.a:line)
   else
     call nvim_win_set_cursor(a:winid, [a:line, 0])
   endif
