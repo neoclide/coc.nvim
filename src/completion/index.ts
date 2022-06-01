@@ -130,6 +130,7 @@ export class Completion implements Disposable {
   public stop(close: boolean, kind?: 'cancel' | 'confirm'): void {
     if (!this._activated) return
     this._activated = false
+    let doc = this.document
     let input = this.complete.input
     let option = this.complete.option
     let item = this.selectedItem
@@ -141,6 +142,7 @@ export class Completion implements Disposable {
       this.nvim.call('coc#pum#close', ['', 1], true)
       this.nvim.redrawVim()
     }
+    if (doc && doc.attached) doc._forceSync()
     if (kind == 'confirm' && item) {
       void this.confirmCompletion(item, input, option)
     }
