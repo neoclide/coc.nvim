@@ -647,19 +647,12 @@ function! coc#float#scroll(forward, ...)
     throw 'coc#float#scroll() requires nvim >= 0.4.0 or vim >= 8.2.0750'
   endif
   let amount = get(a:, 1, 0)
-  let winids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
+  let winids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val) && getwinvar(v:val,"kind","") !=# "pum"')
   if empty(winids)
-    return ''
+    return mode() =~ '^i' || mode() ==# 'v' ? "" : "\<Ignore>"
   endif
   for winid in winids
-    if getwinvar(winid, 'kind', '') ==# 'pum'
-      continue
-    endif
-    if s:is_vim
-      call coc#float#scroll_win(winid, a:forward, amount)
-    else
-      call timer_start(0, { -> coc#float#scroll_win(winid, a:forward, amount)})
-    endif
+    call s:scroll_win(winid, a:forward, amount)
   endfor
   return mode() =~ '^i' || mode() ==# 'v' ? "" : "\<Ignore>"
 endfunction
@@ -1396,4 +1389,12 @@ function! s:get_borderchars(config) abort
     return borderchars
   endif
   return get(a:config, 'rounded', 0) ? s:rounded_borderchars : s:borderchars
+endfunction
+
+function! s:scroll_win(winid, forward, amount) abort
+  if s:is_vim
+    call coc#float#scroll_win(a:winid, a:forward, a:amount)
+  else
+    call timer_start(0, { -> coc#float#scroll_win(a:winid, a:forward, a:amount)})
+  endif
 endfunction
