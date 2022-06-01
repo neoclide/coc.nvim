@@ -273,10 +273,12 @@ Key-mappings:~
 To make the completion could work without configuration, following
 key-mappings is used when the specific key is not mapped:
 
-Use <C-n> and <C-p> to navigate completion list: >
+Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
 
   inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
   inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-n>"
+  inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
+  inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
 <
 Use <C-e> and <C-y> to cancel and confirm completion: >
 

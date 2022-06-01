@@ -598,6 +598,12 @@ endif
 if empty(mapcheck("\<C-p>", 'i'))
   inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-p>"
 endif
+if empty(mapcheck("\<down>", 'i'))
+  inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
+endif
+if empty(mapcheck("\<up>", 'i'))
+  inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
+endif
 if empty(mapcheck("\<C-e>", 'i'))
   inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
 endif
