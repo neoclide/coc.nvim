@@ -323,7 +323,7 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     endif
   else
-    call coc#api#call('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
+    call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
   endif
 endfunction
 
@@ -363,7 +363,9 @@ function! coc#highlight#add_highlights(winid, codes, highlights) abort
   endif
   if !empty(a:highlights)
     for item in a:highlights
-      call coc#highlight#add_highlight(bufnr, -1, item['hlGroup'], item['lnum'], item['colStart'], item['colEnd'])
+      let hlGroup = item['hlGroup']
+      let opts = hlGroup =~# 'Search$' ? {'priority': 999, 'combine': 1} : {}
+      call coc#highlight#add_highlight(bufnr, -1, hlGroup, item['lnum'], item['colStart'], item['colEnd'])
     endfor
   endif
 endfunction
