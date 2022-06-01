@@ -52,13 +52,12 @@ export class Completion implements Disposable {
       if (this.triggerTimer) clearTimeout(this.triggerTimer)
       if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
       if (this.option.linenr === cursor[0]) {
-        let doc = workspace.getDocument(bufnr)
-        let line = doc.getline(cursor[0] - 1)
-        let idx = characterIndex(line, cursor[1] - 1)
-        let start = characterIndex(line, this.option.colnr - 1)
-        if (start < idx) {
-          let text = line.substring(start, idx)
-          if (doc.isWord(text)) return
+        let line = workspace.getDocument(bufnr).getline(cursor[0] - 1)
+        let curr = characterIndex(line, cursor[1] - 1)
+        let start = characterIndex(line, this.option.col)
+        if (start < curr) {
+          let text = line.substring(start, curr)
+          if (this.selectedItem && text === this.selectedItem.word) return
         }
       }
       this.stop(true)

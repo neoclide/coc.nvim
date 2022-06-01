@@ -99,6 +99,7 @@ function! s:move_cursor(next, insert) abort
     let words = getwinvar(s:pum_winid, 'words', [])
     let word = get(words, index, '')
     call s:insert_word(word)
+    doautocmd TextChangedP
   endif
   call s:on_pum_change()
 endfunction
