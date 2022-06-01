@@ -46,7 +46,7 @@ function! coc#dialog#create_pum_float(lines, config) abort
         \ 'scrollinside': showRight ? 0 : 1,
         \ 'codes': get(a:config, 'codes', []),
         \ }
-  for key in ['border', 'highlight', 'borderhighlight', 'winblend', 'focusable', 'shadow']
+  for key in ['border', 'highlight', 'borderhighlight', 'winblend', 'focusable', 'shadow', 'rounded']
     if has_key(a:config, key)
       let opts[key] = a:config[key]
     endif

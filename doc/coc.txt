@@ -290,10 +290,10 @@ Use <C-e> and <C-y> to cancel and confirm completion: >
 >
 Related variables:~
 
-- |b:coc_suggest_disable|
-- |b:coc_disabled_sources|
-- |b:coc_suggest_blacklist|
-- |b:coc_additional_keywords|
+- Disable completion for buffer: |b:coc_suggest_disable|
+- Disable specific sources for buffer: |b:coc_disabled_sources|
+- Disable words for trigger completion: |b:coc_suggest_blacklist|
+- Add additional keyword characters: |b:coc_additional_keywords|
 
 Related functions:~
 

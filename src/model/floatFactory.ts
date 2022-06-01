@@ -41,6 +41,7 @@ export interface FloatWinConfig {
   shadow?: boolean
   winblend?: number
   focusable?: boolean
+  rounded?: boolean
   excludeImages?: boolean
 }
 
@@ -168,6 +169,7 @@ export default class FloatFactory implements Disposable {
     if (opts.maxWidth) config.maxWidth = opts.maxWidth
     if (opts.border && !opts.border.every(o => o == 0)) {
       config.border = opts.border
+      config.rounded = opts.rounded ? 1 : 0
     }
     if (opts.title && !config.border) config.border = [1, 1, 1, 1]
     if (opts.highlight) config.highlight = opts.highlight

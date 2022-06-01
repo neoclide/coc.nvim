@@ -148,8 +148,7 @@ function! coc#pum#create_pum(lines, opt, config) abort
         \ 'index': a:opt['index'],
         \ 'focusable': v:false
         \ })
-  call extend(config, coc#dict#pick(a:config, ['highlight', 'highlights', 'winblend', 'shadow', 'border', 'borderhighlight']))
-  let config['rounded'] = 1
+  call extend(config, coc#dict#pick(a:config, ['highlight', 'rounded', 'highlights', 'winblend', 'shadow', 'border', 'borderhighlight']))
   let result =  coc#float#create_float_win(s:pum_winid, s:pum_bufnr, config)
   if empty(result)
     return

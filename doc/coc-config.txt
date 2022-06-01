@@ -69,8 +69,10 @@ Completion related~
 
 "suggest.floatConfig"					*coc-config-suggest-floatConfig*
 
-	Configuration of floating window/popup, see |coc-config-float|.
-	Excludes properties: "title", "close" and "maxHeight".
+	Configure style of popup menu and documentation window for complete
+	item, see |coc-config-float|.
+
+	Properties not work: "title", "close" and "maxHeight".
 
 "suggest.detailMaxLength"				*coc-config-suggest-detailMaxLength*
 
@@ -1091,6 +1093,7 @@ Used by `suggest.floatConfig`, `diagnostic.floatConfig`,
 supported:
 
 	- "border": Change to `true` to enable border.
+	- "rounded": Change to `true` to use rounded border.
 	- "highlight": Background highlight group of float window.
 	- "title": Title used by float window.
 	- "borderhighlight": Border highlight group of float window.

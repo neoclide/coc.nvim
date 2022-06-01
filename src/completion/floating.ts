@@ -35,6 +35,7 @@ export default class Floating {
       highlights,
       maxWidth: config.maxWidth || 80,
       pumbounding: bounding,
+      rounded: config.rounded ? 1 : 0
     }
     if (config.border) opts.border = [1, 1, 1, 1]
     if (config.highlight) opts.highlight = config.highlight

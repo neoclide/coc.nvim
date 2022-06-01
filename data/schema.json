@@ -11,6 +11,11 @@
           "default": false,
           "description": "Set to true to use borders."
         },
+        "rounded": {
+          "type": "boolean",
+          "default": false,
+          "description": "Set to false to avoid rounded borders."
+        },
         "highlight": {
           "type": "string",
           "default": "CocFloating",
@@ -388,11 +393,12 @@
     },
     "suggest.floatConfig": {
       "type": "object",
-      "description": "Configure style of documentation window for complete item.",
+      "description": "Configure style of popup menu and documentation window for complete item.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
       "properties": {
         "border": {},
+        "rounded": {},
         "highlight": {},
         "borderhighlight": {},
         "maxWidth": {},
@@ -762,6 +768,7 @@
       "additionalProperties": false,
       "properties": {
         "border": {},
+        "rounded": {},
         "highlight": {},
         "borderhighlight": {},
         "title": {},
@@ -823,6 +830,7 @@
       "additionalProperties": false,
       "properties": {
         "border": {},
+        "rounded": {},
         "highlight": {},
         "borderhighlight": {},
         "title": {},
@@ -907,6 +915,7 @@
       "additionalProperties": false,
       "properties": {
         "border": {},
+        "rounded": {},
         "highlight": {},
         "borderhighlight": {},
         "title": {},
