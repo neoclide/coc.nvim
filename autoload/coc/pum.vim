@@ -208,6 +208,10 @@ function! s:get_pum_dimension(lines, col, config) abort
   endif
   let col = - (col('.') - a:col - 1) - 1
   let row = showTop ? - height : 1
+  let delta = colIdx + col
+  if delta < 0
+    let col = col - delta
+  endif
   return {
         \ 'row': row,
         \ 'col': col,
