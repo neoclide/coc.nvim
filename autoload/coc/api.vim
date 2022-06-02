@@ -313,11 +313,12 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
   let start = a:startLine + 1
   let end = a:endLine == -1 ? len(getbufline(bufnr, 1, '$')) : a:endLine
   if a:srcId == -1
-    unlet s:buffer_id[a:bufnr]
+    if has_key(s:buffer_id, a:bufnr)
+      unlet s:buffer_id[a:bufnr]
+    endif
     call prop_clear(start, end, {'bufnr' : bufnr})
   else
-    let types = get(s:id_types, a:srcId, [])
-    for type in types
+    for type in get(s:id_types, a:srcId, [])
       try
         call prop_remove({'bufnr': bufnr, 'all': 1, 'type': type}, start, end)
       catch /^Vim\%((\a\+)\)\=:E968/
