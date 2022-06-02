@@ -546,6 +546,7 @@ describe('diagnostic manager', () => {
 
     it('should echo messages on CursorHold', async () => {
       await createDocument()
+      await helper.wait(10)
       let config = workspace.getConfiguration('diagnostic')
       config.update('messageTarget', 'echo')
       config.update('messageDelay', 1)
