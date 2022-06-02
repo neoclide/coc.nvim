@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { parseDocuments } from '../markdown'
 import { Documentation, FloatConfig } from '../types'
-const logger = require('../util/logger')('floating')
+const logger = require('../util/logger')('completion-floating')
 
 export interface PumBounding {
   readonly height: number

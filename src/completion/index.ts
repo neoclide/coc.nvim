@@ -118,6 +118,7 @@ export class Completion implements Disposable {
       timeout: getConfig<number>('timeout', 500),
       minTriggerInputLength: getConfig<number>('minTriggerInputLength', 1),
       snippetIndicator: getConfig<string>('snippetIndicator', '~'),
+      ambiguousIsNarrow: getConfig<boolean>('ambiguousIsNarrow', true),
       fixInsertedWord: getConfig<boolean>('fixInsertedWord', true),
       localityBonus: getConfig<boolean>('localityBonus', true),
       highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),

@@ -393,7 +393,7 @@
     },
     "suggest.floatConfig": {
       "type": "object",
-      "description": "Configure style of popup menu and documentation window for complete item.",
+      "description": "Configure style of popup menu and documentation window of completion.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
       "properties": {
@@ -403,9 +403,13 @@
         "borderhighlight": {},
         "maxWidth": {},
         "winblend": {},
-        "focusable": {},
         "shadow": {}
       }
+    },
+    "suggest.ambiguousIsNarrow": {
+      "type": "boolean",
+      "description": "Count ambiguous width characters as having narrow width (count of 1) instead of wide width (count of 2)",
+      "default": true
     },
     "suggest.labelMaxLength": {
       "type": "number",

@@ -31,6 +31,7 @@ export interface CompleteConfig {
   defaultSortMethod: string
   asciiCharactersOnly: boolean
   ignoreRegexps: string[]
+  ambiguousIsNarrow: boolean
   floatConfig: FloatConfig
 }
 

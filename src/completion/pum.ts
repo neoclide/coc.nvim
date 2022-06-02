@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CompleteOption, ExtendedCompleteItem, HighlightItem } from '../types'
-import { CompleteConfig } from './complete'
 import stringWidth from '@chemzqm/string-width'
+import { CompleteOption, ExtendedCompleteItem, HighlightItem } from '../types'
 import { byteIndex, byteLength } from '../util/string'
+import { CompleteConfig } from './complete'
+const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
   readonly height: number
@@ -14,6 +15,10 @@ export interface PumDimension {
 
 export default class PopupMenu {
   constructor(private nvim: Neovim, private config: CompleteConfig) {
+  }
+
+  private stringWidth(text: string): number {
+    return stringWidth(text, { ambiguousIsNarrow: this.config.ambiguousIsNarrow })
   }
 
   public show(items: ExtendedCompleteItem[], option: CompleteOption, changedtick: number): void {
@@ -39,12 +44,12 @@ export default class PopupMenu {
         item.abbr = item.abbr.slice(0, labelMaxLength)
       }
       if (disableMenuShortcut && menu.length) {
-        menu = menu.replace(/\[\w+\]/, '')
+        menu = menu.replace(/\[\w+\]$/, '')
         item.menu = menu
       }
-      abbrWidth = Math.max(stringWidth(item.abbr), abbrWidth)
-      if (item.kind) kindWidth = Math.max(stringWidth(item.kind), kindWidth)
-      if (menu.length > 0) menuWidth = Math.max(stringWidth(menu), menuWidth)
+      abbrWidth = Math.max(this.stringWidth(item.abbr), abbrWidth)
+      if (item.kind) kindWidth = Math.max(this.stringWidth(item.kind), kindWidth)
+      if (menu.length > 0) menuWidth = Math.max(this.stringWidth(menu), menuWidth)
     }
     let lines: string[] = []
     let highlights: HighlightItem[] = []
@@ -52,7 +57,7 @@ export default class PopupMenu {
     let width = 0
     for (let index = 0; index < items.length; index++) {
       let [text, hls] = this.buildItem(items[index], border, index, abbrWidth, kindWidth, menuWidth)
-      width = Math.max(width, stringWidth(text))
+      width = Math.max(width, this.stringWidth(text))
       lines.push(text)
       highlights.push(...hls)
     }
@@ -75,7 +80,7 @@ export default class PopupMenu {
   private buildItem(item: ExtendedCompleteItem, border: boolean, index: number, abbrWidth: number, kindWidth: number, menuWidth: number): [string, HighlightItem[]] {
     let text = border ? '' : ' '
     let hls: HighlightItem[] = []
-    text += fillWidth(item.abbr, abbrWidth)
+    text += fillWidth(item.abbr, abbrWidth, this.config.ambiguousIsNarrow)
     if (item.positions) {
       let highlights = positionHighlights(item.abbr, item.positions.slice(), border ? 0 : 1, index)
       hls.push(...highlights)
@@ -92,7 +97,7 @@ export default class PopupMenu {
     if (kindWidth > 0) {
       text += ' '
       let pre = byteLength(text)
-      text += fillWidth(item.kind ?? '', kindWidth)
+      text += fillWidth(item.kind ?? '', kindWidth, this.config.ambiguousIsNarrow)
       if (item.kind && item.kindHighlight) {
         hls.push({
           hlGroup: item.kindHighlight,
@@ -105,7 +110,7 @@ export default class PopupMenu {
     if (menuWidth > 0) {
       text += ' '
       let pre = byteLength(text)
-      text += fillWidth(item.menu ?? '', menuWidth)
+      text += fillWidth(item.menu ?? '', menuWidth, this.config.ambiguousIsNarrow)
       if (item.menu) {
         hls.push({
           hlGroup: 'CocPumMenu',
@@ -144,7 +149,7 @@ export function positionHighlights(label: string, positions: number[], pre: numb
   return hls
 }
 
-function fillWidth(text: string, width: number): string {
-  let n = width - stringWidth(text)
+function fillWidth(text: string, width: number, ambiguousIsNarrow: boolean): string {
+  let n = width - stringWidth(text, { ambiguousIsNarrow })
   return n <= 0 ? text : text + ' '.repeat(n)
 }
