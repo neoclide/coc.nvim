@@ -377,6 +377,14 @@ function! coc#ui#safe_rename(bufnr, oldPath, newPath, write) abort
   return bufnr
 endfunction
 
+function! coc#ui#sign_unplace() abort
+  if exists('*sign_unplace')
+    for group in s:sign_groups
+      call sign_unplace(group)
+    endfor
+  endif
+endfunction
+
 function! coc#ui#update_signs(bufnr, group, signs) abort
   if !s:sign_api || !bufloaded(a:bufnr)
     return
