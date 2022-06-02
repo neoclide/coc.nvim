@@ -679,7 +679,7 @@ export class Window {
     if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRemove = []
-    let checkMarkers = workspace.has('nvim-0.6.0')
+    let checkMarkers = workspace.has('nvim-0.5.1') || workspace.isVim
     let removeMarkers = []
     let newItems: HighlightItemDef[] = []
     let itemIndex = 0
