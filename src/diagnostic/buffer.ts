@@ -26,6 +26,12 @@ interface DiagnosticInfo {
   locationlist: string
 }
 
+interface SignItem {
+  name: string
+  lnum: number
+  priority?: number
+}
+
 const aleMethod = global.hasOwnProperty('__TEST__') ? 'MockAleResults' : 'ale#other_source#ShowResults'
 /**
  * Manage diagnostics of buffer, including:
@@ -247,9 +253,10 @@ export class DiagnosticBuffer implements SyncItem {
 
   public addSigns(collection: string, diagnostics: ReadonlyArray<Diagnostic>): void {
     let { enableSign, signLevel } = this.config
-    let group = signGroup + collection
-    this.buffer.unplaceSign({ group })
     if (!enableSign) return
+    let group = signGroup + collection
+    let signs: SignItem[] = []
+    // this.buffer.unplaceSign({ group })
     let signsMap: Map<number, DiagnosticSeverity[]> = new Map()
     for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic
@@ -264,9 +271,9 @@ export class DiagnosticBuffer implements SyncItem {
       exists.push(severity)
       signsMap.set(line, exists)
       let priority = this.config.signPriority + 4 - severity
-      let name = getNameFromSeverity(severity)
-      this.buffer.placeSign({ name, lnum: line + 1, group, priority })
+      signs.push({ name: getNameFromSeverity(severity), lnum: line + 1, priority })
     }
+    this.nvim.call('coc#ui#update_signs', [this.bufnr, group, signs], true)
   }
 
   public setDiagnosticInfo(): void {
