@@ -41,6 +41,9 @@ export default class MruLoader {
   public add(prefix: string, item: ExtendedCompleteItem): void {
     if (this.selection == 'none') return
     let key = toItemKey(item)
+    if (!item.word.toLowerCase().startsWith(prefix.toLowerCase())) {
+      prefix = ''
+    }
     let line = `${prefix}|${key}`
     this.items.set(line, this.max)
     this.itemsNoPrefex.set(key, this.max)
