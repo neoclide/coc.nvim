@@ -1,33 +1,14 @@
 'use strict'
-import Mru from '../model/mru'
 import { ExtendedCompleteItem } from '../types'
 const logger = require('../util/logger')('completion-mru')
 
 export type Selection = 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
 
 export default class MruLoader {
-  private mru: Mru
   private max = 0
   private items: Map<string, number> = new Map()
   private itemsNoPrefex: Map<string, number> = new Map()
   constructor(private selection: Selection) {
-    this.mru = new Mru(`suggest${globalThis.__TEST__ ? process.pid : ''}.txt`, process.env.COC_DATA_HOME, 1000)
-  }
-
-  public async load(): Promise<void> {
-    let { selection } = this
-    if (selection == 'none') return
-    let lines = await this.mru.load()
-    let total = lines.length
-    for (let i = total - 1; i >= 0; i--) {
-      let line = lines[i]
-      if (!line.includes('|')) continue
-      let [_prefix, label, source, kind] = line.split('|')
-      if (!source) continue
-      this.items.set(line, total - 1 - i)
-      this.itemsNoPrefex.set(`${label}|${source}|${kind || ''}`, total - 1 - i)
-    }
-    this.max = total - 1
   }
 
   public getScore(input: string, item: ExtendedCompleteItem): number {
@@ -48,7 +29,6 @@ export default class MruLoader {
     this.items.set(line, this.max)
     this.itemsNoPrefex.set(key, this.max)
     this.max += 1
-    void this.mru.add(line)
   }
 }
 

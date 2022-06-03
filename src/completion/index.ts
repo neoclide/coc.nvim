@@ -43,7 +43,6 @@ export class Completion implements Disposable {
     this.mru = new MruLoader(this.config.selection)
     this.pum = new PopupMenu(this.nvim, this.config, this.mru)
     workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
-    void this.mru.load()
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on('InsertLeave', () => {
       this.stop(true)
