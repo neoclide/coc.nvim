@@ -272,13 +272,12 @@ export class Sources {
   }
 
   public getCompleteSources(opt: CompleteOption): ISource[] {
-    let { filetype, disabled } = opt
+    let { filetype } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && !!opt.triggerCharacter
     let uri = getUri(opt.filepath, opt.bufnr, '', workspace.env.isCygwin)
-    disabled = Array.isArray(disabled) ? disabled : []
-    if (isTriggered) return this.getTriggerSources(pre, filetype, uri, disabled)
-    return this.getNormalSources(opt.filetype, uri, disabled)
+    if (isTriggered) return this.getTriggerSources(pre, filetype, uri)
+    return this.getNormalSources(opt.filetype, uri)
   }
 
   /**
@@ -287,13 +286,10 @@ export class Sources {
    * @param {string} filetype
    * @returns {ISource[]}
    */
-  public getNormalSources(filetype: string, uri: string, disabled: ReadonlyArray<string> = []): ISource[] {
+  public getNormalSources(filetype: string, uri: string): ISource[] {
     let languageIds = filetype.split('.')
     return this.sources.filter(source => {
-      let { filetypes, triggerOnly, name, documentSelector, enable } = source
-      if (disabled.includes(name)) {
-        return false
-      }
+      let { filetypes, triggerOnly, documentSelector, enable } = source
       if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }

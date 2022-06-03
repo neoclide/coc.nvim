@@ -716,10 +716,6 @@ export default class Document {
     this.changeLine(lnum, line, changedtick)
     if (event !== 'TextChangedP') this._forceSync()
   }
-
-  public onCursorHold(variables: { [key: string]: VimValue }): void {
-    this.variables = variables
-  }
 }
 
 function fireDetach(bufnr: number): void {

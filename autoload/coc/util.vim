@@ -24,9 +24,9 @@ endfunction
 
 function! coc#util#suggest_variables(bufnr) abort
   return {
-      \ 'coc_suggest_disable': getbufvar(a:bufnr, 'coc_suggest_disable', 0),
-      \ 'coc_disabled_sources': getbufvar(a:bufnr, 'coc_disabled_sources', []),
-      \ 'coc_suggest_blacklist': getbufvar(a:bufnr, 'coc_suggest_blacklist', []),
+      \ 'disable': getbufvar(a:bufnr, 'coc_suggest_disable', 0),
+      \ 'disabled_sources': getbufvar(a:bufnr, 'coc_disabled_sources', []),
+      \ 'blacklist': getbufvar(a:bufnr, 'coc_suggest_blacklist', []),
       \ }
 endfunction
 

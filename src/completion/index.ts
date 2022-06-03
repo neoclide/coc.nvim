@@ -188,7 +188,8 @@ export class Completion implements Disposable {
         if (this.inserted) return
         await this.filterResults()
       })
-      await complete.doComplete()
+      let cancelled = await complete.doComplete()
+      if (cancelled) this.stop(false)
     } catch (e) {
       this.stop(true)
       this.nvim.echoError(e)
@@ -286,11 +287,6 @@ export class Completion implements Disposable {
       let shouldTrigger = this.shouldTrigger(doc, pre)
       if (!shouldTrigger) return false
     }
-    let disable = doc.getVar<number>('suggest_disable')
-    if (disable) {
-      logger.warn(`Completion of ${doc.bufnr} disabled by b:coc_suggest_disable`)
-      return false
-    }
     let input = this.getInput(doc, pre)
     let option: CompleteOption = {
       input,
@@ -305,16 +301,10 @@ export class Completion implements Disposable {
       indentkeys: doc.indentkeys,
       synname: '',
       filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',
-      triggerCharacter: pre.length ? pre.slice(-1) : undefined,
-      blacklist: doc.getVar<string[]>('suggest_blacklist', []),
-      disabled: doc.getVar<string[]>('disabled_sources', []),
+      triggerCharacter: pre.length ? pre.slice(-1) : undefined
     }
     if (sources == null && input.length < minTriggerInputLength) {
       logger.warn(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
-      return false
-    }
-    if (option.blacklist && option.blacklist.includes(option.input)) {
-      logger.warn(`Suggest disabled by b:coc_suggest_blacklist`, option.blacklist)
       return false
     }
     if (this.config.ignoreRegexps.length > 0 && option.input.length > 0) {
@@ -454,9 +444,7 @@ export class Completion implements Disposable {
     if (!pretext.startsWith(pre)) return null
     let remain = pretext.slice(pre.length)
     if (remain.includes(' ')) return null
-    let input = buf.slice(option.col).toString('utf8')
-    if (input.length > 0 && option.blacklist && option.blacklist.includes(input)) return null
-    return input
+    return buf.slice(option.col).toString('utf8')
   }
 
   private async filterResults(): Promise<void> {

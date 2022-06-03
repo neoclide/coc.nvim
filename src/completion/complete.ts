@@ -8,7 +8,6 @@ import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex, isWord } from '../util/string'
 import { matchScoreWithPositions } from './match'
 import MruLoader from './mru'
-const isVim = process.env.VIM_NODE_RPC == '1'
 const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
@@ -111,9 +110,28 @@ export default class Complete {
     let token = this.tokenSource.token
     let res = await Promise.all([
       this.nvim.call('coc#util#synname', []),
+      this.nvim.call('coc#util#suggest_variables', [this.option.bufnr]),
       this.document.patchChange()
     ])
     this.option.synname = res[0]
+    let variables = res[1]
+    if (variables.disable) {
+      logger.warn('suggest cancelled by b:coc_suggest_disable')
+      return true
+    }
+    if (variables.disabled_sources?.length) {
+      this.sources = this.sources.filter(s => !variables.disabled_sources.includes(s.name))
+      if (this.sources.length === 0) {
+        logger.warn('suggest cancelled by b:coc_disabled_sources')
+        return true
+      }
+    }
+    if (variables.blacklist?.length) {
+      if (variables.blacklist.includes(this.option.input)) {
+        logger.warn('suggest cancelled by b:coc_suggest_blacklist')
+        return true
+      }
+    }
     if (token.isCancellationRequested) return true
     let { triggerCompletionWait, localityBonus } = this.config
     await wait(Math.min(triggerCompletionWait ?? 0, 50))

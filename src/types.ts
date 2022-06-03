@@ -711,8 +711,6 @@ export interface CompleteOption {
   synname?: string
   readonly linenr: number
   readonly source?: string
-  readonly blacklist: string[]
-  readonly disabled: ReadonlyArray<string>
   readonly changedtick: number
   readonly indentkeys: string
   readonly triggerCharacter?: string
