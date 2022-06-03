@@ -2,7 +2,7 @@
 " Description: Client api used by vim8
 " Author: Qiming Zhao <chemzqm@gmail.com>
 " Licence: Anti 996 licence
-" Last Modified: Mar 08, 2022
+" Last Modified: Jun 03, 2022
 " ============================================================================
 if has('nvim') | finish | endif
 scriptencoding utf-8
@@ -101,7 +101,7 @@ function! s:funcs.call_atomic(calls)
     try
       call add(res, call(s:funcs[name], arglist))
     catch /.*/
-      return [res, [i, "VimException(".s:inspect_type(v:exception).")", v:exception]]
+      return [res, [i, "VimException(".s:inspect_type(v:exception).")", v:exception . ' on '.v:throwpoint]]
     endtry
   endfor
   return [res, v:null]
@@ -313,11 +313,12 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
   let start = a:startLine + 1
   let end = a:endLine == -1 ? len(getbufline(bufnr, 1, '$')) : a:endLine
   if a:srcId == -1
-    unlet s:buffer_id[a:bufnr]
+    if has_key(s:buffer_id, a:bufnr)
+      unlet s:buffer_id[a:bufnr]
+    endif
     call prop_clear(start, end, {'bufnr' : bufnr})
   else
-    let types = get(s:id_types, a:srcId, [])
-    for type in types
+    for type in get(s:id_types, a:srcId, [])
       try
         call prop_remove({'bufnr': bufnr, 'all': 1, 'type': type}, start, end)
       catch /^Vim\%((\a\+)\)\=:E968/
@@ -657,7 +658,7 @@ function! coc#api#call(method, args) abort
   try
     let res = call(s:funcs[a:method], a:args)
   catch /.*/
-    let err = v:exception
+    let err = v:exception .' on api "'.a:method.'" '.json_encode(a:args)
   endtry
   return [err, res]
 endfunction
@@ -667,6 +668,11 @@ function! coc#api#exec(method, args) abort
 endfunction
 
 function! coc#api#notify(method, args) abort
-  call call(s:funcs[a:method], a:args)
+  try
+    call call(s:funcs[a:method], a:args)
+  catch /.*/
+    let g:b = v:exception
+    call coc#rpc#notify('nvim_error_event', [0, v:exception.' on api "'.a:method.'" '.json_encode(a:args)])
+  endtry
 endfunction
 " vim: set sw=2 ts=2 sts=2 et tw=78 foldmarker={{,}} foldmethod=marker foldlevel=0:
