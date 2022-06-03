@@ -1,14 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import TreeView from '../../tree/TreeView'
-import { TreeItem } from '../../tree/TreeItem'
-import BasicDataProvider, { ProviderOptions, TreeNode } from '../../tree/BasicDataProvider'
-import { disposeAll } from '../../util'
 import events from '../../events'
+import { TreeViewOptions } from '../../tree'
+import BasicDataProvider, { ProviderOptions, TreeNode } from '../../tree/BasicDataProvider'
+import { TreeItem } from '../../tree/TreeItem'
+import TreeView from '../../tree/TreeView'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
-import { TreeViewOptions } from '../../tree'
 
 type NodeDef = [string, NodeDef[]?]
 
@@ -1134,9 +1134,9 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('f')
-      await helper.wait(50)
+      await helper.wait(20)
       await nvim.input('<C-o>')
-      await helper.wait(50)
+      await helper.wait(20)
       await checkLines([
         'test',
         '+ a',
@@ -1156,20 +1156,20 @@ describe('TreeView', () => {
       await nvim.input('b')
       await helper.wait(20)
       await nvim.input('<C-o>')
-      await helper.wait(50)
+      await helper.wait(20)
       await nvim.input('f')
-      await helper.wait(50)
+      await helper.wait(20)
       await nvim.input('<C-n>')
-      await helper.wait(50)
+      await helper.wait(20)
       await checkLines(['test', 'a ', '  a',])
       await nvim.input('<C-n>')
-      await helper.wait(50)
+      await helper.wait(20)
       await checkLines(['test', 'b ', '  b',])
       await nvim.input('<C-p>')
-      await helper.wait(50)
+      await helper.wait(20)
       await checkLines(['test', 'a ', '  a',])
       await nvim.input('<C-p>')
-      await helper.wait(50)
+      await helper.wait(20)
       await checkLines(['test', 'b ', '  b',])
     })
   })

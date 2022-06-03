@@ -325,7 +325,8 @@ export class Window {
       if (!res) return
       fs.mkdirSync(dir)
     }
-    await workspace.jumpTo(URI.file(path.join(dir, CONFIG_FILE_NAME)).toString())
+    let filepath = path.join(dir, CONFIG_FILE_NAME)
+    await this.nvim.call('coc#util#open_file', ['edit', filepath])
   }
 
   /**
@@ -435,7 +436,9 @@ export class Window {
    * @param preserveFocus Preserve window focus when true.
    */
   public showOutputChannel(name: string, preserveFocus?: boolean): void {
-    channels.show(name, preserveFocus)
+    let config = workspace.getConfiguration('workspace')
+    let command = config.get<string>('openOutputCommand', 'vs')
+    channels.show(name, command, preserveFocus)
   }
 
   /**

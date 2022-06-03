@@ -62,10 +62,10 @@ export class Channels {
     return channel
   }
 
-  public show(name: string, preserveFocus?: boolean): void {
+  public show(name: string, cmd: string, preserveFocus?: boolean): void {
     let channel = this.outputChannels.get(name)
     if (!channel) return
-    channel.show(preserveFocus)
+    channel.show(preserveFocus, cmd)
   }
 
   public dispose(): void {
