@@ -25,14 +25,13 @@ function! coc#dialog#create_pum_float(lines, config) abort
   if maxWidth <= 2 || maxHeight < 1
     return v:null
   endif
-  let ch = 0
   let width = 0
   for line in a:lines
     let dw = max([1, strdisplaywidth(line)])
     let width = max([width, dw + 2])
-    let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
   let width = float2nr(coc#math#min(maxWidth, width))
+  let ch = coc#string#content_height(a:lines, width - 2)
   let height = float2nr(coc#math#min(maxHeight, ch))
   let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
   let opts = {
@@ -426,14 +425,13 @@ function! coc#dialog#get_config_cursor(lines, config) abort
     return v:null
   endif
   let maxHeight = coc#math#min(get(a:config, 'maxHeight', vh), vh)
-  let ch = 0
   let width = coc#math#min(40, strdisplaywidth(title)) + 3
   for line in a:lines
     let dw = max([1, strdisplaywidth(line)])
     let width = max([width, dw + 2])
-    let ch += float2nr(ceil(str2float(string(dw))/(maxWidth - 2)))
   endfor
   let width = coc#math#min(maxWidth, width)
+  let ch = coc#string#content_height(a:lines, width - 2)
   let [lineIdx, colIdx] = coc#cursor#screen_pos()
   " How much we should move left
   let offsetX = coc#math#min(get(a:config, 'offsetX', 0), colIdx)
