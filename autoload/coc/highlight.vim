@@ -244,7 +244,7 @@ function! coc#highlight#clear(bufnr, key, lnums) abort
     if has('nvim')
       call nvim_buf_clear_namespace(a:bufnr, ns, lnum, lnum + 1)
     else
-      call coc#api#call('buf_clear_namespace', [a:bufnr, ns, lnum, lnum + 1])
+      call coc#api#exec('buf_clear_namespace', [a:bufnr, ns, lnum, lnum + 1])
     endif
   endfor
   " clear highlights in invalid line.
@@ -326,7 +326,7 @@ function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, 
       call nvim_buf_add_highlight(a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end)
     endif
   else
-    call coc#api#call('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
+    call coc#api#exec('buf_add_highlight', [a:bufnr, a:src_id, a:hl_group, a:line, a:col_start, a:col_end, opts])
   endif
 endfunction
 
@@ -339,7 +339,7 @@ function! coc#highlight#clear_highlight(bufnr, key, start_line, end_line) abort
   if has('nvim')
     call nvim_buf_clear_namespace(a:bufnr, src_id, a:start_line, a:end_line)
   else
-    call coc#api#call('buf_clear_namespace', [a:bufnr, src_id, a:start_line, a:end_line])
+    call coc#api#exec('buf_clear_namespace', [a:bufnr, src_id, a:start_line, a:end_line])
   endif
 endfunction
 
@@ -598,7 +598,7 @@ function! coc#highlight#clear_all() abort
       if has('nvim')
         call nvim_buf_clear_namespace(bufnr, src_id, 0, -1)
       else
-        call coc#api#call('buf_clear_namespace', [bufnr, src_id, 0, -1])
+        call coc#api#exec('buf_clear_namespace', [bufnr, src_id, 0, -1])
       endif
     endfor
   endfor
