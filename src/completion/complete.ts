@@ -217,7 +217,7 @@ export default class Complete {
               }
               if (item.isSnippet === true) item.abbr = `${item.abbr || word}${snippetIndicator}`
               if (!item.abbr) item.abbr = word
-              item.localBonus = this.localBonus.get(item.filterText) || 0
+              if (!item.isSnippet) item.localBonus = this.localBonus.get(item.filterText) || 0
               item.user_data = `${name}:${idx}`
             })
             this.setResult(name, result)
@@ -263,11 +263,10 @@ export default class Complete {
     if (results.size == 0) return []
     let len = input.length
     let emptyInput = len == 0
-    let { maxItemCount, selection, defaultSortMethod, removeDuplicateItems } = this.config
+    let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
-    let checkMru = selection !== 'none'
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue

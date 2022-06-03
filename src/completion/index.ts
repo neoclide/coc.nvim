@@ -126,9 +126,6 @@ export class Completion implements Disposable {
       ignoreRegexps: getConfig<string[]>('ignoreRegexps', []),
       asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false)
     })
-    if (e && this.pum) {
-      this.pum.createPumConfig()
-    }
   }
 
   public stop(close: boolean, kind?: 'cancel' | 'confirm'): void {
@@ -143,7 +140,7 @@ export class Completion implements Disposable {
     this.activeItems = undefined
     this.popupEvent = undefined
     this.cancel()
-    if (inserted && kind !== 'cancel' && item) {
+    if (item && (inserted || kind === 'confirm') && kind !== 'cancel') {
       this.mru.add(input, item)
     }
     if (close) {
