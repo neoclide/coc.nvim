@@ -65,16 +65,19 @@ Completion related~
 
 "suggest.labelMaxLength"				*coc-config-suggest-labelMaxLength*
 
-	Maximum length of label shown in 'pum', default: `200`
+	Maximum length of label shown in popup menu, default: `200`
 
 "suggest.floatConfig"					*coc-config-suggest-floatConfig*
 
-	Configure style of popup menu and documentation window for complete
-	item, see |coc-config-float|.
+	Configure style of popup menu and documentation window for completion,
+	see |coc-config-float|.
 
-	Properties not work: "title", "focusable", "close" and "maxHeight".
+	Note: some properties not work, including: "title", "focusable",
+	"close" and "maxHeight" (use 'pumheight' option for maximum height of
+	popup menu).
 
-	Note: "maxWidth" not works for pum, use |coc-config-suggest-detailMaxLength| instead.
+	Note: "maxWidth" not works for popup menu, use
+	|coc-config-suggest-detailMaxLength| instead.
 
 "suggest.detailMaxLength"				*coc-config-suggest-detailMaxLength*
 

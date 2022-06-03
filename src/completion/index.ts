@@ -184,7 +184,7 @@ export class Completion implements Disposable {
           clearTimeout(this.triggerTimer)
         }
         if (complete.isEmpty) {
-          this.stop(true)
+          this.stop(false)
           return
         }
         if (this.inserted) return

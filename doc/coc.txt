@@ -267,7 +267,7 @@ completion works like VSCode:
 - Snippet and additional edits only work after confirm completion.
 - 'completeopt' is not used and pum related APIs not work.
 - Global options 'pumwidth' and 'pumheight' are used for minimum width and
-  maximum height.
+  maximum height of popup menu.
 
 Use |coc-config-suggest| to change behavior of completion.
 
@@ -311,6 +311,9 @@ Related highlights:~
 - |CocPum| for highlight groups of customized pum.
 - |CocSymbol| for kind icons.
 - |CocMenuSel| for selected item.
+
+Note: background and border highlights are configured by
+|coc-config-suggest-floatConfig|
 
 ------------------------------------------------------------------------------
 
