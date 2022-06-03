@@ -14,19 +14,53 @@ export interface PumDimension {
   readonly scrollbar: boolean
 }
 
+export interface BuildConfig {
+  readonly border: boolean
+  readonly abbrWidth: number
+  readonly menuWidth: number
+  readonly kindWidth: number
+}
+
+export interface PumConfig {
+  width?: number
+  highlights?: HighlightItem[]
+  highlight?: string
+  borderhighlight?: string
+  winblend?: number
+  shadow?: boolean
+  border?: [number, number, number, number] | undefined
+  rounded?: number
+}
+
 export default class PopupMenu {
+  private defaultConfig: PumConfig
   constructor(
     private nvim: Neovim,
     private config: CompleteConfig,
     private mruLoader: MruLoader
   ) {
+    this.createPumConfig()
+  }
+
+  public createPumConfig(): void {
+    let { floatConfig } = this.config
+    let obj: PumConfig = {}
+    for (let key of ['highlight', 'winblend', 'shadow']) {
+      if (floatConfig[key]) obj[key] = floatConfig[key]
+    }
+    if (floatConfig.border) {
+      obj.border = [1, 1, 1, 1]
+      obj.rounded = floatConfig.rounded ? 1 : 0
+      obj.borderhighlight = floatConfig.borderhighlight ?? 'CocFloating'
+    }
+    this.defaultConfig = obj
   }
 
   private stringWidth(text: string): number {
     return stringWidth(text, { ambiguousIsNarrow: this.config.ambiguousIsNarrow })
   }
 
-  public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption, changedtick: number): void {
+  public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     let { labelMaxLength, selection, floatConfig, disableMenuShortcut } = this.config
     let selectedIndex = items.findIndex(o => o.preselect)
     if (selectedIndex !== -1 && search.length > 0) {
@@ -36,7 +70,6 @@ export default class PopupMenu {
       }
     }
     let maxMru = -1
-    let border = !!floatConfig.border
     let abbrWidth = 0
     let menuWidth = 0
     let kindWidth = 0
@@ -66,48 +99,36 @@ export default class PopupMenu {
     }
     if (selectedIndex == -1) selectedIndex = 0
     let opt = {
+      input: search,
       index: selectedIndex,
       bufnr: option.bufnr,
       line: option.linenr,
       col: option.col,
-      changedtick,
       words: items.map(o => o.word)
     }
     let lines: string[] = []
     let highlights: HighlightItem[] = []
     // create lines and highlights
     let width = 0
+    let cfg: BuildConfig = { border: !!floatConfig.border, menuWidth, abbrWidth, kindWidth }
     for (let index = 0; index < items.length; index++) {
-      let [text, hls] = this.buildItem(items[index], border, index, abbrWidth, kindWidth, menuWidth)
+      let text = this.buildItem(items[index], highlights, index, cfg)
       width = Math.max(width, this.stringWidth(text))
       lines.push(text)
-      highlights.push(...hls)
     }
-    let config: any = {
-      width,
-      highlights
-    }
-    if (floatConfig.highlight) config.highlight = floatConfig.highlight
-    if (floatConfig.winblend) config.winblend = floatConfig.winblend
-    if (floatConfig.shadow) config.shadow = floatConfig.shadow
-    if (border) {
-      config.border = [1, 1, 1, 1]
-      config.borderhighlight = floatConfig.borderhighlight ?? 'CocFloating'
-      config.rounded = floatConfig.rounded ? 1 : 0
-    }
-    this.nvim.call('coc#pum#create_pum', [lines, opt, config], true)
+    let config: PumConfig = Object.assign({ width, highlights }, this.defaultConfig)
+    this.nvim.call('coc#pum#create', [lines, opt, config], true)
     this.nvim.redrawVim()
   }
 
-  private buildItem(item: ExtendedCompleteItem, border: boolean, index: number, abbrWidth: number, kindWidth: number, menuWidth: number): [string, HighlightItem[]] {
-    let text = border ? '' : ' '
-    let hls: HighlightItem[] = []
-    text += fillWidth(item.abbr, abbrWidth, this.config.ambiguousIsNarrow)
+  private buildItem(item: ExtendedCompleteItem, hls: HighlightItem[], index: number, config: BuildConfig): string {
+    let text = config.border ? '' : ' '
+    text += fillWidth(item.abbr, config.abbrWidth, this.config.ambiguousIsNarrow)
     if (item.positions) {
-      let highlights = positionHighlights(item.abbr, item.positions.slice(), border ? 0 : 1, index)
+      let highlights = positionHighlights(item.abbr, item.positions.slice(), config.border ? 0 : 1, index)
       hls.push(...highlights)
       if (item.deprecated) {
-        let start = border ? 0 : 1
+        let start = config.border ? 0 : 1
         hls.push({
           hlGroup: 'CocPumDeprecated',
           lnum: index,
@@ -116,10 +137,10 @@ export default class PopupMenu {
         })
       }
     }
-    if (kindWidth > 0) {
+    if (config.kindWidth > 0) {
       text += ' '
       let pre = byteLength(text)
-      text += fillWidth(item.kind ?? '', kindWidth, this.config.ambiguousIsNarrow)
+      text += fillWidth(item.kind ?? '', config.kindWidth, this.config.ambiguousIsNarrow)
       if (item.kind && item.kindHighlight) {
         hls.push({
           hlGroup: item.kindHighlight,
@@ -129,10 +150,10 @@ export default class PopupMenu {
         })
       }
     }
-    if (menuWidth > 0) {
+    if (config.menuWidth > 0) {
       text += ' '
       let pre = byteLength(text)
-      text += fillWidth(item.menu ?? '', menuWidth, this.config.ambiguousIsNarrow)
+      text += fillWidth(item.menu ?? '', config.menuWidth, this.config.ambiguousIsNarrow)
       if (item.menu) {
         hls.push({
           hlGroup: 'CocPumMenu',
@@ -142,8 +163,8 @@ export default class PopupMenu {
         })
       }
     }
-    if (!border) text += ' '
-    return [text, hls]
+    if (!config.border) text += ' '
+    return text
   }
 }
 

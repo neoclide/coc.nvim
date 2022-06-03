@@ -40,9 +40,9 @@ export class Completion implements Disposable {
   public init(): void {
     this.nvim = workspace.nvim
     this.getCompleteConfig()
-    workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
     this.mru = new MruLoader(this.config.selection)
     this.pum = new PopupMenu(this.nvim, this.config, this.mru)
+    workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
     void this.mru.load()
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on('InsertLeave', () => {
@@ -127,6 +127,9 @@ export class Completion implements Disposable {
       ignoreRegexps: getConfig<string[]>('ignoreRegexps', []),
       asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false)
     })
+    if (e && this.pum) {
+      this.pum.createPumConfig()
+    }
   }
 
   public stop(close: boolean, kind?: 'cancel' | 'confirm'): void {
@@ -209,13 +212,13 @@ export class Completion implements Disposable {
   }
 
   private showCompletion(items: ExtendedCompleteItem[], search: string): void {
-    let { option, changedtick } = this
+    let { option } = this
     if (!option) return
     if (items.length == 0) {
       this.stop(true)
     } else {
       this.activeItems = items
-      this.pum.show(items, search, option, changedtick)
+      this.pum.show(items, search, option)
     }
   }
 

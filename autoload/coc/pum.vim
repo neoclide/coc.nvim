@@ -122,8 +122,8 @@ endfunction
 
 " create or update pum with lines, CompleteOption and config.
 " return winid & dimension
-function! coc#pum#create_pum(lines, opt, config) abort
-  if a:opt['bufnr'] != bufnr('%') || a:opt['line'] != line('.') || a:opt['changedtick'] != b:changedtick
+function! coc#pum#create(lines, opt, config) abort
+  if a:opt['bufnr'] != bufnr('%') || a:opt['line'] != line('.')
     return
   endif
   let len = col('.') - a:opt['col'] - 1
@@ -131,6 +131,9 @@ function! coc#pum#create_pum(lines, opt, config) abort
     return
   endif
   let input = len == 0 ? '' : strpart(getline('.'), a:opt['col'], len)
+  if input !=# a:opt['input']
+    return
+  endif
   let config = s:get_pum_dimension(a:lines, a:opt['col'], a:config)
   if empty(config)
     return
