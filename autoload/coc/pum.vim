@@ -17,15 +17,12 @@ function! coc#pum#winid() abort
 endfunction
 
 function! coc#pum#close_detail() abort
-  let closed = 0
-  for winid in coc#float#get_float_win_list()
-    if getwinvar(winid, 'kind', '') ==# 'pumdetail'
-      let closed = 1
-      call coc#float#close(winid)
+  let winid = coc#float#get_float_by_kind('pumdetail')
+  if winid
+    call coc#float#close(winid)
+    if s:is_vim
+      call timer_start(0, { -> execute('redraw')})
     endif
-  endfor
-  if s:is_vim && closed
-    call timer_start(0, { -> execute('redraw')})
   endif
 endfunction
 
@@ -44,11 +41,10 @@ function! coc#pum#close(...) abort
     endif
     call coc#float#close(s:pum_winid)
     let s:pum_winid = 0
-    for winid in coc#float#get_float_win_list()
-      if getwinvar(winid, 'kind', '') ==# 'pumdetail'
-        call coc#float#close(winid)
-      endif
-    endfor
+    let winid = coc#float#get_float_by_kind('pumdetail')
+    if winid
+      call coc#float#close(winid)
+    endif
     if !get(a:, 2, 0)
       call coc#rpc#notify('CompleteStop', [get(a:, 1, '')])
     endif
@@ -159,7 +155,7 @@ function! coc#pum#create_pum(lines, opt, config) abort
   let lnum = a:opt['index'] + 1
   if s:is_vim && lnum > config['height']
     call popup_setoptions(s:pum_winid, {
-          \ 'firstline': lnum  - (config['height']*2/3),
+          \ 'firstline': min([len(a:lines) - config['height'] + 1, lnum  - (config['height']*2/3)]),
           \ })
   endif
   call coc#dialog#place_sign(s:pum_bufnr, config['index'] + 1)
@@ -268,9 +264,10 @@ endfunction
 function! s:set_cursor(winid, line) abort
   if s:is_vim
     let pos = popup_getpos(a:winid)
-    if a:line > pos['lastline']
+    let lastline = pos['firstline'] + pos['core_height'] - 1
+    if a:line > lastline
       call popup_setoptions(a:winid, {
-            \ 'firstline': pos['firstline'] + a:line - pos['lastline'],
+            \ 'firstline': pos['firstline'] + a:line - lastline,
             \ })
     elseif a:line < pos['firstline']
       call popup_setoptions(a:winid, {
