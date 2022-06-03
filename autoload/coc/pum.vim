@@ -156,10 +156,13 @@ function! coc#pum#create(lines, opt, config) abort
   let s:pum_winid = result[0]
   let s:pum_bufnr = result[1]
   let lnum = a:opt['index'] + 1
-  if s:is_vim && lnum > config['height']
+  if s:is_vim
     call popup_setoptions(s:pum_winid, {
-          \ 'firstline': min([len(a:lines) - config['height'] + 1, lnum  - (config['height']*2/3)]),
+          \ 'firstline': s:get_firstline(lnum, len(a:lines), config['height'])
           \ })
+  else
+    let firstline = s:get_firstline(lnum, len(a:lines), config['height'])
+    call coc#compat#execute(s:pum_winid, 'call winrestview({"lnum":'.lnum.',"topline":'.firstline.'})')
   endif
   call coc#dialog#place_sign(s:pum_bufnr, config['index'] + 1)
   call setwinvar(s:pum_winid, 'kind', 'pum')
@@ -178,6 +181,13 @@ function! coc#pum#create(lines, opt, config) abort
     endif
   endif
   call timer_start(10, { -> s:on_pum_change(0)})
+endfunction
+
+function! s:get_firstline(lnum, total, height) abort
+  if a:lnum <= a:height
+    return 1
+  endif
+  return min([a:total - a:height + 1, a:lnum  - (a:height*2/3)])
 endfunction
 
 function! s:on_pum_change(move) abort

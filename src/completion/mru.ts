@@ -39,7 +39,7 @@ export default class MruLoader {
   }
 
   public add(prefix: string, item: ExtendedCompleteItem): void {
-    if (this.selection == 'none') return
+    if (this.selection == 'none' || ['around', 'buffer'].includes(item.source)) return
     let key = toItemKey(item)
     if (!item.word.toLowerCase().startsWith(prefix.toLowerCase())) {
       prefix = ''
