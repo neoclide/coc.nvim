@@ -186,6 +186,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if !s:popup_list_api
       call add(s:popup_list, winid)
     endif
+    call s:set_float_defaults(winid)
     call win_execute(winid, 'exe '.lnum)
     call coc#float#vim_buttons(winid, a:config)
   else
@@ -206,7 +207,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       call setwinvar(winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
     endif
     " cursorline highlight not work on old neovim
-    call s:nvim_set_defaults(winid)
+    call s:set_float_defaults(winid)
     call nvim_win_set_cursor(winid, [lnum, 0])
     call coc#float#nvim_create_related(winid, config, a:config)
     call coc#float#nvim_set_winblend(winid, get(a:config, 'winblend', v:null))
@@ -1318,8 +1319,8 @@ function! s:win_setview(winid, topline, lnum) abort
   endif
 endfunction
 
-function! s:nvim_set_defaults(winid) abort
-  call setwinvar(a:winid, '&signcolumn', 'auto')
+function! s:set_float_defaults(winid) abort
+  call setwinvar(a:winid, '&signcolumn', 'no')
   call setwinvar(a:winid, '&list', 0)
   call setwinvar(a:winid, '&number', 0)
   call setwinvar(a:winid, '&relativenumber', 0)
