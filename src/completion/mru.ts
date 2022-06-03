@@ -1,6 +1,7 @@
 'use strict'
 import Mru from '../model/mru'
 import { ExtendedCompleteItem } from '../types'
+const logger = require('../util/logger')('completion-mru')
 
 export type Selection = 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
 
@@ -40,7 +41,7 @@ export default class MruLoader {
   public add(prefix: string, item: ExtendedCompleteItem): void {
     if (this.selection == 'none') return
     let key = toItemKey(item)
-    let line = `${prefix}|key`
+    let line = `${prefix}|${key}`
     this.items.set(line, this.max)
     this.itemsNoPrefex.set(key, this.max)
     this.max += 1

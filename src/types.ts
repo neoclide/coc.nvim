@@ -673,7 +673,6 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   matchScore?: number
   priority?: number
   preselect?: boolean
-  signature?: string
   localBonus?: number
   index?: number
   // used for preview
@@ -682,7 +681,6 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   resolved?: boolean
   // saved line for apply TextEdit
   line?: string
-  recentScore?: number
   deprecated?: boolean
   positions?: ReadonlyArray<number>
   kindHighlight?: string

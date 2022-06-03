@@ -3,6 +3,7 @@ import stringWidth from '@chemzqm/string-width'
 import { CompleteOption, ExtendedCompleteItem, HighlightItem } from '../types'
 import { byteIndex, byteLength } from '../util/string'
 import { CompleteConfig } from './complete'
+import MruLoader from './mru'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -14,31 +15,43 @@ export interface PumDimension {
 }
 
 export default class PopupMenu {
-  constructor(private nvim: Neovim, private config: CompleteConfig) {
+  constructor(
+    private nvim: Neovim,
+    private config: CompleteConfig,
+    private mruLoader: MruLoader
+  ) {
   }
 
   private stringWidth(text: string): number {
     return stringWidth(text, { ambiguousIsNarrow: this.config.ambiguousIsNarrow })
   }
 
-  public show(items: ExtendedCompleteItem[], option: CompleteOption, changedtick: number): void {
-    let { labelMaxLength, floatConfig, disableMenuShortcut } = this.config
+  public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption, changedtick: number): void {
+    let { labelMaxLength, selection, floatConfig, disableMenuShortcut } = this.config
     let selectedIndex = items.findIndex(o => o.preselect)
-    if (selectedIndex == -1) selectedIndex = 0
-    let border = !!floatConfig.border
-    let opt = {
-      index: selectedIndex,
-      bufnr: option.bufnr,
-      line: option.linenr,
-      col: option.col,
-      changedtick,
-      words: items.map(o => o.word)
+    if (selectedIndex !== -1 && search.length > 0) {
+      let item = items[selectedIndex]
+      if (!item.filterText?.startsWith(search)) {
+        selectedIndex = -1
+      }
     }
+    let maxMru = -1
+    let border = !!floatConfig.border
     let abbrWidth = 0
     let menuWidth = 0
     let kindWidth = 0
+    let checkMru = selectedIndex == -1 && selection != 'none'
     // abbr kind, menu
-    for (let item of items) {
+    for (let i = 0; i < items.length; i++) {
+      let item = items[i]
+      if (checkMru) {
+        let n = this.mruLoader.getScore(search, item)
+        if (n > maxMru) {
+          maxMru = n
+          selectedIndex = i
+        }
+      }
+      delete item.preselect
       let menu = item.menu ?? ''
       if (item.abbr.length > labelMaxLength) {
         item.abbr = item.abbr.slice(0, labelMaxLength)
@@ -50,6 +63,15 @@ export default class PopupMenu {
       abbrWidth = Math.max(this.stringWidth(item.abbr), abbrWidth)
       if (item.kind) kindWidth = Math.max(this.stringWidth(item.kind), kindWidth)
       if (menu.length > 0) menuWidth = Math.max(this.stringWidth(menu), menuWidth)
+    }
+    if (selectedIndex == -1) selectedIndex = 0
+    let opt = {
+      index: selectedIndex,
+      bufnr: option.bufnr,
+      line: option.linenr,
+      col: option.col,
+      changedtick,
+      words: items.map(o => o.word)
     }
     let lines: string[] = []
     let highlights: HighlightItem[] = []

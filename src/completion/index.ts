@@ -41,8 +41,8 @@ export class Completion implements Disposable {
     this.nvim = workspace.nvim
     this.getCompleteConfig()
     workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
-    this.pum = new PopupMenu(this.nvim, this.config)
     this.mru = new MruLoader(this.config.selection)
+    this.pum = new PopupMenu(this.nvim, this.config, this.mru)
     void this.mru.load()
     this.floating = new Floating(workspace.nvim, workspace.env.isVim)
     events.on('InsertLeave', () => {
@@ -130,6 +130,7 @@ export class Completion implements Disposable {
 
   public stop(close: boolean, kind?: 'cancel' | 'confirm'): void {
     if (!this._activated) return
+    let inserted = this.popupEvent?.inserted
     this._activated = false
     let doc = this.document
     let input = this.complete.input
@@ -139,18 +140,20 @@ export class Completion implements Disposable {
     this.activeItems = undefined
     this.popupEvent = undefined
     this.cancel()
+    if (inserted && kind !== 'cancel' && item) {
+      this.mru.add(input, item)
+    }
     if (close) {
       this.nvim.call('coc#pum#close', ['', 1], true)
       this.nvim.redrawVim()
     }
     if (doc && doc.attached) doc._forceSync()
     if (kind == 'confirm' && item) {
-      void this.confirmCompletion(item, input, option)
+      void this.confirmCompletion(item, option)
     }
   }
 
-  private async confirmCompletion(item: ExtendedCompleteItem, input: string, option: CompleteOption): Promise<void> {
-    this.mru.add(input, item)
+  private async confirmCompletion(item: ExtendedCompleteItem, option: CompleteOption): Promise<void> {
     let source = new CancellationTokenSource()
     let { token } = source
     await this.doCompleteResolve(item, source)
@@ -175,7 +178,6 @@ export class Completion implements Disposable {
         doc,
         this.config,
         sourceList,
-        this.mru,
         this.nvim)
       complete.onDidRefresh(async () => {
         if (this.triggerTimer != null) {
@@ -205,14 +207,14 @@ export class Completion implements Disposable {
     return sources.getCompleteSources(option)
   }
 
-  private showCompletion(items: ExtendedCompleteItem[]): void {
+  private showCompletion(items: ExtendedCompleteItem[], search: string): void {
     let { option, changedtick } = this
     if (!option) return
     if (items.length == 0) {
       this.stop(true)
     } else {
       this.activeItems = items
-      this.pum.show(items, option, changedtick)
+      this.pum.show(items, search, option, changedtick)
     }
   }
 
@@ -461,7 +463,7 @@ export class Completion implements Disposable {
       if (!complete.isCompleting) this.stop(true)
       return
     }
-    this.showCompletion(items)
+    this.showCompletion(items, search)
   }
 
   private cancel(): void {

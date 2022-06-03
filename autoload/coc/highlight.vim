@@ -304,7 +304,7 @@ endfunction
 function! coc#highlight#add_highlight(bufnr, src_id, hl_group, line, col_start, col_end, ...) abort
   let opts = get(a:, 1, {})
   let priority = get(opts, 'priority', v:null)
-  if has('nvim')
+  if !s:is_vim
     if s:set_extmark && a:src_id != -1
       " get(opts, 'start_incl', 0) ? v:true : v:false,
       try

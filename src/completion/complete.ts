@@ -7,7 +7,6 @@ import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex, isWord } from '../util/string'
 import { matchScoreWithPositions } from './match'
-import MruLoader from './mru'
 const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
@@ -53,7 +52,6 @@ export default class Complete {
     private document: Document,
     private config: CompleteConfig,
     private sources: ISource[],
-    private mruLoader: MruLoader,
     private nvim: Neovim) {
     this.tokenSource = new CancellationTokenSource()
     sources.sort((a, b) => b.priority - a.priority)
@@ -269,7 +267,6 @@ export default class Complete {
     let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
-    let maxMru = -1
     let checkMru = selection !== 'none'
     for (let name of names) {
       let result = results.get(name)
@@ -307,11 +304,6 @@ export default class Complete {
             item.score = score * (item.sourceScore || 1)
           }
         }
-        if (checkMru) {
-          let n = this.mruLoader.getScore(input, item)
-          maxMru = Math.max(n, maxMru)
-          item.recentScore = n
-        }
         words.add(word)
         arr.push(item)
       }
@@ -335,10 +327,6 @@ export default class Complete {
           return a.filterText.length - b.filterText.length
       }
     })
-    if (maxMru !== -1) {
-      let idx = arr.findIndex(o => o.recentScore === maxMru)
-      arr[idx].preselect = true
-    }
     return this.limitCompleteItems(arr.slice(0, maxItemCount))
   }
 
