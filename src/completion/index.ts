@@ -58,6 +58,7 @@ export class Completion implements Disposable {
         if (start < curr) {
           let text = line.substring(start, curr)
           if (this.selectedItem && text === this.selectedItem.word) return
+          if (!this.inserted && text == this.complete?.input) return
         }
       }
       this.stop(true)
