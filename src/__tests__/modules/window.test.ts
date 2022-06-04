@@ -628,10 +628,10 @@ describe('window', () => {
       expect(markers[0][3].end_col).toBe(3)
     })
 
-    it('should not use extmarks on neovim < 0.6.0', async () => {
+    it('should not use extmarks on neovim < 0.5.1', async () => {
       let fn = workspace.has
       workspace.has = feature => {
-        if (feature == 'nvim-0.6.0') return false
+        if (feature == 'nvim-0.5.1') return false
         return fn.apply(workspace, [feature])
       }
       disposables.push({

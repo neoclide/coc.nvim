@@ -95,7 +95,8 @@ export default class InlayHintBuffer implements SyncItem {
     for (let key of Object.keys(chunksMap)) {
       buffer.setExtMark(srcId, Number(key), 0, {
         virt_text: chunksMap[key],
-        virt_text_pos: 'eol'
+        virt_text_pos: 'eol',
+        hl_mode: 'combine'
       })
     }
     nvim.resumeNotification(false, true)

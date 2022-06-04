@@ -283,10 +283,13 @@ export class Window {
       return await this.mutex.use(async () => {
         let placeholder = typeof option === 'string' ? option : option.title ?? (option.content ?? '') + 'Choose by number'
         let title = placeholder + ':'
-        let titles: string[] = items.map((item, idx) => {
-          if (isMenuItem(item) && item.disabled) return null
-          return `${idx + 1}. ${isMenuItem(item) ? item.text : item}`
-        })
+        let titles: string[] = []
+        let idx = 1
+        for (const item of items) {
+          if (isMenuItem(item) && item.disabled) continue
+          titles.push(`${idx}. ${isMenuItem(item) ? item.text : item}`)
+          idx++
+        }
         let res = await this.nvim.callAsync('coc#ui#quickpick', [title, titles.map(s => s.trim())])
         let n = parseInt(res, 10)
         if (isNaN(n) || n <= 0 || n > items.length) return -1
@@ -322,7 +325,8 @@ export class Window {
       if (!res) return
       fs.mkdirSync(dir)
     }
-    await workspace.jumpTo(URI.file(path.join(dir, CONFIG_FILE_NAME)).toString())
+    let filepath = path.join(dir, CONFIG_FILE_NAME)
+    await this.nvim.call('coc#util#open_file', ['edit', filepath])
   }
 
   /**
@@ -432,7 +436,9 @@ export class Window {
    * @param preserveFocus Preserve window focus when true.
    */
   public showOutputChannel(name: string, preserveFocus?: boolean): void {
-    channels.show(name, preserveFocus)
+    let config = workspace.getConfiguration('workspace')
+    let command = config.get<string>('openOutputCommand', 'vs')
+    channels.show(name, command, preserveFocus)
   }
 
   /**
@@ -676,7 +682,7 @@ export class Window {
     if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRemove = []
-    let checkMarkers = workspace.has('nvim-0.6.0')
+    let checkMarkers = workspace.has('nvim-0.5.1') || workspace.isVim
     let removeMarkers = []
     let newItems: HighlightItemDef[] = []
     let itemIndex = 0

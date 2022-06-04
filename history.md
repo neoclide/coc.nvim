@@ -1,3 +1,12 @@
+# 2022-06-04
+
+- Add configuration `workspace.openOutputCommand`.
+- Log channel message of vim when `g:node_client_debug` enabled.
+
+# 2022-05-30
+
+- Disable `progressOnInitialization` for language client by default.
+
 # 2022-05-28
 
 - Support `repeat#set` for commands that make changes only.

@@ -163,20 +163,12 @@ endfunction
 " config.hlGroup - (optional) highlight group.
 " config.maxHeight - (optional) max height of window, valid for 'below' & 'top' position.
 function! coc#list#preview(lines, config) abort
-  if s:is_vim && !exists('*win_execute')
-    throw 'win_execute function required for preview, please upgrade your vim.'
-    return
-  endif
   let name = fnamemodify(get(a:config, 'name', ''), ':.')
   let lines = a:lines
   if empty(lines)
     if get(a:config, 'scheme', 'file') != 'file'
       let bufnr = s:load_buffer(name)
-      if bufnr != 0
-        let lines = getbufline(bufnr, 1, '$')
-      else
-        let lines = ['']
-      endif
+      let lines = bufnr == 0 ? [''] : getbufline(bufnr, 1, '$')
     else
       " Show empty lines so not close window.
       let lines = ['']
@@ -221,11 +213,7 @@ function! coc#list#preview(lines, config) abort
       let winid = win_getid()
     endif
     noa call winrestview({"lnum": lnum ,"topline":s:get_topline(a:config, lnum, winid)})
-    call setwinvar(winid, '&signcolumn', 'no')
-    call setwinvar(winid, '&number', 1)
-    call setwinvar(winid, '&cursorline', 0)
-    call setwinvar(winid, '&relativenumber', 0)
-    call setwinvar(winid, 'previewwindow', 1)
+    call s:set_preview_options(winid)
     noa call win_gotoid(curr)
   else
     let height = s:get_height(lines, a:config)
@@ -262,17 +250,16 @@ function! coc#list#preview(lines, config) abort
       let s:filetype_map[extname] = ft
     endif
   endif
-  call sign_unplace('coc', {'buffer': bufnr})
+  call sign_unplace('CocCursorLine', {'buffer': bufnr})
   call coc#compat#execute(winid, 'call clearmatches()')
   if !s:is_vim
     " vim send <esc> to buffer on FocusLost, <C-w> and other cases
     call coc#compat#execute(winid, 'nnoremap <silent><nowait><buffer> <esc> :call CocActionAsync("listCancel")<CR>')
   endif
   if !empty(range)
-    call sign_place(1, 'coc', 'CocCurrentLine', bufnr, {'lnum': lnum})
+    call sign_place(1, 'CocCursorLine', 'CocCurrentLine', bufnr, {'lnum': lnum})
     call coc#highlight#match_ranges(winid, bufnr, [range], hlGroup, 10)
   endif
-  redraw
 endfunction
 
 function! s:get_height(lines, config) abort
@@ -300,4 +287,12 @@ function! s:get_topline(config, lnum, winid) abort
 
   let toplineOffset = get(a:config, 'toplineOffset', 3)
   return max([1, a:lnum - toplineOffset])
+endfunction
+
+function! s:set_preview_options(winid) abort
+  call setwinvar(a:winid, '&signcolumn', 'no')
+  call setwinvar(a:winid, '&number', 1)
+  call setwinvar(a:winid, '&cursorline', 0)
+  call setwinvar(a:winid, '&relativenumber', 0)
+  call setwinvar(a:winid, 'previewwindow', 1)
 endfunction

@@ -64,10 +64,10 @@ export default class BufferChannel implements OutputChannel {
     return `output:///${this.name}`
   }
 
-  public show(preserveFocus?: boolean): void {
+  public show(preserveFocus?: boolean, cmd = 'vs'): void {
     let { nvim } = this
     nvim.pauseNotification()
-    nvim.command(`exe 'vsplit '.fnameescape('${this.bufname}')`, true)
+    nvim.command(`exe '${cmd} '.fnameescape('${this.bufname}')`, true)
     if (preserveFocus) {
       nvim.command('wincmd p', true)
     }

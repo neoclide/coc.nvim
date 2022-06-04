@@ -154,21 +154,6 @@ describe('diagnostic buffer', () => {
       expect(fn).toBeCalledTimes(0)
     })
 
-    it('should not refresh when buffer and diagnostics not changed', async () => {
-      let diagnostic = createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error)
-      let buf: any = await createDiagnosticBuffer()
-      let fn = jest.fn()
-      let _refresh = buf.refresh
-      buf.refresh = (...args) => {
-        fn()
-        _refresh.apply(buf, args)
-      }
-      await buf.update('c', [diagnostic])
-      expect(fn).toBeCalledTimes(1)
-      await buf.update('c', [diagnostic])
-      expect(fn).toBeCalledTimes(1)
-    })
-
     it('should refresh when content changes is empty', async () => {
       let diagnostic = createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error)
       let buf = await createDiagnosticBuffer()

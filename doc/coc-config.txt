@@ -654,6 +654,10 @@ CodeLens~
 ------------------------------------------------------------------------------
 Workspace related~
 							*coc-config-workspace*
+"workspace.openOutputCommand" 				*coc-config-workspace-openOutputCommand*
+
+	Command used to open output channel, default: `vs`
+
 "workspace.openResourceCommand" 			*coc-config-workspace-openResourceCommand*
 
 	Command to open files that not loaded, default: `tab drop`

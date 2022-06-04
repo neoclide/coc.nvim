@@ -548,10 +548,12 @@ export default class ListSession {
           await Promise.resolve(action.execute(item, this.context))
         }
       }
-      if (persist) {
-        this.ui.restoreWindow()
+      if (persist) this.ui.restoreWindow()
+      if (action.reload && persist) {
+        await this.reloadItems()
+      } else if (persist) {
+        this.nvim.command('redraw', true)
       }
-      if (action.reload && persist) await this.reloadItems()
     } catch (e) {
       this.nvim.echoError(e)
     }
