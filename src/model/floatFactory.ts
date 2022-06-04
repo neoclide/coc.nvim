@@ -173,7 +173,7 @@ export default class FloatFactory implements Disposable {
     }
     if (opts.title && !config.border) config.border = [1, 1, 1, 1]
     if (opts.highlight) config.highlight = opts.highlight
-    if (opts.borderhighlight) config.borderhighlight = [opts.borderhighlight]
+    if (opts.borderhighlight) config.borderhighlight = opts.borderhighlight
     if (opts.cursorline) config.cursorline = 1
     let autoHide = opts.autoHide == false ? false : true
     if (autoHide) config.autohide = 1

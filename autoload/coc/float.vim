@@ -102,7 +102,7 @@ endfunction
 " - cursorline: (optional) enable cursorline when is 1.
 " - autohide: (optional) window should be closed on CursorMoved when is 1.
 " - highlight: (optional) highlight of window, default to 'CocFloating'
-" - borderhighlight: (optional) should be array for border highlights,
+" - borderhighlight: (optional) should be array or string for border highlights,
 "   highlight all borders with first value.
 " - close: (optional) show close button when is 1.
 " - highlights: (optional) highlight items.
@@ -174,14 +174,9 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'maxheight': a:config['height'],
           \ 'close': get(a:config, 'close', 0) ? 'button' : 'none',
           \ 'border': border,
-          \ 'callback': { -> coc#float#on_close(winid)}
+          \ 'callback': { -> coc#float#on_close(winid)},
+          \ 'borderhighlight': [s:get_borderhighlight(a:config)],
           \ }
-    if !empty(get(a:config, 'borderhighlight', v:null))
-      let borderhighlight = a:config['borderhighlight']
-      let opts['borderhighlight'] = type(borderhighlight) == 3
-            \ ? map(borderhighlight, 'coc#highlight#compose_hlgroup(v:val,"'.hlgroup.'")')
-            \ : [coc#highlight#compose_hlgroup(borderhighlight, hlgroup)]
-    endif
     let winid = popup_create(bufnr, opts)
     if !s:popup_list_api
       call add(s:popup_list, winid)
@@ -233,9 +228,7 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   let related = getwinvar(a:winid, 'related', [])
   let exists = !empty(related)
   let border = get(a:opts, 'border', [])
-  let highlights = get(a:opts, 'borderhighlight', [])
-  let borderhighlight = type(highlights) == 1 ? highlights : get(highlights, 0, 'CocFloating')
-  let borderhighlight =  coc#highlight#compose_hlgroup(borderhighlight, get(a:opts, 'highlight', 'CocFloating'))
+  let borderhighlight = s:get_borderhighlight(a:opts)
   let buttons = get(a:opts, 'buttons', [])
   let pad = !get(a:opts, 'nopad', 0) && (empty(border) || get(border, 1, 0) == 0)
   let shadow = get(a:opts, 'shadow', 0)
@@ -1398,4 +1391,14 @@ function! s:scroll_win(winid, forward, amount) abort
   else
     call timer_start(0, { -> coc#float#scroll_win(a:winid, a:forward, a:amount)})
   endif
+endfunction
+
+function! s:get_borderhighlight(config) abort
+  let hlgroup = get(a:config, 'highlight',  'CocFloating')
+  let borderhighlight = get(a:config, 'borderhighlight', v:null)
+  if empty(borderhighlight)
+    return hlgroup
+  endif
+  let highlight = type(borderhighlight) == 3 ? borderhighlight[0] : borderhighlight
+  return coc#highlight#compose_hlgroup(highlight, hlgroup)
 endfunction
