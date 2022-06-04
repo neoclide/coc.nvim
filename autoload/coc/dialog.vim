@@ -14,7 +14,7 @@ function! coc#dialog#create_pum_float(lines, config) abort
     return
   endif
   let winid = coc#float#get_float_by_kind('pumdetail')
-  let pumbounding = a:config['pumbounding']
+  let pumbounding = coc#pum#info()
   let border = get(a:config, 'border', [])
   let pw = pumbounding['width'] + (empty(border) ? get(pumbounding, 'scrollbar', 0) : 0)
   let rp = &columns - pumbounding['col'] - pw
@@ -324,7 +324,7 @@ function! coc#dialog#prompt_confirm(title, cb) abort
           \ 'focusable': v:false,
           \ 'relative': 'editor',
           \ 'highlight': 'Normal',
-          \ 'borderhighlight': ['MoreMsg'],
+          \ 'borderhighlight': 'MoreMsg',
           \ 'style': 'minimal',
           \ 'lines': [text],
           \ })

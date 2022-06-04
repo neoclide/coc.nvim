@@ -265,7 +265,7 @@ completion works like VSCode:
 - Completion is automatically triggered by default.
 - Selection is always enabled, which enables preselect feature.
 - Snippet and additional edits only work after confirm completion.
-- 'completeopt' is not used and pum related APIs not work.
+- 'completeopt' is not used and builtin pum related APIs not work.
 - Global options 'pumwidth' and 'pumheight' are used for minimum width and
   maximum height of popup menu.
 
@@ -299,12 +299,14 @@ Related functions:~
 
 - Trigger completion with options: |coc#start()|.
 - Trigger completion: |coc#refresh()|.
-- Check if customized pum is visible: |coc#pum#visible()|.
+- Check if customized popupmenu is visible: |coc#pum#visible()|.
 - Select next complete item: |coc#pum#next()|.
 - Select previous complete item: |coc#pum#prev()|.
 - Cancel completion and reset trigger text: |coc#pum#cancel()|.
 - Confirm completion: |coc#pum#confirm()|.
-- Close the pum only: |coc#pum#stop()|.
+- Close the popupmenu only: |coc#pum#stop()|.
+- Get information of the popupmenu: |coc#pum#info()|.
+- Select specific complete item: |coc#pum#select()|.
 
 Related highlights:~
 
@@ -1480,6 +1482,8 @@ coc#on_enter()						*coc#on_enter()*
 
 	Used for the format on type and improvement of brackets, example: >
 
+	" Confirm the completion when popupmenu is visible, insert <CR> and
+	" notify coc.nvim otherwise.
 	inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
                     	          \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 <
@@ -1543,30 +1547,58 @@ coc#snippet#prev() 					*coc#snippet#prev()*
 							*coc#pum*
 coc#pum#visible() 					*coc#pum#visible()*
 
-	Check if customized pum of coc.nvim is visible.
+	Check if customized popupmenu is visible.
 
-coc#pum#next([{insert}]) 				*coc#pum#next()*
+coc#pum#next({insert}) 					*coc#pum#next()*
 
-	Select next item of customized pum.
+	Select next item of customized popupmenu, insert word when {insert} is
+	truth value.
 
-coc#pum#prev([{insert}]) 				*coc#pum#prev()*
+coc#pum#prev({insert}) 					*coc#pum#prev()*
 
-	Select previous item of customized pum.
+	Select previous item of customized popupmenu, insert word when {insert}
+	is truth value.
 
 coc#pum#stop() 						*coc#pum#stop()*
 	
-	Close the customized pum, works like <C-x><C-z> of vim.
+	Close the customized popupmenu, works like <C-x><C-z> of vim.
 	Return <Ignore>
 
 coc#pum#cancel() 					*coc#pum#cancel()*
 
-	Cancel the customized pum and revert trigger input, like <C-e> of vim.
+	Cancel the customized popupmenu and revert trigger input, like <C-e> of vim.
 	Return empty string.
 
 coc#pum#confirm() 					*coc#pum#confirm()*
 
 	Confirm completion and close the customized pum, like <C-y> of vim.
 	Return empty string.
+
+coc#pum#info() 						*coc#pum#info()*
+
+	Return information of the customized popupmenu, should only be used
+	when |coc#pum#visible()| is 1.
+
+	Result contains:
+		index 		Current select item index, 0 based.
+		scrollbar 	Non-zero if a scrollbar is displayed.
+		row 		Screen row count, 0 based.
+		col 		Screen column count, 0 based.
+		width 		Width of pum, including padding and border.
+		height 		Height of pum, including padding and border.
+		size 		Count of displayed complete items.
+		inserted 	Is |v:true| when there is item inserted.
+
+coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
+
+	Selects an item in the completion popupmenu.
+
+	Parameters:~
+		{index} 	Index (zero-based) of the item to select.
+		{insert} 	Whether the selection should be inserted
+				in the buffer.
+		{confirm} 	Confirm the completion and dismis the
+				popupmenu, implies `insert`.
 
 							*coc#notify*
 coc#notify#close_all()					*coc#notify#close_all()*
@@ -1934,10 +1966,10 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Run code action for range.
 
-	{start} start line number of range.
-	{end} end line number of range.
-	{kind} code action kind, see |CocAction('codeActions')| for available
-	action kind.
+	{start} 	Start line number of range.
+	{end} 		End line number of range.
+	{kind} 		Code action kind, see |CocAction('codeActions')| for available
+			action kind.
 
 	Can be used to create autocmd like: >
 

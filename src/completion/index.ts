@@ -10,7 +10,7 @@ import { disposeAll } from '../util'
 import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
-import Floating, { PumBounding } from './floating'
+import Floating from './floating'
 import MruLoader from './mru'
 import PopupMenu from './pum'
 import { shouldStop } from './util'
@@ -28,14 +28,13 @@ export class Completion implements Disposable {
   private pum: PopupMenu
   private mru: MruLoader
   private pretext: string | undefined
-  private changedtick: number
   private triggerTimer: NodeJS.Timer
   private popupEvent: PopupChangeEvent
   private floating: Floating
   private disposables: Disposable[] = []
   private complete: Complete | null = null
   private resolveTokenSource: CancellationTokenSource
-  private activeItems: ReadonlyArray<ExtendedCompleteItem> | undefined
+  public activeItems: ReadonlyArray<ExtendedCompleteItem> | undefined
 
   public init(): void {
     this.nvim = workspace.nvim
@@ -43,7 +42,7 @@ export class Completion implements Disposable {
     this.mru = new MruLoader(this.config.selection)
     this.pum = new PopupMenu(this.nvim, this.config, this.mru)
     workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
-    this.floating = new Floating(workspace.nvim, workspace.env.isVim)
+    this.floating = new Floating(workspace.nvim)
     events.on('InsertLeave', () => {
       this.stop(true)
     }, null, this.disposables)
@@ -58,6 +57,7 @@ export class Completion implements Disposable {
           let text = line.substring(start, curr)
           if (this.selectedItem && text === this.selectedItem.word) return
           if (!this.inserted && text == this.complete?.input) return
+          // TODO retrigger when input moved left or right
         }
       }
       this.stop(true)
@@ -91,7 +91,7 @@ export class Completion implements Disposable {
     return workspace.getDocument(this.option.bufnr)
   }
 
-  private get selectedItem(): ExtendedCompleteItem | undefined {
+  public get selectedItem(): ExtendedCompleteItem | undefined {
     if (!this.popupEvent || !this.activeItems) return undefined
     return this.activeItems[this.popupEvent.index]
   }
@@ -172,7 +172,6 @@ export class Completion implements Disposable {
       if (!sourceList || sourceList.length === 0) return
       events.completing = true
       this._activated = true
-      this.changedtick = option.changedtick
       let complete = this.complete = new Complete(
         option,
         doc,
@@ -234,7 +233,6 @@ export class Completion implements Disposable {
       this.stop(true)
       if (!info.insertChar) return
     }
-    this.changedtick = info.changedtick
     if (info.pre === this.pretext) return
     if (this.triggerTimer) clearTimeout(this.triggerTimer)
     let pretext = this.pretext = info.pre
@@ -372,8 +370,6 @@ export class Completion implements Disposable {
   }
 
   private async onPumChange(ev: PopupChangeEvent): Promise<void> {
-    let { col, row, height, width, scrollbar } = ev
-    let bounding: PumBounding = { col, row, height, width, scrollbar }
     let resolvedItem = this.selectedItem
     this.cancelResolve()
     if (!resolvedItem) {
@@ -396,7 +392,7 @@ export class Completion implements Disposable {
     } else {
       let excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
       let config = Object.assign({}, this.config.floatConfig, { excludeImages })
-      this.floating.show(docs, bounding, config)
+      this.floating.show(docs, config)
     }
   }
 
