@@ -147,9 +147,10 @@ export class Completion implements Disposable {
       this.nvim.call('coc#pum#close', ['', 1], true)
       this.nvim.redrawVim()
     }
-    if (doc && doc.attached) doc._forceSync()
     if (kind == 'confirm' && item) {
       void this.confirmCompletion(item, option)
+    } else if (doc && doc.attached) {
+      doc._forceSync()
     }
   }
 

@@ -264,10 +264,10 @@ completion works like VSCode:
 
 - Completion is automatically triggered by default.
 - Selection is always enabled, which enables preselect feature.
+- When no preselect item exists, recent used item that matched will be
+  selected by default.
 - Snippet and additional edits only work after confirm completion.
-- 'completeopt' is not used and builtin pum related APIs not work.
-- Global options 'pumwidth' and 'pumheight' are used for minimum width and
-  maximum height of popup menu.
+- 'completeopt' is not used and APIs of builtin popupmenu not work.
 
 Use |coc-config-suggest| to change behavior of completion.
 
@@ -298,7 +298,7 @@ Related variables:~
 Related functions:~
 
 - Trigger completion with options: |coc#start()|.
-- Trigger completion: |coc#refresh()|.
+- Trigger completion refresh: |coc#refresh()|.
 - Check if customized popupmenu is visible: |coc#pum#visible()|.
 - Select next complete item: |coc#pum#next()|.
 - Select previous complete item: |coc#pum#prev()|.
@@ -314,8 +314,11 @@ Related highlights:~
 - |CocSymbol| for kind icons.
 - |CocMenuSel| for selected item.
 
-Note: background and border highlights are configured by
-|coc-config-suggest-floatConfig|
+Note: use 'pumwidth' for configure minimal width of popupmenu and 'pumheight'
+for maximum height.
+
+Note: background, border and winblend are configured by
+|coc-config-suggest-floatConfig|.
 
 ------------------------------------------------------------------------------
 

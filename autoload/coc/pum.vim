@@ -186,7 +186,7 @@ endfunction
 " create or update pum with lines, CompleteOption and config.
 " return winid & dimension
 function! coc#pum#create(lines, opt, config) abort
-  if a:opt['bufnr'] != bufnr('%') || a:opt['line'] != line('.')
+  if mode() !=# 'i' || a:opt['line'] != line('.')
     return
   endif
   let len = col('.') - a:opt['col'] - 1
