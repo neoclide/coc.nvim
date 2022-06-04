@@ -357,6 +357,9 @@ endfunction
 "   endLine: number
 " }
 function! coc#highlight#add_highlights(winid, codes, highlights) abort
+  if get(g:, 'coc_node_env', '') ==# 'test'
+    call setwinvar(a:winid, 'highlights', a:highlights)
+  endif
   " clear highlights
   call coc#compat#execute(a:winid, 'syntax clear')
   let bufnr = winbufnr(a:winid)
