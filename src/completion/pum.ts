@@ -95,9 +95,6 @@ export default class PopupMenu {
       if (item.kind) kindWidth = Math.max(this.stringWidth(item.kind), kindWidth)
       if (menu.length > 0) menuWidth = Math.max(this.stringWidth(menu), menuWidth)
     }
-    if (selection != 'none' && selectedIndex == -1 && search.length > 0) {
-      selectedIndex = items.findIndex(o => o.word.startsWith(search) && o.source !== 'snippets' && !!o.localBonus)
-    }
     if (selectedIndex == -1) selectedIndex = 0
     let opt = {
       input: search,
