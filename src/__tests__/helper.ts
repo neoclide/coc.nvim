@@ -101,7 +101,7 @@ export class Helper extends EventEmitter {
   }
 
   public async waitPopup(): Promise<void> {
-    let visible = await this.nvim.call('pumvisible')
+    let visible = await this.nvim.call('coc#pum#visible')
     if (visible) return
     let res = await events.race(['MenuPopupChanged'], 5000)
     if (!res) throw new Error('wait pum timeout after 5s')
@@ -134,8 +134,15 @@ export class Helper extends EventEmitter {
     throw new Error('timeout after 2s')
   }
 
-  public async selectCompleteItem(idx: number): Promise<void> {
-    await this.nvim.call('nvim_select_popupmenu_item', [idx, true, true, {}])
+  public async confirmCompletion(idx: number): Promise<void> {
+    await this.nvim.call('coc#pum#select', [idx, 1, 1])
+  }
+
+  public async selectItem(word: string): Promise<void> {
+    if (!completion.activeItems) throw new Error('no active items')
+    let idx = completion.activeItems.findIndex((o => o.word == word))
+    if (idx == -1) throw new Error(`item not found by word "${word}"`)
+    await this.nvim.call('coc#pum#select', [idx, 1, 0])
   }
 
   public async doAction(method: string, ...args: any[]): Promise<any> {
@@ -163,7 +170,7 @@ export class Helper extends EventEmitter {
   }
 
   public async pumvisible(): Promise<boolean> {
-    let res = await this.nvim.call('pumvisible', []) as number
+    let res = await this.nvim.call('coc#pum#visible', []) as number
     return res == 1
   }
 
@@ -177,19 +184,11 @@ export class Helper extends EventEmitter {
 
   public async visible(word: string, source?: string): Promise<boolean> {
     await this.waitPopup()
-    let context = await this.nvim.getVar('coc#_context') as any
-    let items = context.candidates
+    let items = completion.activeItems
     if (!items) return false
     let item = items.find(o => o.word == word)
-    if (!item || !item.user_data) return false
-    try {
-      let arr = item.user_data.split(':', 2)
-      if (source && arr[0] !== source) {
-        return false
-      }
-    } catch (e) {
-      return false
-    }
+    if (!item) return false
+    if (source && item.source != source) return false
     return true
   }
 
@@ -201,9 +200,7 @@ export class Helper extends EventEmitter {
   public async getItems(): Promise<VimCompleteItem[]> {
     let visible = await this.pumvisible()
     if (!visible) return []
-    let context = await this.nvim.getVar('coc#_context') as any
-    let items = context.candidates
-    return items || []
+    return completion.activeItems.slice()
   }
 
   public async edit(file?: string): Promise<Buffer> {
@@ -259,8 +256,7 @@ export class Helper extends EventEmitter {
   }
 
   public async items(): Promise<VimCompleteItem[]> {
-    let context = await this.nvim.getVar('coc#_context')
-    return context['candidates'] || []
+    return completion?.activeItems.slice()
   }
 
   public async screenLine(line: number): Promise<string> {
@@ -276,14 +272,14 @@ export class Helper extends EventEmitter {
     return await this.nvim.eval(`getbufline(winbufnr(${winid}), 1, '$')`) as string[]
   }
 
-  public async getFloat(): Promise<Window> {
-    let wins = await this.nvim.windows
-    let floatWin: Window
-    for (let win of wins) {
-      let f = await win.getVar('float')
-      if (f) floatWin = win
+  public async getFloat(kind?: string): Promise<Window> {
+    if (!kind) {
+      let ids = await this.nvim.call('coc#float#get_float_win_list')
+      return ids.length ? this.nvim.createWindow(ids[0]) : undefined
+    } else {
+      let id = await this.nvim.call('coc#float#get_float_by_kind', [kind])
+      return id ? this.nvim.createWindow(id) : undefined
     }
-    return floatWin
   }
 
   public async getFloats(): Promise<Window[]> {

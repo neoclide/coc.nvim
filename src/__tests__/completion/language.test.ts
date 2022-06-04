@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { CompletionItem, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
@@ -36,7 +37,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('if')
       await helper.waitPopup()
-      await helper.selectCompleteItem(0)
+      await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'barfoo')
     })
 
@@ -55,7 +56,7 @@ describe('language source', () => {
       await helper.waitPopup()
       let res = await helper.getItems()
       let idx = res.findIndex(o => o.menu == '[edit]')
-      await helper.selectCompleteItem(idx)
+      await helper.confirmCompletion(idx)
       await helper.waitFor('col', ['.'], 8)
     })
 
@@ -74,7 +75,7 @@ describe('language source', () => {
       await helper.waitPopup()
       let items = await helper.getItems()
       let idx = items.findIndex(o => o.word == 'do' && o.menu == '[edit]')
-      await helper.selectCompleteItem(idx)
+      await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'bar do')
       await helper.waitFor('col', ['.'], 7)
     })
@@ -94,7 +95,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('if')
       await helper.waitPopup()
-      await helper.selectCompleteItem(0)
+      await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'bar func(do)')
       let [, lnum, col] = await nvim.call('getcurpos')
       expect(lnum).toBe(1)
@@ -118,7 +119,7 @@ describe('language source', () => {
       await helper.waitPopup()
       let res = await helper.getItems()
       let idx = res.findIndex(o => o.menu == '[edit]')
-      await helper.selectCompleteItem(idx)
+      await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
       await helper.wait(50)
       expect(snippetManager.session).toBeDefined()
@@ -143,7 +144,7 @@ describe('language source', () => {
       await helper.waitPopup()
       let res = await helper.getItems()
       let idx = res.findIndex(o => o.menu == '[edit]')
-      await helper.selectCompleteItem(idx)
+      await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], '(bar(), )')
       let col = await nvim.call('col', ['.'])
       expect(col).toBe(6)
@@ -163,7 +164,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('snippets-test', 'st', null, provider))
       await nvim.input('if')
       await helper.waitPopup()
-      await nvim.input('<C-n>')
+      await helper.selectItem('foo')
       await helper.waitFor('getline', ['.'], 'foo')
     })
 
@@ -182,8 +183,9 @@ describe('language source', () => {
       await nvim.setLine('t')
       await nvim.input('A.')
       await helper.waitPopup()
-      await helper.selectCompleteItem(0)
-      await helper.waitFor('getline', ['.'], 't?.name')
+      await helper.confirmCompletion(0)
+      let line = await nvim.line
+      expect(line).toBe('t?.name')
     })
   })
 
@@ -250,7 +252,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('if')
       await helper.waitPopup()
-      await helper.selectCompleteItem(0)
+      await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo')
     })
 
@@ -266,7 +268,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['!']))
       await nvim.input('i!')
       await helper.waitPopup()
-      await helper.selectCompleteItem(0)
+      await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo')
     })
 
@@ -289,9 +291,8 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('ib')
       await helper.waitPopup()
-      let context = await nvim.getVar('coc#_context') as any
-      expect(context.start).toBe(1)
-      expect(context.candidates[0].word).toBe('ar')
+      let items = completion.activeItems
+      expect(items[0].word).toBe('ar')
     })
 
     it('should adjust completion position by textEdit start position', async () => {
@@ -310,8 +311,9 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('fix', 'f', null, provider, ['?']))
       await nvim.input('i?')
       await helper.waitPopup()
-      await nvim.eval('feedkeys("\\<C-n>", "in")')
-      await helper.waitFor('getline', ['.'], '?foo')
+      await helper.confirmCompletion(0)
+      let line = await nvim.line
+      expect(line).toBe('?foo')
     })
   })
 })

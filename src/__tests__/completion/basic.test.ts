@@ -108,7 +108,6 @@ describe('completion', () => {
         await doc.synchronize()
         await nvim.input('or')
         await helper.visible('result')
-        await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
         await nvim.input('<C-y>')
         await nvim.input('<esc>')
         await nvim.input('or')
@@ -123,7 +122,6 @@ describe('completion', () => {
         await doc.synchronize()
         await nvim.input('owo')
         await helper.visible('world')
-        await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
         await nvim.input('<C-y>')
         await nvim.input('<esc>')
         await nvim.input('ow')
@@ -193,27 +191,27 @@ describe('completion', () => {
 
   describe('resumeCompletion()', () => {
     it('should stop if no filtered items', async () => {
+      let doc = await workspace.document
       await nvim.setLine('foo ')
+      await doc.synchronize()
       await nvim.input('Af')
       await helper.waitPopup()
       expect(completion.isActivated).toBe(true)
-      await nvim.input('d')
+      await nvim.input('p')
       await helper.waitValue(() => {
         return completion.isActivated
       }, false)
     })
 
-    it('should resume with inserted characters', async () => {
+    it('should not resume after text change', async () => {
       let doc = await workspace.document
       await nvim.setLine('foo fat')
       await doc.synchronize()
       await nvim.input('of')
       await nvim.setLine('fo')
-      await doc.synchronize()
       await nvim.call('cursor', [2, 3])
       await helper.wait(50)
-      let items = await helper.getItems()
-      expect(items.length).toBe(1)
+      expect(completion.isActivated).toBe(false)
     })
 
     it('should stop with bad insert on CursorMovedI', async () => {
@@ -233,9 +231,8 @@ describe('completion', () => {
       await nvim.input('Af')
       await helper.waitPopup()
       await nvim.input('c')
-      await helper.waitFor('pumvisible', [], 0)
-      let items = await helper.items()
-      expect(items.length).toBe(0)
+      await helper.waitFor('coc#pum#visible', [], 0)
+      expect(completion.activeItems).toBeUndefined()
       expect(completion.isActivated).toBe(false)
     })
 
@@ -301,10 +298,9 @@ describe('completion', () => {
       await nvim.input('i.f')
       await helper.waitPopup()
       await nvim.input('o')
-      await helper.waitFor('eval', ['len(coc#_context["candidates"])'], 1)
-      let items = await helper.items()
-      expect(items.length).toBe(1)
-      expect(items[0].word).toBe('foo')
+      await helper.waitValue((() => {
+        return completion.activeItems?.length
+      }), 1)
     })
 
     it('should complete inComplete source', async () => {
@@ -517,7 +513,7 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      await helper.selectCompleteItem(0)
+      await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], '.foo')
       expect(resolved).toBe(true)
     })
@@ -535,7 +531,7 @@ describe('completion', () => {
       await helper.waitPopup()
       let items = await helper.items()
       expect(items.length).toBe(1)
-      await helper.selectCompleteItem(0)
+      await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'football football')
     })
   })
@@ -626,7 +622,7 @@ describe('completion', () => {
       await helper.waitPopup()
       let items = await helper.getItems()
       await nvim.input('oa')
-      await helper.waitFor('eval', ['len(coc#_context["candidates"])'], 1)
+      await helper.waitPopup()
       items = await helper.getItems()
       expect(items.findIndex(o => o.word == 'fallback')).toBe(-1)
     })
@@ -763,7 +759,6 @@ describe('completion', () => {
       await helper.wait(30)
       await nvim.input('f')
       await helper.waitPopup()
-      await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
       await helper.wait(100)
       let hasFloat = await nvim.call('coc#float#has_float')
       expect(hasFloat).toBe(1)
@@ -798,7 +793,9 @@ describe('completion', () => {
     })
 
     it('should not trigger triggerOnly source', async () => {
+      let doc = await workspace.document
       await nvim.setLine('foo bar')
+      await doc.synchronize()
       let source: ISource = {
         name: 'pattern',
         triggerOnly: true,
@@ -811,10 +808,7 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.input('o')
-      await helper.wait(10)
-      await nvim.input('f')
-      await helper.wait(10)
+      await nvim.input('of')
       let res = await helper.visible('foo', 'around')
       expect(res).toBe(true)
       let items = await helper.items()
@@ -969,69 +963,12 @@ describe('completion', () => {
       let items = await helper.getItems()
       expect(items.length).toEqual(2)
       await nvim.input('oo')
-      await helper.waitFor('eval', ['len(coc#_context["candidates"])'], 1)
+      await helper.waitValue(() => {
+        return completion.activeItems?.length
+      }, 1)
       items = await helper.getItems()
       expect(items.length).toEqual(1)
       expect(items[0].word).toBe('foo')
-    })
-  })
-
-  describe('fix indent', () => {
-    it('should indent lines on TextChangedP #1', async () => {
-      let doc = await workspace.document as any
-      doc._indentkeys = '=~end,0=\\item'
-      let source: ISource = {
-        name: 'source1',
-        priority: 90,
-        enable: true,
-        sourceType: SourceType.Native,
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
-          items: [
-            { word: 'item' },
-            { word: 'items' },
-            { word: 'END' },
-            { word: 'ENDIF' }
-          ]
-        })
-      }
-      disposables.push(sources.addSource(source))
-      await nvim.input('i')
-      await helper.wait(10)
-      await nvim.input('  \\ite')
-      await helper.waitPopup()
-      await nvim.input('m')
-      await helper.waitFor('getline', ['.'], '\\item')
-      await nvim.input('<cr>')
-      await helper.wait(30)
-      await nvim.input('  END')
-      await helper.waitFor('getline', ['.'], 'END')
-    })
-
-    it('should trigger completion after indent change', async () => {
-      let doc = await workspace.document as any
-      doc._indentkeys = '=end'
-      let source: ISource = {
-        name: 'source1',
-        priority: 90,
-        enable: true,
-        sourceType: SourceType.Native,
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
-          items: [
-            { word: 'endif' },
-            { word: 'endfunction' }
-          ]
-        })
-      }
-      disposables.push(sources.addSource(source))
-      await nvim.input('i')
-      await helper.wait(10)
-      await nvim.input('  en')
-      await helper.waitPopup()
-      await nvim.input('d')
-      await helper.waitFor('getline', ['.'], 'end')
-      await helper.waitPopup()
-      let items = await helper.getItems()
-      expect(items.length).toBeGreaterThan(0)
     })
   })
 
@@ -1065,9 +1002,8 @@ describe('completion', () => {
       await doc.synchronize()
       await triggerCompletion('insert')
       await helper.waitPopup()
-      await nvim.call('nvim_select_popupmenu_item', [0, true, false, {}])
       let line = await nvim.line
-      expect(line).toBe('foo')
+      expect(line).toBe('f')
       await nvim.exec(`
          noa call setline('.', 'foobar')
          noa call cursor(1, 7)

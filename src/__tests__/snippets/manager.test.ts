@@ -131,7 +131,8 @@ describe('snippet provider', () => {
       await nvim.input('o')
       await snippetManager.insertSnippet('${1:foo} ${2:bar}')
       await nvim.input('f')
-      await helper.waitPopup()
+      await nvim.eval(`feedkeys("\\<C-n>", 'in')`)
+      await helper.waitFor('pumvisible', [], 1)
       await nvim.input('<C-j>')
       await helper.waitFor('getline', ['.'], 'foo bar')
       config.update('preferCompleteThanJumpPlaceholder', false)
@@ -247,7 +248,7 @@ describe('snippet provider', () => {
       expect(line).toBe('abcemptyabc')
     })
 
-    it('should not synchronize when position changed and pum visible', async () => {
+    it('should synchronize when position changed and pum visible', async () => {
       let buf = await nvim.buffer
       await nvim.setLine('foo')
       await nvim.input('o')
@@ -256,19 +257,14 @@ describe('snippet provider', () => {
       let line = await nvim.line
       expect(line).toBe('    ')
       await nvim.input('f')
-      await helper.wait(60)
-      await nvim.input('o')
-      await helper.wait(60)
-      await nvim.input('o')
-      await helper.wait(60)
-      let visible = await nvim.call('pumvisible')
-      expect(visible).toBe(1)
+      await nvim.eval(`feedkeys("\\<C-n>",'in')`)
+      await helper.waitFor('pumvisible', [], 1)
       await nvim.input('<C-e>')
       let s = snippetManager.getSession(buf.id)
       expect(s).toBeDefined()
       await s.forceSynchronize()
       line = await nvim.line
-      expect(line).toBe(' foo')
+      expect(line).toBe('   f')
     })
   })
 
