@@ -1,8 +1,9 @@
 'use strict'
-import { DiagnosticSeverity, Diagnostic, DiagnosticTag } from 'vscode-languageserver-protocol'
+import { DiagnosticSeverity, Diagnostic, Range, DiagnosticTag, TextEdit } from 'vscode-languageserver-protocol'
 import { FloatConfig, LocationListItem } from '../types'
-import { comparePosition } from '../util/position'
+import { comparePosition, rangeOverlap } from '../util/position'
 import { byteIndex } from '../util/string'
+import { getPosition } from '../util/textedit'
 
 export enum DiagnosticHighlight {
   Error = 'CocErrorHighlight',
@@ -154,4 +155,22 @@ export function getHighlightGroup(diagnostic: Diagnostic): DiagnosticHighlight {
     default:
       return DiagnosticHighlight.Error
   }
+}
+
+export function adjustDiagnostics(diagnostics: ReadonlyArray<Diagnostic>, edit: TextEdit): ReadonlyArray<Diagnostic> {
+  let res: Diagnostic[] = []
+  let { range } = edit
+  for (let diag of diagnostics) {
+    let r = diag.range
+    if (rangeOverlap(range, r)) continue
+    if (comparePosition(r.start, range.end) > 0) {
+      let s = getPosition(r.start, edit)
+      let e = getPosition(r.end, edit)
+      if (s.line >= 0 && s.character >= 0 && e.line >= 0 && e.character >= 0) {
+        diag.range = Range.create(s, e)
+      }
+    }
+    res.push(diag)
+  }
+  return res
 }

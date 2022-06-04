@@ -233,6 +233,9 @@ export function getPosition(start: Position, edit: TextEdit): Position {
   let { end } = range
   let lines = newText.split('\n')
   let lineCount = lines.length - (end.line - range.start.line) - 1
+  let c = range.end.line - start.line
+  if (c > 0) return { line, character }
+  if (c < 0) return { line: line + lineCount, character }
   if (lines.length > 1) {
     let last = lines[lines.length - 1].length
     return { line: line + lineCount, character: last + character - end.character }

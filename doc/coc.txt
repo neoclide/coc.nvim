@@ -351,18 +351,20 @@ Note most language servers only send diagnostics for opened buffers for
 performance reason, some lint tools could provide diagnostics for all files in
 workspace.
 
-Note pull diagnostics feature is added in LSP 3.17, which is not available for
-now.
+Note pull diagnostics feature is added in LSP 3.17, which is not available
+yet.
 
 Changes on diagnostics refresh~
 
-- |coc-highlights-diagnostics| Highlights for diagnostics ranges and virtual
-  text (when enabled on neovim with virtual text support).
-- Diagnostic signs added to 'signcolumn', use `set signcolumn=yes` to avoid
+- Add highlights for diagnostic ranges and virtual text (when enabled on
+  neovim with virtual text support), see |coc-highlights-diagnostics|.
+- Add diagnostic signs to 'signcolumn', use `set signcolumn=yes` to avoid
   unnecessary UI refresh.
 - Update variable |b:coc_diagnostic_info|.
-- Refresh related |location-list| when the location list is opened by
-  |:CocDiagnostics|.
+- Refresh related |location-list| which was opened by |:CocDiagnostics|.
+
+Diagnostics are not refreshed when buffer is hidden, and refresh on insert
+mode is disabled by default.
 
 Enable and disable diagnostics~
 
@@ -384,17 +386,16 @@ Jump between diagnostics~
 
 Use key-mappings:
 
-- |<Plug>(coc-diagnostic-next)| jump to next diagnostic.
-- |<Plug>(coc-diagnostic-prev)| jump to previous diagnostic.
-- |<Plug>(coc-diagnostic-next-error)| jump to next error.
-- |<Plug>(coc-diagnostic-prev-error)| jump to previous error.
+	|<Plug>(coc-diagnostic-next)| jump to next diagnostic.
+	|<Plug>(coc-diagnostic-prev)| jump to previous diagnostic.
+	|<Plug>(coc-diagnostic-next-error)| jump to next error.
+	|<Plug>(coc-diagnostic-prev-error)| jump to previous error.
 
 Check all diagnostics~
 
 Use |coc-list-diagnostics| to open |CocList| with all diagnostics.
 
-Use |CocAction('diagnosticList')| to get list of all diagnostics, mostly used
-by other vim plugins.
+Use API |CocAction('diagnosticList')| to get list of all diagnostics.
 
 ==============================================================================
 SIGNATURE HELP 						*coc-signature*

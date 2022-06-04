@@ -11,7 +11,7 @@ import { ConfigurationChangeEvent, Documentation, ErrorItem } from '../types'
 import { disposeAll } from '../util'
 import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
-import { byteIndex, characterIndex } from '../util/string'
+import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
@@ -88,19 +88,12 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
 
     let messageTimer: NodeJS.Timeout
-    events.on('CursorMoved', (bufnr, cursor) => {
+    events.on('CursorMoved', bufnr => {
       if (this.config.enableMessage != 'always') return
       if (messageTimer) clearTimeout(messageTimer)
       messageTimer = setTimeout(async () => {
         let buf = this.buffers.getItem(bufnr)
         if (!buf || buf.dirty) return
-        let doc = workspace.getDocument(bufnr)
-        if (!doc) return
-        let line = doc.getline(cursor[0] - 1)
-        let character = characterIndex(line, cursor[1] - 1)
-        let lastline = cursor[0] == doc.lineCount
-        let diagnostics = this.getDiagnosticsAt(bufnr, [cursor[0] - 1, character], character == line.length, lastline)
-        if (!diagnostics.length) return
         await this.echoMessage(true)
       }, this.config.messageDelay)
     }, null, this.disposables)
@@ -128,14 +121,10 @@ export class DiagnosticManager implements Disposable {
       let buf = this.buffers.getItem(bufnr)
       if (buf && buf.dirty) buf.refreshHighlights()
     }, null, this.disposables)
-    this.clearTimers = (bufnr?: number) => {
+    this.clearTimers = () => {
       if (messageTimer) clearTimeout(messageTimer)
       messageTimer = undefined
       fn.clear()
-      if (bufnr && !this.config.refreshOnInsertMode) {
-        let buf = this.buffers.getItem(bufnr)
-        if (buf) buf.refreshHighlights.clear()
-      }
     }
     events.on('InsertEnter', this.clearTimers, this, this.disposables)
     let errorItems = workspace.configurations.errorItems

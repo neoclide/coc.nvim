@@ -299,7 +299,7 @@ Diagnostics~
 
 	Enable automatically refresh diagnostics, use
 	|CocAction('diagnosticRefresh')| action to refresh diagnostics when it's
-	disabled.
+	disabled, default: `true`
 
 "diagnostic.refreshOnInsertMode"			*coc-config-diagnostic-refreshOnInsertMode*
 
