@@ -36,7 +36,7 @@ export default class Documents implements Disposable {
   private maxFileSize: number
   private disposables: Disposable[] = []
   private creating: Map<number, Promise<Document | undefined>> = new Map()
-  private buffers: Map<number, Document> = new Map()
+  public buffers: Map<number, Document> = new Map()
   private winids: Set<number> = new Set()
   private resolves: ((doc: Document) => void)[] = []
   private readonly _onDidOpenTextDocument = new Emitter<LinesTextDocument>()

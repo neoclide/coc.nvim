@@ -267,7 +267,7 @@ export default class Document {
         let content = this.lines[cursor.lnum - 1] ?? ''
         pos = Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
       }
-      edit = getTextEdit(textDocument.lines, this.lines, pos, cursor.insert)
+      edit = getTextEdit(textDocument.lines, this.lines, pos, cursor ? cursor.insert : false)
     }
     let original: string
     if (edit) {
