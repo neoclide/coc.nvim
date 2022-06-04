@@ -133,6 +133,8 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
             \ 'maxwidth': a:config['width'],
             \ 'maxheight': a:config['height'],
             \ 'title': get(a:config, 'title', ''),
+            \ 'highlight': get(a:config, 'highlight', 'CocFloating'),
+            \ 'borderhighlight':  [s:get_borderhighlight(a:config)],
             \ }
       if !s:empty_border(get(a:config, 'border', []))
         let opts['border'] = a:config['border']
@@ -144,6 +146,11 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       return [a:winid, winbufnr(a:winid)]
     else
       let config = s:convert_config_nvim(a:config, 0)
+      let hlgroup = get(a:config, 'highlight', 'CocFloating')
+      let winhl = 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup
+      if winhl !=# getwinvar(a:winid, '&winhl', '')
+        call setwinvar(a:winid, '&winhl', winhl)
+      endif
       call nvim_win_set_buf(a:winid, bufnr)
       call nvim_win_set_config(a:winid, config)
       call nvim_win_set_cursor(a:winid, [lnum, 0])
