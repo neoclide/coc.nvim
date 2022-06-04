@@ -190,8 +190,8 @@ export class Completion implements Disposable {
         if (this.inserted) return
         await this.filterResults()
       })
-      let cancelled = await complete.doComplete()
-      if (cancelled) this.stop(false)
+      let shouldStop = await complete.doComplete()
+      if (shouldStop) this.stop(false)
     } catch (e) {
       this.stop(true)
       this.nvim.echoError(e)

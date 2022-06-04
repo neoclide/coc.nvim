@@ -111,6 +111,7 @@ export default class Complete {
       this.nvim.call('coc#util#suggest_variables', [this.option.bufnr]),
       this.document.patchChange()
     ])
+    if (token.isCancellationRequested) return
     this.option.synname = res[0]
     let variables = res[1]
     if (variables.disable) {
@@ -130,17 +131,15 @@ export default class Complete {
         return true
       }
     }
-    if (token.isCancellationRequested) return true
     let { triggerCompletionWait, localityBonus } = this.config
     await wait(Math.min(triggerCompletionWait ?? 0, 50))
-    if (token.isCancellationRequested) return true
+    if (token.isCancellationRequested) return
     let { colnr, linenr, col } = this.option
     if (localityBonus) {
       let line = linenr - 1
       this.localBonus = this.document.getLocalifyBonus(Position.create(line, col - 1), Position.create(line, colnr))
     }
     await this.completeSources(this.sources)
-    return token.isCancellationRequested
   }
 
   private async completeSources(sources: ReadonlyArray<ISource>): Promise<void> {
