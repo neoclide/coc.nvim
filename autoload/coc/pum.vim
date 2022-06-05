@@ -144,6 +144,53 @@ function! coc#pum#info() abort
   endif
 endfunction
 
+function! coc#pum#scroll(forward) abort
+  if coc#pum#visible()
+    let [index, size] = s:get_index_size()
+    let height = s:get_height(s:pum_winid)
+    if size > height
+      call timer_start(10, { -> s:scroll_pum(a:forward, height, index, size)})
+    endif
+  endif
+  return ''
+endfunction
+
+function! s:get_height(winid) abort
+  if has('nvim')
+    return nvim_win_get_height(a:winid)
+  endif
+  return get(popup_getpos(a:winid), 'core_height', 0)
+endfunction
+
+function! s:scroll_pum(forward, height, index, size) abort
+  let topline = s:get_topline(s:pum_winid)
+  if !a:forward && topline == 1
+    call s:select_line(s:pum_winid, 1)
+    return
+  endif
+  if a:forward && topline + a:height - 1 >= a:size
+    call s:select_line(s:pum_winid, a:size)
+    return
+  endif
+  call coc#float#scroll_win(s:pum_winid, a:forward, a:height)
+  let lnum = a:index + 1
+  let topline = s:get_topline(s:pum_winid)
+  if lnum >= topline && lnum <= topline + a:height - 1
+    return
+  endif
+  call s:select_line(s:pum_winid, topline)
+endfunction
+
+function! s:get_topline(winid) abort
+  if has('nvim')
+    let info = getwininfo(a:winid)[0]
+    return info['topline']
+  else
+    let pos = popup_getpos(a:winid)
+    return pos['firstline']
+  endif
+endfunction
+
 function! s:navigate(next, insert) abort
   if !coc#float#valid(s:pum_winid)
     return
@@ -331,6 +378,12 @@ function! s:set_cursor(winid, line) abort
             \ 'firstline': a:line,
             \ })
     endif
+  endif
+  call s:select_line(a:winid, a:line)
+endfunction
+
+function! s:select_line(winid, line) abort
+  if s:is_vim
     call coc#compat#execute(a:winid, 'exe '.a:line)
   else
     call nvim_win_set_cursor(a:winid, [a:line, 0])

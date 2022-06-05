@@ -284,6 +284,11 @@ Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
   inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
   inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
 <
+Use <PageDown> and <PageUp> to scroll: >
+
+  inoremap <silent><expr> <PageDown> coc#pum#visible() ? coc#pum#scroll(1) : "\<PageDown>"
+  inoremap <silent><expr> <PageUp> coc#pum#visible() ? coc#pum#scroll(0) : "\<PageUp>"
+<
 Use <C-e> and <C-y> to cancel and confirm completion: >
 
   inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
@@ -1427,8 +1432,8 @@ coc#refresh()						*coc#refresh()*
 
 coc#config({section}, {value})				*coc#config()*
 
-	Change user configuration by Vim script, no changes would be made to
-	user configuration file. Example: >
+	Change user configuration, overwrite configurations from
+	user config file and default values. Example: >
 
 	call coc#config('coc.preferences', {
 		\ 'timeout': 1000,
@@ -1443,10 +1448,7 @@ coc#config({section}, {value})				*coc#config()*
 <
 
 	Note: this function can be called multiple times.
-
-	Note: this function can be called before the service has been
-	initialized.
-
+	Note: this function can be called before coc.nvim started.
 	Note: this function can work alongside the user configuration file,
 	but it's not recommended to use both.
 
@@ -1576,8 +1578,8 @@ coc#pum#stop() 						*coc#pum#stop()*
 
 coc#pum#cancel() 					*coc#pum#cancel()*
 
-	Cancel the customized popupmenu and revert trigger input, like <C-e> of vim.
-	Return empty string.
+	Cancel the customized popupmenu and revert trigger input, like <C-e>
+	of vim. Return empty string.
 
 coc#pum#confirm() 					*coc#pum#confirm()*
 
@@ -1602,6 +1604,7 @@ coc#pum#info() 						*coc#pum#info()*
 coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
 
 	Selects an item in the completion popupmenu.
+	Return empty string.
 
 	Parameters:~
 		{index} 	Index (zero-based) of the item to select.
@@ -1609,6 +1612,14 @@ coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
 				in the buffer.
 		{confirm} 	Confirm the completion and dismis the
 				popupmenu, implies `insert`.
+
+coc#pum#scroll({forward}) 				*coc#pum#scroll()*
+
+	Scroll the popupmenu forward or backward, timer is used to make it
+	works in key-mappings.  Return empty string.
+
+	Parameters:~
+		{forward} 	Scroll forward when none zero.
 
 							*coc#notify*
 coc#notify#close_all()					*coc#notify#close_all()*
@@ -1634,7 +1645,6 @@ coc#notify#show_sources() 				*coc#notify#show_sources()*
 coc#notify#keep() 					*coc#notify#keep()*
 
 	Stop auto hide timer of notification windows.
-
 
 coc#float#has_float([{all}]) 				*coc#float#has_float()*
 

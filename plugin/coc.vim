@@ -22,6 +22,16 @@ function! s:checkVersion() abort
       echom "Please do not report bugs unless you're using at least Vim 8.1.1719 or Neovim 0.4.0."
       echohl None
       sleep 2
+    else
+      if !has('nvim-0.5.0') && !has('patch-8.2.0750')
+        echohl WarningMsg
+        echom "coc.nvim works best on vim >= 8.2.0750 and neovim >= 0.5.0, consider upgrade your vim."
+        echom "You can add this to your vimrc to avoid this message:"
+        echom "    let g:coc_disable_startup_warning = 1"
+        echom "Note that some features may behave incorrectly."
+        echohl None
+        sleep 2
+      endif
     endif
   endif
 endfunction
@@ -609,6 +619,12 @@ if empty(mapcheck("\<C-e>", 'i'))
 endif
 if empty(mapcheck("\<C-y>", 'i'))
   inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
+endif
+if empty(mapcheck("\<PageDown>", 'i'))
+  inoremap <silent><expr> <PageDown> coc#pum#visible() ? coc#pum#scroll(1) : "\<PageDown>"
+endif
+if empty(mapcheck("\<PageUp>", 'i'))
+  inoremap <silent><expr> <PageUp> coc#pum#visible() ? coc#pum#scroll(0) : "\<PageUp>"
 endif
 
 vnoremap <silent> <Plug>(coc-range-select)          :<C-u>call       CocActionAsync('rangeSelect',     visualmode(), v:true)<CR>
