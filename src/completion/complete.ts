@@ -11,6 +11,7 @@ const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
   selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
+  virtualText: boolean
   disableMenuShortcut: boolean
   labelMaxLength: number
   autoTrigger: string

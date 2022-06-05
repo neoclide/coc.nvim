@@ -59,7 +59,7 @@ export default class PopupMenu {
   }
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
-    let { labelMaxLength, selection, floatConfig, disableMenuShortcut } = this.config
+    let { labelMaxLength, selection, floatConfig, disableMenuShortcut, virtualText } = this.config
     let selectedIndex = items.findIndex(o => o.preselect)
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
@@ -102,6 +102,7 @@ export default class PopupMenu {
       bufnr: option.bufnr,
       line: option.linenr,
       col: option.col,
+      virtualText,
       words: items.map(o => o.word)
     }
     let lines: string[] = []

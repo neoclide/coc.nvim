@@ -2536,6 +2536,8 @@ Pum related~
 *CocPumSearch* for matched input characters, linked to |CocSearch| by default.
 *CocPumMenu* for menu of complete items (mostly used for source shortcut).
 *CocPumDeprecated* for highlight deprecated label.
+*CocPumVirtualText* for highlight virtual text enabled by
+|coc-config-suggest-virtualText|
 
 Symbol icons~
 

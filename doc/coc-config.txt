@@ -200,6 +200,21 @@ Completion related~
 
 	Trigger suggest with ASCII characters only, default: `false`
 
+"suggest.ignoreRegexps"					*coc-config-suggest-ignoreRegexps*
+
+	Array of regexps, when input matched one of them, not trigger
+	completion, default: `[]`
+
+"suggest.ignoreRegexps"					*coc-config-suggest-ignoreRegexps*
+
+	Array of regexps, when input matched one of them, not trigger
+	completion, default: `[]`
+
+"suggest.virtualText" 					*coc-config-suggest-virtualText*
+
+	Show virtual text for insert word of selected item, works on neovim >=
+	0.5.0, default: `false`
+
 "suggest.completionItemKindLabels"			*coc-config-suggest-completionItemKindLabels*
 
 	Set custom labels to completion item kinds, default: `{}`.

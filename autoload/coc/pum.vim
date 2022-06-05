@@ -4,6 +4,8 @@ let s:float = has('nvim-0.4.0') || has('patch-8.1.1719')
 let s:pum_bufnr = 0
 let s:pum_winid = 0
 let s:inserted = 0
+let s:virtual_text = 0
+let s:virtual_text_ns = 0
 
 function! coc#pum#visible() abort
   if !s:float || !s:pum_winid
@@ -28,6 +30,7 @@ endfunction
 
 function! coc#pum#close(...) abort
   if coc#float#valid(s:pum_winid)
+    call s:clear_virtual_text()
     if get(a:, 1, '') ==# 'cancel'
       let input = getwinvar(s:pum_winid, 'input', '')
       call s:insert_word(input)
@@ -54,6 +57,7 @@ endfunction
 
 function! coc#pum#_close() abort
   if coc#float#valid(s:pum_winid)
+    call s:clear_virtual_text()
     call coc#float#close(s:pum_winid)
     let s:pum_winid = 0
     let winid = coc#float#get_float_by_kind('pumdetail')
@@ -166,10 +170,12 @@ function! s:scroll_pum(forward, height, index, size) abort
   let topline = s:get_topline(s:pum_winid)
   if !a:forward && topline == 1
     call s:select_line(s:pum_winid, 1)
+    call s:on_pum_change(1)
     return
   endif
   if a:forward && topline + a:height - 1 >= a:size
     call s:select_line(s:pum_winid, a:size)
+    call s:on_pum_change(1)
     return
   endif
   call coc#float#scroll_win(s:pum_winid, a:forward, a:height)
@@ -179,6 +185,7 @@ function! s:scroll_pum(forward, height, index, size) abort
     return
   endif
   call s:select_line(s:pum_winid, topline)
+  call s:on_pum_change(1)
 endfunction
 
 function! s:get_topline(winid) abort
@@ -263,6 +270,10 @@ function! coc#pum#create(lines, opt, config) abort
   if empty(config)
     return
   endif
+  let s:virtual_text = has('nvim-0.5.0') && a:opt['virtualText']
+  if s:virtual_text && !s:virtual_text_ns
+    let s:virtual_text_ns = coc#highlight#create_namespace('pum-virtual')
+  endif
   let selected = a:opt['index'] + 1
   call extend(config, {
         \ 'lines': a:lines,
@@ -318,6 +329,9 @@ endfunction
 
 function! s:on_pum_change(move) abort
   if coc#float#valid(s:pum_winid)
+    if s:virtual_text_ns
+      call s:insert_virtual_text()
+    endif
     let ev = extend(coc#pum#info(), {'move': a:move ? v:true : v:false})
     call coc#rpc#notify('CocAutocmd', ['MenuPopupChanged', ev, win_screenpos(winnr())[0] + winline() - 2])
   endif
@@ -389,4 +403,40 @@ function! s:select_line(winid, line) abort
     call nvim_win_set_cursor(a:winid, [a:line, 0])
   endif
   call coc#dialog#place_sign(winbufnr(a:winid), a:line)
+endfunction
+
+function! s:insert_virtual_text() abort
+  if !s:virtual_text_ns
+    return
+  endif
+  let bufnr = bufnr('%')
+  if !s:virtual_text || !coc#pum#visible()
+    call nvim_buf_clear_namespace(bufnr, s:virtual_text_ns, 0, -1)
+  else
+    " Check if could create
+    let insert = ''
+    let words = getwinvar(s:pum_winid, 'words', [])
+    let index = coc#window#get_cursor(s:pum_winid)[0] - 1
+    let word = get(words, index, '')
+    let parts = getwinvar(s:pum_winid, 'parts', [])
+    let input = strpart(getline('.'), strlen(parts[0]), col('.') - 1)
+    if strchars(word) > strchars(input) && strcharpart(word, 0, strchars(input)) ==# input
+      let insert = strcharpart(word, strchars(input))
+    endif
+    call nvim_buf_clear_namespace(bufnr, s:virtual_text_ns, 0, -1)
+    if !empty(insert)
+      let opts = {
+          \ 'virt_text': [[insert, 'CocPumVirtualText']],
+          \ 'virt_text_pos': 'overlay',
+          \ 'virt_text_win_col': col('.') - 1,
+          \ }
+      call nvim_buf_set_extmark(bufnr, s:virtual_text_ns, line('.') - 1, col('.') - 1, opts)
+    endif
+  endif
+endfunction
+
+function! s:clear_virtual_text() abort
+  if s:virtual_text_ns
+    call nvim_buf_clear_namespace(bufnr('%'), s:virtual_text_ns, 0, -1)
+  endif
 endfunction
