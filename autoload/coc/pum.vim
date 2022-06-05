@@ -218,6 +218,7 @@ function! coc#pum#create(lines, opt, config) abort
   let s:inserted = 0
   let s:pum_winid = result[0]
   let s:pum_bufnr = result[1]
+  call setwinvar(s:pum_winid, 'above', config['row'] < 0)
   let lnum = a:opt['index'] + 1
   if s:is_vim
     call popup_setoptions(s:pum_winid, {
@@ -265,14 +266,18 @@ function! s:get_pum_dimension(lines, col, config) abort
   let [lineIdx, colIdx] = coc#cursor#screen_pos()
   let bh = empty(get(a:config, 'border', [])) ? 0 : 2
   let width = min([&columns - colIdx - bh, max([&pumwidth, a:config['width']])])
-  let showTop = 0
   let vh = &lines - &cmdheight - 1 - !empty(&tabline)
   if vh <= 0
     return v:null
   endif
   let pumheight = empty(&pumheight) ? vh : &pumheight
-  if vh - lineIdx - bh - 1 < min([pumheight, linecount]) && lineIdx > vh - lineIdx
-    let showTop = 1
+  let showTop = getwinvar(s:pum_winid, 'above', v:null)
+  if type(showTop) != v:t_number
+    if vh - lineIdx - bh - 1 < min([pumheight, linecount]) && lineIdx > vh - lineIdx
+      let showTop = 1
+    else
+      let showTop = 0
+    endif
   endif
   let height = showTop ? min([lineIdx - bh - !empty(&tabline), linecount, pumheight]) : min([vh - lineIdx - bh - 1, linecount, pumheight])
   if height <= 0

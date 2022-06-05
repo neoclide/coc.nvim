@@ -216,7 +216,7 @@ export default class Complete {
               }
               if (item.isSnippet === true) item.abbr = `${item.abbr || word}${snippetIndicator}`
               if (!item.abbr) item.abbr = word
-              if (!item.isSnippet) item.localBonus = this.localBonus.get(item.filterText) || 0
+              if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) || 0
               item.user_data = `${name}:${idx}`
             })
             this.setResult(name, result)
