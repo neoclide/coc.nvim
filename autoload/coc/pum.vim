@@ -51,6 +51,20 @@ function! coc#pum#close(...) abort
   endif
 endfunction
 
+function! coc#pum#_close() abort
+  if coc#float#valid(s:pum_winid)
+    call coc#float#close(s:pum_winid)
+    let s:pum_winid = 0
+    let winid = coc#float#get_float_by_kind('pumdetail')
+    if winid
+      call coc#float#close(winid)
+    endif
+    if s:is_vim
+      call timer_start(0, { -> execute('redraw')})
+    endif
+  endif
+endfunction
+
 function! coc#pum#next(insert) abort
   call timer_start(10, { -> s:navigate(1, a:insert)})
   return ''

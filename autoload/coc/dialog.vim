@@ -10,10 +10,13 @@ let s:detail_bufnr = 0
 
 " Float window aside pum
 function! coc#dialog#create_pum_float(lines, config) abort
-  if !coc#pum#visible()
+  let winid = coc#float#get_float_by_kind('pumdetail')
+  if empty(a:lines) || !coc#pum#visible()
+    if winid
+      call coc#float#close(winid)
+    endif
     return
   endif
-  let winid = coc#float#get_float_by_kind('pumdetail')
   let pumbounding = coc#pum#info()
   let border = get(a:config, 'border', [])
   let pw = pumbounding['width'] + (empty(border) ? get(pumbounding, 'scrollbar', 0) : 0)

@@ -68,12 +68,6 @@ describe('completion', () => {
         let visible = await helper.pumvisible()
         expect(visible).toBe(false)
       })
-
-      it('should consider none word character as input', async () => {
-        let doc = await helper.createDocument('t.vim')
-        let res = completion.getInput(doc, 'a#b#')
-        expect(res).toBe('a#b#')
-      })
     })
 
     describe('ignore by regex', () => {
@@ -126,21 +120,11 @@ describe('completion', () => {
         await nvim.input('<esc>')
         await nvim.input('ow')
         await helper.visible('world')
-        let context = await nvim.getVar('coc#_context') as any
-        expect(context.preselect).toBe(-1)
       })
     })
   })
 
   describe('doComplete()', () => {
-    it('should deactivate on doComplete error', async () => {
-      await helper.createDocument()
-      await nvim.command(`edit +setl\\ buftype=nofile`)
-      let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
-      await completion.startCompletion(option)
-      expect(completion.isActivated).toBe(false)
-    })
-
     it('should show slow source', async () => {
       let source: ISource = {
         priority: 0,
