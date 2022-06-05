@@ -315,6 +315,8 @@ Related functions:~
 - Close the popupmenu only: |coc#pum#stop()|.
 - Get information of the popupmenu: |coc#pum#info()|.
 - Select specific complete item: |coc#pum#select()|.
+- Insert word of selected item and finish completion: |coc#pum#insert()|.
+- Scroll popupmenu: |coc#pum#scroll()|.
 
 Customize completion:~
 
