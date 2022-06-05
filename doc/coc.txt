@@ -1613,10 +1613,16 @@ coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
 		{confirm} 	Confirm the completion and dismis the
 				popupmenu, implies `insert`.
 
+coc#pum#insert() 					*coc#pum#insert()*
+
+	Insert word of current selected item and finish completion.
+	Timer is used to make it works as rhs of key-mappings.
+
 coc#pum#scroll({forward}) 				*coc#pum#scroll()*
 
-	Scroll the popupmenu forward or backward, timer is used to make it
-	works in key-mappings.  Return empty string.
+	Scroll the popupmenu forward or backward by page.
+	Timer is used to make it works as rhs of key-mappings.
+	Return empty string.
 
 	Parameters:~
 		{forward} 	Scroll forward when none zero.

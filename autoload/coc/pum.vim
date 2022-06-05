@@ -30,7 +30,6 @@ endfunction
 
 function! coc#pum#close(...) abort
   if coc#float#valid(s:pum_winid)
-    call s:clear_virtual_text()
     if get(a:, 1, '') ==# 'cancel'
       let input = getwinvar(s:pum_winid, 'input', '')
       call s:insert_word(input)
@@ -42,12 +41,7 @@ function! coc#pum#close(...) abort
       call s:insert_word(word)
       doautocmd TextChangedI
     endif
-    call coc#float#close(s:pum_winid)
-    let s:pum_winid = 0
-    let winid = coc#float#get_float_by_kind('pumdetail')
-    if winid
-      call coc#float#close(winid)
-    endif
+    call s:close_pum()
     if !get(a:, 2, 0)
       let pretext = strpart(getline('.'), 0, col('.') - 1)
       call coc#rpc#notify('CompleteStop', [get(a:, 1, ''), pretext])
@@ -55,18 +49,40 @@ function! coc#pum#close(...) abort
   endif
 endfunction
 
+function! coc#pum#insert() abort
+  call timer_start(10, { -> s:insert_current()})
+  return ''
+endfunction
+
 function! coc#pum#_close() abort
   if coc#float#valid(s:pum_winid)
-    call s:clear_virtual_text()
-    call coc#float#close(s:pum_winid)
-    let s:pum_winid = 0
-    let winid = coc#float#get_float_by_kind('pumdetail')
-    if winid
-      call coc#float#close(winid)
-    endif
+    call s:close_pum()
     if s:is_vim
       call timer_start(0, { -> execute('redraw')})
     endif
+  endif
+endfunction
+
+function! s:insert_current() abort
+  if coc#float#valid(s:pum_winid)
+    let words = getwinvar(s:pum_winid, 'words', [])
+    let index = coc#window#get_cursor(s:pum_winid)[0] - 1
+    let word = get(words, index, '')
+    call s:insert_word(word)
+    doautocmd TextChangedI
+    call s:close_pum()
+    let pretext = strpart(getline('.'), 0, col('.') - 1)
+    call coc#rpc#notify('CompleteStop', ['', pretext])
+  endif
+endfunction
+
+function! s:close_pum() abort
+  call s:clear_virtual_text()
+  call coc#float#close(s:pum_winid)
+  let s:pum_winid = 0
+  let winid = coc#float#get_float_by_kind('pumdetail')
+  if winid
+    call coc#float#close(winid)
   endif
 endfunction
 
