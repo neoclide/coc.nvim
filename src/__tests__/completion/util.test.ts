@@ -1,6 +1,6 @@
 import { CompletionItemKind, TextEdit, Position } from 'vscode-languageserver-types'
 import { matchScore, matchScoreWithPositions } from '../../completion/match'
-import { getInput, shouldStop } from '../../completion/util'
+import { getInput, shouldIndent, shouldStop } from '../../completion/util'
 import { getCharCodes } from '../../util/fuzzy'
 import { getStartColumn, getKindString } from '../../sources/source-language'
 import { CompleteOption } from '../../types'
@@ -38,6 +38,17 @@ describe('shouldStop', () => {
     expect(shouldStop(2, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
     expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 2, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
     expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'barb' }, opt)).toBe(true)
+  })
+})
+
+describe('shouldIndent', () => {
+  it('should check indent', async () => {
+    let res = shouldIndent('0{,0},0),0],!^F,o,O,e,=endif,=enddef,=endfu,=endfor', 'endfor')
+    expect(res).toBe(true)
+    res = shouldIndent('', 'endfor')
+    expect(res).toBe(false)
+    res = shouldIndent('0{,0},0),0],!^F,o,O,e,=endif,=enddef,=endfu,=endfor', 'foo bar')
+    expect(res).toBe(false)
   })
 })
 

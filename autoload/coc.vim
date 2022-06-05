@@ -9,7 +9,6 @@ let s:is_vim = !has('nvim')
 let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
 let s:select_api = exists('*nvim_select_popupmenu_item')
-let s:complete_info_api = exists('*complete_info')
 let s:callbacks = {}
 let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
 
@@ -42,7 +41,6 @@ function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
     if pumvisible()
-      let g:coc_hide_pum = 1
       if s:hide_pum
         let prefix = "\<C-x>\<C-z>"
       else
@@ -160,4 +158,25 @@ endfunction
 
 function! coc#_select_confirm() abort
   return coc#pum#confirm()
+endfunction
+
+function! coc#complete_indent() abort
+  let curpos = getcurpos()
+  let indent_len = len(matchstr(getline('.'), '^\s*'))
+  let startofline = &startofline
+  let virtualedit = &virtualedit
+  set nostartofline
+  set virtualedit=all
+  normal! ==
+  let &startofline = startofline
+  let &virtualedit = virtualedit
+  let shift = len(matchstr(getline('.'), '^\s*')) - indent_len
+  let curpos[2] += shift
+  let curpos[4] += shift
+  call cursor(curpos[1:])
+   if shift != 0
+    if s:is_vim
+      call timer_start(0, { -> execute('redraw')})
+    endif
+  endif
 endfunction

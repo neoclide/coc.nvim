@@ -956,6 +956,61 @@ describe('completion', () => {
     })
   })
 
+  describe('indent change', () => {
+    it('should indent line after completion #1', async () => {
+      let doc = await workspace.document as any
+      doc._indentkeys = '=~end,0=\\item'
+      let source: ISource = {
+        name: 'source1',
+        priority: 90,
+        enable: true,
+        sourceType: SourceType.Native,
+        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+          items: [
+            { word: 'item' },
+            { word: 'items' },
+            { word: 'END' },
+            { word: 'ENDIF' }
+          ]
+        })
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('i')
+      await helper.wait(10)
+      await nvim.input('  \\ite')
+      await helper.waitPopup()
+      let idx = completion.activeItems.findIndex(o => o.word == 'item')
+      await helper.confirmCompletion(idx)
+      await helper.waitFor('getline', ['.'], '\\item')
+    })
+
+    it('should trigger completion after indent change', async () => {
+      await helper.createDocument('t.vim')
+      // doc._indentkeys = '=end'
+      let source: ISource = {
+        name: 'source1',
+        priority: 90,
+        enable: true,
+        sourceType: SourceType.Native,
+        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+          items: [
+            { word: 'endif' },
+            { word: 'endfunction' }
+          ]
+        })
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('i')
+      await helper.wait(10)
+      await nvim.input('  endi')
+      await helper.waitPopup()
+      await nvim.input('f')
+      await helper.wait(10)
+      await nvim.command('normal! ==')
+      await helper.waitFor('getline', ['.'], 'endif')
+    })
+  })
+
   describe('Character insert', () => {
     beforeAll(() => {
       let source: ISource = {

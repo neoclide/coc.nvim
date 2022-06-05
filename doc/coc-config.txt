@@ -1146,7 +1146,8 @@ Languageserver~
 	  initialization.
 
 	- "trace.server": Trace level of communication between server and
-	  client that showed with output channel.
+	  client that showed with output channel, open output channel by
+	  command `:CocCommand workspace.showOutput`
 
 	- "stdioEncoding": Encoding used for stdio of child process.
 

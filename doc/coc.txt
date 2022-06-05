@@ -79,6 +79,9 @@ Note: This plugin doesn't come with support for any specific language. You
 will need to install a coc.nvim extension or set up the language server by
 configuration.
 
+Note: multiple language servers for same document is allowed, but you should
+avoid configure same language server that already used by coc.nvim extension.
+
 Note: Automatic completion plugins can't play nicely together, you can disable
 automatic completion of coc.nvim through `"suggest.autoTrigger": "none"` (or
 `"suggest.autoTrigger": "trigger"`) in your configuration file.
@@ -269,12 +272,10 @@ completion works like VSCode:
 - Snippet and additional edits only work after confirm completion.
 - 'completeopt' is not used and APIs of builtin popupmenu not work.
 
-Use |coc-config-suggest| to change behavior of completion.
+Default Key-mappings:~
 
-Key-mappings:~
-
-To make the completion feature work without configuration, following
-key-mappings are used when the specific key is not mapped:
+To make the completion work like builtin completion without configuration,
+following key-mappings are used when the lhs is not mapped:
 
 Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
 
@@ -287,6 +288,8 @@ Use <C-e> and <C-y> to cancel and confirm completion: >
 
   inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
   inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
+
+Note: <CR> and <Tab> are not remapped.
 >
 Related variables:~
 
@@ -308,21 +311,25 @@ Related functions:~
 - Get information of the popupmenu: |coc#pum#info()|.
 - Select specific complete item: |coc#pum#select()|.
 
-Related highlights:~
+Customize completion:~
 
-- |CocPum| for highlight groups of customized pum.
-- |CocSymbol| for kind icons.
-- |CocMenuSel| for selected item.
+Use |coc-config-suggest| to change behavior of completion.
 
-Note: use 'pumwidth' for configure minimal width of popupmenu and 'pumheight'
+Use 'pumwidth' for configure minimal width of popupmenu and 'pumheight'
 for maximum height.
+
+Related Highlight groups:
+	|CocPum| 	for highlight groups of customized pum.
+	|CocSymbol| 	for kind icons.
+	|CocMenuSel| 	for background highlight of selected item.
 
 Note: background, border and winblend are configured by
 |coc-config-suggest-floatConfig|.
 
-------------------------------------------------------------------------------
+Example user key-mappings:~
 
-Example completion key-mappings:~
+Note: use command `:verbose imap` to check current insert
+key-mappings when your key-mappings not work.
 
 Use <tab> and <S-tab> to navigate completion list: >
 
@@ -2562,7 +2569,7 @@ Highlight groups for symbol icons, including:
 *CocSymbolOperator*
 *CocSymbolTypeParameter*
 
-Note: Use configuration `suggest.completionItemKindLabels` for customized icon
+Note: Use configuration |coc-config-suggest-completionItemKindLabels| for customized icon
 characters.
 
 Semantic token highlight groups~

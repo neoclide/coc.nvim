@@ -46,7 +46,8 @@ function! coc#pum#close(...) abort
       call coc#float#close(winid)
     endif
     if !get(a:, 2, 0)
-      call coc#rpc#notify('CompleteStop', [get(a:, 1, '')])
+      let pretext = strpart(getline('.'), 0, col('.') - 1)
+      call coc#rpc#notify('CompleteStop', [get(a:, 1, ''), pretext])
     endif
   endif
 endfunction

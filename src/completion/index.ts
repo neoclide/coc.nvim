@@ -13,7 +13,7 @@ import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
 import MruLoader from './mru'
 import PopupMenu from './pum'
-import { getInput, getPrependWord, getSources, shouldStop } from './util'
+import { getInput, getPrependWord, getSources, shouldIndent, shouldStop } from './util'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -61,11 +61,12 @@ export class Completion implements Disposable {
     events.on('InsertLeave', () => {
       this.stop(true)
     }, null, this.disposables)
-    events.on('CompleteStop', kind => {
-      this.stop(false, kind)
+    events.on('CompleteStop', (kind, pretext) => {
+      this.stop(false, kind, pretext)
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
+    events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('MenuPopupChanged', async ev => {
       if (!this.option) return
       this.popupEvent = ev
@@ -174,13 +175,22 @@ export class Completion implements Disposable {
     }
   }
 
+  private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
+    if (this.option && bufnr === this.option.bufnr) {
+      this.pretext = info.pre
+    }
+  }
+
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     if (!workspace.isAttached(bufnr) || this.config.autoTrigger === 'none') return
     let { option } = this
     // detect item word insert
     if (!info.insertChar && this.selectedItem && option) {
       let expected = byteSlice(option.line, 0, option.col) + this.selectedItem.word
-      if (expected == info.pre) return
+      if (expected == info.pre) {
+        this.pretext = info.pre
+        return
+      }
     }
     // retrigger after indent
     if (option && info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
@@ -279,24 +289,29 @@ export class Completion implements Disposable {
     return true
   }
 
-  public stop(close: boolean, kind?: 'cancel' | 'confirm'): void {
+  public stop(close: boolean, kind: 'cancel' | 'confirm' | '' = '', pretext?: string): void {
     if (!this._activated) return
-    let inserted = this.popupEvent?.inserted
+    let inserted = kind === 'confirm' || (this.popupEvent?.inserted && kind != 'cancel')
     this._activated = false
+    pretext = pretext ?? this.pretext
     let doc = this.document
     let input = this.complete.input
     let option = this.complete.option
     let item = this.selectedItem
     events.completing = false
     this.cancel()
-    if (item && (inserted || kind === 'confirm') && kind !== 'cancel') {
+    let indent = false
+    if (item && inserted) {
       this.mru.add(input, item)
+      indent = pretext && shouldIndent(option.indentkeys, pretext)
     }
     if (close) this.nvim.call('coc#pum#_close', [], true)
     if (!doc || !doc.attached) return
     doc._forceSync()
     if (kind == 'confirm' && item) {
-      void this.confirmCompletion(item, option)
+      void this.confirmCompletion(item, option).then(() => {
+        if (indent) this.nvim.call('coc#complete_indent', [], true)
+      })
     }
   }
 
