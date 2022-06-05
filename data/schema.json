@@ -1055,6 +1055,11 @@
       "maximum": 100,
       "description": "Winblend option of notification window, neovim only."
     },
+    "workspace.openOutputCommand": {
+      "type": "string",
+      "default": "vs",
+      "description": "Command used to open output channel."
+    },
     "workspace.openResourceCommand": {
       "type": "string",
       "default": "tab drop",

@@ -299,7 +299,7 @@ Diagnostics~
 
 	Enable automatically refresh diagnostics, use
 	|CocAction('diagnosticRefresh')| action to refresh diagnostics when it's
-	disabled.
+	disabled, default: `true`
 
 "diagnostic.refreshOnInsertMode"			*coc-config-diagnostic-refreshOnInsertMode*
 
@@ -676,6 +676,10 @@ CodeLens~
 ------------------------------------------------------------------------------
 Workspace related~
 							*coc-config-workspace*
+"workspace.openOutputCommand" 				*coc-config-workspace-openOutputCommand*
+
+	Command used to open output channel, default: `vs`
+
 "workspace.openResourceCommand" 			*coc-config-workspace-openResourceCommand*
 
 	Command to open files that not loaded, default: `tab drop`
