@@ -14,6 +14,7 @@ LSP features 					|coc-lsp|
   Document 					|coc-document|
   Completion					|coc-completion|
   Diagnostics 					|coc-diagnostics|
+  Locations 					|coc-locations|
   Signature help 				|coc-signature|
   Format 					|coc-format|
   Code action 					|coc-code-actions|
@@ -183,6 +184,7 @@ Features require enabled by configuration:~
 
 Features requested by user:~
 
+- Locations related (including definitions, references etc.) |coc-locations|
 - Invoke code action |coc-code-actions|.
 - Show call hierarchy tree |coc-callHierarchy|.
 - Format, range format and on type format |coc-format|.
@@ -190,11 +192,6 @@ Features requested by user:~
 - Outline of document symbols |coc-outline| and |coc-list-symbols|.
 - Show hover message |CocAction('doHover')| and |CocAction('definitionHover')|.
 - Rename current symbol |CocAction('rename')|.
-- Jump to definition locations |CocAction('jumpDefinition')|.
-- Jump to declaration locations |CocAction('jumpDeclaration')|.
-- Jump to implementation locations |CocAction('jumpImplementation')|.
-- Jump to type definition locations |CocAction('jumpTypeDefinition')|.
-- Jump to references |CocAction('jumpReferences')| and |CocAction('jumpUsed')|.
 - Open link under cursor |CocAction('openlink')|.
 - Range selection |CocAction('rangeSelect').|
 - Create folds |CocAction('fold')|.
@@ -443,6 +440,68 @@ Use |coc-list-diagnostics| to open |CocList| with all diagnostics.
 
 Use |CocAction('diagnosticList')| to get list of all diagnostics, mostly used
 by other vim plugins.
+
+==============================================================================
+LOCATIONS SUPPORT 					*coc-locations*
+
+There're different kinds of locations, including "definitions", "declarations",
+"implementations", "typeDefinitions" and "references", the languageserver used
+by current document may support some of them.
+
+Key-mappings for invoke locations request~
+
+- |<plug>(coc-definition)|
+- |<plug>(coc-declaration)|
+- |<plug>(coc-implementation)|
+- |<plug>(coc-type-definition)|
+- |<plug>(coc-references)|
+- |<plug>(coc-references-used)|
+
+Error will be shown when the buffer not attached |coc-document-attached|.
+
+Location jump behavior~
+
+When there's only one location returned, the location is opened by command
+specified by |coc-preferences-jumpCommand| ("edit" by default), context mark
+is added by |m'|, so you can jump back previous location by <C-o>.
+
+When multiple locations returned, |coc-list-location| is opened for preview
+and other further actions.
+
+To use |coc-list-location| for single location as well, use
+|coc-locations-api| (instead key-mappings provided by coc.nvim).
+
+To change default options of |coc-list-location| or use other plugin for
+list of locations, see |g:coc_enable_locationlist|.
+
+To use vim's quickfix for locations, use configuration
+|coc-preferences-useQuickfixForLocations|.
+
+To use vim's tag list for definitions, use |CocTagFunc()|.
+
+							*coc-locations-api*
+Related APIs~
+
+APIs for jump locations:
+
+- Jump to definition locations |CocAction('jumpDefinition')|.
+- Jump to declaration locations |CocAction('jumpDeclaration')|.
+- Jump to implementation locations |CocAction('jumpImplementation')|.
+- Jump to type definition locations |CocAction('jumpTypeDefinition')|.
+- Jump to references |CocAction('jumpReferences')| and |CocAction('jumpUsed')|.
+
+APIs for get location list:
+
+- |CocAction('definitions')|
+- |CocAction('declarations')|
+- |CocAction('implementations')|
+- |CocAction('typeDefinitions')|
+- |CocAction('references')|
+
+Send custom locations request to languageserver:
+
+- |CocLocations()|
+- |CocLocationsAsync()|
 
 ==============================================================================
 SIGNATURE HELP 						*coc-signature*
@@ -1847,6 +1906,34 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	enable/disable {source}.
 
+"definitions" 						*CocAction('definitions')*
+
+	Get definition locations of symbol under cursor.
+	Return LSP `Location[]`
+
+"declarations" 						*CocAction('declarations')*
+
+	Get declaration location(s) of symbol under cursor.
+	Return LSP `Location | Location[] | LocationLink[]`
+
+"implementations" 					*CocAction('implementations')*
+
+	Get implementation locations of symbol under cursor.
+	Return LSP `Location[]`
+
+"typeDefinitions" 					*CocAction('typeDefinitions')*
+
+	Get type definition locations of symbol under cursor.
+	Return LSP `Location[]`
+
+"references" [{excludeDeclaration}] 			*CocAction('references')*
+
+	Get references location list of symbol under cursor.
+
+	{excludeDeclaration}: exclude declaration locations when not zero.
+
+	Return LSP `Location[]`
+
 "jumpDefinition" [{openCommand}]			*CocAction('jumpDefinition')*
 
 	jump to definition locations of the current symbol.
@@ -1917,11 +2004,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 
 	Same as |CocAction('doHover')|, but includes definition contents from
 	definition provider when possible.
-
-"references" [{excludeDeclaration}] 			*CocAction('references')*
-
-	Get references location list, declaration locations are included by
-	default.
 
 "showSignatureHelp"					*CocAction('showSignatureHelp')*
 
