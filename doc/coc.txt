@@ -1,6 +1,6 @@
 *coc-nvim.txt*					NodeJS client for Vim & Neovim.
 
-Version: 0.0.81
+Version: 0.0.82
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: Anti 996 license
 
