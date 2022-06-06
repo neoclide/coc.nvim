@@ -556,7 +556,7 @@ describe('Configurations', () => {
       let res = c.get('bar')
       expect(res).toBe(false)
       conf.dispose()
-      fs.unlinkSync(configFile)
+      if (fs.existsSync(configFile)) fs.unlinkSync(configFile)
     })
   })
 
