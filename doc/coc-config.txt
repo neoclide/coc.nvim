@@ -205,11 +205,6 @@ Completion related~
 	Array of regexps, when input matched one of them, not trigger
 	completion, default: `[]`
 
-"suggest.ignoreRegexps"					*coc-config-suggest-ignoreRegexps*
-
-	Array of regexps, when input matched one of them, not trigger
-	completion, default: `[]`
-
 "suggest.virtualText" 					*coc-config-suggest-virtualText*
 
 	Show virtual text for insert word of selected item, works on neovim >=

@@ -442,9 +442,10 @@ function! s:insert_virtual_text() abort
     call nvim_buf_clear_namespace(bufnr, s:virtual_text_ns, 0, -1)
     if !empty(insert)
       let opts = {
+          \ 'hl_mode': 'combine',
           \ 'virt_text': [[insert, 'CocPumVirtualText']],
           \ 'virt_text_pos': 'overlay',
-          \ 'virt_text_win_col': col('.') - 1,
+          \ 'virt_text_win_col': virtcol('.') - 1,
           \ }
       call nvim_buf_set_extmark(bufnr, s:virtual_text_ns, line('.') - 1, col('.') - 1, opts)
     endif
