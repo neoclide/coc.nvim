@@ -337,12 +337,12 @@ export default class ListUI {
   }
 
   public async appendItems(items: ListItem[]): Promise<void> {
-    if (!this.window) return
+    if (!this.window || items.length === 0) return
     await this.mutex.use(async () => {
       let curr = this.items.length
-      if (curr < this.limitLines) {
-        let max = this.limitLines - curr
-        let append = items.slice(0, max)
+      let remain = this.limitLines - curr
+      if (remain > 0) {
+        let append = remain < items.length ? items.slice(0, remain) : items
         this.items = this.items.concat(append)
         this.setLines(append.map(item => item.label), append.length, this.currIndex)
       }
@@ -366,10 +366,10 @@ export default class ListUI {
       if (append) {
         nvim.call('coc#compat#prepend_lines', [buffer.id, replacement], true)
       } else {
-        void buffer.setLines(replacement, { start: 0, end: -1, strictIndexing: false }, true)
+        buffer.setLines(replacement, { start: 0, end: -1, strictIndexing: false }, true)
       }
     } else {
-      void buffer.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
+      buffer.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
     }
     buffer.setOption('modifiable', false, true)
     if (reversed && !newTab) {
