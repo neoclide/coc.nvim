@@ -1,3 +1,7 @@
+# 2022-06-11
+
+- Add configuration "notification.disabledProgressSources"
+
 # 2022-06-04
 
 - Add configuration `workspace.openOutputCommand`.

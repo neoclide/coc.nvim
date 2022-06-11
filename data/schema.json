@@ -1038,6 +1038,14 @@
       "default": false,
       "description": "Use menu picker for message notification with actions."
     },
+    "notification.disabledProgressSources": {
+      "type": "array",
+      "default": [],
+      "description": "Soureces that should be disabled for message progress, use * to disable all message only progresses",
+      "items": {
+        "type": "string"
+      }
+    },
     "notification.minProgressWidth": {
       "type": "integer",
       "default": 30,

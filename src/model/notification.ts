@@ -7,6 +7,7 @@ import { DialogButton } from './dialog'
 const logger = require('../util/logger')('model-notification')
 
 export interface NotificationPreferences {
+  disabled: boolean
   maxWidth: number
   maxHeight: number
   highlight: string

@@ -507,6 +507,28 @@ describe('window', () => {
       expect(called).toBe(1)
     })
 
+    it('should be disabled by configuration', async () => {
+      helper.updateConfiguration('notification.disabledProgressSources', ['test'])
+      let p = window.withProgress({ title: 'Downloading', source: 'test' }, (progress, token) => {
+        let n = 0
+        return new Promise(resolve => {
+          let interval = setInterval(() => {
+            progress.report({ message: 'progress', increment: 1 })
+            n = n + 1
+            if (n == 10) {
+              clearInterval(interval)
+              resolve('done')
+            }
+          }, 10)
+        })
+      })
+      await helper.wait(30)
+      let win = await helper.getFloat()
+      expect(win).toBeUndefined()
+      let res = await p
+      expect(res).toBe('done')
+    })
+
     it('should show error message when rejected', async () => {
       let p = window.withProgress({ title: 'Process' }, () => {
         return Promise.reject(new Error('Unable to fetch'))
