@@ -1888,10 +1888,10 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	{kind} code action kind, see |CocAction('codeActions')| for available
 	action kind.
 
-	Can be used to create autocmd like: >
+	Can be used to create commands like: >
 
-	command! -nargs=* -range CocAction :call CocActionAsync('codeActionRange', [<line1>, <line2>, <f-args>])
-	command! -nargs=* -range CocFix    :call CocActionAsync('codeActionRange', [<line1>, <line2>, 'quickfix'])
+	command! -nargs=* -range CocAction :call CocActionAsync('codeActionRange', <line1>, <line2>, <f-args>)
+	command! -nargs=* -range CocFix    :call CocActionAsync('codeActionRange', <line1>, <line2>, 'quickfix')
 <
 "codeLensAction"					*CocAction('codeLensAction')*
 
