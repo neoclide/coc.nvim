@@ -229,14 +229,14 @@ An attached document means coc.nvim synchronize the lines of vim's buffer with
 associated document automatically.
 
 Only attached documents are synchronized with language servers and therefore
-LSP features could be provided for related buffer.
+LSP features could be provided for the attached buffer.
 
-The buffer must match following conditions to get attached:
+The buffer may not be attached by following reasons:
 
-- The 'buftype' option should be <empty> or 'acwrite'.
-- Buffer variable |b:coc_enabled| should not be `0`.
-- Byte length should not exceed |coc-preferences-maxFileSize|.
-- Buffer should not be used for command line window.
+- The 'buftype' is neither <empty> nor 'acwrite'.
+- Buffer variable |b:coc_enabled| should is `1`.
+- Byte length of buffer exceed |coc-preferences-maxFileSize|.
+- Buffer is used for command line window.
 
 Use |CocAction('ensureDocument')| or `:CocCommand document.checkBuffer` to
 check attached state of current buffer.
@@ -1888,10 +1888,10 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync|.
 	{kind} code action kind, see |CocAction('codeActions')| for available
 	action kind.
 
-	Can be used to create autocmd like: >
+	Can be used to create commands like: >
 
-	command! -nargs=* -range CocAction :call CocActionAsync('codeActionRange', [<line1>, <line2>, <f-args>])
-	command! -nargs=* -range CocFix    :call CocActionAsync('codeActionRange', [<line1>, <line2>, 'quickfix'])
+	command! -nargs=* -range CocAction :call CocActionAsync('codeActionRange', <line1>, <line2>, <f-args>)
+	command! -nargs=* -range CocFix    :call CocActionAsync('codeActionRange', <line1>, <line2>, 'quickfix')
 <
 "codeLensAction"					*CocAction('codeLensAction')*
 
