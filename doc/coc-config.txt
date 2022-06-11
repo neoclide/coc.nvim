@@ -623,6 +623,13 @@ Notification~
 
 	Maximum content height of notification dialog, default to `10`.
 
+"notification.disabledProgressSources"			*coc-config-notification-disabledProgressSources*
+
+	Sources that should be disabled for message progress, use "*" to
+	disable all message only progress notifications, default to `[]`
+
+	Source name could be extension id or `language-client-{id}`.
+
 "notification.minProgressWidth" 			*coc-config-notification-minProgressWidth*
 
 	Minimal with of progress notification.
