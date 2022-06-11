@@ -188,7 +188,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if !s:popup_list_api
       call add(s:popup_list, winid)
     endif
-    call s:set_float_defaults(winid)
+    call s:set_float_defaults(winid, a:config)
     call win_execute(winid, 'exe '.lnum)
     call coc#float#vim_buttons(winid, a:config)
   else
@@ -201,30 +201,12 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if winid is 0
       return []
     endif
-    let hlgroup = get(a:config, 'highlight', 'CocFloating')
-    call setwinvar(winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
-    call setwinvar(winid, 'border', get(a:config, 'border', []))
-    call setwinvar(winid, 'scrollinside', get(a:config, 'scrollinside', 0))
-    if !get(a:config, 'nopad', 0)
-      call setwinvar(winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
-    endif
     " cursorline highlight not work on old neovim
-    call s:set_float_defaults(winid)
+    call s:set_float_defaults(winid, a:config)
     call nvim_win_set_cursor(winid, [lnum, 0])
     call coc#float#nvim_create_related(winid, config, a:config)
     call coc#float#nvim_set_winblend(winid, get(a:config, 'winblend', v:null))
   endif
-  call setwinvar(winid, 'autohide', get(a:config, 'autohide', 0))
-  if s:is_vim || has('nvim-0.5.0')
-    call setwinvar(winid, '&scrolloff', 0)
-  endif
-  if has('nvim-0.6.0') || has("patch-8.1.2281")
-    call setwinvar(winid, '&showbreak', 'NONE')
-  endif
-  call setwinvar(winid, 'float', 1)
-  call setwinvar(winid, '&wrap', !get(a:config, 'cursorline', 0))
-  call setwinvar(winid, '&linebreak', 1)
-  call setwinvar(winid, '&conceallevel', 0)
   call s:add_highlights(winid, a:config, 1)
   let g:coc_last_float_win = winid
   call coc#util#do_autocmd('CocOpenFloat')
@@ -1319,16 +1301,40 @@ function! s:win_setview(winid, topline, lnum) abort
   endif
 endfunction
 
-function! s:set_float_defaults(winid) abort
+function! s:set_float_defaults(winid, config) abort
+  if has('nvim')
+    let hlgroup = get(a:config, 'highlight', 'CocFloating')
+    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
+    call setwinvar(a:winid, 'border', get(a:config, 'border', []))
+    call setwinvar(a:winid, 'scrollinside', get(a:config, 'scrollinside', 0))
+    if !get(a:config, 'nopad', 0)
+      call setwinvar(a:winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
+    endif
+  endif
+  call setwinvar(a:winid, '&spell', 0)
+  call setwinvar(a:winid, '&linebreak', 1)
+  call setwinvar(a:winid, '&conceallevel', 0)
   call setwinvar(a:winid, '&signcolumn', 'no')
   call setwinvar(a:winid, '&list', 0)
   call setwinvar(a:winid, '&number', 0)
   call setwinvar(a:winid, '&relativenumber', 0)
+  call setwinvar(a:winid, '&cursorline', 0)
   call setwinvar(a:winid, '&cursorcolumn', 0)
   call setwinvar(a:winid, '&colorcolumn', 0)
+  call setwinvar(a:winid, '&wrap', !get(a:config, 'cursorline', 0))
+  if s:is_vim || has('nvim-0.5.0')
+    call setwinvar(a:winid, '&scrolloff', 0)
+  endif
+  if has('nvim-0.6.0') || has("patch-8.1.2281")
+    call setwinvar(a:winid, '&showbreak', 'NONE')
+  endif
   if exists('*win_execute')
     call win_execute(a:winid, 'setl fillchars+=eob:\ ')
   endif
+  if get(a:config, 'autohide', 0)
+    call setwinvar(a:winid, 'autohide', 1)
+  endif
+  call setwinvar(a:winid, 'float', 1)
 endfunction
 
 function! s:nvim_add_related(winid, target, kind, winhl, related) abort
