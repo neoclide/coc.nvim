@@ -40,7 +40,11 @@ export default class ProgressNotification<R> extends Notification {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     this.disposables.push(tokenSource)
     let total = 0
-    await super.show(preferences)
+    if (this.config.buttons || !preferences.disabled) {
+      await super.show(preferences)
+    } else {
+      logger.warn(`progress window disabled by "notification.disabledProgressSources"`)
+    }
     task({
       report: p => {
         if (!this.winid) return

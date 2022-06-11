@@ -1,14 +1,14 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { debounce } from 'debounce'
-import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Position, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, HighlightItem, LocationListItem } from '../types'
 import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
-import { DiagnosticConfig, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
+import { adjustDiagnostics, DiagnosticConfig, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
@@ -45,11 +45,9 @@ const aleMethod = global.__TEST__ ? 'MockAleResults' : 'ale#other_source#ShowRes
  */
 export class DiagnosticBuffer implements SyncItem {
   private diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
-  private changed = false
   private _disposed = false
   private _dirty = false
   private _changeTs = 0
-  private outdated: Set<string> = new Set()
   public refreshHighlights: Function & { clear(): void }
   constructor(
     private readonly nvim: Neovim,
@@ -73,12 +71,23 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   public onChange(e: DidChangeTextDocumentParams): void {
-    if (e.contentChanges.length > 0) {
-      this.outdated = new Set(this.diagnosticsMap.keys())
+    let changes = e.contentChanges
+    if (changes.length > 0) {
+      this._changeTs = Date.now()
+      let edit = TextEdit.replace(changes[0].range, changes[0].text)
+      for (let [collection, diagnostics] of this.diagnosticsMap.entries()) {
+        if (diagnostics.length) {
+          let arr = adjustDiagnostics(diagnostics, edit)
+          this.diagnosticsMap.set(collection, arr)
+        }
+      }
     }
-    this._changeTs = Date.now()
-    this.changed = true
     this.refreshHighlights()
+  }
+
+  public onTextChange(): void {
+    this._dirty = true
+    this.refreshHighlights.clear()
   }
 
   private get displayByAle(): boolean {
@@ -130,30 +139,28 @@ export class DiagnosticBuffer implements SyncItem {
   public async update(collection: string, diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
     let { diagnosticsMap } = this
     let curr = diagnosticsMap.get(collection) || []
-    this.outdated.delete(collection)
-    if (diagnostics.length == 0 && curr.length == 0) return
+    if (!this._dirty && diagnostics.length == 0 && curr.length == 0) return
     diagnosticsMap.set(collection, diagnostics)
-    if (this.doc.dirty || Date.now() - this._changeTs < delay) {
+    if (this._dirty || Date.now() - this._changeTs < delay) {
       this._dirty = true
       return
     }
     let info = await this.getDiagnosticInfo()
     // avoid highlights on invalid state or buffer hidden.
-    if (!info || info.winid == -1) {
+    if (this._dirty || !info || info.winid == -1) {
       this._dirty = true
       return
     }
-    if (!this._dirty) {
-      let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
-      map.set(collection, diagnostics)
-      this.refresh(map, info)
-    }
+    let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
+    map.set(collection, diagnostics)
+    this.refresh(map, info)
   }
 
   /**
    * Reset all diagnostics of current buffer
    */
   public async reset(diagnostics: { [collection: string]: Diagnostic[] }, force?: boolean): Promise<void> {
+    this._changeTs = Date.now()
     let { diagnosticsMap } = this
     for (let key of diagnosticsMap.keys()) {
       // make sure clear collection when it's empty.
@@ -183,15 +190,13 @@ export class DiagnosticBuffer implements SyncItem {
       let disabledByInsert = events.insertMode && !refreshOnInsertMode
       if (disabledByInsert) return undefined
     }
-    let info: DiagnosticInfo | undefined = await nvim.call('coc#util#diagnostic_info', [bufnr, checkInsert])
-    return info
+    return await nvim.call('coc#util#diagnostic_info', [bufnr, checkInsert])
   }
 
   /**
    * Refresh changed diagnostics to UI.
    */
   private refresh(diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>>, info: DiagnosticInfo): void {
-    if (this.doc.dirty) return
     let { nvim, displayByAle } = this
     this._dirty = false
     if (displayByAle) {
@@ -201,12 +206,9 @@ export class DiagnosticBuffer implements SyncItem {
       }
       nvim.resumeNotification(true, true)
     } else {
-      let keys = Array.from(diagnosticsMap.keys())
-      if (keys.every(key => this.outdated.has(key))) return
       let emptyCollections: string[] = []
       nvim.pauseNotification()
       for (let [collection, diagnostics] of diagnosticsMap.entries()) {
-        if (this.outdated.has(collection)) continue
         if (diagnostics.length == 0) emptyCollections.push(collection)
         this.addSigns(collection, diagnostics)
         this.updateHighlights(collection, diagnostics)
@@ -353,11 +355,10 @@ export class DiagnosticBuffer implements SyncItem {
    * Refresh all diagnostics
    */
   private async _refresh(): Promise<void> {
-    if (!this.changed && !this._dirty) return
+    if (!this._dirty) return
     let info = await this.getDiagnosticInfo()
     let noHighlights = !info || info.winid == -1
     if (noHighlights || this.diagnosticsMap.size == 0) return
-    this.changed = false
     this.refresh(this.diagnosticsMap, info)
   }
 
@@ -409,8 +410,7 @@ export class DiagnosticBuffer implements SyncItem {
    */
   public getDiagnosticsAt(pos: Position, checkCurrentLine: boolean): Diagnostic[] {
     let diagnostics: Diagnostic[] = []
-    for (let [collection, diags] of this.diagnosticsMap.entries()) {
-      if (this.outdated.has(collection)) continue
+    for (let diags of this.diagnosticsMap.values()) {
       if (checkCurrentLine) {
         diagnostics.push(...diags.filter(o => lineInRange(pos.line, o.range)))
       } else {

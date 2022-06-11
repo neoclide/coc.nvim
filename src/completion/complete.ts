@@ -208,6 +208,7 @@ export default class Complete {
             let hasFollow = followPart.length > 0
             result.items.forEach((item, idx) => {
               let word = item.word ?? ''
+              let abbr = item.abbr ?? word
               item.word = word
               item.source = name
               item.priority = priority
@@ -215,7 +216,7 @@ export default class Complete {
               if (hasFollow && word != followPart && word.endsWith(followPart)) {
                 item.word = word.slice(0, - followPart.length)
               }
-              if (item.isSnippet === true) item.abbr = `${item.abbr || word}${snippetIndicator}`
+              if (item.isSnippet === true && !abbr.endsWith(snippetIndicator)) item.abbr = `${abbr}${snippetIndicator}`
               if (!item.abbr) item.abbr = word
               if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) || 0
               item.user_data = `${name}:${idx}`

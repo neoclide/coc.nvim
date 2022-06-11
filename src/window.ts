@@ -885,6 +885,8 @@ export class Window {
   private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
     if (!source) source = this.parseSource(stack)
     let config = workspace.getConfiguration('notification')
+    let disabledList = config.get<string[]>('disabledProgressSources', [])
+    let disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))
     return {
       broder: config.get<boolean>('border', true),
       focusable: config.get<boolean>('focusable', true),
@@ -894,6 +896,7 @@ export class Window {
       maxHeight: config.get<number>('maxHeight'),
       highlight: config.get<string>('highlightGroup'),
       winblend: config.get<number>('winblend'),
+      disabled,
       source,
     }
   }

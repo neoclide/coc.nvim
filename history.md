@@ -1,3 +1,8 @@
+# 2022-06-11
+
+- Add configuration "notification.disabledProgressSources"
+- Add "rounded" property to "floatConfig"
+
 # 2022-06-04
 
 - Add configuration `workspace.openOutputCommand`.

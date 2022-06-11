@@ -287,7 +287,7 @@ Diagnostics~
 
 	Enable automatically refresh diagnostics, use
 	|CocAction('diagnosticRefresh')| action to refresh diagnostics when it's
-	disabled.
+	disabled, default: `true`
 
 "diagnostic.refreshOnInsertMode"			*coc-config-diagnostic-refreshOnInsertMode*
 
@@ -610,6 +610,13 @@ Notification~
 "notification.maxHeight"				*coc-config-notification-maxHeight*
 
 	Maximum content height of notification dialog, default to `10`.
+
+"notification.disabledProgressSources"			*coc-config-notification-disabledProgressSources*
+
+	Sources that should be disabled for message progress, use "*" to
+	disable all message only progress notifications, default to `[]`
+
+	Source name could be extension id or `language-client-{id}`.
 
 "notification.minProgressWidth" 			*coc-config-notification-minProgressWidth*
 
@@ -1117,7 +1124,7 @@ Used by `suggest.floatConfig`, `diagnostic.floatConfig`,
 supported:
 
 	- "border": Change to `true` to enable border.
-	- "rounded": Change to `true` to use rounded border.
+	- "rounded": Use rounded borders when border is `true`.
 	- "highlight": Background highlight group of float window.
 	- "title": Title used by float window.
 	- "borderhighlight": Border highlight group of float window.

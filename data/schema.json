@@ -14,7 +14,7 @@
         "rounded": {
           "type": "boolean",
           "default": false,
-          "description": "Set to false to avoid rounded borders."
+          "description": "Use rounded borders when border is true."
         },
         "highlight": {
           "type": "string",
@@ -1020,6 +1020,14 @@
       "type": "boolean",
       "default": false,
       "description": "Use menu picker for message notification with actions."
+    },
+    "notification.disabledProgressSources": {
+      "type": "array",
+      "default": [],
+      "description": "Soureces that should be disabled for message progress, use * to disable all message only progresses",
+      "items": {
+        "type": "string"
+      }
     },
     "notification.minProgressWidth": {
       "type": "integer",

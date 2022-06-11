@@ -48,6 +48,26 @@ describe('signatureHelp', () => {
       expect(lines[2]).toMatch('my signature')
     })
 
+    it('should use 0 when activeParameter is undefined', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo(a)', 'my signature', { label: 'a' })],
+            activeParameter: undefined,
+            activeSignature: null
+          }
+        }
+      }, []))
+      await helper.createDocument()
+      await nvim.input('foo')
+      await signature.triggerSignatureHelp()
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let highlights = await win.getVar('highlights')
+      expect(highlights).toBeDefined()
+      expect(highlights[0].hlGroup).toBe('CocUnderline')
+    })
+
     it('should trigger by space', async () => {
       let promise = new Promise(resolve => {
         disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
@@ -115,13 +135,19 @@ describe('signatureHelp', () => {
     it('should cancel trigger on InsertLeave', async () => {
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: async (_doc, _position, token) => {
-          await helper.wait(1000)
-          if (token.isCancellationRequested) return undefined
-          return {
-            signatures: [SignatureInformation.create('foo()', 'my signature')],
-            activeParameter: null,
-            activeSignature: null
-          }
+          return new Promise(resolve => {
+            let timer = setTimeout(() => {
+              resolve({
+                signatures: [SignatureInformation.create('foo()', 'my signature')],
+                activeParameter: null,
+                activeSignature: null
+              })
+            }, 1000)
+            token.onCancellationRequested(() => {
+              clearTimeout(timer)
+              resolve(undefined)
+            })
+          })
         }
       }, ['(', ',']))
       await helper.createDocument()

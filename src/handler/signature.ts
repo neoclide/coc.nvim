@@ -139,7 +139,10 @@ export default class Signature {
     let startOffset = offset
     let docs = signatures.reduce((p, c, idx) => {
       let activeIndexes: [number, number] = null
-      let activeIndex = c.activeParameter ?? activeParameter
+      let activeIndex = c.activeParameter ?? typeof activeParameter === 'number' ? activeParameter : undefined
+      if (activeIndex === undefined && c.parameters?.length > 0) {
+        activeIndex = 0
+      }
       let nameIndex = c.label.indexOf('(')
       if (idx == 0 && typeof activeIndex === 'number') {
         let active = c.parameters?.[activeIndex]
