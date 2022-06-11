@@ -439,6 +439,8 @@ Format selected code:~
 Use 'formatexpr' for specific filetypes: >
 
   autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
+
+So that |gq| could works for format range of lines.
 >
 Setup visual mode and operator key-mappings: >
 
@@ -764,7 +766,7 @@ To create custom highlights for symbol under cursor, follow these steps:
 <
   to check token type and token modifiers with current symbol.
 
-- Create new highlight group by command, for example:
+- Create new highlight group by |highlight|, for example:
 >
   :hi link CocSemDeclarationVariable MoreMsg
 <
@@ -783,9 +785,7 @@ INTERFACE						*coc-interface*
 
 Key mappings						*coc-key-mappings*
 
-Unlike some vim plugins, coc.nvim doesn't create user global key-mappings by
-default.  However, there're some cases that local key-mappings are enabled for
-current buffer.
+There're some cases that local key-mappings are enabled for current buffer.
 
 	Snippet jump key-mappings when snippet is activated:
 	|g:coc_snippet_prev| and |g:coc_snippet_next|.
@@ -1624,8 +1624,8 @@ CocAction({action}, [...{args}])			*CocAction()*
 
 	Checkout |coc-actions| for available actions.
 
-	Note: it's recommended to use |CocActionAsync()| unless you need
-	result from |CocAction()|.
+	Note: it's recommended to use |CocActionAsync()| unless you have to
+	block your vim.
 
 							*CocActionAsync()*
 
