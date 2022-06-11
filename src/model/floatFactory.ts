@@ -42,7 +42,6 @@ export interface FloatWinConfig {
   shadow?: boolean
   winblend?: number
   focusable?: boolean
-  rounded?: boolean
   excludeImages?: boolean
 }
 

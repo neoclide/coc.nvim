@@ -98,7 +98,6 @@ export interface FloatConfig {
   winblend?: number
   focusable?: boolean
   shadow?: boolean
-  rounded?: boolean
 }
 
 export interface HighlightItemOption {
