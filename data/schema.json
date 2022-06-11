@@ -11,6 +11,11 @@
           "default": false,
           "description": "Set to true to use borders."
         },
+        "rounded": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use rounded borders when border is true."
+        },
         "highlight": {
           "type": "string",
           "default": "CocFloating",
@@ -797,6 +802,7 @@
       "additionalProperties": false,
       "properties": {
         "border": {},
+        "rounded": {},
         "highlight": {},
         "borderhighlight": {},
         "title": {},
@@ -858,6 +864,7 @@
       "additionalProperties": false,
       "properties": {
         "border": {},
+        "rounded": {},
         "highlight": {},
         "borderhighlight": {},
         "title": {},
@@ -942,6 +949,7 @@
       "additionalProperties": false,
       "properties": {
         "border": {},
+        "rounded": {},
         "highlight": {},
         "borderhighlight": {},
         "title": {},

@@ -32,7 +32,7 @@ describe('FloatFactory', () => {
         filetype: 'markdown',
         content: 'f'.repeat(81)
       }]
-      await floatFactory.show(docs)
+      await floatFactory.show(docs, { rounded: true })
       expect(floatFactory.window).toBeDefined()
       expect(floatFactory.buffer).toBeDefined()
       let hasFloat = await nvim.call('coc#float#has_float')

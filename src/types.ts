@@ -88,6 +88,7 @@ export interface FileSystemWatcher extends Disposable {
 
 export interface FloatConfig {
   border?: boolean
+  rounded?: boolean
   highlight?: string
   title?: string
   borderhighlight?: string

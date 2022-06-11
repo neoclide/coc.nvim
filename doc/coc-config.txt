@@ -1136,6 +1136,7 @@ Used by `suggest.floatConfig`, `diagnostic.floatConfig`,
 supported:
 
 	- "border": Change to `true` to enable border.
+	- "rounded": Use rounded borders when border is `true`.
 	- "highlight": Background highlight group of float window.
 	- "title": Title used by float window.
 	- "borderhighlight": Border highlight group of float window.

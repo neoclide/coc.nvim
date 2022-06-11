@@ -33,6 +33,7 @@ export interface FloatWinConfig {
   offsetX?: number
   title?: string
   border?: number[]
+  rounded?: boolean
   cursorline?: boolean
   close?: boolean
   highlight?: string
@@ -114,7 +115,9 @@ export default class FloatFactory implements Disposable {
   public applyFloatConfig(conf: FloatWinConfig, opts: FloatConfig): FloatWinConfig {
     for (let key of Object.keys(opts)) {
       if (key == 'border') {
-        if (opts.border) conf.border = [1, 1, 1, 1]
+        if (opts.border) {
+          conf.border = [1, 1, 1, 1]
+        }
         continue
       }
       conf[key] = opts[key]
@@ -150,13 +153,14 @@ export default class FloatFactory implements Disposable {
     docs = docs.filter(o => o.content.trim().length > 0)
     let { lines, codes, highlights } = parseDocuments(docs)
     let config: any = {
+      codes,
+      highlights,
       pumAlignTop: events.pumAlignTop,
       preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : false,
       offsetX: opts.offsetX || 0,
       title: opts.title || '',
       close: opts.close ? 1 : 0,
-      codes,
-      highlights,
+      rounded: opts.rounded ? 1 : 0,
       modes: opts.modes || ['n', 'i', 'ic', 's']
     }
     if (!isVim) {
