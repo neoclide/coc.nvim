@@ -199,7 +199,7 @@ export class Completion implements Disposable {
       return
     }
     if (option && shouldStop(bufnr, this.pretext, info, option)) {
-      this.stop(true)
+      this.stop(true, 'cancel')
       if (!info.insertChar) return
     }
     if (info.pre === this.pretext) return
