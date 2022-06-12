@@ -304,6 +304,7 @@ Related functions:~
 
 - Trigger completion with options: |coc#start()|.
 - Trigger completion refresh: |coc#refresh()|.
+- Select and confirm completion |coc#_select_confirm()|.
 - Check if customized popupmenu is visible: |coc#pum#visible()|.
 - Select next complete item: |coc#pum#next()|.
 - Select previous complete item: |coc#pum#prev()|.
@@ -1490,7 +1491,11 @@ coc#refresh()						*coc#refresh()*
 	'imap' to trigger completion, example: >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
-<
+
+coc#_select_confirm()					*coc#_select_confirm()*
+
+	Select first completion item if no completion item is selected, then
+	confirm the completion.
 
 coc#config({section}, {value})				*coc#config()*
 

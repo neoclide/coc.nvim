@@ -134,7 +134,7 @@ function! coc#snippet#move(position) abort
   let m = mode()
   if m == 's'
     call feedkeys("\<Esc>", 'in')
-  elseif pumvisible()
+  elseif coc#pum#visible()
     call coc#pum#close()
   endif
   let pos = coc#snippet#to_cursor(a:position)

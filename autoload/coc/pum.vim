@@ -3,6 +3,7 @@ let s:is_vim = !has('nvim')
 let s:float = has('nvim-0.4.0') || has('patch-8.1.1719')
 let s:pum_bufnr = 0
 let s:pum_winid = 0
+let s:pum_index = -1
 let s:inserted = 0
 let s:virtual_text = 0
 let s:virtual_text_ns = 0
@@ -32,12 +33,20 @@ function! coc#pum#close(...) abort
   if coc#float#valid(s:pum_winid)
     if get(a:, 1, '') ==# 'cancel'
       let input = getwinvar(s:pum_winid, 'input', '')
+      let s:pum_index = -1
       call s:insert_word(input)
+      call s:on_pum_change(0)
       doautocmd TextChangedI
     elseif get(a:, 1, '') ==# 'confirm'
       let words = getwinvar(s:pum_winid, 'words', [])
-      let index = coc#window#get_cursor(s:pum_winid)[0] - 1
-      let word = get(words, index, '')
+      if s:pum_index >= 0
+        let word = get(words, s:pum_index, '')
+        call s:insert_word(word)
+      endif
+      doautocmd TextChangedI
+    elseif get(a:, 1, '') ==# 'select-confirm'
+      let words = getwinvar(s:pum_winid, 'words', [])
+      let word = get(words, s:pum_index, '')
       call s:insert_word(word)
       doautocmd TextChangedI
     endif
@@ -47,6 +56,14 @@ function! coc#pum#close(...) abort
       call coc#rpc#notify('CompleteStop', [get(a:, 1, ''), pretext])
     endif
   endif
+endfunction
+
+function! coc#pum#select_confirm() abort
+  if s:pum_index < 0
+    let s:pum_index = 0
+    call s:on_pum_change(0)
+  endif
+  call coc#pum#close('confirm')
 endfunction
 
 function! coc#pum#insert() abort
@@ -65,10 +82,11 @@ endfunction
 
 function! s:insert_current() abort
   if coc#float#valid(s:pum_winid)
-    let words = getwinvar(s:pum_winid, 'words', [])
-    let index = coc#window#get_cursor(s:pum_winid)[0] - 1
-    let word = get(words, index, '')
-    call s:insert_word(word)
+    if s:pum_index >= 0
+      let words = getwinvar(s:pum_winid, 'words', [])
+      let word = get(words, s:pum_index, '')
+      call s:insert_word(word)
+    endif
     doautocmd TextChangedI
     call s:close_pum()
     let pretext = strpart(getline('.'), 0, col('.') - 1)
@@ -133,12 +151,11 @@ endfunction
 function! coc#pum#info() abort
   let bufnr = winbufnr(s:pum_winid)
   let size = coc#compat#buf_line_count(bufnr)
-  let index = coc#window#get_cursor(s:pum_winid)[0] - 1
   if s:is_vim
     let pos = popup_getpos(s:pum_winid)
     let add = pos['scrollbar'] && has_key(popup_getoptions(s:pum_winid), 'border') ? 1 : 0
     return {
-        \ 'index': index,
+        \ 'index': s:pum_index,
         \ 'scrollbar': pos['scrollbar'],
         \ 'row': pos['line'] - 1,
         \ 'col': pos['col'] - 1,
@@ -152,7 +169,7 @@ function! coc#pum#info() abort
     let winid = coc#float#get_related(s:pum_winid, 'border', s:pum_winid)
     let pos = nvim_win_get_position(winid)
     return {
-        \ 'index': index,
+        \ 'index': s:pum_index,
         \ 'scrollbar': scrollbar && nvim_win_is_valid(scrollbar) ? 1 : 0,
         \ 'row': pos[0],
         \ 'col': pos[1],
@@ -166,10 +183,10 @@ endfunction
 
 function! coc#pum#scroll(forward) abort
   if coc#pum#visible()
-    let [index, size] = s:get_index_size()
+    let size = coc#compat#buf_line_count(s:pum_bufnr)
     let height = s:get_height(s:pum_winid)
     if size > height
-      call timer_start(10, { -> s:scroll_pum(a:forward, height, index, size)})
+      call timer_start(10, { -> s:scroll_pum(a:forward, height, size)})
     endif
   endif
   return ''
@@ -182,26 +199,32 @@ function! s:get_height(winid) abort
   return get(popup_getpos(a:winid), 'core_height', 0)
 endfunction
 
-function! s:scroll_pum(forward, height, index, size) abort
+function! s:scroll_pum(forward, height, size) abort
   let topline = s:get_topline(s:pum_winid)
   if !a:forward && topline == 1
-    call s:select_line(s:pum_winid, 1)
-    call s:on_pum_change(1)
+    if s:pum_index >= 0
+      call s:select_line(s:pum_winid, 1)
+      call s:on_pum_change(1)
+    endif
     return
   endif
   if a:forward && topline + a:height - 1 >= a:size
-    call s:select_line(s:pum_winid, a:size)
-    call s:on_pum_change(1)
+    if s:pum_index >= 0
+      call s:select_line(s:pum_winid, a:size)
+      call s:on_pum_change(1)
+    endif
     return
   endif
   call coc#float#scroll_win(s:pum_winid, a:forward, a:height)
-  let lnum = a:index + 1
-  let topline = s:get_topline(s:pum_winid)
-  if lnum >= topline && lnum <= topline + a:height - 1
-    return
+  if s:pum_index >= 0
+    let lnum = s:pum_index + 1
+    let topline = s:get_topline(s:pum_winid)
+    if lnum >= topline && lnum <= topline + a:height - 1
+      return
+    endif
+    call s:select_line(s:pum_winid, topline)
+    call s:on_pum_change(1)
   endif
-  call s:select_line(s:pum_winid, topline)
-  call s:on_pum_change(1)
 endfunction
 
 function! s:get_topline(winid) abort
@@ -229,21 +252,26 @@ function! s:select_by_index(index, insert) abort
   endif
   if a:insert
     let s:inserted = 1
-    let words = getwinvar(s:pum_winid, 'words', [])
-    let word = get(words, a:index, '')
-    call s:insert_word(word)
+    if a:index < 0
+      let input = getwinvar(s:pum_winid, 'input', '')
+      call s:insert_word(input)
+      call coc#pum#close_detail()
+    else
+      let words = getwinvar(s:pum_winid, 'words', [])
+      let word = get(words, a:index, '')
+      call s:insert_word(word)
+    endif
     doautocmd TextChangedP
   endif
   call s:on_pum_change(1)
 endfunction
 
 function! s:get_index(next) abort
-  let result = s:get_index_size()
-  let [index, size] = result
+  let size = coc#compat#buf_line_count(s:pum_bufnr)
   if a:next
-    let index = index + 1 == size ? 0 : index + 1
+    let index = s:pum_index + 1 == size ? -1 : s:pum_index + 1
   else
-    let index = index == 0 ? size - 1 : index - 1
+    let index = s:pum_index == -1 ? size - 1 : s:pum_index - 1
   endif
   return index
 endfunction
@@ -317,7 +345,8 @@ function! coc#pum#create(lines, opt, config) abort
     let firstline = s:get_firstline(lnum, len(a:lines), config['height'])
     call coc#compat#execute(s:pum_winid, 'call winrestview({"lnum":'.lnum.',"topline":'.firstline.'})')
   endif
-  call coc#dialog#place_sign(s:pum_bufnr, config['index'] + 1)
+  let s:pum_index = get(config, 'index', -1)
+  call coc#dialog#place_sign(s:pum_bufnr, s:pum_index + 1)
   call setwinvar(s:pum_winid, 'kind', 'pum')
   " content before col and content after cursor
   let linetext = getline('.')
@@ -389,11 +418,6 @@ function! s:get_pum_dimension(lines, col, config) abort
         \ }
 endfunction
 
-function! s:get_index_size() abort
-  let index = coc#window#get_cursor(s:pum_winid)[0] - 1
-  return [index, coc#compat#buf_line_count(s:pum_bufnr)]
-endfunction
-
 " can't use coc#dialog#set_cursor on vim8, don't know why
 function! s:set_cursor(winid, line) abort
   if s:is_vim
@@ -405,7 +429,7 @@ function! s:set_cursor(winid, line) abort
             \ })
     elseif a:line < pos['firstline']
       call popup_setoptions(a:winid, {
-            \ 'firstline': a:line,
+            \ 'firstline': max([1, a:line]),
             \ })
     endif
   endif
@@ -413,10 +437,12 @@ function! s:set_cursor(winid, line) abort
 endfunction
 
 function! s:select_line(winid, line) abort
+  let s:pum_index = a:line - 1
+  let lnum = max([1, a:line])
   if s:is_vim
-    call coc#compat#execute(a:winid, 'exe '.a:line)
+    call coc#compat#execute(a:winid, 'exe '.lnum)
   else
-    call nvim_win_set_cursor(a:winid, [a:line, 0])
+    call nvim_win_set_cursor(a:winid, [lnum, 0])
   endif
   call coc#dialog#place_sign(winbufnr(a:winid), a:line)
 endfunction
@@ -426,14 +452,13 @@ function! s:insert_virtual_text() abort
     return
   endif
   let bufnr = bufnr('%')
-  if !s:virtual_text || !coc#pum#visible()
+  if !s:virtual_text || !coc#pum#visible() || s:pum_index < 0
     call nvim_buf_clear_namespace(bufnr, s:virtual_text_ns, 0, -1)
   else
     " Check if could create
     let insert = ''
     let words = getwinvar(s:pum_winid, 'words', [])
-    let index = coc#window#get_cursor(s:pum_winid)[0] - 1
-    let word = get(words, index, '')
+    let word = get(words, s:pum_index, '')
     let parts = getwinvar(s:pum_winid, 'parts', [])
     let input = strpart(getline('.'), strlen(parts[0]), col('.') - 1)
     if strchars(word) > strchars(input) && strcharpart(word, 0, strchars(input)) ==# input

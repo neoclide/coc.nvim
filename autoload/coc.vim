@@ -157,7 +157,8 @@ function! coc#refresh() abort
 endfunction
 
 function! coc#_select_confirm() abort
-  return coc#pum#confirm()
+  call timer_start(10, { -> coc#pum#select_confirm()})
+  return ''
 endfunction
 
 function! coc#complete_indent() abort

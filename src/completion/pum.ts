@@ -33,11 +33,16 @@ export interface PumConfig {
 }
 
 export default class PopupMenu {
+  private _search = ''
   constructor(
     private nvim: Neovim,
     private config: CompleteConfig,
     private mruLoader: MruLoader
   ) {
+  }
+
+  public get search(): string {
+    return this._search
   }
 
   public get pumConfig(): PumConfig {
@@ -59,6 +64,7 @@ export default class PopupMenu {
   }
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
+    this._search = search
     let { labelMaxLength, selection, floatConfig, disableMenuShortcut, virtualText } = this.config
     let selectedIndex = items.findIndex(o => o.preselect)
     if (selectedIndex !== -1 && search.length > 0) {

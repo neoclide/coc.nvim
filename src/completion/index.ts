@@ -186,10 +186,14 @@ export class Completion implements Disposable {
     if (!workspace.isAttached(bufnr) || this.config.autoTrigger === 'none') return
     let { option } = this
     // detect item word insert
-    if (!info.insertChar && this.selectedItem && option) {
-      let expected = byteSlice(option.line, 0, option.col) + this.selectedItem.word
-      if (expected == info.pre) {
-        this.pretext = info.pre
+    if (!info.insertChar && option) {
+      let pre = byteSlice(option.line, 0, option.col)
+      if (this.selectedItem) {
+        if (pre + this.selectedItem.word == info.pre) {
+          this.pretext = info.pre
+          return
+        }
+      } else if (pre + this.pum.search == info.pre) {
         return
       }
     }
@@ -199,7 +203,7 @@ export class Completion implements Disposable {
       return
     }
     if (option && shouldStop(bufnr, this.pretext, info, option)) {
-      this.stop(true, 'cancel')
+      this.stop(true)
       if (!info.insertChar) return
     }
     if (info.pre === this.pretext) return
