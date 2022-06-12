@@ -119,7 +119,7 @@ endfunction
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
-  let lnum = get(a:config, 'index', 0) + 1
+  let lnum = max([1, get(a:config, 'index', 0) + 1])
   " use exists
   if a:winid && coc#float#valid(a:winid)
     if s:is_vim

@@ -10,6 +10,7 @@ import { matchScoreWithPositions } from './match'
 const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
+  noselect: boolean
   selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
   virtualText: boolean
   disableMenuShortcut: boolean

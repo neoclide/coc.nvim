@@ -263,7 +263,8 @@ The builtin completion of vim is no longer used, the behavior of coc.nvim's
 completion works like VSCode:
 
 - Completion is automatically triggered by default.
-- Selection is always enabled, which enables preselect feature.
+- Preselect is enabled by default, configure |coc-config-suggest-noselect| to
+  disable default selection.
 - When no preselect item exists, recent used item that matched will be
   selected by default.
 - Snippet and additional edits only work after confirm completion.

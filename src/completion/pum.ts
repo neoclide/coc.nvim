@@ -65,8 +65,8 @@ export default class PopupMenu {
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { labelMaxLength, selection, floatConfig, disableMenuShortcut, virtualText } = this.config
-    let selectedIndex = items.findIndex(o => o.preselect)
+    let { labelMaxLength, noselect, selection, floatConfig, disableMenuShortcut, virtualText } = this.config
+    let selectedIndex = noselect ? -1 : items.findIndex(o => o.preselect)
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
       if (!item.filterText?.startsWith(search)) {
@@ -77,7 +77,7 @@ export default class PopupMenu {
     let abbrWidth = 0
     let menuWidth = 0
     let kindWidth = 0
-    let checkMru = selectedIndex == -1 && selection != 'none'
+    let checkMru = !noselect && selectedIndex == -1 && selection != 'none'
     // abbr kind, menu
     for (let i = 0; i < items.length; i++) {
       let item = items[i]
@@ -101,7 +101,7 @@ export default class PopupMenu {
       if (item.kind) kindWidth = Math.max(this.stringWidth(item.kind), kindWidth)
       if (menu.length > 0) menuWidth = Math.max(this.stringWidth(menu), menuWidth)
     }
-    if (selectedIndex == -1) selectedIndex = 0
+    if (!noselect && selectedIndex == -1) selectedIndex = 0
     let opt = {
       input: search,
       index: selectedIndex,
@@ -129,7 +129,7 @@ export default class PopupMenu {
   private buildItem(item: ExtendedCompleteItem, hls: HighlightItem[], index: number, config: BuildConfig): string {
     let text = config.border ? '' : ' '
     text += this.fillWidth(item.abbr, config.abbrWidth)
-    if (item.positions) {
+    if (item.positions?.length > 0) {
       let highlights = positionHighlights(item.abbr, item.positions.slice(), config.border ? 0 : 1, index)
       hls.push(...highlights)
       if (item.deprecated) {

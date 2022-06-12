@@ -336,7 +336,7 @@ function! coc#pum#create(lines, opt, config) abort
   let s:pum_winid = result[0]
   let s:pum_bufnr = result[1]
   call setwinvar(s:pum_winid, 'above', config['row'] < 0)
-  let lnum = a:opt['index'] + 1
+  let lnum = max([1, a:opt['index'] + 1])
   if s:is_vim
     call popup_setoptions(s:pum_winid, {
           \ 'firstline': s:get_firstline(lnum, len(a:lines), config['height'])

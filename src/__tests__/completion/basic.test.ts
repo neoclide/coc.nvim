@@ -42,6 +42,22 @@ describe('completion', () => {
       })
     })
 
+    describe('noselect', () => {
+      it('should not select complete item', async () => {
+        helper.updateConfiguration('suggest.noselect', true)
+        let doc = await workspace.document
+        await nvim.setLine('football foo')
+        await doc.synchronize()
+        await nvim.input('of')
+        await helper.waitPopup()
+        let info = await nvim.call('coc#pum#info')
+        expect(info.index).toBe(-1)
+        await nvim.call('coc#pum#select_confirm', [])
+        let line = await nvim.line
+        expect(line).toBe('foo')
+      })
+    })
+
     describe('characters only', () => {
       beforeEach(() => {
         helper.updateConfiguration('suggest.asciiCharactersOnly', true)

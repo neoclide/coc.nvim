@@ -109,6 +109,7 @@ export class Completion implements Disposable {
     }
     let acceptSuggestionOnCommitCharacter = getConfig<boolean>('acceptSuggestionOnCommitCharacter', false)
     this.config = Object.assign(this.config ?? {}, {
+      noselect: getConfig<boolean>('noselect', false),
       autoTrigger: getConfig<string>('autoTrigger', 'always'),
       virtualText: getConfig<boolean>('virtualText', false),
       selection: getConfig<'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'>('selection', 'recentlyUsed'),
