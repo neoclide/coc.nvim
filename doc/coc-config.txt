@@ -74,6 +74,10 @@ Completion related~
 
 	Maximum length of label shown in popup menu, default: `200`
 
+"suggest.disableMenuShortcut"				*coc-config-suggest-disableMenuShortcut*
+
+	Disable shortcut of completion source in menu, default: `false`
+
 "suggest.floatConfig"					*coc-config-suggest-floatConfig*
 
 	Configure style of popup menu and documentation window for completion,
@@ -183,10 +187,6 @@ Completion related~
 "suggest.highPrioritySourceLimit"			*coc-config-suggest-highPrioritySourceLimit*
 
 	Max items count for source priority bigger than or equal to `90`.
-
-"suggest.disableMenuShortcut"				*coc-config-suggest-disableMenuShortcut*
-
-	Disable shortcut of completion source in menu, default: `false`
 
 "suggest.removeDuplicateItems"				*coc-config-suggest-removeDuplicateItems*
 
@@ -760,7 +760,7 @@ List~
 "list.matchHighlightGroup"				*coc-config-list-matchHighlightGroup*
 
 	Highlight group used for matched texts in list window.
-	default: `"Search"`
+	default: `"CocSearch"`
 
 "list.previewHighlightGroup"				*coc-config-list-previewHighlightGroup*
 

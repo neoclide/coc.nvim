@@ -429,40 +429,6 @@ function! s:Hi() abort
   hi default link CocSelectedRange   CocHighlightText
   " Symbol highlights
   hi default link CocSymbolDefault       MoreMsg
-  hi default link CocSymbolText          CocSymbolDefault
-  hi default link CocSymbolUnit          CocSymbolDefault
-  hi default link CocSymbolValue         CocSymbolDefault
-  hi default link CocSymbolKeyword       CocSymbolDefault
-  hi default link CocSymbolSnippet       CocSymbolDefault
-  hi default link CocSymbolColor         CocSymbolDefault
-  hi default link CocSymbolReference     CocSymbolDefault
-  hi default link CocSymbolFolder        CocSymbolDefault
-  hi default link CocSymbolFile          Statement
-  hi default link CocSymbolModule        Statement
-  hi default link CocSymbolNamespace     Statement
-  hi default link CocSymbolPackage       Statement
-  hi default link CocSymbolClass         Statement
-  hi default link CocSymbolMethod        Function
-  hi default link CocSymbolProperty      Keyword
-  hi default link CocSymbolField         CocSymbolDefault
-  hi default link CocSymbolConstructor   Function
-  hi default link CocSymbolEnum          CocSymbolDefault
-  hi default link CocSymbolInterface     CocSymbolDefault
-  hi default link CocSymbolFunction      Function
-  hi default link CocSymbolVariable      CocSymbolDefault
-  hi default link CocSymbolConstant      Constant
-  hi default link CocSymbolString        String
-  hi default link CocSymbolNumber        Number
-  hi default link CocSymbolBoolean       Boolean
-  hi default link CocSymbolArray         CocSymbolDefault
-  hi default link CocSymbolObject        CocSymbolDefault
-  hi default link CocSymbolKey           Keyword
-  hi default link CocSymbolNull          Type
-  hi default link CocSymbolEnumMember    CocSymbolDefault
-  hi default link CocSymbolStruct        Keyword
-  hi default link CocSymbolEvent         Keyword
-  hi default link CocSymbolOperator      Operator
-  hi default link CocSymbolTypeParameter Operator
   "Pum
   hi default link CocPumSearch           CocSearch
   hi default link CocPumMenu             Comment
@@ -528,6 +494,47 @@ function! s:Hi() abort
       execute 'hi default link CocSem'.key.' '.(hlexists(ts) ? ts : fallback)
     endfor
   endif
+  let symbolMap = {
+      \ 'Keyword': ['TSKeyword', 'Keyword'],
+      \ 'Namespace': ['TSNamespace', 'Include'],
+      \ 'Class': ['TSConstructor', 'Special'],
+      \ 'Method': ['TSMethod', 'Function'],
+      \ 'Property': ['TSProperty', 'Identifier'],
+      \ 'Text': ['TSText', 'CocSymbolDefault'],
+      \ 'Unit': ['TSUnit', 'CocSymbolDefault'],
+      \ 'Value': ['TSValue', 'CocSymbolDefault'],
+      \ 'Snippet': ['TSSnippet', 'CocSymbolDefault'],
+      \ 'Color': ['TSColor', 'Float'],
+      \ 'Reference': ['TSTextReference', 'Constant'],
+      \ 'Folder': ['TSFolder', 'CocSymbolDefault'],
+      \ 'File': ['TSFile', 'Statement'],
+      \ 'Module': ['TSModule', 'Statement'],
+      \ 'Package': ['TSPackage', 'Statement'],
+      \ 'Field': ['TSField', 'Identifier'],
+      \ 'Constructor': ['TSConstructor', 'Special'],
+      \ 'Enum': ['TSEnum', 'CocSymbolDefault'],
+      \ 'Interface': ['TSInterface', 'CocSymbolDefault'],
+      \ 'Function': ['TSFunction', 'Function'],
+      \ 'Variable': ['TSVariableBuiltin', 'Special'],
+      \ 'Constant': ['TSConstant', 'Constant'],
+      \ 'String': ['TSString', 'String'],
+      \ 'Number': ['TSNumber', 'Number'],
+      \ 'Boolean': ['TSBoolean', 'Boolean'],
+      \ 'Array': ['TSArray', 'CocSymbolDefault'],
+      \ 'Object': ['TSObject', 'CocSymbolDefault'],
+      \ 'Key': ['TSKey', 'Identifier'],
+      \ 'Null': ['TSNull', 'Type'],
+      \ 'EnumMember': ['TSEnumMember', 'Identifier'],
+      \ 'Struct': ['TSStruct', 'Keyword'],
+      \ 'Event': ['TSEvent', 'Constant'],
+      \ 'Operator': ['TSOperator', 'Operator'],
+      \ 'TypeParameter': ['TSParameter', 'Identifier'],
+      \ }
+  for [key, value] in items(symbolMap)
+    let ts = get(value, 0, '')
+    let fallback = get(value, 1, 'CocSymbolDefault')
+    execute 'hi default link CocSymbol'.key.' '.(hlexists(ts) ? ts : fallback)
+  endfor
 endfunction
 
 function! s:FormatFromSelected(type)

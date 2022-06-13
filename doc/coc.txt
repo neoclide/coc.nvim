@@ -140,8 +140,9 @@ The global configuration file can be created in another directory by setting
 
 	let g:coc_config_home = '/path/to/folder'
 
-The configuration files are all in JSON format, it's recommended to
-enable JSON completion and validation by install the `coc-json` extension: >
+The configuration files are all in JSON format (with comment supported), it's
+recommended to enable JSON completion and validation by install the `coc-json`
+extension: >
 
 	:CocInstall coc-json
 <
@@ -157,8 +158,10 @@ All features (except for telemetry) of LSP 3.16 are supported, checkout
 the specification at
 https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/
 
-Use `:CocCommand document.checkBuffer` to check exists providers used by
-current buffer. Or use API |CocHasProvider()|.
+LSP features only works with attached document, see |coc-document-attached|.
+
+To check exists providers of current buffer, use command
+`:CocCommand document.checkBuffer` or |CocHasProvider()|.
 
 For historic reason, some features just works, but some are not.
 
@@ -259,21 +262,21 @@ Note make sure use mapped filetypes for configurations that expect filetypes.
 ==============================================================================
 COMPLETION						*coc-completion*
 
-The builtin completion of vim is no longer used, the behavior of coc.nvim's
-completion works like VSCode:
+The builtin completion of vim is no longer used, the default completion
+behavior works like VSCode:
 
 - Completion is automatically triggered by default.
-- Preselect is enabled by default, configure |coc-config-suggest-noselect| to
+- Item selection is enabled by default, use |coc-config-suggest-noselect| to
   disable default selection.
-- When no preselect item exists, recent used item that matched will be
-  selected by default.
+- When selection enabled and no preselect item exists, recent used item that
+  matched will be selected by default.
 - Snippet and additional edits only work after confirm completion.
 - 'completeopt' is not used and APIs of builtin popupmenu not work.
 
 Default Key-mappings:~
 
 To make the completion work like builtin completion without configuration,
-following key-mappings are used when the lhs is not mapped:
+following key-mappings are used when the {lhs} is not mapped:
 
 Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
 
@@ -305,7 +308,7 @@ Related functions:~
 
 - Trigger completion with options: |coc#start()|.
 - Trigger completion refresh: |coc#refresh()|.
-- Select and confirm completion |coc#_select_confirm()|.
+- Select and confirm completion: |coc#_select_confirm()|.
 - Check if customized popupmenu is visible: |coc#pum#visible()|.
 - Select next complete item: |coc#pum#next()|.
 - Select previous complete item: |coc#pum#prev()|.
@@ -361,19 +364,19 @@ Use <c-space> to trigger completion: >
 <
 Use <CR> to confirm completion, use: >
 
-  inoremap <expr> <cr> coc#pum#visible() ? coc#pum#confirm() : "\<CR>"
+  inoremap <expr> <cr> coc#pum#visible() ? coc#_select_confirm() : "\<CR>"
 <
 To make <CR> to confirm selection of selected complete item or notify coc.nvim
 to format on enter, use: >
 
-  inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+  inoremap <silent><expr> <CR> coc#pum#visible() ? coc#_select_confirm()
 				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 Map <tab> for trigger completion, completion confirm, snippet expand and jump
 like VSCode: >
 
   inoremap <silent><expr> <TAB>
-    \ coc#pum#visible() ? coc#pum#confirm() :
+    \ coc#pum#visible() ? coc#_select_confirm() :
     \ coc#expandableOrJumpable() ?
     \ "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
     \ <SID>check_back_space() ? "\<TAB>" :
@@ -440,7 +443,7 @@ Use key-mappings:
 
 Check all diagnostics~
 
-Use |coc-list-diagnostics| to open |CocList| with all diagnostics.
+Use |coc-list-diagnostics| to open |coc-list| with all diagnostics.
 
 Use API |CocAction('diagnosticList')| to get list of all diagnostics.
 
@@ -565,6 +568,12 @@ Or create |BufWritePre| autocmd like: >
 	autocmd BufWritePre * call CocAction('format')
 <
 Note avoid use |CocActionAsync| with |BufWritePre|.
+
+Format on enter:~
+
+Use |coc#on_enter()| required to notify coc.nvim press on the enter key.
+
+Configure |coc-preferences-bracketEnterImprove|
 
 ==============================================================================
 CODE ACTION 						*coc-code-actions*
@@ -2628,21 +2637,23 @@ CocTree 						*CocTree*
 *CocTreeOpenClose* for open and close icon in tree view.
 *CocTreeSelected* for highlight lines contains selected node.
 
-Pum related~
+Popup menu related~
 							*CocPum*
 *CocPumSearch* for matched input characters, linked to |CocSearch| by default.
 *CocPumMenu* for menu of complete items (mostly used for source shortcut).
 *CocPumDeprecated* for highlight deprecated label.
-*CocPumVirtualText* for highlight virtual text enabled by
+*CocPumVirtualText* for highlight virtual text which enabled by
 |coc-config-suggest-virtualText|
 
 Symbol icons~
 
 CocSymbol 						*CocSymbol*
 
-Highlight groups for symbol icons, including:
+Highlight groups for symbol icons, including `CompletionItemKind` and
+`SymbolKind` of LSP.  The highlight groups link to related |nvim-treesitter|
+highlight groups when possible and fallback to builtin highlight groups.
 
-*CocSymbolDefault*
+*CocSymbolDefault* linked to |hl-MoreMsg| by default.
 *CocSymbolText*
 *CocSymbolUnit*
 *CocSymbolValue*
@@ -2684,7 +2695,7 @@ characters.
 Semantic token highlight groups~
 								*CocSem*
 
-Semantic highlight groups are starts with `CocSem` which links to related
+Semantic highlight groups are starts with `CocSem` which link to related
 |nvim-treesitter| highlight groups when possible and fallback to builtin
 highlight groups, use variable |g:coc_default_semantic_highlight_groups| to
 disable creation of these highlight groups.
@@ -2908,12 +2919,11 @@ Options of CocList command~
 	Use interactive mode, list items would be reloaded on input
 	change, filter and sort would be done by list implementation.
 
+	Note: only works when the list support interactive mode.
+
 	Note: filtering and sorting would be done by underlying task, which
 	means options including `--strict`, `--no-sort`, `--regex`,
 	`--ignore-case` would not work at all.
-
-	Note: it requires list implementation have support for interactive
-	mode.
 
 --auto-preview
 -A
@@ -2941,9 +2951,9 @@ LIST CONFIGURATION					*coc-list-configuration*
 
 Use `coc-settings.json` for configuration of lists.
 
-The general configuration of list starts with 'list.'.
+Configuration of list starts with 'list.'.
 
-Checkout |coc-config-list| or type `list.` in your settings file to get completion
+See |coc-config-list| or type `list.` in your settings file to get completion
 list (requires coc-json installed).
 
 For configuration of a specified list, use section that starts with:
