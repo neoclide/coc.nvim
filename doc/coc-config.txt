@@ -70,6 +70,11 @@ Completion related~
 
 	Could be "none", "recentlyUsed" and "recentlyUsedByPrefix".
 
+"suggest.enablePreselect" 				*coc-config-suggest-enablePreselect*
+
+	Enable preselect feature of LSP, works when "suggest.noselect" is false.
+	Default: `true`.
+
 "suggest.labelMaxLength"				*coc-config-suggest-labelMaxLength*
 
 	Maximum length of label shown in popup menu, default: `200`

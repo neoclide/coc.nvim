@@ -58,6 +58,27 @@ describe('completion', () => {
       })
     })
 
+    describe('preselect', () => {
+      it('should disable preselect feature', async () => {
+        helper.updateConfiguration('suggest.enablePreselect', false)
+        let source: ISource = {
+          priority: 0,
+          enable: true,
+          name: 'preselect',
+          sourceType: SourceType.Service,
+          triggerCharacters: ['.'],
+          doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+            resolve({ items: [{ word: 'foo' }, { word: 'bar' }, { word: 'foot', preselect: true }] })
+          })
+        }
+        disposables.push(sources.addSource(source))
+        await nvim.input('i.')
+        await helper.waitPopup()
+        let info = await nvim.call('coc#pum#info')
+        expect(info.index).toBe(0)
+      })
+    })
+
     describe('characters only', () => {
       beforeEach(() => {
         helper.updateConfiguration('suggest.asciiCharactersOnly', true)

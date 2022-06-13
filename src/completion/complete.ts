@@ -11,6 +11,7 @@ const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
   noselect: boolean
+  enablePreselect: boolean
   selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
   virtualText: boolean
   disableMenuShortcut: boolean
@@ -207,7 +208,7 @@ export default class Complete {
           if (len > 0) {
             result.priority = priority
             let hasFollow = followPart.length > 0
-            result.items.forEach((item, idx) => {
+            result.items.forEach(item => {
               let word = item.word ?? ''
               let abbr = item.abbr ?? word
               item.word = word
@@ -220,7 +221,6 @@ export default class Complete {
               if (item.isSnippet === true && !abbr.endsWith(snippetIndicator)) item.abbr = `${abbr}${snippetIndicator}`
               if (!item.abbr) item.abbr = word
               if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) || 0
-              item.user_data = `${name}:${idx}`
             })
             this.setResult(name, result)
           } else {

@@ -396,6 +396,11 @@
       "description": "Controls how suggestions are pre-selected when showing the suggest list.",
       "enum": ["none", "recentlyUsed", "recentlyUsedByPrefix"]
     },
+    "suggest.enablePreselect": {
+      "type": "boolean",
+      "description": "Enable preselect feature of LSP, works when suggest.noselect is false.",
+      "default": true
+    },
     "suggest.floatConfig": {
       "type": "object",
       "description": "Configure style of popup menu and documentation window of completion.",

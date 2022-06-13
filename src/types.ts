@@ -651,12 +651,10 @@ export interface VimCompleteItem {
   equal?: number
   dup?: number
   empty?: number
-  user_data?: string
 }
 
 export interface CompleteDoneItem {
   readonly word: string
-  readonly user_data?: string
   // if there's ClosePum event just received.
   close?: boolean
   // already cancelled by completion.stop()

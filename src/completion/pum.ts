@@ -65,11 +65,11 @@ export default class PopupMenu {
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { labelMaxLength, noselect, selection, floatConfig, disableMenuShortcut, virtualText } = this.config
-    let selectedIndex = noselect ? -1 : items.findIndex(o => o.preselect)
+    let { labelMaxLength, noselect, enablePreselect, selection, floatConfig, disableMenuShortcut, virtualText } = this.config
+    let selectedIndex = noselect || !enablePreselect ? -1 : items.findIndex(o => o.preselect)
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
-      if (!item.filterText?.startsWith(search)) {
+      if (!item.word?.startsWith(search)) {
         selectedIndex = -1
       }
     }
@@ -88,7 +88,6 @@ export default class PopupMenu {
           selectedIndex = i
         }
       }
-      delete item.preselect
       let menu = item.menu ?? ''
       if (item.abbr.length > labelMaxLength) {
         item.abbr = item.abbr.slice(0, labelMaxLength)
