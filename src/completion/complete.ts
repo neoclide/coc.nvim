@@ -12,6 +12,7 @@ const logger = require('../util/logger')('completion-complete')
 export interface CompleteConfig {
   noselect: boolean
   enablePreselect: boolean
+  formatItems: ReadonlyArray<string>
   selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
   virtualText: boolean
   labelMaxLength: number
@@ -30,7 +31,7 @@ export interface CompleteConfig {
   removeDuplicateItems: boolean
   defaultSortMethod: string
   asciiCharactersOnly: boolean
-  ignoreRegexps: string[]
+  ignoreRegexps: ReadonlyArray<string>
   ambiguousIsNarrow: boolean
   floatConfig: FloatConfig
 }

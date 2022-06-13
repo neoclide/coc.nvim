@@ -907,7 +907,7 @@ describe('completion', () => {
       await nvim.input('of')
       await helper.waitPopup()
       let items = await helper.getItems()
-      items = items.filter(o => o.menu == '[A]')
+      items = items.filter(o => o.source == 'around')
       expect(items.length).toBe(2)
     })
 
@@ -931,6 +931,7 @@ describe('completion', () => {
     })
 
     it('should truncate label of complete items', async () => {
+      helper.updateConfiguration('suggest.formatItems', ['abbr'])
       helper.updateConfiguration('suggest.labelMaxLength', 10)
       let source: ISource = {
         name: 'high',
@@ -945,11 +946,11 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      let items = await helper.getItems()
-      for (let item of items) {
-        if (!item.abbr) continue
-        expect(item.abbr.length).toBeLessThanOrEqual(10)
-      }
+      let winid = await nvim.call('coc#float#get_float_by_kind', ['pum'])
+      let win = nvim.createWindow(winid)
+      let buf = await win.buffer
+      let lines = await buf.lines
+      expect(lines[0].trim().length).toBe(10)
     })
 
     it('should delete previous items when complete items is null', async () => {

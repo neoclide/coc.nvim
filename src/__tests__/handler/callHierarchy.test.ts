@@ -161,7 +161,6 @@ describe('CallHierarchy', () => {
     matches = await nvim.call('getmatches')
     expect(matches.length).toBe(0)
     await nvim.command(`wincmd o`)
-    await helper.wait(50)
   })
 
   it('should invoke open in new tab action', async () => {

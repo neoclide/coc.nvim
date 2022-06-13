@@ -108,8 +108,10 @@ export class Completion implements Disposable {
       return suggest.get<T>(key, defaultValue)
     }
     this.config = Object.assign(this.config ?? {}, {
+      ambiguousIsNarrow: workspace.env.ambiguousIsNarrow,
       noselect: getConfig<boolean>('noselect', false),
       enablePreselect: getConfig<boolean>('enablePreselect', true),
+      formatItems: getConfig<string[]>('formatItems', ['abbr', 'menu', 'kind', 'shortcut']),
       autoTrigger: getConfig<string>('autoTrigger', 'always'),
       virtualText: getConfig<boolean>('virtualText', false),
       selection: getConfig<'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'>('selection', 'recentlyUsed'),
@@ -124,7 +126,6 @@ export class Completion implements Disposable {
       timeout: getConfig<number>('timeout', 500),
       minTriggerInputLength: getConfig<number>('minTriggerInputLength', 1),
       snippetIndicator: getConfig<string>('snippetIndicator', '~'),
-      ambiguousIsNarrow: getConfig<boolean>('ambiguousIsNarrow', true),
       fixInsertedWord: getConfig<boolean>('fixInsertedWord', true),
       localityBonus: getConfig<boolean>('localityBonus', true),
       highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),

@@ -70,6 +70,11 @@ Completion related~
 
 	Could be "none", "recentlyUsed" and "recentlyUsedByPrefix".
 
+"suggest.formatItems" 					*coc-config-suggest-formatItems*
+
+	Items shown in popup menu in order.
+	Default to : `["abbr", "menu", "kind", "shortcut"]`
+
 "suggest.enablePreselect" 				*coc-config-suggest-enablePreselect*
 
 	Enable preselect feature of LSP, works when "suggest.noselect" is false.
@@ -121,11 +126,6 @@ Completion related~
 
 	The character used in completion item abbreviation to indicate it
 	expands as code snippet, default: `~`.
-
-"suggest.ambiguousIsNarrow"				*coc-config-suggest-ambiguousIsNarrow*
-
-	Count ambiguous width characters as having narrow width (count of 1)
-	instead of wide width (count of 2), default: `true`.
 
 "suggest.maxCompleteItemCount"				*coc-config-suggest-maxCompleteItemCount*
 

@@ -390,6 +390,18 @@
       "description": "Not make vim select first item on completion start",
       "default": false
     },
+    "suggest.formatItems": {
+      "type": "array",
+      "items": {
+        "enum": ["abbr", "menu", "kind", "shortcut"]
+      },
+      "contains": {
+        "enum": ["abbr"]
+      },
+      "uniqueItems": true,
+      "description": "Items shown in popup menu in order.",
+      "default": ["abbr", "menu", "kind", "shortcut"]
+    },
     "suggest.selection": {
       "type": "string",
       "default": "recentlyUsed",
@@ -415,11 +427,6 @@
         "winblend": {},
         "shadow": {}
       }
-    },
-    "suggest.ambiguousIsNarrow": {
-      "type": "boolean",
-      "description": "Count ambiguous width characters as having narrow width (count of 1) instead of wide width (count of 2)",
-      "default": true
     },
     "suggest.labelMaxLength": {
       "type": "number",
@@ -535,32 +542,32 @@
       "default": {},
       "description": "Set custom labels to completion items' kinds.",
       "properties": {
-        "text": { "type": "string" },
-        "method": { "type": "string" },
-        "function": { "type": "string" },
-        "constructor": { "type": "string" },
-        "field": { "type": "string" },
-        "variable": { "type": "string" },
-        "class": { "type": "string" },
-        "interface": { "type": "string" },
-        "module": { "type": "string" },
-        "property": { "type": "string" },
-        "unit": { "type": "string" },
-        "value": { "type": "string" },
-        "enum": { "type": "string" },
-        "keyword": { "type": "string" },
-        "snippet": { "type": "string" },
-        "color": { "type": "string" },
-        "file": { "type": "string" },
-        "reference": { "type": "string" },
-        "folder": { "type": "string" },
-        "enumMember": { "type": "string" },
-        "constant": { "type": "string" },
-        "struct": { "type": "string" },
-        "event": { "type": "string" },
-        "operator": { "type": "string" },
-        "typeParameter": { "type": "string" },
-        "default": { "type": "string" }
+        "text": { "type": "string", "maxLength": 1 },
+        "method": { "type": "string", "maxLength": 1 },
+        "function": { "type": "string", "maxLength": 1 },
+        "constructor": { "type": "string", "maxLength": 1 },
+        "field": { "type": "string", "maxLength": 1 },
+        "variable": { "type": "string", "maxLength": 1 },
+        "class": { "type": "string", "maxLength": 1 },
+        "interface": { "type": "string", "maxLength": 1 },
+        "module": { "type": "string", "maxLength": 1 },
+        "property": { "type": "string", "maxLength": 1 },
+        "unit": { "type": "string", "maxLength": 1 },
+        "value": { "type": "string", "maxLength": 1 },
+        "enum": { "type": "string", "maxLength": 1 },
+        "keyword": { "type": "string", "maxLength": 1 },
+        "snippet": { "type": "string", "maxLength": 1 },
+        "color": { "type": "string", "maxLength": 1 },
+        "file": { "type": "string", "maxLength": 1 },
+        "reference": { "type": "string", "maxLength": 1 },
+        "folder": { "type": "string", "maxLength": 1 },
+        "enumMember": { "type": "string", "maxLength": 1 },
+        "constant": { "type": "string", "maxLength": 1 },
+        "struct": { "type": "string", "maxLength": 1 },
+        "event": { "type": "string", "maxLength": 1 },
+        "operator": { "type": "string", "maxLength": 1 },
+        "typeParameter": { "type": "string", "maxLength": 1 },
+        "default": { "type": "string", "maxLength": 1 }
       },
       "additionalProperties": false
     },

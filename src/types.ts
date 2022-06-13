@@ -150,6 +150,7 @@ export interface Env {
   readonly tabCount: number
   readonly mode: string
   readonly apiversion: number
+  readonly ambiguousIsNarrow: boolean
   readonly floating: boolean
   readonly sign: boolean
   readonly extensionRoot: string

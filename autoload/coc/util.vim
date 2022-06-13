@@ -276,6 +276,7 @@ function! coc#util#vim_info()
         \ 'updateHighlight': has('nvim-0.5.0') || has('patch-8.1.1719') ? v:true : v:false,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
+        \ 'ambiguousIsNarrow': &ambiwidth ==# 'single' ? v:true : v:false,
         \ 'textprop': has('textprop') && has('patch-8.1.1719') && !has('nvim') ? v:true : v:false,
         \ 'dialog': has('nvim-0.4.0') || has('patch-8.2.0750') ? v:true : v:false,
         \ 'semanticHighlights': coc#util#semantic_hlgroups()
