@@ -16,11 +16,11 @@ export interface PumDimension {
 }
 
 export interface BuildConfig {
-  readonly border: boolean
-  readonly abbrWidth: number
-  readonly menuWidth: number
-  readonly kindWidth: number
-  readonly shortcutWidth: number
+  border: boolean
+  abbrWidth: number
+  menuWidth: number
+  kindWidth: number
+  shortcutWidth: number
 }
 
 export interface PumConfig {
@@ -111,15 +111,36 @@ export default class PopupMenu {
     let highlights: HighlightItem[] = []
     // create lines and highlights
     let width = 0
-    let cfg: BuildConfig = { border: !!floatConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
+    let buildConfig: BuildConfig = { border: !!floatConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
+    this.adjustAbbrWidth(buildConfig)
     for (let index = 0; index < items.length; index++) {
-      let text = this.buildItem(items[index], highlights, index, cfg)
+      let text = this.buildItem(items[index], highlights, index, buildConfig)
       width = Math.max(width, this.stringWidth(text))
       lines.push(text)
     }
     let config: PumConfig = Object.assign({ width, highlights }, this.pumConfig)
     this.nvim.call('coc#pum#create', [lines, opt, config], true)
     this.nvim.redrawVim()
+  }
+
+  private adjustAbbrWidth(config: BuildConfig): void {
+    let { formatItems, pumwidth } = this.config
+    if (!pumwidth) return
+    let len = 0
+    for (const item of formatItems) {
+      if (item == 'abbr') {
+        len += config.abbrWidth + 1
+      } else if (item == 'menu' && config.menuWidth) {
+        len += config.menuWidth + 1
+      } else if (item == 'kind' && config.kindWidth) {
+        len += config.kindWidth + 1
+      } else if (item == 'shortcut' && config.shortcutWidth) {
+        len += config.shortcutWidth + 1
+      }
+    }
+    if (len < pumwidth) {
+      config.abbrWidth = config.abbrWidth + pumwidth - len
+    }
   }
 
   private buildItem(item: ExtendedCompleteItem, hls: HighlightItem[], index: number, config: BuildConfig): string {

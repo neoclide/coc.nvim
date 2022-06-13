@@ -11,6 +11,7 @@ const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
   noselect: boolean
+  pumwidth: number
   enablePreselect: boolean
   formatItems: ReadonlyArray<string>
   selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
