@@ -89,8 +89,7 @@ export default class Source implements ISource {
   }
 
   public get menu(): string {
-    let { shortcut } = this
-    return shortcut ? `[${shortcut}]` : ''
+    return ''
   }
 
   /**

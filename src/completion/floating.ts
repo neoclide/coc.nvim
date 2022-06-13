@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { parseDocuments } from '../markdown'
 import sources from '../sources'
-import { Documentation, ExtendedCompleteItem, FloatConfig } from '../types'
+import { CompleteOption, Documentation, ExtendedCompleteItem, FloatConfig } from '../types'
 import workspace from '../workspace'
 const logger = require('../util/logger')('completion-floating')
 
@@ -18,16 +18,14 @@ export default class Floating {
     this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
   }
 
-  public async resolveItem(item: ExtendedCompleteItem, floatConfig: Readonly<FloatConfig>, filetype: string): Promise<void> {
+  public async resolveItem(item: ExtendedCompleteItem, floatConfig: Readonly<FloatConfig>, opt: CompleteOption): Promise<void> {
     let source = this.tokenSource = new CancellationTokenSource()
     let { token } = source
-    await this.doCompleteResolve(item, source)
+    await this.doCompleteResolve(item, opt, source)
     if (token.isCancellationRequested) return
     let docs = item.documentation ?? []
     if (docs.length === 0 && typeof item.info === 'string') {
-      let { info } = item
-      let isText = /^[\w-\s.,\t]+$/.test(info)
-      docs = [{ filetype: isText ? 'txt' : filetype, content: info }]
+      docs = [{ filetype: 'txt', content: item.info }]
     }
     this.show(docs, Object.assign({}, floatConfig, { excludeImages: this.excludeImages }))
   }
@@ -55,7 +53,7 @@ export default class Floating {
     }
   }
 
-  public doCompleteResolve(item: ExtendedCompleteItem, tokenSource: CancellationTokenSource): Promise<void> {
+  public doCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, tokenSource: CancellationTokenSource): Promise<void> {
     let source = sources.getSource(item.source)
     return new Promise<void>(resolve => {
       if (source && typeof source.onCompleteResolve === 'function') {
@@ -67,7 +65,7 @@ export default class Floating {
           logger.warn(`Resolve timeout after 500ms: ${source.name}`)
           resolve()
         }, 500)
-        Promise.resolve(source.onCompleteResolve(item, tokenSource.token)).then(() => {
+        Promise.resolve(source.onCompleteResolve(item, opt, tokenSource.token)).then(() => {
           clearTimeout(timer)
           resolve()
         }, e => {

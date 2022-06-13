@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import stringWidth from '@chemzqm/string-width'
+import sources from '../sources'
 import { CompleteOption, ExtendedCompleteItem, HighlightItem } from '../types'
 import { byteIndex, byteLength } from '../util/string'
 import { CompleteConfig } from './complete'
@@ -19,6 +20,7 @@ export interface BuildConfig {
   readonly abbrWidth: number
   readonly menuWidth: number
   readonly kindWidth: number
+  readonly shortcutWidth: number
 }
 
 export interface PumConfig {
@@ -65,7 +67,7 @@ export default class PopupMenu {
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { labelMaxLength, noselect, enablePreselect, selection, floatConfig, disableMenuShortcut, virtualText } = this.config
+    let { labelMaxLength, noselect, enablePreselect, selection, floatConfig, virtualText } = this.config
     let selectedIndex = noselect || !enablePreselect ? -1 : items.findIndex(o => o.preselect)
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
@@ -77,6 +79,7 @@ export default class PopupMenu {
     let abbrWidth = 0
     let menuWidth = 0
     let kindWidth = 0
+    let shortcutWidth = 0
     let checkMru = !noselect && selectedIndex == -1 && selection != 'none'
     // abbr kind, menu
     for (let i = 0; i < items.length; i++) {
@@ -88,17 +91,11 @@ export default class PopupMenu {
           selectedIndex = i
         }
       }
-      let menu = item.menu ?? ''
-      if (item.abbr.length > labelMaxLength) {
-        item.abbr = item.abbr.slice(0, labelMaxLength)
-      }
-      if (disableMenuShortcut && menu.length) {
-        menu = menu.replace(/\[\w+\]$/, '')
-        item.menu = menu
-      }
-      abbrWidth = Math.max(this.stringWidth(item.abbr), abbrWidth)
+      let shortcut = sources.getShortcut(item.source)
+      abbrWidth = Math.max(this.stringWidth(item.abbr.slice(0, labelMaxLength)), abbrWidth)
       if (item.kind) kindWidth = Math.max(this.stringWidth(item.kind), kindWidth)
-      if (menu.length > 0) menuWidth = Math.max(this.stringWidth(menu), menuWidth)
+      if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu), menuWidth)
+      if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut) + 2, shortcutWidth)
     }
     if (!noselect && selectedIndex == -1) selectedIndex = 0
     let opt = {
@@ -114,7 +111,7 @@ export default class PopupMenu {
     let highlights: HighlightItem[] = []
     // create lines and highlights
     let width = 0
-    let cfg: BuildConfig = { border: !!floatConfig.border, menuWidth, abbrWidth, kindWidth }
+    let cfg: BuildConfig = { border: !!floatConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
     for (let index = 0; index < items.length; index++) {
       let text = this.buildItem(items[index], highlights, index, cfg)
       width = Math.max(width, this.stringWidth(text))
@@ -127,19 +124,21 @@ export default class PopupMenu {
 
   private buildItem(item: ExtendedCompleteItem, hls: HighlightItem[], index: number, config: BuildConfig): string {
     let text = config.border ? '' : ' '
-    text += this.fillWidth(item.abbr, config.abbrWidth)
+    let { labelMaxLength } = this.config
     if (item.positions?.length > 0) {
-      let highlights = positionHighlights(item.abbr, item.positions.slice(), config.border ? 0 : 1, index)
+      let positions = item.positions.filter(i => i < labelMaxLength)
+      let highlights = positionHighlights(item.abbr, positions, text.length, index)
       hls.push(...highlights)
-      if (item.deprecated) {
-        let start = config.border ? 0 : 1
-        hls.push({
-          hlGroup: 'CocPumDeprecated',
-          lnum: index,
-          colStart: start,
-          colEnd: byteLength(text)
-        })
-      }
+    }
+    let pre = text.length
+    text += this.fillWidth(item.abbr.slice(0, labelMaxLength), config.abbrWidth)
+    if (item.deprecated) {
+      hls.push({
+        hlGroup: 'CocPumDeprecated',
+        lnum: index,
+        colStart: pre,
+        colEnd: byteLength(text)
+      })
     }
     if (config.kindWidth > 0) {
       text += ' '
@@ -164,6 +163,20 @@ export default class PopupMenu {
           lnum: index,
           colStart: pre,
           colEnd: pre + byteLength(item.menu)
+        })
+      }
+    }
+    if (config.shortcutWidth > 0) {
+      text += ' '
+      let pre = byteLength(text)
+      let shortcut = sources.getShortcut(item.source)
+      text += this.fillWidth(shortcut ? `[${shortcut}]` : '', config.shortcutWidth)
+      if (shortcut) {
+        hls.push({
+          hlGroup: 'CocPumShortcut',
+          lnum: index,
+          colStart: pre,
+          colEnd: pre + byteLength(shortcut) + 2
         })
       }
     }

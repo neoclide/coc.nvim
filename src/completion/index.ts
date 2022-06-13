@@ -74,7 +74,7 @@ export class Completion implements Disposable {
       let item = this.selectedItem
       if (!item || (!ev.move && this.complete?.isCompleting)) return
       let config = this.config.floatConfig
-      await this.floating.resolveItem(item, config, this.option.filetype)
+      await this.floating.resolveItem(item, config, this.option)
     }, null, this.disposables)
   }
 
@@ -107,7 +107,6 @@ export class Completion implements Disposable {
     function getConfig<T>(key, defaultValue: T): T {
       return suggest.get<T>(key, defaultValue)
     }
-    let acceptSuggestionOnCommitCharacter = getConfig<boolean>('acceptSuggestionOnCommitCharacter', false)
     this.config = Object.assign(this.config ?? {}, {
       noselect: getConfig<boolean>('noselect', false),
       enablePreselect: getConfig<boolean>('enablePreselect', true),
@@ -117,8 +116,7 @@ export class Completion implements Disposable {
       floatConfig: getConfig<FloatConfig>('floatConfig', {}),
       defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
-      disableMenuShortcut: getConfig<boolean>('disableMenuShortcut', false),
-      acceptSuggestionOnCommitCharacter,
+      acceptSuggestionOnCommitCharacter: getConfig<boolean>('acceptSuggestionOnCommitCharacter', false),
       triggerCompletionWait: getConfig<number>('triggerCompletionWait', 0),
       labelMaxLength: getConfig<number>('labelMaxLength', 200),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
@@ -325,7 +323,7 @@ export class Completion implements Disposable {
   private async confirmCompletion(item: ExtendedCompleteItem, option: CompleteOption): Promise<void> {
     let source = new CancellationTokenSource()
     let { token } = source
-    await this.floating.doCompleteResolve(item, source)
+    await this.floating.doCompleteResolve(item, option, source)
     if (token.isCancellationRequested) return
     await this.doCompleteDone(item, option)
   }

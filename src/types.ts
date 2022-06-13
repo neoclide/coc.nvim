@@ -747,7 +747,7 @@ export interface ISource {
   onEnter?(bufnr: number): void
   shouldComplete?(opt: CompleteOption): Promise<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult | null>
-  onCompleteResolve?(item: ExtendedCompleteItem, token: CancellationToken): ProviderResult<void> | void
+  onCompleteResolve?(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
   onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption): ProviderResult<void>
   shouldCommit?(item: ExtendedCompleteItem, character: string): boolean
 }

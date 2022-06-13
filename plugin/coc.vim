@@ -440,7 +440,8 @@ function! s:Hi() abort
   hi default link CocSymbolDefault       MoreMsg
   "Pum
   hi default link CocPumSearch           CocSearch
-  hi default link CocPumMenu             Comment
+  hi default link CocPumMenu             Normal
+  hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough
   hi default CocPumVirtualText      ctermfg=239 guifg=#504945
 

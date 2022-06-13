@@ -2640,9 +2640,10 @@ CocTree 						*CocTree*
 Popup menu related~
 							*CocPum*
 *CocPumSearch* for matched input characters, linked to |CocSearch| by default.
-*CocPumMenu* for menu of complete items (mostly used for source shortcut).
-*CocPumDeprecated* for highlight deprecated label.
-*CocPumVirtualText* for highlight virtual text which enabled by
+*CocPumMenu* for menu of complete item.
+*CocPumShortcut* for shortcut text of source.
+*CocPumDeprecated* for deprecated label.
+*CocPumVirtualText* for virtual text which enabled by
 |coc-config-suggest-virtualText|
 
 Symbol icons~

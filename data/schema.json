@@ -448,11 +448,6 @@
       "default": 99,
       "description": "Priority of language sources."
     },
-    "suggest.disableMenuShortcut": {
-      "type": "boolean",
-      "description": "Disable shortcut of completion source in menu.",
-      "default": false
-    },
     "suggest.snippetIndicator": {
       "type": "string",
       "default": "~",

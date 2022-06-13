@@ -53,6 +53,11 @@ export class Sources {
     }, null, this.disposables)
   }
 
+  public getShortcut(name: string): string {
+    let source = this.sourceMap.get(name)
+    return source ? source.shortcut : ''
+  }
+
   private loadCompleteConfig(): void {
     let suggest = workspace.getConfiguration('suggest')
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})

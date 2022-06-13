@@ -14,7 +14,6 @@ export interface CompleteConfig {
   enablePreselect: boolean
   selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
   virtualText: boolean
-  disableMenuShortcut: boolean
   labelMaxLength: number
   autoTrigger: string
   triggerCompletionWait: number
