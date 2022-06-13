@@ -372,6 +372,15 @@ function! s:Enable(initialize)
   endif
 endfunction
 
+function! s:FgColor(hlGroup) abort
+  let fgId = synIDtrans(hlID(a:hlGroup))
+  let ctermfg = synIDattr(fgId, 'reverse', 'cterm') ==# '1' ? synIDattr(fgId, 'bg', 'cterm') : synIDattr(fgId, 'fg', 'cterm')
+  let guifg = synIDattr(fgId, 'reverse', 'gui') ==# '1'  ? synIDattr(fgId, 'bg', 'gui') : synIDattr(fgId, 'fg', 'gui')
+  let cmd = ' ctermfg=' . (empty(ctermfg) ? '223' : ctermfg)
+  let cmd .= ' guifg=' . (empty(guifg) ? '#ebdbb2' : guifg)
+  return cmd
+endfunction
+
 function! s:Hi() abort
   hi default CocErrorSign     ctermfg=Red     guifg=#ff0000 guibg=NONE
   hi default CocWarningSign   ctermfg=Brown   guifg=#ff922b guibg=NONE
@@ -531,9 +540,10 @@ function! s:Hi() abort
       \ 'TypeParameter': ['TSParameter', 'Identifier'],
       \ }
   for [key, value] in items(symbolMap)
-    let ts = get(value, 0, '')
-    let fallback = get(value, 1, 'CocSymbolDefault')
-    execute 'hi default link CocSymbol'.key.' '.(hlexists(ts) ? ts : fallback)
+    let hlGroup = hlexists(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
+    if hlexists(hlGroup)
+      execute 'hi default CocSymbol'.key.' '.s:FgColor(hlGroup)
+    endif
   endfor
 endfunction
 
