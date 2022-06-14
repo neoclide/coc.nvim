@@ -36,7 +36,6 @@ export default class ListUI {
   private items: ListItemWithHighlights[] = []
   private disposables: Disposable[] = []
   private signOffset: number
-  private matchHighlightGroup: string
   private selected: Set<number> = new Set()
   private mouseDown: MousePosition
   private mutex: Mutex = new Mutex()
@@ -58,7 +57,6 @@ export default class ListUI {
     private config: ListConfiguration
   ) {
     this.signOffset = config.get<number>('signOffset')
-    this.matchHighlightGroup = config.get<string>('matchHighlightGroup', 'Search')
     this.newTab = listOptions.position == 'tab'
     this.reversed = listOptions.reverse === true
     events.on('BufWinLeave', async bufnr => {
@@ -390,7 +388,9 @@ export default class ListUI {
     }
     if (!append) {
       this.currIndex = index
-      window.setCursor([this.indexToLnum(index), 0], true)
+      let lnum = this.indexToLnum(index)
+      window.setCursor([lnum, 0], true)
+      nvim.call('coc#list#select', [buffer.id, lnum], true)
     }
     if (reversed) nvim.command('normal! zb', true)
     nvim.command('redraws', true)
@@ -435,7 +435,7 @@ export default class ListUI {
       if (highlights && Array.isArray(highlights.spans)) {
         let { spans, hlGroup } = highlights
         for (let span of spans) {
-          hlGroup = hlGroup || this.matchHighlightGroup
+          hlGroup = hlGroup ?? 'CocListSearch'
           highlightItems.push({ hlGroup, lnum, colStart: span[0], colEnd: span[1] })
         }
       }
@@ -466,6 +466,7 @@ export default class ListUI {
     let idx = this.lnumToIndex(lnum)
     this.onLineChange(idx)
     this.window?.setCursor([lnum, col], true)
+    this.nvim.call('coc#list#select', [this.bufnr, lnum], true)
   }
 
   public moveUp(): void {

@@ -1,6 +1,7 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:prefix = '[List Preview]'
+let s:sign_group = 'CocList'
 " filetype detect could be slow.
 let s:filetype_map = {
       \ 'c': 'c',
@@ -66,7 +67,6 @@ function! coc#list#create(position, height, name, numberSelect)
   else
     setl nonumber
     setl norelativenumber
-    setl signcolumn=yes
   endif
   return [bufnr('%'), win_getid(), tabpagenr()]
 endfunction
@@ -84,14 +84,11 @@ endfunction
 function! coc#list#setup(source)
   let b:list_status = {}
   setl buftype=nofile nobuflisted nofen nowrap
-  setl norelativenumber bufhidden=wipe cursorline winfixheight
+  setl norelativenumber bufhidden=wipe nocursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn undolevels=-1
   setl signcolumn=auto
   if has('nvim-0.5.0') || has('patch-8.1.0864')
     setl scrolloff=0
-  endif
-  if exists('&cursorlineopt')
-    setl cursorlineopt=both
   endif
   setl filetype=list
   syntax case ignore
@@ -101,6 +98,13 @@ function! coc#list#setup(source)
   if !s:is_vim
     " Repeat press <C-f> and <C-b> would invoke <esc> on vim
     nnoremap <silent><nowait><buffer> <esc> <C-w>c
+  endif
+endfunction
+
+function! coc#list#select(bufnr, line) abort
+  call sign_unplace(s:sign_group, { 'buffer': a:bufnr })
+  if a:line > 0
+    call sign_place(6, s:sign_group, 'CocListCurrent', a:bufnr, {'lnum': a:line})
   endif
 endfunction
 

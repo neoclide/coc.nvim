@@ -8618,7 +8618,7 @@ declare module 'coc.nvim' {
      */
     spans: [number, number][]
     /**
-     * `list.matchHighlightGroup` is used when it doesn't exist.
+     * `CocListSearch` is used when it not exist.
      */
     hlGroup?: string
   }
