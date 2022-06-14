@@ -330,7 +330,9 @@ describe('fileSystemWatcher', () => {
   it('should watch for folder rename', async () => {
     let watcher = createWatcher('**/*')
     let newFiles: string[] = []
+    let count = 0
     watcher.onDidRename(e => {
+      count++
       newFiles.push(e.newUri.fsPath)
     })
     await helper.wait(50)
@@ -341,8 +343,9 @@ describe('fileSystemWatcher', () => {
       createFileChange(`b/2`, true, true),
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(50)
-    expect(newFiles.length).toBe(2)
+    await helper.waitValue(() => {
+      return count
+    }, 2)
   })
 
   it('should watch for new folder', async () => {

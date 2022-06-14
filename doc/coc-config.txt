@@ -758,11 +758,6 @@ List~
 
 	Max height for preview window of list, default: `12`
 
-"list.matchHighlightGroup"				*coc-config-list-matchHighlightGroup*
-
-	Highlight group used for matched texts in list window.
-	default: `"CocSearch"`
-
 "list.previewHighlightGroup"				*coc-config-list-previewHighlightGroup*
 
 	Highlight group used for highlighting the range in preview window,

@@ -1172,11 +1172,6 @@
       "default": false,
       "description": "Use vsplit for preview window."
     },
-    "list.matchHighlightGroup": {
-      "type": "string",
-      "default": "CocSearch",
-      "description": "Highlight group used for matched texts in list window."
-    },
     "list.previewHighlightGroup": {
       "type": "string",
       "default": "Search",
