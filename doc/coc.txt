@@ -366,6 +366,10 @@ Changes on diagnostics refresh~
 Diagnostics are not refreshed when buffer is hidden, and refresh on insert
 mode is disabled by default.
 
+Diagnostics highlights:~
+
+See |coc-highlights-diagnostics|.
+
 Enable and disable diagnostics~
 
 Use |coc-config-diagnostic-enable| to toggle diagnostics feature.
@@ -2383,6 +2387,12 @@ default.
 *CocInfoLine* line highlight of sign which information.
 *CocHintLine* line highlight of sign which contains hint.
 
+Highlight with higher priority would overwrite highlight with lower priority.
+The priority order:
+
+	|CocUnusedHighlight| > |CocDeprecatedHighlight| > |CocErrorHighlight|
+	> |CocWarningHighlight| > |CocInfoHighlight| > |CocHintHighlight|
+
 Document highlight related~
 							*coc-highlights-document*
 
@@ -2413,11 +2423,14 @@ CocNotification 					*CocNotification*
 *CocNotificationInfo* for highlight border of info notification.
 
 List related~
+							*coc-highlights-list*
 
-*CocSelectedText* for sign text of selected lines.
-*CocSelectedLine* for line highlight of selected lines.
-*CocListMode* for mode in statusline of CocList.
-*CocListPath* for current cwd in statusline of CocList.
+*CocListLine* for current cursor line.
+*CocListSearch* for matched characters.
+*CocListMode* for mode text in the statusline.
+*CocListPath* for cwd text in the statusline.
+*CocSelectedText* for sign text of selected lines (multiple selection only).
+*CocSelectedLine* for line highlight of selected lines (multiple selection only).
 
 Tree view related~
 

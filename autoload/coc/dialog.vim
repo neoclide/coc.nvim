@@ -676,5 +676,7 @@ endfunction
 
 function! s:place_sign(bufnr, line) abort
   call sign_unplace(s:sign_group, { 'buffer': a:bufnr })
-  call sign_place(6, s:sign_group, 'CocCurrentLine', a:bufnr, {'lnum': a:line})
+  if a:line > 0
+    call sign_place(6, s:sign_group, 'CocCurrentLine', a:bufnr, {'lnum': a:line})
+  endif
 endfunction
