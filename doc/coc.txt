@@ -366,6 +366,10 @@ Changes on diagnostics refresh~
 Diagnostics are not refreshed when buffer is hidden, and refresh on insert
 mode is disabled by default.
 
+Diagnostics highlights:~
+
+See |coc-highlights-diagnostics|.
+
 Enable and disable diagnostics~
 
 Use |coc-config-diagnostic-enable| to toggle diagnostics feature.
@@ -2382,6 +2386,12 @@ default.
 *CocWarningLine* line highlight of sign which contains warning.
 *CocInfoLine* line highlight of sign which information.
 *CocHintLine* line highlight of sign which contains hint.
+
+Highlight with higher priority would overwrite highlight with lower priority.
+The priority order:
+
+	|CocUnusedHighlight| > |CocDeprecatedHighlight| > |CocErrorHighlight|
+	> |CocWarningHighlight| > |CocInfoHighlight| > |CocHintHighlight|
 
 Document highlight related~
 							*coc-highlights-document*
