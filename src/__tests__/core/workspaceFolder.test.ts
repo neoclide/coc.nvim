@@ -230,8 +230,7 @@ describe('WorkspaceFolderController', () => {
         let root = path.join(os.tmpdir(), 'a')
         let dir = path.join(root, '.vim')
         if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, {recursive: true})
-          await helper.wait(30)
+          fs.mkdirSync(dir, { recursive: true })
         }
         let file = path.join(dir, 'foo')
         await nvim.command(`edit ${file}`)
@@ -247,7 +246,7 @@ describe('WorkspaceFolderController', () => {
         let root = path.join(os.tmpdir(), 'a')
         let dir = path.join(root, '.vim')
         if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, {recursive: true})
+          fs.mkdirSync(dir, { recursive: true })
           await helper.wait(30)
         }
         let file = path.join(dir, 'foo')
