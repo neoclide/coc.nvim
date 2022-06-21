@@ -97,7 +97,7 @@ export default class HoverHandler {
   }
 
   public async definitionHover(hoverTarget: HoverTarget): Promise<boolean> {
-    const { doc, position } = await this.handler.getCurrentState()
+    const { doc, position, winid } = await this.handler.getCurrentState()
     if (hoverTarget == 'preview') this.registerProvider()
     this.handler.checkProvier('hover', doc.textDocument)
     await doc.synchronize()
@@ -120,6 +120,15 @@ export default class HoverHandler {
           hovers.push({ content: lines.join('\n'), filetype: doc.filetype })
         }
       }
+    }
+    let hover = hovers.find(o => Hover.is(o) && Range.is(o.range)) as Hover
+    if (hover?.range) {
+      let win = this.nvim.createWindow(winid)
+      win.highlightRanges('CocHoverRange', [hover.range], 99, true)
+      this.timer = setTimeout(() => {
+        win.clearMatchGroup('CocHoverRange')
+        this.nvim.redrawVim()
+      }, 500)
     }
     await this.previewHover(hovers, hoverTarget)
     return true
