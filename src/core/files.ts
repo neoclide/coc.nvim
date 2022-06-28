@@ -110,7 +110,7 @@ export default class Files {
         let bufname = fixDriver(path.normalize(fsPath))
         await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
       } else {
-        if (os.platform() == 'win32') {
+        if (nvim.isVim && os.platform() == 'win32') {
           uri = uri.replace(/\/?/, '?')
         }
         await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])
