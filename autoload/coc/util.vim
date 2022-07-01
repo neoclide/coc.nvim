@@ -208,7 +208,10 @@ function! s:safer_open(cmd, file) abort
   " How to support :pedit and :drop?
   let is_supported_cmd = index(["edit", "split", "vsplit", "tabe"], a:cmd) >= 0
 
-  if is_supported_cmd && has('win32') && has('nvim')
+  " Special handling should be limited to URI.
+  let looks_like_uri = match(a:file, "^.*://") >= 0
+
+  if looks_like_uri && is_supported_cmd && has('win32') && has('nvim')
     if bufloaded(a:file)
       let buf = bufnr(a:file)
       " Do not reload existing buffer
