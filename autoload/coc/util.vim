@@ -208,34 +208,23 @@ function! s:safer_open(cmd, file) abort
   " How to support :pedit and :drop?
   let is_supported_cmd = index(["edit", "split", "vsplit", "tabe"], a:cmd) >= 0
 
-  " Special handling should be limited to URI.
+  " Use special handling only for URI.
   let looks_like_uri = match(a:file, "^.*://") >= 0
 
-  if looks_like_uri && is_supported_cmd && has('win32') && has('nvim')
-    if bufloaded(a:file)
-      let buf = bufnr(a:file)
-      " Do not reload existing buffer
-      let reload_buffer = v:false
-    else
-      " Workaround a bug for Win32 paths (works in Neovim only).
-      "
-      " reference:
-      " - https://github.com/vim/vim/issues/541
-      " - https://github.com/neoclide/coc-java/issues/82
-      let buf = nvim_create_buf(v:true, v:false)
-      " Ignore swap file error occuring when, for example, file is a URI.
-      silent! call nvim_buf_set_name(buf, a:file)
-      let reload_buffer = v:true
-    endif
+  if looks_like_uri && is_supported_cmd && has('win32') && exists('*bufadd')
+    " Workaround a bug for Win32 paths.
+    "
+    " reference:
+    " - https://github.com/vim/vim/issues/541
+    " - https://github.com/neoclide/coc-java/issues/82
+    " - https://github.com/vim-jp/issues/issues/6
+    let buf = bufadd(a:file)
     if a:cmd != 'edit'
       " Open split, tab, etc. by a:cmd.
       exe a:cmd
     endif
-    " Set filename and reload file (or URI) contents by :edit.
+    " Set current buffer to the file
     exe 'keepjumps buffer ' . buf
-    if reload_buffer
-      exe 'keepjumps edit'
-    endif
   else
     exe a:cmd.' '.fnameescape(a:file)
   endif
