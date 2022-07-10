@@ -24,6 +24,7 @@ import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
 import stripAnsi from 'strip-ansi'
+import { CaseOption } from '../types';
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -226,6 +227,7 @@ export class ListManager implements Disposable {
     let name: string
     let input = ''
     let matcher: Matcher = 'fuzzy'
+    let caseOption : CaseOption = "sensitive"
     let position = 'bottom'
     let listArgs: string[] = []
     let listOptions: string[] = []
@@ -246,6 +248,7 @@ export class ListManager implements Disposable {
     let config = workspace.getConfiguration(`list.source.${name}`)
     if (!listOptions.length && !listArgs.length) listOptions = config.get<string[]>('defaultOptions', [])
     if (!listArgs.length) listArgs = config.get<string[]>('defaultArgs', [])
+
     for (let opt of listOptions) {
       if (opt.startsWith('--input')) {
         input = opt.slice(8)
@@ -263,7 +266,9 @@ export class ListManager implements Disposable {
         position = 'top'
       } else if (opt == '--tab') {
         position = 'tab'
-      } else if (opt == '--ignore-case' || opt == '--normal' || opt == '--no-sort') {
+      } else if (opt == "--ignore-case" || opt == "--smart-case" ) {
+        caseOption = opt.slice(2) as CaseOption
+      } else if ( opt == '--normal' || opt == '--no-sort') {
         options.push(opt.slice(2))
       } else if (opt == '--first') {
         first = true
@@ -298,7 +303,8 @@ export class ListManager implements Disposable {
         interactive,
         matcher,
         position,
-        ignorecase: options.includes('ignore-case') ? true : false,
+        // ignorecase: options.includes('ignore-case') ? true : false,
+        caseOption,
         mode: !options.includes('normal') ? 'insert' : 'normal',
         sort: !options.includes('no-sort') ? true : false
       },

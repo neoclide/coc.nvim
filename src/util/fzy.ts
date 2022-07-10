@@ -190,9 +190,11 @@ export function positions(needle: string, haystack: string): number[] {
   return positions
 }
 
-export function hasMatch(needle: string, haystack: string): boolean {
-  needle = needle.toLowerCase()
-  haystack = haystack.toLowerCase()
+export function hasMatch(needle: string, haystack: string, ignoreCase: boolean): boolean {
+  if (ignoreCase) {
+    needle = needle.toLowerCase()
+    haystack = haystack.toLowerCase()
+  }
   let l = needle.length
   for (let i = 0, j = 0; i < l; i += 1) {
     j = haystack.indexOf(needle[i], j) + 1

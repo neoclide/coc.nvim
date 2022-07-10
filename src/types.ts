@@ -1057,11 +1057,14 @@ export type ListMode = 'normal' | 'insert'
 
 export type Matcher = 'strict' | 'fuzzy' | 'regex'
 
+// smart case means case-insensitive if there are no capitals, otherwise sensitive
+export type CaseOption = 'normal-case' |  'ignore-case' | "smart-case"
+
 export interface ListOptions {
   position: string
   reverse: boolean
   input: string
-  ignorecase: boolean
+  caseOption: CaseOption
   interactive: boolean
   sort: boolean
   mode: ListMode
