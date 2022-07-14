@@ -235,8 +235,6 @@ export default class Worker {
 
   private async filterItemsByInclude(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let { caseOption } = this.listOptions
-    logger.info("filterItemsByInclude", caseOption)
-    // TODO 04/07/20 psacawa: handle smart case
     let ignorecase  = caseOption === "ignore-case" || (caseOption === "smart-case" && ! this.hasUppercaseInputs(inputs))
     if (ignorecase) inputs = inputs.map(s => s.toLowerCase())
     await filter(items, item => {
@@ -259,7 +257,6 @@ export default class Worker {
 
   private async filterItemsByRegex(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let {caseOption}  = this.listOptions
-    logger.info("filterItemsByRegex", this.listOptions.caseOption)
     let ignorecase  = caseOption === "ignore-case" || (caseOption === "smart-case" && ! this.hasUppercaseInputs(inputs))
     let flags = ignorecase ? 'iu' : 'u'
     let regexes = inputs.reduce((p, c) => {
@@ -288,7 +285,6 @@ export default class Worker {
 
   private async filterItemsByFuzzyMatch(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let { sort, caseOption } = this.listOptions
-    logger.info("filterItemsByFuzzyMatch", this.listOptions.caseOption)
     let ignorecase  = caseOption === "ignore-case" || (caseOption === "smart-case" && ! this.hasUppercaseInputs(inputs))
     let idx = 0
     await filter(items, item => {
@@ -319,7 +315,6 @@ export default class Worker {
   }
 
   private async filterItems(arr: ListItem[], opts: FilterOption, token: CancellationToken): Promise<void> {
-    // logger.info("filterItems", this.listOptions)
     let { input } = this
     if (input.length === 0) {
       let items = arr.map(item => {
