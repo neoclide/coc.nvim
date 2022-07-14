@@ -223,4 +223,30 @@ describe('list worker', () => {
     await helper.wait(300)
     expect(manager.isActivated).toBe(false)
   })
+
+
+  it('should be able to filter by fuzzy smartcase', async () => {
+    items = [{
+      label: 'fooBar',
+    }, {
+      label: 'FooBar',
+    }]
+    disposables.push(manager.registerList(new DataList(nvim)))
+    await manager.start(['--smart-case','data'])
+    await manager.session.ui.ready
+    await nvim.input('F')
+    await helper.wait(50)
+    let buf = await nvim.buffer
+    let lines = await buf.lines
+    expect(lines).toEqual(['FooBar'])
+
+    await nvim.input('<c-u>')
+    await nvim.input('f')
+    await helper.wait(50)
+    buf = await nvim.buffer
+    lines = await buf.lines
+    expect(lines).toEqual([ 'fooBar', 'FooBar'])
+    await manager.cancel()
+  })
+
 })

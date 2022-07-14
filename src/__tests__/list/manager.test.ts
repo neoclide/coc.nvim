@@ -137,7 +137,7 @@ describe('list', () => {
         input: 'test',
         interactive: false,
         matcher: 'strict',
-        ignorecase: true,
+        caseOption: "ignore-case",
         position: 'top',
         mode: 'normal',
         noQuit: false,
