@@ -143,14 +143,13 @@ export default class Complete {
       let line = linenr - 1
       this.localBonus = this.document.getLocalifyBonus(Position.create(line, col - 1), Position.create(line, colnr))
     }
-    await this.completeSources(this.sources)
+    await this.completeSources(this.sources, false)
   }
 
-  private async completeSources(sources: ReadonlyArray<ISource>): Promise<void> {
+  private async completeSources(sources: ReadonlyArray<ISource>, isFilter: boolean): Promise<void> {
     let { timeout } = this.config
     let { results, tokenSource, } = this
     let col = this.option.col
-    let isFilter = results.size > 0
     let names = sources.map(s => s.name)
     let total = names.length
     this._completing = true
@@ -245,7 +244,7 @@ export default class Complete {
       triggerForInComplete: true
     })
     let sources = this.sources.filter(s => names.includes(s.name))
-    await this.completeSources(sources)
+    await this.completeSources(sources, true)
     if (token.isCancellationRequested) return undefined
     return this.filterItems(resumeInput)
   }
