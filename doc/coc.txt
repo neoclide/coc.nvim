@@ -1878,7 +1878,7 @@ CocTagFunc({pattern}, {flags}, {info})			*CocTagFunc()*
 							*coc-actions*
 Available Actions ~
 
-Acceptable {action} names for |CocAction()| and |CocActionAsync|.
+Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 "ensureDocument" 					*CocAction('ensureDocument')*
 

@@ -191,7 +191,7 @@ export class Completion implements Disposable {
     if (!info.insertChar && option) {
       let pre = byteSlice(option.line, 0, option.col)
       if (this.selectedItem) {
-        if (pre + this.selectedItem.word == info.pre) {
+        if (pre + this.popupEvent.word == info.pre) {
           this.pretext = info.pre
           return
         }

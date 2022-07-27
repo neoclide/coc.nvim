@@ -3,7 +3,7 @@ import { InsertChange } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, ISource } from '../types'
-import { byteSlice } from '../util/string'
+import { byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
 export function shouldStop(bufnr: number, pretext: string, info: InsertChange, option: Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'>): boolean {
@@ -13,6 +13,14 @@ export function shouldStop(bufnr: number, pretext: string, info: InsertChange, o
   let text = byteSlice(option.line, 0, option.colnr - 1)
   if (option.linenr != info.lnum || !pre.startsWith(text)) return true
   return false
+}
+
+export function getFollowPart(option: CompleteOption): string {
+  let { colnr, line } = option
+  let idx = characterIndex(line, colnr - 1)
+  if (idx == line.length) return ''
+  let part = line.slice(idx - line.length)
+  return part.match(/^\S?[\w-]*/)[0]
 }
 
 export function getInput(document: Document, pre: string, asciiCharactersOnly: boolean): string {

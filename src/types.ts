@@ -690,7 +690,6 @@ export interface CompleteResult {
   items: ExtendedCompleteItem[]
   isIncomplete?: boolean
   startcol?: number
-  priority?: number
 }
 
 // option on complete & should_complete

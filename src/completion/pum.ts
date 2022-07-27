@@ -5,6 +5,7 @@ import { CompleteOption, ExtendedCompleteItem, HighlightItem } from '../types'
 import { byteIndex, byteLength } from '../util/string'
 import { CompleteConfig } from './complete'
 import MruLoader from './mru'
+import { getFollowPart } from './util'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -67,7 +68,9 @@ export default class PopupMenu {
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { labelMaxLength, noselect, enablePreselect, selection, floatConfig, virtualText } = this.config
+    let { noselect, fixInsertedWord, enablePreselect, selection, floatConfig, virtualText } = this.config
+    let followPart = getFollowPart(option)
+    if (followPart.length === 0) fixInsertedWord = false
     let selectedIndex = noselect || !enablePreselect ? -1 : items.findIndex(o => o.preselect)
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
@@ -92,7 +95,7 @@ export default class PopupMenu {
         }
       }
       let shortcut = sources.getShortcut(item.source)
-      abbrWidth = Math.max(this.stringWidth(item.abbr.slice(0, labelMaxLength)), abbrWidth)
+      abbrWidth = Math.max(this.stringWidth(this.getAbbr(item)), abbrWidth)
       if (item.kind) kindWidth = 1
       if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu), menuWidth)
       if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut) + 2, shortcutWidth)
@@ -105,7 +108,7 @@ export default class PopupMenu {
       line: option.linenr,
       col: option.col,
       virtualText,
-      words: items.map(o => o.word)
+      words: items.map(o => getWord(fixInsertedWord, search, o.word, followPart))
     }
     let lines: string[] = []
     let highlights: HighlightItem[] = []
@@ -121,6 +124,13 @@ export default class PopupMenu {
     let config: PumConfig = Object.assign({ width, highlights }, this.pumConfig)
     this.nvim.call('coc#pum#create', [lines, opt, config], true)
     this.nvim.redrawVim()
+  }
+
+  private getAbbr(item: ExtendedCompleteItem): string {
+    let { snippetIndicator, labelMaxLength } = this.config
+    let abbr = item.abbr ?? item.word
+    abbr = item.isSnippet && !abbr.endsWith(snippetIndicator) ? abbr + snippetIndicator : abbr
+    return abbr.length > labelMaxLength ? abbr.slice(0, labelMaxLength - 1) + '.' : abbr
   }
 
   private adjustAbbrWidth(config: BuildConfig): void {
@@ -156,7 +166,7 @@ export default class PopupMenu {
             let highlights = positionHighlights(item.abbr, positions, pre, index)
             hls.push(...highlights)
           }
-          let abbr = item.abbr.slice(0, labelMaxLength)
+          let abbr = this.getAbbr(item)
           text += this.fillWidth(abbr, config.abbrWidth + 1)
           if (item.deprecated) {
             hls.push({
@@ -221,6 +231,12 @@ export default class PopupMenu {
     let n = width - this.stringWidth(text)
     return n <= 0 ? text : text + ' '.repeat(n)
   }
+}
+
+export function getWord(fixInsertedWord: boolean, search: string, word: string, followPart: string): string {
+  if (!fixInsertedWord || word.length <= followPart.length || !word.endsWith(followPart)) return word
+  if (word.length < search.length + followPart.length) return word
+  return word.slice(0, word.length - followPart.length)
 }
 
 export function positionHighlights(label: string, positions: number[], pre: number, line: number): HighlightItem[] {

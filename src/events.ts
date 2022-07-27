@@ -10,6 +10,7 @@ export type Result = void | Promise<void>
 
 export interface PopupChangeEvent {
   readonly index: number
+  readonly word: string
   readonly height: number
   readonly width: number
   readonly row: number

@@ -151,10 +151,13 @@ endfunction
 function! coc#pum#info() abort
   let bufnr = winbufnr(s:pum_winid)
   let size = coc#compat#buf_line_count(bufnr)
+  let words = getwinvar(s:pum_winid, 'words', [])
+  let word = s:pum_index < 0 ? '' : get(words, s:pum_index, '')
   if s:is_vim
     let pos = popup_getpos(s:pum_winid)
     let add = pos['scrollbar'] && has_key(popup_getoptions(s:pum_winid), 'border') ? 1 : 0
     return {
+        \ 'word': word,
         \ 'index': s:pum_index,
         \ 'scrollbar': pos['scrollbar'],
         \ 'row': pos['line'] - 1,
@@ -169,6 +172,7 @@ function! coc#pum#info() abort
     let winid = coc#float#get_related(s:pum_winid, 'border', s:pum_winid)
     let pos = nvim_win_get_position(winid)
     return {
+        \ 'word': word,
         \ 'index': s:pum_index,
         \ 'scrollbar': scrollbar && nvim_win_is_valid(scrollbar) ? 1 : 0,
         \ 'row': pos[0],

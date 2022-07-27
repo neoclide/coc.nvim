@@ -5,7 +5,7 @@ import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
 import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
-import { byteSlice, characterIndex, isWord } from '../util/string'
+import { byteSlice, isWord } from '../util/string'
 import { matchScoreWithPositions } from './match'
 const logger = require('../util/logger')('completion-complete')
 
@@ -147,11 +147,10 @@ export default class Complete {
   }
 
   private async completeSources(sources: ReadonlyArray<ISource>): Promise<void> {
-    let { fixInsertedWord, timeout } = this.config
+    let { timeout } = this.config
     let { results, tokenSource, } = this
     let col = this.option.col
     let isFilter = results.size > 0
-    let followPart = !fixInsertedWord ? '' : this.getFollowPart()
     let names = sources.map(s => s.name)
     let total = names.length
     this._completing = true
@@ -171,7 +170,7 @@ export default class Complete {
     const finished: string[] = []
     await Promise.race([
       tp,
-      Promise.all(sources.map(s => this.completeSource(s, token, followPart).then(() => {
+      Promise.all(sources.map(s => this.completeSource(s, token).then(() => {
         finished.push(s.name)
         if (token.isCancellationRequested || isFilter) return
         let colChanged = this.option.col !== col
@@ -186,10 +185,9 @@ export default class Complete {
     this._completing = false
   }
 
-  private async completeSource(source: ISource, token: CancellationToken, followPart: string): Promise<void> {
+  private async completeSource(source: ISource, token: CancellationToken): Promise<void> {
     // new option for each source
     let opt = Object.assign({}, this.option)
-    let { snippetIndicator } = this.config
     let { name } = source
     try {
       if (typeof source.shouldComplete === 'function') {
@@ -200,28 +198,20 @@ export default class Complete {
       const start = Date.now()
       await new Promise<void>((resolve, reject) => {
         Promise.resolve(source.doComplete(opt, token)).then(result => {
-          let len = result ? result.items.length : 0
           if (token.isCancellationRequested) {
             resolve(undefined)
             return
           }
+          let len = result ? result.items.length : 0
           logger.debug(`Source "${name}" finished with ${len} items ${Date.now() - start}ms`)
           if (len > 0) {
-            result.priority = priority
-            let hasFollow = followPart.length > 0
             result.items.forEach(item => {
-              let word = item.word ?? ''
-              let abbr = item.abbr ?? word
-              item.word = word
+              item.word = item.word ?? ''
+              item.abbr = item.abbr ?? item.word
               item.source = name
               item.priority = priority
-              item.filterText = item.filterText ?? word
-              if (hasFollow && word != followPart && word.endsWith(followPart)) {
-                item.word = word.slice(0, - followPart.length)
-              }
-              if (item.isSnippet === true && !abbr.endsWith(snippetIndicator)) item.abbr = `${abbr}${snippetIndicator}`
-              if (!item.abbr) item.abbr = word
-              if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) || 0
+              item.filterText = item.filterText ?? item.word
+              if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) ?? 0
             })
             this.setResult(name, result)
           } else {
@@ -380,14 +370,6 @@ export default class Complete {
     if (timer) clearTimeout(timer)
     tokenSource.cancel()
     this._completing = false
-  }
-
-  private getFollowPart(): string {
-    let { colnr, line } = this.option
-    let idx = characterIndex(line, colnr - 1)
-    if (idx == line.length) return ''
-    let part = line.slice(idx - line.length)
-    return part.match(/^\S?[\w-]*/)[0]
   }
 
   public dispose(): void {
