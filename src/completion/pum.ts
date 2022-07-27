@@ -52,7 +52,7 @@ export default class PopupMenu {
     let { floatConfig } = this.config
     let obj: PumConfig = {}
     for (let key of ['highlight', 'winblend', 'shadow']) {
-      if (floatConfig[key]) obj[key] = floatConfig[key]
+      if (key in floatConfig) obj[key] = floatConfig[key]
     }
     if (floatConfig.border) {
       obj.border = [1, 1, 1, 1]
