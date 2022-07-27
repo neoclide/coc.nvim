@@ -232,10 +232,10 @@ describe('WorkspaceFolderController', () => {
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true })
         }
-        let file = path.join(dir, 'foo')
+        let file = path.join(dir, 'foo.vim')
         await nvim.command(`edit ${file}`)
-        await nvim.command('setf vim')
         let doc = await workspace.document
+        expect(doc.filetype).toBe('vim')
         let res = workspaceFolder.resolveRoot(doc, file, true, expand)
         expect(res).toBe(root)
       })
