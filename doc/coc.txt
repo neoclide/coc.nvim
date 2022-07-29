@@ -111,18 +111,23 @@ And run: >
 
 For other plugin managers, make sure to use code from the release branch.
 
-You can also use Vim's native package management like: >
+To use Vim's native |packages| on Linux or MaxOS, use script like: >
 
   #!/bin/sh
   # for vim8
   mkdir -p ~/.vim/pack/coc/start
   cd ~/.vim/pack/coc/start
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
+  vim -c 'helptags ~/.vim/pack/coc/start/doc|q'
 
   # for neovim
   mkdir -p ~/.local/share/nvim/site/pack/coc/start
   cd ~/.local/share/nvim/site/pack/coc/start
   curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
+  nvim -c 'helptags ~/.local/share/nvim/site/pack/coc/start|q'
+
+when using source code of coc.nvim, you'll have to install
+https://yarnpkg.com/ and run `yarn install` in project root of coc.nvim.
 
 ==============================================================================
 CONFIGURATION						*coc-configuration*
@@ -130,7 +135,7 @@ CONFIGURATION						*coc-configuration*
 The configuration of coc.nvim is stored in file `coc-settings.json`.
 
 Command |:CocConfig| will open (create when necessary) a user settings
-file in the folder returned by |coc#util#get_config_home()|
+file in the folder returned by |coc#util#get_config_home()|.
 
 To create a local configuration file for a specific workspace, use
 |:CocLocalConfig|.
@@ -173,8 +178,8 @@ Features automatically work by default:~
 - Inlay hints (only works with some coc extensions, but not
   |coc-config-languageserver| yet).
 
-Note the features could be disabled by |coc-configuration| and some vim
-variables.
+Note all features could be disabled/enabled by |coc-configuration| and some
+vim variables.
 
 Features require enabled by configuration:~
 
@@ -193,8 +198,8 @@ Features requested by user:~
 - Format, range format and on type format |coc-format|.
 - Highlight same symbol ranges |coc-document-highlights|.
 - Outline of document symbols |coc-outline| and |coc-list-symbols|.
-- Show hover message |CocAction('doHover')| and |CocAction('definitionHover')|.
-- Rename current symbol |CocAction('rename')|.
+- Show hover information |CocAction('doHover')| and |CocAction('definitionHover')|.
+- Rename symbol under cursor |CocAction('rename')|.
 - Open link under cursor |CocAction('openlink')|.
 - Range selection |CocAction('rangeSelect').|
 - Create folds |CocAction('fold')|.
@@ -220,7 +225,8 @@ https://github.com/neoclide/coc.nvim/wiki/Debug-language-server
 
 DOCUMENT 						*coc-document*
 
-A document is created on buffer create, and disposed on buffer unload.
+An associated document is created on buffer create, and disposed on buffer
+unload.
 
 Attached document:~
 							*coc-document-attached*
@@ -234,7 +240,7 @@ LSP features could be provided for the attached buffer.
 The buffer may not be attached by following reasons:
 
 - The 'buftype' is neither <empty> nor 'acwrite'.
-- Buffer variable |b:coc_enabled| should is `1`.
+- Buffer variable |b:coc_enabled| is `0`.
 - Byte length of buffer exceed |coc-preferences-maxFileSize|.
 - Buffer is used for command line window.
 
@@ -295,7 +301,7 @@ Use <C-e> and <C-y> to cancel and confirm completion: >
   inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
   inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
 
-Note: <CR> and <Tab> are not remapped.
+Note: <CR> and <Tab> are not remapped by coc.nvim.
 >
 Related variables:~
 
@@ -447,7 +453,7 @@ Use key-mappings:
 
 Check all diagnostics~
 
-Use |coc-list-diagnostics| to open |coc-list| with all diagnostics.
+Use |coc-list-diagnostics| to open |coc-list| with all available diagnostics.
 
 Use API |CocAction('diagnosticList')| to get list of all diagnostics.
 
@@ -575,7 +581,7 @@ Note avoid use |CocActionAsync| with |BufWritePre|.
 
 Format on enter:~
 
-Use |coc#on_enter()| required to notify coc.nvim press on the enter key.
+Use |coc#on_enter()| is required to notify coc.nvim the press on enter key.
 
 Configure |coc-preferences-bracketEnterImprove|
 

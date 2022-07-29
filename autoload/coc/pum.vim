@@ -41,13 +41,12 @@ function! coc#pum#close(...) abort
       let words = getwinvar(s:pum_winid, 'words', [])
       if s:pum_index >= 0
         let word = get(words, s:pum_index, '')
-        call s:insert_word(word)
+        let parts = getwinvar(s:pum_winid, 'parts', [])
+        let saved_completeopt = &completeopt
+        noa set completeopt=menu,preview
+        noa call complete(strlen(parts[0]) + 1, [word])
+        execute 'noa set completeopt='.saved_completeopt
       endif
-      doautocmd TextChangedI
-    elseif get(a:, 1, '') ==# 'select-confirm'
-      let words = getwinvar(s:pum_winid, 'words', [])
-      let word = get(words, s:pum_index, '')
-      call s:insert_word(word)
       doautocmd TextChangedI
     endif
     call s:close_pum()

@@ -739,7 +739,7 @@ List~
 
 "list.height"						*coc-config-list-height*
 
-	Height of split list window, default: `10`
+	Height of list window (when splited), default: `10`
 
 "list.signOffset"					*coc-config-list-signOffset*
 
