@@ -101,31 +101,29 @@ export default class LanguageSource implements ISource {
       let resolved = await Promise.resolve(this.provider.resolveCompletionItem(completeItem, token))
       if (token.isCancellationRequested || !resolved) return
       Object.assign(completeItem, resolved)
-    }
-    if (typeof item.documentation === 'undefined') {
-      let { documentation, detail } = completeItem
-      if (!documentation && !detail) return
-      let docs = []
-      if (detail && !item.detailShown && detail != item.word) {
-        detail = detail.replace(/\n\s*/g, ' ')
-        if (detail.length) {
-          let isText = /^[\w-\s.,\t\n]+$/.test(detail)
-          docs.push({ filetype: isText ? 'txt' : this.filetype, content: detail })
-        }
-      }
-      if (documentation) {
-        if (typeof documentation == 'string') {
-          docs.push({ filetype: 'txt', content: documentation })
-        } else if (documentation.value) {
-          docs.push({
-            filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
-            content: documentation.value
-          })
-        }
-      }
       item.resolved = true
-      item.documentation = docs
     }
+    let { documentation, detail } = completeItem
+    if (!documentation && !detail) return
+    let docs = []
+    if (detail && !item.detailShown && detail != item.word) {
+      detail = detail.replace(/\n\s*/g, ' ')
+      if (detail.length) {
+        let isText = /^[\w-\s.,\t\n]+$/.test(detail)
+        docs.push({ filetype: isText ? 'txt' : this.filetype, content: detail })
+      }
+    }
+    if (documentation) {
+      if (typeof documentation == 'string') {
+        docs.push({ filetype: 'txt', content: documentation })
+      } else if (documentation.value) {
+        docs.push({
+          filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
+          content: documentation.value
+        })
+      }
+    }
+    item.documentation = docs
   }
 
   public async onCompleteDone(vimItem: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
@@ -242,11 +240,6 @@ export default class LanguageSource implements ISource {
         }
         obj.detailShown = 1
       }
-    }
-    if (item.documentation) {
-      obj.info = typeof item.documentation == 'string' ? item.documentation : item.documentation.value
-    } else {
-      obj.info = ''
     }
     if (obj.word == '') obj.empty = 1
     obj.line = opt.line
