@@ -209,7 +209,7 @@ export default class LanguageSource implements ISource {
     let { detailMaxLength, invalidInsertCharacters, detailField, labels, defaultKindText } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits != null && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
-    let label = item.label.trim()
+    let label = typeof item.label === 'string' ? item.label.trim() : item.insertText ?? ''
     let obj: ExtendedCompleteItem = {
       word: getWord(item, opt, invalidInsertCharacters),
       abbr: label,
@@ -325,14 +325,14 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
     let text = parser.text(newText)
     word = text ? getValidWord(text, invalidInsertCharacters) : label
   } else {
-    word = getValidWord(newText, invalidInsertCharacters) || label
+    word = getValidWord(newText, invalidInsertCharacters) ?? label
   }
-  return word || ''
+  return word ?? ''
 }
 
-export function getValidWord(text: string, invalidChars: string[], start = 2): string {
-  if (!text) return ''
-  if (!invalidChars.length) return text
+export function getValidWord(text: string, invalidChars: string[], start = 2): string | undefined {
+  if (text == null) return undefined
+  if (invalidChars.length === 0) return text
   for (let i = start; i < text.length; i++) {
     let c = text[i]
     if (invalidChars.includes(c)) {
