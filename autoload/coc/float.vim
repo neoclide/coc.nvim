@@ -116,7 +116,13 @@ endfunction
 " - borderchars: (optional) borderchars, should be length of 8
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
-  let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
+  let bufnr = a:bufnr
+  try
+    let bufnr = coc#float#create_buf(a:bufnr, lines, 'hide')
+  catch /E523:/
+    " happens when using getchar() #3921
+    return []
+  endtry
   " use exists
   if a:winid && coc#float#valid(a:winid)
     if s:is_vim
