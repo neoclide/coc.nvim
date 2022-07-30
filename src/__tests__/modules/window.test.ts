@@ -319,14 +319,10 @@ describe('window', () => {
 
   describe('window showMessage', () => {
     async function ensureNotification(idx: number): Promise<void> {
-      let ids = await nvim.call('coc#float#get_float_win_list')
-      expect(ids.length).toBe(1)
-      let win = nvim.createWindow(ids[0])
-      let kind = await win.getVar('kind')
-      expect(kind).toBe('notification')
-      let bufnr = await nvim.call('winbufnr', [win.id])
-      await events.fire('FloatBtnClick', [bufnr, idx])
+      await helper.waitFloat()
+      await nvim.input(`${idx + 1}`)
     }
+
     it('should echo lines', async () => {
       await window.echoLines(['a', 'b'])
       let ch = await nvim.call('screenchar', [79, 1])
