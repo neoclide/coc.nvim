@@ -7,6 +7,8 @@ let s:pum_index = -1
 let s:inserted = 0
 let s:virtual_text = 0
 let s:virtual_text_ns = 0
+let s:ignore = s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
+let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
 
 function! coc#pum#visible() abort
   if !s:float || !s:pum_winid
@@ -41,11 +43,7 @@ function! coc#pum#close(...) abort
       let words = getwinvar(s:pum_winid, 'words', [])
       if s:pum_index >= 0
         let word = get(words, s:pum_index, '')
-        let parts = getwinvar(s:pum_winid, 'parts', [])
-        let saved_completeopt = &completeopt
-        noa set completeopt=menu,preview
-        noa call complete(strlen(parts[0]) + 1, [word])
-        execute 'noa set completeopt='.saved_completeopt
+        call s:insert_word(word)
       endif
       doautocmd TextChangedI
     endif
@@ -67,7 +65,7 @@ endfunction
 
 function! coc#pum#insert() abort
   call timer_start(10, { -> s:insert_current()})
-  return ''
+  return s:ignore
 endfunction
 
 function! coc#pum#_close() abort
@@ -105,27 +103,27 @@ endfunction
 
 function! coc#pum#next(insert) abort
   call timer_start(10, { -> s:navigate(1, a:insert)})
-  return ''
+  return s:ignore
 endfunction
 
 function! coc#pum#prev(insert) abort
   call timer_start(10, { -> s:navigate(0, a:insert)})
-  return ''
+  return s:ignore
 endfunction
 
 function! coc#pum#stop() abort
   call timer_start(10, { -> coc#pum#close()})
-  return "\<Ignore>"
+  return s:ignore
 endfunction
 
 function! coc#pum#cancel() abort
   call timer_start(10, { -> coc#pum#close('cancel')})
-  return ''
+  return s:ignore
 endfunction
 
 function! coc#pum#confirm() abort
   call timer_start(10, { -> coc#pum#close('confirm')})
-  return ''
+  return s:ignore
 endfunction
 
 function! coc#pum#select(index, insert, confirm) abort
@@ -192,7 +190,7 @@ function! coc#pum#scroll(forward) abort
       call timer_start(10, { -> s:scroll_pum(a:forward, height, size)})
     endif
   endif
-  return ''
+  return s:ignore
 endfunction
 
 function! s:get_height(winid) abort
@@ -281,21 +279,24 @@ endfunction
 
 function! s:insert_word(word) abort
   let parts = getwinvar(s:pum_winid, 'parts', [])
-  if !empty(parts)
+  if !empty(parts) && mode() ==# 'i'
     let curr = getline('.')
     if curr ==# parts[0].a:word.parts[1]
       return
     endif
-    if !exists('*nvim_buf_set_text')
-      noa call setline('.', parts[0].a:word.parts[1])
-      noa call cursor(line('.'), strlen(parts[0].a:word) + 1)
-    else
-      let row = line('.') - 1
-      let startCol = strlen(parts[0])
-      let endCol = strlen(getline('.')) - strlen(parts[1])
-      call nvim_buf_set_text(bufnr('%'), row, startCol, row, endCol, [a:word])
-      call cursor(line('.'), strlen(parts[0].a:word) + 1)
+    let saved_completeopt = &completeopt
+    if saved_completeopt =~ 'menuone'
+      noa set completeopt=menu
     endif
+    noa call complete(strlen(parts[0]) + 1, [a:word])
+    if s:hide_pum
+      " exit complete state
+      call feedkeys("\<C-x>\<C-z>", 'in')
+    else
+      let g:coc_disable_space_report = 1
+      call feedkeys("\<space>\<bs>", 'in')
+    endif
+    execute 'noa set completeopt='.saved_completeopt
   endif
 endfunction
 
@@ -389,7 +390,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   let linecount = len(a:lines)
   let [lineIdx, colIdx] = coc#cursor#screen_pos()
   let bh = empty(get(a:config, 'border', [])) ? 0 : 2
-  let width = min([&columns, max([&pumwidth, a:config['width']])])
+  let width = min([&columns, max([exists('&pumwidth') ? &pumwidth : 15, a:config['width']])])
   let vh = &lines - &cmdheight - 1 - !empty(&tabline)
   if vh <= 0
     return v:null

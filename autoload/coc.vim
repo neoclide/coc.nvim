@@ -158,7 +158,7 @@ endfunction
 
 function! coc#_select_confirm() abort
   call timer_start(10, { -> coc#pum#select_confirm()})
-  return ''
+  return s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>" 
 endfunction
 
 function! coc#complete_indent() abort
