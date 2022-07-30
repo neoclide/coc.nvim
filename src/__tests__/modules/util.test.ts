@@ -170,7 +170,7 @@ describe('textedit', () => {
     expect(textedits.getChangedLineCount(pos, edits)).toBe(-2)
   })
 
-  test('getPosition', () => {
+  test('getPosition()', () => {
     let pos = Position.create(1, 3)
     const assertChange = (rl, rc, el, ec, text, val): void => {
       let edit = TextEdit.replace(Range.create(rl, rc, el, ec), text)
@@ -183,7 +183,18 @@ describe('textedit', () => {
     assertChange(1, 1, 1, 2, '', Position.create(1, 2))
   })
 
-  test('getPositionFromEdits', async () => {
+  test('getStartLine()', () => {
+    const assertLine = (rl, rc, el, ec, text, val: number): void => {
+      let edit = TextEdit.replace(Range.create(rl, rc, el, ec), text)
+      let res = textedits.getStartLine(edit)
+      expect(res).toBe(val)
+    }
+    assertLine(0, 0, 0, 0, 'abc\n', -1)
+    assertLine(1, 0, 1, 0, 'd\n', 0)
+    assertLine(0, 0, 0, 0, 'abc', 0)
+  })
+
+  test('getPositionFromEdits()', async () => {
     const assertEdits = (pos, edits, exp: [number, number]) => {
       let res = textedits.getPositionFromEdits(pos, edits)
       expect(res).toEqual(Position.create(exp[0], exp[1]))
@@ -906,6 +917,8 @@ describe('diff', () => {
     it('should diff changed lines', () => {
       let res = diffLines('a\n', 'b\n')
       expect(res).toEqual({ start: 0, end: 1, replacement: ['b'] })
+      res = diff.diffLines(['a', 'b'], ['c', 'd', 'a', 'b'], -1)
+      expect(res).toEqual({ start: 0, end: 0, replacement: ['c', 'd'] })
     })
 
     it('should diff added lines', () => {

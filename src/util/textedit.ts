@@ -7,9 +7,12 @@ import { byteLength, contentToLines } from './string'
 
 export type TextChangeItem = [string[], number, number, number, number]
 
-export function singleLineEdit(edit: TextEdit): boolean {
-  let { range, newText } = edit
-  return range.start.line == range.end.line && newText.indexOf('\n') == -1
+export function getStartLine(edit: TextEdit): number {
+  let { start, end } = edit.range
+  if (edit.newText.endsWith('\n') && start.line == end.line && start.character == 0 && end.character == 0) {
+    return start.line - 1
+  }
+  return start.line
 }
 
 export function lineCountChange(edit: TextEdit): number {

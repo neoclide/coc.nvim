@@ -10,7 +10,7 @@ import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
-import { applyEdits, filterSortEdits, getPositionFromEdits, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
+import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 const logger = require('../util/logger')('model-document')
@@ -297,7 +297,7 @@ export default class Document {
     let newLines = applyEdits(textDocument, edits)
     if (!newLines) return
     let lines = textDocument.lines
-    let changed = diffLines(lines, newLines, edits[0].range.start.line)
+    let changed = diffLines(lines, newLines, getStartLine(edits[0]))
     if (changed.start === changed.end && changed.replacement.length == 0) return
     // append new lines
     let isAppend = changed.start === changed.end && changed.start === lines.length + (this.eol ? 0 : 1)

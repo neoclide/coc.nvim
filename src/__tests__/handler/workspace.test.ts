@@ -29,7 +29,7 @@ describe('Workspace handler', () => {
     it('should open log', async () => {
       await handler.openLog()
       let bufname = await nvim.call('bufname', ['%']) as string
-      expect(bufname.endsWith('coc-nvim.log')).toBe(true)
+      expect(bufname).toMatch('coc-nvim.log')
     })
 
     it('should get configuration of current document', async () => {
