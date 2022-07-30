@@ -55,6 +55,7 @@ export default class Complete {
   private tokenSource: CancellationTokenSource
   private timer: NodeJS.Timer
   private names: string[] = []
+  private inputOffset = 0
   private readonly _onDidRefresh = new Emitter<void>()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   constructor(public option: CompleteOption,
@@ -249,7 +250,8 @@ export default class Complete {
   }
 
   public filterItems(input: string): ExtendedCompleteItem[] | undefined {
-    let { results, names } = this
+    let { results, names, inputOffset } = this
+    if (inputOffset > 0) input = byteSlice(input, inputOffset)
     this._input = input
     if (results.size == 0) return []
     let len = input.length
@@ -362,6 +364,7 @@ export default class Complete {
     let { line, colnr, col } = this.option
     if (typeof result.startcol === 'number' && result.startcol != col) {
       let { startcol } = result
+      if (startcol < col) this.inputOffset = col - startcol
       this.option.col = startcol
       this.option.input = byteSlice(line, startcol, colnr - 1)
       results.clear()
