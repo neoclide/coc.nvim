@@ -135,7 +135,7 @@ export default class LanguageSource implements ISource {
       detail = detail.replace(/\n\s*/g, ' ')
       if (detail.length) {
         let isText = /^[\w-\s.,\t\n]+$/.test(detail)
-        docs.push({ filetype: isText ? 'txt' : this.filetype, content: detail })
+        docs.push({ filetype: isText ? 'txt' : opt.filetype, content: detail })
       }
     }
     if (documentation) {
