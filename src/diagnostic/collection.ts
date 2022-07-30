@@ -2,6 +2,7 @@
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Emitter, Event, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import workspace from '../workspace'
+import { intersect } from '../util/array'
 const logger = require('../util/logger')('diagnostic-collection')
 const knownTags = [DiagnosticTag.Deprecated, DiagnosticTag.Unnecessary]
 
@@ -45,7 +46,7 @@ export default class DiagnosticCollection {
         o.range = o.range || Range.create(0, 0, 0, 0)
         o.message = o.message || ''
         o.source = o.source || this.name
-        if (Array.isArray(o.tags) && o.tags.some(t => knownTags.includes(t))) {
+        if (!o.severity && Array.isArray(o.tags) && intersect(o.tags, knownTags)) {
           o.severity = DiagnosticSeverity.Hint
         }
       })

@@ -128,29 +128,27 @@ export default class LanguageSource implements ISource {
       Object.assign(completeItem, resolved)
     }
     item.resolved = true
-    if (typeof item.documentation === 'undefined') {
-      let { documentation, detail } = completeItem
-      if (!documentation && !detail) return
-      let docs = []
-      if (detail && !item.detailShown && detail != item.word) {
-        detail = detail.replace(/\n\s*/g, ' ')
-        if (detail.length) {
-          let isText = /^[\w-\s.,\t\n(]+$/.test(detail)
-          docs.push({ filetype: isText ? 'txt' : opt.filetype, content: detail })
-        }
+    let { documentation, detail } = completeItem
+    if (!documentation && !detail) return
+    let docs = []
+    if (detail && !item.detailShown && detail != item.word) {
+      detail = detail.replace(/\n\s*/g, ' ')
+      if (detail.length) {
+        let isText = /^[\w-\s.,\t\n]+$/.test(detail)
+        docs.push({ filetype: isText ? 'txt' : this.filetype, content: detail })
       }
-      if (documentation) {
-        if (typeof documentation == 'string') {
-          docs.push({ filetype: 'txt', content: documentation })
-        } else if (documentation.value) {
-          docs.push({
-            filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
-            content: documentation.value
-          })
-        }
-      }
-      item.documentation = docs
     }
+    if (documentation) {
+      if (typeof documentation == 'string') {
+        docs.push({ filetype: 'txt', content: documentation })
+      } else if (documentation.value) {
+        docs.push({
+          filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
+          content: documentation.value
+        })
+      }
+    }
+    item.documentation = docs
   }
 
   public async onCompleteDone(vimItem: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
@@ -234,7 +232,7 @@ export default class LanguageSource implements ISource {
     let { detailMaxLength, detailField, invalidInsertCharacters, labels, defaultKindText } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits != null && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
-    let label = item.label.trim()
+    let label = typeof item.label === 'string' ? item.label.trim() : item.insertText ?? ''
     let obj: ExtendedCompleteItem = {
       word: getWord(item, opt, invalidInsertCharacters),
       abbr: label,
@@ -340,14 +338,14 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
     let text = parser.text(newText)
     word = text ? getValidWord(text, invalidInsertCharacters) : label
   } else {
-    word = getValidWord(newText, invalidInsertCharacters) || label
+    word = getValidWord(newText, invalidInsertCharacters) ?? label
   }
-  return word || ''
+  return word ?? ''
 }
 
-export function getValidWord(text: string, invalidChars: string[], start = 2): string {
-  if (!text) return ''
-  if (!invalidChars.length) return text
+export function getValidWord(text: string, invalidChars: string[], start = 2): string | undefined {
+  if (text == null) return undefined
+  if (invalidChars.length === 0) return text
   for (let i = start; i < text.length; i++) {
     let c = text[i]
     if (invalidChars.includes(c)) {

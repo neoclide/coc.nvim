@@ -469,7 +469,12 @@ function! s:Hi() abort
     let names = ['Error', 'Warning', 'Info', 'Hint']
     for name in names
       if !hlexists('Coc'.name.'VirtualText')
-        exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
+        let suffix = name ==# 'Warning' ? 'Warn' : name
+        if hlexists('DiagnosticVirtualText'.suffix)
+          exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
+        else
+          exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
+        endif
       endif
     endfor
   endif

@@ -423,7 +423,7 @@ function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   if a:fgGroup ==# a:bgGroup
     return a:fgGroup
   endif
-  if hlexists(hlGroup)
+  if hlexists(hlGroup) && match(execute('hi '.hlGroup, 'silent!'), 'cleared') == -1
     return hlGroup
   endif
   let fgId = synIDtrans(hlID(a:fgGroup))

@@ -596,6 +596,7 @@ export class Window {
   private async showMessagePicker<T extends MessageItem | string>(title: string, content: string, hlGroup: string, items: T[]): Promise<T | undefined> {
     let texts = items.map(o => typeof o === 'string' ? o : o.title)
     let res = await this.showMenuPicker(texts, {
+      position: 'center',
       content,
       title: title.replace(/\r?\n/, ' '),
       borderhighlight: hlGroup
@@ -605,7 +606,10 @@ export class Window {
 
   private async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[], stack: string): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind) as any
-    if (this.preferMenuPicker && items.length > 0) return await this.showMessagePicker('Choose action', message, `Coc${kind}Float`, items)
+    if (items.length > 0) {
+      let source = this.parseSource(stack)
+      return await this.showMessagePicker(`Choose action (${source})`, message, `Coc${kind}Float`, items)
+    }
     let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
     let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts, stack)
     return idx == -1 ? undefined : items[idx]
@@ -910,12 +914,6 @@ export class Window {
     if (!workspace.env.dialog) return false
     let config = workspace.getConfiguration('coc.preferences')
     return config.get<boolean>('enableMessageDialog', false)
-  }
-
-  private get preferMenuPicker(): boolean {
-    if (!workspace.env.dialog) return false
-    let config = workspace.getConfiguration('notification')
-    return config.get<boolean>('preferMenuPicker', false)
   }
 
   public get messageLevel(): MessageLevel {

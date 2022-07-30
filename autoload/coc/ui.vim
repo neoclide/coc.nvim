@@ -249,22 +249,25 @@ function! coc#ui#set_lines(bufnr, changedtick, original, replacement, start, end
   if !empty(a:col)
     let delta = col('.') - a:col
   endif
-  if getbufvar(a:bufnr, 'changedtick') != a:changedtick && bufnr('%') == a:bufnr
+  if getbufvar(a:bufnr, 'changedtick') > a:changedtick && bufnr('%') == a:bufnr
     " try apply current line change
     let lnum = line('.')
-    let idx = a:start - lnum + 1
-    let previous = get(a:original, idx, 0)
-    if type(previous) == 1
-      let content = getline('.')
-      if previous !=# content
-        let diff = coc#string#diff(content, previous, col('.'))
-        let changed = get(a:replacement, idx, 0)
-        if type(changed) == 1 && strcharpart(previous, 0, diff['end']) ==# strcharpart(changed, 0, diff['end'])
-          let applied = coc#string#apply(changed, diff)
-          let replacement = copy(a:replacement)
-          let replacement[idx] = applied
-          call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, replacement)
-          return
+    " change for current line
+    if a:end - a:start == 1 && a:end == lnum && len(a:replacement) == 1
+      let idx = a:start - lnum + 1
+      let previous = get(a:original, idx, 0)
+      if type(previous) == 1
+        let content = getline('.')
+        if previous !=# content
+          let diff = coc#string#diff(content, previous, col('.'))
+          let changed = get(a:replacement, idx, 0)
+          if type(changed) == 1 && strcharpart(previous, 0, diff['end']) ==# strcharpart(changed, 0, diff['end'])
+            let applied = coc#string#apply(changed, diff)
+            let replacement = copy(a:replacement)
+            let replacement[idx] = applied
+            call coc#compat#buf_set_lines(a:bufnr, a:start, a:end, replacement)
+            return
+          endif
         endif
       endif
     endif
