@@ -587,7 +587,8 @@ WROKSPACE SUPPORT 					*coc-workspace*
 
 Workspace folders~
 
-Unlike VSCode, workspace folders are resolved from filepath after buffer load.
+Unlike VSCode, workspace folders are resolved from filepath after buffer
+creation.
 
 A list of file/folder names is used for resolve workspace folder, the patterns
 could comes from:
@@ -1672,9 +1673,6 @@ coc#notify#do_action([{winid}]) 			*coc#notify#do_action()*
 
 	Invoke action for all notification windows, or particular window with
 	winid.
-
-	Use `"notification.preferMenuPicker": true` if you would like to
-	choose action on notification shown.
 
 coc#notify#copy() 					*coc#notify#copy()*
 

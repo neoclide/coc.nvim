@@ -610,11 +610,6 @@ Dialog~
 Notification~
 							*coc-config-notification*
 
-"notification.preferMenuPicker"  			*coc-config-notification-preferMenuPicker*
-
-	Use menu picker for message notifications with actions, default
-	`false`.
-
 "notification.maxWidth"					*coc-config-notification-maxWidth*
 
 	Maximum content width of notification dialog, default to `60`.

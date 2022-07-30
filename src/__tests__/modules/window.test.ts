@@ -369,7 +369,6 @@ describe('window', () => {
     })
 
     it('should prefer menu picker for notification message', async () => {
-      helper.updateConfiguration('notification.preferMenuPicker', true)
       let p = window.showErrorMessage('error message', 'first', 'second')
       await helper.waitFloat()
       await nvim.input('1')
