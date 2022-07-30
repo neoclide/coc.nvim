@@ -1041,11 +1041,6 @@
       "default": 10,
       "description": "Maximum content height of notification dialog."
     },
-    "notification.preferMenuPicker": {
-      "type": "boolean",
-      "default": false,
-      "description": "Use menu picker for message notification with actions."
-    },
     "notification.disabledProgressSources": {
       "type": "array",
       "default": [],
