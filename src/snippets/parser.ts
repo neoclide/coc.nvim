@@ -251,7 +251,7 @@ export class CodeBlock extends Marker {
         if (!_related.includes(n)) _related.push(n)
       }
     }
-    if (value !== undefined) this._value = value
+    if (typeof value === 'string') this._value = value
   }
 
   public get related(): number[] {
@@ -279,7 +279,7 @@ export class CodeBlock extends Marker {
 
   public async resolve(nvim: Neovim): Promise<void> {
     if (!this.code.length) return
-    let res = await evalCode(nvim, this.kind, this.code, this._value)
+    let res = await evalCode(nvim, this.kind, this.code, this._value ?? '')
     if (res != null) this._value = res
   }
 
