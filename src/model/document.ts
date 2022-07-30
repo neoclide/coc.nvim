@@ -355,7 +355,7 @@ export default class Document {
     this.fireContentChanges.clear()
     this._fireContentChanges(textEdit)
     let range = Range.create(changed.start, 0, changed.start + changed.replacement.length, 0)
-    return TextEdit.replace(range, original.join('\n') + '\n')
+    return TextEdit.replace(range, original.join('\n') + (original.length > 0 ? '\n' : ''))
   }
 
   public async changeLines(lines: [number, string][]): Promise<void> {
