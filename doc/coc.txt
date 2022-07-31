@@ -342,6 +342,7 @@ Note: background, border and winblend are configured by
 |coc-config-suggest-floatConfig|.
 
 Example user key-mappings:~
+							*coc-completion-example*
 
 Note: use command `:verbose imap` to check current insert
 key-mappings when your key-mappings not work.

@@ -42,6 +42,9 @@ export class Completion implements Disposable {
     this.pum = new PopupMenu(this.nvim, this.config, this.mru)
     workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
     this.floating = new Floating(workspace.nvim)
+    if (this.config.autoTrigger !== 'none') {
+      workspace.nvim.call('coc#ui#check_pum_keymappings', [], true)
+    }
     events.on('CursorMovedI', (bufnr, cursor, hasInsert) => {
       if (this.triggerTimer) clearTimeout(this.triggerTimer)
       if (hasInsert || !this.option || bufnr !== this.option.bufnr) return

@@ -4,6 +4,27 @@ let s:is_mac = has('mac')
 let s:sign_api = exists('*sign_getplaced') && exists('*sign_place')
 let s:sign_groups = []
 
+" Check <Tab> and <CR>
+function! coc#ui#check_pum_keymappings() abort
+  let keys = []
+  for key in ['<cr>', '<tab>']
+    if maparg(key, 'i') =~# 'pumvisible()'
+      call add(keys, key)
+    endif
+  endfor
+  if len(keys)
+    let lines = [
+     \ 'coc.nvim switched to custom popup menu from 0.0.82',
+     \ 'you have to change key-mappings for '.join(keys, ', ').' to make them work.',
+     \ 'see :h coc-completion-example']
+    call coc#notify#create(lines, {
+          \ 'borderhighlight': 'CocInfoSign',
+          \ 'timeout': 30000,
+          \ 'kind': 'warning',
+          \ })
+  endif
+endfunction
+
 function! coc#ui#quickpick(title, items, cb) abort
   if exists('*popup_menu')
     function! s:QuickpickHandler(id, result) closure
