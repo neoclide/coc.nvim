@@ -343,11 +343,7 @@ function! coc#ui#rename_file(oldPath, newPath, write) abort
     execute 'keepalt tab drop '.fnameescape(bufname(bufnr))
     let winid = win_getid()
   endif
-  if exists('*nvim_buf_set_name')
-    call nvim_buf_set_name(bufnr, bufname)
-  else
-    call coc#compat#execute(winid, 'file '.fnameescape(bufname), 'silent')
-  endif
+  call coc#compat#execute(winid, 'keepalt file '.fnameescape(bufname), 'silent')
   call coc#compat#execute(winid, 'doautocmd BufEnter')
   if a:write
     call coc#compat#execute(winid, 'noa write!', 'silent')
