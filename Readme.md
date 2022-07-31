@@ -14,14 +14,20 @@
 
 ---
 
+<img alt="Gif" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220801/2022-08-01%2002-14-03.2022-08-01%2002_15_16.gif" width="60%" />
+
+_Custom popup menu with snippet support_
+
 ## Why?
 
-- 🚀 **Fast**: [instant increment completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources), increment buffer sync using buffer update events.
+- 🚀 **Fast**: separated NodeJS process that not block your vim most of the time.
 - 💎 **Reliable**: typed language, tested with CI.
-- 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
+- 🌟 **Featured**: all LSP 3.16 features are supported, see `:h coc-lsp`.
 - ❤️ **Flexible**: [configured like VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file), [extensions work like in VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 ## Quick Start
+
+Make sure use vim >= 8.1.1719 or neovim >= 0.4.0.
 
 Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
 
@@ -100,10 +106,6 @@ set updatetime=300
 " diagnostics appear/become resolved.
 set signcolumn=yes
 
-"Use <C-n> and <C-p> for navigate completion list like built in completion.
-inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
-inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-n>"
-
 " Use tab for trigger completion with characters ahead and navigate.
 " NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
 " other plugin before putting this into your config.
@@ -112,6 +114,11 @@ inoremap <silent><expr> <TAB>
       \ <SID>CheckBackspace() ? "\<Tab>" :
       \ coc#refresh()
 inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+
+" Make <CR> to accept selected completion item or notify coc.nvim to format
+" <C-g>u breaks current undo, please make your own choice.
+inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 function! CheckBackspace() abort
   let col = col('.') - 1
@@ -124,11 +131,6 @@ if has('nvim')
 else
   inoremap <silent><expr> <c-@> coc#refresh()
 endif
-
-" Make <CR> to accept selected completion item or notify coc.nvim to format
-" <C-g>u starts a new undo break, please make your own choice.
-inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
-                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
 
 " Use `[g` and `]g` to navigate diagnostics
 " Use `:CocDiagnostics` to get all diagnostics of current buffer in location list.
