@@ -112,7 +112,7 @@ export class Completion implements Disposable {
     }
     this.config = Object.assign(this.config ?? {}, {
       ambiguousIsNarrow: workspace.env.ambiguousIsNarrow,
-      pumwidth: workspace.env.pumwidth,
+      pumwidth: workspace.env.pumwidth || 15,
       noselect: getConfig<boolean>('noselect', false),
       enablePreselect: getConfig<boolean>('enablePreselect', true),
       formatItems: getConfig<string[]>('formatItems', ['abbr', 'menu', 'kind', 'shortcut']),

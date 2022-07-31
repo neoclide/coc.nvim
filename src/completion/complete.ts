@@ -45,8 +45,6 @@ export default class Complete {
   private _input = ''
   private _completing = false
   private localBonus: Map<string, number> = new Map()
-  // source names that already filtered.
-  private filtered: Set<string> = new Set()
   private tokenSource: CancellationTokenSource
   private timer: NodeJS.Timer
   private names: string[] = []
@@ -66,18 +64,8 @@ export default class Complete {
   private fireRefresh(waitTime: number): void {
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
-      if (this.allFiltered) return
       this._onDidRefresh.fire()
     }, waitTime)
-  }
-
-  private get allFiltered(): boolean {
-    let { filtered, results } = this
-    if (filtered.size === 0) return false
-    for (let key of results.keys()) {
-      if (!filtered.has(key)) return false
-    }
-    return true
   }
 
   public get isCompleting(): boolean {
@@ -324,7 +312,7 @@ export default class Complete {
   }
 
   public async filterResults(input: string): Promise<ExtendedCompleteItem[] | undefined> {
-    this.filtered = new Set(this.results.keys())
+    if (this.timer) clearTimeout(this.timer)
     if (input !== this.option.input) {
       let names = this.getIncompleteSources()
       if (names.length) {
@@ -378,7 +366,6 @@ export default class Complete {
     this.cancel()
     this._onDidRefresh.dispose()
     this.sources = []
-    this.filtered.clear()
     this.results.clear()
   }
 }

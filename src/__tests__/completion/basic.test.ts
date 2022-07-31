@@ -29,135 +29,227 @@ async function triggerCompletion(source: string): Promise<void> {
 }
 
 describe('completion', () => {
-  describe('preferences', () => {
-    describe('autoTrigger', () => {
-      it('should not trigger when autoTrigger is none', async () => {
-        helper.updateConfiguration('suggest.autoTrigger', 'none')
-        let doc = await workspace.document
-        await nvim.setLine('foo football')
-        await doc.synchronize()
-        await nvim.input('of')
-        await helper.wait(20)
-        expect(completion.isActivated).toBe(false)
-      })
+  describe('suggest configurations', () => {
+    it('should not trigger when autoTrigger is none', async () => {
+      helper.updateConfiguration('suggest.autoTrigger', 'none')
+      let doc = await workspace.document
+      await nvim.setLine('foo football')
+      await doc.synchronize()
+      await nvim.input('of')
+      await helper.wait(20)
+      expect(completion.isActivated).toBe(false)
     })
 
-    describe('noselect', () => {
-      it('should not select complete item', async () => {
-        helper.updateConfiguration('suggest.noselect', true)
-        let doc = await workspace.document
-        await nvim.setLine('football foo')
-        await doc.synchronize()
-        await nvim.input('of')
+    it('should not select complete item', async () => {
+      helper.updateConfiguration('suggest.noselect', true)
+      let doc = await workspace.document
+      await nvim.setLine('football foo')
+      await doc.synchronize()
+      await nvim.input('of')
+      await helper.waitPopup()
+      let info = await nvim.call('coc#pum#info')
+      expect(info.index).toBe(-1)
+      await nvim.call('coc#pum#select_confirm', [])
+      let line = await nvim.line
+      expect(line).toBe('foo')
+    })
+
+    it('should disable preselect feature', async () => {
+      helper.updateConfiguration('suggest.enablePreselect', false)
+      let source: ISource = {
+        priority: 0,
+        enable: true,
+        name: 'preselect',
+        sourceType: SourceType.Service,
+        triggerCharacters: ['.'],
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo' }, { word: 'bar' }, { word: 'foot', preselect: true }] })
+        })
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('i.')
+      await helper.waitPopup()
+      let info = await nvim.call('coc#pum#info')
+      expect(info.index).toBe(0)
+    })
+
+    it('should trigger with none ascii characters', async () => {
+      helper.updateConfiguration('suggest.asciiCharactersOnly', true)
+      let doc = await workspace.document
+      await nvim.setLine('world')
+      await doc.synchronize()
+      await nvim.input('o')
+      await nvim.input('你')
+      await nvim.input('w')
+      let visible = await helper.visible('world', 'around')
+      expect(visible).toBe(true)
+    })
+
+    it('should not trigger with none ascii characters', async () => {
+      helper.updateConfiguration('suggest.asciiCharactersOnly', true)
+      let doc = await workspace.document
+      await nvim.setLine('你好')
+      await doc.synchronize()
+      await nvim.input('o')
+      await nvim.input('你')
+      await helper.wait(50)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
+    })
+
+    it('should not trigger with number input', async () => {
+      helper.updateConfiguration('suggest.ignoreRegexps', ['[0-9]+'])
+      let doc = await workspace.document
+      await nvim.setLine('1357')
+      await doc.synchronize()
+      await nvim.input('o')
+      await nvim.input('1')
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
+    })
+
+    it('should select recent used item', async () => {
+      helper.updateConfiguration('suggest.selection', 'recentlyUsed')
+      helper.updateConfiguration('suggest.enablePreselect', true)
+      let doc = await workspace.document
+      await nvim.setLine('result')
+      await doc.synchronize()
+      await nvim.input('or')
+      await helper.visible('result')
+      await nvim.input('<C-y>')
+      await nvim.input('<esc>')
+      await nvim.input('or')
+      await helper.visible('result')
+    })
+
+    it('should select recent item by prefix', async () => {
+      helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix')
+      helper.updateConfiguration('suggest.enablePreselect', true)
+      let doc = await workspace.document
+      await nvim.setLine('world')
+      await doc.synchronize()
+      await nvim.input('owo')
+      await helper.visible('world')
+      await nvim.input('<C-y>')
+      await nvim.input('<esc>')
+      await nvim.input('ow')
+      await helper.visible('world')
+    })
+
+    it('should not resolve timeout sources', async () => {
+      helper.updateConfiguration('suggest.timeout', 30)
+      disposables.push(sources.createSource({
+        name: 'timeout',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          setTimeout(() => {
+            resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+          }, 100)
+        })
+      }))
+      await nvim.input('if')
+      await helper.wait(50)
+      let names = await nvim.getVar('coc_timeout_sources')
+      expect(names).toEqual(['timeout'])
+    })
+
+    it('should change default sort method', async () => {
+      const assertWords = async (arr: string[]) => {
         await helper.waitPopup()
-        let info = await nvim.call('coc#pum#info')
-        expect(info.index).toBe(-1)
-        await nvim.call('coc#pum#select_confirm', [])
-        let line = await nvim.line
-        expect(line).toBe('foo')
-      })
+        let win = await helper.getFloat('pum')
+        let words = await win.getVar('words')
+        expect(words).toEqual(arr)
+      }
+      helper.updateConfiguration('suggest.defaultSortMethod', 'none')
+      disposables.push(sources.createSource({
+        name: 'timeout',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'far' }, { word: 'foobar' }, { word: 'foo' }] })
+        })
+      }))
+      await nvim.input('if')
+      await assertWords(['far', 'foobar', 'foo'])
+      await nvim.input('<esc>')
+      helper.updateConfiguration('suggest.defaultSortMethod', 'alphabetical')
+      await helper.wait(10)
+      await nvim.input('of')
+      await assertWords(['far', 'foo', 'foobar'])
     })
 
-    describe('preselect', () => {
-      it('should disable preselect feature', async () => {
-        helper.updateConfiguration('suggest.enablePreselect', false)
-        let source: ISource = {
-          priority: 0,
-          enable: true,
-          name: 'preselect',
-          sourceType: SourceType.Service,
-          triggerCharacters: ['.'],
-          doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-            resolve({ items: [{ word: 'foo' }, { word: 'bar' }, { word: 'foot', preselect: true }] })
-          })
-        }
-        disposables.push(sources.addSource(source))
-        await nvim.input('i.')
-        await helper.waitPopup()
-        let info = await nvim.call('coc#pum#info')
-        expect(info.index).toBe(0)
-      })
+    it('should remove duplicated words', async () => {
+      helper.updateConfiguration('suggest.removeDuplicateItems', true)
+      disposables.push(sources.createSource({
+        name: 'dup',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo', dup: 1 }, { word: 'foo', dup: 1 }] })
+        })
+      }))
+      await nvim.input('if')
+      await helper.waitPopup()
+      let win = await helper.getFloat('pum')
+      let words = await win.getVar('words')
+      expect(words).toEqual(['foo'])
     })
 
-    describe('characters only', () => {
-      beforeEach(() => {
-        helper.updateConfiguration('suggest.asciiCharactersOnly', true)
+    it('should use border with floatConfig', async () => {
+      helper.updateConfiguration('suggest.floatConfig', {
+        border: true
       })
+      disposables.push(sources.createSource({
+        name: 'words',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }] })
+        })
+      }))
+      await nvim.input('if')
+      await helper.waitPopup()
+      let win = await helper.getFloat('pum')
+      let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
+      expect(id).toBeGreaterThan(1000)
+      helper.updateConfiguration('suggest.floatConfig', {
+        border: true,
+        rounded: true,
+        borderhighlight: 'Normal'
+      })
+      await nvim.input('<esc>')
+      await nvim.input('of')
+      await helper.waitPopup()
+    })
+  })
 
-      it('should trigger with none ascii characters', async () => {
-        let doc = await workspace.document
-        await nvim.setLine('world')
-        await doc.synchronize()
-        await nvim.input('o')
-        await nvim.input('你')
-        await nvim.input('w')
-        let visible = await helper.visible('world', 'around')
-        expect(visible).toBe(true)
-      })
-
-      it('should not trigger with none ascii characters', async () => {
-        let doc = await workspace.document
-        await nvim.setLine('你好')
-        await doc.synchronize()
-        await nvim.input('o')
-        await nvim.input('你')
-        await helper.wait(50)
-        let visible = await helper.pumvisible()
-        expect(visible).toBe(false)
-      })
+  describe('suggest variables', () => {
+    beforeEach(() => {
+      disposables.push(sources.createSource({
+        name: 'foo',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] })
+      }))
     })
 
-    describe('ignore by regex', () => {
-      it('should trigger with number input', async () => {
-        let doc = await workspace.document
-        await nvim.setLine('1357')
-        await doc.synchronize()
-        await nvim.input('o')
-        await nvim.input('1')
-        let visible = await helper.visible('1357', 'around')
-        expect(visible).toBe(true)
-      })
-
-      it('should not trigger with number input', async () => {
-        helper.updateConfiguration('suggest.ignoreRegexps', ['[0-9]+'])
-        let doc = await workspace.document
-        await nvim.setLine('1357')
-        await doc.synchronize()
-        await nvim.input('o')
-        await nvim.input('1')
-        let visible = await helper.pumvisible()
-        expect(visible).toBe(false)
-      })
+    it('should be disabled by b:coc_suggest_disable', async () => {
+      let doc = await workspace.document
+      await doc.buffer.setVar('coc_suggest_disable', 1)
+      await nvim.input('if')
+      await helper.wait(30)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
     })
 
-    describe('selection', () => {
-      it('should select recent used item', async () => {
-        helper.updateConfiguration('suggest.selection', 'recentlyUsed')
-        helper.updateConfiguration('suggest.enablePreselect', true)
-        let doc = await workspace.document
-        await nvim.setLine('result')
-        await doc.synchronize()
-        await nvim.input('or')
-        await helper.visible('result')
-        await nvim.input('<C-y>')
-        await nvim.input('<esc>')
-        await nvim.input('or')
-        await helper.visible('result')
-      })
+    it('should be disabled by b:coc_disabled_sources', async () => {
+      let doc = await workspace.document
+      await doc.buffer.setVar('coc_disabled_sources', ['foo'])
+      await nvim.input('if')
+      await helper.wait(30)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
+    })
 
-      it('should select recent item by prefix', async () => {
-        helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix')
-        helper.updateConfiguration('suggest.enablePreselect', true)
-        let doc = await workspace.document
-        await nvim.setLine('world')
-        await doc.synchronize()
-        await nvim.input('owo')
-        await helper.visible('world')
-        await nvim.input('<C-y>')
-        await nvim.input('<esc>')
-        await nvim.input('ow')
-        await helper.visible('world')
-      })
+    it('should be disabled by b:coc_suggest_blacklist', async () => {
+      let doc = await workspace.document
+      await doc.buffer.setVar('coc_suggest_blacklist', ['end'])
+      await nvim.setLine('en')
+      await nvim.input('Ad')
+      await helper.wait(30)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
     })
   })
 
@@ -171,7 +263,7 @@ describe('completion', () => {
         triggerCharacters: ['.'],
         doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
           setTimeout(() => {
-            resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+            resolve({ items: [{ word: 'foo', kind: 'w' }, { word: 'bar' }] })
           }, 50)
         })
       }
@@ -181,6 +273,23 @@ describe('completion', () => {
       expect(completion.isActivated).toBe(true)
       let items = await helper.items()
       expect(items.length).toBe(2)
+      await nvim.input('foo')
+      await helper.wait(50)
+      items = await helper.items()
+      expect(items.length).toBe(1)
+    })
+
+    it('should catch error', async () => {
+      disposables.push(sources.createSource({
+        name: 'error',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise((resolve, reject) => {
+          reject(new Error('custom error'))
+        })
+      }))
+      await nvim.input('if')
+      await helper.wait(50)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline).toMatch('error')
     })
 
     it('should show items before slow source finished', async () => {
@@ -516,27 +625,68 @@ describe('completion', () => {
       expect(items[1].word).toBe('candidate_c')
       expect(items[2].word).toBe('candidate_a')
     })
+  })
+
+  describe('onCompleteResolve', () => {
+    beforeEach(() => {
+      helper.updateConfiguration('coc.source.resolve.triggerCharacters', ['.'])
+    })
 
     it('should do resolve for complete item', async () => {
       let resolved = false
-      let source: ISource = {
-        priority: 0,
-        enable: true,
+      disposables.push(sources.createSource({
         name: 'resolve',
-        sourceType: SourceType.Service,
-        triggerCharacters: ['.'],
         doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
         onCompleteResolve: item => {
           resolved = true
           item.info = 'detail'
         }
-      }
-      disposables.push(sources.addSource(source))
+      }))
       await nvim.input('i.')
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], '.foo')
       expect(resolved).toBe(true)
+    })
+
+    it('should cancel resolve request', async () => {
+      let called = false
+      disposables.push(sources.createSource({
+        name: 'resolve',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
+        onCompleteResolve: async item => {
+          called = true
+          await helper.wait(100)
+          item.info = 'info'
+        }
+      }))
+      await nvim.input('i.')
+      await helper.waitPopup()
+      nvim.call('coc#pum#cancel', [], true)
+      await helper.wait(30)
+      expect(called).toBe(true)
+      let floatWin = await helper.getFloat('pumdetail')
+      expect(floatWin).toBeUndefined()
+    })
+
+    it('should timeout on resolve', async () => {
+      let called = false
+      disposables.push(sources.createSource({
+        name: 'resolve',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
+        onCompleteResolve: async item => {
+          called = true
+          await helper.wait(200)
+          item.info = 'info'
+        }
+      }))
+      await nvim.input('i.')
+      await helper.waitPopup()
+      await helper.wait(200)
+      expect(called).toBe(true)
+      let floatWin = await helper.getFloat('pumdetail')
+      expect(floatWin).toBeUndefined()
+
     })
   })
 

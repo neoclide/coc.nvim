@@ -64,12 +64,8 @@ export default class Floating {
           }
           logger.warn(`Resolve timeout after 500ms: ${source.name}`)
           resolve()
-        }, 500)
-        Promise.resolve(source.onCompleteResolve(item, opt, tokenSource.token)).then(() => {
-          clearTimeout(timer)
-          resolve()
-        }, e => {
-          logger.error(`Error on complete resolve: ${e.message}`, e)
+        }, global.__TEST__ ? 100 : 500)
+        Promise.resolve(source.onCompleteResolve(item, opt, tokenSource.token)).finally(() => {
           clearTimeout(timer)
           resolve()
         })

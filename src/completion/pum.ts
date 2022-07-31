@@ -135,7 +135,6 @@ export default class PopupMenu {
 
   private adjustAbbrWidth(config: BuildConfig): void {
     let { formatItems, pumwidth } = this.config
-    if (!pumwidth) return
     let len = 0
     for (const item of formatItems) {
       if (item == 'abbr') {
