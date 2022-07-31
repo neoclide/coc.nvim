@@ -260,14 +260,14 @@ export default class Document {
     let textDocument = this._textDocument
     let changes: TextDocumentContentChange[] = []
     if (!edit) {
-      let { cursor, insertMode } = events
+      let { cursor } = events
       let pos: Position
       // consider cursor position.
       if (cursor && cursor.bufnr == this.bufnr) {
         let content = this.lines[cursor.lnum - 1] ?? ''
         pos = Position.create(cursor.lnum - 1, characterIndex(content, cursor.col - 1))
       }
-      edit = getTextEdit(textDocument.lines, this.lines, pos, insertMode)
+      edit = getTextEdit(textDocument.lines, this.lines, pos, cursor ? cursor.insert : false)
     }
     let original: string
     if (edit) {
@@ -715,10 +715,6 @@ export default class Document {
     if (changedtick === this.changedtick) return
     this.changeLine(lnum, line, changedtick)
     if (event !== 'TextChangedP') this._forceSync()
-  }
-
-  public onCursorHold(variables: { [key: string]: VimValue }): void {
-    this.variables = variables
   }
 }
 

@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import Floating from '../../completion/floating'
 import sources from '../../sources'
+import workspace from '../../workspace'
 import { CompleteResult, FloatConfig, ISource, SourceType } from '../../types'
 import helper from '../helper'
 
@@ -39,15 +40,6 @@ afterEach(async () => {
 })
 
 describe('completion float', () => {
-  it('should not show float window when disabled', async () => {
-    helper.updateConfiguration('suggest.floatEnable', false)
-    await helper.edit()
-    await nvim.input('if')
-    await helper.visible('foo', 'float')
-    let hasFloat = await nvim.call('coc#float#has_float')
-    expect(hasFloat).toBe(0)
-  })
-
   it('should cancel float window', async () => {
     await helper.edit()
     await nvim.input('if')
@@ -55,8 +47,7 @@ describe('completion float', () => {
     let items = await helper.getItems()
     expect(items[0].word).toBe('foo')
     expect(items[0].info.length > 0).toBeTruthy()
-    await helper.selectCompleteItem(0)
-    await helper.wait(30)
+    await helper.confirmCompletion(0)
     let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)
   })
@@ -66,9 +57,7 @@ describe('completion float', () => {
     await nvim.setLine(' '.repeat(70))
     await nvim.input('Af')
     await helper.visible('foo', 'float')
-    await nvim.input('<C-n>')
-    await helper.wait(100)
-    let floatWin = await helper.getFloat()
+    let floatWin = await helper.getFloat('pumdetail')
     let config = await floatWin.getConfig()
     expect(config.col + config.width).toBeLessThan(180)
   })
@@ -78,11 +67,8 @@ describe('completion float', () => {
     await nvim.setLine(' '.repeat(70))
     await nvim.input('Af')
     await helper.visible('foo', 'float')
-    await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
-    await helper.wait(50)
-    await nvim.input('<C-n>')
-    await helper.wait(100)
-    let floatWin = await helper.getFloat()
+    await nvim.call('coc#pum#select', [1, 1, 0])
+    let floatWin = await helper.getFloat('pumdetail')
     let buf = await floatWin.buffer
     let lines = await buf.lines
     expect(lines.length).toBeGreaterThan(0)
@@ -94,14 +80,9 @@ describe('completion float', () => {
     await nvim.setLine(' '.repeat(70))
     await nvim.input('Af')
     await helper.visible('foo', 'float')
-    await nvim.call('nvim_select_popupmenu_item', [0, false, false, {}])
-    await helper.wait(10)
-    await nvim.input('<C-n>')
-    await helper.wait(10)
-    await nvim.input('<C-n>')
-    await helper.wait(100)
-    let hasFloat = await nvim.call('coc#float#has_float')
-    expect(hasFloat).toBe(0)
+    await nvim.call('coc#pum#select', [2, 1, 0])
+    let floatWin = await helper.getFloat('pumdetail')
+    expect(floatWin).toBeUndefined()
   })
 
   it('should hide float window after completion', async () => {
@@ -110,25 +91,24 @@ describe('completion float', () => {
     await nvim.input('Af')
     await helper.visible('foo', 'float')
     await nvim.input('<C-n>')
-    await helper.wait(100)
+    await helper.wait(30)
     await nvim.input('<C-y>')
     await helper.wait(30)
-    let hasFloat = await nvim.call('coc#float#has_float')
-    expect(hasFloat).toBe(0)
+    let floatWin = await helper.getFloat('pumdetail')
+    expect(floatWin).toBeUndefined()
   })
 })
 
 describe('float config', () => {
   beforeEach(async () => {
-    await nvim.setLine('foob foot')
+    let doc = await workspace.document
     await nvim.input('of')
-    await nvim.input('<C-n>')
+    await helper.waitPopup()
   })
 
-  async function createFloat(config: Partial<FloatConfig>, docs = [{ filetype: 'txt', content: 'doc' }], isVim = false): Promise<Floating> {
-    let floating = new Floating(nvim, isVim)
-    let bounding = { col: 6, row: 2, height: 3, width: 16, scrollbar: false }
-    await floating.show(docs, bounding, Object.assign({
+  async function createFloat(config: Partial<FloatConfig>, docs = [{ filetype: 'txt', content: 'doc' }]): Promise<Floating> {
+    let floating = new Floating(nvim)
+    floating.show(docs, Object.assign({
       excludeImages: true,
       border: false,
     }, config))
@@ -136,8 +116,8 @@ describe('float config', () => {
   }
 
   async function getFloat(): Promise<number> {
-    let ids = await nvim.call('coc#float#get_float_win_list')
-    return Array.isArray(ids) ? ids[0] || -1 : -1
+    let win = await helper.getFloat('pumdetail')
+    return win ? win.id : -1
   }
 
   async function getRelated(winid: number, kind: string): Promise<number> {
@@ -157,15 +137,8 @@ describe('float config', () => {
 
   it('should not shown with empty lines', async () => {
     await createFloat({}, [{ filetype: 'txt', content: '' }])
-    let winid = await nvim.call('GetFloatWin')
-    expect(winid).toBe(0)
-  })
-
-  it('should shown on vim', async () => {
-    let float = await createFloat({}, [{ filetype: 'txt', content: 'ff' }], true)
-    let winid = await nvim.call('GetFloatWin')
-    expect(winid).toBeGreaterThan(0)
-    float.close()
+    let floatWin = await helper.getFloat('pumdetail')
+    expect(floatWin).toBeUndefined()
   })
 
   it('should show window with border', async () => {

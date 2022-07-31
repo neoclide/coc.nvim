@@ -178,9 +178,9 @@ export default class Menu {
     if (preferences.maxWidth) opts.maxWidth = preferences.maxWidth
     if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
     if (borderhighlight) {
-      opts.borderhighlight = [borderhighlight]
+      opts.borderhighlight = borderhighlight
     } else if (preferences.floatBorderHighlight) {
-      opts.borderhighlight = [preferences.floatBorderHighlight]
+      opts.borderhighlight = preferences.floatBorderHighlight
     }
     if (preferences.rounded) opts.rounded = 1
     if (typeof content === 'string') opts.content = content

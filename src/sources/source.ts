@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import { CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('sources-source')
@@ -89,8 +89,7 @@ export default class Source implements ISource {
   }
 
   public get menu(): string {
-    let { shortcut } = this
-    return shortcut ? `[${shortcut}]` : ''
+    return ''
   }
 
   /**
@@ -147,5 +146,10 @@ export default class Source implements ISource {
     let fn = this.defaults['doComplete']
     if (typeof fn === 'function') return await Promise.resolve(fn.call(this, opt, token))
     return null
+  }
+
+  public async onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
+    let fn = this.defaults['onCompleteResolve']
+    if (typeof fn === 'function') await Promise.resolve(fn.call(this, item, opt, token))
   }
 }

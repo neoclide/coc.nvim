@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range } from 'vscode-languageserver-protocol'
 import { UltiSnippetContext } from '../../snippets/eval'
-import { shouldCancel, SnippetSession } from '../../snippets/session'
+import { SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -522,23 +522,10 @@ describe('SnippetSession', () => {
       await session.start('${1|one,two,three|}', defaultRange)
       let line = await nvim.line
       expect(line).toBe('one')
-      await helper.waitPopup()
+      await helper.waitFor('pumvisible', [], 1)
       let val = await nvim.eval('g:coc#_context') as any
       expect(val.start).toBe(0)
       expect(val.candidates).toEqual(['one', 'two', 'three'])
-    })
-  })
-
-  describe('shouldCancel()', () => {
-    it('should check cancel', async () => {
-      let doc = await helper.createDocument()
-      expect(shouldCancel(doc, Position.create(0, 0))).toBe(false)
-      await nvim.setLine('foo fo f')
-      await doc.synchronize()
-      await nvim.input('A')
-      await nvim.input('<C-n>')
-      await helper.waitPopup()
-      expect(shouldCancel(doc, Position.create(0, 3))).toBe(true)
     })
   })
 })

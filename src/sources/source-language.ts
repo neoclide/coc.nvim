@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemKind, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
@@ -20,14 +20,40 @@ export interface CompleteConfig {
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
-  floatEnable: boolean
+}
+
+const highlightsMap = {
+  [CompletionItemKind.Text]: 'CocSymbolText',
+  [CompletionItemKind.Method]: 'CocSymbolMethod',
+  [CompletionItemKind.Function]: 'CocSymbolFunction',
+  [CompletionItemKind.Constructor]: 'CocSymbolConstructor',
+  [CompletionItemKind.Field]: 'CocSymbolField',
+  [CompletionItemKind.Variable]: 'CocSymbolVariable',
+  [CompletionItemKind.Class]: 'CocSymbolClass',
+  [CompletionItemKind.Interface]: 'CocSymbolInterface',
+  [CompletionItemKind.Module]: 'CocSymbolModule',
+  [CompletionItemKind.Property]: 'CocSymbolProperty',
+  [CompletionItemKind.Unit]: 'CocSymbolUnit',
+  [CompletionItemKind.Value]: 'CocSymbolValue',
+  [CompletionItemKind.Enum]: 'CocSymbolEnum',
+  [CompletionItemKind.Keyword]: 'CocSymbolKeyword',
+  [CompletionItemKind.Snippet]: 'CocSymbolSnippet',
+  [CompletionItemKind.Color]: 'CocSymbolColor',
+  [CompletionItemKind.File]: 'CocSymbolFile',
+  [CompletionItemKind.Reference]: 'CocSymbolReference',
+  [CompletionItemKind.Folder]: 'CocSymbolFolder',
+  [CompletionItemKind.EnumMember]: 'CocSymbolEnumMember',
+  [CompletionItemKind.Constant]: 'CocSymbolConstant',
+  [CompletionItemKind.Struct]: 'CocSymbolStruct',
+  [CompletionItemKind.Event]: 'CocSymbolEvent',
+  [CompletionItemKind.Operator]: 'CocSymbolOperator',
+  [CompletionItemKind.TypeParameter]: 'CocSymbolTypeParameter',
 }
 
 export default class LanguageSource implements ISource {
   public priority: number
   public sourceType: SourceType.Service
   private _enabled = true
-  private filetype: string
   private completeItems: CompletionItem[] = []
   constructor(
     public readonly name: string,
@@ -59,7 +85,6 @@ export default class LanguageSource implements ISource {
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
     let { triggerCharacter, input, bufnr } = opt
-    this.filetype = opt.filetype
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
     let position = this.getPosition(opt)
@@ -85,14 +110,14 @@ export default class LanguageSource implements ISource {
       option.col = startcol
     }
     let items: ExtendedCompleteItem[] = completeItems.map((o, index) => {
-      let item = this.convertVimCompleteItem(o, this.shortcut, option, prefix)
+      let item = this.convertVimCompleteItem(o, option, prefix)
       item.index = index
       return item
     })
     return { startcol, isIncomplete, items }
   }
 
-  public async onCompleteResolve(item: ExtendedCompleteItem, token: CancellationToken): Promise<void> {
+  public async onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     let { index } = item
     let completeItem = this.completeItems[index]
     if (!completeItem || item.resolved) return
@@ -101,8 +126,8 @@ export default class LanguageSource implements ISource {
       let resolved = await Promise.resolve(this.provider.resolveCompletionItem(completeItem, token))
       if (token.isCancellationRequested || !resolved) return
       Object.assign(completeItem, resolved)
-      item.resolved = true
     }
+    item.resolved = true
     let { documentation, detail } = completeItem
     if (!documentation && !detail) return
     let docs = []
@@ -110,7 +135,7 @@ export default class LanguageSource implements ISource {
       detail = detail.replace(/\n\s*/g, ' ')
       if (detail.length) {
         let isText = /^[\w-\s.,\t\n]+$/.test(detail)
-        docs.push({ filetype: isText ? 'txt' : this.filetype, content: detail })
+        docs.push({ filetype: isText ? 'txt' : opt.filetype, content: detail })
       }
     }
     if (documentation) {
@@ -203,22 +228,25 @@ export default class LanguageSource implements ISource {
     return triggerKind
   }
 
-  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
-    let { detailMaxLength, invalidInsertCharacters, detailField, labels, defaultKindText } = this.completeConfig
+  private convertVimCompleteItem(item: CompletionItem, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
+    let { detailMaxLength, detailField, invalidInsertCharacters, labels, defaultKindText } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits != null && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = typeof item.label === 'string' ? item.label.trim() : item.insertText ?? ''
     let obj: ExtendedCompleteItem = {
       word: getWord(item, opt, invalidInsertCharacters),
       abbr: label,
-      menu: `[${shortcut}]`,
       kind: getKindString(item.kind, labels, defaultKindText),
-      sortText: item.sortText || null,
-      sourceScore: item['score'] || null,
-      filterText: item.filterText || label,
+      kindHighlight: highlightsMap[item.kind] ?? 'CocSymbolDefault',
+      sortText: item.sortText ?? null,
+      sourceScore: item['score'] ?? null,
+      filterText: item.filterText ?? label,
+      preselect: item.preselect === true,
+      deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
       isSnippet,
-      dup: item.data && item.data.dup == 0 ? 0 : 1
+      dup: item.data?.dup == 0 ? 0 : 1
     }
+    obj.line = opt.line
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
@@ -230,24 +258,16 @@ export default class LanguageSource implements ISource {
         obj.word = `${prefix}${obj.word}`
       }
     }
-    if (item && item.detail && detailField != 'preview') {
-      let detail = item.detail.replace(/\n\s*/g, ' ')
-      if (byteLength(detail) < detailMaxLength) {
-        if (detailField == 'menu') {
-          obj.menu = `${detail} ${obj.menu}`
-        } else if (detailField == 'abbr') {
-          obj.abbr = `${obj.abbr} - ${detail}`
-        }
+    if (obj.word == '') obj.empty = 1
+    if (detailField == 'abbr' && item.detail) {
+      let detail = item.detail.replace(/\r?\n\s*/g, ' ')
+      if (byteLength(obj.abbr + detail) < detailMaxLength - 3) {
+        obj.abbr = `${obj.abbr} - ${detail}`
         obj.detailShown = 1
       }
     }
-    if (obj.word == '') obj.empty = 1
-    obj.line = opt.line
-    if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
-      obj.abbr = obj.abbr + '/'
-    }
-    if (item.preselect) obj.preselect = true
-    if (item.data?.optional) obj.abbr = obj.abbr + '?'
+    if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) obj.abbr = obj.abbr + '/'
+    if (item.data?.optional && !obj.abbr.endsWith('?')) obj.abbr = obj.abbr + '?'
     return obj
   }
 

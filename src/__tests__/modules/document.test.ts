@@ -694,17 +694,18 @@ describe('Document', () => {
     it('should update on insert change', async () => {
 
       let doc = await createVimDocument()
-      await nvim.setLine('foo')
+      workspace.documentsManager.buffers.set(doc.bufnr, doc)
+      await nvim.setLine('foo foot')
+      await doc.synchronize()
       let disposables: Disposable[] = []
         ;['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
           events.on(event as any, (bufnr: number, info) => {
             if (bufnr === doc.bufnr) doc.onTextChange(event, info)
           }, null, disposables)
         })
-      await nvim.input('o')
-      await nvim.input('f')
-      await nvim.input('<C-n>')
-      await helper.waitPopup()
+      await nvim.input('of')
+      await nvim.eval(`feedkeys("\\<C-n>", 'in')`)
+      await helper.waitFor('pumvisible', [], 1)
       let line = doc.getline(1)
       expect(line).toBe('f')
     })

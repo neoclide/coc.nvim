@@ -88,7 +88,6 @@ export default class VimSource extends Source {
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
       item.isSnippet = this.isSnippet
-      delete item.user_data
       return item
     })
     let res: CompleteResult = { items }

@@ -2,32 +2,26 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource, VimCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
 import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
-import { byteSlice, characterIndex, isWord } from '../util/string'
-import { matchScore } from './match'
-import MruLoader from './mru'
-const isVim = process.env.VIM_NODE_RPC == '1'
+import { byteSlice, isWord } from '../util/string'
+import { matchScoreWithPositions } from './match'
 const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
-  selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
-  disableKind: boolean
-  disableMenu: boolean
-  disableMenuShortcut: boolean
-  enablePreview: boolean
+  noselect: boolean
+  pumwidth: number
   enablePreselect: boolean
+  formatItems: ReadonlyArray<string>
+  selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
+  virtualText: boolean
   labelMaxLength: number
-  floatEnable: boolean
   autoTrigger: string
-  previewIsKeyword: string
   triggerCompletionWait: number
   minTriggerInputLength: number
   triggerAfterInsertEnter: boolean
   acceptSuggestionOnCommitCharacter: boolean
-  noselect: boolean
-  keepCompleteopt: boolean
   maxItemCount: number
   timeout: number
   snippetIndicator: string
@@ -38,7 +32,8 @@ export interface CompleteConfig {
   removeDuplicateItems: boolean
   defaultSortMethod: string
   asciiCharactersOnly: boolean
-  ignoreRegexps: string[]
+  ignoreRegexps: ReadonlyArray<string>
+  ambiguousIsNarrow: boolean
   floatConfig: FloatConfig
 }
 
@@ -50,8 +45,6 @@ export default class Complete {
   private _input = ''
   private _completing = false
   private localBonus: Map<string, number> = new Map()
-  // source names that already filtered.
-  private filtered: Set<string> = new Set()
   private tokenSource: CancellationTokenSource
   private timer: NodeJS.Timer
   private names: string[] = []
@@ -62,7 +55,6 @@ export default class Complete {
     private document: Document,
     private config: CompleteConfig,
     private sources: ISource[],
-    private mruLoader: MruLoader,
     private nvim: Neovim) {
     this.tokenSource = new CancellationTokenSource()
     sources.sort((a, b) => b.priority - a.priority)
@@ -72,18 +64,8 @@ export default class Complete {
   private fireRefresh(waitTime: number): void {
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => {
-      if (this.allFiltered) return
       this._onDidRefresh.fire()
     }, waitTime)
-  }
-
-  private get allFiltered(): boolean {
-    let { filtered, results } = this
-    if (filtered.size === 0) return false
-    for (let key of results.keys()) {
-      if (!filtered.has(key)) return false
-    }
-    return true
   }
 
   public get isCompleting(): boolean {
@@ -119,28 +101,44 @@ export default class Complete {
     let token = this.tokenSource.token
     let res = await Promise.all([
       this.nvim.call('coc#util#synname', []),
+      this.nvim.call('coc#util#suggest_variables', [this.option.bufnr]),
       this.document.patchChange()
     ])
+    if (token.isCancellationRequested) return
     this.option.synname = res[0]
-    if (token.isCancellationRequested) return true
+    let variables = res[1]
+    if (variables.disable) {
+      logger.warn('suggest cancelled by b:coc_suggest_disable')
+      return true
+    }
+    if (variables.disabled_sources?.length) {
+      this.sources = this.sources.filter(s => !variables.disabled_sources.includes(s.name))
+      if (this.sources.length === 0) {
+        logger.warn('suggest cancelled by b:coc_disabled_sources')
+        return true
+      }
+    }
+    if (variables.blacklist?.length) {
+      if (variables.blacklist.includes(this.option.input)) {
+        logger.warn('suggest cancelled by b:coc_suggest_blacklist')
+        return true
+      }
+    }
     let { triggerCompletionWait, localityBonus } = this.config
     await wait(Math.min(triggerCompletionWait ?? 0, 50))
-    if (token.isCancellationRequested) return true
+    if (token.isCancellationRequested) return
     let { colnr, linenr, col } = this.option
     if (localityBonus) {
       let line = linenr - 1
       this.localBonus = this.document.getLocalifyBonus(Position.create(line, col - 1), Position.create(line, colnr))
     }
-    await this.completeSources(this.sources)
-    return token.isCancellationRequested
+    await this.completeSources(this.sources, false)
   }
 
-  private async completeSources(sources: ReadonlyArray<ISource>): Promise<void> {
-    let { fixInsertedWord, timeout } = this.config
+  private async completeSources(sources: ReadonlyArray<ISource>, isFilter: boolean): Promise<void> {
+    let { timeout } = this.config
     let { results, tokenSource, } = this
     let col = this.option.col
-    let isFilter = results.size > 0
-    let followPart = !fixInsertedWord ? '' : this.getFollowPart()
     let names = sources.map(s => s.name)
     let total = names.length
     this._completing = true
@@ -160,7 +158,7 @@ export default class Complete {
     const finished: string[] = []
     await Promise.race([
       tp,
-      Promise.all(sources.map(s => this.completeSource(s, token, followPart).then(() => {
+      Promise.all(sources.map(s => this.completeSource(s, token).then(() => {
         finished.push(s.name)
         if (token.isCancellationRequested || isFilter) return
         let colChanged = this.option.col !== col
@@ -175,10 +173,9 @@ export default class Complete {
     this._completing = false
   }
 
-  private async completeSource(source: ISource, token: CancellationToken, followPart: string): Promise<void> {
+  private async completeSource(source: ISource, token: CancellationToken): Promise<void> {
     // new option for each source
     let opt = Object.assign({}, this.option)
-    let { snippetIndicator } = this.config
     let { name } = source
     try {
       if (typeof source.shouldComplete === 'function') {
@@ -189,28 +186,20 @@ export default class Complete {
       const start = Date.now()
       await new Promise<void>((resolve, reject) => {
         Promise.resolve(source.doComplete(opt, token)).then(result => {
-          let len = result ? result.items.length : 0
           if (token.isCancellationRequested) {
             resolve(undefined)
             return
           }
+          let len = result ? result.items.length : 0
           logger.debug(`Source "${name}" finished with ${len} items ${Date.now() - start}ms`)
           if (len > 0) {
-            result.priority = priority
-            let hasFollow = followPart.length > 0
-            result.items.forEach((item, idx) => {
-              let word = item.word ?? ''
-              let abbr = item.abbr ?? word
-              item.word = word
+            result.items.forEach(item => {
+              item.word = item.word ?? ''
+              item.abbr = item.abbr ?? item.word
               item.source = name
               item.priority = priority
-              item.filterText = item.filterText ?? word
-              if (hasFollow && word != followPart && word.endsWith(followPart)) {
-                item.word = word.slice(0, - followPart.length)
-              }
-              if (item.isSnippet === true && !abbr.endsWith(snippetIndicator)) item.abbr = `${abbr}${snippetIndicator}`
-              item.localBonus = this.localBonus.get(item.filterText) || 0
-              item.user_data = `${name}:${idx}`
+              item.filterText = item.filterText ?? item.word
+              if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) ?? 0
             })
             this.setResult(name, result)
           } else {
@@ -244,7 +233,7 @@ export default class Complete {
       triggerForInComplete: true
     })
     let sources = this.sources.filter(s => names.includes(s.name))
-    await this.completeSources(sources)
+    await this.completeSources(sources, true)
     if (token.isCancellationRequested) return undefined
     return this.filterItems(resumeInput)
   }
@@ -256,12 +245,10 @@ export default class Complete {
     if (results.size == 0) return []
     let len = input.length
     let emptyInput = len == 0
-    let { maxItemCount, selection, enablePreselect, defaultSortMethod, removeDuplicateItems } = this.config
+    let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
-    let maxMru = -1
-    let checkMru = selection !== 'none'
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue
@@ -269,23 +256,34 @@ export default class Complete {
       let items = result.items
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
-        let { word, filterText, dup } = item
+        let { word, filterText, abbr, dup } = item
         if (dup !== 1 && words.has(word)) continue
         if (filterText.length < len) continue
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         if (!emptyInput) {
-          let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
+          let positions: ReadonlyArray<number> | undefined
+          let score: number
+          if (item.kind && filterText === input) {
+            score = 64
+            positions = Array.from({ length: filterText.length }, (x, i) => i)
+          } else {
+            let res = matchScoreWithPositions(filterText, codes)
+            score = res == null ? 0 : res[0]
+            if (res != null) positions = res[1]
+          }
+          // let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
           if (score === 0) continue
+          if (abbr == filterText) {
+            item.positions = positions
+          } else if (positions && positions.length > 0) {
+            let idx = abbr.indexOf(filterText.slice(0, positions[positions.length - 1] + 1))
+            if (idx !== -1) item.positions = positions.map(i => i + idx)
+          }
           if (snippetSource && word === input) {
             item.score = 99
           } else {
             item.score = score * (item.sourceScore || 1)
           }
-        }
-        if (checkMru) {
-          let n = this.mruLoader.getScore(input, item)
-          maxMru = Math.max(n, maxMru)
-          item.recentScore = n
         }
         words.add(word)
         arr.push(item)
@@ -310,28 +308,11 @@ export default class Complete {
           return a.filterText.length - b.filterText.length
       }
     })
-    let sourceNames = results.keys()
-    process.nextTick(() => {
-      let { results } = this
-      for (let name of sourceNames) {
-        let result = results.get(name)
-        if (result) result.items = arr.filter(o => o.source === name)
-      }
-    })
-    if (maxMru !== -1) {
-      let idx = arr.findIndex(o => o.recentScore === maxMru)
-      if (enablePreselect && !isVim) {
-        arr[idx].preselect = true
-      } else {
-        let removed = arr.splice(idx, 1)
-        arr.unshift(removed[0])
-      }
-    }
     return this.limitCompleteItems(arr.slice(0, maxItemCount))
   }
 
   public async filterResults(input: string): Promise<ExtendedCompleteItem[] | undefined> {
-    this.filtered = new Set(this.results.keys())
+    if (this.timer) clearTimeout(this.timer)
     if (input !== this.option.input) {
       let names = this.getIncompleteSources()
       if (names.length) {
@@ -381,30 +362,10 @@ export default class Complete {
     this._completing = false
   }
 
-  public resolveCompletionItem(item: VimCompleteItem | undefined): ExtendedCompleteItem | null {
-    if (typeof item.user_data !== 'string') return null
-    try {
-      let arr = item.user_data.split(':', 2)
-      let res = this.results.get(arr[0])
-      return res ? res.items.find(o => o.user_data == item.user_data) : null
-    } catch (e) {
-      return null
-    }
-  }
-
-  private getFollowPart(): string {
-    let { colnr, line } = this.option
-    let idx = characterIndex(line, colnr - 1)
-    if (idx == line.length) return ''
-    let part = line.slice(idx - line.length)
-    return part.match(/^\S?[\w-]*/)[0]
-  }
-
   public dispose(): void {
     this.cancel()
     this._onDidRefresh.dispose()
     this.sources = []
-    this.filtered.clear()
     this.results.clear()
   }
 }

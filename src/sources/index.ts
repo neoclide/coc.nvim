@@ -53,44 +53,44 @@ export class Sources {
     }, null, this.disposables)
   }
 
+  public getShortcut(name: string): string {
+    let source = this.sourceMap.get(name)
+    return source ? source.shortcut : ''
+  }
+
   private loadCompleteConfig(): void {
     let suggest = workspace.getConfiguration('suggest')
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
     let map = new Map([
-      [CompletionItemKind.Text, labels['text'] || 'v'],
-      [CompletionItemKind.Method, labels['method'] || 'f'],
-      [CompletionItemKind.Function, labels['function'] || 'f'],
-      [CompletionItemKind.Constructor, typeof labels['constructor'] == 'function' ? 'f' : labels['con' + 'structor']],
-      [CompletionItemKind.Field, labels['field'] || 'm'],
-      [CompletionItemKind.Variable, labels['variable'] || 'v'],
-      [CompletionItemKind.Class, labels['class'] || 'C'],
-      [CompletionItemKind.Interface, labels['interface'] || 'I'],
-      [CompletionItemKind.Module, labels['module'] || 'M'],
-      [CompletionItemKind.Property, labels['property'] || 'm'],
-      [CompletionItemKind.Unit, labels['unit'] || 'U'],
-      [CompletionItemKind.Value, labels['value'] || 'v'],
-      [CompletionItemKind.Enum, labels['enum'] || 'E'],
-      [CompletionItemKind.Keyword, labels['keyword'] || 'k'],
-      [CompletionItemKind.Snippet, labels['snippet'] || 'S'],
-      [CompletionItemKind.Color, labels['color'] || 'v'],
-      [CompletionItemKind.File, labels['file'] || 'F'],
-      [CompletionItemKind.Reference, labels['reference'] || 'r'],
-      [CompletionItemKind.Folder, labels['folder'] || 'F'],
-      [CompletionItemKind.EnumMember, labels['enumMember'] || 'm'],
-      [CompletionItemKind.Constant, labels['constant'] || 'v'],
-      [CompletionItemKind.Struct, labels['struct'] || 'S'],
-      [CompletionItemKind.Event, labels['event'] || 'E'],
-      [CompletionItemKind.Operator, labels['operator'] || 'O'],
-      [CompletionItemKind.TypeParameter, labels['typeParameter'] || 'T'],
+      [CompletionItemKind.Text, labels['text'] ?? 'v'],
+      [CompletionItemKind.Method, labels['method'] ?? 'f'],
+      [CompletionItemKind.Function, labels['function'] ?? 'f'],
+      [CompletionItemKind.Constructor, typeof labels['constructor'] == 'function' ? 'f' : labels['con' + 'structor'] ?? ''],
+      [CompletionItemKind.Field, labels['field'] ?? 'm'],
+      [CompletionItemKind.Variable, labels['variable'] ?? 'v'],
+      [CompletionItemKind.Class, labels['class'] ?? 'C'],
+      [CompletionItemKind.Interface, labels['interface'] ?? 'I'],
+      [CompletionItemKind.Module, labels['module'] ?? 'M'],
+      [CompletionItemKind.Property, labels['property'] ?? 'm'],
+      [CompletionItemKind.Unit, labels['unit'] ?? 'U'],
+      [CompletionItemKind.Value, labels['value'] ?? 'v'],
+      [CompletionItemKind.Enum, labels['enum'] ?? 'E'],
+      [CompletionItemKind.Keyword, labels['keyword'] ?? 'k'],
+      [CompletionItemKind.Snippet, labels['snippet'] ?? 'S'],
+      [CompletionItemKind.Color, labels['color'] ?? 'v'],
+      [CompletionItemKind.File, labels['file'] ?? 'F'],
+      [CompletionItemKind.Reference, labels['reference'] ?? 'r'],
+      [CompletionItemKind.Folder, labels['folder'] ?? 'F'],
+      [CompletionItemKind.EnumMember, labels['enumMember'] ?? 'm'],
+      [CompletionItemKind.Constant, labels['constant'] ?? 'v'],
+      [CompletionItemKind.Struct, labels['struct'] ?? 'S'],
+      [CompletionItemKind.Event, labels['event'] ?? 'E'],
+      [CompletionItemKind.Operator, labels['operator'] ?? 'O'],
+      [CompletionItemKind.TypeParameter, labels['typeParameter'] ?? 'T'],
     ])
-    let floatEnable = suggest.get<boolean>('floatEnable', true)
     let detailField = suggest.get<string>('detailField', 'preview')
-    if (detailField == 'preview' && (!floatEnable || !workspace.floatSupported)) {
-      detailField = 'menu'
-    }
     this.completeConfig = Object.assign(this.completeConfig || {}, {
       labels: map,
-      floatEnable,
       detailField,
       defaultKindText: labels['default'] || '',
       priority: suggest.get<number>('languageSourcePriority', 99),
@@ -277,13 +277,12 @@ export class Sources {
   }
 
   public getCompleteSources(opt: CompleteOption): ISource[] {
-    let { filetype, disabled } = opt
+    let { filetype } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && !!opt.triggerCharacter
     let uri = getUri(opt.filepath, opt.bufnr, '', workspace.env.isCygwin)
-    disabled = Array.isArray(disabled) ? disabled : []
-    if (isTriggered) return this.getTriggerSources(pre, filetype, uri, disabled)
-    return this.getNormalSources(opt.filetype, uri, disabled)
+    if (isTriggered) return this.getTriggerSources(pre, filetype, uri)
+    return this.getNormalSources(opt.filetype, uri)
   }
 
   /**
@@ -292,13 +291,10 @@ export class Sources {
    * @param {string} filetype
    * @returns {ISource[]}
    */
-  public getNormalSources(filetype: string, uri: string, disabled: ReadonlyArray<string> = []): ISource[] {
+  public getNormalSources(filetype: string, uri: string): ISource[] {
     let languageIds = filetype.split('.')
     return this.sources.filter(source => {
-      let { filetypes, triggerOnly, name, documentSelector, enable } = source
-      if (disabled.includes(name)) {
-        return false
-      }
+      let { filetypes, triggerOnly, documentSelector, enable } = source
       if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) {
         return false
       }

@@ -20,23 +20,6 @@ describe('register handler', () => {
     expect(fn).toBeCalledTimes(2)
   })
 
-  it('should change pumvisible', async () => {
-    expect(events.pumvisible).toBe(false)
-    await events.fire('MenuPopupChanged', [{
-      col: 6,
-      row: 2,
-      scrollbar: false,
-      completed_item: {},
-      width: 20,
-      height: 12,
-      size: 12
-    }])
-    expect(events.pumAlignTop).toBe(false)
-    expect(events.pumvisible).toBe(true)
-    await events.fire('CompleteDone', [{}])
-    expect(events.pumvisible).toBe(false)
-  })
-
   it('should register single handler', async () => {
     let fn = jest.fn()
     let obj = {}

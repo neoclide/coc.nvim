@@ -102,7 +102,7 @@ endfunction
 " - cursorline: (optional) enable cursorline when is 1.
 " - autohide: (optional) window should be closed on CursorMoved when is 1.
 " - highlight: (optional) highlight of window, default to 'CocFloating'
-" - borderhighlight: (optional) should be array for border highlights,
+" - borderhighlight: (optional) should be array or string for border highlights,
 "   highlight all borders with first value.
 " - close: (optional) show close button when is 1.
 " - highlights: (optional) highlight items.
@@ -114,6 +114,8 @@ endfunction
 " - scrollinside: (optional) neovim only, create scrollbar inside window.
 " - rounded: (optional) use rounded borderchars, ignored when borderchars exists.
 " - borderchars: (optional) borderchars, should be length of 8
+" - nopad: (optional) not add pad when 1
+" - index: (optional) line index
 function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = a:bufnr
@@ -123,6 +125,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     " happens when using getchar() #3921
     return []
   endtry
+  let lnum = max([1, get(a:config, 'index', 0) + 1])
   " use exists
   if a:winid && coc#float#valid(a:winid)
     if s:is_vim
@@ -135,21 +138,28 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
             \ 'minheight': a:config['height'],
             \ 'maxwidth': a:config['width'],
             \ 'maxheight': a:config['height'],
-            \ 'cursorline': get(a:config, 'cursorline', 0),
             \ 'title': get(a:config, 'title', ''),
+            \ 'highlight': get(a:config, 'highlight', 'CocFloating'),
+            \ 'borderhighlight':  [s:get_borderhighlight(a:config)],
             \ }
       if !s:empty_border(get(a:config, 'border', []))
         let opts['border'] = a:config['border']
       endif
       call popup_setoptions(a:winid, opts)
+      call win_execute(a:winid, 'exe '.lnum)
       call coc#float#vim_buttons(a:winid, a:config)
       call s:add_highlights(a:winid, a:config, 0)
       return [a:winid, winbufnr(a:winid)]
     else
       let config = s:convert_config_nvim(a:config, 0)
+      let hlgroup = get(a:config, 'highlight', 'CocFloating')
+      let winhl = 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup
+      if winhl !=# getwinvar(a:winid, '&winhl', '')
+        call setwinvar(a:winid, '&winhl', winhl)
+      endif
       call nvim_win_set_buf(a:winid, bufnr)
       call nvim_win_set_config(a:winid, config)
-      call nvim_win_set_cursor(a:winid, [1, 0])
+      call nvim_win_set_cursor(a:winid, [lnum, 0])
       call coc#float#nvim_create_related(a:winid, config, a:config)
       call s:add_highlights(a:winid, a:config, 0)
       return [a:winid, bufnr]
@@ -161,34 +171,31 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     let title = get(a:config, 'title', '')
     let buttons = get(a:config, 'buttons', [])
     let hlgroup = get(a:config, 'highlight',  'CocFloating')
+    let nopad = get(a:config, 'nopad', 0)
     let border = s:empty_border(get(a:config, 'border', [])) ? [0, 0, 0, 0] : a:config['border']
     let opts = {
           \ 'title': title,
           \ 'line': line,
           \ 'col': col,
           \ 'fixed': 1,
-          \ 'padding': [0, !border[1], 0, !border[3]],
+          \ 'padding': [0, !nopad && !border[1], 0, !nopad && !border[3]],
           \ 'borderchars': s:get_borderchars(a:config),
           \ 'highlight': hlgroup,
-          \ 'cursorline': get(a:config, 'cursorline', 0),
           \ 'minwidth': a:config['width'],
           \ 'minheight': a:config['height'],
           \ 'maxwidth': a:config['width'],
           \ 'maxheight': a:config['height'],
           \ 'close': get(a:config, 'close', 0) ? 'button' : 'none',
           \ 'border': border,
-          \ 'callback': { -> coc#float#on_close(winid)}
+          \ 'callback': { -> coc#float#on_close(winid)},
+          \ 'borderhighlight': [s:get_borderhighlight(a:config)],
           \ }
-    if !empty(get(a:config, 'borderhighlight', v:null))
-      let borderhighlight = a:config['borderhighlight']
-      let opts['borderhighlight'] = type(borderhighlight) == 3
-            \ ? map(borderhighlight, 'coc#highlight#compose_hlgroup(v:val,"'.hlgroup.'")')
-            \ : [coc#highlight#compose_hlgroup(borderhighlight, hlgroup)]
-    endif
     let winid = popup_create(bufnr, opts)
     if !s:popup_list_api
       call add(s:popup_list, winid)
     endif
+    call s:set_float_defaults(winid, a:config)
+    call win_execute(winid, 'exe '.lnum)
     call coc#float#vim_buttons(winid, a:config)
   else
     let config = s:convert_config_nvim(a:config, 1)
@@ -200,31 +207,12 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     if winid is 0
       return []
     endif
-    let hlgroup = get(a:config, 'highlight', 'CocFloating')
-    call setwinvar(winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
-    call setwinvar(winid, 'border', get(a:config, 'border', []))
-    call setwinvar(winid, 'scrollinside', get(a:config, 'scrollinside', 0))
-    call setwinvar(winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
-    call setwinvar(winid, '&cursorline', get(a:config, 'cursorline', 0))
     " cursorline highlight not work on old neovim
-    call s:nvim_set_defaults(winid)
-    call nvim_win_set_cursor(winid, [1, 0])
+    call s:set_float_defaults(winid, a:config)
+    call nvim_win_set_cursor(winid, [lnum, 0])
     call coc#float#nvim_create_related(winid, config, a:config)
     call coc#float#nvim_set_winblend(winid, get(a:config, 'winblend', v:null))
   endif
-  if get(a:config, 'autohide', 0)
-    call setwinvar(winid, 'autohide', 1)
-  endif
-  if s:is_vim || has('nvim-0.5.0')
-    call setwinvar(winid, '&scrolloff', 0)
-  endif
-  if has('nvim-0.6.0') || has("patch-8.1.2281")
-    call setwinvar(winid, '&showbreak', 'NONE')
-  endif
-  call setwinvar(winid, 'float', 1)
-  call setwinvar(winid, '&wrap', !get(a:config, 'cursorline', 0))
-  call setwinvar(winid, '&linebreak', 1)
-  call setwinvar(winid, '&conceallevel', 0)
   call s:add_highlights(winid, a:config, 1)
   let g:coc_last_float_win = winid
   call coc#util#do_autocmd('CocOpenFloat')
@@ -235,11 +223,9 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   let related = getwinvar(a:winid, 'related', [])
   let exists = !empty(related)
   let border = get(a:opts, 'border', [])
-  let highlights = get(a:opts, 'borderhighlight', [])
-  let borderhighlight = type(highlights) == 1 ? highlights : get(highlights, 0, 'CocFloating')
-  let borderhighlight =  coc#highlight#compose_hlgroup(borderhighlight, get(a:opts, 'highlight', 'CocFloating'))
+  let borderhighlight = s:get_borderhighlight(a:opts)
   let buttons = get(a:opts, 'buttons', [])
-  let pad = empty(border) || get(border, 1, 0) == 0
+  let pad = !get(a:opts, 'nopad', 0) && (empty(border) || get(border, 1, 0) == 0)
   let shadow = get(a:opts, 'shadow', 0)
   if get(a:opts, 'close', 0)
     call coc#float#nvim_close_btn(a:config, a:winid, border, borderhighlight, related)
@@ -596,6 +582,25 @@ function! coc#float#get_float_win_list(...) abort
   return []
 endfunction
 
+function! coc#float#get_float_by_kind(kind) abort
+  if s:is_vim
+    if s:popup_list_api
+      return get(filter(popup_list(), 'popup_getpos(v:val)["visible"] && getwinvar(v:val, "kind", "") ==# "'.a:kind.'"'), 0, 0)
+    endif
+    return get(filter(s:popup_list, 's:popup_visible(v:val) && getwinvar(v:val, "kind", "") ==# "'.a:kind.'"'), 0, 0)
+  else
+    let res = []
+    for i in range(1, winnr('$'))
+      let winid = win_getid(i)
+      let config = nvim_win_get_config(winid)
+      if !empty(config['relative']) && getwinvar(winid, 'kind', '') ==# a:kind
+        return winid
+      endif
+    endfor
+  endif
+  return 0
+endfunction
+
 " Check if a float window is scrollable
 function! coc#float#scrollable(winid) abort
   let bufnr = winbufnr(a:winid)
@@ -631,16 +636,12 @@ function! coc#float#scroll(forward, ...)
     throw 'coc#float#scroll() requires nvim >= 0.4.0 or vim >= 8.2.0750'
   endif
   let amount = get(a:, 1, 0)
-  let winids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val)')
+  let winids = filter(coc#float#get_float_win_list(), 'coc#float#scrollable(v:val) && getwinvar(v:val,"kind","") !=# "pum"')
   if empty(winids)
-    return ''
+    return mode() =~ '^i' || mode() ==# 'v' ? "" : "\<Ignore>"
   endif
   for winid in winids
-    if s:is_vim
-      call coc#float#scroll_win(winid, a:forward, amount)
-    else
-      call timer_start(0, { -> coc#float#scroll_win(winid, a:forward, amount)})
-    endif
+    call s:scroll_win(winid, a:forward, amount)
   endfor
   return mode() =~ '^i' || mode() ==# 'v' ? "" : "\<Ignore>"
 endfunction
@@ -743,7 +744,7 @@ function! coc#float#check_related() abort
   let ids = coc#float#get_float_win_list(1)
   for id in ids
     let target = getwinvar(id, 'target_winid', 0)
-    if (target && index(ids, target) == -1) || getwinvar(id, 'kind', '') == 'pum'
+    if (target && index(ids, target) == -1) || getwinvar(id, 'kind', '') == 'pumdetail'
       call add(invalids, id)
     endif
   endfor
@@ -1047,7 +1048,7 @@ function! s:convert_config_nvim(config, create) abort
     endif
     let result['width'] = float2nr(result['width'] + 1 - get(border,3, 0))
   else
-    let result['width'] = float2nr(result['width'] + 1)
+    let result['width'] = float2nr(result['width'] + (get(a:config, 'nopad', 0) ? 0 : 1))
   endif
   if has('nvim-0.5.1') && a:create
     let result['noautocmd'] = v:true
@@ -1306,16 +1307,40 @@ function! s:win_setview(winid, topline, lnum) abort
   endif
 endfunction
 
-function! s:nvim_set_defaults(winid) abort
-  call setwinvar(a:winid, '&signcolumn', 'auto')
+function! s:set_float_defaults(winid, config) abort
+  if has('nvim')
+    let hlgroup = get(a:config, 'highlight', 'CocFloating')
+    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
+    call setwinvar(a:winid, 'border', get(a:config, 'border', []))
+    call setwinvar(a:winid, 'scrollinside', get(a:config, 'scrollinside', 0))
+    if !get(a:config, 'nopad', 0)
+      call setwinvar(a:winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
+    endif
+  endif
+  call setwinvar(a:winid, '&spell', 0)
+  call setwinvar(a:winid, '&linebreak', 1)
+  call setwinvar(a:winid, '&conceallevel', 0)
+  call setwinvar(a:winid, '&signcolumn', 'no')
   call setwinvar(a:winid, '&list', 0)
   call setwinvar(a:winid, '&number', 0)
   call setwinvar(a:winid, '&relativenumber', 0)
+  call setwinvar(a:winid, '&cursorline', 0)
   call setwinvar(a:winid, '&cursorcolumn', 0)
   call setwinvar(a:winid, '&colorcolumn', 0)
+  call setwinvar(a:winid, '&wrap', !get(a:config, 'cursorline', 0))
+  if s:is_vim || has('nvim-0.5.0')
+    call setwinvar(a:winid, '&scrolloff', 0)
+  endif
+  if has('nvim-0.6.0') || has("patch-8.1.2281")
+    call setwinvar(a:winid, '&showbreak', 'NONE')
+  endif
   if exists('*win_execute')
     call win_execute(a:winid, 'setl fillchars+=eob:\ ')
   endif
+  if get(a:config, 'autohide', 0)
+    call setwinvar(a:winid, 'autohide', 1)
+  endif
+  call setwinvar(a:winid, 'float', 1)
 endfunction
 
 function! s:nvim_add_related(winid, target, kind, winhl, related) abort
@@ -1377,4 +1402,22 @@ function! s:get_borderchars(config) abort
     return borderchars
   endif
   return get(a:config, 'rounded', 0) ? s:rounded_borderchars : s:borderchars
+endfunction
+
+function! s:scroll_win(winid, forward, amount) abort
+  if s:is_vim
+    call coc#float#scroll_win(a:winid, a:forward, a:amount)
+  else
+    call timer_start(0, { -> coc#float#scroll_win(a:winid, a:forward, a:amount)})
+  endif
+endfunction
+
+function! s:get_borderhighlight(config) abort
+  let hlgroup = get(a:config, 'highlight',  'CocFloating')
+  let borderhighlight = get(a:config, 'borderhighlight', v:null)
+  if empty(borderhighlight)
+    return hlgroup
+  endif
+  let highlight = type(borderhighlight) == 3 ? borderhighlight[0] : borderhighlight
+  return coc#highlight#compose_hlgroup(highlight, hlgroup)
 endfunction

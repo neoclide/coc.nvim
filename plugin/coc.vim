@@ -7,25 +7,25 @@ function! s:checkVersion() abort
   let l:unsupported = 0
   if get(g:, 'coc_disable_startup_warning', 0) != 1
     if has('nvim')
-      let l:unsupported = !has('nvim-0.3.2')
+      let l:unsupported = !has('nvim-0.4.0')
     else
-      let l:unsupported = !has('patch-8.0.1453')
+      let l:unsupported = !has('patch-8.1.1719')
     endif
 
     if l:unsupported == 1
       echohl Error
-      echom "coc.nvim requires at least Vim 8.0.1453 or Neovim 0.3.2, but you're using an older version."
+      echom "coc.nvim requires at least Vim 8.1.1719 or Neovim 0.4.0, but you're using an older version."
       echom "Please upgrade your (neo)vim."
       echom "You can add this to your vimrc to avoid this message:"
       echom "    let g:coc_disable_startup_warning = 1"
       echom "Note that some features may error out or behave incorrectly."
-      echom "Please do not report bugs unless you're using at least Vim 8.0.1453 or Neovim 0.3.2."
+      echom "Please do not report bugs unless you're using at least Vim 8.1.1719 or Neovim 0.4.0."
       echohl None
       sleep 2
     else
-      if !has('nvim-0.4.0') && !has('patch-8.1.1719')
+      if !has('nvim-0.5.0') && !has('patch-8.2.0750')
         echohl WarningMsg
-        echom "coc.nvim works best on vim >= 8.1.1719 and neovim >= 0.4.0, consider upgrade your vim."
+        echom "coc.nvim works best on vim >= 8.2.0750 and neovim >= 0.5.0, consider upgrade your vim."
         echom "You can add this to your vimrc to avoid this message:"
         echom "    let g:coc_disable_startup_warning = 1"
         echom "Note that some features may behave incorrectly."
@@ -277,19 +277,6 @@ function! s:HandleCharInsert(char, bufnr) abort
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
 endfunction
 
-function! s:HandleCompleteDone(complete_item) abort
-  let item = copy(a:complete_item)
-  if get(g:, 'coc_hide_pum', 0)
-    let item['close'] = v:true
-    let g:coc_hide_pum = 0
-  endif
-  if get(g:, 'coc_disable_complete_done', 0)
-    let g:coc_disable_complete_done = 0
-    let item['closed'] = v:true
-  endif
-  call s:Autocmd('CompleteDone', item)
-endfunction
-
 function! s:HandleWinScrolled(winid) abort
   if getwinvar(a:winid, 'float', 0)
     call coc#float#nvim_scrollbar(a:winid)
@@ -312,13 +299,6 @@ function! s:Enable(initialize)
 
   augroup coc_nvim
     autocmd!
-
-    if exists('##MenuPopupChanged') && exists('*nvim_open_win')
-      autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
-    endif
-    if exists('##CompleteChanged')
-      autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
-    endif
 
     if coc#rpc#started()
       autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
@@ -357,7 +337,6 @@ function! s:Enable(initialize)
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
-    autocmd CompleteDone        * call s:HandleCompleteDone(get(v:, 'completed_item', {}))
     autocmd InsertCharPre       * call s:HandleCharInsert(v:char, bufnr('%'))
     if exists('##TextChangedP')
       autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
@@ -371,7 +350,7 @@ function! s:Enable(initialize)
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI', +expand('<abuf>'), [line('.'), col('.')])
-    autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'), [line('.'), col('.')], coc#util#suggest_variables(bufnr('%')))
+    autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'), [line('.'), col('.')])
     autocmd BufNewFile,BufReadPost * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
@@ -391,6 +370,15 @@ function! s:Enable(initialize)
      echom '[coc.nvim] Event enabled'
      echohl None
   endif
+endfunction
+
+function! s:FgColor(hlGroup) abort
+  let fgId = synIDtrans(hlID(a:hlGroup))
+  let ctermfg = synIDattr(fgId, 'reverse', 'cterm') ==# '1' ? synIDattr(fgId, 'bg', 'cterm') : synIDattr(fgId, 'fg', 'cterm')
+  let guifg = synIDattr(fgId, 'reverse', 'gui') ==# '1'  ? synIDattr(fgId, 'bg', 'gui') : synIDattr(fgId, 'fg', 'gui')
+  let cmd = ' ctermfg=' . (empty(ctermfg) ? '223' : ctermfg)
+  let cmd .= ' guifg=' . (empty(guifg) ? '#ebdbb2' : guifg)
+  return cmd
 endfunction
 
 function! s:Hi() abort
@@ -414,7 +402,7 @@ function! s:Hi() abort
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
-  hi default link CocMenuSel             PmenuSel
+  hi default link CocMenuSel             CursorLine
   hi default link CocErrorFloat          CocErrorSign
   hi default link CocWarningFloat        CocWarningSign
   hi default link CocInfoFloat           CocInfoSign
@@ -452,32 +440,12 @@ function! s:Hi() abort
   hi default link CocSelectedRange   CocHighlightText
   " Symbol highlights
   hi default link CocSymbolDefault       MoreMsg
-  hi default link CocSymbolFile          Statement
-  hi default link CocSymbolModule        Statement
-  hi default link CocSymbolNamespace     Statement
-  hi default link CocSymbolPackage       Statement
-  hi default link CocSymbolClass         Statement
-  hi default link CocSymbolMethod        Function
-  hi default link CocSymbolProperty      Keyword
-  hi default link CocSymbolField         CocSymbolDefault
-  hi default link CocSymbolConstructor   Function
-  hi default link CocSymbolEnum          CocSymbolDefault
-  hi default link CocSymbolInterface     CocSymbolDefault
-  hi default link CocSymbolFunction      Function
-  hi default link CocSymbolVariable      CocSymbolDefault
-  hi default link CocSymbolConstant      Constant
-  hi default link CocSymbolString        String
-  hi default link CocSymbolNumber        Number
-  hi default link CocSymbolBoolean       Boolean
-  hi default link CocSymbolArray         CocSymbolDefault
-  hi default link CocSymbolObject        CocSymbolDefault
-  hi default link CocSymbolKey           Keyword
-  hi default link CocSymbolNull          Type
-  hi default link CocSymbolEnumMember    CocSymbolDefault
-  hi default link CocSymbolStruct        Keyword
-  hi default link CocSymbolEvent         Keyword
-  hi default link CocSymbolOperator      Operator
-  hi default link CocSymbolTypeParameter Operator
+  "Pum
+  hi default link CocPumSearch           CocSearch
+  hi default link CocPumMenu             Normal
+  hi default link CocPumShortcut         Comment
+  hi default link CocPumDeprecated       CocStrikeThrough
+  hi default CocPumVirtualText      ctermfg=239 guifg=#504945
 
   if has('nvim')
     hi default link CocFloating NormalFloat
@@ -546,6 +514,48 @@ function! s:Hi() abort
       execute 'hi default link CocSem'.key.' '.(hlexists(ts) ? ts : fallback)
     endfor
   endif
+  let symbolMap = {
+      \ 'Keyword': ['TSKeyword', 'Keyword'],
+      \ 'Namespace': ['TSNamespace', 'Include'],
+      \ 'Class': ['TSConstructor', 'Special'],
+      \ 'Method': ['TSMethod', 'Function'],
+      \ 'Property': ['TSProperty', 'Identifier'],
+      \ 'Text': ['TSText', 'CocSymbolDefault'],
+      \ 'Unit': ['TSUnit', 'CocSymbolDefault'],
+      \ 'Value': ['TSValue', 'CocSymbolDefault'],
+      \ 'Snippet': ['TSSnippet', 'CocSymbolDefault'],
+      \ 'Color': ['TSColor', 'Float'],
+      \ 'Reference': ['TSTextReference', 'Constant'],
+      \ 'Folder': ['TSFolder', 'CocSymbolDefault'],
+      \ 'File': ['TSFile', 'Statement'],
+      \ 'Module': ['TSModule', 'Statement'],
+      \ 'Package': ['TSPackage', 'Statement'],
+      \ 'Field': ['TSField', 'Identifier'],
+      \ 'Constructor': ['TSConstructor', 'Special'],
+      \ 'Enum': ['TSEnum', 'CocSymbolDefault'],
+      \ 'Interface': ['TSInterface', 'CocSymbolDefault'],
+      \ 'Function': ['TSFunction', 'Function'],
+      \ 'Variable': ['TSVariableBuiltin', 'Special'],
+      \ 'Constant': ['TSConstant', 'Constant'],
+      \ 'String': ['TSString', 'String'],
+      \ 'Number': ['TSNumber', 'Number'],
+      \ 'Boolean': ['TSBoolean', 'Boolean'],
+      \ 'Array': ['TSArray', 'CocSymbolDefault'],
+      \ 'Object': ['TSObject', 'CocSymbolDefault'],
+      \ 'Key': ['TSKey', 'Identifier'],
+      \ 'Null': ['TSNull', 'Type'],
+      \ 'EnumMember': ['TSEnumMember', 'Identifier'],
+      \ 'Struct': ['TSStruct', 'Keyword'],
+      \ 'Event': ['TSEvent', 'Constant'],
+      \ 'Operator': ['TSOperator', 'Operator'],
+      \ 'TypeParameter': ['TSParameter', 'Identifier'],
+      \ }
+  for [key, value] in items(symbolMap)
+    let hlGroup = hlexists(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
+    if hlexists(hlGroup)
+      execute 'hi default CocSymbol'.key.' '.s:FgColor(hlGroup)
+    endif
+  endfor
 endfunction
 
 function! s:FormatFromSelected(type)
@@ -620,6 +630,32 @@ command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#
 call s:Enable(1)
 call s:Hi()
 
+" Default key-mappings for completion
+if empty(mapcheck("\<C-n>", 'i'))
+  inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
+endif
+if empty(mapcheck("\<C-p>", 'i'))
+  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-p>"
+endif
+if empty(mapcheck("\<down>", 'i'))
+  inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
+endif
+if empty(mapcheck("\<up>", 'i'))
+  inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
+endif
+if empty(mapcheck("\<C-e>", 'i'))
+  inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
+endif
+if empty(mapcheck("\<C-y>", 'i'))
+  inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
+endif
+if empty(mapcheck("\<PageDown>", 'i'))
+  inoremap <silent><expr> <PageDown> coc#pum#visible() ? coc#pum#scroll(1) : "\<PageDown>"
+endif
+if empty(mapcheck("\<PageUp>", 'i'))
+  inoremap <silent><expr> <PageUp> coc#pum#visible() ? coc#pum#scroll(0) : "\<PageUp>"
+endif
+
 vnoremap <silent> <Plug>(coc-range-select)          :<C-u>call       CocActionAsync('rangeSelect',     visualmode(), v:true)<CR>
 vnoremap <silent> <Plug>(coc-range-select-backward) :<C-u>call       CocActionAsync('rangeSelect',     visualmode(), v:false)<CR>
 nnoremap <Plug>(coc-range-select)          :<C-u>call       CocActionAsync('rangeSelect',     '', v:true)<CR>
@@ -650,7 +686,6 @@ nnoremap <silent> <Plug>(coc-float-hide)            :<C-u>call       coc#float#c
 nnoremap <silent> <Plug>(coc-float-jump)            :<c-u>call       coc#float#jump()<cr>
 nnoremap <silent> <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCommand')<CR>
 nnoremap <silent> <Plug>(coc-refactor)              :<C-u>call       CocActionAsync('refactor')<CR>
-inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>
 
 nnoremap <silent> <Plug>(coc-cursors-operator) :<C-u>set operatorfunc=<SID>CursorRangeFromSelected<CR>g@
 vnoremap <silent> <Plug>(coc-cursors-range)    :<C-u>call CocAction('cursorsSelect', bufnr('%'), 'range', visualmode())<CR>

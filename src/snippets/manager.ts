@@ -74,7 +74,7 @@ export class SnippetManager {
       throw new Error(`Unable to insert snippet, invalid range.`)
     }
     let context: UltiSnippetContext
-    if (events.pumvisible) this.nvim.call('coc#_cancel', [], true)
+    if (events.pumvisible) this.nvim.call('coc#pum#close', [], true)
     if (!range) {
       let pos = await window.getCursorPosition()
       range = Range.create(pos, pos)

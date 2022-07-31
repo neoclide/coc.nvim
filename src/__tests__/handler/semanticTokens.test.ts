@@ -345,17 +345,18 @@ describe('semanticTokens', () => {
       await workspace.loadFile(uri)
       let doc = workspace.getDocument(uri)
       let item = highlighter.getItem(doc.bufnr)
-      let fn = jest.fn()
+      let called = false
       item.onDidRefresh(() => {
-        fn()
+        called = true
       })
       let buf = doc.buffer
-      await helper.wait(10)
+      await helper.wait(30)
       expect(doc.filetype).toBe('rust')
-      expect(fn).toBeCalledTimes(0)
+      expect(called).toBe(false)
       await nvim.command(`b ${buf.id}`)
-      await helper.wait(50)
-      expect(fn).toBeCalledTimes(1)
+      await helper.waitValue(() => {
+        return called
+      }, true)
     })
 
     it('should not highlight on shown when document not changed', async () => {

@@ -230,11 +230,14 @@ describe('FloatFactory', () => {
     })
 
     it('should preserve float when autohide disable and not overlap with pum', async () => {
-      await helper.createDocument()
-      let buf = await nvim.buffer
-      await buf.setLines(['foo', '', '', '', 'f'], { start: 0, end: -1, strictIndexing: false })
-      await nvim.call('cursor', [5, 2])
+      let doc = await helper.createDocument()
+      await doc.buffer.setLines(['foo', '', '', '', 'f'], { start: 0, end: -1, strictIndexing: false })
+      await doc.synchronize()
+      await nvim.call('cursor', [5, 1])
       await nvim.input('A')
+      await helper.wait(50)
+      nvim.call('coc#start', [], true)
+      await helper.waitPopup()
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'foo'
@@ -244,10 +247,6 @@ describe('FloatFactory', () => {
         autoHide: false
       })
       let activated = await floatFactory.activated()
-      expect(activated).toBe(true)
-      await nvim.input('<C-n>')
-      await helper.waitPopup()
-      activated = await floatFactory.activated()
       expect(activated).toBe(true)
     })
   })

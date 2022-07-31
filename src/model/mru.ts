@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs-extra'
 import { readFileLines, writeFile } from '../util/fs'
 import { distinct } from '../util/array'
+const logger = require('../util/logger')('model-mru')
 
 /**
  * Mru - manage string items as lines in mru file.

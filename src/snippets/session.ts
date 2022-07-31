@@ -1,7 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import events from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { TextDocumentContentChange, UltiSnippetOption } from '../types'
@@ -314,7 +313,7 @@ export class SnippetSession {
     }
     let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token)
     if (res == null || tokenSource.token.isCancellationRequested) return
-    if (shouldCancel(document, res.delta)) {
+    if (document.hasChanged) {
       tokenSource.cancel()
       tokenSource.dispose()
       return
@@ -374,10 +373,4 @@ export class SnippetSession {
     await snippet.init(context, true)
     return snippet.text
   }
-}
-
-export function shouldCancel(document: Document, delta: Position): boolean {
-  if (document.hasChanged) return true
-  if (events.pumvisible && (delta.line != 0 || delta.character != 0)) return true
-  return false
 }

@@ -150,6 +150,8 @@ export interface Env {
   readonly tabCount: number
   readonly mode: string
   readonly apiversion: number
+  readonly pumwidth: number
+  readonly ambiguousIsNarrow: boolean
   readonly floating: boolean
   readonly sign: boolean
   readonly extensionRoot: string
@@ -651,12 +653,10 @@ export interface VimCompleteItem {
   equal?: number
   dup?: number
   empty?: number
-  user_data?: string
 }
 
 export interface CompleteDoneItem {
   readonly word: string
-  readonly user_data?: string
   // if there's ClosePum event just received.
   close?: boolean
   // already cancelled by completion.stop()
@@ -673,7 +673,6 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   matchScore?: number
   priority?: number
   preselect?: boolean
-  signature?: string
   localBonus?: number
   index?: number
   // used for preview
@@ -682,14 +681,15 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   resolved?: boolean
   // saved line for apply TextEdit
   line?: string
-  recentScore?: number
+  deprecated?: boolean
+  positions?: ReadonlyArray<number>
+  kindHighlight?: string
 }
 
 export interface CompleteResult {
   items: ExtendedCompleteItem[]
   isIncomplete?: boolean
   startcol?: number
-  priority?: number
 }
 
 // option on complete & should_complete
@@ -708,8 +708,6 @@ export interface CompleteOption {
   synname?: string
   readonly linenr: number
   readonly source?: string
-  readonly blacklist: string[]
-  readonly disabled: ReadonlyArray<string>
   readonly changedtick: number
   readonly indentkeys: string
   readonly triggerCharacter?: string
@@ -750,7 +748,7 @@ export interface ISource {
   onEnter?(bufnr: number): void
   shouldComplete?(opt: CompleteOption): Promise<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult | null>
-  onCompleteResolve?(item: ExtendedCompleteItem, token: CancellationToken): ProviderResult<void> | void
+  onCompleteResolve?(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
   onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption): ProviderResult<void>
   shouldCommit?(item: ExtendedCompleteItem, character: string): boolean
 }
