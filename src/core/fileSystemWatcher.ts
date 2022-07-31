@@ -153,9 +153,9 @@ export class FileSystemWatcher implements Disposable {
         }
       }
       // file rename
-      if (files.length == 2 && !files[0].exists && files[1].exists) {
-        let oldFile = files[0]
-        let newFile = files[1]
+      if (files.length == 2 && files[0].exists !== files[1].exists) {
+        let oldFile = files.find(o => o.exists !== true)
+        let newFile = files.find(o => o.exists === true)
         if (oldFile.size == newFile.size) {
           this._onDidRename.fire({
             oldUri: URI.file(path.join(root, oldFile.name)),
@@ -164,7 +164,7 @@ export class FileSystemWatcher implements Disposable {
         }
       }
       // detect folder rename
-      if (files.length >= 2) {
+      if (files.length > 2 && files.length % 2 == 0) {
         let [oldFiles, newFiles] = splitArray(files, o => o.exists === false)
         if (oldFiles.length == newFiles.length) {
           for (let oldFile of oldFiles) {
