@@ -1,3 +1,7 @@
+# 2022-08-01
+
+- Use custom popup menu, #3862
+
 # 2022-06-14
 
 - Add highlight groups `CocListLine` and `CocListSearch`.
