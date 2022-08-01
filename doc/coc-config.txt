@@ -68,7 +68,7 @@ Completion related~
 	Controls how suggestions are pre-selected when showing the suggest
 	list. Default: "recentlyUsed".
 
-	Could be "none", "recentlyUsed" and "recentlyUsedByPrefix".
+	Could be "first", "recentlyUsed" and "recentlyUsedByPrefix".
 
 "suggest.formatItems" 					*coc-config-suggest-formatItems*
 

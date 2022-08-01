@@ -7,6 +7,7 @@ import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, isWord } from '../util/string'
 import { matchScoreWithPositions } from './match'
+import type { Selection } from './mru'
 const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
@@ -14,7 +15,7 @@ export interface CompleteConfig {
   pumwidth: number
   enablePreselect: boolean
   formatItems: ReadonlyArray<string>
-  selection: 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
+  selection: Selection
   virtualText: boolean
   labelMaxLength: number
   autoTrigger: string

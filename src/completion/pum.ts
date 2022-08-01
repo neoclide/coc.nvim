@@ -83,7 +83,7 @@ export default class PopupMenu {
     let menuWidth = 0
     let kindWidth = 0
     let shortcutWidth = 0
-    let checkMru = !noselect && selectedIndex == -1 && selection != 'none'
+    let checkMru = !noselect && selectedIndex == -1 && selection != 'first'
     // abbr kind, menu
     for (let i = 0; i < items.length; i++) {
       let item = items[i]

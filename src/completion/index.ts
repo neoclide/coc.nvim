@@ -11,7 +11,7 @@ import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
-import MruLoader from './mru'
+import MruLoader, { Selection } from './mru'
 import PopupMenu from './pum'
 import { getInput, getPrependWord, getSources, shouldIndent, shouldStop } from './util'
 const logger = require('../util/logger')('completion')
@@ -118,7 +118,7 @@ export class Completion implements Disposable {
       formatItems: getConfig<string[]>('formatItems', ['abbr', 'menu', 'kind', 'shortcut']),
       autoTrigger: getConfig<string>('autoTrigger', 'always'),
       virtualText: getConfig<boolean>('virtualText', false),
-      selection: getConfig<'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'>('selection', 'recentlyUsed'),
+      selection: getConfig<Selection>('selection', 'first'),
       floatConfig: getConfig<FloatConfig>('floatConfig', {}),
       defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),

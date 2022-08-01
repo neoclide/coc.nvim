@@ -2,7 +2,7 @@
 import { ExtendedCompleteItem } from '../types'
 const logger = require('../util/logger')('completion-mru')
 
-export type Selection = 'none' | 'recentlyUsed' | 'recentlyUsedByPrefix'
+export type Selection = 'first' | 'recentlyUsed' | 'recentlyUsedByPrefix'
 
 export default class MruLoader {
   private max = 0
@@ -20,7 +20,7 @@ export default class MruLoader {
   }
 
   public add(prefix: string, item: ExtendedCompleteItem): void {
-    if (this.selection == 'none' || ['around', 'buffer', 'word'].includes(item.source)) return
+    if (this.selection == 'first' || ['around', 'buffer', 'word'].includes(item.source)) return
     let key = toItemKey(item)
     if (!item.word.toLowerCase().startsWith(prefix.toLowerCase())) {
       prefix = ''
