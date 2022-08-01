@@ -100,6 +100,7 @@ export function createSandbox(filename: string, logger: ILogger): ISandbox {
   const sandbox = vm.createContext({
     module,
     Buffer,
+    URL: globalThis.URL,
     console: {
       debug: (...args: any[]) => {
         logger.debug.apply(logger, args)
