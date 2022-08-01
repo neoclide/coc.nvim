@@ -332,6 +332,9 @@ function! coc#pum#create(lines, opt, config) abort
         \ 'focusable': v:false
         \ })
   call extend(config, coc#dict#pick(a:config, ['highlight', 'rounded', 'highlights', 'winblend', 'shadow', 'border', 'borderhighlight']))
+  if empty(get(config, 'winblend', 0)) && exists('&pumblend')
+    let config['winblend'] = &pumblend
+  endif
   let result =  coc#float#create_float_win(s:pum_winid, s:pum_bufnr, config)
   if empty(result)
     return
