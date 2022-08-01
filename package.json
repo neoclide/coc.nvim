@@ -4,7 +4,7 @@
   "description": "LSP based intellisense engine for neovim & vim8.",
   "main": "./build/index.js",
   "engines": {
-    "node": ">=12.12.0"
+    "node": ">=14.14.0"
   },
   "scripts": {
     "lint": "eslint . --ext .ts --quiet",
@@ -71,7 +71,7 @@
     "@types/marked": "^4.0.1",
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^1.0.1",
-    "@types/node": "12.12.12",
+    "@types/node": "14.14",
     "@types/semver": "^7.3.4",
     "@types/tar": "^4.0.5",
     "@types/uuid": "^8.3.0",
