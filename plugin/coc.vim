@@ -317,6 +317,9 @@ function! s:Enable(initialize)
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
     endif
+    if exists('##CompleteChanged')
+      autocmd CompleteChanged   * call coc#pum#stop()
+    endif
     autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
     if exists('##WinClosed')
       autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
@@ -631,28 +634,28 @@ call s:Enable(1)
 call s:Hi()
 
 " Default key-mappings for completion
-if empty(mapcheck("\<C-n>", 'i'))
+if empty(mapcheck('<C-n>', 'i'))
   inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
 endif
-if empty(mapcheck("\<C-p>", 'i'))
+if empty(mapcheck('<C-p>', 'i'))
   inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-p>"
 endif
-if empty(mapcheck("\<down>", 'i'))
+if empty(mapcheck('<down>', 'i'))
   inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
 endif
-if empty(mapcheck("\<up>", 'i'))
+if empty(mapcheck('<up>', 'i'))
   inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
 endif
-if empty(mapcheck("\<C-e>", 'i'))
+if empty(mapcheck('<C-e>', 'i'))
   inoremap <silent><expr> <C-e> coc#pum#visible() ? coc#pum#cancel() : "\<C-e>"
 endif
-if empty(mapcheck("\<C-y>", 'i'))
+if empty(mapcheck('<C-y>', 'i'))
   inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
 endif
-if empty(mapcheck("\<PageDown>", 'i'))
+if empty(mapcheck('<PageDown>', 'i'))
   inoremap <silent><expr> <PageDown> coc#pum#visible() ? coc#pum#scroll(1) : "\<PageDown>"
 endif
-if empty(mapcheck("\<PageUp>", 'i'))
+if empty(mapcheck('<PageUp>', 'i'))
   inoremap <silent><expr> <PageUp> coc#pum#visible() ? coc#pum#scroll(0) : "\<PageUp>"
 endif
 
