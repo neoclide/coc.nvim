@@ -669,6 +669,23 @@ describe('completion', () => {
       expect(floatWin).toBeUndefined()
     })
 
+    it('should not throw error', async () => {
+      let called = false
+      disposables.push(sources.createSource({
+        name: 'resolve',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
+        onCompleteResolve: async item => {
+          called = true
+          throw new Error('custom error')
+        }
+      }))
+      await nvim.input('i.')
+      await helper.waitPopup()
+      expect(called).toBe(true)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline.includes('error')).toBe(false)
+    })
+
     it('should timeout on resolve', async () => {
       let called = false
       disposables.push(sources.createSource({
