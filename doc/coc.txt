@@ -3055,7 +3055,7 @@ Default mappings on normal mode:
 <Tab>       - Select action.
 <C-e> 	    - Scroll preview window down.
 <C-y> 	    - Scroll preview window up.
-<Space>     - Toggle select of current item.
+<Space>     - Toggle selection of current item.
 i,I,o,O,a,A - Change to insert mode.
 p           - Preview action.
 :           - Cancel list session without closing window.

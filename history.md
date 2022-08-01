@@ -3,6 +3,7 @@
 - Use custom popup menu, #3862.
 - Use "first" instead of "none" for configuration `suggest.selection`.
 - Make "first" default for `suggest.selection`, like VSCode.
+- Add default blue color for hlgroup `CocMenuSel`.
 
 # 2022-06-14
 
