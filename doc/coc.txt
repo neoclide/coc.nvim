@@ -9,6 +9,7 @@ CONTENTS					*coc-contents*
 Introduction					|coc-introduction|
 Requirements					|coc-requirements|
 Installation					|coc-installation|
+Extensions 					|coc-extensions|
 Configuration					|coc-configuration|
 LSP features 					|coc-lsp|
   Document 					|coc-document|
@@ -129,6 +130,71 @@ To use Vim's native |packages| on Linux or MaxOS, use script like: >
 when using source code of coc.nvim, you'll have to install
 https://yarnpkg.com/ and run `yarn install` in project root of coc.nvim.
 
+==============================================================================
+EXTENSIONS						*coc-extensions*
+
+To provide LSP features for buffers, the user have to config
+|coc-config-languageserver| or install coc extensions.
+
+Coc extensions are more powerful since they could contribute json schemes,
+commands, and use middleware methods of languageserver to provide better
+results.  It's also possible to provide features that not part of LSP.
+
+Install extensions from git (not recommended):~
+
+- Download to code by `git clone` command.
+- In project root, install dependencies and compile the code by `yarn install`
+  (needed by most coc extensions).
+- Add the project root to vim's runtimepath by `set runtimepath^=/path/to/project`
+
+Plugin manager like [vim-plug] can be used as well.
+
+Note: use coc extensions from source code requires install dependencies which
+may take buge disk usage.
+
+Install global extensions from npm (recommended):~
+
+Use |:CocInstall| to install coc extensions from vim's command line.
+
+To make coc.nvim install extensions on startup, use |g:coc_global_extensions|.
+
+To use package manager other than npm (like `yarn` or `pnpm`), use
+|coc-config-npm-binPath|.
+
+To customize npm registry for coc.nvim add `coc.nvim:registry` in your
+`~/.npmrc`, like:
+>
+	coc.nvim:registry=https://registry.mycompany.org/
+<
+To customize extensions folder, user |g:coc_data_home|.
+
+Uninstall global extensions:~
+
+Use |:CocUninstall|.
+
+Update global extensions:~
+
+Use |:CocUpdate| or |:CocUpdateSync|.
+
+To update extensions automatically, config |coc-preferences-extensionUpdateCheck|.
+
+Manage extensions list:~
+
+Use |coc-list-extensions| or other list plugin that request extensions list by
+|CocAction('extensionStats')|.
+
+Single file extensions:~
+
+All javascript files that ends with `.js` inside the folder
+|g:coc_config_home| + '/coc-extensions' are considered as coc extensions, for
+example:
+>
+  const {window} = require('coc.nvim')
+
+  exports.activate = context => {
+    window.showInformationMessage("message from extension")
+  }
+<
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
