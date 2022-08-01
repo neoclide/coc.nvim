@@ -8,7 +8,7 @@ let s:sign_groups = []
 function! coc#ui#check_pum_keymappings() abort
   let keys = []
   for key in ['<cr>', '<tab>']
-    if maparg(key, 'i') =~# 'pumvisible()'
+    if maparg(key, 'i') =~# '\<pumvisible()'
       call add(keys, key)
     endif
   endfor
