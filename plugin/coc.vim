@@ -317,6 +317,9 @@ function! s:Enable(initialize)
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
     endif
+    if exists('##CompleteChanged')
+      autocmd CompleteChanged   * call coc#pum#stop()
+    endif
     autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
     if exists('##WinClosed')
       autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
