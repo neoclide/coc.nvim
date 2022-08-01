@@ -399,10 +399,10 @@ function! s:Hi() abort
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocDisabled      guifg=#999999   ctermfg=gray
   hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
+  hi default CocMenuSel       ctermbg=109 guibg=#13354A
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
-  hi default link CocMenuSel             CursorLine
   hi default link CocErrorFloat          CocErrorSign
   hi default link CocWarningFloat        CocWarningSign
   hi default link CocInfoFloat           CocInfoSign
