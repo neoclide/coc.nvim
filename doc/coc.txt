@@ -287,7 +287,7 @@ following key-mappings are used when the {lhs} is not mapped:
 Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
 
   inoremap <silent><expr> <C-n> coc#pum#visible() ? coc#pum#next(1) : "\<C-n>"
-  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-n>"
+  inoremap <silent><expr> <C-p> coc#pum#visible() ? coc#pum#prev(1) : "\<C-p>"
   inoremap <silent><expr> <down> coc#pum#visible() ? coc#pum#next(0) : "\<down>"
   inoremap <silent><expr> <up> coc#pum#visible() ? coc#pum#prev(0) : "\<up>"
 <
