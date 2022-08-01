@@ -1855,6 +1855,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "bigshans",
+      "name": "bigshans",
+      "avatar_url": "https://avatars.githubusercontent.com/u/26884666?v=4",
+      "profile": "http://bigshans.github.io",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
