@@ -1308,7 +1308,7 @@ function! s:win_setview(winid, topline, lnum) abort
 endfunction
 
 function! s:set_float_defaults(winid, config) abort
-  if has('nvim')
+  if !s:is_vim
     let hlgroup = get(a:config, 'highlight', 'CocFloating')
     call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
     call setwinvar(a:winid, 'border', get(a:config, 'border', []))
@@ -1316,17 +1316,18 @@ function! s:set_float_defaults(winid, config) abort
     if !get(a:config, 'nopad', 0)
       call setwinvar(a:winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
     endif
+    call setwinvar(a:winid, '&signcolumn', 'no')
+    call setwinvar(a:winid, '&cursorcolumn', 0)
+  endif
+  if !s:is_vim || !has("patch-8.2.3100")
+    call setwinvar(a:winid, '&number', 0)
+    call setwinvar(a:winid, '&relativenumber', 0)
+    call setwinvar(a:winid, '&cursorline', 0)
   endif
   call setwinvar(a:winid, '&spell', 0)
   call setwinvar(a:winid, '&linebreak', 1)
   call setwinvar(a:winid, '&conceallevel', 0)
-  call setwinvar(a:winid, '&signcolumn', 'no')
   call setwinvar(a:winid, '&list', 0)
-  call setwinvar(a:winid, '&number', 0)
-  call setwinvar(a:winid, '&relativenumber', 0)
-  call setwinvar(a:winid, '&cursorline', 0)
-  call setwinvar(a:winid, '&cursorcolumn', 0)
-  call setwinvar(a:winid, '&colorcolumn', 0)
   call setwinvar(a:winid, '&wrap', !get(a:config, 'cursorline', 0))
   if s:is_vim || has('nvim-0.5.0')
     call setwinvar(a:winid, '&scrolloff', 0)
