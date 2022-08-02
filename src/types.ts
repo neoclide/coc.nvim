@@ -657,10 +657,11 @@ export interface VimCompleteItem {
 
 export interface CompleteDoneItem {
   readonly word: string
-  // if there's ClosePum event just received.
-  close?: boolean
-  // already cancelled by completion.stop()
-  closed?: boolean
+  readonly abbr?: string
+  readonly isSnippet: boolean
+  readonly kind?: string
+  readonly menu?: string
+  readonly user_data?: string
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {

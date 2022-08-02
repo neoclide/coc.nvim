@@ -2,9 +2,21 @@
 import { InsertChange } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteOption, ISource } from '../types'
+import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, ISource } from '../types'
 import { byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
+
+export function toCompleteDoneItem(item: ExtendedCompleteItem | undefined): CompleteDoneItem | {} {
+  if (!item) return {}
+  return {
+    word: item.word,
+    abbr: item.abbr,
+    kind: item.kind,
+    isSnippet: item.isSnippet === true,
+    menu: `[${item.source}]`,
+    user_data: `${item.source}:${item.index}`
+  }
+}
 
 export function shouldStop(bufnr: number, pretext: string, info: InsertChange, option: Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'>): boolean {
   let { pre } = info

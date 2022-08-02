@@ -208,6 +208,22 @@ describe('snippet provider', () => {
   })
 
   describe('synchronize text', () => {
+    it('should synchronize when position changed and pum visible', async () => {
+      let doc = await workspace.document
+      await nvim.setLine('foo')
+      await nvim.input('o')
+      let res = await snippetManager.insertSnippet("`!p snip.rv = ' '*(4- len(t[1]))`${1}", true, undefined, InsertTextMode.asIs, {})
+      expect(res).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('    ')
+      await nvim.input('f')
+      await nvim.eval(`feedkeys("\\<C-n>",'in')`)
+      await helper.waitFor('pumvisible', [], 1)
+      await nvim.input('<C-e>')
+      let s = snippetManager.getSession(doc.bufnr)
+      expect(s).toBeDefined()
+    })
+
     it('should update placeholder on placeholder update', async () => {
       await nvim.input('i')
       await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, {})
@@ -246,25 +262,6 @@ describe('snippet provider', () => {
       await s.forceSynchronize()
       let line = await nvim.line
       expect(line).toBe('abcemptyabc')
-    })
-
-    it('should synchronize when position changed and pum visible', async () => {
-      let buf = await nvim.buffer
-      await nvim.setLine('foo')
-      await nvim.input('o')
-      let res = await snippetManager.insertSnippet("`!p snip.rv = ' '*(4- len(t[1]))`${1}", true, undefined, InsertTextMode.asIs, {})
-      expect(res).toBe(true)
-      let line = await nvim.line
-      expect(line).toBe('    ')
-      await nvim.input('f')
-      await nvim.eval(`feedkeys("\\<C-n>",'in')`)
-      await helper.waitFor('pumvisible', [], 1)
-      await nvim.input('<C-e>')
-      let s = snippetManager.getSession(buf.id)
-      expect(s).toBeDefined()
-      await s.forceSynchronize()
-      line = await nvim.line
-      expect(line).toBe('   f')
     })
   })
 

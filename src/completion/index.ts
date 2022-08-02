@@ -13,7 +13,7 @@ import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
 import MruLoader, { Selection } from './mru'
 import PopupMenu from './pum'
-import { getInput, getPrependWord, getSources, shouldIndent, shouldStop } from './util'
+import { getInput, getPrependWord, getSources, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -314,6 +314,7 @@ export class Completion implements Disposable {
     events.completing = false
     this.cancel()
     let indent = false
+    void events.fire('CompleteDone', [toCompleteDoneItem(item)])
     if (item && inserted) {
       this.mru.add(input, item)
       indent = pretext && shouldIndent(option.indentkeys, pretext)

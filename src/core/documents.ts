@@ -121,9 +121,8 @@ export default class Documents implements Disposable {
         }, null, this.disposables)
       })
     } else {
-      events.on('CompleteDone', async () => {
-        let ev = await events.race(['TextChangedI', 'TextChanged', 'MenuPopupChanged'], 100)
-        if (ev && (ev.name === 'TextChangedI' || ev.name === 'TextChanged')) {
+      events.on('CompleteDone', async item => {
+        if (!item.isSnippet) {
           let doc = this.buffers.get(events.bufnr)
           if (doc?.attached) doc._forceSync()
         }
