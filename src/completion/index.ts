@@ -49,6 +49,9 @@ export class Completion implements Disposable {
       if (this.triggerTimer) clearTimeout(this.triggerTimer)
       if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
       if (this.option.linenr === cursor[0]) {
+        if (cursor[1] == this.option.colnr && cursor[1] === byteLength(this.pretext ?? '') + 1) {
+          return
+        }
         let line = workspace.getDocument(bufnr).getline(cursor[0] - 1)
         let curr = characterIndex(line, cursor[1] - 1)
         let start = characterIndex(line, this.option.col)
