@@ -327,7 +327,8 @@ export class DiagnosticBuffer implements SyncItem {
         .join(this.config.virtualTextLineSeparator)
       if (workspace.has('nvim-0.5.1')) {
         let opts: any = {
-          virt_text: [[virtualTextPrefix + msg, highlight]]
+          virt_text: [[virtualTextPrefix + msg, highlight]],
+          hl_mode: 'combine'
         }
         if (config.virtualTextAlignRight) {
           // opts.virt_text_pos = 'right_align'
