@@ -400,10 +400,6 @@ function! s:Hi() abort
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
-  hi default link CocErrorFloat          CocErrorSign
-  hi default link CocWarningFloat        CocWarningSign
-  hi default link CocInfoFloat           CocInfoSign
-  hi default link CocHintFloat           CocHintSign
   hi default link CocErrorHighlight      CocUnderline
   hi default link CocWarningHighlight    CocUnderline
   hi default link CocInfoHighlight       CocUnderline
@@ -466,15 +462,23 @@ function! s:Hi() abort
   if has('nvim')
     let names = ['Error', 'Warning', 'Info', 'Hint']
     for name in names
-      if !hlexists('Coc'.name.'VirtualText')
-        let suffix = name ==# 'Warning' ? 'Warn' : name
-        if hlexists('DiagnosticVirtualText'.suffix)
-          exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
-        else
-          exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
-        endif
+      let suffix = name ==# 'Warning' ? 'Warn' : name
+      if hlexists('DiagnosticVirtualText'.suffix)
+        exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
+      else
+        exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
+      endif
+      if hlexists('Diagnostic'.suffix)
+        exe 'hi default link Coc'.name.'Float Diagnostic'.suffix
+      else
+        exe 'hi default link Coc'.name.'Float '.coc#highlight#compose_hlgroup('Coc'.name.'Sign', 'CocFloating')
       endif
     endfor
+  else
+    execute 'hi default link CocErrorFloat '.coc#highlight#compose_hlgroup('CocErrorSign', 'CocFloating')
+    execute 'hi default link CocWarningFloat '.coc#highlight#compose_hlgroup('CocWarningSign', 'CocFloating')
+    execute 'hi default link CocInfoFloat '.coc#highlight#compose_hlgroup('CocInfoSign', 'CocFloating')
+    execute 'hi default link CocHintFloat '.coc#highlight#compose_hlgroup('CocHintSign', 'CocFloating')
   endif
   call s:AddAnsiGroups()
 

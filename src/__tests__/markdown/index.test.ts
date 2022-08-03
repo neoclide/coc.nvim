@@ -219,6 +219,11 @@ describe('parseDocuments', () => {
       'header'
     ])
     expect(res.highlights).toEqual([{
+      colEnd: -1,
+      colStart: 0,
+      hlGroup: "CocFloatDividingLine",
+      lnum: 1,
+    }, {
       hlGroup: 'CocBold',
       lnum: 2,
       colStart: 0,
@@ -245,7 +250,7 @@ describe('parseDocuments', () => {
     }]
     let res = parseDocuments(docs)
     let { highlights } = res
-    expect(highlights).toEqual([{ lnum: 2, colStart: 4, colEnd: 7, hlGroup: 'String' }])
+    expect(highlights[1]).toEqual({ lnum: 2, colStart: 4, colEnd: 7, hlGroup: 'String' })
   })
 
   it('should parse documents with active highlights', async () => {
@@ -259,7 +264,6 @@ describe('parseDocuments', () => {
       active: [15, 20]
     }]
     let res = parseDocuments(docs as any)
-    expect(res.highlights).toEqual([{ colStart: 5, colEnd: 8, lnum: 0, hlGroup: 'CocUnderline' }
-    ])
+    expect(res.highlights[0]).toEqual({ colStart: 5, colEnd: 8, lnum: 0, hlGroup: 'CocUnderline' })
   })
 })
