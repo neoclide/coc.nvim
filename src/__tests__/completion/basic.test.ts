@@ -30,15 +30,6 @@ async function triggerCompletion(source: string): Promise<void> {
 
 describe('completion', () => {
   describe('suggest configurations', () => {
-    it('should not trigger when autoTrigger is none', async () => {
-      helper.updateConfiguration('suggest.autoTrigger', 'none')
-      let doc = await workspace.document
-      await nvim.setLine('foo football')
-      await doc.synchronize()
-      await nvim.input('of')
-      await helper.wait(20)
-      expect(completion.isActivated).toBe(false)
-    })
 
     it('should not select complete item', async () => {
       helper.updateConfiguration('suggest.noselect', true)
@@ -213,6 +204,23 @@ describe('completion', () => {
       await nvim.input('<esc>')
       await nvim.input('of')
       await helper.waitPopup()
+    })
+
+    it('should do filter when autoTrigger is none', async () => {
+      helper.updateConfiguration('suggest.autoTrigger', 'none')
+      disposables.push(sources.createSource({
+        name: 'words',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+        })
+      }))
+      await nvim.input('i')
+      nvim.call('coc#start', [], true)
+      await helper.waitPopup()
+      expect(completion.activeItems.length).toBe(2)
+      await nvim.input('f')
+      await helper.wait(50)
+      expect(completion.activeItems.length).toBe(1)
     })
   })
 

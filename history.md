@@ -1,3 +1,11 @@
+# 2022-08-04
+
+- Make diagnostic float window with the same background as CocFloating.
+
+# 2022-08-03
+
+- Add highlight group 'CocFloatingDividingLine'.
+
 # 2022-08-01
 
 - Use custom popup menu, #3862.

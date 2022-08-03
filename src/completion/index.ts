@@ -191,7 +191,7 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
-    if (!workspace.isAttached(bufnr) || this.config.autoTrigger === 'none') return
+    if (!workspace.isAttached(bufnr)) return
     let { option } = this
     // detect item word insert
     if (!info.insertChar && option) {
@@ -261,7 +261,8 @@ export class Completion implements Disposable {
   }
 
   private async triggerCompletion(doc: Document, info: InsertChange, sources?: ISource[]): Promise<boolean> {
-    let { minTriggerInputLength, asciiCharactersOnly } = this.config
+    let { minTriggerInputLength, asciiCharactersOnly, autoTrigger } = this.config
+    if (autoTrigger === 'none') return false
     let { pre } = info
     // check trigger
     if (!sources) {
