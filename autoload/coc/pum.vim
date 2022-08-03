@@ -351,8 +351,9 @@ function! coc#pum#create(lines, opt, config) abort
     let firstline = s:get_firstline(lnum, len(a:lines), config['height'])
     call coc#compat#execute(s:pum_winid, 'call winrestview({"lnum":'.lnum.',"topline":'.firstline.'})')
   endif
-  let s:pum_index = get(config, 'index', -1)
-  call coc#dialog#place_sign(s:pum_bufnr, s:pum_index + 1)
+  let index = get(config, 'index', -1)
+  let s:pum_index = index - 1
+  call coc#dialog#place_sign(s:pum_bufnr, index + 1)
   call setwinvar(s:pum_winid, 'kind', 'pum')
   " content before col and content after cursor
   let linetext = getline('.')
