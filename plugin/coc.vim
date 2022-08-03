@@ -449,6 +449,7 @@ function! s:Hi() abort
   else
     hi default link CocFloating Pmenu
   endif
+  hi default link CocFloatDividingLine NonText
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
   endif

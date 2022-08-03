@@ -68,7 +68,13 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
       if (arr.length) highlights.push(...arr)
     }
     if (idx != docs.length - 1) {
-      lines.push('─') // separate line
+      highlights.push({
+        lnum: lines.length,
+        hlGroup: 'CocFloatDividingLine',
+        colStart: 0,
+        colEnd: -1
+      })
+      lines.push('─') // dividing line
     }
     idx = idx + 1
   }
