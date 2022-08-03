@@ -36,10 +36,20 @@ function! coc#dialog#create_pum_float(lines, config) abort
   let width = float2nr(coc#math#min(maxWidth, width))
   let ch = coc#string#content_height(a:lines, width - 2)
   let height = float2nr(coc#math#min(maxHeight, ch))
-  let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width - 2 + (s:is_vim && ch > height ? -1 : 0)) : s})
+  let highlights = get(a:config, 'highlights', [])
+  let lines = []
+  let separator = repeat('─', width - 2 + (s:is_vim && ch > height ? -1 : 0))
+  for line in a:lines
+    if line =~# '^─'
+      call add(lines, separator)
+      call add(highlights, {'lnum': len(lines) -1, 'hlGroup': 'NonText', 'colStart': 0, 'colEnd': -1})
+    else
+      call add(lines, line)
+    endif
+  endfor
   let opts = {
         \ 'lines': lines,
-        \ 'highlights': get(a:config, 'highlights', []),
+        \ 'highlights': highlights,
         \ 'relative': 'editor',
         \ 'col': showRight ? pumbounding['col'] + pw : pumbounding['col'] - width,
         \ 'row': pumbounding['row'],
@@ -94,8 +104,18 @@ function! coc#dialog#create_cursor_float(winid, bufnr, lines, config) abort
     return v:null
   endif
   let width = dimension['width']
-  let lines = map(a:lines, {_, s -> s =~# '^─' ? repeat('─', width) : s})
-  let config = extend(extend({'lines': lines, 'relative': 'cursor'}, a:config), dimension)
+  let highlights = get(a:config, 'highlights', [])
+  let lines = []
+  let separator = repeat('─', width)
+  for line in a:lines
+    if line =~# '^─'
+      call add(lines, separator)
+      call add(highlights, {'lnum': len(lines) -1, 'hlGroup': 'NonText', 'colStart': 0, 'colEnd': -1})
+    else
+      call add(lines, line)
+    endif
+  endfor
+  let config = extend(extend({'lines': lines, 'relative': 'cursor', 'highlights': highlights}, a:config), dimension)
   call s:close_auto_hide_wins(a:winid)
   let res = coc#float#create_float_win(a:winid, a:bufnr, config)
   if empty(res)
