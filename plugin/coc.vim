@@ -321,14 +321,12 @@ function! s:Enable(initialize)
       autocmd CompleteChanged   * call coc#pum#stop()
     endif
     autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
+    autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')
       autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
       autocmd WinClosed         * call coc#notify#on_close(+expand('<amatch>'))
     elseif exists('##TabEnter')
       autocmd TabEnter          * call coc#notify#reflow()
-    endif
-    if has('nvim-0.4.0') || has('patch-8.1.1719')
-      autocmd CursorHold        * call coc#float#check_related()
     endif
     if exists('##WinScrolled')
       autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'))
@@ -394,11 +392,7 @@ function! s:Hi() abort
   hi default CocUnderline     term=underline cterm=underline gui=underline
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
-  if s:is_vim || has('nvim-0.4.0')
-    hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
-  else
-    hi default CocStrikeThrough guifg=#989898 ctermfg=gray
-  endif
+  hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocDisabled      guifg=#999999   ctermfg=gray
   hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
@@ -406,10 +400,6 @@ function! s:Hi() abort
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
-  hi default link CocErrorFloat          CocErrorSign
-  hi default link CocWarningFloat        CocWarningSign
-  hi default link CocInfoFloat           CocInfoSign
-  hi default link CocHintFloat           CocHintSign
   hi default link CocErrorHighlight      CocUnderline
   hi default link CocWarningHighlight    CocUnderline
   hi default link CocInfoHighlight       CocUnderline
@@ -455,6 +445,7 @@ function! s:Hi() abort
   else
     hi default link CocFloating Pmenu
   endif
+  hi default link CocFloatDividingLine NonText
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
   endif
@@ -471,15 +462,23 @@ function! s:Hi() abort
   if has('nvim')
     let names = ['Error', 'Warning', 'Info', 'Hint']
     for name in names
-      if !hlexists('Coc'.name.'VirtualText')
-        let suffix = name ==# 'Warning' ? 'Warn' : name
-        if hlexists('DiagnosticVirtualText'.suffix)
-          exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
-        else
-          exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
-        endif
+      let suffix = name ==# 'Warning' ? 'Warn' : name
+      if hlexists('DiagnosticVirtualText'.suffix)
+        exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
+      else
+        exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
+      endif
+      if hlexists('Diagnostic'.suffix)
+        exe 'hi default link Coc'.name.'Float Diagnostic'.suffix
+      else
+        exe 'hi default link Coc'.name.'Float '.coc#highlight#compose_hlgroup('Coc'.name.'Sign', 'CocFloating')
       endif
     endfor
+  else
+    execute 'hi default link CocErrorFloat '.coc#highlight#compose_hlgroup('CocErrorSign', 'CocFloating')
+    execute 'hi default link CocWarningFloat '.coc#highlight#compose_hlgroup('CocWarningSign', 'CocFloating')
+    execute 'hi default link CocInfoFloat '.coc#highlight#compose_hlgroup('CocInfoSign', 'CocFloating')
+    execute 'hi default link CocHintFloat '.coc#highlight#compose_hlgroup('CocHintSign', 'CocFloating')
   endif
   call s:AddAnsiGroups()
 

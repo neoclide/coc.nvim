@@ -424,7 +424,7 @@ endfunction
 " Create or refresh scrollbar for winid
 " Need called on create, config, buffer change, scrolled
 function! coc#float#nvim_scrollbar(winid) abort
-  if !has('nvim-0.4.0')
+  if s:is_vim
     return
   endif
   let winids = nvim_tabpage_list_wins(nvim_get_current_tabpage())
@@ -744,11 +744,11 @@ function! coc#float#check_related() abort
   let ids = coc#float#get_float_win_list(1)
   for id in ids
     let target = getwinvar(id, 'target_winid', 0)
-    if (target && index(ids, target) == -1) || getwinvar(id, 'kind', '') == 'pumdetail'
+    if target && index(ids, target) == -1
       call add(invalids, id)
     endif
   endfor
-  if !s:popup_list_api
+  if s:is_vim && !s:popup_list_api
     let s:popup_list = filter(ids, "index(invalids, v:val) == -1")
   endif
   for id in invalids
@@ -1318,6 +1318,8 @@ function! s:set_float_defaults(winid, config) abort
     endif
     call setwinvar(a:winid, '&signcolumn', 'no')
     call setwinvar(a:winid, '&cursorcolumn', 0)
+  else
+    call setwinvar(a:winid, '&foldcolumn', 0)
   endif
   if !s:is_vim || !has("patch-8.2.3100")
     call setwinvar(a:winid, '&number', 0)
