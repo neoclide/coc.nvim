@@ -321,14 +321,12 @@ function! s:Enable(initialize)
       autocmd CompleteChanged   * call coc#pum#stop()
     endif
     autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
+    autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')
       autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
       autocmd WinClosed         * call coc#notify#on_close(+expand('<amatch>'))
     elseif exists('##TabEnter')
       autocmd TabEnter          * call coc#notify#reflow()
-    endif
-    if has('nvim-0.4.0') || has('patch-8.1.1719')
-      autocmd CursorHold        * call coc#float#check_related()
     endif
     if exists('##WinScrolled')
       autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'))
@@ -394,11 +392,7 @@ function! s:Hi() abort
   hi default CocUnderline     term=underline cterm=underline gui=underline
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
-  if s:is_vim || has('nvim-0.4.0')
-    hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
-  else
-    hi default CocStrikeThrough guifg=#989898 ctermfg=gray
-  endif
+  hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocDisabled      guifg=#999999   ctermfg=gray
   hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE

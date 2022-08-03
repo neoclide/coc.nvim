@@ -1,6 +1,5 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let s:float = has('nvim-0.4.0') || has('patch-8.1.1719')
 let s:pum_bufnr = 0
 let s:pum_winid = 0
 let s:pum_index = -1
@@ -11,7 +10,7 @@ let s:ignore = s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
 let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
 
 function! coc#pum#visible() abort
-  if !s:float || !s:pum_winid
+  if !s:pum_winid
     return 0
   endif
   return getwinvar(s:pum_winid, 'float', 0) == 1

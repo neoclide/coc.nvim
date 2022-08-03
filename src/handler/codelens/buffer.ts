@@ -95,7 +95,6 @@ export default class CodeLensBuffer implements SyncItem {
    */
   private async _resolveCodeLenses(): Promise<void> {
     if (!this.enabled || !this.codeLenses || this.isChanged) return
-    if (!workspace.has('nvim-0.4.0')) return
     let { codeLenses } = this.codeLenses
     let [bufnr, start, end] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$')]`) as [number, number, number]
     // only resolve current buffer
