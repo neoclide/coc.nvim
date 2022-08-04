@@ -518,7 +518,6 @@ export class DiagnosticManager implements Disposable {
       }
     })
     let floatConfig = this.floatFactory.applyFloatConfig({ modes: ['n'], maxWidth: 80 }, this.config.floatConfig)
-    logger.debug('floatConfig:', floatConfig)
     await this.floatFactory.show(docs, floatConfig)
   }
 

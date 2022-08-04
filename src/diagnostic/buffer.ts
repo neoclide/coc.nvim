@@ -359,7 +359,7 @@ export class DiagnosticBuffer implements SyncItem {
     if (!this._dirty) return
     let info = await this.getDiagnosticInfo()
     let noHighlights = !info || info.winid == -1
-    if (noHighlights || this.diagnosticsMap.size == 0) return
+    if (noHighlights) return
     this.refresh(this.diagnosticsMap, info)
   }
 
