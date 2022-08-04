@@ -261,6 +261,8 @@ export interface UltiSnippetOption {
   regex?: string
   context?: string
   noPython?: boolean
+  range?: Range
+  line?: string
 }
 
 export interface IWorkspace {

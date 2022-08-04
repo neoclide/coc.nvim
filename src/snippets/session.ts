@@ -364,8 +364,8 @@ export class SnippetSession {
   }
 
   public static async resolveSnippet(nvim: Neovim, snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
-    let position = await window.getCursorPosition()
-    let line = await nvim.line
+    let position = ultisnip && Range.is(ultisnip.range) ? ultisnip.range.start : await window.getCursorPosition()
+    let line = ultisnip && typeof ultisnip.line === 'string' ? ultisnip.line : await nvim.line
     let context: UltiSnippetContext
     if (ultisnip) context = Object.assign({ range: Range.create(position, position), line }, ultisnip)
     const resolver = new SnippetVariableResolver(nvim, workspace.workspaceFolderControl)
