@@ -6,24 +6,21 @@ let s:sign_groups = []
 
 " Check <Tab> and <CR>
 function! coc#ui#check_pum_keymappings() abort
-  let keys = []
-  for key in ['<cr>', '<tab>']
+  for key in ['<cr>', '<tab>', '<c-y>']
     let lhs = maparg(key, 'i')
     if lhs =~# '\<pumvisible()' && lhs !~# '\<coc#pum#visible()'
-      call add(keys, key)
+      let lines = [
+            \ 'coc.nvim switched to custom popup menu from 0.0.82',
+            \ 'you have to change key-mapping of '.key.' to make it work.',
+            \ 'checkout current key-mapping by ":verbose imap '.key.'"',
+            \ 'checkout documentation by ":h coc-completion"']
+      call coc#notify#create(lines, {
+            \ 'borderhighlight': 'CocInfoSign',
+            \ 'timeout': 30000,
+            \ 'kind': 'warning',
+            \ })
     endif
   endfor
-  if len(keys)
-    let lines = [
-     \ 'coc.nvim switched to custom popup menu from 0.0.82',
-     \ 'you have to change key-mappings for '.join(keys, ', ').' to make them work.',
-     \ 'see :h coc-completion-example']
-    call coc#notify#create(lines, {
-          \ 'borderhighlight': 'CocInfoSign',
-          \ 'timeout': 30000,
-          \ 'kind': 'warning',
-          \ })
-  endif
 endfunction
 
 function! coc#ui#quickpick(title, items, cb) abort
