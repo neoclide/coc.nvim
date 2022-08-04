@@ -37,14 +37,14 @@ function! coc#pum#close(...) abort
       let s:pum_index = -1
       call s:insert_word(input)
       call s:on_pum_change(0)
-      doautocmd TextChangedI
+      doautocmd <nomodeline> TextChangedI
     elseif get(a:, 1, '') ==# 'confirm'
       let words = getwinvar(s:pum_winid, 'words', [])
       if s:pum_index >= 0
         let word = get(words, s:pum_index, '')
         call s:insert_word(word)
       endif
-      doautocmd TextChangedI
+      doautocmd <nomodeline> TextChangedI
     endif
     call s:close_pum()
     if !get(a:, 2, 0)
@@ -83,7 +83,7 @@ function! s:insert_current() abort
       let word = get(words, s:pum_index, '')
       call s:insert_word(word)
     endif
-    doautocmd TextChangedI
+    doautocmd <nomodeline> TextChangedI
     call s:close_pum()
     let pretext = strpart(getline('.'), 0, col('.') - 1)
     call coc#rpc#notify('CompleteStop', ['', pretext])
@@ -261,7 +261,7 @@ function! s:select_by_index(index, insert) abort
       let word = get(words, a:index, '')
       call s:insert_word(word)
     endif
-    doautocmd TextChangedP
+    doautocmd <nomodeline> TextChangedP
   endif
   call s:on_pum_change(1)
 endfunction
