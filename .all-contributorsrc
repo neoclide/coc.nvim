@@ -1864,6 +1864,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "rob-3",
+      "name": "Robert Boyd III",
+      "avatar_url": "https://avatars.githubusercontent.com/u/24816247?v=4",
+      "profile": "https://github.com/rob-3",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
