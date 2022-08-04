@@ -3466,8 +3466,7 @@ result (same as <esc>).
 
 NOTIFICATION SUPPORT					*coc-notification*
 
-Notification windows are shown from bottom right of the screen. Notifications
-behavior like notifications on VSCode.
+Notification windows are created at the bottom right of the screen.
 
 Notifications are created by javascript APIs: `window.showErrorMessage()`,
 `window.showWarningMessage()`, `window.showInformationMessage()`,
@@ -3476,26 +3475,24 @@ Notifications are created by javascript APIs: `window.showErrorMessage()`,
 Possible kind of notifications: 'error', 'warning', 'info' and 'progress'.
 
 Message notifications (not progress) requires
-|coc-preferences-enableMessageDialog| to be `true`. Message notifications
-without actions would be automatically closed after milliseconds specified by
-|coc-config-notification-timeout|.
+|coc-preferences-enableMessageDialog| to be `true`.
 
-Features:
+Message notifications without actions would be automatically closed after
+milliseconds specified by |coc-config-notification-timeout|.
 
-- Animated position and 'winblend' on show and hide.
-- Reposition current tab notification windows when notification dismissed.
-- Notification with same options will be replaced to avoid duplicated windows.
-- Percent and message update for progress notification.
-- Click the button (neovim only) or use |coc#notify#do_action()| to invoke
-  actions.
-- Click the window would cancel auto close (on neovim and focusable is true).
-- For customize icons, see |g:coc_notify|.
-- For customize highlights, see |CocNotification|.
-- For customize other behaviors, see |coc-config-notification|.
-- For available user actions (ex: "close_all", "do_action" "show_sources"), see
-  |coc#notify|.
+Customize notifications:~
 
-Note notification feature requires neovim >= 0.4.0 or vim >= 8.2.0750 to work.
+- Customize icons: |g:coc_notify|
+- Customize highlights: |CocNotification|
+- Customize configurations: |coc-config-notification|
+
+Related functions:~
+
+- |coc#notify#close_all()|
+- |coc#notify#do_action()|
+- |coc#notify#copy()|
+- |coc#notify#show_sources()|
+- |coc#notify#keep()|
 
 ==============================================================================
 
