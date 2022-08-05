@@ -75,17 +75,17 @@ describe('Renderer of marked', () => {
   it('should create header highlights', async () => {
     let res = parse('# header')
     expect(res.highlights[0]).toEqual({
-      span: [0, 8],
+      span: [0, 6],
       hlGroup: 'CocMarkdownHeader'
     })
     res = parse('## header')
     expect(res.highlights[0]).toEqual({
-      span: [0, 9],
+      span: [0, 6],
       hlGroup: 'CocMarkdownHeader'
     })
     res = parse('### header')
     expect(res.highlights[0]).toEqual({
-      span: [0, 10],
+      span: [0, 6],
       hlGroup: 'CocMarkdownHeader'
     })
   })

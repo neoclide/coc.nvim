@@ -140,10 +140,10 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   let startLnum = 0
   let parsed = marked(content)
   let links = Renderer.getLinks()
+  parsed = parsed.replace(/\n\n/g, '\n').replace(/\s*$/, '')
   if (links.length) {
     parsed = parsed + '\n\n' + links.join('\n')
   }
-  parsed = parsed.replace(/\s*$/, '')
   let parsedLines = parsed.split(/\n/)
   for (let i = 0; i < parsedLines.length; i++) {
     let line = parsedLines[i]
@@ -189,7 +189,14 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
       continue
     }
     let res = parseAnsiHighlights(line, true)
-    if (res.highlights) {
+    if (line === '───') {
+      highlights.push({
+        hlGroup: 'CocFloatDividingLine',
+        lnum: currline,
+        colStart: 0,
+        colEnd: -1
+      })
+    } else if (res.highlights) {
       for (let hi of res.highlights) {
         let { hlGroup, span } = hi
         highlights.push({

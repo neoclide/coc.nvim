@@ -46,7 +46,7 @@ let defaultOptions = {
   unescape: true,
   emoji: false,
   width: 80,
-  showSectionPrefix: true,
+  showSectionPrefix: false,
   tab: 2,
   tableOptions: {}
 }

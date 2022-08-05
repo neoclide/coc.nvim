@@ -89,14 +89,14 @@ example:
 \`\`\`
     `
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['example:', '', '<div>code</div>'])
-    expect(res.codes).toEqual([{ filetype: 'html', startLine: 2, endLine: 3 }])
+    expect(res.lines).toEqual(['example:', '<div>code</div>'])
+    expect(res.codes).toEqual([{ filetype: 'html', startLine: 1, endLine: 2 }])
   })
 
   it('should compose empty lines', async () => {
     let content = 'foo\n\n\nbar\n\n\n'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['foo', '', 'bar'])
+    expect(res.lines).toEqual(['foo', 'bar'])
   })
 
   it('should merge lines', async () => {
@@ -127,7 +127,7 @@ example:
   it('should render hr', async () => {
     let content = 'foo\n***\nbar'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['foo', '', '───', 'bar'])
+    expect(res.lines).toEqual(['foo', '───', 'bar'])
   })
 
   it('should render deleted text', async () => {
