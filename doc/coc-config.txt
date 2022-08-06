@@ -96,6 +96,11 @@ Completion related~
 	Note: "maxWidth" not works for popup menu, use
 	|coc-config-suggest-detailMaxLength| instead.
 
+"suggest.pumFloatConfig"				*coc-config-suggest-pumFloatConfig*
+
+	Configure style of popup menu, suggest.floatConfig is used when not
+	specified.  Default: `null`.
+
 "suggest.detailMaxLength"				*coc-config-suggest-detailMaxLength*
 
 	Max length of detail that will be shown in popup menu, default: `100`

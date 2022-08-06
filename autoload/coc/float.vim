@@ -995,7 +995,8 @@ function! coc#float#nvim_scroll_adjust(winid) abort
       for winid in winids
         if nvim_win_is_valid(winid)
           if coc#window#get_var(winid, 'kind', '') != 'close'
-            let [row, column] = nvim_win_get_position(winid)
+            let config = nvim_win_get_config(winid)
+            let [row, column] = [config.row, config.col]
             call nvim_win_set_config(winid, {
                   \ 'row': row,
                   \ 'col': column - 1,

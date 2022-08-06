@@ -19,7 +19,7 @@ function! coc#dialog#create_pum_float(lines, config) abort
   endif
   let pumbounding = coc#pum#info()
   let border = get(a:config, 'border', [])
-  let pw = pumbounding['width'] + (empty(border) ? get(pumbounding, 'scrollbar', 0) : 0)
+  let pw = pumbounding['width'] + (pumbounding['border'] ? 0 : get(pumbounding, 'scrollbar', 0))
   let rp = &columns - pumbounding['col'] - pw
   let showRight = pumbounding['col'] > rp ? 0 : 1
   let maxWidth = showRight ? coc#math#min(rp - 1, a:config['maxWidth']) : coc#math#min(pumbounding['col'] - 1, a:config['maxWidth'])

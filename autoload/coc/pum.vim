@@ -151,7 +151,8 @@ function! coc#pum#info() abort
   let word = s:pum_index < 0 ? '' : get(words, s:pum_index, '')
   if s:is_vim
     let pos = popup_getpos(s:pum_winid)
-    let add = pos['scrollbar'] && has_key(popup_getoptions(s:pum_winid), 'border') ? 1 : 0
+    let border = has_key(popup_getoptions(s:pum_winid), 'border')
+    let add = pos['scrollbar'] && border ? 1 : 0
     return {
         \ 'word': word,
         \ 'index': s:pum_index,
@@ -161,6 +162,7 @@ function! coc#pum#info() abort
         \ 'width': pos['width'] + add,
         \ 'height': pos['height'],
         \ 'size': size,
+        \ 'border': border,
         \ 'inserted': s:inserted ? v:true : v:false,
         \ }
   else
@@ -176,6 +178,7 @@ function! coc#pum#info() abort
         \ 'width': nvim_win_get_width(winid),
         \ 'height': nvim_win_get_height(winid),
         \ 'size': size,
+        \ 'border': winid != s:pum_winid,
         \ 'inserted': s:inserted ? v:true : v:false,
         \ }
   endif

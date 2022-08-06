@@ -1,3 +1,7 @@
+# 2022-08-07
+
+- Add configuration 'suggest.pumFloatConfig'.
+
 # 2022-08-04
 
 - Make diagnostic float window with the same background as CocFloating.
