@@ -381,6 +381,14 @@ declare module 'coc.nvim' {
      * The parameters of this signature.
      */
     parameters?: ParameterInformation[]
+    /**
+     * The index of the active parameter.
+     *
+     * If provided, this is used in place of `SignatureHelp.activeParameter`.
+     *
+     * @since 3.16.0
+     */
+    activeParameter?: number;
   }
 
   /**
