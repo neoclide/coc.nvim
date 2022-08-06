@@ -135,11 +135,12 @@ export default class Signature {
 
   private async showSignatureHelp(doc: Document, position: Position, signatureHelp: SignatureHelp, offset: number): Promise<void> {
     let { signatures, activeParameter } = signatureHelp
+    activeParameter = typeof activeParameter === 'number' ? activeParameter : undefined
     let paramDoc: string | MarkupContent = null
     let startOffset = offset
     let docs = signatures.reduce((p, c, idx) => {
       let activeIndexes: [number, number] = null
-      let activeIndex = c.activeParameter ?? typeof activeParameter === 'number' ? activeParameter : undefined
+      let activeIndex = c.activeParameter ?? activeParameter
       if (activeIndex === undefined && c.parameters?.length > 0) {
         activeIndex = 0
       }
