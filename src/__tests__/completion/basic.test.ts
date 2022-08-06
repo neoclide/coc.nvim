@@ -206,6 +206,30 @@ describe('completion', () => {
       await helper.waitPopup()
     })
 
+    it('should use pumFloatConfig', async () => {
+      helper.updateConfiguration('suggest.floatConfig', {})
+      helper.updateConfiguration('suggest.pumFloatConfig', {
+        border: true,
+        highlight: 'Normal',
+        winblend: 15,
+        shadow: true,
+        rounded: true
+      })
+      disposables.push(sources.createSource({
+        name: 'words',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }] })
+        })
+      }))
+      await nvim.input('if')
+      await helper.waitPopup()
+      let win = await helper.getFloat('pum')
+      let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
+      expect(id).toBeGreaterThan(1000)
+      let hl = await win.getOption('winhl')
+      expect(hl).toMatch('Normal')
+    })
+
     it('should do filter when autoTrigger is none', async () => {
       helper.updateConfiguration('suggest.autoTrigger', 'none')
       disposables.push(sources.createSource({

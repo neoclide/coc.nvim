@@ -36,6 +36,7 @@ export interface CompleteConfig {
   ignoreRegexps: ReadonlyArray<string>
   ambiguousIsNarrow: boolean
   floatConfig: FloatConfig
+  pumFloatConfig: FloatConfig
 }
 
 export type Callback = () => void

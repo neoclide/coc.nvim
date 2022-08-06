@@ -49,15 +49,16 @@ export default class PopupMenu {
   }
 
   public get pumConfig(): PumConfig {
-    let { floatConfig } = this.config
+    let { floatConfig, pumFloatConfig } = this.config
+    if (!pumFloatConfig) pumFloatConfig = floatConfig
     let obj: PumConfig = {}
-    for (let key of ['highlight', 'winblend', 'shadow']) {
-      if (key in floatConfig) obj[key] = floatConfig[key]
-    }
-    if (floatConfig.border) {
+    if (typeof pumFloatConfig.highlight === 'string') obj.highlight = pumFloatConfig.highlight
+    if (typeof pumFloatConfig.winblend === 'number') obj.winblend = pumFloatConfig.winblend
+    if (pumFloatConfig.shadow) obj.shadow = pumFloatConfig.shadow
+    if (pumFloatConfig.border) {
       obj.border = [1, 1, 1, 1]
-      obj.rounded = floatConfig.rounded ? 1 : 0
-      obj.borderhighlight = floatConfig.borderhighlight ?? 'CocFloating'
+      obj.rounded = pumFloatConfig.rounded ? 1 : 0
+      obj.borderhighlight = pumFloatConfig.borderhighlight ?? 'CocFloating'
     }
     return obj
   }
@@ -110,18 +111,19 @@ export default class PopupMenu {
       virtualText,
       words: items.map(o => getWord(fixInsertedWord, search, o.word, followPart))
     }
+    let pumConfig = this.pumConfig
     let lines: string[] = []
     let highlights: HighlightItem[] = []
     // create lines and highlights
     let width = 0
-    let buildConfig: BuildConfig = { border: !!floatConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
+    let buildConfig: BuildConfig = { border: !!pumConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
     this.adjustAbbrWidth(buildConfig)
     for (let index = 0; index < items.length; index++) {
       let text = this.buildItem(items[index], highlights, index, buildConfig)
       width = Math.max(width, this.stringWidth(text))
       lines.push(text)
     }
-    let config: PumConfig = Object.assign({ width, highlights }, this.pumConfig)
+    let config: PumConfig = Object.assign({ width, highlights }, pumConfig)
     this.nvim.call('coc#pum#create', [lines, opt, config], true)
     this.nvim.redrawVim()
   }

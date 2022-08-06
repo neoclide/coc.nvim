@@ -428,6 +428,22 @@
         "shadow": {}
       }
     },
+    "suggest.pumFloatConfig": {
+      "type": ["object", "null"],
+      "description": "Configure style of popup menu, suggest.floatConfig is used when not specified.",
+      "allOf": [{ "$ref": "#/definitions/float" }],
+      "additionalProperties": false,
+      "default": null,
+      "properties": {
+        "border": {},
+        "rounded": {},
+        "highlight": {},
+        "borderhighlight": {},
+        "maxWidth": {},
+        "winblend": {},
+        "shadow": {}
+      }
+    },
     "suggest.labelMaxLength": {
       "type": "number",
       "description": "Max length of abbr that shown as label of complete item.",

@@ -123,6 +123,7 @@ export class Completion implements Disposable {
       virtualText: getConfig<boolean>('virtualText', false),
       selection: getConfig<Selection>('selection', 'first'),
       floatConfig: getConfig<FloatConfig>('floatConfig', {}),
+      pumFloatConfig: getConfig<FloatConfig>('pumFloatConfig', null),
       defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
       removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
       acceptSuggestionOnCommitCharacter: getConfig<boolean>('acceptSuggestionOnCommitCharacter', false),
