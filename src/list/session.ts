@@ -120,6 +120,7 @@ export default class ListSession {
       if (timer) clearTimeout(timer)
       if (loading) {
         start = Date.now()
+        if (interval) clearInterval(interval)
         interval = setInterval(() => {
           let idx = Math.floor((Date.now() - start) % 1000 / 100)
           this.loadingFrame = frames[idx]
