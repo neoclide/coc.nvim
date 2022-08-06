@@ -3,14 +3,15 @@ import path from 'path'
 import minimatch from 'minimatch'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
-import { ListContext, ListItem } from '../../types'
+import { AnsiHighlight, ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
 import { score } from '../../util/fzy'
-import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
-import { formatListItems, UnformattedListItem } from '../formatting'
+import { CancellationToken, CancellationTokenSource, Location } from 'vscode-languageserver-protocol'
+import { byteLength } from '../../util/string'
+import { getMatchHighlights } from '../../util/score'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
@@ -39,7 +40,7 @@ export default class Symbols extends LocationList {
     }
     let config = this.getConfig()
     let excludes = config.get<string[]>('excludes', [])
-    let items: UnformattedListItem[] = []
+    let items: ListItem[] = []
     for (let s of symbols) {
       let kind = getSymbolKind(s.kind)
       if (filterKind && kind.toLowerCase() != filterKind) {
@@ -52,12 +53,9 @@ export default class Symbols extends LocationList {
       if (excludes.some(p => minimatch(file, p))) {
         continue
       }
-      items.push({
-        label: [s.name, `[${kind}]`, file],
-        filterText: `${s.name}`,
-        location: s.location,
-        data: { original: s, kind: s.kind, file, score: score(input, s.name) }
-      })
+      let item = createItem(input, s.name, kind, file, s.location)
+      item.data = { original: s, input, kind: s.kind, file, score: score(input, s.name) }
+      items.push(item)
     }
     items.sort((a, b) => {
       if (a.data.score != b.data.score) {
@@ -68,7 +66,7 @@ export default class Symbols extends LocationList {
       }
       return a.data.file.length - b.data.file.length
     })
-    return formatListItems(this.alignColumns, items)
+    return items
   }
 
   public async resolveItem(item: ListItem): Promise<ListItem> {
@@ -82,22 +80,35 @@ export default class Symbols extends LocationList {
     if (isParentFolder(this.cwd, file)) {
       file = path.relative(this.cwd, file)
     }
-    return {
-      label: `${s.name}\t[${kind}]\t${file}`,
-      filterText: `${s.name}`,
-      location: s.location
-    }
+    return createItem(item.data.input, s.name, kind, file, s.location)
   }
 
   public doHighlight(): void {
-    let { nvim } = this
-    nvim.pauseNotification()
-    nvim.command('syntax match CocSymbolsName /\\v^\\s*\\S+/ contained containedin=CocSymbolsLine', true)
-    nvim.command('syntax match CocSymbolsKind /\\[\\w\\+\\]\\s*\\t/ contained containedin=CocSymbolsLine', true)
-    nvim.command('syntax match CocSymbolsFile /\\S\\+$/ contained containedin=CocSymbolsLine', true)
-    nvim.command('highlight default link CocSymbolsName Normal', true)
-    nvim.command('highlight default link CocSymbolsKind Typedef', true)
-    nvim.command('highlight default link CocSymbolsFile Comment', true)
-    nvim.resumeNotification(false, true)
+  }
+}
+
+function createItem(input: string, name: string, kind: string, file: string, location: Location): ListItem {
+  let label = ''
+  let ansiHighlights: AnsiHighlight[] = []
+  // Normal Typedef Comment
+  let parts = [name, `[${kind}]`, file]
+  let highlights = ['Normal', 'Typedef', 'Comment']
+  for (let index = 0; index < parts.length; index++) {
+    const text = parts[index]
+    let start = byteLength(label)
+    label += text
+    let end = byteLength(label)
+    if (index != parts.length - 1) {
+      label += ' '
+    }
+    ansiHighlights.push({ span: [start, end], hlGroup: highlights[index] })
+  }
+  let arr = getMatchHighlights(input, name, 0, 'CocListSearch')
+  ansiHighlights.push(...arr)
+  return {
+    label,
+    filterText: '',
+    ansiHighlights,
+    location
   }
 }

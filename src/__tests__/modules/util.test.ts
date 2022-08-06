@@ -22,7 +22,7 @@ import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
 import * as positions from '../../util/position'
 import { terminate } from '../../util/processes'
-import { getMatchResult } from '../../util/score'
+import { getMatchResult, getMatchHighlights } from '../../util/score'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
 import { filter } from '../../util/async'
@@ -553,6 +553,16 @@ describe('Position', () => {
     })).toEqual(Range.create(0, 0, 0, 0))
   })
 
+})
+
+describe('match highlights', () => {
+  it('should get match highlights', async () => {
+    let res = getMatchHighlights('fob', 'foobar', 0, 'Search')
+    expect(res).toEqual([
+      { span: [0, 2], hlGroup: 'Search' },
+      { span: [3, 4], hlGroup: 'Search' }
+    ])
+  })
 })
 
 describe('match result', () => {

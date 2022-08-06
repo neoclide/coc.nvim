@@ -1,10 +1,39 @@
 'use strict'
 import { sep as pathSeparator } from 'path'
+import { AnsiHighlight } from '../types'
 import { getCharCodes, fuzzyMatch, fuzzyChar, caseMatch } from './fuzzy'
+import { byteIndex, byteLength } from './string'
 
 export interface MatchResult {
   score: number
   matches?: number[] // character indexes
+}
+
+export function getMatchHighlights(input: string, text: string, start = 0, hlGroup = 'CocSearch', ignorecase = true): AnsiHighlight[] {
+  let res: AnsiHighlight[] = []
+  let curr = 0
+  let lastIndex: number | undefined
+  let len = text.length
+  for (let index = 0; index < input.length; index++) {
+    const ch = input[index]
+    let i = curr
+    while (i < len) {
+      if (fuzzyChar(ch, text[i], ignorecase)) {
+        if (i == lastIndex + 1) {
+          let last = res[res.length - 1]
+          last.span[1] = last.span[1] + byteLength(text[i])
+        } else {
+          let s = byteIndex(text, i) + start
+          res.push({ span: [s, s + byteLength(text[i])], hlGroup })
+        }
+        lastIndex = i
+        curr = i + 1
+        break
+      }
+      i += 1
+    }
+  }
+  return res
 }
 
 // first is start or path start +1, fuzzy +0.5

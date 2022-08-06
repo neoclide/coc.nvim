@@ -19,11 +19,12 @@ export function caseMatch(input: number, code: number, ignorecase = false): bool
   return false
 }
 
-export function fuzzyChar(a: string, b: string): boolean {
+export function fuzzyChar(a: string, b: string, ignorecase = false): boolean {
   let ca = a.charCodeAt(0)
   let cb = b.charCodeAt(0)
   if (ca === cb) return true
   if (ca >= 97 && ca <= 122 && cb + 32 === ca) return true
+  if (ignorecase && ca <= 90 && ca + 32 === cb) return true
   return false
 }
 
