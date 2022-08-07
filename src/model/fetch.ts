@@ -5,7 +5,7 @@ import { parse, UrlWithStringQuery } from 'url'
 import fs from 'fs'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
-import { stringify } from 'querystring'
+import { ParsedUrlQueryInput, stringify } from 'querystring'
 import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
 import { CancellationToken } from 'vscode-languageserver-protocol'
@@ -43,7 +43,7 @@ export interface FetchOptions {
   /**
    * Plain object added as query of url
    */
-  query?: { [key: string]: unknown }
+  query?: ParsedUrlQueryInput
   headers?: any
   /**
    * User for http basic auth, should use with password

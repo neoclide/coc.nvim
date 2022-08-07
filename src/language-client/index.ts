@@ -3,7 +3,7 @@
 import cp from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import { createClientPipeTransport, createClientSocketTransport, Disposable, DocumentFilter, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
+import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
 import { ServiceStat } from '../types'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
@@ -22,6 +22,11 @@ import { SelectionRangeFeature } from './selectionRange'
 import ChildProcess = cp.ChildProcess
 import { CallHierarchyFeature } from './callHierarchy'
 import { SemanticTokensFeature } from './semanticTokens'
+import { InlayHintsFeature } from './inlayHint'
+import { InlineValueFeature } from './inlineValue'
+import { DiagnosticFeature } from './diagnostic'
+import { TypeHierarchyFeature } from './typeHierarchy'
+import { WorkspaceSymbolFeature } from './workspaceSymbol'
 import { LinkedEditingFeature } from './linkedEditingRange'
 import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
 
@@ -578,6 +583,21 @@ export class LanguageClient extends BaseLanguageClient {
     }
     if (!disabledFeatures.includes('semanticTokens')) {
       this.registerFeature(new SemanticTokensFeature(this))
+    }
+    if (!disabledFeatures.includes('inlayHint')) {
+      this.registerFeature(new InlayHintsFeature(this))
+    }
+    if (!disabledFeatures.includes('inlineValue')) {
+      this.registerFeature(new InlineValueFeature(this))
+    }
+    if (!disabledFeatures.includes('pullDiagnostic')) {
+      this.registerFeature(new DiagnosticFeature(this))
+    }
+    if (!disabledFeatures.includes('typeHierarchy')) {
+      this.registerFeature(new TypeHierarchyFeature(this))
+    }
+    if (!disabledFeatures.includes('workspaceSymbol')) {
+      this.registerFeature(new WorkspaceSymbolFeature(this))
     }
     if (!disabledFeatures.includes('workspaceFolders')) {
       this.registerFeature(new WorkspaceFoldersFeature(this))

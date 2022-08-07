@@ -47,7 +47,7 @@ export class SelectionRangeFeature extends TextDocumentFeature<boolean | Selecti
             positions
           }
           return client.sendRequest(SelectionRangeRequest.type, requestParams, token).then(
-            ranges => ranges,
+            ranges => token.isCancellationRequested ? null : ranges,
             (error: any) => {
               return client.handleFailedRequest(SelectionRangeRequest.type, token, error, null)
             }

@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, DocumentDiagnosticRequest, DocumentDiagnosticReport, FullDocumentDiagnosticReport, DocumentDiagnosticReportKind, CancellationToken } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -21,6 +21,11 @@ describe('Client integration', () => {
     assert.strictEqual(range.start.character, sc)
     assert.strictEqual(range.end.line, el)
     assert.strictEqual(range.end.character, ec)
+  }
+
+  function positionEqual(pos: Position, l: number, c: number): void {
+    assert.strictEqual(pos.line, l)
+    assert.strictEqual(pos.character, c)
   }
 
   function colorEqual(color: Color, red: number, green: number, blue: number, alpha: number): void {
@@ -48,6 +53,10 @@ describe('Client integration', () => {
     if (value === undefined || value === null) {
       throw new Error(`Value is null or undefined`)
     }
+  }
+
+  function isFullDocumentDiagnosticReport(value: DocumentDiagnosticReport): asserts value is FullDocumentDiagnosticReport {
+    assert.ok(value.kind === DocumentDiagnosticReportKind.Full)
   }
 
   beforeAll(async () => {
@@ -127,6 +136,10 @@ describe('Client integration', () => {
         foldingRangeProvider: true,
         implementationProvider: true,
         selectionRangeProvider: true,
+        inlineValueProvider: {},
+        inlayHintProvider: {
+          resolveProvider: true
+        },
         typeDefinitionProvider: true,
         callHierarchyProvider: true,
         semanticTokensProvider: {
@@ -158,6 +171,15 @@ describe('Client integration', () => {
             },
             willDelete: { filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }] },
           },
+        },
+        diagnosticProvider: {
+          identifier: 'da348dc5-c30a-4515-9d98-31ff3be38d14',
+          interFileDependencies: true,
+          workspaceDiagnostics: true
+        },
+        typeHierarchyProvider: true,
+        workspaceSymbolProvider: {
+          resolveProvider: true
         },
         linkedEditingRangeProvider: true
       },
@@ -378,7 +400,7 @@ describe('Client integration', () => {
     for (let i = 0; i < 2; i++) {
       await new Promise<unknown>((resolve, reject) => {
         currentProgressResolver = resolve
-        client.sendRequest(
+        void client.sendRequest(
           new ProtocolRequestType<any, null, never, any, any>('testing/sendSampleProgress'),
           {},
           tokenSource.token,
@@ -1034,6 +1056,35 @@ describe('Client integration', () => {
     assert.strictEqual(middlewareCalled, true)
   })
 
+  test('Inlay Hints', async () => {
+    const providerData = client.getFeature(InlayHintRequest.method).getProvider(document)
+    isDefined(providerData)
+    const provider = providerData.provider
+    const results = (await provider.provideInlayHints(document, range, tokenSource.token))
+
+    isArray(results, undefined, 2)
+
+    const hint = results[0]
+    positionEqual(hint.position, 1, 1)
+    assert.strictEqual(hint.kind, InlayHintKind.Type)
+    const label = hint.label
+    isArray(label as [], InlayHintLabelPart, 1)
+    assert.strictEqual((label as InlayHintLabelPart[])[0].value, 'type')
+
+    let middlewareCalled = false
+    middleware.provideInlayHints = (d, r, t, n) => {
+      middlewareCalled = true
+      return n(d, r, t)
+    }
+    await provider.provideInlayHints(document, range, tokenSource.token)
+    middleware.provideInlayHints = undefined
+    assert.strictEqual(middlewareCalled, true)
+    assert.ok(typeof provider.resolveInlayHint === 'function')
+
+    const resolvedHint = await provider.resolveInlayHint!(hint, tokenSource.token)
+    assert.strictEqual((resolvedHint?.label as InlayHintLabelPart[])[0].tooltip, 'tooltip')
+  })
+
   test('Linked Editing Ranges', async () => {
     const provider = client.getFeature(LinkedEditingRangeRequest.method).getProvider(document)
     isDefined(provider)
@@ -1050,5 +1101,160 @@ describe('Client integration', () => {
     await provider.provideLinkedEditingRanges(document, position, tokenSource.token)
     middleware.provideTypeDefinition = undefined
     assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('Document diagnostic pull', async () => {
+    const provider = client.getFeature(DocumentDiagnosticRequest.method)?.getProvider(document)
+    isDefined(provider)
+    const result = await provider.diagnostics.provideDiagnostics(document, undefined, tokenSource.token)
+    isDefined(result)
+    isFullDocumentDiagnosticReport(result)
+
+    const diag = result.items[0]
+    rangeEqual(diag.range, 1, 1, 1, 1)
+    assert.strictEqual(diag.message, 'diagnostic')
+
+    let middlewareCalled = false
+    middleware.provideDiagnostics = (document, previousResultId, token, next) => {
+      middlewareCalled = true
+      return next(document, previousResultId, token)
+    }
+    await provider.diagnostics.provideDiagnostics(document, undefined, tokenSource.token)
+    middleware.provideDiagnostics = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('Workspace diagnostic pull', async () => {
+    const provider = client.getFeature(DocumentDiagnosticRequest.method)?.getProvider(document)
+    isDefined(provider)
+    isDefined(provider.diagnostics.provideWorkspaceDiagnostics)
+    await provider.diagnostics.provideWorkspaceDiagnostics([], tokenSource.token, result => {
+      isDefined(result)
+      isArray(result.items, undefined, 1)
+    })
+
+    let middlewareCalled = false
+    middleware.provideWorkspaceDiagnostics = (resultIds, token, reporter, next) => {
+      middlewareCalled = true
+      return next(resultIds, token, reporter)
+    }
+    await provider.diagnostics.provideWorkspaceDiagnostics([], tokenSource.token, () => {})
+    middleware.provideWorkspaceDiagnostics = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('Type Hierarchy', async () => {
+    const provider = client.getFeature(TypeHierarchyPrepareRequest.method).getProvider(document)
+    isDefined(provider)
+    const result = await provider.prepareTypeHierarchy(document, position, tokenSource.token)
+
+    isArray(result, undefined, 1)
+    const item = result[0]
+
+    let middlewareCalled = false
+    middleware.prepareTypeHierarchy = (d, p, t, n) => {
+      middlewareCalled = true
+      return n(d, p, t)
+    }
+    await provider.prepareTypeHierarchy(document, position, tokenSource.token)
+    middleware.prepareTypeHierarchy = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    const incoming = await provider.provideTypeHierarchySupertypes(item, tokenSource.token)
+    isArray(incoming, undefined, 1)
+    middlewareCalled = false
+    middleware.provideTypeHierarchySupertypes = (i, t, n) => {
+      middlewareCalled = true
+      return n(i, t)
+    }
+    await provider.provideTypeHierarchySupertypes(item, tokenSource.token)
+    middleware.provideTypeHierarchySupertypes = undefined
+    assert.strictEqual(middlewareCalled, true)
+
+    const outgoing = await provider.provideTypeHierarchySubtypes(item, tokenSource.token)
+    isArray(outgoing, undefined, 1)
+    middlewareCalled = false
+    middleware.provideTypeHierarchySubtypes = (i, t, n) => {
+      middlewareCalled = true
+      return n(i, t)
+    }
+    await provider.provideTypeHierarchySubtypes(item, tokenSource.token)
+    middleware.provideTypeHierarchySubtypes = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('Inline Values', async () => {
+    const providerData = client.getFeature(InlineValueRequest.method).getProvider(document)
+    isDefined(providerData)
+    const provider = providerData.provider
+    const results = (await provider.provideInlineValues(document, range, { frameId: 1, stoppedLocation: range }, tokenSource.token))
+
+    isArray(results, undefined, 3)
+
+    for (const r of results) {
+      rangeEqual(r.range, 1, 2, 3, 4)
+    }
+
+    // assert.ok(results[0] instanceof InlineValueText)
+    assert.strictEqual((results[0] as InlineValueText).text, 'text')
+
+    // assert.ok(results[1] instanceof InlineValueVariableLookup)
+    assert.strictEqual((results[1] as InlineValueVariableLookup).variableName, 'variableName')
+
+    // assert.ok(results[2] instanceof InlineValueEvaluatableExpression)
+    assert.strictEqual((results[2] as InlineValueEvaluatableExpression).expression, 'expression')
+
+    let middlewareCalled = false
+    middleware.provideInlineValues = (d, r, c, t, n) => {
+      middlewareCalled = true
+      return n(d, r, c, t)
+    }
+    await provider.provideInlineValues(document, range, { frameId: 1, stoppedLocation: range }, tokenSource.token)
+    middleware.provideInlineValues = undefined
+    assert.strictEqual(middlewareCalled, true)
+  })
+
+  test('Inlay Hints', async () => {
+    const providerData = client.getFeature(InlayHintRequest.method).getProvider(document)
+    isDefined(providerData)
+    const provider = providerData.provider
+    const results = (await provider.provideInlayHints(document, range, tokenSource.token))
+
+    isArray(results, undefined, 2)
+
+    const hint = results[0]
+    positionEqual(hint.position, 1, 1)
+    assert.strictEqual(hint.kind, InlayHintKind.Type)
+    const label = hint.label
+    isArray(label as [], InlayHintLabelPart, 1)
+    assert.strictEqual((label as InlayHintLabelPart[])[0].value, 'type')
+
+    let middlewareCalled = false
+    middleware.provideInlayHints = (d, r, t, n) => {
+     middlewareCalled = true
+     return n(d, r, t)
+    }
+    await provider.provideInlayHints(document, range, tokenSource.token)
+    middleware.provideInlayHints = undefined
+    assert.strictEqual(middlewareCalled, true)
+    assert.ok(typeof provider.resolveInlayHint === 'function')
+
+    const resolvedHint = await provider.resolveInlayHint!(hint, tokenSource.token)
+    assert.strictEqual((resolvedHint?.label as InlayHintLabelPart[])[0].tooltip, 'tooltip')
+  })
+
+  test('Workspace symbols', async () => {
+    const providers = client.getFeature(WorkspaceSymbolRequest.method).getProviders()
+    isDefined(providers)
+    assert.strictEqual(providers.length, 1)
+    const provider = providers[0]
+    const results = await provider.provideWorkspaceSymbols('', tokenSource.token)
+    isArray(results, undefined, 1)
+
+    assert.strictEqual(results.length, 1)
+
+    const symbol = await provider.resolveWorkspaceSymbol!(results[0], tokenSource.token)
+    isDefined(symbol)
+    rangeEqual(symbol.location.range, 1, 2, 3, 4)
   })
 })

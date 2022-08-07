@@ -20,7 +20,7 @@ connection.onInitialize((params) => {
   assert.equal(valueSet[0], 1)
   assert.equal(valueSet[valueSet.length - 1], vscode_languageserver_1.CompletionItemKind.TypeParameter)
   let capabilities = {
-    textDocumentSync: documents.syncKind,
+    textDocumentSync: 1,
     completionProvider: {resolveProvider: true, triggerCharacters: ['"', ':']},
     hoverProvider: true,
     renameProvider: {

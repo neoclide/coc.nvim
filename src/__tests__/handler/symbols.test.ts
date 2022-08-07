@@ -135,7 +135,7 @@ describe('symbols handler', () => {
       disposables.push(languages.registerDocumentSymbolProvider(['*'], {
         provideDocumentSymbols: () => {
           return [
-            SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10)),
+            SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), ''),
             SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), '', 'root')
           ]
         }
@@ -258,7 +258,7 @@ describe('symbols handler', () => {
     it('should get workspace symbols', async () => {
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: (_query, _token) => {
-          return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0))]
+          return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0), '')]
         },
         resolveWorkspaceSymbol: sym => {
           let res = Object.assign({}, sym)
@@ -268,7 +268,7 @@ describe('symbols handler', () => {
       }))
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: (_query, _token) => {
-          return [SymbolInformation.create('bar', SymbolKind.Function, Range.create(0, 0, 0, 0))]
+          return [SymbolInformation.create('bar', SymbolKind.Function, Range.create(0, 0, 0, 0), '')]
         }
       }))
       let res = await symbols.getWorkspaceSymbols('a')

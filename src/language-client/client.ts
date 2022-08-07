@@ -5,13 +5,13 @@
  *--------------------------------------------------------------------------------------------*/
 /* eslint-disable */
 import path from 'path'
-import { ApplyWorkspaceEditParams, CompletionItemTag, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionOptions, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensOptions, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionOptions, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, DeclarationRequest, Definition, DefinitionOptions, DefinitionRegistrationOptions, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentColorRequest, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightOptions, DocumentHighlightRegistrationOptions, DocumentHighlightRequest, DocumentLink, DocumentLinkOptions, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolOptions, DocumentSymbolRegistrationOptions, DocumentSymbolRequest, Emitter, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FailureHandlingKind, FileChangeType, FileEvent, FoldingRangeRequest, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverOptions, HoverRegistrationOptions, HoverRequest, ImplementationRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, ProgressToken, ProgressType, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferenceOptions, ReferenceRegistrationOptions, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, SelectionRangeRequest, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpOptions, SignatureHelpRegistrationOptions, SignatureHelpRequest, StaticRegistrationOptions, SymbolInformation, SymbolKind, SymbolTag, TelemetryEventNotification, TextDocumentChangeRegistrationOptions, TextDocumentEdit, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolRegistrationOptions, WorkspaceSymbolRequest, SignatureHelpContext, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport, WorkDoneProgress, DefinitionLink, ProtocolRequestType0, ProtocolRequestType, MessageSignature, ProtocolNotificationType0, ProtocolNotificationType, RegistrationType, LSPErrorCodes, SaveOptions, CancellationStrategy, CallHierarchyPrepareRequest, SemanticTokensRegistrationType, CodeActionResolveRequest, CodeLensRefreshRequest, ShowDocumentParams, ShowDocumentRequest, ShowDocumentResult, InsertTextMode, LinkedEditingRangeRequest, DidCreateFilesNotification, FileOperationRegistrationOptions, DidRenameFilesNotification, DidDeleteFilesNotification, WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, ShowMessageRequestParams, MessageActionItem, PrepareSupportDefaultBehavior } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, CompletionItemTag, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionOptions, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensOptions, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionOptions, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, DeclarationRequest, Definition, DefinitionOptions, DefinitionRegistrationOptions, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentColorRequest, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightOptions, DocumentHighlightRegistrationOptions, DocumentHighlightRequest, DocumentLink, DocumentLinkOptions, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolOptions, DocumentSymbolRegistrationOptions, DocumentSymbolRequest, Emitter, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FailureHandlingKind, FileChangeType, FileEvent, FoldingRangeRequest, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverOptions, HoverRegistrationOptions, HoverRequest, ImplementationRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, ProgressToken, ProgressType, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferenceOptions, ReferenceRegistrationOptions, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, SelectionRangeRequest, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpOptions, SignatureHelpRegistrationOptions, SignatureHelpRequest, StaticRegistrationOptions, SymbolInformation, SymbolKind, SymbolTag, TelemetryEventNotification, TextDocumentChangeRegistrationOptions, TextDocumentEdit, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolRequest, SignatureHelpContext, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport, WorkDoneProgress, DefinitionLink, ProtocolRequestType0, ProtocolRequestType, MessageSignature, ProtocolNotificationType0, ProtocolNotificationType, RegistrationType, LSPErrorCodes, SaveOptions, CancellationStrategy, CallHierarchyPrepareRequest, SemanticTokensRegistrationType, CodeActionResolveRequest, CodeLensRefreshRequest, ShowDocumentParams, ShowDocumentRequest, ShowDocumentResult, InsertTextMode, LinkedEditingRangeRequest, DidCreateFilesNotification, FileOperationRegistrationOptions, DidRenameFilesNotification, DidDeleteFilesNotification, WillCreateFilesRequest, WillRenameFilesRequest, WillDeleteFilesRequest, ShowMessageRequestParams, MessageActionItem, InlayHintRequest, TypeHierarchyPrepareRequest, InlineValueRequest, DocumentDiagnosticRequest, SemanticTokensRequest, SemanticTokensRangeRequest, SemanticTokensDeltaRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
 import { ConfigurationChangeEvent, FileSystemWatcher as FileWatcher } from '../types'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from '../provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DiagnosticProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, OutputChannel, TextDocumentWillSaveEvent, Thenable, MessageItem } from '../types'
 import { resolveRoot, sameFile } from '../util/fs'
 import * as Is from '../util/is'
@@ -37,9 +37,14 @@ import os from 'os'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
+import { InlayHintsMiddleware, InlayHintsProviderShape } from './inlayHint'
+import { InlineValueMiddleware, InlineValueProviderShape } from './inlineValue'
+import { TypeHierarchyMiddleware } from './typeHierarchy'
 import { LinkedEditingRangeMiddleware } from './linkedEditingRange'
+import { WorkspaceSymbolMiddleware } from './workspaceSymbol'
 import { comparePosition } from '../util/position'
 import { disposeAll } from '../util'
+import { DiagnosticProviderMiddleware, DiagnosticProviderShape, DiagnosticPullOptions } from './diagnostic'
 
 const logger = require('../util/logger')('language-client-client')
 
@@ -180,7 +185,7 @@ function createConnection(
     sendRequest: <R>(type: string | MessageSignature, ...params: any[]): Promise<R> => connection.sendRequest(Is.string(type) ? type : type.method, ...params),
     onRequest: <R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable => connection.onRequest(Is.string(type) ? type : type.method, handler),
 
-    sendNotification: (type: string | MessageSignature, params?: any): void => connection.sendNotification(Is.string(type) ? type : type.method, params),
+    sendNotification: (type: string | MessageSignature, params?: any): void => void connection.sendNotification(Is.string(type) ? type : type.method, params),
     onNotification: (type: string | MessageSignature, handler: GenericNotificationHandler): Disposable => connection.onNotification(Is.string(type) ? type : type.method, handler),
 
     onProgress: connection.onProgress,
@@ -421,10 +426,6 @@ export interface ProvideDocumentSymbolsSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<SymbolInformation[] | DocumentSymbol[]>
 }
 
-export interface ProvideWorkspaceSymbolsSignature {
-  (this: void, query: string, token: CancellationToken): ProviderResult<SymbolInformation[]>
-}
-
 export interface ProvideCodeActionsSignature {
   (
     this: void,
@@ -610,12 +611,6 @@ export interface _Middleware {
     token: CancellationToken,
     next: ProvideDocumentSymbolsSignature
   ) => ProviderResult<SymbolInformation[] | DocumentSymbol[]>
-  provideWorkspaceSymbols?: (
-    this: void,
-    query: string,
-    token: CancellationToken,
-    next: ProvideWorkspaceSymbolsSignature
-  ) => ProviderResult<SymbolInformation[]>
   provideCodeActions?: (
     this: void,
     document: TextDocument,
@@ -715,6 +710,11 @@ export type Middleware = _Middleware &
   FoldingRangeProviderMiddleware &
   CallHierarchyMiddleware &
   SemanticTokensMiddleware &
+  InlayHintsMiddleware &
+  InlineValueMiddleware &
+  TypeHierarchyMiddleware &
+  WorkspaceSymbolMiddleware &
+  DiagnosticProviderMiddleware &
   LinkedEditingRangeMiddleware &
   SelectionRangeProviderMiddleware
 
@@ -745,6 +745,7 @@ export interface LanguageClientOptions {
   middleware?: Middleware
   workspaceFolder?: WorkspaceFolder
   connectionOptions?: ConnectionOptions
+  diagnosticPullOptions?: DiagnosticPullOptions
   markdown?: {
     isTrusted?: boolean
     supportHtml?: boolean
@@ -770,6 +771,7 @@ interface ResolvedClientOptions {
   middleware: Middleware
   workspaceFolder?: WorkspaceFolder
   connectionOptions?: ConnectionOptions
+  diagnosticPullOptions?: DiagnosticPullOptions
   markdown: {
     isTrusted: boolean
     supportHtml?: boolean
@@ -796,7 +798,7 @@ export enum ClientState {
   Stopped
 }
 
-const SupportedSymbolKinds: SymbolKind[] = [
+export const SupportedSymbolKinds: SymbolKind[] = [
   SymbolKind.File,
   SymbolKind.Module,
   SymbolKind.Namespace,
@@ -853,7 +855,7 @@ const SupportedCompletionItemKinds: CompletionItemKind[] = [
   CompletionItemKind.TypeParameter
 ]
 
-const SupportedSymbolTags: SymbolTag[] = [
+export const SupportedSymbolTags: SymbolTag[] = [
   SymbolTag.Deprecated
 ]
 
@@ -1802,58 +1804,6 @@ export interface WorkspaceProviderFeature<PR> {
   getProviders(): PR[] | undefined
 }
 
-interface WorkspaceFeatureRegistration<PR> {
-  disposable: Disposable
-  provider: PR
-}
-
-abstract class WorkspaceFeature<RO, PR> implements DynamicFeature<RO> {
-  protected _registrations: Map<string, WorkspaceFeatureRegistration<PR>> = new Map()
-
-  constructor(
-    protected _client: BaseLanguageClient,
-    private _registrationType: RegistrationType<RO>
-  ) {}
-
-  public get registrationType(): RegistrationType<RO> {
-    return this._registrationType
-  }
-
-  public abstract fillClientCapabilities(capabilities: ClientCapabilities): void
-
-  public abstract initialize(
-    capabilities: ServerCapabilities,
-    documentSelector: DocumentSelector | undefined
-  ): void
-
-  public register(data: RegistrationData<RO>): void {
-    const registration = this.registerLanguageProvider(data.registerOptions)
-    this._registrations.set(data.id, { disposable: registration[0], provider: registration[1] })
-  }
-
-  protected abstract registerLanguageProvider(options: RO): [Disposable, PR]
-
-  public unregister(id: string): void {
-    const registration = this._registrations.get(id)
-    if (registration) registration.disposable.dispose()
-  }
-
-  public dispose(): void {
-    this._registrations.forEach(value => {
-      value.disposable.dispose()
-    })
-    this._registrations.clear()
-  }
-
-  public getProviders(): PR[] {
-    const result: PR[] = []
-    for (const registration of this._registrations.values()) {
-      result.push(registration.provider)
-    }
-    return result
-  }
-}
-
 export interface ProvideResolveFeature<T1 extends Function, T2 extends Function> {
   provide: T1
   resolve: T2
@@ -1879,10 +1829,16 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
       insertReplaceSupport: true,
       tagSupport: { valueSet: [CompletionItemTag.Deprecated] },
       resolveSupport: { properties: ['documentation', 'detail', 'additionalTextEdits'] },
+      labelDetailsSupport: true,
       insertTextModeSupport: { valueSet: [InsertTextMode.asIs, InsertTextMode.adjustIndentation] }
     }
     completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
     completion.insertTextMode = InsertTextMode.adjustIndentation
+    completion.completionList = {
+      itemDefaults: [
+        'commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode'
+      ]
+    }
   }
 
   public initialize(
@@ -1913,9 +1869,17 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
             CompletionRequest.type,
             cv.asCompletionParams(document, position, context),
             token
-          ).then(result => result ?? [], error => {
-            return client.handleFailedRequest(CompletionRequest.type, token, error, [])
-          })
+          ).then(
+              res => {
+                if (token.isCancellationRequested) return []
+                if (Array.isArray(res)) return res
+
+                return cv.asCompletionList(res, allCommitCharacters, token)
+              },
+              error => {
+                return client.handleFailedRequest(CompletionRequest.type, token, error, [])
+              }
+            )
         }
 
         return middleware.provideCompletionItem
@@ -1931,8 +1895,10 @@ class CompletionItemFeature extends TextDocumentFeature<CompletionOptions, Compl
               CompletionResolveRequest.type,
               item,
               token
-            ).then(res => res, error => {
-              return client.handleFailedRequest(CompletionResolveRequest.type, token, error, item)
+            ).then(
+              res => token.isCancellationRequested ? item : res,
+              error => {
+                return client.handleFailedRequest(CompletionResolveRequest.type, token, error, item)
             })
           }
 
@@ -1999,8 +1965,10 @@ class HoverFeature extends TextDocumentFeature<
             HoverRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(HoverRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(HoverRequest.type, token, error, null)
           })
         }
 
@@ -2060,10 +2028,11 @@ class SignatureHelpFeature extends TextDocumentFeature<
             SignatureHelpRequest.type,
             cv.asSignatureHelpParams(document, position, context),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(SignatureHelpRequest.type, token, error, null)
-          }
-          )
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(SignatureHelpRequest.type, token, error, null)
+          })
         }
 
         const middleware = client.clientOptions.middleware!
@@ -2117,8 +2086,10 @@ class DefinitionFeature extends TextDocumentFeature<
             DefinitionRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(DefinitionRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DefinitionRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2171,8 +2142,10 @@ class ReferencesFeature extends TextDocumentFeature<
             ReferencesRequest.type,
             cv.asReferenceParams(document, position, options),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(ReferencesRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(ReferencesRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2224,8 +2197,10 @@ class DocumentHighlightFeature extends TextDocumentFeature<
             DocumentHighlightRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(DocumentHighlightRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentHighlightRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2285,7 +2260,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
             token
           ).then(
             (data) => {
-              if (data === null) {
+              if (token.isCancellationRequested || data === undefined || data === null) {
                 return undefined
               }
               if (data.length === 0) {
@@ -2312,59 +2287,6 @@ class DocumentSymbolFeature extends TextDocumentFeature<
     }
     const metadata = options.label ? { label: options.label } : undefined
     return [languages.registerDocumentSymbolProvider(options.documentSelector!, provider, metadata), provider]
-  }
-}
-
-class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistrationOptions, WorkspaceSymbolProvider
-> {
-  constructor(client: BaseLanguageClient) {
-    super(client, WorkspaceSymbolRequest.type)
-  }
-
-  public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    let symbolCapabilities = ensure(
-      ensure(capabilities, 'workspace')!,
-      'symbol'
-    )! as any
-    symbolCapabilities.dynamicRegistration = true
-    symbolCapabilities.symbolKind = {
-      valueSet: SupportedSymbolKinds
-    }
-    symbolCapabilities.tagSupport = {
-      valueSet: SupportedSymbolTags
-    }
-  }
-
-  public initialize(
-    capabilities: ServerCapabilities,
-  ): void {
-    if (!capabilities.workspaceSymbolProvider) {
-      return
-    }
-    this.register({
-      id: UUID.generateUuid(),
-      registerOptions: capabilities.workspaceSymbolProvider === true ? { workDoneProgress: false } : capabilities.workspaceSymbolProvider
-    })
-  }
-
-  protected registerLanguageProvider(_options: WorkspaceSymbolRegistrationOptions): [Disposable, WorkspaceSymbolProvider] {
-    const provider: WorkspaceSymbolProvider = {
-      provideWorkspaceSymbols: (query, token) => {
-        const client = this._client
-        const provideWorkspaceSymbols: ProvideWorkspaceSymbolsSignature = (query, token) => {
-          return client.sendRequest(WorkspaceSymbolRequest.type, { query }, token).then(
-            res => res,
-            error => {
-              return client.handleFailedRequest(WorkspaceSymbolRequest.type, token, error, null)
-            })
-        }
-        const middleware = client.clientOptions.middleware!
-        return middleware.provideWorkspaceSymbols
-          ? middleware.provideWorkspaceSymbols(query, token, provideWorkspaceSymbols)
-          : provideWorkspaceSymbols(query, token)
-      }
-    }
-    return [languages.registerWorkspaceSymbolProvider(provider), provider]
   }
 }
 
@@ -2451,7 +2373,7 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
           }
           return client.sendRequest(CodeActionRequest.type, params, token).then(
             (values) => {
-              if (values === null) {
+              if (token.isCancellationRequested || values === undefined || values === null) {
                 return undefined
               }
               // some server may not registered commands to client.
@@ -2477,7 +2399,7 @@ class CodeActionFeature extends TextDocumentFeature<boolean | CodeActionOptions,
           const middleware = this._client.clientOptions.middleware!
           const resolveCodeAction: ResolveCodeActionSignature = (item, token) => {
             return client.sendRequest(CodeActionResolveRequest.type, item, token).then(
-              (values) => values,
+              (values) => token.isCancellationRequested ? item : values,
               (error) => {
                 return client.handleFailedRequest(CodeActionResolveRequest.type, token, error, item)
               }
@@ -2554,8 +2476,10 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
             CodeLensRequest.type,
             cv.asCodeLensParams(document),
             token
-          ).then(res => res, error => {
-            return client.handleFailedRequest(CodeLensRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(CodeLensRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2571,8 +2495,10 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensOptions, CodeLensRegis
               CodeLensResolveRequest.type,
               codeLens,
               token
-            ).then(res => res, error => {
-              return client.handleFailedRequest(CodeLensResolveRequest.type, token, error, codeLens)
+            ).then(
+              res => token.isCancellationRequested ? codeLens : res,
+              error => {
+                return client.handleFailedRequest(CodeLensResolveRequest.type, token, error, codeLens)
             })
           }
           const middleware = client.clientOptions.middleware!
@@ -2627,8 +2553,10 @@ class DocumentFormattingFeature extends TextDocumentFeature<
             textDocument: { uri: document.uri },
             options
           }
-          return client.sendRequest(DocumentFormattingRequest.type, params, token).then(res => res, (error) => {
-            return client.handleFailedRequest(DocumentFormattingRequest.type, token, error, null)
+          return client.sendRequest(DocumentFormattingRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentFormattingRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2685,8 +2613,10 @@ class DocumentRangeFormattingFeature extends TextDocumentFeature<
             range,
             options,
           }
-          return client.sendRequest(DocumentRangeFormattingRequest.type, params, token).then(res => res, error => {
-            return client.handleFailedRequest(DocumentRangeFormattingRequest.type, token, error, null)
+          return client.sendRequest(DocumentRangeFormattingRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentRangeFormattingRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2734,8 +2664,10 @@ class DocumentOnTypeFormattingFeature extends TextDocumentFeature<
             ch,
             options
           }
-          return client.sendRequest(DocumentOnTypeFormattingRequest.type, params, token).then(res => res, (error) => {
-            return client.handleFailedRequest(DocumentOnTypeFormattingRequest.type, token, error, null)
+          return client.sendRequest(DocumentOnTypeFormattingRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentOnTypeFormattingRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2797,8 +2729,10 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
             position,
             newName: newName
           }
-          return client.sendRequest(RenameRequest.type, params, token).then(res => res, (error: ResponseError<void>) => {
-            return client.handleFailedRequest(RenameRequest.type, token, error, null)
+          return client.sendRequest(RenameRequest.type, params, token).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(RenameRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2816,6 +2750,9 @@ class RenameFeature extends TextDocumentFeature<boolean | RenameOptions, RenameR
             }
             return client.sendRequest(PrepareRenameRequest.type, params, token).then(
               (result) => {
+                if (token.isCancellationRequested) {
+                  return null
+                }
                 if (Range.is(result)) {
                   return result
                 } else if (this.isDefaultBehavior(result)) {
@@ -2889,8 +2826,10 @@ class DocumentLinkFeature extends TextDocumentFeature<DocumentLinkOptions, Docum
               textDocument: { uri: document.uri }
             },
             token
-          ).then(res => res, (error: ResponseError<void>) => {
-            return client.handleFailedRequest(DocumentLinkRequest.type, token, error, null)
+          ).then(
+            res => token.isCancellationRequested ? null : res,
+            error => {
+              return client.handleFailedRequest(DocumentLinkRequest.type, token, error, null)
           })
         }
         const middleware = client.clientOptions.middleware!
@@ -2902,8 +2841,10 @@ class DocumentLinkFeature extends TextDocumentFeature<DocumentLinkOptions, Docum
         ? (link, token) => {
           const client = this._client
           let resolveDocumentLink: ResolveDocumentLinkSignature = (link, token) => {
-            return client.sendRequest(DocumentLinkResolveRequest.type, link, token).then(res => res, (error: ResponseError<void>) => {
-              return client.handleFailedRequest(DocumentLinkResolveRequest.type, token, error, link)
+            return client.sendRequest(DocumentLinkResolveRequest.type, link, token).then(
+              res => token.isCancellationRequested ? link : res,
+              error => {
+                return client.handleFailedRequest(DocumentLinkResolveRequest.type, token, error, link)
             })
           }
           const middleware = client.clientOptions.middleware!
@@ -4190,6 +4131,10 @@ export abstract class BaseLanguageClient {
   public getFeature(request: typeof SemanticTokensRegistrationType.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<SemanticTokensProviders>
   public getFeature(request: typeof LinkedEditingRangeRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<LinkedEditingRangeProvider>
   public getFeature(request: typeof WorkspaceSymbolRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & WorkspaceProviderFeature<WorkspaceSymbolProvider>
+  public getFeature(request: typeof InlayHintRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlayHintsProviderShape>
+  public getFeature(request: typeof InlineValueRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<InlineValueProviderShape>
+  public getFeature(request: typeof TypeHierarchyPrepareRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<TypeHierarchyProvider>
+  public getFeature(request: typeof DocumentDiagnosticRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentProviderFeature<DiagnosticProviderShape>
   public getFeature(request: string): DynamicFeature<any> | undefined {
     return this._dynamicFeatures.get(request)
   }
@@ -4237,9 +4182,6 @@ export abstract class BaseLanguageClient {
     }
     if (!disabledFeatures.includes('codeAction')) {
       this.registerFeature(new CodeActionFeature(this))
-    }
-    if (!disabledFeatures.includes('workspaceSymbol')) {
-      this.registerFeature(new WorkspaceSymbolFeature(this))
     }
     if (!disabledFeatures.includes('codeLens')) {
       this.registerFeature(new CodeLensFeature(this))
@@ -4299,9 +4241,14 @@ export abstract class BaseLanguageClient {
     const generalCapabilities = ensure(result, 'general')!
     generalCapabilities.regularExpressions = { engine: 'ECMAScript', version: 'ES2020' }
     generalCapabilities.markdown = { parser: 'marked', version: '4.0.10' }
+    generalCapabilities.positionEncodings = ['utf-16']
     // Added in 3.17.0
     // if (this._clientOptions.markdown.supportHtml) {
     //   generalCapabilities.markdown.allowedTags = ['ul', 'li', 'p', 'code', 'blockquote', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'em', 'pre', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'del', 'a', 'strong', 'br', 'img', 'span']
+    // }
+    // generalCapabilities.staleRequestSupport = {
+    //   cancel: true,
+    //   retryOnContentModified: Array.from(BaseLanguageClient.RequestsToCancelOnContentModified)
     // }
 
     for (let feature of this._features) {
@@ -4404,10 +4351,16 @@ export abstract class BaseLanguageClient {
     return lang.split('.')[0]
   }
 
+  private static RequestsToCancelOnContentModified: Set<string> = new Set([
+    SemanticTokensRequest.method,
+    SemanticTokensRangeRequest.method,
+    SemanticTokensDeltaRequest.method
+  ])
+
   public handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: unknown, defaultValue: T): T {
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {
-      if (error.code === LSPErrorCodes.RequestCancelled) {
+      if (error.code === LSPErrorCodes.RequestCancelled || error.code === LSPErrorCodes.ServerCancelled) {
         if (token !== undefined && token.isCancellationRequested) {
           return defaultValue
         }

@@ -41,7 +41,7 @@ async function start(watch) {
     define: {REVISION: '"' + revision + '"', ESBUILD: 'true'},
     mainFields: ['module', 'main'],
     platform: 'node',
-    target: 'node12.12',
+    target: 'node14.14',
     outfile: 'build/index.js',
     banner: {
       js: `(function () {
@@ -49,8 +49,8 @@ async function start(watch) {
   var parts = v.slice(1).split('.')
   var major = parseInt(parts[0], 10)
   var minor = parseInt(parts[1], 10)
-  if (major < 12 || (major == 12 && minor < 12)) {
-    throw new Error('coc.nvim requires node >= v12.12.0, current version: ' + v)
+  if (major < 14 || (major == 14 && minor < 14)) {
+    throw new Error('coc.nvim requires node >= v14.14.0, current version: ' + v)
   }
 })(); `
     },

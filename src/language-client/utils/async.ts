@@ -4,7 +4,7 @@
   * Licensed under the MIT License. See License.txt in the project root for license information.
   * ------------------------------------------------------------------------------------------ */
 
-import { RAL } from 'vscode-languageserver-protocol'
+import { Disposable, RAL } from 'vscode-languageserver-protocol'
 
 export interface ITask<T> {
   (): T
@@ -13,7 +13,7 @@ export interface ITask<T> {
 export class Delayer<T> {
 
   public defaultDelay: number
-  private timeout: RAL.TimeoutHandle | undefined
+  private timeout: Disposable | undefined
   private completionPromise: Promise<T> | undefined
   private onSuccess: ((value: T | Promise<T> | undefined) => void) | undefined
   private task: ITask<T> | undefined
@@ -67,7 +67,7 @@ export class Delayer<T> {
   }
 
   public isTriggered(): boolean {
-    return this.timeout !== void 0
+    return this.timeout !== undefined
   }
 
   public cancel(): void {
@@ -80,8 +80,8 @@ export class Delayer<T> {
   }
 
   private cancelTimeout(): void {
-    if (this.timeout !== void 0) {
-      RAL().timer.clearTimeout(this.timeout)
+    if (this.timeout !== undefined) {
+      this.timeout.dispose()
       this.timeout = undefined
     }
   }

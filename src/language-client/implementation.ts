@@ -43,7 +43,7 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
       provideImplementation: (document, position, token) => {
         const client = this._client
         const provideImplementation: ProvideImplementationSignature = (document, position, token) => client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
-          res => res, error => {
+          res => token.isCancellationRequested ? null : res, error => {
             return client.handleFailedRequest(ImplementationRequest.type, token, error, null)
           }
         )

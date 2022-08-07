@@ -63,7 +63,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
         const prepareCallHierarchy: PrepareCallHierarchySignature = (document, position, token) => {
           const params = asTextDocumentPositionParams(document, position)
           return client.sendRequest(CallHierarchyPrepareRequest.type, params, token).then(
-            res => res,
+            res => token.isCancellationRequested ? null : res,
             error => {
               return client.handleFailedRequest(CallHierarchyPrepareRequest.type, token, error, null)
             }
@@ -80,7 +80,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
         const client = this._client
         const provideCallHierarchyIncomingCalls: CallHierarchyIncomingCallsSignature = (item, token) => {
           return client.sendRequest(CallHierarchyIncomingCallsRequest.type, { item }, token).then(
-            res => res,
+            res => token.isCancellationRequested ? null : res,
             error => {
               return client.handleFailedRequest(CallHierarchyIncomingCallsRequest.type, token, error, null)
             }
@@ -97,7 +97,7 @@ export class CallHierarchyFeature extends TextDocumentFeature<boolean | CallHier
         const client = this._client
         const provideCallHierarchyOutgoingCalls: CallHierarchyOutgoingCallsSignature = (item, token) => {
           return client.sendRequest(CallHierarchyOutgoingCallsRequest.type, { item }, token).then(
-            res => res,
+            res => token.isCancellationRequested ? null : res,
             error => {
               return client.handleFailedRequest(CallHierarchyOutgoingCallsRequest.type, token, error, null)
             }
