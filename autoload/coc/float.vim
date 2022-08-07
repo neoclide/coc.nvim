@@ -1327,6 +1327,8 @@ function! s:set_float_defaults(winid, config) abort
     call setwinvar(a:winid, '&relativenumber', 0)
     call setwinvar(a:winid, '&cursorline', 0)
   endif
+  call setwinvar(a:winid, '&foldenable', 0)
+  call setwinvar(a:winid, '&colorcolumn', '')
   call setwinvar(a:winid, '&spell', 0)
   call setwinvar(a:winid, '&linebreak', 1)
   call setwinvar(a:winid, '&conceallevel', 0)
