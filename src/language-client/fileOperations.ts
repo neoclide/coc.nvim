@@ -1,16 +1,11 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import * as minimatch from 'minimatch'
 import { ClientCapabilities, CreateFilesParams, DeleteFilesParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternKind, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileType, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { statAsync } from '../util/fs'
 import workspace from '../workspace'
-import { BaseLanguageClient, DynamicFeature, ensure, NextSignature, RegistrationData } from './client'
+import { DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
 const logger = require('../util/logger')('language-client-fileOperations')
 
@@ -48,13 +43,17 @@ export interface FileOperationsMiddleware {
   willDeleteFiles?: NextSignature<FileWillDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
 }
 
+interface FileOperationsWorkspaceMiddleware {
+  workspace?: FileOperationsMiddleware
+}
+
 interface EventWithFiles<I> {
   readonly files: ReadonlyArray<I>
 }
 
 abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
   implements DynamicFeature<FileOperationRegistrationOptions> {
-  protected _client: BaseLanguageClient
+  protected _client: FeatureClient<FileOperationsWorkspaceMiddleware>
   private _event: Event<E>
   private _registrationType: RegistrationType<FileOperationRegistrationOptions>
   private _clientCapability: keyof FileOperationClientCapabilities
@@ -70,7 +69,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
   >()
 
   constructor(
-    client: BaseLanguageClient,
+    client: FeatureClient<FileOperationsWorkspaceMiddleware>,
     event: Event<E>,
     registrationType: RegistrationType<FileOperationRegistrationOptions>,
     clientCapability: keyof FileOperationClientCapabilities,
@@ -81,6 +80,10 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     this._registrationType = registrationType
     this._clientCapability = clientCapability
     this._serverCapability = serverCapability
+  }
+
+  public getState(): FeatureState {
+    return { kind: 'workspace', id: this._registrationType.method, registrations: this._filters.size > 0 }
   }
 
   public get registrationType(): RegistrationType<FileOperationRegistrationOptions> {
@@ -234,7 +237,7 @@ abstract class NotificationFileOperationFeature<I, E extends { readonly files: R
   private _createParams: (e: E) => P
 
   constructor(
-    client: BaseLanguageClient,
+    client: FeatureClient<FileOperationsWorkspaceMiddleware>,
     event: Event<E>,
     notificationType: ProtocolNotificationType<P, FileOperationRegistrationOptions>,
     clientCapability: keyof FileOperationClientCapabilities,
@@ -254,7 +257,7 @@ abstract class NotificationFileOperationFeature<I, E extends { readonly files: R
     const filteredEvent = await this.filter(originalEvent, this._accessUri)
     if (filteredEvent.files.length) {
       const next = async (event: E): Promise<void> => {
-        this._client.sendNotification(
+        return this._client.sendNotification(
           this._notificationType,
           this._createParams(event)
         )
@@ -267,7 +270,7 @@ abstract class NotificationFileOperationFeature<I, E extends { readonly files: R
 }
 
 export class DidCreateFilesFeature extends NotificationFileOperationFeature<URI, FileCreateEvent, CreateFilesParams> {
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<FileOperationsWorkspaceMiddleware>) {
     super(
       client,
       workspace.onDidCreateFiles,
@@ -280,13 +283,13 @@ export class DidCreateFilesFeature extends NotificationFileOperationFeature<URI,
   }
 
   protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void {
-    const middleware = this._client.clientOptions.middleware?.workspace
+    const middleware = this._client.middleware?.workspace
     return middleware?.didCreateFiles ? middleware.didCreateFiles(event, next) : next(event)
   }
 }
 
 export class DidRenameFilesFeature extends NotificationFileOperationFeature<{ oldUri: URI; newUri: URI }, FileRenameEvent, RenameFilesParams> {
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<FileOperationsWorkspaceMiddleware>) {
     super(
       client,
       workspace.onDidRenameFiles,
@@ -299,13 +302,13 @@ export class DidRenameFilesFeature extends NotificationFileOperationFeature<{ ol
   }
 
   protected doSend(event: FileRenameEvent, next: (event: FileRenameEvent) => void): void {
-    const middleware = this._client.clientOptions.middleware?.workspace
+    const middleware = this._client.middleware?.workspace
     return middleware?.didRenameFiles ? middleware.didRenameFiles(event, next) : next(event)
   }
 }
 
 export class DidDeleteFilesFeature extends NotificationFileOperationFeature<URI, FileDeleteEvent, DeleteFilesParams> {
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<FileOperationsWorkspaceMiddleware>) {
     super(
       client,
       workspace.onDidDeleteFiles,
@@ -318,7 +321,7 @@ export class DidDeleteFilesFeature extends NotificationFileOperationFeature<URI,
   }
 
   protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void {
-    const middleware = this._client.clientOptions.middleware?.workspace
+    const middleware = this._client.middleware?.workspace
     return middleware?.didDeleteFiles ? middleware.didDeleteFiles(event, next) : next(event)
   }
 }
@@ -334,7 +337,7 @@ abstract class RequestFileOperationFeature<I, E extends RequestEvent<I>, P> exte
   private _createParams: (e: EventWithFiles<I>) => P
 
   constructor(
-    client: BaseLanguageClient,
+    client: FeatureClient<FileOperationsWorkspaceMiddleware>,
     event: Event<E>,
     requestType: ProtocolRequestType<P, WorkspaceEdit | null, never, void, FileOperationRegistrationOptions>,
     clientCapability: keyof FileOperationClientCapabilities,
@@ -372,7 +375,7 @@ abstract class RequestFileOperationFeature<I, E extends RequestEvent<I>, P> exte
 }
 
 export class WillCreateFilesFeature extends RequestFileOperationFeature<URI, FileWillCreateEvent, CreateFilesParams> {
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<FileOperationsWorkspaceMiddleware>) {
     super(
       client,
       workspace.onWillCreateFiles,
@@ -385,13 +388,13 @@ export class WillCreateFilesFeature extends RequestFileOperationFeature<URI, Fil
   }
 
   protected doSend(event: FileWillCreateEvent, next: (event: FileWillCreateEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.clientOptions.middleware?.workspace
+    const middleware = this._client.middleware?.workspace
     return middleware?.willCreateFiles ? middleware.willCreateFiles(event, next) : next(event)
   }
 }
 
 export class WillRenameFilesFeature extends RequestFileOperationFeature<{ oldUri: URI; newUri: URI }, FileWillRenameEvent, RenameFilesParams> {
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<FileOperationsWorkspaceMiddleware>) {
     super(
       client,
       workspace.onWillRenameFiles,
@@ -404,13 +407,13 @@ export class WillRenameFilesFeature extends RequestFileOperationFeature<{ oldUri
   }
 
   protected doSend(event: FileWillRenameEvent, next: (event: FileWillRenameEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.clientOptions.middleware?.workspace
+    const middleware = this._client.middleware?.workspace
     return middleware?.willRenameFiles ? middleware.willRenameFiles(event, next) : next(event)
   }
 }
 
 export class WillDeleteFilesFeature extends RequestFileOperationFeature<URI, FileWillDeleteEvent, DeleteFilesParams> {
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<FileOperationsWorkspaceMiddleware>) {
     super(
       client,
       workspace.onWillDeleteFiles,
@@ -423,8 +426,7 @@ export class WillDeleteFilesFeature extends RequestFileOperationFeature<URI, Fil
   }
 
   protected doSend(event: FileWillDeleteEvent, next: (event: FileWillDeleteEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.clientOptions.middleware?.workspace
+    const middleware = this._client.middleware?.workspace
     return middleware?.willDeleteFiles ? middleware.willDeleteFiles(event, next) : next(event)
   }
 }
-

@@ -24,7 +24,7 @@ describe('converter', () => {
 
   it('should asChangeTextDocumentParams', () => {
     let doc = createDocument()
-    expect(cv.asChangeTextDocumentParams(doc).textDocument.uri).toBe(doc.uri)
+    expect(cv.asFullChangeTextDocumentParams(doc).textDocument.uri).toBe(doc.uri)
   })
 
   it('should asWillSaveTextDocumentParams', () => {
@@ -89,10 +89,10 @@ describe('converter', () => {
   it('Completion Result - edit range', async () => {
     const completionResult: CompletionList = {
       isIncomplete: true,
-      itemDefaults:  { editRange: Range.create(1,2,3,4) },
+      itemDefaults: { editRange: Range.create(1, 2, 3, 4) },
       items: [{ label: 'item', data: 'data' }]
     }
-    const result = cv.asCompletionList(completionResult)
+    const result = await cv.asCompletionList(completionResult)
     assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
     assert.strictEqual(result.items.length, 1)
     assert.strictEqual(result.items[0].label, 'item')
@@ -101,10 +101,10 @@ describe('converter', () => {
   it('Completion Result - edit range with textEditText', async () => {
     const completionResult: CompletionList = {
       isIncomplete: true,
-      itemDefaults:  { editRange: Range.create(1,2,3,4) },
+      itemDefaults: { editRange: Range.create(1, 2, 3, 4) },
       items: [{ label: 'item', textEditText: 'text', data: 'data' }]
     }
-    const result = cv.asCompletionList(completionResult)
+    const result = await cv.asCompletionList(completionResult)
     assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
     assert.strictEqual(result.items.length, 1)
     assert.strictEqual(result.items[0].label, 'item')
@@ -114,10 +114,10 @@ describe('converter', () => {
   it('Completion Result - insert / replace range', async () => {
     const completionResult: CompletionList = {
       isIncomplete: true,
-      itemDefaults: { editRange: { insert: Range.create(1,1,1,1), replace: Range.create(1,2,3,4) } },
+      itemDefaults: { editRange: { insert: Range.create(1, 1, 1, 1), replace: Range.create(1, 2, 3, 4) } },
       items: [{ label: 'item', data: 'data' }]
     }
-    const result = cv.asCompletionList(completionResult)
+    const result = await cv.asCompletionList(completionResult)
     assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
     assert.strictEqual(result.items.length, 1)
     assert.strictEqual(result.items[0].label, 'item')
@@ -127,10 +127,10 @@ describe('converter', () => {
   it('Completion Result - insert / replace range with textEditText', async () => {
     const completionResult: CompletionList = {
       isIncomplete: true,
-      itemDefaults: { editRange: { insert: Range.create(1,1,1,1), replace: Range.create(1,2,3,4) } },
+      itemDefaults: { editRange: { insert: Range.create(1, 1, 1, 1), replace: Range.create(1, 2, 3, 4) } },
       items: [{ label: 'item', textEditText: 'text', data: 'data' }]
     }
-    const result = cv.asCompletionList(completionResult)
+    const result = await cv.asCompletionList(completionResult)
     assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
     assert.strictEqual(result.items.length, 1)
     assert.strictEqual(result.items[0].label, 'item')
@@ -140,10 +140,10 @@ describe('converter', () => {
   it('Completion Result - commit characters', async () => {
     const completionResult: CompletionList = {
       isIncomplete: true,
-      itemDefaults: { commitCharacters: ['.', ',']},
+      itemDefaults: { commitCharacters: ['.', ','] },
       items: [{ label: 'item', data: 'data' }]
     }
-    const result = cv.asCompletionList(completionResult)
+    const result = await cv.asCompletionList(completionResult)
     assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
     assert.strictEqual(result.items.length, 1)
     assert.strictEqual(result.items[0].label, 'item')
@@ -159,7 +159,7 @@ describe('converter', () => {
       itemDefaults: { insertTextMode: InsertTextMode.asIs },
       items: [{ label: 'item', data: 'data' }]
     }
-    const result = cv.asCompletionList(completionResult)
+    const result = await cv.asCompletionList(completionResult)
     assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
     assert.strictEqual(result.items.length, 1)
     assert.strictEqual(result.items[0].label, 'item')
@@ -172,10 +172,10 @@ describe('converter', () => {
       itemDefaults: { insertTextFormat: InsertTextFormat.Snippet },
       items: [{ label: 'item', insertText: '${value}', data: 'data' }]
     }
-    const result = cv.asCompletionList(completionResult)
+    const result = await cv.asCompletionList(completionResult)
     assert.strictEqual(result.isIncomplete, completionResult.isIncomplete)
     assert.strictEqual(result.items.length, 1)
     assert.strictEqual(result.items[0].label, 'item')
-    assert.strictEqual(result.items[0].insertTextFormat , InsertTextFormat.Snippet)
+    assert.strictEqual(result.items[0].insertTextFormat, InsertTextFormat.Snippet)
   })
 })

@@ -1,14 +1,10 @@
-/* --------------------------------------------------------------------------------------------
-* Copyright (c) Microsoft Corporation. All rights reserved.
-* Licensed under the MIT License. See License.txt in the project root for license information.
-* ------------------------------------------------------------------------------------------ */
-
+'use strict'
 import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, InlineValue, InlineValueContext, InlineValueOptions, InlineValueParams, InlineValueRefreshRequest, InlineValueRegistrationOptions, InlineValueRequest, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { InlineValuesProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, Middleware, TextDocumentFeature } from './client'
 import * as cv from './utils/converter'
+import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 
 export type ProvideInlineValuesSignature = (this: void, document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken) => ProviderResult<InlineValue[]>
 
@@ -21,8 +17,10 @@ export interface InlineValueProviderShape {
   onDidChangeInlineValues: Emitter<void>
 }
 
-export class InlineValueFeature extends TextDocumentFeature<boolean | InlineValueOptions, InlineValueRegistrationOptions, InlineValueProviderShape> {
-  constructor(client: BaseLanguageClient) {
+export class InlineValueFeature extends TextDocumentLanguageFeature<
+  boolean | InlineValueOptions, InlineValueRegistrationOptions, InlineValueProviderShape, InlineValueMiddleware
+> {
+  constructor(client: FeatureClient<InlineValueMiddleware>) {
     super(client, InlineValueRequest.type)
   }
 
@@ -63,10 +61,10 @@ export class InlineValueFeature extends TextDocumentFeature<boolean | InlineValu
             }
             return values
           }, (error: any) => {
-              return client.handleFailedRequest(InlineValueRequest.type, token, error, null)
-            })
+            return client.handleFailedRequest(InlineValueRequest.type, token, error, null)
+          })
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.middleware!
         return middleware.provideInlineValues
           ? middleware.provideInlineValues(document, viewPort, context, token, provideInlineValues)
           : provideInlineValues(document, viewPort, context, token)

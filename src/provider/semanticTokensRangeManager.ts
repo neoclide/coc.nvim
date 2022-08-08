@@ -2,6 +2,7 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Range, SemanticTokens, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CancellationError } from '../util/errors'
 import { DocumentRangeSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 const logger = require('../util/logger')('semanticTokensRangeManager')
@@ -31,6 +32,11 @@ export default class SemanticTokensRangeManager extends Manager<DocumentRangeSem
     if (!item) return null
     let { provider } = item
     if (provider.provideDocumentRangeSemanticTokens === null) return null
-    return await Promise.resolve(provider.provideDocumentRangeSemanticTokens(document, range, token))
+    try {
+      return await Promise.resolve(provider.provideDocumentRangeSemanticTokens(document, range, token))
+    } catch (err) {
+      if (err instanceof CancellationError) return null
+      throw err
+    }
   }
 }

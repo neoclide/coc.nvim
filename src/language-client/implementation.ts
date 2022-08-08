@@ -7,7 +7,7 @@ import { CancellationToken, ClientCapabilities, Definition, DefinitionLink, Disp
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ImplementationProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 
 export interface ProvideImplementationSignature {
@@ -18,9 +18,9 @@ export interface ImplementationMiddleware {
   provideImplementation?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideImplementationSignature) => ProviderResult<Definition | DefinitionLink[]>
 }
 
-export class ImplementationFeature extends TextDocumentFeature<boolean | ImplementationOptions, ImplementationRegistrationOptions, ImplementationProvider> {
+export class ImplementationFeature extends TextDocumentLanguageFeature<boolean | ImplementationOptions, ImplementationRegistrationOptions, ImplementationProvider, ImplementationMiddleware> {
 
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<ImplementationMiddleware>) {
     super(client, ImplementationRequest.type)
   }
 
@@ -47,7 +47,7 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
             return client.handleFailedRequest(ImplementationRequest.type, token, error, null)
           }
         )
-        const middleware = client.clientOptions.middleware
+        const middleware = client.middleware
         return middleware.provideImplementation
           ? middleware.provideImplementation(document, position, token, provideImplementation)
           : provideImplementation(document, position, token)

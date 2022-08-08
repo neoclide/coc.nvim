@@ -9,26 +9,8 @@ import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { terminate } from '../util/processes'
 import workspace from '../workspace'
-import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
-import { ColorProviderFeature } from './colorProvider'
-import { ConfigurationFeature as PullConfigurationFeature } from './configuration'
-import { DeclarationFeature } from './declaration'
-import { FoldingRangeFeature } from './foldingRange'
-import { ImplementationFeature } from './implementation'
-import { ProgressFeature } from './progress'
-import { TypeDefinitionFeature } from './typeDefinition'
-import { WorkspaceFoldersFeature } from './workspaceFolders'
-import { SelectionRangeFeature } from './selectionRange'
+import { BaseLanguageClient, ClientState, LanguageClientOptions, MessageTransports } from './client'
 import ChildProcess = cp.ChildProcess
-import { CallHierarchyFeature } from './callHierarchy'
-import { SemanticTokensFeature } from './semanticTokens'
-import { InlayHintsFeature } from './inlayHint'
-import { InlineValueFeature } from './inlineValue'
-import { DiagnosticFeature } from './diagnostic'
-import { TypeHierarchyFeature } from './typeHierarchy'
-import { WorkspaceSymbolFeature } from './workspaceSymbol'
-import { LinkedEditingFeature } from './linkedEditingRange'
-import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -153,6 +135,8 @@ export type ServerOptions =
 
 export class LanguageClient extends BaseLanguageClient {
   private _forceDebug: boolean
+  private _isInDebugMode: boolean
+
   private _serverProcess: ChildProcess | undefined
   private _isDetached: boolean | undefined
   private _serverOptions: ServerOptions
@@ -199,10 +183,24 @@ export class LanguageClient extends BaseLanguageClient {
     if (forceDebug === void 0) {
       forceDebug = false
     }
+    if (clientOptions.disableSnippetCompletion === undefined) {
+      let suggest = workspace.getConfiguration('suggest')
+      if (suggest.get<boolean>('snippetsSupport', true) === false) {
+        clientOptions.disableSnippetCompletion = true
+      }
+    }
+    if (clientOptions.disableMarkdown === undefined) {
+      let preferences = workspace.getConfiguration('coc.preferences')
+      clientOptions.disableMarkdown = preferences.get<boolean>('enableMarkdown', true) === false
+    }
+    if (clientOptions.separateDiagnostics === undefined) {
+      const separate = workspace.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics') as boolean
+      clientOptions.separateDiagnostics = separate
+    }
     super(id, name, clientOptions)
     this._serverOptions = serverOptions
     this._forceDebug = forceDebug
-    this.registerProposedFeatures()
+    this._isInDebugMode = forceDebug
   }
 
   public stop(): Promise<void> {
@@ -274,6 +272,24 @@ export class LanguageClient extends BaseLanguageClient {
   protected handleConnectionClosed(): void {
     this._serverProcess = undefined
     super.handleConnectionClosed()
+  }
+
+  public get isInDebugMode(): boolean {
+    return this._isInDebugMode
+  }
+
+  public async restart(): Promise<void> {
+    await this.stop()
+    // We are in debug mode. Wait a little before we restart
+    // so that the debug port can be freed. We can safely ignore
+    // the disposable returned from start since it will call
+    // stop on the same client instance.
+    if (this.isInDebugMode) {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      await this._start()
+    } else {
+      await this._start()
+    }
   }
 
   protected createMessageTransports(encoding: string): Promise<MessageTransports> {
@@ -536,74 +552,6 @@ export class LanguageClient extends BaseLanguageClient {
     return folder.uri
   }
 
-  public registerProposedFeatures(): void {
-    this.registerFeatures(ProposedFeatures.createAll(this))
-  }
-
-  protected registerBuiltinFeatures(): void {
-    super.registerBuiltinFeatures()
-    let { disabledFeatures } = this.clientOptions
-    if (!disabledFeatures.includes('pullConfiguration')) {
-      this.registerFeature(new PullConfigurationFeature(this))
-    }
-    if (!disabledFeatures.includes('typeDefinition')) {
-      this.registerFeature(new TypeDefinitionFeature(this))
-    }
-    if (!disabledFeatures.includes('implementation')) {
-      this.registerFeature(new ImplementationFeature(this))
-    }
-    if (!disabledFeatures.includes('declaration')) {
-      this.registerFeature(new DeclarationFeature(this))
-    }
-    if (!disabledFeatures.includes('colorProvider')) {
-      this.registerFeature(new ColorProviderFeature(this))
-    }
-    if (!disabledFeatures.includes('foldingRange')) {
-      this.registerFeature(new FoldingRangeFeature(this))
-    }
-    if (!disabledFeatures.includes('selectionRange')) {
-      this.registerFeature(new SelectionRangeFeature(this))
-    }
-    if (!disabledFeatures.includes('callHierarchy')) {
-      this.registerFeature(new CallHierarchyFeature(this))
-    }
-    if (!disabledFeatures.includes('progress')) {
-      this.registerFeature(new ProgressFeature(this))
-    }
-    if (!disabledFeatures.includes('linkedEditing')) {
-      this.registerFeature(new LinkedEditingFeature(this))
-    }
-    if (!disabledFeatures.includes('fileEvents')) {
-      this.registerFeature(new DidCreateFilesFeature(this))
-      this.registerFeature(new DidRenameFilesFeature(this))
-      this.registerFeature(new DidDeleteFilesFeature(this))
-      this.registerFeature(new WillCreateFilesFeature(this))
-      this.registerFeature(new WillRenameFilesFeature(this))
-      this.registerFeature(new WillDeleteFilesFeature(this))
-    }
-    if (!disabledFeatures.includes('semanticTokens')) {
-      this.registerFeature(new SemanticTokensFeature(this))
-    }
-    if (!disabledFeatures.includes('inlayHint')) {
-      this.registerFeature(new InlayHintsFeature(this))
-    }
-    if (!disabledFeatures.includes('inlineValue')) {
-      this.registerFeature(new InlineValueFeature(this))
-    }
-    if (!disabledFeatures.includes('pullDiagnostic')) {
-      this.registerFeature(new DiagnosticFeature(this))
-    }
-    if (!disabledFeatures.includes('typeHierarchy')) {
-      this.registerFeature(new TypeHierarchyFeature(this))
-    }
-    if (!disabledFeatures.includes('workspaceSymbol')) {
-      this.registerFeature(new WorkspaceSymbolFeature(this))
-    }
-    if (!disabledFeatures.includes('workspaceFolders')) {
-      this.registerFeature(new WorkspaceFoldersFeature(this))
-    }
-  }
-
   private _getServerWorkingDir(options?: { cwd?: string }): Promise<string | undefined> {
     let cwd = options && options.cwd
     if (cwd && !path.isAbsolute(cwd)) cwd = path.join(workspace.cwd, cwd)
@@ -617,11 +565,6 @@ export class LanguageClient extends BaseLanguageClient {
       })
     }
     return Promise.resolve(undefined)
-  }
-
-  private appendOutput(data: any, encoding: string): void {
-    let msg: string = Is.string(data) ? data : data.toString(encoding)
-    this.outputChannel.append(msg.endsWith('\n') ? msg : msg + '\n')
   }
 }
 
@@ -663,13 +606,5 @@ export class SettingMonitor {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this._client.stop()
     }
-  }
-}
-
-// Exporting proposed protocol.
-export const ProposedFeatures = {
-  createAll: (_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] => {
-    let result: (StaticFeature | DynamicFeature<any>)[] = []
-    return result
   }
 }

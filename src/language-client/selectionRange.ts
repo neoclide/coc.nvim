@@ -1,15 +1,9 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-'use strict'
-
 import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, SelectionRange, SelectionRangeClientCapabilities, SelectionRangeOptions, SelectionRangeParams, SelectionRangeRegistrationOptions, SelectionRangeRequest, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ProviderResult, SelectionRangeProvider } from '../provider'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 
 export interface ProvideSelectionRangeSignature {
   (this: void, document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
@@ -19,8 +13,8 @@ export interface SelectionRangeProviderMiddleware {
   provideSelectionRanges?: (this: void, document: TextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[]>
 }
 
-export class SelectionRangeFeature extends TextDocumentFeature<boolean | SelectionRangeOptions, SelectionRangeRegistrationOptions, SelectionRangeProvider> {
-  constructor(client: BaseLanguageClient) {
+export class SelectionRangeFeature extends TextDocumentLanguageFeature<boolean | SelectionRangeOptions, SelectionRangeRegistrationOptions, SelectionRangeProvider, SelectionRangeProviderMiddleware> {
+  constructor(client: FeatureClient<SelectionRangeProviderMiddleware>) {
     super(client, SelectionRangeRequest.type)
   }
 
@@ -53,7 +47,7 @@ export class SelectionRangeFeature extends TextDocumentFeature<boolean | Selecti
             }
           )
         }
-        const middleware = client.clientOptions.middleware
+        const middleware = client.middleware
         return middleware.provideSelectionRanges
           ? middleware.provideSelectionRanges(document, positions, token, provideSelectionRanges)
           : provideSelectionRanges(document, positions, token)

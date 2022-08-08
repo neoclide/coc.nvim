@@ -1,12 +1,7 @@
-/* --------------------------------------------------------------------------------------------
-* Copyright (c) Microsoft Corporation. All rights reserved.
-* Licensed under the MIT License. See License.txt in the project root for license information.
-* ------------------------------------------------------------------------------------------ */
-
-import * as minimatch from 'minimatch'
+'use strict'
 import { v4 as uuid } from 'uuid'
 import {
-  CancellationToken, CancellationTokenSource, ClientCapabilities, DiagnosticOptions, DiagnosticRefreshRequest, DiagnosticRegistrationOptions, DiagnosticServerCancellationData, Disposable, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentSelector, Emitter, LinkedMap, PreviousResultId, RAL, ServerCapabilities, TextDocumentFilter, Touch, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceDiagnosticRequest
+  CancellationToken, CancellationTokenSource, ClientCapabilities, DiagnosticOptions, DiagnosticRefreshRequest, DiagnosticRegistrationOptions, DiagnosticServerCancellationData, Disposable, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentSelector, Emitter, LinkedMap, PreviousResultId, RAL, ServerCapabilities, Touch, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceDiagnosticRequest
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -15,7 +10,7 @@ import languages from '../languages'
 import { DiagnosticProvider, ProviderResult, ResultReporter } from '../provider'
 import window from '../window'
 import workspace from '../workspace'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 
 export type ProvideDiagnosticSignature = (this: void, document: TextDocument | URI, previousResultId: string | undefined, token: CancellationToken) => ProviderResult<DocumentDiagnosticReport>
 
@@ -188,7 +183,7 @@ class DocumentPullStateTracker {
 class DiagnosticRequestor implements Disposable {
 
   private isDisposed: boolean
-  private readonly client: BaseLanguageClient
+  private readonly client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>
   private readonly options: DiagnosticRegistrationOptions
 
   public readonly onDidChangeDiagnosticsEmitter: Emitter<void>
@@ -201,7 +196,7 @@ class DiagnosticRequestor implements Disposable {
   private workspaceCancellation: CancellationTokenSource | undefined
   private workspaceTimeout: Disposable | undefined
 
-  public constructor(client: BaseLanguageClient, options: DiagnosticRegistrationOptions) {
+  public constructor(client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>, options: DiagnosticRegistrationOptions) {
     this.client = client
     this.options = options
 
@@ -209,7 +204,7 @@ class DiagnosticRequestor implements Disposable {
     this.onDidChangeDiagnosticsEmitter = new Emitter<void>()
     this.provider = this.createProvider()
 
-    this.diagnostics = languages.createDiagnosticCollection(options.identifier)
+    this.diagnostics = languages.createDiagnosticCollection(client.id + options.identifier)
     this.openRequests = new Map()
     this.documentStates = new DocumentPullStateTracker()
     this.workspaceErrorCounter = 0
@@ -226,8 +221,8 @@ class DiagnosticRequestor implements Disposable {
         cb()
       }
     }, error => {
-        this.client.error(`Document pull failed for text document ${uri.toString()}`, error)
-      })
+      this.client.error(`Document pull failed for text document ${uri.toString()}`, error)
+    })
   }
 
   private async pullAsync(document: TextDocument | URI, version?: number | undefined): Promise<void> {
@@ -324,16 +319,16 @@ class DiagnosticRequestor implements Disposable {
         this.pullWorkspace()
       }, 2000)
     }, error => {
-        if (!DiagnosticServerCancellationData.is(error.data)) {
-          this.client.error(`Workspace diagnostic pull failed.`, error)
-          this.workspaceErrorCounter++
-        }
-        if (this.workspaceErrorCounter <= 5) {
-          this.workspaceTimeout = RAL().timer.setTimeout(() => {
-            this.pullWorkspace()
-          }, 2000)
-        }
-      })
+      if (!DiagnosticServerCancellationData.is(error.data)) {
+        this.client.error(`Workspace diagnostic pull failed.`, error)
+        this.workspaceErrorCounter++
+      }
+      if (this.workspaceErrorCounter <= 5) {
+        this.workspaceTimeout = RAL().timer.setTimeout(() => {
+          this.pullWorkspace()
+        }, 2000)
+      }
+    })
   }
 
   private async pullWorkspaceAsync(): Promise<void> {
@@ -380,10 +375,10 @@ class DiagnosticRequestor implements Disposable {
 
             return result
           }, error => {
-              return this.client.handleFailedRequest(DocumentDiagnosticRequest.type, token, error, { kind: DocumentDiagnosticReportKind.Full, items: [] })
-            })
+            return this.client.handleFailedRequest(DocumentDiagnosticRequest.type, token, error, { kind: DocumentDiagnosticReportKind.Full, items: [] })
+          })
         }
-        const middleware = this.client.clientOptions.middleware!
+        const middleware = this.client.middleware!
         return middleware.provideDiagnostics
           ? middleware.provideDiagnostics(document, previousResultId, token, provideDiagnostics)
           : provideDiagnostics(document, previousResultId, token)
@@ -414,11 +409,11 @@ class DiagnosticRequestor implements Disposable {
             resultReporter(result)
             return { items: [] }
           }, error => {
-              disposable.dispose()
-              return this.client.handleFailedRequest(DocumentDiagnosticRequest.type, token, error, { items: [] })
-            })
+            disposable.dispose()
+            return this.client.handleFailedRequest(DocumentDiagnosticRequest.type, token, error, { items: [] })
+          })
         }
-        const middleware: DiagnosticProviderMiddleware = this.client.clientOptions.middleware!
+        const middleware: DiagnosticProviderMiddleware = this.client.middleware!
         return middleware.provideWorkspaceDiagnostics
           ? middleware.provideWorkspaceDiagnostics(resultIds, token, resultReporter, provideWorkspaceDiagnostics)
           : provideWorkspaceDiagnostics(resultIds, token, resultReporter)
@@ -521,54 +516,16 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
   private activeTextDocument: TextDocument | undefined
   private readonly backgroundScheduler: BackgroundScheduler
 
-  constructor(client: BaseLanguageClient, options: DiagnosticRegistrationOptions) {
+  constructor(client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>, options: DiagnosticRegistrationOptions) {
     const diagnosticPullOptions = client.clientOptions.diagnosticPullOptions ?? { onChange: true, onSave: false }
     const documentSelector = options.documentSelector!
     const disposables: Disposable[] = []
-
-    const matchResource = (resource: URI) => {
-      const selector = options.documentSelector!
-      if (diagnosticPullOptions.match !== undefined) {
-        return diagnosticPullOptions.match(selector!, resource)
-      }
-      for (const filter of selector) {
-        if (!TextDocumentFilter.is(filter)) {
-          continue
-        }
-        // The filter is a language id. We can't determine if it matches
-        // so we return false.
-        if (typeof filter === 'string') {
-          return false
-        }
-        if (filter.language !== undefined && filter.language !== '*') {
-          return false
-        }
-        if (filter.scheme !== undefined && filter.scheme !== '*' && filter.scheme !== resource.scheme) {
-          return false
-        }
-        if (filter.pattern !== undefined) {
-          const matcher = new minimatch.Minimatch(filter.pattern, { noext: true })
-          if (!matcher.makeRe()) {
-            return false
-          }
-          if (!matcher.match(resource.fsPath)) {
-            return false
-          }
-        }
-      }
-      return true
+    const matches = (document: TextDocument): boolean => {
+      const isVisible = window.visibleTextEditors.some(editor => editor.document.uri === document.uri)
+      return workspace.match(documentSelector, document) > 0 && isVisible
     }
-
-    const matches = (document: TextDocument | URI): boolean => {
-      const isVisible = window.visibleTextEditors.some(editor => editor.document.uri === document.toString())
-      return document instanceof URI
-        ? matchResource(document)
-        : workspace.match(documentSelector, document) > 0 && isVisible
-    }
-
     this.diagnosticRequestor = new DiagnosticRequestor(client, options)
     this.backgroundScheduler = new BackgroundScheduler(this.diagnosticRequestor)
-
     const addToBackgroundIfNeeded = (document: TextDocument): void => {
       if (!matches(document) || !options.interFileDependencies || this.activeTextDocument?.uri === document.uri) {
         return
@@ -583,17 +540,16 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       if (oldActive !== undefined) {
         addToBackgroundIfNeeded(oldActive)
       }
-      if (this.activeTextDocument !== undefined) {
+      if (editor) {
         this.backgroundScheduler.remove(this.activeTextDocument)
       }
     })
 
     const pullTextDocuments: Set<string> = new Set()
-
     // We always pull on open.
+    // disposables.push(openFeature.on)
     workspace.onDidOpenTextDocument(event => {
       if (pullTextDocuments.has(event.uri.toString())) return
-
       if (matches(event)) {
         this.diagnosticRequestor.pull(event, () => { addToBackgroundIfNeeded(event) })
         pullTextDocuments.add(event.uri.toString())
@@ -602,10 +558,6 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
 
     // Pull all diagnostics for documents that are already open
     for (const textDocument of workspace.textDocuments) {
-      if (pullTextDocuments.has(textDocument.uri.toString())) {
-        continue
-      }
-
       if (matches(textDocument)) {
         this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument) })
         pullTextDocuments.add(textDocument.uri.toString())
@@ -662,9 +614,9 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
   }
 }
 
-export class DiagnosticFeature extends TextDocumentFeature<DiagnosticOptions, DiagnosticRegistrationOptions, DiagnosticProviderShape> {
+export class DiagnosticFeature extends TextDocumentLanguageFeature<DiagnosticOptions, DiagnosticRegistrationOptions, DiagnosticProviderShape, DiagnosticProviderMiddleware> {
 
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>) {
     super(client, DocumentDiagnosticRequest.type)
   }
 

@@ -1,7 +1,9 @@
+'use strict'
 import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, RegistrationType, ServerCapabilities, SymbolInformation, WorkspaceSymbolRegistrationOptions, WorkspaceSymbolRequest, WorkspaceSymbolResolveRequest } from "vscode-languageserver-protocol"
 import languages from "../languages"
 import { ProviderResult, WorkspaceSymbolProvider } from "../provider"
-import { BaseLanguageClient, DynamicFeature, ensure, Middleware, RegistrationData, SupportedSymbolKinds, SupportedSymbolTags } from "./client"
+import { SupportedSymbolKinds, SupportedSymbolTags } from './documentSymbol'
+import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
 
 export interface ProvideWorkspaceSymbolsSignature {
@@ -22,10 +24,19 @@ interface WorkspaceFeatureRegistration<PR> {
   provider: PR
 }
 
-abstract class WorkspaceFeature<RO, PR> implements DynamicFeature<RO> {
+export interface WorkspaceProviderFeature<PR> {
+  getProviders(): PR[] | undefined
+}
+
+abstract class WorkspaceFeature<RO, PR, M> implements DynamicFeature<RO> {
   protected _registrations: Map<string, WorkspaceFeatureRegistration<PR>> = new Map()
 
-  constructor(protected _client: BaseLanguageClient, private _registrationType: RegistrationType<RO>) {}
+  constructor(protected _client: FeatureClient<M>, private _registrationType: RegistrationType<RO>) {}
+
+  public getState(): FeatureState {
+    const registrations = this._registrations.size > 0
+    return { kind: 'workspace', id: this._registrationType.method, registrations }
+  }
 
   public get registrationType(): RegistrationType<RO> {
     return this._registrationType
@@ -63,8 +74,8 @@ abstract class WorkspaceFeature<RO, PR> implements DynamicFeature<RO> {
   }
 }
 
-export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistrationOptions, WorkspaceSymbolProvider> {
-  constructor(client: BaseLanguageClient) {
+export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegistrationOptions, WorkspaceSymbolProvider, WorkspaceSymbolMiddleware> {
+  constructor(client: FeatureClient<WorkspaceSymbolMiddleware>) {
     super(client, WorkspaceSymbolRequest.type)
   }
 
@@ -101,7 +112,7 @@ export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegi
               return client.handleFailedRequest(WorkspaceSymbolRequest.type, token, error, null)
             })
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.middleware!
         return middleware.provideWorkspaceSymbols
           ? middleware.provideWorkspaceSymbols(query, token, provideWorkspaceSymbols)
           : provideWorkspaceSymbols(query, token)
@@ -116,7 +127,7 @@ export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegi
                 return client.handleFailedRequest(WorkspaceSymbolResolveRequest.type, token, error, null)
               })
           }
-          const middleware = client.clientOptions.middleware!
+          const middleware = client.middleware!
           return middleware.resolveWorkspaceSymbol
             ? middleware.resolveWorkspaceSymbol(item, token, resolveWorkspaceSymbol)
             : resolveWorkspaceSymbol(item, token)
@@ -126,4 +137,3 @@ export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegi
     return [languages.registerWorkspaceSymbolProvider(provider), provider]
   }
 }
-

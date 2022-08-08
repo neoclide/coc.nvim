@@ -1,12 +1,9 @@
 'use strict'
-/* ---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-import { CancellationToken, CodeLensParams, CompletionContext, CompletionList, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, InsertReplaceEdit, Position, Range, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeLensParams, CompletionContext, CompletionItem, CompletionList, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, InsertReplaceEdit, Position, Range, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import { TextDocumentWillSaveEvent } from '../../types'
+import { DidChangeTextDocumentParams as TextDocumentChangeEvent, TextDocumentWillSaveEvent } from '../../types'
+import { waitImmediate } from '../../util'
 import { omit } from '../../util/lodash'
 
 export function convertToTextDocumentItem(document: TextDocument): TextDocumentItem {
@@ -18,6 +15,12 @@ export function convertToTextDocumentItem(document: TextDocument): TextDocumentI
   }
 }
 
+export function asOpenTextDocumentParams(textDocument: TextDocument): DidOpenTextDocumentParams {
+  return {
+    textDocument: convertToTextDocumentItem(textDocument)
+  }
+}
+
 export function asCloseTextDocumentParams(document: TextDocument): DidCloseTextDocumentParams {
   return {
     textDocument: {
@@ -26,13 +29,25 @@ export function asCloseTextDocumentParams(document: TextDocument): DidCloseTextD
   }
 }
 
-export function asChangeTextDocumentParams(document: TextDocument): DidChangeTextDocumentParams {
+export function asFullChangeTextDocumentParams(document: TextDocument): DidChangeTextDocumentParams {
   let result: DidChangeTextDocumentParams = {
     textDocument: {
       uri: document.uri,
       version: document.version
     },
     contentChanges: [{ text: document.getText() }]
+  }
+  return result
+}
+
+export function asChangeTextDocumentParams(event: TextDocumentChangeEvent): DidChangeTextDocumentParams {
+  let { textDocument, contentChanges } = event
+  let result: DidChangeTextDocumentParams = {
+    textDocument: {
+      uri: textDocument.uri,
+      version: textDocument.version
+    },
+    contentChanges: contentChanges.slice()
   }
   return result
 }
@@ -74,11 +89,15 @@ export function asCompletionParams(textDocument: TextDocument, position: Positio
     context: omit(context, ['option']),
   }
 }
-export function asCompletionList(value: CompletionList, allCommitCharacters?: string[], token?: CancellationToken): CompletionList {
-  if (!value) return
-  if (!value.itemDefaults) return value
-
-  const items = value.items.map(item => {
+export async function asCompletionList(value: CompletionList, token?: CancellationToken): Promise<CompletionList> {
+  let ts = Date.now()
+  const items: CompletionItem[] = []
+  for (let item of value.items) {
+    if (Date.now() - ts > 15) {
+      await waitImmediate()
+      if (token.isCancellationRequested) break
+      ts = Date.now()
+    }
     item.data = item.data ?? value.itemDefaults.data
     item.commitCharacters = item.commitCharacters ?? value.itemDefaults.commitCharacters
     item.insertTextMode = item.insertTextMode ?? value.itemDefaults.insertTextMode
@@ -93,10 +112,8 @@ export function asCompletionList(value: CompletionList, allCommitCharacters?: st
         item.textEdit = item.textEdit ?? InsertReplaceEdit.create(item.textEditText, editRange.insert, editRange.replace)
       }
     }
-
-    return item
-  })
-
+    items.push(item)
+  }
   return CompletionList.create(items, value.isIncomplete)
 }
 

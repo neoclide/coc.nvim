@@ -115,9 +115,9 @@
     "unidecode": "^0.1.8",
     "unzip-stream": "^0.3.1",
     "uuid": "^7.0.3",
-    "vscode-languageserver-protocol": "^3.17.1",
-    "vscode-languageserver-textdocument": "^1.0.4",
-    "vscode-languageserver-types": "^3.17.1",
+    "vscode-languageserver-protocol": "^3.17.2",
+    "vscode-languageserver-textdocument": "^1.0.5",
+    "vscode-languageserver-types": "^3.17.2",
     "vscode-uri": "^3.0.3",
     "which": "^2.0.2"
   }

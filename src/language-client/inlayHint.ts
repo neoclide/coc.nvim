@@ -10,7 +10,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlayHint } from '../inlayHint'
 import languages from '../languages'
 import { InlayHintsProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, Middleware, TextDocumentFeature } from './client'
+import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('language-client-inlayHint')
 
@@ -27,8 +27,10 @@ export interface InlayHintsProviderShape {
   onDidChangeInlayHints: Emitter<void>
 }
 
-export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOptions, InlayHintRegistrationOptions, InlayHintsProviderShape> {
-  constructor(client: BaseLanguageClient) {
+export class InlayHintsFeature extends TextDocumentLanguageFeature<
+  boolean | InlayHintOptions, InlayHintRegistrationOptions, InlayHintsProviderShape, InlayHintsMiddleware
+> {
+  constructor(client: FeatureClient<InlayHintsMiddleware>) {
     super(client, InlayHintRequest.type)
   }
 
@@ -76,7 +78,7 @@ export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOp
             return client.handleFailedRequest(InlayHintRequest.type, token, error, [])
           }
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.middleware!
         return middleware.provideInlayHints
           ? middleware.provideInlayHints(document, range, token, provideInlayHints)
           : provideInlayHints(document, range, token)
@@ -96,7 +98,7 @@ export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOp
             return client.handleFailedRequest(InlayHintResolveRequest.type, token, error, null)
           }
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.middleware!
         return middleware.resolveInlayHint
           ? middleware.resolveInlayHint(hint, token, resolveInlayHint)
           : resolveInlayHint(hint, token)

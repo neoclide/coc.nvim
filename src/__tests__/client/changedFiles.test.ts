@@ -58,5 +58,4 @@ describe('Client integration', () => {
       done(e)
     })
   })
-
 })

@@ -8,7 +8,7 @@ import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Li
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { LinkedEditingRangeProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('languageclient-linkedEditingRange')
 
@@ -25,9 +25,9 @@ export interface LinkedEditingRangeMiddleware {
   provideLinkedEditingRange?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideLinkedEditingRangeSignature) => ProviderResult<LinkedEditingRanges>
 }
 
-export class LinkedEditingFeature extends TextDocumentFeature<boolean | LinkedEditingRangeOptions, LinkedEditingRangeRegistrationOptions, LinkedEditingRangeProvider> {
+export class LinkedEditingFeature extends TextDocumentLanguageFeature<boolean | LinkedEditingRangeOptions, LinkedEditingRangeRegistrationOptions, LinkedEditingRangeProvider, LinkedEditingRangeMiddleware> {
 
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<LinkedEditingRangeMiddleware>) {
     super(client, LinkedEditingRangeRequest.type)
   }
 
@@ -52,10 +52,10 @@ export class LinkedEditingFeature extends TextDocumentFeature<boolean | LinkedEd
           const params = cv.asTextDocumentPositionParams(document, position)
           return client.sendRequest(LinkedEditingRangeRequest.type, params, token).then(
             res => token.isCancellationRequested ? null : res, error => {
-            return client.handleFailedRequest(LinkedEditingRangeRequest.type, token, error, null)
-          })
+              return client.handleFailedRequest(LinkedEditingRangeRequest.type, token, error, null)
+            })
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.middleware!
         return middleware.provideLinkedEditingRange
           ? middleware.provideLinkedEditingRange(document, position, token, provideLinkedEditing)
           : provideLinkedEditing(document, position, token)

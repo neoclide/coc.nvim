@@ -1,13 +1,9 @@
-/* --------------------------------------------------------------------------------------------
-* Copyright (c) Microsoft Corporation. All rights reserved.
-* Licensed under the MIT License. See License.txt in the project root for license information.
-* ------------------------------------------------------------------------------------------ */
-
+'use strict'
 import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, TypeHierarchyItem, TypeHierarchyOptions, TypeHierarchyPrepareRequest, TypeHierarchyRegistrationOptions, TypeHierarchySubtypesRequest, TypeHierarchySupertypesRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, Middleware, TextDocumentFeature } from './client'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 
 export type PrepareTypeHierarchySignature = (this: void, document: TextDocument, position: Position, token: CancellationToken) => ProviderResult<TypeHierarchyItem[]>
@@ -28,7 +24,7 @@ export interface TypeHierarchyMiddleware {
 }
 
 class TypeHierarchyProvider implements TypeHierarchyProvider {
-  constructor(private client: BaseLanguageClient) {}
+  constructor(private client: FeatureClient<TypeHierarchyMiddleware>) {}
 
   public prepareTypeHierarchy(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> {
     const client = this.client
@@ -40,7 +36,7 @@ class TypeHierarchyProvider implements TypeHierarchyProvider {
           return client.handleFailedRequest(TypeHierarchyPrepareRequest.type, token, error, null)
         })
     }
-    const middleware = client.clientOptions.middleware!
+    const middleware = client.middleware!
     return middleware.prepareTypeHierarchy
       ? middleware.prepareTypeHierarchy(document, position, token, prepareTypeHierarchy)
       : prepareTypeHierarchy(document, position, token)
@@ -55,7 +51,7 @@ class TypeHierarchyProvider implements TypeHierarchyProvider {
           return client.handleFailedRequest(TypeHierarchySupertypesRequest.type, token, error, null)
         })
     }
-    const middleware = client.clientOptions.middleware!
+    const middleware = client.middleware!
     return middleware.provideTypeHierarchySupertypes
       ? middleware.provideTypeHierarchySupertypes(item, token, provideTypeHierarchySupertypes)
       : provideTypeHierarchySupertypes(item, token)
@@ -70,15 +66,15 @@ class TypeHierarchyProvider implements TypeHierarchyProvider {
           return client.handleFailedRequest(TypeHierarchySubtypesRequest.type, token, error, null)
         })
     }
-    const middleware = client.clientOptions.middleware!
+    const middleware = client.middleware!
     return middleware.provideTypeHierarchySubtypes
       ? middleware.provideTypeHierarchySubtypes(item, token, provideTypeHierarchySubtypes)
       : provideTypeHierarchySubtypes(item, token)
   }
 }
 
-export class TypeHierarchyFeature extends TextDocumentFeature<boolean | TypeHierarchyOptions, TypeHierarchyRegistrationOptions, TypeHierarchyProvider> {
-  constructor(client: BaseLanguageClient) {
+export class TypeHierarchyFeature extends TextDocumentLanguageFeature<boolean | TypeHierarchyOptions, TypeHierarchyRegistrationOptions, TypeHierarchyProvider, TypeHierarchyMiddleware> {
+  constructor(client: FeatureClient<TypeHierarchyMiddleware>) {
     super(client, TypeHierarchyPrepareRequest.type)
   }
 

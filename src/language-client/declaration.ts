@@ -1,15 +1,9 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-'use strict'
-
 import { CancellationToken, ClientCapabilities, Declaration, DeclarationLink, DeclarationOptions, DeclarationRegistrationOptions, DeclarationRequest, Disposable, DocumentSelector, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DeclarationProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 import { asTextDocumentPositionParams } from './utils/converter'
 
 export interface ProvideDeclarationSignature {
@@ -20,9 +14,9 @@ export interface DeclarationMiddleware {
   provideDeclaration?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideDeclarationSignature) => ProviderResult<Declaration | DeclarationLink[]>
 }
 
-export class DeclarationFeature extends TextDocumentFeature<boolean | DeclarationOptions, DeclarationRegistrationOptions, DeclarationProvider> {
+export class DeclarationFeature extends TextDocumentLanguageFeature<boolean | DeclarationOptions, DeclarationRegistrationOptions, DeclarationProvider, DeclarationMiddleware> {
 
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<DeclarationMiddleware>) {
     super(client, DeclarationRequest.type)
   }
 
@@ -49,7 +43,7 @@ export class DeclarationFeature extends TextDocumentFeature<boolean | Declaratio
             return client.handleFailedRequest(DeclarationRequest.type, token, error, null)
           }
         )
-        const middleware = client.clientOptions.middleware
+        const middleware = client.middleware
         return middleware.provideDeclaration
           ? middleware.provideDeclaration(document, position, token, provideDeclaration)
           : provideDeclaration(document, position, token)
