@@ -154,9 +154,8 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let config = s:convert_config_nvim(a:config, 0)
       let hlgroup = get(a:config, 'highlight', 'CocFloating')
       let winhl = 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup
-      if winhl !=# getwinvar(a:winid, '&winhl', '')
-        call setwinvar(a:winid, '&winhl', winhl)
-      endif
+      let merged_winhl = coc#util#merge_winhl(getwinvar(a:winid, '&winhl', ''), winhl)
+      call setwinvar(a:winid, '&winhl', merged_winhl)
       call nvim_win_set_buf(a:winid, bufnr)
       call nvim_win_set_config(a:winid, config)
       call nvim_win_set_cursor(a:winid, [lnum, 0])

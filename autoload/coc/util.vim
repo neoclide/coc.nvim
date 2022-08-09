@@ -623,3 +623,31 @@ function! s:visible_ranges(winid) abort
   endwhile
   return res
 endfunction
+
+function! s:parse_winhl(var) abort
+  let map = {}
+  for segment in split(a:var, ',')
+    let m = matchlist(segment, '\v^([^:]+):([^:]*)$')
+    if !empty(m)
+      let map[m[1]] = m[2]
+    endif
+  endfor
+  return map
+endfunction
+
+function! coc#util#merge_winhl(one, other) abort
+  let map = s:parse_winhl(a:one)
+  let other_map = s:parse_winhl(a:other)
+  for key in keys(other_map)
+    if !has_key(map, key)
+      let map[key] = other_map[key]
+    endif
+  endfor
+
+  let list = []
+  for key in keys(map)
+    call add(list, key . ':' . map[key])
+  endfor
+
+  return join(list, ',')
+endfunction
