@@ -435,7 +435,7 @@ function! s:Hi() abort
   hi default link CocSymbolDefault       MoreMsg
   "Pum
   hi default link CocPumSearch           CocSearch
-  hi default link CocPumMenu             Normal
+  hi default link CocPumMenu             CocFloating
   hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough
   hi default CocPumVirtualText      ctermfg=239 guifg=#504945
@@ -580,8 +580,8 @@ function! s:ShowInfo()
     else
       let output = trim(system(node . ' --version'))
       let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
-      if empty(ms) || str2nr(ms[1]) < 12 || (str2nr(ms[1]) == 12 && str2nr(ms[2]) < 12)
-        call add(lines, 'Error: Node version '.output.' < 12.12.0, please upgrade node.js')
+      if empty(ms) || str2nr(ms[1]) < 14 || (str2nr(ms[1]) == 14 && str2nr(ms[2]) < 14)
+        call add(lines, 'Error: Node version '.output.' < 14.14.0, please upgrade node.js')
       endif
     endif
     " check bundle

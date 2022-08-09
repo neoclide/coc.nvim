@@ -15,6 +15,19 @@ function! coc#util#remote_fns(name)
   return res
 endfunction
 
+function! coc#util#merge_winhl(curr, hls) abort
+  let highlightMap = {}
+  for parts in map(split(a:curr, ','), 'split(v:val, ":")')
+    if len(parts) == 2
+      let highlightMap[parts[0]] = parts[1]
+    endif
+  endfor
+  for item in a:hls
+    let highlightMap[item[0]] = item[1]
+  endfor
+  return join(map(items(highlightMap), 'v:val[0].":".v:val[1]'), ',')
+endfunction
+
 function! coc#util#do_complete(name, opt, cb) abort
   let handler = 'coc#source#'.a:name.'#complete'
   let l:Cb = {res -> a:cb(v:null, res)}

@@ -153,8 +153,9 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     else
       let config = s:convert_config_nvim(a:config, 0)
       let hlgroup = get(a:config, 'highlight', 'CocFloating')
-      let winhl = 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup
-      if winhl !=# getwinvar(a:winid, '&winhl', '')
+      let current = getwinvar(a:winid, '&winhl', '')
+      let winhl = coc#util#merge_winhl(current, [['Normal', hlgroup], ['NormalNC', hlgroup], ['FoldColumn', hlgroup]])
+      if winhl !=# current
         call setwinvar(a:winid, '&winhl', winhl)
       endif
       call nvim_win_set_buf(a:winid, bufnr)
@@ -276,11 +277,11 @@ function! coc#float#nvim_border_win(config, borderchars, winid, border, title, h
   endif
   if winid
     call nvim_win_set_config(winid, opt)
-    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
+    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.',Search:')
   else
     noa let winid = nvim_open_win(bufnr, 0, opt)
     call setwinvar(winid, 'delta', -1)
-    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup
+    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.',Search:'
     call s:nvim_add_related(winid, a:winid, 'border', winhl, a:related)
   endif
 endfunction
@@ -1311,7 +1312,7 @@ endfunction
 function! s:set_float_defaults(winid, config) abort
   if !s:is_vim
     let hlgroup = get(a:config, 'highlight', 'CocFloating')
-    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup)
+    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup.',Search:')
     call setwinvar(a:winid, 'border', get(a:config, 'border', []))
     call setwinvar(a:winid, 'scrollinside', get(a:config, 'scrollinside', 0))
     if !get(a:config, 'nopad', 0)
@@ -1327,6 +1328,8 @@ function! s:set_float_defaults(winid, config) abort
     call setwinvar(a:winid, '&relativenumber', 0)
     call setwinvar(a:winid, '&cursorline', 0)
   endif
+  call setwinvar(a:winid, '&foldenable', 0)
+  call setwinvar(a:winid, '&colorcolumn', '')
   call setwinvar(a:winid, '&spell', 0)
   call setwinvar(a:winid, '&linebreak', 1)
   call setwinvar(a:winid, '&conceallevel', 0)

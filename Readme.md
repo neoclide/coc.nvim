@@ -29,7 +29,7 @@ _Custom popup menu with snippet support_
 
 Make sure use vim >= 8.1.1719 or neovim >= 0.4.0.
 
-Install [nodejs](https://nodejs.org/en/download/) >= 12.12:
+Install [nodejs](https://nodejs.org/en/download/) >= 14.14:
 
 ```bash
 curl -sL install-node.vercel.app/lts | bash
@@ -594,6 +594,7 @@ Try these steps when you have problem with coc.nvim.
     <td align="center"><a href="https://keybase.io/lambdalisue"><img src="https://avatars.githubusercontent.com/u/546312?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Alisue</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Alambdalisue" title="Bug reports">🐛</a></td>
     <td align="center"><a href="http://bigshans.github.io"><img src="https://avatars.githubusercontent.com/u/26884666?v=4?s=50" width="50px;" alt=""/><br /><sub><b>bigshans</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=bigshans" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/rob-3"><img src="https://avatars.githubusercontent.com/u/24816247?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Robert Boyd III</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Arob-3" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://creasty.com"><img src="https://avatars.githubusercontent.com/u/1695538?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Yuki Iwanaga</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=creasty" title="Code">💻</a></td>
   </tr>
 </table>
 
