@@ -655,11 +655,13 @@ export interface VimCompleteItem {
   equal?: number
   dup?: number
   empty?: number
+  user_data?: string
 }
 
 export interface CompleteDoneItem {
   readonly word: string
   readonly abbr?: string
+  readonly source: string
   readonly isSnippet: boolean
   readonly kind?: string
   readonly menu?: string

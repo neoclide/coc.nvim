@@ -12,9 +12,10 @@ export function toCompleteDoneItem(item: ExtendedCompleteItem | undefined): Comp
     word: item.word,
     abbr: item.abbr,
     kind: item.kind,
+    source: item.source,
     isSnippet: item.isSnippet === true,
-    menu: `[${item.source}]`,
-    user_data: `${item.source}:${item.index}`
+    menu: item.menu ?? `[${item.source}]`,
+    user_data: typeof item.index === 'number' ? `${item.source}:${item.index}` : item.user_data
   }
 }
 
