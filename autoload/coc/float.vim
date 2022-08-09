@@ -153,7 +153,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     else
       let config = s:convert_config_nvim(a:config, 0)
       let hlgroup = get(a:config, 'highlight', 'CocFloating')
-      let winhl = 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup.'Search:'
+      let winhl = 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup.',Search:'
       if winhl !=# getwinvar(a:winid, '&winhl', '')
         call setwinvar(a:winid, '&winhl', winhl)
       endif
@@ -276,11 +276,11 @@ function! coc#float#nvim_border_win(config, borderchars, winid, border, title, h
   endif
   if winid
     call nvim_win_set_config(winid, opt)
-    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.'Search:')
+    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.',Search:')
   else
     noa let winid = nvim_open_win(bufnr, 0, opt)
     call setwinvar(winid, 'delta', -1)
-    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.'Search:'
+    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.',Search:'
     call s:nvim_add_related(winid, a:winid, 'border', winhl, a:related)
   endif
 endfunction
@@ -305,7 +305,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
   else
     let bufnr = coc#float#create_buf(0, ['X'])
     noa let winid = nvim_open_win(bufnr, 0, config)
-    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.'Search:'
+    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.',Search:'
     call s:nvim_add_related(winid, a:winid, 'close', winhl, a:related)
   endif
 endfunction
@@ -1311,7 +1311,7 @@ endfunction
 function! s:set_float_defaults(winid, config) abort
   if !s:is_vim
     let hlgroup = get(a:config, 'highlight', 'CocFloating')
-    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup.'Search:')
+    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',NormalNC:'.hlgroup.',FoldColumn:'.hlgroup.',Search:')
     call setwinvar(a:winid, 'border', get(a:config, 'border', []))
     call setwinvar(a:winid, 'scrollinside', get(a:config, 'scrollinside', 0))
     if !get(a:config, 'nopad', 0)
