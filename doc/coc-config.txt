@@ -632,7 +632,7 @@ Notification~
 
 "notification.highlightGroup"				*coc-config-notification-highlightGroup*
 
-	Highlight group of notification dialog, default to `CocFloating`.
+	Highlight group of notification dialog, default to `Normal`.
 
 "notification.winblend" 				*coc-config-notification-winblend*
 
