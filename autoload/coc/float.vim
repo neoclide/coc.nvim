@@ -154,7 +154,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let config = s:convert_config_nvim(a:config, 0)
       let hlgroup = get(a:config, 'highlight', 'CocFloating')
       let current = getwinvar(a:winid, '&winhl', '')
-      let winhl = coc#util#merge_winhl(current, [['Normal', hlgroup], ['NormalNC', hlgroup], ['FoldColumn', hlgroup]])
+      let winhl = coc#util#merge_winhl(current, [['Normal', hlgroup], ['NormalNC', hlgroup], ['FoldColumn', hlgroup], ['Search', '']])
       if winhl !=# current
         call setwinvar(a:winid, '&winhl', winhl)
       endif
