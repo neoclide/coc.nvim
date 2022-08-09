@@ -306,7 +306,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
   else
     let bufnr = coc#float#create_buf(0, ['X'])
     noa let winid = nvim_open_win(bufnr, 0, config)
-    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup
+    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.',Search:'
     call s:nvim_add_related(winid, a:winid, 'close', winhl, a:related)
   endif
 endfunction
