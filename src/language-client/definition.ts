@@ -40,7 +40,7 @@ export class DefinitionFeature extends TextDocumentLanguageFeature<
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let definitionSupport = ensure(ensure(capabilities, 'textDocument')!, 'definition')!
     definitionSupport.dynamicRegistration = true
-    // definitionSupport.linkSupport = true
+    definitionSupport.linkSupport = true
   }
 
   public initialize(

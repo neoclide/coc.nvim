@@ -27,7 +27,7 @@ export class ImplementationFeature extends TextDocumentLanguageFeature<boolean |
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     const implementationSupport = ensure(ensure(capabilities, 'textDocument')!, 'implementation')!
     implementationSupport.dynamicRegistration = true
-    // implementationSupport.linkSupport = true
+    implementationSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {

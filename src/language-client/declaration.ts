@@ -23,7 +23,7 @@ export class DeclarationFeature extends TextDocumentLanguageFeature<boolean | De
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     let declarationSupport = ensure(ensure(capabilities, 'textDocument')!, 'declaration')!
     declarationSupport.dynamicRegistration = true
-    // declarationSupport.linkSupport = true
+    declarationSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
