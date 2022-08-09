@@ -1873,6 +1873,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "creasty",
+      "name": "Yuki Iwanaga",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1695538?v=4",
+      "profile": "https://creasty.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
