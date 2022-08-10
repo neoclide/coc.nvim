@@ -103,8 +103,7 @@ describe('Client integration', () => {
     }
 
     client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
-    client.start()
-    await client.onReady()
+    await client.start()
   })
 
   afterAll(async () => {

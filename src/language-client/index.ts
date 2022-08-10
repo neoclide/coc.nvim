@@ -601,10 +601,9 @@ export class SettingMonitor {
       ? workspace.getConfiguration(primary).get(rest, true)
       : workspace.getConfiguration(primary)
     if (enabled && this._client.needsStart()) {
-      this._client.start()
+      void this._client.start()
     } else if (!enabled && this._client.needsStop()) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this._client.stop()
+      void this._client.stop()
     }
   }
 }

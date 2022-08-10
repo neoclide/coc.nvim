@@ -602,7 +602,7 @@ export interface FeatureClient<M, CO = object> {
   readonly id: string
   supportedMarkupKind: MarkupKind[]
 
-  start(): Disposable
+  start(): Promise<void>
   isRunning(): boolean
   stop(): Promise<void>
 
