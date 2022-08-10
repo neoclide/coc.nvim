@@ -5,7 +5,7 @@ const {
   DiagnosticTag, CompletionItemTag, TextDocumentSyncKind, MarkupKind, SignatureInformation, ParameterInformation,
   Location, Range, DocumentHighlight, DocumentHighlightKind, CodeAction, Command, TextEdit, Position, DocumentLink,
   ColorInformation, Color, ColorPresentation, FoldingRange, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
-  WorkDoneProgressCreateRequest} = require('vscode-languageserver')
+  SignatureHelpRequest, WorkDoneProgressCreateRequest} = require('vscode-languageserver')
 
 const {
   DidCreateFilesNotification,
@@ -18,7 +18,7 @@ let connection = createConnection()
 
 console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
-
+let disposable
 connection.onInitialize(params => {
   assert.equal((params.capabilities.workspace).applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
@@ -61,10 +61,6 @@ connection.onInitialize(params => {
     definitionProvider: true,
     hoverProvider: true,
     completionProvider: {resolveProvider: true, triggerCharacters: ['"', ':']},
-    signatureHelpProvider: {
-      triggerCharacters: [':'],
-      retriggerCharacters: [':']
-    },
     referencesProvider: true,
     documentHighlightProvider: true,
     codeActionProvider: {
@@ -153,30 +149,40 @@ connection.onInitialize(params => {
 
 connection.onInitialized(() => {
   // Dynamic reg is folders + .js files with operation kind in the path
-  void connection.client.register(DidCreateFilesNotification.type, {
+  connection.client.register(DidCreateFilesNotification.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
   })
-  void connection.client.register(DidRenameFilesNotification.type, {
+  connection.client.register(DidRenameFilesNotification.type, {
     filters: [
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
     ]
   })
-  void connection.client.register(DidDeleteFilesNotification.type, {
+  connection.client.register(DidDeleteFilesNotification.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
   })
-  void connection.client.register(WillCreateFilesRequest.type, {
+  connection.client.register(WillCreateFilesRequest.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
   })
-  void connection.client.register(WillRenameFilesRequest.type, {
+  connection.client.register(WillRenameFilesRequest.type, {
     filters: [
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
     ]
   })
-  void connection.client.register(WillDeleteFilesRequest.type, {
+  connection.client.register(WillDeleteFilesRequest.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
   })
+  connection.client.register(SignatureHelpRequest.type, {
+    triggerCharacters: [':'],
+    retriggerCharacters: [':']
+  }).then(d => {
+    disposable = d
+  })
+})
+
+connection.onNotification('unregister', () => {
+  if (disposable) disposable.dispose()
 })
 
 connection.onDeclaration(params => {

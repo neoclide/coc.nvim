@@ -68,13 +68,17 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
 
   public fillInitializeParams(params: InitializeParams): void {
     const folders = this.getValidWorkspaceFolders()
-    this._initialFolders = folders
-    if (folders == null) {
+    this.initializeWithFolders(folders)
+    if (folders === undefined) {
       this._client.warn(`No valid workspaceFolder exists`)
       params.workspaceFolders = null
     } else {
       params.workspaceFolders = folders.map(folder => this.asProtocol(folder))
     }
+  }
+
+  protected initializeWithFolders(currentWorkspaceFolders: ReadonlyArray<WorkspaceFolder> | undefined) {
+    this._initialFolders = currentWorkspaceFolders
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
@@ -136,7 +140,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
     } else if (currentWorkspaceFolders) {
       promise = this.doSendEvent(currentWorkspaceFolders, [])
     }
-    if (promise !== undefined) {
+    if (promise) {
       promise.catch(error => {
         this._client.error(`Sending notification ${DidChangeWorkspaceFoldersNotification.type.method} failed`, error)
       })

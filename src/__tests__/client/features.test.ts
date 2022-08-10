@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions, State } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, DocumentDiagnosticRequest, DocumentDiagnosticReport, FullDocumentDiagnosticReport, DocumentDiagnosticReportKind, CancellationToken, TextDocumentSyncKind, Disposable, NotificationType0 } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, DocumentDiagnosticRequest, DocumentDiagnosticReport, FullDocumentDiagnosticReport, DocumentDiagnosticReportKind, CancellationToken, TextDocumentSyncKind, Disposable, NotificationType0, DidChangeTextDocumentNotification, WillSaveTextDocumentNotification, DidOpenTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, DidSaveTextDocumentNotification, DidCloseTextDocumentNotification, CodeLensRequest, DocumentSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
@@ -118,10 +118,6 @@ describe('Client integration', () => {
         definitionProvider: true,
         hoverProvider: true,
         completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
-        signatureHelpProvider: {
-          triggerCharacters: [':'],
-          retriggerCharacters: [':']
-        },
         referencesProvider: true,
         documentHighlightProvider: true,
         codeActionProvider: {
@@ -203,6 +199,55 @@ describe('Client integration', () => {
     assert.deepEqual(client.initializeResult, expected)
   })
 
+  test('feature.getState()', async () => {
+    const testFeature = (method: string, kind: string): void => {
+      let feature = client.getFeature(method as any)
+      assert.notStrictEqual(feature, undefined)
+      let res = feature.getState()
+      assert.strictEqual(res.kind, kind)
+    }
+    testFeature(DidOpenTextDocumentNotification.method, 'document')
+    testFeature(DidChangeTextDocumentNotification.method, 'document')
+    testFeature(WillSaveTextDocumentNotification.method, 'document')
+    testFeature(WillSaveTextDocumentWaitUntilRequest.method, 'document')
+    testFeature(DidSaveTextDocumentNotification.method, 'document')
+    testFeature(DidCloseTextDocumentNotification.method, 'document')
+    testFeature(DidCreateFilesNotification.method, 'workspace')
+    testFeature(DidRenameFilesNotification.method, 'workspace')
+    testFeature(DidDeleteFilesNotification.method, 'workspace')
+    testFeature(WillCreateFilesRequest.method, 'workspace')
+    testFeature(WillRenameFilesRequest.method, 'workspace')
+    testFeature(WillDeleteFilesRequest.method, 'workspace')
+    testFeature(CompletionRequest.method, 'document')
+    testFeature(HoverRequest.method, 'document')
+    testFeature(SignatureHelpRequest.method, 'document')
+    testFeature(DefinitionRequest.method, 'document')
+    testFeature(ReferencesRequest.method, 'document')
+    testFeature(DocumentHighlightRequest.method, 'document')
+    testFeature(CodeActionRequest.method, 'document')
+    testFeature(CodeLensRequest.method, 'document')
+    testFeature(DocumentFormattingRequest.method, 'document')
+    testFeature(DocumentRangeFormattingRequest.method, 'document')
+    testFeature(DocumentOnTypeFormattingRequest.method, 'document')
+    testFeature(RenameRequest.method, 'document')
+    testFeature(DocumentSymbolRequest.method, 'document')
+    testFeature(DocumentLinkRequest.method, 'document')
+    testFeature(DocumentColorRequest.method, 'document')
+    testFeature(DeclarationRequest.method, 'document')
+    testFeature(FoldingRangeRequest.method, 'document')
+    testFeature(ImplementationRequest.method, 'document')
+    testFeature(SelectionRangeRequest.method, 'document')
+    testFeature(TypeDefinitionRequest.method, 'document')
+    testFeature(CallHierarchyPrepareRequest.method, 'document')
+    testFeature(SemanticTokensRegistrationType.method, 'document')
+    testFeature(LinkedEditingRangeRequest.method, 'document')
+    testFeature(TypeHierarchyPrepareRequest.method, 'document')
+    testFeature(InlineValueRequest.method, 'document')
+    testFeature(InlayHintRequest.method, 'document')
+    testFeature(WorkspaceSymbolRequest.method, 'workspace')
+    testFeature(DocumentDiagnosticRequest.method, 'document')
+  })
+
   test('Goto Definition', async () => {
     const provider = client.getFeature(DefinitionRequest.method).getProvider(document)
     isDefined(provider)
@@ -270,7 +315,8 @@ describe('Client integration', () => {
   })
 
   test('SignatureHelpRequest', async () => {
-    const provider = client.getFeature(SignatureHelpRequest.method).getProvider(document)
+    await helper.wait(50)
+    let provider = client.getFeature(SignatureHelpRequest.method).getProvider(document)
     isDefined(provider)
     const result = await provider.provideSignatureHelp(document, position, tokenSource.token,
       {
@@ -307,6 +353,12 @@ describe('Client integration', () => {
     )
     middleware.provideSignatureHelp = undefined
     assert.ok(middlewareCalled)
+    let hasProvier = languages.hasProvider('signature', document)
+    await client.sendNotification('unregister')
+    await helper.wait(50)
+    provider = client.getFeature(SignatureHelpRequest.method).getProvider(document)
+    hasProvier = languages.hasProvider('signature', document)
+    assert.ok(hasProvier === false)
   })
 
   test('References', async () => {
