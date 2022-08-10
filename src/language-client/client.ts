@@ -837,13 +837,14 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return this._onStart
   }
 
-  public start(): Disposable {
-    this._start().catch(error => this.error(`Restarting server failed`, error))
-    return Disposable.create(() => {
+  public start(): Promise<void> & Disposable {
+    let p: any = this._start()
+    p.dispose = Disposable.create(() => {
       if (this.needsStop()) {
         void this.stop()
       }
     })
+    return p
   }
 
   private async $start(): Promise<Connection> {

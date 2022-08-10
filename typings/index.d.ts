@@ -10162,7 +10162,7 @@ declare module 'coc.nvim' {
     /**
      * Start language server, not needed when registered to services by `services.registLanguageClient`
      */
-    start(): Disposable
+    start(): Promise<void>
     /**
      * Restart language client.
      */
