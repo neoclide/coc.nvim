@@ -423,6 +423,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return [MarkupKind.PlainText]
   }
 
+  public get state(): State {
+    return this.getPublicState()
+  }
+
   private get $state(): ClientState {
     return this._state
   }
@@ -868,10 +872,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
           break
         default:
           this.outputChannel.appendLine(message.message)
-      }
-      if (global.__TEST__) {
-        console.log(message.message)
-        return
       }
     })
     connection.onNotification(ShowMessageNotification.type, message => {
@@ -1704,11 +1704,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 }
 
-// Exporting proposed protocol.
-export namespace ProposedFeatures {
-  export function createAll(_client: FeatureClient<Middleware, LanguageClientOptions>): (StaticFeature | DynamicFeature<any>)[] {
-    let result: (StaticFeature | DynamicFeature<any>)[] = [
-    ]
+export const ProposedFeatures = {
+  createAll: (_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] => {
+    let result: (StaticFeature | DynamicFeature<any>)[] = []
     return result
   }
 }

@@ -22,24 +22,27 @@ console.error = connection.console.error.bind(connection.console)
 connection.onInitialize(params => {
   assert.equal((params.capabilities.workspace).applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
+  assert.deepEqual(params.capabilities.workspace.workspaceEdit.resourceOperations, ['create', 'rename', 'delete'])
   assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, FailureHandlingKind.Undo)
+  assert.equal(params.capabilities.workspace.workspaceEdit.normalizesLineEndings, true)
+  assert.equal(params.capabilities.workspace.workspaceEdit.changeAnnotationSupport.groupsOnLabel, false)
   assert.equal(params.capabilities.workspace.symbol.resolveSupport.properties[0], 'location.range')
   assert.equal(params.capabilities.textDocument.completion.completionItem.deprecatedSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet.length, 1)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet[0], CompletionItemTag.Deprecated)
   assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.parameterInformation.labelOffsetSupport, true)
-  // assert.equal(params.capabilities.textDocument.definition.linkSupport, true)
-  // assert.equal(params.capabilities.textDocument.declaration.linkSupport, true)
-  // assert.equal(params.capabilities.textDocument.implementation.linkSupport, true)
-  // assert.equal(params.capabilities.textDocument.typeDefinition.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.definition.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.declaration.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.implementation.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.typeDefinition.linkSupport, true)
   assert.equal(params.capabilities.textDocument.rename.prepareSupport, true)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.relatedInformation, true)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet.length, 2)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[0], DiagnosticTag.Unnecessary)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[1], DiagnosticTag.Deprecated)
   assert.equal(params.capabilities.textDocument.documentLink.tooltipSupport, true)
-  // assert.equal(params.capabilities.textDocument.inlineValue.dynamicRegistration, true)
+  assert.equal(params.capabilities.textDocument.inlineValue.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.resolveSupport.properties[0], 'tooltip')
 
@@ -53,7 +56,7 @@ connection.onInitialize(params => {
   assert.equal(diagnosticClientCapabilities.dynamicRegistration, true)
   assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, false)
 
-  let capabilities = {
+  const capabilities = {
     textDocumentSync: TextDocumentSyncKind.Full,
     definitionProvider: true,
     hoverProvider: true,
@@ -128,6 +131,7 @@ connection.onInitialize(params => {
         },
       },
     },
+    linkedEditingRangeProvider: true,
     diagnosticProvider: {
       identifier: 'da348dc5-c30a-4515-9d98-31ff3be38d14',
       interFileDependencies: true,
@@ -137,7 +141,12 @@ connection.onInitialize(params => {
     workspaceSymbolProvider: {
       resolveProvider: true
     },
-    linkedEditingRangeProvider: true
+    notebookDocumentSync: {
+      notebookSelector: [{
+        notebook: {notebookType: 'jupyter-notebook'},
+        cells: [{language: 'python'}]
+      }]
+    }
   }
   return {capabilities, customResults: {hello: 'world'}}
 })
@@ -420,7 +429,7 @@ connection.languages.diagnostics.on(() => {
 
 connection.languages.diagnostics.onWorkspace(() => {
   return {
-    items: [ {
+    items: [{
       kind: DocumentDiagnosticReportKind.Full,
       uri: 'uri',
       version: 1,
@@ -443,8 +452,8 @@ connection.languages.typeHierarchy.onPrepare(params => {
     selectionRange: Range.create(2, 2, 2, 2),
     uri: params.textDocument.uri
   }
-  typeHierarchySample.superTypes = [ {...currentItem, name: 'classA', uri: 'uri-for-A'}]
-  typeHierarchySample.subTypes = [ {...currentItem, name: 'classC', uri: 'uri-for-C'}]
+  typeHierarchySample.superTypes = [{...currentItem, name: 'classA', uri: 'uri-for-A'}]
+  typeHierarchySample.subTypes = [{...currentItem, name: 'classC', uri: 'uri-for-C'}]
   return [currentItem]
 })
 
@@ -464,11 +473,11 @@ connection.languages.inlineValue.on(_params => {
   ]
 })
 connection.languages.inlayHint.on(() => {
-	const one = InlayHint.create(Position.create(1,1), [InlayHintLabelPart.create('type')], InlayHintKind.Type)
-	one.data = '1'
-	const two = InlayHint.create(Position.create(2,2), [InlayHintLabelPart.create('parameter')], InlayHintKind.Parameter)
-	two.data = '2'
-	return [one, two]
+  const one = InlayHint.create(Position.create(1, 1), [InlayHintLabelPart.create('type')], InlayHintKind.Type)
+  one.data = '1'
+  const two = InlayHint.create(Position.create(2, 2), [InlayHintLabelPart.create('parameter')], InlayHintKind.Parameter)
+  two.data = '2'
+  return [one, two]
 })
 
 connection.languages.inlayHint.resolve(hint => {
@@ -477,7 +486,7 @@ connection.languages.inlayHint.resolve(hint => {
   } else {
     hint.label[0].tooltip = 'tooltip'
   }
-	return hint
+  return hint
 })
 
 connection.languages.onLinkedEditingRange(() => {
@@ -499,14 +508,14 @@ connection.onRequest(
 )
 
 connection.onWorkspaceSymbol(() => {
-    return [
-        { name: 'name', kind: SymbolKind.Array, location: { uri: 'file:///abc.txt' }}
-    ]
+  return [
+    {name: 'name', kind: SymbolKind.Array, location: {uri: 'file:///abc.txt'}}
+  ]
 })
 
 connection.onWorkspaceSymbolResolve(symbol => {
-    symbol.location = Location.create(symbol.location.uri, Range.create(1,2,3,4))
-    return symbol
+  symbol.location = Location.create(symbol.location.uri, Range.create(1, 2, 3, 4))
+  return symbol
 })
 
 // Listen on the connection

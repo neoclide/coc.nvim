@@ -203,8 +203,8 @@ export class LanguageClient extends BaseLanguageClient {
     this._isInDebugMode = forceDebug
   }
 
-  public stop(): Promise<void> {
-    return super.stop().then(() => {
+  public stop(timeout = 2000): Promise<void> {
+    return super.stop(timeout).then(() => {
       if (this._serverProcess) {
         let toCheck = this._serverProcess
         this._serverProcess = undefined
