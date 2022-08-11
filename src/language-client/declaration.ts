@@ -3,7 +3,7 @@ import { CancellationToken, ClientCapabilities, Declaration, DeclarationLink, De
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DeclarationProvider, ProviderResult } from '../provider'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import { asTextDocumentPositionParams } from './utils/converter'
 
 export interface ProvideDeclarationSignature {
@@ -38,14 +38,10 @@ export class DeclarationFeature extends TextDocumentLanguageFeature<boolean | De
     const provider: DeclarationProvider = {
       provideDeclaration: (document: TextDocument, position: Position, token: CancellationToken) => {
         const client = this._client
-        const provideDeclaration: ProvideDeclarationSignature = (document, position, token) => client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
-          res => token.isCancellationRequested ? null : res, error => {
-            return client.handleFailedRequest(DeclarationRequest.type, token, error, null)
-          }
-        )
+        const provideDeclaration: ProvideDeclarationSignature = (document, position, token) =>
+          this.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token)
         const middleware = client.middleware
-        return middleware.provideDeclaration
-          ? middleware.provideDeclaration(document, position, token, provideDeclaration)
+        return middleware.provideDeclaration ? middleware.provideDeclaration(document, position, token, provideDeclaration)
           : provideDeclaration(document, position, token)
       }
     }

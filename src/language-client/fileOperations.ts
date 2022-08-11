@@ -1,11 +1,11 @@
 'use strict'
 import * as minimatch from 'minimatch'
-import { ClientCapabilities, CreateFilesParams, DeleteFilesParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternKind, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, CreateFilesParams, DeleteFilesParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternKind, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileType, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { statAsync } from '../util/fs'
 import workspace from '../workspace'
-import { DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
+import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
 const logger = require('../util/logger')('language-client-fileOperations')
 
@@ -52,8 +52,7 @@ interface EventWithFiles<I> {
 }
 
 abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
-  implements DynamicFeature<FileOperationRegistrationOptions> {
-  protected _client: FeatureClient<FileOperationsWorkspaceMiddleware>
+  extends BaseFeature<FileOperationsWorkspaceMiddleware, object> implements DynamicFeature<FileOperationRegistrationOptions>  {
   private _event: Event<E>
   private _registrationType: RegistrationType<FileOperationRegistrationOptions>
   private _clientCapability: keyof FileOperationClientCapabilities
@@ -75,7 +74,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     clientCapability: keyof FileOperationClientCapabilities,
     serverCapability: keyof FileOperationOptions
   ) {
-    this._client = client
+    super(client)
     this._event = event
     this._registrationType = registrationType
     this._clientCapability = clientCapability
@@ -363,7 +362,7 @@ abstract class RequestFileOperationFeature<I, E extends RequestEvent<I>, P> exte
 
     if (filteredEvent.files.length) {
       const next = (event: EventWithFiles<I>): Promise<WorkspaceEdit | any> => {
-        return this._client.sendRequest(this._requestType, this._createParams(event))
+        return this.sendRequest(this._requestType, this._createParams(event), CancellationToken.None)
       }
       return this.doSend(filteredEvent, next)
     } else {

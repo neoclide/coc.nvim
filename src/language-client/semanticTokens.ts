@@ -1,10 +1,4 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-'use strict'
-
 import {
   CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
 } from 'vscode-languageserver-protocol'
@@ -12,7 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, ProviderResult } from '../provider'
 import * as Is from '../util/is'
-import { FeatureClient, TextDocumentLanguageFeature, ensure } from './features'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('languageclient-semanticTokens')
 
@@ -133,10 +127,7 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
             const params: SemanticTokensParams = {
               textDocument: cv.asTextDocumentIdentifier(document)
             }
-            return client.sendRequest(SemanticTokensRequest.type, params, token).then(
-              res => token.isCancellationRequested ? null : res, (error: any) => {
-                return client.handleFailedRequest(SemanticTokensRequest.type, token, error, null)
-              })
+            return this.sendRequest(SemanticTokensRequest.type, params, token)
           }
           return middleware.provideDocumentSemanticTokens
             ? middleware.provideDocumentSemanticTokens(document, token, provideDocumentSemanticTokens)
@@ -151,10 +142,7 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
                 textDocument: cv.asTextDocumentIdentifier(document),
                 previousResultId
               }
-              return client.sendRequest(SemanticTokensDeltaRequest.type, params, token).then(
-                res => token.isCancellationRequested ? null : res, (error: any) => {
-                  return client.handleFailedRequest(SemanticTokensDeltaRequest.type, token, error, null)
-                })
+              return this.sendRequest(SemanticTokensDeltaRequest.type, params, token)
             }
             return middleware.provideDocumentSemanticTokensEdits
               ? middleware.provideDocumentSemanticTokensEdits(document, previousResultId, token, provideDocumentSemanticTokensEdits)
@@ -175,11 +163,7 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
               textDocument: cv.asTextDocumentIdentifier(document),
               range
             }
-            return client.sendRequest(SemanticTokensRangeRequest.type, params, token).then(
-              res => token.isCancellationRequested ? null : res,
-              (error: any) => {
-                return client.handleFailedRequest(SemanticTokensRangeRequest.type, token, error, null)
-              })
+            return this.sendRequest(SemanticTokensRangeRequest.type, params, token)
           }
           return middleware.provideDocumentRangeSemanticTokens
             ? middleware.provideDocumentRangeSemanticTokens(document, range, token, provideDocumentRangeSemanticTokens)

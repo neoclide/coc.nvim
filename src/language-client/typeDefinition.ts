@@ -48,11 +48,8 @@ export class TypeDefinitionFeature extends TextDocumentLanguageFeature<boolean |
     const provider: TypeDefinitionProvider = {
       provideTypeDefinition: (document, position, token) => {
         const client = this._client
-        const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
-          res => token.isCancellationRequested ? null : res, error => {
-            return client.handleFailedRequest(TypeDefinitionRequest.type, token, error, null)
-          }
-        )
+        const provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) =>
+          this.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token)
         const middleware = client.middleware
         return middleware.provideTypeDefinition
           ? middleware.provideTypeDefinition(document, position, token, provideTypeDefinition)

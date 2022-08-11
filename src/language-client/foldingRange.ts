@@ -57,11 +57,7 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
           const requestParams: FoldingRangeParams = {
             textDocument: { uri: document.uri }
           }
-          return client.sendRequest(FoldingRangeRequest.type, requestParams, token).then(
-            res => token.isCancellationRequested ? null : res, (error: any) => {
-              return client.handleFailedRequest(FoldingRangeRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(FoldingRangeRequest.type, requestParams, token)
         }
         const middleware = client.middleware
         return middleware.provideFoldingRanges

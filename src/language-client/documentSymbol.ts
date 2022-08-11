@@ -94,29 +94,10 @@ export class DocumentSymbolFeature extends TextDocumentLanguageFeature<
       provideDocumentSymbols: (document, token) => {
         const client = this._client
         const _provideDocumentSymbols: ProvideDocumentSymbolsSignature = (document, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             DocumentSymbolRequest.type,
             cv.asDocumentSymbolParams(document),
             token
-          ).then(
-            data => {
-              if (token.isCancellationRequested || data === undefined || data === null) {
-                return undefined
-              }
-              if (data.length === 0) {
-                return []
-              } else {
-                let element = data[0]
-                if (DocumentSymbol.is(element)) {
-                  return data as DocumentSymbol[]
-                } else {
-                  return data as SymbolInformation[]
-                }
-              }
-            },
-            error => {
-              return client.handleFailedRequest(DocumentSymbolRequest.type, token, error, null)
-            }
           )
         }
         const middleware = client.middleware!

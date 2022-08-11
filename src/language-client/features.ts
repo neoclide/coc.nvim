@@ -77,6 +77,21 @@ export class LSPCancellationError extends CancellationError {
   }
 }
 
+export class BaseFeature<MW, CO = object> {
+  protected readonly _client: FeatureClient<MW, CO>
+  constructor(client: FeatureClient<MW, CO>) {
+    this._client = client
+  }
+
+  protected sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token: CancellationToken, defaultValue?: R): Promise<R> {
+    return this._client.sendRequest(type, params, token).then((res => {
+      return token.isCancellationRequested ? defaultValue ?? null : res
+    }), error => {
+      return this._client.handleFailedRequest(type, token, error, defaultValue ?? null)
+    })
+  }
+}
+
 export interface RegistrationData<T> {
   id: string
   registerOptions: T
@@ -313,10 +328,9 @@ interface CreateParamsSignature<E, P> {
  * An abstract dynamic feature implementation that operates on documents (e.g. text
  * documents or notebooks).
  */
-export abstract class DynamicDocumentFeature<RO, MW, CO = object> implements DynamicFeature<RO> {
-  protected readonly _client: FeatureClient<MW, CO>
+export abstract class DynamicDocumentFeature<RO, MW, CO = object> extends BaseFeature<MW, CO> implements DynamicFeature<RO> {
   constructor(client: FeatureClient<MW, CO>) {
-    this._client = client
+    super(client)
   }
 
   // Repeat from interface.

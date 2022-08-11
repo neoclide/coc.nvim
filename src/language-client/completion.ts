@@ -8,10 +8,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { CompletionItemProvider, ProviderResult } from '../provider'
 import sources from '../sources'
-import * as cv from './utils/converter'
-
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
-
+import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
 const SupportedCompletionItemKinds: CompletionItemKind[] = [
@@ -128,21 +126,18 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
     let priority = (options as any).priority as number
     const provider: CompletionItemProvider = {
       provideCompletionItems: (document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext): ProviderResult<CompletionList | CompletionItem[]> => {
-        const client = this._client
         const middleware = this._client.middleware
         const provideCompletionItems: ProvideCompletionItemsSignature = (document, position, context, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             CompletionRequest.type,
             cv.asCompletionParams(document, position, context),
-            token
+            token,
+            []
           ).then(
             res => {
-              if (token.isCancellationRequested) return []
               if (!res || Array.isArray(res) || res.itemDefaults == null) return res
+              // TODO avoid convert for performance
               return cv.asCompletionList(res, token)
-            },
-            error => {
-              return client.handleFailedRequest(CompletionRequest.type, token, error, [])
             }
           )
         }
@@ -153,18 +148,14 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
       },
       resolveCompletionItem: options.resolveProvider
         ? (item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem> => {
-          const client = this._client
           const middleware = this._client.middleware!
           const resolveCompletionItem: ResolveCompletionItemSignature = (item, token) => {
-            return client.sendRequest(
+            return this.sendRequest(
               CompletionResolveRequest.type,
               item,
-              token
-            ).then(
-              res => token.isCancellationRequested ? item : res,
-              error => {
-                return client.handleFailedRequest(CompletionResolveRequest.type, token, error, item)
-              })
+              token,
+              item
+            )
           }
 
           return middleware.resolveCompletionItem

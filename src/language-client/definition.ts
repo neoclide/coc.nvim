@@ -7,7 +7,7 @@ import { CancellationToken, ClientCapabilities, Definition, DefinitionLink, Defi
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { DefinitionProvider, ProviderResult } from '../provider'
-import { FeatureClient, ensure, TextDocumentLanguageFeature } from './features'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 
@@ -64,15 +64,11 @@ export class DefinitionFeature extends TextDocumentLanguageFeature<
       provideDefinition: (document, position, token) => {
         const client = this._client
         const provideDefinition: ProvideDefinitionSignature = (document, position, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             DefinitionRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(DefinitionRequest.type, token, error, null)
-            })
+          )
         }
         const middleware = client.middleware!
         return middleware.provideDefinition

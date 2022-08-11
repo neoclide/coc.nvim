@@ -1,8 +1,4 @@
-/* --------------------------------------------------------------------------------------------
-* Copyright (c) Microsoft Corporation. All rights reserved.
-* Licensed under the MIT License. See License.txt in the project root for license information.
-* ------------------------------------------------------------------------------------------ */
-
+'use strict'
 import {
   CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, InlayHintOptions, InlayHintParams, InlayHintRefreshRequest, InlayHintRegistrationOptions, InlayHintRequest, InlayHintResolveRequest, Range, ServerCapabilities
 } from 'vscode-languageserver-protocol'
@@ -63,20 +59,12 @@ export class InlayHintsFeature extends TextDocumentLanguageFeature<
       onDidChangeInlayHints: eventEmitter.event,
       provideInlayHints: (document, range, token) => {
         const client = this._client
-        const provideInlayHints: ProvideInlayHintsSignature = async (document, range, token) => {
+        const provideInlayHints: ProvideInlayHintsSignature = (document, range, token) => {
           const requestParams: InlayHintParams = {
             textDocument: cv.asTextDocumentIdentifier(document),
             range
           }
-          try {
-            const values = await client.sendRequest(InlayHintRequest.type, requestParams, token)
-            if (token.isCancellationRequested || !values) {
-              return []
-            }
-            return values
-          } catch (error) {
-            return client.handleFailedRequest(InlayHintRequest.type, token, error, [])
-          }
+          return this.sendRequest(InlayHintRequest.type, requestParams, token, [])
         }
         const middleware = client.middleware!
         return middleware.provideInlayHints
@@ -87,16 +75,8 @@ export class InlayHintsFeature extends TextDocumentLanguageFeature<
     provider.resolveInlayHint = options.resolveProvider === true
       ? (hint, token) => {
         const client = this._client
-        const resolveInlayHint: ResolveInlayHintSignature = async (item, token) => {
-          try {
-            const value = await client.sendRequest(InlayHintResolveRequest.type, item, token)
-            if (token.isCancellationRequested) {
-              return null
-            }
-            return value
-          } catch (error) {
-            return client.handleFailedRequest(InlayHintResolveRequest.type, token, error, null)
-          }
+        const resolveInlayHint: ResolveInlayHintSignature = (item, token) => {
+          return this.sendRequest(InlayHintResolveRequest.type, item, token)
         }
         const middleware = client.middleware!
         return middleware.resolveInlayHint

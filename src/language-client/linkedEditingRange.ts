@@ -1,14 +1,9 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
-* ------------------------------------------------------------------------------------------ */
-
 import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, LinkedEditingRangeOptions, LinkedEditingRangeRegistrationOptions, LinkedEditingRangeRequest, LinkedEditingRanges, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { LinkedEditingRangeProvider, ProviderResult } from '../provider'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('languageclient-linkedEditingRange')
 
@@ -50,10 +45,7 @@ export class LinkedEditingFeature extends TextDocumentLanguageFeature<boolean | 
         const client = this._client
         const provideLinkedEditing: ProvideLinkedEditingRangeSignature = (document, position, token) => {
           const params = cv.asTextDocumentPositionParams(document, position)
-          return client.sendRequest(LinkedEditingRangeRequest.type, params, token).then(
-            res => token.isCancellationRequested ? null : res, error => {
-              return client.handleFailedRequest(LinkedEditingRangeRequest.type, token, error, null)
-            })
+          return this.sendRequest(LinkedEditingRangeRequest.type, params, token)
         }
         const middleware = client.middleware!
         return middleware.provideLinkedEditingRange

@@ -40,12 +40,7 @@ export class SelectionRangeFeature extends TextDocumentLanguageFeature<boolean |
             textDocument: { uri: document.uri },
             positions
           }
-          return client.sendRequest(SelectionRangeRequest.type, requestParams, token).then(
-            ranges => token.isCancellationRequested ? null : ranges,
-            (error: any) => {
-              return client.handleFailedRequest(SelectionRangeRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(SelectionRangeRequest.type, requestParams, token)
         }
         const middleware = client.middleware
         return middleware.provideSelectionRanges

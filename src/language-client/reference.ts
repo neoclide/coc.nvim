@@ -63,15 +63,11 @@ export class ReferencesFeature extends TextDocumentLanguageFeature<
       provideReferences: (document, position, options, token) => {
         const client = this._client
         const _providerReferences: ProvideReferencesSignature = (document, position, options, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             ReferencesRequest.type,
             cv.asReferenceParams(document, position, options),
             token
-          ).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(ReferencesRequest.type, token, error, null)
-            })
+          )
         }
         const middleware = client.middleware!
         return middleware.provideReferences

@@ -97,10 +97,7 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
           command,
           arguments: args
         }
-        return client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, error => {
-          client.handleFailedRequest(ExecuteCommandRequest.type, undefined, error, undefined)
-          throw error
-        })
+        return client.sendRequest(ExecuteCommandRequest.type, params)
       }
       const middleware = client.middleware!
       this.disposables.push(commands.registerCommand(id, (...args: any[]) => {
@@ -120,20 +117,15 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
             range,
             context,
           }
-          return client.sendRequest(CodeActionRequest.type, params, token).then(
+          return this.sendRequest(CodeActionRequest.type, params, token).then(
             values => {
-              if (token.isCancellationRequested || values === undefined || values === null) {
-                return undefined
-              }
+              if (!values) return undefined
               // some server may not registered commands to client.
               values.forEach(val => {
                 let cmd = Command.is(val) ? val.command : val.command?.command
                 if (cmd && !commands.has(cmd)) registCommand(cmd)
               })
               return values
-            },
-            error => {
-              return client.handleFailedRequest(CodeActionRequest.type, token, error, null)
             }
           )
         }
@@ -144,15 +136,9 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
       },
       resolveCodeAction: options.resolveProvider
         ? (item: CodeAction, token: CancellationToken) => {
-          const client = this._client
           const middleware = this._client.middleware!
           const resolveCodeAction: ResolveCodeActionSignature = (item, token) => {
-            return client.sendRequest(CodeActionResolveRequest.type, item, token).then(
-              values => token.isCancellationRequested ? item : values,
-              error => {
-                return client.handleFailedRequest(CodeActionResolveRequest.type, token, error, item)
-              }
-            )
+            return this.sendRequest(CodeActionResolveRequest.type, item, token, item)
           }
           return middleware.resolveCodeAction
             ? middleware.resolveCodeAction(item, token, resolveCodeAction)

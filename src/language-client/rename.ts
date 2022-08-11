@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, PrepareRenameRequest, Range, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, ResponseError, ServerCapabilities, TextDocumentPositionParams, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, PrepareRenameRequest, Range, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, ServerCapabilities, TextDocumentPositionParams, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { ProviderResult, RenameProvider } from '../provider'
@@ -84,11 +84,7 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
             position,
             newName
           }
-          return client.sendRequest(RenameRequest.type, params, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(RenameRequest.type, token, error, null)
-            })
+          return this.sendRequest(RenameRequest.type, params, token)
         }
         const middleware = client.middleware!
         return middleware.provideRenameEdits
@@ -103,28 +99,20 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
               textDocument: cv.asTextDocumentIdentifier(document),
               position
             }
-            return client.sendRequest(PrepareRenameRequest.type, params, token).then(
-              result => {
-                if (token.isCancellationRequested) {
-                  return null
+            return this.sendRequest(PrepareRenameRequest.type, params, token).then(result => {
+              if (!result) return null
+
+              if (Range.is(result)) {
+                return result
+              } else if (this.isDefaultBehavior(result)) {
+                return result.defaultBehavior === true ? null : Promise.reject(new Error(`The element can't be renamed.`))
+              } else if (result && Range.is(result.range)) {
+                return {
+                  range: result.range,
+                  placeholder: result.placeholder
                 }
-                if (Range.is(result)) {
-                  return result
-                } else if (this.isDefaultBehavior(result)) {
-                  return result.defaultBehavior === true ? null : Promise.reject(new Error(`The element can't be renamed.`))
-                } else if (result && Range.is(result.range)) {
-                  return {
-                    range: result.range,
-                    placeholder: result.placeholder
-                  }
-                }
-                // To cancel the rename vscode API expects a rejected promise.
-                return Promise.reject(new Error(`The element can't be renamed.`))
-              },
-              (error: ResponseError<void>) => {
-                return client.handleFailedRequest(PrepareRenameRequest.type, token, error, undefined)
               }
-            )
+            })
           }
           const middleware = client.middleware!
           return middleware.prepareRename

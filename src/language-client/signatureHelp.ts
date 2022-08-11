@@ -71,17 +71,12 @@ export class SignatureHelpFeature extends TextDocumentLanguageFeature<SignatureH
       provideSignatureHelp: (document, position, token, context) => {
         const client = this._client
         const providerSignatureHelp: ProvideSignatureHelpSignature = (document, position, context, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             SignatureHelpRequest.type,
             cv.asSignatureHelpParams(document, position, context),
             token
-          ).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(SignatureHelpRequest.type, token, error, null)
-            })
+          )
         }
-
         const middleware = client.middleware!
         return middleware.provideSignatureHelp
           ? middleware.provideSignatureHelp(document, position, context, token, providerSignatureHelp)

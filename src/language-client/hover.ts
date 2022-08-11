@@ -3,7 +3,6 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-/* eslint-disable */
 import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Hover, HoverOptions, HoverRegistrationOptions, HoverRequest, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
@@ -69,15 +68,11 @@ export class HoverFeature extends TextDocumentLanguageFeature<
       provideHover: (document, position, token) => {
         const client = this._client
         const provideHover: ProvideHoverSignature = (document, position, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             HoverRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(HoverRequest.type, token, error, null)
-            })
+          )
         }
 
         const middleware = client.middleware!

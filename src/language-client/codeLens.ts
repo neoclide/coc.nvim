@@ -3,7 +3,6 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-
 import {
   ClientCapabilities, CancellationToken, CodeLens, ServerCapabilities, DocumentSelector, CodeLensOptions, CodeLensRegistrationOptions, CodeLensRequest, CodeLensRefreshRequest, CodeLensResolveRequest, Emitter, Disposable
 } from 'vscode-languageserver-protocol'
@@ -64,15 +63,11 @@ export class CodeLensFeature extends TextDocumentLanguageFeature<CodeLensOptions
       provideCodeLenses: (document, token) => {
         const client = this._client
         const provideCodeLenses: ProvideCodeLensesSignature = (document, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             CodeLensRequest.type,
             cv.asCodeLensParams(document),
             token
-          ).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(CodeLensRequest.type, token, error, null)
-            })
+          )
         }
         const middleware = client.middleware!
         return middleware.provideCodeLenses
@@ -83,15 +78,12 @@ export class CodeLensFeature extends TextDocumentLanguageFeature<CodeLensOptions
         ? (codeLens: CodeLens, token: CancellationToken): ProviderResult<CodeLens> => {
           const client = this._client
           const resolveCodeLens: ResolveCodeLensSignature = (codeLens, token) => {
-            return client.sendRequest(
+            return this.sendRequest(
               CodeLensResolveRequest.type,
               codeLens,
-              token
-            ).then(
-              res => token.isCancellationRequested ? codeLens : res,
-              error => {
-                return client.handleFailedRequest(CodeLensResolveRequest.type, token, error, codeLens)
-              })
+              token,
+              codeLens
+            )
           }
           const middleware = client.middleware!
           return middleware.resolveCodeLens

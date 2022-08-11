@@ -5,7 +5,7 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { CallHierarchyProvider, ProviderResult } from '../provider'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import { asTextDocumentPositionParams } from './utils/converter'
 
 export interface PrepareCallHierarchySignature {
@@ -56,12 +56,7 @@ export class CallHierarchyFeature extends TextDocumentLanguageFeature<boolean | 
         const client = this._client
         const prepareCallHierarchy: PrepareCallHierarchySignature = (document, position, token) => {
           const params = asTextDocumentPositionParams(document, position)
-          return client.sendRequest(CallHierarchyPrepareRequest.type, params, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(CallHierarchyPrepareRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(CallHierarchyPrepareRequest.type, params, token)
         }
 
         const middleware = client.middleware
@@ -73,12 +68,7 @@ export class CallHierarchyFeature extends TextDocumentLanguageFeature<boolean | 
       provideCallHierarchyIncomingCalls: (item: CallHierarchyItem, token: CancellationToken) => {
         const client = this._client
         const provideCallHierarchyIncomingCalls: CallHierarchyIncomingCallsSignature = (item, token) => {
-          return client.sendRequest(CallHierarchyIncomingCallsRequest.type, { item }, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(CallHierarchyIncomingCallsRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(CallHierarchyIncomingCallsRequest.type, { item }, token)
         }
 
         const middleware = client.middleware
@@ -90,14 +80,8 @@ export class CallHierarchyFeature extends TextDocumentLanguageFeature<boolean | 
       provideCallHierarchyOutgoingCalls: (item: CallHierarchyItem, token: CancellationToken) => {
         const client = this._client
         const provideCallHierarchyOutgoingCalls: CallHierarchyOutgoingCallsSignature = (item, token) => {
-          return client.sendRequest(CallHierarchyOutgoingCallsRequest.type, { item }, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(CallHierarchyOutgoingCallsRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(CallHierarchyOutgoingCallsRequest.type, { item }, token)
         }
-
         const middleware = client.middleware
         return middleware.provideCallHierarchyOutgoingCalls
           ? middleware.provideCallHierarchyOutgoingCalls(item, token, provideCallHierarchyOutgoingCalls)

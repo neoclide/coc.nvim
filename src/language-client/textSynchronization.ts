@@ -1,5 +1,5 @@
 'use strict'
-import { ClientCapabilities, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, ProtocolNotificationType, RegistrationType, SaveOptions, ServerCapabilities, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, ProtocolNotificationType, RegistrationType, SaveOptions, ServerCapabilities, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DidChangeTextDocumentParams as TextDocumentChangeEvent, TextDocumentWillSaveEvent } from '../types'
 import workspace from '../workspace'
@@ -421,14 +421,11 @@ export class WillSaveWaitUntilFeature extends DynamicDocumentFeature<TextDocumen
       event.document)) {
       let middleware = this._client.middleware!
       let willSaveWaitUntil = (event: TextDocumentWillSaveEvent): Thenable<TextEdit[]> => {
-        return this._client
-          .sendRequest(
-            WillSaveTextDocumentWaitUntilRequest.type,
-            cv.asWillSaveTextDocumentParams(event)
-          )
-          .then(edits => {
-            return Array.isArray(edits) ? edits : []
-          })
+        return this.sendRequest(
+          WillSaveTextDocumentWaitUntilRequest.type,
+          cv.asWillSaveTextDocumentParams(event),
+          CancellationToken.None
+        )
       }
       event.waitUntil(
         middleware.willSaveWaitUntil

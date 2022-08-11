@@ -42,11 +42,8 @@ export class ImplementationFeature extends TextDocumentLanguageFeature<boolean |
     const provider: ImplementationProvider = {
       provideImplementation: (document, position, token) => {
         const client = this._client
-        const provideImplementation: ProvideImplementationSignature = (document, position, token) => client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
-          res => token.isCancellationRequested ? null : res, error => {
-            return client.handleFailedRequest(ImplementationRequest.type, token, error, null)
-          }
-        )
+        const provideImplementation: ProvideImplementationSignature = (document, position, token) =>
+          this.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token)
         const middleware = client.middleware
         return middleware.provideImplementation
           ? middleware.provideImplementation(document, position, token, provideImplementation)

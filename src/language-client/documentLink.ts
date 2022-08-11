@@ -61,17 +61,11 @@ export class DocumentLinkFeature extends TextDocumentLanguageFeature<DocumentLin
       provideDocumentLinks: (document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]> => {
         const client = this._client
         const provideDocumentLinks: ProvideDocumentLinksSignature = (document, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             DocumentLinkRequest.type,
-            {
-              textDocument: { uri: document.uri }
-            },
+            { textDocument: { uri: document.uri } },
             token
-          ).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(DocumentLinkRequest.type, token, error, null)
-            })
+          )
         }
         const middleware = client.middleware!
         return middleware.provideDocumentLinks
@@ -82,11 +76,7 @@ export class DocumentLinkFeature extends TextDocumentLanguageFeature<DocumentLin
         ? (link, token) => {
           const client = this._client
           let resolveDocumentLink: ResolveDocumentLinkSignature = (link, token) => {
-            return client.sendRequest(DocumentLinkResolveRequest.type, link, token).then(
-              res => token.isCancellationRequested ? link : res,
-              error => {
-                return client.handleFailedRequest(DocumentLinkResolveRequest.type, token, error, link)
-              })
+            return this.sendRequest(DocumentLinkResolveRequest.type, link, token, link)
           }
           const middleware = client.middleware!
           return middleware.resolveDocumentLink

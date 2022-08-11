@@ -3,7 +3,7 @@ import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPr
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentColorProvider, ProviderResult } from '../provider'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 
 export type ProvideDocumentColorsSignature = (document: TextDocument, token: CancellationToken) => ProviderResult<ColorInformation[]>
 
@@ -64,12 +64,7 @@ export class ColorProviderFeature extends TextDocumentLanguageFeature<
             textDocument: { uri: context.document.uri },
             range: context.range
           }
-          return client.sendRequest(ColorPresentationRequest.type, requestParams, token).then(
-            res => token.isCancellationRequested ? null : res,
-            (error: any) => {
-              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(ColorPresentationRequest.type, requestParams, token)
         }
         const middleware = client.middleware
         return middleware.provideColorPresentations
@@ -82,12 +77,7 @@ export class ColorProviderFeature extends TextDocumentLanguageFeature<
           const requestParams = {
             textDocument: { uri: document.uri }
           }
-          return client.sendRequest(DocumentColorRequest.type, requestParams, token).then(
-            res => token.isCancellationRequested ? null : res,
-            (error: any) => {
-              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(DocumentColorRequest.type, requestParams, token)
         }
         const middleware = client.middleware
         return middleware.provideDocumentColors

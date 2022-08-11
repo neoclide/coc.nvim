@@ -61,15 +61,11 @@ export class DocumentHighlightFeature extends TextDocumentLanguageFeature<
       provideDocumentHighlights: (document, position, token) => {
         const client = this._client
         const _provideDocumentHighlights: ProvideDocumentHighlightsSignature = (document, position, token) => {
-          return client.sendRequest(
+          return this.sendRequest(
             DocumentHighlightRequest.type,
             cv.asTextDocumentPositionParams(document, position),
             token
-          ).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(DocumentHighlightRequest.type, token, error, null)
-            })
+          )
         }
         const middleware = client.middleware!
         return middleware.provideDocumentHighlights

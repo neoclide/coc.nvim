@@ -3,7 +3,7 @@ import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Re
 import languages from "../languages"
 import { ProviderResult, WorkspaceSymbolProvider } from "../provider"
 import { SupportedSymbolKinds, SupportedSymbolTags } from './documentSymbol'
-import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
+import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
 
 export interface ProvideWorkspaceSymbolsSignature {
@@ -28,10 +28,12 @@ export interface WorkspaceProviderFeature<PR> {
   getProviders(): PR[] | undefined
 }
 
-abstract class WorkspaceFeature<RO, PR, M> implements DynamicFeature<RO> {
+abstract class WorkspaceFeature<RO, PR, M> extends BaseFeature<M, object> implements DynamicFeature<RO> {
   protected _registrations: Map<string, WorkspaceFeatureRegistration<PR>> = new Map()
 
-  constructor(protected _client: FeatureClient<M>, private _registrationType: RegistrationType<RO>) {}
+  constructor(_client: FeatureClient<M>, private _registrationType: RegistrationType<RO>) {
+    super(_client)
+  }
 
   public getState(): FeatureState {
     const registrations = this._registrations.size > 0
@@ -106,11 +108,7 @@ export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegi
       provideWorkspaceSymbols: (query, token) => {
         const client = this._client
         const provideWorkspaceSymbols: ProvideWorkspaceSymbolsSignature = (query, token) => {
-          return client.sendRequest(WorkspaceSymbolRequest.type, { query }, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(WorkspaceSymbolRequest.type, token, error, null)
-            })
+          return this.sendRequest(WorkspaceSymbolRequest.type, { query }, token) as any
         }
         const middleware = client.middleware!
         return middleware.provideWorkspaceSymbols
@@ -121,11 +119,7 @@ export class WorkspaceSymbolFeature extends WorkspaceFeature<WorkspaceSymbolRegi
         ? (item, token) => {
           const client = this._client
           const resolveWorkspaceSymbol: ResolveWorkspaceSymbolSignature = (item, token) => {
-            return client.sendRequest(WorkspaceSymbolResolveRequest.type, item, token).then(
-              result => token.isCancellationRequested ? null : result,
-              error => {
-                return client.handleFailedRequest(WorkspaceSymbolResolveRequest.type, token, error, null)
-              })
+            return this.sendRequest(WorkspaceSymbolResolveRequest.type, item, token) as any
           }
           const middleware = client.middleware!
           return middleware.resolveWorkspaceSymbol

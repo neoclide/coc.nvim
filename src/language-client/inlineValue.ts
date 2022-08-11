@@ -55,14 +55,7 @@ export class InlineValueFeature extends TextDocumentLanguageFeature<
             range,
             context
           }
-          return client.sendRequest(InlineValueRequest.type, requestParams, token).then(values => {
-            if (token.isCancellationRequested) {
-              return null
-            }
-            return values
-          }, (error: any) => {
-            return client.handleFailedRequest(InlineValueRequest.type, token, error, null)
-          })
+          return this.sendRequest(InlineValueRequest.type, requestParams, token)
         }
         const middleware = client.middleware!
         return middleware.provideInlineValues

@@ -3,9 +3,9 @@ import { CancellationToken, ClientCapabilities, Disposable, DocumentFormattingOp
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, OnTypeFormattingEditProvider, ProviderResult } from '../provider'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 
 export interface ProvideDocumentFormattingEditsSignature {
   (
@@ -108,11 +108,7 @@ export class DocumentFormattingFeature extends TextDocumentLanguageFeature<
             textDocument: { uri: document.uri },
             options
           }
-          return client.sendRequest(DocumentFormattingRequest.type, params, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(DocumentFormattingRequest.type, token, error, null)
-            })
+          return this.sendRequest(DocumentFormattingRequest.type, params, token)
         }
         const middleware = client.middleware!
         return middleware.provideDocumentFormattingEdits
@@ -168,11 +164,7 @@ export class DocumentRangeFormattingFeature extends TextDocumentLanguageFeature<
             range,
             options,
           }
-          return client.sendRequest(DocumentRangeFormattingRequest.type, params, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(DocumentRangeFormattingRequest.type, token, error, null)
-            })
+          return this.sendRequest(DocumentRangeFormattingRequest.type, params, token)
         }
         const middleware = client.middleware!
         return middleware.provideDocumentRangeFormattingEdits
@@ -219,11 +211,7 @@ export class DocumentOnTypeFormattingFeature extends TextDocumentLanguageFeature
             ch,
             options
           }
-          return client.sendRequest(DocumentOnTypeFormattingRequest.type, params, token).then(
-            res => token.isCancellationRequested ? null : res,
-            error => {
-              return client.handleFailedRequest(DocumentOnTypeFormattingRequest.type, token, error, null)
-            })
+          return this.sendRequest(DocumentOnTypeFormattingRequest.type, params, token)
         }
         const middleware = client.middleware!
         return middleware.provideOnTypeFormattingEdits

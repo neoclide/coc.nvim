@@ -33,6 +33,6 @@ export default class DocumentSymbolManager extends Manager<DocumentSymbolProvide
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    return (await Promise.resolve(provider.provideDocumentSymbols(document, token))) || []
+    return (await Promise.resolve(provider.provideDocumentSymbols(document, token))) ?? []
   }
 }
