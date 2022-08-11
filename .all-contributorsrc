@@ -1882,6 +1882,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "springhack",
+      "name": "SpringHack",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2389889?v=4",
+      "profile": "https://www.dosk.win/",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
