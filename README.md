@@ -319,6 +319,10 @@ Try these steps when you have problem with coc.nvim.
 <a href="https://opencollective.com/cocnvim/backer/43/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/43/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/44/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/44/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/45/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/45/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/46/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/46/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/47/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/47/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/48/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/48/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/49/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/49/avatar.svg?requireActive=false"></a>
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
