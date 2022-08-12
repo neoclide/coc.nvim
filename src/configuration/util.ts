@@ -290,3 +290,20 @@ export function getChangedKeys(from: { [key: string]: any }, to: { [key: string]
   }
   return keys
 }
+
+export function toJSONObject(obj: any): any {
+  if (obj) {
+    if (Array.isArray(obj)) {
+      return obj.map(toJSONObject)
+    } else if (typeof obj === 'object') {
+      const res = Object.create(null)
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          res[key] = toJSONObject(obj[key])
+        }
+      }
+      return res
+    }
+  }
+  return obj
+}

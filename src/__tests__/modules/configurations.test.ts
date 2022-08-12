@@ -7,7 +7,7 @@ import { v1 as uuidv1 } from 'uuid'
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration'
 import ConfigurationProxy from '../../configuration/shape'
-import { convertErrors, removeFromValueTree, getChangedKeys, getConfigurationValue, getKeys, mergeConfigProperties, parseConfiguration, parseContentFromFile } from '../../configuration/util'
+import { convertErrors, removeFromValueTree, toJSONObject, getChangedKeys, getConfigurationValue, getKeys, mergeConfigProperties, parseConfiguration, parseContentFromFile } from '../../configuration/util'
 import { ConfigurationTarget, IConfigurationModel } from '../../types'
 import { CONFIG_FILE_NAME, wait } from '../../util'
 import { rmdir } from '../helper'
@@ -276,6 +276,11 @@ describe('Configurations', () => {
       expect(res).toBe(2)
       res = getConfigurationValue(root, 'foo.from', 1)
       expect(res).toEqual({ to: 2 })
+    })
+
+    it('should get json object', async () => {
+      let obj = [{ x: 1 }, { y: 2 }]
+      expect(toJSONObject(obj)).toEqual(obj)
     })
 
     it('should get changed keys #1', () => {

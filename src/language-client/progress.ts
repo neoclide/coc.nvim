@@ -14,6 +14,10 @@ export class ProgressFeature implements StaticFeature {
   constructor(private _client: FeatureClient<object>) {
   }
 
+  public get method(): string {
+    return WorkDoneProgressCreateRequest.method
+  }
+
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     ensure(capabilities, 'window')!.workDoneProgress = true
   }

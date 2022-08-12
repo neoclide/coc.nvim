@@ -1,11 +1,11 @@
 'use strict'
 import { ClientCapabilities, ConfigurationRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, Disposable, RegistrationType, WorkspaceFolder } from 'vscode-languageserver-protocol'
-import workspace from '../workspace'
-import * as UUID from './utils/uuid'
+import { mergeConfigProperties, toJSONObject } from '../configuration/util'
+import { ConfigurationChangeEvent, FileSystemWatcher } from '../types'
 import * as Is from '../util/is'
-import { FeatureState, RegistrationData, StaticFeature, DynamicFeature, ensure, FeatureClient } from './features'
-import { FileSystemWatcher, ConfigurationChangeEvent } from '../types'
-import { mergeConfigProperties } from '../configuration/util'
+import workspace from '../workspace'
+import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData, StaticFeature } from './features'
+import * as UUID from './utils/uuid'
 const logger = require('../util/logger')('languageclient-configuration')
 
 export interface ConfigurationMiddleware {
@@ -42,12 +42,11 @@ export interface $ConfigurationOptions {
 }
 
 export class PullConfigurationFeature implements StaticFeature {
-  private languageserverSection: string | undefined
   constructor(private _client: FeatureClient<ConfigurationWorkspaceMiddleware, $ConfigurationOptions>) {
-    let section = this._client.clientOptions.synchronize?.configurationSection
-    if (typeof section === 'string' && section.startsWith('languageserver.')) {
-      this.languageserverSection = section
-    }
+  }
+
+  public get method(): string {
+    return ConfigurationRequest.method
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
@@ -61,11 +60,13 @@ export class PullConfigurationFeature implements StaticFeature {
 
   public initialize(): void {
     let client = this._client
+    let { configuredSection } = client
     client.onRequest(ConfigurationRequest.type, (params, token) => {
       let configuration: ConfigurationRequest.HandlerSignature = params => {
         let result: any[] = []
         for (let item of params.items) {
-          result.push(this.getConfiguration(item.scopeUri, item.section))
+          let section = configuredSection ? configuredSection + (item.section ? `.${item.section}` : '') : item.section
+          result.push(this.getConfiguration(item.scopeUri, section))
         }
         return result
       }
@@ -76,26 +77,18 @@ export class PullConfigurationFeature implements StaticFeature {
     })
   }
 
-  private getConfiguration(
-    resource: string | undefined,
-    section: string | undefined
-  ): any {
+  private getConfiguration(resource: string | undefined, section: string | undefined): any {
     let result: any = null
     if (section) {
-      if (this.languageserverSection) {
-        section = `${this.languageserverSection}.${section}`
-      }
       let index = section.lastIndexOf('.')
       if (index === -1) {
         result = toJSONObject(workspace.getConfiguration(undefined, resource).get(section))
       } else {
         let config = workspace.getConfiguration(section.substr(0, index), resource)
-        if (config) {
-          result = toJSONObject(config.get(section.substr(index + 1)))
-        }
+        if (config) result = toJSONObject(config.get(section.substr(index + 1)))
       }
     } else {
-      let config = workspace.getConfiguration(this.languageserverSection, resource)
+      let config = workspace.getConfiguration(section, resource)
       result = {}
       for (let key of Object.keys(config)) {
         if (config.has(key)) {
@@ -103,28 +96,11 @@ export class PullConfigurationFeature implements StaticFeature {
         }
       }
     }
-    return result
+    return result ?? null
   }
 
   public dispose(): void {
   }
-}
-
-export function toJSONObject(obj: any): any {
-  if (obj) {
-    if (Array.isArray(obj)) {
-      return obj.map(toJSONObject)
-    } else if (typeof obj === 'object') {
-      const res = Object.create(null)
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          res[key] = toJSONObject(obj[key])
-        }
-      }
-      return res
-    }
-  }
-  return obj
 }
 
 export interface DidChangeConfigurationSignature {
@@ -173,7 +149,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
   ): void {
     let { section } = data.registerOptions
     let disposable = workspace.onDidChangeConfiguration(event => {
-      this.onDidChangeConfiguration(data.registerOptions.section, event)
+      this.onDidChangeConfiguration(section, event)
     })
     this._listeners.set(data.id, disposable)
     if (section != undefined) {
@@ -197,7 +173,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
   }
 
   private onDidChangeConfiguration(configurationSection: string | string[] | undefined, event: ConfigurationChangeEvent | undefined): void {
-    let isConfigured = typeof configurationSection === 'string' && configurationSection.startsWith('languageserver.')
+    let { configuredSection } = this._client
     let sections: string[] | undefined
     if (Is.string(configurationSection)) {
       sections = [configurationSection]
@@ -212,9 +188,8 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
       if (sections == null) {
         return this._client.sendNotification(DidChangeConfigurationNotification.type, { settings: null })
       }
-      return this._client.sendNotification(DidChangeConfigurationNotification.type, {
-        settings: isConfigured ? this.getConfiguredSettings(sections[0]) : this.extractSettingsInformation(sections)
-      })
+      let settings = configuredSection ? SyncConfigurationFeature.getConfiguredSettings(configuredSection) : this.extractSettingsInformation(sections)
+      return this._client.sendNotification(DidChangeConfigurationNotification.type, { settings })
     }
     let middleware = this._client.middleware.workspace?.didChangeConfiguration
     middleware ? middleware(sections, didChangeConfiguration) : didChangeConfiguration(sections).catch(error => {
@@ -222,8 +197,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
     })
   }
 
-  // for configured languageserver
-  private getConfiguredSettings(key: string): any {
+  public static getConfiguredSettings(key: string): any {
     let len = '.settings'.length
     let config = workspace.getConfiguration(key.slice(0, - len))
     return mergeConfigProperties(config.get<any>('settings', {}))

@@ -2,7 +2,7 @@
 import debounce from 'debounce'
 import os from 'os'
 import path from 'path'
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, createProtocolConnection, DeclarationRequest, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializedNotification, InitializeParams, InitializeRequest, InitializeResult, InlayHintRequest, InlineValueRequest, LinkedEditingRangeRequest, Logger, LogMessageNotification, LSPErrorCodes, MarkupKind, Message, MessageActionItem, MessageReader, MessageSignature, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, PositionEncodingKind, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsNotification, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, SelectionRangeRequest, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRegistrationType, SemanticTokensRequest, ServerCapabilities, ShowDocumentParams, ShowDocumentRequest, ShowDocumentResult, ShowMessageNotification, ShowMessageRequest, ShowMessageRequestParams, ShutdownRequest, SignatureHelpRequest, TelemetryEventNotification, TextDocumentEdit, TextDocumentRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, UnregistrationRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, createProtocolConnection, DeclarationRequest, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializedNotification, InitializeParams, InitializeRequest, InitializeResult, InlayHintRequest, InlineValueRequest, LinkedEditingRangeRequest, LogMessageNotification, LSPErrorCodes, MarkupKind, Message, MessageActionItem, MessageReader, MessageSignature, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, PositionEncodingKind, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsNotification, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, SelectionRangeRequest, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRegistrationType, SemanticTokensRequest, ServerCapabilities, ShowDocumentParams, ShowDocumentRequest, ShowDocumentResult, ShowMessageNotification, ShowMessageRequest, ShowMessageRequestParams, ShutdownRequest, SignatureHelpRequest, TelemetryEventNotification, TextDocumentEdit, TextDocumentRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, UnregistrationRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
@@ -294,6 +294,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _clientOptions: ResolvedClientOptions
   private _rootPath: string | false
   private _disposed: 'disposing' | 'disposed' | undefined
+  private $testMode: boolean
   private readonly _ignoredRegistrations: Set<string>
 
   protected _state: ClientState
@@ -358,8 +359,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       synchronize: clientOptions.synchronize || {},
       diagnosticCollectionName: clientOptions.diagnosticCollectionName,
       outputChannelName: clientOptions.outputChannelName || this._id,
-      revealOutputChannelOn:
-        clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Never,
+      revealOutputChannelOn: clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Never,
       stdioEncoding: clientOptions.stdioEncoding || 'utf8',
       initializationOptions: clientOptions.initializationOptions,
       initializationFailedHandler: clientOptions.initializationFailedHandler,
@@ -636,6 +636,14 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
+  /**
+   * languageserver.xxx.settings or undefined
+   */
+  public get configuredSection(): string | undefined {
+    let section = this._clientOptions.synchronize?.configurationSection
+    return typeof section === 'string' && section.startsWith('languageserver.') ? section : undefined
+  }
+
   public get clientOptions(): LanguageClientOptions {
     return this._clientOptions
   }
@@ -715,6 +723,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (data) {
       dataString = this.data2String(data)
       this.outputChannel.appendLine(dataString)
+    }
+    if (this.$testMode) {
+      // console.log(message)
+      // if (dataString) console.log(dataString)
     }
     if (this._clientOptions.revealOutputChannelOn <= level) {
       this.outputChannel.show(true)
@@ -1176,6 +1188,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private cleanUp(mode: 'restart' | 'suspend' | 'stop'): void {
     this._fileEventsMap.clear()
+    this.debouncedFileNotify.clear()
     if (this._listeners) {
       this._listeners.forEach(listener => listener.dispose())
       this._listeners = []
@@ -1427,6 +1440,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
+  public getStaticFeature(method: typeof ConfigurationRequest.method): PullConfigurationFeature
+  public getStaticFeature(method: typeof WorkDoneProgressCreateRequest.method): ProgressFeature
+  public getStaticFeature(method: string): StaticFeature | undefined {
+    return this._features.find(o => StaticFeature.is(o) && o.method == method) as StaticFeature
+  }
+
+  public getFeature(request: typeof DidChangeConfigurationNotification.method): DynamicFeature<DidChangeConfigurationRegistrationOptions>
   public getFeature(request: typeof DidOpenTextDocumentNotification.method): DidOpenTextDocumentFeatureShape
   public getFeature(request: typeof DidChangeTextDocumentNotification.method): DidChangeTextDocumentFeatureShape
   public getFeature(request: typeof WillSaveTextDocumentNotification.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>
@@ -1679,6 +1699,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   ])
 
   public handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: unknown, defaultValue: T): T {
+    if (token.isCancellationRequested) return defaultValue
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {
       // The connection got disposed while we were waiting for a response.

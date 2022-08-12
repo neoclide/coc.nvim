@@ -177,6 +177,7 @@ interface TextDocumentFeatureRegistration<RO, PR> {
  * server. It is wired during the initialize sequence.
  */
 export interface StaticFeature {
+  readonly method: string
   /**
    * Called to fill the initialize params.
    *
@@ -229,10 +230,9 @@ export interface StaticFeature {
 // eslint-disable-next-line no-redeclare
 export namespace StaticFeature {
   export function is(value: any): value is StaticFeature {
-    const candidate: StaticFeature = value
-    return candidate !== undefined && candidate !== null &&
-      Is.func(candidate.fillClientCapabilities) && Is.func(candidate.initialize) && Is.func(candidate.dispose) &&
-      (candidate.fillInitializeParams === undefined || Is.func(candidate.fillInitializeParams))
+    return value !== undefined && value !== null &&
+      Is.func(value.fillClientCapabilities) && Is.func(value.initialize) && Is.func(value.dispose) &&
+      (value.fillInitializeParams === undefined || Is.func(value.fillInitializeParams)) && value.registrationType === undefined
   }
 }
 
@@ -614,6 +614,7 @@ export interface FeatureClient<M, CO = object> {
   clientOptions: CO
   middleware: M
   readonly id: string
+  readonly configuredSection: string | undefined
   supportedMarkupKind: MarkupKind[]
 
   start(): Promise<void>
