@@ -1356,7 +1356,7 @@ function! s:nvim_add_related(winid, target, kind, winhl, related) abort
   endif
   " minimal not work
   if !has('nvim-0.4.3')
-    call setwinvar(a:winid, '&colorcolumn', 0)
+    call setwinvar(a:winid, '&colorcolumn', '')
     call setwinvar(a:winid, '&number', 0)
     call setwinvar(a:winid, '&relativenumber', 0)
     call setwinvar(a:winid, '&foldcolumn', 0)
