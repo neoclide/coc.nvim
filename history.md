@@ -1,3 +1,7 @@
+# 2022-08-10
+
+- Change "notification.highlightGroup" default to "Normal".
+
 # 2022-08-07
 
 - Add configuration 'suggest.pumFloatConfig'.

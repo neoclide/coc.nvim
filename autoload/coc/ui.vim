@@ -407,38 +407,12 @@ function! coc#ui#update_signs(bufnr, group, signs) abort
   if !s:sign_api || !bufloaded(a:bufnr)
     return
   endif
-  if len(a:signs)
-    call add(s:sign_groups, a:group)
-  endif
-  let current = get(get(sign_getplaced(a:bufnr, {'group': a:group}), 0, {}), 'signs', [])
-  let exists = []
-  let unplaceList = []
-  for item in current
-    let index = 0
-    let placed = 0
-    for def in a:signs
-      if def['name'] ==# item['name'] && def['lnum'] == item['lnum']
-        let placed = 1
-        call add(exists, index)
-        break
-      endif
-      let index = index + 1
-    endfor
-    if !placed
-      call add(unplaceList, item['id'])
+  call sign_unplace(a:group, {'buffer': a:bufnr})
+  for def in a:signs
+    let opts = {'lnum': def['lnum']}
+    if has_key(def, 'priority')
+      let opts['priority'] = def['priority']
     endif
-  endfor
-  for idx in range(0, len(a:signs) - 1)
-    if index(exists, idx) == -1
-      let def = a:signs[idx]
-      let opts = {'lnum': def['lnum']}
-      if has_key(def, 'priority')
-        let opts['priority'] = def['priority']
-      endif
-      call sign_place(0, a:group, def['name'], a:bufnr, opts)
-    endif
-  endfor
-  for id in unplaceList
-    call sign_unplace(a:group, {'buffer': a:bufnr, 'id': id})
+    call sign_place(0, a:group, def['name'], a:bufnr, opts)
   endfor
 endfunction

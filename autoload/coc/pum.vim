@@ -290,7 +290,7 @@ function! s:insert_word(word) abort
     if saved_completeopt =~ 'menuone'
       noa set completeopt=menu
     endif
-    noa call complete(strlen(parts[0]) + 1, [a:word])
+    noa call complete(strlen(parts[0]) + 1, [{ 'empty': v:true, 'word': a:word }])
     if s:hide_pum
       " exit complete state
       call feedkeys("\<C-x>\<C-z>", 'in')

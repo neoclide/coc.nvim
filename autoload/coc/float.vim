@@ -154,7 +154,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let config = s:convert_config_nvim(a:config, 0)
       let hlgroup = get(a:config, 'highlight', 'CocFloating')
       let current = getwinvar(a:winid, '&winhl', '')
-      let winhl = coc#util#merge_winhl(current, [['Normal', hlgroup], ['NormalNC', hlgroup], ['FoldColumn', hlgroup]])
+      let winhl = coc#util#merge_winhl(current, [['Normal', hlgroup], ['NormalNC', hlgroup], ['FoldColumn', hlgroup], ['Search', '']])
       if winhl !=# current
         call setwinvar(a:winid, '&winhl', winhl)
       endif
@@ -306,7 +306,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
   else
     let bufnr = coc#float#create_buf(0, ['X'])
     noa let winid = nvim_open_win(bufnr, 0, config)
-    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup
+    let winhl = 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup.',Search:'
     call s:nvim_add_related(winid, a:winid, 'close', winhl, a:related)
   endif
 endfunction
@@ -1356,7 +1356,7 @@ function! s:nvim_add_related(winid, target, kind, winhl, related) abort
   endif
   " minimal not work
   if !has('nvim-0.4.3')
-    call setwinvar(a:winid, '&colorcolumn', 0)
+    call setwinvar(a:winid, '&colorcolumn', '')
     call setwinvar(a:winid, '&number', 0)
     call setwinvar(a:winid, '&relativenumber', 0)
     call setwinvar(a:winid, '&foldcolumn', 0)

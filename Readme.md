@@ -319,6 +319,10 @@ Try these steps when you have problem with coc.nvim.
 <a href="https://opencollective.com/cocnvim/backer/43/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/43/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/44/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/44/avatar.svg?requireActive=false"></a>
 <a href="https://opencollective.com/cocnvim/backer/45/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/45/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/46/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/46/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/47/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/47/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/48/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/48/avatar.svg?requireActive=false"></a>
+<a href="https://opencollective.com/cocnvim/backer/49/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/49/avatar.svg?requireActive=false"></a>
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
@@ -595,6 +599,7 @@ Try these steps when you have problem with coc.nvim.
     <td align="center"><a href="http://bigshans.github.io"><img src="https://avatars.githubusercontent.com/u/26884666?v=4?s=50" width="50px;" alt=""/><br /><sub><b>bigshans</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=bigshans" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/rob-3"><img src="https://avatars.githubusercontent.com/u/24816247?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Robert Boyd III</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Arob-3" title="Bug reports">🐛</a></td>
     <td align="center"><a href="https://creasty.com"><img src="https://avatars.githubusercontent.com/u/1695538?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Yuki Iwanaga</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=creasty" title="Code">💻</a></td>
+    <td align="center"><a href="https://www.dosk.win/"><img src="https://avatars.githubusercontent.com/u/2389889?v=4?s=50" width="50px;" alt=""/><br /><sub><b>SpringHack</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Aspringhack" title="Bug reports">🐛</a></td>
   </tr>
 </table>
 

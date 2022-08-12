@@ -1063,7 +1063,7 @@
     },
     "notification.highlightGroup": {
       "type": "string",
-      "default": "CocFloating",
+      "default": "Normal",
       "description": "Highlight group of notification dialog."
     },
     "notification.winblend": {
