@@ -1,8 +1,7 @@
 'use strict'
-import debounce from 'debounce'
 import os from 'os'
 import path from 'path'
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, createProtocolConnection, DeclarationRequest, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, FileEvent, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializedNotification, InitializeParams, InitializeRequest, InitializeResult, InlayHintRequest, InlineValueRequest, LinkedEditingRangeRequest, LogMessageNotification, LSPErrorCodes, MarkupKind, Message, MessageActionItem, MessageReader, MessageSignature, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, PositionEncodingKind, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsNotification, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, SelectionRangeRequest, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRegistrationType, SemanticTokensRequest, ServerCapabilities, ShowDocumentParams, ShowDocumentRequest, ShowDocumentResult, ShowMessageNotification, ShowMessageRequest, ShowMessageRequestParams, ShutdownRequest, SignatureHelpRequest, TelemetryEventNotification, TextDocumentEdit, TextDocumentRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, UnregistrationRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, createProtocolConnection, DeclarationRequest, DefinitionRequest, Diagnostic, DiagnosticSeverity, DiagnosticTag, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializedNotification, InitializeParams, InitializeRequest, InitializeResult, InlayHintRequest, InlineValueRequest, LinkedEditingRangeRequest, LogMessageNotification, LSPErrorCodes, MarkupKind, Message, MessageActionItem, MessageReader, MessageSignature, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, PositionEncodingKind, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsNotification, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, SelectionRangeRequest, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRegistrationType, SemanticTokensRequest, ServerCapabilities, ShowDocumentParams, ShowDocumentRequest, ShowDocumentResult, ShowMessageNotification, ShowMessageRequest, ShowMessageRequestParams, ShutdownRequest, SignatureHelpRequest, TelemetryEventNotification, TextDocumentEdit, TextDocumentRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, UnregistrationRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
@@ -19,7 +18,7 @@ import { CodeActionFeature, CodeActionMiddleware } from './codeAction'
 import { CodeLensFeature, CodeLensMiddleware, CodeLensProviderShape } from './codeLens'
 import { ColorProviderFeature, ColorProviderMiddleware } from './colorProvider'
 import { $CompletionOptions, CompletionItemFeature, CompletionMiddleware } from './completion'
-import { $ConfigurationOptions, ConfigurationMiddleware, PullConfigurationFeature, SyncConfigurationFeature } from './configuration'
+import { $ConfigurationOptions, ConfigurationMiddleware, DidChangeConfigurationMiddleware, PullConfigurationFeature, SyncConfigurationFeature } from './configuration'
 import { DeclarationFeature, DeclarationMiddleware } from './declaration'
 import { DefinitionFeature, DefinitionMiddleware } from './definition'
 import { $DiagnosticPullOptions, DiagnosticFeature, DiagnosticProviderMiddleware, DiagnosticProviderShape } from './diagnostic'
@@ -29,7 +28,7 @@ import { DocumentSymbolFeature, DocumentSymbolMiddleware } from './documentSymbo
 import { ExecuteCommandFeature, ExecuteCommandMiddleware } from './executeCommand'
 import { Connection, DynamicFeature, ensure, FeatureClient, RegistrationData, StaticFeature, TextDocumentProviderFeature, TextDocumentSendFeature } from './features'
 import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, FileOperationsMiddleware, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
-import { FileSystemWatcherFeature } from './fileSystemWatcher'
+import { FileSystemWatcherFeature, FileSystemWatcherMiddleware } from './fileSystemWatcher'
 import { FoldingRangeFeature, FoldingRangeProviderMiddleware } from './foldingRange'
 import { $FormattingOptions, DocumentFormattingFeature, DocumentOnTypeFormattingFeature, DocumentRangeFormattingFeature, FormattingMiddleware } from './formatting'
 import { HoverFeature, HoverMiddleware } from './hover'
@@ -150,24 +149,7 @@ export interface HandleDiagnosticsSignature {
   (this: void, uri: string, diagnostics: Diagnostic[]): void
 }
 
-export interface DidChangeConfigurationSignature {
-  (this: void, sections: string[] | undefined): void
-}
-
-export interface DidChangeWatchedFileSignature {
-  (this: void, event: FileEvent): void
-}
-
-export interface _WorkspaceMiddleware {
-  didChangeConfiguration?: (
-    this: void,
-    sections: string[] | undefined,
-    next: DidChangeConfigurationSignature
-  ) => void
-  didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => Promise<void>
-}
-
-export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationMiddleware & WorkspaceFolderMiddleware & FileOperationsMiddleware
+export type WorkspaceMiddleware = DidChangeConfigurationMiddleware & FileSystemWatcherMiddleware & ConfigurationMiddleware & WorkspaceFolderMiddleware & FileOperationsMiddleware
 
 export interface _WindowMiddleware {
   showDocument?: (this: void, params: ShowDocumentParams, next: ShowDocumentRequest.HandlerSignature) => Promise<ShowDocumentResult>
@@ -318,9 +300,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _listeners: Disposable[]
   private _diagnostics: DiagnosticCollection | undefined
   private _syncedDocuments: Map<string, TextDocument>
-
-  private _fileEventsMap: Map<string, FileEvent>
-  public debouncedFileNotify: Function & { clear(): void }
   private _stateChangeEmitter: Emitter<StateChangeEvent>
 
   private _traceFormat: TraceFormat
@@ -398,10 +377,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this._progressDisposables = new Map()
 
     this._ignoredRegistrations = new Set()
-    this._fileEventsMap = new Map()
-    this.debouncedFileNotify = debounce(() => {
-      this._notifyFileEvent()
-    }, 200)
     this._onStop = undefined
     this._stateChangeEmitter = new Emitter<StateChangeEvent>()
     this._trace = Trace.Off
@@ -1084,13 +1059,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         this._progressDisposables.set(token, connection.onProgress(data.type, token, data.handler))
       }
       this._pendingProgressHandlers.clear()
-
       await connection.sendNotification(InitializedNotification.type, {})
-
-      this.hookFileEvents(connection)
+      this.getFeature(DidChangeWatchedFilesNotification.method).hookEvents()
       this.hookConfigurationChanged(connection)
       this.initializeFeatures(connection)
-
       return result
     } catch (error: any) {
       if (this._clientOptions.initializationFailedHandler) {
@@ -1187,8 +1159,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private cleanUp(mode: 'restart' | 'suspend' | 'stop'): void {
-    this._fileEventsMap.clear()
-    this.debouncedFileNotify.clear()
     if (this._listeners) {
       this._listeners.forEach(listener => listener.dispose())
       this._listeners = []
@@ -1216,32 +1186,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private _notifyFileEvent(): void {
-    let connection = this.activeConnection()
-    if (!connection) return
-    let map = this._fileEventsMap
-    if (map.size == 0) return
-    connection.sendNotification(DidChangeWatchedFilesNotification.type, { changes: Array.from(map.values()) }).catch(error => {
-      this.error(`Notify file events failed.`, error)
-    })
-    map.clear()
-  }
-
-  private notifyFileEvent(event: FileEvent): void {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let self = this
-    function didChangeWatchedFile(event: FileEvent): Promise<void> {
-      if (event) {
-        self._fileEventsMap.set(event.uri, event)
-        self.debouncedFileNotify()
-      }
-      return Promise.resolve()
-    }
-    const workSpaceMiddleware = this.clientOptions.middleware?.workspace
-    let promise = workSpaceMiddleware?.didChangeWatchedFile ? workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile) : didChangeWatchedFile(event)
-    if (promise) promise.catch(error => {
-      this.error(`Notify file events failed.`, error)
-    })
+  public async forceDocumentSync(): Promise<void> {
+    let textDocuments = Array.from(this._syncedDocuments.values())
+    await Promise.all(textDocuments.map(textDocument => {
+      let doc = workspace.getDocument(textDocument.uri)
+      return doc ? doc.synchronize() : null
+    }))
   }
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {
@@ -1399,23 +1349,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }).catch(error => { this.error(`Updating trace failed with error`, error) })
   }
 
-  private hookFileEvents(_connection: Connection): void {
-    let fileEvents = this._clientOptions.synchronize.fileEvents
-    if (!fileEvents) return
-    let watchers: FileWatcher[]
-    if (Array.isArray(fileEvents)) {
-      watchers = fileEvents
-    } else {
-      watchers = [fileEvents]
-    }
-    if (!watchers) {
-      return
-    }
-    (this._dynamicFeatures.get(
-      DidChangeWatchedFilesNotification.type.method
-    )! as FileSystemWatcherFeature).registerRaw(UUID.generateUuid(), watchers)
-  }
-
   private readonly _features: (StaticFeature | DynamicFeature<any>)[] = []
   private readonly _dynamicFeatures: Map<string, DynamicFeature<any>> = new Map<
     string,
@@ -1446,6 +1379,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return this._features.find(o => StaticFeature.is(o) && o.method == method) as StaticFeature
   }
 
+  public getFeature(request: typeof DidChangeWatchedFilesNotification.method): FileSystemWatcherFeature
   public getFeature(request: typeof DidChangeConfigurationNotification.method): DynamicFeature<DidChangeConfigurationRegistrationOptions>
   public getFeature(request: typeof DidOpenTextDocumentNotification.method): DidOpenTextDocumentFeatureShape
   public getFeature(request: typeof DidChangeTextDocumentNotification.method): DidChangeTextDocumentFeatureShape
@@ -1499,7 +1433,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.registerFeature(new WillSaveFeature(this), 'willSave')
     this.registerFeature(new WillSaveWaitUntilFeature(this), 'willSaveWaitUntil')
     this.registerFeature(new DidSaveTextDocumentFeature(this), 'didSave')
-    this.registerFeature(new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event)), 'fileSystemWatcher')
+    this.registerFeature(new FileSystemWatcherFeature(this), 'fileSystemWatcher')
     this.registerFeature(new CompletionItemFeature(this), 'completion')
     this.registerFeature(new HoverFeature(this), 'hover')
     this.registerFeature(new SignatureHelpFeature(this), 'signatureHelp')

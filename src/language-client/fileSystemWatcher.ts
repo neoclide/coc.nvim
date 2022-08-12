@@ -1,4 +1,5 @@
 'use strict'
+import debounce from 'debounce'
 import {
   ClientCapabilities, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, Disposable, DocumentSelector, FileChangeType, FileEvent, RegistrationType,
   ServerCapabilities, WatchKind
@@ -8,14 +9,61 @@ import * as Is from '../util/is'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as cv from './utils/converter'
+import * as UUID from './utils/uuid'
+
+export interface DidChangeWatchedFileSignature {
+  (this: void, event: FileEvent): void
+}
+
+export interface FileSystemWatcherMiddleware {
+  didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => Promise<void>
+}
+
+interface _FileSystemWatcherMiddleware {
+  workspace?: FileSystemWatcherMiddleware
+}
+
+interface $FileEventOptions {
+  synchronize?: {
+    fileEvents?: FileSystemWatcher | FileSystemWatcher[]
+  }
+}
 
 export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatchedFilesRegistrationOptions> {
   private _watchers: Map<string, Disposable[]> = new Map<string, Disposable[]>()
+  private _fileEventsMap: Map<string, FileEvent> = new Map()
+  public debouncedFileNotify: Function & { clear(): void }
 
-  constructor(
-    _client: FeatureClient<object>,
-    private _notifyFileEvent: (event: FileEvent) => void
-  ) {}
+  constructor(private _client: FeatureClient<_FileSystemWatcherMiddleware, $FileEventOptions>) {
+    this.debouncedFileNotify = debounce(() => {
+      void this._notifyFileEvent()
+    }, global.__TEST__ ? 20 : 200)
+  }
+
+  private async _notifyFileEvent(): Promise<void> {
+    let map = this._fileEventsMap
+    if (map.size == 0) return
+    await this._client.forceDocumentSync()
+    this._client.sendNotification(DidChangeWatchedFilesNotification.type, { changes: Array.from(map.values()) }).catch(error => {
+      this._client.error(`Notify file events failed.`, error)
+    })
+    map.clear()
+  }
+
+  private notifyFileEvent(event: FileEvent): void {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let self = this
+    function didChangeWatchedFile(event: FileEvent): void {
+      self._fileEventsMap.set(event.uri, event)
+      self.debouncedFileNotify()
+    }
+    const workSpaceMiddleware = this._client.middleware?.workspace
+    if (workSpaceMiddleware.didChangeWatchedFile) {
+      void workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile)
+    } else {
+      didChangeWatchedFile(event)
+    }
+  }
 
   public getState(): FeatureState {
     return { kind: 'workspace', id: this.registrationType.method, registrations: this._watchers.size > 0 }
@@ -27,16 +75,12 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     ensure(ensure(capabilities, 'workspace')!, 'didChangeWatchedFiles')!.dynamicRegistration = true
+    // ensure(ensure(capabilities, 'workspace')!, 'didChangeWatchedFiles')!.relativePatternSupport = true
   }
 
-  public initialize(
-    _capabilities: ServerCapabilities,
-    _documentSelector: DocumentSelector
-  ): void {}
+  public initialize(_capabilities: ServerCapabilities, _documentSelector: DocumentSelector): void {}
 
-  public register(
-    data: RegistrationData<DidChangeWatchedFilesRegistrationOptions>
-  ): void {
+  public register(data: RegistrationData<DidChangeWatchedFilesRegistrationOptions>): void {
     if (!Array.isArray(data.registerOptions.watchers)) {
       return
     }
@@ -71,11 +115,20 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     this._watchers.set(data.id, disposables)
   }
 
-  public registerRaw(id: string, fileSystemWatchers: FileSystemWatcher[]) {
+  public hookEvents(): void {
+    let fileEvents = this._client.clientOptions.synchronize?.fileEvents
+    if (!fileEvents) return
+    let watchers: FileSystemWatcher[] = Array.isArray(fileEvents) ? fileEvents : [fileEvents]
+    let id = UUID.generateUuid()
     let disposables: Disposable[] = []
-    for (let fileSystemWatcher of fileSystemWatchers) {
+    for (let fileSystemWatcher of watchers) {
       disposables.push(fileSystemWatcher)
-      this.hookListeners(fileSystemWatcher, true, true, true, disposables)
+      this.hookListeners(
+        fileSystemWatcher,
+        !fileSystemWatcher.ignoreCreateEvents,
+        !fileSystemWatcher.ignoreChangeEvents,
+        !fileSystemWatcher.ignoreDeleteEvents,
+        disposables)
     }
     this._watchers.set(id, disposables)
   }
@@ -90,7 +143,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     if (watchCreate) {
       fileSystemWatcher.onDidCreate(
         resource =>
-          this._notifyFileEvent({
+          this.notifyFileEvent({
             uri: cv.asUri(resource),
             type: FileChangeType.Created
           }),
@@ -101,7 +154,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     if (watchChange) {
       fileSystemWatcher.onDidChange(
         resource =>
-          this._notifyFileEvent({
+          this.notifyFileEvent({
             uri: cv.asUri(resource),
             type: FileChangeType.Changed
           }),
@@ -112,7 +165,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     if (watchDelete) {
       fileSystemWatcher.onDidDelete(
         resource =>
-          this._notifyFileEvent({
+          this.notifyFileEvent({
             uri: cv.asUri(resource),
             type: FileChangeType.Deleted
           }),
@@ -128,10 +181,13 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       for (let disposable of disposables) {
         disposable.dispose()
       }
+      this._watchers.delete(id)
     }
   }
 
   public dispose(): void {
+    this._fileEventsMap.clear()
+    this.debouncedFileNotify.clear()
     this._watchers.forEach(disposables => {
       for (let disposable of disposables) {
         disposable.dispose()
