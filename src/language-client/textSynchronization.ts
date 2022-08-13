@@ -67,13 +67,11 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
     }
   }
 
-  public register(
-    data: RegistrationData<TextDocumentRegistrationOptions>
-  ): void {
+  public register(data: RegistrationData<TextDocumentRegistrationOptions>): void {
     super.register(data)
     if (!data.registerOptions.documentSelector) return
     workspace.textDocuments.forEach(textDocument => {
-      let uri: string = textDocument.uri.toString()
+      let uri = textDocument.uri
       if (this._syncedDocuments.has(uri)) return
       void this.callback(textDocument)
     })
@@ -133,6 +131,7 @@ export class DidCloseTextDocumentFeature extends TextDocumentEventFeature<DidClo
 
   public unregister(id: string): void {
     let selector = this._selectors.get(id)!
+    if (!selector) return
     // The super call removed the selector from the map
     // of selectors.
     super.unregister(id)
@@ -210,9 +209,7 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
   public register(
     data: RegistrationData<TextDocumentChangeRegistrationOptions>
   ): void {
-    if (!data.registerOptions.documentSelector) {
-      return
-    }
+    if (!data.registerOptions.documentSelector) return
     if (!this._listener) {
       this._listener = workspace.onDidChangeTextDocument(this.callback, this)
     }
@@ -230,35 +227,31 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
       return
     }
     let doc = workspace.getDocument(event.textDocument.uri)
-    if (!doc) return
     let { textDocument } = doc
     const promises: Promise<void>[] = []
     for (const changeData of this._changeData.values()) {
       if (workspace.match(changeData.documentSelector, textDocument) > 0) {
         let middleware = this._client.middleware!
         let promise: Promise<void> | undefined
+        let didChange: (event: TextDocumentChangeEvent) => Promise<void>
         if (changeData.syncKind === TextDocumentSyncKind.Incremental) {
-          let didChange = async (event): Promise<void> => {
+          didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
             const params = cv.asChangeTextDocumentParams(event)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
-          promise = middleware.didChange ? middleware.didChange(event, didChange) : didChange(event)
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
-          let didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
+          didChange = async (event: TextDocumentChangeEvent): Promise<void> => {
             const params = cv.asFullChangeTextDocumentParams(textDocument)
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
-          promise = middleware.didChange ? middleware.didChange(event, didChange) : didChange(event)
         }
+        promise = middleware.didChange ? middleware.didChange(event, didChange) : didChange(event)
         if (promise) promises.push(promise)
       }
     }
-    return Promise.all(promises).then(undefined, error => {
-      this._client.error(`Sending document notification ${DidChangeTextDocumentNotification.type.method} failed`, error)
-      throw error
-    })
+    return Promise.all(promises).then(undefined)
   }
 
   public get onNotificationSent(): Event<NotificationSendEvent<TextDocumentChangeEvent, DidChangeTextDocumentParams>> {
@@ -368,6 +361,7 @@ export class WillSaveWaitUntilFeature extends DynamicDocumentFeature<TextDocumen
     let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
     if (
       documentSelector &&
+      documentSelector.length > 0 &&
       textDocumentSyncOptions &&
       textDocumentSyncOptions.willSaveWaitUntil
     ) {

@@ -446,15 +446,14 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
   }
 
   protected async callback(data: E): Promise<void> {
+    if (!this.matches(data)) return
     const doSend = async (data: E): Promise<void> => {
       const params = this._createParams(data)
       await this._client.sendNotification(this._type, params).catch()
       this.notificationSent(data, this._type, params)
     }
-    if (this.matches(data)) {
-      const middleware = this._client.middleware[this._middleware]
-      return Promise.resolve(middleware ? middleware(data, data => doSend(data)) : doSend(data))
-    }
+    const middleware = this._client.middleware[this._middleware]
+    return Promise.resolve(middleware ? middleware(data, data => doSend(data)) : doSend(data))
   }
 
   private matches(data: E): boolean {

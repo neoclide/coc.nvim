@@ -331,19 +331,19 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       disableMarkdown: clientOptions.disableMarkdown === true,
       disableSnippetCompletion: clientOptions.disableSnippetCompletion,
       disableDynamicRegister: clientOptions.disableDynamicRegister,
-      disabledFeatures: clientOptions.disabledFeatures || [],
+      disabledFeatures: clientOptions.disabledFeatures ?? [],
       formatterPriority: clientOptions.formatterPriority,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
-      documentSelector: clientOptions.documentSelector || [],
-      synchronize: clientOptions.synchronize || {},
+      documentSelector: clientOptions.documentSelector ?? [],
+      synchronize: clientOptions.synchronize ?? {},
       diagnosticCollectionName: clientOptions.diagnosticCollectionName,
-      outputChannelName: clientOptions.outputChannelName || this._id,
-      revealOutputChannelOn: clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Never,
-      stdioEncoding: clientOptions.stdioEncoding || 'utf8',
+      outputChannelName: clientOptions.outputChannelName ?? this._id,
+      revealOutputChannelOn: clientOptions.revealOutputChannelOn ?? RevealOutputChannelOn.Never,
+      stdioEncoding: clientOptions.stdioEncoding ?? 'utf8',
       initializationOptions: clientOptions.initializationOptions,
       initializationFailedHandler: clientOptions.initializationFailedHandler,
       progressOnInitialization: !!clientOptions.progressOnInitialization,
-      errorHandler: clientOptions.errorHandler || this.createDefaultErrorHandler(clientOptions.connectionOptions?.maxRestartCount),
+      errorHandler: clientOptions.errorHandler ?? this.createDefaultErrorHandler(clientOptions.connectionOptions?.maxRestartCount),
       middleware: clientOptions.middleware ?? {},
       workspaceFolder: clientOptions.workspaceFolder,
       connectionOptions: clientOptions.connectionOptions,
@@ -1036,7 +1036,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         textDocumentSyncOptions = result.capabilities.textDocumentSync as TextDocumentSyncOptions
       }
       this._capabilities = Object.assign({}, result.capabilities, { resolvedTextDocumentSync: textDocumentSyncOptions })
-
       connection.onNotification(PublishDiagnosticsNotification.type, params => this.handleDiagnostics(params))
       connection.onRequest(RegistrationRequest.type, params => this.handleRegistrationRequest(params))
       // See https://github.com/Microsoft/vscode-languageserver-node/issues/199
