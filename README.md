@@ -20,7 +20,7 @@ _Custom popup menu with snippet support_
 
 ## Why?
 
-- 🚀 **Fast**: separated NodeJS process that not block your vim most of the time.
+- 🚀 **Fast**: separated NodeJS process that does not block your vim most of the time.
 - 💎 **Reliable**: typed language, tested with CI.
 - 🌟 **Featured**: all LSP 3.16 features are supported, see `:h coc-lsp`.
 - ❤️ **Flexible**: [configured like VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file), [extensions work like in VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
