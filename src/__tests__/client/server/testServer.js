@@ -5,7 +5,7 @@ const {
   DiagnosticTag, CompletionItemTag, TextDocumentSyncKind, MarkupKind, SignatureInformation, ParameterInformation,
   Location, Range, DocumentHighlight, DocumentHighlightKind, CodeAction, Command, TextEdit, Position, DocumentLink,
   ColorInformation, Color, ColorPresentation, FoldingRange, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
-  SignatureHelpRequest, WorkDoneProgressCreateRequest} = require('vscode-languageserver')
+  SignatureHelpRequest, CodeLensRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest} = require('vscode-languageserver')
 
 const {
   DidCreateFilesNotification,
@@ -64,6 +64,9 @@ connection.onInitialize(params => {
     referencesProvider: true,
     documentHighlightProvider: true,
     codeActionProvider: {
+      resolveProvider: true
+    },
+    codeLensProvider: {
       resolveProvider: true
     },
     documentFormattingProvider: true,
@@ -183,6 +186,18 @@ connection.onInitialized(() => {
 
 connection.onNotification('unregister', () => {
   if (disposable) disposable.dispose()
+})
+
+connection.onCodeLens(params => {
+  return [{range: Range.create(0, 0, 0, 3)}, {range: Range.create(1, 0, 1, 3)}]
+})
+
+connection.onNotification('fireCodeLensRefresh', () => {
+  connection.sendRequest(CodeLensRefreshRequest.type)
+})
+
+connection.onCodeLensResolve(codelens => {
+  return {range: codelens.range, command: {title: 'format', command: 'editor.action.format'}}
 })
 
 connection.onDeclaration(params => {

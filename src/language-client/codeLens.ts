@@ -50,9 +50,7 @@ export class CodeLensFeature extends TextDocumentLanguageFeature<CodeLensOptions
       }
     })
     const options = this.getRegistrationOptions(documentSelector, capabilities.codeLensProvider)
-    if (!options) {
-      return
-    }
+    if (!options) return
     this.register({ id: UUID.generateUuid(), registerOptions: options })
   }
 

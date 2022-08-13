@@ -123,6 +123,9 @@ describe('Client integration', () => {
         codeActionProvider: {
           resolveProvider: true
         },
+        codeLensProvider: {
+          resolveProvider: true
+        },
         documentFormattingProvider: true,
         documentRangeFormattingProvider: true,
         documentOnTypeFormattingProvider: {
@@ -453,6 +456,26 @@ describe('Client integration', () => {
     await provider.resolveCodeAction!(result[0], tokenSource.token)
     middleware.resolveCodeAction = undefined
     assert.ok(middlewareCalled)
+  })
+
+  test('CodeLens', async () => {
+    let feature = client.getFeature(CodeLensRequest.method)
+    let state = feature.getState()
+    expect((state as any).registrations).toBe(true)
+    expect((state as any).matches).toBe(true)
+    let tokenSource = new CancellationTokenSource()
+    let codeLens = await languages.getCodeLens(document, tokenSource.token)
+    expect(codeLens.length).toBe(2)
+    let resolved = await languages.resolveCodeLens(codeLens[0], tokenSource.token)
+    expect(resolved.command).toBeDefined()
+    let fireRefresh = false
+    let provider = feature.getProvider(document)
+    provider.onDidChangeCodeLensEmitter.event(() => {
+      fireRefresh = true
+    })
+    await client.sendNotification('fireCodeLensRefresh')
+    await helper.wait(50)
+    expect(fireRefresh).toBe(true)
   })
 
   test('Progress', async () => {

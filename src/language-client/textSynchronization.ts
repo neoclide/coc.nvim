@@ -39,7 +39,7 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
       client,
       workspace.onDidOpenTextDocument,
       DidOpenTextDocumentNotification.type,
-      () => client.middleware.didOpen,
+      'didOpen',
       textDocument => cv.asOpenTextDocumentParams(textDocument),
       data => data,
       TextDocumentEventFeature.textDocumentFilter
@@ -71,36 +71,11 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
     data: RegistrationData<TextDocumentRegistrationOptions>
   ): void {
     super.register(data)
-    if (!data.registerOptions.documentSelector) {
-      return
-    }
-    let documentSelector = data.registerOptions.documentSelector
+    if (!data.registerOptions.documentSelector) return
     workspace.textDocuments.forEach(textDocument => {
       let uri: string = textDocument.uri.toString()
-      if (this._syncedDocuments.has(uri)) {
-        return
-      }
-      if (workspace.match(documentSelector, textDocument) > 0) {
-        let middleware = this._client.middleware!
-        let didOpen = (textDocument: TextDocument) => {
-          return this._client.sendNotification(
-            this._type,
-            this._createParams(textDocument)
-          )
-        }
-        let promise: Promise<void>
-        if (middleware.didOpen) {
-          promise = middleware.didOpen(textDocument, didOpen)
-        } else {
-          promise = didOpen(textDocument)
-        }
-        if (promise) {
-          promise.catch(error => {
-            this._client.error(`Sending document notification ${this._type.method} failed`, error)
-          })
-        }
-        this._syncedDocuments.set(uri, textDocument)
-      }
+      if (this._syncedDocuments.has(uri)) return
+      void this.callback(textDocument)
     })
   }
 
@@ -119,7 +94,7 @@ export class DidCloseTextDocumentFeature extends TextDocumentEventFeature<DidClo
       client,
       workspace.onDidCloseTextDocument,
       DidCloseTextDocumentNotification.type,
-      () => client.middleware!.didClose,
+      'didClose',
       textDocument => cv.asCloseTextDocumentParams(textDocument),
       data => data,
       TextDocumentEventFeature.textDocumentFilter
@@ -330,7 +305,7 @@ export class WillSaveFeature extends TextDocumentEventFeature<WillSaveTextDocume
       client,
       workspace.onWillSaveTextDocument,
       WillSaveTextDocumentNotification.type,
-      () => client.middleware.willSave,
+      'willSave',
       willSaveEvent => cv.asWillSaveTextDocumentParams(willSaveEvent),
       event => event.document,
       (selectors, willSaveEvent) => TextDocumentEventFeature.textDocumentFilter(selectors, willSaveEvent.document)
@@ -458,7 +433,7 @@ export class DidSaveTextDocumentFeature extends TextDocumentEventFeature<DidSave
   constructor(client: FeatureClient<TextDocumentSynchronizationMiddleware>) {
     super(
       client, workspace.onDidSaveTextDocument, DidSaveTextDocumentNotification.type,
-      () => client.middleware.didSave,
+      'didSave',
       textDocument => cv.asSaveTextDocumentParams(textDocument, this._includeText),
       data => data,
       TextDocumentEventFeature.textDocumentFilter

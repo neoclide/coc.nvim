@@ -388,7 +388,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   private readonly _event: Event<E>
   protected readonly _type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>
-  protected readonly _middleware: () => NextSignature<E, Promise<void>> | undefined
+  protected readonly _middleware: string
   protected readonly _createParams: CreateParamsSignature<E, P>
   protected readonly _textDocument: (data: E) => TextDocument
   protected readonly _selectorFilter?: (selectors: IterableIterator<DocumentSelector>, data: E) => boolean
@@ -410,7 +410,7 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
   }
 
   constructor(client: FeatureClient<M>, event: Event<E>, type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>,
-    middleware: () => NextSignature<E, Promise<void>> | undefined, createParams: CreateParamsSignature<E, P>,
+    middleware: string, createParams: CreateParamsSignature<E, P>,
     textDocument: (data: E) => TextDocument,
     selectorFilter?: (selectors: IterableIterator<DocumentSelector>, data: E) => boolean
   ) {
@@ -445,14 +445,14 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
     this._selectors.set(data.id, data.registerOptions.documentSelector)
   }
 
-  private async callback(data: E): Promise<void> {
+  protected async callback(data: E): Promise<void> {
     const doSend = async (data: E): Promise<void> => {
       const params = this._createParams(data)
       await this._client.sendNotification(this._type, params).catch()
       this.notificationSent(data, this._type, params)
     }
     if (this.matches(data)) {
-      const middleware = this._middleware()
+      const middleware = this._client.middleware[this._middleware]
       return Promise.resolve(middleware ? middleware(data, data => doSend(data)) : doSend(data))
     }
   }

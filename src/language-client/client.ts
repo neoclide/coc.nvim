@@ -1540,9 +1540,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private handleRegistrationRequest(
-    params: RegistrationParams
-  ): Promise<void> {
+  private handleRegistrationRequest(params: RegistrationParams): Promise<void> {
     if (this.clientOptions.disableDynamicRegister) return Promise.resolve()
     // We will not receive a registration call before a client is running
     // from a server. However if we stop or shutdown we might which might
@@ -1560,8 +1558,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
           reject(new Error(`No feature implementation for ${registration.method} found. Registration failed.`))
           return
         }
-        const options = registration.registerOptions || {}
-        options.documentSelector = options.documentSelector || this._clientOptions.documentSelector
+        const options = registration.registerOptions ?? {}
+        options.documentSelector = options.documentSelector ?? this._clientOptions.documentSelector
         const data: RegistrationData<any> = {
           id: registration.id,
           registerOptions: options
