@@ -21,14 +21,6 @@ import * as UUID from './utils/uuid'
 import { CancellationError } from '../util/errors'
 
 export interface Connection {
-  /**
-   * A timestamp indicating when the connection was last used (.e.g a request
-   * or notification has been sent)
-   */
-  lastUsed: number
-
-  resetLastUsed(): void
-
   listen(): void
 
   hasPendingResponse(): boolean

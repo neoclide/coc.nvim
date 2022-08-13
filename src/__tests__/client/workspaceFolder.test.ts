@@ -72,6 +72,7 @@ describe('Workspace Folder Feature Tests', () => {
   const removedProto = { uri: 'file://xox/removed', name: 'removedName' }
 
   test('remove/add', async () => {
+    assert.ok(!MessageTransports.is({}))
     testEvent([removedFolder], [addedFolder], [addedProto], [removedProto])
   })
 

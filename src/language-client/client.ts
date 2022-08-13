@@ -73,26 +73,17 @@ interface ConnectionOptions {
 function createConnection(input: MessageReader, output: MessageWriter, errorHandler: ConnectionErrorHandler, closeHandler: ConnectionCloseHandler, options?: ConnectionOptions): Connection {
   let logger = new ConsoleLogger()
   let connection = createProtocolConnection(input, output, logger, options)
-  let _lastUsed = -1
   // let disposables: Disposable[] = []
   connection.onError(data => { errorHandler(data[0], data[1], data[2]) })
   connection.onClose(closeHandler)
   let result: Connection = {
-    get lastUsed(): number {
-      return _lastUsed
-    },
-    resetLastUsed: (): void => {
-      _lastUsed = -1
-    },
     hasPendingResponse: (): boolean => connection.hasPendingResponse(),
     listen: (): void => connection.listen(),
     sendRequest: <R>(type: string | MessageSignature, ...params: any[]): Promise<R> => {
-      _lastUsed = Date.now()
       return connection.sendRequest(Is.string(type) ? type : type.method, ...params)
     },
     onRequest: <R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable => connection.onRequest(Is.string(type) ? type : type.method, handler),
     sendNotification: (type: string | MessageSignature, params?: any): Promise<void> => {
-      _lastUsed = Date.now()
       return connection.sendNotification(Is.string(type) ? type : type.method, params)
     },
     onNotification: (type: string | MessageSignature, handler: GenericNotificationHandler): Disposable => connection.onNotification(Is.string(type) ? type : type.method, handler),
@@ -117,15 +108,12 @@ function createConnection(input: MessageReader, output: MessageWriter, errorHand
       }
     },
     initialize: (params: InitializeParams) => {
-      _lastUsed = Date.now()
       return connection.sendRequest(InitializeRequest.type, params)
     },
     shutdown: () => {
-      _lastUsed = Date.now()
       return connection.sendRequest(ShutdownRequest.type, undefined)
     },
     exit: () => {
-      _lastUsed = Date.now()
       return connection.sendNotification(ExitNotification.type)
     },
     end: () => connection.end(),
@@ -424,7 +412,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public get middleware(): Middleware {
-    return this._clientOptions.middleware ?? Object.create(null)
+    return this._clientOptions.middleware
   }
 
   public getPublicState(): State {
@@ -562,7 +550,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this._progressHandlers.set(token, { type, handler })
     const connection = this.activeConnection()
     let disposable: Disposable
-    const handleWorkDoneProgress = this._clientOptions.middleware?.handleWorkDoneProgress
+    const handleWorkDoneProgress = this._clientOptions.middleware.handleWorkDoneProgress
     const realHandler = WorkDoneProgress.is(type) && handleWorkDoneProgress !== undefined
       ? (params: P) => {
         handleWorkDoneProgress(token, params as any, () => handler(params as unknown as P))
@@ -829,11 +817,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   public start(): Promise<void> & Disposable {
     let p: any = this._start()
-    p.dispose = Disposable.create(() => {
+    p.dispose = () => {
       if (this.needsStop()) {
         void this.stop()
       }
-    })
+    }
     return p
   }
 
@@ -1649,13 +1637,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.error(`Request ${type.method} failed.`, error)
   }
 
-  public logFailedRequest(type: any, error: any): void {
-    // If we get a request cancel don't log anything.
-    if (error instanceof ResponseError && error.code === LSPErrorCodes.RequestCancelled) {
-      // TODO: handle LSPErrorCodes.ContentModified
-      return
-    }
-    this.error(`Request ${type.method} failed.`, error)
+  // Should be keeped
+  public logFailedRequest(): void {
   }
 }
 
