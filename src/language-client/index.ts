@@ -586,8 +586,7 @@ export class SettingMonitor {
       dispose: () => {
         disposeAll(this._listeners)
         if (this._client.needsStop()) {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          this._client.stop()
+          void this._client.stop()
         }
       }
     }
@@ -601,9 +600,9 @@ export class SettingMonitor {
       ? workspace.getConfiguration(primary).get(rest, true)
       : workspace.getConfiguration(primary)
     if (enabled && this._client.needsStart()) {
-      void this._client.start()
+      this._client.start().catch(error => this._client.error('Start failed after configuration change', error, 'force'))
     } else if (!enabled && this._client.needsStop()) {
-      void this._client.stop()
+      this._client.stop().catch(error => this._client.error('Stop failed after configuration change', error, 'force'))
     }
   }
 }

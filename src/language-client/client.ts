@@ -683,41 +683,44 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return data.toString()
   }
 
-  private _appendOutput(type: string, message: string, data?: any): void {
-    let level = RevealOutputChannelOn.Error
-    switch (type) {
-      case 'Info':
-        level = RevealOutputChannelOn.Info
-        break
-      case 'Warn':
-        level = RevealOutputChannelOn.Warn
-        break
+  public info(message: string, data?: any, showNotification = true): void {
+    this.outputChannel.appendLine(`[Info  - ${(new Date().toLocaleTimeString())}] ${message}`)
+    if (data !== null && data !== undefined) {
+      this.outputChannel.appendLine(this.data2String(data))
     }
-    this.outputChannel.appendLine(`[${type}  - ${(new Date().toLocaleTimeString())}] ${message}`)
-    let dataString: string
-    if (data) {
-      dataString = this.data2String(data)
-      this.outputChannel.appendLine(dataString)
-    }
-    if (this.$testMode) {
-      // console.log(message)
-      // if (dataString) console.log(dataString)
-    }
-    if (this._clientOptions.revealOutputChannelOn <= level) {
-      this.outputChannel.show(true)
+    if (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Info) {
+      this.showNotificationMessage(MessageType.Info, message)
     }
   }
 
-  public info(message: string, data?: any): void {
-    this._appendOutput('Info', message, data)
+  public warn(message: string, data?: any, showNotification = true): void {
+    this.outputChannel.appendLine(`[Warn  - ${(new Date().toLocaleTimeString())}] ${message}`)
+    if (data !== null && data !== undefined) {
+      this.outputChannel.appendLine(this.data2String(data))
+    }
+    if (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Warn) {
+      this.showNotificationMessage(MessageType.Warning, message)
+    }
   }
 
-  public warn(message: string, data?: any): void {
-    this._appendOutput('Warn', message, data)
+  public error(message: string, data?: any, showNotification: boolean | 'force' = true): void {
+    this.outputChannel.appendLine(`[Error - ${(new Date().toLocaleTimeString())}] ${message}`)
+    if (data !== null && data !== undefined) {
+      this.outputChannel.appendLine(this.data2String(data))
+    }
+    if (showNotification === 'force' || (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Error)) {
+      this.showNotificationMessage(MessageType.Error, message)
+    }
   }
 
-  public error(message: string, data?: any): void {
-    this._appendOutput('Error', message, data)
+  private showNotificationMessage(type: MessageType, message?: string) {
+    message = message ?? 'A request has failed. See the output for more information.'
+    const messageFunc = type === MessageType.Error
+      ? window.showErrorMessage.bind(window)
+      : type === MessageType.Warning
+        ? window.showWarningMessage.bind(window)
+        : window.showInformationMessage.bind(window)
+    void messageFunc(message)
   }
 
   private logTrace(message: string, data?: any): void {
@@ -818,7 +821,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       resolve()
     } catch (error) {
       this.$state = ClientState.StartFailed
-      this.error(`${this._name} client: couldn't create connection to server.`, error)
+      this.error(`${this._name} client: couldn't create connection to server.`, error, 'force')
       reject(error)
     }
     return this._onStart
@@ -1244,7 +1247,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private async createConnection(): Promise<Connection> {
     let errorHandler = (error: Error, message: Message | undefined, count: number | undefined) => {
-      logger.error('connection error:', error, message)
       this.handleConnectionError(error, message, count)
     }
     let closeHandler = () => {
@@ -1278,7 +1280,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     this._connection = undefined
     if (action === CloseAction.DoNotRestart) {
-      this.error('Connection to server got closed. Server will not be restarted.')
+      this.error('Connection to server got closed. Server will not be restarted.', undefined, 'force')
       this.cleanUp('stop')
       if (this.$state === ClientState.Starting) {
         this.$state = ClientState.StartFailed
@@ -1293,7 +1295,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this.$state = ClientState.Initial
       this._onStop = Promise.resolve()
       this._onStart = undefined
-      this._start().catch(error => this.error(`Restarting server failed`, error))
+      this.start().catch(error => this.error(`Restarting server failed`, error, 'force'))
     }
   }
 
@@ -1306,7 +1308,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private handleConnectionError(error: Error, message: Message, count: number) {
     let action = this._clientOptions.errorHandler!.error(error, message, count)
     if (action === ErrorAction.Shutdown) {
-      this.error('Connection to server is erroring. Shutting down server.')
+      this.error(`Client ${this._name}: connection to server is erroring. Shutting down server.`, undefined, 'force')
       this.stop().catch(error => {
         this.error(`Stopping server failed`, error)
       })
