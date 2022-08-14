@@ -7,7 +7,7 @@ import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
-import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileSystemWatcher as FileWatcher, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, MessageItem, OutputChannel, Thenable } from '../types'
+import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, MessageItem, OutputChannel, Thenable } from '../types'
 import { resolveRoot, sameFile } from '../util/fs'
 import * as Is from '../util/is'
 import { comparePosition } from '../util/position'
@@ -93,19 +93,9 @@ function createConnection(input: MessageReader, output: MessageWriter, errorHand
     trace: (
       value: Trace,
       tracer: Tracer,
-      sendNotificationOrTraceOptions?: boolean | TraceOptions
+      sendNotificationOrTraceOptions: TraceOptions
     ): Promise<void> => {
-      const defaultTraceOptions: TraceOptions = {
-        sendNotification: false,
-        traceFormat: TraceFormat.Text
-      }
-      if (sendNotificationOrTraceOptions === undefined) {
-        return connection.trace(value, tracer, defaultTraceOptions)
-      } else if (Is.boolean(sendNotificationOrTraceOptions)) {
-        return connection.trace(value, tracer, sendNotificationOrTraceOptions)
-      } else {
-        return connection.trace(value, tracer, sendNotificationOrTraceOptions)
-      }
+      return connection.trace(value, tracer, sendNotificationOrTraceOptions)
     },
     initialize: (params: InitializeParams) => {
       return connection.sendRequest(InitializeRequest.type, params)
@@ -264,7 +254,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _clientOptions: ResolvedClientOptions
   private _rootPath: string | false
   private _disposed: 'disposing' | 'disposed' | undefined
-  private $testMode: boolean
   private readonly _ignoredRegistrations: Set<string>
 
   protected _state: ClientState
@@ -911,7 +900,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
             return { success: true }
           }
         } catch (error) {
-          return { success: true }
+          return { success: false }
         }
       }
       const middleware = this._clientOptions.middleware.window?.showDocument
@@ -1005,7 +994,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
       this._initializeResult = result
       this.$state = ClientState.Running
-
       let textDocumentSyncOptions: TextDocumentSyncOptions | undefined
       if (Is.number(result.capabilities.textDocumentSync)) {
         if (result.capabilities.textDocumentSync === TextDocumentSyncKind.None) {
@@ -1057,16 +1045,16 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     } catch (error: any) {
       if (this._clientOptions.initializationFailedHandler) {
         if (this._clientOptions.initializationFailedHandler(error)) {
-          void this.initialize(connection)
+          this.initialize(connection).catch(() => {})
         } else {
-          void this.stop()
+          this.stop().catch(() => {})
         }
       } else if (error instanceof ResponseError && error.data && error.data.retry) {
         void window.showErrorMessage(error.message, { title: 'Retry', id: 'retry' }).then(item => {
           if (item && item.id === 'retry') {
-            void this.initialize(connection)
+            this.initialize(connection).catch(() => {})
           } else {
-            void this.stop()
+            this.stop().catch(() => {})
           }
         })
       } else {
@@ -1074,7 +1062,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
           void window.showErrorMessage(error.message)
         }
         this.error('Server initialization failed.', error)
-        void this.stop()
+        this.stop().catch(() => {})
       }
       throw error
     }
@@ -1185,7 +1173,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {
-    if (!this._diagnostics) return
     let { uri, diagnostics, version } = params
     if (typeof version === 'number') {
       let doc = workspace.getDocument(uri)
@@ -1198,34 +1185,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       )
     } else {
       this.setDiagnostics(uri, diagnostics)
-    }
-  }
-
-  private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
-    if (!this._diagnostics) return
-    const separate = this.clientOptions.separateDiagnostics
-    // TODO make is async
-    if (separate && diagnostics.length > 0) {
-      const entries: Map<string, Diagnostic[]> = new Map()
-      entries.set(uri, diagnostics)
-      for (const diagnostic of diagnostics) {
-        if (diagnostic.relatedInformation?.length) {
-          let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
-          for (const info of diagnostic.relatedInformation) {
-            const basename = path.basename(URI.parse(info.location.uri).fsPath)
-            const ln = info.location.range.start.line
-            message = `${message}\n${basename}(line ${ln + 1}): ${info.message}`
-
-            const diags: Diagnostic[] = entries.get(info.location.uri) || []
-            diags.push(Diagnostic.create(info.location.range, info.message, DiagnosticSeverity.Hint, diagnostic.code, diagnostic.source))
-            entries.set(info.location.uri, diags)
-          }
-          diagnostic.message = message
-        }
-        this._diagnostics.set(Array.from(entries))
-      }
-    } else {
-      this._diagnostics.set(uri, diagnostics)
     }
   }
 
@@ -1581,6 +1540,35 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     })
   }
 
+  private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
+    if (!this._diagnostics) return
+
+    const separate = this.clientOptions.separateDiagnostics
+    // TODO make is async
+    if (separate && diagnostics.length > 0) {
+      const entries: Map<string, Diagnostic[]> = new Map()
+      entries.set(uri, diagnostics)
+      for (const diagnostic of diagnostics) {
+        if (diagnostic.relatedInformation?.length) {
+          let message = `${diagnostic.message}\n\nRelated diagnostics:\n`
+          for (const info of diagnostic.relatedInformation) {
+            const basename = path.basename(URI.parse(info.location.uri).fsPath)
+            const ln = info.location.range.start.line
+            message = `${message}\n${basename}(line ${ln + 1}): ${info.message}`
+
+            const diags: Diagnostic[] = entries.get(info.location.uri) || []
+            diags.push(Diagnostic.create(info.location.range, info.message, DiagnosticSeverity.Hint, diagnostic.code, diagnostic.source))
+            entries.set(info.location.uri, diags)
+          }
+          diagnostic.message = message
+        }
+        this._diagnostics.set(Array.from(entries))
+      }
+    } else {
+      this._diagnostics.set(uri, diagnostics)
+    }
+  }
+
   private handleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {
     // This is some sort of workaround since the version check should be done by VS Code in the Workspace.applyEdit.
     // However doing it here adds some safety since the server can lag more behind then an extension.
@@ -1620,7 +1608,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   ])
 
   public handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: unknown, defaultValue: T): T {
-    if (token.isCancellationRequested) return defaultValue
+    if (token && token.isCancellationRequested) return defaultValue
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {
       // The connection got disposed while we were waiting for a response.

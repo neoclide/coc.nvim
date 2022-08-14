@@ -1,11 +1,14 @@
-/* eslint-disable */
-import helper from '../helper'
 import * as assert from 'assert'
-import * as lsclient from '../../language-client'
 import path from 'path'
+import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
+import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
+import * as lsclient from '../../language-client'
+import { CloseAction, ErrorAction, HandleDiagnosticsSignature } from '../../language-client'
+import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
 import window from '../../window'
-import { MarkupKind } from 'vscode-languageserver-types'
-import { Trace } from 'vscode-languageserver-protocol'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 beforeAll(async () => {
   await helper.setup()
@@ -18,7 +21,6 @@ afterAll(async () => {
 async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientOpts?: lsclient.LanguageClientOptions): Promise<lsclient.LanguageClient> {
   let clientOptions: lsclient.LanguageClientOptions = {
     documentSelector: ['css'],
-    synchronize: {},
     initializationOptions: {}
   }
   if (clientOpts) Object.assign(clientOptions, clientOpts)
@@ -31,17 +33,206 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientO
   return client
 }
 
-describe('Client integration', () => {
+describe('Client events', () => {
+  it('should register events before server start', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {
+      synchronize: {},
+      initializationOptions: { initEvent: true }
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let fn = jest.fn()
+    let disposable = client.onRequest('customRequest', () => {
+      fn()
+      disposable.dispose()
+      return {}
+    })
+    let dispose = client.onNotification('customNotification', () => {
+      fn()
+      dispose.dispose()
+    })
+    let dis = client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', p => {
+      expect(p).toEqual({ kind: 'end', message: 'end message' })
+      fn()
+      dis.dispose()
+    })
+    await client.start()
+    await client.sendNotification('send')
+    await helper.wait(50)
+    expect(fn).toBeCalledTimes(3)
+    //   let client = await testEventServer({ initEvent: true })
+    await client.stop()
+  })
 
-  it('should initialize use IPC channel', (done) => {
+  it('should register events after server start', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {
+      synchronize: {},
+      initializationOptions: { initEvent: true }
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    await client.start()
+    let fn = jest.fn()
+    let disposable = client.onRequest('customRequest', () => {
+      fn()
+      disposable.dispose()
+      return {}
+    })
+    let dispose = client.onNotification('customNotification', () => {
+      fn()
+      dispose.dispose()
+    })
+    let dis = client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', p => {
+      expect(p).toEqual({ kind: 'end', message: 'end message' })
+      fn()
+      dis.dispose()
+    })
+    await client.sendNotification('send')
+    await helper.wait(50)
+    expect(fn).toBeCalledTimes(3)
+    //   let client = await testEventServer({ initEvent: true })
+    await client.stop()
+  })
+
+  it('should send progress', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {
+      synchronize: {},
+      initializationOptions: { initEvent: true }
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let fn = jest.fn()
+    client.onNotification('progressResult', res => {
+      fn()
+      expect(res).toEqual({ kind: 'begin', title: 'begin progress' })
+    })
+    await client.sendProgress(WorkDoneProgress.type, '4b3a71d0-2b3f-46af-be2c-2827f548579f', { kind: 'begin', title: 'begin progress' })
+    await client.start()
+    await helper.wait(50)
+    let p = client.stop()
+    await expect(async () => {
+      await client._start()
+    }).rejects.toThrow(Error)
+    await p
+    expect(fn).toBeCalled()
+  })
+
+  it('should handle error', async () => {
+    let fn = jest.fn()
+    let clientOptions: lsclient.LanguageClientOptions = {
+      synchronize: {},
+      errorHandler: {
+        error: () => {
+          return ErrorAction.Shutdown
+        },
+        closed: () => {
+          fn()
+          return CloseAction.DoNotRestart
+        }
+      },
+      initializationOptions: { initEvent: true }
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    await client.sendRequest('doExit')
+    await client.start()
+    await helper.wait(50)
+    expect(fn).toBeCalled()
+    // await client.stop()
+  })
+
+  it('should handle message events', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {
+      synchronize: {},
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    await client.start()
+    await client.sendNotification('logMessage')
+    await client.sendNotification('showMessage')
+    let types = [MessageType.Error, MessageType.Warning, MessageType.Info, MessageType.Log]
+    for (const t of types) {
+      await client.sendNotification('requestMessage', { type: t })
+      await helper.wait(30)
+      if (t == MessageType.Error) {
+        await workspace.nvim.input('1')
+      } else {
+        await workspace.nvim.input('<cr>')
+      }
+    }
+    let params: { uri: string, external: boolean, selection: Range, takeFocus: boolean }
+    let uri = URI.file(__filename)
+    await client.sendNotification('showDocument', { external: true, uri: 'lsptest:///1' })
+    await client.sendNotification('showDocument', { uri: 'lsptest:///1', takeFocus: false })
+    await client.sendNotification('showDocument', { uri: uri.toString() })
+    await client.sendNotification('showDocument', { uri: uri.toString(), selection: Range.create(0, 0, 1, 0) })
+    await helper.wait(50)
+    await client.stop()
+  })
+
+  it('should invoke showDocument middleware', async () => {
+    let fn = jest.fn()
+    let clientOptions: lsclient.LanguageClientOptions = {
+      synchronize: {},
+      middleware: {
+        window: {
+          showDocument: async (params, next) => {
+            fn()
+            let res = await next(params, CancellationToken.None)
+            return res as any
+          }
+        }
+      }
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let uri = URI.file(__filename)
+    await client.start()
+    await client.sendNotification('showDocument', { uri: uri.toString() })
+    await helper.wait(50)
+    expect(fn).toBeCalled()
+    await client.stop()
+  })
+})
+
+describe('Client integration', () => {
+  it('should initialize use IPC channel', async () => {
     helper.updateConfiguration('css.trace.server.verbosity', 'verbose')
     helper.updateConfiguration('css.trace.server.format', 'json')
+    let uri = URI.file(__filename)
+    await workspace.loadFile(uri.toString())
     let serverModule = path.join(__dirname, './server/testInitializeResult.js')
     let serverOptions: lsclient.ServerOptions = {
       run: { module: serverModule, transport: lsclient.TransportKind.ipc },
       debug: { module: serverModule, transport: lsclient.TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6014'] } }
     }
     let clientOptions: lsclient.LanguageClientOptions = {
+      rootPatterns: ['.vim'],
+      requireRootPattern: true,
       documentSelector: ['css'],
       synchronize: {}, initializationOptions: {},
       middleware: {
@@ -54,36 +245,22 @@ describe('Client integration', () => {
       }
     }
     let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
-    client.start()
-
-    assert.equal(client.initializeResult, undefined)
-
-    client.onReady().then(_ => {
-      try {
-        let expected = {
-          capabilities: {
-            textDocumentSync: 1,
-            completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
-            hoverProvider: true,
-            renameProvider: {
-              prepareProvider: true
-            }
-          },
-          customResults: {
-            "hello": "world"
-          }
+    await client.start()
+    let expected = {
+      capabilities: {
+        textDocumentSync: 1,
+        completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
+        hoverProvider: true,
+        renameProvider: {
+          prepareProvider: true
         }
-        assert.deepEqual(client.initializeResult, expected)
-        setTimeout(async () => {
-          await client.stop()
-          done()
-        }, 50)
-      } catch (e) {
-        done(e)
+      },
+      customResults: {
+        hello: "world"
       }
-    }, e => {
-      done(e)
-    })
+    }
+    assert.deepEqual(client.initializeResult, expected)
+    await client.stop()
   })
 
   it('should initialize use stdio', async () => {
@@ -95,10 +272,16 @@ describe('Client integration', () => {
       transport: lsclient.TransportKind.stdio
     }
     let client = await testLanguageServer(serverOptions, {
+      workspaceFolder: { name: 'test', uri: URI.file(__dirname).toString() },
       outputChannel: window.createOutputChannel('test'),
       markdown: {},
       disabledFeatures: ['pullDiagnostic'],
       revealOutputChannelOn: lsclient.RevealOutputChannelOn.Info,
+      outputChannelName: 'custom',
+      connectionOptions: {
+        cancellationStrategy: {} as any,
+        maxRestartCount: 10,
+      },
       stdioEncoding: 'utf8',
       errorHandler: {
         error: (): lsclient.ErrorAction => {
@@ -117,11 +300,19 @@ describe('Client integration', () => {
     assert.strictEqual(client.diagnostics, undefined)
     client.trace = Trace.Verbose
     let d = client.start()
+    let s = new CancellationTokenSource()
+    s.cancel()
+    client.handleFailedRequest(DidCreateFilesNotification.type, s.token, undefined, '')
+    let error = new ResponseError(LSPErrorCodes.RequestCancelled, 'request cancelled')
+    client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
+    error = new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
+    client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
     await client.stop()
     client.info('message', new Error('my error'), true)
     client.warn('message', 'error', true)
     client.warn('message', 0, true)
     client.logFailedRequest()
+    assert.strictEqual(client.diagnostics, undefined)
     d.dispose()
   })
 
@@ -131,7 +322,9 @@ describe('Client integration', () => {
       module: serverModule,
       transport: lsclient.TransportKind.pipe
     }
-    let client = await testLanguageServer(serverOptions)
+    let client = await testLanguageServer(serverOptions, {
+      ignoredRootPaths: [workspace.root]
+    })
     await client.stop()
   })
 
@@ -155,6 +348,145 @@ describe('Client integration', () => {
       args: [serverModule, '--stdio']
     }
     let client = await testLanguageServer(serverOptions)
+    await client.stop()
+  })
+
+  it('should handle error on initialize', async () => {
+    async function startServer(handler: InitializationFailedHandler | undefined, key = 'throwError'): Promise<lsclient.LanguageClient> {
+      let clientOptions: lsclient.LanguageClientOptions = {
+        initializationFailedHandler: handler,
+        initializationOptions: {
+          [key]: true
+        }
+      }
+      let serverModule = path.join(__dirname, './server/eventServer.js')
+      let serverOptions: lsclient.ServerOptions = {
+        module: serverModule,
+        transport: lsclient.TransportKind.stdio,
+      }
+      let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+      await client.start()
+      return client
+    }
+    let n = 0
+    try {
+      let client = await startServer(() => {
+        n++
+        return n == 1
+      })
+      await client.stop()
+    } catch (e) {
+      // ignore
+    }
+    try {
+      let client = await startServer(undefined)
+      await client.stop()
+    } catch (e) {
+      // ignore
+    }
+    try {
+      let client = await startServer(undefined, 'normalThrow')
+      await client.stop()
+    } catch (e) {
+      // ignore
+    }
+    try {
+      let client = await startServer(undefined, 'utf8')
+      void client.stop()
+      await client.stop()
+    } catch (e) {
+      // ignore
+    }
+  })
+
+  it('should separate diagnostics', async () => {
+    async function startServer(disable?: boolean, handleDiagnostics?: (uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void): Promise<lsclient.LanguageClient> {
+      let clientOptions: lsclient.LanguageClientOptions = {
+        disableDiagnostics: disable,
+        separateDiagnostics: true,
+        initializationOptions: {},
+        middleware: {
+          handleDiagnostics
+        }
+      }
+      let serverModule = path.join(__dirname, './server/eventServer.js')
+      let serverOptions: lsclient.ServerOptions = {
+        module: serverModule,
+        transport: lsclient.TransportKind.stdio,
+      }
+      let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+      await client.start()
+      return client
+    }
+    let client = await startServer()
+    await client.sendNotification('diagnostics')
+    await helper.wait(30)
+    let collection = client.diagnostics
+    let res = collection.get('lsptest:/2')
+    expect(res.length).toBe(2)
+    await client.stop()
+    client = await startServer(true)
+    await client.sendNotification('diagnostics')
+    await helper.wait(30)
+    collection = client.diagnostics
+    expect(collection).toBeUndefined()
+    await client.stop()
+    let called = false
+    client = await startServer(false, (uri, diagnostics, next) => {
+      called = true
+      next(uri, diagnostics)
+    })
+    await client.sendNotification('diagnostics')
+    await helper.wait(30)
+    expect(called).toBe(true)
+    await client.stop()
+  })
+
+  it('should check version on apply workspaceEdit', async () => {
+    let uri = URI.file(__filename)
+    await workspace.loadFile(uri.toString())
+    let clientOptions: lsclient.LanguageClientOptions = {
+      documentSelector: [{ scheme: 'file' }],
+      initializationOptions: {},
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio,
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let res
+    client.onNotification('result', p => {
+      res = p
+    })
+    await client.start()
+    await helper.wait(10)
+    await client.sendNotification('edits')
+    await helper.wait(50)
+    expect(res).toBeDefined()
+    expect(res).toEqual({ applied: false })
+    await client.stop()
+  })
+
+  it('should apply simple workspaceEdit', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {
+      initializationOptions: {},
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio,
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    let res
+    client.onNotification('result', p => {
+      res = p
+    })
+    await client.start()
+    await client.sendNotification('simpleEdit')
+    await helper.wait(30)
+    expect(res).toBeDefined()
+    expect(res).toEqual({ applied: true })
     await client.stop()
   })
 })
