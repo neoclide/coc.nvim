@@ -4,15 +4,16 @@ import cp from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
-import { ServiceStat } from '../types'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { terminate } from '../util/processes'
 import workspace from '../workspace'
-import { BaseLanguageClient, ClientState, LanguageClientOptions, MessageTransports } from './client'
+import { BaseLanguageClient, LanguageClientOptions, MessageTransports } from './client'
 import ChildProcess = cp.ChildProcess
 
 const logger = require('../util/logger')('language-client-index')
+const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
+const debugEquals: string[] = ['--debug', '--debug-brk', '--inspect', '--inspect-brk']
 
 export * from './client'
 
@@ -180,9 +181,6 @@ export class LanguageClient extends BaseLanguageClient {
       clientOptions = arg3 as LanguageClientOptions
       forceDebug = arg4 as boolean
     }
-    if (forceDebug === void 0) {
-      forceDebug = false
-    }
     if (clientOptions.disableSnippetCompletion === undefined) {
       let suggest = workspace.getConfiguration('suggest')
       if (suggest.get<boolean>('snippetsSupport', true) === false) {
@@ -199,8 +197,8 @@ export class LanguageClient extends BaseLanguageClient {
     }
     super(id, name, clientOptions)
     this._serverOptions = serverOptions
-    this._forceDebug = forceDebug
-    this._isInDebugMode = forceDebug
+    this._forceDebug = !!forceDebug
+    this._isInDebugMode = !!forceDebug
   }
 
   public stop(timeout = 2000): Promise<void> {
@@ -216,48 +214,12 @@ export class LanguageClient extends BaseLanguageClient {
     })
   }
 
-  public get serviceState(): ServiceStat {
-    let state = this._state
-    switch (state) {
-      case ClientState.Initial:
-        return ServiceStat.Initial
-      case ClientState.Running:
-        return ServiceStat.Running
-      case ClientState.StartFailed:
-        return ServiceStat.StartFailed
-      case ClientState.Starting:
-        return ServiceStat.Starting
-      case ClientState.Stopped:
-        return ServiceStat.Stopped
-      case ClientState.Stopping:
-        return ServiceStat.Stopping
-      default:
-        logger.error(`Unknown state: ${state}`)
-        return ServiceStat.Stopped
-    }
-  }
-
-  public static stateName(state: ClientState): string {
-    switch (state) {
-      case ClientState.Initial:
-        return 'Initial'
-      case ClientState.Running:
-        return 'Running'
-      case ClientState.StartFailed:
-        return 'StartFailed'
-      case ClientState.Starting:
-        return 'Starting'
-      case ClientState.Stopped:
-        return 'Stopped'
-      case ClientState.Stopping:
-        return 'Stopping'
-      default:
-        return 'Unknown'
-    }
+  public get serviceState() {
+    return this._state
   }
 
   private checkProcessDied(childProcess: ChildProcess | undefined): void {
-    if (!childProcess || global.__TEST__) return
+    if (!childProcess || childProcess.pid === undefined) return
     setTimeout(() => {
       // Test if the process is still alive. Throws an exception if not
       try {
@@ -306,19 +268,6 @@ export class LanguageClient extends BaseLanguageClient {
       return result
     }
 
-    const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
-    const debugEquals: string[] = ['--debug', '--debug-brk', '--inspect', '--inspect-brk']
-    function startedInDebugMode(): boolean {
-      let args: string[] = (process as any).execArgv
-      if (args) {
-        return args.some(arg => {
-          return debugStartWith.some(value => arg.startsWith(value)) ||
-            debugEquals.some(value => arg === value)
-        })
-      }
-      return false
-    }
-
     function assertStdio(process: cp.ChildProcess): asserts process is cp.ChildProcessWithoutNullStreams {
       if (process.stdin === null || process.stdout === null || process.stderr === null) {
         throw new Error('Process created without stdio streams')
@@ -358,7 +307,7 @@ export class LanguageClient extends BaseLanguageClient {
     let json: NodeModule | Executable
     let runDebug = server as { run: any; debug: any }
     if (runDebug.run || runDebug.debug) {
-      if (typeof v8debug === 'object' || this._forceDebug || startedInDebugMode()) {
+      if (typeof v8debug === 'object' || this._forceDebug || startedInDebugMode(process.execArgv)) {
         json = runDebug.debug
       } else {
         json = runDebug.run
@@ -366,28 +315,15 @@ export class LanguageClient extends BaseLanguageClient {
     } else {
       json = server as NodeModule | Executable
     }
-    return this._getServerWorkingDir(json.options).then(serverWorkingDir => {
+    return getServerWorkingDir(json.options).then(serverWorkingDir => {
       if (NodeModule.is(json) && json.module) {
         let node = json
         let transport = node.transport || TransportKind.stdio
-        if (node.runtime) {
-          let args: string[] = []
-          let options: ForkOptions = node.options || Object.create(null)
-          if (options.execArgv) {
-            options.execArgv.forEach(element => args.push(element))
-          }
-          args.push(node.module)
-          if (node.args) {
-            node.args.forEach(element => args.push(element))
-          }
-          const execOptions: cp.SpawnOptionsWithoutStdio = Object.create(null)
-          execOptions.cwd = serverWorkingDir
-          execOptions.env = getEnvironment(options.env, false)
-          const runtime = this._getRuntimePath(node.runtime, serverWorkingDir)
-          let pipeName: string | undefined
+        let pipeName: string | undefined
+        let runtime = node.runtime ? getRuntimePath(node.runtime, serverWorkingDir) : undefined
+        return new Promise<MessageTransports>((resolve, _reject) => {
+          let args = node.args && node.args.slice() || []
           if (transport === TransportKind.ipc) {
-            // exec options not correctly typed in lib
-            execOptions.stdio = [null, null, null, 'ipc'] as any
             args.push('--node-ipc')
           } else if (transport === TransportKind.stdio) {
             args.push('--stdio')
@@ -398,102 +334,47 @@ export class LanguageClient extends BaseLanguageClient {
             args.push(`--socket=${transport.port}`)
           }
           args.push(`--clientProcessId=${process.pid.toString()}`)
+          let options: cp.ForkOptions = node.options || Object.create(null)
+          options.env = getEnvironment(options.env, true)
+          options.execArgv = options.execArgv || []
+          options.cwd = serverWorkingDir
+          options.silent = true
+          if (runtime) options.execPath = runtime
           if (transport === TransportKind.ipc || transport === TransportKind.stdio) {
-            let serverProcess = cp.spawn(runtime, args, execOptions)
-            if (!serverProcess || !serverProcess.pid) {
-              return Promise.reject<MessageTransports>(`Launching server using runtime ${runtime} failed.`)
-            }
-            this._serverProcess = serverProcess
-            serverProcess.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+            let sp = cp.fork(node.module, args || [], options)
+            assertStdio(sp)
+            this._serverProcess = sp
+            sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
             if (transport === TransportKind.ipc) {
-              serverProcess.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              return Promise.resolve({ reader: new IPCMessageReader(serverProcess), writer: new IPCMessageWriter(serverProcess) })
+              sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+              resolve({ reader: new IPCMessageReader(this._serverProcess), writer: new IPCMessageWriter(this._serverProcess) })
             } else {
-              return Promise.resolve({ reader: new StreamMessageReader(serverProcess.stdout), writer: new StreamMessageWriter(serverProcess.stdin) })
+              resolve({ reader: new StreamMessageReader(sp.stdout), writer: new StreamMessageWriter(sp.stdin) })
             }
           } else if (transport === TransportKind.pipe) {
-            return createClientPipeTransport(pipeName!).then(transport => {
-              let process = cp.spawn(runtime, args, execOptions)
-              if (!process || !process.pid) {
-                return Promise.reject<MessageTransports>(`Launching server using runtime ${runtime} failed.`)
-              }
-              this._serverProcess = process
-              process.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              process.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              return transport.onConnected().then(protocol => {
-                return { reader: protocol[0], writer: protocol[1] }
-              })
-            })
-          } else if (Transport.isSocket(transport)) {
-            return createClientSocketTransport(transport.port).then(transport => {
-              let process = cp.spawn(runtime, args, execOptions)
-              if (!process || !process.pid) {
-                return Promise.reject<MessageTransports>(`Launching server using runtime ${runtime} failed.`)
-              }
-              this._serverProcess = process
-              process.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              process.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              return transport.onConnected().then(protocol => {
-                return { reader: protocol[0], writer: protocol[1] }
-              })
-            })
-          }
-        } else {
-          let pipeName: string | undefined
-          return new Promise<MessageTransports>((resolve, _reject) => {
-            let args = node.args && node.args.slice() || []
-            if (transport === TransportKind.ipc) {
-              args.push('--node-ipc')
-            } else if (transport === TransportKind.stdio) {
-              args.push('--stdio')
-            } else if (transport === TransportKind.pipe) {
-              pipeName = generateRandomPipeName()
-              args.push(`--pipe=${pipeName}`)
-            } else if (Transport.isSocket(transport)) {
-              args.push(`--socket=${transport.port}`)
-            }
-            args.push(`--clientProcessId=${process.pid.toString()}`)
-            let options: cp.ForkOptions = node.options || Object.create(null)
-            options.env = getEnvironment(options.env, true)
-            options.execArgv = options.execArgv || []
-            options.cwd = serverWorkingDir
-            options.silent = true
-            if (transport === TransportKind.ipc || transport === TransportKind.stdio) {
+            void createClientPipeTransport(pipeName!).then(transport => {
               let sp = cp.fork(node.module, args || [], options)
               assertStdio(sp)
               this._serverProcess = sp
               sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              if (transport === TransportKind.ipc) {
-                sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-                resolve({ reader: new IPCMessageReader(this._serverProcess), writer: new IPCMessageWriter(this._serverProcess) })
-              } else {
-                resolve({ reader: new StreamMessageReader(sp.stdout), writer: new StreamMessageWriter(sp.stdin) })
-              }
-            } else if (transport === TransportKind.pipe) {
-              void createClientPipeTransport(pipeName!).then(transport => {
-                let sp = cp.fork(node.module, args || [], options)
-                assertStdio(sp)
-                this._serverProcess = sp
-                sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-                sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-                void transport.onConnected().then(protocol => {
-                  resolve({ reader: protocol[0], writer: protocol[1] })
-                })
+              sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+              void transport.onConnected().then(protocol => {
+                resolve({ reader: protocol[0], writer: protocol[1] })
               })
-            } else if (Transport.isSocket(transport)) {
-              void createClientSocketTransport(transport.port).then(transport => {
-                let sp = cp.fork(node.module, args || [], options)
-                assertStdio(sp)
-                this._serverProcess = sp
-                sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-                sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-                void transport.onConnected().then(protocol => {
-                  resolve({ reader: protocol[0], writer: protocol[1] })
-                })
+            })
+          } else if (Transport.isSocket(transport)) {
+            void createClientSocketTransport(transport.port).then(transport => {
+              let sp = cp.fork(node.module, args || [], options)
+              assertStdio(sp)
+              this._serverProcess = sp
+              sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+              sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+              void transport.onConnected().then(protocol => {
+                resolve({ reader: protocol[0], writer: protocol[1] })
               })
-            }
-          })
-        }
+            })
+          }
+        })
       } else if (Executable.is(json) && json.command) {
         let command: Executable = json
         let args = command.args || []
@@ -521,50 +402,6 @@ export class LanguageClient extends BaseLanguageClient {
       return Promise.reject<MessageTransports>(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`)
     })
 
-  }
-
-  private _getRuntimePath(runtime: string, serverWorkingDirectory: string | undefined): string {
-    if (path.isAbsolute(runtime)) {
-      return runtime
-    }
-    const mainRootPath = this._mainGetRootPath()
-    if (mainRootPath !== undefined) {
-      const result = path.join(mainRootPath, runtime)
-      if (fs.existsSync(result)) {
-        return result
-      }
-    }
-    if (serverWorkingDirectory !== undefined) {
-      const result = path.join(serverWorkingDirectory, runtime)
-      if (fs.existsSync(result)) {
-        return result
-      }
-    }
-    return runtime
-  }
-
-  private _mainGetRootPath(): string | undefined {
-    let folders = workspace.workspaceFolders
-    if (!folders || folders.length === 0) {
-      return undefined
-    }
-    let folder = folders[0]
-    return folder.uri
-  }
-
-  private _getServerWorkingDir(options?: { cwd?: string }): Promise<string | undefined> {
-    let cwd = options && options.cwd
-    if (cwd && !path.isAbsolute(cwd)) cwd = path.join(workspace.cwd, cwd)
-    if (!cwd) cwd = workspace.cwd
-    if (cwd) {
-      // make sure the folder exists otherwise creating the process will fail
-      return new Promise(s => {
-        fs.lstat(cwd, (err, stats) => {
-          s(!err && stats.isDirectory() ? cwd : undefined)
-        })
-      })
-    }
-    return Promise.resolve(undefined)
   }
 }
 
@@ -605,4 +442,58 @@ export class SettingMonitor {
       this._client.stop().catch(error => this._client.error('Stop failed after configuration change', error, 'force'))
     }
   }
+}
+
+export function getRuntimePath(runtime: string, serverWorkingDirectory: string | undefined): string {
+  if (path.isAbsolute(runtime)) {
+    return runtime
+  }
+  const mainRootPath = mainGetRootPath()
+  if (mainRootPath !== undefined) {
+    const result = path.join(mainRootPath, runtime)
+    if (fs.existsSync(result)) {
+      return result
+    }
+  }
+  if (serverWorkingDirectory !== undefined) {
+    const result = path.join(serverWorkingDirectory, runtime)
+    if (fs.existsSync(result)) {
+      return result
+    }
+  }
+  return runtime
+}
+
+export function mainGetRootPath(): string | undefined {
+  let folders = workspace.workspaceFolders
+  if (!folders || folders.length === 0) {
+    return undefined
+  }
+  let folder = folders[0]
+  return folder.uri
+}
+
+export function getServerWorkingDir(options?: { cwd?: string }): Promise<string | undefined> {
+  let cwd = options && options.cwd
+  if (cwd && !path.isAbsolute(cwd)) cwd = path.join(workspace.cwd, cwd)
+  if (!cwd) cwd = workspace.cwd
+  if (cwd) {
+    // make sure the folder exists otherwise creating the process will fail
+    return new Promise(s => {
+      fs.lstat(cwd, (err, stats) => {
+        s(!err && stats.isDirectory() ? cwd : undefined)
+      })
+    })
+  }
+  return Promise.resolve(undefined)
+}
+
+export function startedInDebugMode(args: string[] | undefined): boolean {
+  if (args) {
+    return args.some(arg => {
+      return debugStartWith.some(value => arg.startsWith(value)) ||
+        debugEquals.some(value => arg === value)
+    })
+  }
+  return false
 }

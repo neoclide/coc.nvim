@@ -1,6 +1,8 @@
 import * as assert from 'assert'
+import cp from 'child_process'
 import path from 'path'
 import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
+import { IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
 import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
@@ -33,6 +35,59 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientO
   return client
 }
 
+describe('global functions', () => {
+  it('should get working directory', async () => {
+    let cwd = await lsclient.getServerWorkingDir()
+    expect(cwd).toBeDefined()
+    cwd = await lsclient.getServerWorkingDir({ cwd: 'not_exists' })
+    expect(cwd).toBeUndefined()
+  })
+
+  it('should get main root', async () => {
+    expect(lsclient.mainGetRootPath()).toBeUndefined()
+    let uri = URI.file(__filename)
+    await workspace.openResource(uri.toString())
+    expect(lsclient.mainGetRootPath()).toBeDefined()
+  })
+
+  it('should get runtime path', async () => {
+    expect(lsclient.getRuntimePath(__filename, undefined)).toBeDefined()
+    let uri = URI.file(__filename)
+    await workspace.openResource(uri.toString())
+    expect(lsclient.getRuntimePath('package.json', undefined)).toBeDefined()
+    let name = path.basename(__filename)
+    expect(lsclient.getRuntimePath(name, __dirname)).toBeDefined()
+  })
+
+  it('should check debug mode', async () => {
+    expect(lsclient.startedInDebugMode(['--debug'])).toBe(true)
+    expect(lsclient.startedInDebugMode(undefined)).toBe(false)
+  })
+})
+
+describe('SettingMonitor', () => {
+  it('should setup SettingMonitor', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {}
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.stdio
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    await client.start()
+    let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
+    let disposable = monitor.start()
+    helper.updateConfiguration('html.enabled', false)
+    await helper.wait(30)
+    expect(client.state).toBe(lsclient.State.Stopped)
+    helper.updateConfiguration('html.enabled', true)
+    await helper.wait(30)
+    expect(client.state).toBe(lsclient.State.Starting)
+    await helper.wait(100)
+    disposable.dispose()
+  })
+})
+
 describe('Client events', () => {
   it('should register events before server start', async () => {
     let clientOptions: lsclient.LanguageClientOptions = {
@@ -62,7 +117,7 @@ describe('Client events', () => {
     })
     await client.start()
     await client.sendNotification('send')
-    await helper.wait(50)
+    await helper.wait(60)
     expect(fn).toBeCalledTimes(3)
     //   let client = await testEventServer({ initEvent: true })
     await client.stop()
@@ -215,11 +270,56 @@ describe('Client events', () => {
     await client.sendNotification('showDocument', { uri: uri.toString() })
     await helper.wait(50)
     expect(fn).toBeCalled()
+    await client.restart()
     await client.stop()
   })
 })
 
 describe('Client integration', () => {
+  it('should initialize from function', async () => {
+    async function testServer(serverOptions: lsclient.ServerOptions) {
+      let clientOptions: lsclient.LanguageClientOptions = {
+        initializationOptions: {
+        }
+      }
+      let client = new lsclient.LanguageClient('HTML', serverOptions, clientOptions)
+      await client.start()
+      await client.stop()
+    }
+    await testServer(() => {
+      let module = path.join(__dirname, './server/eventServer.js')
+      let sp = cp.fork(module, ['--node-ipc'], { cwd: process.cwd() })
+      return Promise.resolve({ reader: new IPCMessageReader(sp), writer: new IPCMessageWriter(sp) })
+    })
+    await testServer(() => {
+      let module = path.join(__dirname, './server/testInitializeResult.js')
+      let sp = cp.fork(module, ['--stdio'], {
+        cwd: process.cwd(),
+        execArgv: [],
+        silent: true,
+      })
+      return Promise.resolve({ reader: sp.stdout, writer: sp.stdin })
+    })
+    await testServer(() => {
+      let module = path.join(__dirname, './server/testInitializeResult.js')
+      let sp = cp.fork(module, ['--stdio'], {
+        cwd: process.cwd(),
+        execArgv: [],
+        silent: true,
+      })
+      return Promise.resolve({ process: sp, detached: false })
+    })
+    await testServer(() => {
+      let module = path.join(__dirname, './server/testInitializeResult.js')
+      let sp = cp.fork(module, ['--stdio'], {
+        cwd: process.cwd(),
+        execArgv: [],
+        silent: true,
+      })
+      return Promise.resolve(sp)
+    })
+  })
+
   it('should initialize use IPC channel', async () => {
     helper.updateConfiguration('css.trace.server.verbosity', 'verbose')
     helper.updateConfiguration('css.trace.server.format', 'json')

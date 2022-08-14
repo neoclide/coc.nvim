@@ -1199,7 +1199,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let closeHandler = () => {
       this.handleConnectionClosed()
     }
-    const transports = await this.createMessageTransports(this._clientOptions.stdioEncoding || 'utf8')
+    const transports = await this.createMessageTransports(this._clientOptions.stdioEncoding ?? 'utf8')
     this._connection = createConnection(transports.reader, transports.writer, errorHandler, closeHandler, this._clientOptions.connectionOptions)
     return this._connection
   }
