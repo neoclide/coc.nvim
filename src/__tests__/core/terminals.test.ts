@@ -117,9 +117,7 @@ describe('create terminal', () => {
       shellPath: which.sync('bash')
     })
     await terminal.hide()
-    await helper.wait(30)
-    let res = await terminal.show()
-    expect(res).toBe(true)
+    await terminal.show()
   })
 
   it('should create terminal', async () => {

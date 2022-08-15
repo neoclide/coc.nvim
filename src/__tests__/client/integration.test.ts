@@ -591,7 +591,7 @@ describe('SettingMonitor', () => {
     helper.updateConfiguration('html.enabled', true)
     await helper.wait(30)
     expect(client.state).toBe(lsclient.State.Starting)
-    await helper.wait(100)
+    await client.onReady()
     disposable.dispose()
   })
 })
