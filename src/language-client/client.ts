@@ -8,6 +8,7 @@ import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, MessageItem, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
+import { CancellationError } from '../util/errors'
 import { resolveRoot, sameFile } from '../util/fs'
 import * as Is from '../util/is'
 import { comparePosition } from '../util/position'
@@ -1618,12 +1619,17 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         return defaultValue
       }
       if (error.code === LSPErrorCodes.RequestCancelled || error.code === LSPErrorCodes.ServerCancelled) {
-        return defaultValue
+        throw new CancellationError()
       } else if (error.code === LSPErrorCodes.ContentModified) {
-        return defaultValue
+        if (BaseLanguageClient.RequestsToCancelOnContentModified.has(type.method)) {
+          throw new CancellationError()
+        } else {
+          return defaultValue
+        }
       }
     }
     this.error(`Request ${type.method} failed.`, error)
+    throw error
   }
 
   // Should be keeped

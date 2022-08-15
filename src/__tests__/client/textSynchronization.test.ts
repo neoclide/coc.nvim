@@ -1,16 +1,16 @@
-import path from 'path'
+import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
-import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, TextDocumentSaveReason, TextEdit, WillSaveTextDocumentNotification } from 'vscode-languageserver-protocol'
-import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
+import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
-import helper from '../helper'
+import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, Range, TextDocumentSaveReason, TextEdit, WillSaveTextDocumentNotification } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
+import { TextDocumentContentChange } from '../../types'
 import workspace from '../../workspace'
-import { Neovim } from '@chemzqm/neovim'
-import { WillSaveFeature } from '../../language-client/textSynchronization'
+import helper from '../helper'
 
-function createClient(documentSelector: DocumentSelector | undefined | null, middleware: Middleware = {}): LanguageClient {
+function createClient(documentSelector: DocumentSelector | undefined | null, middleware: Middleware = {}, opts: any = {}): LanguageClient {
   const serverModule = path.join(__dirname, './server/testDocuments.js')
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.ipc },
@@ -20,7 +20,7 @@ function createClient(documentSelector: DocumentSelector | undefined | null, mid
   const clientOptions: LanguageClientOptions = {
     documentSelector,
     synchronize: {},
-    initializationOptions: {},
+    initializationOptions: opts,
     middleware
   };
   (clientOptions as ({ $testMode?: boolean })).$testMode = true
@@ -164,11 +164,30 @@ describe('TextDocumentSynchronization', () => {
       let feature = client.getFeature(DidChangeTextDocumentNotification.method)
       let provider = feature.getProvider(doc.textDocument)
       expect(provider).toBeDefined()
+      await provider.send({ contentChanges: [], textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr, original: '', originalLines: [] })
       await client.sendNotification('unregisterDocumentSync')
       await helper.wait(30)
       provider = feature.getProvider(doc.textDocument)
       expect(provider).toBeUndefined()
       await client.stop()
+    })
+
+    it('should not send change event when syncKind is none', async () => {
+      let client = createClient([{ scheme: 'lsptest' }], {}, { none: true })
+      await client.start()
+      await client.sendNotification('registerDocumentSync')
+      await nvim.command('edit x.vim')
+      let doc = await workspace.document
+      await helper.wait(30)
+      let feature = client.getFeature(DidChangeTextDocumentNotification.method)
+      let provider = feature.getProvider(doc.textDocument)
+      let changes: TextDocumentContentChange[] = [{
+        range: Range.create(0, 0, 0, 0),
+        text: 'foo'
+      }]
+      await provider.send({ contentChanges: changes, textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr } as any)
+      let res = await client.sendRequest('getLastChange') as any
+      expect(res.text).toBe('\n')
     })
   })
 
@@ -224,7 +243,13 @@ describe('TextDocumentSynchronization', () => {
     })
 
     it('should not throw on response error', async () => {
-      let client = createClient([])
+      let called = false
+      let client = createClient([], {
+        willSaveWaitUntil: (event, next) => {
+          called = true
+          return next(event)
+        }
+      })
       await client.start()
       await client.sendNotification('registerDocumentSync')
       await helper.wait(30)
@@ -234,7 +259,8 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
       await doc.synchronize()
       nvim.command('w', true)
-      await helper.wait(30)
+      await helper.wait(50)
+      expect(called).toBe(true)
       await client.stop()
     })
 

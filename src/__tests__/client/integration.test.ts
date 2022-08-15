@@ -8,6 +8,7 @@ import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
 import { CloseAction, ErrorAction, HandleDiagnosticsSignature } from '../../language-client'
 import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
+import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -385,9 +386,11 @@ describe('Client integration', () => {
     let s = new CancellationTokenSource()
     s.cancel()
     client.handleFailedRequest(DidCreateFilesNotification.type, s.token, undefined, '')
-    let error = new ResponseError(LSPErrorCodes.RequestCancelled, 'request cancelled')
-    client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
-    error = new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
+    await expect(async () => {
+      let error = new ResponseError(LSPErrorCodes.RequestCancelled, 'request cancelled')
+      client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
+    }).rejects.toThrow(CancellationError)
+    let error = new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
     client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
     await client.stop()
     client.info('message', new Error('my error'), true)

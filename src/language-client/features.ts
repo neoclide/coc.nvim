@@ -374,7 +374,6 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
   protected readonly _type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>
   protected readonly _middleware: string
   protected readonly _createParams: CreateParamsSignature<E, P>
-  protected readonly _textDocument: (data: E) => TextDocument
   protected readonly _selectorFilter?: (selectors: IterableIterator<DocumentSelector>, data: E) => boolean
 
   private _listener: Disposable | undefined
@@ -395,7 +394,6 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   constructor(client: FeatureClient<M>, event: Event<E>, type: ProtocolNotificationType<P, TextDocumentRegistrationOptions>,
     middleware: string, createParams: CreateParamsSignature<E, P>,
-    textDocument: (data: E) => TextDocument,
     selectorFilter?: (selectors: IterableIterator<DocumentSelector>, data: E) => boolean
   ) {
     super(client)
@@ -403,7 +401,6 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
     this._type = type
     this._middleware = middleware
     this._createParams = createParams
-    this._textDocument = textDocument
     this._selectorFilter = selectorFilter
 
     this._selectors = new Map<string, DocumentSelector>()

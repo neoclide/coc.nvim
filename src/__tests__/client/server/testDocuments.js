@@ -35,7 +35,9 @@ documents.listen(connection)
 console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
 
-connection.onInitialize(() => {
+let opts
+connection.onInitialize(params => {
+  opts = params.initializationOptions
   let capabilities = {
     textDocumentSync: {
       openClose: true,
@@ -78,7 +80,7 @@ connection.onNotification('registerDocumentSync', () => {
     disposables.push(d)
   })
   connection.client.register(ls.DidChangeTextDocumentNotification.type, Object.assign({
-    syncKind: ls.TextDocumentSyncKind.Incremental
+    syncKind: opts.none === true ? ls.TextDocumentSyncKind.None : ls.TextDocumentSyncKind.Incremental
   }, opt)).then(d => {
     disposables.push(d)
   })

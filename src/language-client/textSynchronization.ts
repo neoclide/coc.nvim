@@ -41,7 +41,6 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
       DidOpenTextDocumentNotification.type,
       'didOpen',
       textDocument => cv.asOpenTextDocumentParams(textDocument),
-      data => data,
       TextDocumentEventFeature.textDocumentFilter
     )
   }
@@ -94,7 +93,6 @@ export class DidCloseTextDocumentFeature extends TextDocumentEventFeature<DidClo
       DidCloseTextDocumentNotification.type,
       'didClose',
       textDocument => cv.asCloseTextDocumentParams(textDocument),
-      data => data,
       TextDocumentEventFeature.textDocumentFilter
     )
   }
@@ -246,12 +244,17 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
             await this._client.sendNotification(DidChangeTextDocumentNotification.type, params)
             this.notificationSent(event, DidChangeTextDocumentNotification.type, params)
           }
+        } else {
+          didChange = () => Promise.resolve(undefined)
         }
         promise = middleware.didChange ? middleware.didChange(event, didChange) : didChange(event)
         if (promise) promises.push(promise)
       }
     }
-    return Promise.all(promises).then(undefined)
+    return Promise.all(promises).then(undefined, error => {
+      this._client.error(`Sending document notification ${DidChangeTextDocumentNotification.type.method} failed`, error)
+      throw error
+    })
   }
 
   public get onNotificationSent(): Event<NotificationSendEvent<TextDocumentChangeEvent, DidChangeTextDocumentParams>> {
@@ -264,10 +267,6 @@ export class DidChangeTextDocumentFeature extends DynamicDocumentFeature<TextDoc
 
   public unregister(id: string): void {
     this._changeData.delete(id)
-    if (this._changeData.size === 0 && this._listener) {
-      this._listener.dispose()
-      this._listener = undefined
-    }
   }
 
   public dispose(): void {
@@ -300,7 +299,6 @@ export class WillSaveFeature extends TextDocumentEventFeature<WillSaveTextDocume
       WillSaveTextDocumentNotification.type,
       'willSave',
       willSaveEvent => cv.asWillSaveTextDocumentParams(willSaveEvent),
-      event => event.document,
       (selectors, willSaveEvent) => TextDocumentEventFeature.textDocumentFilter(selectors, willSaveEvent.document)
     )
   }
@@ -388,7 +386,7 @@ export class WillSaveWaitUntilFeature extends DynamicDocumentFeature<TextDocumen
     if (TextDocumentEventFeature.textDocumentFilter(
       this._selectors.values(),
       event.document)) {
-      let middleware = this._client.middleware!
+      let middleware = this._client.middleware
       let willSaveWaitUntil = (event: TextDocumentWillSaveEvent): Thenable<TextEdit[]> => {
         return this.sendRequest(
           WillSaveTextDocumentWaitUntilRequest.type,
@@ -429,7 +427,6 @@ export class DidSaveTextDocumentFeature extends TextDocumentEventFeature<DidSave
       client, workspace.onDidSaveTextDocument, DidSaveTextDocumentNotification.type,
       'didSave',
       textDocument => cv.asSaveTextDocumentParams(textDocument, this._includeText),
-      data => data,
       TextDocumentEventFeature.textDocumentFilter
     )
     this._includeText = false
