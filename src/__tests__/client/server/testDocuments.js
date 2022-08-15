@@ -1,3 +1,4 @@
+const {ResponseError, LSPErrorCodes} = require('vscode-languageserver')
 const ls = require('vscode-languageserver')
 const {TextDocument} = require('vscode-languageserver-textdocument')
 let connection = ls.createConnection()
@@ -22,6 +23,7 @@ documents.onWillSave(e => {
 })
 documents.onWillSaveWaitUntil(e => {
   let uri = e.document.uri
+  if (uri.endsWith('error.vim')) throw new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
   if (!uri.endsWith('foo.vim')) return []
   return [ls.TextEdit.insert(ls.Position.create(0, 0), 'abc')]
 })

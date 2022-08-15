@@ -1,13 +1,14 @@
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
-import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, TextDocumentSaveReason, TextEdit, WillSaveTextDocumentNotification } from 'vscode-languageserver-protocol'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
 import { v4 as uuidv4 } from 'uuid'
 import helper from '../helper'
 import { URI } from 'vscode-uri'
 import workspace from '../../workspace'
 import { Neovim } from '@chemzqm/neovim'
+import { WillSaveFeature } from '../../language-client/textSynchronization'
 
 function createClient(documentSelector: DocumentSelector | undefined | null, middleware: Middleware = {}): LanguageClient {
   const serverModule = path.join(__dirname, './server/testDocuments.js')
@@ -186,8 +187,10 @@ describe('TextDocumentSynchronization', () => {
       await workspace.openResource(uri.toString())
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
-      nvim.command('w', true)
-      await helper.wait(50)
+      let feature = client.getFeature(WillSaveTextDocumentNotification.method)
+      let provider = feature.getProvider(doc.textDocument)
+      expect(provider).toBeDefined()
+      await provider.send({ document: doc.textDocument, reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
       let res = await client.sendRequest('getLastWillSave') as any
       expect(res.uri).toBe(doc.uri)
       await client.stop()
@@ -204,7 +207,7 @@ describe('TextDocumentSynchronization', () => {
       await client.start()
       await client.sendNotification('registerDocumentSync')
       await helper.wait(30)
-      let fsPath = path.join(os.tmpdir(), `foo.vim`)
+      let fsPath = path.join(os.tmpdir(), `${uuidv4()}-foo.vim`)
       let uri = URI.file(fsPath)
       await workspace.openResource(uri.toString())
       let doc = await workspace.document
@@ -218,6 +221,21 @@ describe('TextDocumentSynchronization', () => {
       if (fs.existsSync(fsPath)) {
         fs.unlinkSync(fsPath)
       }
+    })
+
+    it('should not throw on response error', async () => {
+      let client = createClient([])
+      await client.start()
+      await client.sendNotification('registerDocumentSync')
+      await helper.wait(30)
+      let fsPath = path.join(os.tmpdir(), `${uuidv4()}-error.vim`)
+      let uri = URI.file(fsPath)
+      await workspace.openResource(uri.toString())
+      let doc = await workspace.document
+      await doc.synchronize()
+      nvim.command('w', true)
+      await helper.wait(30)
+      await client.stop()
     })
 
     it('should unregister event handler', async () => {
@@ -251,6 +269,7 @@ describe('TextDocumentSynchronization', () => {
       let res = await client.sendRequest('getLastWillSave') as any
       expect(res.uri).toBe(doc.uri)
       expect(called).toBe(true)
+      await client.stop()
     })
   })
 })

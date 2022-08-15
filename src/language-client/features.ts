@@ -14,7 +14,7 @@ import {
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
-import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
+import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../types'
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import * as UUID from './utils/uuid'
@@ -59,14 +59,6 @@ export interface Connection {
   exit(): Promise<void>
   end(): void
   dispose(): void
-}
-
-export class LSPCancellationError extends CancellationError {
-  public readonly data: object | Object
-  constructor(data: object | Object) {
-    super()
-    this.data = data
-  }
 }
 
 export class BaseFeature<MW, CO = object> {
@@ -462,10 +454,6 @@ export abstract class TextDocumentEventFeature<P, E, M> extends DynamicDocumentF
 
   public unregister(id: string): void {
     this._selectors.delete(id)
-    if (this._selectors.size === 0 && this._listener) {
-      this._listener.dispose()
-      this._listener = undefined
-    }
   }
 
   public dispose(): void {
@@ -548,18 +536,9 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
   }
 
   protected getRegistration(documentSelector: DocumentSelector | undefined, capability: undefined | PO | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
-    if (!capability) {
-      return [undefined, undefined]
-    } else if (TextDocumentRegistrationOptions.is(capability)) {
-      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
-      const selector = capability.documentSelector || documentSelector
-      if (selector) {
-        return [id, Object.assign({}, capability, { documentSelector: selector })]
-      }
-    } else if (Is.boolean(capability) && capability === true || WorkDoneProgressOptions.is(capability)) {
-      if (!documentSelector) {
-        return [undefined, undefined]
-      }
+    if (!capability) return [undefined, undefined]
+    if (Is.boolean(capability) && capability === true || WorkDoneProgressOptions.is(capability)) {
+      if (!documentSelector) return [undefined, undefined]
       let options: RO & { documentSelector: DocumentSelector } = (Is.boolean(capability) && capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector })) as any
       return [UUID.generateUuid(), options]
     }
@@ -649,7 +628,7 @@ export interface FeatureClient<M, CO = object> {
   getFeature(request: typeof DidChangeWatchedFilesNotification.method): DynamicFeature<DidChangeWatchedFilesRegistrationOptions>
   getFeature(request: typeof DidOpenTextDocumentNotification.method): DidOpenTextDocumentFeatureShape
   getFeature(request: typeof DidChangeTextDocumentNotification.method): DidChangeTextDocumentFeatureShape
-  getFeature(request: typeof WillSaveTextDocumentNotification.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocument) => Promise<void>>
+  getFeature(request: typeof WillSaveTextDocumentNotification.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocumentWillSaveEvent) => Promise<void>>
   getFeature(request: typeof WillSaveTextDocumentWaitUntilRequest.method): DynamicFeature<TextDocumentRegistrationOptions> & TextDocumentSendFeature<(textDocument: TextDocument) => ProviderResult<TextEdit[]>>
   getFeature(request: typeof DidSaveTextDocumentNotification.method): DidSaveTextDocumentFeatureShape
   getFeature(request: typeof DidCloseTextDocumentNotification.method): DidCloseTextDocumentFeatureShape
