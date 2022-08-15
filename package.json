@@ -60,8 +60,8 @@
     "coverageDirectory": "./coverage/"
   },
   "devDependencies": {
-    "@swc/core": "^1.2.183",
-    "@swc/jest": "^0.2.21",
+    "@swc/core": "^1.2.233",
+    "@swc/jest": "^0.2.22",
     "@types/cli-table": "^0.3.0",
     "@types/debounce": "^3.0.0",
     "@types/fb-watchman": "^2.0.0",
@@ -91,6 +91,7 @@
     "@chemzqm/neovim": "^5.7.9",
     "@chemzqm/string-width": "^5.1.2",
     "ansi-styles": "^5.0.0",
+    "browserslist": "^4.21.3",
     "bytes": "^3.1.0",
     "cli-table": "^0.3.4",
     "content-disposition": "^0.5.3",
