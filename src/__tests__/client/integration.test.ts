@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import cp from 'child_process'
 import path from 'path'
 import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
-import { IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
+import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
 import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
@@ -19,21 +19,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await helper.shutdown()
 })
-
-async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientOpts?: lsclient.LanguageClientOptions): Promise<lsclient.LanguageClient> {
-  let clientOptions: lsclient.LanguageClientOptions = {
-    documentSelector: ['css'],
-    initializationOptions: {}
-  }
-  if (clientOpts) Object.assign(clientOptions, clientOpts)
-  let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
-  let p = client.onReady()
-  await client.start()
-  await p
-  expect(client.initializeResult).toBeDefined()
-  expect(client.started).toBe(true)
-  return client
-}
 
 describe('global functions', () => {
   it('should get working directory', async () => {
@@ -65,39 +50,25 @@ describe('global functions', () => {
   })
 })
 
-describe('SettingMonitor', () => {
-  it('should setup SettingMonitor', async () => {
+describe('Client events', () => {
+  it('should start server', async () => {
     let clientOptions: lsclient.LanguageClientOptions = {}
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
-      transport: lsclient.TransportKind.stdio
+      transport: lsclient.TransportKind.ipc
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     await client.start()
-    let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
-    let disposable = monitor.start()
-    helper.updateConfiguration('html.enabled', false)
-    await helper.wait(30)
-    expect(client.state).toBe(lsclient.State.Stopped)
-    helper.updateConfiguration('html.enabled', true)
-    await helper.wait(30)
-    expect(client.state).toBe(lsclient.State.Starting)
-    await helper.wait(100)
-    disposable.dispose()
+    await client.stop()
   })
-})
 
-describe('Client events', () => {
   it('should register events before server start', async () => {
-    let clientOptions: lsclient.LanguageClientOptions = {
-      synchronize: {},
-      initializationOptions: { initEvent: true }
-    }
+    let clientOptions: lsclient.LanguageClientOptions = {}
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
-      transport: lsclient.TransportKind.stdio
+      transport: lsclient.TransportKind.ipc
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let fn = jest.fn()
@@ -209,7 +180,7 @@ describe('Client events', () => {
     await client.start()
     await helper.wait(50)
     expect(fn).toBeCalled()
-    // await client.stop()
+    await client.stop()
   })
 
   it('should handle message events', async () => {
@@ -235,7 +206,6 @@ describe('Client events', () => {
         await workspace.nvim.input('<cr>')
       }
     }
-    let params: { uri: string, external: boolean, selection: Range, takeFocus: boolean }
     let uri = URI.file(__filename)
     await client.sendNotification('showDocument', { external: true, uri: 'lsptest:///1' })
     await client.sendNotification('showDocument', { uri: 'lsptest:///1', takeFocus: false })
@@ -276,15 +246,27 @@ describe('Client events', () => {
 })
 
 describe('Client integration', () => {
+  async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientOpts?: lsclient.LanguageClientOptions): Promise<lsclient.LanguageClient> {
+    let clientOptions: lsclient.LanguageClientOptions = {
+      documentSelector: ['css'],
+      initializationOptions: {}
+    }
+    if (clientOpts) Object.assign(clientOptions, clientOpts)
+    let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
+    let p = client.onReady()
+    await client.start()
+    await p
+    expect(client.initializeResult).toBeDefined()
+    expect(client.started).toBe(true)
+    return client
+  }
+
   it('should initialize from function', async () => {
     async function testServer(serverOptions: lsclient.ServerOptions) {
-      let clientOptions: lsclient.LanguageClientOptions = {
-        initializationOptions: {
-        }
-      }
+      let clientOptions: lsclient.LanguageClientOptions = {}
       let client = new lsclient.LanguageClient('HTML', serverOptions, clientOptions)
       await client.start()
-      await client.stop()
+      await client.dispose()
     }
     await testServer(() => {
       let module = path.join(__dirname, './server/eventServer.js')
@@ -292,7 +274,7 @@ describe('Client integration', () => {
       return Promise.resolve({ reader: new IPCMessageReader(sp), writer: new IPCMessageWriter(sp) })
     })
     await testServer(() => {
-      let module = path.join(__dirname, './server/testInitializeResult.js')
+      let module = path.join(__dirname, './server/eventServer.js')
       let sp = cp.fork(module, ['--stdio'], {
         cwd: process.cwd(),
         execArgv: [],
@@ -301,7 +283,7 @@ describe('Client integration', () => {
       return Promise.resolve({ reader: sp.stdout, writer: sp.stdin })
     })
     await testServer(() => {
-      let module = path.join(__dirname, './server/testInitializeResult.js')
+      let module = path.join(__dirname, './server/eventServer.js')
       let sp = cp.fork(module, ['--stdio'], {
         cwd: process.cwd(),
         execArgv: [],
@@ -310,7 +292,7 @@ describe('Client integration', () => {
       return Promise.resolve({ process: sp, detached: false })
     })
     await testServer(() => {
-      let module = path.join(__dirname, './server/testInitializeResult.js')
+      let module = path.join(__dirname, './server/eventServer.js')
       let sp = cp.fork(module, ['--stdio'], {
         cwd: process.cwd(),
         execArgv: [],
@@ -366,7 +348,7 @@ describe('Client integration', () => {
   it('should initialize use stdio', async () => {
     helper.updateConfiguration('css.trace.server.verbosity', 'verbose')
     helper.updateConfiguration('css.trace.server.format', 'text')
-    let serverModule = path.join(__dirname, './server/testInitializeResult.js')
+    let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
       transport: lsclient.TransportKind.stdio
@@ -417,7 +399,7 @@ describe('Client integration', () => {
   })
 
   it('should initialize use pipe', async () => {
-    let serverModule = path.join(__dirname, './server/testInitializeResult.js')
+    let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
       transport: lsclient.TransportKind.pipe
@@ -429,7 +411,7 @@ describe('Client integration', () => {
   })
 
   it('should initialize use socket', async () => {
-    let serverModule = path.join(__dirname, './server/testInitializeResult.js')
+    let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
       transport: {
@@ -442,7 +424,7 @@ describe('Client integration', () => {
   })
 
   it('should initialize as command', async () => {
-    let serverModule = path.join(__dirname, './server/testInitializeResult.js')
+    let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       command: 'node',
       args: [serverModule, '--stdio']
@@ -588,5 +570,28 @@ describe('Client integration', () => {
     expect(res).toBeDefined()
     expect(res).toEqual({ applied: true })
     await client.stop()
+  })
+})
+
+describe('SettingMonitor', () => {
+  it('should setup SettingMonitor', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {}
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.ipc
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    await client.start()
+    let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
+    let disposable = monitor.start()
+    helper.updateConfiguration('html.enabled', false)
+    await helper.wait(30)
+    expect(client.state).toBe(lsclient.State.Stopped)
+    helper.updateConfiguration('html.enabled', true)
+    await helper.wait(30)
+    expect(client.state).toBe(lsclient.State.Starting)
+    await helper.wait(100)
+    disposable.dispose()
   })
 })

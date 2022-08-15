@@ -1038,7 +1038,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       }
       this._pendingProgressHandlers.clear()
       await connection.sendNotification(InitializedNotification.type, {})
-      this.getFeature(DidChangeWatchedFilesNotification.method).hookEvents()
       this.hookConfigurationChanged(connection)
       this.initializeFeatures(connection)
       return result
@@ -1098,7 +1097,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.$state = ClientState.Stopping
     this.cleanUp(mode)
 
-    const tp = new Promise<undefined>(c => { setTimeout(c, timeout) })
+    let tm: NodeJS.Timeout
+    const tp = new Promise<undefined>(c => { tm = setTimeout(c, timeout) })
     const shutdown = (async connection => {
       await connection.shutdown()
       await connection.exit()
@@ -1106,6 +1106,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     })(connection)
 
     return this._onStop = Promise.race([tp, shutdown]).then(connection => {
+      if (tm) clearTimeout(tm)
       // The connection won the race with the timeout.
       if (connection !== undefined) {
         connection.end()

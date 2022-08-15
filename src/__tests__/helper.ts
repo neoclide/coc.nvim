@@ -90,7 +90,7 @@ export class Helper extends EventEmitter {
 
   public async shutdown(): Promise<void> {
     if (this.plugin) this.plugin.dispose()
-    this.nvim.removeAllListeners()
+    await this.nvim.quit()
     this.nvim = null
     if (this.proc) {
       this.proc.unref()

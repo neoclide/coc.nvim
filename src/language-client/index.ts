@@ -228,7 +228,7 @@ export class LanguageClient extends BaseLanguageClient {
       } catch (error) {
         // All is fine.
       }
-    }, 2000)
+    }, global.__TEST__ ? 20 : 2000)
   }
 
   protected handleConnectionClosed(): void {

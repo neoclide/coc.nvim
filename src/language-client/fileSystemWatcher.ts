@@ -10,6 +10,7 @@ import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
+const logger = require('../util/logger')('language-client-fileSystemWatcher')
 
 export interface DidChangeWatchedFileSignature {
   (this: void, event: FileEvent): void
@@ -78,7 +79,22 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     // ensure(ensure(capabilities, 'workspace')!, 'didChangeWatchedFiles')!.relativePatternSupport = true
   }
 
-  public initialize(_capabilities: ServerCapabilities, _documentSelector: DocumentSelector): void {}
+  public initialize(_capabilities: ServerCapabilities, _documentSelector: DocumentSelector): void {
+    let fileEvents = this._client.clientOptions.synchronize?.fileEvents
+    if (!fileEvents) return
+    let watchers: FileSystemWatcher[] = Array.isArray(fileEvents) ? fileEvents : [fileEvents]
+    let disposables: Disposable[] = []
+    for (let fileSystemWatcher of watchers) {
+      disposables.push(fileSystemWatcher)
+      this.hookListeners(
+        fileSystemWatcher,
+        !fileSystemWatcher.ignoreCreateEvents,
+        !fileSystemWatcher.ignoreChangeEvents,
+        !fileSystemWatcher.ignoreDeleteEvents,
+        disposables)
+    }
+    this._watchers.set(UUID.generateUuid(), disposables)
+  }
 
   public register(data: RegistrationData<DidChangeWatchedFilesRegistrationOptions>): void {
     if (!Array.isArray(data.registerOptions.watchers)) {
@@ -113,24 +129,6 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       disposables.push(fileSystemWatcher)
     }
     this._watchers.set(data.id, disposables)
-  }
-
-  public hookEvents(): void {
-    let fileEvents = this._client.clientOptions.synchronize?.fileEvents
-    if (!fileEvents) return
-    let watchers: FileSystemWatcher[] = Array.isArray(fileEvents) ? fileEvents : [fileEvents]
-    let id = UUID.generateUuid()
-    let disposables: Disposable[] = []
-    for (let fileSystemWatcher of watchers) {
-      disposables.push(fileSystemWatcher)
-      this.hookListeners(
-        fileSystemWatcher,
-        !fileSystemWatcher.ignoreCreateEvents,
-        !fileSystemWatcher.ignoreChangeEvents,
-        !fileSystemWatcher.ignoreDeleteEvents,
-        disposables)
-    }
-    this._watchers.set(id, disposables)
   }
 
   private hookListeners(
