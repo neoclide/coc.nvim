@@ -513,6 +513,11 @@ describe('Client integration', () => {
       middlewareEvents.map(p => p.kind),
       ['begin', 'report', 'end', 'begin', 'report', 'end'],
     )
+    await client.sendRequest(
+      new ProtocolRequestType<any, null, never, any, any>('testing/beginOnlyProgress'),
+      {},
+      tokenSource.token,
+    )
   })
 
   test('Document Formatting', async () => {

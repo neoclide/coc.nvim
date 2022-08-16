@@ -528,6 +528,15 @@ connection.onRequest(
   },
 )
 
+connection.onRequest(
+  new ProtocolRequestType('testing/beginOnlyProgress'),
+  async (_, __) => {
+    const progressToken = 'TEST-PROGRESS-BEGIN'
+    await connection.sendRequest(WorkDoneProgressCreateRequest.type, {token: progressToken})
+  },
+)
+
+
 connection.onWorkspaceSymbol(() => {
   return [
     {name: 'name', kind: SymbolKind.Array, location: {uri: 'file:///abc.txt'}}

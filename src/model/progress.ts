@@ -60,8 +60,8 @@ export default class ProgressNotification<R> extends Notification {
       this._onDidFinish.fire(res)
       this.dispose()
     }, err => {
-      this.nvim.echoError(err)
       if (this._disposed) return
+      if (err) this.nvim.echoError(err)
       this._onDidFinish.fire(undefined)
       this.dispose()
     })
