@@ -7,6 +7,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
 import languages from '../../languages'
+import commands from '../../commands'
 
 beforeAll(async () => {
   await helper.setup()
@@ -107,6 +108,8 @@ describe('Client integration', () => {
   })
 
   afterAll(async () => {
+    await client.sendNotification('unregister')
+    await helper.wait(50)
     contentProviderDisposable.dispose()
     await client.stop()
   })
@@ -117,6 +120,10 @@ describe('Client integration', () => {
         textDocumentSync: TextDocumentSyncKind.Full,
         definitionProvider: true,
         hoverProvider: true,
+        signatureHelpProvider: {
+          triggerCharacters: [','],
+          retriggerCharacters: [';']
+        },
         completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
         referencesProvider: true,
         documentHighlightProvider: true,
@@ -366,12 +373,6 @@ describe('Client integration', () => {
     )
     middleware.provideSignatureHelp = undefined
     assert.ok(middlewareCalled)
-    let hasProvier = languages.hasProvider('signature', document)
-    await client.sendNotification('unregister')
-    await helper.wait(50)
-    provider = client.getFeature(SignatureHelpRequest.method).getProvider(document)
-    hasProvier = languages.hasProvider('signature', document)
-    assert.ok(hasProvier === false)
   })
 
   test('References', async () => {
@@ -432,7 +433,9 @@ describe('Client integration', () => {
     const action = result[0]
     assert.strictEqual(action.title, 'title')
     assert.strictEqual(action.command?.title, 'title')
-    assert.strictEqual(action.command?.command, 'id')
+    assert.strictEqual(action.command?.command, 'test_command')
+    let response = await commands.execute(action.command)
+    expect(response).toEqual({ success: true })
 
     const resolved = (await provider.resolveCodeAction(result[0], tokenSource.token))
     assert.strictEqual(resolved?.title, 'resolved')
@@ -456,6 +459,13 @@ describe('Client integration', () => {
     await provider.resolveCodeAction!(result[0], tokenSource.token)
     middleware.resolveCodeAction = undefined
     assert.ok(middlewareCalled)
+
+    let uri = URI.parse('lsptests://localhost/empty.bat').toString()
+    let textDocument = TextDocument.create(uri, 'bat', 1, '\n')
+    let res = (await provider.provideCodeActions(textDocument, range, {
+      diagnostics: []
+    }, tokenSource.token)) as CodeAction[]
+    expect(res).toBeUndefined()
   })
 
   test('CodeLens', async () => {
@@ -1157,6 +1167,14 @@ describe('Client integration', () => {
     await fullProvider.provideDocumentSemanticTokensEdits!(document, '2', tokenSource.token)
     middleware.provideDocumentSemanticTokensEdits = undefined
     assert.strictEqual(middlewareCalled, true)
+    let called = false
+    provider.onDidChangeSemanticTokensEmitter.event(() => {
+      called = true
+    })
+    await client.sendNotification('fireSemanticTokensRefresh')
+    await helper.waitValue(() => {
+      return called
+    }, true)
   })
 
   test('Linked Editing Ranges', async () => {
@@ -1315,12 +1333,20 @@ describe('Client integration', () => {
 
     const resolvedHint = await provider.resolveInlayHint!(hint, tokenSource.token)
     assert.strictEqual((resolvedHint?.label as InlayHintLabelPart[])[0].tooltip, 'tooltip')
+    let called = false
+    await client.sendNotification('fireInlayHintsRefresh')
+    provider.onDidChangeInlayHints(() => {
+      called = true
+    })
+    await helper.waitValue(() => {
+      return called
+    }, true)
   })
 
   test('Workspace symbols', async () => {
     const providers = client.getFeature(WorkspaceSymbolRequest.method).getProviders()
     isDefined(providers)
-    assert.strictEqual(providers.length, 1)
+    assert.strictEqual(providers.length, 2)
     const provider = providers[0]
     const results = await provider.provideWorkspaceSymbols('', tokenSource.token)
     isArray(results, undefined, 1)

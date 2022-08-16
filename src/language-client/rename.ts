@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, PrepareRenameRequest, Range, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, ServerCapabilities, TextDocumentPositionParams, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, PrepareRenameRequest, PrepareSupportDefaultBehavior, Range, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, ServerCapabilities, TextDocumentPositionParams, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { ProviderResult, RenameProvider } from '../provider'
@@ -53,8 +53,7 @@ export class RenameFeature extends TextDocumentLanguageFeature<boolean | RenameO
     rename.dynamicRegistration = true
     rename.prepareSupport = true
     rename.honorsChangeAnnotations = true
-    // Some language server report bug, renable when it's useful
-    // rename.prepareSupportDefaultBehavior = PrepareSupportDefaultBehavior.Identifier
+    rename.prepareSupportDefaultBehavior = PrepareSupportDefaultBehavior.Identifier
   }
 
   public initialize(

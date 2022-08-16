@@ -55,9 +55,8 @@ export class SignatureHelpFeature extends TextDocumentLanguageFeature<SignatureH
     documentSelector: DocumentSelector
   ): void {
     const options = this.getRegistrationOptions(documentSelector, capabilities.signatureHelpProvider)
-    if (!options) {
-      return
-    }
+    if (!options) return
+
     this.register({
       id: UUID.generateUuid(),
       registerOptions: options
@@ -84,7 +83,7 @@ export class SignatureHelpFeature extends TextDocumentLanguageFeature<SignatureH
       }
     }
 
-    const triggerCharacters = options.triggerCharacters || []
+    const triggerCharacters = options.triggerCharacters ?? []
     const disposable = languages.registerSignatureHelpProvider(options.documentSelector!, provider, triggerCharacters)
     return [disposable, provider]
   }

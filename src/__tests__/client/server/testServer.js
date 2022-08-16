@@ -5,7 +5,7 @@ const {
   DiagnosticTag, CompletionItemTag, TextDocumentSyncKind, MarkupKind, SignatureInformation, ParameterInformation,
   Location, Range, DocumentHighlight, DocumentHighlightKind, CodeAction, Command, TextEdit, Position, DocumentLink,
   ColorInformation, Color, ColorPresentation, FoldingRange, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
-  SignatureHelpRequest, CodeLensRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest} = require('vscode-languageserver')
+  SignatureHelpRequest, SemanticTokensRefreshRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest, InlayHintRefreshRequest, WorkspaceSymbolRequest, DidChangeConfigurationNotification} = require('vscode-languageserver')
 
 const {
   DidCreateFilesNotification,
@@ -18,7 +18,7 @@ let connection = createConnection()
 
 console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
-let disposable
+let disposables = []
 connection.onInitialize(params => {
   assert.equal((params.capabilities.workspace).applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
@@ -60,6 +60,10 @@ connection.onInitialize(params => {
     textDocumentSync: TextDocumentSyncKind.Full,
     definitionProvider: true,
     hoverProvider: true,
+    signatureHelpProvider: {
+      triggerCharacters: [','],
+      retriggerCharacters: [';']
+    },
     completionProvider: {resolveProvider: true, triggerCharacters: ['"', ':']},
     referencesProvider: true,
     documentHighlightProvider: true,
@@ -180,12 +184,39 @@ connection.onInitialized(() => {
     triggerCharacters: [':'],
     retriggerCharacters: [':']
   }).then(d => {
-    disposable = d
+    disposables.push(d)
+  })
+  connection.client.register(WorkspaceSymbolRequest.type, {
+    workDoneProgress: false,
+    resolveProvider: true
+  }).then(d => {
+    disposables.push(d)
+  })
+  connection.client.register(DidChangeConfigurationNotification.type, {
+    section: 'http'
+  }).then(d => {
+    disposables.push(d)
+  })
+  connection.client.register(DidCreateFilesNotification.type, {
+    filters: [{
+      pattern: {
+        glob: '**/renamed-dynamic/**/',
+        matches: 'folder',
+        options: {
+          ignoreCase: true
+        }
+      }
+    }]
+  }).then(d => {
+    disposables.push(d)
   })
 })
 
 connection.onNotification('unregister', () => {
-  if (disposable) disposable.dispose()
+  for (let d of disposables) {
+    d.dispose()
+    disposables = []
+  }
 })
 
 connection.onCodeLens(params => {
@@ -194,6 +225,14 @@ connection.onCodeLens(params => {
 
 connection.onNotification('fireCodeLensRefresh', () => {
   connection.sendRequest(CodeLensRefreshRequest.type)
+})
+
+connection.onNotification('fireSemanticTokensRefresh', () => {
+  connection.sendRequest(SemanticTokensRefreshRequest.type)
+})
+
+connection.onNotification('fireInlayHintsRefresh', () => {
+  connection.sendRequest(InlayHintRefreshRequest.type)
 })
 
 connection.onCodeLensResolve(codelens => {
@@ -256,10 +295,17 @@ connection.onDocumentHighlight(_params => {
   ]
 })
 
-connection.onCodeAction(_params => {
+connection.onCodeAction(params => {
+  if (params.textDocument.uri.endsWith('empty.bat')) return undefined
   return [
-    CodeAction.create('title', Command.create('title', 'id'))
+    CodeAction.create('title', Command.create('title', 'test_command'))
   ]
+})
+
+connection.onExecuteCommand(params => {
+  if (params.command == 'test_command') {
+    return {success: true}
+  }
 })
 
 connection.onCodeActionResolve(codeAction => {
@@ -535,7 +581,6 @@ connection.onRequest(
     await connection.sendRequest(WorkDoneProgressCreateRequest.type, {token: progressToken})
   },
 )
-
 
 connection.onWorkspaceSymbol(() => {
   return [

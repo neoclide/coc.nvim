@@ -8,6 +8,7 @@ import readline from 'readline'
 import util from 'util'
 import glob from 'glob'
 import * as platform from './platform'
+import { FileType } from '../types'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -27,6 +28,23 @@ export function renameAsync(oldPath: string, newPath: string): Promise<void> {
       resolve()
     })
   })
+}
+export async function getFileType(filepath: string): Promise<FileType | undefined> {
+  try {
+    const stat = await statAsync(filepath)
+    if (stat.isFile()) {
+      return FileType.File
+    }
+    if (stat.isDirectory()) {
+      return FileType.Directory
+    }
+    if (stat.isSymbolicLink()) {
+      return FileType.SymbolicLink
+    }
+    return FileType.Unknown
+  } catch (e) {
+    return undefined
+  }
 }
 
 export async function isGitIgnored(fullpath: string): Promise<boolean> {

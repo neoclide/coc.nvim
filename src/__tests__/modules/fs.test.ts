@@ -1,4 +1,6 @@
-import { findUp, checkFolder, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
+import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
+import { FileType } from '../../types'
+import { v4 as uuid } from 'uuid'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -14,6 +16,13 @@ describe('fs', () => {
     it('fs statAsync #1', async () => {
       let res = await statAsync(path.join(__dirname, 'file_not_exist'))
       expect(res).toBeNull
+    })
+  })
+
+  describe('getFileType()', () => {
+    it('should get filetype', async () => {
+      let res = await getFileType(__dirname)
+      expect(res).toBe(FileType.Directory)
     })
   })
 

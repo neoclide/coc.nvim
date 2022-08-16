@@ -1,16 +1,15 @@
 'use strict'
 import {
-  TraceOptions,
   CallHierarchyPrepareRequest, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, DeclarationRequest, DefinitionRequest,
-  DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification,
+  DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification,
   DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest,
   DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, Event, FileOperationRegistrationOptions,
   FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineValueRequest,
   LinkedEditingRangeRequest, MarkupKind, MessageSignature, NotificationHandler, NotificationHandler0,
   NotificationType, NotificationType0, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, ReferencesRequest,
   RegistrationType, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities,
-  SignatureHelpRequest, StaticRegistrationOptions, TextDocumentRegistrationOptions, TextEdit, Trace, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest,
-  WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressOptions, WorkspaceSymbolRequest, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions
+  SignatureHelpRequest, StaticRegistrationOptions, TextDocumentRegistrationOptions, TextEdit, Trace, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest,
+  WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressOptions, WorkspaceSymbolRequest
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
@@ -18,7 +17,6 @@ import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent,
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import * as UUID from './utils/uuid'
-import { CancellationError } from '../util/errors'
 
 export interface Connection {
   listen(): void
@@ -573,9 +571,9 @@ import { CodeLensProviderShape } from './codeLens'
 import { DiagnosticProviderShape } from './diagnostic'
 import { InlayHintsProviderShape } from './inlayHint'
 import { InlineValueProviderShape } from './inlineValue'
+import { SemanticTokensProviderShape } from './semanticTokens'
 import { DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeatureShape, DidOpenTextDocumentFeatureShape, DidSaveTextDocumentFeatureShape } from './textSynchronization'
 import { WorkspaceProviderFeature } from './workspaceSymbol'
-import { SemanticTokensProviderShape } from './semanticTokens'
 
 export interface FeatureClient<M, CO = object> {
   clientOptions: CO

@@ -3,7 +3,7 @@ import * as minimatch from 'minimatch'
 import { CancellationToken, ClientCapabilities, CreateFilesParams, DeleteFilesParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternKind, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileType, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
-import { statAsync } from '../util/fs'
+import { getFileType } from '../util/fs'
 import workspace from '../workspace'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
@@ -134,10 +134,6 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
 
   public unregister(id: string): void {
     this._filters.delete(id)
-    if (this._filters.size === 0 && this._listener) {
-      this._listener.dispose()
-      this._listener = undefined
-    }
   }
 
   public dispose(): void {
@@ -167,13 +163,11 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
               if (filter.kind === undefined) {
                 return true
               }
-              const fileType = await FileOperationFeature.getFileType(uri)
+              const fileType = await getFileType(uri.fsPath)
               // If we can't determine the file type than we treat it as a match.
               // Dropping it would be another alternative.
               if (fileType === undefined) {
-                this._client.error(
-                  `Failed to determine file type for ${uri.toString()}.`
-                )
+                this._client.error(`Failed to determine file type for ${uri.toString()}.`)
                 return true
               }
               if (
@@ -183,7 +177,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
                 return true
               }
             } else if (filter.kind === FileOperationPatternKind.folder) {
-              const fileType = await FileOperationFeature.getFileType(uri)
+              const fileType = await getFileType(uri.fsPath)
               if (fileType === FileType.Directory && filter.matcher.match(`${path}/`)) {
                 return true
               }
@@ -200,25 +194,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     return { ...event, files }
   }
 
-  private static async getFileType(uri: URI): Promise<FileType | undefined> {
-    try {
-      const stat = await statAsync(uri.fsPath)
-      if (stat.isFile()) {
-        return FileType.File
-      }
-      if (stat.isDirectory()) {
-        return FileType.Directory
-      }
-      if (stat.isSymbolicLink()) {
-        return FileType.SymbolicLink
-      }
-      return FileType.Unknown
-    } catch (e) {
-      return undefined
-    }
-  }
-
-  private static asMinimatchOptions(options: FileOperationPatternOptions | undefined): minimatch.IOptions | undefined {
+  public static asMinimatchOptions(options: FileOperationPatternOptions | undefined): minimatch.IOptions | undefined {
     if (options === undefined) {
       return undefined
     }
@@ -282,7 +258,7 @@ export class DidCreateFilesFeature extends NotificationFileOperationFeature<URI,
   }
 
   protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void {
-    const middleware = this._client.middleware?.workspace
+    const middleware = this._client.middleware.workspace
     return middleware?.didCreateFiles ? middleware.didCreateFiles(event, next) : next(event)
   }
 }
@@ -301,7 +277,7 @@ export class DidRenameFilesFeature extends NotificationFileOperationFeature<{ ol
   }
 
   protected doSend(event: FileRenameEvent, next: (event: FileRenameEvent) => void): void {
-    const middleware = this._client.middleware?.workspace
+    const middleware = this._client.middleware.workspace
     return middleware?.didRenameFiles ? middleware.didRenameFiles(event, next) : next(event)
   }
 }
@@ -320,7 +296,7 @@ export class DidDeleteFilesFeature extends NotificationFileOperationFeature<URI,
   }
 
   protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void {
-    const middleware = this._client.middleware?.workspace
+    const middleware = this._client.middleware.workspace
     return middleware?.didDeleteFiles ? middleware.didDeleteFiles(event, next) : next(event)
   }
 }
@@ -406,7 +382,7 @@ export class WillRenameFilesFeature extends RequestFileOperationFeature<{ oldUri
   }
 
   protected doSend(event: FileWillRenameEvent, next: (event: FileWillRenameEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.middleware?.workspace
+    const middleware = this._client.middleware.workspace
     return middleware?.willRenameFiles ? middleware.willRenameFiles(event, next) : next(event)
   }
 }
@@ -425,7 +401,7 @@ export class WillDeleteFilesFeature extends RequestFileOperationFeature<URI, Fil
   }
 
   protected doSend(event: FileWillDeleteEvent, next: (event: FileWillDeleteEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.middleware?.workspace
+    const middleware = this._client.middleware.workspace
     return middleware?.willDeleteFiles ? middleware.willDeleteFiles(event, next) : next(event)
   }
 }
