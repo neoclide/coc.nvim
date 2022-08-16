@@ -275,6 +275,7 @@ export class LanguageClient extends BaseLanguageClient {
     }
 
     let server = this._serverOptions
+    const logMessage = this.logMessage.bind(this)
     // We got a function.
     if (Is.func(server)) {
       return server().then(result => {
@@ -296,7 +297,7 @@ export class LanguageClient extends BaseLanguageClient {
             cp = result
             this._isDetached = false
           }
-          cp.stderr!.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+          cp.stderr!.on('data', logMessage)
           return {
             reader: new StreamMessageReader(cp.stdout!),
             writer: new StreamMessageWriter(cp.stdin!)
@@ -344,31 +345,31 @@ export class LanguageClient extends BaseLanguageClient {
             let sp = cp.fork(node.module, args || [], options)
             assertStdio(sp)
             this._serverProcess = sp
-            sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+            sp.stderr.on('data', logMessage)
             if (transport === TransportKind.ipc) {
-              sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+              sp.stdout.on('data', logMessage)
               resolve({ reader: new IPCMessageReader(this._serverProcess), writer: new IPCMessageWriter(this._serverProcess) })
             } else {
               resolve({ reader: new StreamMessageReader(sp.stdout), writer: new StreamMessageWriter(sp.stdin) })
             }
           } else if (transport === TransportKind.pipe) {
-            void createClientPipeTransport(pipeName!).then(transport => {
+            return createClientPipeTransport(pipeName!).then(transport => {
               let sp = cp.fork(node.module, args || [], options)
               assertStdio(sp)
               this._serverProcess = sp
-              sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+              sp.stderr.on('data', logMessage)
+              sp.stdout.on('data', logMessage)
               void transport.onConnected().then(protocol => {
                 resolve({ reader: protocol[0], writer: protocol[1] })
               })
             })
           } else if (Transport.isSocket(transport)) {
-            void createClientSocketTransport(transport.port).then(transport => {
+            return createClientSocketTransport(transport.port).then(transport => {
               let sp = cp.fork(node.module, args || [], options)
               assertStdio(sp)
               this._serverProcess = sp
-              sp.stderr.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
-              sp.stdout.on('data', data => this.outputChannel.append(Is.string(data) ? data : data.toString(encoding)))
+              sp.stderr.on('data', logMessage)
+              sp.stdout.on('data', logMessage)
               void transport.onConnected().then(protocol => {
                 resolve({ reader: protocol[0], writer: protocol[1] })
               })
@@ -384,11 +385,10 @@ export class LanguageClient extends BaseLanguageClient {
         let cmd = workspace.expand(json.command)
         let serverProcess = cp.spawn(cmd, args, options)
         serverProcess.on('error', e => {
-          this.error(e.message)
-          logger.error(e)
+          this.error(e.message, e)
         })
         if (!serverProcess || !serverProcess.pid) {
-          return Promise.reject<MessageTransports>(`Launching server "${this.id}" using command ${command.command} failed.`)
+          return Promise.reject<MessageTransports>(new Error(`Launching server "${this.id}" using command ${command.command} failed.`))
         }
         logger.info(`Language server "${this.id}" started with ${serverProcess.pid}`)
         serverProcess.on('exit', code => {
@@ -401,7 +401,11 @@ export class LanguageClient extends BaseLanguageClient {
       }
       return Promise.reject<MessageTransports>(`Unsupported server configuration ${JSON.stringify(server, null, 2)}`)
     })
+  }
 
+  public logMessage(data: string | Buffer): void {
+    let encoding = this.clientOptions.stdioEncoding
+    this.outputChannel.append(Is.string(data) ? data : data.toString(encoding as BufferEncoding))
   }
 }
 
@@ -477,15 +481,12 @@ export function getServerWorkingDir(options?: { cwd?: string }): Promise<string 
   let cwd = options && options.cwd
   if (cwd && !path.isAbsolute(cwd)) cwd = path.join(workspace.cwd, cwd)
   if (!cwd) cwd = workspace.cwd
-  if (cwd) {
-    // make sure the folder exists otherwise creating the process will fail
-    return new Promise(s => {
-      fs.lstat(cwd, (err, stats) => {
-        s(!err && stats.isDirectory() ? cwd : undefined)
-      })
+  // make sure the folder exists otherwise creating the process will fail
+  return new Promise(s => {
+    fs.lstat(cwd, (err, stats) => {
+      s(!err && stats.isDirectory() ? cwd : undefined)
     })
-  }
-  return Promise.resolve(undefined)
+  })
 }
 
 export function startedInDebugMode(args: string[] | undefined): boolean {

@@ -41,7 +41,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     }, global.__TEST__ ? 20 : 200)
   }
 
-  private async _notifyFileEvent(): Promise<void> {
+  public async _notifyFileEvent(): Promise<void> {
     let map = this._fileEventsMap
     if (map.size == 0) return
     await this._client.forceDocumentSync()
@@ -110,8 +110,8 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       let watchDelete = true
       if (watcher.kind != null) {
         watchCreate = (watcher.kind & WatchKind.Create) !== 0
-        watchChange = (watcher.kind & WatchKind.Change) != 0
-        watchDelete = (watcher.kind & WatchKind.Delete) != 0
+        watchChange = (watcher.kind & WatchKind.Change) !== 0
+        watchDelete = (watcher.kind & WatchKind.Delete) !== 0
       }
       let fileSystemWatcher = workspace.createFileSystemWatcher(
         watcher.globPattern,

@@ -7,7 +7,6 @@ import { CancellationToken, ClientCapabilities, CompletionContext, CompletionIte
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { CompletionItemProvider, ProviderResult } from '../provider'
-import sources from '../sources'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
@@ -165,7 +164,6 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
     }
     // index is needed since one language server could create many sources.
     let name = this._client.id + (this.index ? '-' + this.index : '')
-    sources.removeSource(name)
     const disposable = languages.registerCompletionItemProvider(
       name,
       'LS',

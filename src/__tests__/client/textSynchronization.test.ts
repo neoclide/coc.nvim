@@ -150,6 +150,11 @@ describe('TextDocumentSynchronization', () => {
       await client.start()
       await client.sendNotification('registerDocumentSync')
       await helper.wait(30)
+      let feature = client.getFeature(DidChangeTextDocumentNotification.method)
+      let fn = jest.fn()
+      feature.onNotificationSent(() => {
+        fn()
+      })
       await nvim.command('edit t.vim')
       let doc = await workspace.document
       await nvim.call('setline', [1, 'foo'])
@@ -158,10 +163,10 @@ describe('TextDocumentSynchronization', () => {
       await helper.wait(50)
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
+      expect(fn).toBeCalled()
       let res = await client.sendRequest('getLastChange') as any
       expect(res.uri).toBe(doc.uri)
       expect(res.text).toBe('foo\n')
-      let feature = client.getFeature(DidChangeTextDocumentNotification.method)
       let provider = feature.getProvider(doc.textDocument)
       expect(provider).toBeDefined()
       await provider.send({ contentChanges: [], textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr, original: '', originalLines: [] })

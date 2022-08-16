@@ -98,12 +98,29 @@ describe('FileSystemWatcherFeature', () => {
     })
   })
 
+  it('should work with single watcher', async () => {
+    let client: LanguageClient
+    let watcher = new CustomWatcher()
+    client = createClient(watcher, { workspace: {} })
+    let received: any[]
+    client.onNotification('filesChange', params => {
+      received = params.changes
+    })
+    await client.start()
+    let uri = URI.file(__filename)
+    watcher.fireCreate(uri)
+    await helper.wait(100)
+    expect(received.length).toBe(1)
+    await client.stop()
+  })
+
   it('should support dynamic registration', async () => {
     let client: LanguageClient
     client = createClient(undefined)
     await client.start()
     await helper.wait(50)
     let feature = client.getFeature(DidChangeWatchedFilesNotification.method)
+    await feature._notifyFileEvent()
     let state = feature.getState()
     expect((state as any).registrations).toBe(true)
     await client.sendNotification('unwatch')

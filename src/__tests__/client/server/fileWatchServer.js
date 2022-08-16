@@ -9,19 +9,27 @@ connection.onInitialize((_params) => {
   return {capabilities: {}}
 })
 
-let disposable
+let disposables = []
 connection.onInitialized(() => {
   connection.client.register(DidChangeWatchedFilesNotification.type, {
     watchers: [{
-      globPattern: '**/jsconfig.json'
+      globPattern: '**/jsconfig.json',
     }, {
       globPattern: '**/*.ts',
       kind: 1
     }, {
+      globPattern: '**/*.js',
+      kind: 2
+    }, {
       globPattern: -1
     }]
   }).then(d => {
-    disposable = d
+    disposables.push(d)
+  })
+  connection.client.register(DidChangeWatchedFilesNotification.type, {
+    watchers: null
+  }).then(d => {
+    disposables.push(d)
   })
 })
 connection.onNotification(DidChangeWatchedFilesNotification.type, params => {
@@ -29,7 +37,9 @@ connection.onNotification(DidChangeWatchedFilesNotification.type, params => {
 })
 
 connection.onNotification('unwatch', () => {
-  if (disposable) disposable.dispose()
+  for (let d of disposables) {
+    d.dispose()
+  }
 })
 
 connection.listen()

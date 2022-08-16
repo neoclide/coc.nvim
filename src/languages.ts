@@ -99,6 +99,7 @@ class Languages {
   ): Disposable {
     selector = typeof selector == 'string' ? [{ language: selector }] : selector
     let sources = require('./sources/index').default
+    sources.removeSource(name)
     return sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters)
   }
 

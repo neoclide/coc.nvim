@@ -254,9 +254,7 @@ describe('Client integration', () => {
     }
     if (clientOpts) Object.assign(clientOptions, clientOpts)
     let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
-    let p = client.onReady()
     await client.start()
-    await p
     expect(client.initializeResult).toBeDefined()
     expect(client.started).toBe(true)
     return client
@@ -410,6 +408,7 @@ describe('Client integration', () => {
     let client = await testLanguageServer(serverOptions, {
       ignoredRootPaths: [workspace.root]
     })
+    expect(client.serviceState).toBeDefined()
     await client.stop()
   })
 
@@ -417,6 +416,11 @@ describe('Client integration', () => {
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
+      options: {
+        env: {
+          NODE_SOCKET_TEST: 1
+        }
+      },
       transport: {
         kind: lsclient.TransportKind.socket,
         port: 8088
@@ -433,6 +437,49 @@ describe('Client integration', () => {
       args: [serverModule, '--stdio']
     }
     let client = await testLanguageServer(serverOptions)
+    await client.stop()
+  })
+
+  it('should not throw as command', async () => {
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      command: 'not_exists',
+      args: [serverModule, '--stdio']
+    }
+    let clientOptions: lsclient.LanguageClientOptions = {
+      documentSelector: ['css'],
+      initializationOptions: {}
+    }
+    await expect(async () => {
+      let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
+      await client.start()
+      await client.stop()
+    }).rejects.toThrow(Error)
+  })
+
+  it('should logMessage', async () => {
+    let called = false
+    let outputChannel = {
+      name: 'empty',
+      content: '',
+      append: () => {
+        called = true
+      },
+      appendLine: () => {},
+      clear: () => {},
+      show: () => {},
+      hide: () => {},
+      dispose: () => {}
+    }
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      command: 'node',
+      args: [serverModule, '--stdio']
+    }
+    let client = await testLanguageServer(serverOptions, { outputChannel })
+    client.logMessage('message')
+    client.logMessage(Buffer.from('message', 'utf8'))
+    expect(called).toBe(true)
     await client.stop()
   })
 
