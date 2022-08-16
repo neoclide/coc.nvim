@@ -120,7 +120,7 @@ describe('FileSystemWatcherFeature', () => {
     await client.start()
     await helper.wait(50)
     let feature = client.getFeature(DidChangeWatchedFilesNotification.method)
-    await feature._notifyFileEvent()
+    await (feature as any)._notifyFileEvent()
     let state = feature.getState()
     expect((state as any).registrations).toBe(true)
     await client.sendNotification('unwatch')

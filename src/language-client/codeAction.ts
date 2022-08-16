@@ -90,7 +90,6 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
     options: CodeActionRegistrationOptions
   ): [Disposable, CodeActionProvider] {
     const registCommand = (id: string) => {
-      if (commands.has(id)) return
       const client = this._client
       const executeCommand: ExecuteCommandSignature = (command: string, args: any[]): any => {
         const params: ExecuteCommandParams = {

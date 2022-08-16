@@ -94,7 +94,7 @@ export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean |
     }
     capability.multilineTokenSupport = false
     capability.overlappingTokenSupport = false
-    capability.serverCancelSupport = false
+    capability.serverCancelSupport = true
     capability.augmentsSyntaxTokens = false
     ensure(ensure(capabilities, 'workspace')!, 'semanticTokens')!.refreshSupport = true
   }

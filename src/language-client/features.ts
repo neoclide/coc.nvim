@@ -3,7 +3,7 @@ import {
   CallHierarchyPrepareRequest, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, DeclarationRequest, DefinitionRequest,
   DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification,
   DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest,
-  DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, Event, FileOperationRegistrationOptions,
+  DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, Event, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions,
   FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineValueRequest,
   LinkedEditingRangeRequest, MarkupKind, MessageSignature, NotificationHandler, NotificationHandler0,
   NotificationType, NotificationType0, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, ReferencesRequest,
@@ -620,6 +620,7 @@ export interface FeatureClient<M, CO = object> {
 
   handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: any, defaultValue: T, showNotification?: boolean): T
 
+  getFeature(request: typeof ExecuteCommandRequest.method): DynamicFeature<ExecuteCommandRegistrationOptions>
   getFeature(request: typeof DidChangeWatchedFilesNotification.method): DynamicFeature<DidChangeWatchedFilesRegistrationOptions>
   getFeature(request: typeof DidOpenTextDocumentNotification.method): DidOpenTextDocumentFeatureShape
   getFeature(request: typeof DidChangeTextDocumentNotification.method): DidChangeTextDocumentFeatureShape

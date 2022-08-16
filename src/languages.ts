@@ -123,7 +123,8 @@ class Languages {
   }
 
   public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
-    return this.documentSymbolManager.register(selector, provider, metadata)
+    if (metadata) provider.meta = metadata
+    return this.documentSymbolManager.register(selector, provider)
   }
 
   public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {

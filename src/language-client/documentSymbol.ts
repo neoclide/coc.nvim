@@ -91,6 +91,7 @@ export class DocumentSymbolFeature extends TextDocumentLanguageFeature<
     options: DocumentSymbolRegistrationOptions
   ): [Disposable, DocumentSymbolProvider] {
     const provider: DocumentSymbolProvider = {
+      meta: options.label ? { label: options.label } : undefined,
       provideDocumentSymbols: (document, token) => {
         const client = this._client
         const _provideDocumentSymbols: ProvideDocumentSymbolsSignature = (document, token) => {
@@ -106,7 +107,6 @@ export class DocumentSymbolFeature extends TextDocumentLanguageFeature<
           : _provideDocumentSymbols(document, token)
       }
     }
-    const metadata = options.label ? { label: options.label } : undefined
-    return [languages.registerDocumentSymbolProvider(options.documentSelector!, provider, metadata), provider]
+    return [languages.registerDocumentSymbolProvider(options.documentSelector!, provider), provider]
   }
 }
