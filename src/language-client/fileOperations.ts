@@ -144,7 +144,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     }
   }
 
-  protected async filter(event: E, prop: (i: I) => URI): Promise<E> {
+  public async filter(event: E, prop: (i: I) => URI): Promise<E> {
     // (Asynchronously) map each file onto a boolean of whether it matches
     // any of the globs.
     const fileMatches = await Promise.all(
@@ -232,16 +232,22 @@ abstract class NotificationFileOperationFeature<I, E extends { readonly files: R
     const filteredEvent = await this.filter(originalEvent, this._accessUri)
     if (filteredEvent.files.length) {
       const next = async (event: E): Promise<void> => {
+        if (!this._client.isRunning()) return
         return this._client.sendNotification(
           this._notificationType,
           this._createParams(event)
         )
       }
-      this.doSend(filteredEvent, next)
+      let promise = this.doSend(filteredEvent, next)
+      if (promise) {
+        await promise.catch(e => {
+          this._client.error(`Sending notification ${this.registrationType.method} failed`, e)
+        })
+      }
     }
   }
 
-  protected abstract doSend(event: E, next: (event: E) => void): void
+  protected abstract doSend(event: E, next: (event: E) => void): void | Promise<void>
 }
 
 export class DidCreateFilesFeature extends NotificationFileOperationFeature<URI, FileCreateEvent, CreateFilesParams> {
@@ -257,7 +263,7 @@ export class DidCreateFilesFeature extends NotificationFileOperationFeature<URI,
     )
   }
 
-  protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void {
+  protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void | Promise<void> {
     const middleware = this._client.middleware.workspace
     return middleware?.didCreateFiles ? middleware.didCreateFiles(event, next) : next(event)
   }
@@ -276,7 +282,7 @@ export class DidRenameFilesFeature extends NotificationFileOperationFeature<{ ol
     )
   }
 
-  protected doSend(event: FileRenameEvent, next: (event: FileRenameEvent) => void): void {
+  protected doSend(event: FileRenameEvent, next: (event: FileRenameEvent) => void): void | Promise<void> {
     const middleware = this._client.middleware.workspace
     return middleware?.didRenameFiles ? middleware.didRenameFiles(event, next) : next(event)
   }
@@ -295,7 +301,7 @@ export class DidDeleteFilesFeature extends NotificationFileOperationFeature<URI,
     )
   }
 
-  protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void {
+  protected doSend(event: FileCreateEvent, next: (event: FileCreateEvent) => void): void | Promise<void> {
     const middleware = this._client.middleware.workspace
     return middleware?.didDeleteFiles ? middleware.didDeleteFiles(event, next) : next(event)
   }

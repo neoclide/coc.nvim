@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest} = require('vscode-languageserver')
+const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest} = require('vscode-languageserver')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -22,7 +22,39 @@ connection.onInitialize((params) => {
       workspaceSymbolProvider: true,
       codeLensProvider: {
         resolveProvider: true
-      }
+      },
+      workspace: {
+        fileOperations: {
+          // Static reg is folders + .txt files with operation kind in the path
+          didCreate: {
+            filters: [
+              {scheme: 'lsptest', pattern: {glob: '**/*', matches: 'file', options: {}}},
+              {scheme: 'file', pattern: {glob: '**/*', matches: 'file', options: {ignoreCase: false}}}
+            ]
+          },
+          didRename: {
+            filters: [
+              {scheme: 'file', pattern: {glob: '**/*', matches: 'folder'}},
+              {scheme: 'file', pattern: {glob: '**/*', matches: 'file'}}
+            ]
+          },
+          didDelete: {
+            filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
+          },
+          willCreate: {
+            filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
+          },
+          willRename: {
+            filters: [
+              {scheme: 'file', pattern: {glob: '**/*', matches: 'folder'}},
+              {scheme: 'file', pattern: {glob: '**/*', matches: 'file'}}
+            ]
+          },
+          willDelete: {
+            filters: [{scheme: 'file', pattern: {glob: '**/*'}}]
+          },
+        }
+      },
     }
   }
 })
@@ -60,6 +92,20 @@ connection.onInitialized(() => {
     disposables.push(d)
   })
 })
+
+let lastFileOperationRequest
+connection.workspace.onDidCreateFiles(params => {lastFileOperationRequest = {type: 'create', params}})
+connection.workspace.onDidRenameFiles(params => {lastFileOperationRequest = {type: 'rename', params}})
+connection.workspace.onDidDeleteFiles(params => {lastFileOperationRequest = {type: 'delete', params}})
+connection.workspace.onWillRenameFiles(params => {lastFileOperationRequest = {type: 'willRename', params}})
+connection.workspace.onWillDeleteFiles(params => {lastFileOperationRequest = {type: 'willDelete', params}})
+
+connection.onRequest(
+  new ProtocolRequestType('testing/lastFileOperationRequest'),
+  () => {
+    return lastFileOperationRequest
+  },
+)
 
 connection.onNotification('unregister', () => {
   for (let d of disposables) {
