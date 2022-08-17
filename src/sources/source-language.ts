@@ -310,7 +310,7 @@ export default class LanguageSource implements ISource {
 /*
  * Check new startcol by check start characters.
  */
-export function getStartColumn(line: string, items: CompletionItem[], itemDefaults: ItemDefaults | undefined): number | undefined {
+export function getStartColumn(line: string, items: CompletionItem[], itemDefaults?: ItemDefaults): number | undefined {
   let range: Range
   if (itemDefaults && itemDefaults.editRange != null) {
     range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.replace
