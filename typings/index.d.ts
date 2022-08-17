@@ -9167,7 +9167,7 @@ declare module 'coc.nvim' {
 
   export interface WorkspaceFolderWorkspaceMiddleware {
     workspaceFolders?: (token: CancellationToken, next: RequestHandler0<WorkspaceFolder[] | null, void>) => HandlerResult<WorkspaceFolder[] | null, void>
-    didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, void>
+    didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, Promise<void>>
   }
 
   export interface ProvideTypeDefinitionSignature {
@@ -9313,17 +9313,12 @@ declare module 'coc.nvim' {
     ) => ProviderResult<SemanticTokens>
   }
 
-
-  /**
-   * File operation middleware
-   * @since 3.16.0
-   */
   export interface FileOperationsMiddleware {
-    didCreateFiles?: NextSignature<FileCreateEvent, void>
+    didCreateFiles?: NextSignature<FileCreateEvent, Promise<void>>
     willCreateFiles?: NextSignature<FileWillCreateEvent, Thenable<WorkspaceEdit | null | undefined>>
-    didRenameFiles?: NextSignature<FileRenameEvent, void>
+    didRenameFiles?: NextSignature<FileRenameEvent, Promise<void>>
     willRenameFiles?: NextSignature<FileWillRenameEvent, Thenable<WorkspaceEdit | null | undefined>>
-    didDeleteFiles?: NextSignature<FileDeleteEvent, void>
+    didDeleteFiles?: NextSignature<FileDeleteEvent, Promise<void>>
     willDeleteFiles?: NextSignature<FileWillDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
   }
 
@@ -9522,12 +9517,12 @@ declare module 'coc.nvim' {
    * from the server
    */
   interface _Middleware {
-    didOpen?: NextSignature<LinesTextDocument, void>
-    didChange?: NextSignature<DidChangeTextDocumentParams, void>
-    willSave?: NextSignature<TextDocumentWillSaveEvent, void>
+    didOpen?: NextSignature<LinesTextDocument, Promise<void>>
+    didChange?: NextSignature<DidChangeTextDocumentParams, Promise<void>>
+    willSave?: NextSignature<TextDocumentWillSaveEvent, Promise<void>>
     willSaveWaitUntil?: NextSignature<TextDocumentWillSaveEvent, Thenable<TextEdit[]>>
-    didSave?: NextSignature<LinesTextDocument, void>
-    didClose?: NextSignature<LinesTextDocument, void>
+    didSave?: NextSignature<LinesTextDocument, Promise<void>>
+    didClose?: NextSignature<LinesTextDocument, Promise<void>>
     handleDiagnostics?: (this: void, uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void
     provideCompletionItem?: (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature) => ProviderResult<CompletionItem[] | CompletionList | null>
     resolveCompletionItem?: (this: void, item: CompletionItem, token: CancellationToken, next: ResolveCompletionItemSignature) => ProviderResult<CompletionItem>
