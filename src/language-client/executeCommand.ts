@@ -1,7 +1,7 @@
 'use strict'
-import { Disposable, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ClientCapabilities, ServerCapabilities, RegistrationType, ExecuteCommandParams } from 'vscode-languageserver-protocol'
+import { Disposable, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ClientCapabilities, ServerCapabilities, RegistrationType, ExecuteCommandParams, CancellationToken } from 'vscode-languageserver-protocol'
 import { ProviderResult } from '../provider'
-import { ensure, RegistrationData, DynamicFeature, FeatureClient, FeatureState } from './features'
+import { ensure, RegistrationData, DynamicFeature, FeatureClient, FeatureState, BaseFeature } from './features'
 import commands from '../commands'
 import * as UUID from './utils/uuid'
 
@@ -13,9 +13,11 @@ export interface ExecuteCommandMiddleware {
   executeCommand?: (this: void, command: string, args: any[], next: ExecuteCommandSignature) => ProviderResult<any>
 }
 
-export class ExecuteCommandFeature implements DynamicFeature<ExecuteCommandRegistrationOptions> {
+export class ExecuteCommandFeature extends BaseFeature<ExecuteCommandMiddleware> implements DynamicFeature<ExecuteCommandRegistrationOptions> {
   private _commands: Map<string, Disposable[]> = new Map<string, Disposable[]>()
-  constructor(private _client: FeatureClient<ExecuteCommandMiddleware>) {}
+  constructor(client: FeatureClient<ExecuteCommandMiddleware>) {
+    super(client)
+  }
 
   public getState(): FeatureState {
     return { kind: 'workspace', id: this.registrationType.method, registrations: this._commands.size > 0 }
@@ -26,10 +28,7 @@ export class ExecuteCommandFeature implements DynamicFeature<ExecuteCommandRegis
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    ensure(
-      ensure(capabilities, 'workspace')!,
-      'executeCommand'
-    )!.dynamicRegistration = true
+    ensure(ensure(capabilities, 'workspace')!, 'executeCommand')!.dynamicRegistration = true
   }
 
   public initialize(capabilities: ServerCapabilities): void {
@@ -52,10 +51,7 @@ export class ExecuteCommandFeature implements DynamicFeature<ExecuteCommandRegis
         command,
         arguments: args
       }
-      return client.sendRequest(ExecuteCommandRequest.type, params).then(undefined, error => {
-        client.handleFailedRequest(ExecuteCommandRequest.type, undefined, error, undefined)
-        throw error
-      })
+      return this.sendRequest(ExecuteCommandRequest.type, params, CancellationToken.None)
     }
     if (data.registerOptions.commands) {
       let disposables: Disposable[] = []

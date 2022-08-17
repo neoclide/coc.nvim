@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest} = require('vscode-languageserver')
+const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest, WorkspaceFoldersRequest} = require('vscode-languageserver')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -9,8 +9,11 @@ let options
 let disposables = []
 let prepareResponse
 let configuration
+let folders
+let foldersEvent
 connection.onInitialize((params) => {
   options = params.initializationOptions || {}
+  let changeNotifications = options.changeNotifications ?? 'b346648e-88e0-44e3-91e3-52fd6addb8c7'
   return {
     capabilities: {
       inlineValueProvider: {},
@@ -24,6 +27,9 @@ connection.onInitialize((params) => {
         resolveProvider: true
       },
       workspace: {
+        workspaceFolders: {
+          changeNotifications
+        },
         fileOperations: {
           // Static reg is folders + .txt files with operation kind in the path
           didCreate: {
@@ -110,6 +116,10 @@ connection.workspace.onDidDeleteFiles(params => {lastFileOperationRequest = {typ
 connection.workspace.onWillRenameFiles(params => {lastFileOperationRequest = {type: 'willRename', params}})
 connection.workspace.onWillDeleteFiles(params => {lastFileOperationRequest = {type: 'willDelete', params}})
 
+// connection.onDidChangeWorkspaceFolders(e => {
+//   foldersEvent = params
+// })
+
 connection.onCompletion(_params => {
   return [
     {label: 'item', insertText: 'text'}
@@ -166,8 +176,20 @@ connection.onRequest('getConfiguration', () => {
   return configuration
 })
 
+connection.onRequest('getFolders', () => {
+  return folders
+})
+
+connection.onRequest('getFoldersEvent', () => {
+  return foldersEvent
+})
+
 connection.onNotification('fireInlineValueRefresh', () => {
   connection.sendRequest(InlineValueRefreshRequest.type)
+})
+
+connection.onNotification('requestFolders', async () => {
+  folders = await connection.sendRequest(WorkspaceFoldersRequest.type)
 })
 
 connection.onPrepareRename(() => {

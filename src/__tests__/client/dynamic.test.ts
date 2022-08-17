@@ -1,10 +1,11 @@
 import path from 'path'
-import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import * as lsclient from '../../language-client'
 import helper from '../helper'
 import commands from '../../commands'
 import { URI } from 'vscode-uri'
+import workspace from '../../workspace'
 
 beforeAll(async () => {
   await helper.setup()
@@ -12,6 +13,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await helper.shutdown()
+})
+
+afterEach(async () => {
+  await helper.reset()
 })
 
 describe('DynamicFeature', () => {
@@ -44,6 +49,7 @@ describe('DynamicFeature', () => {
       let feature = client.getFeature(RenameRequest.method)
       let provider = feature.getProvider(textDocument)
       expect(provider.prepareRename).toBeUndefined()
+      feature.unregister('')
       await client.stop()
     })
 
@@ -307,6 +313,68 @@ describe('DynamicFeature', () => {
       await helper.waitValue(() => {
         return feature.registrationLength
       }, 2)
+      await client.stop()
+    })
+  })
+
+  describe('WorkspaceFoldersFeature', () => {
+    it('should register listeners', async () => {
+      let client = await startServer({}, {})
+      let feature = client.getFeature(DidChangeWorkspaceFoldersNotification.method)
+      expect(feature).toBeDefined()
+      let state = feature.getState() as any
+      expect(state.registrations).toBe(true)
+      await client.stop()
+    })
+
+    it('should handle WorkspaceFoldersRequest', async () => {
+      let client = await startServer({ changeNotifications: true }, {})
+      let folders = workspace.workspaceFolders
+      expect(folders.length).toBe(0)
+      await client.sendNotification('requestFolders')
+      await helper.wait(30)
+      let res = await client.sendRequest('getFolders')
+      expect(res).toBeNull()
+      await client.stop()
+    })
+
+    it('should use workspaceFolders middleware', async () => {
+      await workspace.loadFile(__filename)
+      let folders = workspace.workspaceFolders
+      expect(folders.length).toBe(1)
+      let called = false
+      let client = await startServer({ changeNotifications: true }, {
+        workspace: {
+          workspaceFolders: (token, next) => {
+            called = true
+            return next(token)
+          }
+        }
+      })
+      await client.sendNotification('requestFolders')
+      await helper.wait(30)
+      let res = await client.sendRequest('getFolders') as WorkspaceFolder[]
+      expect(called).toBe(true)
+      expect(Array.isArray(res)).toBe(true)
+      expect(res.length).toBe(1)
+      await client.stop()
+    })
+
+    it('should send folders event with middleware', async () => {
+      let called = false
+      let client = await startServer({ changeNotifications: true }, {
+        workspace: {
+          didChangeWorkspaceFolders: (ev, next) => {
+            called = true
+            return next(ev)
+          }
+        }
+      })
+      let folders = workspace.workspaceFolders
+      expect(folders.length).toBe(0)
+      await workspace.loadFile(__filename)
+      await helper.wait(300)
+      expect(called).toBe(true)
       await client.stop()
     })
   })

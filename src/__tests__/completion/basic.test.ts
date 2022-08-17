@@ -109,6 +109,7 @@ describe('completion', () => {
       await helper.visible('result')
       await nvim.input('<C-y>')
       await nvim.input('<esc>')
+      await helper.wait(30)
       await nvim.input('or')
       await helper.visible('result')
     })

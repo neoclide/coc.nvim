@@ -47,23 +47,15 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
     return DidChangeWorkspaceFoldersNotification.type
   }
 
-  private getValidWorkspaceFolders(): WorkspaceFolder[] | undefined {
+  public getValidWorkspaceFolders(): WorkspaceFolder[] | undefined {
     let { workspaceFolders } = workspace
     if (!workspaceFolders || workspaceFolders.length == 0) return undefined
-    let { ignoredRootPaths } = this._client.clientOptions
-    if (!Array.isArray(ignoredRootPaths)) ignoredRootPaths = []
+    let ignoredRootPaths = this._client.clientOptions.ignoredRootPaths ?? []
     let arr = workspaceFolders.filter(o => {
       let fsPath = URI.parse(o.uri).fsPath
       return ignoredRootPaths.every(p => !sameFile(p, fsPath))
     })
     return arr.length ? arr : undefined
-  }
-
-  private asProtocol(workspaceFolder: WorkspaceFolder): WorkspaceFolder
-  private asProtocol(workspaceFolder: undefined): null
-  private asProtocol(workspaceFolder: WorkspaceFolder | undefined): WorkspaceFolder | null {
-    if (workspaceFolder == null) return null
-    return { uri: workspaceFolder.uri, name: workspaceFolder.name }
   }
 
   public fillInitializeParams(params: InitializeParams): void {
@@ -170,12 +162,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
   }
 
   public unregister(id: string): void {
-    let disposable = this._listeners.get(id)
-    if (disposable === void 0) {
-      return
-    }
-    this._listeners.delete(id)
-    disposable.dispose()
+    // dynamic not supported
   }
 
   public dispose(): void {
@@ -183,5 +170,12 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
       disposable.dispose()
     }
     this._listeners.clear()
+  }
+
+  private asProtocol(workspaceFolder: WorkspaceFolder): WorkspaceFolder
+  private asProtocol(workspaceFolder: undefined): null
+  private asProtocol(workspaceFolder: WorkspaceFolder | undefined): WorkspaceFolder | null {
+    if (workspaceFolder == null) return null
+    return { uri: workspaceFolder.uri, name: workspaceFolder.name }
   }
 }

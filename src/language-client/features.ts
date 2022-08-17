@@ -1,7 +1,7 @@
 'use strict'
 import {
   CallHierarchyPrepareRequest, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, DeclarationRequest, DefinitionRequest,
-  DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification,
+  DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification,
   DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest,
   DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, Event, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions,
   FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlayHintRequest, InlineValueRequest,
@@ -265,7 +265,7 @@ export interface DynamicFeature<RO> {
   /**
    * Returns the state the feature is in.
    */
-  getState?(): FeatureState
+  getState(): FeatureState
 
   /**
    * The signature (e.g. method) for which this features support dynamic activation / registration.
@@ -626,6 +626,7 @@ export interface FeatureClient<M, CO = object> {
 
   handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: any, defaultValue: T, showNotification?: boolean): T
 
+  getFeature(request: typeof DidChangeWorkspaceFoldersNotification.method): DynamicFeature<void>
   getFeature(request: typeof ExecuteCommandRequest.method): DynamicFeature<ExecuteCommandRegistrationOptions>
   getFeature(request: typeof DidChangeWatchedFilesNotification.method): DynamicFeature<DidChangeWatchedFilesRegistrationOptions>
   getFeature(request: typeof DidOpenTextDocumentNotification.method): DidOpenTextDocumentFeatureShape
