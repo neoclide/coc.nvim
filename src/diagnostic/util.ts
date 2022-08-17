@@ -15,7 +15,7 @@ export enum DiagnosticHighlight {
 }
 
 export interface DiagnosticConfig {
-  highlighLimit: number
+  highlightLimit: number
   highlightPriority: number
   autoRefresh: boolean
   enableSign: boolean
