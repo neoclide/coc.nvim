@@ -91,6 +91,7 @@ export function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export interface TextDocumentProviderFeature<T> {
+  readonly registrationLength: number
   /**
    * Triggers the corresponding RPC method.
    */
@@ -500,6 +501,10 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
 
   public get registrationType(): RegistrationType<RO> {
     return this._registrationType
+  }
+
+  public get registrationLength(): number {
+    return this._registrations.size
   }
 
   public abstract fillClientCapabilities(capabilities: ClientCapabilities): void

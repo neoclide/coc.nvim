@@ -1,9 +1,4 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import { ClientCapabilities, WorkDoneProgressCreateParams, WorkDoneProgressCreateRequest } from 'vscode-languageserver-protocol'
 import { ProgressPart } from './progressPart'
 import { FeatureState, StaticFeature, ensure, FeatureClient } from './features'
