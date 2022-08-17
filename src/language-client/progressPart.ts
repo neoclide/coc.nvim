@@ -9,6 +9,7 @@ export interface Progress {
 }
 
 export interface ProgressContext {
+  readonly id: string
   onProgress<P>(type: ProgressType<P>, token: string | number, handler: NotificationHandler<P>): Disposable
   sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: P): void
 }
@@ -22,7 +23,7 @@ export class ProgressPart {
   private _resolve: () => void
   private _reject: ((reason?: any) => void) | undefined
 
-  public constructor(private id: string, private client: ProgressContext, private token: ProgressToken, done?: (part: ProgressPart) => void) {
+  public constructor(private client: ProgressContext, private token: ProgressToken, done?: (part: ProgressPart) => void) {
     this.disposables.push(client.onProgress(WorkDoneProgress.type, this.token, value => {
       switch (value.kind) {
         case 'begin':
@@ -39,11 +40,11 @@ export class ProgressPart {
     }))
   }
 
-  public begin(params: WorkDoneProgressBegin): void {
-    if (this._started || this._cancelled) return
+  public begin(params: WorkDoneProgressBegin): boolean {
+    if (this._started || this._cancelled) return false
     this._started = true
     void window.withProgress<void>({
-      source: `language-client-${this.id}`,
+      source: `language-client-${this.client.id}`,
       cancellable: params.cancellable,
       title: params.title,
     }, (progress, token) => {
@@ -59,6 +60,7 @@ export class ProgressPart {
         this._reject = reject
       })
     })
+    return true
   }
 
   private report(params: WorkDoneProgressReport | WorkDoneProgressBegin): void {

@@ -1,9 +1,8 @@
+import * as assert from 'assert'
 import { CompletionList, CompletionTriggerKind, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextDocumentItem, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import * as assert from 'assert'
 import * as cv from '../../language-client/utils/converter'
-import { SnippetString } from '../../snippets/string'
 
 describe('converter', () => {
 

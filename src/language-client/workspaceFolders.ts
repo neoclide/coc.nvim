@@ -106,7 +106,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
     let id: string | undefined
     if (typeof value === 'string') {
       id = value
-    } else if (value === true) {
+    } else if (value) {
       id = UUID.generateUuid()
     }
     if (id) {

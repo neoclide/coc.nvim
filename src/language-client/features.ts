@@ -19,6 +19,7 @@ import workspace from '../workspace'
 import * as UUID from './utils/uuid'
 
 export interface Connection {
+  id: string
   listen(): void
 
   hasPendingResponse(): boolean

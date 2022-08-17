@@ -30,6 +30,7 @@ export default class ProgressNotification<R> extends Notification {
       if (bufnr == this.bufnr) {
         if (this.tokenSource) this.tokenSource.cancel()
         this._onDidFinish.fire(undefined)
+        this._winid = undefined
         this.dispose()
       }
     }, null, this.disposables)

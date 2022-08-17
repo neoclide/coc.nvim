@@ -78,6 +78,7 @@ function createConnection(input: MessageReader, output: MessageWriter, errorHand
   connection.onError(data => { errorHandler(data[0], data[1], data[2]) })
   connection.onClose(closeHandler)
   let result: Connection = {
+    id: '',
     hasPendingResponse: (): boolean => connection.hasPendingResponse(),
     listen: (): void => connection.listen(),
     sendRequest: <R>(type: string | MessageSignature, ...params: any[]): Promise<R> => {
@@ -972,7 +973,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (progressOnInitialization) {
       const token: ProgressToken = UUID.generateUuid()
       initParams.workDoneToken = token
-      const part = new ProgressPart(this._id, connection, token)
+      connection.id = this._id
+      const part = new ProgressPart(connection, token)
       part.begin({ title: `Initializing ${this.id}`, kind: 'begin' })
       return this.doInitialize(connection, initParams).then(result => {
         part.done()
