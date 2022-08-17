@@ -44,7 +44,7 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
     await Promise.all(items.map(item => {
       let { id, provider } = item
       return Promise.resolve(provider.provideInlayHints(document, range, token)).then(hints => {
-        if (!hints) return
+        if (!Array.isArray(hints) || token.isCancellationRequested) return
         for (let hint of hints) {
           if (!isValidInlayHint(hint, range)) continue
           if (finished > 0 && results.findIndex(o => sameHint(o, hint)) != -1) continue

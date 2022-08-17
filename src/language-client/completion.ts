@@ -132,15 +132,8 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
             cv.asCompletionParams(document, position, context),
             token,
             []
-          ).then(
-            res => {
-              if (!res || Array.isArray(res) || res.itemDefaults == null) return res
-              // TODO avoid convert for performance
-              return cv.asCompletionList(res, token)
-            }
           )
         }
-
         return middleware.provideCompletionItem
           ? middleware.provideCompletionItem(document, position, context, token, provideCompletionItems)
           : provideCompletionItems(document, position, context, token)
