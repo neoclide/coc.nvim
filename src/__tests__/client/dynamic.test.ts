@@ -1,5 +1,5 @@
 import path from 'path'
-import { CancellationToken, CodeActionRequest, CodeLensRequest, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentSymbolRequest, ExecuteCommandRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import * as lsclient from '../../language-client'
 import helper from '../helper'
@@ -258,27 +258,27 @@ describe('DynamicFeature', () => {
 
   describe('FileOperationFeature', () => {
     it('should use middleware for FileOperationFeature', async () => {
-      let fn = jest.fn()
+      let n = 0
       let client = await startServer({}, {
         workspace: {
           didCreateFiles: (ev, next) => {
-            fn()
+            n++
             return next(ev)
           },
           didRenameFiles: (ev, next) => {
-            fn()
+            n++
             return next(ev)
           },
           didDeleteFiles: (ev, next) => {
-            fn()
+            n++
             return next(ev)
           },
           willRenameFiles: (ev, next) => {
-            fn()
+            n++
             return next(ev)
           },
           willDeleteFiles: (ev, next) => {
-            fn()
+            n++
             return next(ev)
           }
         }
@@ -293,8 +293,20 @@ describe('DynamicFeature', () => {
       await willRename.send({ files: [{ oldUri: URI.file(__dirname), newUri: URI.file(path.join(__dirname, 'x')) }], waitUntil: () => {} })
       let willDelete = client.getFeature(WillDeleteFilesRequest.method)
       await willDelete.send({ files: [URI.file('/x/y')], waitUntil: () => {} })
-      await helper.wait(50)
-      expect(fn).toBeCalledTimes(5)
+      await helper.waitValue(() => {
+        return n
+      }, 5)
+      await client.stop()
+    })
+  })
+
+  describe('CompletionItemFeature', () => {
+    it('should register multiple completion sources', async () => {
+      let client = await startServer({}, {})
+      let feature = client.getFeature(CompletionRequest.method)
+      await helper.waitValue(() => {
+        return feature.registrationLength
+      }, 2)
       await client.stop()
     })
   })

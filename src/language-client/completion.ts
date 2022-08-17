@@ -1,8 +1,4 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
 import { CancellationToken, ClientCapabilities, CompletionContext, CompletionItem, CompletionItemKind, CompletionItemTag, CompletionList, CompletionOptions, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, Disposable, DocumentSelector, InsertTextMode, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
@@ -75,7 +71,6 @@ export interface $CompletionOptions {
 }
 
 export class CompletionItemFeature extends TextDocumentLanguageFeature<CompletionOptions, CompletionRegistrationOptions, CompletionItemProvider, CompletionMiddleware, $CompletionOptions> {
-  private index: number
   constructor(client: FeatureClient<CompletionMiddleware, $CompletionOptions>) {
     super(client, CompletionRequest.type)
   }
@@ -110,7 +105,6 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    this.index = 0
     const options = this.getRegistrationOptions(documentSelector, capabilities.completionProvider)
     if (!options) return
     this.register({
@@ -119,10 +113,9 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
     })
   }
 
-  protected registerLanguageProvider(options: CompletionRegistrationOptions): [Disposable, CompletionItemProvider] {
+  protected registerLanguageProvider(options: CompletionRegistrationOptions & { priority?: number }, id: string): [Disposable, CompletionItemProvider] {
     let triggerCharacters = options.triggerCharacters || []
     let allCommitCharacters = options.allCommitCharacters || []
-    let priority = (options as any).priority as number
     const provider: CompletionItemProvider = {
       provideCompletionItems: (document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext): ProviderResult<CompletionList | CompletionItem[]> => {
         const middleware = this._client.middleware
@@ -131,7 +124,7 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
             CompletionRequest.type,
             cv.asCompletionParams(document, position, context),
             token,
-            []
+            null
           )
         }
         return middleware.provideCompletionItem
@@ -156,16 +149,15 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
         } : undefined
     }
     // index is needed since one language server could create many sources.
-    let name = this._client.id + (this.index ? '-' + this.index : '')
+    let name = this._client.id + (this.registrationLength == 0 ? '' : '-' + id)
     const disposable = languages.registerCompletionItemProvider(
       name,
       'LS',
       options.documentSelector,
       provider,
       triggerCharacters,
-      priority,
+      options.priority,
       allCommitCharacters)
-    this.index = this.index + 1
     return [disposable, provider]
   }
 }

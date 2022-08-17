@@ -1,5 +1,5 @@
 'use strict'
-const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest} = require('vscode-languageserver')
+const {createConnection, ProtocolRequestType, Range, TextDocumentSyncKind, Command, RenameRequest, WorkspaceSymbolRequest, CodeAction, SemanticTokensRegistrationType, CodeActionRequest, ConfigurationRequest, DidChangeConfigurationNotification, InlineValueRefreshRequest, ExecuteCommandRequest, CompletionRequest} = require('vscode-languageserver')
 
 const connection = createConnection()
 console.log = connection.console.log.bind(connection.console)
@@ -91,6 +91,16 @@ connection.onInitialized(() => {
   }).then(d => {
     disposables.push(d)
   })
+  connection.client.register(CompletionRequest.type, {
+    documentSelector: [{language: 'vim'}]
+  }).then(d => {
+    disposables.push(d)
+  })
+  connection.client.register(CompletionRequest.type, {
+    triggerCharacters: ['/'],
+  }).then(d => {
+    disposables.push(d)
+  })
 })
 
 let lastFileOperationRequest
@@ -99,6 +109,17 @@ connection.workspace.onDidRenameFiles(params => {lastFileOperationRequest = {typ
 connection.workspace.onDidDeleteFiles(params => {lastFileOperationRequest = {type: 'delete', params}})
 connection.workspace.onWillRenameFiles(params => {lastFileOperationRequest = {type: 'willRename', params}})
 connection.workspace.onWillDeleteFiles(params => {lastFileOperationRequest = {type: 'willDelete', params}})
+
+connection.onCompletion(_params => {
+  return [
+    {label: 'item', insertText: 'text'}
+  ]
+})
+
+connection.onCompletionResolve(item => {
+  item.detail = 'detail'
+  return item
+})
 
 connection.onRequest(
   new ProtocolRequestType('testing/lastFileOperationRequest'),
