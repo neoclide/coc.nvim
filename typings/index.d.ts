@@ -4652,6 +4652,20 @@ declare module 'coc.nvim' {
     readonly options: TextEditorOptions
   }
 
+  export interface FloatConfig {
+    border?: boolean
+    rounded?: boolean
+    highlight?: string
+    title?: string
+    borderhighlight?: string
+    close?: boolean
+    maxHeight?: number
+    maxWidth?: number
+    winblend?: number
+    focusable?: boolean
+    shadow?: boolean
+  }
+
   export interface FloatWinConfig {
     maxHeight?: number
     maxWidth?: number
@@ -4706,6 +4720,9 @@ declare module 'coc.nvim' {
     activated(): Promise<boolean>
 
     constructor(nvim: Neovim)
+
+
+    public applyFloatConfig(conf: FloatWinConfig, opts: FloatConfig): FloatWinConfig
 
     /**
      * Show documentations in float window/popup around cursor.
