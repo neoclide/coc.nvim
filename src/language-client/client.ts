@@ -727,6 +727,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return this.$state === ClientState.Running && this._connection !== undefined ? this._connection : undefined
   }
 
+  public get hasPendingResponse(): boolean {
+    return this._connection?.hasPendingResponse()
+  }
+
   public onReady(): Promise<void> {
     if (this._onStart) return this._onStart
     return new Promise(resolve => {

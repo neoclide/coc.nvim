@@ -63,7 +63,7 @@ export class ProgressPart {
     return true
   }
 
-  private report(params: WorkDoneProgressReport | WorkDoneProgressBegin): void {
+  public report(params: WorkDoneProgressReport | WorkDoneProgressBegin): void {
     if (!this.progress) return
     let msg: { message?: string, increment?: number } = {}
     if (params.message) msg.message = params.message

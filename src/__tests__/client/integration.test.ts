@@ -212,7 +212,8 @@ describe('Client events', () => {
     await client.sendNotification('showDocument', { uri: 'lsptest:///1', takeFocus: false })
     await client.sendNotification('showDocument', { uri: uri.toString() })
     await client.sendNotification('showDocument', { uri: uri.toString(), selection: Range.create(0, 0, 1, 0) })
-    await helper.wait(50)
+    await helper.wait(300)
+    expect(client.hasPendingResponse).toBe(false)
     await client.stop()
   })
 
@@ -494,7 +495,7 @@ describe('Client integration', () => {
       let serverModule = path.join(__dirname, './server/eventServer.js')
       let serverOptions: lsclient.ServerOptions = {
         module: serverModule,
-        transport: lsclient.TransportKind.stdio,
+        transport: lsclient.TransportKind.ipc,
       }
       let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
       await client.start()

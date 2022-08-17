@@ -46,6 +46,17 @@ describe('ProgressPart', () => {
     expect(p.begin({ kind: 'begin', title: 'canceleld' })).toBe(false)
   })
 
+  it('should report progress', async () => {
+    let client = createClient()
+    let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
+    await helper.wait(10)
+    p.report({ kind: 'report', message: 'msg', percentage: 10 })
+    await helper.wait(10)
+    p.report({ kind: 'report', message: 'msg', percentage: 50 })
+    await helper.wait(10)
+    p.done('finisedh')
+  })
+
   it('should close notification on cancel', async () => {
     let client = createClient()
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
