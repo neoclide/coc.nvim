@@ -83,8 +83,7 @@ export class SignatureHelpFeature extends TextDocumentLanguageFeature<SignatureH
       }
     }
 
-    const triggerCharacters = options.triggerCharacters ?? []
-    const disposable = languages.registerSignatureHelpProvider(options.documentSelector!, provider, triggerCharacters)
+    const disposable = languages.registerSignatureHelpProvider(options.documentSelector!, provider, options.triggerCharacters)
     return [disposable, provider]
   }
 }

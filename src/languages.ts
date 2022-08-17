@@ -119,7 +119,7 @@ class Languages {
     selector: DocumentSelector,
     provider: SignatureHelpProvider,
     triggerCharacters?: string[]): Disposable {
-    return this.signatureManager.register(selector, provider, triggerCharacters)
+    return this.signatureManager.register(selector, provider, triggerCharacters ?? [])
   }
 
   public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
