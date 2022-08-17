@@ -54,7 +54,7 @@ connection.onInitialize(params => {
 
   let diagnosticClientCapabilities = params.capabilities.textDocument.diagnostic
   assert.equal(diagnosticClientCapabilities.dynamicRegistration, true)
-  assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, false)
+  assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, true)
 
   const capabilities = {
     textDocumentSync: TextDocumentSyncKind.Full,

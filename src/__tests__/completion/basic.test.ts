@@ -124,6 +124,7 @@ describe('completion', () => {
       await helper.visible('world')
       await nvim.input('<C-y>')
       await nvim.input('<esc>')
+      await helper.wait(30)
       await nvim.input('ow')
       await helper.visible('world')
     })
