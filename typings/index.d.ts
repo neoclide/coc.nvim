@@ -9120,6 +9120,9 @@ declare module 'coc.nvim' {
   }
 
   export interface SynchronizeOptions {
+    /**
+     * @deprecated Use the new pull model (`workspace/configuration` request)
+     */
     configurationSection?: string | string[]
     fileEvents?: FileSystemWatcher | FileSystemWatcher[]
   }
@@ -9557,8 +9560,42 @@ declare module 'coc.nvim' {
   export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware
 
   export interface ConnectionOptions {
-    // cancellationStrategy: CancellationStrategy
+    cancellationStrategy: unknown
     maxRestartCount?: number
+  }
+
+  export interface DiagnosticPullOptions {
+    /**
+     * Whether to pull for diagnostics on document change.
+     * Default to "pullDiagnostic.onChange" configuration.
+     */
+    onChange?: boolean
+
+    /**
+     * Whether to pull for diagnostics on document save.
+     * Default to "pullDiagnostic.onSave" configuration.
+     */
+    onSave?: boolean
+
+    /**
+     * Whether to pull for workspace diagnostics when possible.
+     * Default to "pullDiagnostic.workspace" configuration.
+     */
+    workspace?: boolean
+    /**
+     * Minimatch patterns to match full filepath that should be ignored for pullDiagnostic.
+     * Default to "pullDiagnostic.ignored" configuration.
+     */
+    ignored?: string[]
+
+    /**
+     * An optional filter method that is consulted when triggering a
+     * diagnostic pull during document change or document save.
+     *
+     * @param document the document that changes or got save
+     * @param mode the mode
+     */
+    filter?(document: TextDocument, mode: 'onType' | 'onSave'): boolean
   }
 
   export interface LanguageClientOptions {
@@ -9585,8 +9622,13 @@ declare module 'coc.nvim' {
     middleware?: Middleware
     workspaceFolder?: WorkspaceFolder
     connectionOptions?: ConnectionOptions
+    diagnosticPullOptions?: DiagnosticPullOptions
     markdown?: {
-      isTrusted: boolean
+      isTrusted?: boolean
+      /**
+       * Not used
+       */
+      supportHtml?: boolean
     }
   }
   export enum State {
