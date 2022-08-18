@@ -79,7 +79,7 @@
         "disableDynamicRegister": {
           "type": "boolean",
           "default": false,
-          "description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicated feature regstration."
+          "description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicate feature registration."
         },
         "disableSnippetCompletion": {
           "type": "boolean",
@@ -183,7 +183,7 @@
         "additionalSchemes": {
           "type": "array",
           "default": [],
-          "description": "Additional uri schemes, default schemes including file & untitled.",
+          "description": "Additional URI schemes, default schemes including file & untitled.",
           "items": {
             "type": "string"
           }
@@ -259,7 +259,7 @@
         "module": {
           "type": "string",
           "default": "",
-          "description": "Absolute path of javascript file, should works in IPC mode"
+          "description": "Absolute path of Javascript file, should works in IPC mode"
         },
         "args": {
           "type": "array",
@@ -277,7 +277,7 @@
         "execArgv": {
           "type": "array",
           "default": [],
-          "description": "Argv passed to node when using module, normally used for debugging, ex: [\"--nolazy\", \"--inspect-brk=6045\"]",
+          "description": "ARGV passed to node when using module, normally used for debugging, ex: [\"--nolazy\", \"--inspect-brk=6045\"]",
           "items": {
             "type": "string"
           }
@@ -653,7 +653,7 @@
       "description": "Set to false to disable diagnostic display",
       "default": true
     },
-    "diagnostic.highlighLimit": {
+    "diagnostic.highlightLimit": {
       "type": "number",
       "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responding",
       "default": 1000
@@ -1026,7 +1026,7 @@
     "notification.timeout": {
       "type": "integer",
       "default": 10000,
-      "description": "Timeout for auto close notifications, in miniseconds."
+      "description": "Timeout for auto close notifications, in milliseconds."
     },
     "notification.marginRight": {
       "type": "integer",
@@ -1051,7 +1051,7 @@
     "notification.disabledProgressSources": {
       "type": "array",
       "default": [],
-      "description": "Soureces that should be disabled for message progress, use * to disable all message only progresses",
+      "description": "Sources that should be disabled for message progress, use * to disable all message only progresses",
       "items": {
         "type": "string"
       }
@@ -1237,12 +1237,12 @@
     "list.source.symbols.excludes": {
       "type": "array",
       "default": [],
-      "description": "Patterns of minimatch for filepath to execlude from symbols list.",
+      "description": "Patterns of minimatch for filepath to exclude from symbols list.",
       "items": {
         "type": "string"
       }
     },
-    "list.source.outline.ctagsFilestypes": {
+    "list.source.outline.ctagsFiletypes": {
       "type": "array",
       "default": [],
       "description": "Filetypes that should use ctags for outline instead of language server.",
@@ -1308,7 +1308,7 @@
     "tree.openedIcon": {
       "type": "string",
       "default": "-",
-      "description": "Opend icon of tree view."
+      "description": "Opened icon of tree view."
     },
     "tree.key.toggleSelection": {
       "type": "string",

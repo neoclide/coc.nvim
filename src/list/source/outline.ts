@@ -33,10 +33,10 @@ export default class Outline extends LocationList {
     let document = workspace.getDocument(buf.id)
     if (!document) return null
     let config = this.getConfig()
-    let ctagsFilestypes = config.get<string[]>('ctagsFilestypes', [])
+    let ctagsFiletypes = config.get<string[]>('ctagsFiletypes', [])
     let symbols: DocumentSymbol[] | SymbolInformation[] | null
     let args = this.parseArguments(context.args)
-    if (!ctagsFilestypes.includes(document.filetype)) {
+    if (!ctagsFiletypes.includes(document.filetype)) {
       symbols = await languages.getDocumentSymbol(document.textDocument, token)
     }
     if (token.isCancellationRequested) return []

@@ -575,7 +575,7 @@ export class DiagnosticManager implements Disposable {
       floatConfig: config.get('floatConfig', {}),
       messageTarget,
       enableHighlightLineNumber,
-      highlighLimit: config.get<number>('highlighLimit', 1000),
+      highlightLimit: config.get<number>('highlightLimit', 1000),
       highlightPriority: config.get<number>('highlightPriority'),
       autoRefresh: config.get<boolean>('autoRefresh', true),
       checkCurrentLine: config.get<boolean>('checkCurrentLine', false),

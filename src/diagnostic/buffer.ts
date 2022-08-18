@@ -367,7 +367,7 @@ export class DiagnosticBuffer implements SyncItem {
     let doc = workspace.getDocument(this.uri)
     if (!doc) return []
     let res: HighlightItem[] = []
-    for (let diagnostic of diagnostics.slice(0, this.config.highlighLimit)) {
+    for (let diagnostic of diagnostics.slice(0, this.config.highlightLimit)) {
       let hlGroup = getHighlightGroup(diagnostic)
       doc.addHighlights(res, hlGroup, diagnostic.range)
     }

@@ -485,7 +485,7 @@
 - **Break change** logic for resolve workspace folder changed.
 - Add `Task` module.
 - Add `getCurrentFunctionSymbol` action.
-- Add `list.source.outline.ctagsFilestypes` setting.
+- Add `list.source.outline.ctagsFiletypes` setting.
 - Add `suggest.disableMenu` and `suggest.disableMenu` settings.
 - Add `equal` support for complete items.
 - Add support for do action with visual select lines of list.
