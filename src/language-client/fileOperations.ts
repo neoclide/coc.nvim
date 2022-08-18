@@ -369,7 +369,7 @@ export class WillCreateFilesFeature extends RequestFileOperationFeature<URI, Fil
   }
 
   protected doSend(event: FileWillCreateEvent, next: (event: FileWillCreateEvent) => Thenable<WorkspaceEdit> | Thenable<any>): Thenable<WorkspaceEdit> | Thenable<any> {
-    const middleware = this._client.middleware?.workspace
+    const middleware = this._client.middleware.workspace
     return middleware?.willCreateFiles ? middleware.willCreateFiles(event, next) : next(event)
   }
 }

@@ -536,12 +536,19 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
     this._registrations.clear()
   }
 
-  protected getRegistration(documentSelector: DocumentSelector | undefined, capability: undefined | PO | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
+  protected getRegistration(documentSelector: DocumentSelector, capability: undefined | PO & { id?: string } | (RO & StaticRegistrationOptions)): [string | undefined, (RO & { documentSelector: DocumentSelector }) | undefined] {
     if (!capability) return [undefined, undefined]
-    if (Is.boolean(capability) && capability === true || WorkDoneProgressOptions.is(capability)) {
-      if (!documentSelector) return [undefined, undefined]
-      let options: RO & { documentSelector: DocumentSelector } = (Is.boolean(capability) && capability === true ? { documentSelector } : Object.assign({}, capability, { documentSelector })) as any
-      return [UUID.generateUuid(), options]
+    if (Is.boolean(capability) && capability === true) {
+      return [UUID.generateUuid(), { documentSelector } as any]
+    }
+    if (TextDocumentRegistrationOptions.is(capability)) {
+      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
+      const selector = capability.documentSelector ?? documentSelector
+      return [id, Object.assign({}, capability, { documentSelector: selector })]
+    }
+    if (WorkDoneProgressOptions.is(capability)) {
+      const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
+      return [id, Object.assign({}, capability, { documentSelector }) as any]
     }
     return [undefined, undefined]
   }

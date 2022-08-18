@@ -159,7 +159,7 @@ export type Middleware = _Middleware & TextDocumentSynchronizationMiddleware & S
 export type LanguageClientOptions = {
   rootPatterns?: string[]
   requireRootPattern?: boolean
-  documentSelector?: DocumentSelector | string[]
+  documentSelector?: DocumentSelector
   separateDiagnostics?: boolean
   disableMarkdown?: boolean
   disableWorkspaceFolders?: boolean
@@ -195,7 +195,7 @@ type ResolvedClientOptions = {
   separateDiagnostics: boolean
   rootPatterns?: string[]
   requireRootPattern?: boolean
-  documentSelector?: DocumentSelector
+  documentSelector: DocumentSelector
   diagnosticCollectionName?: string
   outputChannelName: string
   revealOutputChannelOn: RevealOutputChannelOn
