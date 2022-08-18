@@ -463,6 +463,28 @@ Diagnostics~
 	Separate related information as diagnostics, default: `false`
 
 ------------------------------------------------------------------------------
+PullDiagnostic~
+
+							*coc-config-pullDiagnostic*
+"pullDiagnostic.onChange" 				*coc-config-pullDiagnostic-onChange*
+
+	Whether to pull for diagnostics on document change, default: `true`
+
+"pullDiagnostic.onSave" 				*coc-config-pullDiagnostic-onSave*
+
+	Whether to pull for diagnostics on document save, default: `false`
+
+"pullDiagnostic.workspace" 				*coc-config-pullDiagnostic-workspace*
+
+	Whether to pull for workspace diagnostics when possible,
+	default: `true`
+
+"pullDiagnostic.ignored" 				*coc-config-pullDiagnostic-ignored*
+
+	Minimatch patterns to match full filepath that should be ignored for
+	pullDiagnostic. Default: `[]`
+
+------------------------------------------------------------------------------
 Signature~
 							*coc-config-signature*
 "signature.enable"					*coc-config-signature-enable*

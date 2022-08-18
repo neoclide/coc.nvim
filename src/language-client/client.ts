@@ -210,7 +210,7 @@ type ResolvedClientOptions = {
     isTrusted: boolean
     supportHtml?: boolean
   }
-} & $ConfigurationOptions & $CompletionOptions & $FormattingOptions & $DiagnosticPullOptions & $WorkspaceOptions
+} & $ConfigurationOptions & Required<$CompletionOptions> & Required<$FormattingOptions> & Required<$DiagnosticPullOptions> & Required<$WorkspaceOptions>
 
 export enum State {
   Stopped = 1,
@@ -297,48 +297,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     } else {
       this._outputChannel = undefined
     }
-    const markdown = { isTrusted: false, supportHtml: false }
-    if (clientOptions.markdown != null) {
-      markdown.isTrusted = clientOptions.markdown.isTrusted === true
-      markdown.supportHtml = clientOptions.markdown.supportHtml === true
-    }
-
-    this._clientOptions = {
-      rootPatterns: clientOptions.rootPatterns,
-      requireRootPattern: clientOptions.requireRootPattern,
-      separateDiagnostics: clientOptions.separateDiagnostics === true,
-      disableMarkdown: clientOptions.disableMarkdown === true,
-      disableSnippetCompletion: clientOptions.disableSnippetCompletion,
-      disableDynamicRegister: clientOptions.disableDynamicRegister,
-      disabledFeatures: clientOptions.disabledFeatures ?? [],
-      formatterPriority: clientOptions.formatterPriority,
-      ignoredRootPaths: clientOptions.ignoredRootPaths ?? [],
-      documentSelector: clientOptions.documentSelector ?? [],
-      synchronize: clientOptions.synchronize ?? {},
-      diagnosticCollectionName: clientOptions.diagnosticCollectionName,
-      outputChannelName: clientOptions.outputChannelName ?? this._id,
-      revealOutputChannelOn: clientOptions.revealOutputChannelOn ?? RevealOutputChannelOn.Never,
-      stdioEncoding: clientOptions.stdioEncoding ?? 'utf8',
-      initializationOptions: clientOptions.initializationOptions,
-      initializationFailedHandler: clientOptions.initializationFailedHandler,
-      progressOnInitialization: !!clientOptions.progressOnInitialization,
-      errorHandler: clientOptions.errorHandler ?? this.createDefaultErrorHandler(clientOptions.connectionOptions?.maxRestartCount),
-      middleware: clientOptions.middleware ?? {},
-      workspaceFolder: clientOptions.workspaceFolder,
-      connectionOptions: clientOptions.connectionOptions,
-      markdown
-    }
-    for (let key of ['disableCompletion', 'disableWorkspaceFolders', 'disableDiagnostics']) {
-      if (typeof clientOptions[key] === 'boolean') {
-        let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
-        logger.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack)
-        this.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack)
-        if (clientOptions[key] === true) {
-          let s = key.slice(7)
-          this._clientOptions.disabledFeatures.push(s[0].toLowerCase() + s.slice(1))
-        }
-      }
-    }
+    this._clientOptions = this.resolveClientOptions(clientOptions)
     this.$state = ClientState.Initial
     this._connection = undefined
     this._initializeResult = undefined
@@ -370,6 +329,74 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     this._syncedDocuments = new Map<string, TextDocument>()
     this.registerBuiltinFeatures()
+  }
+
+  private resolveClientOptions(clientOptions: LanguageClientOptions): ResolvedClientOptions {
+    const markdown = { isTrusted: false, supportHtml: false }
+    if (clientOptions.markdown != null) {
+      markdown.isTrusted = clientOptions.markdown.isTrusted === true
+      markdown.supportHtml = clientOptions.markdown.supportHtml === true
+    }
+    let disableSnippetCompletion = clientOptions.disableSnippetCompletion
+    if (clientOptions.disableSnippetCompletion === undefined) {
+      let suggest = workspace.getConfiguration('suggest')
+      if (suggest.get<boolean>('snippetsSupport', true) === false) {
+        disableSnippetCompletion = true
+      }
+    }
+    let disableMarkdown = clientOptions.disableMarkdown
+    if (disableMarkdown === undefined) {
+      let preferences = workspace.getConfiguration('coc.preferences')
+      disableMarkdown = preferences.get<boolean>('enableMarkdown', true) === false
+    }
+    const pullConfig = workspace.getConfiguration('pullDiagnostic')
+    let pullOption = clientOptions.diagnosticPullOptions ?? {}
+    if (pullOption.onChange === undefined) pullOption.onChange = pullConfig.get<boolean>('onChange')
+    if (pullOption.onSave === undefined) pullOption.onSave = pullConfig.get<boolean>('onSave')
+    if (pullOption.workspace === undefined) pullOption.workspace = pullConfig.get<boolean>('workspace')
+    pullOption.ignored = pullConfig.get<string[]>('ignored', []).concat(pullOption.ignored ?? [])
+
+    let disabledFeatures = clientOptions.disabledFeatures ?? []
+    for (let key of ['disableCompletion', 'disableWorkspaceFolders', 'disableDiagnostics']) {
+      if (typeof clientOptions[key] === 'boolean') {
+        let stack = '\n' + Error().stack.split('\n').slice(2, 4).join('\n')
+        logger.warn(`${key} in the client options is deprecated. use disabledFeatures instead.`, stack)
+        if (clientOptions[key] === true) {
+          let s = key.slice(7)
+          disabledFeatures.push(s[0].toLowerCase() + s.slice(1))
+        }
+      }
+    }
+    let separateDiagnostics = clientOptions.separateDiagnostics
+    if (clientOptions.separateDiagnostics === undefined) {
+      separateDiagnostics = workspace.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics') as boolean
+    }
+    return {
+      disabledFeatures,
+      disableMarkdown,
+      disableSnippetCompletion,
+      separateDiagnostics,
+      diagnosticPullOptions: pullOption,
+      rootPatterns: clientOptions.rootPatterns ?? [],
+      requireRootPattern: clientOptions.requireRootPattern,
+      disableDynamicRegister: clientOptions.disableDynamicRegister,
+      formatterPriority: clientOptions.formatterPriority ?? 0,
+      ignoredRootPaths: clientOptions.ignoredRootPaths ?? [],
+      documentSelector: clientOptions.documentSelector ?? [],
+      synchronize: clientOptions.synchronize ?? {},
+      diagnosticCollectionName: clientOptions.diagnosticCollectionName,
+      outputChannelName: clientOptions.outputChannelName ?? this._id,
+      revealOutputChannelOn: clientOptions.revealOutputChannelOn ?? RevealOutputChannelOn.Never,
+      stdioEncoding: clientOptions.stdioEncoding ?? 'utf8',
+      initializationOptions: clientOptions.initializationOptions,
+      initializationFailedHandler: clientOptions.initializationFailedHandler,
+      progressOnInitialization: clientOptions.progressOnInitialization === true,
+      errorHandler: clientOptions.errorHandler ?? this.createDefaultErrorHandler(clientOptions.connectionOptions?.maxRestartCount),
+      middleware: clientOptions.middleware ?? {},
+      workspaceFolder: clientOptions.workspaceFolder,
+      connectionOptions: clientOptions.connectionOptions,
+      markdown
+    }
   }
 
   public get supportedMarkupKind(): MarkupKind[] {

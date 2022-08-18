@@ -181,20 +181,6 @@ export class LanguageClient extends BaseLanguageClient {
       clientOptions = arg3 as LanguageClientOptions
       forceDebug = arg4 as boolean
     }
-    if (clientOptions.disableSnippetCompletion === undefined) {
-      let suggest = workspace.getConfiguration('suggest')
-      if (suggest.get<boolean>('snippetsSupport', true) === false) {
-        clientOptions.disableSnippetCompletion = true
-      }
-    }
-    if (clientOptions.disableMarkdown === undefined) {
-      let preferences = workspace.getConfiguration('coc.preferences')
-      clientOptions.disableMarkdown = preferences.get<boolean>('enableMarkdown', true) === false
-    }
-    if (clientOptions.separateDiagnostics === undefined) {
-      const separate = workspace.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics') as boolean
-      clientOptions.separateDiagnostics = separate
-    }
     super(id, name, clientOptions)
     this._serverOptions = serverOptions
     this._forceDebug = !!forceDebug
