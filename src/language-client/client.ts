@@ -1429,7 +1429,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.registerFeature(new DiagnosticFeature(this), 'pullDiagnostic')
     this.registerFeature(new TypeHierarchyFeature(this), 'typeHierarchy')
     this.registerFeature(new WorkspaceSymbolFeature(this), 'workspaceSymbol')
-    this.registerFeature(new WorkspaceFoldersFeature(this), 'workspaceFolders')
+    // We only register the workspace folder feature if the client is not locked
+    // to a specific workspace folder.
+    if (this.clientOptions.workspaceFolder === undefined) {
+      this.registerFeature(new WorkspaceFoldersFeature(this), 'workspaceFolders')
+    }
   }
 
   public registerProposedFeatures() {
