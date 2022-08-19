@@ -40,7 +40,7 @@ export default class LinkedEditingHandler {
       if (bufnr !== this.bufnr) return
       let doc = workspace.getDocument(bufnr)
       if (!this.wordPattern) {
-        if (!doc.isWord(character)) this.cancelEdit()
+        if (!doc.isWord(character) && character !== '-') this.cancelEdit()
       } else {
         let r = new RegExp(this.wordPattern)
         if (!r.test(character)) this.cancelEdit()
