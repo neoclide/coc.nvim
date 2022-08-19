@@ -17,6 +17,15 @@ import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent,
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import * as UUID from './utils/uuid'
+import { CancellationError } from '../util/errors'
+
+export class LSPCancellationError extends CancellationError {
+  public readonly data: object | Object
+  constructor(data: object | Object) {
+    super()
+    this.data = data
+  }
+}
 
 export interface Connection {
   id: string

@@ -14,6 +14,7 @@ import completion from '../completion'
 import events from '../events'
 import Document from '../model/document'
 import Plugin from '../plugin'
+import { ProviderResult } from '../provider'
 import { ExtendedCompleteItem, OutputChannel, VimCompleteItem } from '../types'
 import { terminate } from '../util/processes'
 import workspace from '../workspace'
@@ -310,11 +311,11 @@ export class Helper extends EventEmitter {
     }
   }
 
-  public async waitValue<T>(fn: () => T, value: T): Promise<void> {
+  public async waitValue<T>(fn: () => ProviderResult<T>, value: T): Promise<void> {
     let find = false
     for (let i = 0; i < 40; i++) {
       await this.wait(50)
-      let res = fn()
+      let res = await Promise.resolve(fn())
       if (res == value) {
         find = true
         break

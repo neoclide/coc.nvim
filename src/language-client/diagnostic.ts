@@ -9,9 +9,10 @@ import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { DiagnosticProvider, ProviderResult, ResultReporter } from '../provider'
+import { CancellationError } from '../util/errors'
 import window from '../window'
 import workspace from '../workspace'
-import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
+import { BaseFeature, ensure, FeatureClient, LSPCancellationError, TextDocumentLanguageFeature } from './features'
 
 export type ProvideDiagnosticSignature = (this: void, document: TextDocument | URI, previousResultId: string | undefined, token: CancellationToken) => ProviderResult<DocumentDiagnosticReport>
 
@@ -24,6 +25,7 @@ export interface DiagnosticProviderMiddleware {
 
 export interface DiagnosticProviderShape {
   onDidChangeDiagnosticsEmitter: Emitter<void>
+  knows: (kind: PullState, textDocument: TextDocument) => boolean
   diagnostics: DiagnosticProvider
 }
 
@@ -92,7 +94,7 @@ interface DocumentPullState {
   resultId: string | undefined
 }
 
-enum PullState {
+export enum PullState {
   document = 1,
   workspace = 2
 }
@@ -178,7 +180,7 @@ export class DocumentPullStateTracker {
   }
 }
 
-export class DiagnosticRequestor implements Disposable {
+export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddleware, $DiagnosticPullOptions> implements Disposable {
   private isDisposed: boolean
   private enableWorkspace: boolean
   private readonly client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>
@@ -195,6 +197,7 @@ export class DiagnosticRequestor implements Disposable {
   private workspaceTimeout: Disposable | undefined
 
   public constructor(client: FeatureClient<DiagnosticProviderMiddleware, $DiagnosticPullOptions>, options: DiagnosticRegistrationOptions) {
+    super(client)
     this.client = client
     this.options = options
     this.enableWorkspace = options.workspaceDiagnostics && this.client.clientOptions.diagnosticPullOptions?.workspace !== false
@@ -245,12 +248,10 @@ export class DiagnosticRequestor implements Disposable {
       try {
         report = await this.provider.provideDiagnostics(document, documentState.resultId, tokenSource.token) ?? { kind: DocumentDiagnosticReportKind.Full, items: [] }
       } catch (error) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        if (error.data && DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
+        if (error instanceof LSPCancellationError && error.data && DiagnosticServerCancellationData.is(error.data) && error.data.retriggerRequest === false) {
           afterState = { state: RequestStateKind.outDated, document }
         }
-        if (afterState === undefined) {
+        if (afterState === undefined && error instanceof CancellationError) {
           afterState = { state: RequestStateKind.reschedule, document }
         } else {
           throw error
@@ -269,9 +270,8 @@ export class DiagnosticRequestor implements Disposable {
         this.documentStates.unTrack(PullState.document, document)
         return
       }
-      if (afterState.state === RequestStateKind.outDated) {
-        return
-      }
+      if (afterState.state === RequestStateKind.outDated) return
+
       // report is only undefined if the request has thrown.
       if (report !== undefined) {
         if (report.kind === DocumentDiagnosticReportKind.Full) {
@@ -315,7 +315,7 @@ export class DiagnosticRequestor implements Disposable {
         if (request.state === RequestStateKind.active) {
           request.tokenSource.cancel()
         }
-        this.openRequests.set(uri, { state: RequestStateKind.outDated, document })
+        this.openRequests.delete(uri)
       }
       this.diagnostics.delete(uri.toString())
       this.forget(PullState.document, document)
@@ -324,20 +324,19 @@ export class DiagnosticRequestor implements Disposable {
 
   public pullWorkspace(): void {
     if (!this.enableWorkspace) return
-    // this.options.
     this.pullWorkspaceAsync().then(() => {
       this.workspaceTimeout = RAL().timer.setTimeout(() => {
         this.pullWorkspace()
-      }, 2000)
+      }, global.__TEST__ ? 10 : 3000)
     }, error => {
-      if (!DiagnosticServerCancellationData.is(error.data)) {
+      if (!(error instanceof LSPCancellationError) && !DiagnosticServerCancellationData.is(error.data)) {
         this.client.error(`Workspace diagnostic pull failed.`, error)
         this.workspaceErrorCounter++
       }
       if (this.workspaceErrorCounter <= 5) {
         this.workspaceTimeout = RAL().timer.setTimeout(() => {
           this.pullWorkspace()
-        }, 2000)
+        }, global.__TEST__ ? 10 : 3000)
       }
     })
   }
@@ -379,14 +378,11 @@ export class DiagnosticRequestor implements Disposable {
             textDocument: { uri: document instanceof URI ? document.toString() : document.uri },
             previousResultId
           }
-          return this.client.sendRequest(DocumentDiagnosticRequest.type, params, token).then(async result => {
-            if (result === undefined || result === null || this.isDisposed || token.isCancellationRequested) {
+          return this.sendRequest(DocumentDiagnosticRequest.type, params, token, { kind: DocumentDiagnosticReportKind.Full, items: [] }).then(async result => {
+            if (result === undefined || result === null || this.isDisposed) {
               return { kind: DocumentDiagnosticReportKind.Full, items: [] }
             }
-
             return result
-          }, error => {
-            return this.client.handleFailedRequest(DocumentDiagnosticRequest.type, token, error, { kind: DocumentDiagnosticReportKind.Full, items: [] })
           })
         }
         const middleware = this.client.middleware!
@@ -398,30 +394,24 @@ export class DiagnosticRequestor implements Disposable {
     if (this.options.workspaceDiagnostics) {
       provider.provideWorkspaceDiagnostics = (resultIds, token, resultReporter): ProviderResult<WorkspaceDiagnosticReport> => {
         const provideWorkspaceDiagnostics: ProvideWorkspaceDiagnosticSignature = (resultIds, token): ProviderResult<WorkspaceDiagnosticReport> => {
-          const partialResultToken: string = uuid()
+          const partialResultToken = uuid()
           const disposable = this.client.onProgress(WorkspaceDiagnosticRequest.partialResult, partialResultToken, partialResult => {
-            if (partialResult === undefined || partialResult === null) {
+            if (partialResult == undefined) {
               resultReporter(null)
               return
             }
-
             resultReporter(partialResult as WorkspaceDiagnosticReportPartialResult)
           })
-          const params: WorkspaceDiagnosticParams = {
+          const params: WorkspaceDiagnosticParams & { __token?: string } = {
             identifier: this.options.identifier,
             previousResultIds: resultIds,
             partialResultToken
           }
-          return this.client.sendRequest(WorkspaceDiagnosticRequest.type, params, token).then(async (result): Promise<WorkspaceDiagnosticReport> => {
-            if (token.isCancellationRequested) {
-              return { items: [] }
-            }
-            disposable.dispose()
+          return this.sendRequest(WorkspaceDiagnosticRequest.type, params, token, { items: [] }).then(async (result): Promise<WorkspaceDiagnosticReport> => {
             resultReporter(result)
             return { items: [] }
-          }, error => {
+          }).finally(() => {
             disposable.dispose()
-            return this.client.handleFailedRequest(DocumentDiagnosticRequest.type, token, error, { items: [] })
           })
         }
         const middleware: DiagnosticProviderMiddleware = this.client.middleware!
@@ -435,18 +425,16 @@ export class DiagnosticRequestor implements Disposable {
 
   public dispose(): void {
     this.isDisposed = true
-
     // Cancel and clear workspace pull if present.
     this.workspaceCancellation?.cancel()
     this.workspaceTimeout?.dispose()
-
     // Cancel all request and mark open requests as outdated.
-    for (const [key, request] of this.openRequests) {
+    for (const request of this.openRequests.values()) {
       if (request.state === RequestStateKind.active) {
         request.tokenSource.cancel()
       }
-      this.openRequests.set(key, { state: RequestStateKind.outDated, document: request.document })
     }
+    this.openRequests.clear()
   }
 }
 
@@ -479,7 +467,7 @@ export class BackgroundScheduler implements Disposable {
     // No more documents. Stop background activity.
     if (this.documents.size === 0) {
       this.stop()
-    } else if (document === this.endDocument) {
+    } else if (document.uri === this.endDocument?.uri) {
       // Make sure we have a correct last document. It could have
       this.endDocument = this.documents.last
     }
@@ -503,7 +491,7 @@ export class BackgroundScheduler implements Disposable {
           this.stop()
         }
       }
-    }, 200)
+    }, global.__TEST__ ? 10 : 200)
   }
 
   public dispose(): void {
@@ -541,20 +529,18 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
     this.diagnosticRequestor = new DiagnosticRequestor(client, options)
     this.backgroundScheduler = new BackgroundScheduler(this.diagnosticRequestor)
     const addToBackgroundIfNeeded = (document: TextDocument): void => {
-      if (!matches(document) || !options.interFileDependencies || this.activeTextDocument?.uri === document.uri) {
-        return
-      }
+      if (!matches(document) || !options.interFileDependencies || this.activeTextDocument?.uri === document.uri) return
       this.backgroundScheduler.add(document)
     }
 
     this.activeTextDocument = window.activeTextEditor?.document.textDocument
     window.onDidChangeActiveTextEditor(editor => {
       const oldActive = this.activeTextDocument
-      this.activeTextDocument = editor?.document.textDocument
+      let textDocument = this.activeTextDocument = editor?.document.textDocument
       if (oldActive !== undefined) {
         addToBackgroundIfNeeded(oldActive)
       }
-      if (editor) this.backgroundScheduler.remove(this.activeTextDocument)
+      if (textDocument != null) this.backgroundScheduler.remove(textDocument)
     }, null, disposables)
 
     // We always pull on open.
@@ -565,15 +551,6 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
         this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument) })
       }
     }))
-
-    const pulledTextDocuments: Set<string> = new Set()
-    // Pull all diagnostics for documents that are already open
-    for (const textDocument of workspace.textDocuments) {
-      if (matches(textDocument)) {
-        this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument) })
-        pulledTextDocuments.add(textDocument.uri)
-      }
-    }
 
     const shouldPull = (textDocument: TextDocument, mode: DiagnosticPullMode): boolean => {
       if (diagnosticPullOptions.filter && diagnosticPullOptions.filter(textDocument, mode)) return false
@@ -631,7 +608,7 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       tracking.forEach(uri => {
         if (handled.has(uri)) return
         let doc = workspace.getDocument(uri)
-        if (doc) this.cleanUpDocument(doc.textDocument)
+        if (doc && doc.attached) this.cleanUpDocument(doc.textDocument)
       })
     }, null, disposables)
 
@@ -650,6 +627,10 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
 
   public get diagnostics(): DiagnosticProvider {
     return this.diagnosticRequestor.provider
+  }
+
+  public knows(kind: PullState, textDocument: TextDocument): boolean {
+    return this.diagnosticRequestor.knows(kind, textDocument)
   }
 
   private cleanUpDocument(document: TextDocument): void {

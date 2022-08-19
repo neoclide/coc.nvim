@@ -320,7 +320,7 @@ export class LanguageClient extends BaseLanguageClient {
           } else if (Transport.isSocket(transport)) {
             args.push(`--socket=${transport.port}`)
           }
-          args.push(`--clientProcessId=${process.pid.toString()}`)
+          args.push(`--clientProcessId=${process.pid}`)
           let options: cp.ForkOptions = node.options || Object.create(null)
           options.env = getEnvironment(options.env, true)
           options.execArgv = options.execArgv || []

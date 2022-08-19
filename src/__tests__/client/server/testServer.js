@@ -87,13 +87,18 @@ connection.onInitialize(params => {
     colorProvider: true,
     declarationProvider: true,
     foldingRangeProvider: true,
-    implementationProvider: true,
+    implementationProvider: {
+      documentSelector: [{language: '*'}]
+    },
     selectionRangeProvider: true,
     inlineValueProvider: {},
     inlayHintProvider: {
       resolveProvider: true
     },
-    typeDefinitionProvider: true,
+    typeDefinitionProvider: {
+      id: '82671a9a-2a69-4e9f-a8d7-e1034eaa0d2e',
+      documentSelector: [{language: '*'}]
+    },
     callHierarchyProvider: true,
     semanticTokensProvider: {
       legend: {

@@ -11,6 +11,10 @@ beforeAll(async () => {
   nvim = helper.nvim
 })
 
+afterEach(async () => {
+  await helper.reset()
+})
+
 afterAll(async () => {
   await helper.shutdown()
 })
@@ -49,12 +53,13 @@ describe('ProgressPart', () => {
   it('should report progress', async () => {
     let client = createClient()
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
-    await helper.wait(10)
+    p.begin({ kind: 'begin', title: 'p', percentage: 1, cancellable: true })
+    await helper.wait(30)
     p.report({ kind: 'report', message: 'msg', percentage: 10 })
     await helper.wait(10)
     p.report({ kind: 'report', message: 'msg', percentage: 50 })
     await helper.wait(10)
-    p.done('finisedh')
+    p.done('finised')
   })
 
   it('should close notification on cancel', async () => {
@@ -62,6 +67,7 @@ describe('ProgressPart', () => {
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
     let started = p.begin({ kind: 'begin', title: 'canceleld' })
     expect(started).toBe(true)
+    p.cancel()
     p.cancel()
     let winids = await nvim.call('coc#notify#win_list') as number[]
     await helper.wait(30)

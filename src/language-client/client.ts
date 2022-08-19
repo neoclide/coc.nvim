@@ -27,7 +27,7 @@ import { DocumentHighlightFeature, DocumentHighlightMiddleware } from './documen
 import { DocumentLinkFeature, DocumentLinkMiddleware } from './documentLink'
 import { DocumentSymbolFeature, DocumentSymbolMiddleware } from './documentSymbol'
 import { ExecuteCommandFeature, ExecuteCommandMiddleware } from './executeCommand'
-import { Connection, DynamicFeature, ensure, FeatureClient, RegistrationData, StaticFeature, TextDocumentProviderFeature, TextDocumentSendFeature } from './features'
+import { Connection, DynamicFeature, ensure, FeatureClient, LSPCancellationError, RegistrationData, StaticFeature, TextDocumentProviderFeature, TextDocumentSendFeature } from './features'
 import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, FileOperationsMiddleware, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
 import { FileSystemWatcherFeature, FileSystemWatcherMiddleware } from './fileSystemWatcher'
 import { FoldingRangeFeature, FoldingRangeProviderMiddleware } from './foldingRange'
@@ -1658,7 +1658,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         return defaultValue
       }
       if (error.code === LSPErrorCodes.RequestCancelled || error.code === LSPErrorCodes.ServerCancelled) {
-        throw new CancellationError()
+        if (error.data != null) {
+          throw new LSPCancellationError(error.data)
+        } else {
+          throw new CancellationError()
+        }
       } else if (error.code === LSPErrorCodes.ContentModified) {
         if (BaseLanguageClient.RequestsToCancelOnContentModified.has(type.method)) {
           throw new CancellationError()
