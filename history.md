@@ -1,3 +1,11 @@
+# 2022-08-20
+
+- Support pull diagnostics `:h coc-pullDiagnostics`.
+- Break change: avoid extension overwrite builtin configuration defaults.
+- Change default value of configuration "diagnostic.format".
+- 'line' changes to 'currline' for `CocAction('codeAction')`.
+- Check NodeJS version on syntax error.
+
 # 2022-08-10
 
 - Change "notification.highlightGroup" default to "Normal".
@@ -485,7 +493,7 @@
 - **Break change** logic for resolve workspace folder changed.
 - Add `Task` module.
 - Add `getCurrentFunctionSymbol` action.
-- Add `list.source.outline.ctagsFilestypes` setting.
+- Add `list.source.outline.ctagsFiletypes` setting.
 - Add `suggest.disableMenu` and `suggest.disableMenu` settings.
 - Add `equal` support for complete items.
 - Add support for do action with visual select lines of list.
