@@ -2,13 +2,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CancellationTokenSource, CodeLens, Command } from 'vscode-languageserver-protocol'
-import { SyncItem } from '../../model/bufferSync'
 import commandManager from '../../commands'
 import languages from '../../languages'
+import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
+import { DidChangeTextDocumentParams } from '../../types'
+import { waitImmediate } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import { DidChangeTextDocumentParams } from '../../types'
 const logger = require('../../util/logger')('codelens-buffer')
 
 export interface CodeLensInfo {
@@ -32,6 +33,7 @@ export default class CodeLensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private resolveTokenSource: CancellationTokenSource
   public resolveCodeLens: (() => void) & { clear(): void }
+  private debounceFetch: (() => void) & { clear(): void }
   constructor(
     private nvim: Neovim,
     public readonly document: Document,
@@ -40,7 +42,10 @@ export default class CodeLensBuffer implements SyncItem {
     this.resolveCodeLens = debounce(() => {
       void this._resolveCodeLenses()
     }, global.__TEST__ ? 20 : 200)
-    void this.fetchCodeLenses()
+    this.debounceFetch = debounce(() => {
+      void this.fetchCodeLenses()
+    }, global.__TEST__ ? 20 : 100)
+    this.debounceFetch()
   }
 
   private get bufnr(): number {
@@ -52,7 +57,7 @@ export default class CodeLensBuffer implements SyncItem {
       void this._resolveCodeLenses()
     } else {
       this.cancel()
-      void this.fetchCodeLenses()
+      this.debounceFetch()
     }
   }
 
@@ -74,13 +79,13 @@ export default class CodeLensBuffer implements SyncItem {
 
   private async fetchCodeLenses(): Promise<void> {
     if (!this.enabled) return
-    this.cancel()
     let noFetch = this.codeLenses?.version == this.document.version
     if (!noFetch) {
       let { textDocument } = this.document
       let version = textDocument.version
       let tokenSource = this.tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
+      if (token.isCancellationRequested) return
       let codeLenses = await languages.getCodeLens(textDocument, token)
       codeLenses = Array.isArray(codeLenses) ? codeLenses.filter(o => o != null) : []
       this.tokenSource = undefined
@@ -96,7 +101,7 @@ export default class CodeLensBuffer implements SyncItem {
   private async _resolveCodeLenses(): Promise<void> {
     if (!this.enabled || !this.codeLenses || this.isChanged) return
     let { codeLenses } = this.codeLenses
-    let [bufnr, start, end] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$')]`) as [number, number, number]
+    let [bufnr, start, end, total] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$'),line('$')]`) as [number, number, number, number]
     // only resolve current buffer
     if (this.isChanged || bufnr != this.bufnr) return
     if (this.resolveTokenSource) this.resolveTokenSource.cancel()
@@ -111,6 +116,8 @@ export default class CodeLensBuffer implements SyncItem {
       this.resolveTokenSource = undefined
       if (token.isCancellationRequested || this.isChanged) return
     }
+    // nvim could have extmarks exceeded last line.
+    if (end == total) end = -1
     this.nvim.pauseNotification()
     this.clear(start - 1, end)
     this.setVirtualText(codeLenses)
@@ -200,6 +207,7 @@ export default class CodeLensBuffer implements SyncItem {
 
   private cancel(): void {
     this.resolveCodeLens.clear()
+    this.debounceFetch.clear()
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource.dispose()

@@ -1,13 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Command, CodeLens, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import events from '../../events'
-import CodeLensHandler from '../../handler/codelens/index'
 import CodeLensBuffer, { getCommands } from '../../handler/codelens/buffer'
+import CodeLensHandler from '../../handler/codelens/index'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
-import helper from '../helper'
 import workspace from '../../workspace'
+import helper from '../helper'
 
 let nvim: Neovim
 let codeLens: CodeLensHandler
@@ -167,6 +167,7 @@ describe('codeLenes featrue', () => {
       }
     }))
     let doc = await helper.createDocument('codelens.js')
+    await helper.wait(50)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'a\nb\nc')])
     expect(cancelled).toBe(true)
   })
@@ -273,6 +274,7 @@ describe('codeLenes featrue', () => {
       }
     }))
     let doc = await helper.createDocument('example.js')
+    await helper.wait(50)
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await codeLens.checkProvider()
     let markers = await helper.getMarkers(doc.buffer.id, srcId)
