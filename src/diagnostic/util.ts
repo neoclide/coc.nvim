@@ -52,6 +52,16 @@ export interface DiagnosticConfig {
   floatConfig: FloatConfig
 }
 
+export function formatDiagnostic(format: string, diagnostic: Diagnostic): string {
+  let { source, code, severity, message } = diagnostic
+  let s = getSeverityName(severity)[0]
+  const codeStr = code ? ' ' + code : ''
+  return format.replace('%source', source)
+    .replace('%code', codeStr)
+    .replace('%severity', s)
+    .replace('%message', message)
+}
+
 export function getSeverityName(severity: DiagnosticSeverity): string {
   switch (severity) {
     case DiagnosticSeverity.Warning:

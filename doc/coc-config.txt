@@ -417,7 +417,7 @@ Diagnostics~
 	Define the diagnostic message format.
 	Available parts: source, code, severity, message
 
-	Default: `[%source%code] [%severity] %message`
+	Default: `%message (%source%code)`
 
 "diagnostic.floatConfig"				*coc-config-diagnostic-floatConfig*
 

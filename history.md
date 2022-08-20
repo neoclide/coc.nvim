@@ -2,6 +2,7 @@
 
 - Support pull diagnostics `:h coc-pullpullDiagnostics`.
 - Break change: avoid extension overwrite builtin configuration defaults.
+- Change default value of configuration "diagnostic.format".
 
 # 2022-08-10
 

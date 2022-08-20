@@ -16,7 +16,7 @@ import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { DiagnosticConfig, getSeverityName, severityLevel } from './util'
+import { DiagnosticConfig, formatDiagnostic, getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticEventParams {
@@ -462,11 +462,7 @@ export class DiagnosticManager implements Disposable {
       if (truncate && events.insertMode) return
       const lines = []
       diagnostics.forEach(diagnostic => {
-        let { source, code, severity, message } = diagnostic
-        let s = getSeverityName(severity)[0]
-        const codeStr = code ? ' ' + code : ''
-        const str = config.format.replace('%source', source).replace('%code', codeStr).replace('%severity', s).split('%message').join(message)
-        lines.push(str)
+        lines.push(formatDiagnostic(config.format, diagnostic))
       })
       if (lines.length) {
         await this.nvim.command('echo ""')
@@ -492,13 +488,9 @@ export class DiagnosticManager implements Disposable {
       ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype)
     }
     diagnostics.forEach(diagnostic => {
-      let { source, code, severity, message } = diagnostic
-      let s = getSeverityName(severity)[0]
-      const codeStr = code ? ' ' + code : ''
-      const str = config.format.replace('%source', source).replace('%code', codeStr).replace('%severity', s).split('%message').join(message)
       let filetype = 'Error'
       if (ft === '') {
-        switch (severity) {
+        switch (diagnostic.severity) {
           case DiagnosticSeverity.Hint:
             filetype = 'Hint'
             break
@@ -512,7 +504,7 @@ export class DiagnosticManager implements Disposable {
       } else {
         filetype = ft
       }
-      docs.push({ filetype, content: str })
+      docs.push({ filetype, content: formatDiagnostic(config.format, diagnostic) })
       if (diagnostic.codeDescription?.href) {
         docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
       }

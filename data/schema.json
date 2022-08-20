@@ -829,7 +829,7 @@
     "diagnostic.format": {
       "type": "string",
       "description": "Define the diagnostic format that shown in float window or echoed, available parts: source, code, severity, message",
-      "default": "[%source%code] [%severity] %message"
+      "default": "%message (%source%code)"
     },
     "diagnostic.separateRelatedInformationAsDiagnostics": {
       "type": "boolean",
