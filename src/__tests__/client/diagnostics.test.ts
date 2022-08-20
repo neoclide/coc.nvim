@@ -259,10 +259,15 @@ describe('DiagnosticFeature', () => {
 
   it('should use provideDiagnostics middleware', async () => {
     let called = false
+    let callHandle = false
     let client = await createServer(true, false, {
       provideDiagnostics: (doc, id, token, next) => {
         called = true
         return next(doc, id, token)
+      },
+      handleDiagnostics: (uri, diagnostics, next) => {
+        callHandle = true
+        return next(uri, diagnostics)
       }
     })
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
@@ -272,6 +277,9 @@ describe('DiagnosticFeature', () => {
     let res = await provider.diagnostics.provideDiagnostics(textDocument, '', CancellationToken.None)
     expect(called).toBe(true)
     expect(res).toEqual({ kind: 'full', items: [] })
+    await helper.waitValue(() => {
+      return callHandle
+    }, true)
     await client.stop()
   })
 

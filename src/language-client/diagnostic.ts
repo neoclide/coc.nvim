@@ -2,7 +2,7 @@
 import minimatch from 'minimatch'
 import { v4 as uuid } from 'uuid'
 import {
-  CancellationToken, CancellationTokenSource, ClientCapabilities, DiagnosticOptions, DiagnosticRefreshRequest, DiagnosticRegistrationOptions, DiagnosticServerCancellationData, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentSelector, Emitter, LinkedMap, PreviousResultId, RAL, ServerCapabilities, Touch, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceDiagnosticRequest
+  CancellationToken, CancellationTokenSource, ClientCapabilities, Diagnostic, DiagnosticOptions, DiagnosticRefreshRequest, DiagnosticRegistrationOptions, DiagnosticServerCancellationData, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentSelector, Emitter, LinkedMap, PreviousResultId, RAL, ServerCapabilities, Touch, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceDiagnosticRequest
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -14,11 +14,15 @@ import window from '../window'
 import workspace from '../workspace'
 import { BaseFeature, ensure, FeatureClient, LSPCancellationError, TextDocumentLanguageFeature } from './features'
 
+interface HandleDiagnosticsSignature {
+  (this: void, uri: string, diagnostics: Diagnostic[]): void
+}
 export type ProvideDiagnosticSignature = (this: void, document: TextDocument | URI, previousResultId: string | undefined, token: CancellationToken) => ProviderResult<DocumentDiagnosticReport>
 
 export type ProvideWorkspaceDiagnosticSignature = (this: void, resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter) => ProviderResult<WorkspaceDiagnosticReport>
 
 export interface DiagnosticProviderMiddleware {
+  handleDiagnostics?: (this: void, uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void
   provideDiagnostics?: (this: void, document: TextDocument | URI, previousResultId: string | undefined, token: CancellationToken, next: ProvideDiagnosticSignature) => ProviderResult<DocumentDiagnosticReport>
   provideWorkspaceDiagnostics?: (this: void, resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter, next: ProvideWorkspaceDiagnosticSignature) => ProviderResult<WorkspaceDiagnosticReport>
 }
@@ -372,20 +376,27 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     const provider: DiagnosticProvider = {
       onDidChangeDiagnostics: this.onDidChangeDiagnosticsEmitter.event,
       provideDiagnostics: (document, previousResultId, token) => {
+        const middleware = this.client.middleware!
         const provideDiagnostics: ProvideDiagnosticSignature = (document, previousResultId, token) => {
+          const uri = document instanceof URI ? document.toString() : document.uri
           const params: DocumentDiagnosticParams = {
             identifier: this.options.identifier,
-            textDocument: { uri: document instanceof URI ? document.toString() : document.uri },
+            textDocument: { uri },
             previousResultId
           }
           return this.sendRequest(DocumentDiagnosticRequest.type, params, token, { kind: DocumentDiagnosticReportKind.Full, items: [] }).then(async result => {
             if (result === undefined || result === null || this.isDisposed) {
               return { kind: DocumentDiagnosticReportKind.Full, items: [] }
             }
+            // make handleDiagnostics middleware works
+            if (middleware.handleDiagnostics && result.kind == DocumentDiagnosticReportKind.Full) {
+              middleware.handleDiagnostics(uri, result.items, (_, diagnostics) => {
+                result.items = diagnostics
+              })
+            }
             return result
           })
         }
-        const middleware = this.client.middleware!
         return middleware.provideDiagnostics
           ? middleware.provideDiagnostics(document, previousResultId, token, provideDiagnostics)
           : provideDiagnostics(document, previousResultId, token)
