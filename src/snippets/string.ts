@@ -1,9 +1,4 @@
 'use strict'
-/* ---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-
 export class SnippetString {
   public static isSnippetString(thing: any): thing is SnippetString {
     if (thing instanceof SnippetString) {

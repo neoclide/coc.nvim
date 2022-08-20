@@ -10,7 +10,6 @@ import Terminals from './core/terminals'
 import * as ui from './core/ui'
 import Cursors from './cursors/index'
 import events from './events'
-import languages from './languages'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
 import Highligher from './model/highligher'
 import InputBox, { InputOptions, InputPreference } from './model/input'
@@ -803,6 +802,7 @@ export class Window {
     let hi = new Highligher()
     hi.addLine('Provider state', 'Title')
     hi.addLine('')
+    let languages = require('./languages').default
     for (let name of PROVIDER_NAMES) {
       let exists = languages.hasProvider(name, doc.textDocument)
       hi.addTexts([

@@ -12,82 +12,82 @@
  */
 export const enum CharCode {
   Null = 0,
-	/**
-	 * The `\b` character.
-	 */
+  /**
+   * The `\b` character.
+   */
   Backspace = 8,
-	/**
-	 * The `\t` character.
-	 */
+  /**
+   * The `\t` character.
+   */
   Tab = 9,
-	/**
-	 * The `\n` character.
-	 */
+  /**
+   * The `\n` character.
+   */
   LineFeed = 10,
-	/**
-	 * The `\r` character.
-	 */
+  /**
+   * The `\r` character.
+   */
   CarriageReturn = 13,
   Space = 32,
-	/**
-	 * The `!` character.
-	 */
+  /**
+   * The `!` character.
+   */
   ExclamationMark = 33,
-	/**
-	 * The `"` character.
-	 */
+  /**
+   * The `"` character.
+   */
   DoubleQuote = 34,
-	/**
-	 * The `#` character.
-	 */
+  /**
+   * The `#` character.
+   */
   Hash = 35,
-	/**
-	 * The `$` character.
-	 */
+  /**
+   * The `$` character.
+   */
   DollarSign = 36,
-	/**
-	 * The `%` character.
-	 */
+  /**
+   * The `%` character.
+   */
   PercentSign = 37,
-	/**
-	 * The `&` character.
-	 */
+  /**
+   * The `&` character.
+   */
   Ampersand = 38,
-	/**
-	 * The `'` character.
-	 */
+  /**
+   * The `'` character.
+   */
   SingleQuote = 39,
-	/**
-	 * The `(` character.
-	 */
+  /**
+   * The `(` character.
+   */
   OpenParen = 40,
-	/**
-	 * The `)` character.
-	 */
+  /**
+   * The `)` character.
+   */
   CloseParen = 41,
-	/**
-	 * The `*` character.
-	 */
+  /**
+   * The `*` character.
+   */
   Asterisk = 42,
-	/**
-	 * The `+` character.
-	 */
+  /**
+   * The `+` character.
+   */
   Plus = 43,
-	/**
-	 * The `,` character.
-	 */
+  /**
+   * The `,` character.
+   */
   Comma = 44,
-	/**
-	 * The `-` character.
-	 */
+  /**
+   * The `-` character.
+   */
   Dash = 45,
-	/**
-	 * The `.` character.
-	 */
+  /**
+   * The `.` character.
+   */
   Period = 46,
-	/**
-	 * The `/` character.
-	 */
+  /**
+   * The `/` character.
+   */
   Slash = 47,
 
   Digit0 = 48,
@@ -101,33 +101,33 @@ export const enum CharCode {
   Digit8 = 56,
   Digit9 = 57,
 
-	/**
-	 * The `:` character.
-	 */
+  /**
+   * The `:` character.
+   */
   Colon = 58,
-	/**
-	 * The `;` character.
-	 */
+  /**
+   * The `;` character.
+   */
   Semicolon = 59,
-	/**
-	 * The `<` character.
-	 */
+  /**
+   * The `<` character.
+   */
   LessThan = 60,
-	/**
-	 * The `=` character.
-	 */
+  /**
+   * The `=` character.
+   */
   Equals = 61,
-	/**
-	 * The `>` character.
-	 */
+  /**
+   * The `>` character.
+   */
   GreaterThan = 62,
-	/**
-	 * The `?` character.
-	 */
+  /**
+   * The `?` character.
+   */
   QuestionMark = 63,
-	/**
-	 * The `@` character.
-	 */
+  /**
+   * The `@` character.
+   */
   AtSign = 64,
 
   A = 65,
@@ -157,29 +157,29 @@ export const enum CharCode {
   Y = 89,
   Z = 90,
 
-	/**
-	 * The `[` character.
-	 */
+  /**
+   * The `[` character.
+   */
   OpenSquareBracket = 91,
-	/**
-	 * The `\` character.
-	 */
+  /**
+   * The `\` character.
+   */
   Backslash = 92,
-	/**
-	 * The `]` character.
-	 */
+  /**
+   * The `]` character.
+   */
   CloseSquareBracket = 93,
-	/**
-	 * The `^` character.
-	 */
+  /**
+   * The `^` character.
+   */
   Caret = 94,
-	/**
-	 * The `_` character.
-	 */
+  /**
+   * The `_` character.
+   */
   Underline = 95,
-	/**
-	 * The ``(`)`` character.
-	 */
+  /**
+   * The ``(`)`` character.
+   */
   BackTick = 96,
 
   a = 97,
@@ -209,21 +209,21 @@ export const enum CharCode {
   y = 121,
   z = 122,
 
-	/**
-	 * The `{` character.
-	 */
+  /**
+   * The `{` character.
+   */
   OpenCurlyBrace = 123,
-	/**
-	 * The `|` character.
-	 */
+  /**
+   * The `|` character.
+   */
   Pipe = 124,
-	/**
-	 * The `}` character.
-	 */
+  /**
+   * The `}` character.
+   */
   CloseCurlyBrace = 125,
-	/**
-	 * The `~` character.
-	 */
+  /**
+   * The `~` character.
+   */
   Tilde = 126,
 
   U_Combining_Grave_Accent = 0x0300,        // U+0300 Combining Grave Accent
@@ -416,10 +416,10 @@ export const enum CharCode {
 
   U_OVERLINE = 0x203E, // Unicode Character 'OVERLINE'
 
-	/**
-	 * UTF-8 BOM
-	 * Unicode Character 'ZERO WIDTH NO-BREAK SPACE' (U+FEFF)
-	 * http://www.fileformat.info/info/unicode/char/feff/index.htm
-	 */
+  /**
+   * UTF-8 BOM
+   * Unicode Character 'ZERO WIDTH NO-BREAK SPACE' (U+FEFF)
+   * http://www.fileformat.info/info/unicode/char/feff/index.htm
+   */
   UTF8_BOM = 65279
 }

@@ -9163,6 +9163,9 @@ declare module 'coc.nvim' {
   }
 
   export interface SynchronizeOptions {
+    /**
+     * @deprecated Use the new pull model (`workspace/configuration` request)
+     */
     configurationSection?: string | string[]
     fileEvents?: FileSystemWatcher | FileSystemWatcher[]
   }
@@ -9210,7 +9213,7 @@ declare module 'coc.nvim' {
 
   export interface WorkspaceFolderWorkspaceMiddleware {
     workspaceFolders?: (token: CancellationToken, next: RequestHandler0<WorkspaceFolder[] | null, void>) => HandlerResult<WorkspaceFolder[] | null, void>
-    didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, void>
+    didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, Promise<void>>
   }
 
   export interface ProvideTypeDefinitionSignature {
@@ -9356,17 +9359,12 @@ declare module 'coc.nvim' {
     ) => ProviderResult<SemanticTokens>
   }
 
-
-  /**
-   * File operation middleware
-   * @since 3.16.0
-   */
   export interface FileOperationsMiddleware {
-    didCreateFiles?: NextSignature<FileCreateEvent, void>
+    didCreateFiles?: NextSignature<FileCreateEvent, Promise<void>>
     willCreateFiles?: NextSignature<FileWillCreateEvent, Thenable<WorkspaceEdit | null | undefined>>
-    didRenameFiles?: NextSignature<FileRenameEvent, void>
+    didRenameFiles?: NextSignature<FileRenameEvent, Promise<void>>
     willRenameFiles?: NextSignature<FileWillRenameEvent, Thenable<WorkspaceEdit | null | undefined>>
-    didDeleteFiles?: NextSignature<FileDeleteEvent, void>
+    didDeleteFiles?: NextSignature<FileDeleteEvent, Promise<void>>
     willDeleteFiles?: NextSignature<FileWillDeleteEvent, Thenable<WorkspaceEdit | null | undefined>>
   }
 
@@ -9565,12 +9563,12 @@ declare module 'coc.nvim' {
    * from the server
    */
   interface _Middleware {
-    didOpen?: NextSignature<LinesTextDocument, void>
-    didChange?: NextSignature<DidChangeTextDocumentParams, void>
-    willSave?: NextSignature<TextDocumentWillSaveEvent, void>
+    didOpen?: NextSignature<LinesTextDocument, Promise<void>>
+    didChange?: NextSignature<DidChangeTextDocumentParams, Promise<void>>
+    willSave?: NextSignature<TextDocumentWillSaveEvent, Promise<void>>
     willSaveWaitUntil?: NextSignature<TextDocumentWillSaveEvent, Thenable<TextEdit[]>>
-    didSave?: NextSignature<LinesTextDocument, void>
-    didClose?: NextSignature<LinesTextDocument, void>
+    didSave?: NextSignature<LinesTextDocument, Promise<void>>
+    didClose?: NextSignature<LinesTextDocument, Promise<void>>
     handleDiagnostics?: (this: void, uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void
     provideCompletionItem?: (this: void, document: LinesTextDocument, position: Position, context: CompletionContext, token: CancellationToken, next: ProvideCompletionItemsSignature) => ProviderResult<CompletionItem[] | CompletionList | null>
     resolveCompletionItem?: (this: void, item: CompletionItem, token: CancellationToken, next: ResolveCompletionItemSignature) => ProviderResult<CompletionItem>
@@ -9605,8 +9603,42 @@ declare module 'coc.nvim' {
   export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware
 
   export interface ConnectionOptions {
-    // cancellationStrategy: CancellationStrategy
+    cancellationStrategy: unknown
     maxRestartCount?: number
+  }
+
+  export interface DiagnosticPullOptions {
+    /**
+     * Whether to pull for diagnostics on document change.
+     * Default to "pullDiagnostic.onChange" configuration.
+     */
+    onChange?: boolean
+
+    /**
+     * Whether to pull for diagnostics on document save.
+     * Default to "pullDiagnostic.onSave" configuration.
+     */
+    onSave?: boolean
+
+    /**
+     * Whether to pull for workspace diagnostics when possible.
+     * Default to "pullDiagnostic.workspace" configuration.
+     */
+    workspace?: boolean
+    /**
+     * Minimatch patterns to match full filepath that should be ignored for pullDiagnostic.
+     * Default to "pullDiagnostic.ignored" configuration.
+     */
+    ignored?: string[]
+
+    /**
+     * An optional filter method that is consulted when triggering a
+     * diagnostic pull during document change or document save.
+     *
+     * @param document the document that changes or got save
+     * @param mode the mode
+     */
+    filter?(document: TextDocument, mode: 'onType' | 'onSave'): boolean
   }
 
   export interface LanguageClientOptions {
@@ -9633,8 +9665,13 @@ declare module 'coc.nvim' {
     middleware?: Middleware
     workspaceFolder?: WorkspaceFolder
     connectionOptions?: ConnectionOptions
+    diagnosticPullOptions?: DiagnosticPullOptions
     markdown?: {
-      isTrusted: boolean
+      isTrusted?: boolean
+      /**
+       * Not used
+       */
+      supportHtml?: boolean
     }
   }
   export enum State {
@@ -9658,6 +9695,55 @@ declare module 'coc.nvim' {
     id: string
     registerOptions: T
   }
+
+  export type FeatureState = {
+    kind: 'document'
+
+    /**
+     * The features's id. This is usually the method names used during
+     * registration.
+     */
+    id: string
+
+    /**
+     * Has active registrations.
+     */
+    registrations: boolean
+
+    /**
+     * A registration matches an open document.
+     */
+    matches: boolean
+
+  } | {
+    kind: 'workspace'
+
+    /**
+     * The features's id. This is usually the method names used during
+     * registration.
+     */
+    id: string
+
+    /**
+     * Has active registrations.
+     */
+    registrations: boolean
+  } | {
+    kind: 'window'
+
+    /**
+     * The features's id. This is usually the method names used during
+     * registration.
+     */
+    id: string
+
+    /**
+     * Has active registrations.
+     */
+    registrations: boolean
+  } | {
+    kind: 'static'
+  }
   /**
    * A static feature. A static feature can't be dynamically activate via the
    * server. It is wired during the initialize sequence.
@@ -9668,7 +9754,55 @@ declare module 'coc.nvim' {
      *
      * @params the initialize params.
      */
-    fillInitializeParams?: (params: any) => void
+    fillInitializeParams?: (params: object) => void
+    /**
+     * Called to fill in the client capabilities this feature implements.
+     *
+     * @param capabilities The client capabilities to fill.
+     */
+    fillClientCapabilities(capabilities: object): void
+    /**
+     * A preflight where the server capabilities are shown to all features
+     * before a feature is actually initialized. This allows feature to
+     * capture some state if they are a pre-requisite for other features.
+     *
+     * @param capabilities the server capabilities
+     * @param documentSelector the document selector pass to the client's constructor.
+     * May be `undefined` if the client was created without a selector.
+     */
+    preInitialize?: (capabilities: object, documentSelector: DocumentSelector | undefined) => void
+    /**
+     * Initialize the feature. This method is called on a feature instance
+     * when the client has successfully received the initialize request from
+     * the server and before the client sends the initialized notification
+     * to the server.
+     *
+     * @param capabilities the server capabilities
+     * @param documentSelector the document selector pass to the client's constructor.
+     *  May be `undefined` if the client was created without a selector.
+     */
+    initialize(capabilities: object, documentSelector: DocumentSelector | undefined): void
+    /**
+     * Returns the state the feature is in.
+     */
+    getState?(): FeatureState
+    /**
+     * Called when the client is stopped to dispose this feature. Usually a feature
+     * unregisters listeners registered hooked up with the VS Code extension host.
+     */
+    dispose(): void
+  }
+
+  /**
+   * A dynamic feature can be activated via the server.
+   */
+  export interface DynamicFeature<RO> {
+    /**
+     * Called to fill the initialize params.
+     *
+     * @params the initialize params.
+     */
+    fillInitializeParams?: (params: InitializeParams) => void
     /**
      * Called to fill in the client capabilities this feature implements.
      *
@@ -9681,11 +9815,42 @@ declare module 'coc.nvim' {
      * the server and before the client sends the initialized notification
      * to the server.
      *
-     * @param capabilities the server capabilities
+     * @param capabilities the server capabilities.
      * @param documentSelector the document selector pass to the client's constructor.
      *  May be `undefined` if the client was created without a selector.
      */
-    initialize(capabilities: any, documentSelector: DocumentSelector | undefined): void
+    initialize(capabilities: object, documentSelector: DocumentSelector | undefined): void
+
+    /**
+     * A preflight where the server capabilities are shown to all features
+     * before a feature is actually initialized. This allows feature to
+     * capture some state if they are a pre-requisite for other features.
+     *
+     * @param capabilities the server capabilities
+     * @param documentSelector the document selector pass to the client's constructor.
+     * May be `undefined` if the client was created without a selector.
+     */
+    preInitialize?: (capabilities: object, documentSelector: DocumentSelector | undefined) => void
+    /**
+      * The signature (e.g. method) for which this features support dynamic activation / registration.
+      */
+    registrationType: RegistrationType<RO>
+    /**
+     * Is called when the server send a register request for the given message.
+     *
+     * @param data additional registration data as defined in the protocol.
+     */
+    register(data: RegistrationData<RO>): void
+    /**
+     * Is called when the server wants to unregister a feature.
+     *
+     * @param id the id used when registering the feature.
+     */
+    unregister(id: string): void
+    /**
+     * Returns the state the feature is in.
+     */
+    getState?(): FeatureState
     /**
      * Called when the client is stopped to dispose this feature. Usually a feature
      * unregisters listeners registered hooked up with the VS Code extension host.
@@ -9862,53 +10027,6 @@ declare module 'coc.nvim' {
     [custom: string]: any
   }
 
-  export interface DynamicFeature<RO> {
-    /**
-     * Called to fill the initialize params.
-     *
-     * @params the initialize params.
-     */
-    fillInitializeParams?: (params: InitializeParams) => void
-    /**
-     * Called to fill in the client capabilities this feature implements.
-     *
-     * @param capabilities The client capabilities to fill.
-     */
-    fillClientCapabilities(capabilities: any): void
-    /**
-     * Initialize the feature. This method is called on a feature instance
-     * when the client has successfully received the initialize request from
-     * the server and before the client sends the initialized notification
-     * to the server.
-     *
-     * @param capabilities the server capabilities.
-     * @param documentSelector the document selector pass to the client's constructor.
-     *  May be `undefined` if the client was created without a selector.
-     */
-    initialize(capabilities: any, documentSelector: DocumentSelector | undefined): void
-    /**
-      * The signature (e.g. method) for which this features support dynamic activation / registration.
-      */
-    registrationType: RegistrationType<RO>
-    /**
-     * Is called when the server send a register request for the given message.
-     *
-     * @param data additional registration data as defined in the protocol.
-     */
-    register(data: RegistrationData<RO>): void
-    /**
-     * Is called when the server wants to unregister a feature.
-     *
-     * @param id the id used when registering the feature.
-     */
-    unregister(id: string): void
-    /**
-     * Called when the client is stopped to dispose this feature. Usually a feature
-     * unregisters listeners registered hooked up with the VS Code extension host.
-     */
-    dispose(): void
-  }
-
   export interface NotificationFeature<T extends Function> {
     /**
      * Triggers the corresponding RPC method.
@@ -10065,22 +10183,18 @@ declare module 'coc.nvim' {
     sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
-
     onRequest<R, E>(type: RequestType0<R, E>, handler: RequestHandler0<R, E>): Disposable
     onRequest<P, R, E>(type: RequestType<P, R, E>, handler: RequestHandler<P, R, E>): Disposable
     onRequest<R, E>(method: string, handler: (...params: any[]) => HandlerResult<R, E>): Disposable
-
-    sendNotification(type: NotificationType0): void
-    sendNotification<P>(type: NotificationType<P>, params?: P): void
-    sendNotification(method: string): void
-    sendNotification(method: string, params: any): void
-
+    sendNotification(type: NotificationType0): Promise<void>
+    sendNotification<P>(type: NotificationType<P>, params?: P): Promise<void>
+    sendNotification(method: string): Promise<void>
+    sendNotification(method: string, params: any): Promise<void>
     onNotification(type: NotificationType0, handler: () => void): Disposable
     onNotification<P>(type: NotificationType<P>, handler: (params: P) => void): Disposable
     onNotification(method: string, handler: (...params: any[]) => void): Disposable
-
     onProgress<P>(type: ProgressType<any>, token: string | number, handler: (params: P) => void): Disposable
-    sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): void
+    sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): Promise<void>
 
     /**
      * Append info to outputChannel
@@ -10095,20 +10209,20 @@ declare module 'coc.nvim' {
      */
     error(message: string, data?: any): void
     getPublicState(): State
-    get initializeResult(): InitializeResult | undefined
 
-    get clientOptions(): LanguageClientOptions
+    readonly initializeResult: InitializeResult | undefined
+    readonly clientOptions: LanguageClientOptions
+    readonly outputChannel: OutputChannel
     /**
      * Fired on language server state change.
      */
-    get onDidChangeState(): Event<StateChangeEvent>
-    get outputChannel(): OutputChannel
-    get diagnostics(): DiagnosticCollection | undefined
-
+    readonly onDidChangeState: Event<StateChangeEvent>
+    readonly diagnostics: DiagnosticCollection | undefined
     /**
      * Current running state.
      */
-    get serviceState(): ServiceStat
+    readonly serviceState: ServiceStat
+    readonly started: boolean
     /**
      * Check if server could start.
      */
@@ -10118,7 +10232,6 @@ declare module 'coc.nvim' {
      */
     needsStop(): boolean
     onReady(): Promise<void>
-    get started(): boolean
     set trace(value: Trace)
 
     /**
@@ -10129,7 +10242,7 @@ declare module 'coc.nvim' {
     /**
      * Start language server, not needed when registered to services by `services.registLanguageClient`
      */
-    start(): Disposable
+    start(): Promise<void>
     /**
      * Restart language client.
      */

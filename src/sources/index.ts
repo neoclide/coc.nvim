@@ -270,7 +270,7 @@ export class Sources {
   public shouldCommit(item: ExtendedCompleteItem, commitCharacter: string): boolean {
     if (!item || !item.source) return false
     let source = this.getSource(item.source)
-    if (source && source.sourceType == SourceType.Service && typeof source.shouldCommit === 'function') {
+    if (source && typeof source.shouldCommit === 'function') {
       return source.shouldCommit(item, commitCharacter)
     }
     return false

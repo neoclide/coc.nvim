@@ -1,13 +1,9 @@
 'use strict'
-/* ---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
 import { CancellationToken, ClientCapabilities, Definition, DefinitionLink, Disposable, DocumentSelector, ImplementationOptions, ImplementationRegistrationOptions, ImplementationRequest, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ImplementationProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 
 export interface ProvideImplementationSignature {
@@ -18,16 +14,16 @@ export interface ImplementationMiddleware {
   provideImplementation?: (this: void, document: TextDocument, position: Position, token: CancellationToken, next: ProvideImplementationSignature) => ProviderResult<Definition | DefinitionLink[]>
 }
 
-export class ImplementationFeature extends TextDocumentFeature<boolean | ImplementationOptions, ImplementationRegistrationOptions, ImplementationProvider> {
+export class ImplementationFeature extends TextDocumentLanguageFeature<boolean | ImplementationOptions, ImplementationRegistrationOptions, ImplementationProvider, ImplementationMiddleware> {
 
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<ImplementationMiddleware>) {
     super(client, ImplementationRequest.type)
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     const implementationSupport = ensure(ensure(capabilities, 'textDocument')!, 'implementation')!
     implementationSupport.dynamicRegistration = true
-    // implementationSupport.linkSupport = true
+    implementationSupport.linkSupport = true
   }
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
@@ -42,12 +38,9 @@ export class ImplementationFeature extends TextDocumentFeature<boolean | Impleme
     const provider: ImplementationProvider = {
       provideImplementation: (document, position, token) => {
         const client = this._client
-        const provideImplementation: ProvideImplementationSignature = (document, position, token) => client.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token).then(
-          res => token.isCancellationRequested ? null : res, error => {
-            return client.handleFailedRequest(ImplementationRequest.type, token, error, null)
-          }
-        )
-        const middleware = client.clientOptions.middleware
+        const provideImplementation: ProvideImplementationSignature = (document, position, token) =>
+          this.sendRequest(ImplementationRequest.type, cv.asTextDocumentPositionParams(document, position), token)
+        const middleware = client.middleware
         return middleware.provideImplementation
           ? middleware.provideImplementation(document, position, token, provideImplementation)
           : provideImplementation(document, position, token)

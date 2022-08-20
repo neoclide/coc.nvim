@@ -1,10 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { CompletionItem, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionList, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
+import { ItemDefaults } from '../../sources/source-language'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -240,6 +241,58 @@ describe('language source', () => {
     })
   })
 
+  describe('itemDefaults', () => {
+    async function start(item: CompletionItem, itemDefaults: ItemDefaults): Promise<void> {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionList> => {
+          return { items: [item], itemDefaults, isIncomplete: false }
+        }
+      }
+      disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider))
+      await nvim.input('i')
+      nvim.call('coc#start', [{ source: 'test' }], true)
+      await helper.waitPopup()
+    }
+
+    it('should use commitCharacters from itemDefaults', async () => {
+      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+      await start({ label: 'foo' }, { commitCharacters: ['.'] })
+      await nvim.input('.')
+      await helper.waitFor('getline', ['.'], 'foo.')
+    })
+
+    it('should use range of editRange from itemDefaults', async () => {
+      await nvim.call('setline', ['.', 'bar'])
+      await start({ label: 'foo' }, {
+        editRange: Range.create(0, 0, 0, 3)
+      })
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], 'foo')
+    })
+
+    it('should use replace range of editRange from itemDefaults', async () => {
+      await nvim.call('setline', ['.', 'bar'])
+      await start({ label: 'foo' }, {
+        editRange: {
+          insert: Range.create(0, 0, 0, 0),
+          replace: Range.create(0, 0, 0, 3),
+        }
+      })
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], 'foo')
+    })
+
+    it('should use insertTextFormat from itemDefaults', async () => {
+      await start({ label: 'foo', insertText: 'foo($1)$0' }, {
+        insertTextFormat: InsertTextFormat.Snippet,
+        insertTextMode: InsertTextMode.asIs,
+        data: {}
+      })
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], 'foo()')
+    })
+  })
+
   describe('textEdit', () => {
     it('should fix bad range', async () => {
       let provider: CompletionItemProvider = {
@@ -250,7 +303,8 @@ describe('language source', () => {
         }]
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
-      await nvim.input('if')
+      await nvim.input('i')
+      nvim.call('coc#start', [{ source: 'edits' }], true)
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo')

@@ -349,10 +349,10 @@ describe('Default normal mappings', () => {
     expect(selected.length).toBe(locations.length)
   })
 
-  it('should stop by <C-c>', async () => {
+  it('should stop by <C-b>', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.listInput('<C-c>')
+    await helper.listInput('<C-b>')
     let loading = manager.session?.worker.isLoading
     expect(loading).toBe(false)
   })

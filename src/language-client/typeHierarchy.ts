@@ -1,19 +1,13 @@
-/* --------------------------------------------------------------------------------------------
-* Copyright (c) Microsoft Corporation. All rights reserved.
-* Licensed under the MIT License. See License.txt in the project root for license information.
-* ------------------------------------------------------------------------------------------ */
-
+'use strict'
 import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, TypeHierarchyItem, TypeHierarchyOptions, TypeHierarchyPrepareRequest, TypeHierarchyRegistrationOptions, TypeHierarchySubtypesRequest, TypeHierarchySupertypesRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
-import { ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, Middleware, TextDocumentFeature } from './client'
+import { ProviderResult, TypeHierarchyProvider } from '../provider'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 
 export type PrepareTypeHierarchySignature = (this: void, document: TextDocument, position: Position, token: CancellationToken) => ProviderResult<TypeHierarchyItem[]>
-
 export type TypeHierarchySupertypesSignature = (this: void, item: TypeHierarchyItem, token: CancellationToken) => ProviderResult<TypeHierarchyItem[]>
-
 export type TypeHierarchySubtypesSignature = (this: void, item: TypeHierarchyItem, token: CancellationToken) => ProviderResult<TypeHierarchyItem[]>
 
 /**
@@ -27,58 +21,8 @@ export interface TypeHierarchyMiddleware {
   provideTypeHierarchySubtypes?: (this: void, item: TypeHierarchyItem, token: CancellationToken, next: TypeHierarchySubtypesSignature) => ProviderResult<TypeHierarchyItem[]>
 }
 
-class TypeHierarchyProvider implements TypeHierarchyProvider {
-  constructor(private client: BaseLanguageClient) {}
-
-  public prepareTypeHierarchy(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> {
-    const client = this.client
-    const prepareTypeHierarchy: PrepareTypeHierarchySignature = (document, position, token) => {
-      const params = cv.asTextDocumentPositionParams(document, position)
-      return client.sendRequest(TypeHierarchyPrepareRequest.type, params, token).then(
-        res => token.isCancellationRequested ? null : res,
-        error => {
-          return client.handleFailedRequest(TypeHierarchyPrepareRequest.type, token, error, null)
-        })
-    }
-    const middleware = client.clientOptions.middleware!
-    return middleware.prepareTypeHierarchy
-      ? middleware.prepareTypeHierarchy(document, position, token, prepareTypeHierarchy)
-      : prepareTypeHierarchy(document, position, token)
-  }
-
-  public provideTypeHierarchySupertypes(item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> {
-    const client = this.client
-    const provideTypeHierarchySupertypes: TypeHierarchySupertypesSignature = (item, token) => {
-      return client.sendRequest(TypeHierarchySupertypesRequest.type, { item }, token).then(
-        res => token.isCancellationRequested ? null : res,
-        error => {
-          return client.handleFailedRequest(TypeHierarchySupertypesRequest.type, token, error, null)
-        })
-    }
-    const middleware = client.clientOptions.middleware!
-    return middleware.provideTypeHierarchySupertypes
-      ? middleware.provideTypeHierarchySupertypes(item, token, provideTypeHierarchySupertypes)
-      : provideTypeHierarchySupertypes(item, token)
-  }
-
-  public provideTypeHierarchySubtypes(item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> {
-    const client = this.client
-    const provideTypeHierarchySubtypes: TypeHierarchySubtypesSignature = (item, token) => {
-      return client.sendRequest(TypeHierarchySubtypesRequest.type, { item }, token).then(
-        res => token.isCancellationRequested ? null : res,
-        error => {
-          return client.handleFailedRequest(TypeHierarchySubtypesRequest.type, token, error, null)
-        })
-    }
-    const middleware = client.clientOptions.middleware!
-    return middleware.provideTypeHierarchySubtypes
-      ? middleware.provideTypeHierarchySubtypes(item, token, provideTypeHierarchySubtypes)
-      : provideTypeHierarchySubtypes(item, token)
-  }
-}
-
-export class TypeHierarchyFeature extends TextDocumentFeature<boolean | TypeHierarchyOptions, TypeHierarchyRegistrationOptions, TypeHierarchyProvider> {
-  constructor(client: BaseLanguageClient) {
+export class TypeHierarchyFeature extends TextDocumentLanguageFeature<boolean | TypeHierarchyOptions, TypeHierarchyRegistrationOptions, TypeHierarchyProvider, TypeHierarchyMiddleware> {
+  constructor(client: FeatureClient<TypeHierarchyMiddleware>) {
     super(client, TypeHierarchyPrepareRequest.type)
   }
 
@@ -97,8 +41,37 @@ export class TypeHierarchyFeature extends TextDocumentFeature<boolean | TypeHier
 
   protected registerLanguageProvider(options: TypeHierarchyRegistrationOptions): [Disposable, TypeHierarchyProvider] {
     const client = this._client
-    const provider = new TypeHierarchyProvider(client)
     const selector = options.documentSelector!
+    const provider = {
+      prepareTypeHierarchy: (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> => {
+        const prepareTypeHierarchy: PrepareTypeHierarchySignature = (document, position, token) => {
+          const params = cv.asTextDocumentPositionParams(document, position)
+          return this.sendRequest(TypeHierarchyPrepareRequest.type, params, token)
+        }
+        const middleware = client.middleware!
+        return middleware.prepareTypeHierarchy
+          ? middleware.prepareTypeHierarchy(document, position, token, prepareTypeHierarchy)
+          : prepareTypeHierarchy(document, position, token)
+      },
+      provideTypeHierarchySupertypes: (item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> => {
+        const provideTypeHierarchySupertypes: TypeHierarchySupertypesSignature = (item, token) => {
+          return this.sendRequest(TypeHierarchySupertypesRequest.type, { item }, token)
+        }
+        const middleware = client.middleware!
+        return middleware.provideTypeHierarchySupertypes
+          ? middleware.provideTypeHierarchySupertypes(item, token, provideTypeHierarchySupertypes)
+          : provideTypeHierarchySupertypes(item, token)
+      },
+      provideTypeHierarchySubtypes: (item: TypeHierarchyItem, token: CancellationToken): ProviderResult<TypeHierarchyItem[]> => {
+        const provideTypeHierarchySubtypes: TypeHierarchySubtypesSignature = (item, token) => {
+          return this.sendRequest(TypeHierarchySubtypesRequest.type, { item }, token)
+        }
+        const middleware = client.middleware!
+        return middleware.provideTypeHierarchySubtypes
+          ? middleware.provideTypeHierarchySubtypes(item, token, provideTypeHierarchySubtypes)
+          : provideTypeHierarchySubtypes(item, token)
+      }
+    }
     return [languages.registerTypeHierarchyProvider(selector, provider), provider]
   }
 }

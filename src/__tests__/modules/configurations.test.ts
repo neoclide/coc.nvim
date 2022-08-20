@@ -7,10 +7,11 @@ import { v1 as uuidv1 } from 'uuid'
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration'
 import ConfigurationProxy from '../../configuration/shape'
-import { convertErrors, removeFromValueTree, getChangedKeys, getConfigurationValue, getKeys, mergeConfigProperties, parseConfiguration, parseContentFromFile } from '../../configuration/util'
+import { convertErrors, removeFromValueTree, toJSONObject, getChangedKeys, getConfigurationValue, getKeys, mergeConfigProperties, parseConfiguration, parseContentFromFile } from '../../configuration/util'
 import { ConfigurationTarget, IConfigurationModel } from '../../types'
-import { CONFIG_FILE_NAME, wait } from '../../util'
-import { rmdir } from '../helper'
+import { CONFIG_FILE_NAME, disposeAll, wait } from '../../util'
+import helper, { rmdir } from '../helper'
+import { Disposable } from 'vscode-languageserver-protocol'
 
 const config = fs.readFileSync(path.join(__dirname, './settings.json'), 'utf8')
 const workspaceConfigFile = path.resolve(__dirname, `../sample/.vim/${CONFIG_FILE_NAME}`)
@@ -29,8 +30,11 @@ function createConfigurations(): Configurations {
   return new Configurations(userConfigFile)
 }
 
+const disposables: Disposable[] = []
+
 afterEach(() => {
   global.__TEST__ = true
+  disposeAll(disposables)
 })
 
 describe('ConfigurationProxy', () => {
@@ -278,6 +282,11 @@ describe('Configurations', () => {
       expect(res).toEqual({ to: 2 })
     })
 
+    it('should get json object', async () => {
+      let obj = [{ x: 1 }, { y: 2 }]
+      expect(toJSONObject(obj)).toEqual(obj)
+    })
+
     it('should get changed keys #1', () => {
       let res = getChangedKeys({ y: 2 }, { x: 1 })
       expect(res).toEqual(['x', 'y'])
@@ -299,6 +308,7 @@ describe('Configurations', () => {
   describe('addFolderFile()', () => {
     it('should add folder as workspace configuration', () => {
       let configurations = createConfigurations()
+      disposables.push(configurations)
       configurations.onDidChange(e => {
         let affects = e.affectsConfiguration('coc')
         expect(affects).toBe(true)
@@ -306,7 +316,6 @@ describe('Configurations', () => {
       configurations.addFolderFile(workspaceConfigFile)
       let o = configurations.configuration.workspace.contents
       expect(o.coc.preferences.rootPath).toBe('./src')
-      configurations.dispose()
     })
 
     it('should not add invalid folders', async () => {
@@ -332,11 +341,11 @@ describe('Configurations', () => {
   describe('getConfiguration()', () => {
     it('should load default configurations', () => {
       let conf = new Configurations()
+      disposables.push(conf)
       expect(conf.defaults.contents.coc).toBeDefined()
       let c = conf.getConfiguration('languageserver')
       expect(c).toEqual({})
       expect(c.has('not_exists')).toBe(false)
-      conf.dispose()
     })
 
     it('should inspect configuration', async () => {
@@ -419,13 +428,14 @@ describe('Configurations', () => {
       let tmpFile = path.join(os.tmpdir(), uuidv1())
       fs.writeFileSync(tmpFile, '{"x":', 'utf8')
       let conf = new Configurations(tmpFile)
+      disposables.push(conf)
       let errors = conf.errorItems
       expect(errors.length > 1).toBe(true)
-      conf.dispose()
     })
 
     it('should change to new folder configuration', () => {
       let conf = new Configurations()
+      disposables.push(conf)
       conf.addFolderFile(workspaceConfigFile)
       let configFile = path.join(__dirname, './settings.json')
       conf.addFolderFile(configFile)
@@ -436,20 +446,20 @@ describe('Configurations', () => {
       let { contents } = conf.workspace
       expect(contents.foo).toBeUndefined()
       expect(fn).toBeCalled()
-      conf.dispose()
     })
 
     it('should get nested property', () => {
       let config = createConfigurations()
+      disposables.push(config)
       let conf = config.getConfiguration('servers.c')
       let res = conf.get<string>('trace.server', '')
       expect(res).toBe('verbose')
-      config.dispose()
     })
 
     it('should get user and workspace configuration', () => {
       let userConfigFile = path.join(__dirname, './settings.json')
       let configurations = new Configurations(userConfigFile)
+      disposables.push(configurations)
       let data = configurations.configuration.toData()
       expect(data.user).toBeDefined()
       expect(data.workspace).toBeDefined()
@@ -457,28 +467,28 @@ describe('Configurations', () => {
       let value = configurations.configuration.getValue()
       expect(value.foo).toBeDefined()
       expect(value.foo.bar).toBe(1)
-      configurations.dispose()
     })
 
     it('should override with new value', () => {
       let configurations = createConfigurations()
+      disposables.push(configurations)
       configurations.configuration.defaults.setValue('foo', 1)
       let { contents } = configurations.defaults
       expect(contents.foo).toBe(1)
-      configurations.dispose()
     })
 
     it('should extends defaults', () => {
       let configurations = createConfigurations()
+      disposables.push(configurations)
       configurations.extendsDefaults({ 'a.b': 1 })
       configurations.extendsDefaults({ 'a.b': 2 })
       let o = configurations.defaults.contents
       expect(o.a.b).toBe(2)
-      configurations.dispose()
     })
 
     it('should update configuration', async () => {
       let configurations = createConfigurations()
+      disposables.push(configurations)
       configurations.addFolderFile(workspaceConfigFile)
       let fn = jest.fn()
       configurations.onDidChange(e => {
@@ -494,11 +504,11 @@ describe('Configurations', () => {
       config = configurations.getConfiguration('foo')
       expect(config.get<number>('bar')).toBe(6)
       expect(fn).toBeCalledTimes(1)
-      configurations.dispose()
     })
 
     it('should remove configuration', async () => {
       let configurations = createConfigurations()
+      disposables.push(configurations)
       configurations.addFolderFile(workspaceConfigFile)
       let fn = jest.fn()
       configurations.onDidChange(e => {
@@ -513,7 +523,6 @@ describe('Configurations', () => {
       config = configurations.getConfiguration('foo')
       expect(config.get<any>('bar')).toBeUndefined()
       expect(fn).toBeCalledTimes(1)
-      configurations.dispose()
     })
   })
 
@@ -523,13 +532,13 @@ describe('Configurations', () => {
       let userConfigFile = path.join(os.tmpdir(), 'settings.json')
       fs.writeFileSync(userConfigFile, '{"foo.bar": true}', { encoding: 'utf8' })
       let conf = new Configurations(userConfigFile)
+      disposables.push(conf)
       await wait(20)
       fs.writeFileSync(userConfigFile, '{"foo.bar": false}', { encoding: 'utf8' })
-      await wait(150)
-      let c = conf.getConfiguration('foo')
-      let res = c.get('bar')
-      expect(res).toBe(false)
-      conf.dispose()
+      await helper.waitValue(() => {
+        let c = conf.getConfiguration('foo')
+        return c.get('bar')
+      }, false)
       fs.unlinkSync(userConfigFile)
     })
 
@@ -545,17 +554,17 @@ describe('Configurations', () => {
           return URI.file(configFile)
         }
       })
+      disposables.push(conf)
       let uri = U(path.join(os.tmpdir(), 'foo'))
       let resolved = conf.resolveFolderConfigution(uri)
       conf.setFolderConfiguration(uri)
       expect(resolved).toBeDefined()
       await wait(20)
       fs.writeFileSync(configFile, '{"foo.bar": false}', { encoding: 'utf8' })
-      await wait(150)
-      let c = conf.getConfiguration('foo')
-      let res = c.get('bar')
-      expect(res).toBe(false)
-      conf.dispose()
+      await helper.waitValue(() => {
+        let c = conf.getConfiguration('foo')
+        return c.get('bar')
+      }, false)
       if (fs.existsSync(configFile)) fs.unlinkSync(configFile)
     })
   })

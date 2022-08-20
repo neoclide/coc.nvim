@@ -86,6 +86,6 @@ export default class CodeActionManager extends Manager<CodeActionProvider> {
       return codeAction
     }
     let resolved = await Promise.resolve(provider.resolveCodeAction(omit(codeAction, ['providerId']), token))
-    return resolved || codeAction
+    return resolved ?? codeAction
   }
 }

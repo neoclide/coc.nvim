@@ -99,6 +99,7 @@ class Languages {
   ): Disposable {
     selector = typeof selector == 'string' ? [{ language: selector }] : selector
     let sources = require('./sources/index').default
+    sources.removeSource(name)
     return sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters)
   }
 
@@ -118,11 +119,12 @@ class Languages {
     selector: DocumentSelector,
     provider: SignatureHelpProvider,
     triggerCharacters?: string[]): Disposable {
-    return this.signatureManager.register(selector, provider, triggerCharacters)
+    return this.signatureManager.register(selector, provider, triggerCharacters ?? [])
   }
 
   public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
-    return this.documentSymbolManager.register(selector, provider, metadata)
+    if (metadata) provider.meta = metadata
+    return this.documentSymbolManager.register(selector, provider)
   }
 
   public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {

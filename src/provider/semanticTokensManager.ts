@@ -2,6 +2,7 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CancellationError } from '../util/errors'
 import { DocumentSemanticTokensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 const logger = require('../util/logger')('semanticTokensManager')
@@ -58,12 +59,22 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
   public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
     let provider = this.resolveProvider(document)
     if (!provider || typeof provider.provideDocumentSemanticTokens !== 'function') return null
-    return await Promise.resolve(provider.provideDocumentSemanticTokens(document, token))
+    try {
+      return await Promise.resolve(provider.provideDocumentSemanticTokens(document, token))
+    } catch (err) {
+      if (err instanceof CancellationError) return null
+      throw err
+    }
   }
 
   public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta> {
     let provider = this.resolveProvider(document)
     if (!provider || typeof provider.provideDocumentSemanticTokensEdits !== 'function') return null
-    return await Promise.resolve(provider.provideDocumentSemanticTokensEdits(document, previousResultId, token))
+    try {
+      return await Promise.resolve(provider.provideDocumentSemanticTokensEdits(document, previousResultId, token))
+    } catch (err) {
+      if (err instanceof CancellationError) return null
+      throw err
+    }
   }
 }

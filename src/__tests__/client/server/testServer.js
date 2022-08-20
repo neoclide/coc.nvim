@@ -5,7 +5,7 @@ const {
   DiagnosticTag, CompletionItemTag, TextDocumentSyncKind, MarkupKind, SignatureInformation, ParameterInformation,
   Location, Range, DocumentHighlight, DocumentHighlightKind, CodeAction, Command, TextEdit, Position, DocumentLink,
   ColorInformation, Color, ColorPresentation, FoldingRange, SelectionRange, SymbolKind, ProtocolRequestType, WorkDoneProgress,
-  WorkDoneProgressCreateRequest} = require('vscode-languageserver')
+  SignatureHelpRequest, SemanticTokensRefreshRequest, WorkDoneProgressCreateRequest, CodeLensRefreshRequest, InlayHintRefreshRequest, WorkspaceSymbolRequest, DidChangeConfigurationNotification} = require('vscode-languageserver')
 
 const {
   DidCreateFilesNotification,
@@ -18,28 +18,31 @@ let connection = createConnection()
 
 console.log = connection.console.log.bind(connection.console)
 console.error = connection.console.error.bind(connection.console)
-
+let disposables = []
 connection.onInitialize(params => {
   assert.equal((params.capabilities.workspace).applyEdit, true)
   assert.equal(params.capabilities.workspace.workspaceEdit.documentChanges, true)
+  assert.deepEqual(params.capabilities.workspace.workspaceEdit.resourceOperations, ['create', 'rename', 'delete'])
   assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, FailureHandlingKind.Undo)
+  assert.equal(params.capabilities.workspace.workspaceEdit.normalizesLineEndings, true)
+  assert.equal(params.capabilities.workspace.workspaceEdit.changeAnnotationSupport.groupsOnLabel, false)
   assert.equal(params.capabilities.workspace.symbol.resolveSupport.properties[0], 'location.range')
   assert.equal(params.capabilities.textDocument.completion.completionItem.deprecatedSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet.length, 1)
   assert.equal(params.capabilities.textDocument.completion.completionItem.tagSupport.valueSet[0], CompletionItemTag.Deprecated)
   assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.parameterInformation.labelOffsetSupport, true)
-  // assert.equal(params.capabilities.textDocument.definition.linkSupport, true)
-  // assert.equal(params.capabilities.textDocument.declaration.linkSupport, true)
-  // assert.equal(params.capabilities.textDocument.implementation.linkSupport, true)
-  // assert.equal(params.capabilities.textDocument.typeDefinition.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.definition.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.declaration.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.implementation.linkSupport, true)
+  assert.equal(params.capabilities.textDocument.typeDefinition.linkSupport, true)
   assert.equal(params.capabilities.textDocument.rename.prepareSupport, true)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.relatedInformation, true)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet.length, 2)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[0], DiagnosticTag.Unnecessary)
   assert.equal(params.capabilities.textDocument.publishDiagnostics.tagSupport.valueSet[1], DiagnosticTag.Deprecated)
   assert.equal(params.capabilities.textDocument.documentLink.tooltipSupport, true)
-  // assert.equal(params.capabilities.textDocument.inlineValue.dynamicRegistration, true)
+  assert.equal(params.capabilities.textDocument.inlineValue.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.dynamicRegistration, true)
   assert.equal(params.capabilities.textDocument.inlayHint.resolveSupport.properties[0], 'tooltip')
 
@@ -51,20 +54,23 @@ connection.onInitialize(params => {
 
   let diagnosticClientCapabilities = params.capabilities.textDocument.diagnostic
   assert.equal(diagnosticClientCapabilities.dynamicRegistration, true)
-  assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, false)
+  assert.equal(diagnosticClientCapabilities.relatedDocumentSupport, true)
 
-  let capabilities = {
+  const capabilities = {
     textDocumentSync: TextDocumentSyncKind.Full,
     definitionProvider: true,
     hoverProvider: true,
-    completionProvider: {resolveProvider: true, triggerCharacters: ['"', ':']},
     signatureHelpProvider: {
-      triggerCharacters: [':'],
-      retriggerCharacters: [':']
+      triggerCharacters: [','],
+      retriggerCharacters: [';']
     },
+    completionProvider: {resolveProvider: true, triggerCharacters: ['"', ':']},
     referencesProvider: true,
     documentHighlightProvider: true,
     codeActionProvider: {
+      resolveProvider: true
+    },
+    codeLensProvider: {
       resolveProvider: true
     },
     documentFormattingProvider: true,
@@ -81,13 +87,18 @@ connection.onInitialize(params => {
     colorProvider: true,
     declarationProvider: true,
     foldingRangeProvider: true,
-    implementationProvider: true,
+    implementationProvider: {
+      documentSelector: [{language: '*'}]
+    },
     selectionRangeProvider: true,
     inlineValueProvider: {},
     inlayHintProvider: {
       resolveProvider: true
     },
-    typeDefinitionProvider: true,
+    typeDefinitionProvider: {
+      id: '82671a9a-2a69-4e9f-a8d7-e1034eaa0d2e',
+      documentSelector: [{language: '*'}]
+    },
     callHierarchyProvider: true,
     semanticTokensProvider: {
       legend: {
@@ -128,6 +139,7 @@ connection.onInitialize(params => {
         },
       },
     },
+    linkedEditingRangeProvider: true,
     diagnosticProvider: {
       identifier: 'da348dc5-c30a-4515-9d98-31ff3be38d14',
       interFileDependencies: true,
@@ -137,37 +149,99 @@ connection.onInitialize(params => {
     workspaceSymbolProvider: {
       resolveProvider: true
     },
-    linkedEditingRangeProvider: true
+    notebookDocumentSync: {
+      notebookSelector: [{
+        notebook: {notebookType: 'jupyter-notebook'},
+        cells: [{language: 'python'}]
+      }]
+    }
   }
   return {capabilities, customResults: {hello: 'world'}}
 })
 
 connection.onInitialized(() => {
   // Dynamic reg is folders + .js files with operation kind in the path
-  void connection.client.register(DidCreateFilesNotification.type, {
+  connection.client.register(DidCreateFilesNotification.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
   })
-  void connection.client.register(DidRenameFilesNotification.type, {
+  connection.client.register(DidRenameFilesNotification.type, {
     filters: [
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
     ]
   })
-  void connection.client.register(DidDeleteFilesNotification.type, {
+  connection.client.register(DidDeleteFilesNotification.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
   })
-  void connection.client.register(WillCreateFilesRequest.type, {
+  connection.client.register(WillCreateFilesRequest.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/created-dynamic/**{/,/*.js}'}}]
   })
-  void connection.client.register(WillRenameFilesRequest.type, {
+  connection.client.register(WillRenameFilesRequest.type, {
     filters: [
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/', matches: 'folder'}},
       {scheme: 'file', pattern: {glob: '**/renamed-dynamic/**/*.js', matches: 'file'}}
     ]
   })
-  void connection.client.register(WillDeleteFilesRequest.type, {
+  connection.client.register(WillDeleteFilesRequest.type, {
     filters: [{scheme: 'file', pattern: {glob: '**/deleted-dynamic/**{/,/*.js}'}}]
   })
+  connection.client.register(SignatureHelpRequest.type, {
+    triggerCharacters: [':'],
+    retriggerCharacters: [':']
+  }).then(d => {
+    disposables.push(d)
+  })
+  connection.client.register(WorkspaceSymbolRequest.type, {
+    workDoneProgress: false,
+    resolveProvider: true
+  }).then(d => {
+    disposables.push(d)
+  })
+  connection.client.register(DidChangeConfigurationNotification.type, {
+    section: 'http'
+  }).then(d => {
+    disposables.push(d)
+  })
+  connection.client.register(DidCreateFilesNotification.type, {
+    filters: [{
+      pattern: {
+        glob: '**/renamed-dynamic/**/',
+        matches: 'folder',
+        options: {
+          ignoreCase: true
+        }
+      }
+    }]
+  }).then(d => {
+    disposables.push(d)
+  })
+})
+
+connection.onNotification('unregister', () => {
+  for (let d of disposables) {
+    d.dispose()
+    disposables = []
+  }
+})
+
+connection.onCodeLens(params => {
+  return [{range: Range.create(0, 0, 0, 3)}, {range: Range.create(1, 0, 1, 3)}]
+})
+
+connection.onNotification('fireCodeLensRefresh', () => {
+  connection.sendRequest(CodeLensRefreshRequest.type)
+})
+
+connection.onNotification('fireSemanticTokensRefresh', () => {
+  connection.sendRequest(SemanticTokensRefreshRequest.type)
+})
+
+connection.onNotification('fireInlayHintsRefresh', () => {
+  connection.sendRequest(InlayHintRefreshRequest.type)
+})
+
+connection.onCodeLensResolve(codelens => {
+  return {range: codelens.range, command: {title: 'format', command: 'editor.action.format'}}
 })
 
 connection.onDeclaration(params => {
@@ -226,10 +300,17 @@ connection.onDocumentHighlight(_params => {
   ]
 })
 
-connection.onCodeAction(_params => {
+connection.onCodeAction(params => {
+  if (params.textDocument.uri.endsWith('empty.bat')) return undefined
   return [
-    CodeAction.create('title', Command.create('title', 'id'))
+    CodeAction.create('title', Command.create('title', 'test_command'))
   ]
+})
+
+connection.onExecuteCommand(params => {
+  if (params.command == 'test_command') {
+    return {success: true}
+  }
 })
 
 connection.onCodeActionResolve(codeAction => {
@@ -420,7 +501,7 @@ connection.languages.diagnostics.on(() => {
 
 connection.languages.diagnostics.onWorkspace(() => {
   return {
-    items: [ {
+    items: [{
       kind: DocumentDiagnosticReportKind.Full,
       uri: 'uri',
       version: 1,
@@ -443,8 +524,8 @@ connection.languages.typeHierarchy.onPrepare(params => {
     selectionRange: Range.create(2, 2, 2, 2),
     uri: params.textDocument.uri
   }
-  typeHierarchySample.superTypes = [ {...currentItem, name: 'classA', uri: 'uri-for-A'}]
-  typeHierarchySample.subTypes = [ {...currentItem, name: 'classC', uri: 'uri-for-C'}]
+  typeHierarchySample.superTypes = [{...currentItem, name: 'classA', uri: 'uri-for-A'}]
+  typeHierarchySample.subTypes = [{...currentItem, name: 'classC', uri: 'uri-for-C'}]
   return [currentItem]
 })
 
@@ -464,11 +545,11 @@ connection.languages.inlineValue.on(_params => {
   ]
 })
 connection.languages.inlayHint.on(() => {
-	const one = InlayHint.create(Position.create(1,1), [InlayHintLabelPart.create('type')], InlayHintKind.Type)
-	one.data = '1'
-	const two = InlayHint.create(Position.create(2,2), [InlayHintLabelPart.create('parameter')], InlayHintKind.Parameter)
-	two.data = '2'
-	return [one, two]
+  const one = InlayHint.create(Position.create(1, 1), [InlayHintLabelPart.create('type')], InlayHintKind.Type)
+  one.data = '1'
+  const two = InlayHint.create(Position.create(2, 2), [InlayHintLabelPart.create('parameter')], InlayHintKind.Parameter)
+  two.data = '2'
+  return [one, two]
 })
 
 connection.languages.inlayHint.resolve(hint => {
@@ -477,7 +558,7 @@ connection.languages.inlayHint.resolve(hint => {
   } else {
     hint.label[0].tooltip = 'tooltip'
   }
-	return hint
+  return hint
 })
 
 connection.languages.onLinkedEditingRange(() => {
@@ -498,15 +579,23 @@ connection.onRequest(
   },
 )
 
+connection.onRequest(
+  new ProtocolRequestType('testing/beginOnlyProgress'),
+  async (_, __) => {
+    const progressToken = 'TEST-PROGRESS-BEGIN'
+    await connection.sendRequest(WorkDoneProgressCreateRequest.type, {token: progressToken})
+  },
+)
+
 connection.onWorkspaceSymbol(() => {
-    return [
-        { name: 'name', kind: SymbolKind.Array, location: { uri: 'file:///abc.txt' }}
-    ]
+  return [
+    {name: 'name', kind: SymbolKind.Array, location: {uri: 'file:///abc.txt'}}
+  ]
 })
 
 connection.onWorkspaceSymbolResolve(symbol => {
-    symbol.location = Location.create(symbol.location.uri, Range.create(1,2,3,4))
-    return symbol
+  symbol.location = Location.create(symbol.location.uri, Range.create(1, 2, 3, 4))
+  return symbol
 })
 
 // Listen on the connection

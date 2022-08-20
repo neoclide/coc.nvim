@@ -1,15 +1,9 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-'use strict'
-
 import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, ColorPresentationRequest, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorRequest, DocumentSelector, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentColorProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, TextDocumentFeature } from './client'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 
 export type ProvideDocumentColorsSignature = (document: TextDocument, token: CancellationToken) => ProviderResult<ColorInformation[]>
 
@@ -35,10 +29,10 @@ export interface ColorProviderMiddleware {
   ) => ProviderResult<ColorPresentation[]>
 }
 
-export class ColorProviderFeature extends TextDocumentFeature<
-  boolean | DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorProvider
-  > {
-  constructor(client: BaseLanguageClient) {
+export class ColorProviderFeature extends TextDocumentLanguageFeature<
+  boolean | DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorProvider, ColorProviderMiddleware
+> {
+  constructor(client: FeatureClient<ColorProviderMiddleware>) {
     super(client, DocumentColorRequest.type)
   }
 
@@ -70,14 +64,9 @@ export class ColorProviderFeature extends TextDocumentFeature<
             textDocument: { uri: context.document.uri },
             range: context.range
           }
-          return client.sendRequest(ColorPresentationRequest.type, requestParams, token).then(
-            res => token.isCancellationRequested ? null : res,
-            (error: any) => {
-              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(ColorPresentationRequest.type, requestParams, token)
         }
-        const middleware = client.clientOptions.middleware
+        const middleware = client.middleware
         return middleware.provideColorPresentations
           ? middleware.provideColorPresentations(color, context, token, provideColorPresentations)
           : provideColorPresentations(color, context, token)
@@ -88,14 +77,9 @@ export class ColorProviderFeature extends TextDocumentFeature<
           const requestParams = {
             textDocument: { uri: document.uri }
           }
-          return client.sendRequest(DocumentColorRequest.type, requestParams, token).then(
-            res => token.isCancellationRequested ? null : res,
-            (error: any) => {
-              return client.handleFailedRequest(ColorPresentationRequest.type, token, error, null)
-            }
-          )
+          return this.sendRequest(DocumentColorRequest.type, requestParams, token)
         }
-        const middleware = client.clientOptions.middleware
+        const middleware = client.middleware
         return middleware.provideDocumentColors
           ? middleware.provideDocumentColors(document, token, provideDocumentColors)
           : provideDocumentColors(document, token)

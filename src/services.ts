@@ -40,6 +40,7 @@ export interface LanguageServerConfig {
   shell?: boolean
   execArgv?: string[]
   rootPatterns?: string[]
+  requireRootPattern?: boolean
   ignoredRootPaths?: string[]
   initializationOptions?: any
   progressOnInitialization?: boolean
@@ -349,8 +350,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
           return
         }
         if (created && client) {
-          client.restart()
-          return Promise.resolve()
+          return client.restart()
         }
         if (!created) {
           if (typeof name == 'string' && !client) {
@@ -359,6 +359,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
             let opts = getLanguageServerOptions(id, name, config)
             if (!opts) return
             client = new LanguageClient(id, name, opts[1], opts[0])
+            disposables.push(client)
             service.selector = opts[0].documentSelector
             service.client = client
           }
@@ -379,18 +380,12 @@ export class ServiceManager extends EventEmitter implements Disposable {
         }
         service.state = ServiceStat.Starting
         logger.debug(`starting service: ${id}`)
-        let disposable = client.start()
-        disposables.push(disposable)
-        return new Promise(resolve => {
-          client.onReady().then(() => {
-            onDidServiceReady.fire(void 0)
-            resolve()
-          }, e => {
-            window.showMessage(`Server ${id} failed to start: ${e}`, 'error')
-            logger.error(`Server ${id} failed to start:`, e)
-            service.state = ServiceStat.StartFailed
-            resolve()
-          })
+        client._start().then(() => {
+          onDidServiceReady.fire(void 0)
+        }, e => {
+          window.showMessage(`Server ${id} failed to start: ${e}`, 'error')
+          logger.error(`Server ${id} failed to start:`, e)
+          service.state = ServiceStat.StartFailed
         })
       },
       dispose: async () => {
@@ -404,7 +399,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
       restart: async (): Promise<void> => {
         if (client) {
           service.state = ServiceStat.Starting
-          client.restart()
+          await client.restart()
         } else {
           await service.start()
         }
@@ -484,6 +479,8 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
   let disableSnippetCompletion = !!config.disableSnippetCompletion
   let ignoredRootPaths = config.ignoredRootPaths || []
   let clientOptions: LanguageClientOptions = {
+    rootPatterns: config.rootPatterns,
+    requireRootPattern: config.requireRootPattern,
     ignoredRootPaths: ignoredRootPaths.map(s => workspace.expand(s)),
     disableSnippetCompletion,
     disableDynamicRegister: !!config.disableDynamicRegister,

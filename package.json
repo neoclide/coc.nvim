@@ -60,8 +60,8 @@
     "coverageDirectory": "./coverage/"
   },
   "devDependencies": {
-    "@swc/core": "^1.2.183",
-    "@swc/jest": "^0.2.21",
+    "@swc/core": "^1.2.233",
+    "@swc/jest": "^0.2.22",
     "@types/cli-table": "^0.3.0",
     "@types/debounce": "^3.0.0",
     "@types/fb-watchman": "^2.0.0",
@@ -85,12 +85,13 @@
     "eslint-plugin-jsdoc": "^39.2.8",
     "jest": "27.4.5",
     "typescript": "^4.6.3",
-    "vscode-languageserver": "^8.0.1"
+    "vscode-languageserver": "^8.0.2"
   },
   "dependencies": {
     "@chemzqm/neovim": "^5.7.9",
     "@chemzqm/string-width": "^5.1.2",
     "ansi-styles": "^5.0.0",
+    "browserslist": "^4.21.3",
     "bytes": "^3.1.0",
     "cli-table": "^0.3.4",
     "content-disposition": "^0.5.3",
@@ -115,9 +116,9 @@
     "unidecode": "^0.1.8",
     "unzip-stream": "^0.3.1",
     "uuid": "^7.0.3",
-    "vscode-languageserver-protocol": "^3.17.1",
-    "vscode-languageserver-textdocument": "^1.0.4",
-    "vscode-languageserver-types": "^3.17.1",
+    "vscode-languageserver-protocol": "^3.17.2",
+    "vscode-languageserver-textdocument": "^1.0.5",
+    "vscode-languageserver-types": "^3.17.2",
     "vscode-uri": "^3.0.3",
     "which": "^2.0.2"
   }

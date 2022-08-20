@@ -1,8 +1,4 @@
-/* --------------------------------------------------------------------------------------------
-* Copyright (c) Microsoft Corporation. All rights reserved.
-* Licensed under the MIT License. See License.txt in the project root for license information.
-* ------------------------------------------------------------------------------------------ */
-
+'use strict'
 import {
   CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, InlayHintOptions, InlayHintParams, InlayHintRefreshRequest, InlayHintRegistrationOptions, InlayHintRequest, InlayHintResolveRequest, Range, ServerCapabilities
 } from 'vscode-languageserver-protocol'
@@ -10,7 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlayHint } from '../inlayHint'
 import languages from '../languages'
 import { InlayHintsProvider, ProviderResult } from '../provider'
-import { BaseLanguageClient, ensure, Middleware, TextDocumentFeature } from './client'
+import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('language-client-inlayHint')
 
@@ -27,8 +23,10 @@ export interface InlayHintsProviderShape {
   onDidChangeInlayHints: Emitter<void>
 }
 
-export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOptions, InlayHintRegistrationOptions, InlayHintsProviderShape> {
-  constructor(client: BaseLanguageClient) {
+export class InlayHintsFeature extends TextDocumentLanguageFeature<
+  boolean | InlayHintOptions, InlayHintRegistrationOptions, InlayHintsProviderShape, InlayHintsMiddleware
+> {
+  constructor(client: FeatureClient<InlayHintsMiddleware>) {
     super(client, InlayHintRequest.type)
   }
 
@@ -61,22 +59,14 @@ export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOp
       onDidChangeInlayHints: eventEmitter.event,
       provideInlayHints: (document, range, token) => {
         const client = this._client
-        const provideInlayHints: ProvideInlayHintsSignature = async (document, range, token) => {
+        const provideInlayHints: ProvideInlayHintsSignature = (document, range, token) => {
           const requestParams: InlayHintParams = {
             textDocument: cv.asTextDocumentIdentifier(document),
             range
           }
-          try {
-            const values = await client.sendRequest(InlayHintRequest.type, requestParams, token)
-            if (token.isCancellationRequested || !values) {
-              return []
-            }
-            return values
-          } catch (error) {
-            return client.handleFailedRequest(InlayHintRequest.type, token, error, [])
-          }
+          return this.sendRequest(InlayHintRequest.type, requestParams, token, [])
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.middleware!
         return middleware.provideInlayHints
           ? middleware.provideInlayHints(document, range, token, provideInlayHints)
           : provideInlayHints(document, range, token)
@@ -85,18 +75,10 @@ export class InlayHintsFeature extends TextDocumentFeature<boolean | InlayHintOp
     provider.resolveInlayHint = options.resolveProvider === true
       ? (hint, token) => {
         const client = this._client
-        const resolveInlayHint: ResolveInlayHintSignature = async (item, token) => {
-          try {
-            const value = await client.sendRequest(InlayHintResolveRequest.type, item, token)
-            if (token.isCancellationRequested) {
-              return null
-            }
-            return value
-          } catch (error) {
-            return client.handleFailedRequest(InlayHintResolveRequest.type, token, error, null)
-          }
+        const resolveInlayHint: ResolveInlayHintSignature = (item, token) => {
+          return this.sendRequest(InlayHintResolveRequest.type, item, token)
         }
-        const middleware = client.clientOptions.middleware!
+        const middleware = client.middleware!
         return middleware.resolveInlayHint
           ? middleware.resolveInlayHint(hint, token, resolveInlayHint)
           : resolveInlayHint(hint, token)

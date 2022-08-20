@@ -478,14 +478,14 @@ bar
     it('should do nothing when cancelled or range not found', async () => {
       let buf = await setup()
       let p = buf.showMenu()
-      await helper.wait(50)
+      await helper.waitPrompt()
       await nvim.input('<esc>')
       await p
       let bufnr = await nvim.call('bufnr', ['%'])
       expect(bufnr).toBe(buf.bufnr)
       await nvim.call('cursor', [1, 1])
       p = buf.showMenu()
-      await helper.wait(50)
+      await helper.waitPrompt()
       await nvim.input('1')
       await p
       bufnr = await nvim.call('bufnr', ['%'])

@@ -1,22 +1,24 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-'use strict'
-
 import { ClientCapabilities, WorkDoneProgressCreateParams, WorkDoneProgressCreateRequest } from 'vscode-languageserver-protocol'
-import { BaseLanguageClient, ensure, StaticFeature } from './client'
 import { ProgressPart } from './progressPart'
+import { FeatureState, StaticFeature, ensure, FeatureClient } from './features'
 // const logger = require('../util/logger')('language-client-progress')
 
 export class ProgressFeature implements StaticFeature {
   private activeParts: Set<ProgressPart> = new Set()
-  constructor(private _client: BaseLanguageClient) {
+  constructor(private _client: FeatureClient<object>) {
+  }
+
+  public get method(): string {
+    return WorkDoneProgressCreateRequest.method
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     ensure(capabilities, 'window')!.workDoneProgress = true
+  }
+
+  public getState(): FeatureState {
+    return { kind: 'window', id: WorkDoneProgressCreateRequest.method, registrations: this.activeParts.size > 0 }
   }
 
   public initialize(): void {
@@ -25,7 +27,7 @@ export class ProgressFeature implements StaticFeature {
       this.activeParts.delete(part)
     }
     const createHandler = (params: WorkDoneProgressCreateParams) => {
-      this.activeParts.add(new ProgressPart(this._client.id, this._client, params.token, deleteHandler))
+      this.activeParts.add(new ProgressPart(this._client, params.token, deleteHandler))
     }
     client.onRequest(WorkDoneProgressCreateRequest.type, createHandler)
   }

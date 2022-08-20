@@ -846,6 +846,29 @@
       "default": true,
       "description": "Show diagnostics with deprecated tag."
     },
+    "pullDiagnostic.onChange": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to pull for diagnostics on document change."
+    },
+    "pullDiagnostic.onSave": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to pull for diagnostics on document save."
+    },
+    "pullDiagnostic.workspace": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to pull for workspace diagnostics when possible."
+    },
+    "pullDiagnostic.ignored": {
+      "type": "array",
+      "default": [],
+      "description": "Minimatch patterns to match full filepath that should be ignored for pullDiagnostic.",
+      "items": {
+        "type": "string"
+      }
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",

@@ -134,11 +134,13 @@ export default class Files {
   /**
    * Load uri as document.
    */
-  public async loadResource(uri: string): Promise<Document> {
+  public async loadResource(uri: string, cmd?: string): Promise<Document> {
     let doc = this.documents.getDocument(uri)
     if (doc) return doc
-    const preferences = this.configurations.getConfiguration('workspace')
-    let cmd = preferences.get<string>('openResourceCommand', 'tab drop')
+    if (!cmd) {
+      const preferences = this.configurations.getConfiguration('workspace')
+      cmd = preferences.get<string>('openResourceCommand', 'tab drop')
+    }
     let u = URI.parse(uri)
     let bufname = u.scheme === 'file' ? u.fsPath : uri
     let bufnr: number

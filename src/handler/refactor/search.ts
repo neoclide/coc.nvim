@@ -32,6 +32,7 @@ class Task extends EventEmitter {
     rl.on('line', content => {
       if (content.includes(controlCode)) {
         let items = ansiparse(content)
+        if (items.length == 0) return
         if (items[0].foreground == 'black') {
           fileItem = { filepath: path.join(cwd, items[0].text), ranges: [] }
           return

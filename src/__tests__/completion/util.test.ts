@@ -1,4 +1,4 @@
-import { CompletionItemKind, TextEdit, Position } from 'vscode-languageserver-types'
+import { CompletionItemKind, Range, TextEdit, Position } from 'vscode-languageserver-types'
 import { matchScore, matchScoreWithPositions } from '../../completion/match'
 import { getInput, shouldIndent, shouldStop } from '../../completion/util'
 import { getCharCodes } from '../../util/fuzzy'
@@ -8,6 +8,10 @@ import helper from '../helper'
 
 beforeAll(async () => {
   await helper.setup()
+})
+
+afterAll(async () => {
+  await helper.shutdown()
 })
 
 describe('getKindString()', () => {
@@ -65,6 +69,7 @@ describe('getInput', () => {
 describe('getStartColumn()', () => {
   it('should get start col', async () => {
     expect(getStartColumn('', [{ label: 'foo' }])).toBe(undefined)
+    expect(getStartColumn('', [{ label: 'foo' }], { editRange: Range.create(0, 0, 0, 3) })).toBe(0)
     expect(getStartColumn('', [
       { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), 'a') },
       { label: 'bar' }])).toBe(undefined)

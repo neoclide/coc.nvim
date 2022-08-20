@@ -1,12 +1,21 @@
 import * as assert from 'assert'
 import path from 'path'
 import { URI } from 'vscode-uri'
-import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, DocumentDiagnosticRequest, DocumentDiagnosticReport, FullDocumentDiagnosticReport, DocumentDiagnosticReportKind, CancellationToken } from 'vscode-languageserver-protocol'
+import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions, State } from '../../language-client/index'
+import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, DocumentDiagnosticRequest, DocumentDiagnosticReport, FullDocumentDiagnosticReport, DocumentDiagnosticReportKind, CancellationToken, TextDocumentSyncKind, Disposable, NotificationType0, DidChangeTextDocumentNotification, WillSaveTextDocumentNotification, DidOpenTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, DidSaveTextDocumentNotification, DidCloseTextDocumentNotification, CodeLensRequest, DocumentSymbolRequest, DidChangeConfigurationNotification, ConfigurationRequest, WorkDoneProgressCreateRequest, DidChangeWatchedFilesNotification } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import helper from '../helper'
 import workspace from '../../workspace'
+import languages from '../../languages'
+import commands from '../../commands'
 
+beforeAll(async () => {
+  await helper.setup()
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
 describe('Client integration', () => {
   let client!: LanguageClient
   let middleware: Middleware
@@ -15,6 +24,7 @@ describe('Client integration', () => {
   let tokenSource!: CancellationTokenSource
   const position: Position = Position.create(1, 1)
   const range: Range = Range.create(1, 1, 1, 2)
+  let contentProviderDisposable: Disposable
 
   function rangeEqual(range: Range, sl: number, sc: number, el: number, ec: number): void {
     assert.strictEqual(range.start.line, sl)
@@ -60,8 +70,7 @@ describe('Client integration', () => {
   }
 
   beforeAll(async () => {
-    await helper.setup()
-    workspace.registerTextDocumentContentProvider('lsptests', {
+    contentProviderDisposable = workspace.registerTextDocumentContentProvider('lsptests', {
       provideTextDocumentContent: (_uri: URI) => {
         return [
           'REM @ECHO OFF',
@@ -95,29 +104,35 @@ describe('Client integration', () => {
     }
 
     client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
-    client.start()
-    await client.onReady()
+    let p = client.onReady()
+    await client.start()
+    await p
   })
 
   afterAll(async () => {
+    await client.sendNotification('unregister')
+    await helper.wait(50)
+    contentProviderDisposable.dispose()
     await client.stop()
-    await helper.shutdown()
   })
 
   test('InitializeResult', () => {
     let expected = {
       capabilities: {
-        textDocumentSync: 1,
+        textDocumentSync: TextDocumentSyncKind.Full,
         definitionProvider: true,
         hoverProvider: true,
-        completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
         signatureHelpProvider: {
-          triggerCharacters: [':'],
-          retriggerCharacters: [':']
+          triggerCharacters: [','],
+          retriggerCharacters: [';']
         },
+        completionProvider: { resolveProvider: true, triggerCharacters: ['"', ':'] },
         referencesProvider: true,
         documentHighlightProvider: true,
         codeActionProvider: {
+          resolveProvider: true
+        },
+        codeLensProvider: {
           resolveProvider: true
         },
         documentFormattingProvider: true,
@@ -134,13 +149,18 @@ describe('Client integration', () => {
         colorProvider: true,
         declarationProvider: true,
         foldingRangeProvider: true,
-        implementationProvider: true,
+        implementationProvider: {
+          documentSelector: [{ language: '*' }]
+        },
         selectionRangeProvider: true,
         inlineValueProvider: {},
         inlayHintProvider: {
           resolveProvider: true
         },
-        typeDefinitionProvider: true,
+        typeDefinitionProvider: {
+          id: '82671a9a-2a69-4e9f-a8d7-e1034eaa0d2e',
+          documentSelector: [{ language: '*' }]
+        },
         callHierarchyProvider: true,
         semanticTokensProvider: {
           legend: {
@@ -172,6 +192,7 @@ describe('Client integration', () => {
             willDelete: { filters: [{ scheme: 'file', pattern: { glob: '**/deleted-static/**{/,/*.txt}' } }] },
           },
         },
+        linkedEditingRangeProvider: true,
         diagnosticProvider: {
           identifier: 'da348dc5-c30a-4515-9d98-31ff3be38d14',
           interFileDependencies: true,
@@ -181,13 +202,77 @@ describe('Client integration', () => {
         workspaceSymbolProvider: {
           resolveProvider: true
         },
-        linkedEditingRangeProvider: true
+        notebookDocumentSync: {
+          notebookSelector: [{
+            notebook: { notebookType: 'jupyter-notebook' },
+            cells: [{ language: 'python' }]
+          }]
+        }
       },
       customResults: {
         hello: 'world'
       }
     }
     assert.deepEqual(client.initializeResult, expected)
+  })
+
+  test('feature.getState()', async () => {
+    const testFeature = (method: string, kind: string): void => {
+      let feature = client.getFeature(method as any)
+      assert.notStrictEqual(feature, undefined)
+      let res = feature.getState()
+      assert.strictEqual(res.kind, kind)
+    }
+    const testStaticFeature = (method: string, kind: string): void => {
+      let feature = client.getStaticFeature(method as any)
+      assert.notStrictEqual(feature, undefined)
+      let res = feature.getState()
+      assert.strictEqual(res.kind, kind)
+    }
+    testStaticFeature(ConfigurationRequest.method, 'static')
+    testStaticFeature(WorkDoneProgressCreateRequest.method, 'window')
+    testFeature(DidChangeWatchedFilesNotification.method, 'workspace')
+    testFeature(DidChangeConfigurationNotification.method, 'workspace')
+    testFeature(DidOpenTextDocumentNotification.method, 'document')
+    testFeature(DidChangeTextDocumentNotification.method, 'document')
+    testFeature(WillSaveTextDocumentNotification.method, 'document')
+    testFeature(WillSaveTextDocumentWaitUntilRequest.method, 'document')
+    testFeature(DidSaveTextDocumentNotification.method, 'document')
+    testFeature(DidCloseTextDocumentNotification.method, 'document')
+    testFeature(DidCreateFilesNotification.method, 'workspace')
+    testFeature(DidRenameFilesNotification.method, 'workspace')
+    testFeature(DidDeleteFilesNotification.method, 'workspace')
+    testFeature(WillCreateFilesRequest.method, 'workspace')
+    testFeature(WillRenameFilesRequest.method, 'workspace')
+    testFeature(WillDeleteFilesRequest.method, 'workspace')
+    testFeature(CompletionRequest.method, 'document')
+    testFeature(HoverRequest.method, 'document')
+    testFeature(SignatureHelpRequest.method, 'document')
+    testFeature(DefinitionRequest.method, 'document')
+    testFeature(ReferencesRequest.method, 'document')
+    testFeature(DocumentHighlightRequest.method, 'document')
+    testFeature(CodeActionRequest.method, 'document')
+    testFeature(CodeLensRequest.method, 'document')
+    testFeature(DocumentFormattingRequest.method, 'document')
+    testFeature(DocumentRangeFormattingRequest.method, 'document')
+    testFeature(DocumentOnTypeFormattingRequest.method, 'document')
+    testFeature(RenameRequest.method, 'document')
+    testFeature(DocumentSymbolRequest.method, 'document')
+    testFeature(DocumentLinkRequest.method, 'document')
+    testFeature(DocumentColorRequest.method, 'document')
+    testFeature(DeclarationRequest.method, 'document')
+    testFeature(FoldingRangeRequest.method, 'document')
+    testFeature(ImplementationRequest.method, 'document')
+    testFeature(SelectionRangeRequest.method, 'document')
+    testFeature(TypeDefinitionRequest.method, 'document')
+    testFeature(CallHierarchyPrepareRequest.method, 'document')
+    testFeature(SemanticTokensRegistrationType.method, 'document')
+    testFeature(LinkedEditingRangeRequest.method, 'document')
+    testFeature(TypeHierarchyPrepareRequest.method, 'document')
+    testFeature(InlineValueRequest.method, 'document')
+    testFeature(InlayHintRequest.method, 'document')
+    testFeature(WorkspaceSymbolRequest.method, 'workspace')
+    testFeature(DocumentDiagnosticRequest.method, 'document')
   })
 
   test('Goto Definition', async () => {
@@ -257,7 +342,8 @@ describe('Client integration', () => {
   })
 
   test('SignatureHelpRequest', async () => {
-    const provider = client.getFeature(SignatureHelpRequest.method).getProvider(document)
+    await helper.wait(50)
+    let provider = client.getFeature(SignatureHelpRequest.method).getProvider(document)
     isDefined(provider)
     const result = await provider.provideSignatureHelp(document, position, tokenSource.token,
       {
@@ -354,7 +440,9 @@ describe('Client integration', () => {
     const action = result[0]
     assert.strictEqual(action.title, 'title')
     assert.strictEqual(action.command?.title, 'title')
-    assert.strictEqual(action.command?.command, 'id')
+    assert.strictEqual(action.command?.command, 'test_command')
+    let response = await commands.execute(action.command)
+    expect(response).toEqual({ success: true })
 
     const resolved = (await provider.resolveCodeAction(result[0], tokenSource.token))
     assert.strictEqual(resolved?.title, 'resolved')
@@ -378,6 +466,33 @@ describe('Client integration', () => {
     await provider.resolveCodeAction!(result[0], tokenSource.token)
     middleware.resolveCodeAction = undefined
     assert.ok(middlewareCalled)
+
+    let uri = URI.parse('lsptests://localhost/empty.bat').toString()
+    let textDocument = TextDocument.create(uri, 'bat', 1, '\n')
+    let res = (await provider.provideCodeActions(textDocument, range, {
+      diagnostics: []
+    }, tokenSource.token)) as CodeAction[]
+    expect(res).toBeUndefined()
+  })
+
+  test('CodeLens', async () => {
+    let feature = client.getFeature(CodeLensRequest.method)
+    let state = feature.getState()
+    expect((state as any).registrations).toBe(true)
+    expect((state as any).matches).toBe(true)
+    let tokenSource = new CancellationTokenSource()
+    let codeLens = await languages.getCodeLens(document, tokenSource.token)
+    expect(codeLens.length).toBe(2)
+    let resolved = await languages.resolveCodeLens(codeLens[0], tokenSource.token)
+    expect(resolved.command).toBeDefined()
+    let fireRefresh = false
+    let provider = feature.getProvider(document)
+    provider.onDidChangeCodeLensEmitter.event(() => {
+      fireRefresh = true
+    })
+    await client.sendNotification('fireCodeLensRefresh')
+    await helper.wait(50)
+    expect(fireRefresh).toBe(true)
   })
 
   test('Progress', async () => {
@@ -414,6 +529,11 @@ describe('Client integration', () => {
     assert.deepStrictEqual(
       middlewareEvents.map(p => p.kind),
       ['begin', 'report', 'end', 'begin', 'report', 'end'],
+    )
+    await client.sendRequest(
+      new ProtocolRequestType<any, null, never, any, any>('testing/beginOnlyProgress'),
+      {},
+      tokenSource.token,
     )
   })
 
@@ -1054,35 +1174,14 @@ describe('Client integration', () => {
     await fullProvider.provideDocumentSemanticTokensEdits!(document, '2', tokenSource.token)
     middleware.provideDocumentSemanticTokensEdits = undefined
     assert.strictEqual(middlewareCalled, true)
-  })
-
-  test('Inlay Hints', async () => {
-    const providerData = client.getFeature(InlayHintRequest.method).getProvider(document)
-    isDefined(providerData)
-    const provider = providerData.provider
-    const results = (await provider.provideInlayHints(document, range, tokenSource.token))
-
-    isArray(results, undefined, 2)
-
-    const hint = results[0]
-    positionEqual(hint.position, 1, 1)
-    assert.strictEqual(hint.kind, InlayHintKind.Type)
-    const label = hint.label
-    isArray(label as [], InlayHintLabelPart, 1)
-    assert.strictEqual((label as InlayHintLabelPart[])[0].value, 'type')
-
-    let middlewareCalled = false
-    middleware.provideInlayHints = (d, r, t, n) => {
-      middlewareCalled = true
-      return n(d, r, t)
-    }
-    await provider.provideInlayHints(document, range, tokenSource.token)
-    middleware.provideInlayHints = undefined
-    assert.strictEqual(middlewareCalled, true)
-    assert.ok(typeof provider.resolveInlayHint === 'function')
-
-    const resolvedHint = await provider.resolveInlayHint!(hint, tokenSource.token)
-    assert.strictEqual((resolvedHint?.label as InlayHintLabelPart[])[0].tooltip, 'tooltip')
+    let called = false
+    provider.onDidChangeSemanticTokensEmitter.event(() => {
+      called = true
+    })
+    await client.sendNotification('fireSemanticTokensRefresh')
+    await helper.waitValue(() => {
+      return called
+    }, true)
   })
 
   test('Linked Editing Ranges', async () => {
@@ -1231,8 +1330,8 @@ describe('Client integration', () => {
 
     let middlewareCalled = false
     middleware.provideInlayHints = (d, r, t, n) => {
-     middlewareCalled = true
-     return n(d, r, t)
+      middlewareCalled = true
+      return n(d, r, t)
     }
     await provider.provideInlayHints(document, range, tokenSource.token)
     middleware.provideInlayHints = undefined
@@ -1241,12 +1340,20 @@ describe('Client integration', () => {
 
     const resolvedHint = await provider.resolveInlayHint!(hint, tokenSource.token)
     assert.strictEqual((resolvedHint?.label as InlayHintLabelPart[])[0].tooltip, 'tooltip')
+    let called = false
+    await client.sendNotification('fireInlayHintsRefresh')
+    provider.onDidChangeInlayHints(() => {
+      called = true
+    })
+    await helper.waitValue(() => {
+      return called
+    }, true)
   })
 
   test('Workspace symbols', async () => {
     const providers = client.getFeature(WorkspaceSymbolRequest.method).getProviders()
     isDefined(providers)
-    assert.strictEqual(providers.length, 1)
+    assert.strictEqual(providers.length, 2)
     const provider = providers[0]
     const results = await provider.provideWorkspaceSymbols('', tokenSource.token)
     isArray(results, undefined, 1)
@@ -1256,5 +1363,296 @@ describe('Client integration', () => {
     const symbol = await provider.resolveWorkspaceSymbol!(results[0], tokenSource.token)
     isDefined(symbol)
     rangeEqual(symbol.location.range, 1, 2, 3, 4)
+  })
+})
+
+namespace CrashNotification {
+  export const type = new NotificationType0('test/crash')
+}
+
+class CrashClient extends LanguageClient {
+
+  private resolve: (() => void) | undefined
+  public onCrash: Promise<void>
+
+  constructor(id: string, name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions) {
+    super(id, name, serverOptions, clientOptions)
+    this.onCrash = new Promise(resolve => {
+      this.resolve = resolve
+    })
+  }
+
+  protected handleConnectionClosed(): void {
+    super.handleConnectionClosed()
+    this.resolve!()
+  }
+}
+
+describe('sever tests', () => {
+  test('Stop fails if server crashes after shutdown request', async () => {
+    let file = path.join(__dirname, './server/crashOnShutdownServer.js')
+    const serverOptions: ServerOptions = {
+      module: file,
+      transport: TransportKind.ipc,
+    }
+    const clientOptions: LanguageClientOptions = {}
+    const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
+    await client._start()
+
+    await assert.rejects(async () => {
+      await client.stop()
+    }, /Pending response rejected since connection got disposed/)
+    assert.strictEqual(client.needsStart(), true)
+    assert.strictEqual(client.needsStop(), false)
+
+    // Stopping again should be a no-op.
+    await client.stop()
+    assert.strictEqual(client.needsStart(), true)
+    assert.strictEqual(client.needsStop(), false)
+  })
+
+  test('Stop fails if server shutdown request times out', async () => {
+    const serverOptions: ServerOptions = {
+      module: path.join(__dirname, './server/timeoutOnShutdownServer.js'),
+      transport: TransportKind.ipc,
+    }
+    const clientOptions: LanguageClientOptions = {}
+    const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
+    await client._start()
+
+    await assert.rejects(async () => {
+      await client.stop(100)
+    }, /Stopping the server timed out/)
+  })
+
+  test('Server can not be stopped right after start', async () => {
+    const serverOptions: ServerOptions = {
+      module: path.join(__dirname, './server/startStopServer.js'),
+      transport: TransportKind.ipc,
+    }
+    const clientOptions: LanguageClientOptions = {}
+    const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
+    void client.start()
+    await assert.rejects(async () => {
+      await client.stop()
+    }, /Client is not running and can't be stopped/)
+
+    await client._start()
+    await client.stop()
+  })
+
+  test('Test state change events', async () => {
+    const serverOptions: ServerOptions = {
+      module: path.join(__dirname, './server/nullServer.js'),
+      transport: TransportKind.ipc,
+    }
+    const clientOptions: LanguageClientOptions = {}
+    const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
+    let state: State | undefined
+    client.onDidChangeState(event => {
+      state = event.newState
+    })
+    await client._start()
+    assert.strictEqual(state, State.Running, 'First start')
+
+    await client.stop()
+    assert.strictEqual(state, State.Stopped, 'First stop')
+
+    await client._start()
+    assert.strictEqual(state, State.Running, 'Second start')
+
+    await client.stop()
+    assert.strictEqual(state, State.Stopped, 'Second stop')
+  })
+
+  test('Test state change events on crash', async () => {
+    const serverOptions: ServerOptions = {
+      module: path.join(__dirname, './server/crashServer.js'),
+      transport: TransportKind.ipc,
+    }
+    const clientOptions: LanguageClientOptions = {}
+    const client = new CrashClient('test svr', 'Test Language Server', serverOptions, clientOptions)
+    let states: State[] = []
+    client.onDidChangeState(event => {
+      states.push(event.newState)
+    })
+    await client._start()
+    assert.strictEqual(states.length, 2, 'First start')
+    assert.strictEqual(states[0], State.Starting)
+    assert.strictEqual(states[1], State.Running)
+
+    states = []
+    await client.sendNotification(CrashNotification.type)
+    await client.onCrash
+
+    await client._start()
+    assert.strictEqual(states.length, 3, 'Restart after crash')
+    assert.strictEqual(states[0], State.Stopped)
+    assert.strictEqual(states[1], State.Starting)
+    assert.strictEqual(states[2], State.Running)
+
+    states = []
+    await client.stop()
+    assert.strictEqual(states.length, 1, 'After stop')
+    assert.strictEqual(states[0], State.Stopped)
+  })
+})
+
+describe('Server activation', () => {
+
+  const uri: URI = URI.parse('lsptests://localhost/test.bat')
+  const documentSelector: DocumentSelector = [{ scheme: 'lsptests', language: '*' }]
+  const position: Position = Position.create(1, 1)
+  let contentProviderDisposable!: Disposable
+
+  beforeAll(async () => {
+    contentProviderDisposable = workspace.registerTextDocumentContentProvider('lsptests', {
+      provideTextDocumentContent: (_uri: URI) => {
+        return [
+          'REM @ECHO OFF'
+        ].join('\n')
+      }
+    })
+
+  })
+
+  afterAll(async () => {
+    contentProviderDisposable.dispose()
+  })
+
+  function createClient(): LanguageClient {
+    const serverModule = path.join(__dirname, './server/customServer.js')
+    const serverOptions: ServerOptions = {
+      run: { module: serverModule, transport: TransportKind.ipc },
+      debug: { module: serverModule, transport: TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6014'] } }
+    }
+
+    const clientOptions: LanguageClientOptions = {
+      documentSelector,
+      synchronize: {},
+      initializationOptions: {},
+      middleware: {},
+    };
+    (clientOptions as ({ $testMode?: boolean })).$testMode = true
+
+    const result = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
+    result.registerProposedFeatures()
+    return result
+  }
+
+  test('Start server on request', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    const result: number = await client.sendRequest('request', { value: 10 })
+    assert.strictEqual(client.state, State.Running)
+    assert.strictEqual(result, 11)
+    await client.stop()
+  })
+
+  test('Start server fails on request when stopped once', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    const result: number = await client.sendRequest('request', { value: 10 })
+    assert.strictEqual(client.state, State.Running)
+    assert.strictEqual(result, 11)
+    await client.stop()
+    await assert.rejects(async () => {
+      await client.sendRequest('request', { value: 10 })
+    }, /Client is not running/)
+  })
+
+  test('Start server on notification', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    await client.sendNotification('notification')
+    assert.strictEqual(client.state, State.Running)
+    await client.stop()
+  })
+
+  test('Start server fails on notification when stopped once', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    await client.sendNotification('notification')
+    assert.strictEqual(client.state, State.Running)
+    await client.stop()
+    await assert.rejects(async () => {
+      await client.sendNotification('notification')
+    }, /Client is not running/)
+  })
+
+  test('Add pending request handler', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    let requestReceived = false
+    client.onRequest('request', () => {
+      requestReceived = true
+    })
+    await client.sendRequest('triggerRequest')
+    assert.strictEqual(requestReceived, true)
+    await client.stop()
+  })
+
+  test('Add pending notification handler', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    let notificationReceived = false
+    client.onNotification('notification', () => {
+      notificationReceived = true
+    })
+    await client.sendRequest('triggerNotification')
+    assert.strictEqual(notificationReceived, true)
+    await client.stop()
+  })
+
+  test('Starting disposed server fails', async () => {
+    const client = createClient()
+    await client._start()
+    await client.dispose()
+    await assert.rejects(async () => {
+      await client._start()
+    }, /Client got disposed and can't be restarted./)
+  })
+
+  async function checkServerStart(client: LanguageClient, disposable: Disposable): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Server didn't start in 1000 ms.`))
+      }, 1000)
+      client.onDidChangeState(event => {
+        if (event.newState === State.Running) {
+          clearTimeout(timeout)
+          disposable.dispose()
+          resolve()
+        }
+      })
+    })
+  }
+
+  test('Start server on document open', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    const started = checkServerStart(client, workspace.onDidOpenTextDocument(document => {
+      if (workspace.match([{ scheme: 'lsptests', pattern: uri.fsPath }], document) > 0) {
+        void client.start()
+      }
+    }))
+    await workspace.openTextDocument(uri)
+    await started
+    await client.stop()
+  })
+
+  test('Start server on language feature', async () => {
+    const client = createClient()
+    assert.strictEqual(client.state, State.Stopped)
+    const started = checkServerStart(client, languages.registerDeclarationProvider(documentSelector, {
+      provideDeclaration: async () => {
+        await client._start()
+        return undefined
+      }
+    }))
+    await workspace.openTextDocument(uri)
+    await helper.doAction('declarations')
+    await started
+    await client.stop()
   })
 })

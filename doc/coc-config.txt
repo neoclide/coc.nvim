@@ -8,6 +8,7 @@ Document highlight 				|coc-config-documentHighlight|
 Colors 						|coc-config-colors|
 Links 						|coc-config-links|
 Diagnostics 					|coc-config-diagnostic|
+Pull diagnostics 				|coc-config-pullDiagnostic|
 Signature 					|coc-config-signature|
 Cursors 					|coc-config-cursors|
 Refactor 					|coc-config-refactor|
@@ -461,6 +462,28 @@ Diagnostics~
 "diagnostic.separateRelatedInformationAsDiagnostics"	*coc-config-diagnostic-separateRelatedInformationAsDiagnostics*
 
 	Separate related information as diagnostics, default: `false`
+
+------------------------------------------------------------------------------
+PullDiagnostic~
+
+							*coc-config-pullDiagnostic*
+"pullDiagnostic.onChange" 				*coc-config-pullDiagnostic-onChange*
+
+	Whether to pull for diagnostics on document change, default: `true`
+
+"pullDiagnostic.onSave" 				*coc-config-pullDiagnostic-onSave*
+
+	Whether to pull for diagnostics on document save, default: `false`
+
+"pullDiagnostic.workspace" 				*coc-config-pullDiagnostic-workspace*
+
+	Whether to pull for workspace diagnostics when possible,
+	default: `true`
+
+"pullDiagnostic.ignored" 				*coc-config-pullDiagnostic-ignored*
+
+	Minimatch patterns to match full filepath that should be ignored for
+	pullDiagnostic. Default: `[]`
 
 ------------------------------------------------------------------------------
 Signature~

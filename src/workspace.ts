@@ -44,8 +44,8 @@ const methods = [
 
 export class Workspace implements IWorkspace {
   public readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent>
-  public readonly onDidOpenTextDocument: Event<LinesTextDocument & { bufnr: number }>
-  public readonly onDidCloseTextDocument: Event<LinesTextDocument & { bufnr: number }>
+  public readonly onDidOpenTextDocument: Event<LinesTextDocument>
+  public readonly onDidCloseTextDocument: Event<LinesTextDocument>
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
   public readonly onDidSaveTextDocument: Event<LinesTextDocument>
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
@@ -482,8 +482,8 @@ export class Workspace implements IWorkspace {
   /**
    * Load uri as document.
    */
-  public loadFile(uri: string): Promise<Document> {
-    return this.files.loadResource(uri)
+  public loadFile(uri: string, cmd?: string): Promise<Document> {
+    return this.files.loadResource(uri, cmd)
   }
 
   /**

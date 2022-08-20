@@ -7,10 +7,10 @@ import { v4 as uuid } from 'uuid'
 
 export default class DocumentSymbolManager extends Manager<DocumentSymbolProvider> {
 
-  public register(selector: DocumentSelector, provider: DocumentSymbolProvider, meta?: DocumentSymbolProviderMetadata): Disposable {
+  public register(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable {
     let item: ProviderItem<DocumentSymbolProvider> = {
       id: uuid(),
-      meta,
+      meta: provider.meta,
       selector,
       provider
     }
@@ -33,6 +33,6 @@ export default class DocumentSymbolManager extends Manager<DocumentSymbolProvide
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    return (await Promise.resolve(provider.provideDocumentSymbols(document, token))) || []
+    return (await Promise.resolve(provider.provideDocumentSymbols(document, token))) ?? []
   }
 }

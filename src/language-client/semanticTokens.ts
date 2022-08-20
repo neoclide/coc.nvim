@@ -1,10 +1,4 @@
 'use strict'
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-'use strict'
-
 import {
   CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
 } from 'vscode-languageserver-protocol'
@@ -12,7 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, ProviderResult } from '../provider'
 import * as Is from '../util/is'
-import { BaseLanguageClient, ensure, Middleware, TextDocumentFeature } from './client'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 const logger = require('../util/logger')('languageclient-semanticTokens')
 
@@ -39,15 +33,15 @@ export interface SemanticTokensMiddleware {
   provideDocumentRangeSemanticTokens?: (this: void, document: TextDocument, range: Range, token: CancellationToken, next: DocumentRangeSemanticTokensSignature) => ProviderResult<SemanticTokens>
 }
 
-export interface SemanticTokensProviders {
+export interface SemanticTokensProviderShape {
   range?: DocumentRangeSemanticTokensProvider
   full?: DocumentSemanticTokensProvider
   onDidChangeSemanticTokensEmitter: Emitter<void>
 }
 
-export class SemanticTokensFeature extends TextDocumentFeature<boolean | SemanticTokensOptions, SemanticTokensRegistrationOptions, SemanticTokensProviders> {
+export class SemanticTokensFeature extends TextDocumentLanguageFeature<boolean | SemanticTokensOptions, SemanticTokensRegistrationOptions, SemanticTokensProviderShape, SemanticTokensMiddleware> {
 
-  constructor(client: BaseLanguageClient) {
+  constructor(client: FeatureClient<SemanticTokensMiddleware>) {
     super(client, SemanticTokensRegistrationType.type)
   }
 
@@ -100,7 +94,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
     }
     capability.multilineTokenSupport = false
     capability.overlappingTokenSupport = false
-    capability.serverCancelSupport = false
+    capability.serverCancelSupport = true
     capability.augmentsSyntaxTokens = false
     ensure(ensure(capabilities, 'workspace')!, 'semanticTokens')!.refreshSupport = true
   }
@@ -119,7 +113,7 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
     this.register({ id, registerOptions: options })
   }
 
-  protected registerLanguageProvider(options: SemanticTokensRegistrationOptions): [Disposable, SemanticTokensProviders] {
+  protected registerLanguageProvider(options: SemanticTokensRegistrationOptions): [Disposable, SemanticTokensProviderShape] {
     const fullProvider = Is.boolean(options.full) ? options.full : options.full !== undefined
     const hasEditProvider = options.full !== undefined && typeof options.full !== 'boolean' && options.full.delta === true
     const eventEmitter: Emitter<void> = new Emitter<void>()
@@ -128,15 +122,12 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
         onDidChangeSemanticTokens: eventEmitter.event,
         provideDocumentSemanticTokens: (document, token) => {
           const client = this._client
-          const middleware = client.clientOptions.middleware!
+          const middleware = client.middleware!
           const provideDocumentSemanticTokens: DocumentSemanticsTokensSignature = (document, token) => {
             const params: SemanticTokensParams = {
               textDocument: cv.asTextDocumentIdentifier(document)
             }
-            return client.sendRequest(SemanticTokensRequest.type, params, token).then(
-              res => token.isCancellationRequested ? null : res, (error: any) => {
-              return client.handleFailedRequest(SemanticTokensRequest.type, token, error, null)
-            })
+            return this.sendRequest(SemanticTokensRequest.type, params, token)
           }
           return middleware.provideDocumentSemanticTokens
             ? middleware.provideDocumentSemanticTokens(document, token, provideDocumentSemanticTokens)
@@ -145,16 +136,13 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
         provideDocumentSemanticTokensEdits: hasEditProvider
           ? (document, previousResultId, token) => {
             const client = this._client
-            const middleware = client.clientOptions.middleware!
+            const middleware = client.middleware!
             const provideDocumentSemanticTokensEdits: DocumentSemanticsTokensEditsSignature = (document, previousResultId, token) => {
               const params: SemanticTokensDeltaParams = {
                 textDocument: cv.asTextDocumentIdentifier(document),
                 previousResultId
               }
-              return client.sendRequest(SemanticTokensDeltaRequest.type, params, token).then(
-                res => token.isCancellationRequested ? null : res, (error: any) => {
-                return client.handleFailedRequest(SemanticTokensDeltaRequest.type, token, error, null)
-              })
+              return this.sendRequest(SemanticTokensDeltaRequest.type, params, token)
             }
             return middleware.provideDocumentSemanticTokensEdits
               ? middleware.provideDocumentSemanticTokensEdits(document, previousResultId, token, provideDocumentSemanticTokensEdits)
@@ -169,17 +157,13 @@ export class SemanticTokensFeature extends TextDocumentFeature<boolean | Semanti
       ? {
         provideDocumentRangeSemanticTokens: (document: TextDocument, range: Range, token: CancellationToken) => {
           const client = this._client
-          const middleware = client.clientOptions.middleware!
+          const middleware = client.middleware!
           const provideDocumentRangeSemanticTokens: DocumentRangeSemanticTokensSignature = (document, range, token) => {
             const params: SemanticTokensRangeParams = {
               textDocument: cv.asTextDocumentIdentifier(document),
               range
             }
-            return client.sendRequest(SemanticTokensRangeRequest.type, params, token).then(
-              res => token.isCancellationRequested ? null : res,
-              (error: any) => {
-                return client.handleFailedRequest(SemanticTokensRangeRequest.type, token, error, null)
-              })
+            return this.sendRequest(SemanticTokensRangeRequest.type, params, token)
           }
           return middleware.provideDocumentRangeSemanticTokens
             ? middleware.provideDocumentRangeSemanticTokens(document, range, token, provideDocumentRangeSemanticTokens)
