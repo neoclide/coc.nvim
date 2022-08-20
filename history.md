@@ -4,6 +4,7 @@
 - Break change: avoid extension overwrite builtin configuration defaults.
 - Change default value of configuration "diagnostic.format".
 - 'line' changes to 'currline' for `CocAction('codeAction')`.
+- Check NodeJS version on syntax error.
 
 # 2022-08-10
 
