@@ -237,7 +237,7 @@ describe('codeLenes featrue', () => {
     await doc.synchronize()
     await codeLens.checkProvider()
     let p = helper.doAction('codeLensAction')
-    await helper.waitFloat()
+    await helper.waitPrompt()
     await nvim.input('<cr>')
     await p
     expect(fn).toBeCalledWith(1, 2, 3)
