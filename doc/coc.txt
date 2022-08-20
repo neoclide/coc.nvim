@@ -15,6 +15,7 @@ LSP features 					|coc-lsp|
   Document 					|coc-document|
   Completion					|coc-completion|
   Diagnostics 					|coc-diagnostics|
+  Pull diagnostics 				|coc-pullDiagnostics|
   Locations 					|coc-locations|
   Signature help 				|coc-signature|
   Format 					|coc-format|
@@ -240,6 +241,7 @@ Features automatically work by default:~
 
 - Trigger completion |coc-completion|.
 - Diagnostics refresh |coc-diagnostics|.
+- Pull diagnostics |coc-pullDiagnostics|.
 - Trigger signature help |coc-signature|.
 - Inlay hints (only works with some coc extensions, but not
   |coc-config-languageserver| yet).
@@ -523,6 +525,17 @@ Check all diagnostics~
 Use |coc-list-diagnostics| to open |coc-list| with all available diagnostics.
 
 Use API |CocAction('diagnosticList')| to get list of all diagnostics.
+
+==============================================================================
+PULL DIAGNOSTICS SUPPORT 				*coc-pullDiagnostics*
+
+Diagnostics are pulled for visible documents when supported by languageserver.
+Pull for workspace diagnostics is also enabled by default.
+
+Document diagnostics are also pulled on change by default, and can be
+configured to be pulled on save.
+
+Checkout |coc-config-pullDiagnostic| for related configurations.
 
 ==============================================================================
 LOCATIONS SUPPORT 					*coc-locations*

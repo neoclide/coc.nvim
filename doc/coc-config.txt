@@ -8,6 +8,7 @@ Document highlight 				|coc-config-documentHighlight|
 Colors 						|coc-config-colors|
 Links 						|coc-config-links|
 Diagnostics 					|coc-config-diagnostic|
+Pull diagnostics 				|coc-config-pullDiagnostic|
 Signature 					|coc-config-signature|
 Cursors 					|coc-config-cursors|
 Refactor 					|coc-config-refactor|
