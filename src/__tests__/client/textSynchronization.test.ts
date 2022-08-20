@@ -237,9 +237,9 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'x')])
       nvim.command('w', true)
-      await helper.wait(50)
-      let content = doc.getDocumentContent()
-      expect(content).toBe('abcx\n')
+      await helper.waitValue(() => {
+        return doc.getDocumentContent()
+      }, 'abcx\n')
       await client.sendNotification('unregisterDocumentSync')
       await client.stop()
       if (fs.existsSync(fsPath)) {

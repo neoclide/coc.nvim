@@ -51,6 +51,7 @@ import {
   ProgressType,
   UniquenessLevel,
   MonikerKind,
+  DocumentDiagnosticReportKind,
 } from 'vscode-languageserver-protocol'
 
 import { PatternType, SourceType, MessageLevel, ConfigurationTarget, ServiceStat, FileType } from './types'
@@ -92,6 +93,7 @@ module.exports = {
   SemanticTokensBuilder,
   FloatFactory,
   RelativePattern,
+  DocumentDiagnosticReportKind,
   UniquenessLevel,
   MonikerKind,
   PatternType,

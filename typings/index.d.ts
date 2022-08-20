@@ -2264,6 +2264,168 @@ declare module 'coc.nvim' {
      */
     data?: any
   }
+
+  /**
+   * A previous result id in a workspace pull request.
+   *
+   * @since 3.17.0
+   */
+  export type PreviousResultId = {
+    /**
+     * The URI for which the client knowns a
+     * result id.
+     */
+    uri: string
+    /**
+     * The value of the previous result id.
+     */
+    value: string
+  }
+
+  export type DocumentDiagnosticReportKind = 'full' | 'unchanged'
+
+  /**
+   * The document diagnostic report kinds.
+   *
+   * @since 3.17.0
+   */
+  export namespace DocumentDiagnosticReportKind {
+    /**
+     * A diagnostic report with a full
+     * set of problems.
+     */
+    const Full = "full"
+    /**
+     * A report indicating that the last
+     * returned report is still accurate.
+     */
+    const Unchanged = "unchanged"
+  }
+  /**
+   * A diagnostic report with a full set of problems.
+   *
+   * @since 3.17.0
+   */
+  export type FullDocumentDiagnosticReport = {
+    /**
+     * A full document diagnostic report.
+     */
+    kind: typeof DocumentDiagnosticReportKind.Full
+    /**
+     * An optional result id. If provided it will
+     * be sent on the next diagnostic request for the
+     * same document.
+     */
+    resultId?: string
+    /**
+     * The actual items.
+     */
+    items: Diagnostic[]
+  }
+
+  /**
+   * A diagnostic report indicating that the last returned
+   * report is still accurate.
+   *
+   * @since 3.17.0
+   */
+  export type UnchangedDocumentDiagnosticReport = {
+    /**
+     * A document diagnostic report indicating
+     * no changes to the last result. A server can
+     * only return `unchanged` if result ids are
+     * provided.
+     */
+    kind: typeof DocumentDiagnosticReportKind.Unchanged
+    /**
+     * A result id which will be sent on the next
+     * diagnostic request for the same document.
+     */
+    resultId: string
+  }
+
+  /**
+   * An unchanged diagnostic report with a set of related documents.
+   *
+   * @since 3.17.0
+   */
+  export type RelatedUnchangedDocumentDiagnosticReport = UnchangedDocumentDiagnosticReport & {
+    /**
+     * Diagnostics of related documents. This information is useful
+     * in programming languages where code in a file A can generate
+     * diagnostics in a file B which A depends on. An example of
+     * such a language is C/C++ where marco definitions in a file
+     * a.cpp and result in errors in a header file b.hpp.
+     *
+     * @since 3.17.0
+     */
+    relatedDocuments?: {
+      [uri: string]: FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport
+    }
+  }
+
+  export type RelatedFullDocumentDiagnosticReport = FullDocumentDiagnosticReport & {
+    /**
+     * Diagnostics of related documents. This information is useful
+     * in programming languages where code in a file A can generate
+     * diagnostics in a file B which A depends on. An example of
+     * such a language is C/C++ where marco definitions in a file
+     * a.cpp and result in errors in a header file b.hpp.
+     *
+     * @since 3.17.0
+     */
+    relatedDocuments?: {
+      [uri: string]: FullDocumentDiagnosticReport | UnchangedDocumentDiagnosticReport
+    }
+  }
+  export type DocumentDiagnosticReport = RelatedFullDocumentDiagnosticReport | RelatedUnchangedDocumentDiagnosticReport
+
+  /*
+   * A workspace diagnostic report.
+   *
+   * @since 3.17.0
+   */
+  export type WorkspaceDiagnosticReport = {
+    items: WorkspaceDocumentDiagnosticReport[]
+  }
+  /**
+   * A partial result for a workspace diagnostic report.
+   *
+   * @since 3.17.0
+   */
+  export type WorkspaceDiagnosticReportPartialResult = {
+    items: WorkspaceDocumentDiagnosticReport[]
+  }
+
+  export type WorkspaceFullDocumentDiagnosticReport = FullDocumentDiagnosticReport & {
+    /**
+    * The URI for which diagnostic information is reported.
+    */
+    uri: string
+    /**
+    * The version number for which the diagnostics are reported.
+    * If the document is not marked as open `null` can be provided.
+    */
+    version: number | null
+  }
+
+  export type WorkspaceUnchangedDocumentDiagnosticReport = UnchangedDocumentDiagnosticReport & {
+    /**
+     * The URI for which diagnostic information is reported.
+     */
+    uri: string
+    /**
+     * The version number for which the diagnostics are reported.
+     * If the document is not marked as open `null` can be provided.
+     */
+    version: number | null
+  }
+
+  export type WorkspaceDocumentDiagnosticReport = WorkspaceFullDocumentDiagnosticReport | WorkspaceUnchangedDocumentDiagnosticReport
+
+  export interface ResultReporter {
+    (chunk: WorkspaceDiagnosticReportPartialResult | null): void
+  }
   // }}
 
   // nvim interfaces {{
@@ -9390,6 +9552,15 @@ declare module 'coc.nvim' {
     provideSelectionRanges?: (this: void, document: LinesTextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[]>
   }
 
+  export type ProvideDiagnosticSignature = (this: void, document: TextDocument, previousResultId: string | undefined, token: CancellationToken) => ProviderResult<DocumentDiagnosticReport>
+
+  export type ProvideWorkspaceDiagnosticSignature = (this: void, resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter) => ProviderResult<WorkspaceDiagnosticReport>
+
+  export interface DiagnosticProviderMiddleware {
+    provideDiagnostics?: (this: void, document: TextDocument, previousResultId: string | undefined, token: CancellationToken, next: ProvideDiagnosticSignature) => ProviderResult<DocumentDiagnosticReport>
+    provideWorkspaceDiagnostics?: (this: void, resultIds: PreviousResultId[], token: CancellationToken, resultReporter: ResultReporter, next: ProvideWorkspaceDiagnosticSignature) => ProviderResult<WorkspaceDiagnosticReport>
+  }
+
   export interface HandleWorkDoneProgressSignature {
     (this: void, token: ProgressToken, params: WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd): void
   }
@@ -9600,7 +9771,7 @@ declare module 'coc.nvim' {
     workspace?: WorkspaceMiddleware
     window?: WindowMiddleware
   }
-  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware
+  export type Middleware = _Middleware & TypeDefinitionMiddleware & ImplementationMiddleware & ColorProviderMiddleware & DeclarationMiddleware & FoldingRangeProviderMiddleware & CallHierarchyMiddleware & SemanticTokensMiddleware & LinkedEditingRangeMiddleware & SelectionRangeProviderMiddleware & DiagnosticProviderMiddleware
 
   export interface ConnectionOptions {
     cancellationStrategy: unknown
