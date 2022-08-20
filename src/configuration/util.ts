@@ -1,17 +1,13 @@
 'use strict'
+import fs from 'fs'
+import { parse, ParseError } from 'jsonc-parser'
 import { Location, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { parse, ParseError } from 'jsonc-parser'
-import { IConfigurationModel, ErrorItem } from '../types'
+import { URI } from 'vscode-uri'
+import { ErrorItem, IConfigurationModel } from '../types'
 import { emptyObject, objectLiteral } from '../util/is'
 import { equals } from '../util/object'
-import fs from 'fs'
-import { URI } from 'vscode-uri'
-import path, { dirname, resolve } from 'path'
 const logger = require('../util/logger')('configuration-util')
-declare const ESBUILD
-
-const pluginRoot = typeof ESBUILD === 'undefined' ? resolve(__dirname, '../..') : dirname(__dirname)
 
 export type ShowError = (errors: ErrorItem[]) => void
 
@@ -241,22 +237,6 @@ export function getConfigurationValue<T>(
   const result = accessSetting(config, path)
 
   return typeof result === 'undefined' ? defaultValue : result
-}
-
-export function loadDefaultConfigurations(): IConfigurationModel {
-  let file = path.join(pluginRoot, 'data/schema.json')
-  let content = fs.readFileSync(file, 'utf8')
-  let { properties } = JSON.parse(content)
-  let config = {}
-  Object.keys(properties).forEach(key => {
-    let value = properties[key].default
-    if (value !== undefined) {
-      addToValueTree(config, key, value, message => {
-        logger.error(message)
-      })
-    }
-  })
-  return { contents: config }
 }
 
 export function getKeys(obj: { [key: string]: any }, curr?: string): string[] {

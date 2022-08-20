@@ -486,6 +486,14 @@ describe('Configurations', () => {
       expect(o.a.b).toBe(2)
     })
 
+    it('should not extends builtin keys', async () => {
+      let configurations = createConfigurations()
+      disposables.push(configurations)
+      configurations.extendsDefaults({ 'npm.binPath': 'cnpm' }, 'test')
+      let o = configurations.defaults.contents
+      expect(o.npm.binPath).toBe('npm')
+    })
+
     it('should update configuration', async () => {
       let configurations = createConfigurations()
       disposables.push(configurations)

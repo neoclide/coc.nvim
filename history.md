@@ -1,3 +1,8 @@
+# 2022-08-20
+
+- Support pull diagnostics `:h coc-pullpullDiagnostics`.
+- Break change: avoid extension overwrite builtin configuration defaults.
+
 # 2022-08-10
 
 - Change "notification.highlightGroup" default to "Normal".

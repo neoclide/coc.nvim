@@ -671,7 +671,7 @@ export class Extensions {
           let val = properties[key].default
           if (val != null) props[key] = val
         }
-        workspace.configurations.extendsDefaults(props)
+        workspace.configurations.extendsDefaults(props, id)
       }
     }
     this._onDidLoadExtension.fire(extension)
@@ -985,7 +985,7 @@ export class Extensions {
           let val = properties[key].default
           if (val != null) props[key] = val
         }
-        workspace.configurations.extendsDefaults(props)
+        workspace.configurations.extendsDefaults(props, id)
       }
       if (rootPatterns && rootPatterns.length) {
         for (let item of rootPatterns) {

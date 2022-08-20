@@ -1,7 +1,7 @@
 'use strict'
 import fs from 'fs'
 import os from 'os'
-import path from 'path'
+import path, { dirname, resolve } from 'path'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ConfigurationChangeEvent, ConfigurationInspect, ConfigurationShape, ConfigurationTarget, ErrorItem, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from '../types'
@@ -11,8 +11,10 @@ import { objectLiteral } from '../util/is'
 import { deepClone, deepFreeze, mixin } from '../util/object'
 import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
-import { addToValueTree, getChangedKeys, loadDefaultConfigurations, parseContentFromFile } from './util'
+import { addToValueTree, getChangedKeys, parseContentFromFile } from './util'
 const logger = require('../util/logger')('configurations')
+declare const ESBUILD
+const pluginRoot = typeof ESBUILD === 'undefined' ? resolve(__dirname, '../..') : dirname(__dirname)
 
 function lookUp(tree: any, key: string): any {
   if (key) {
@@ -29,6 +31,7 @@ function lookUp(tree: any, key: string): any {
 
 export default class Configurations {
   public cwd = process.cwd()
+  private builtinKeys: string[] = []
   private _configuration: Configuration
   private _errorItems: ErrorItem[] = []
   private _folderConfigurations: Map<string, ConfigurationModel> = new Map()
@@ -46,7 +49,7 @@ export default class Configurations {
   ) {
     let user = this.parseContentFromFile(userConfigFile)
     let data: IConfigurationData = {
-      defaults: loadDefaultConfigurations(),
+      defaults: this.loadDefaultConfigurations(),
       user,
       workspace: { contents: {} }
     }
@@ -74,12 +77,18 @@ export default class Configurations {
     return this._folderConfigurations
   }
 
-  // used for extensions, no change event fired
-  public extendsDefaults(props: { [key: string]: any }): void {
+  /**
+   * Used for extensions, no change event fired
+   */
+  public extendsDefaults(props: { [key: string]: any }, id?: string): void {
     let { defaults } = this._configuration
     let { contents } = defaults
     contents = deepClone(contents)
     Object.keys(props).forEach(key => {
+      if (id && this.builtinKeys.includes(key)) {
+        logger.error(`Invalid configuration "${key}" from ${id}, overwrite defaults is fobidden.`)
+        return
+      }
       addToValueTree(contents, key, props[key], msg => {
         logger.error(msg)
       })
@@ -195,6 +204,25 @@ export default class Configurations {
         return changed.includes(section)
       }
     })
+  }
+
+  private loadDefaultConfigurations(): IConfigurationModel {
+    let file = path.join(pluginRoot, 'data/schema.json')
+    let content = fs.readFileSync(file, 'utf8')
+    let { properties } = JSON.parse(content)
+    let config = {}
+    let builtinKeys: string[] = []
+    Object.keys(properties).forEach(key => {
+      let value = properties[key].default
+      builtinKeys.push(key)
+      if (value !== undefined) {
+        addToValueTree(config, key, value, message => {
+          logger.error(message)
+        })
+      }
+    })
+    this.builtinKeys = builtinKeys
+    return { contents: config }
   }
 
   private getFolderConfigFile(filepath: string): string | undefined {
@@ -396,7 +424,7 @@ export default class Configurations {
     this._folderConfigurations.clear()
     let user = this.parseContentFromFile(this.userConfigFile)
     let data: IConfigurationData = {
-      defaults: loadDefaultConfigurations(),
+      defaults: this.loadDefaultConfigurations(),
       user,
       workspace: { contents: {} }
     }
