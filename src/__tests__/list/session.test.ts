@@ -297,7 +297,7 @@ describe('chooseAction()', () => {
     await manager.start(['--normal', 'simple'])
     await manager.session.ui.ready
     let p = manager.session.chooseAction()
-    await helper.wait(100)
+    await helper.waitPrompt()
     await nvim.input('<cr>')
     await p
   })

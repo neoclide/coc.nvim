@@ -101,7 +101,7 @@ describe('FileSystemWatcherFeature', () => {
   it('should work with single watcher', async () => {
     let client: LanguageClient
     let watcher = new CustomWatcher()
-    client = createClient(watcher, { workspace: {} })
+    client = createClient(watcher, {})
     let received: any[]
     client.onNotification('filesChange', params => {
       received = params.changes

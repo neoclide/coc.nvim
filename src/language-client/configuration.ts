@@ -71,7 +71,7 @@ export class PullConfigurationFeature implements StaticFeature {
         return result
       }
       let middleware = client.middleware.workspace
-      return middleware && middleware.configuration
+      return middleware?.configuration
         ? middleware.configuration(params, token, configuration)
         : configuration(params, token)
     })

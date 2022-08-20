@@ -90,7 +90,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
         return result
       }
       const middleware = client.middleware.workspace
-      return middleware && middleware.workspaceFolders
+      return middleware?.workspaceFolders
         ? middleware.workspaceFolders(token, workspaceFolders)
         : workspaceFolders(token)
     })
@@ -147,7 +147,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<void> {
         return this.doSendEvent(e.added, e.removed)
       }
       let middleware = client.middleware.workspace
-      const promise = middleware && middleware.didChangeWorkspaceFolders
+      const promise = middleware?.didChangeWorkspaceFolders
         ? middleware.didChangeWorkspaceFolders(event, didChangeWorkspaceFolders)
         : didChangeWorkspaceFolders(event)
       if (promise) {

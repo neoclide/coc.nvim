@@ -58,8 +58,8 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
       self._fileEventsMap.set(event.uri, event)
       self.debouncedFileNotify()
     }
-    const workSpaceMiddleware = this._client.middleware?.workspace
-    if (workSpaceMiddleware.didChangeWatchedFile) {
+    const workSpaceMiddleware = this._client.middleware.workspace
+    if (workSpaceMiddleware?.didChangeWatchedFile) {
       void workSpaceMiddleware.didChangeWatchedFile(event, didChangeWatchedFile)
     } else {
       didChangeWatchedFile(event)
