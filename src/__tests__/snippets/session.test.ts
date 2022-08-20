@@ -197,12 +197,7 @@ describe('SnippetSession', () => {
         line: '',
         range: defaultRange
       })
-      await nvim.input('b')
-      await helper.wait(20)
-      await nvim.input('a')
-      await helper.wait(30)
-      await nvim.input('r')
-      await helper.wait(40)
+      await nvim.input('bar')
       await session.forceSynchronize()
       await helper.waitFor('getline', ['.'], 'bar bar')
     })

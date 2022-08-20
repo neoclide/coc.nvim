@@ -2171,7 +2171,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	Prompt for a code action and do it.
 
-	{mode} could be `line` or `cursor` or result of |visualmode()|,
+	{mode} could be `currline` or `cursor` or result of |visualmode()|,
 	current buffer range is used when it's empty string.
 
 	{only} can be title of a codeAction or list of CodeActionKind.

@@ -397,7 +397,7 @@ describe('symbols outline', () => {
       await helper.waitFor('getline', [3], /fun1/)
       await nvim.command('exe 3')
       await nvim.input('<tab>')
-      await helper.waitFloat()
+      await helper.waitPrompt()
       await nvim.input('<cr>')
       await helper.waitFor('mode', [], 'v')
       let buf = await nvim.buffer

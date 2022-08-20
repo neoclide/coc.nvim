@@ -104,7 +104,7 @@ describe('handler codeActions', () => {
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action]
       let p = codeActions.codeActionRange(1, 2, CodeActionKind.QuickFix)
-      await helper.wait(100)
+      await helper.waitPrompt()
       await nvim.input('<CR>')
       await p
       let buf = nvim.createBuffer(doc.bufnr)

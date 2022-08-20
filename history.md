@@ -3,6 +3,7 @@
 - Support pull diagnostics `:h coc-pullDiagnostics`.
 - Break change: avoid extension overwrite builtin configuration defaults.
 - Change default value of configuration "diagnostic.format".
+- 'line' changes to 'currline' for `CocAction('codeAction')`.
 
 # 2022-08-10
 

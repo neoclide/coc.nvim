@@ -5,6 +5,7 @@ import { ScreenPosition } from '../types'
 import { byteLength } from '../util/string'
 
 const isVim = process.env.VIM_NODE_RPC == '1'
+const operateModes = ['char', 'line', 'block']
 
 export async function getCursorPosition(nvim: Neovim): Promise<Position> {
   // vim can't count utf16
@@ -67,7 +68,7 @@ export function showMessage(nvim: Neovim, msg: string, hl: 'MoreMsg' | 'Error' |
  * Mode could be 'char', 'line', 'cursor', 'v', 'V', '\x16'
  */
 export async function getSelection(nvim: Neovim, mode: string): Promise<Range | null> {
-  if (mode === 'line') {
+  if (mode === 'currline') {
     let line = await nvim.call('line', ['.'])
     return Range.create(line - 1, 0, line, 0)
   }
@@ -75,8 +76,8 @@ export async function getSelection(nvim: Neovim, mode: string): Promise<Range | 
     let [line, character] = await nvim.eval("coc#cursor#position()") as [number, number]
     return Range.create(line, character, line, character)
   }
-  let res = await nvim.call('coc#cursor#get_selection', [mode === 'char' ? 1 : 0])
-  if (!res) return null
+  let res = await nvim.call('coc#cursor#get_selection', [operateModes.includes(mode) ? 1 : 0])
+  if (!res || res[0] == -1) return null
   return Range.create(res[0], res[1], res[2], res[3])
 }
 

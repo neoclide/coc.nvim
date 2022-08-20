@@ -69,6 +69,12 @@ describe('getSelection()', () => {
     let res = await ui.getSelection(nvim, 'V')
     expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 1, character: 0 } })
   })
+
+  it('should return range of current line', async () => {
+    await nvim.command('normal! gg')
+    let res = await ui.getSelection(nvim, 'currline')
+    expect(res).toEqual(Range.create(0, 0, 1, 0))
+  })
 })
 
 describe('selectRange()', () => {
