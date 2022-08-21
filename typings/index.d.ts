@@ -638,6 +638,25 @@ declare module 'coc.nvim' {
   }
 
   /**
+   * The reason why code actions were requested.
+   *
+   * @since 3.17.0
+   */
+  export namespace CodeActionTriggerKind {
+    /**
+     * Code actions were explicitly requested by the user or by an extension.
+     */
+    const Invoked: 1
+    /**
+     * Code actions were requested automatically.
+     *
+     * This typically happens when current selection in a file changes, but can
+     * also be triggered when file content changes.
+     */
+    const Automatic: 2
+  }
+  export type CodeActionTriggerKind = 1 | 2
+  /**
    * Contains additional diagnostic information about the context in which
    * a [code action](#CodeActionProvider.provideCodeActions) is run.
    */
@@ -657,6 +676,12 @@ declare module 'coc.nvim' {
      * can omit computing them.
      */
     only?: string[]
+    /**
+     * The reason why code actions were requested.
+     *
+     * @since 3.17.0
+     */
+    triggerKind?: CodeActionTriggerKind
   }
 
 

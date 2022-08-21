@@ -23,6 +23,7 @@ import { Mutex } from './util/mutex'
 import { URI } from 'vscode-uri'
 import {
   CodeActionKind,
+  CodeActionTriggerKind,
   Disposable,
   Position,
   Range,
@@ -130,6 +131,7 @@ module.exports = {
   Event,
   workspace,
   window,
+  CodeActionTriggerKind,
   CompletionTriggerKind,
   snippetManager,
   events,
