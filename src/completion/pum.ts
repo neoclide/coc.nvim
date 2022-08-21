@@ -16,6 +16,18 @@ export interface PumDimension {
   readonly scrollbar: boolean
 }
 
+// 0 based col start & end
+export interface HighlightRange {
+  start: number
+  end: number
+  hlGroup: string
+}
+
+export interface LabelWithDetail {
+  text: string
+  highlights: HighlightRange[]
+}
+
 export interface BuildConfig {
   border: boolean
   abbrWidth: number
@@ -69,7 +81,7 @@ export default class PopupMenu {
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { noselect, fixInsertedWord, enablePreselect, selection, floatConfig, virtualText } = this.config
+    let { noselect, fixInsertedWord, enablePreselect, selection, virtualText } = this.config
     let followPart = getFollowPart(option)
     if (followPart.length === 0) fixInsertedWord = false
     let selectedIndex = noselect || !enablePreselect ? -1 : items.findIndex(o => o.preselect)
@@ -85,6 +97,7 @@ export default class PopupMenu {
     let kindWidth = 0
     let shortcutWidth = 0
     let checkMru = !noselect && selectedIndex == -1 && selection != 'first'
+    let labels: LabelWithDetail[] = []
     // abbr kind, menu
     for (let i = 0; i < items.length; i++) {
       let item = items[i]
@@ -96,7 +109,9 @@ export default class PopupMenu {
         }
       }
       let shortcut = sources.getShortcut(item.source)
-      abbrWidth = Math.max(this.stringWidth(this.getAbbr(item)), abbrWidth)
+      let label = this.getLabel(item)
+      labels.push(label)
+      abbrWidth = Math.max(this.stringWidth(label.text), abbrWidth)
       if (item.kind) kindWidth = 1
       if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu), menuWidth)
       if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut) + 2, shortcutWidth)
@@ -119,7 +134,7 @@ export default class PopupMenu {
     let buildConfig: BuildConfig = { border: !!pumConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
     this.adjustAbbrWidth(buildConfig)
     for (let index = 0; index < items.length; index++) {
-      let text = this.buildItem(items[index], highlights, index, buildConfig)
+      let text = this.buildItem(items[index], labels[index], highlights, index, buildConfig)
       width = Math.max(width, this.stringWidth(text))
       lines.push(text)
     }
@@ -128,11 +143,32 @@ export default class PopupMenu {
     this.nvim.redrawVim()
   }
 
-  private getAbbr(item: ExtendedCompleteItem): string {
+  private getLabel(item: ExtendedCompleteItem): LabelWithDetail {
+    let { labelDetails } = item
     let { snippetIndicator, labelMaxLength } = this.config
-    let abbr = item.abbr ?? item.word
-    abbr = item.isSnippet && !abbr.endsWith(snippetIndicator) ? abbr + snippetIndicator : abbr
-    return abbr.length > labelMaxLength ? abbr.slice(0, labelMaxLength - 1) + '.' : abbr
+    let abbr = item.abbr ?? ''
+    let label = item.abbr ?? item.word
+    let hls: HighlightRange[] = []
+    if (labelDetails) {
+      let added = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
+      if (label.length + added.length <= labelMaxLength) {
+        let start = byteLength(label)
+        hls.push({
+          start,
+          end: start + byteLength(added),
+          hlGroup: 'CocPumDetail'
+        })
+        label = label + added
+        item.detailRendered = true
+      }
+    }
+    if (item.isSnippet && !abbr.endsWith(snippetIndicator)) {
+      label = label + snippetIndicator
+    }
+    if (label.length > labelMaxLength) {
+      label = label.slice(0, labelMaxLength - 1) + '.'
+    }
+    return { text: label, highlights: hls }
   }
 
   private adjustAbbrWidth(config: BuildConfig): void {
@@ -154,7 +190,7 @@ export default class PopupMenu {
     }
   }
 
-  private buildItem(item: ExtendedCompleteItem, hls: HighlightItem[], index: number, config: BuildConfig): string {
+  private buildItem(item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): string {
     // abbr menu kind shortcut
     let { labelMaxLength, formatItems } = this.config
     let text = config.border ? '' : ' '
@@ -167,8 +203,16 @@ export default class PopupMenu {
             let highlights = positionHighlights(item.abbr, positions, pre, index)
             hls.push(...highlights)
           }
-          let abbr = this.getAbbr(item)
+          let abbr = label.text
           text += this.fillWidth(abbr, config.abbrWidth + 1)
+          label.highlights.forEach(hl => {
+            hls.push({
+              hlGroup: hl.hlGroup,
+              lnum: index,
+              colStart: pre + hl.start,
+              colEnd: pre + hl.end
+            })
+          })
           if (item.deprecated) {
             hls.push({
               hlGroup: 'CocPumDeprecated',

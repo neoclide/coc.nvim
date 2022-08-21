@@ -142,13 +142,11 @@ describe('sources#createSource', () => {
         sources.removeSource('email')
       }
     })
-    await helper.wait(100)
-    let exists = sources.has('email')
-    expect(exists).toBe(true)
+    await helper.waitValue(() => {
+      return sources.has('email')
+    }, true)
     await helper.createDocument()
-    await nvim.input('i')
-    await helper.wait(10)
-    await nvim.input('@')
+    await nvim.input('i@')
     await helper.visible('foo@gmail.com')
   })
 })

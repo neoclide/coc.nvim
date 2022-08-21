@@ -283,6 +283,11 @@ export class Helper extends EventEmitter {
     }
   }
 
+  public async getLines(winid: number): Promise<string[]> {
+    let buf = await (this.nvim.createWindow(winid)).buffer
+    return await buf.lines
+  }
+
   public async getFloats(): Promise<Window[]> {
     let ids = await this.nvim.call('coc#float#get_float_win_list', [])
     if (!ids) return []

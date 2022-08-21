@@ -5,7 +5,7 @@ import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
+import { CompleteOption, CompleteResult, Documentation, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import window from '../window'
@@ -151,7 +151,7 @@ export default class LanguageSource implements ISource {
   }
 
   public async onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
-    let { index } = item
+    let { index, detailRendered } = item
     let completeItem = this.completeItems[index]
     if (!completeItem || item.resolved) return
     let hasResolve = typeof this.provider.resolveCompletionItem === 'function'
@@ -161,10 +161,12 @@ export default class LanguageSource implements ISource {
       Object.assign(completeItem, resolved)
     }
     item.resolved = true
-    let { documentation, detail } = completeItem
-    if (!documentation && !detail) return
-    let docs = []
-    if (detail && !item.detailShown && detail != item.word) {
+    let { documentation, detail, labelDetails } = completeItem
+    let docs: Documentation[] = []
+    if (labelDetails && !detailRendered) {
+      let content = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
+      docs.push({ filetype: 'txt', content })
+    } else if (detail && !item.detailShown && detail != item.word) {
       detail = detail.replace(/\n\s*/g, ' ')
       if (detail.length) {
         let isText = /^[\w-\s.,\t\n]+$/.test(detail)
@@ -181,6 +183,7 @@ export default class LanguageSource implements ISource {
         })
       }
     }
+    if (docs.length == 0) return
     item.documentation = docs
   }
 
@@ -286,6 +289,7 @@ export default class LanguageSource implements ISource {
       preselect: item.preselect === true,
       deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
       isSnippet,
+      labelDetails: item.labelDetails,
       dup: item.data?.dup == 0 ? 0 : 1
     }
     obj.line = opt.line

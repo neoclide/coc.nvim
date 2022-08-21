@@ -1,6 +1,7 @@
 # 2022-08-21
 
 - Added `window.createFloatFactory()`, deprecated `FloatFactory` class.
+- Support `labelDetails` field of `CompleteItem`(LSP 3.17)
 
 # 2022-08-20
 

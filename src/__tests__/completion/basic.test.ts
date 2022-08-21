@@ -30,7 +30,6 @@ async function triggerCompletion(source: string): Promise<void> {
 
 describe('completion', () => {
   describe('suggest configurations', () => {
-
     it('should not select complete item', async () => {
       helper.updateConfiguration('suggest.noselect', true)
       let doc = await workspace.document
@@ -1173,6 +1172,40 @@ describe('completion', () => {
       let buf = await win.buffer
       let lines = await buf.lines
       expect(lines[0].trim().length).toBe(10)
+    })
+
+    it('should render labelDetails', async () => {
+      helper.updateConfiguration('suggest.formatItems', ['abbr'])
+      helper.updateConfiguration('suggest.labelMaxLength', 10)
+      disposables.push(sources.createSource({
+        name: 'test',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({
+            items: [{
+              word: 'x',
+              labelDetails: {
+                detail: 'foo',
+                description: 'bar'
+              }
+            }, {
+              word: 'y'.repeat(8),
+              labelDetails: {
+                detail: 'a'.repeat(20),
+                description: 'b'.repeat(20)
+              }
+            }]
+          })
+        })
+      }))
+      await nvim.input('i')
+      await triggerCompletion('test')
+      await helper.waitPopup()
+      let winid = await nvim.call('coc#float#get_float_by_kind', ['pum'])
+      let win = nvim.createWindow(winid)
+      let buf = await win.buffer
+      let lines = await buf.lines
+      expect(lines.length).toBe(2)
+      expect(lines[0]).toMatch(/xfoo bar/)
     })
 
     it('should delete previous items when complete items is null', async () => {

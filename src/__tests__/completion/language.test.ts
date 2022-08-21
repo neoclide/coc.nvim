@@ -71,6 +71,40 @@ describe('getRange()', () => {
 })
 
 describe('language source', () => {
+  describe('labelDetails', () => {
+    it('should show labelDetails to documentation window', async () => {
+      helper.updateConfiguration('suggest.labelMaxLength', 10)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          labelDetails: {
+            detail: 'foo'.repeat(5)
+          }
+        }, {
+          label: 'bar',
+          labelDetails: {
+            description: 'bar'.repeat(5)
+          }
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+      await nvim.input('i')
+      await nvim.call('coc#start', { source: 'edits' })
+      let winid: number
+      await helper.waitValue(async () => {
+        winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail'])
+        return winid > 0
+      }, true)
+      let lines = await helper.getLines(winid)
+      expect(lines[0]).toMatch('foo')
+      await nvim.call('coc#pum#next', [1])
+      await helper.waitValue(async () => {
+        lines = await helper.getLines(winid)
+        return lines.join(' ').includes('bar')
+      }, true)
+    })
+  })
+
   describe('additionalTextEdits', () => {
     it('should fix cursor position with plain text on additionalTextEdits', async () => {
       let provider: CompletionItemProvider = {

@@ -2743,6 +2743,8 @@ CocTree 						*CocTree*
 Popup menu related~
 							*CocPum*
 *CocPumSearch* for matched input characters, linked to |CocSearch| by default.
+*CocPumDetail* for highlight label details that follows label (including
+possible detail and description).
 *CocPumMenu* for menu of complete item.
 *CocPumShortcut* for shortcut text of source.
 *CocPumDeprecated* for deprecated label.
