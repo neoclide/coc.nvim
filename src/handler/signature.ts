@@ -4,10 +4,10 @@ import { CancellationTokenSource, Disposable, MarkupContent, Position, Signature
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
+import { ConfigurationChangeEvent, FloatConfig, FloatFactory, HandlerDelegate } from '../types'
 import { disposeAll, isMarkdown } from '../util'
 import { byteLength } from '../util/string'
+import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('handler-signature')
 
@@ -39,8 +39,12 @@ export default class Signature {
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource | undefined
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
-    this.signatureFactory = new FloatFactory(nvim)
     this.loadConfiguration()
+    this.signatureFactory = window.createFloatFactory(Object.assign({
+      preferTop: this.config.preferAbove,
+      autoHide: false,
+      modes: ['i', 'ic', 's'],
+    }, this.config.floatConfig))
     this.disposables.push(this.signatureFactory)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     events.on('CursorMovedI', async (bufnr, cursor) => {
@@ -199,15 +203,7 @@ export default class Signature {
     }, [])
     let content = doc.getline(position.line, false).slice(0, position.character)
     this.lastPosition = { bufnr: doc.bufnr, lnum: position.line + 1, col: byteLength(content) + 1 }
-    const excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
-    let config = this.signatureFactory.applyFloatConfig({
-      preferTop: this.config.preferAbove,
-      autoHide: false,
-      offsetX: offset,
-      modes: ['i', 'ic', 's'],
-      excludeImages
-    }, this.config.floatConfig)
-    await this.signatureFactory.show(docs, config)
+    await this.signatureFactory.show(docs, { offsetX: offset })
   }
 
   private echoSignature(signatureHelp: SignatureHelp): void {

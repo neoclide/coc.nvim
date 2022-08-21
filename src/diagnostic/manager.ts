@@ -6,8 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
-import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, Documentation, ErrorItem } from '../types'
+import { ConfigurationChangeEvent, FloatFactory, Documentation, ErrorItem } from '../types'
 import { disposeAll } from '../util'
 import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
@@ -59,8 +58,7 @@ export class DiagnosticManager implements Disposable {
       }).logError()
     }
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
-
-    this.floatFactory = new FloatFactory(this.nvim)
+    this.floatFactory = window.createFloatFactory(Object.assign({ modes: ['n'] }, this.config.floatConfig))
     this.buffers = workspace.registerBufferSync(doc => {
       if (!this.enabled) return undefined
       let buf = new DiagnosticBuffer(
@@ -509,8 +507,7 @@ export class DiagnosticManager implements Disposable {
         docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
       }
     })
-    let floatConfig = this.floatFactory.applyFloatConfig({ modes: ['n'], maxWidth: 80 }, this.config.floatConfig)
-    await this.floatFactory.show(docs, floatConfig)
+    await this.floatFactory.show(docs)
   }
 
   public async jumpRelated(): Promise<void> {
@@ -545,7 +542,7 @@ export class DiagnosticManager implements Disposable {
     for (let collection of this.collections) {
       collection.dispose()
     }
-    this.floatFactory?.close()
+    this.floatFactory?.dispose()
     this.collections = []
     disposeAll(this.disposables)
   }

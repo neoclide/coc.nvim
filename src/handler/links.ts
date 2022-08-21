@@ -3,8 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
-import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../types'
+import { ConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { positionInRange } from '../util/position'
 import window from '../window'
@@ -20,7 +19,7 @@ export default class Links implements Disposable {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.setConfiguration()
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
-    this.floatFactory = new FloatFactory(nvim)
+    this.floatFactory = window.createFloatFactory({})
     events.on('CursorHold', async () => {
       if (!this._tooltip) return
       if (!nvim.hasFunction('nvim_get_keymap')) return
@@ -50,7 +49,7 @@ export default class Links implements Disposable {
     if (key) text += `Press "${key}" to open link`
     if (!text.length) return
     let doc: Documentation = { content: text, filetype: 'txt' }
-    await floatFactory.show([doc], { autoHide: true })
+    await floatFactory.show([doc])
   }
 
   public async getLinks(): Promise<DocumentLink[]> {

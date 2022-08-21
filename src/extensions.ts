@@ -12,7 +12,6 @@ import commandManager from './commands'
 import Watchman from './core/watchman'
 import events from './events'
 import DB from './model/db'
-import FloatFactory from './model/floatFactory'
 import InstallBuffer from './model/installBuffer'
 import { createInstallerFactory } from './model/installer'
 import Memos from './model/memos'
@@ -212,16 +211,19 @@ export class Extensions {
       this.setupActiveEvents(id, packageJSON).logError()
     }
     // make sure workspace.env exists
-    let floatFactory = new FloatFactory(workspace.nvim)
+    let floatFactory = window.createFloatFactory({ modes: ['n'] })
     events.on('CursorMoved', debounce(async bufnr => {
       if (this.installBuffer && bufnr == this.installBuffer.bufnr) {
         let lnum = await workspace.nvim.call('line', ['.'])
         let msgs = this.installBuffer.getMessages(lnum - 1)
         let docs = msgs && msgs.length ? [{ content: msgs.join('\n'), filetype: 'txt' }] : []
-        await floatFactory.show(docs, { modes: ['n'] })
+        await floatFactory.show(docs)
       }
     }, 500))
-    if (global.__TEST__) return
+    if (global.__TEST__) {
+      floatFactory.dispose()
+      return
+    }
     // check extensions need watch & install
     this.checkExtensions()
     let config = workspace.getConfiguration('coc.preferences')

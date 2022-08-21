@@ -86,8 +86,21 @@ export interface FileSystemWatcher extends Disposable {
   onDidDelete: Event<URI>
 }
 
+export interface FloatOptions {
+  title?: string
+  offsetX?: number
+}
+
+export interface FloatFactory {
+  activated: () => Promise<boolean>
+  show: (docs: Documentation[], options?: FloatOptions) => Promise<void>
+  close: () => void
+  checkRetrigger: (bufnr: number) => boolean
+  dispose: () => void
+}
+
 export interface FloatConfig {
-  border?: boolean
+  border?: boolean | [number, number, number, number]
   rounded?: boolean
   highlight?: string
   title?: string

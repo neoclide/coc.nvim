@@ -4814,25 +4814,6 @@ declare module 'coc.nvim' {
     readonly options: TextEditorOptions
   }
 
-  export interface FloatWinConfig {
-    maxHeight?: number
-    maxWidth?: number
-    preferTop?: boolean
-    autoHide?: boolean
-    offsetX?: number
-    title?: string
-    border?: number[]
-    cursorline?: boolean
-    close?: boolean
-    highlight?: string
-    borderhighlight?: string
-    modes?: string[]
-    shadow?: boolean
-    winblend?: number
-    focusable?: boolean
-    excludeImages?: boolean
-  }
-
   export interface Documentation {
     /**
      * Filetype used for highlight, markdown is supported.
@@ -4848,44 +4829,6 @@ declare module 'coc.nvim' {
     active?: [number, number]
     highlights?: HighlightItem[]
   }
-
-  /**
-   * Float window factory for create float around current cursor, works on vim and neovim.
-   * Use `workspace.floatSupported` to check if float could work.
-   *
-   * Float windows are automatic reused and hidden on specific events including:
-   *  - BufEnter
-   *  - InsertEnter
-   *  - InsertLeave
-   *  - MenuPopupChanged
-   *  - CursorMoved
-   *  - CursorMovedI
-   */
-  export class FloatFactory implements Disposable {
-    get bufnr(): number | undefined
-    get buffer(): Buffer | null
-    get window(): Window | null
-    activated(): Promise<boolean>
-
-    constructor(nvim: Neovim)
-
-    /**
-     * Show documentations in float window/popup around cursor.
-     * Window and buffer are reused when possible.
-     * Window is closed automatically on change buffer, InsertEnter, CursorMoved and CursorMovedI.
-     *
-     * @param docs List of documentations.
-     * @param config Configuration for floating window/popup.
-     */
-    show(docs: Documentation[], config?: FloatWinConfig): Promise<void>
-
-    /**
-     * Close float window.
-     */
-    close(): void
-    dispose(): void
-  }
-
 
   /**
    * A file glob pattern to match file paths against. This can either be a glob pattern string
@@ -8152,6 +8095,63 @@ declare module 'coc.nvim' {
     readonly onDidFinish: Event<string | null>
   }
 
+  /**
+   * FloatWinConfig.
+   */
+  export interface FloatWinConfig {
+    border?: boolean | [number, number, number, number]
+    rounded?: boolean
+    highlight?: string
+    title?: string
+    borderhighlight?: string
+    close?: boolean
+    maxHeight?: number
+    maxWidth?: number
+    winblend?: number
+    focusable?: boolean
+    shadow?: boolean
+    preferTop?: boolean
+    autoHide?: boolean
+    offsetX?: number
+    cursorline?: boolean
+    modes?: string[]
+    excludeImages?: boolean
+  }
+
+  export interface FloatOptions {
+    /**
+     * Title in float window/popup.
+     */
+    title?: string
+    /**
+     * Horizontal Offset of current cursor position.
+     */
+    offsetX?: number
+  }
+
+  export interface FloatFactory {
+    /**
+     * Show documentations in float window/popup.
+     * Window and buffer are reused when possible.
+     *
+     * @param docs List of documentations.
+     * @param options Configuration for floating window/popup.
+     */
+    show: (docs: Documentation[], options?: FloatOptions) => Promise<void>
+    /**
+     * Close the float window created by this float factory.
+     */
+    close: () => void
+    /**
+     * Check if float window is shown.
+     */
+    activated: () => Promise<boolean>
+    /**
+     * Unbind events
+     */
+    dispose: () => void
+  }
+
   export namespace window {
     /**
      * The currently active editor or `undefined`. The active editor is the one
@@ -8180,21 +8180,22 @@ declare module 'coc.nvim' {
 
     /**
      * The currently opened terminals or an empty array.
-     */
-    export const terminals: readonly Terminal[]
-    /**
      * onDidChangeTerminalState doesn't exist since we can't detect window resize on vim.
      */
+    export const terminals: readonly Terminal[]
+
     /**
      * Event fired after terminal created, only fired with Terminal that
      * created by `window.createTerminal`
      */
     export const onDidOpenTerminal: Event<Terminal>
+
     /**
      * Event fired on terminal close, only fired with Terminal that created by
      * `window.createTerminal`
      */
     export const onDidCloseTerminal: Event<Terminal>
+
     /**
      * Creates a {@link Terminal} with a backing shell process.
      * The terminal is created by (neo)vim.
@@ -8204,6 +8205,25 @@ declare module 'coc.nvim' {
      * @throws When running in an environment where a new process cannot be started.
      */
     export function createTerminal(opts: TerminalOptions): Promise<Terminal>
+
+    /**
+     * Create float window factory for create float window/popup around current
+     * cursor.
+     * Configuration "floatFactory.floatConfig" is used as default float config.
+     * Configuration "coc.preferences.excludeImageLinksInMarkdownDocument" is also used.
+     *
+     * Float windows are automatic reused and hidden on specific events including:
+     *  - BufEnter
+     *  - InsertEnter
+     *  - InsertLeave
+     *  - MenuPopupChanged
+     *  - CursorMoved
+     *  - CursorMovedI
+     *
+     * @param conf Configuration of float window.
+     * @return FloatFactory
+     */
+    export function createFloatFactory(conf: FloatWinConfig): FloatFactory
 
     /**
      * Reveal message with message type.

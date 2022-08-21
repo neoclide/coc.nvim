@@ -1,3 +1,7 @@
+# 2022-08-21
+
+- Added `window.createFloatFactory()`, deprecated `FloatFactory` class.
+
 # 2022-08-20
 
 - Support pull diagnostics `:h coc-pullDiagnostics`.

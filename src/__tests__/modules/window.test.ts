@@ -75,6 +75,22 @@ describe('window', () => {
       expect(buftype).toBe('terminal')
     })
 
+    it('should create float factory', async () => {
+      helper.updateConfiguration('coc.preferences.excludeImageLinksInMarkdownDocument', false)
+      helper.updateConfiguration('floatFactory.floatConfig', {
+        winblend: 10,
+        rounded: true,
+        border: true,
+        close: true
+      })
+      let f = window.createFloatFactory({ modes: ['n', 'i'] })
+      await f.show([{ content: 'content', filetype: 'txt' }])
+      let win = await helper.getFloat()
+      expect(win).toBeDefined()
+      let id = await nvim.call('coc#float#get_related', [win.id, 'border', 0]) as number
+      expect(id).toBeGreaterThan(0)
+    })
+
     it('should create outputChannel', () => {
       let channel = window.createOutputChannel('channel')
       expect(channel.name).toBe('channel')

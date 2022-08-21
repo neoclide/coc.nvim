@@ -852,6 +852,15 @@ List~
 	default: `true`
 
 ------------------------------------------------------------------------------
+FloatFactory~
+							*coc-config-floatFactory*
+"floatFactory.floatConfig"				*coc-config-floatFactory-floatConfig*
+
+	Configure default style float window/popup created by float factory
+	(created around cursor and automatically closed), properties of
+	|coc-config-float| are used.
+
+------------------------------------------------------------------------------
 Preferences~
 							*coc-config-preferences*
 "coc.preferences.enableLinkedEditing"			*coc-preferences-enableLinkedEditing*
@@ -969,6 +978,11 @@ Preferences~
 	Tell the language server that markdown text format is supported,
 	note that you may have additional escaped characters for markdown
 	text.
+
+"coc.preferences.excludeImageLinksInMarkdownDocument" 	*coc-preferences-excludeImageLinksInMarkdownDocument*
+
+	Exclude image links from markdown text in float window.
+	Default: `true`
 
 "coc.preferences.silentAutoupdate"			*coc-preferences-silentAutoupdate*
 
@@ -1151,13 +1165,16 @@ supported:
 
 	- "border": Change to `true` to enable border.
 	- "rounded": Use rounded borders when border is `true`.
-	- "highlight": Background highlight group of float window.
-	- "title": Title used by float window.
-	- "borderhighlight": Border highlight group of float window.
-	- "close": Set to true to draw close icon.
+	- "highlight": Background highlight group of float window, default:
+	  `"CocFloating"`.
+	- "title": Title text used by float window, default: `""`.
+	- "borderhighlight": Border highlight group of float window, default:
+	  `"CocFloating"`.
+	- "close": Set to `true` to draw close icon.
 	- "maxWidth": Maximum width of float window, contains border.
 	- "maxHeight": Maximum height of float window, contains border.
-	- "winblend": Set 'winblend' option of window, neovim only.
+	- "winblend": Set 'winblend' option of window, neovim only, default:
+	  `0`.
 	- "focusable": Set to false to make window not focusable, neovim only.
 	- "shadow": Set to true to enable shadow, neovim only.
 

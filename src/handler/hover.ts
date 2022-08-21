@@ -4,13 +4,13 @@ import fs from 'fs'
 import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import languages from '../languages'
-import { Documentation } from '../types'
-import FloatFactory from '../model/floatFactory'
+import { Documentation, FloatFactory } from '../types'
 import { TextDocumentContentProvider } from '../provider'
 import { ConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
 import { disposeAll, isMarkdown } from '../util'
 import { readFileLines } from '../util/fs'
 import workspace from '../workspace'
+import window from '../window'
 const logger = require('../util/logger')('handler-hover')
 
 export type HoverTarget = 'float' | 'preview' | 'echo'
@@ -29,11 +29,13 @@ export default class HoverHandler {
   private config: HoverConfig
   private timer: NodeJS.Timeout
   private hasProvider = false
-  private excludeImages = true
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    this.hoverFactory = new FloatFactory(nvim)
+    this.hoverFactory = window.createFloatFactory(Object.assign({
+      modes: ['n'],
+      autoHide: this.config.autoHide
+    }, this.config.floatConfig))
     this.disposables.push(this.hoverFactory)
   }
 
@@ -70,7 +72,6 @@ export default class HoverHandler {
         this.registerProvider()
       }
       let preferences = workspace.getConfiguration('coc.preferences')
-      this.excludeImages = preferences.get<boolean>('excludeImageLinksInMarkdownDocument', true)
     }
   }
 
@@ -163,13 +164,7 @@ export default class HoverHandler {
       }
     }
     if (target == 'float') {
-      let config = this.hoverFactory.applyFloatConfig({
-        modes: ['n'],
-        autoHide: this.config.autoHide,
-        excludeImages: this.excludeImages,
-        maxWidth: 80,
-      }, this.config.floatConfig)
-      await this.hoverFactory.show(docs, config)
+      await this.hoverFactory.show(docs)
       return
     }
     let lines = docs.reduce((p, c) => {

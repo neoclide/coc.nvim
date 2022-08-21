@@ -296,11 +296,13 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
       nvim.command('w', true)
-      await helper.wait(50)
+      await helper.waitValue(() => {
+        return called
+      }, true)
       let res = await client.sendRequest('getLastWillSave') as any
       expect(res.uri).toBe(doc.uri)
-      expect(called).toBe(true)
       await client.stop()
+      fs.unlinkSync(fsPath)
     })
   })
 })

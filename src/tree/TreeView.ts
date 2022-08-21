@@ -3,8 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, MarkupKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import events from '../events'
-import FloatFactory from '../model/floatFactory'
-import { ConfigurationChangeEvent, Documentation, HighlightItem, LocalMode } from '../types'
+import { ConfigurationChangeEvent, FloatFactory, Documentation, HighlightItem, LocalMode } from '../types'
 import { disposeAll } from '../util'
 import { groupPositions, hasMatch, positions, score } from '../util/fzy'
 import { Mutex } from '../util/mutex'
@@ -88,7 +87,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (opts.enableFilter) {
       this.filter = new Filter(this.nvim, [this.keys.selectNext, this.keys.selectPrevious, this.keys.invoke])
     }
-    this.tooltipFactory = new FloatFactory(workspace.nvim)
+    this.tooltipFactory = window.createFloatFactory({ modes: ['n'] })
     this.provider = opts.treeDataProvider
     this.leafIndent = opts.disableLeafIndent !== true
     this.winfixwidth = opts.winfixwidth !== false
@@ -375,7 +374,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       filetype: isMarkdown ? 'markdown' : 'txt',
       content: MarkupContent.is(item.tooltip) ? item.tooltip.value : item.tooltip
     }
-    await this.tooltipFactory.show([doc], { modes: ['n'] })
+    await this.tooltipFactory.show([doc])
   }
 
   private async onClick(element: T): Promise<void> {

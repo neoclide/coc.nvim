@@ -5,12 +5,12 @@ import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import FloatFactory from '../../model/floatFactory'
 import Highlighter from '../../model/highligher'
-import { ConfigurationChangeEvent, Documentation, HandlerDelegate } from '../../types'
+import { ConfigurationChangeEvent, Documentation, FloatFactory } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
 import { upperFirst } from '../../util/string'
+import window from '../../window'
 import workspace from '../../workspace'
 import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
@@ -23,9 +23,14 @@ export default class SemanticTokens {
   private highlighters: BufferSync<SemanticTokensBuffer>
   private floatFactory: FloatFactory
 
-  constructor(private nvim: Neovim, private handler: HandlerDelegate) {
+  constructor(private nvim: Neovim) {
     this.loadConfiguration()
-    this.floatFactory = new FloatFactory(nvim)
+    this.floatFactory = window.createFloatFactory({
+      title: 'Semantic token info',
+      highlight: 'Normal',
+      borderhighlight: 'MoreMsg',
+      border: [1, 1, 1, 1]
+    })
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     commands.register({
       id: 'semanticTokens.checkCurrent',
@@ -133,13 +138,7 @@ export default class SemanticTokens {
         content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${highlight.hlGroup || ''}`,
         highlights
       }]
-      await this.floatFactory.show(docs, {
-        autoHide: true,
-        focusable: true,
-        title: 'Semantic token info',
-        borderhighlight: 'MoreMsg',
-        border: [1, 1, 1, 1]
-      })
+      await this.floatFactory.show(docs)
     } else {
       this.floatFactory.close()
     }

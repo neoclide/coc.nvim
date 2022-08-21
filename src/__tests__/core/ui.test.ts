@@ -47,6 +47,24 @@ describe('getCursorScreenPosition()', () => {
   })
 })
 
+describe('createFloatFactory()', () => {
+  it('should create FloatFactory', async () => {
+    let f = ui.createFloatFactory(nvim, { border: true, autoHide: false }, { close: true })
+    await f.show([{ content: 'shown', filetype: 'txt' }])
+    let activated = await f.activated()
+    expect(activated).toBe(true)
+    let win = await helper.getFloat()
+    expect(win).toBeDefined()
+    let id = await nvim.call('coc#float#get_related', [win.id, 'border', 0]) as number
+    expect(id).toBeGreaterThan(0)
+    id = await nvim.call('coc#float#get_related', [win.id, 'close', 0]) as number
+    expect(id).toBeGreaterThan(0)
+    await f.show([{ content: 'shown', filetype: 'txt' }], { offsetX: 10 })
+    let curr = await helper.getFloat()
+    expect(curr.id).toBe(win.id)
+  })
+})
+
 describe('showMessage()', () => {
   it('should showMessage on vim', async () => {
     ui.showMessage(nvim, 'my message', 'MoreMsg', true)

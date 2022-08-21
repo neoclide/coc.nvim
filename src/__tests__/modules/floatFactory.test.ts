@@ -1,15 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
-import FloatFactory from '../../model/floatFactory'
+import FloatFactoryImpl from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
 import { Documentation } from '../../types'
 import helper from '../helper'
 
 let nvim: Neovim
-let floatFactory: FloatFactory
+let floatFactory: FloatFactoryImpl
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  floatFactory = new FloatFactory(nvim)
+  floatFactory = new FloatFactoryImpl(nvim)
 })
 
 afterAll(async () => {

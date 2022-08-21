@@ -25,30 +25,19 @@ export interface WindowConfig {
   close?: number
 }
 
-export interface FloatWinConfig {
-  maxHeight?: number
-  maxWidth?: number
+export interface FloatWinConfig extends FloatConfig {
   preferTop?: boolean
   autoHide?: boolean
   offsetX?: number
-  title?: string
-  border?: number[]
-  rounded?: boolean
   cursorline?: boolean
-  close?: boolean
-  highlight?: string
-  borderhighlight?: string
   modes?: string[]
-  shadow?: boolean
-  winblend?: number
-  focusable?: boolean
   excludeImages?: boolean
 }
 
 /**
  * Float window/popup factory for create float/popup around current cursor.
  */
-export default class FloatFactory implements Disposable {
+export default class FloatFactoryImpl implements Disposable {
   private winid = 0
   private _bufnr = 0
   private closeTs: number
@@ -114,12 +103,6 @@ export default class FloatFactory implements Disposable {
 
   public applyFloatConfig(conf: FloatWinConfig, opts: FloatConfig): FloatWinConfig {
     for (let key of Object.keys(opts)) {
-      if (key == 'border') {
-        if (opts.border) {
-          conf.border = [1, 1, 1, 1]
-        }
-        continue
-      }
       conf[key] = opts[key]
     }
     return conf
@@ -170,15 +153,16 @@ export default class FloatFactory implements Disposable {
     }
     if (opts.maxHeight) config.maxHeight = opts.maxHeight
     if (opts.maxWidth) config.maxWidth = opts.maxWidth
-    if (opts.border && !opts.border.every(o => o == 0)) {
-      config.border = opts.border
+    if (typeof opts.border === 'boolean') {
+      config.border = [1, 1, 1, 1]
+    } else if (opts.border && !opts.border.every(o => o == 0)) {
+      config.border = opts.border.slice(0, 4)
       config.rounded = opts.rounded ? 1 : 0
     }
-    if (opts.title && !config.border) config.border = [1, 1, 1, 1]
     if (opts.highlight) config.highlight = opts.highlight
     if (opts.borderhighlight) config.borderhighlight = opts.borderhighlight
     if (opts.cursorline) config.cursorline = 1
-    let autoHide = opts.autoHide == false ? false : true
+    let autoHide = opts.autoHide === false ? false : true
     if (autoHide) config.autohide = 1
     this.unbind()
     let arr = await this.nvim.call('coc#dialog#create_cursor_float', [this.winid, this._bufnr, lines, config])

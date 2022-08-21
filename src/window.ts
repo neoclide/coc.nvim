@@ -11,6 +11,7 @@ import * as ui from './core/ui'
 import Cursors from './cursors/index'
 import events from './events'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
+import { FloatWinConfig } from './model/floatFactory'
 import Highligher from './model/highligher'
 import InputBox, { InputOptions, InputPreference } from './model/input'
 import Menu, { isMenuItem, MenuItem } from './model/menu'
@@ -21,7 +22,7 @@ import QuickPick, { QuickPickConfig } from './model/quickpick'
 import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
-import { Env, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
+import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME } from './util'
 import { isParentFolder, sameFile } from './util/fs'
 import { Mutex } from './util/mutex'
@@ -146,6 +147,21 @@ export class Window {
   public async createTerminal(opts: TerminalOptions): Promise<TerminalModel> {
     return await this.terminalManager.createTerminal(this.nvim, opts)
   }
+
+  /**
+   * Create a FloatFactory, user's configurations are respected.
+   *
+   * @param {FloatWinConfig} conf - Float window configuration
+   * @returns {FloatFactory}
+   */
+  public createFloatFactory(conf: FloatWinConfig): FloatFactory {
+    let preferences = workspace.getConfiguration('coc.preferences')
+    let excludeImages = preferences.get<boolean>('excludeImageLinksInMarkdownDocument', true)
+    let c = workspace.getConfiguration('floatFactory')
+    let defaults = c.get<FloatConfig>('floatConfig', {})
+    return ui.createFloatFactory(workspace.nvim, Object.assign({ excludeImages, maxWidth: 80 }, conf), defaults)
+  }
+
   /**
    * Reveal message with message type.
    *

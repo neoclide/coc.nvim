@@ -1,8 +1,9 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-protocol'
-import { ScreenPosition } from '../types'
+import { FloatFactory, FloatConfig, FloatOptions, ScreenPosition, Documentation } from '../types'
 import { byteLength } from '../util/string'
+import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
 
 const isVim = process.env.VIM_NODE_RPC == '1'
 const operateModes = ['char', 'line', 'block']
@@ -11,6 +12,28 @@ export async function getCursorPosition(nvim: Neovim): Promise<Position> {
   // vim can't count utf16
   let [line, content] = await nvim.eval(`[line('.')-1, strpart(getline('.'), 0, col('.') - 1)]`) as [number, string]
   return Position.create(line, content.length)
+}
+
+export function createFloatFactory(nvim: Neovim, conf: FloatWinConfig, defaults: FloatConfig): FloatFactory {
+  let opts = Object.assign({}, defaults, conf)
+  let factory = new FloatFactoryImpl(nvim)
+  return {
+    show: (docs: Documentation[], option?: FloatOptions) => {
+      return factory.show(docs, option ? Object.assign({}, opts, option) : opts)
+    },
+    activated: () => {
+      return factory.activated()
+    },
+    dispose: () => {
+      factory.dispose()
+    },
+    checkRetrigger: bufnr => {
+      return factory.checkRetrigger(bufnr)
+    },
+    close: () => {
+      factory.close()
+    }
+  }
 }
 
 /**
