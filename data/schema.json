@@ -1453,6 +1453,25 @@
       "default": true,
       "description": "Enable tooltip to show relative filepath of call hierarchy."
     },
+    "floatFactory.floatConfig": {
+      "type": "object",
+      "description": "Configure default style float window/popup created by float factory (created around cursor and automatically closed)",
+      "allOf": [{ "$ref": "#/definitions/float" }],
+      "additionalProperties": false,
+      "properties": {
+        "border": {},
+        "rounded": {},
+        "highlight": {},
+        "borderhighlight": {},
+        "title": {},
+        "close": {},
+        "maxWidth": {},
+        "maxHeight": {},
+        "winblend": {},
+        "focusable": {},
+        "shadow": {}
+      }
+    },
     "coc.preferences.enableLinkedEditing": {
       "type": "boolean",
       "default": false,
