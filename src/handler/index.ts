@@ -94,7 +94,7 @@ export default class Handler implements HandlerDelegate {
     this.commands = new Commands(nvim, workspace.env)
     this.callHierarchy = new CallHierarchy(nvim, this)
     this.documentHighlighter = new Highlights(nvim, this)
-    this.semanticHighlighter = new SemanticTokens(nvim, this)
+    this.semanticHighlighter = new SemanticTokens(nvim)
     this.selectionRange = new SelectionRange(nvim, this)
     this.linkedEditingHandler = new LinkedEditingHandler(nvim, this)
     this.inlayHintHandler = new InlayHintHandler(nvim, this)
