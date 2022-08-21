@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { FoldingRangeKind } from 'vscode-languageserver-protocol'
 import languages from '../languages'
 import { HandlerDelegate } from '../types'
 
@@ -7,7 +8,7 @@ export default class FoldHandler {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
   }
 
-  public async fold(kind?: string | 'comment' | 'region'): Promise<boolean> {
+  public async fold(kind?: FoldingRangeKind): Promise<boolean> {
     let { doc, winid } = await this.handler.getCurrentState()
     this.handler.checkProvier('foldingRange', doc.textDocument)
     await doc.synchronize()

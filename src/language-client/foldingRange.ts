@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeOptions, FoldingRangeParams, FoldingRangeRegistrationOptions, FoldingRangeRequest, ServerCapabilities } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, FoldingRange, FoldingRangeKind, FoldingRangeOptions, FoldingRangeParams, FoldingRangeRegistrationOptions, FoldingRangeRequest, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { FoldingContext, FoldingRangeProvider, ProviderResult } from '../provider'
@@ -34,6 +34,8 @@ export class FoldingRangeFeature extends TextDocumentLanguageFeature<
     capability.dynamicRegistration = true
     capability.rangeLimit = 5000
     capability.lineFoldingOnly = true
+    capability.foldingRangeKind = { valueSet: [FoldingRangeKind.Comment, FoldingRangeKind.Imports, FoldingRangeKind.Region] }
+    capability.foldingRange = { collapsedText: false }
   }
 
   public initialize(
