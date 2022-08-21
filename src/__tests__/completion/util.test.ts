@@ -1,8 +1,6 @@
-import { CompletionItemKind, Range, TextEdit, Position } from 'vscode-languageserver-types'
 import { matchScore, matchScoreWithPositions } from '../../completion/match'
 import { getInput, shouldIndent, shouldStop } from '../../completion/util'
 import { getCharCodes } from '../../util/fuzzy'
-import { getStartColumn, getKindString } from '../../sources/source-language'
 import { CompleteOption } from '../../types'
 import helper from '../helper'
 
@@ -12,21 +10,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await helper.shutdown()
-})
-
-describe('getKindString()', () => {
-  it('should get kind text', async () => {
-    let map = new Map()
-    map.set(CompletionItemKind.Enum, 'E')
-    let res = getKindString(CompletionItemKind.Enum, map, '')
-    expect(res).toBe('E')
-  })
-
-  it('should get default value', async () => {
-    let map = new Map()
-    let res = getKindString(CompletionItemKind.Enum, map, 'D')
-    expect(res).toBe('D')
-  })
 })
 
 describe('shouldStop', () => {
@@ -63,22 +46,6 @@ describe('getInput', () => {
     expect(res).toBe('a#b#')
     res = getInput(doc, '你b#', true)
     expect(res).toBe('b#')
-  })
-})
-
-describe('getStartColumn()', () => {
-  it('should get start col', async () => {
-    expect(getStartColumn('', [{ label: 'foo' }])).toBe(undefined)
-    expect(getStartColumn('', [{ label: 'foo' }], { editRange: Range.create(0, 0, 0, 3) })).toBe(0)
-    expect(getStartColumn('', [
-      { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), 'a') },
-      { label: 'bar' }])).toBe(undefined)
-    expect(getStartColumn('foo', [
-      { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), 'a') },
-      { label: 'bar', textEdit: TextEdit.insert(Position.create(0, 1), 'b') }])).toBe(undefined)
-    expect(getStartColumn('foo', [
-      { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 2), 'a') },
-      { label: 'bar', textEdit: TextEdit.insert(Position.create(0, 2), 'b') }])).toBe(2)
   })
 })
 

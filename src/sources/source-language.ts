@@ -307,24 +307,30 @@ export default class LanguageSource implements ISource {
   }
 }
 
+export function getRange(item: CompletionItem | undefined, itemDefaults?: ItemDefaults): Range | undefined {
+  if (!item) return undefined
+  if (item.textEdit) {
+    let range = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
+    if (range) return range
+  }
+  let editRange = itemDefaults?.editRange
+  if (!editRange) return undefined
+  return Range.is(editRange) ? editRange : editRange.replace
+}
+
 /*
  * Check new startcol by check start characters.
  */
 export function getStartColumn(line: string, items: CompletionItem[], itemDefaults?: ItemDefaults): number | undefined {
-  let range: Range
-  if (itemDefaults && itemDefaults.editRange != null) {
-    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.replace
-  } else {
-    let first = items[0]
-    if (first.textEdit == null) return undefined
-    range = InsertReplaceEdit.is(first.textEdit) ? first.textEdit.replace : first.textEdit.range
-    let { character } = range.start
-    for (let i = 1; i < Math.min(10, items.length); i++) {
-      let o = items[i]
-      if (!o.textEdit) return undefined
-      let r = InsertReplaceEdit.is(o.textEdit) ? o.textEdit.replace : o.textEdit.range
-      if (r.start.character !== character) return undefined
-    }
+  let first = items[0]
+  let range = getRange(first, itemDefaults)
+  if (range === undefined) return undefined
+  let { character } = range.start
+  for (let i = 1; i < Math.min(10, items.length); i++) {
+    let o = items[i]
+    if (!o.textEdit) return undefined
+    let r = getRange(o, itemDefaults)
+    if (!r || r.start.character !== character) return undefined
   }
   return byteIndex(line, range.start.character)
 }

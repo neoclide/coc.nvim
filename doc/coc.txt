@@ -277,11 +277,11 @@ Prefer |CocAction()| for more options.
 
 Features triggered by languageserver or extension:~
 
-- Show message notification.
-- Show message request.
+- Show message notification (use |coc-notification|).
+- Show message request (use |coc-dialog-menu|).
 - Log message (use `:CocCommand workspace.showOutput` to show output).
-- Show document request.
-- Work done progress.
+- Show document request (opened by vim or your browser for url).
+- Work done progress (use |coc-notification|).
 
 To make coc.nvim provide LSP features for your languages, checkout
 https://github.com/neoclide/coc.nvim/wiki/Language-servers
@@ -3460,9 +3460,9 @@ k <s-tab> <up> <C-p> - move to previous item.
 
 							*coc-dialog-picker*
 
-A picker dialog is used for multiple selection. On neovim, it's possible to
-toggle selection by mouse click inside the bracket. Extensions could use
-`window.showPickerDialog` to create picker dialog.
+A picker dialog is used for single/multiple selection. On neovim, it's
+possible to toggle selection by mouse click inside the bracket. Extensions
+could use `window.showPickerDialog` to create picker dialog.
 
 Supported key-mappings:
 
@@ -3497,6 +3497,9 @@ Message notifications (not progress) requires
 
 Message notifications without actions would be automatically closed after
 milliseconds specified by |coc-config-notification-timeout|.
+
+Use |coc-config-notification-disabledProgressSources| to disable progress
+notifications for specific sources.
 
 Customize notifications:~
 
