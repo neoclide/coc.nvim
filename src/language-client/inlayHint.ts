@@ -1,9 +1,8 @@
 'use strict'
 import {
-  CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, InlayHintOptions, InlayHintParams, InlayHintRefreshRequest, InlayHintRegistrationOptions, InlayHintRequest, InlayHintResolveRequest, Range, ServerCapabilities
+  CancellationToken, ClientCapabilities, InlayHint, Disposable, DocumentSelector, Emitter, InlayHintOptions, InlayHintParams, InlayHintRefreshRequest, InlayHintRegistrationOptions, InlayHintRequest, InlayHintResolveRequest, Range, ServerCapabilities
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { InlayHint } from '../inlayHint'
 import languages from '../languages'
 import { InlayHintsProvider, ProviderResult } from '../provider'
 import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'

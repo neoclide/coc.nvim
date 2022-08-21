@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, InlayHint, Position, Range } from 'vscode-languageserver-protocol'
 import InlayHintHandler from '../../handler/inlayHint/index'
-import { InlayHint } from '../../inlayHint'
 import languages from '../../languages'
 import { isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
 import { disposeAll } from '../../util'
