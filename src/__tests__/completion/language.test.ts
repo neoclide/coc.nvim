@@ -379,10 +379,16 @@ describe('language source', () => {
           if (position.line != 0) return null
           return [{
             label: 'bar',
-            filterText: 'ar',
             textEdit: {
               range: Range.create(0, 1, 0, 1),
-              newText: 'ar'
+              newText: 'bar'
+            }
+          }, {
+            label: 'bad',
+            textEdit: {
+              replace: Range.create(0, 1, 0, 1),
+              insert: Range.create(0, 1, 0, 1),
+              newText: 'bad'
             }
           }]
         }
@@ -391,7 +397,7 @@ describe('language source', () => {
       await nvim.input('ib')
       await helper.waitPopup()
       let items = completion.activeItems
-      expect(items[0].word).toBe('ar')
+      expect(items[0].word).toBe('bar')
     })
 
     it('should adjust completion position by textEdit start position', async () => {

@@ -114,8 +114,23 @@ export default class LanguageSource implements ISource {
     if (!completeItems || completeItems.length == 0) return null
     this.itemDefaults = isCompletionList(result) ? result.itemDefaults ?? {} : {}
     this.completeItems = completeItems
-    let startcol = getStartColumn(opt.line, completeItems, this.itemDefaults)
     let option: CompleteOption = Object.assign({}, opt)
+    let startcol = getStartColumn(opt.line, completeItems, this.itemDefaults)
+    // gopls returns bad start position, but it should includes start position
+    if (startcol > opt.col && input.length > 0) {
+      startcol = opt.col
+      let character = characterIndex(opt.line, startcol)
+      // fix range.start to include position
+      completeItems.forEach(item => {
+        let { textEdit } = item
+        if (TextEdit.is(textEdit)) {
+          textEdit.range.start.character = character
+        } else if (InsertReplaceEdit.is(textEdit)) {
+          textEdit.replace.start.character = character
+          textEdit.insert.start.character = character
+        }
+      })
+    }
     let prefix: string
     let isIncomplete = isCompletionList(result) ? result.isIncomplete == true : false
     if (startcol == null && input.length > 0 && this.triggerCharacters.includes(opt.triggerCharacter)) {
@@ -123,7 +138,7 @@ export default class LanguageSource implements ISource {
         startcol = opt.col + byteLength(opt.input)
       }
     }
-    if (startcol != null) {
+    if (typeof startcol === 'number' && startcol < option.col) {
       prefix = startcol < option.col ? byteSlice(opt.line, startcol, option.col) : ''
       option.col = startcol
     }
