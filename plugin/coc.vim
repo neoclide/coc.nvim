@@ -435,6 +435,7 @@ function! s:Hi() abort
   hi default link CocSymbolDefault       MoreMsg
   "Pum
   hi default link CocPumSearch           CocSearch
+  hi default link CocPumDetail           Comment
   hi default link CocPumMenu             CocFloating
   hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough

@@ -1,6 +1,8 @@
 # 2022-08-21
 
 - Added `window.createFloatFactory()`, deprecated `FloatFactory` class.
+- Support `labelDetails` field of `CompleteItem`(LSP 3.17).
+- Added `triggerKind` to `CodeActionContext`, export `CodeActionTriggerKind`.
 
 # 2022-08-20
 
