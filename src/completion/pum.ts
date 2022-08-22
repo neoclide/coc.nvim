@@ -84,19 +84,13 @@ export default class PopupMenu {
     let { noselect, fixInsertedWord, enablePreselect, selection, virtualText } = this.config
     let followPart = getFollowPart(option)
     if (followPart.length === 0) fixInsertedWord = false
-    let selectedIndex = noselect || !enablePreselect ? -1 : items.findIndex(o => o.preselect)
-    if (selectedIndex !== -1 && search.length > 0) {
-      let item = items[selectedIndex]
-      if (!item.word?.startsWith(search)) {
-        selectedIndex = -1
-      }
-    }
+    let selectedIndex = enablePreselect ? items.findIndex(o => o.preselect) : -1
     let maxMru = -1
     let abbrWidth = 0
     let menuWidth = 0
     let kindWidth = 0
     let shortcutWidth = 0
-    let checkMru = !noselect && selectedIndex == -1 && selection != 'first'
+    let checkMru = selectedIndex == -1 && selection != 'first'
     let labels: LabelWithDetail[] = []
     // abbr kind, menu
     for (let i = 0; i < items.length; i++) {
@@ -116,7 +110,21 @@ export default class PopupMenu {
       if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu), menuWidth)
       if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut) + 2, shortcutWidth)
     }
-    if (!noselect && selectedIndex == -1) selectedIndex = 0
+    if (selectedIndex !== -1 && search.length > 0) {
+      let item = items[selectedIndex]
+      if (!item.word?.startsWith(search)) {
+        selectedIndex = -1
+      }
+    }
+    if (!noselect) {
+      selectedIndex = selectedIndex == -1 ? 0 : selectedIndex
+    } else {
+      if (selectedIndex > 0) {
+        let [item] = items.splice(selectedIndex, 1)
+        items.unshift(item)
+      }
+      selectedIndex == -1
+    }
     let opt = {
       input: search,
       index: selectedIndex,
