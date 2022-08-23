@@ -213,7 +213,7 @@ export default class Complete {
         })
       })
     } catch (err) {
-      this.nvim.echoError(err)
+      // this.nvim.echoError(err)
       logger.error('Complete error:', source.name, err)
     }
   }
