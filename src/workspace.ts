@@ -13,7 +13,7 @@ import Autocmds from './core/autocmds'
 import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
-import Files, { GlobPattern } from './core/files'
+import Files from './core/files'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps from './core/keymaps'
@@ -30,7 +30,7 @@ import Mru from './model/mru'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, IWorkspace, KeymapOption, LocalMode, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IWorkspace, KeymapOption, LocalMode, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
 const APIVERSION = 31
@@ -285,7 +285,7 @@ export class Workspace implements IWorkspace {
   /**
    * Create a FileSystemWatcher instance, doesn't fail when watchman not found.
    */
-  public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
+  public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete)
   }
 

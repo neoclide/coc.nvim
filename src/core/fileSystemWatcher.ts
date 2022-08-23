@@ -3,9 +3,10 @@ import minimatch from 'minimatch'
 import path from 'path'
 import { Disposable, Emitter, WorkspaceFolder, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { OutputChannel } from '../types'
+import { GlobPattern, OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
+import { isParentFolder, sameFile } from '../util/fs'
 import Watchman, { FileChange } from './watchman'
 import WorkspaceFolderControl from './workspaceFolder'
 const logger = require('../util/logger')('filesystem-watcher')
@@ -33,11 +34,7 @@ export class FileSystemWatcherManager {
     this.channel = channel
     let createClient = (folder: WorkspaceFolder) => {
       let root = URI.parse(folder.uri).fsPath
-      if (this.creating.has(root)) return
-      this.creating.add(root)
-      this.createClient(root).finally(() => {
-        this.creating.delete(root)
-      })
+      void this.createClient(root)
     }
     this.workspaceFolder.workspaceFolders.forEach(folder => {
       createClient(folder)
@@ -70,29 +67,42 @@ export class FileSystemWatcherManager {
   }
 
   public async createClient(root: string): Promise<void> {
-    if (this.watchmanPath == null || this.clientsMap.has(root)) return
+    if (this.watchmanPath == null || this.has(root)) return
     try {
+      this.creating.add(root)
       let client = await Watchman.createClient(this.watchmanPath, root, this.channel)
-      if (!client) return
+      this.creating.delete(root)
       this.clientsMap.set(root, client)
       for (let watcher of FileSystemWatcherManager.watchers) {
-        watcher.listen(client)
+        watcher.listen(root, client)
       }
       this._onDidCreateClient.fire(root)
     } catch (e) {
-      if (this.channel) this.channel.appendLine(`Error on create watchman client:` + e)
+      this.creating.delete(root)
+      if (this.channel) this.channel.appendLine(`Error on create watchman client:` + (e instanceof Error ? e.message : e))
     }
   }
 
+  private has(root: string): boolean {
+    let curr = Array.from(this.clientsMap.keys())
+    curr.push(...this.creating)
+    return curr.some(r => sameFile(r, root))
+  }
+
   public createFileSystemWatcher(
-    globPattern: string,
+    globPattern: GlobPattern,
     ignoreCreateEvents: boolean,
     ignoreChangeEvents: boolean,
     ignoreDeleteEvents: boolean): FileSystemWatcher {
     let fileWatcher = new FileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents)
-    for (let client of this.clientsMap.values()) {
-      fileWatcher.listen(client)
+    let base = typeof globPattern === 'string' ? undefined : globPattern.baseUri.fsPath
+    for (let [root, client] of this.clientsMap.entries()) {
+      if (base && isParentFolder(root, base, true)) {
+        base = undefined
+      }
+      fileWatcher.listen(root, client)
     }
+    if (base) void this.createClient(base)
     FileSystemWatcherManager.watchers.add(fileWatcher)
     return fileWatcher
   }
@@ -125,21 +135,40 @@ export class FileSystemWatcher implements Disposable {
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
 
   constructor(
-    private globPattern: string,
+    private globPattern: GlobPattern,
     public ignoreCreateEvents: boolean,
     public ignoreChangeEvents: boolean,
     public ignoreDeleteEvents: boolean,
   ) {
   }
 
-  public listen(client: Watchman): void {
+  public listen(root: string, client: Watchman): void {
     let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
       ignoreDeleteEvents } = this
+    let pattern: string
+    let basePath: string | undefined
+    if (typeof globPattern === 'string') {
+      pattern = globPattern
+    } else {
+      pattern = globPattern.pattern
+      basePath = globPattern.baseUri.fsPath
+      // ignore client
+      if (!isParentFolder(root, basePath, true)) return
+    }
     const onChange = (change: FileChange) => {
       let { root, files } = change
-      files = files.filter(f => f.type == 'f' && minimatch(f.name, globPattern, { dot: true }))
+      if (basePath && !sameFile(root, basePath)) {
+        files = files.filter(f => {
+          if (f.type != 'f') return false
+          let fullpath = path.join(root, f.name)
+          if (!isParentFolder(basePath, fullpath)) return false
+          return minimatch(path.relative(basePath, fullpath), pattern, { dot: true })
+        })
+      } else {
+        files = files.filter(f => f.type == 'f' && minimatch(f.name, pattern, { dot: true }))
+      }
       for (let file of files) {
         let uri = URI.file(path.join(root, file.name))
         if (!file.exists) {
@@ -179,7 +208,7 @@ export class FileSystemWatcher implements Disposable {
         }
       }
     }
-    client.subscribe(globPattern, onChange).then(disposable => {
+    client.subscribe(pattern, onChange).then(disposable => {
       this.subscribe = disposable.subscribe
       if (this._disposed) return disposable.dispose()
       this.disposables.push(disposable)

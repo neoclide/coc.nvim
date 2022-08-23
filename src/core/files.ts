@@ -13,8 +13,7 @@ import Configurations from '../configuration'
 import events from '../events'
 import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
-import RelativePattern from '../model/relativePattern'
-import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, LinesChange } from '../types'
+import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, LinesChange } from '../types'
 import * as errors from '../util/errors'
 import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
@@ -24,8 +23,6 @@ import Documents from './documents'
 import type Keymaps from './keymaps'
 import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
-
-export type GlobPattern = string | RelativePattern
 
 interface WaitUntilEvent {
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void

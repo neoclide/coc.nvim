@@ -562,9 +562,11 @@ export class Extensions {
         window.showMessage('watchman not found', 'error')
         return
       }
-      let client = await Watchman.createClient(watchmanPath, item.directory)
-      if (!client) {
-        window.showMessage(`Can't create watchman client, check output:///watchman`)
+      let client: Watchman
+      try {
+        client = await Watchman.createClient(watchmanPath, item.directory)
+      } catch (e) {
+        window.showMessage('Unable to create watchman client: ' + (e as Error).message, 'error')
         return
       }
       window.showMessage(`watching ${item.directory}`)

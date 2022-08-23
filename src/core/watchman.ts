@@ -153,8 +153,8 @@ export default class Watchman {
     }
   }
 
-  public static async createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman | null> {
-    if (!isValidWatchRoot(root)) return null
+  public static async createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman> {
+    if (!isValidWatchRoot(root)) throw new Error(`Watch for ${root} is ignored`)
     let watchman: Watchman
     try {
       watchman = new Watchman(binaryPath, channel)
@@ -165,8 +165,7 @@ export default class Watchman {
       return watchman
     } catch (e) {
       if (watchman) watchman.dispose()
-      logger.error(`Error on watchman create`, e)
-      return null
+      throw e
     }
   }
 }

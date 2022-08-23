@@ -7479,7 +7479,7 @@ declare module 'coc.nvim' {
      * Create a FileSystemWatcher instance, when watchman doesn't exist, the
      * returned FileSystemWatcher can still be used, but not work at all.
      */
-    export function createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
+    export function createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
     /**
      * Find files across all {@link workspace.workspaceFolders workspace folders} in the workspace.
      *
