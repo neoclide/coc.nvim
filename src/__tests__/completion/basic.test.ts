@@ -339,7 +339,7 @@ describe('completion', () => {
       await nvim.input('if')
       await helper.wait(50)
       let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch('error')
+      expect(cmdline).toMatch('')
     })
 
     it('should show items before slow source finished', async () => {
