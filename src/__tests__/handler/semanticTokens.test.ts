@@ -8,6 +8,7 @@ import commandManager from '../../commands'
 import SemanticTokens from '../../handler/semanticTokens/index'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
+import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
@@ -252,7 +253,6 @@ describe('semanticTokens', () => {
       let buf = await nvim.buffer
       await nvim.command('setf rust')
       await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
-      await helper.wait(10)
       let doc = await workspace.document
       await doc.synchronize()
       let item = await highlighter.getCurrentItem()
@@ -260,7 +260,6 @@ describe('semanticTokens', () => {
       await nvim.command('edit bar')
       registerProvider()
       expect(item.enabled).toBe(true)
-      await helper.wait(20)
       await nvim.command(`b ${buf.id}`)
       await item.waitRefresh()
       expect(item.highlights).toBeDefined()
@@ -328,11 +327,15 @@ describe('semanticTokens', () => {
       let len = markers.length
       expect(len).toBeLessThan(400)
       await nvim.command('normal! gg')
-      await helper.wait(50)
+      await helper.waitValue(async () => {
+        let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+        return markers.length > 300
+      }, true)
       await nvim.command('normal! 200G')
-      await helper.wait(50)
-      markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBeGreaterThan(len)
+      await helper.waitValue(async () => {
+        let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+        return markers.length > 500
+      }, true)
     })
 
     it('should highlight hidden buffer on shown', async () => {
@@ -350,9 +353,7 @@ describe('semanticTokens', () => {
         called = true
       })
       let buf = doc.buffer
-      await helper.wait(30)
       expect(doc.filetype).toBe('rust')
-      expect(called).toBe(false)
       await nvim.command(`b ${buf.id}`)
       await helper.waitValue(() => {
         return called
@@ -360,17 +361,18 @@ describe('semanticTokens', () => {
     })
 
     it('should not highlight on shown when document not changed', async () => {
-      let fn = jest.fn()
+      let called = false
       let buf = await createRustBuffer()
       let item = await highlighter.getCurrentItem()
       await item.waitRefresh()
       await nvim.command('enew')
       item.doHighlight = async () => {
-        fn()
+        called = true
       }
       await nvim.command(`b ${buf.id}`)
-      await helper.wait(100)
-      expect(fn).toBeCalledTimes(0)
+      await helper.waitValue(() => {
+        return called
+      }, true)
     })
   })
 
@@ -398,16 +400,15 @@ describe('semanticTokens', () => {
 
   describe('rangeProvider', () => {
     it('should invoke range provider first time when both kinds exist', async () => {
-      let fn = jest.fn()
+      let called = false
       disposables.push(registerRangeProvider('rust', () => {
-        fn()
+        called = true
         return []
       }))
       let buf = await createRustBuffer()
       let item = highlighter.getItem(buf.id)
       await item.waitRefresh()
-      await helper.wait(50)
-      expect(fn).toBeCalled()
+      expect(called).toBe(true)
     })
 
     it('should do range highlight first time', async () => {
@@ -433,15 +434,14 @@ describe('semanticTokens', () => {
       expect(doc.filetype).toBe('vim')
       await nvim.call('setline', [2, (new Array(200).fill(''))])
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
-      await helper.wait(50)
       disposables.push(registerRangeProvider('vim', range => {
         r = range
         return []
       }))
       await nvim.command('normal! G')
-      await helper.wait(100)
-      expect(r).toBeDefined()
-      expect(r.end).toEqual({ line: 201, character: 0 })
+      await helper.waitValue(() => {
+        return r && r.end.line == 201
+      }, true)
     })
 
     it('should only cancel range highlight request', async () => {
@@ -479,6 +479,7 @@ describe('semanticTokens', () => {
       await helper.wait(10)
       item.cancel(true)
       await p
+      expect(rangeCancelled).toBe(true)
     })
   })
 
@@ -521,7 +522,6 @@ describe('semanticTokens', () => {
       await window.moveTo({ line: 0, character: 0 })
       let doc = await workspace.document
       await nvim.input('if')
-      await helper.wait(50)
       await doc.synchronize()
       let curr = await highlighter.getCurrentItem()
       await curr.forceHighlight()
@@ -580,6 +580,48 @@ describe('semanticTokens', () => {
       expect(item.enabled).toBe(true)
       doc.detach()
       expect(item.enabled).toBe(false)
+    })
+  })
+
+  describe('Server cancelled', () => {
+    it('should retrigger range request on server cancel', async () => {
+      helper.updateConfiguration('semanticTokens.filetypes', ['*'])
+      await workspace.document
+      let times = 0
+      disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
+        provideDocumentRangeSemanticTokens: () => {
+          times++
+          if (times == 1) {
+            throw new CancellationError()
+          }
+          return {
+            data: []
+          }
+        }
+      }, { tokenModifiers: [], tokenTypes: [] }))
+      await helper.waitValue(() => {
+        return times
+      }, 2)
+    })
+
+    it('should retrigger full request on server cancel', async () => {
+      helper.updateConfiguration('semanticTokens.filetypes', ['*'])
+      await workspace.document
+      let times = 0
+      disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: '*' }], {
+        provideDocumentSemanticTokens: () => {
+          times++
+          if (times == 1) {
+            throw new CancellationError()
+          }
+          return {
+            data: []
+          }
+        }
+      }, { tokenModifiers: [], tokenTypes: [] }))
+      await helper.waitValue(() => {
+        return times
+      }, 2)
     })
   })
 })

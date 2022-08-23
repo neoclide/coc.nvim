@@ -1,3 +1,7 @@
+# 2022-08-23
+
+- Retry semanticTokens request on server cancel as suggested by LSP 3.17.
+
 # 2022-08-21
 
 - Added `window.createFloatFactory()`, deprecated `FloatFactory` class.

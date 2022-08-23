@@ -7,6 +7,7 @@ import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { HighlightItem } from '../../types'
+import { CancellationError } from '../../util/errors'
 import { wait, waitImmediate } from '../../util/index'
 import { byteIndex, upperFirst } from '../../util/string'
 import window from '../../window'
@@ -54,7 +55,7 @@ interface RangeHighlights {
 }
 
 // should be higher than document debounce
-const debounceInterval = 50
+const debounceInterval = global.__TEST__ ? 10 : 100
 
 export default class SemanticTokensBuffer implements SyncItem {
   private _highlights: [number, SemanticTokenRange[]]
@@ -82,6 +83,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public onChange(): void {
+    // need debounce for document synchronize
     this.highlight()
   }
 
@@ -291,7 +293,15 @@ export default class SemanticTokensBuffer implements SyncItem {
         if (tokenRanges) this._highlights = [version, tokenRanges]
       }
     } else {
-      tokenRanges = await this.requestAllHighlights(token, forceFull)
+      try {
+        tokenRanges = await this.requestAllHighlights(token, forceFull)
+      } catch (e) {
+        // retry on server cancel
+        if (!token.isCancellationRequested && e instanceof CancellationError) {
+          this.highlight()
+          return
+        }
+      }
       if (tokenRanges) this._highlights = [version, tokenRanges]
     }
     // request cancelled or can't work
@@ -331,7 +341,16 @@ export default class SemanticTokensBuffer implements SyncItem {
   public async doRangeHighlight(token: CancellationToken): Promise<void> {
     if (!this.enabled) return
     let { version } = this.doc
-    let res = await this.requestRangeHighlights(token)
+    let res: RangeHighlights | null
+    try {
+      res = await this.requestRangeHighlights(token)
+    } catch (e) {
+      // retry on server cancel
+      if (!token.isCancellationRequested && e instanceof CancellationError) {
+        this.highlight()
+        return
+      }
+    }
     if (!res || token.isCancellationRequested) return
     const { highlights, start, end } = res
     if (this.rangeProviderOnly || !this.previousResults) {
@@ -470,6 +489,5 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.previousResults = undefined
     this._highlights = undefined
     this._onDidRefresh.dispose()
-    this.regions.clear()
   }
 }
