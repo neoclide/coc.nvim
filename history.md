@@ -1,3 +1,10 @@
+# 2022-08-23
+
+- Retry semanticTokens request on server cancel (LSP 3.17).
+- `RelativePattern` support for `workspace.createFileSystemWatcher()`.
+- `relativePatternSupport` for `DidChangeWatchedFiles` (LSP 3.17).
+- Not echo error on `doComplete()`.
+
 # 2022-08-21
 
 - Added `window.createFloatFactory()`, deprecated `FloatFactory` class.
