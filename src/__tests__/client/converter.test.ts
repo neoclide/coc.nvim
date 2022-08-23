@@ -21,6 +21,19 @@ describe('converter', () => {
     expect(cv.asCloseTextDocumentParams(doc).textDocument.uri).toBe(doc.uri)
   })
 
+  it('should asRelativePattern', async () => {
+    let rp = cv.asRelativePattern({
+      baseUri: 'file:///a',
+      pattern: '**/*'
+    })
+    expect(rp.baseUri.fsPath).toBe('/a')
+    rp = cv.asRelativePattern({
+      baseUri: { uri: 'file:///a', name: 'name' },
+      pattern: '**/*'
+    })
+    expect(rp.baseUri.fsPath).toBe('/a')
+  })
+
   it('should asChangeTextDocumentParams', () => {
     let doc = createDocument()
     expect(cv.asFullChangeTextDocumentParams(doc).textDocument.uri).toBe(doc.uri)

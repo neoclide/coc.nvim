@@ -18,6 +18,12 @@ connection.onInitialized(() => {
       globPattern: '**/*.ts',
       kind: 1
     }, {
+      globPattern: {
+        baseUri: URI.file(process.cwd()).toString(),
+        pattern: '**/*.vim'
+      },
+      kind: 1
+    }, {
       globPattern: '**/*.js',
       kind: 2
     }, {

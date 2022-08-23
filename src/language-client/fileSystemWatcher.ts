@@ -2,9 +2,10 @@
 import debounce from 'debounce'
 import {
   ClientCapabilities, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, Disposable, DocumentSelector, FileChangeType, FileEvent, RegistrationType,
+  RelativePattern,
   ServerCapabilities, WatchKind
 } from 'vscode-languageserver-protocol'
-import { FileSystemWatcher } from '../types'
+import { FileSystemWatcher, GlobPattern } from '../types'
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
@@ -76,7 +77,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     ensure(ensure(capabilities, 'workspace')!, 'didChangeWatchedFiles')!.dynamicRegistration = true
-    // ensure(ensure(capabilities, 'workspace')!, 'didChangeWatchedFiles')!.relativePatternSupport = true
+    ensure(ensure(capabilities, 'workspace')!, 'didChangeWatchedFiles')!.relativePatternSupport = true
   }
 
   public initialize(_capabilities: ServerCapabilities, _documentSelector: DocumentSelector): void {
@@ -102,7 +103,12 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
     }
     let disposables: Disposable[] = []
     for (let watcher of data.registerOptions.watchers) {
-      if (!Is.string(watcher.globPattern)) {
+      let globPattern: GlobPattern
+      if (Is.string(watcher.globPattern)) {
+        globPattern = watcher.globPattern
+      } else if (RelativePattern.is(watcher.globPattern)) {
+        globPattern = cv.asRelativePattern(watcher.globPattern)
+      } else {
         continue
       }
       let watchCreate = true
@@ -114,7 +120,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
         watchDelete = (watcher.kind & WatchKind.Delete) !== 0
       }
       let fileSystemWatcher = workspace.createFileSystemWatcher(
-        watcher.globPattern,
+        globPattern,
         !watchCreate,
         !watchChange,
         !watchDelete

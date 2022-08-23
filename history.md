@@ -1,7 +1,8 @@
 # 2022-08-23
 
-- Retry semanticTokens request on server cancel as suggested by LSP 3.17.
+- Retry semanticTokens request on server cancel (LSP 3.17).
 - `RelativePattern` support for `workspace.createFileSystemWatcher()`.
+- `relativePatternSupport` for `DidChangeWatchedFiles` (LSP 3.17).
 
 # 2022-08-21
 

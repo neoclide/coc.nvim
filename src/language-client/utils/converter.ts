@@ -1,10 +1,11 @@
 'use strict'
-import { CancellationToken, CodeLensParams, CompletionContext, CompletionItem, CompletionList, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, InsertReplaceEdit, Position, Range, ReferenceParams, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeLensParams, CompletionContext, CompletionItem, CompletionList, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, InsertReplaceEdit, Position, Range, ReferenceParams, RelativePattern, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { DidChangeTextDocumentParams as TextDocumentChangeEvent, TextDocumentWillSaveEvent } from '../../types'
 import { waitImmediate } from '../../util'
 import { omit } from '../../util/lodash'
+import RelativePatternImpl from '../../model/relativePattern'
 
 export function convertToTextDocumentItem(document: TextDocument): TextDocumentItem {
   return {
@@ -19,6 +20,14 @@ export function asOpenTextDocumentParams(textDocument: TextDocument): DidOpenTex
   return {
     textDocument: convertToTextDocumentItem(textDocument)
   }
+}
+
+export function asRelativePattern(rp: RelativePattern): RelativePatternImpl {
+  let { baseUri, pattern } = rp
+  if (typeof baseUri === 'string') {
+    return new RelativePatternImpl(URI.parse(baseUri), pattern)
+  }
+  return new RelativePatternImpl(baseUri, pattern)
 }
 
 export function asCloseTextDocumentParams(document: TextDocument): DidCloseTextDocumentParams {
