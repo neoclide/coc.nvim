@@ -179,25 +179,11 @@ describe('diagnostic buffer', () => {
     afterEach(() => {
       config.virtualText = false
       config.virtualTextCurrentLineOnly = true
-      config.virtualTextAlignRight = false
       config.virtualTextWinCol = null
       config.virtualTextLevel = null
     })
 
     it('should show virtual text on current line', async () => {
-      let diagnostic = createDiagnostic('foo')
-      let buf = await createDiagnosticBuffer()
-      let diagnostics = [diagnostic]
-      await buf.update('', diagnostics)
-      let ns = config.virtualTextSrcId
-      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
-      expect(res.length).toBe(1)
-      let texts = res[0][3].virt_text
-      expect(texts[0]).toEqual([' foo', 'CocErrorVirtualText'])
-    })
-
-    it('should show virtual text align right', async () => {
-      config.virtualTextAlignRight = true
       let diagnostic = createDiagnostic('foo')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]

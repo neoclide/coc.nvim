@@ -38,7 +38,6 @@ export interface DiagnosticConfig {
   refreshOnInsertMode: boolean
   virtualText: boolean
   virtualTextLevel: number | undefined
-  virtualTextAlignRight: boolean
   virtualTextWinCol: number | null
   virtualTextCurrentLineOnly: boolean
   virtualTextSrcId?: number

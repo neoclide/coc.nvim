@@ -573,7 +573,6 @@ export class DiagnosticManager implements Disposable {
       enableMessage: config.get<string>('enableMessage', 'always'),
       messageDelay: config.get<number>('messageDelay', 200),
       virtualText: config.get<boolean>('virtualText', false) && this.nvim.hasFunction('nvim_buf_set_virtual_text'),
-      virtualTextAlignRight: workspace.has('nvim-0.5.1') && config.get<boolean>('virtualTextAlignRight', false),
       virtualTextWinCol: workspace.has('nvim-0.5.1') ? config.get<number | null>('virtualTextWinCol', null) : null,
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
