@@ -900,6 +900,13 @@ Preferences~
 
 	Default: `"SNIP"`
 
+"coc.preferences.nextPlaceholderOnDelete"		*coc-preferences-nextPlaceholderOnDelete*
+
+	Automatically jump to the next placeholder when the current one is
+	completely deleted.
+
+	default: `false`
+
 "coc.preferences.currentFunctionSymbolAutoUpdate"	*coc-preferences-currentFunctionSymbolAutoUpdate*
 
 	Automatically update the value of `b:coc_current_function` on `CursorHold`

@@ -773,6 +773,7 @@ Related configurations:~
 - |coc-config-suggest-preferCompleteThanJumpPlaceholder|
 - |coc-preferences-snippetStatusText|
 - |coc-preferences-snippetHighlight|
+- |coc-preferences-nextPlaceholderOnDelete|
 
 Related functions:~
 

@@ -1508,6 +1508,11 @@
       "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
       "default": false
     },
+    "coc.preferences.nextPlaceholderOnDelete": {
+      "type": "boolean",
+      "description": "Automatically jump to the next placeholder when the current one is completely deleted.",
+      "default": false
+    },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
       "description": "Automatically update the value of b:coc_current_function on CursorHold event",
