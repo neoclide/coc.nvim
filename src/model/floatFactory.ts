@@ -101,13 +101,6 @@ export default class FloatFactoryImpl implements Disposable {
     })
   }
 
-  public applyFloatConfig(conf: FloatWinConfig, opts: FloatConfig): FloatWinConfig {
-    for (let key of Object.keys(opts)) {
-      conf[key] = opts[key]
-    }
-    return conf
-  }
-
   /**
    * Show documentations in float window/popup around cursor.
    * Window and buffer are reused when possible.
@@ -153,9 +146,9 @@ export default class FloatFactoryImpl implements Disposable {
     }
     if (opts.maxHeight) config.maxHeight = opts.maxHeight
     if (opts.maxWidth) config.maxWidth = opts.maxWidth
-    if (typeof opts.border === 'boolean') {
+    if (opts.border === true) {
       config.border = [1, 1, 1, 1]
-    } else if (opts.border && !opts.border.every(o => o == 0)) {
+    } else if (Array.isArray(opts.border) && !opts.border.every(o => o == 0)) {
       config.border = opts.border.slice(0, 4)
       config.rounded = opts.rounded ? 1 : 0
     }
