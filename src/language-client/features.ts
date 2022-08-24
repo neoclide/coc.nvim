@@ -77,7 +77,7 @@ export class BaseFeature<MW, CO = object> {
 
   protected sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token: CancellationToken, defaultValue?: R): Promise<R> {
     return this._client.sendRequest(type, params, token).then((res => {
-      return token.isCancellationRequested ? defaultValue ?? null : res
+      return token.isCancellationRequested || res == null ? defaultValue ?? null : res
     }), error => {
       return this._client.handleFailedRequest(type, token, error, defaultValue ?? null)
     })

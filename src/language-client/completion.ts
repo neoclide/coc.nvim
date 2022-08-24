@@ -124,7 +124,7 @@ export class CompletionItemFeature extends TextDocumentLanguageFeature<Completio
             CompletionRequest.type,
             cv.asCompletionParams(document, position, context),
             token,
-            null
+            []
           )
         }
         return middleware.provideCompletionItem
