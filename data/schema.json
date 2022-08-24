@@ -738,7 +738,7 @@
     },
     "diagnostic.virtualTextWinCol": {
       "type": ["number", "null"],
-      "description": "Window column number to align virtual text",
+      "description": "Window column number to align virtual text, neovim only.",
       "default": null
     },
     "diagnostic.virtualTextCurrentLineOnly": {
@@ -1292,6 +1292,14 @@
       "type": "boolean",
       "default": true,
       "description": "Searches wrap around the first or last cursors range."
+    },
+    "inlayHint.filetypes": {
+      "type": "array",
+      "description": "Filetypes that enable inlayHint, all filetypes are enabled by default",
+      "default": ["*"],
+      "items": {
+        "type": "string"
+      }
     },
     "semanticTokens.filetypes": {
       "type": "array",

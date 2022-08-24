@@ -648,6 +648,22 @@ function! coc#api#get_types(srcId) abort
   return get(s:id_types, a:srcId, [])
 endfunction
 
+function! coc#api#get_id_types() abort
+  return s:id_types
+endfunction
+
+function! coc#api#create_type(srcId, hlGroup, opts) abort
+  let type = a:hlGroup.'_'.a:srcId
+  let types = get(s:id_types, a:srcId, [])
+  if index(types, type) == -1
+    call add(types, type)
+    let s:id_types[a:srcId] = types
+    let combine = get(a:opts, 'hl_mode', 'combine') ==# 'combine'
+    call prop_type_add(type, {'highlight': a:hlGroup, 'combine': combine})
+  endif
+  return type
+endfunction
+
 function! coc#api#func_names() abort
   return keys(s:funcs)
 endfunction
