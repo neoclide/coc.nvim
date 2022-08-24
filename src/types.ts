@@ -30,6 +30,26 @@ export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
 }
 
+export interface VirtualTextOption {
+  col?: number
+  /**
+   * highlight mode
+   */
+  hl_mode?: 'combine' | 'replace' | 'blend'
+  /**
+   * neovim only
+   */
+  virt_text_win_col?: number
+  /**
+   * vim9 only
+   */
+  text_align?: 'after' | 'right' | 'below'
+  /**
+   * vim9 only
+   */
+  text_wrap?: 'wrap' | 'truncate'
+}
+
 export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentColor'
   | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange' | 'formatOnType'
   | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'

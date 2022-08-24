@@ -738,7 +738,7 @@
     },
     "diagnostic.virtualTextWinCol": {
       "type": ["number", "null"],
-      "description": "Window column number to align virtual text",
+      "description": "Window column number to align virtual text, neovim only.",
       "default": null
     },
     "diagnostic.virtualTextCurrentLineOnly": {

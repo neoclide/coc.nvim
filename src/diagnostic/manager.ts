@@ -51,12 +51,9 @@ export class DiagnosticManager implements Disposable {
 
   public init(): void {
     this.setConfiguration()
-    if (workspace.isNvim) {
-      // setExtMark throws when namespace not created.
-      this.nvim.createNamespace('coc-diagnostic-virtualText').then(id => {
-        this.config.virtualTextSrcId = id
-      }).logError()
-    }
+    this.nvim.createNamespace('coc-diagnostic-virtualText').then(id => {
+      this.config.virtualTextSrcId = id
+    }).logError()
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.floatFactory = window.createFloatFactory(Object.assign({ modes: ['n'] }, this.config.floatConfig))
     this.buffers = workspace.registerBufferSync(doc => {
@@ -572,7 +569,7 @@ export class DiagnosticManager implements Disposable {
       locationlistUpdate: config.get<boolean>('locationlistUpdate', true),
       enableMessage: config.get<string>('enableMessage', 'always'),
       messageDelay: config.get<number>('messageDelay', 200),
-      virtualText: config.get<boolean>('virtualText', false) && this.nvim.hasFunction('nvim_buf_set_virtual_text'),
+      virtualText: config.get<boolean>('virtualText', false),
       virtualTextWinCol: workspace.has('nvim-0.5.1') ? config.get<number | null>('virtualTextWinCol', null) : null,
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),

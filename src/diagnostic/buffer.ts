@@ -5,7 +5,7 @@ import { Diagnostic, DiagnosticSeverity, Position, TextEdit } from 'vscode-langu
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams, HighlightItem, LocationListItem } from '../types'
+import { DidChangeTextDocumentParams, VirtualTextOption, HighlightItem, LocationListItem } from '../types'
 import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
 import { adjustDiagnostics, DiagnosticConfig, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
@@ -313,6 +313,11 @@ export class DiagnosticBuffer implements SyncItem {
     }
     diagnostics.sort(sortDiagnostics)
     buffer.clearNamespace(virtualTextSrcId)
+    let map: Map<number, [string, string][]> = new Map()
+    let opts: VirtualTextOption = {}
+    if (typeof config.virtualTextWinCol === 'number') {
+      opts.virt_text_win_col = config.virtualTextWinCol
+    }
     for (let i = diagnostics.length - 1; i >= 0; i--) {
       let diagnostic = diagnostics[i]
       if (virtualTextLevel && diagnostic.severity && diagnostic.severity > virtualTextLevel) {
@@ -325,18 +330,13 @@ export class DiagnosticBuffer implements SyncItem {
         .filter((l: string) => l.length > 0)
         .slice(0, this.config.virtualTextLines)
         .join(this.config.virtualTextLineSeparator)
-      if (workspace.has('nvim-0.5.1')) {
-        let opts: any = {
-          virt_text: [[virtualTextPrefix + msg, highlight]],
-          hl_mode: 'combine'
-        }
-        if (typeof config.virtualTextWinCol === 'number') {
-          opts.virt_text_win_col = config.virtualTextWinCol
-        }
-        buffer.setExtMark(virtualTextSrcId, line, 0, opts)
-      } else {
-        void buffer.setVirtualText(virtualTextSrcId, line, [[virtualTextPrefix + msg, highlight]], {})
-      }
+      let arr = map.get(line) ?? []
+      arr.push([virtualTextPrefix + msg, highlight])
+      map.set(line, arr)
+    }
+    for (let [line, blocks] of map.entries()) {
+      blocks.push(['xyz', 'MoreMsg'])
+      buffer.setVirtualText(virtualTextSrcId, line, blocks, opts)
     }
   }
 

@@ -88,7 +88,7 @@
     "vscode-languageserver": "^8.0.2"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^5.7.9",
+    "@chemzqm/neovim": "^5.7.10",
     "@chemzqm/string-width": "^5.1.2",
     "ansi-styles": "^5.0.0",
     "browserslist": "^4.21.3",

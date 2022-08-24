@@ -431,7 +431,8 @@ Diagnostics~
 
 "diagnostic.virtualText"				*coc-config-diagnostic-virtualText*
 
-	Use Neovim virtual text to display diagnostics, default: `false`
+	Use virtual text to display diagnostics, requires nvim >= 0.5.0 or
+	vim >= 9.0.0067, default: `false`
 
 "diagnostic.virtualTextLevel"				*coc-config-diagnostic-virtualTextLevel*
 
@@ -439,7 +440,7 @@ Diagnostics~
 
 "diagnostic.virtualTextWinCol"				*coc-config-diagnostic-virtualTextWinCol*
 
-	Window column number to align virtual text, default: `null`
+	Window column number to align virtual text neovim only, default: `null`
 
 "diagnostic.virtualTextCurrentLineOnly"			*coc-config-diagnostic-virtualTextCurrentLineOnly*
 

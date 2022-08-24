@@ -302,10 +302,10 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@chemzqm/neovim@^5.7.9":
-  version "5.7.9"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-5.7.9.tgz#78cb54d07d8e24533177140371e3ac1d694ff5f7"
-  integrity sha512-ou2lI650Rh+/3tS8HuiVim73RJSkCoVqJsf+Mqyw17+CGxbcCmXQqA2stT81j3QAXsbCF+5Ro/z152TrQLUUBg==
+"@chemzqm/neovim@^5.7.10":
+  version "5.7.10"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-5.7.10.tgz#6a6b60d60552350bdc79c9b1195d0793eac40e3e"
+  integrity sha512-GEixIlxl44WTlIJFTGenhhu2HTCBPBk5O7wPrcg7gj2gWNt5Lkm+3p4hzy/Tzywbh+3BT5Mhn4yUXGfFep41RQ==
   dependencies:
     msgpack-lite "^0.1.26"
 

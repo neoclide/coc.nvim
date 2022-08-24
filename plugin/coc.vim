@@ -460,27 +460,19 @@ function! s:Hi() abort
     hi default CocCursorTransparent gui=strikethrough blend=100
   endif
 
-  if has('nvim')
-    let names = ['Error', 'Warning', 'Info', 'Hint']
-    for name in names
-      let suffix = name ==# 'Warning' ? 'Warn' : name
-      if hlexists('DiagnosticVirtualText'.suffix)
-        exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
-      else
-        exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
-      endif
-      if hlexists('Diagnostic'.suffix)
-        exe 'hi default link Coc'.name.'Float Diagnostic'.suffix
-      else
-        exe 'hi default link Coc'.name.'Float '.coc#highlight#compose_hlgroup('Coc'.name.'Sign', 'CocFloating')
-      endif
-    endfor
-  else
-    execute 'hi default link CocErrorFloat '.coc#highlight#compose_hlgroup('CocErrorSign', 'CocFloating')
-    execute 'hi default link CocWarningFloat '.coc#highlight#compose_hlgroup('CocWarningSign', 'CocFloating')
-    execute 'hi default link CocInfoFloat '.coc#highlight#compose_hlgroup('CocInfoSign', 'CocFloating')
-    execute 'hi default link CocHintFloat '.coc#highlight#compose_hlgroup('CocHintSign', 'CocFloating')
-  endif
+  for name in ['Error', 'Warning', 'Info', 'Hint']
+    let suffix = name ==# 'Warning' ? 'Warn' : name
+    if hlexists('DiagnosticVirtualText'.suffix)
+      exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
+    else
+      exe 'hi default link Coc'.name.'VirtualText '.coc#highlight#compose_hlgroup('Coc'.name.'Sign', 'Normal')
+    endif
+    if hlexists('Diagnostic'.suffix)
+      exe 'hi default link Coc'.name.'Float Diagnostic'.suffix
+    else
+      exe 'hi default link Coc'.name.'Float '.coc#highlight#compose_hlgroup('Coc'.name.'Sign', 'CocFloating')
+    endif
+  endfor
   call s:AddAnsiGroups()
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)

@@ -1,3 +1,8 @@
+# 2022-08-24
+
+- Virtual text of suggest on vim9.
+- Virtual text of diagnostics on vim9.
+
 # 2022-08-23
 
 - Retry semanticTokens request on server cancel (LSP 3.17).
