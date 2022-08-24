@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, InlayHint, Position, Range } from 'vscode-languageserver-protocol'
 import InlayHintHandler from '../../handler/inlayHint/index'
 import languages from '../../languages'
-import { isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
+import { InlayHintWithProvider, isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -123,6 +123,33 @@ describe('InlayHint', () => {
     })
   })
 
+  describe('env & options', () => {
+    it('should not create when virtualText not supported', async () => {
+      Object.assign(workspace.env, {
+        virtualText: false
+      })
+      disposables.push(Disposable.create(() => {
+        Object.assign(workspace.env, {
+          virtualText: true
+        })
+      }))
+      let doc = await helper.createDocument()
+      let item = handler.getItem(doc.bufnr)
+      expect(item).toBeUndefined()
+    })
+
+    it('should not enabled when disabled by configuration', async () => {
+      helper.updateConfiguration('inlayHint.filetypes', [])
+      let doc = await workspace.document
+      let item = handler.getItem(doc.bufnr)
+      expect(item.enabled).toBe(false)
+      helper.updateConfiguration('inlayHint.filetypes', ['dos'])
+      doc = await helper.createDocument()
+      item = handler.getItem(doc.bufnr)
+      expect(item.enabled).toBe(false)
+    })
+  })
+
   describe('setVirtualText', () => {
     async function registerProvider(content: string): Promise<Disposable> {
       let doc = await workspace.document
@@ -157,6 +184,31 @@ describe('InlayHint', () => {
         })
       })
     }
+
+    it('should refresh on vim mode', async () => {
+      let doc = await workspace.document
+      await nvim.setLine('foo bar')
+      let item = handler.getItem(doc.bufnr)
+      let r = Range.create(0, 0, 1, 0)
+      item.setVirtualText(r, [], true)
+      let hint: InlayHintWithProvider = {
+        label: 'string',
+        position: Position.create(0, 0),
+        providerId: ''
+      }
+      let paddingHint: InlayHintWithProvider = {
+        label: 'string',
+        position: Position.create(0, 3),
+        providerId: '',
+        paddingLeft: true,
+        paddingRight: true
+      }
+      item.setVirtualText(r, [hint, paddingHint], true)
+      await helper.waitValue(async () => {
+        let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+        return markers.length
+      }, 2)
+    })
 
     it('should not refresh when languageId not match', async () => {
       let doc = await workspace.document

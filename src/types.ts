@@ -182,6 +182,7 @@ export interface BufferSyncItem {
 export interface Env {
   completeOpt: string
   runtimepath: string
+  readonly virtualText: boolean
   readonly guicursor: string
   readonly tabCount: number
   readonly mode: string

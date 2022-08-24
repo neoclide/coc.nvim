@@ -92,5 +92,5 @@ export function isValidInlayHint(hint: InlayHint, range: Range): boolean {
 
 export function getLabel(hint: InlayHint): string {
   if (typeof hint.label === 'string') return hint.label
-  return hint.label.map(o => o.value).join(' ')
+  return hint.label.map(o => o.value).join('')
 }

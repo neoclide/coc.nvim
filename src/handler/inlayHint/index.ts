@@ -3,20 +3,23 @@ import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { HandlerDelegate } from '../../types'
+import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import workspace from '../../workspace'
 import InlayHintBuffer, { InlayHintConfig } from './buffer'
 
 export default class InlayHintHandler {
-  private config: InlayHintConfig = {}
+  private config: InlayHintConfig
   private buffers: BufferSync<InlayHintBuffer> | undefined
   constructor(nvim: Neovim, handler: HandlerDelegate) {
+    this.loadConfiguration()
     void nvim.createNamespace('coc-inlayHint').then(id => {
       this.config.srcId = id
     })
+    let disposable = workspace.onDidChangeConfiguration(this.loadConfiguration, this)
+    handler.addDisposable(disposable)
     this.buffers = workspace.registerBufferSync(doc => {
-      if (!workspace.has('nvim-0.5.0')) return undefined
-      return new InlayHintBuffer(nvim, doc, this.config)
+      if (!workspace.env.virtualText) return
+      return new InlayHintBuffer(nvim, doc, this.config, nvim.isVim)
     })
     handler.addDisposable(this.buffers)
     handler.addDisposable(languages.onDidInlayHintRefresh(async e => {
@@ -24,7 +27,7 @@ export default class InlayHintHandler {
         if (workspace.match(e, item.doc.textDocument)) {
           item.clearCache()
           if (languages.hasProvider('inlayHint', item.doc.textDocument)) {
-            await item.renderRange()
+            item.render()
           } else {
             item.clearVirtualText()
           }
@@ -38,6 +41,15 @@ export default class InlayHintHandler {
       let bufnr = await nvim.call('winbufnr', [winid])
       if (bufnr != -1) this.refresh(bufnr)
     }))
+  }
+
+  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+    if (!e || e.affectsConfiguration('inlayHint')) {
+      let config = workspace.getConfiguration('inlayHint')
+      this.config = Object.assign(this.config || {}, {
+        filetypes: config.get<string[]>('filetypes', []),
+      })
+    }
   }
 
   public getItem(bufnr: number): InlayHintBuffer {

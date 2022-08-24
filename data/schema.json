@@ -1293,6 +1293,14 @@
       "default": true,
       "description": "Searches wrap around the first or last cursors range."
     },
+    "inlayHint.filetypes": {
+      "type": "array",
+      "description": "Filetypes that enable inlayHint, all filetypes are enabled by default",
+      "default": ["*"],
+      "items": {
+        "type": "string"
+      }
+    },
     "semanticTokens.filetypes": {
       "type": "array",
       "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",

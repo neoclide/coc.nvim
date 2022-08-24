@@ -13,19 +13,14 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
   endif
   if s:is_vim
     for [text, hl] in a:blocks
-      call coc#rpc#notify('Log', [a:src_id, hl, a:opts])
-      try
-        let type = coc#api#create_type(a:src_id, hl, a:opts)
-        let column = get(a:opts, 'col', 0)
-        let opts = { 'text': text, 'type': type }
-        if s:text_options && column == 0
-          let opts['text_align'] = get(a:opts, 'text_align', 'after')
-          let opts['text_wrap'] = get(a:opts, 'text_wrap', 'truncate')
-        endif
+      let type = coc#api#create_type(a:src_id, hl, a:opts)
+      let column = get(a:opts, 'col', 0)
+      let opts = { 'text': text, 'type': type }
+      if s:text_options && column == 0
+        let opts['text_align'] = get(a:opts, 'text_align', 'after')
+        let opts['text_wrap'] = get(a:opts, 'text_wrap', 'truncate')
+      endif
       call prop_add(a:line + 1, column, opts)
-      catch /.*/
-        let g:e = v:exception
-      endtry
     endfor
   else
     let opts = {

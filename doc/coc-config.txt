@@ -10,6 +10,7 @@ Links 						|coc-config-links|
 Diagnostics 					|coc-config-diagnostic|
 Pull diagnostics 				|coc-config-pullDiagnostic|
 Signature 					|coc-config-signature|
+Inlay hint 					|coc-config-inlayHint|
 Cursors 					|coc-config-cursors|
 Refactor 					|coc-config-refactor|
 Hover 						|coc-config-hover|
@@ -519,6 +520,14 @@ Signature~
 
 	Hide signature help's floating window when text changed. Requires
 	restart on change, default: `false`
+
+------------------------------------------------------------------------------
+Inlay hint~
+							*coc-config-inlayHint*
+"inlayHint.filetypes"					*coc-config-inlayHint-filetypes*
+
+	Filetypes that should enable inlay hint feature. Use
+	`["*"]` for all filetypes, default: `["*"]`
 
 ------------------------------------------------------------------------------
 Multiple cursors~

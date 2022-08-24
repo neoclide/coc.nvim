@@ -2,6 +2,8 @@
 
 - Virtual text of suggest on vim9.
 - Virtual text of diagnostics on vim9.
+- Add configuration `inlayHint.filetypes`.
+- Inlay hint support on vim9.
 
 # 2022-08-23
 

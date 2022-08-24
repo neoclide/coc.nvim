@@ -18,6 +18,7 @@ LSP features 					|coc-lsp|
   Pull diagnostics 				|coc-pullDiagnostics|
   Locations 					|coc-locations|
   Signature help 				|coc-signature|
+  Inlay hint 					|coc-inlayHint|
   Format 					|coc-format|
   Code action 					|coc-code-actions|
   Document highlights 				|coc-document-highlights|
@@ -243,8 +244,7 @@ Features automatically work by default:~
 - Diagnostics refresh |coc-diagnostics|.
 - Pull diagnostics |coc-pullDiagnostics|.
 - Trigger signature help |coc-signature|.
-- Inlay hints (only works with some coc extensions, but not
-  |coc-config-languageserver| yet).
+- Inlay hints |coc-inlayHint|
 
 Note all features could be disabled/enabled by |coc-configuration| and some
 vim variables.
@@ -613,6 +613,23 @@ from languageserver, use `:CocCommand document.checkBuffer` to check provider
 state of current buffer.
 
 Use |coc-config-signature| to change default signature help behavior.
+
+==============================================================================
+INLAY HINT 						*coc-inlayHint*
+
+Inlay hint is enabled for all filetypes by default. Inlay hint uses virtual
+text which requires neovim >= 0.5.0 or vim >= 9.0.0067.
+
+Note: you may need configure extension or languageserver to make inlay hint
+works.
+
+Change highlight group:~
+
+|CocInlayHint|
+
+Configure inlay hint support:~
+
+|coc-config-inlayHint|
 
 ==============================================================================
 FORMAT 							*coc-format*

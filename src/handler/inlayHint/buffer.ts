@@ -8,8 +8,11 @@ import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
 import { positionInRange } from '../../util/position'
+import { byteIndex } from '../../util/string'
+const logger = require('../../util/logger')('inlayHint-buffer')
 
 export interface InlayHintConfig {
+  filetypes: string[]
   srcId?: number
 }
 
@@ -27,7 +30,8 @@ export default class InlayHintBuffer implements SyncItem {
   constructor(
     private readonly nvim: Neovim,
     public readonly doc: Document,
-    private readonly config: InlayHintConfig
+    private readonly config: InlayHintConfig,
+    private isVim: boolean
   ) {
     this.render = debounce(() => {
       void this.renderRange()
@@ -39,10 +43,22 @@ export default class InlayHintBuffer implements SyncItem {
     return this.currentHints
   }
 
+  public get enabled(): boolean {
+    let { filetypes } = this.config
+    if (!filetypes.length) return false
+    if (!filetypes.includes('*') && !filetypes.includes(this.doc.filetype)) return false
+    return languages.hasProvider('inlayHint', this.doc.textDocument)
+  }
+
   public clearCache(): void {
     this.currentHints = []
     this.regions.clear()
     this.render.clear()
+  }
+
+  public onTextChange(): void {
+    this.regions.clear()
+    this.cancel()
   }
 
   public onChange(): void {
@@ -61,7 +77,7 @@ export default class InlayHintBuffer implements SyncItem {
 
   public async renderRange(): Promise<void> {
     this.cancel()
-    if (!languages.hasProvider('inlayHint', this.doc.textDocument)) return
+    if (!this.enabled) return
     this.tokenSource = new CancellationTokenSource()
     let token = this.tokenSource.token
     let res = await this.nvim.call('coc#window#visible_range', [this.doc.bufnr]) as [number, number]
@@ -70,36 +86,56 @@ export default class InlayHintBuffer implements SyncItem {
     let range = Range.create(res[0] - 1, 0, res[1], 0)
     let inlayHints = await languages.provideInlayHints(this.doc.textDocument, range, token)
     if (inlayHints == null || token.isCancellationRequested) return
+    // Since no click available, no need to resolve.
     this.regions.add(res[0], res[1])
     this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
     this.currentHints.push(...inlayHints)
-    this.setVirtualText(range, inlayHints)
+    this.setVirtualText(range, inlayHints, this.isVim)
   }
 
-  private setVirtualText(range: Range, inlayHints: InlayHintWithProvider[]): void {
+  public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[], isVim: boolean): void {
     let { nvim, doc } = this
     let srcId = this.config.srcId
     let buffer = doc.buffer
     const chunksMap = {}
-    for (const item of inlayHints) {
-      const chunks: [[string, string]] = [[getLabel(item), highlightGroup]]
-      if (chunksMap[item.position.line] === undefined) {
-        chunksMap[item.position.line] = chunks
-      } else {
-        chunksMap[item.position.line].push([' ', 'Normal'])
-        chunksMap[item.position.line].push(chunks[0])
+    if (!isVim) {
+      for (const item of inlayHints) {
+        const chunks: [[string, string]] = [[getLabel(item), highlightGroup]]
+        if (chunksMap[item.position.line] === undefined) {
+          chunksMap[item.position.line] = chunks
+        } else {
+          chunksMap[item.position.line].push([' ', 'Normal'])
+          chunksMap[item.position.line].push(chunks[0])
+        }
       }
     }
     nvim.pauseNotification()
     buffer.clearNamespace(srcId, range.start.line, range.end.line + 1)
-    for (let key of Object.keys(chunksMap)) {
-      buffer.setExtMark(srcId, Number(key), 0, {
-        virt_text: chunksMap[key],
-        virt_text_pos: 'eol',
-        hl_mode: 'combine'
-      })
+    if (isVim) {
+      for (const item of inlayHints) {
+        const chunks: [string, string][] = []
+        let { position } = item
+        let line = this.doc.getline(position.line)
+        let col = byteIndex(line, position.character) + 1
+        if (item.paddingLeft) {
+          chunks.push([' ', 'Normal'])
+        }
+        chunks.push([getLabel(item), highlightGroup])
+        if (item.paddingRight) {
+          chunks.push([' ', 'Normal'])
+        }
+        buffer.setVirtualText(srcId, position.line, chunks, { col })
+      }
+    } else {
+      for (let key of Object.keys(chunksMap)) {
+        buffer.setExtMark(srcId, Number(key), 0, {
+          virt_text: chunksMap[key],
+          virt_text_pos: 'eol',
+          hl_mode: 'combine'
+        })
+      }
     }
-    nvim.resumeNotification(false, true)
+    nvim.resumeNotification(true, true)
     this._onDidRefresh.fire()
   }
 
