@@ -5,9 +5,15 @@ let s:pum_winid = 0
 let s:pum_index = -1
 let s:inserted = 0
 let s:virtual_text = 0
-let s:virtual_text_ns = 0
+let s:virtual_text_ns = coc#highlight#create_namespace('pum-virtual')
 let s:ignore = s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
 let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
+let s:virtual_text_support = has('nvim-0.5.0') || has('patch-9.0.0067')
+let s:prop_id = 0
+
+if s:is_vim && s:virtual_text_support
+  call prop_type_add('CocPumVirtualText', {'highlight': 'CocPumVirtualText'})
+endif
 
 function! coc#pum#visible() abort
   if !s:pum_winid
@@ -320,10 +326,7 @@ function! coc#pum#create(lines, opt, config) abort
   if empty(config)
     return
   endif
-  let s:virtual_text = has('nvim-0.5.0') && a:opt['virtualText']
-  if s:virtual_text && !s:virtual_text_ns
-    let s:virtual_text_ns = coc#highlight#create_namespace('pum-virtual')
-  endif
+  let s:virtual_text = s:virtual_text_support && a:opt['virtualText']
   let selected = a:opt['index'] + 1
   call extend(config, {
         \ 'lines': a:lines,
@@ -383,7 +386,7 @@ endfunction
 
 function! s:on_pum_change(move) abort
   if coc#float#valid(s:pum_winid)
-    if s:virtual_text_ns
+    if s:virtual_text
       call s:insert_virtual_text()
     endif
     let ev = extend(coc#pum#info(), {'move': a:move ? v:true : v:false})
@@ -459,37 +462,54 @@ function! s:select_line(winid, line) abort
 endfunction
 
 function! s:insert_virtual_text() abort
-  if !s:virtual_text_ns
-    return
-  endif
   let bufnr = bufnr('%')
-  if !s:virtual_text || !coc#pum#visible() || s:pum_index < 0
-    call nvim_buf_clear_namespace(bufnr, s:virtual_text_ns, 0, -1)
+  if !s:virtual_text || s:pum_index < 0
+    call s:clear_virtual_text()
   else
     " Check if could create
     let insert = ''
+    let line = line('.') - 1
     let words = getwinvar(s:pum_winid, 'words', [])
     let word = get(words, s:pum_index, '')
     let parts = getwinvar(s:pum_winid, 'parts', [])
-    let input = strpart(getline('.'), strlen(parts[0]), col('.') - 1)
+    let start = strlen(parts[0])
+    let input = strpart(getline('.'), start, col('.') - 1 - start)
     if strchars(word) > strchars(input) && strcharpart(word, 0, strchars(input)) ==# input
       let insert = strcharpart(word, strchars(input))
     endif
-    call nvim_buf_clear_namespace(bufnr, s:virtual_text_ns, 0, -1)
-    if !empty(insert)
-      let opts = {
-          \ 'hl_mode': 'combine',
-          \ 'virt_text': [[insert, 'CocPumVirtualText']],
-          \ 'virt_text_pos': 'overlay',
-          \ 'virt_text_win_col': virtcol('.') - 1,
-          \ }
-      call nvim_buf_set_extmark(bufnr, s:virtual_text_ns, line('.') - 1, col('.') - 1, opts)
+    if s:is_vim
+      if s:prop_id != 0
+        call prop_remove({'id': s:prop_id}, line + 1, line + 1)
+      endif
+      if !empty(insert)
+        let s:prop_id = prop_add(line + 1, col('.'), {
+            \ 'text': insert,
+            \ 'type': 'CocPumVirtualText'
+            \ })
+      endif
+    else
+      call nvim_buf_clear_namespace(bufnr, s:virtual_text_ns, line, line + 1)
+      if !empty(insert)
+        let opts = {
+            \ 'hl_mode': 'combine',
+            \ 'virt_text': [[insert, 'CocPumVirtualText']],
+            \ 'virt_text_pos': 'overlay',
+            \ 'virt_text_win_col': virtcol('.') - 1,
+            \ }
+        call nvim_buf_set_extmark(bufnr, s:virtual_text_ns, line, col('.') - 1, opts)
+      endif
     endif
   endif
 endfunction
 
 function! s:clear_virtual_text() abort
-  if s:virtual_text_ns
-    call nvim_buf_clear_namespace(bufnr('%'), s:virtual_text_ns, 0, -1)
+  if s:virtual_text_support
+    if s:is_vim
+      if s:prop_id != 0
+        call prop_remove({'id': s:prop_id})
+      endif
+    else
+      call nvim_buf_clear_namespace(bufnr('%'), s:virtual_text_ns, 0, -1)
+    endif
   endif
 endfunction
