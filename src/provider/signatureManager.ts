@@ -1,23 +1,24 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Position, SignatureHelp, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SignatureHelpProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 
-export default class SignatureManager extends Manager<SignatureHelpProvider> {
+interface ProviderMeta {
+  triggerCharacters: string[] | undefined
+}
 
-  public register(selector: DocumentSelector, provider: SignatureHelpProvider, triggerCharacters: string[]): Disposable {
+export default class SignatureManager extends Manager<SignatureHelpProvider, ProviderMeta> {
+
+  public register(selector: DocumentSelector, provider: SignatureHelpProvider, triggerCharacters: string[] | undefined): Disposable {
+    triggerCharacters = triggerCharacters ?? []
     let characters = triggerCharacters.reduce((p, c) => p.concat(c.length == 1 ? [c] : c.split(/\s*/g)), [] as string[])
-    let item: ProviderItem<SignatureHelpProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider,
       triggerCharacters: characters
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 
@@ -25,7 +26,7 @@ export default class SignatureManager extends Manager<SignatureHelpProvider> {
     let item = this.getProvider(document)
     if (!item) return false
     let { triggerCharacters } = item
-    return triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
+    return triggerCharacters && triggerCharacters.includes(triggerCharacter)
   }
 
   public async provideSignatureHelp(

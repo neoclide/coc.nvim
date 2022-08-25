@@ -3,19 +3,15 @@ import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentDiagnosticReport, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DiagnosticProvider } from './index'
-import Manager, { ProviderItem } from './manager'
+import Manager from './manager'
 
 export default class DiagnosticManager extends Manager<DiagnosticProvider> {
 
   public register(selector: DocumentSelector, provider: DiagnosticProvider): Disposable {
-    let item: ProviderItem<DiagnosticProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

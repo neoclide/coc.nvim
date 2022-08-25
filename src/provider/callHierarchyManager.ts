@@ -1,21 +1,17 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, Disposable, DocumentSelector, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 
 export default class CallHierarchyManager extends Manager<CallHierarchyProvider> {
 
   public register(selector: DocumentSelector, provider: CallHierarchyProvider): Disposable {
-    let item: ProviderItem<CallHierarchyProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

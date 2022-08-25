@@ -1,27 +1,34 @@
 'use strict'
-import { Definition, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
+import { Definition, Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import workspace from '../workspace'
 import { equals } from '../util/object'
 const logger = require('../util/logger')('provider-manager')
 
-export interface ProviderItem<T> {
+export type ProviderItem<T, P = object> = {
   id: string
   selector: DocumentSelector
   provider: T
-  [key: string]: any
-}
+  priority?: number
+} & P
 
-export default class Manager<T> {
-  protected providers: Set<ProviderItem<T>> = new Set()
+export default class Manager<T, P = object> {
+  protected providers: Set<ProviderItem<T, P>> = new Set()
 
   public hasProvider(document: TextDocument): boolean {
     return this.getProvider(document) != null
   }
 
-  protected getProvider(document: TextDocument): ProviderItem<T> {
+  protected addProvider(item: ProviderItem<T, P>): Disposable {
+    this.providers.add(item)
+    return Disposable.create(() => {
+      this.providers.delete(item)
+    })
+  }
+
+  protected getProvider(document: TextDocument): ProviderItem<T, P> {
     let currScore = 0
-    let providerItem: ProviderItem<T>
+    let providerItem: ProviderItem<T, P>
     for (let item of this.providers) {
       let { selector, priority } = item
       let score = workspace.match(selector, document)
@@ -41,7 +48,7 @@ export default class Manager<T> {
     return item ? item.provider : null
   }
 
-  protected getProviders(document: TextDocument): ProviderItem<T>[] {
+  protected getProviders(document: TextDocument): ProviderItem<T, P>[] {
     let items = Array.from(this.providers)
     items = items.filter(item => workspace.match(item.selector, document) > 0)
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))

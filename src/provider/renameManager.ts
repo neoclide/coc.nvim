@@ -1,21 +1,17 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Position, Range, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { RenameProvider } from './index'
 import Manager from './manager'
-import { v4 as uuid } from 'uuid'
 
 export default class RenameManager extends Manager<RenameProvider> {
 
   public register(selector: DocumentSelector, provider: RenameProvider): Disposable {
-    let item = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

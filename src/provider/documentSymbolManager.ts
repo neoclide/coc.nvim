@@ -1,22 +1,17 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, DocumentSymbol, SymbolInformation } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentSymbolProvider, DocumentSymbolProviderMetadata } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 
 export default class DocumentSymbolManager extends Manager<DocumentSymbolProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable {
-    let item: ProviderItem<DocumentSymbolProvider> = {
+    return this.addProvider({
       id: uuid(),
-      meta: provider.meta,
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

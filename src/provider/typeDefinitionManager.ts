@@ -1,21 +1,17 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Location, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { TypeDefinitionProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 
 export default class TypeDefinitionManager extends Manager<TypeDefinitionProvider> {
 
   public register(selector: DocumentSelector, provider: TypeDefinitionProvider): Disposable {
-    let item: ProviderItem<TypeDefinitionProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

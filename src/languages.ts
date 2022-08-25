@@ -119,7 +119,7 @@ class Languages {
     selector: DocumentSelector,
     provider: SignatureHelpProvider,
     triggerCharacters?: string[]): Disposable {
-    return this.signatureManager.register(selector, provider, triggerCharacters ?? [])
+    return this.signatureManager.register(selector, provider, triggerCharacters)
   }
 
   public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider, metadata?: DocumentSymbolProviderMetadata): Disposable {
@@ -195,17 +195,21 @@ class Languages {
   }
 
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
+    let disposables: Disposable[] = []
     // Language server may send refresh short time after initialized.
     let timer = setTimeout(() => {
       this._onDidSemanticTokensRefresh.fire(selector)
     }, 500)
-    let disposable = this.semanticTokensManager.register(selector, provider, legend, () => {
+    disposables.push(Disposable.create(() => {
+      clearTimeout(timer)
+    }))
+    provider.onDidChangeSemanticTokens && provider.onDidChangeSemanticTokens(() => {
       clearTimeout(timer)
       this._onDidSemanticTokensRefresh.fire(selector)
-    })
+    }, null, disposables)
+    disposables.push(this.semanticTokensManager.register(selector, provider, legend))
     return Disposable.create(() => {
-      clearTimeout(timer)
-      disposable.dispose()
+      disposeAll(disposables)
     })
   }
 
@@ -385,7 +389,7 @@ class Languages {
   }
 
   public canFormatOnType(character: string, document: TextDocument): boolean {
-    return this.onTypeFormatManager.getProvider(document, character) != null
+    return this.onTypeFormatManager.couldTrigger(document, character) != null
   }
 
   public async prepareCallHierarchy(document: TextDocument, position: Position, token: CancellationToken): Promise<CallHierarchyItem | CallHierarchyItem[]> {

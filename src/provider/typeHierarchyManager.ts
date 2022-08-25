@@ -3,19 +3,15 @@ import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Position, TypeHierarchyItem } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { TypeHierarchyProvider } from './index'
-import Manager, { ProviderItem } from './manager'
+import Manager from './manager'
 
 export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider> {
 
   public register(selector: DocumentSelector, provider: TypeHierarchyProvider): Disposable {
-    let item: ProviderItem<TypeHierarchyProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

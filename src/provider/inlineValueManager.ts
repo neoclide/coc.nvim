@@ -3,19 +3,15 @@ import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, InlineValue, InlineValueContext, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlineValuesProvider } from '.'
-import Manager, { ProviderItem } from './manager'
+import Manager from './manager'
 
 export default class InlineValueManager extends Manager<InlineValuesProvider> {
 
   public register(selector: DocumentSelector, provider: InlineValuesProvider): Disposable {
-    let item: ProviderItem<InlineValuesProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

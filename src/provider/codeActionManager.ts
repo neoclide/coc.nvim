@@ -1,25 +1,26 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { CodeActionProvider } from './index'
 import { ExtendedCodeAction } from '../types'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
 import { omit } from '../util/lodash'
+import { CodeActionProvider } from './index'
+import Manager from './manager'
 const logger = require('../util/logger')('codeActionManager')
 
-export default class CodeActionManager extends Manager<CodeActionProvider> {
+interface ProviderMeta {
+  kinds: CodeActionKind[] | undefined
+  clientId: string
+}
+
+export default class CodeActionManager extends Manager<CodeActionProvider, ProviderMeta> {
   public register(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
-    let item: ProviderItem<CodeActionProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider,
       kinds: codeActionKinds,
       clientId
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 
@@ -34,7 +35,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider> {
     if (context.only) {
       let { only } = context
       providers = providers.filter(p => {
-        if (p.kinds && !p.kinds.some(kind => only.includes(kind))) {
+        if (Array.isArray(p.kinds) && !p.kinds.some(kind => only.includes(kind))) {
           return false
         }
         return true

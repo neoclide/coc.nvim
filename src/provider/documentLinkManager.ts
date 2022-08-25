@@ -1,21 +1,17 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentLink, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentLinkProvider } from './index'
 import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
 
 export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable {
-    let item = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

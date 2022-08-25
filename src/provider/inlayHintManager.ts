@@ -1,10 +1,10 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, InlayHint, DocumentSelector, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, InlayHint, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { comparePosition, positionInRange } from '../util/position'
 import { InlayHintsProvider } from './index'
-import Manager, { ProviderItem } from './manager'
+import Manager from './manager'
 const logger = require('../util/logger')('inlayHintManger')
 
 export interface InlayHintWithProvider extends InlayHint {
@@ -15,14 +15,10 @@ export interface InlayHintWithProvider extends InlayHint {
 export default class InlayHintManger extends Manager<InlayHintsProvider> {
 
   public register(selector: DocumentSelector, provider: InlayHintsProvider): Disposable {
-    let item: ProviderItem<InlayHintsProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

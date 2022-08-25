@@ -2,15 +2,14 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, SymbolInformation } from 'vscode-languageserver-protocol'
 import { WorkspaceSymbolProvider } from './index'
+import Manager from './manager'
 
-export default class WorkspaceSymbolManager {
-  private providers: Map<string, WorkspaceSymbolProvider> = new Map()
-
+export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvider> {
   public register(provider: WorkspaceSymbolProvider): Disposable {
-    let id = uuid()
-    this.providers.set(id, provider)
-    return Disposable.create(() => {
-      this.providers.delete(id)
+    return this.addProvider({
+      id: uuid(),
+      selector: [{ language: '*' }],
+      provider
     })
   }
 
@@ -18,12 +17,12 @@ export default class WorkspaceSymbolManager {
     query: string,
     token: CancellationToken
   ): Promise<SymbolInformation[]> {
-    let entries = Array.from(this.providers.entries())
+    let entries = Array.from(this.providers)
     if (!entries.length) return []
     let res: SymbolInformation[] = []
     await Promise.all(entries.map(o => {
-      let [id, p] = o
-      return Promise.resolve(p.provideWorkspaceSymbols(query, token)).then(list => {
+      let { id, provider } = o
+      return Promise.resolve(provider.provideWorkspaceSymbols(query, token)).then(list => {
         if (list) res.push(...list.map(item => Object.assign({ source: id }, item)))
       })
     }))
@@ -34,7 +33,7 @@ export default class WorkspaceSymbolManager {
     symbolInfo: SymbolInformation,
     token: CancellationToken
   ): Promise<SymbolInformation> {
-    let provider = this.providers.get((symbolInfo as any).source)
+    let provider = this.getProviderById((symbolInfo as any).source)
     if (!provider) return
     if (typeof provider.resolveWorkspaceSymbol != 'function') {
       return Promise.resolve(symbolInfo)

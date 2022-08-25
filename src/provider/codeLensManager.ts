@@ -1,23 +1,19 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, CodeLens, Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { CodeLensProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
 import { omit } from '../util/lodash'
+import { CodeLensProvider } from './index'
+import Manager from './manager'
 // const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeLensManager extends Manager<CodeLensProvider> {
 
   public register(selector: DocumentSelector, provider: CodeLensProvider): Disposable {
-    let item: ProviderItem<CodeLensProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

@@ -1,23 +1,19 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Definition, DefinitionLink, Disposable, DocumentSelector, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { DefinitionProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
 import { equals } from '../util/object'
+import { DefinitionProvider } from './index'
+import Manager from './manager'
 const logger = require('../util/logger')('definitionManager')
 
 export default class DefinitionManager extends Manager<DefinitionProvider> {
 
   public register(selector: DocumentSelector, provider: DefinitionProvider): Disposable {
-    let item: ProviderItem<DefinitionProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

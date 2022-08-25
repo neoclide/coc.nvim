@@ -1,21 +1,17 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, ColorInformation, ColorPresentation, Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentColorProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 
 export default class DocumentColorManager extends Manager<DocumentColorProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentColorProvider): Disposable {
-    let item: ProviderItem<DocumentColorProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

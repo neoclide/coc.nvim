@@ -9,14 +9,10 @@ const logger = require('../util/logger')('definitionManager')
 export default class DeclarationManager extends Manager<DeclarationProvider> {
 
   public register(selector: DocumentSelector, provider: DeclarationProvider): Disposable {
-    let item: ProviderItem<DeclarationProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

@@ -1,24 +1,20 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, FormattingOptions, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentRangeFormattingEditProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 
 export default class FormatRangeManager extends Manager<DocumentRangeFormattingEditProvider> {
 
   public register(selector: DocumentSelector,
     provider: DocumentRangeFormattingEditProvider,
     priority = 0): Disposable {
-    let item: ProviderItem<DocumentRangeFormattingEditProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider,
       priority
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 

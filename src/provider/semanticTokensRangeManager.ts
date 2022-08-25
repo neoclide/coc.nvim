@@ -3,27 +3,27 @@ import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Range, SemanticTokens, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentRangeSemanticTokensProvider } from './index'
-import Manager, { ProviderItem } from './manager'
+import Manager from './manager'
 const logger = require('../util/logger')('semanticTokensRangeManager')
 
-export default class SemanticTokensRangeManager extends Manager<DocumentRangeSemanticTokensProvider> {
+interface ProviderMeta {
+  legend: SemanticTokensLegend
+}
+
+export default class SemanticTokensRangeManager extends Manager<DocumentRangeSemanticTokensProvider, ProviderMeta> {
   public register(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    let item: ProviderItem<DocumentRangeSemanticTokensProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       legend,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 
   public getLegend(document: TextDocument): SemanticTokensLegend {
     const item = this.getProvider(document)
     if (!item) return
-    return item.legend as SemanticTokensLegend
+    return item.legend
   }
 
   public async provideDocumentRangeSemanticTokens(document: TextDocument, range: Range, token: CancellationToken): Promise<SemanticTokens> {
@@ -31,11 +31,6 @@ export default class SemanticTokensRangeManager extends Manager<DocumentRangeSem
     if (!item) return null
     let { provider } = item
     if (provider.provideDocumentRangeSemanticTokens === null) return null
-    try {
-      return await Promise.resolve(provider.provideDocumentRangeSemanticTokens(document, range, token))
-    } catch (err) {
-      if (token.isCancellationRequested) return null
-      throw err
-    }
+    return await Promise.resolve(provider.provideDocumentRangeSemanticTokens(document, range, token))
   }
 }

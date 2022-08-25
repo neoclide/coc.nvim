@@ -8,14 +8,10 @@ import { v4 as uuid } from 'uuid'
 export default class DocumentHighlightManager extends Manager<DocumentHighlightProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentHighlightProvider): Disposable {
-    let item: ProviderItem<DocumentHighlightProvider> = {
+    return this.addProvider({
       id: uuid(),
       selector,
       provider
-    }
-    this.providers.add(item)
-    return Disposable.create(() => {
-      this.providers.delete(item)
     })
   }
 
