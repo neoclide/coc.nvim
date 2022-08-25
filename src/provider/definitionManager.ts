@@ -1,8 +1,7 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Definition, DefinitionLink, Disposable, DocumentSelector, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, DefinitionLink, Disposable, DocumentSelector, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { equals } from '../util/object'
 import { DefinitionProvider } from './index'
 import Manager from './manager'
 const logger = require('../util/logger')('definitionManager')
@@ -17,45 +16,43 @@ export default class DefinitionManager extends Manager<DefinitionProvider> {
     })
   }
 
-  private async getDefinitions(
-    document: TextDocument,
-    position: Position,
-    token: CancellationToken
-  ): Promise<(Definition | DefinitionLink[])[]> {
-    const providers = this.getProviders(document)
-    if (!providers.length) return []
-    const arr = await Promise.all(providers.map(item => {
-      const { provider } = item
-      return Promise.resolve(provider.provideDefinition(document, position, token))
-    }))
-    return arr
-  }
-
   public async provideDefinition(
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Location[]> {
-    const arr = await this.getDefinitions(document, position, token)
-    return this.toLocations(arr)
+  ): Promise<Location[] | null> {
+    const providers = this.getProviders(document)
+    if (!providers.length) return null
+    let locations: Location[] = []
+    const results = await Promise.allSettled(providers.map(item => {
+      return Promise.resolve(item.provider.provideDefinition(document, position, token)).then(location => {
+        this.addLocation(locations, location)
+      })
+    }))
+    this.handleResults(results, 'provideDefinition')
+    return locations
   }
 
   public async provideDefinitionLinks(
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<DefinitionLink[]> {
-    const arr = await this.getDefinitions(document, position, token)
-    const defs: DefinitionLink[] = []
-    for (const def of arr) {
-      if (!Array.isArray(def)) continue
-      for (const val of def) {
-        if (LocationLink.is(val)) {
-          let idx = defs.findIndex(o => o.targetUri == val.targetUri && equals(o.targetRange, val.targetRange))
-          if (idx == -1) defs.push(val)
+  ): Promise<DefinitionLink[] | null> {
+    const providers = this.getProviders(document)
+    if (!providers.length) return null
+    let locations: DefinitionLink[] = []
+    const results = await Promise.allSettled(providers.map(item => {
+      return Promise.resolve(item.provider.provideDefinition(document, position, token)).then(location => {
+        if (Array.isArray(location)) {
+          location.forEach(loc => {
+            if (LocationLink.is(loc)) {
+              locations.push(loc)
+            }
+          })
         }
-      }
-    }
-    return defs
+      })
+    }))
+    this.handleResults(results, 'provideDefinition')
+    return locations
   }
 }

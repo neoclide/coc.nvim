@@ -23,22 +23,32 @@ export default class SignatureManager extends Manager<SignatureHelpProvider, Pro
   }
 
   public shouldTrigger(document: TextDocument, triggerCharacter: string): boolean {
-    let item = this.getProvider(document)
-    if (!item) return false
-    let { triggerCharacters } = item
-    return triggerCharacters && triggerCharacters.includes(triggerCharacter)
+    let items = this.getProviders(document)
+    if (items.length === 0) return false
+    for (let item of items) {
+      if (item.triggerCharacters.includes(triggerCharacter)) {
+        return true
+      }
+    }
+    return false
   }
 
+  /**
+   * Multiple providers can be registered for a language. In that case providers are sorted
+   * by their {@link languages.match score} and called sequentially until a provider returns a
+   * valid result.
+   */
   public async provideSignatureHelp(
     document: TextDocument,
     position: Position,
     token: CancellationToken,
     context: SignatureHelpContext
   ): Promise<SignatureHelp | null> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let res = await Promise.resolve(item.provider.provideSignatureHelp(document, position, token, context))
-    if (res && res.signatures && res.signatures.length) return res
+    let items = this.getProviders(document)
+    for (const item of items) {
+      let res = await Promise.resolve(item.provider.provideSignatureHelp(document, position, token, context))
+      if (res && res.signatures && res.signatures.length > 0) return res
+    }
     return null
   }
 }

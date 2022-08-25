@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, LinkedEditingRanges, Position, TextEdit } from 'vscode-languageserver-protocol'
 import TextRange from '../cursors/textRange'
 import { getBeforeCount, getChange, getDelta } from '../cursors/util'
 import events from '../events'
@@ -110,12 +110,12 @@ export default class LinkedEditingHandler {
   }
 
   private doHighlights(): void {
-    let { window, ranges } = this
+    let { window, ranges, nvim } = this
     if (window && ranges) {
-      this.nvim.pauseNotification()
+      nvim.pauseNotification()
       window.clearMatchGroup('^CocLinkedEditing')
       window.highlightRanges('CocLinkedEditing', ranges.map(o => o.range), 99, true)
-      this.nvim.resumeNotification(true, true)
+      nvim.resumeNotification(true, true)
     }
   }
 
@@ -140,13 +140,20 @@ export default class LinkedEditingHandler {
     let textDocument = doc.textDocument
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    let window = await this.nvim.window
-    let linkedRanges = await languages.provideLinkedEdits(textDocument, position, token)
+    let win = await this.nvim.window
+    let linkedRanges: LinkedEditingRanges | undefined
+    try {
+      linkedRanges = await languages.provideLinkedEdits(textDocument, position, token)
+    } catch (e) {
+      logger.error(`Error on provideLinkedEdits: `, e)
+      void window.showErrorMessage(`Error on provideLinkedEdits: ${e instanceof Error ? e.message : e}`)
+      return
+    }
     if (token.isCancellationRequested || !linkedRanges || linkedRanges.ranges.length == 0) return
     let ranges = linkedRanges.ranges.map(o => new TextRange(o.start.line, o.start.character, textDocument.getText(o)))
     this.wordPattern = linkedRanges.wordPattern
     this.bufnr = doc.bufnr
-    this.window = window
+    this.window = win
     this.ranges = ranges
     this.doHighlights()
   }

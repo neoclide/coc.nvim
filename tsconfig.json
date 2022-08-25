@@ -15,7 +15,7 @@
     "target": "es2017",
     "module": "commonjs",
     "moduleResolution": "node",
-    "lib": ["es2017", "es2018", "es2019"],
+    "lib": ["es2017", "es2018", "es2019", "ES2020.Promise"],
     "declaration": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,

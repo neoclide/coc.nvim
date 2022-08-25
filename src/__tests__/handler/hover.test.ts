@@ -1,10 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, MarkedString, Hover, Range, TextEdit, Position } from 'vscode-languageserver-protocol'
+import { Disposable, MarkedString, Hover, Range, TextEdit, Position, CancellationToken } from 'vscode-languageserver-protocol'
 import HoverHandler from '../../handler/hover'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import helper, { createTmpFile } from '../helper'
+import workspace from '../../workspace'
 
 let nvim: Neovim
 let hover: HoverHandler
@@ -52,6 +53,23 @@ describe('Hover', () => {
       await hover.onHover('preview')
       let res = await getDocumentText()
       expect(res).toMatch('my hover')
+    })
+
+    it('should merge hover results', async () => {
+      hoverResult = { contents: { kind: 'plaintext', value: 'my hover' } }
+      disposables.push(languages.registerHoverProvider([{ language: '*' }], {
+        provideHover: (_doc, _pos, _token) => {
+          return null
+        }
+      }))
+      disposables.push(languages.registerHoverProvider([{ language: '*' }], {
+        provideHover: (_doc, _pos, _token) => {
+          return { contents: { kind: 'plaintext', value: 'my hover' } }
+        }
+      }))
+      let doc = await workspace.document
+      let hovers = await languages.getHover(doc.textDocument, Position.create(0, 0), CancellationToken.None)
+      expect(hovers.length).toBe(1)
     })
 
     it('should show MarkedString hover', async () => {

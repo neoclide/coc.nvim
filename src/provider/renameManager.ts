@@ -15,16 +15,29 @@ export default class RenameManager extends Manager<RenameProvider> {
     })
   }
 
+  /**
+   * Multiple providers can be registered for a language. In that case providers are sorted
+   * by their {@link workspace.match score} and asked in sequence. The first provider producing a result
+   * defines the result of the whole operation.
+   */
   public async provideRenameEdits(
     document: TextDocument,
     position: Position,
     newName: string,
     token: CancellationToken
   ): Promise<WorkspaceEdit | null> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    return await Promise.resolve(provider.provideRenameEdits(document, position, newName, token))
+    let items = this.getProviders(document)
+    if (items.length === 0) return null
+    let edit: WorkspaceEdit = null
+    for (const item of items) {
+      try {
+        edit = await Promise.resolve(item.provider.provideRenameEdits(document, position, newName, token))
+      } catch (e) {
+        this.handleResults([{ status: 'rejected', reason: e }], 'provideRenameEdits')
+      }
+      if (edit != null) break
+    }
+    return edit
   }
 
   public async prepareRename(
@@ -32,13 +45,14 @@ export default class RenameManager extends Manager<RenameProvider> {
     position: Position,
     token: CancellationToken
   ): Promise<Range | { range: Range; placeholder: string } | false> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    if (provider.prepareRename == null) return null
-    let res = await Promise.resolve(provider.prepareRename(document, position, token))
-    // can not rename
-    if (res == null) return false
-    return res
+    let items = this.getProviders(document)
+    items = items.filter(o => typeof o.provider.prepareRename === 'function')
+    if (items.length === 0) return null
+    for (const item of items) {
+      let res = await Promise.resolve(item.provider.prepareRename(document, position, token))
+      // can rename
+      if (res != null) return res
+    }
+    return false
   }
 }

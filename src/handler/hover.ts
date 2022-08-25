@@ -61,17 +61,15 @@ export default class HoverHandler {
   private loadConfiguration(e?: ConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('hover')) {
       let config = workspace.getConfiguration('hover')
-      let target = config.get<HoverTarget>('target', 'float')
       this.config = {
         floatConfig: config.get('floatConfig', {}),
         autoHide: config.get('autoHide', true),
-        target: target == 'float' && !workspace.floatSupported ? 'preview' : target,
+        target: config.get<HoverTarget>('target', 'float'),
         previewMaxHeight: config.get<number>('previewMaxHeight', 12)
       }
       if (this.config.target == 'preview') {
         this.registerProvider()
       }
-      let preferences = workspace.getConfiguration('coc.preferences')
     }
   }
 

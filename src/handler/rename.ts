@@ -23,10 +23,11 @@ export default class Rename {
       await doc.synchronize()
       let requestTokenSource = new CancellationTokenSource()
       let res = await languages.prepareRename(doc.textDocument, position, requestTokenSource.token)
-      if (res === false) return null
-      let newName = curname.startsWith('a') ? 'b' : 'a'
-      let edit = await languages.provideRenameEdits(doc.textDocument, position, newName, requestTokenSource.token)
-      if (edit) return edit
+      if (res !== false) {
+        let newName = curname.startsWith('a') ? 'b' : 'a'
+        let edit = await languages.provideRenameEdits(doc.textDocument, position, newName, requestTokenSource.token)
+        if (edit) return edit
+      }
     }
     window.showMessage('Rename provider not found, extract word ranges from current buffer', 'more')
     let ranges = doc.getSymbolRanges(curname)

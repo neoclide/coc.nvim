@@ -21,12 +21,15 @@ export default class ReferenceManager extends Manager<ReferenceProvider>  {
     context: ReferenceContext,
     token: CancellationToken
   ): Promise<Location[] | null> {
-    let providers = this.getProviders(document)
-    if (!providers.length) return null
-    let arr = await Promise.all(providers.map(item => {
-      let { provider } = item
-      return Promise.resolve(provider.provideReferences(document, position, context, token))
+    const providers = this.getProviders(document)
+    if (!providers.length) return []
+    let locations: Location[] = []
+    const results = await Promise.allSettled(providers.map(item => {
+      return Promise.resolve(item.provider.provideReferences(document, position, context, token)).then(location => {
+        this.addLocation(locations, location)
+      })
     }))
-    return this.toLocations(arr)
+    this.handleResults(results, 'provideReferences')
+    return locations
   }
 }

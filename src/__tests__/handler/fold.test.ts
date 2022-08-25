@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, FoldingRange, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, FoldingRange, Range } from 'vscode-languageserver-protocol'
 import FoldHandler from '../../handler/fold'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -12,7 +12,7 @@ let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  folds = (helper.plugin as any).handler.fold
+  folds = helper.plugin.getHandler().fold
 })
 
 afterAll(async () => {
@@ -58,6 +58,24 @@ describe('Folds', () => {
     expect(closed).toBe(2)
     closed = await nvim.call('foldclosed', [5])
     expect(closed).toBe(5)
+  })
+
+  it('should merge folds from all providers', async () => {
+    let doc = await workspace.document
+    disposables.push(languages.registerFoldingRangeProvider([{ language: '*' }], {
+      provideFoldingRanges() {
+        return [FoldingRange.create(1, 3), FoldingRange.create(4, 6)]
+      }
+    }))
+    disposables.push(languages.registerFoldingRangeProvider([{ language: '*' }], {
+      provideFoldingRanges() {
+        return [FoldingRange.create(1, 2), FoldingRange.create(5, 6), FoldingRange.create(7, 8)]
+      }
+    }))
+    await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']])
+    await doc.synchronize()
+    let foldingRanges = await languages.provideFoldingRanges(doc.textDocument, {}, CancellationToken.None)
+    expect(foldingRanges.length).toBe(4)
   })
 
   it('should fold comment ranges', async () => {

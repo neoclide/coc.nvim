@@ -20,12 +20,15 @@ export default class TypeDefinitionManager extends Manager<TypeDefinitionProvide
     position: Position,
     token: CancellationToken
   ): Promise<Location[] | null> {
-    let providers = this.getProviders(document)
+    const providers = this.getProviders(document)
     if (!providers.length) return null
-    let arr = await Promise.all(providers.map(item => {
-      let { provider } = item
-      return Promise.resolve(provider.provideTypeDefinition(document, position, token))
+    let locations: Location[] = []
+    const results = await Promise.allSettled(providers.map(item => {
+      return Promise.resolve(item.provider.provideTypeDefinition(document, position, token)).then(location => {
+        this.addLocation(locations, location)
+      })
     }))
-    return this.toLocations(arr)
+    this.handleResults(results, 'provideTypeDefinition')
+    return locations
   }
 }

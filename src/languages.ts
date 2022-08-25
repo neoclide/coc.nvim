@@ -9,6 +9,7 @@ import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
 import DeclarationManager from './provider/declarationManager'
 import DefinitionManager from './provider/definitionManager'
+import DiagnosticManager from './provider/diagnosticManager'
 import DocumentColorManager from './provider/documentColorManager'
 import DocumentHighlightManager from './provider/documentHighlightManager'
 import DocumentLinkManager from './provider/documentLinkManager'
@@ -18,6 +19,8 @@ import FormatManager from './provider/formatManager'
 import FormatRangeManager from './provider/formatRangeManager'
 import HoverManager from './provider/hoverManager'
 import ImplementationManager from './provider/implementationManager'
+import InlayHintManger, { InlayHintWithProvider } from './provider/inlayHintManager'
+import InlineValueManager from './provider/inlineValueManager'
 import LinkedEditingRangeManager from './provider/linkedEditingRangeManager'
 import OnTypeFormatManager from './provider/onTypeFormatManager'
 import ReferenceManager from './provider/referenceManager'
@@ -29,9 +32,6 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import InlayHintManger, { InlayHintWithProvider } from './provider/inlayHintManager'
-import InlineValueManager from './provider/inlineValueManager'
-import DiagnosticManager from './provider/diagnosticManager'
 import { ExtendedCodeAction } from './types'
 import { disposeAll } from './util'
 const logger = require('./util/logger')('languages')
@@ -83,7 +83,7 @@ class Languages {
   public registerOnTypeFormattingEditProvider(
     selector: DocumentSelector,
     provider: OnTypeFormattingEditProvider,
-    triggerCharacters: string[]
+    triggerCharacters: string[] | undefined
   ): Disposable {
     return this.onTypeFormatManager.register(selector, provider, triggerCharacters)
   }
@@ -259,18 +259,15 @@ class Languages {
     return await this.signatureManager.provideSignatureHelp(document, position, token, context)
   }
 
-  public async getDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
-    if (!this.definitionManager.hasProvider(document)) return null
+  public async getDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[] | null> {
     return await this.definitionManager.provideDefinition(document, position, token)
   }
 
-  public async getDefinitionLinks(document: TextDocument, position: Position, token: CancellationToken): Promise<DefinitionLink[]> {
-    if (!this.definitionManager.hasProvider(document)) return null
+  public async getDefinitionLinks(document: TextDocument, position: Position, token: CancellationToken): Promise<DefinitionLink[] | null> {
     return await this.definitionManager.provideDefinitionLinks(document, position, token)
   }
 
-  public async getDeclaration(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[] | Location | LocationLink[] | null> {
-    if (!this.declarationManager.hasProvider(document)) return null
+  public async getDeclaration(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[] | null> {
     return await this.declarationManager.provideDeclaration(document, position, token)
   }
 
@@ -281,7 +278,7 @@ class Languages {
 
   public async getImplementation(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
     if (!this.implementationManager.hasProvider(document)) return null
-    return await this.implementationManager.provideReferences(document, position, token)
+    return await this.implementationManager.provideImplementations(document, position, token)
   }
 
   public async getReferences(document: TextDocument, context: ReferenceContext, position: Position, token: CancellationToken): Promise<Location[]> {
@@ -342,15 +339,12 @@ class Languages {
     return await this.documentHighlightManager.provideDocumentHighlights(document, position, token)
   }
 
-  public async getDocumentLinks(document: TextDocument, token: CancellationToken): Promise<DocumentLink[]> {
-    if (!this.documentLinkManager.hasProvider(document)) {
-      return null
-    }
-    return (await this.documentLinkManager.provideDocumentLinks(document, token)) || []
+  public async getDocumentLinks(document: TextDocument, token: CancellationToken): Promise<DocumentLink[] | null> {
+    return await this.documentLinkManager.provideDocumentLinks(document, token)
   }
 
   public async resolveDocumentLink(link: DocumentLink, token: CancellationToken): Promise<DocumentLink> {
-    return await this.documentLinkManager.resolveDocumentLink(link, token)
+    return await this.documentLinkManager.resolveDocumentLink(link as DocumentLink & { source: string }, token)
   }
 
   public async provideDocumentColors(document: TextDocument, token: CancellationToken): Promise<ColorInformation[] | null> {

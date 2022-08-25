@@ -42,7 +42,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
       })
     }
     let res: ExtendedCodeAction[] = []
-    await Promise.all(providers.map(item => {
+    let results = await Promise.allSettled(providers.map(item => {
       let { provider, id } = item
       return Promise.resolve(provider.provideCodeActions(document, range, context, token)).then(actions => {
         if (!actions || actions.length == 0) return
@@ -74,6 +74,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
         }
       })
     }))
+    this.handleResults(results, 'provideCodeActions')
     return res
   }
 

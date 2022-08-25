@@ -1,10 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
+import events from '../../events'
 import LinksHandler from '../../handler/links'
 import languages from '../../languages'
-import workspace from '../../workspace'
-import events from '../../events'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -33,6 +33,31 @@ describe('Links', () => {
           DocumentLink.create(Range.create(0, 0, 0, 5), 'test:///foo'),
           DocumentLink.create(Range.create(1, 0, 1, 5), 'test:///bar')
         ]
+      }
+    }))
+    let res = await links.getLinks()
+    expect(res.length).toBe(2)
+  })
+
+  it('should merge link results', async () => {
+    disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
+      provideDocumentLinks: () => {
+        return [
+          DocumentLink.create(Range.create(0, 0, 0, 5), 'test:///foo'),
+          DocumentLink.create(Range.create(1, 0, 1, 5), 'test:///bar')
+        ]
+      }
+    }))
+    disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
+      provideDocumentLinks: () => {
+        return [
+          DocumentLink.create(Range.create(1, 0, 1, 5), 'test:///bar')
+        ]
+      }
+    }))
+    disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
+      provideDocumentLinks: () => {
+        return null
       }
     }))
     let res = await links.getLinks()

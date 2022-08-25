@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import SelectionRange from '../../handler/selectionRange'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -62,7 +62,6 @@ describe('selectionRange', () => {
       expect(m.mode).toBe('v')
       let bufnr = await nvim.call('bufnr', ['%'])
       await nvim.input('<esc>')
-      let doc = workspace.getDocument(bufnr)
       let res = await window.getSelectedRange('v')
       return res
     }
@@ -72,6 +71,7 @@ describe('selectionRange', () => {
       let called = 0
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar\ntest\n')])
       await nvim.call('cursor', [1, 1])
+      await doc.synchronize()
       disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
         provideSelectionRanges: _doc => {
           called += 1
@@ -139,6 +139,53 @@ describe('selectionRange', () => {
       await selection.selectRange('v', false)
       mode = await nvim.call('mode')
       expect(mode).toBe('n')
+    })
+  })
+
+  describe('provideSelectionRanges()', () => {
+    it('should return null when no provider available', async () => {
+      let doc = await workspace.document
+      let res = await languages.getSelectionRanges(doc.textDocument, [Position.create(0, 0)], CancellationToken.None)
+      expect(res).toBeNull()
+    })
+
+    it('should return null when no result available', async () => {
+      disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+        provideSelectionRanges: _doc => {
+          return []
+        }
+      }))
+      let doc = await workspace.document
+      let res = await languages.getSelectionRanges(doc.textDocument, [Position.create(0, 0)], CancellationToken.None)
+      expect(res).toBeNull()
+    })
+
+    it('should append/prepend selection ranges', async () => {
+      disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+        provideSelectionRanges: _doc => {
+          return [{ range: Range.create(1, 1, 1, 4) }, { range: Range.create(1, 0, 1, 6) }]
+        }
+      }))
+      disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+        provideSelectionRanges: _doc => {
+          return [{ range: Range.create(1, 2, 1, 3) }]
+        }
+      }))
+      disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+        provideSelectionRanges: _doc => {
+          return [{ range: Range.create(1, 2, 1, 3) }]
+        }
+      }))
+      disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+        provideSelectionRanges: _doc => {
+          return [{ range: Range.create(0, 0, 3, 0) }]
+        }
+      }))
+      let doc = await workspace.document
+      let res = await languages.getSelectionRanges(doc.textDocument, [Position.create(0, 0)], CancellationToken.None)
+      expect(res.length).toBe(4)
+      expect(res[0].range).toEqual(Range.create(1, 2, 1, 3))
+      expect(res[3].range).toEqual(Range.create(0, 0, 3, 0))
     })
   })
 })

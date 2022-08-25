@@ -1,9 +1,9 @@
 'use strict'
-import { CancellationToken, Disposable, DocumentSelector, Location, Position, LocationLink } from 'vscode-languageserver-protocol'
+import { v4 as uuid } from 'uuid'
+import { CancellationToken, Disposable, DocumentSelector, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DeclarationProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 const logger = require('../util/logger')('definitionManager')
 
 export default class DeclarationManager extends Manager<DeclarationProvider> {
@@ -20,10 +20,16 @@ export default class DeclarationManager extends Manager<DeclarationProvider> {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Location[] | Location | LocationLink[] | null> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    return await Promise.resolve(provider.provideDeclaration(document, position, token))
+  ): Promise<Location[] | null> {
+    const providers = this.getProviders(document)
+    if (!providers.length) return null
+    let locations: Location[] = []
+    const results = await Promise.allSettled(providers.map(item => {
+      return Promise.resolve(item.provider.provideDeclaration(document, position, token)).then(location => {
+        this.addLocation(locations, location)
+      })
+    }))
+    this.handleResults(results, 'provideDeclaration')
+    return locations
   }
 }

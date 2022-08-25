@@ -104,12 +104,12 @@ describe('rename handler', () => {
       expect(res).toBe(null)
     })
 
-    it('should return null when prepare failed', async () => {
+    it('should use document symbols when prepare failed', async () => {
       let doc = await helper.createDocument('t.js')
       await nvim.setLine('你')
       await doc.synchronize()
       let res = await rename.getWordEdit()
-      expect(res).toBe(null)
+      expect(res != null).toBe(true)
     })
 
     it('should return workspace edit', async () => {

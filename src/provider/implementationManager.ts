@@ -15,17 +15,20 @@ export default class ImplementationManager extends Manager<ImplementationProvide
     })
   }
 
-  public async provideReferences(
+  public async provideImplementations(
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Location[] | null> {
-    let providers = this.getProviders(document)
-    if (!providers.length) return null
-    let arr = await Promise.all(providers.map(item => {
-      let { provider } = item
-      return Promise.resolve(provider.provideImplementation(document, position, token))
+  ): Promise<Location[]> {
+    const providers = this.getProviders(document)
+    if (!providers.length) return []
+    let locations: Location[] = []
+    const results = await Promise.allSettled(providers.map(item => {
+      return Promise.resolve(item.provider.provideImplementation(document, position, token)).then(location => {
+        this.addLocation(locations, location)
+      })
     }))
-    return this.toLocations(arr)
+    this.handleResults(results, 'provideImplementations')
+    return locations
   }
 }

@@ -5,7 +5,6 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { omit } from '../util/lodash'
 import { CodeLensProvider } from './index'
 import Manager from './manager'
-// const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeLensManager extends Manager<CodeLensProvider> {
 
@@ -23,18 +22,19 @@ export default class CodeLensManager extends Manager<CodeLensProvider> {
   ): Promise<CodeLens[] | null> {
     let providers = this.getProviders(document)
     if (!providers.length) return null
-    let arr = await Promise.all(providers.map(item => {
+    let codeLens: CodeLens[] = []
+    let results = await Promise.allSettled(providers.map(item => {
       let { provider, id } = item
       return Promise.resolve(provider.provideCodeLenses(document, token)).then(res => {
         if (Array.isArray(res)) {
           for (let item of res) {
-            (item as any).source = id
+            codeLens.push(Object.assign({ source: id }, item))
           }
         }
-        return res
       })
     }))
-    return [].concat(...arr)
+    this.handleResults(results, 'provideCodeLenses')
+    return codeLens
   }
 
   public async resolveCodeLens(

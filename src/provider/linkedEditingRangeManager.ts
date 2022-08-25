@@ -15,12 +15,17 @@ export default class LinkedEditingRangeManager extends Manager<LinkedEditingRang
     })
   }
 
+  /**
+   * Multiple providers can be registered for a language. In that case providers are sorted
+   * by their {@link workspace.match score} and the best-matching provider that has a result is used. Failure
+   * of the selected provider will cause a failure of the whole operation.
+   */
   public async provideLinkedEditingRanges(document: TextDocument, position: Position, token: CancellationToken): Promise<LinkedEditingRanges> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    if (!provider.provideLinkedEditingRanges) return null
-
-    return await Promise.resolve(provider.provideLinkedEditingRanges(document, position, token))
+    let items = this.getProviders(document)
+    for (let item of items) {
+      let res = await Promise.resolve(item.provider.provideLinkedEditingRanges(document, position, token))
+      if (res != null) return res
+    }
+    return null
   }
 }

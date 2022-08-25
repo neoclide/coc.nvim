@@ -98,11 +98,11 @@ describe('Colors', () => {
       colorPresentations = [ColorPresentation.create('red'), ColorPresentation.create('#ff0000')]
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
-      doc.forceSync()
+      await doc.synchronize()
       await colors.doHighlight(doc.bufnr)
       let p = commands.executeCommand('editor.action.colorPresentation')
-      await helper.wait(100)
-      await nvim.input('1<enter>')
+      await helper.waitPrompt()
+      await nvim.input('1')
       await p
       let line = await nvim.getLine()
       expect(line).toBe('red')
@@ -120,7 +120,7 @@ describe('Colors', () => {
       state = 'normal'
     })
 
-    it('should not highlight on error result', async () => {
+    it('should not throw on error result', async () => {
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
       state = 'error'
@@ -130,27 +130,27 @@ describe('Colors', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      expect(err).toBeUndefined()
       state = 'normal'
     })
 
     it('should highlight after document changed', async () => {
       let doc = await helper.createDocument()
-      doc.forceSync()
       await colors.doHighlight(doc.bufnr)
       expect(colors.hasColor(doc.bufnr)).toBe(false)
       expect(colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1))).toBe(false)
       await nvim.setLine('#ffffff #ff0000')
       await doc.synchronize()
-      await helper.wait(100)
-      expect(colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1))).toBe(true)
+      await helper.waitValue(() => {
+        return colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1))
+      }, true)
       expect(colors.hasColor(doc.bufnr)).toBe(true)
     })
 
     it('should clearHighlight on clearHighlight', async () => {
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff #ff0000')
-      doc.forceSync()
+      await doc.synchronize()
       await colors.doHighlight(doc.bufnr)
       expect(colors.hasColor(doc.bufnr)).toBe(true)
       colors.clearHighlight(doc.bufnr)
@@ -223,8 +223,8 @@ describe('Colors', () => {
       doc.forceSync()
       await colors.doHighlight(doc.bufnr)
       let p = helper.doAction('colorPresentation')
-      await helper.wait(100)
-      await nvim.input('1<enter>')
+      await helper.waitPrompt()
+      await nvim.input('1')
       await p
       let line = await nvim.getLine()
       expect(line).toBe('red')

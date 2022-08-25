@@ -26,6 +26,14 @@ export default class Manager<T, P = object> {
     })
   }
 
+  protected handleResults(results: PromiseSettledResult<void>[], name: string): void {
+    results.forEach(res => {
+      if (res.status === 'rejected') {
+        logger.error(`Provider error on ${name}:`, res.reason)
+      }
+    })
+  }
+
   protected getProvider(document: TextDocument): ProviderItem<T, P> {
     let currScore = 0
     let providerItem: ProviderItem<T, P>
@@ -52,6 +60,21 @@ export default class Manager<T, P = object> {
     let items = Array.from(this.providers)
     items = items.filter(item => workspace.match(item.selector, document) > 0)
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
+  }
+
+  protected addLocation(locations: Location[], location: Location | Location[] | LocationLink[]): void {
+    if (Array.isArray(location)) {
+      location.forEach(loc => {
+        if (Location.is(loc)) {
+          addLocation(locations, loc)
+        } else if (LocationLink.is(loc)) {
+          let { targetUri, targetSelectionRange, targetRange } = loc
+          addLocation(locations, Location.create(targetUri, targetSelectionRange ?? targetRange))
+        }
+      })
+    } else if (Location.is(location)) {
+      addLocation(locations, location)
+    }
   }
 
   protected toLocations(arr: (Definition | LocationLink[] | null)[]): Location[] {

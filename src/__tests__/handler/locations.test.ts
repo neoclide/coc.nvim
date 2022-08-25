@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, LocationLink, Location, Range, Position, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { Disposable, LocationLink, Location, Range, Position, CancellationTokenSource, CancellationToken } from 'vscode-languageserver-protocol'
 import LocationHandler from '../../handler/locations'
 import languages from '../../languages'
 import services from '../../services'
@@ -97,6 +97,16 @@ describe('locations', () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
       let res = await locations.definitions()
       expect(res.length).toBe(2)
+    })
+
+    it('should return empty locations when no definitions exist', async () => {
+      currLocations = null
+      let doc = await workspace.document
+      let res = await languages.getDefinitionLinks(doc.textDocument, Position.create(0, 0), CancellationToken.None)
+      expect(res.length).toBe(0)
+      currLocations = [createLocation('foo', 0, 0, 0, 0)]
+      res = await languages.getDefinitionLinks(doc.textDocument, Position.create(0, 0), CancellationToken.None)
+      expect(res.length).toBe(0)
     })
 
     it('should jump to definitions', async () => {

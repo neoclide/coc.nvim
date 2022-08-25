@@ -4,6 +4,10 @@ import { CancellationToken, Disposable, SymbolInformation } from 'vscode-languag
 import { WorkspaceSymbolProvider } from './index'
 import Manager from './manager'
 
+interface SymbolInformationWithSource extends SymbolInformation {
+  source?: string
+}
+
 export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvider> {
   public register(provider: WorkspaceSymbolProvider): Disposable {
     return this.addProvider({
@@ -19,26 +23,24 @@ export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvi
   ): Promise<SymbolInformation[]> {
     let entries = Array.from(this.providers)
     if (!entries.length) return []
-    let res: SymbolInformation[] = []
-    await Promise.all(entries.map(o => {
+    let infos: SymbolInformation[] = []
+    let results = await Promise.allSettled(entries.map(o => {
       let { id, provider } = o
       return Promise.resolve(provider.provideWorkspaceSymbols(query, token)).then(list => {
-        if (list) res.push(...list.map(item => Object.assign({ source: id }, item)))
+        if (list) infos.push(...list.map(item => Object.assign({ source: id }, item)))
       })
     }))
-    return res
+    this.handleResults(results, 'provideWorkspaceSymbols')
+    return infos
   }
 
   public async resolveWorkspaceSymbol(
-    symbolInfo: SymbolInformation,
+    symbolInfo: SymbolInformationWithSource,
     token: CancellationToken
   ): Promise<SymbolInformation> {
-    let provider = this.getProviderById((symbolInfo as any).source)
-    if (!provider) return
-    if (typeof provider.resolveWorkspaceSymbol != 'function') {
-      return Promise.resolve(symbolInfo)
-    }
-    return await Promise.resolve(provider.resolveWorkspaceSymbol(symbolInfo, token))
+    let provider = this.getProviderById(symbolInfo.source)
+    if (!provider || typeof provider.resolveWorkspaceSymbol !== 'function') return symbolInfo
+    return provider.resolveWorkspaceSymbol(symbolInfo, token)
   }
 
   public hasProvider(): boolean {

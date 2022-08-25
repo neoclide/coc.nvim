@@ -6,7 +6,6 @@ import { HandlerDelegate } from '../types'
 import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
 import window from '../window'
-import workspace from '../workspace'
 
 export default class SelectionRangeHandler {
   private selectionRange: SelectionRange = null
@@ -61,7 +60,7 @@ export default class SelectionRangeHandler {
     if (selectionRanges.length == 1) {
       selectionRange = selectionRanges[0]
     } else {
-      let end = positions[1] || positions[0]
+      let end = positions[1] ?? positions[0]
       let r = Range.create(positions[0], end)
       selectionRange = selectionRanges[0]
       while (selectionRange) {

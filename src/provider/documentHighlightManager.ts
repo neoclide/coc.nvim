@@ -1,9 +1,9 @@
 'use strict'
+import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentHighlight, DocumentSelector, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentHighlightProvider } from './index'
-import Manager, { ProviderItem } from './manager'
-import { v4 as uuid } from 'uuid'
+import Manager from './manager'
 
 export default class DocumentHighlightManager extends Manager<DocumentHighlightProvider> {
 
@@ -20,9 +20,17 @@ export default class DocumentHighlightManager extends Manager<DocumentHighlightP
     position: Position,
     token: CancellationToken
   ): Promise<DocumentHighlight[]> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let { provider } = item
-    return await Promise.resolve(provider.provideDocumentHighlights(document, position, token))
+    let items = this.getProviders(document)
+    if (items.length === 0) return null
+    let res: DocumentHighlight[] = null
+    for (const item of items) {
+      try {
+        res = await Promise.resolve(item.provider.provideDocumentHighlights(document, position, token))
+        if (res != null) break
+      } catch (e) {
+        this.handleResults([{ status: 'rejected', reason: e }], 'provideDocumentHighlights')
+      }
+    }
+    return res
   }
 }
