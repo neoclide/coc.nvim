@@ -1028,12 +1028,12 @@
     },
     "dialog.floatHighlight": {
       "type": ["string", "null"],
-      "default": null,
+      "default": "CocFloating",
       "description": "Highlight group for dialog window/popup, default to 'CocFloating'"
     },
     "dialog.floatBorderHighlight": {
       "type": ["string", "null"],
-      "default": null,
+      "default": "CocFloating",
       "description": "Highlight group for border of dialog window/popup, default to 'CocFloating'"
     },
     "dialog.shortcutHighlight": {
