@@ -894,12 +894,15 @@ export class Window {
 
   private get inputPreference(): InputPreference {
     let config = workspace.getConfiguration('dialog')
-    return {
+    let opts: InputPreference = {
       rounded: config.get<boolean>('rounded', true),
-      maxWidth: config.get<number>('maxWidth'),
-      highlight: config.get<string>('floatHighlight'),
-      borderhighlight: config.get<string>('floatBorderHighlight'),
+      maxWidth: config.get<number>('maxWidth', 80)
     }
+    let highlight = config.get<string>('floatHighlight')
+    if (highlight != null) opts.highlight = highlight
+    let borderhighlight = config.get<string>('floatBorderHighlight')
+    if (borderhighlight != null) opts.borderhighlight = borderhighlight
+    return opts
   }
 
   private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
