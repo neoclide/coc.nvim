@@ -2,7 +2,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { Disposable, Range, SemanticTokensLegend } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Range, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../../commands'
 import SemanticTokens from '../../handler/semanticTokens/index'
@@ -442,6 +442,21 @@ describe('semanticTokens', () => {
       await helper.waitValue(() => {
         return r && r.end.line == 201
       }, true)
+    })
+
+    it('should not throw when range request throws', async () => {
+      helper.updateConfiguration('semanticTokens.filetypes', ['*'])
+      let doc = await workspace.document
+      let called = false
+      disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
+        provideDocumentRangeSemanticTokens: (_, range) => {
+          called = true
+          throw new Error('custom error')
+        }
+      }, legend))
+      let item = highlighter.getItem(doc.bufnr)
+      await item.doRangeHighlight(CancellationToken.None)
+      expect(called).toBe(true)
     })
 
     it('should only cancel range highlight request', async () => {

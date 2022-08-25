@@ -293,15 +293,9 @@ export default class SemanticTokensBuffer implements SyncItem {
         if (tokenRanges) this._highlights = [version, tokenRanges]
       }
     } else {
-      try {
-        tokenRanges = await this.requestAllHighlights(token, forceFull)
-      } catch (e) {
-        // retry on server cancel
-        if (!token.isCancellationRequested && e instanceof CancellationError) {
-          this.highlight()
-          return
-        }
-      }
+      tokenRanges = await this.sendRequest(() => {
+        return this.requestAllHighlights(token, forceFull)
+      }, token)
       if (tokenRanges) this._highlights = [version, tokenRanges]
     }
     // request cancelled or can't work
@@ -335,23 +329,31 @@ export default class SemanticTokensBuffer implements SyncItem {
     })
   }
 
+  private async sendRequest<R>(fn: () => Promise<R>, token: CancellationToken): Promise<R | undefined> {
+    try {
+      return await fn()
+    } catch (e) {
+      if (!token.isCancellationRequested) {
+        if (e instanceof CancellationError) {
+          this.highlight()
+        } else {
+          logger.error('Error on request semanticTokens: ', e)
+        }
+      }
+      return undefined
+    }
+  }
+
   /**
    * Perform range highlight request and update.
    */
   public async doRangeHighlight(token: CancellationToken): Promise<void> {
     if (!this.enabled) return
     let { version } = this.doc
-    let res: RangeHighlights | null
-    try {
-      res = await this.requestRangeHighlights(token)
-    } catch (e) {
-      // retry on server cancel
-      if (!token.isCancellationRequested && e instanceof CancellationError) {
-        this.highlight()
-        return
-      }
-    }
-    if (!res || token.isCancellationRequested) return
+    let res = await this.sendRequest(() => {
+      return this.requestRangeHighlights(token)
+    }, token)
+    if (res == null || token.isCancellationRequested) return
     const { highlights, start, end } = res
     if (this.rangeProviderOnly || !this.previousResults) {
       if (!this._highlights || version !== this._highlights[0]) {
