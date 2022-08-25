@@ -2,7 +2,7 @@
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { CompleteDoneItem } from './types'
 import { disposeAll } from './util'
-import { equals } from './util/object'
+import { deepClone, equals } from './util/object'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('events')
 
@@ -216,11 +216,8 @@ class Events {
     }
     if (cbs) {
       try {
-        args.forEach(val => {
-          if (typeof val === 'object') Object.freeze(val)
-        })
         // need slice since the array might changed when execute fn
-        await Promise.all(cbs.slice().map(fn => fn(args)))
+        await Promise.all(cbs.slice().map(fn => fn(deepClone(args))))
       } catch (e) {
         if (e instanceof Error && e.message?.includes('transport disconnected')) return
         logger.error(`Error on event: ${event}`, e instanceof Error ? e.stack : e)
