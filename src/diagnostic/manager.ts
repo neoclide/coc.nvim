@@ -6,7 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
-import { ConfigurationChangeEvent, FloatFactory, Documentation, ErrorItem } from '../types'
+import { ConfigurationChangeEvent, FloatFactory, Documentation, ErrorItem, VirtualTextOption } from '../types'
 import { disposeAll } from '../util'
 import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
@@ -570,6 +570,7 @@ export class DiagnosticManager implements Disposable {
       enableMessage: config.get<string>('enableMessage', 'always'),
       messageDelay: config.get<number>('messageDelay', 200),
       virtualText: config.get<boolean>('virtualText', false),
+      virtualTextAlign: config.get<VirtualTextOption['text_align']>('virtualTextAlign', 'after'),
       virtualTextWinCol: workspace.has('nvim-0.5.1') ? config.get<number | null>('virtualTextWinCol', null) : null,
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),

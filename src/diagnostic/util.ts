@@ -1,6 +1,6 @@
 'use strict'
 import { DiagnosticSeverity, Diagnostic, Range, DiagnosticTag, TextEdit } from 'vscode-languageserver-protocol'
-import { FloatConfig, LocationListItem } from '../types'
+import { FloatConfig, LocationListItem, VirtualTextOption } from '../types'
 import { comparePosition, rangeOverlap } from '../util/position'
 import { byteIndex } from '../util/string'
 import { getPosition } from '../util/textedit'
@@ -37,6 +37,7 @@ export interface DiagnosticConfig {
   messageDelay: number
   refreshOnInsertMode: boolean
   virtualText: boolean
+  virtualTextAlign: VirtualTextOption['text_align']
   virtualTextLevel: number | undefined
   virtualTextWinCol: number | null
   virtualTextCurrentLineOnly: boolean
