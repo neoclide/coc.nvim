@@ -6809,10 +6809,6 @@ declare module 'coc.nvim' {
 
   export interface Env {
     /**
-     * |completeopt| option of (neo)vim.
-     */
-    readonly completeOpt: string
-    /**
      * |runtimepath| option of (neo)vim.
      */
     readonly runtimepath: string
@@ -7178,10 +7174,6 @@ declare module 'coc.nvim' {
      * Root directory of coc.nvim
      */
     export const pluginRoot: string
-    /**
-     * Current `&completeopt` of vim, may not correct.
-     */
-    export const completeOpt: string
     /**
      * Exists channel names.
      */

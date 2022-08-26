@@ -180,7 +180,6 @@ export interface BufferSyncItem {
 }
 
 export interface Env {
-  completeOpt: string
   runtimepath: string
   readonly virtualText: boolean
   readonly guicursor: string
@@ -311,7 +310,6 @@ export interface IWorkspace {
   readonly filetypes: Set<string>
   readonly languageIds: Set<string>
   readonly pluginRoot: string
-  readonly completeOpt: string
   readonly channelNames: string[]
   readonly documents: Document[]
   readonly configurations: Configurations

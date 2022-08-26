@@ -1,3 +1,9 @@
+# 2022-08-26
+
+- Remove `completeOpt` from `workspace.env`.
+- Add configuration `"diagnostic.virtualTextAlign"`.
+- Add warning when required features not compiled with vim.
+
 # 2022-08-24
 
 - Virtual text of suggest on vim9.

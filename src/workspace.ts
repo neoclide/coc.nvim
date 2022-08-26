@@ -227,8 +227,11 @@ export class Workspace implements IWorkspace {
     return !this._env.isVim
   }
 
+  /**
+   * Keeped for backward compatible
+   */
   public get completeOpt(): string {
-    return this._env.completeOpt
+    return ''
   }
 
   public get filetypes(): Set<string> {

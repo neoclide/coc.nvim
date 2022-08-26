@@ -294,7 +294,6 @@ function! coc#util#vim_info()
         \ 'pid': coc#util#getpid(),
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
-        \ 'completeOpt': &completeopt,
         \ 'pumevent': 1,
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isCygwin': has('win32unix') ? v:true : v:false,
@@ -309,13 +308,13 @@ function! coc#util#vim_info()
         \ 'guicursor': &guicursor,
         \ 'pumwidth': exists('&pumwidth') ? &pumwidth : 15,
         \ 'tabCount': tabpagenr('$'),
-        \ 'updateHighlight': has('nvim-0.5.0') || has('patch-8.1.1719') ? v:true : v:false,
+        \ 'updateHighlight': has('nvim-0.5.0') || has('textprop') ? v:true : v:false,
         \ 'vimCommands': get(g:, 'coc_vim_commands', []),
         \ 'sign': exists('*sign_place') && exists('*sign_unplace'),
         \ 'ambiguousIsNarrow': &ambiwidth ==# 'single' ? v:true : v:false,
-        \ 'textprop': has('textprop') && !has('nvim') ? v:true : v:false,
+        \ 'textprop': has('textprop') ? v:true : v:false,
         \ 'virtualText': has('nvim-0.5.0') || has('patch-9.0.0067') ? v:true : v:false,
-        \ 'dialog': has('nvim-0.4.0') || has('patch-8.2.0750') ? v:true : v:false,
+        \ 'dialog': has('nvim-0.4.0') || has('popupwin') ? v:true : v:false,
         \ 'semanticHighlights': coc#util#semantic_hlgroups()
         \}
 endfunction
