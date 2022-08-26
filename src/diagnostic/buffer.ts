@@ -335,7 +335,6 @@ export class DiagnosticBuffer implements SyncItem {
       map.set(line, arr)
     }
     for (let [line, blocks] of map.entries()) {
-      blocks.push(['xyz', 'MoreMsg'])
       buffer.setVirtualText(virtualTextSrcId, line, blocks, opts)
     }
   }
