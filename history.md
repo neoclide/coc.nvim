@@ -1,3 +1,11 @@
+# 2022-08-26
+
+- Remove `completeOpt` from `workspace.env`.
+- Add configuration `"diagnostic.virtualTextAlign"`.
+- Add warning when required features not compiled with vim.
+- Not echo error for semanticTokens request (log only).
+- Merge results form providers when possible.
+
 # 2022-08-24
 
 - Virtual text of suggest on vim9.

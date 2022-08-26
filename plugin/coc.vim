@@ -31,6 +31,14 @@ function! s:checkVersion() abort
         echom "Note that some features may behave incorrectly."
         echohl None
         sleep 2
+      elseif !has('nvim') && (!has('job') || !has('popupwin') || !has('textprop'))
+        echohl WarningMsg
+        echom "coc.nvim requires job, popupwin and textprop features of vim, consider recompile your vim."
+        echom "You can add this to your vimrc to avoid this message:"
+        echom "    let g:coc_disable_startup_warning = 1"
+        echom "Note that some features may behave incorrectly."
+        echohl None
+        sleep 2
       endif
     endif
   endif

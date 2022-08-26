@@ -604,6 +604,9 @@ Try these steps when you have problem with coc.nvim.
     <td align="center"><a href="https://www.dosk.win/"><img src="https://avatars.githubusercontent.com/u/2389889?v=4?s=50" width="50px;" alt=""/><br /><sub><b>SpringHack</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Aspringhack" title="Bug reports">🐛</a></td>
     <td align="center"><a href="http://git.lmburns.com"><img src="https://avatars.githubusercontent.com/u/44355502?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Lucas Burns</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=lmburns" title="Documentation">📖</a></td>
   </tr>
+  <tr>
+    <td align="center"><a href="http://qiqi.boy.im"><img src="https://avatars.githubusercontent.com/u/3774036?v=4?s=50" width="50px;" alt=""/><br /><sub><b>qiqiboy</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=qiqiboy" title="Code">💻</a></td>
+  </tr>
 </table>
 
 <!-- markdownlint-restore -->
