@@ -730,6 +730,12 @@
       "description": "Use NeoVim virtual text to display diagnostics",
       "default": false
     },
+    "diagnostic.virtualTextAlign": {
+      "type": "string",
+      "description": "Position of virtual text, default 'after'. Vim9 only",
+      "default": "after",
+      "enum": ["after", "right", "below"]
+    },
     "diagnostic.virtualTextLevel": {
       "type": ["string", "null"],
       "description": "Filter diagnostic message in virtual text by level",

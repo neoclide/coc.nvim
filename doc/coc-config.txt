@@ -439,6 +439,10 @@ Diagnostics~
 
 	Filter diagnostic message in virtual text by level, default: `null`
 
+"diagnostic.virtualTextAlign"				*coc-config-diagnostic-virtualTextAlign*
+
+	Position of virtual text, requires vim >= 9.0.0121, default: `"after"`
+
 "diagnostic.virtualTextWinCol"				*coc-config-diagnostic-virtualTextWinCol*
 
 	Window column number to align virtual text neovim only, default: `null`

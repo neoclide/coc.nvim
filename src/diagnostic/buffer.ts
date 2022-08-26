@@ -315,6 +315,9 @@ export class DiagnosticBuffer implements SyncItem {
     buffer.clearNamespace(virtualTextSrcId)
     let map: Map<number, [string, string][]> = new Map()
     let opts: VirtualTextOption = {}
+    if (typeof config.virtualTextAlign === 'string') {
+      opts.text_align = config.virtualTextAlign
+    }
     if (typeof config.virtualTextWinCol === 'number') {
       opts.virt_text_win_col = config.virtualTextWinCol
     }
