@@ -109,11 +109,6 @@ export interface FileSystemWatcher extends Disposable {
   onDidDelete: Event<URI>
 }
 
-export interface FloatOptions {
-  title?: string
-  offsetX?: number
-}
-
 export interface FloatFactory {
   activated: () => Promise<boolean>
   show: (docs: Documentation[], options?: FloatOptions) => Promise<void>
@@ -134,6 +129,11 @@ export interface FloatConfig {
   winblend?: number
   focusable?: boolean
   shadow?: boolean
+}
+
+export interface FloatOptions extends FloatConfig {
+  title?: string
+  offsetX?: number
 }
 
 export interface HighlightItemOption {

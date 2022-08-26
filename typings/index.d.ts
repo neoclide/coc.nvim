@@ -8143,17 +8143,6 @@ declare module 'coc.nvim' {
     excludeImages?: boolean
   }
 
-  export interface FloatOptions {
-    /**
-     * Title in float window/popup.
-     */
-    title?: string
-    /**
-     * Horizontal Offset of current cursor position.
-     */
-    offsetX?: number
-  }
-
   export interface FloatFactory {
     /**
      * Show documentations in float window/popup.
@@ -8162,7 +8151,7 @@ declare module 'coc.nvim' {
      * @param docs List of documentations.
      * @param options Configuration for floating window/popup.
      */
-    show: (docs: Documentation[], options?: FloatOptions) => Promise<void>
+    show: (docs: Documentation[], options?: FloatWinConfig) => Promise<void>
     /**
      * Close the float window created by this float factory.
      */
