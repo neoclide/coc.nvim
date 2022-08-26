@@ -2673,6 +2673,30 @@ declare module 'coc.nvim' {
     lineEnd?: number
   }
 
+  export interface VirtualTextOption {
+    /**
+     * Only works on vim9 yet.
+     */
+    col?: number
+    /**
+     * highlight mode
+     */
+    hl_mode?: 'combine' | 'replace' | 'blend'
+    /**
+     * neovim only
+     */
+    virt_text_win_col?: number
+    /**
+     * vim9 only
+     */
+    text_align?: 'after' | 'right' | 'below'
+    /**
+     * vim9 only
+     */
+    text_wrap?: 'wrap' | 'truncate'
+  }
+
+
   interface BaseApi<T> {
     /**
      * unique identify number
@@ -3290,17 +3314,16 @@ declare module 'coc.nvim' {
     setLines(lines: string[], opts: { start: number, end: number, strictIndexing?: boolean }, isNotify: true): void
 
     /**
-     * Set virtual text for a line
+     * Set virtual text for a line use notification, works on both neovim and vim9.
      *
      * @public
-     * @deprecated Use `setExtMark()` instead.
      * @param {number} src_id - Source group to use or 0 to use a new group, or -1
      * @param {number} line - Line to annotate with virtual text (zero-indexed)
      * @param {Chunk[]} chunks - List with [text, hl_group]
      * @param {[index} opts
      * @returns {Promise<number>}
      */
-    setVirtualText(src_id: number, line: number, chunks: [string, string][], opts?: { [index: string]: any }): Promise<number>
+    setVirtualText(src_id: number, line: number, chunks: [string, string][], opts?: VirtualTextOption): void
 
     /**
      * Append a string or list of lines to end of buffer
