@@ -1900,6 +1900,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "qiqiboy",
+      "name": "qiqiboy",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3774036?v=4",
+      "profile": "http://qiqi.boy.im",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
