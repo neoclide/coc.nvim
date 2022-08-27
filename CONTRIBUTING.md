@@ -86,7 +86,7 @@ Once you've filed the PR:
 - Barring special circumstances, maintainers will not review PRs until all checks pass (Travis, AppVeyor, etc).
 - One or more maintainers will use GitHub's review feature to review your PR.
 - If the maintainer asks for any changes, edit your changes, push, and ask for another review. Additional tags (such as `needs-tests`) will be added depending on the review.
-- If the maintainer decides to pass on your PR, they will thank you for the contribution and explain why they won't be accepting the changes. That's ok! We still really appreciate you taking the time to do it, and we don't take that lightly. 💚
+- If the maintainer decides not to pass on your PR, they will thank you for the contribution and explain why they won't be accepting the changes. Please don't feel offended. We still really appreciate you taking the time to do it, and we don't take that lightly. 💚
 - If your PR gets accepted, it will be marked as such, and merged into the `latest` branch soon after. Your contribution will be distributed to the masses next time the maintainers tag a release
 
 ## Provide Support on Issues
