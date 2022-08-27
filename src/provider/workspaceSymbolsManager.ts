@@ -22,7 +22,6 @@ export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvi
     token: CancellationToken
   ): Promise<SymbolInformation[]> {
     let entries = Array.from(this.providers)
-    if (!entries.length) return []
     let infos: SymbolInformation[] = []
     let results = await Promise.allSettled(entries.map(o => {
       let { id, provider } = o

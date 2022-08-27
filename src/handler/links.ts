@@ -53,15 +53,11 @@ export default class Links implements Disposable {
   }
 
   public async getLinks(): Promise<DocumentLink[]> {
-    try {
-      let { doc } = await this.handler.getCurrentState()
-      if (!languages.hasProvider('documentLink', doc.textDocument)) return []
-      let tokenSource = this.tokenSource = new CancellationTokenSource()
-      let links = await languages.getDocumentLinks(doc.textDocument, tokenSource.token)
-      return tokenSource.token.isCancellationRequested ? [] : links
-    } catch (_) {
-      return []
-    }
+    let { doc } = await this.handler.getCurrentState()
+    if (!languages.hasProvider('documentLink', doc.textDocument)) return []
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
+    let links = await languages.getDocumentLinks(doc.textDocument, tokenSource.token)
+    return tokenSource.token.isCancellationRequested ? [] : links
   }
 
   public async openLink(link: DocumentLink): Promise<void> {

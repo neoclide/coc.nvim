@@ -98,33 +98,6 @@ export function asCompletionParams(textDocument: TextDocument, position: Positio
     context: omit(context, ['option']),
   }
 }
-export async function asCompletionList(value: CompletionList, token?: CancellationToken): Promise<CompletionList> {
-  let ts = Date.now()
-  const items: CompletionItem[] = []
-  for (let item of value.items) {
-    if (Date.now() - ts > 15) {
-      await waitImmediate()
-      if (token.isCancellationRequested) break
-      ts = Date.now()
-    }
-    item.data = item.data ?? value.itemDefaults.data
-    item.commitCharacters = item.commitCharacters ?? value.itemDefaults.commitCharacters
-    item.insertTextMode = item.insertTextMode ?? value.itemDefaults.insertTextMode
-    item.insertTextFormat = item.insertTextFormat ?? value.itemDefaults.insertTextFormat
-    const editRange = value.itemDefaults.editRange
-    if (editRange) {
-      item.textEditText = item.textEditText ?? item.label
-      item.insertText = item.insertText ?? item.textEditText
-      if (Range.is(editRange)) {
-        item.textEdit = item.textEdit ?? { range: editRange, newText: item.textEditText }
-      } else {
-        item.textEdit = item.textEdit ?? InsertReplaceEdit.create(item.textEditText, editRange.insert, editRange.replace)
-      }
-    }
-    items.push(item)
-  }
-  return CompletionList.create(items, value.isIncomplete)
-}
 
 export function asTextDocumentPositionParams(textDocument: TextDocument, position: Position): TextDocumentPositionParams {
   return {

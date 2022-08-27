@@ -45,12 +45,12 @@ describe('locations', () => {
       let pos = Position.create(0, 0)
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
-      expect(await languages.getDefinition(doc, pos, token)).toBe(null)
-      expect(await languages.getDefinitionLinks(doc, pos, token)).toBe(null)
-      expect(await languages.getDeclaration(doc, pos, token)).toBe(null)
-      expect(await languages.getTypeDefinition(doc, pos, token)).toBe(null)
-      expect(await languages.getImplementation(doc, pos, token)).toBe(null)
-      expect(await languages.getReferences(doc, { includeDeclaration: false }, pos, token)).toBe(null)
+      expect(await languages.getDefinition(doc, pos, token)).toEqual([])
+      expect(await languages.getDefinitionLinks(doc, pos, token)).toEqual([])
+      expect(await languages.getDeclaration(doc, pos, token)).toEqual([])
+      expect(await languages.getTypeDefinition(doc, pos, token)).toEqual([])
+      expect(await languages.getImplementation(doc, pos, token)).toEqual([])
+      expect(await languages.getReferences(doc, { includeDeclaration: false }, pos, token)).toEqual([])
     })
   })
 
@@ -95,6 +95,26 @@ describe('locations', () => {
 
     it('should get definitions', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
+      disposables.push(languages.registerDefinitionProvider([{ language: '*' }], {
+        provideDefinition: () => {
+          return [createLocation('foo', 0, 0, 0, 0)]
+        }
+      }))
+      disposables.push(languages.registerDefinitionProvider([{ language: '*' }], {
+        provideDefinition: () => {
+          return createLocation('foo', 0, 0, 0, 0)
+        }
+      }))
+      disposables.push(languages.registerDefinitionProvider([{ language: '*' }], {
+        provideDefinition: () => {
+          return [LocationLink.create(`test://foo`, Range.create(0, 0, 0, 0), Range.create(0, 0, 0, 0)), null]
+        }
+      }))
+      disposables.push(languages.registerDefinitionProvider([{ language: '*' }], {
+        provideDefinition: () => {
+          return [LocationLink.create(`test://foo`, Range.create(0, 0, 0, 0), undefined)]
+        }
+      }))
       let res = await locations.definitions()
       expect(res.length).toBe(2)
     })

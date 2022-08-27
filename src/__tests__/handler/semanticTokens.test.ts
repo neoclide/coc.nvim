@@ -170,6 +170,29 @@ afterEach(async () => {
 })
 
 describe('semanticTokens', () => {
+  describe('Provider', () => {
+    it('should return null when range provider not exists', async () => {
+      let doc = await workspace.document
+      let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, Range.create(0, 0, 1, 0), CancellationToken.None)
+      expect(res).toBeNull()
+    })
+
+    it('should return false when not hasSemanticTokensEdits', async () => {
+      let doc = await workspace.document
+      let res = languages.hasSemanticTokensEdits(doc.textDocument)
+      expect(res).toBe(false)
+    })
+
+    it('should return null when semanticTokens provider not exists', async () => {
+      let token = CancellationToken.None
+      let doc = await workspace.document
+      let res = await languages.provideDocumentSemanticTokens(doc.textDocument, token)
+      expect(res).toBeNull()
+      let r = await languages.provideDocumentSemanticTokensEdits(doc.textDocument, '', token)
+      expect(r).toBeNull()
+    })
+  })
+
   describe('showHighlightInfo()', () => {
     it('should show error when buffer not attached', async () => {
       await nvim.command('h')

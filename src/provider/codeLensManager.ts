@@ -6,6 +6,10 @@ import { omit } from '../util/lodash'
 import { CodeLensProvider } from './index'
 import Manager from './manager'
 
+interface CodeLensWithSource extends CodeLens {
+  source?: string
+}
+
 export default class CodeLensManager extends Manager<CodeLensProvider> {
 
   public register(selector: DocumentSelector, provider: CodeLensProvider): Disposable {
@@ -19,9 +23,8 @@ export default class CodeLensManager extends Manager<CodeLensProvider> {
   public async provideCodeLenses(
     document: TextDocument,
     token: CancellationToken
-  ): Promise<CodeLens[] | null> {
+  ): Promise<CodeLensWithSource[] | null> {
     let providers = this.getProviders(document)
-    if (!providers.length) return null
     let codeLens: CodeLens[] = []
     let results = await Promise.allSettled(providers.map(item => {
       let { provider, id } = item
@@ -38,13 +41,12 @@ export default class CodeLensManager extends Manager<CodeLensProvider> {
   }
 
   public async resolveCodeLens(
-    codeLens: CodeLens,
+    codeLens: CodeLensWithSource,
     token: CancellationToken
   ): Promise<CodeLens> {
     // no need to resolve
     if (codeLens.command) return codeLens
-    let { source } = codeLens as any
-    let provider = this.getProviderById(source)
+    let provider = this.getProviderById(codeLens.source)
     if (!provider || typeof provider.resolveCodeLens != 'function') {
       return codeLens
     }

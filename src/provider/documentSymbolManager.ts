@@ -15,9 +15,9 @@ export default class DocumentSymbolManager extends Manager<DocumentSymbolProvide
     })
   }
 
-  public getMetaData(document: TextDocument): DocumentSymbolProviderMetadata {
+  public getMetaData(document: TextDocument): DocumentSymbolProviderMetadata | null {
     let item = this.getProvider(document)
-    if (!item) return {}
+    if (!item) return null
     return item.provider.meta ?? {}
   }
 

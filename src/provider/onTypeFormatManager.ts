@@ -35,7 +35,7 @@ export default class OnTypeFormatManager extends Manager<OnTypeFormattingEditPro
   public async onCharacterType(character: string, document: TextDocument, position: Position, token: CancellationToken): Promise<TextEdit[] | null> {
     let items = this.getProviders(document)
     let item = items.find(o => o.triggerCharacters.includes(character))
-    if (!item) return
+    if (!item) return null
     let formatOpts = await workspace.getFormatOptions(document.uri)
     return await Promise.resolve(item.provider.provideOnTypeFormattingEdits(document, position, character, formatOpts, token))
   }

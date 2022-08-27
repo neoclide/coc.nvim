@@ -33,15 +33,15 @@ export default class SemanticTokensManager extends Manager<DocumentSemanticToken
     return (typeof provider.provideDocumentSemanticTokensEdits === 'function')
   }
 
-  public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
+  public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens | null> {
     let provider = this.getProvider(document)?.provider
     if (!provider || typeof provider.provideDocumentSemanticTokens !== 'function') return null
     return await Promise.resolve(provider.provideDocumentSemanticTokens(document, token))
   }
 
-  public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta> {
-    let provider = this.getProvider(document)?.provider
-    if (!provider || typeof provider.provideDocumentSemanticTokensEdits !== 'function') return null
-    return await Promise.resolve(provider.provideDocumentSemanticTokensEdits(document, previousResultId, token))
+  public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta | null> {
+    let item = this.getProvider(document)
+    if (!item || typeof item.provider.provideDocumentSemanticTokensEdits !== 'function') return null
+    return await Promise.resolve(item.provider.provideDocumentSemanticTokensEdits(document, previousResultId, token))
   }
 }

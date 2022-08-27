@@ -31,8 +31,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
     token: CancellationToken
   ): Promise<ExtendedCodeAction[]> {
     let providers = this.getProviders(document)
-    if (!providers.length) return null
-    if (context.only) {
+    if (context.only && providers.length > 0) {
       let { only } = context
       providers = providers.filter(p => {
         if (Array.isArray(p.kinds) && !p.kinds.some(kind => only.includes(kind))) {
@@ -46,6 +45,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
       let { provider, id } = item
       return Promise.resolve(provider.provideCodeActions(document, range, context, token)).then(actions => {
         if (!actions || actions.length == 0) return
+        let noCheck = res.length === 0
         for (let action of actions) {
           if (Command.is(action)) {
             let codeAction: ExtendedCodeAction = {
@@ -55,19 +55,11 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
             }
             res.push(codeAction)
           } else {
-            if (context.only) {
-              if (!action.kind) continue
-              let found = false
-              for (let only of context.only) {
-                if (action.kind.startsWith(only)) {
-                  found = true
-                  break
-                }
-              }
-              if (!found) continue
+            if (context.only && context.only.length > 0) {
+              let match = context.only.some(k => (action as CodeAction).kind?.startsWith(k))
+              if (!match) continue
             }
-            let idx = res.findIndex(o => o.title == action.title)
-            if (idx == -1) {
+            if (noCheck || res.findIndex(o => o.title == action.title) === -1) {
               res.push(Object.assign({ providerId: id }, action))
             }
           }
@@ -80,10 +72,8 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
 
   public async resolveCodeAction(codeAction: ExtendedCodeAction, token: CancellationToken): Promise<CodeAction> {
     // no need to resolve
-    if (codeAction.edit != null) return codeAction
-    let id = codeAction.providerId
-    if (!id) throw new Error(`provider id not found from codeAction`)
-    let provider = this.getProviderById(id)
+    if (codeAction.edit != null || codeAction.providerId == null) return codeAction
+    let provider = this.getProviderById(codeAction.providerId)
     if (!provider || typeof provider.resolveCodeAction !== 'function') {
       return codeAction
     }

@@ -1,8 +1,8 @@
 'use strict'
-import { Definition, Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import workspace from '../workspace'
 import { equals } from '../util/object'
+import workspace from '../workspace'
 const logger = require('../util/logger')('provider-manager')
 
 export type ProviderItem<T, P = object> = {
@@ -41,8 +41,8 @@ export default class Manager<T, P = object> {
       let { selector, priority } = item
       let score = workspace.match(selector, document)
       if (score == 0) continue
-      if (typeof priority == 'number') {
-        score = priority
+      if (typeof priority == 'number' && priority > 0) {
+        score = score + priority
       }
       if (score < currScore) continue
       currScore = score
@@ -62,12 +62,12 @@ export default class Manager<T, P = object> {
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
   }
 
-  protected addLocation(locations: Location[], location: Location | Location[] | LocationLink[]): void {
+  public addLocation(locations: Location[], location: Location | Location[] | LocationLink[]): void {
     if (Array.isArray(location)) {
       location.forEach(loc => {
         if (Location.is(loc)) {
           addLocation(locations, loc)
-        } else if (LocationLink.is(loc)) {
+        } else if (loc && typeof loc.targetUri === 'string') {
           let { targetUri, targetSelectionRange, targetRange } = loc
           addLocation(locations, Location.create(targetUri, targetSelectionRange ?? targetRange))
         }
@@ -75,28 +75,6 @@ export default class Manager<T, P = object> {
     } else if (Location.is(location)) {
       addLocation(locations, location)
     }
-  }
-
-  protected toLocations(arr: (Definition | LocationLink[] | null)[]): Location[] {
-    let res: Location[] = []
-    for (let def of arr) {
-      if (!def) continue
-      if (Location.is(def)) {
-        addLocation(res, def)
-      } else if (Array.isArray(def)) {
-        for (let d of def) {
-          if (Location.is(d)) {
-            addLocation(res, d)
-          } else if (LocationLink.is(d)) {
-            let { targetUri, targetSelectionRange, targetRange } = d
-            addLocation(res, Location.create(targetUri, targetSelectionRange || targetRange))
-          }
-        }
-      } else {
-        logger.error(`Bad definition`, def)
-      }
-    }
-    return res
   }
 }
 

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import LinksHandler from '../../handler/links'
 import languages from '../../languages'
@@ -62,6 +62,8 @@ describe('Links', () => {
     }))
     let res = await links.getLinks()
     expect(res.length).toBe(2)
+    let link = await languages.resolveDocumentLink(res[0], CancellationToken.None)
+    expect(link).toBeDefined()
   })
 
   it('should throw error when link target not resolved', async () => {
@@ -83,6 +85,20 @@ describe('Links', () => {
       err = e
     }
     expect(err).toBeDefined()
+  })
+
+  it('should return link when resolve undefined', async () => {
+    disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
+      provideDocumentLinks(_doc, _token) {
+        return [DocumentLink.create(Range.create(0, 0, 0, 5), 'foo://1')]
+      },
+      resolveDocumentLink() {
+        return undefined
+      }
+    }))
+    let res = await links.getLinks()
+    let link = await languages.resolveDocumentLink(res[0], CancellationToken.None)
+    expect(link).toBeDefined()
   })
 
   it('should open link at current position', async () => {

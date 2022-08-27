@@ -27,7 +27,6 @@ export default class RenameManager extends Manager<RenameProvider> {
     token: CancellationToken
   ): Promise<WorkspaceEdit | null> {
     let items = this.getProviders(document)
-    if (items.length === 0) return null
     let edit: WorkspaceEdit = null
     for (const item of items) {
       try {

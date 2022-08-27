@@ -71,6 +71,11 @@ describe('InlayHint', () => {
             InlayHint.create(Position.create(5, 0), 'bad')]
         }
       }))
+      disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
+        provideInlayHints: () => {
+          return null
+        }
+      }))
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 3, 0), tokenSource.token)

@@ -30,7 +30,6 @@ export default class SemanticTokensRangeManager extends Manager<DocumentRangeSem
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    if (provider.provideDocumentRangeSemanticTokens === null) return null
     return await Promise.resolve(provider.provideDocumentRangeSemanticTokens(document, range, token))
   }
 }

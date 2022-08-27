@@ -628,7 +628,7 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
       this.diagnosticRequestor.pullWorkspace()
     }
 
-    disposables.push(languages.registerDiagnosticsProvider(options.documentSelector, this.diagnosticRequestor.provider))
+    // disposables.push(languages.registerDiagnosticsProvider(options.documentSelector, this.diagnosticRequestor.provider))
     this.disposable = Disposable.create(() => [...disposables, this.backgroundScheduler, this.diagnosticRequestor].forEach(d => d.dispose()))
   }
 

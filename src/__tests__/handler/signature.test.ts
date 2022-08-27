@@ -38,7 +38,7 @@ describe('signatureHelp', () => {
             activeSignature: null
           }
         }
-      }, []))
+      }))
       await helper.createDocument()
       await nvim.input('foo')
       await signature.triggerSignatureHelp()
@@ -169,12 +169,12 @@ describe('signatureHelp', () => {
             activeSignature: null
           }
         }
-      }, ['(', ',']))
-      await helper.createDocument()
+      }, ['( ,']))
+      let doc = await helper.createDocument()
       await nvim.input('foo(')
-      await helper.wait(100)
+      await doc.synchronize()
       await nvim.input('bar')
-      await helper.wait(100)
+      await doc.synchronize()
       let win = await helper.getFloat()
       expect(win).toBeDefined()
       let lines = await helper.getWinLines(win.id)

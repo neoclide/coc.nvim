@@ -22,7 +22,6 @@ export default class ReferenceManager extends Manager<ReferenceProvider>  {
     token: CancellationToken
   ): Promise<Location[] | null> {
     const providers = this.getProviders(document)
-    if (!providers.length) return []
     let locations: Location[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideReferences(document, position, context, token)).then(location => {

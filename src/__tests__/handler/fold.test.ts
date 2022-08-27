@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, FoldingRange, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, FoldingRange } from 'vscode-languageserver-protocol'
 import FoldHandler from '../../handler/fold'
 import languages from '../../languages'
-import workspace from '../../workspace'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -29,10 +29,10 @@ afterEach(async () => {
 })
 
 describe('Folds', () => {
-  it('should return null when provider does not exist', async () => {
+  it('should return empty array when provider does not exist', async () => {
     let doc = await workspace.document
     let token = (new CancellationTokenSource()).token
-    expect(await languages.provideFoldingRanges(doc.textDocument, {}, token)).toBe(null)
+    expect(await languages.provideFoldingRanges(doc.textDocument, {}, token)).toEqual([])
   })
 
   it('should return false when no fold ranges found', async () => {
@@ -64,7 +64,7 @@ describe('Folds', () => {
     let doc = await workspace.document
     disposables.push(languages.registerFoldingRangeProvider([{ language: '*' }], {
       provideFoldingRanges() {
-        return [FoldingRange.create(1, 3), FoldingRange.create(4, 6)]
+        return [FoldingRange.create(2, 3), FoldingRange.create(4, 6)]
       }
     }))
     disposables.push(languages.registerFoldingRangeProvider([{ language: '*' }], {
@@ -76,6 +76,24 @@ describe('Folds', () => {
     await doc.synchronize()
     let foldingRanges = await languages.provideFoldingRanges(doc.textDocument, {}, CancellationToken.None)
     expect(foldingRanges.length).toBe(4)
+  })
+
+  it('should ignore range start at the same line', async () => {
+    let doc = await workspace.document
+    disposables.push(languages.registerFoldingRangeProvider([{ language: '*' }], {
+      provideFoldingRanges() {
+        return [FoldingRange.create(2, 3), FoldingRange.create(4, 6)]
+      }
+    }))
+    disposables.push(languages.registerFoldingRangeProvider([{ language: '*' }], {
+      provideFoldingRanges() {
+        return [FoldingRange.create(4, 5)]
+      }
+    }))
+    await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']])
+    await doc.synchronize()
+    let foldingRanges = await languages.provideFoldingRanges(doc.textDocument, {}, CancellationToken.None)
+    expect(foldingRanges.length).toBe(2)
   })
 
   it('should fold comment ranges', async () => {

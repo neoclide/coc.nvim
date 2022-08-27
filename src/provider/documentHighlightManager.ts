@@ -21,7 +21,6 @@ export default class DocumentHighlightManager extends Manager<DocumentHighlightP
     token: CancellationToken
   ): Promise<DocumentHighlight[]> {
     let items = this.getProviders(document)
-    if (items.length === 0) return null
     let res: DocumentHighlight[] = null
     for (const item of items) {
       try {

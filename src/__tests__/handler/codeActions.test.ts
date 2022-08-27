@@ -7,6 +7,7 @@ import languages from '../../languages'
 import { ProviderResult } from '../../provider'
 import { disposeAll } from '../../util'
 import { rangeInRange } from '../../util/position'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -126,12 +127,12 @@ describe('handler codeActions', () => {
       let action = CodeAction.create('foo', CodeActionKind.QuickFix)
       action.disabled = { reason: 'disabled' }
       currActions.push(action)
-      action = CodeAction.create('foo', CodeActionKind.QuickFix)
+      action = CodeAction.create('bar', CodeActionKind.QuickFix)
       action.disabled = { reason: 'disabled' }
       currActions.push(action)
       let doc = await helper.createDocument()
       let res = await codeActions.getCodeActions(doc)
-      expect(res.length).toBe(1)
+      expect(res.length).toBe(2)
     })
 
     it('should get all actions', async () => {
@@ -148,6 +149,11 @@ describe('handler codeActions', () => {
         ) => {
           range = r
           return [CodeAction.create('a'), CodeAction.create('b'), CodeAction.create('c')]
+        },
+      }, undefined))
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
+        provideCodeActions: () => {
+          return [CodeAction.create('a')]
         },
       }, undefined))
       let res = await codeActions.getCodeActions(doc)
@@ -329,6 +335,39 @@ describe('handler codeActions', () => {
       await nvim.input('<esc>')
       await codeActions.doCodeAction('v', 'my title')
       expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 3 } })
+    })
+
+    it('should filter by provider kinds', async () => {
+      currActions = []
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
+        provideCodeActions: () => {
+          return [CodeAction.create('my title'), CodeAction.create('b'), CodeAction.create('c')]
+        },
+      }, undefined, [CodeActionKind.QuickFix]))
+      let doc = await workspace.document
+      let res = await languages.getCodeActions(doc.textDocument, Range.create(0, 0, 1, 1), { only: [CodeActionKind.Refactor], diagnostics: [] }, CancellationToken.None)
+      expect(res).toEqual([])
+    })
+
+    it('should filter by codeAction kind', async () => {
+      currActions = []
+      disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
+        provideCodeActions: () => {
+          return [
+            CodeAction.create('my title', CodeActionKind.QuickFix),
+            CodeAction.create('b'),
+            Command.create('command', 'command')
+          ]
+        },
+        resolveCodeAction: () => {
+          return null
+        }
+      }, undefined))
+      let doc = await workspace.document
+      let res = await languages.getCodeActions(doc.textDocument, Range.create(0, 0, 1, 1), { only: [CodeActionKind.QuickFix], diagnostics: [] }, CancellationToken.None)
+      expect(res.length).toBe(2)
+      let resolved = await languages.resolveCodeAction(res[0], CancellationToken.None)
+      expect(resolved).toBeDefined()
     })
   })
 

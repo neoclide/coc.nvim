@@ -1,15 +1,14 @@
 'use strict'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, LinkedEditingRanges, Location, LocationLink, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DiagnosticProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineValuesProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineValuesProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
 import CallHierarchyManager from './provider/callHierarchyManager'
 import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
 import DeclarationManager from './provider/declarationManager'
 import DefinitionManager from './provider/definitionManager'
-import DiagnosticManager from './provider/diagnosticManager'
 import DocumentColorManager from './provider/documentColorManager'
 import DocumentHighlightManager from './provider/documentHighlightManager'
 import DocumentLinkManager from './provider/documentLinkManager'
@@ -30,7 +29,7 @@ import SemanticTokensManager from './provider/semanticTokensManager'
 import SemanticTokensRangeManager from './provider/semanticTokensRangeManager'
 import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
-import TypeHierarchyManager from './provider/typeHierarchyManager'
+import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { ExtendedCodeAction } from './types'
 import { disposeAll } from './util'
@@ -68,7 +67,6 @@ class Languages {
   private linkedEditingManager = new LinkedEditingRangeManager()
   private inlayHintManager = new InlayHintManger()
   private inlineValueManager = new InlineValueManager()
-  private diagnosticManager = new DiagnosticManager()
 
   public hasFormatProvider(doc: TextDocument): boolean {
     if (this.formatManager.hasProvider(doc)) {
@@ -83,7 +81,7 @@ class Languages {
   public registerOnTypeFormattingEditProvider(
     selector: DocumentSelector,
     provider: OnTypeFormattingEditProvider,
-    triggerCharacters: string[] | undefined
+    triggerCharacters?: string[]
   ): Disposable {
     return this.onTypeFormatManager.register(selector, provider, triggerCharacters)
   }
@@ -238,11 +236,6 @@ class Languages {
     return this.inlineValueManager.register(selector, provider)
   }
 
-  public registerDiagnosticsProvider(selector: DocumentSelector, provider: DiagnosticProvider): Disposable {
-    // TODO onDidChangeDiagnostics
-    return this.diagnosticManager.register(selector, provider)
-  }
-
   public registerLinkedEditingRangeProvider(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {
     return this.linkedEditingManager.register(selector, provider)
   }
@@ -272,17 +265,14 @@ class Languages {
   }
 
   public async getTypeDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
-    if (!this.typeDefinitionManager.hasProvider(document)) return null
     return await this.typeDefinitionManager.provideTypeDefinition(document, position, token)
   }
 
   public async getImplementation(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
-    if (!this.implementationManager.hasProvider(document)) return null
     return await this.implementationManager.provideImplementations(document, position, token)
   }
 
   public async getReferences(document: TextDocument, context: ReferenceContext, position: Position, token: CancellationToken): Promise<Location[]> {
-    if (!this.referenceManager.hasProvider(document)) return null
     return await this.referenceManager.provideReferences(document, position, context, token)
   }
 
@@ -290,7 +280,7 @@ class Languages {
     return await this.documentSymbolManager.provideDocumentSymbols(document, token)
   }
 
-  public getDocumentSymbolMetadata(document: TextDocument): DocumentSymbolProviderMetadata {
+  public getDocumentSymbolMetadata(document: TextDocument): DocumentSymbolProviderMetadata | null {
     return this.documentSymbolManager.getMetaData(document)
   }
 
@@ -316,18 +306,18 @@ class Languages {
   }
 
   public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
-    if (!this.formatManager.hasProvider(document)) {
+    let res = await this.formatManager.provideDocumentFormattingEdits(document, options, token)
+    if (res == null) {
       let hasRangeFormatter = this.formatRangeManager.hasProvider(document)
       if (!hasRangeFormatter) return null
       let end = document.positionAt(document.getText().length)
       let range = Range.create(Position.create(0, 0), end)
       return await this.provideDocumentRangeFormattingEdits(document, range, options, token)
     }
-    return await this.formatManager.provideDocumentFormattingEdits(document, options, token)
+    return res
   }
 
   public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions, token: CancellationToken): Promise<TextEdit[]> {
-    if (!this.formatRangeManager.hasProvider(document)) return null
     return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, token)
   }
 
@@ -344,19 +334,18 @@ class Languages {
   }
 
   public async resolveDocumentLink(link: DocumentLink, token: CancellationToken): Promise<DocumentLink> {
-    return await this.documentLinkManager.resolveDocumentLink(link as DocumentLink & { source: string }, token)
+    return await this.documentLinkManager.resolveDocumentLink(link, token)
   }
 
-  public async provideDocumentColors(document: TextDocument, token: CancellationToken): Promise<ColorInformation[] | null> {
+  public async provideDocumentColors(document: TextDocument, token: CancellationToken): Promise<ColorInformation[]> {
     return await this.documentColorManager.provideDocumentColors(document, token)
   }
 
-  public async provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[] | null> {
-    if (!this.foldingRangeManager.hasProvider(document)) return null
+  public async provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[]> {
     return await this.foldingRangeManager.provideFoldingRanges(document, context, token)
   }
 
-  public async provideColorPresentations(color: ColorInformation, document: TextDocument, token: CancellationToken): Promise<ColorPresentation[]> {
+  public async provideColorPresentations(color: ColorInformation, document: TextDocument, token: CancellationToken): Promise<ColorPresentation[] | null> {
     return await this.documentColorManager.provideColorPresentations(color, document, token)
   }
 
@@ -365,7 +354,6 @@ class Languages {
   }
 
   public async resolveCodeLens(codeLens: CodeLens, token: CancellationToken): Promise<CodeLens> {
-    if (codeLens.command != null) return codeLens
     return await this.codeLensManager.resolveCodeLens(codeLens, token)
   }
 
@@ -407,11 +395,11 @@ class Languages {
     return this.semanticTokensManager.hasSemanticTokensEdits(document)
   }
 
-  public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens> {
+  public async provideDocumentSemanticTokens(document: TextDocument, token: CancellationToken): Promise<SemanticTokens | null> {
     return this.semanticTokensManager.provideDocumentSemanticTokens(document, token)
   }
 
-  public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta> {
+  public async provideDocumentSemanticTokensEdits(document: TextDocument, previousResultId: string, token: CancellationToken): Promise<SemanticTokens | SemanticTokensDelta | null> {
     return this.semanticTokensManager.provideDocumentSemanticTokensEdits(document, previousResultId, token)
   }
 
@@ -433,6 +421,22 @@ class Languages {
 
   public async provideLinkedEdits(document: TextDocument, position: Position, token: CancellationToken): Promise<LinkedEditingRanges> {
     return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token)
+  }
+
+  public async provideInlineValues(document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken): Promise<InlineValue[]> {
+    return this.inlineValueManager.provideInlineValues(document, viewPort, context, token)
+  }
+
+  public async prepareTypeHierarchy(document: TextDocument, position: Position, token: CancellationToken): Promise<TypeHierarchyItem[]> {
+    return this.typeHierarchyManager.prepareTypeHierarchy(document, position, token)
+  }
+
+  public async provideTypeHierarchySupertypes(item: TypeHierarchyItemWithSource, token: CancellationToken): Promise<TypeHierarchyItem[]> {
+    return this.typeHierarchyManager.provideTypeHierarchySupertypes(item, token)
+  }
+
+  public async provideTypeHierarchySubtypes(item: TypeHierarchyItemWithSource, token: CancellationToken): Promise<TypeHierarchyItem[]> {
+    return this.typeHierarchyManager.provideTypeHierarchySubtypes(item, token)
   }
 
   public createDiagnosticCollection(owner: string): DiagnosticCollection {
@@ -493,6 +497,10 @@ class Languages {
         return this.linkedEditingManager.hasProvider(document)
       case 'inlayHint':
         return this.inlayHintManager.hasProvider(document)
+      case 'inlineValue':
+        return this.inlineValueManager.hasProvider(document)
+      case 'typeHierarchy':
+        return this.typeHierarchyManager.hasProvider(document)
       default:
         throw new Error(`Invalid provider name: ${id}`)
     }

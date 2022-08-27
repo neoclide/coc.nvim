@@ -19,7 +19,6 @@ export default class CallHierarchyManager extends Manager<CallHierarchyProvider>
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    if (provider.prepareCallHierarchy === null) return null
     return await Promise.resolve(provider.prepareCallHierarchy(document, position, token))
   }
 
@@ -27,7 +26,6 @@ export default class CallHierarchyManager extends Manager<CallHierarchyProvider>
     let providerItem = this.getProvider(document)
     if (!providerItem) return null
     let { provider } = providerItem
-    if (provider.provideCallHierarchyOutgoingCalls === null) return null
     return await Promise.resolve(provider.provideCallHierarchyOutgoingCalls(item, token))
   }
 
@@ -35,8 +33,6 @@ export default class CallHierarchyManager extends Manager<CallHierarchyProvider>
     let providerItem = this.getProvider(document)
     if (!providerItem) return null
     let { provider } = providerItem
-    if (provider.provideCallHierarchyIncomingCalls(item, token) === null) return null
-
     return await Promise.resolve(provider.provideCallHierarchyIncomingCalls(item, token))
   }
 }

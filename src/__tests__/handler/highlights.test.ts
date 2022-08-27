@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentHighlightKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Highlights from '../../handler/highlights'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -64,8 +64,34 @@ describe('document highlights', () => {
     }))
   }
 
-  it('should return null when highlights provide does not exist', async () => {
-    let doc = await helper.createDocument()
+  it('should not throw when provide throws', async () => {
+    disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
+      provideDocumentHighlights: () => {
+        return null
+      }
+    }))
+    disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
+      provideDocumentHighlights: () => {
+        throw new Error('fake error')
+      }
+    }))
+    disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
+      provideDocumentHighlights: () => {
+        return [{
+          range: Range.create(0, 0, 0, 3),
+          kind: DocumentHighlightKind.Read
+        }]
+      }
+    }))
+    let doc = await workspace.document
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
+    let res = await highlights.getHighlights(doc, Position.create(0, 0))
+    expect(res).toBeDefined()
+  })
+
+  it('should return null when highlights provide not exist', async () => {
+    let doc = await workspace.document
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     let res = await highlights.getHighlights(doc, Position.create(0, 0))
     expect(res).toBeNull()
   })

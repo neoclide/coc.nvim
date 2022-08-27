@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
 import events from '../../events'
 import CodeLensBuffer, { getCommands } from '../../handler/codelens/buffer'
@@ -55,6 +55,12 @@ async function createBufferWithCodeLens(): Promise<CodeLensBuffer> {
 }
 
 describe('codeLenes featrue', () => {
+  it('should return codeLenes when not resolve exists', async () => {
+    let codeLens = CodeLens.create(Range.create(0, 0, 1, 1))
+    let resolved = await languages.resolveCodeLens(codeLens, CancellationToken.None)
+    expect(resolved).toBeDefined()
+  })
+
   it('should do codeLenes request and resolve codeLenes', async () => {
     let buf = await createBufferWithCodeLens()
     let doc = await workspace.document

@@ -22,7 +22,6 @@ export default class DeclarationManager extends Manager<DeclarationProvider> {
     token: CancellationToken
   ): Promise<Location[] | null> {
     const providers = this.getProviders(document)
-    if (!providers.length) return null
     let locations: Location[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideDeclaration(document, position, token)).then(location => {

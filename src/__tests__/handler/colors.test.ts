@@ -9,6 +9,7 @@ import { ProviderResult } from '../../provider'
 import { disposeAll } from '../../util'
 import path from 'path'
 import helper from '../helper'
+import workspace from '../../workspace'
 
 let nvim: Neovim
 let state = 'normal'
@@ -20,7 +21,7 @@ beforeAll(async () => {
   nvim = helper.nvim
   await nvim.command(`source ${path.join(process.cwd(), 'autoload/coc/color.vim')}`)
   colors = helper.plugin.getHandler().colors
-  disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
+  languages.registerDocumentColorProvider([{ language: '*' }], {
     provideColorPresentations: (
       _color: Color,
       _context: { document: TextDocument; range: Range },
@@ -42,7 +43,7 @@ beforeAll(async () => {
         }
       })
     }
-  }))
+  })
 })
 
 beforeEach(() => {
@@ -50,12 +51,13 @@ beforeEach(() => {
 })
 
 afterAll(async () => {
-  disposeAll(disposables)
   await helper.shutdown()
 })
 
 afterEach(async () => {
+  state = 'normal'
   colorPresentations = []
+  disposeAll(disposables)
   await helper.reset()
 })
 
@@ -110,6 +112,37 @@ describe('Colors', () => {
   })
 
   describe('doHighlight', () => {
+    it('should merge colors of providers', async () => {
+      disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
+        provideColorPresentations: (): ColorPresentation[] => colorPresentations,
+        provideDocumentColors: (
+        ): ProviderResult<ColorInformation[]> => {
+          return [{
+            range: Range.create(0, 0, 1, 0),
+            color: getColor(0, 0, 0)
+          }, {
+            range: Range.create(0, 0, 0, 7),
+            color: getColor(1, 1, 1)
+          }]
+        }
+      }))
+      disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
+        provideColorPresentations: (): ColorPresentation[] => colorPresentations,
+        provideDocumentColors: (
+        ): ProviderResult<ColorInformation[]> => {
+          return null
+        }
+      }))
+      let doc = await workspace.document
+      await nvim.setLine('#ffffff #ff0000')
+      await doc.synchronize()
+      let colors = await languages.provideDocumentColors(doc.textDocument, CancellationToken.None)
+      expect(colors.length).toBe(3)
+      let color = ColorInformation.create(Range.create(0, 0, 1, 0), getColor(0, 0, 0))
+      let presentation = await languages.provideColorPresentations(color, doc.textDocument, CancellationToken.None)
+      expect(presentation).toBeNull()
+    })
+
     it('should clearHighlight on empty result', async () => {
       let doc = await helper.createDocument()
       await nvim.setLine('#ffffff')
@@ -117,7 +150,6 @@ describe('Colors', () => {
       await colors.doHighlight(doc.bufnr)
       let res = colors.hasColor(doc.bufnr)
       expect(res).toBe(false)
-      state = 'normal'
     })
 
     it('should not throw on error result', async () => {
@@ -131,7 +163,6 @@ describe('Colors', () => {
         err = e
       }
       expect(err).toBeUndefined()
-      state = 'normal'
     })
 
     it('should highlight after document changed', async () => {

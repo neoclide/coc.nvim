@@ -43,8 +43,10 @@ export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
 
   public async resolveDocumentLink(link: DocumentLinkWithSource, token: CancellationToken): Promise<DocumentLink> {
     let provider = this.getProviderById(link.source)
-    let resolved = await Promise.resolve(provider.resolveDocumentLink(omit(link, ['source']), token))
-    if (resolved) Object.assign(link, resolved)
+    if (typeof provider.resolveDocumentLink === 'function') {
+      let resolved = await Promise.resolve(provider.resolveDocumentLink(omit(link, ['source']), token))
+      if (resolved) Object.assign(link, resolved)
+    }
     return link
   }
 }

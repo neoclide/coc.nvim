@@ -22,7 +22,6 @@ export default class DefinitionManager extends Manager<DefinitionProvider> {
     token: CancellationToken
   ): Promise<Location[] | null> {
     const providers = this.getProviders(document)
-    if (!providers.length) return null
     let locations: Location[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideDefinition(document, position, token)).then(location => {
@@ -39,7 +38,6 @@ export default class DefinitionManager extends Manager<DefinitionProvider> {
     token: CancellationToken
   ): Promise<DefinitionLink[] | null> {
     const providers = this.getProviders(document)
-    if (!providers.length) return null
     let locations: DefinitionLink[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideDefinition(document, position, token)).then(location => {

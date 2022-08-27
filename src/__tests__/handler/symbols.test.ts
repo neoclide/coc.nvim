@@ -90,6 +90,13 @@ describe('symbols handler', () => {
   })
 
   describe('documentSymbols', () => {
+    it('should get empty metadata when provider not found', async () => {
+      disposeAll(disposables)
+      let doc = await workspace.document
+      let res = languages.getDocumentSymbolMetadata(doc.textDocument)
+      expect(res).toBeNull()
+    })
+
     it('should get symbols of current buffer', async () => {
       let code = `class detail {
       fun1() { }
@@ -268,13 +275,24 @@ describe('symbols handler', () => {
       }))
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: (_query, _token) => {
-          return [SymbolInformation.create('bar', SymbolKind.Function, Range.create(0, 0, 0, 0), '')]
+          return null
         }
       }))
       let res = await symbols.getWorkspaceSymbols('a')
-      expect(res.length).toBe(2)
+      expect(res.length).toBe(1)
       let resolved = await symbols.resolveWorkspaceSymbol(res[0])
       expect(resolved?.location?.uri).toBe('test:///foo')
+    })
+
+    it('should return symbol when resolve failed', async () => {
+      disposables.push(languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols: (_query, _token) => {
+          return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0), '')]
+        }
+      }))
+      let res = await symbols.getWorkspaceSymbols('a')
+      let resolved = await symbols.resolveWorkspaceSymbol(res[0])
+      expect(resolved).toBeDefined()
     })
   })
 })

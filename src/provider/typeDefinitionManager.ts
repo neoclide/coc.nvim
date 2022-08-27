@@ -21,7 +21,6 @@ export default class TypeDefinitionManager extends Manager<TypeDefinitionProvide
     token: CancellationToken
   ): Promise<Location[] | null> {
     const providers = this.getProviders(document)
-    if (!providers.length) return null
     let locations: Location[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideTypeDefinition(document, position, token)).then(location => {

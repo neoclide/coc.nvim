@@ -1,9 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import Rename from '../../handler/rename'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -172,6 +173,17 @@ describe('rename handler', () => {
       await nvim.input('<cr>')
       let res = await p
       expect(res).toBe(false)
+    })
+
+    it('should not throw when provideRenameEdits throws', async () => {
+      disposables.push(languages.registerRenameProvider([{ language: '*' }], {
+        provideRenameEdits: () => {
+          throw new Error('error')
+        },
+      }))
+      let doc = await workspace.document
+      let res = await languages.provideRenameEdits(doc.textDocument, Position.create(0, 0), 'newName', CancellationToken.None)
+      expect(res).toBeNull()
     })
 
     it('should use newName from range', async () => {

@@ -31,24 +31,19 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
     document: TextDocument,
     range: Range,
     token: CancellationToken
-  ): Promise<InlayHintWithProvider[] | null> {
+  ): Promise<InlayHintWithProvider[]> {
     let items = this.getProviders(document)
-    if (items.length === 0) return null
     let inlayHints: InlayHintWithProvider[] = []
-    let finished = 0
     let results = await Promise.allSettled(items.map(item => {
       let { id, provider } = item
       return Promise.resolve(provider.provideInlayHints(document, range, token)).then(hints => {
         if (!Array.isArray(hints) || token.isCancellationRequested) return
+        let noCheck = inlayHints.length == 0
         for (let hint of hints) {
           if (!isValidInlayHint(hint, range)) continue
-          if (finished > 0 && inlayHints.findIndex(o => sameHint(o, hint)) != -1) continue
-          inlayHints.push({
-            providerId: id,
-            ...hint
-          })
+          if (!noCheck && inlayHints.findIndex(o => sameHint(o, hint)) != -1) continue
+          inlayHints.push({ providerId: id, ...hint })
         }
-        finished += 1
       })
     }))
     this.handleResults(results, 'provideInlayHints')

@@ -556,6 +556,7 @@ export default class ListSession {
         this.nvim.command('redraw', true)
       }
     } catch (e) {
+      logger.error(`Error on action ${action.name}`, e)
       this.nvim.echoError(e)
     }
   }

@@ -5,7 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { TypeHierarchyProvider } from './index'
 import Manager from './manager'
 
-interface TypeHierarchyItemWithSource extends TypeHierarchyItem {
+export interface TypeHierarchyItemWithSource extends TypeHierarchyItem {
   source?: string
 }
 
@@ -26,20 +26,18 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
    */
   public async prepareTypeHierarchy(document: TextDocument, position: Position, token: CancellationToken): Promise<TypeHierarchyItem[]> {
     const items = this.getProviders(document)
-    if (items.length === 0) return []
     let hierarchyItems: TypeHierarchyItemWithSource[] = []
-    let index = 0
     let results = await Promise.allSettled(items.map(item => {
       let { provider, id } = item
       return Promise.resolve(provider.prepareTypeHierarchy(document, position, token)).then(arr => {
         if (Array.isArray(arr)) {
-          arr.forEach(hierarchyItem => {
-            if (index == 0 || !hierarchyItems.some(o => o.name === hierarchyItem.name)) {
-              hierarchyItems.push(Object.assign({ source: id }, hierarchyItem))
+          let noCheck = hierarchyItems.length === 0
+          arr.forEach(item => {
+            if (noCheck || hierarchyItems.every(o => o.name !== item.name)) {
+              hierarchyItems.push(Object.assign({ source: id }, item))
             }
           })
         }
-        index++
       })
     }))
     this.handleResults(results, 'prepareTypeHierarchy')
@@ -47,12 +45,30 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
   }
 
   public async provideTypeHierarchySupertypes(item: TypeHierarchyItemWithSource, token: CancellationToken): Promise<TypeHierarchyItem[]> {
-    const provider = this.getProviderById(item.source)
-    return await Promise.resolve(provider.provideTypeHierarchySupertypes(item, token))
+    let { source } = item
+    const provider = this.getProviderById(source)
+    if (!provider) return []
+    return await Promise.resolve(provider.provideTypeHierarchySupertypes(item, token)).then(arr => {
+      if (Array.isArray(arr)) {
+        return arr.map(item => {
+          return Object.assign({ source }, item)
+        })
+      }
+      return []
+    })
   }
 
   public async provideTypeHierarchySubtypes(item: TypeHierarchyItemWithSource, token: CancellationToken): Promise<TypeHierarchyItem[]> {
-    const provider = this.getProviderById(item.source)
-    return await Promise.resolve(provider.provideTypeHierarchySubtypes(item, token))
+    let { source } = item
+    const provider = this.getProviderById(source)
+    if (!provider) return []
+    return await Promise.resolve(provider.provideTypeHierarchySubtypes(item, token)).then(arr => {
+      if (Array.isArray(arr)) {
+        return arr.map(item => {
+          return Object.assign({ source }, item)
+        })
+      }
+      return []
+    })
   }
 }

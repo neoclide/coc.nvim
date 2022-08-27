@@ -21,7 +21,6 @@ export default class ImplementationManager extends Manager<ImplementationProvide
     token: CancellationToken
   ): Promise<Location[]> {
     const providers = this.getProviders(document)
-    if (!providers.length) return []
     let locations: Location[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideImplementation(document, position, token)).then(location => {

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Format from '../../handler/format'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
@@ -21,19 +21,25 @@ beforeEach(() => {
   helper.updateConfiguration('coc.preferences.formatOnType', true)
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
 afterEach(async () => {
   await helper.reset()
   disposeAll(disposables)
 })
 
+afterAll(async () => {
+  await helper.shutdown()
+})
+
 describe('format handler', () => {
   describe('documentFormat', () => {
+    it('should return null when format provider not exists', async () => {
+      let doc = await workspace.document
+      let res = await languages.provideDocumentFormattingEdits(doc.textDocument, { insertSpaces: false, tabSize: 2 }, CancellationToken.None)
+      expect(res).toBeNull()
+    })
+
     it('should throw when provider not found', async () => {
-      let doc = await helper.createDocument()
+      let doc = await workspace.document
       let err
       try {
         await format.documentFormat(doc)
@@ -53,6 +59,22 @@ describe('format handler', () => {
       let res = await format.documentFormat(doc)
       expect(res).toBe(false)
     })
+
+    it('should use provider that have higher score', async () => {
+      disposables.push(languages.registerDocumentFormatProvider([{ language: 'vim' }], {
+        provideDocumentFormattingEdits: () => {
+          return [TextEdit.insert(Position.create(0, 0), '  ')]
+        }
+      }))
+      disposables.push(languages.registerDocumentFormatProvider(['*'], {
+        provideDocumentFormattingEdits: () => {
+          return []
+        }
+      }))
+      let doc = await helper.createDocument('t.vim')
+      let res = await languages.provideDocumentFormattingEdits(doc.textDocument, { tabSize: 2, insertSpaces: false }, CancellationToken.None)
+      expect(res.length).toBe(1)
+    })
   })
 
   describe('formatOnSave', () => {
@@ -63,7 +85,6 @@ describe('format handler', () => {
       await nvim.command('setf javascript')
       await nvim.setLine('foo')
       await nvim.command('silent w')
-      await helper.wait(100)
     })
 
     it('should invoke format on save', async () => {
@@ -131,7 +152,7 @@ describe('format handler', () => {
             return TextEdit.insert(Position.create(i, 0), '  ')
           })
         }
-      }))
+      }, 1))
       let doc = await helper.createDocument()
       await nvim.call('setline', [1, ['a', 'b', 'c']])
       await nvim.command('setf text')
@@ -184,19 +205,26 @@ describe('format handler', () => {
     })
 
     it('should does format on type', async () => {
+      let doc = await workspace.document
       disposables.push(languages.registerOnTypeFormattingEditProvider(['text'], {
         provideOnTypeFormattingEdits: () => {
           return [TextEdit.insert(Position.create(0, 0), '  ')]
         }
       }, ['|']))
+      let res = languages.canFormatOnType('a', doc.textDocument)
+      expect(res).toBe(false)
       await helper.edit()
       await nvim.command('setf text')
       await nvim.input('i|')
-      await helper.wait(200)
-      let line = await nvim.line
-      expect(line).toBe('  |')
+      await helper.waitFor('getline', ['.'], '  |')
       let cursor = await window.getCursorPosition()
       expect(cursor).toEqual({ line: 0, character: 3 })
+    })
+
+    it('should return null when provider not found', async () => {
+      let doc = await workspace.document
+      let res = await languages.provideDocumentOnTypeEdits('|', doc.textDocument, Position.create(0, 0), CancellationToken.None)
+      expect(res).toBeNull()
     })
 
     it('should adjust cursor after format on type', async () => {
@@ -208,13 +236,16 @@ describe('format handler', () => {
           ]
         }
       }, ['|']))
+      disposables.push(languages.registerOnTypeFormattingEditProvider([{ language: '*' }], {
+        provideOnTypeFormattingEdits: () => {
+          return []
+        }
+      }))
       await helper.edit()
       await nvim.command('setf text')
       await nvim.setLine('"')
       await nvim.input('i|')
-      await helper.wait(100)
-      let line = await nvim.line
-      expect(line).toBe('  |"end')
+      await helper.waitFor('getline', ['.'], '  |"end')
       let cursor = await window.getCursorPosition()
       expect(cursor).toEqual({ line: 0, character: 3 })
     })
@@ -232,7 +263,7 @@ describe('format handler', () => {
       await nvim.command(`normal! gg$`)
       await nvim.input('i')
       await nvim.eval(`feedkeys("\\<CR>", 'im')`)
-      await helper.wait(100)
+      await helper.waitFor('getline', [1], 'let foo={')
       let lines = await buf.lines
       expect(lines).toEqual(['let foo={', '  \\ ', '  \\ }'])
     })
@@ -244,7 +275,7 @@ describe('format handler', () => {
       await nvim.command(`normal! gg$`)
       await nvim.input('i')
       await nvim.eval(`feedkeys("\\<CR>", 'im')`)
-      await helper.wait(100)
+      await helper.waitFor('getline', [1], '  {')
       let lines = await buf.lines
       expect(lines).toEqual(['  {', '  ', '  }'])
     })

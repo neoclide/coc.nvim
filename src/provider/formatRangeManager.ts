@@ -9,7 +9,7 @@ export default class FormatRangeManager extends Manager<DocumentRangeFormattingE
 
   public register(selector: DocumentSelector,
     provider: DocumentRangeFormattingEditProvider,
-    priority = 0): Disposable {
+    priority: number): Disposable {
     return this.addProvider({
       id: uuid(),
       selector,
@@ -18,6 +18,11 @@ export default class FormatRangeManager extends Manager<DocumentRangeFormattingE
     })
   }
 
+  /**
+   * Multiple providers can be registered for a language. In that case providers are sorted
+   * by their {@link languages.match score} and the best-matching provider is used. Failure
+   * of the selected provider will cause a failure of the whole operation.
+   */
   public async provideDocumentRangeFormattingEdits(
     document: TextDocument,
     range: Range,

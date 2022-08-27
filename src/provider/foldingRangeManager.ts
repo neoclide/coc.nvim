@@ -23,7 +23,6 @@ export default class FoldingRangeManager extends Manager<FoldingRangeProvider>  
    */
   public async provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[] | null> {
     let items = this.getProviders(document)
-    if (items.length === 0) return null
     let ranges: FoldingRange[] = []
     let results = await Promise.allSettled(items.map(item => {
       return Promise.resolve(item.provider.provideFoldingRanges(document, context, token)).then(res => {
@@ -55,8 +54,10 @@ function getParent(line: number, sortedRanges: FoldingRange[]): FoldingRange | u
       if (line <= r.endLine) {
         return r
       } else {
-        break
+        continue
       }
+    } else {
+      break
     }
   }
   return undefined

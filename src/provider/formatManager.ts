@@ -7,7 +7,7 @@ import Manager from './manager'
 
 export default class FormatManager extends Manager<DocumentFormattingEditProvider> {
 
-  public register(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0): Disposable {
+  public register(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority: number): Disposable {
     return this.addProvider({
       id: uuid(),
       selector,

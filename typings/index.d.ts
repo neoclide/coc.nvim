@@ -3821,6 +3821,7 @@ declare module 'coc.nvim' {
     | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
     | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
     | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
+    | 'inlayHint' | 'inlineValue' | 'typeHierarchy'
 
   /**
    * The completion item provider interface defines the contract between extensions and

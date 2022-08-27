@@ -56,7 +56,7 @@ export default class SelectionRangeManager extends Manager<SelectionRangeProvide
     }
     for (let i = 0; i < selectionRanges.length - 1; i++) {
       let r = selectionRanges[i]
-      if (!r.parent) r.parent = selectionRanges[i + 1]
+      r.parent = selectionRanges[i + 1]
     }
     return selectionRanges
   }
