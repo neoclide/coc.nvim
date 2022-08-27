@@ -116,9 +116,6 @@ function! coc#util#check_refresh(bufnr)
   if getbufvar(a:bufnr, 'coc_diagnostic_disable', 0)
     return 0
   endif
-  if get(g: , 'EasyMotion_loaded', 0)
-    return EasyMotion#is_active() != 1
-  endif
   return 1
 endfunction
 
