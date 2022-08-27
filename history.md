@@ -1,3 +1,8 @@
+# 2022-08-27
+
+- Avoid use `EasyMotion#is_active`, use autocmd to disable linting.
+- Show message when call hierarchy provider not found or bad position.
+
 # 2022-08-26
 
 - Remove `completeOpt` from `workspace.env`.
