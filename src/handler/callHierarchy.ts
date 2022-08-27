@@ -12,6 +12,7 @@ import BasicTreeView from '../tree/TreeView'
 import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { omit } from '../util/lodash'
+import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('Handler-callHierarchy')
 
@@ -33,7 +34,7 @@ interface CallHierarchyProvider extends TreeDataProvider<CallHierarchyDataItem> 
 }
 
 function isCallHierarchyItem(item: any): item is CallHierarchyItem {
-  if (item && item.name && item.kind && Range.is(item.range) && item.uri) return true
+  if (item && typeof item.name === 'string' && item.kind && Range.is(item.range)) return true
   return false
 }
 
@@ -87,10 +88,9 @@ export default class CallHierarchyHandler {
     }
   }
 
-  private createProvider(doc: TextDocument, winid: number, position: Position, kind: 'incoming' | 'outgoing'): CallHierarchyProvider {
+  private createProvider(rootItems: CallHierarchyDataItem[], doc: TextDocument, winid: number, position: Position, kind: 'incoming' | 'outgoing'): CallHierarchyProvider {
     let _onDidChangeTreeData = new Emitter<void | CallHierarchyDataItem>()
     let source: CancellationTokenSource | undefined
-    let rootItems: CallHierarchyDataItem[] | undefined
     const cancel = () => {
       if (source) {
         source.cancel()
@@ -131,10 +131,6 @@ export default class CallHierarchyHandler {
         source = new CancellationTokenSource()
         let { token } = source
         if (!element) {
-          if (!rootItems) {
-            rootItems = await this.prepare(doc, position, token) as CallHierarchyDataItem[]
-            if (!rootItems?.length) return
-          }
           for (let o of rootItems) {
             let children = await this.getChildren(doc, o, provider.kind, token)
             if (token.isCancellationRequested) break
@@ -221,7 +217,7 @@ export default class CallHierarchyHandler {
       await doc.synchronize()
       let res = await this.prepare(doc.textDocument, position, source.token)
       item = res ? res[0] : undefined
-      if (!res) return undefined
+      if (!res) throw new Error('Unable to getCallHierarchyItem at current position')
     }
     let method = kind == 'incoming' ? 'provideIncomingCalls' : 'provideOutgoingCalls'
     return await languages[method](doc.textDocument, item, source.token)
@@ -238,7 +234,17 @@ export default class CallHierarchyHandler {
   public async showCallHierarchyTree(kind: 'incoming' | 'outgoing'): Promise<void> {
     const { doc, position, winid } = await this.handler.getCurrentState()
     await doc.synchronize()
-    let provider = this.createProvider(doc.textDocument, winid, position, kind)
+    if (!languages.hasProvider('callHierarchy', doc.textDocument)) {
+      void window.showErrorMessage(`CallHierarchy provider not found for current document, it's not supported by your languageserver`)
+      return
+    }
+    const res = await languages.prepareCallHierarchy(doc.textDocument, position, CancellationToken.None)
+    const rootItems: CallHierarchyItem[] = isCallHierarchyItem(res) ? [res] : res
+    if (!Array.isArray(rootItems) || rootItems.length == 0) {
+      void window.showWarningMessage('Unable to get CallHierarchyItem at cursor position.')
+      return
+    }
+    let provider = this.createProvider(rootItems, doc.textDocument, winid, position, kind)
     let treeView = new BasicTreeView('calls', { treeDataProvider: provider })
     treeView.title = `${kind.toUpperCase()} CALLS`
     provider.onDidChangeTreeData(e => {

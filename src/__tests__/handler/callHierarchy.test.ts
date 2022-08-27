@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, CallHierarchyItem, SymbolKind, Range, SymbolTag } from 'vscode-languageserver-protocol'
+import { Disposable, CallHierarchyItem, SymbolKind, Range, SymbolTag, CancellationToken, Position } from 'vscode-languageserver-protocol'
 import CallHierarchyHandler from '../../handler/callHierarchy'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -46,7 +46,20 @@ describe('CallHierarchy', () => {
     expect(err).toBeDefined()
   })
 
-  it('should get undefined when prepare failed', async () => {
+  it('should return null when provider not exist', async () => {
+    let token = CancellationToken.None
+    let doc = await workspace.document
+    let res: any
+    res = await languages.prepareCallHierarchy(doc.textDocument, Position.create(0, 0), token)
+    expect(res).toBeNull()
+    let item = createCallItem('name', SymbolKind.Class, doc.uri, Range.create(0, 0, 1, 0))
+    res = await languages.provideOutgoingCalls(doc.textDocument, item, token)
+    expect(res).toBeNull()
+    res = await languages.provideIncomingCalls(doc.textDocument, item, token)
+    expect(res).toBeNull()
+  })
+
+  it('should throw when prepare failed', async () => {
     disposables.push(languages.registerCallHierarchyProvider([{ language: '*' }], {
       prepareCallHierarchy() {
         return undefined
@@ -58,8 +71,10 @@ describe('CallHierarchy', () => {
         return []
       }
     }))
-    let res = await callHierarchy.getOutgoing()
-    expect(res).toBeUndefined()
+    let fn = async () => {
+      await callHierarchy.getOutgoing()
+    }
+    await expect(fn()).rejects.toThrow(Error)
   })
 
   it('should get incoming & outgoing callHierarchy items', async () => {
@@ -89,18 +104,16 @@ describe('CallHierarchy', () => {
     expect(res.length).toBe(1)
   })
 
-  it('should show message when provider does not exist', async () => {
+  it('should show warning when provider does not exist', async () => {
     await callHierarchy.showCallHierarchyTree('incoming')
-    let buf = await nvim.buffer
-    let lines = await buf.lines
-    expect(lines[0]).toMatch('callHierarchy provider not found')
-    await nvim.command('wincmd p')
+    let line = await helper.getCmdline()
+    expect(line).toMatch('not found')
   })
 
-  it('should no results when no result returned.', async () => {
+  it('should show message when no result returned.', async () => {
     disposables.push(languages.registerCallHierarchyProvider([{ language: '*' }], {
       prepareCallHierarchy() {
-        return []
+        return null
       },
       provideCallHierarchyIncomingCalls() {
         return []
@@ -110,10 +123,8 @@ describe('CallHierarchy', () => {
       }
     }))
     await callHierarchy.showCallHierarchyTree('incoming')
-    let buf = await nvim.buffer
-    let lines = await buf.lines
-    expect(lines[0]).toBe('No results')
-    await nvim.command('wincmd p')
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Unable')
   })
 
   it('should render description and support default action', async () => {
