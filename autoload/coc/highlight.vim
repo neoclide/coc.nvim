@@ -468,6 +468,22 @@ function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   return hlGroup
 endfunction
 
+" hlGroup id, key => 'fg' | 'bg', kind => 'cterm' | 'gui'
+function! coc#highlight#get_color(id, key, kind) abort
+  if synIDattr(a:id, 'reverse', a:kind) !=# '1'
+    return synIDattr(a:id, a:key, a:kind)
+  endif
+  return  synIDattr(a:id, a:key ==# 'bg' ? 'fg' : 'bg', a:kind)
+endfunction
+
+function! coc#highlight#get_hl_command(id, key, cterm, gui) abort
+  let cterm = coc#highlight#get_color(a:id, a:key, 'cterm')
+  let gui = coc#highlight#get_color(a:id, a:key, 'gui')
+  let cmd = ' cterm'.a:key.'=' . (empty(cterm) ? a:cterm : cterm)
+  let cmd .= ' gui'.a:key.'=' . (empty(gui) ? a:gui : gui)
+  return cmd
+endfunction
+
 " add matches for winid, use 0 for current window.
 function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) abort
   let winid = a:winid == 0 ? win_getid() : a:winid
