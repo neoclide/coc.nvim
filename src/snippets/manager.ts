@@ -9,7 +9,7 @@ import { emptyRange, rangeInRange, rangeOverlap } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
-import { SnippetSession } from './session'
+import { SnippetSession, SnippetConfig } from './session'
 import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
 const logger = require('../util/logger')('snippets-manager')
@@ -18,9 +18,6 @@ export class SnippetManager {
   private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
   private statusItem: StatusBarItem
-  private highlight: boolean
-  private nextOnDelete: boolean
-  private preferComplete: boolean
 
   constructor() {
     events.on('InsertCharPre', () => {
@@ -45,11 +42,6 @@ export class SnippetManager {
       let session = this.getSession(e.bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('suggest') || e.affectsConfiguration('coc.preferences')) {
-        this.init()
-      }
-    }, null, this.disposables)
   }
 
   private get nvim(): Neovim {
@@ -59,11 +51,19 @@ export class SnippetManager {
   public init(): void {
     if (!this.statusItem) this.statusItem = window.createStatusBarItem(0)
     let config = workspace.getConfiguration('coc.preferences')
-    this.statusItem.text = config.get<string>('snippetStatusText', 'SNIP')
-    this.highlight = config.get<boolean>('snippetHighlight', false)
-    this.nextOnDelete = config.get<boolean>('nextPlaceholderOnDelete', false)
-    let suggest = workspace.getConfiguration('suggest')
-    this.preferComplete = suggest.get('preferCompleteThanJumpPlaceholder', false)
+    const snippetConfig = workspace.getConfiguration('snippet')
+    this.statusItem.text = config.get<string>('snippetStatusText', snippetConfig.get<string>('statusText', 'SNIP'))
+  }
+
+  private getSnippetConfig(resource: string): SnippetConfig {
+    let config = workspace.getConfiguration('coc.preferences', resource)
+    const snippetConfig = workspace.getConfiguration('snippet', resource)
+    const suggest = workspace.getConfiguration('suggest', resource)
+    return {
+      highlight: config.get<boolean>('snippetHighlight', snippetConfig.get<boolean>('highlight', false)),
+      nextOnDelete: config.get<boolean>('nextPlaceholderOnDelete', snippetConfig.get<boolean>('.nextPlaceholderOnDelete', false)),
+      preferComplete: suggest.get<boolean>('preferCompleteThanJumpPlaceholder', false)
+    }
   }
 
   /**
@@ -103,7 +103,8 @@ export class SnippetManager {
       await doc.patchChange(true)
     }
     if (!session) {
-      session = new SnippetSession(this.nvim, doc, this.highlight, this.preferComplete, this.nextOnDelete)
+      let config = this.getSnippetConfig(doc.uri)
+      session = new SnippetSession(this.nvim, doc, config)
       session.onCancel(() => {
         this.sessionMap.delete(bufnr)
         this.statusItem.hide()

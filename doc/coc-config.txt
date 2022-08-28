@@ -259,7 +259,31 @@ Completion related~
 		"typeParameter": "\uf728",
 		"default": "\uf29c"
 	}
-<
+
+------------------------------------------------------------------------------
+Snippet related~
+							*coc-config-snippet*
+"snippet.highlight"					*coc-config-snippet-highlight*
+
+	Use highlight group 'CocSnippetVisual' to highlight placeholders with
+	same index of current one.
+
+	default: `false`
+
+"snippet.statusText"					*coc-config-snippet-statusText*
+
+	Text shown in 'statusline' to indicate snippet session is activate.
+	Check |coc-status| for statusline integration.
+
+	Default: `"SNIP"`
+
+"snippet.nextPlaceholderOnDelete"			*coc-config-snippet-nextPlaceholderOnDelete*
+
+	Automatically jump to the next placeholder when the current one is
+	completely deleted.
+
+	default: `false`
+
 ------------------------------------------------------------------------------
 Document highlight~
 							*coc-config-documentHighlight*
@@ -899,27 +923,6 @@ Preferences~
 	Interval for checking extension updates, default: `"never"`
 
 	Valid options: ["daily","weekly","never"]
-
-"coc.preferences.snippetHighlight"			*coc-preferences-snippetHighlight*
-
-	Use highlight group 'CocSnippetVisual' to highlight placeholders with
-	same index of current one.
-
-	default: `false`
-
-"coc.preferences.snippetStatusText"			*coc-preferences-snippetStatusText*
-
-	Text shown in 'statusline' to indicate snippet session is activate.
-	Check |coc-status| for statusline integration.
-
-	Default: `"SNIP"`
-
-"coc.preferences.nextPlaceholderOnDelete"		*coc-preferences-nextPlaceholderOnDelete*
-
-	Automatically jump to the next placeholder when the current one is
-	completely deleted.
-
-	default: `false`
 
 "coc.preferences.currentFunctionSymbolAutoUpdate"	*coc-preferences-currentFunctionSymbolAutoUpdate*
 

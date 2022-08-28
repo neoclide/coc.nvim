@@ -125,8 +125,7 @@ describe('snippet provider', () => {
     })
 
     it('should respect preferCompleteThanJumpPlaceholder', async () => {
-      let config = workspace.getConfiguration('suggest')
-      config.update('preferCompleteThanJumpPlaceholder', true)
+      helper.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true)
       await nvim.setLine('foo')
       await nvim.input('o')
       await snippetManager.insertSnippet('${1:foo} ${2:bar}')
@@ -135,7 +134,6 @@ describe('snippet provider', () => {
       await helper.waitFor('pumvisible', [], 1)
       await nvim.input('<C-j>')
       await helper.waitFor('getline', ['.'], 'foo bar')
-      config.update('preferCompleteThanJumpPlaceholder', false)
     })
   })
 

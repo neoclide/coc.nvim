@@ -22,6 +22,12 @@ interface DocumentChange {
   change: TextDocumentContentChange
 }
 
+export interface SnippetConfig {
+  readonly highlight: boolean
+  readonly nextOnDelete: boolean
+  readonly preferComplete: boolean
+}
+
 export class SnippetSession {
   private current: Marker
   private textDocument: LinesTextDocument
@@ -37,9 +43,7 @@ export class SnippetSession {
   constructor(
     private nvim: Neovim,
     public readonly document: Document,
-    private enableHighlight = false,
-    private preferComplete = false,
-    private nextOnDelete = false
+    private readonly config: SnippetConfig
   ) {
     this.disposable = document.onDocumentChange(async e => {
       if (this._applying || !this._isActive) return
@@ -112,7 +116,7 @@ export class SnippetSession {
   private activate(): void {
     if (this._isActive) return
     this._isActive = true
-    this.nvim.call('coc#snippet#enable', [this.preferComplete ? 1 : 0], true)
+    this.nvim.call('coc#snippet#enable', [this.config.preferComplete ? 1 : 0], true)
   }
 
   public deactivate(): void {
@@ -122,7 +126,7 @@ export class SnippetSession {
     this._isActive = false
     this.current = null
     this.nvim.call('coc#snippet#disable', [], true)
-    if (this.enableHighlight) this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
+    if (this.config.highlight) this.nvim.call('coc#highlight#clear_highlight', [this.bufnr, NAME_SPACE, 0, -1], true)
     this._onCancelEvent.fire(void 0)
     logger.debug(`session ${this.bufnr} cancelled`)
   }
@@ -186,7 +190,7 @@ export class SnippetSession {
   }
 
   private highlights(placeholder: CocSnippetPlaceholder, redrawVim = true): void {
-    if (!this.enableHighlight) return
+    if (!this.config.highlight) return
     // this.checkPosition
     let buf = this.document.buffer
     this.nvim.pauseNotification()
@@ -331,20 +335,19 @@ export class SnippetSession {
       if (delta.line != 0 || delta.character != 0) {
         this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
       }
-
-      if (this.nextOnDelete && !this.snippet.getRanges(placeholder).length) {
-        let next = this.snippet.getNextPlaceholder(placeholder.index)
-        if (next) await this.selectPlaceholder(next)
-      } else {
-        this.highlights(placeholder, false)
-      }
+      this.highlights(placeholder, false)
       this.nvim.redrawVim()
-
     } else {
       this.highlights(placeholder)
     }
     logger.debug('update cost:', Date.now() - start, res.delta)
     this.textDocument = this.document.textDocument
+    if (this.config.nextOnDelete) {
+      if (curr && curr.value.length > 0 && placeholder.marker.toString() === '') {
+        let next = this.snippet.getNextPlaceholder(placeholder.index)
+        if (next) await this.selectPlaceholder(next)
+      }
+    }
   }
 
   public async forceSynchronize(): Promise<void> {

@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { Position, Range } from 'vscode-languageserver-protocol'
 import { UltiSnippetContext } from '../../snippets/eval'
-import { SnippetSession } from '../../snippets/session'
+import { SnippetConfig, SnippetSession } from '../../snippets/session'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -23,7 +23,8 @@ afterEach(async () => {
 
 async function createSession(enableHighlight = false, preferComplete = false, nextOnDelete = false): Promise<SnippetSession> {
   let doc = await workspace.document
-  return new SnippetSession(nvim, doc, enableHighlight, preferComplete, nextOnDelete)
+  let config: SnippetConfig = { highlight: enableHighlight, preferComplete, nextOnDelete }
+  return new SnippetSession(nvim, doc, config)
 }
 
 describe('SnippetSession', () => {
@@ -36,7 +37,7 @@ describe('SnippetSession', () => {
   async function start(inserted: string, range = defaultRange, select = true, context?: UltiSnippetContext): Promise<boolean> {
     await nvim.input('i')
     let doc = await workspace.document
-    let session = new SnippetSession(nvim, doc)
+    let session = new SnippetSession(nvim, doc, { highlight: false, nextOnDelete: false, preferComplete: false })
     return await session.start(inserted, range, select, context)
   }
 
@@ -282,14 +283,10 @@ describe('SnippetSession', () => {
       let session = await createSession(false, false, true)
       await nvim.input('i')
       await session.start('${1:foo} bar$0', defaultRange)
-      await nvim.input('<esc>')
-      await nvim.call('cursor', [1, 5])
-      await nvim.input('i')
       await nvim.input('<backspace>')
       await session.forceSynchronize()
-      expect(session.isActive).toBe(true)
       let col = await nvim.call('col', ['.'])
-      expect(col).toBe(4)
+      expect(col).toBe(5)
     })
 
     it('should prefer range contains current cursor', async () => {

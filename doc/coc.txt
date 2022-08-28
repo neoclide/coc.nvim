@@ -768,8 +768,18 @@ Snippets engine of coc.nvim support both VSCode snippets and ultisnips
 snippets format.
 
 The complete item with snippet format has label ends with `~` by default.
-Select the complete item and confirm the completion by |coc#pum#confirm()| to
-expand the snippet.
+Select the complete item and confirm the completion by |coc#pum#confirm()| or
+|coc#_select_confirm()| to expand the snippet of current selected complete
+ttem.
+
+Jump snippet placeholders:~
+
+|g:coc_snippet_next| and |g:coc_snippet_prev| are used to jump placeholders on
+both select mode and insert mode, which defaults to <C-j> and <C-k>.  Buffer
+key-mappings are created on snippet activate, and removed on snippet
+deactivate.
+
+Deactivate snippet session:~
 
 A snippet session would be deactivated under the following conditions:
 
@@ -786,11 +796,12 @@ Related configurations:~
 
 - |g:coc_snippet_prev|
 - |g:coc_snippet_next|
+- |g:coc_selectmode_mapping|
 - |coc-config-suggest-snippetIndicator|
 - |coc-config-suggest-preferCompleteThanJumpPlaceholder|
-- |coc-preferences-snippetStatusText|
-- |coc-preferences-snippetHighlight|
-- |coc-preferences-nextPlaceholderOnDelete|
+- |coc-config-snippet-highlight|
+- |coc-config-snippet-statusText|
+- |coc-config-snippet-nextPlaceholderOnDelete|
 
 Related functions:~
 
@@ -802,9 +813,9 @@ Related functions:~
 
 Related variables, highlights and autocmds:~
 
-- |b:coc_snippet_active|
-- |CocSnippetVisual|
-- |CocJumpPlaceholder|
+- |b:coc_snippet_active| Check if snippet session is activated.
+- |CocSnippetVisual| For highlight of current placeholders.
+- |CocJumpPlaceholder| AutocmdS triggered after placeholder jump.
 
 ==============================================================================
 WORKSPACE SUPPORT 					*coc-workspace*

@@ -617,6 +617,21 @@
       "description": "Show virtual text for insert word of selected item, requires neovim >= 0.5.0 or vim >= 9.0.0067",
       "default": false
     },
+    "snippet.statusText": {
+      "type": "string",
+      "default": "SNIP",
+      "description": "Text shown in statusline to indicate snippet session is activated."
+    },
+    "snippet.highlight": {
+      "type": "boolean",
+      "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
+      "default": false
+    },
+    "snippet.nextPlaceholderOnDelete": {
+      "type": "boolean",
+      "description": "Automatically jump to the next placeholder when the current one is completely deleted.",
+      "default": false
+    },
     "documentHighlight.priority": {
       "type": "number",
       "default": -1,
@@ -1511,21 +1526,6 @@
       "default": "never",
       "description": "Interval for check extension update, could be daily, weekly, never",
       "enum": ["daily", "weekly", "never"]
-    },
-    "coc.preferences.snippetStatusText": {
-      "type": "string",
-      "default": "SNIP",
-      "description": "Text shown in statusline to indicate snippet session is activated."
-    },
-    "coc.preferences.snippetHighlight": {
-      "type": "boolean",
-      "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
-      "default": false
-    },
-    "coc.preferences.nextPlaceholderOnDelete": {
-      "type": "boolean",
-      "description": "Automatically jump to the next placeholder when the current one is completely deleted.",
-      "default": false
     },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
