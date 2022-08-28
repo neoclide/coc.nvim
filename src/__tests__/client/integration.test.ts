@@ -157,7 +157,7 @@ describe('Client events', () => {
   })
 
   it('should handle error', async () => {
-    let fn = jest.fn()
+    let called = false
     let clientOptions: lsclient.LanguageClientOptions = {
       synchronize: {},
       errorHandler: {
@@ -165,7 +165,7 @@ describe('Client events', () => {
           return ErrorAction.Shutdown
         },
         closed: () => {
-          fn()
+          called = true
           return CloseAction.DoNotRestart
         }
       },
@@ -179,8 +179,9 @@ describe('Client events', () => {
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     await client.sendRequest('doExit')
     await client.start()
-    await helper.wait(50)
-    expect(fn).toBeCalled()
+    await helper.waitValue(() => {
+      return called
+    }, true)
     await client.stop()
   })
 
