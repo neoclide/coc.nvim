@@ -1909,6 +1909,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "timsu92",
+      "name": "timsu92",
+      "avatar_url": "https://avatars.githubusercontent.com/u/33785401?v=4",
+      "profile": "https://github.com/timsu92",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
