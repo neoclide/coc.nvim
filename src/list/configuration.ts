@@ -94,6 +94,10 @@ export default class ListConfiguration extends EventEmitter {
     })
   }
 
+  public get smartcase(): boolean {
+    return this.get<boolean>('smartCase', false)
+  }
+
   public get<T>(key: string, defaultValue?: T): T {
     return this.configuration.get<T>(key, defaultValue)
   }

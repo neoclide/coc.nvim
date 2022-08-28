@@ -298,6 +298,7 @@ export class ListManager implements Disposable {
         interactive,
         matcher,
         position,
+        smartcase: this.config.smartcase,
         ignorecase: options.includes('ignore-case') ? true : false,
         mode: !options.includes('normal') ? 'insert' : 'normal',
         sort: !options.includes('no-sort') ? true : false

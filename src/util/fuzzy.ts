@@ -49,3 +49,31 @@ export function fuzzyMatch(needle: number[], text: string): boolean {
   }
   return i === totalCount
 }
+
+export function fuzzyPositions(input: string, text: string, smartcase?: boolean, excludes: number[] = []): number[] | undefined {
+  let totalCount = input.length
+  if (totalCount === 0) return []
+  if (totalCount > text.length) return undefined
+  let i = 0
+  let res = []
+  let charCodes = getCharCodes(input)
+  for (let j = 0; j < text.length; j++) {
+    if (excludes.includes(j)) continue
+    let m = charCodes[i]
+    let code = text.charCodeAt(j)
+    if (caseMatch(m, code, !smartcase)) {
+      if (i > 0 && j > 0 && j - res[i - 1] > 1) {
+        if (text.charCodeAt(j - 1) === charCodes[i - 1]) {
+          res.splice(i - 1, 1, j - 1)
+        }
+      }
+      i = i + 1
+      res.push(j)
+      if (i === totalCount) {
+        break
+      }
+      continue
+    }
+  }
+  return res.length === totalCount ? res : undefined
+}

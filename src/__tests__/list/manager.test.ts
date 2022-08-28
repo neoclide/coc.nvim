@@ -130,6 +130,7 @@ describe('list', () => {
       await helper.wait(30)
       let opts = manager.session?.listOptions
       expect(opts).toEqual({
+        smartcase: false,
         reverse: true,
         numberSelect: true,
         autoPreview: true,
@@ -151,16 +152,17 @@ describe('list', () => {
       helper.updateConfiguration('list.indicator', '>>')
       await manager.start(['location'])
       await manager.session.ui.ready
-      await helper.wait(200)
-      let line = await helper.getCmdline()
-      expect(line).toMatch('>>')
+      await helper.waitValue(async () => {
+        let line = await helper.getCmdline()
+        return line.includes('>>')
+      }, true)
     })
 
     it('should split right for preview window', async () => {
       helper.updateConfiguration('list.previewSplitRight', true)
       let win = await nvim.window
       await manager.start(['location'])
-      await helper.wait(100)
+      await manager.session?.ui.ready
       await manager.doAction('preview')
       await helper.wait(100)
       manager.prompt.cancel()
@@ -170,6 +172,22 @@ describe('list', () => {
       let curr = await nvim.window
       let isPreview = await curr.getVar('previewwindow')
       expect(isPreview).toBe(1)
+    })
+
+    it('should use smartcase for strict match', async () => {
+      helper.updateConfiguration('list.smartCase', true)
+      await manager.start(['--input=Man', '--strict', 'location'])
+      await manager.session?.ui.ready
+      let items = await manager.session?.ui.getItems()
+      expect(items.length).toBe(0)
+    })
+
+    it('should use smartcase for fuzzy match', async () => {
+      helper.updateConfiguration('list.smartCase', true)
+      await manager.start(['--input=Man', 'location'])
+      await manager.session?.ui.ready
+      let items = await manager.session?.ui.getItems()
+      expect(items.length).toBe(0)
     })
 
     it('should toggle selection mode', async () => {
@@ -191,7 +209,7 @@ describe('list', () => {
       helper.updateConfiguration('list.previousKeymap', '<s-tab>')
       await manager.start(['location'])
       await manager.session.ui.ready
-      await helper.wait(100)
+      await helper.wait(10)
       await nvim.eval('feedkeys("\\<tab>", "in")')
       await helper.wait(100)
       let line = await nvim.line
@@ -211,7 +229,6 @@ describe('list', () => {
       }
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
-      await helper.wait(100)
       await setMouseEvent(1)
       await manager.onNormalInput('<LeftMouse>')
       await setMouseEvent(2)
@@ -436,7 +453,6 @@ describe('list', () => {
     it('should respect input option', async () => {
       await manager.start(['--input=foo', 'location'])
       await manager.session.ui.ready
-      await helper.wait(30)
       let line = await helper.getCmdline()
       expect(line).toMatch('foo')
       expect(manager.isActivated).toBe(true)
@@ -444,7 +460,7 @@ describe('list', () => {
 
     it('should respect regex filter', async () => {
       await manager.start(['--input=f.o', '--regex', 'location'])
-      await helper.wait(200)
+      await manager.session.ui.ready
       let item = await manager.session?.ui.item
       expect(item.label).toMatch('foo')
     })

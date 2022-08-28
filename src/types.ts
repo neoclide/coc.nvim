@@ -1108,6 +1108,7 @@ export interface ListOptions {
   reverse: boolean
   input: string
   ignorecase: boolean
+  smartcase: boolean
   interactive: boolean
   sort: boolean
   mode: ListMode

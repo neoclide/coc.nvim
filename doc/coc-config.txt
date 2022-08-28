@@ -789,6 +789,11 @@ List~
 
 	The character used as first character in prompt line, default: `">"`
 
+"list.smartcase" 					*coc-config-list-smartcase*
+
+	Use smartcase match for fuzzy match and strict match, --ignore-case
+	will be ignored, may not affect interactive list. Default: `false`
+
 "list.alignColumns"					*coc-config-list-alignColumns*
 
 	Whether to align lists in columns, default: `false`

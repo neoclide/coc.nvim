@@ -5,6 +5,7 @@
   - "coc.preferences.snippetStatusText" -> "snippet.statusText"
   - "coc.preferences.snippetHighlight" -> "snippet.highlight"
   - "coc.preferences.nextPlaceholderOnDelete" -> "snippet.nextPlaceholderOnDelete"
+- Add configuration `"list.smartCase"`
 
 # 2022-08-27
 

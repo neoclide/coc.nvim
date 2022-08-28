@@ -1164,7 +1164,12 @@
     "list.indicator": {
       "type": "string",
       "default": ">",
-      "description": "The character used as first character in prompt line"
+      "description": "The character used as first character in prompt line."
+    },
+    "list.smartCase": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use smartcase match for fuzzy match and strict match, --ignore-case will be ignored, may not affect interactive list."
     },
     "list.alignColumns": {
       "type": "boolean",

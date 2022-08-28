@@ -5,10 +5,11 @@ import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListItemW
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { filter } from '../util/async'
 import { patchLine } from '../util/diff'
-import { hasMatch, positions, score } from '../util/fzy'
+import { fuzzyPositions } from '../util/fuzzy'
+import { score } from '../util/fzy'
 import { Mutex } from '../util/mutex'
 import { getMatchResult } from '../util/score'
-import { byteIndex, byteLength } from '../util/string'
+import { byteIndex, byteLength, smartcaseIndex } from '../util/string'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
@@ -224,7 +225,7 @@ export default class Worker {
   }
 
   private async filterItemsByInclude(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
-    let { ignorecase } = this.listOptions
+    let { ignorecase, smartcase } = this.listOptions
     if (ignorecase) inputs = inputs.map(s => s.toLowerCase())
     await filter(items, item => {
       this.convertItemLabel(item)
@@ -232,7 +233,12 @@ export default class Worker {
       let filterLabel = getFilterLabel(item)
       let match = true
       for (let input of inputs) {
-        let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input) : filterLabel.indexOf(input)
+        let idx: number
+        if (smartcase) {
+          idx = smartcaseIndex(input, filterLabel)
+        } else {
+          idx = ignorecase ? filterLabel.toLowerCase().indexOf(input) : filterLabel.indexOf(input)
+        }
         if (idx == -1) {
           match = false
           break
@@ -272,21 +278,22 @@ export default class Worker {
   }
 
   private async filterItemsByFuzzyMatch(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
-    let { sort } = this.listOptions
+    let { sort, smartcase } = this.listOptions
     let idx = 0
     await filter(items, item => {
       this.convertItemLabel(item)
-      let filterText = item.filterText || item.label
+      let filterText = item.filterText ?? item.label
       let matchScore = 0
       let matches: number[] = []
       let filterLabel = getFilterLabel(item)
       let match = true
       for (let input of inputs) {
-        if (!hasMatch(input, filterText)) {
+        let positions = fuzzyPositions(input, filterLabel, smartcase, matches)
+        if (!positions) {
           match = false
           break
         }
-        matches.push(...positions(input, filterLabel))
+        matches.push(...positions)
         if (sort) matchScore += score(input, filterText)
       }
       idx = idx + 1

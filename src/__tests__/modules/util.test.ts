@@ -301,6 +301,19 @@ describe('strings', () => {
     expect(strings.contentToLines('foo\n', true)).toEqual(['foo'])
   })
 
+  it('should get smartcaseIndex', async () => {
+    expect(strings.smartcaseIndex('a', 'A')).toBe(0)
+    expect(strings.smartcaseIndex('a', 'a')).toBe(0)
+    expect(strings.smartcaseIndex('ab', 'a')).toBe(-1)
+    expect(strings.smartcaseIndex('', 'a')).toBe(0)
+    expect(strings.smartcaseIndex('ab', 'xaB')).toBe(1)
+    expect(strings.smartcaseIndex('aA', 'aaA')).toBe(1)
+    expect(strings.smartcaseIndex('aB', 'aaA')).toBe(-1)
+    expect(strings.smartcaseIndex('AA', 'aaA')).toBe(-1)
+    expect(strings.smartcaseIndex('aA', 'axdefA')).toBe(-1)
+    expect(strings.smartcaseIndex('abC', 'aaBDefabC')).toBe(6)
+  })
+
   it('should get parts', async () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
     expect(res).toEqual(['', 'bar'])
@@ -744,6 +757,24 @@ describe('fuzzy match test', () => {
     expect(fuzzy.fuzzyChar('A', 'A')).toBeTruthy
     expect(fuzzy.fuzzyChar('Z', 'z')).toBeFalsy
     expect(fuzzy.fuzzyChar('Z', 'Z')).toBeTruthy
+  })
+
+  it('should get fuzzy positions', async () => {
+    expect(fuzzy.fuzzyPositions('', 'Z')).toEqual([])
+    expect(fuzzy.fuzzyPositions('ZZ', 'Z')).toBeUndefined()
+    expect(fuzzy.fuzzyPositions('bC', 'abCde', true)).toEqual([1, 2])
+    expect(fuzzy.fuzzyPositions('de', 'aDEf', false)).toEqual([1, 2])
+    expect(fuzzy.fuzzyPositions('ab', 'acbef', false)).toEqual([0, 2])
+    expect(fuzzy.fuzzyPositions('ab', 'acBef', false)).toEqual([0, 2])
+    expect(fuzzy.fuzzyPositions('abc', 'acbef', false)).toBeUndefined()
+    expect(fuzzy.fuzzyPositions('abc', 'aebec', false)).toEqual([0, 2, 4])
+    expect(fuzzy.fuzzyPositions('abc', 'aebec', true)).toEqual([0, 2, 4])
+    expect(fuzzy.fuzzyPositions('aB', 'aebec', true)).toBeUndefined()
+    expect(fuzzy.fuzzyPositions('aB', 'AebeB', true)).toEqual([0, 4])
+    expect(fuzzy.fuzzyPositions('aB', 'AebeB', true, [0])).toBeUndefined()
+    expect(fuzzy.fuzzyPositions('aB', 'AabeB', true, [0])).toEqual([1, 4])
+    expect(fuzzy.fuzzyPositions('aB', 'abaB', true, [])).toEqual([2, 3])
+    expect(fuzzy.fuzzyPositions('aB', 'axybaB', true, [])).toEqual([4, 5])
   })
 })
 

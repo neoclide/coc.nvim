@@ -147,3 +147,46 @@ export function contentToLines(content: string, eol: boolean): string[] {
   }
   return content.split('\n')
 }
+
+export function hasUpperCase(str: string): boolean {
+  for (let i = 0, l = str.length; i < l; i++) {
+    let code = str.charCodeAt(i)
+    if (code >= 65 && code <= 90) {
+      return true
+    }
+  }
+  return false
+}
+
+export function smartMatch(a: string, b: string): boolean {
+  if (a === b) return true
+  let c = b.charCodeAt(0)
+  if (c >= 65 && c <= 90) {
+    if (c + 32 === a.charCodeAt(0)) return true
+  }
+  return false
+}
+
+// check if string smartcase include the other string
+export function smartcaseIndex(input: string, other: string): number {
+  if (input.length > other.length) return -1
+  if (input.length === 0) return 0
+  if (!hasUpperCase(input)) {
+    return other.toLowerCase().indexOf(input)
+  }
+  let total = input.length
+  let checked = 0
+  for (let i = 0; i < other.length; i++) {
+    let ch = other[i]
+    if (smartMatch(input[checked], ch)) {
+      checked++
+      if (checked === total) {
+        return i - checked + 1
+      }
+    } else if (checked > 0) {
+      i = i - checked
+      checked = 0
+    }
+  }
+  return -1
+}
