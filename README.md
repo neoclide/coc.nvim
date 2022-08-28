@@ -607,6 +607,7 @@ Try these steps when you have problem with coc.nvim.
   <tr>
     <td align="center"><a href="http://qiqi.boy.im"><img src="https://avatars.githubusercontent.com/u/3774036?v=4?s=50" width="50px;" alt=""/><br /><sub><b>qiqiboy</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=qiqiboy" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/timsu92"><img src="https://avatars.githubusercontent.com/u/33785401?v=4?s=50" width="50px;" alt=""/><br /><sub><b>timsu92</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=timsu92" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://sartak.org"><img src="https://avatars.githubusercontent.com/u/45430?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Shawn M Moore</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=sartak" title="Code">💻</a></td>
   </tr>
 </table>
 

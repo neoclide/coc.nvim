@@ -1918,6 +1918,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "sartak",
+      "name": "Shawn M Moore",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45430?v=4",
+      "profile": "https://sartak.org",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
