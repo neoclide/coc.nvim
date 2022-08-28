@@ -37,8 +37,8 @@ Then in your terminal:
 - `yarn install`
 - Install [coc-tsserver](https://github.com/neoclide/coc-tsserver) by
   `:CocInstall coc-tsserver` in your vim
-- Install [coc-tslint-plugin](https://github.com/neoclide/coc-tslint-plugin) by
-  `:CocInstall coc-tslint-plugin` in your vim.
+- Install [coc-eslint](https://github.com/neoclide/coc-eslint) by
+  `:CocInstall coc-eslint` in your vim.
 
 And you should be ready to go!
 
