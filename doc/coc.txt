@@ -151,7 +151,7 @@ Install extensions from git (not recommended):~
 
 Plugin manager like [vim-plug] can be used as well.
 
-Note: use coc extensions from source code requires install dependencies which
+Note: use coc extensions from source code requires install dependencies, which
 may take huge disk usage.
 
 Install global extensions from npm (recommended):~
