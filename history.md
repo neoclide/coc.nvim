@@ -6,6 +6,12 @@
   - "coc.preferences.snippetHighlight" -> "snippet.highlight"
   - "coc.preferences.nextPlaceholderOnDelete" -> "snippet.nextPlaceholderOnDelete"
 - Add configuration `"list.smartCase"`
+- Add configurations for inlay hint
+  - "inlayHint.refreshOnInsertMode"
+  - "inlayHint.enableParameter"
+  - "inlayHint.typeSeparator"
+  - "inlayHint.parameterSeparator"
+  - "inlayHint.subSeparator"
 
 # 2022-08-27
 

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, InlayHint, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, InlayHint, InlayHintKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import InlayHintHandler from '../../handler/inlayHint/index'
 import languages from '../../languages'
 import { InlayHintWithProvider, isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
@@ -26,6 +26,41 @@ afterEach(async () => {
   disposeAll(disposables)
   await helper.reset()
 })
+
+async function registerProvider(content: string): Promise<Disposable> {
+  let doc = await workspace.document
+  let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
+    provideInlayHints: (document, range) => {
+      let content = document.getText(range)
+      let lines = content.split(/\r?\n/)
+      let hints: InlayHint[] = []
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i]
+        if (!line.length) continue
+        let parts = line.split(/\s+/)
+        let kind: InlayHintKind = i == 0 ? InlayHintKind.Type : InlayHintKind.Parameter
+        hints.push(...parts.map(s => InlayHint.create(Position.create(range.start.line + i, line.length), s, kind)))
+      }
+      return hints
+    }
+  })
+  await doc.buffer.setLines(content.split(/\n/), { start: 0, end: -1 })
+  await doc.synchronize()
+  return disposable
+}
+
+async function waitRefresh(bufnr: number) {
+  let buf = handler.getItem(bufnr)
+  return new Promise<void>((resolve, reject) => {
+    let timer = setTimeout(() => {
+      reject(new Error('not refresh after 1s'))
+    }, 1000)
+    buf.onDidRefresh(() => {
+      clearTimeout(timer)
+      resolve()
+    })
+  })
+}
 
 describe('InlayHint', () => {
   describe('utils', () => {
@@ -147,6 +182,7 @@ describe('InlayHint', () => {
       helper.updateConfiguration('inlayHint.filetypes', [])
       let doc = await workspace.document
       let item = handler.getItem(doc.bufnr)
+      item.clearVirtualText()
       expect(item.enabled).toBe(false)
       helper.updateConfiguration('inlayHint.filetypes', ['dos'])
       doc = await helper.createDocument()
@@ -155,41 +191,43 @@ describe('InlayHint', () => {
     })
   })
 
+  describe('configuration', () => {
+    it('should refresh on insert mode', async () => {
+      helper.updateConfiguration('inlayHint.refreshOnInsertMode', true)
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('foo\nbar')
+      disposables.push(disposable)
+      await nvim.input('i')
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'baz\n')])
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      let obj = markers[0][3].virt_text
+      expect(obj).toEqual([['baz', 'CocInlayHint']])
+    })
+
+    it('should disable parameter inlayHint', async () => {
+      helper.updateConfiguration('inlayHint.enableParameter', false)
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('foo\nbar')
+      disposables.push(disposable)
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(1)
+    })
+
+    it('should use custom subseparator', async () => {
+      helper.updateConfiguration('inlayHint.subSeparator', '|')
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('foo bar')
+      disposables.push(disposable)
+      await waitRefresh(doc.bufnr)
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+      let virt_text = markers[0][3].virt_text
+      expect(virt_text[1]).toEqual(['|', 'CocInlayHint'])
+    })
+  })
+
   describe('setVirtualText', () => {
-    async function registerProvider(content: string): Promise<Disposable> {
-      let doc = await workspace.document
-      let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
-        provideInlayHints: (document, range) => {
-          let content = document.getText(range)
-          let lines = content.split(/\r?\n/)
-          let hints: InlayHint[] = []
-          for (let i = 0; i < lines.length; i++) {
-            let line = lines[i]
-            if (!line.length) continue
-            let parts = line.split(/\s+/)
-            hints.push(...parts.map(s => InlayHint.create(Position.create(range.start.line + i, line.length), s)))
-          }
-          return hints
-        }
-      })
-      await doc.buffer.setLines(content.split(/\n/), { start: 0, end: -1 })
-      await doc.synchronize()
-      return disposable
-    }
-
-    async function waitRefresh(bufnr: number) {
-      let buf = handler.getItem(bufnr)
-      return new Promise<void>((resolve, reject) => {
-        let timer = setTimeout(() => {
-          reject(new Error('not refresh after 1s'))
-        }, 1000)
-        buf.onDidRefresh(() => {
-          clearTimeout(timer)
-          resolve()
-        })
-      })
-    }
-
     it('should refresh on vim mode', async () => {
       let doc = await workspace.document
       await nvim.setLine('foo bar')
@@ -242,6 +280,23 @@ describe('InlayHint', () => {
       let item = handler.getItem(buf.id)
       await item.renderRange()
       expect(item.current.length).toBe(3)
+    })
+
+    it('should refresh on insert leave', async () => {
+      let doc = await helper.createDocument()
+      let buf = doc.buffer
+      let disposable = await registerProvider('foo')
+      disposables.push(disposable)
+      await nvim.input('i')
+      await helper.wait(10)
+      await buf.setLines(['a', 'b', 'c'], { start: 0, end: -1 })
+      await helper.wait(30)
+      let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(0)
+      await nvim.input('<esc>')
+      await waitRefresh(doc.bufnr)
+      markers = await buf.getExtMarks(ns, 0, -1, { details: true })
+      expect(markers.length).toBe(3)
     })
 
     it('should refresh on provider dispose', async () => {

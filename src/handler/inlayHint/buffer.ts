@@ -1,25 +1,33 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Emitter, Event, InlayHintKind, Range } from 'vscode-languageserver-protocol'
+import events from '../../events'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
+import { disposeAll } from '../../util'
 import { positionInRange } from '../../util/position'
 import { byteIndex } from '../../util/string'
 const logger = require('../../util/logger')('inlayHint-buffer')
 
 export interface InlayHintConfig {
   filetypes: string[]
-  srcId?: number
+  refreshOnInsertMode: boolean
+  enableParameter: boolean
+  typeSeparator: string
+  parameterSeparator: string
+  subSeparator: string
 }
 
-const debounceInterval = global.hasOwnProperty('__TEST__') ? 10 : 100
+let srcId: number | undefined
+const debounceInterval = global.__TEST__ ? 10 : 100
 const highlightGroup = 'CocInlayHint'
 
 export default class InlayHintBuffer implements SyncItem {
+  private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   private regions = new Regions()
   // Saved for resolve and TextEdits in the future.
@@ -33,6 +41,14 @@ export default class InlayHintBuffer implements SyncItem {
     private readonly config: InlayHintConfig,
     private isVim: boolean
   ) {
+    if (!config.refreshOnInsertMode) {
+      events.on('InsertLeave', () => {
+        void this.renderRange()
+      }, null, this.disposables)
+      events.on('InsertEnter', () => {
+        void this.cancel()
+      }, null, this.disposables)
+    }
     this.render = debounce(() => {
       void this.renderRange()
     }, debounceInterval)
@@ -77,15 +93,20 @@ export default class InlayHintBuffer implements SyncItem {
 
   public async renderRange(): Promise<void> {
     this.cancel()
+    if (events.insertMode && !this.config.refreshOnInsertMode) return
     if (!this.enabled) return
     this.tokenSource = new CancellationTokenSource()
     let token = this.tokenSource.token
     let res = await this.nvim.call('coc#window#visible_range', [this.doc.bufnr]) as [number, number]
-    if (res == null || this.doc.dirty || token.isCancellationRequested) return
+    if (!srcId) srcId = await this.nvim.createNamespace('coc-inlayHint')
+    if (!Array.isArray(res) || token.isCancellationRequested) return
     if (this.regions.has(res[0], res[1])) return
     let range = Range.create(res[0] - 1, 0, res[1], 0)
     let inlayHints = await languages.provideInlayHints(this.doc.textDocument, range, token)
     if (inlayHints == null || token.isCancellationRequested) return
+    if (!this.config.enableParameter) {
+      inlayHints = inlayHints.filter(o => o.kind !== InlayHintKind.Parameter)
+    }
     // Since no click available, no need to resolve.
     this.regions.add(res[0], res[1])
     this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
@@ -95,18 +116,19 @@ export default class InlayHintBuffer implements SyncItem {
 
   public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[], isVim: boolean): void {
     let { nvim, doc } = this
-    let srcId = this.config.srcId
     let buffer = doc.buffer
-    const chunksMap = {}
+    let { subSeparator, parameterSeparator, typeSeparator } = this.config
+    const chunksMap: Map<number, [string, string][]> = new Map()
     if (!isVim) {
       for (const item of inlayHints) {
-        const chunks: [[string, string]] = [[getLabel(item), highlightGroup]]
-        if (chunksMap[item.position.line] === undefined) {
-          chunksMap[item.position.line] = chunks
-        } else {
-          chunksMap[item.position.line].push([' ', 'Normal'])
-          chunksMap[item.position.line].push(chunks[0])
+        let { line } = item.position
+        const chunks: [string, string][] = chunksMap.get(line) ?? []
+        if (chunks.length > 0) {
+          chunks.push([subSeparator, subSeparator === ' ' ? 'Normal' : highlightGroup])
         }
+        let sep = item.kind === InlayHintKind.Parameter ? parameterSeparator : typeSeparator
+        chunks.push([sep + getLabel(item), highlightGroup])
+        chunksMap.set(line, chunks)
       }
     }
     nvim.pauseNotification()
@@ -127,9 +149,9 @@ export default class InlayHintBuffer implements SyncItem {
         buffer.setVirtualText(srcId, position.line, chunks, { col })
       }
     } else {
-      for (let key of Object.keys(chunksMap)) {
-        buffer.setExtMark(srcId, Number(key), 0, {
-          virt_text: chunksMap[key],
+      for (let [line, chunks] of chunksMap.entries()) {
+        buffer.setExtMark(srcId, line, 0, {
+          virt_text: chunks,
           virt_text_pos: 'eol',
           hl_mode: 'combine'
         })
@@ -140,11 +162,11 @@ export default class InlayHintBuffer implements SyncItem {
   }
 
   public clearVirtualText(): void {
-    let srcId = this.config.srcId
-    this.doc.buffer.clearNamespace(srcId)
+    if (srcId) this.doc.buffer.clearNamespace(srcId)
   }
 
   public dispose(): void {
+    disposeAll(this.disposables)
     this.cancel()
   }
 }

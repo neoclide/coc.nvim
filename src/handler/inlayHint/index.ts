@@ -3,23 +3,17 @@ import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { HandlerDelegate } from '../../types'
 import workspace from '../../workspace'
 import InlayHintBuffer, { InlayHintConfig } from './buffer'
 
 export default class InlayHintHandler {
-  private config: InlayHintConfig
   private buffers: BufferSync<InlayHintBuffer> | undefined
   constructor(nvim: Neovim, handler: HandlerDelegate) {
-    this.loadConfiguration()
-    void nvim.createNamespace('coc-inlayHint').then(id => {
-      this.config.srcId = id
-    })
-    let disposable = workspace.onDidChangeConfiguration(this.loadConfiguration, this)
-    handler.addDisposable(disposable)
     this.buffers = workspace.registerBufferSync(doc => {
       if (!workspace.env.virtualText) return
-      return new InlayHintBuffer(nvim, doc, this.config, nvim.isVim)
+      let config = this.getConfig(doc.uri)
+      return new InlayHintBuffer(nvim, doc, config, nvim.isVim)
     })
     handler.addDisposable(this.buffers)
     handler.addDisposable(languages.onDidInlayHintRefresh(async e => {
@@ -43,12 +37,15 @@ export default class InlayHintHandler {
     }))
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
-    if (!e || e.affectsConfiguration('inlayHint')) {
-      let config = workspace.getConfiguration('inlayHint')
-      this.config = Object.assign(this.config || {}, {
-        filetypes: config.get<string[]>('filetypes', []),
-      })
+  private getConfig(uri: string): InlayHintConfig {
+    let config = workspace.getConfiguration('inlayHint', uri)
+    return {
+      filetypes: config.get<string[]>('filetypes', []),
+      refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
+      enableParameter: config.get<boolean>('enableParameter', false),
+      typeSeparator: config.get<string>('typeSeparator', ''),
+      parameterSeparator: config.get<string>('parameterSeparator', ''),
+      subSeparator: config.get<string>('subSeparator', ' ')
     }
   }
 

@@ -557,6 +557,29 @@ Inlay hint~
 	Filetypes that should enable inlay hint feature. Use
 	`["*"]` for all filetypes, default: `["*"]`
 
+"inlayHint.refreshOnInsertMode"				*coc-config-inlayHint-refreshOnInsertMode*
+
+	Refresh inlayHints on insert mode, default `false`.
+
+"inlayHint.enableParameter"				*coc-config-inlayHint-enableParameter*
+
+	Enable parameter kind inlay hints, default `true`.
+
+"inlayHint.typeSeparator"				*coc-config-inlayHint-typeSeparator*
+
+	Separator for type inlay hints, neovim only, default `""`.
+	Will not be used when virtual text on neovim occupying horizontal space.
+
+"inlayHint.parameterSeparator"				*coc-config-inlayHint-parameterSeparator*
+
+	Separator for parameter inlay hints, neovim only, default `""`.
+	Will not be used when virtual text on neovim occupying horizontal space.
+
+"inlayHint.subSeparator"				*coc-config-inlayHint-subSeparator*
+
+	Separator for chained inlay hints, neovim only, default `" "`.
+	Will not be used when virtual text on neovim occupying horizontal space.
+
 ------------------------------------------------------------------------------
 Multiple cursors~
 							*coc-config-cursors*

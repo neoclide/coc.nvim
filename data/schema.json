@@ -1327,6 +1327,31 @@
         "type": "string"
       }
     },
+    "inlayHint.refreshOnInsertMode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Refresh inlayHints on insert mode."
+    },
+    "inlayHint.enableParameter": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable inlay hints for parameters."
+    },
+    "inlayHint.typeSeparator": {
+      "type": "string",
+      "default": "",
+      "description": "Separator for type inlay hint, neovim only."
+    },
+    "inlayHint.parameterSeparator": {
+      "type": "string",
+      "default": "",
+      "description": "Separator for parameter inlay hint, neovim only."
+    },
+    "inlayHint.subSeparator": {
+      "type": "string",
+      "default": " ",
+      "description": "Separator for chained inlay hints, neovim only."
+    },
     "semanticTokens.filetypes": {
       "type": "array",
       "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
