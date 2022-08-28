@@ -151,9 +151,10 @@ Install extensions from git (not recommended):~
 
 Plugin manager like [vim-plug] can be used as well.
 
-Note: use coc extensions from source code requires install dependencies which
+Note: use coc extensions from source code requires install dependencies, which
 may take huge disk usage.
 
+							*coc-extensions-npm*
 Install global extensions from npm (recommended):~
 
 Use |:CocInstall| to install coc extensions from vim's command line.
@@ -347,6 +348,7 @@ behavior works like VSCode:
 - Snippet and additional edits only work after confirm completion.
 - 'completeopt' is not used and APIs of builtin popupmenu not work.
 
+							*coc-completion-default*
 Default Key-mappings:~
 
 To make the completion work like builtin completion without configuration,
@@ -370,7 +372,8 @@ Use <C-e> and <C-y> to cancel and confirm completion: >
   inoremap <silent><expr> <C-y> coc#pum#visible() ? coc#pum#confirm() : "\<C-y>"
 
 Note: <CR> and <Tab> are not remapped by coc.nvim.
->
+
+							*coc-completion-variables*
 Related variables:~
 
 - Disable completion for buffer: |b:coc_suggest_disable|
@@ -378,6 +381,7 @@ Related variables:~
 - Disable words for trigger completion: |b:coc_suggest_blacklist|
 - Add additional keyword characters: |b:coc_additional_keywords|
 
+							*coc-completion-functions*
 Related functions:~
 
 - Trigger completion with options: |coc#start()|.
@@ -394,6 +398,7 @@ Related functions:~
 - Insert word of selected item and finish completion: |coc#pum#insert()|.
 - Scroll popupmenu: |coc#pum#scroll()|.
 
+							*coc-completion-customize*
 Customize completion:~
 
 Use |coc-config-suggest| to change behavior of completion.
@@ -479,6 +484,7 @@ workspace.
 Note pull diagnostics feature is added in LSP 3.17, which is not available
 yet.
 
+							*coc-diagnostics-refresh*
 Changes on diagnostics refresh~
 
 - Add highlights for diagnostic ranges and virtual text (when enabled on
@@ -495,6 +501,7 @@ Diagnostics highlights:~
 
 See |coc-highlights-diagnostics|.
 
+							*coc-diagnostics-toggle*
 Enable and disable diagnostics~
 
 Use |coc-config-diagnostic-enable| to toggle diagnostics feature.
@@ -511,6 +518,7 @@ default.
 To manually refresh diagnostics messages, use |<Plug>(coc-diagnostic-info)|
 and |CocAction('diagnosticPreview')|.
 
+							*coc-diagnostics-jump*
 Jump between diagnostics~
 
 Use key-mappings:
@@ -730,7 +738,7 @@ under cursor.
 
 To enable highlight on CursorHold, create an autocmd like this: >
 
-	autocmd CursorHold * silent call CocActionAsync('highlight')
+	autocmd CursorHold * call CocActionAsync('highlight')
 <
 Checkout |coc-highlights-document| for related highlight groups.
 
@@ -768,8 +776,18 @@ Snippets engine of coc.nvim support both VSCode snippets and ultisnips
 snippets format.
 
 The complete item with snippet format has label ends with `~` by default.
-Select the complete item and confirm the completion by |coc#pum#confirm()| to
-expand the snippet.
+Select the complete item and confirm the completion by |coc#pum#confirm()| or
+|coc#_select_confirm()| to expand the snippet of current selected complete
+ttem.
+
+Jump snippet placeholders:~
+
+|g:coc_snippet_next| and |g:coc_snippet_prev| are used to jump placeholders on
+both select mode and insert mode, which defaults to <C-j> and <C-k>.  Buffer
+key-mappings are created on snippet activate, and removed on snippet
+deactivate.
+
+Deactivate snippet session:~
 
 A snippet session would be deactivated under the following conditions:
 
@@ -786,10 +804,12 @@ Related configurations:~
 
 - |g:coc_snippet_prev|
 - |g:coc_snippet_next|
+- |g:coc_selectmode_mapping|
 - |coc-config-suggest-snippetIndicator|
 - |coc-config-suggest-preferCompleteThanJumpPlaceholder|
-- |coc-preferences-snippetStatusText|
-- |coc-preferences-snippetHighlight|
+- |coc-config-snippet-highlight|
+- |coc-config-snippet-statusText|
+- |coc-config-snippet-nextPlaceholderOnDelete|
 
 Related functions:~
 
@@ -801,9 +821,9 @@ Related functions:~
 
 Related variables, highlights and autocmds:~
 
-- |b:coc_snippet_active|
-- |CocSnippetVisual|
-- |CocJumpPlaceholder|
+- |b:coc_snippet_active| Check if snippet session is activated.
+- |CocSnippetVisual| For highlight of current placeholders.
+- |CocJumpPlaceholder| AutocmdS triggered after placeholder jump.
 
 ==============================================================================
 WORKSPACE SUPPORT 					*coc-workspace*

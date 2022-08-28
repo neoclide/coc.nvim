@@ -259,7 +259,31 @@ Completion related~
 		"typeParameter": "\uf728",
 		"default": "\uf29c"
 	}
-<
+
+------------------------------------------------------------------------------
+Snippet related~
+							*coc-config-snippet*
+"snippet.highlight"					*coc-config-snippet-highlight*
+
+	Use highlight group 'CocSnippetVisual' to highlight placeholders with
+	same index of current one.
+
+	default: `false`
+
+"snippet.statusText"					*coc-config-snippet-statusText*
+
+	Text shown in 'statusline' to indicate snippet session is activate.
+	Check |coc-status| for statusline integration.
+
+	Default: `"SNIP"`
+
+"snippet.nextPlaceholderOnDelete"			*coc-config-snippet-nextPlaceholderOnDelete*
+
+	Automatically jump to the next placeholder when the current one is
+	completely deleted.
+
+	default: `false`
+
 ------------------------------------------------------------------------------
 Document highlight~
 							*coc-config-documentHighlight*
@@ -533,6 +557,29 @@ Inlay hint~
 	Filetypes that should enable inlay hint feature. Use
 	`["*"]` for all filetypes, default: `["*"]`
 
+"inlayHint.refreshOnInsertMode"				*coc-config-inlayHint-refreshOnInsertMode*
+
+	Refresh inlayHints on insert mode, default `false`.
+
+"inlayHint.enableParameter"				*coc-config-inlayHint-enableParameter*
+
+	Enable parameter kind inlay hints, default `true`.
+
+"inlayHint.typeSeparator"				*coc-config-inlayHint-typeSeparator*
+
+	Separator for type inlay hints, neovim only, default `""`.
+	Will not be used when virtual text on neovim occupying horizontal space.
+
+"inlayHint.parameterSeparator"				*coc-config-inlayHint-parameterSeparator*
+
+	Separator for parameter inlay hints, neovim only, default `""`.
+	Will not be used when virtual text on neovim occupying horizontal space.
+
+"inlayHint.subSeparator"				*coc-config-inlayHint-subSeparator*
+
+	Separator for chained inlay hints, neovim only, default `" "`.
+	Will not be used when virtual text on neovim occupying horizontal space.
+
 ------------------------------------------------------------------------------
 Multiple cursors~
 							*coc-config-cursors*
@@ -765,6 +812,11 @@ List~
 
 	The character used as first character in prompt line, default: `">"`
 
+"list.smartcase" 					*coc-config-list-smartcase*
+
+	Use smartcase match for fuzzy match and strict match, --ignore-case
+	will be ignored, may not affect interactive list. Default: `false`
+
 "list.alignColumns"					*coc-config-list-alignColumns*
 
 	Whether to align lists in columns, default: `false`
@@ -899,20 +951,6 @@ Preferences~
 	Interval for checking extension updates, default: `"never"`
 
 	Valid options: ["daily","weekly","never"]
-
-"coc.preferences.snippetHighlight"			*coc-preferences-snippetHighlight*
-
-	Use highlight group 'CocSnippetVisual' to highlight placeholders with
-	same index of current one.
-
-	default: `false`
-
-"coc.preferences.snippetStatusText"			*coc-preferences-snippetStatusText*
-
-	Text shown in 'statusline' to indicate snippet session is activate.
-	Check |coc-status| for statusline integration.
-
-	Default: `"SNIP"`
 
 "coc.preferences.currentFunctionSymbolAutoUpdate"	*coc-preferences-currentFunctionSymbolAutoUpdate*
 

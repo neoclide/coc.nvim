@@ -1,6 +1,17 @@
 # 2022-08-28
 
 - Make `CocMenuSel` use background of `PmenuSel`.
+- Snippet related configuration changed (old configuration still works until next release)
+  - "coc.preferences.snippetStatusText" -> "snippet.statusText"
+  - "coc.preferences.snippetHighlight" -> "snippet.highlight"
+  - "coc.preferences.nextPlaceholderOnDelete" -> "snippet.nextPlaceholderOnDelete"
+- Add configuration `"list.smartCase"`
+- Add configurations for inlay hint
+  - "inlayHint.refreshOnInsertMode"
+  - "inlayHint.enableParameter"
+  - "inlayHint.typeSeparator"
+  - "inlayHint.parameterSeparator"
+  - "inlayHint.subSeparator"
 
 # 2022-08-27
 
