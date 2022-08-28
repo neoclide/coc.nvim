@@ -1,3 +1,7 @@
+# 2022-08-28
+
+- Make `CocMenuSel` use background of `PmenuSel`.
+
 # 2022-08-27
 
 - Avoid use `EasyMotion#is_active`, use autocmd to disable linting.
