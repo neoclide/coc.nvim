@@ -11,6 +11,7 @@ import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import workspace from '../../workspace'
+import events from '../../events'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -171,6 +172,12 @@ afterEach(async () => {
 
 describe('semanticTokens', () => {
   describe('Provider', () => {
+    it('should not throw when buffer item not found', async () => {
+      await events.fire('CursorHold', [9])
+      await events.fire('CursorMoved', [9])
+      await events.fire('BufWinEnter', [9])
+    })
+
     it('should return null when range provider not exists', async () => {
       let doc = await workspace.document
       let res = await languages.provideDocumentRangeSemanticTokens(doc.textDocument, Range.create(0, 0, 1, 0), CancellationToken.None)
@@ -389,13 +396,17 @@ describe('semanticTokens', () => {
       let item = await highlighter.getCurrentItem()
       await item.waitRefresh()
       await nvim.command('enew')
+      let n = 0
       item.doHighlight = async () => {
+        n++
         called = true
       }
       await nvim.command(`b ${buf.id}`)
       await helper.waitValue(() => {
         return called
       }, true)
+      await events.fire('CursorHold', [buf.id])
+      expect(n).toBe(1)
     })
   })
 

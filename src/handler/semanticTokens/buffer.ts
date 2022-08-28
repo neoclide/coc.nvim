@@ -379,7 +379,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   /**
    * highlight current visible regions
    */
-  public async highlightRegions(token: CancellationToken): Promise<void> {
+  public async highlightRegions(token: CancellationToken, skipCheck = false): Promise<void> {
     let { regions, highlights, config, lineCount, bufnr } = this
     if (!highlights) return
     let priority = config.highlightPriority
@@ -392,7 +392,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       o[1] = Math.min(lineCount, Math.ceil(o[1] + height * 1.5), s + height * 2)
     })
     for (let [start, end] of Regions.mergeSpans(spans)) {
-      if (regions.has(start, end)) continue
+      if (!skipCheck && regions.has(start, end)) continue
       let items = this.toHighlightItems(highlights, start, end)
       let diff = await window.diffHighlights(bufnr, NAMESPACE, items, [start, end], token)
       if (token.isCancellationRequested) break
@@ -413,6 +413,14 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else {
       await this.highlightRegions(token)
     }
+  }
+
+  public async onCurorHold(): Promise<void> {
+    this.cancel(true)
+    if (!this.enabled || this.doc.dirty || this.shouldRangeHighlight || !this.highlights) return
+    let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
+    let token = rangeTokenSource.token
+    await this.highlightRegions(token, true)
   }
 
   /**
