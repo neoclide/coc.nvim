@@ -21,9 +21,9 @@ afterEach(async () => {
   await helper.reset()
 })
 
-async function createSession(enableHighlight = false, preferComplete = false): Promise<SnippetSession> {
+async function createSession(enableHighlight = false, preferComplete = false, nextOnDelete = false): Promise<SnippetSession> {
   let doc = await workspace.document
-  return new SnippetSession(nvim, doc, enableHighlight, preferComplete)
+  return new SnippetSession(nvim, doc, enableHighlight, preferComplete, nextOnDelete)
 }
 
 describe('SnippetSession', () => {
@@ -276,6 +276,20 @@ describe('SnippetSession', () => {
       await session.nextPlaceholder()
       let col = await nvim.call('col', ['.'])
       expect(col).toBe(7)
+    })
+
+    it('should automatically select next placeholder', async () => {
+      let session = await createSession(false, false, true)
+      await nvim.input('i')
+      await session.start('${1:foo} bar$0', defaultRange)
+      await nvim.input('<esc>')
+      await nvim.call('cursor', [1, 5])
+      await nvim.input('i')
+      await nvim.input('<backspace>')
+      await session.forceSynchronize()
+      expect(session.isActive).toBe(true)
+      let col = await nvim.call('col', ['.'])
+      expect(col).toBe(4)
     })
 
     it('should prefer range contains current cursor', async () => {

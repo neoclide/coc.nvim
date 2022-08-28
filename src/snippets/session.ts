@@ -38,7 +38,8 @@ export class SnippetSession {
     private nvim: Neovim,
     public readonly document: Document,
     private enableHighlight = false,
-    private preferComplete = false
+    private preferComplete = false,
+    private nextOnDelete = false
   ) {
     this.disposable = document.onDocumentChange(async e => {
       if (this._applying || !this._isActive) return
@@ -330,8 +331,15 @@ export class SnippetSession {
       if (delta.line != 0 || delta.character != 0) {
         this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true)
       }
-      this.highlights(placeholder, false)
+
+      if (this.nextOnDelete && !this.snippet.getRanges(placeholder).length) {
+        let next = this.snippet.getNextPlaceholder(placeholder.index)
+        if (next) await this.selectPlaceholder(next)
+      } else {
+        this.highlights(placeholder, false)
+      }
       this.nvim.redrawVim()
+
     } else {
       this.highlights(placeholder)
     }

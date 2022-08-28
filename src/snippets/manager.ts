@@ -19,6 +19,7 @@ export class SnippetManager {
   private disposables: Disposable[] = []
   private statusItem: StatusBarItem
   private highlight: boolean
+  private nextOnDelete: boolean
   private preferComplete: boolean
 
   constructor() {
@@ -60,6 +61,7 @@ export class SnippetManager {
     let config = workspace.getConfiguration('coc.preferences')
     this.statusItem.text = config.get<string>('snippetStatusText', 'SNIP')
     this.highlight = config.get<boolean>('snippetHighlight', false)
+    this.nextOnDelete = config.get<boolean>('nextPlaceholderOnDelete', false)
     let suggest = workspace.getConfiguration('suggest')
     this.preferComplete = suggest.get('preferCompleteThanJumpPlaceholder', false)
   }
@@ -101,7 +103,7 @@ export class SnippetManager {
       await doc.patchChange(true)
     }
     if (!session) {
-      session = new SnippetSession(this.nvim, doc, this.highlight, this.preferComplete)
+      session = new SnippetSession(this.nvim, doc, this.highlight, this.preferComplete, this.nextOnDelete)
       session.onCancel(() => {
         this.sessionMap.delete(bufnr)
         this.statusItem.hide()
