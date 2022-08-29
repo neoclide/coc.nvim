@@ -506,8 +506,10 @@ Enable and disable diagnostics~
 
 Use |coc-config-diagnostic-enable| to toggle diagnostics feature.
 
-Use |CocAction('diagnosticToggle')| for enable/disable diagnostics of current
-buffer.
+Use |CocAction('diagnosticToggle')| for enable/disable diagnostics feature.
+
+Use |CocAction('diagnosticToggleBuffer')| for enable/disable diagnostics of
+current buffer.
 
 Show diagnostic messages~
 
@@ -2025,6 +2027,15 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	Enable/disable diagnostics on the fly, not work when `displayByAle` is
 	enabled. You can toggle by specifying {enable}. {enable} can be 0 or 1
 
+"diagnosticToggleBuffer" [{bufnr}] [{enable}] 		*CocAction('diagnosticToggleBuffer')*
+
+	Toggle diagnostics for specific buffer, current buffer is used when
+	{bufnr} not provided. 0 for current buffer
+	You can toggle by specifying {enable}. {enable} can be 0 or 1
+
+	Note: this will only affect diagnostics shown in the UI, list of all
+	diagnostics won't change.
+
 "diagnosticPreview"					*CocAction('diagnosticPreview')*
 
 	Show diagnostics under current cursor in preview window.
@@ -2382,15 +2393,6 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 "resolveWorkspaceSymbol" {symbol} 			*CocAction('resolveWorkspaceSymbol')*
 
 	Resolve location for workspace {symbol}.
-
-"diagnosticToggleBuffer" [{bufnr}] [{enable}] 		*CocAction('diagnosticToggleBuffer')*
-
-	Toggle diagnostics for specific buffer, current buffer is used when
-	{bufnr} not provided. 0 for current buffer
-	You can toggle by specifying {enable}. {enable} can be 0 or 1
-
-	Note: this will only affect diagnostics shown in the UI, list of all
-	diagnostics won't change.
 
 "showOutline" [{keep}]					*CocAction('showOutline')*
 
