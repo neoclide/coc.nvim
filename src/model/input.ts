@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { disposeAll } from '../util'
+import { omitUndefined } from '../util/object'
 const logger = require('../util/logger')('model-input')
 
 export interface InputPreference {
@@ -122,7 +123,8 @@ export default class InputBox implements Disposable {
     this.title = title
     this.borderhighlight = preferences.borderhighlight ?? 'CocFloating'
     this.loading = false
-    let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, preferences]) as RequestResult
+    let config = omitUndefined(preferences)
+    let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, config]) as RequestResult
     if (!res) throw new Error('Unable to open input window')
     this._bufnr = res[0]
     this._winid = res[1]

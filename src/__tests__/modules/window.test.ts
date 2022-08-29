@@ -3,18 +3,18 @@ import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
 import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
-import { Disposable, Emitter } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import events from '../../events'
+import extensions from '../../extensions'
 import languages from '../../languages'
+import Notification from '../../model/notification'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { MessageLevel } from '../../types'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import extensions from '../../extensions'
-import Notification from '../../model/notification'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -46,12 +46,27 @@ afterEach(async () => {
 
 describe('window', () => {
   describe('functions', () => {
+    it('should get tab number', async () => {
+      expect(window.getTabNumber(33)).toBeUndefined()
+    })
+
     it('should get offset', async () => {
       let buf = await nvim.buffer
       await nvim.call('setline', [buf.id, ['bar', 'foo']])
       await nvim.call('cursor', [2, 2])
       let n = await window.getOffset()
       expect(n).toBe(5)
+    })
+
+    it('should get cursor screen position', async () => {
+      let pos = await window.getCursorScreenPosition()
+      expect(pos).toEqual({ row: 0, col: 0 })
+    })
+
+    it('should export terminals', async () => {
+      expect(Array.isArray(window.terminals)).toBe(true)
+      expect(window.onDidOpenTerminal).toBeDefined()
+      expect(window.onDidCloseTerminal).toBeDefined()
     })
 
     it('should selected range', async () => {
@@ -212,33 +227,25 @@ describe('window', () => {
       expect(res).toEqual(['foo'])
     })
 
-    it('should throw when workspace folder does not exist', async () => {
+    it('should return undefined when cancelled', async () => {
+      let token = CancellationToken.Cancelled
+      let res = await window.showPickerDialog(['foo', 'bar'], 'select', token)
+      expect(res).toBeUndefined()
+    })
+
+    it('should not throw when workspace folder does not exist', async () => {
       helper.updateConfiguration('coc.preferences.rootPatterns', [])
+      helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'])
       await nvim.command('enew')
-      let err
-      try {
-        await window.openLocalConfig()
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await window.openLocalConfig()
       await nvim.command(`e ${path.join(os.tmpdir(), 'a')}`)
-      err
-      try {
-        await window.openLocalConfig()
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await window.openLocalConfig()
       await nvim.command(`e t.md`)
       await nvim.command('setf markdown')
-      err
-      try {
-        await window.openLocalConfig()
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await window.openLocalConfig()
+      await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
+      await nvim.command('setf vim')
+      await window.openLocalConfig()
     })
 
     it('should open local config', async () => {
@@ -275,12 +282,22 @@ describe('window', () => {
     it('should request input', async () => {
       let winid = await nvim.call('win_getid')
       let p = window.requestInput('Name')
-      await helper.wait(50)
+      await helper.waitFloat()
       await nvim.input('bar<enter>')
       let res = await p
       let curr = await nvim.call('win_getid')
       expect(curr).toBe(winid)
       expect(res).toBe('bar')
+    })
+
+    it('should use input method of vim', async () => {
+      helper.updateConfiguration('coc.preferences.promptInput', false)
+      let defaultValue = 'default'
+      let p = window.requestInput('Name', defaultValue)
+      await helper.wait(50)
+      await nvim.input('<enter>')
+      let res = await p
+      expect(res).toBe(defaultValue)
     })
 
     it('should return empty string when input empty', async () => {
@@ -378,6 +395,15 @@ describe('window', () => {
       await ensureNotification(0)
       let res = await p
       expect(res).toBe('first')
+    })
+
+    it('should use notification for message', async () => {
+      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
+      let p = window.showErrorMessage('error message')
+      await helper.waitFloat()
+      await nvim.call('coc#float#close_all', [])
+      let res = await p
+      expect(res).toBeUndefined()
     })
 
     it('should prefer menu picker for notification message', async () => {
@@ -559,8 +585,7 @@ describe('window', () => {
       ns_id = await nvim.call('coc#highlight#create_namespace', [ns])
     })
 
-    async function createFile(): Promise<Buffer> {
-      let content = 'foo\nbar'
+    async function createFile(content = 'foo\nbar'): Promise<Buffer> {
       let file = await createTmpFile(content)
       return await helper.edit(file)
     }
@@ -570,6 +595,14 @@ describe('window', () => {
       let arr = hls.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd, o.combine === false ? 0 : 1, o.end_incl ? 1 : 0, o.start_incl ? 1 : 0])
       await nvim.call('coc#highlight#set', [bufnr, ns, arr, priority])
     }
+
+    it('should return null when canceled', async () => {
+      let buf = await createFile()
+      let items: HighlightItem[] = []
+      let token = CancellationToken.Cancelled
+      let res = await window.diffHighlights(buf.id, ns, items, undefined, token)
+      expect(res).toBe(null)
+    })
 
     it('should add new highlights', async () => {
       let buf = await createFile()
@@ -586,6 +619,52 @@ describe('window', () => {
       let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
       expect(markers.length).toBe(1)
       expect(markers[0][3].end_col).toBe(3)
+    })
+
+    it('should update with new highlights', async () => {
+      let buf = await createFile('foo\nbar\nbaz')
+      let items: HighlightItem[] = [{
+        hlGroup: 'Search',
+        lnum: 0,
+        colStart: 0,
+        colEnd: 3
+      }, {
+        hlGroup: 'Search',
+        lnum: 2,
+        colStart: 0,
+        colEnd: 3
+      }]
+      await setHighlights(items)
+      let newItems: HighlightItem[] = [{
+        hlGroup: 'Search',
+        lnum: 0,
+        colStart: 0,
+        colEnd: 1
+      }, {
+        hlGroup: 'Search',
+        lnum: 1,
+        colStart: 0,
+        colEnd: 3
+      }]
+      let res = await window.diffHighlights(buf.id, ns, newItems)
+      await window.applyDiffHighlights(buf.id, ns, priority, res)
+      let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
+      expect(markers.length).toBe(2)
+    })
+
+    it('should ignore lines without highlights', async () => {
+      let buf = await createFile()
+      let items: HighlightItem[] = [{
+        hlGroup: 'Search',
+        lnum: 1,
+        colStart: 0,
+        colEnd: 3
+      }]
+      await setHighlights(items)
+      let res = await window.diffHighlights(buf.id, ns, [])
+      await window.applyDiffHighlights(buf.id, ns, priority, res)
+      let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
+      expect(markers.length).toBe(0)
     })
 
     it('should return empty diff', async () => {
@@ -672,7 +751,7 @@ describe('window', () => {
           workspace.has = fn
         }
       })
-      let buf = await createFile()
+      let buf = await createFile('foo\nbar\nbza\ndef\n')
       let items: HighlightItem[] = [{
         hlGroup: 'Search',
         lnum: 0,
@@ -680,16 +759,33 @@ describe('window', () => {
         colEnd: 1
       }, {
         hlGroup: 'Search',
-        lnum: 0,
+        lnum: 1,
         colStart: 2,
         colEnd: 3
       }]
       await setHighlights(items)
-      let res = await window.diffHighlights(buf.id, ns, [])
+      let res = await window.diffHighlights(buf.id, ns, [{
+        hlGroup: 'Search',
+        lnum: 0,
+        colStart: 0,
+        colEnd: 3
+      }, {
+        hlGroup: 'Search',
+        lnum: 2,
+        colStart: 0,
+        colEnd: 3
+      }])
       expect(res).toEqual({
-        remove: [0], add: [], removeMarkers: []
+        remove: [0, 1],
+        add: [['Search', 0, 0, 3, 0, 0, 0], ['Search', 2, 0, 3, 0, 0, 0]],
+        removeMarkers: []
       })
       await window.applyDiffHighlights(buf.id, ns, priority, res, true)
+      let markers = await helper.getExtMarks(buf, ns_id)
+      expect(markers).toEqual([
+        [0, 0, 3, 'Search'],
+        [2, 0, 3, 'Search']
+      ])
     })
   })
 

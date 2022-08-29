@@ -14,7 +14,7 @@ import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
 import { FloatWinConfig } from './model/floatFactory'
 import Highligher from './model/highligher'
 import InputBox, { InputOptions, InputPreference } from './model/input'
-import Menu, { isMenuItem, MenuItem } from './model/menu'
+import Menu, { MenuItem } from './model/menu'
 import Notification, { NotificationConfig, NotificationKind, NotificationPreferences } from './model/notification'
 import Picker from './model/picker'
 import ProgressNotification, { Progress } from './model/progress'
@@ -283,37 +283,19 @@ export class Window {
    * @returns Selected index (0 based), -1 when canceled.
    */
   public async showMenuPicker(items: string[] | MenuItem[], option?: MenuOption, token?: CancellationToken): Promise<number> {
-    if (workspace.env.dialog) {
-      return await this.mutex.use(async () => {
-        if (token && token.isCancellationRequested) return -1
-        option = option || {}
-        if (typeof option === 'string') option = { title: option }
-        let menu = new Menu(this.nvim, { items, ...option }, token)
-        let promise = new Promise<number>(resolve => {
-          menu.onDidClose(selected => {
-            resolve(selected)
-          })
+    return await this.mutex.use(async () => {
+      if (token && token.isCancellationRequested) return -1
+      option = option || {}
+      if (typeof option === 'string') option = { title: option }
+      let menu = new Menu(this.nvim, { items, ...option }, token)
+      let promise = new Promise<number>(resolve => {
+        menu.onDidClose(selected => {
+          resolve(selected)
         })
-        await menu.show(this.dialogPreference)
-        return await promise
       })
-    } else {
-      return await this.mutex.use(async () => {
-        let placeholder = typeof option === 'string' ? option : option.title ?? (option.content ?? '') + 'Choose by number'
-        let title = placeholder + ':'
-        let titles: string[] = []
-        let idx = 1
-        for (const item of items) {
-          if (isMenuItem(item) && item.disabled) continue
-          titles.push(`${idx}. ${isMenuItem(item) ? item.text : item}`)
-          idx++
-        }
-        let res = await this.nvim.callAsync('coc#ui#quickpick', [title, titles.map(s => s.trim())])
-        let n = parseInt(res, 10)
-        if (isNaN(n) || n <= 0 || n > items.length) return -1
-        return n - 1
-      })
-    }
+      await menu.show(this.dialogPreference)
+      return await promise
+    })
   }
 
   /**
@@ -323,7 +305,8 @@ export class Window {
     let fsPath = await this.nvim.call('expand', ['%:p'])
     let filetype = await this.nvim.eval('&filetype') as string
     if (!fsPath || !path.isAbsolute(fsPath)) {
-      throw new Error(`current buffer doesn't have valid file path.`)
+      void this.showWarningMessage(`Current buffer doesn't have valid file path.`)
+      return
     }
     let folder = workspace.getWorkspaceFolder(URI.file(fsPath).toString())
     if (!folder) {
@@ -331,10 +314,11 @@ export class Window {
       let patterns = c.get<string[]>('rootPatterns', [])
       let w = workspace.getConfiguration('workspace')
       let ignored = w.get<string[]>('ignoredFiletypes', [])
-      if (ignored.includes(filetype)) {
-        throw new Error(`Can't resolve workspace folder for current file, current filetype exclude for workspace folder resolve.`)
-      }
-      throw new Error(`Can't resolve workspace folder for current file, consider create one of ${patterns.join(', ')} in your project root.`)
+      let msg: string
+      if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for workspace folder resolve.`
+      if (!msg) msg = `Can't resolve workspace folder for file '${fsPath}, consider create one of ${patterns.join(', ')} in your project root.'.`
+      void this.showWarningMessage(msg)
+      return
     }
     let root = URI.parse(folder.uri).fsPath
     let dir = path.join(root, '.vim')
@@ -427,10 +411,6 @@ export class Window {
    * @return A new status bar item.
    */
   public createStatusBarItem(priority = 0, option: StatusItemOption = {}): StatusBarItem {
-    if (!workspace.env) {
-      let fn = () => {}
-      return { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: false }
-    }
     if (!this.statusLine) {
       this.statusLine = new StatusLine(this.nvim)
     }
@@ -628,9 +608,8 @@ export class Window {
       let source = this.parseSource(stack)
       return await this.showMessagePicker(`Choose action (${source})`, message, `Coc${kind}Float`, items)
     }
-    let texts = typeof items[0] === 'string' ? items : (items as any[]).map(s => s.title)
-    let idx = await this.createNotification(kind.toLowerCase() as NotificationKind, message, texts, stack)
-    return idx == -1 ? undefined : items[idx]
+    await this.createNotification(kind.toLowerCase() as NotificationKind, message, [], stack)
+    return undefined
   }
 
   public async showNotification(config: NotificationConfig): Promise<void> {
@@ -724,7 +703,7 @@ export class Window {
     if (curr.length > 0) {
       let start = Array.isArray(region) ? region[0] : 0
       for (let i = start; i <= maxLnum; i++) {
-        let exists = map.get(i) || []
+        let exists = map.get(i) ?? []
         let added: HighlightItem[] = []
         for (let j = itemIndex; j <= maxIndex; j++) {
           let o = items[j]
@@ -737,7 +716,7 @@ export class Window {
           }
         }
         if (added.length == 0) {
-          if (exists.length) {
+          if (exists.length > 0) {
             if (checkMarkers) {
               removeMarkers.push(...exists.map(o => o[4]))
             } else {
@@ -747,13 +726,26 @@ export class Window {
         } else {
           if (exists.length == 0) {
             newItems.push(...added.map(o => convertHighlightItem(o)))
-          } else if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
+          } else {
             if (checkMarkers) {
-              removeMarkers.push(...exists.map(o => o[4]))
+              // skip same markers at beginning of exists and removeMarkers
+              let skip = 0
+              let min = Math.min(exists.length, added.length)
+              while (skip < min) {
+                if (isSame(added[skip], exists[skip])) {
+                  skip++
+                } else {
+                  break
+                }
+              }
+              removeMarkers.push(...exists.slice(skip).map(o => o[4]))
+              newItems.push(...added.slice(skip).map(o => convertHighlightItem(o)))
             } else {
-              linesToRemove.push(i)
+              if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
+                linesToRemove.push(i)
+                newItems.push(...added.map(o => convertHighlightItem(o)))
+              }
             }
-            newItems.push(...added.map(o => convertHighlightItem(o)))
           }
         }
       }
@@ -897,15 +889,12 @@ export class Window {
 
   private get inputPreference(): InputPreference {
     let config = workspace.getConfiguration('dialog')
-    let opts: InputPreference = {
+    return {
       rounded: config.get<boolean>('rounded', true),
-      maxWidth: config.get<number>('maxWidth', 80)
+      maxWidth: config.get<number>('maxWidth', 80),
+      highlight: config.get<string>('highlight'),
+      borderhighlight: config.get<string>('borderhighlight')
     }
-    let highlight = config.get<string>('floatHighlight')
-    if (highlight != null) opts.highlight = highlight
-    let borderhighlight = config.get<string>('floatBorderHighlight')
-    if (borderhighlight != null) opts.borderhighlight = borderhighlight
-    return opts
   }
 
   private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
@@ -933,7 +922,6 @@ export class Window {
   }
 
   private get enableMessageDialog(): boolean {
-    if (!workspace.env.dialog) return false
     let config = workspace.getConfiguration('coc.preferences')
     return config.get<boolean>('enableMessageDialog', false)
   }

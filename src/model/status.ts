@@ -24,7 +24,7 @@ export default class StatusLine implements Disposable {
   private shownIds: Set<string> = new Set()
   private _text = ''
   private interval: NodeJS.Timer
-  constructor(private nvim: Neovim) {
+  constructor(private nvim: Neovim | undefined) {
     this.interval = setInterval(() => {
       this.setStatusText()
     }, 100)
@@ -86,6 +86,7 @@ export default class StatusLine implements Disposable {
   private setStatusText(): void {
     let text = this.getText()
     let { nvim } = this
+    if (!nvim) return
     if (text != this._text) {
       this._text = text
       nvim.pauseNotification()

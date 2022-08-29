@@ -239,6 +239,12 @@ export class Helper extends EventEmitter {
     return str.trim()
   }
 
+  // row, startCol, endCol, highlight
+  public async getExtMarks(buf: Buffer, ns_id: number): Promise<[number, number, number, string][]> {
+    let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
+    return markers.map(o => [o[1], o[2], o[3].end_col, o[3].hl_group])
+  }
+
   public updateConfiguration(key: string, value: any): () => void {
     let { configurations } = workspace
     let curr = workspace.getConfiguration(key)
