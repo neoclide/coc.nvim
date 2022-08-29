@@ -125,6 +125,10 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     " happens when using getchar() #3921
     return []
   endtry
+  if get(g:, 'coc_floating_reversed', 0) && empty(get(a:config, 'border', [])) && get(a:config, 'highlight', 'CocFloating') ==# 'CocFloating'
+    let a:config['border'] = [1, 1, 1, 1]
+    let a:config['highlight'] = 'Normal'
+  endif
   let lnum = max([1, get(a:config, 'index', 0) + 1])
   " use exists
   if a:winid && coc#float#valid(a:winid)

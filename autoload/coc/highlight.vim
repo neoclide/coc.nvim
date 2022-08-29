@@ -484,6 +484,14 @@ function! coc#highlight#get_hl_command(id, key, cterm, gui) abort
   return cmd
 endfunction
 
+function! coc#highlight#reversed(id) abort
+  let gui = has('gui_running') || &termguicolors == 1
+  if synIDattr(synIDtrans(a:id), 'reverse', gui ? 'gui' : 'cterm') == '1'
+    return 1
+  endif
+  return 0
+endfunction
+
 " add matches for winid, use 0 for current window.
 function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) abort
   let winid = a:winid == 0 ? win_getid() : a:winid
