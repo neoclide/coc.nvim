@@ -631,6 +631,9 @@ text which requires neovim >= 0.5.0 or vim >= 9.0.0067.
 Note: you may need configure extension or languageserver to make inlay hint
 works.
 
+To temporarily toggle inlay hint of current buffer, use command
+`:CocCommand document.toggleInlayHint`
+
 Change highlight group:~
 
 |CocInlayHint|

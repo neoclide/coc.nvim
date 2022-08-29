@@ -27,6 +27,7 @@ const debounceInterval = global.__TEST__ ? 10 : 100
 const highlightGroup = 'CocInlayHint'
 
 export default class InlayHintBuffer implements SyncItem {
+  private _enabled = true
   private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   private regions = new Regions()
@@ -61,9 +62,26 @@ export default class InlayHintBuffer implements SyncItem {
 
   public get enabled(): boolean {
     let { filetypes } = this.config
+    if (!this._enabled) return false
     if (!filetypes.length) return false
     if (!filetypes.includes('*') && !filetypes.includes(this.doc.filetype)) return false
     return languages.hasProvider('inlayHint', this.doc.textDocument)
+  }
+
+  public toggle(): void {
+    if (!languages.hasProvider('inlayHint', this.doc.textDocument)) throw new Error('Inlay hint provider not found for current document')
+    let { filetypes } = this.config
+    if (!filetypes.includes('*') && !filetypes.includes(this.doc.filetype)) {
+      throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint.filetypes configuration`)
+    }
+    if (this._enabled) {
+      this._enabled = false
+      this.clearCache()
+      this.clearVirtualText()
+    } else {
+      this._enabled = true
+      void this.renderRange()
+    }
   }
 
   public clearCache(): void {

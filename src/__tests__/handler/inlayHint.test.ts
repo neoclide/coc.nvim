@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, InlayHint, InlayHintKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import commands from '../../commands'
 import InlayHintHandler from '../../handler/inlayHint/index'
 import languages from '../../languages'
 import { InlayHintWithProvider, isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
@@ -224,6 +225,42 @@ describe('InlayHint', () => {
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       let virt_text = markers[0][3].virt_text
       expect(virt_text[1]).toEqual(['|', 'CocInlayHint'])
+    })
+  })
+
+  describe('toggle inlayHint', () => {
+    it('should not throw when buffer not exists', async () => {
+      handler.toggle(9)
+      await commands.executeCommand('document.toggleInlayHint', 9)
+    })
+
+    it('should show message when inlayHint not supported', async () => {
+      let doc = await workspace.document
+      handler.toggle(doc.bufnr)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline).toMatch(/not\sfound/)
+    })
+
+    it('should show message when not enabled', async () => {
+      helper.updateConfiguration('inlayHint.filetypes', [])
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('')
+      disposables.push(disposable)
+      handler.toggle(doc.bufnr)
+      let cmdline = await helper.getCmdline()
+      expect(cmdline).toMatch(/not\senabled/)
+    })
+
+    it('should toggle inlayHints', async () => {
+      let doc = await helper.createDocument()
+      let disposable = await registerProvider('foo\nbar')
+      disposables.push(disposable)
+      handler.toggle(doc.bufnr)
+      handler.toggle(doc.bufnr)
+      await helper.waitValue(async () => {
+        let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
+        return markers.length
+      }, 2)
     })
   })
 

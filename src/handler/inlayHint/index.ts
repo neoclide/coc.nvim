@@ -2,10 +2,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import languages from '../../languages'
+import commands from '../../commands'
 import BufferSync from '../../model/bufferSync'
 import { HandlerDelegate } from '../../types'
 import workspace from '../../workspace'
 import InlayHintBuffer, { InlayHintConfig } from './buffer'
+import window from '../../window'
 
 export default class InlayHintHandler {
   private buffers: BufferSync<InlayHintBuffer> | undefined
@@ -35,6 +37,20 @@ export default class InlayHintHandler {
       let bufnr = await nvim.call('winbufnr', [winid])
       if (bufnr != -1) this.refresh(bufnr)
     }))
+    handler.addDisposable(commands.registerCommand('document.toggleInlayHint', (bufnr?: number) => {
+      this.toggle(bufnr ?? workspace.bufnr)
+    }))
+  }
+
+  public toggle(bufnr: number): void {
+    let item = this.getItem(bufnr)
+    if (item) {
+      try {
+        item.toggle()
+      } catch (e) {
+        void window.showErrorMessage((e as Error).message)
+      }
+    }
   }
 
   private getConfig(uri: string): InlayHintConfig {

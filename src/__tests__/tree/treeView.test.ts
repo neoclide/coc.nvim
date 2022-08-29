@@ -644,9 +644,11 @@ describe('TreeView', () => {
       await events.race(['TextChanged'], 200)
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
-      await helper.waitFloat()
+      await helper.waitPrompt()
       await nvim.input('<cr>')
-      await helper.wait(50)
+      await helper.waitValue(() => {
+        return called
+      }, true)
       expect(called).toBe(true)
       expect(args[0].label).toBe('a')
       expect(args[1].label).toBe('a')

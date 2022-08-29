@@ -2,6 +2,9 @@
 
 - Fix semanticTokens highlights unexpected cleared
 - Fix range of `doQuickfix` action.
+- Check reverse of `CocFloating`, use `border` and `Normal` highlight when reversed.
+- Make `CocInlayHint` use background of `SignColumn`.
+- Add command `document.toggleInlayHint`.
 
 # 2022-08-28
 
