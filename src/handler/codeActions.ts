@@ -124,7 +124,7 @@ export default class CodeActions {
    * Invoke preferred quickfix at current position
    */
   public async doQuickfix(): Promise<void> {
-    let actions = await this.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
+    let actions = await this.getCurrentCodeActions('currline', [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
       throw new Error('No quickfix action available')
     }
