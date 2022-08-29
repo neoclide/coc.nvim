@@ -419,7 +419,7 @@ function! s:Hi() abort
   hi default link CocLinkedEditing       CocCursorRange
   hi default link CocHighlightRead       CocHighlightText
   hi default link CocHighlightWrite      CocHighlightText
-  hi default link CocInlayHint           CocHintSign
+  exe 'hi default link CocInlayHint '.coc#highlight#compose_hlgroup('CocHintSign', 'SignColumn')
   " Notification
   hi default CocNotificationProgress  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default link CocNotificationButton  CocUnderline
@@ -449,6 +449,7 @@ function! s:Hi() abort
   else
     hi default link CocFloating Pmenu
   endif
+  let g:coc_floating_reversed = coc#highlight#reversed(hlID('CocFloating'))
   hi default link CocFloatDividingLine NonText
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel

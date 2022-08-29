@@ -368,10 +368,11 @@ function! coc#highlight#add_highlights(winid, codes, highlights) abort
     call coc#highlight#highlight_lines(a:winid, a:codes)
   endif
   if !empty(a:highlights)
+    let ns = coc#highlight#create_namespace('floating')
     for item in a:highlights
       let hlGroup = item['hlGroup']
       let opts = hlGroup =~# 'Search$' ? {'priority': 999, 'combine': 1} : {}
-      call coc#highlight#add_highlight(bufnr, -1, hlGroup, item['lnum'], item['colStart'], item['colEnd'])
+      call coc#highlight#add_highlight(bufnr, ns, hlGroup, item['lnum'], item['colStart'], item['colEnd'])
     endfor
   endif
 endfunction
@@ -482,6 +483,14 @@ function! coc#highlight#get_hl_command(id, key, cterm, gui) abort
   let cmd = ' cterm'.a:key.'=' . (empty(cterm) ? a:cterm : cterm)
   let cmd .= ' gui'.a:key.'=' . (empty(gui) ? a:gui : gui)
   return cmd
+endfunction
+
+function! coc#highlight#reversed(id) abort
+  let gui = has('gui_running') || &termguicolors == 1
+  if synIDattr(synIDtrans(a:id), 'reverse', gui ? 'gui' : 'cterm') == '1'
+    return 1
+  endif
+  return 0
 endfunction
 
 " add matches for winid, use 0 for current window.
@@ -710,6 +719,9 @@ function! s:to_group(items) abort
 endfunction
 
 function! s:get_priority(key, hlGroup, priority) abort
+  if a:hlGroup ==# 'CocListSearch'
+    return 2048
+  endif
   if a:hlGroup ==# 'CocSearch'
     return 999
   endif
