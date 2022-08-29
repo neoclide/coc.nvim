@@ -88,10 +88,6 @@ export default class SemanticTokens {
       let item = this.highlighters.getItem(bufnr)
       if (item) await item.onCursorMoved()
     }, null, this.disposables)
-    events.on('CursorHold', async bufnr => {
-      let item = this.highlighters.getItem(bufnr)
-      if (item) await item.onCurorHold()
-    }, null, this.disposables)
   }
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {

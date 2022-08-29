@@ -31,7 +31,7 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import { ExtendedCodeAction } from './types'
+import { ExtendedCodeAction, ProviderName } from './types'
 import { disposeAll } from './util'
 const logger = require('./util/logger')('languages')
 
@@ -443,7 +443,7 @@ class Languages {
     return diagnosticManager.create(owner)
   }
 
-  public hasProvider(id: string, document: TextDocument): boolean {
+  public hasProvider(id: ProviderName, document: TextDocument): boolean {
     switch (id) {
       case 'formatOnType':
         return this.onTypeFormatManager.hasProvider(document)
@@ -502,7 +502,7 @@ class Languages {
       case 'typeHierarchy':
         return this.typeHierarchyManager.hasProvider(document)
       default:
-        throw new Error(`Invalid provider name: ${id}`)
+        throw new Error(`Invalid provider name: ${String(id)}`)
     }
   }
 }

@@ -415,14 +415,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     }
   }
 
-  public async onCurorHold(): Promise<void> {
-    this.cancel(true)
-    if (!this.enabled || this.doc.dirty || this.shouldRangeHighlight || !this.highlights) return
-    let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
-    let token = rangeTokenSource.token
-    await this.highlightRegions(token, true)
-  }
-
   /**
    * Request highlights for visible range.
    */

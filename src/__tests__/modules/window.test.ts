@@ -159,7 +159,7 @@ describe('window', () => {
 
     it('should choose quickpick', async () => {
       let p = window.showQuickpick(['a', 'b'])
-      await helper.wait(50)
+      await helper.waitPrompt()
       await nvim.input('1')
       await nvim.input('<CR>')
       let res = await p
@@ -168,7 +168,7 @@ describe('window', () => {
 
     it('should cancel quickpick', async () => {
       let p = window.showQuickpick(['a', 'b'])
-      await helper.wait(50)
+      await helper.waitPrompt()
       await nvim.input('<esc>')
       let res = await p
       expect(res).toBe(-1)

@@ -173,7 +173,6 @@ afterEach(async () => {
 describe('semanticTokens', () => {
   describe('Provider', () => {
     it('should not throw when buffer item not found', async () => {
-      await events.fire('CursorHold', [9])
       await events.fire('CursorMoved', [9])
       await events.fire('BufWinEnter', [9])
     })
@@ -396,17 +395,13 @@ describe('semanticTokens', () => {
       let item = await highlighter.getCurrentItem()
       await item.waitRefresh()
       await nvim.command('enew')
-      let n = 0
       item.doHighlight = async () => {
-        n++
         called = true
       }
       await nvim.command(`b ${buf.id}`)
       await helper.waitValue(() => {
         return called
       }, true)
-      await events.fire('CursorHold', [buf.id])
-      expect(n).toBe(1)
     })
   })
 

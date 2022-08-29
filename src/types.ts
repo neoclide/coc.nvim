@@ -56,7 +56,7 @@ export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentC
   | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
   | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
   | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
-  | 'inlayHint' | 'inlineValue' | 'typeHierarchy'
+  | 'inlayHint' | 'inlineValue' | 'typeHierarchy' | 'semanticTokensRange'
 
 export type LocalMode = 'n' | 'v' | 's' | 'x'
 

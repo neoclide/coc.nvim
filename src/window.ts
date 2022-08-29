@@ -59,7 +59,10 @@ export const PROVIDER_NAMES = [
   'callHierarchy',
   'semanticTokens',
   'semanticTokensRange',
-  'linkedEditing'
+  'linkedEditing',
+  'inlayHint',
+  'inlineValue',
+  'typeHierarchy',
 ]
 
 function generateTabId(): number {
@@ -696,7 +699,7 @@ export class Window {
    */
   public async diffHighlights(bufnr: number, ns: string, items: HighlightItem[], region?: [number, number] | undefined, token?: CancellationToken): Promise<HighlightDiff | null> {
     let args = [bufnr, ns]
-    if (Array.isArray(region)) args.push(region[0], region[1])
+    if (Array.isArray(region)) args.push(region[0], region[1] - 1)
     let curr = await this.nvim.call('coc#highlight#get_highlights', args) as HighlightItemResult[]
     if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
