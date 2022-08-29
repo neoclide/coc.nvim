@@ -9,7 +9,7 @@ import { formatListItems, formatPath, UnformattedListItem } from '../../list/for
 import manager from '../../list/manager'
 import Document from '../../model/document'
 import services, { IServiceProvider } from '../../services'
-import { ListArgument, ListContext, ListItem, ServiceStat } from '../../types'
+import { ListArgument, ListContext, ListItem, QuickfixItem, ServiceStat } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -53,14 +53,16 @@ class SimpleList extends BasicList {
 
 let disposables: Disposable[] = []
 let nvim: Neovim
-const locations: any[] = [{
+const locations: QuickfixItem[] = [{
   filename: __filename,
   range: Range.create(0, 0, 0, 6),
-  text: 'foo'
+  text: 'foo',
+  type: 'Error'
 }, {
   filename: __filename,
   range: Range.create(2, 0, 2, 6),
-  text: 'Bar'
+  text: 'Bar',
+  type: 'Warning'
 }, {
   filename: __filename,
   range: Range.create(3, 0, 4, 6),
@@ -327,7 +329,7 @@ describe('BasicList', () => {
 })
 
 describe('list sources', () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await nvim.setVar('coc_jump_locations', locations)
   })
 
@@ -342,6 +344,19 @@ describe('list sources', () => {
       expect(name).toMatch('sources.test.ts')
       let res = await nvim.call('getmatches')
       expect(res.length).toBe(1)
+    })
+
+    it('should not use filename when current buffer only', async () => {
+      let locations = [{
+        filename: __filename,
+        lnum: 1,
+        col: 1,
+        text: 'multiple'
+      }]
+      await nvim.setVar('coc_jump_locations', locations)
+      await helper.createDocument(__filename)
+      await manager.start(['--normal', '--auto-preview', 'location'])
+      await manager.session.ui.ready
     })
 
     it('should change highlight on cursor move', async () => {

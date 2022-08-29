@@ -1633,7 +1633,11 @@ coc#refresh()						*coc#refresh()*
 	Start or refresh completion at current cursor position, bind this to
 	'imap' to trigger completion, example: >
 
-	inoremap <silent><expr> <c-space> coc#refresh()
+	if has('nvim')
+	  inoremap <silent><expr> <c-space> coc#refresh()
+	else
+	  inoremap <silent><expr> <c-@> coc#refresh()
+	endif
 
 coc#_select_confirm()					*coc#_select_confirm()*
 

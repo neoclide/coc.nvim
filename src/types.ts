@@ -473,7 +473,7 @@ export interface QuickfixItem {
   range?: Range
   text?: string
   type?: string
-  filename?: string
+  filename: string
   bufnr?: number
   lnum?: number
   end_lnum?: number

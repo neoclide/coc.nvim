@@ -719,6 +719,9 @@ function! s:to_group(items) abort
 endfunction
 
 function! s:get_priority(key, hlGroup, priority) abort
+  if a:hlGroup ==# 'CocListSearch'
+    return 2048
+  endif
   if a:hlGroup ==# 'CocSearch'
     return 999
   endif
