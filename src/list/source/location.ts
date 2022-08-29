@@ -76,7 +76,7 @@ function createItem(filename: string, loc: QuickfixItem): ListItem {
     ansiHighlights.push({ span: [start + 1, start + byteLength(loc.type)], hlGroup: hl })
   }
   if (loc.range && loc.range.start.line == loc.range.end.line) {
-    let len = byteLength(label)
+    let len = byteLength(label) + 1
     let start = len + byteLength(loc.text.slice(0, loc.range.start.character))
     let end = len + byteLength(loc.text.slice(0, loc.range.end.character))
     ansiHighlights.push({ span: [start, end], hlGroup: 'Search' })
