@@ -1,3 +1,8 @@
+# 2022-08-29
+
+- Fix semanticTokens highlights unexpected cleared
+- Fix range of `doQuickfix` action.
+
 # 2022-08-28
 
 - Make `CocMenuSel` use background of `PmenuSel`.
