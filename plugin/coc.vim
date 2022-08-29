@@ -419,7 +419,8 @@ function! s:Hi() abort
   hi default link CocLinkedEditing       CocCursorRange
   hi default link CocHighlightRead       CocHighlightText
   hi default link CocHighlightWrite      CocHighlightText
-  hi default link CocInlayHint           CocHintSign
+  exe 'hi default link CocInlayHint '.coc#highlight#compose_hlgroup('CocHintSign', 'SignColumn')
+  " hi default link CocInlayHint           CocHintSign
   " Notification
   hi default CocNotificationProgress  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default link CocNotificationButton  CocUnderline
