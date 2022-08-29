@@ -7,6 +7,14 @@ export function isEmpty(obj: object | null | undefined): boolean {
   return Object.keys(obj).length == 0
 }
 
+export function omitUndefined(obj: object): object {
+  const result: any = {}
+  Object.entries(obj).forEach(([key, val]) => {
+    if (val !== undefined) result[key] = val
+  })
+  return result
+}
+
 export function deepClone<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') {
     return obj
