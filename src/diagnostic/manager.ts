@@ -57,7 +57,6 @@ export class DiagnosticManager implements Disposable {
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.floatFactory = window.createFloatFactory(Object.assign({ modes: ['n'] }, this.config.floatConfig))
     this.buffers = workspace.registerBufferSync(doc => {
-      if (!this.enabled) return undefined
       let buf = new DiagnosticBuffer(
         this.nvim, doc, this.config,
         diagnostics => {
@@ -68,10 +67,12 @@ export class DiagnosticManager implements Disposable {
             })
           }
         })
-      let diagnostics = this.getDiagnostics(doc.uri)
-      // ignore empty diagnostics on first time.
-      if (Object.keys(diagnostics).length > 0) {
-        void buf.reset(diagnostics)
+      if (this.enabled) {
+        let diagnostics = this.getDiagnostics(doc.uri)
+        // ignore empty diagnostics on first time.
+        if (Object.keys(diagnostics).length > 0) {
+          void buf.reset(diagnostics)
+        }
       }
       return buf
     })
