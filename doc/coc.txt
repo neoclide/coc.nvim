@@ -657,15 +657,23 @@ Use |CocAction('format')|, you can create a command like: >
 <
 to format current buffer.
 
+							*coc-format-ontype*
 Format on type:~
 
-Enable format when insert specific characters by configurations:
+Format on type is disabled by default, could be enabled by configurations:
 
 - |coc-preferences-formatOnType|
 - |coc-preferences-formatOnTypeFiletypes|
 
-requires `onTypeEdit` provider |CocHasProvider|.
+Use `:CocCommand document.checkBuffer` to check if `formatOnType` provider
+exists for current buffer.
 
+To format on <CR>, create key-mapping of <CR> that uses |coc#on_enter()|.
+
+If you don't like the behavior on type bracket characters, configure
+|coc-preferences-bracketEnterImprove||.
+
+							*coc-format-selected*
 Format selected code:~
 
 Use 'formatexpr' for specific filetypes: >
@@ -679,6 +687,7 @@ Setup visual mode and operator key-mappings: >
   xmap <leader>f  <Plug>(coc-format-selected)
   nmap <leader>f  <Plug>(coc-format-selected)
 <
+							*coc-format-onsave*
 Format on save:~
 
 Use configuration |coc-preferences-formatOnSaveFiletypes|.
@@ -687,13 +696,10 @@ Or create |BufWritePre| autocmd like: >
 
 	autocmd BufWritePre * call CocAction('format')
 <
-Note avoid use |CocActionAsync| with |BufWritePre|.
+Note the operation have to synchronized, avoid use |CocActionAsync()|.
 
-Format on enter:~
-
-Use |coc#on_enter()| is required to notify coc.nvim the press on enter key.
-
-Configure |coc-preferences-bracketEnterImprove|
+The operation on save will be timeout after 0.5s by default, configured by
+|coc-preferences-willSaveHandlerTimeout|
 
 ==============================================================================
 CODE ACTION 						*coc-code-actions*
@@ -1003,7 +1009,7 @@ Use <CR> in call hierarchy tree to open location in original window.
 ==============================================================================
 SEMANTIC HIGHLIGHTS					*coc-semantic-highlights*
 
-Semantic tokens are used to add additional color information to a file that
+Semantic tokens are used to add additional color information to a buffer that
 depends on language specific symbol information.
 
 Use |coc-config-semanticTokens-filetypes| to enable semantic tokens highlights.
@@ -1704,7 +1710,7 @@ coc#expandableOrJumpable()				*coc#expandableOrJumpable()*
 
 coc#on_enter()						*coc#on_enter()*
 
-	Notify coc.nvim that `<enter>` has been pressed.
+	Notify coc.nvim that <CR> has been pressed.
 
 	Used for the format on type and improvement of brackets, example: >
 

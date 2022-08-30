@@ -2,7 +2,7 @@ scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
-let s:vim_api_version = 31
+let s:vim_api_version = 32
 
 function! coc#util#remote_fns(name)
   let fns = ['init', 'complete', 'should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
@@ -472,19 +472,17 @@ function! coc#util#get_indentkeys() abort
   return &indentkeys
 endfunction
 
-function! coc#util#get_bufoptions(bufnr) abort
+function! coc#util#get_bufoptions(bufnr, max) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   let buftype = getbufvar(a:bufnr, '&buftype')
   let winid = bufwinid(a:bufnr)
-  let size = -1
-  if bufnr('%') == a:bufnr
-    let size = line2byte(line("$") + 1)
-  elseif !empty(bufname)
-    let size = getfsize(bufname)
-  endif
+  let size = coc#util#bufsize(a:bufnr)
   let lines = v:null
-  if getbufvar(a:bufnr, 'coc_enabled', 1) && (buftype == '' || buftype == 'acwrite') && size < get(g:, 'coc_max_filesize', 2097152)
+  if getbufvar(a:bufnr, 'coc_enabled', 1)
+        \ && (buftype == '' || buftype == 'acwrite')
+        \ && size != -2
+        \ && size < a:max
     let lines = getbufline(a:bufnr, 1, '$')
   endif
   return {
@@ -503,6 +501,17 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \}
+endfunction
+
+function! coc#util#bufsize(bufnr) abort
+  if bufnr('%') == a:bufnr
+    return line2byte(line("$") + 1)
+  endif
+  let bufname = bufname(a:bufnr)
+  if !getbufvar(a:bufnr, '&modified') && filereadable(bufname)
+    return getfsize(bufname)
+  endif
+  return strlen(join(getbufline(a:bufnr, 1, '$'), '\n'))
 endfunction
 
 function! coc#util#get_config_home()
