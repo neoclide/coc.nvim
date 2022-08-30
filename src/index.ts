@@ -72,9 +72,11 @@ import {
 import { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
 import { TreeItem, TreeItemCollapsibleState } from './tree/index'
 import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
+import LineBuilder from './model/line'
 
 module.exports = {
   Uri: URI,
+  LineBuilder,
   NullLogger,
   SettingMonitor,
   LanguageClient,
