@@ -667,7 +667,7 @@ describe('Document', () => {
     async function createVimDocument(): Promise<Document> {
       let doc = await workspace.document
       doc.detach()
-      let opts = await nvim.call('coc#util#get_bufoptions', doc.bufnr)
+      let opts = await nvim.call('coc#util#get_bufoptions', [doc.bufnr, 2097152])
       let buf = nvim.createBuffer(doc.bufnr)
       let env = Object.assign({ isVim: true }, workspace.env)
       return new Document(buf, env, nvim, opts)

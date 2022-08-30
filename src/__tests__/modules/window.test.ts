@@ -807,7 +807,7 @@ describe('window', () => {
       await window.bufferCheck()
       await checkFloat('not attached')
       await nvim.call('coc#float#close_all', [])
-      await nvim.setVar('coc_max_filesize', 10240)
+      helper.updateConfiguration('coc.preferences.maxFileSize', '5KB')
       let filepath = path.join(process.cwd(), 'data/schema.json')
       await helper.edit(filepath)
       await window.bufferCheck()

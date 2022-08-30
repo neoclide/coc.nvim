@@ -10,7 +10,7 @@ import Configurations from '../configuration'
 import events, { InsertChange } from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import { BufferOption, DidChangeTextDocumentParams, Env, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
+import { BufferOption, ConfigurationChangeEvent, DidChangeTextDocumentParams, Env, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll, platform } from '../util'
 import { readFileLine } from '../util/fs'
 import { byteIndex } from '../util/string'
@@ -24,6 +24,11 @@ interface StateInfo {
   winids: number[]
 }
 
+interface DocumentsConfig {
+  maxFileSize: number
+  willSaveHandlerTimeout: number
+}
+
 export default class Documents implements Disposable {
   private _cwd: string
   private _env: Env
@@ -33,7 +38,7 @@ export default class Documents implements Disposable {
   private _attached = false
   private _currentResolve = false
   private nvim: Neovim
-  private maxFileSize: number
+  private config: DocumentsConfig
   private disposables: Disposable[] = []
   private creating: Map<number, Promise<Document | undefined>> = new Map()
   public buffers: Map<number, Document> = new Map()
@@ -56,6 +61,7 @@ export default class Documents implements Disposable {
     private readonly workspaceFolder: WorkspaceFolder,
   ) {
     this._cwd = process.cwd()
+    this.config = { willSaveHandlerTimeout: 500, maxFileSize: 2097152 }
   }
 
   public async attach(nvim: Neovim, env: Env): Promise<void> {
@@ -63,10 +69,8 @@ export default class Documents implements Disposable {
     this.nvim = nvim
     this._env = env
     this._attached = true
-    let preferences = this.configurations.getConfiguration('coc.preferences')
-    let maxFileSize = preferences.get<string>('maxFileSize', '10MB')
-    this.maxFileSize = bytes.parse(maxFileSize)
-    nvim.setVar('coc_max_filesize', this.maxFileSize, true)
+    this.getConfiguration()
+    this.configurations.onDidChange(this.getConfiguration, this, this.disposables)
     let { bufnrs, winid, bufnr, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
     this.winids = new Set(winids)
     this._bufnr = bufnr
@@ -129,6 +133,17 @@ export default class Documents implements Disposable {
       }, null, this.disposables)
     }
     this._initialized = true
+  }
+
+  private getConfiguration(e?: ConfigurationChangeEvent): void {
+    if (!e || e.affectsConfiguration('coc.preferences')) {
+      let config = this.configurations.getConfiguration('coc.preferences')
+      let maxFileSize = config.get<string>('maxFileSize', '10MB')
+      this.config = {
+        maxFileSize: bytes.parse(maxFileSize),
+        willSaveHandlerTimeout: config.get<number>('willSaveHandlerTimeout', 500)
+      }
+    }
   }
 
   public get bufnr(): number {
@@ -241,7 +256,7 @@ export default class Documents implements Disposable {
     }
     this._currentResolve = true
     return new Promise<Document>((resolve, reject) => {
-      this.nvim.eval('coc#util#get_bufoptions(bufnr("%"))').then((opts: BufferOption) => {
+      this.nvim.eval(`coc#util#get_bufoptions(bufnr("%"),${this.config.maxFileSize})`).then((opts: BufferOption) => {
         let doc: Document | undefined
         if (opts != null) {
           this.creating.delete(opts.bufnr)
@@ -317,7 +332,7 @@ export default class Documents implements Disposable {
     if (doc) return doc
     if (this.creating.has(bufnr)) return await this.creating.get(bufnr)
     let promise = new Promise<Document | undefined>(resolve => {
-      this.nvim.call('coc#util#get_bufoptions', [bufnr]).then(opts => {
+      this.nvim.call('coc#util#get_bufoptions', [bufnr, this.config.maxFileSize]).then(opts => {
         if (!this.creating.has(bufnr)) {
           resolve(undefined)
           return
@@ -348,6 +363,7 @@ export default class Documents implements Disposable {
     if (this.buffers.has(bufnr)) return this.buffers.get(bufnr)
     let buffer = this.nvim.createBuffer(bufnr)
     let doc = new Document(buffer, this._env, this.nvim, opts)
+    if (opts.size > this.config.maxFileSize) logger.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`)
     this.buffers.set(bufnr, doc)
     if (doc.attached) {
       if (doc.schema == 'file') {
@@ -437,8 +453,7 @@ export default class Documents implements Disposable {
     let total = thenables.length
     if (total) {
       let promise = new Promise<TextEdit[] | undefined>(resolve => {
-        const preferences = this.configurations.getConfiguration('coc.preferences')
-        const willSaveHandlerTimeout = preferences.get<number>('willSaveHandlerTimeout', 500)
+        const willSaveHandlerTimeout = this.config.willSaveHandlerTimeout
         let timer = setTimeout(() => {
           this.nvim.outWriteLine(`Will save handler timeout after ${willSaveHandlerTimeout}ms`)
           resolve(undefined)
