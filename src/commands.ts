@@ -62,7 +62,7 @@ export class CommandManager implements Disposable {
     }, true)
     this.register({
       id: 'editor.action.insertSnippet',
-      execute: async (edit: TextEdit, ultisnip?: UltiSnippetOption) => {
+      execute: async (edit: TextEdit, ultisnip?: UltiSnippetOption | true) => {
         const opts = ultisnip === true ? {} : ultisnip
         return await snippetsManager.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : undefined)
       }
