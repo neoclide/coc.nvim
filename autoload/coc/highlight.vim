@@ -368,11 +368,10 @@ function! coc#highlight#add_highlights(winid, codes, highlights) abort
     call coc#highlight#highlight_lines(a:winid, a:codes)
   endif
   if !empty(a:highlights)
-    let ns = coc#highlight#create_namespace('floating')
     for item in a:highlights
       let hlGroup = item['hlGroup']
       let opts = hlGroup =~# 'Search$' ? {'priority': 999, 'combine': 1} : {}
-      call coc#highlight#add_highlight(bufnr, ns, hlGroup, item['lnum'], item['colStart'], item['colEnd'])
+      call coc#highlight#add_highlight(bufnr, -1, hlGroup, item['lnum'], item['colStart'], item['colEnd'])
     endfor
   endif
 endfunction
