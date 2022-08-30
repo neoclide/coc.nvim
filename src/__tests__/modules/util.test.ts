@@ -775,6 +775,10 @@ describe('fuzzy match test', () => {
     expect(fuzzy.fuzzyPositions('aB', 'AabeB', true, [0])).toEqual([1, 4])
     expect(fuzzy.fuzzyPositions('aB', 'abaB', true, [])).toEqual([2, 3])
     expect(fuzzy.fuzzyPositions('aB', 'axybaB', true, [])).toEqual([4, 5])
+    expect(fuzzy.fuzzyPositions('aB', 'axybaB', false, [4, 5])).toEqual([0, 3])
+    expect(fuzzy.fuzzyPositions('work', 'wword work', true, [])).toEqual([6, 7, 8, 9])
+    expect(fuzzy.fuzzyPositions('wo', 'wxo won', true, [])).toEqual([4, 5])
+    expect(fuzzy.fuzzyPositions('won', 'wxo WOn', false, [])).toEqual([4, 5, 6])
   })
 })
 
