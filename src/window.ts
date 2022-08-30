@@ -892,8 +892,8 @@ export class Window {
     return {
       rounded: config.get<boolean>('rounded', true),
       maxWidth: config.get<number>('maxWidth', 80),
-      highlight: config.get<string>('highlight'),
-      borderhighlight: config.get<string>('borderhighlight')
+      highlight: config.get<string>('floatHighlight'),
+      borderhighlight: config.get<string>('floatBorderHighlight')
     }
   }
 
