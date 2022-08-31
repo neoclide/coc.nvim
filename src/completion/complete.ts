@@ -37,6 +37,7 @@ export interface CompleteConfig {
   ambiguousIsNarrow: boolean
   floatConfig: FloatConfig
   pumFloatConfig: FloatConfig
+  reversePumAboveCursor: boolean
 }
 
 export type Callback = () => void

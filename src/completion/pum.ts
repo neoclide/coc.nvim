@@ -45,6 +45,7 @@ export interface PumConfig {
   shadow?: boolean
   border?: [number, number, number, number] | undefined
   rounded?: number
+  reverse?: boolean
 }
 
 export default class PopupMenu {
@@ -61,7 +62,7 @@ export default class PopupMenu {
   }
 
   public get pumConfig(): PumConfig {
-    let { floatConfig, pumFloatConfig } = this.config
+    let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config
     if (!pumFloatConfig) pumFloatConfig = floatConfig
     let obj: PumConfig = {}
     if (typeof pumFloatConfig.highlight === 'string') obj.highlight = pumFloatConfig.highlight
@@ -72,6 +73,7 @@ export default class PopupMenu {
       obj.rounded = pumFloatConfig.rounded ? 1 : 0
       obj.borderhighlight = pumFloatConfig.borderhighlight ?? 'CocFloating'
     }
+    obj.reverse = reversePumAboveCursor === true
     return obj
   }
 

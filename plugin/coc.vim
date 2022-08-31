@@ -442,7 +442,7 @@ function! s:Hi() abort
   hi default link CocPumMenu             CocFloating
   hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough
-  hi default CocPumVirtualText      ctermfg=239 guifg=#504945
+  hi default link CocPumVirtualText      NonText
 
   if has('nvim')
     hi default link CocFloating NormalFloat

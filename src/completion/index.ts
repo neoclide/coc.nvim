@@ -139,7 +139,8 @@ export class Completion implements Disposable {
       highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),
       lowPrioritySourceLimit: getConfig<number>('lowPrioritySourceLimit', null),
       ignoreRegexps: getConfig<string[]>('ignoreRegexps', []),
-      asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false)
+      asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false),
+      reversePumAboveCursor: getConfig<boolean>('reversePumAboveCursor', false)
     })
   }
 
