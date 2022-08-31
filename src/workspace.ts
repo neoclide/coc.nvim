@@ -322,7 +322,7 @@ export class Workspace implements IWorkspace {
   public getAttachedDocument(uri: number | string): Document {
     let doc = this.getDocument(uri)
     if (!doc) throw new Error(`Buffer ${uri} not created.`)
-    if (!doc.attached) throw new Error(`Buffer ${uri} not attached, try :CocCommand document.checkBuffer`)
+    if (!doc.attached) throw new Error(`Buffer ${uri} not attached, ${doc.notAttachReason}`)
     return doc
   }
   /**

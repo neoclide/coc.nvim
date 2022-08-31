@@ -112,6 +112,16 @@ export default class SemanticTokens {
   public async inspectSemanticToken(): Promise<void> {
     let item = await this.getCurrentItem()
     if (!item || !item.enabled) {
+      if (!item) {
+        let doc = await workspace.document
+        void window.showErrorMessage(`Document not attached, ${doc?.notAttachReason}`)
+      } else {
+        try {
+          item.checkState()
+        } catch (e) {
+          void window.showErrorMessage((e as Error).message)
+        }
+      }
       this.floatFactory.close()
       return
     }

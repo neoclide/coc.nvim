@@ -468,7 +468,7 @@ function! s:Hi() abort
   for name in ['Error', 'Warning', 'Info', 'Hint']
     let suffix = name ==# 'Warning' ? 'Warn' : name
     if hlexists('DiagnosticSign'.suffix)
-      exe 'hi default link Coc'.name.'sign DiagnosticSign'.suffix
+      exe 'hi default link Coc'.name.'Sign DiagnosticSign'.suffix
     else
       exe 'hi default Coc'.name.'Sign ctermfg='.sign_colors[suffix][0].' guifg='.sign_colors[suffix][1]
     endif

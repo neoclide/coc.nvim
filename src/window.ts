@@ -792,20 +792,10 @@ export class Window {
 
   public async bufferCheck(): Promise<void> {
     let doc = await workspace.document
-    let msg: string
     if (!doc.attached) {
-      if (!doc.enabled) {
-        msg = 'Document not attached, b:coc_enabled is 0'
-      } else if (doc.buftype !== '' && doc.buftype !== 'acwrite') {
-        msg = `Document not attached with buftype '${doc.buftype}'`
-      } else {
-        msg = `Document not attached, file size exceed coc.preferences.maxFileSize`
-      }
-    }
-    if (msg) {
       await this.showDialog({
         title: 'Buffer check result',
-        content: msg,
+        content: `Document not attached, ${doc.notAttachReason}`,
         highlight: 'WarningMsg'
       })
       return

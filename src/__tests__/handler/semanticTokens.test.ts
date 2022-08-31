@@ -206,6 +206,16 @@ describe('semanticTokens', () => {
       let line = await helper.getCmdline()
       expect(line).toMatch('not attached')
       await highlighter.inspectSemanticToken()
+      line = await helper.getCmdline()
+      expect(line).toMatch('not attached')
+    })
+
+    it('should show error when not enabled', async () => {
+      await nvim.command('enew')
+      await workspace.document
+      await highlighter.inspectSemanticToken()
+      let line = await helper.getCmdline()
+      expect(line).toMatch('not enabled')
     })
 
     it('should show message when not enabled', async () => {

@@ -39,6 +39,7 @@ export default class Document {
   private _noFetch: boolean
   private _disposed = false
   private _attached = false
+  private _notAttachReason = ''
   private _previewwindow = false
   private _winid = -1
   private _filetype: string
@@ -210,10 +211,22 @@ export default class Document {
       this._noFetch = true
       this._attached = true
       this.attach()
+    } else {
+      if (!['', 'acwrite'].includes(buftype)) {
+        this._notAttachReason = `not a normal buffer, buftype "${buftype}"`
+      } else if (this.variables[`coc_enabled`] === 0) {
+        this._notAttachReason = `b:coc_enabled = 0`
+      } else {
+        this._notAttachReason = `buffer size ${opts.size} exceed coc.preferences.maxFileSize`
+      }
     }
     this._filetype = this.convertFiletype(opts.filetype)
     this.setIskeyword(opts.iskeyword)
     this.createTextDocument(1, this.lines)
+  }
+
+  public get notAttachReason(): string {
+    return this._notAttachReason
   }
 
   private attach(): void {

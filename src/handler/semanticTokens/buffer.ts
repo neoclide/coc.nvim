@@ -157,12 +157,12 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!workspace.env.updateHighlight) {
       throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`)
     }
-    if (!this.doc.attached) throw new Error('Document not attached')
+    if (!this.doc.attached) throw new Error(`Document not attached, ${this.doc.notAttachReason}`)
     let { filetypes } = this.config
     if (!filetypes?.includes('*') && !filetypes.includes(this.doc.filetype)) {
       throw new Error(`Semantic tokens highlight not enabled for current filetype: ${this.doc.filetype}`)
     }
-    if (!this.hasProvider) throw new Error('SemanticTokens provider not found, your languageserver may not support it')
+    if (!this.hasProvider) throw new Error(`SemanticTokens provider not found for ${this.doc.uri}`)
   }
 
   private async getTokenRanges(

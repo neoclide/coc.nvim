@@ -242,6 +242,13 @@ describe('Document', () => {
       await doc.synchronize()
       let content = doc.getDocumentContent()
       expect(content.indexOf('abc')).toBe(-1)
+      expect(doc.notAttachReason).toMatch('coc_enabled')
+    })
+
+    it('should not attach nofile buffer', async () => {
+      nvim.command('edit t|setl buftype=nofile', true)
+      let doc = await workspace.document
+      expect(doc.notAttachReason).toMatch('nofile')
     })
 
     it('should get lineCount, previewwindow, winid', async () => {
