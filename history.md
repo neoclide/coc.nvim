@@ -1,3 +1,12 @@
+# 2022-08-31
+
+- Add configuration "suggest.reversePumAboveCursor".
+- Use `DiagnosticSign*` highlight groups when possible.
+
+# 2022-08-30
+
+- Export `LineBuilder` class.
+
 # 2022-08-29
 
 - Fix semanticTokens highlights unexpected cleared
