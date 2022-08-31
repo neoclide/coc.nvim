@@ -614,8 +614,8 @@ function! coc#float#scrollable(winid) abort
   endif
   if s:is_vim
     let pos = popup_getpos(a:winid)
-    if get(popup_getoptions(a:winid), 'scrollbar', 0)
-      return get(pos, 'scrollbar', 0)
+    if get(pos, 'scrollbar', 0)
+      return 1
     endif
     let ch = coc#float#content_height(bufnr, pos['core_width'], getwinvar(a:winid, '&wrap'))
     return ch > pos['core_height']
@@ -689,15 +689,10 @@ function! coc#float#content_height(bufnr, width, wrap) abort
     return 0
   endif
   if !a:wrap
-    return has('nvim') ? nvim_buf_line_count(a:bufnr) : len(getbufline(a:bufnr, 1, '$'))
+    return coc#compat#buf_line_count(a:bufnr)
   endif
   let lines = has('nvim') ? nvim_buf_get_lines(a:bufnr, 0, -1, 0) : getbufline(a:bufnr, 1, '$')
-  let total = 0
-  for line in lines
-    let dw = max([1, strdisplaywidth(line)])
-    let total += float2nr(ceil(str2float(string(dw))/a:width))
-  endfor
-  return total
+  return coc#string#content_height(lines, a:width)
 endfunction
 
 function! coc#float#nvim_refresh_scrollbar(winid) abort
