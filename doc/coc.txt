@@ -11,6 +11,7 @@ Requirements					|coc-requirements|
 Installation					|coc-installation|
 Extensions 					|coc-extensions|
 Configuration					|coc-configuration|
+Floating windows 				|coc-floating|
 LSP features 					|coc-lsp|
   Document 					|coc-document|
   Completion					|coc-completion|
@@ -226,6 +227,51 @@ Configurations are composed with builtin configurations and configurations
 contributed by coc extensions, see |coc-config| for builtin configurations.
 
 ==============================================================================
+FLOATING WINDOWS					*coc-floating*
+
+Floating windows/popups are created by |api-floatwin| on neovim or |popupwin|
+on vim.
+							*coc-floating-scroll*
+Scroll floating windows:~
+
+See |coc#float#has_scroll()| for example.
+
+							*coc-floating-close*
+Close floating windows:~
+
+To close all floating windows/popups use |coc#float#close_all()| or
+|popup_clear()| on vim.  Or you can use <CTRL-w>o on neovim which close all
+split windows as well.
+
+To close single floating window/popup, use |coc#float#close()|.
+
+							*coc-floating-focus*
+Focus floating windows:~
+
+On neovim, use <CTRL-w>w (or |<Plug>(coc-float-jump)|) could focus a floating
+window just created (if it's focusable).  It's not allowed to focus popups on
+vim, unless it's using terminal buffer.
+
+							*coc-floating-custom*
+Configure floating windows:~
+
+To customize floating windows used by popup menu. Use configurations:
+
+- |coc-config-suggest-floatConfig|
+- |coc-config-suggest-pumFloatConfig|
+
+For floating windows created around cursor, like diagnostics, hover and
+signature use |coc-config-floatFactory-floatConfig| for common float
+configurations. For further customization, use:
+
+- |coc-config-diagnostic-floatConfig|
+- |coc-config-signature-floatConfig|
+- |coc-config-hover-floatConfig|
+
+For customize dialog windows, use |coc-config-dialog|.
+For customize notification windows, use |coc-config-notification|.
+
+==============================================================================
 LSP FEATURES 						*coc-lsp*
 
 All features (except for telemetry) of LSP 3.16 are supported, checkout
@@ -247,7 +293,7 @@ Features automatically work by default:~
 - Trigger signature help |coc-signature|.
 - Inlay hints |coc-inlayHint|
 
-Note all features could be disabled/enabled by |coc-configuration| and some
+Most features could be disabled/enabled by |coc-configuration| and some
 vim variables.
 
 Features require enabled by configuration:~
@@ -3507,9 +3553,8 @@ See |coc-dialog-input| for available key-mappings.
 
 							*coc-dialog-menu*
 
-A menu dialog is shown aside current cursor position for pick a single item
-from list of items, extensions could use `window.showMenuPicker` to create menu
-dialog.
+A menu dialog is shown besides cursor for pick a single item from list of
+items, extensions could use `window.showMenuPicker` to create menu dialog.
 
 Supported key-mappings:
 
