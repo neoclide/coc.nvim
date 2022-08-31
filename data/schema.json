@@ -617,6 +617,11 @@
       "description": "Show virtual text for insert word of selected item, requires neovim >= 0.5.0 or vim >= 9.0.0067",
       "default": false
     },
+    "suggest.reversePumAboveCursor": {
+      "type": "boolean",
+      "description": "Reverse order of complete items when pum shown above cursor.",
+      "default": false
+    },
     "snippet.statusText": {
       "type": "string",
       "default": "SNIP",

@@ -417,17 +417,9 @@ function! coc#highlight#highlight_lines(winid, blocks) abort
   endif
 endfunction
 
-" Compose hlGroups with foreground and background colors.
-function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
-  let hlGroup = 'Fg'.a:fgGroup.'Bg'.a:bgGroup
-  if a:fgGroup ==# a:bgGroup
-    return a:fgGroup
-  endif
-  if hlexists(hlGroup) && match(execute('hi '.hlGroup, 'silent!'), 'cleared') == -1
-    return hlGroup
-  endif
-  let fgId = synIDtrans(hlID(a:fgGroup))
-  let bgId = synIDtrans(hlID(a:bgGroup))
+function! coc#highlight#compose(fg, bg) abort
+  let fgId = synIDtrans(hlID(a:fg))
+  let bgId = synIDtrans(hlID(a:bg))
   let isGuiReversed = synIDattr(fgId, 'reverse', 'gui') !=# '1' || synIDattr(bgId, 'reverse', 'gui') !=# '1'
   let guifg = isGuiReversed ? synIDattr(fgId, 'fg', 'gui') : synIDattr(fgId, 'bg', 'gui')
   let guibg = isGuiReversed ? synIDattr(bgId, 'bg', 'gui') : synIDattr(bgId, 'fg', 'gui')
@@ -437,7 +429,7 @@ function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   let bold = synIDattr(fgId, 'bold') ==# '1'
   let italic = synIDattr(fgId, 'italic') ==# '1'
   let underline = synIDattr(fgId, 'underline') ==# '1'
-  let cmd = 'silent hi ' . hlGroup
+  let cmd = ''
   if !empty(guifg)
     let cmd .= ' guifg=' . guifg
   endif
@@ -461,10 +453,23 @@ function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   elseif underline
     let cmd .= ' cterm=underline gui=underline'
   endif
-  if cmd ==# 'silent hi ' . hlGroup
+  return cmd
+endfunction
+
+" Compose hlGroups with foreground and background colors.
+function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
+  let hlGroup = 'Fg'.a:fgGroup.'Bg'.a:bgGroup
+  if a:fgGroup ==# a:bgGroup
+    return a:fgGroup
+  endif
+  if hlexists(hlGroup) && match(execute('hi '.hlGroup, 'silent!'), 'cleared') == -1
+    return hlGroup
+  endif
+  let cmd = coc#highlight#compose(a:fgGroup, a:bgGroup)
+  if empty(cmd)
       return 'Normal'
   endif
-  execute cmd
+  execute 'silent hi ' . hlGroup . cmd
   return hlGroup
 endfunction
 

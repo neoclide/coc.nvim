@@ -382,13 +382,9 @@ function! s:Enable(initialize)
 endfunction
 
 function! s:Hi() abort
-  hi default CocErrorSign     ctermfg=Red     guifg=#ff0000 guibg=NONE
-  hi default CocWarningSign   ctermfg=Brown   guifg=#ff922b guibg=NONE
-  hi default CocInfoSign      ctermfg=Yellow  guifg=#fab005 guibg=NONE
-  hi default CocHintSign      ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
-  hi default CocUnderline     term=underline cterm=underline gui=underline
+  hi default CocUnderline     term=underline cterm=underline gui=underline guisp=#ebdbb2
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
   hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
@@ -403,10 +399,6 @@ function! s:Hi() abort
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
-  hi default link CocErrorHighlight      CocUnderline
-  hi default link CocWarningHighlight    CocUnderline
-  hi default link CocInfoHighlight       CocUnderline
-  hi default link CocHintHighlight       CocUnderline
   hi default link CocDeprecatedHighlight CocStrikeThrough
   hi default link CocUnusedHighlight     CocFadeOut
   hi default link CocListLine            CursorLine
@@ -419,7 +411,6 @@ function! s:Hi() abort
   hi default link CocLinkedEditing       CocCursorRange
   hi default link CocHighlightRead       CocHighlightText
   hi default link CocHighlightWrite      CocHighlightText
-  exe 'hi default link CocInlayHint '.coc#highlight#compose_hlgroup('CocHintSign', 'SignColumn')
   " Notification
   hi default CocNotificationProgress  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default link CocNotificationButton  CocUnderline
@@ -442,7 +433,7 @@ function! s:Hi() abort
   hi default link CocPumMenu             CocFloating
   hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough
-  hi default CocPumVirtualText      ctermfg=239 guifg=#504945
+  hi default link CocPumVirtualText      NonText
 
   if has('nvim')
     hi default link CocFloating NormalFloat
@@ -464,19 +455,36 @@ function! s:Hi() abort
     hi default CocCursorTransparent gui=strikethrough blend=100
   endif
 
+  let sign_colors = {
+      \ 'Error': ['Red', '#ff0000'],
+      \ 'Warn': ['Brown', '#ff922b'],
+      \ 'Info': ['Yellow', '#fab005'],
+      \ 'Hint': ['Blue', '#15aabf']
+      \ }
   for name in ['Error', 'Warning', 'Info', 'Hint']
     let suffix = name ==# 'Warning' ? 'Warn' : name
+    if hlexists('DiagnosticUnderline'.suffix)
+      exe 'hi default link Coc'.name.'Highlight DiagnosticUnderline'.suffix
+    else
+      exe 'hi default link Coc'.name.'Highlight CocUnderline'
+    endif
+    if hlexists('DiagnosticSign'.suffix)
+      exe 'hi default link Coc'.name.'Sign DiagnosticSign'.suffix
+    else
+      exe 'hi default Coc'.name.'Sign ctermfg='.sign_colors[suffix][0].' guifg='.sign_colors[suffix][1]
+    endif
     if hlexists('DiagnosticVirtualText'.suffix)
       exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
     else
-      exe 'hi default link Coc'.name.'VirtualText '.coc#highlight#compose_hlgroup('Coc'.name.'Sign', 'Normal')
+      exe 'hi default Coc'.name.'VirtualText '.coc#highlight#compose('Coc'.name.'Sign', 'Normal')
     endif
     if hlexists('Diagnostic'.suffix)
       exe 'hi default link Coc'.name.'Float Diagnostic'.suffix
     else
-      exe 'hi default link Coc'.name.'Float '.coc#highlight#compose_hlgroup('Coc'.name.'Sign', 'CocFloating')
+      exe 'hi default Coc'.name.'Float '.coc#highlight#compose('Coc'.name.'Sign', 'CocFloating')
     endif
   endfor
+  exe 'hi default CocInlayHint '.coc#highlight#compose('CocHintSign', 'SignColumn')
   call s:AddAnsiGroups()
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)

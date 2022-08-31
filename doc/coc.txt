@@ -11,6 +11,7 @@ Requirements					|coc-requirements|
 Installation					|coc-installation|
 Extensions 					|coc-extensions|
 Configuration					|coc-configuration|
+Floating windows 				|coc-floating|
 LSP features 					|coc-lsp|
   Document 					|coc-document|
   Completion					|coc-completion|
@@ -226,6 +227,51 @@ Configurations are composed with builtin configurations and configurations
 contributed by coc extensions, see |coc-config| for builtin configurations.
 
 ==============================================================================
+FLOATING WINDOWS					*coc-floating*
+
+Floating windows/popups are created by |api-floatwin| on neovim or |popupwin|
+on vim.
+							*coc-floating-scroll*
+Scroll floating windows:~
+
+See |coc#float#has_scroll()| for example.
+
+							*coc-floating-close*
+Close floating windows:~
+
+To close all floating windows/popups use |coc#float#close_all()| or
+|popup_clear()| on vim.  Or you can use <CTRL-w>o on neovim which close all
+split windows as well.
+
+To close single floating window/popup, use |coc#float#close()|.
+
+							*coc-floating-focus*
+Focus floating windows:~
+
+On neovim, use <CTRL-w>w (or |<Plug>(coc-float-jump)|) could focus a floating
+window just created (if it's focusable).  It's not allowed to focus popups on
+vim, unless it's using terminal buffer.
+
+							*coc-floating-custom*
+Configure floating windows:~
+
+To customize floating windows used by popup menu. Use configurations:
+
+- |coc-config-suggest-floatConfig|
+- |coc-config-suggest-pumFloatConfig|
+
+For floating windows created around cursor, like diagnostics, hover and
+signature use |coc-config-floatFactory-floatConfig| for common float
+configurations. For further customization, use:
+
+- |coc-config-diagnostic-floatConfig|
+- |coc-config-signature-floatConfig|
+- |coc-config-hover-floatConfig|
+
+For customize dialog windows, use |coc-config-dialog|.
+For customize notification windows, use |coc-config-notification|.
+
+==============================================================================
 LSP FEATURES 						*coc-lsp*
 
 All features (except for telemetry) of LSP 3.16 are supported, checkout
@@ -247,7 +293,7 @@ Features automatically work by default:~
 - Trigger signature help |coc-signature|.
 - Inlay hints |coc-inlayHint|
 
-Note all features could be disabled/enabled by |coc-configuration| and some
+Most features could be disabled/enabled by |coc-configuration| and some
 vim variables.
 
 Features require enabled by configuration:~
@@ -649,6 +695,20 @@ FORMAT 							*coc-format*
 
 There're various ways to format document.
 
+							*coc-format-options*
+Format options:~
+
+Buffer options that affect document format: 'eol', 'shiftwidth' and
+'expandtab'.
+
+- |b:coc_trim_trailing_whitespace| Trim trailing whitespace on a line.
+- |b:coc_trim_final_newlines| Trim all newlines after the final newline at the
+  end of the file.
+
+Note: some languageservers or coc.nvim extension don't respect those format
+options or have partial support.
+
+							*coc-format-document*
 Format full document:~
 
 Use |CocAction('format')|, you can create a command like: >
@@ -713,16 +773,14 @@ There're different kinds of code actions:
 - `source` code actions apply to the entire file.
 - `organizeImport` organize import statements of current document.
 
-Invoke code action~
+Key-mappings for code actions:~
 
-To fix diagnostic at current line, use |<Plug>(coc-fix-current)|.
-
-Key-mappings for choose code action:~
-
-- |<Plug>(coc-codeaction-cursor)|
-- |<Plug>(coc-codeaction-line)|
-- |<Plug>(coc-codeaction)|
-- |<Plug>(coc-codeaction-selected)|
+- |<Plug>(coc-fix-current)| for invoke quickfix action at current line if any.
+- |<Plug>(coc-codeaction-cursor)| for choose code actions at cursor position.
+- |<Plug>(coc-codeaction-line)| for choose code actions at current line.
+- |<Plug>(coc-codeaction)| for choose code actions of current file.
+- |<Plug>(coc-codeaction-selected)| for choose code actions from selected
+  range.
 
 |coc-dialog-menu| would be shown for pick specific code action.
 
@@ -1011,6 +1069,8 @@ SEMANTIC HIGHLIGHTS					*coc-semantic-highlights*
 
 Semantic tokens are used to add additional color information to a buffer that
 depends on language specific symbol information.
+
+The feature requires vim >= 8.1.1719 or neovim >= 0.5.0.
 
 Use |coc-config-semanticTokens-filetypes| to enable semantic tokens highlights.
 
@@ -3493,9 +3553,8 @@ See |coc-dialog-input| for available key-mappings.
 
 							*coc-dialog-menu*
 
-A menu dialog is shown aside current cursor position for pick a single item
-from list of items, extensions could use `window.showMenuPicker` to create menu
-dialog.
+A menu dialog is shown besides cursor for pick a single item from list of
+items, extensions could use `window.showMenuPicker` to create menu dialog.
 
 Supported key-mappings:
 

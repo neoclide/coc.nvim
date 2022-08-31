@@ -225,6 +225,11 @@ Completion related~
 	Show virtual text for insert word of selected item, requires
 	neovim >= 0.5.0 or vim >= 9.0.0067 default: `false`
 
+"suggest.reversePumAboveCursor" 			*coc-config-suggest-reversePumAboveCursor*
+
+	Reverse order of complete items when pum shown above cursor,
+	default: `false`
+
 "suggest.completionItemKindLabels"			*coc-config-suggest-completionItemKindLabels*
 
 	Set custom labels to completion item kinds, default: `{}`.
