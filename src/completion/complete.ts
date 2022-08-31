@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import unidecode from 'unidecode'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
@@ -14,6 +15,7 @@ export interface CompleteConfig {
   noselect: boolean
   pumwidth: number
   enablePreselect: boolean
+  asciiMatch: boolean
   formatItems: ReadonlyArray<string>
   selection: Selection
   virtualText: boolean
@@ -179,6 +181,7 @@ export default class Complete {
   private async completeSource(source: ISource, token: CancellationToken): Promise<void> {
     // new option for each source
     let opt = Object.assign({}, this.option)
+    let { asciiMatch } = this.config
     let { name } = source
     try {
       if (typeof source.shouldComplete === 'function') {
@@ -201,7 +204,7 @@ export default class Complete {
               item.abbr = item.abbr ?? item.word
               item.source = name
               item.priority = priority
-              item.filterText = item.filterText ?? item.word
+              item.filterText = asciiMatch ? unidecode(item.filterText ?? item.word) : item.filterText ?? item.word
               if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) ?? 0
             })
             this.setResult(name, result)
@@ -248,7 +251,7 @@ export default class Complete {
     if (results.size == 0) return []
     let len = input.length
     let emptyInput = len == 0
-    let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
+    let { maxItemCount, asciiMatch, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
@@ -276,7 +279,7 @@ export default class Complete {
           }
           // let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
           if (score === 0) continue
-          if (abbr == filterText) {
+          if (filterText == (asciiMatch ? unidecode(abbr) : abbr)) {
             item.positions = positions
           } else if (positions && positions.length > 0) {
             let idx = abbr.indexOf(filterText.slice(0, positions[positions.length - 1] + 1))

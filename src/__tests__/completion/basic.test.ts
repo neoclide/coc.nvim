@@ -99,7 +99,26 @@ describe('completion', () => {
     it('should trigger with none ascii characters', async () => {
       helper.updateConfiguration('suggest.asciiCharactersOnly', false)
       await create(['你好'], false)
-      await nvim.input('你')
+      await nvim.input('N')
+      await helper.waitPopup()
+    })
+
+    it('should use ascii match', async () => {
+      await create(['\xc1\xc7\xc8'], false)
+      await nvim.input('a')
+      await helper.waitPopup()
+      let items = await helper.items()
+      expect(items[0].word).toBe('ÁÇÈ')
+    })
+
+    it('should not use ascii match', async () => {
+      helper.updateConfiguration('suggest.asciiMatch', false)
+      await create(['\xc1\xc7\xc8', 'foo'], false)
+      await nvim.input('a')
+      await helper.wait(50)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
+      await nvim.input(' f')
       await helper.waitPopup()
     })
 
