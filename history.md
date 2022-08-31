@@ -2,6 +2,7 @@
 
 - Add configuration "suggest.reversePumAboveCursor".
 - Use `DiagnosticSign*` highlight groups when possible.
+- Use `DiagnosticUnderline*` highlight groups when possible.
 
 # 2022-08-30
 

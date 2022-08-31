@@ -384,7 +384,7 @@ endfunction
 function! s:Hi() abort
   hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
-  hi default CocUnderline     term=underline cterm=underline gui=underline
+  hi default CocUnderline     term=underline cterm=underline gui=underline guisp=#ebdbb2
   hi default CocBold          term=bold cterm=bold gui=bold
   hi default CocItalic        term=italic cterm=italic gui=italic
   hi default CocStrikeThrough term=strikethrough cterm=strikethrough gui=strikethrough
@@ -399,10 +399,6 @@ function! s:Hi() abort
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1
-  hi default link CocErrorHighlight      CocUnderline
-  hi default link CocWarningHighlight    CocUnderline
-  hi default link CocInfoHighlight       CocUnderline
-  hi default link CocHintHighlight       CocUnderline
   hi default link CocDeprecatedHighlight CocStrikeThrough
   hi default link CocUnusedHighlight     CocFadeOut
   hi default link CocListLine            CursorLine
@@ -467,6 +463,11 @@ function! s:Hi() abort
       \ }
   for name in ['Error', 'Warning', 'Info', 'Hint']
     let suffix = name ==# 'Warning' ? 'Warn' : name
+    if hlexists('DiagnosticUnderline'.suffix)
+      exe 'hi default link Coc'.name.'Highlight DiagnosticUnderline'.suffix
+    else
+      exe 'hi default link Coc'.name.'Highlight CocUnderline'
+    endif
     if hlexists('DiagnosticSign'.suffix)
       exe 'hi default link Coc'.name.'Sign DiagnosticSign'.suffix
     else
