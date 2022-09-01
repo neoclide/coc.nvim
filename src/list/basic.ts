@@ -6,7 +6,7 @@ import readline from 'readline'
 import { CancellationToken, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration } from '../types'
+import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, LocationWithTarget, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
 import { readFile } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
@@ -38,6 +38,7 @@ interface PreviewConfig {
   filetype?: string
   range?: Range
   scheme?: string
+  targetRange?: Range
   toplineStyle: string
   toplineOffset: number
 }
@@ -170,7 +171,7 @@ export default abstract class BasicList implements IList, Disposable {
     }
   }
 
-  public async convertLocation(location: Location | LocationWithLine | string): Promise<Location> {
+  public async convertLocation(location: LocationWithTarget | LocationWithLine | string): Promise<LocationWithTarget> {
     if (typeof location == 'string') return Location.create(location, Range.create(0, 0, 0, 0))
     if (Location.is(location)) return location
     let u = URI.parse(location.uri)
@@ -232,7 +233,7 @@ export default abstract class BasicList implements IList, Disposable {
     this.actions.push(action)
   }
 
-  protected async previewLocation(location: Location, context: ListContext): Promise<void> {
+  protected async previewLocation(location: LocationWithTarget, context: ListContext): Promise<void> {
     if (!context.listWindow) return
     let { nvim } = this
     let { uri, range } = location
@@ -262,6 +263,7 @@ export default abstract class BasicList implements IList, Disposable {
       scheme: u.scheme,
       toplineStyle: this.toplineStyle,
       toplineOffset: this.toplineOffset,
+      targetRange: location.targetRange
     }
     await nvim.call('coc#list#preview', [lines, config])
   }

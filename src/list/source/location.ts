@@ -5,10 +5,9 @@ import { CancellationToken } from 'vscode-languageserver-protocol'
 import { Location, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
-import { AnsiHighlight, ListContext, ListItem, QuickfixItem } from '../../types'
+import { AnsiHighlight, ListContext, ListItem, LocationWithTarget, QuickfixItem } from '../../types'
 import { isParentFolder } from '../../util/fs'
 import { byteLength } from '../../util/string'
-import workspace from '../../workspace'
 import BasicList from '../basic'
 const logger = require('../../util/logger')('list-location')
 
@@ -35,17 +34,8 @@ export default class LocationList extends BasicList {
     let locs = await this.nvim.getVar('coc_jump_locations') as QuickfixItem[]
     if (token.isCancellationRequested) return []
     locs = locs || []
-    locs.forEach(loc => {
-      if (!loc.uri) {
-        let fullpath = path.isAbsolute(loc.filename) ? loc.filename : path.join(context.cwd, loc.filename)
-        loc.uri = URI.file(fullpath).toString()
-      }
-      if (!loc.bufnr && workspace.getDocument(loc.uri) != null) {
-        loc.bufnr = workspace.getDocument(loc.uri).bufnr
-      }
-    })
     let bufnr = context.buffer.id
-    let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr)
+    let ignoreFilepath = locs.every(o => o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {
       let filename = ignoreFilepath ? '' : loc.filename
       if (filename.length > 0 && path.isAbsolute(filename)) {
@@ -58,6 +48,7 @@ export default class LocationList extends BasicList {
 }
 
 function createItem(filename: string, loc: QuickfixItem): ListItem {
+  let uri = loc.uri ?? URI.file(loc.filename).toString()
   let label = ''
   const ansiHighlights: AnsiHighlight[] = []
   let start = 0
@@ -83,13 +74,15 @@ function createItem(filename: string, loc: QuickfixItem): ListItem {
   }
   label += ' ' + loc.text
   let filterText = `${filename}${loc.text.trim()}`
-  let location: Location
+  let location: LocationWithTarget
   if (loc.range) {
-    location = Location.create(loc.uri, loc.range)
+    location = Location.create(uri, loc.range)
   } else {
-    let pos = Position.create(loc.lnum - 1, loc.col - 1)
-    location = Location.create(loc.uri, Range.create(pos, pos))
+    let start = Position.create(loc.lnum - 1, loc.col - 1)
+    let end = Position.create((loc.end_lnum ?? loc.lnum) - 1, (loc.end_col ?? loc.col) - 1)
+    location = Location.create(uri, Range.create(start, end))
   }
+  if (loc.targetRange) location.targetRange = loc.targetRange
   return {
     label,
     location,

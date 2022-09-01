@@ -337,7 +337,7 @@ describe('list sources', () => {
     it('should highlight ranges', async () => {
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
-      await helper.wait(200)
+      await helper.waitFor('winnr', ['$'], 3)
       manager.prompt.cancel()
       await nvim.command('wincmd k')
       let name = await nvim.eval('bufname("%")')
@@ -351,6 +351,13 @@ describe('list sources', () => {
         filename: __filename,
         lnum: 1,
         col: 1,
+        text: 'multiple'
+      }, {
+        filename: __filename,
+        lnum: 1,
+        col: 1,
+        end_lnum: 2,
+        end_col: 1,
         text: 'multiple'
       }]
       await nvim.setVar('coc_jump_locations', locations)

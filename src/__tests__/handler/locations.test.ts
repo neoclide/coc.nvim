@@ -112,7 +112,7 @@ describe('locations', () => {
       }))
       disposables.push(languages.registerDefinitionProvider([{ language: '*' }], {
         provideDefinition: () => {
-          return [LocationLink.create(`test://foo`, Range.create(0, 0, 0, 0), undefined)]
+          return [LocationLink.create(`test://foo`, Range.create(0, 0, 0, 0), Range.create(0, 0, 0, 0))]
         }
       }))
       let res = await locations.definitions()

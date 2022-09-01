@@ -63,7 +63,7 @@ export default class Manager<T, P = object> {
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
   }
 
-  public addLocation(locations: LocationWithTarget[], location: Location | Location[] | LocationLink[]): void {
+  public addLocation(locations: LocationWithTarget[], location: Location | Location[] | LocationLink[] | null | undefined): void {
     if (Array.isArray(location)) {
       for (let loc of location) {
         if (Location.is(loc)) {
@@ -86,7 +86,7 @@ function addLocation(arr: LocationWithTarget[], location: Location | LocationLin
     let { range, uri } = location
     if (arr.find(o => o.uri == uri && equals(o.range, range)) != null) return
     arr.push(location)
-  } else if (typeof location === 'string') {
+  } else if (location && typeof location.targetUri === 'string') {
     let { targetUri, targetSelectionRange, targetRange } = location
     if (arr.find(o => o.uri == targetUri && equals(o.range, targetSelectionRange)) != null) return
     arr.push({
