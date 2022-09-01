@@ -1,3 +1,8 @@
+# 2022-09-01
+
+- Add configuration "suggest.asciiMatch"
+- Support `b:coc_force_attach`.
+
 # 2022-08-31
 
 - Add configuration "suggest.reversePumAboveCursor".

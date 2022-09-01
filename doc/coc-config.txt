@@ -211,6 +211,10 @@ Completion related~
 	Invalid character for strip valid word when inserting text of complete
 	item, default: ` ,(,<,{,[,\r,\n`
 
+"suggest.asciiMatch"					*coc-config-suggest-asciiMatch*
+
+	Convert unicode characters to ascii for match, default: `true`
+
 "suggest.asciiCharactersOnly"				*coc-config-suggest-asciiCharactersOnly*
 
 	Trigger suggest with ASCII characters only, default: `false`

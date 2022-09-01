@@ -354,7 +354,8 @@ LSP features could be provided for the attached buffer.
 
 The buffer may not be attached by following reasons:
 
-- The 'buftype' is neither <empty> nor 'acwrite'.
+- The 'buftype' is neither <empty> nor 'acwrite', (could be bypassed by
+  |b:coc_force_attach|).
 - Buffer variable |b:coc_enabled| is `0`.
 - Byte length of buffer exceed |coc-preferences-maxFileSize|.
 - Buffer is used for command line window.
@@ -1289,6 +1290,11 @@ b:coc_enabled						*b:coc_enabled*
 				\ let b:coc_enabled=0 |
 				\ endif
 <
+b:coc_force_attach					*b:coc_force_attach*
+
+	When is `1`, attach the buffer without check the 'buftype' option.
+	Should be set on buffer create.
+
 b:coc_root_patterns					*b:coc_root_patterns*
 
 	Root patterns used for resolving workspaceFolder for
@@ -1880,6 +1886,8 @@ coc#pum#info() 						*coc#pum#info()*
 		height 		Height of pum, including padding and border.
 		size 		Count of displayed complete items.
 		inserted 	Is |v:true| when there is item inserted.
+		reversed 	Is |v:true| when pum shown above cursor and
+				enable |suggest.reversePumAboveCursor|
 
 coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
 
