@@ -245,6 +245,13 @@ describe('Document', () => {
       expect(doc.notAttachReason).toMatch('coc_enabled')
     })
 
+    it('should attach nofile document by b:coc_force_attach', async () => {
+      nvim.command(`e +setl\\ buftype=nofile foo| let b:coc_force_attach = 1`, true)
+      let doc = await workspace.document
+      expect(doc.buftype).toBe('nofile')
+      expect(doc.attached).toBe(true)
+    })
+
     it('should not attach nofile buffer', async () => {
       nvim.command('edit t|setl buftype=nofile', true)
       let doc = await workspace.document

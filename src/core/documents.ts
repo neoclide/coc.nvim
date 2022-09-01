@@ -159,7 +159,7 @@ export default class Documents implements Disposable {
   }
 
   public get documents(): Document[] {
-    return Array.from(this.buffers.values()).filter(o => o.attached && !o.isCommandLine)
+    return Array.from(this.buffers.values()).filter(o => o.attached)
   }
 
   public get bufnrs(): number[] {

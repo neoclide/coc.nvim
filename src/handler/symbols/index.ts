@@ -68,7 +68,7 @@ export default class Symbols {
   public async getDocumentSymbols(bufnr?: number): Promise<SymbolInfo[] | undefined> {
     if (!bufnr) {
       let doc = await workspace.document
-      if (!doc || doc.isCommandLine || !doc.attached) return undefined
+      if (!doc|| !doc.attached) return undefined
       await wait(1)
       bufnr = doc.bufnr
     }

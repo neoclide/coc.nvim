@@ -50,7 +50,7 @@ export default class WorkspaceHandler {
 
   public async ensureDocument(): Promise<boolean> {
     let doc = await workspace.document
-    return doc && !doc.isCommandLine && doc.attached
+    return doc && doc.attached
   }
 
   public async doKeymap(key: string, defaultReturn = '', pressed?: string): Promise<string> {

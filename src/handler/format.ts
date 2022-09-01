@@ -100,7 +100,7 @@ export default class FormatHandler {
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached || doc.isCommandLine) return
+    if (!doc || !doc.attached) return
     const filetypes = this.preferences.formatOnTypeFiletypes
     if (filetypes.length && !filetypes.includes(doc.filetype) && !filetypes.includes('*')) {
       // Only check formatOnTypeFiletypes when set, avoid breaking change

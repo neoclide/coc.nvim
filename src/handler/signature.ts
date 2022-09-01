@@ -64,16 +64,10 @@ export default class Signature {
     }, null, this.disposables)
     events.on('TextInsert', async (bufnr, info, character) => {
       if (!this.config.trigger) return
-      let doc = this.getTextDocument(bufnr)
-      if (!doc || !languages.shouldTriggerSignatureHelp(doc.textDocument, character)) return
+      let doc = workspace.getDocument(bufnr)
+      if (!doc || !doc.attached || !languages.shouldTriggerSignatureHelp(doc.textDocument, character)) return
       await this._triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
     }, null, this.disposables)
-  }
-
-  private getTextDocument(bufnr: number): Document | undefined {
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || doc.isCommandLine || !doc.attached) return
-    return doc
   }
 
   private loadConfiguration(e?: ConfigurationChangeEvent): void {

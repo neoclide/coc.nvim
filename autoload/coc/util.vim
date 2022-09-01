@@ -476,11 +476,10 @@ function! coc#util#get_bufoptions(bufnr, max) abort
   if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   let buftype = getbufvar(a:bufnr, '&buftype')
-  let winid = bufwinid(a:bufnr)
   let size = coc#util#bufsize(a:bufnr)
   let lines = v:null
   if getbufvar(a:bufnr, 'coc_enabled', 1)
-        \ && (buftype == '' || buftype == 'acwrite')
+        \ && (buftype == '' || buftype == 'acwrite' || getbufvar(a:bufnr, 'coc_force_attach', 0))
         \ && size != -2
         \ && size < a:max
     let lines = getbufline(a:bufnr, 1, '$')
@@ -489,7 +488,7 @@ function! coc#util#get_bufoptions(bufnr, max) abort
         \ 'bufnr': a:bufnr,
         \ 'size': size,
         \ 'lines': lines,
-        \ 'winid': winid,
+        \ 'winid': bufwinid(a:bufnr),
         \ 'bufname': bufname,
         \ 'buftype': buftype,
         \ 'previewwindow': v:false,
