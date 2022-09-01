@@ -420,7 +420,7 @@ export class ListManager implements Disposable {
         type: 'string',
         enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
           '--strict', '--regex', '--ignore-case', '--number-select',
-          '--interactive', '--auto-preview', '--first', '--no-quit']
+          '--reverse', '--interactive', '--auto-preview', '--first', '--no-quit']
       }
     })
     extensions.addSchemeProperty(`list.source.${name}.defaultArgs`, {
