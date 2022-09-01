@@ -1,5 +1,5 @@
 'use strict'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, LinkedEditingRanges, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
@@ -31,7 +31,7 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import { ExtendedCodeAction, ProviderName } from './types'
+import { ExtendedCodeAction, LocationWithTarget, ProviderName } from './types'
 import { disposeAll } from './util'
 const logger = require('./util/logger')('languages')
 
@@ -252,27 +252,27 @@ class Languages {
     return await this.signatureManager.provideSignatureHelp(document, position, token, context)
   }
 
-  public async getDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[] | null> {
+  public async getDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.definitionManager.provideDefinition(document, position, token)
   }
 
-  public async getDefinitionLinks(document: TextDocument, position: Position, token: CancellationToken): Promise<DefinitionLink[] | null> {
+  public async getDefinitionLinks(document: TextDocument, position: Position, token: CancellationToken): Promise<DefinitionLink[]> {
     return await this.definitionManager.provideDefinitionLinks(document, position, token)
   }
 
-  public async getDeclaration(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[] | null> {
+  public async getDeclaration(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.declarationManager.provideDeclaration(document, position, token)
   }
 
-  public async getTypeDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
+  public async getTypeDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.typeDefinitionManager.provideTypeDefinition(document, position, token)
   }
 
-  public async getImplementation(document: TextDocument, position: Position, token: CancellationToken): Promise<Location[]> {
+  public async getImplementation(document: TextDocument, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.implementationManager.provideImplementations(document, position, token)
   }
 
-  public async getReferences(document: TextDocument, context: ReferenceContext, position: Position, token: CancellationToken): Promise<Location[]> {
+  public async getReferences(document: TextDocument, context: ReferenceContext, position: Position, token: CancellationToken): Promise<LocationWithTarget[]> {
     return await this.referenceManager.provideReferences(document, position, context, token)
   }
 

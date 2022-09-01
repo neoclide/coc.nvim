@@ -13,14 +13,13 @@ import Autocmds from './core/autocmds'
 import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
 import Documents from './core/documents'
+import Editors from './core/editors'
 import Files from './core/files'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps from './core/keymaps'
-import Locations from './core/locations'
 import * as ui from './core/ui'
 import Watchers from './core/watchers'
-import Editors from './core/editors'
 import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
 import BufferSync, { SyncItem } from './model/bufferSync'
@@ -30,7 +29,7 @@ import Mru from './model/mru'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IWorkspace, KeymapOption, LocalMode, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IWorkspace, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
 const APIVERSION = 32
@@ -66,7 +65,6 @@ export class Workspace implements IWorkspace {
   public readonly autocmds: Autocmds
   public readonly watchers: Watchers
   public readonly keymaps: Keymaps
-  public readonly locations: Locations
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
@@ -84,7 +82,6 @@ export class Workspace implements IWorkspace {
     this.watchers = new Watchers()
     this.autocmds = new Autocmds(this.contentProvider, this.watchers)
     this.keymaps = new Keymaps(documents)
-    this.locations = new Locations(this.configurations, documents, this.contentProvider)
     this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
     this.editors = new Editors(documents)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
@@ -138,7 +135,6 @@ export class Workspace implements IWorkspace {
     this.contentProvider.attach(nvim)
     this.keymaps.attach(nvim)
     this.autocmds.attach(nvim, env)
-    this.locations.attach(nvim, env)
     this.watchers.attach(nvim, env)
     await this.attach()
     await this.editors.attach(nvim)
@@ -346,8 +342,8 @@ export class Workspace implements IWorkspace {
   /**
    * Populate locations to UI.
    */
-  public async showLocations(locations: Location[]): Promise<void> {
-    await this.locations.showLocations(locations)
+  public async showLocations(locations: LocationWithTarget[]): Promise<void> {
+    await this.documentsManager.showLocations(locations)
   }
 
   /**

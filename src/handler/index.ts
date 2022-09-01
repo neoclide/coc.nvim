@@ -107,7 +107,6 @@ export default class Handler implements HandlerDelegate {
         this.signature.dispose()
         this.symbols.dispose()
         this.hover.dispose()
-        this.locations.dispose()
         this.colors.dispose()
         this.documentHighlighter.dispose()
         this.semanticHighlighter.dispose()

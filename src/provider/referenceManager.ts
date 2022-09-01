@@ -1,7 +1,8 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, Location, Position, ReferenceContext } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Position, ReferenceContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { LocationWithTarget } from '../types'
 import { ReferenceProvider } from './index'
 import Manager from './manager'
 
@@ -20,9 +21,9 @@ export default class ReferenceManager extends Manager<ReferenceProvider>  {
     position: Position,
     context: ReferenceContext,
     token: CancellationToken
-  ): Promise<Location[] | null> {
+  ): Promise<LocationWithTarget[]> {
     const providers = this.getProviders(document)
-    let locations: Location[] = []
+    let locations: LocationWithTarget[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideReferences(document, position, context, token)).then(location => {
         this.addLocation(locations, location)

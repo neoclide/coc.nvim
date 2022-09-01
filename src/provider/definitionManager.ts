@@ -1,7 +1,8 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, DefinitionLink, Disposable, DocumentSelector, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, DefinitionLink, Disposable, DocumentSelector, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { LocationWithTarget } from '../types'
 import { DefinitionProvider } from './index'
 import Manager from './manager'
 const logger = require('../util/logger')('definitionManager')
@@ -20,9 +21,9 @@ export default class DefinitionManager extends Manager<DefinitionProvider> {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Location[] | null> {
+  ): Promise<LocationWithTarget[]> {
     const providers = this.getProviders(document)
-    let locations: Location[] = []
+    let locations: LocationWithTarget[] = []
     const results = await Promise.allSettled(providers.map(item => {
       return Promise.resolve(item.provider.provideDefinition(document, position, token)).then(location => {
         this.addLocation(locations, location)
@@ -36,7 +37,7 @@ export default class DefinitionManager extends Manager<DefinitionProvider> {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<DefinitionLink[] | null> {
+  ): Promise<DefinitionLink[]> {
     const providers = this.getProviders(document)
     let locations: DefinitionLink[] = []
     const results = await Promise.allSettled(providers.map(item => {

@@ -1,6 +1,7 @@
 'use strict'
 import { Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { LocationWithTarget } from '../types'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 const logger = require('../util/logger')('provider-manager')
@@ -62,16 +63,15 @@ export default class Manager<T, P = object> {
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))
   }
 
-  public addLocation(locations: Location[], location: Location | Location[] | LocationLink[]): void {
+  public addLocation(locations: LocationWithTarget[], location: Location | Location[] | LocationLink[]): void {
     if (Array.isArray(location)) {
-      location.forEach(loc => {
+      for (let loc of location) {
         if (Location.is(loc)) {
           addLocation(locations, loc)
         } else if (loc && typeof loc.targetUri === 'string') {
-          let { targetUri, targetSelectionRange, targetRange } = loc
-          addLocation(locations, Location.create(targetUri, targetSelectionRange ?? targetRange))
+          addLocation(locations, loc)
         }
-      })
+      }
     } else if (Location.is(location)) {
       addLocation(locations, location)
     }
@@ -81,8 +81,18 @@ export default class Manager<T, P = object> {
 /**
  * Add unique location
  */
-function addLocation(arr: Location[], location: Location): void {
-  let { range, uri } = location
-  if (arr.find(o => o.uri == uri && equals(o.range, range)) != null) return
-  arr.push(location)
+function addLocation(arr: LocationWithTarget[], location: Location | LocationLink): void {
+  if (Location.is(location)) {
+    let { range, uri } = location
+    if (arr.find(o => o.uri == uri && equals(o.range, range)) != null) return
+    arr.push(location)
+  } else if (typeof location === 'string') {
+    let { targetUri, targetSelectionRange, targetRange } = location
+    if (arr.find(o => o.uri == targetUri && equals(o.range, targetSelectionRange)) != null) return
+    arr.push({
+      uri: targetUri,
+      range: targetSelectionRange,
+      targetRange
+    })
+  }
 }

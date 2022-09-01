@@ -1,8 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import fs from 'fs'
 import { v4 as uuid } from 'uuid'
+import { LocationLink, Range } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
 import Documents from '../../core/documents'
 import events from '../../events'
 import workspace from '../../workspace'
@@ -31,6 +33,29 @@ describe('documents', () => {
     let doc = await helper.createDocument('foo')
     let res = documents.getDocument(doc.uri)
     expect(res.uri).toBe(doc.uri)
+  })
+
+  it('should read empty string from none file', async () => {
+    let res = await documents.readFile('test:///1')
+    expect(res).toBe('')
+  })
+
+  it('should get empty line from none file', async () => {
+    let res = await documents.getLine('test:///1', 1)
+    expect(res).toBe('')
+    let uri = URI.file(path.join(__dirname, 'not_exists_file')).toString()
+    res = await documents.getLine(uri, 1)
+    expect(res).toBe('')
+  })
+
+  it('should get QuickfixItem from location link', async () => {
+    let doc = await helper.createDocument('quickfix')
+    let loc = LocationLink.create(doc.uri, Range.create(0, 0, 3, 0), Range.create(0, 0, 0, 3))
+    let res = await documents.getQuickfixItem(loc, 'text', 'E', 'module')
+    expect(res.targetRange).toBeDefined()
+    expect(res.type).toBe('E')
+    expect(res.module).toBe('module')
+    expect(res.bufnr).toBe(doc.bufnr)
   })
 
   it('should create document', async () => {

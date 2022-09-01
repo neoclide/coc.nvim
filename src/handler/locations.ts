@@ -1,11 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Definition, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import languages from '../languages'
 import services from '../services'
-import { HandlerDelegate, ProviderName } from '../types'
+import { HandlerDelegate, LocationWithTarget, ProviderName } from '../types'
 import workspace from '../workspace'
 const logger = require('../util/logger')('handler-hover')
 
@@ -21,7 +21,7 @@ export default class LocationsHandler {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
   }
 
-  private async request<T>(method: ProviderName, fn: RequestFunc<T>): Promise<T> {
+  private async request<T>(method: ProviderName, fn: RequestFunc<T>): Promise<T | null> {
     let { doc, position } = await this.handler.getCurrentState()
     this.handler.checkProvier(method, doc.textDocument)
     await doc.synchronize()
@@ -83,7 +83,7 @@ export default class LocationsHandler {
       return languages.getDeclaration(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
-    return definition ? (Array.isArray(definition) ? definition.length > 0 : true) : false
+    return definition ? definition.length > 0 : false
   }
 
   public async gotoTypeDefinition(openCommand?: string | false): Promise<boolean> {
@@ -132,7 +132,7 @@ export default class LocationsHandler {
   /**
    * Send custom request for locations to services.
    */
-  public async findLocations(id: string, method: string, params: any, openCommand?: string | false): Promise<boolean> {
+  public async findLocations(id: string, method: string, params: any, openCommand: string | false = false): Promise<boolean> {
     let { doc, position } = await this.handler.getCurrentState()
     params = params || {}
     Object.assign(params, {
@@ -140,29 +140,61 @@ export default class LocationsHandler {
       position
     })
     let res: any = await services.sendRequest(id, method, params)
-    res = res || []
-    let locations: Location[] = []
-    if (Array.isArray(res)) {
-      locations = res as Location[]
-    } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
+    let locations = this.toLocations(res)
+    await this.handleLocations(locations, openCommand)
+    return locations.length > 0
+  }
+
+  public toLocations(location: Location | LocationLink | Location[] | LocationLink[] | null): LocationWithTarget[] {
+    let res: LocationWithTarget[] = []
+    if (location && location.hasOwnProperty('location') && location.hasOwnProperty('children')) {
       let getLocation = (item: any): void => {
-        locations.push(item.location as Location)
+        if (!item) return
+        if (Location.is(item.location)) {
+          res.push(item.location)
+        } else if (LocationLink.is(item.location)) {
+          let loc = item.location as LocationLink
+          res.push({
+            uri: loc.targetUri,
+            range: loc.targetSelectionRange,
+            targetRange: loc.targetRange
+          })
+        }
         if (item.children && item.children.length) {
           for (let loc of item.children) {
             getLocation(loc)
           }
         }
       }
-      getLocation(res)
+      getLocation(location)
+      return res
     }
-    await this.handleLocations(locations, openCommand)
-    return locations ? locations.length > 0 : false
+    if (Location.is(location)) {
+      res.push(location)
+    } else if (LocationLink.is(location)) {
+      res.push({
+        uri: location.targetUri,
+        range: location.targetSelectionRange,
+        targetRange: location.targetRange
+      })
+    } else if (Array.isArray(location)) {
+      for (let loc of location) {
+        if (Location.is(loc)) {
+          res.push(loc)
+        } else if (loc && typeof loc.targetUri === 'string') {
+          res.push({
+            uri: loc.targetUri,
+            range: loc.targetSelectionRange,
+            targetRange: loc.targetRange
+          })
+        }
+      }
+    }
+    return res
   }
 
-  public async handleLocations(definition: Definition | LocationLink[], openCommand?: string | false): Promise<void> {
-    if (!definition) return
-    let locations: Location[] = Array.isArray(definition) ? definition as Location[] : [definition]
-    locations = locations.map(o => LocationLink.is(o) ? Location.create(o.targetUri, o.targetRange) : o)
+  public async handleLocations(locations: LocationWithTarget[] | null | undefined, openCommand?: string | false): Promise<void> {
+    if (!locations) return
     let len = locations.length
     if (len == 0) return
     if (len == 1 && openCommand !== false) {
@@ -171,8 +203,5 @@ export default class LocationsHandler {
     } else {
       await workspace.showLocations(locations)
     }
-  }
-
-  public dispose(): void {
   }
 }

@@ -10,7 +10,7 @@ import Configurations from '../configuration'
 import events, { InsertChange } from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import { BufferOption, ConfigurationChangeEvent, DidChangeTextDocumentParams, Env, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
+import { BufferOption, ConfigurationChangeEvent, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll, platform } from '../util'
 import { readFileLine } from '../util/fs'
 import { byteIndex } from '../util/string'
@@ -495,7 +495,7 @@ export default class Documents implements Disposable {
     this._onDidOpenTextDocument.fire(doc.textDocument)
   }
 
-  public async getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>> {
+  public async getQuickfixList(locations: LocationWithTarget[]): Promise<ReadonlyArray<QuickfixItem>> {
     let filesLines: { [fsPath: string]: string[] } = {}
     let filepathList = locations.reduce<string[]>((pre: string[], curr) => {
       let u = URI.parse(curr.uri)
@@ -525,9 +525,36 @@ export default class Documents implements Disposable {
   }
 
   /**
+   * Populate locations to UI.
+   */
+  public async showLocations(locations: LocationWithTarget[]): Promise<void> {
+    let { nvim, configurations } = this
+    let items = await this.getQuickfixList(locations)
+    const preferences = configurations.getConfiguration('coc.preferences')
+    if (preferences.get<boolean>('useQuickfixForLocations', false)) {
+      let openCommand = await nvim.getVar('coc_quickfix_open_command') as string
+      if (typeof openCommand != 'string') {
+        openCommand = items.length < 10 ? `copen ${items.length}` : 'copen'
+      }
+      nvim.pauseNotification()
+      nvim.call('setqflist', [items], true)
+      nvim.command(openCommand, true)
+      nvim.resumeNotification(false, true)
+    } else {
+      await nvim.setVar('coc_jump_locations', items)
+      if (this._env.locationlist) {
+        nvim.command('CocList --normal --auto-preview location', true)
+      } else {
+        nvim.call('coc#util#do_autocmd', ['CocLocationsChange'], true)
+      }
+    }
+  }
+
+  /**
    * Convert location to quickfix item.
    */
-  public async getQuickfixItem(loc: Location | LocationLink, text?: string, type = '', module?: string): Promise<QuickfixItem> {
+  public async getQuickfixItem(loc: LocationWithTarget | LocationLink, text?: string, type = '', module?: string): Promise<QuickfixItem> {
+    let targetRange = loc.targetRange
     if (LocationLink.is(loc)) {
       loc = Location.create(loc.targetUri, loc.targetRange)
     }
@@ -549,6 +576,7 @@ export default class Documents implements Disposable {
       text: text || '',
       range
     }
+    if (targetRange) item.targetRange = targetRange
     if (module) item.module = module
     if (type) item.type = type
     if (doc) item.bufnr = doc.bufnr

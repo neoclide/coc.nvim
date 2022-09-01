@@ -310,6 +310,12 @@ describe('locations', () => {
       }])
     })
 
+    it('should handle empty result', async () => {
+      result = null
+      let res = await locations.findLocations('foo', 'mylocation', undefined, false)
+      expect(res).toBe(false)
+    })
+
     it('should handle nested locations', async () => {
       let location: any = {
         location: createLocation('file', 0, 0, 0, 0),
@@ -328,26 +334,36 @@ describe('locations', () => {
     })
   })
 
+  describe('toLocations()', () => {
+    it('should convert to locations', async () => {
+      let loc = createLocation('file', 0, 0, 0, 0)
+      expect(locations.toLocations(loc).length).toBe(1)
+      expect(locations.toLocations([loc]).length).toBe(1)
+      let link = LocationLink.create(`test://a`, Range.create(0, 0, 1, 0), Range.create(0, 0, 0, 1))
+      expect(locations.toLocations(link).length).toBe(1)
+      expect(locations.toLocations([link]).length).toBe(1)
+      expect(locations.toLocations(null).length).toBe(0)
+      expect(locations.toLocations(undefined).length).toBe(0)
+      let location: any = {
+        location: createLocation('file', 0, 0, 0, 0),
+        children: [{
+          location: link,
+          children: [{
+            location: loc
+          }, null, undefined, {}]
+        }]
+      }
+      expect(locations.toLocations(location).length).toBe(3)
+    })
+  })
+
   describe('handleLocations', () => {
-    it('should not throw when location is undefined', async () => {
-      await locations.handleLocations(null)
+    it('should not throw when locations is undefined', async () => {
+      await locations.handleLocations(undefined)
     })
 
     it('should not throw when locations is empty array', async () => {
       await locations.handleLocations([])
-    })
-
-    it('should handle single location', async () => {
-      await locations.handleLocations(createLocation('single', 0, 0, 0, 0))
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toBe('test://single')
-    })
-
-    it('should handle location link', async () => {
-      let link = LocationLink.create('test://link', Range.create(0, 0, 0, 3), Range.create(1, 0, 1, 3))
-      await locations.handleLocations([link])
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toBe('test://link')
     })
   })
 })

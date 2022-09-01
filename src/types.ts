@@ -31,6 +31,15 @@ export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
 }
 
+export interface LocationWithTarget extends Location {
+  /**
+   * The full target range of this link. If the target for example is a symbol then target range is the
+   * range enclosing this symbol not including leading/trailing whitespace but everything else
+   * like comments. This information is typically used to highlight the range in the editor.
+   */
+  targetRange?: Range
+}
+
 export interface VirtualTextOption {
   col?: number
   /**
@@ -481,6 +490,7 @@ export interface QuickfixItem {
   end_col?: number
   valid?: boolean
   nr?: number
+  targetRange?: Range
 }
 
 /**
