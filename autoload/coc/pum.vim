@@ -174,6 +174,7 @@ function! coc#pum#info() abort
         \ 'size': s:pum_size,
         \ 'border': border,
         \ 'inserted': s:inserted ? v:true : v:false,
+        \ 'reversed': s:reversed ? v:true : v:false,
         \ }
   else
     let scrollbar = coc#float#get_related(s:pum_winid, 'scrollbar')
@@ -190,6 +191,7 @@ function! coc#pum#info() abort
         \ 'size': s:pum_size,
         \ 'border': winid != s:pum_winid,
         \ 'inserted': s:inserted ? v:true : v:false,
+        \ 'reversed': s:reversed ? v:true : v:false,
         \ }
   endif
 endfunction
@@ -197,7 +199,7 @@ endfunction
 function! coc#pum#scroll(forward) abort
   if coc#pum#visible()
     let height = s:get_height(s:pum_winid)
-    if size > height
+    if s:pum_size > height
       call timer_start(10, { -> s:scroll_pum(a:forward, height, s:pum_size)})
     endif
   endif
