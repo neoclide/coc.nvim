@@ -782,6 +782,11 @@
       "description": "The prefix added virtual text diagnostics",
       "default": " "
     },
+    "diagnostic.virtualTextFormat": {
+      "type": "string",
+      "description": "Define the virtual text diagnostic format, available parts: source, code, severity, message",
+      "default": "%message"
+    },
     "diagnostic.virtualTextLines": {
       "type": "number",
       "description": "The number of non empty lines from a diagnostic to display",

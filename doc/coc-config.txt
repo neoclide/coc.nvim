@@ -489,6 +489,13 @@ Diagnostics~
 
 	The prefix added for virtual text diagnostics, default: `" "`
 
+"diagnostic.virtualTextFormat"				*coc-config-diagnostic-virtualTextFormat*
+
+	Define the virtual text diagnostic message format.
+	Available parts: source, code, severity, message
+
+	Default: `%message`
+
 "diagnostic.virtualTextLines"				*coc-config-diagnostic-virtualTextLines*
 
 	The number of non-empty lines from a diagnostic to display, default: `3`
