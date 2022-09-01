@@ -1886,6 +1886,8 @@ coc#pum#info() 						*coc#pum#info()*
 		height 		Height of pum, including padding and border.
 		size 		Count of displayed complete items.
 		inserted 	Is |v:true| when there is item inserted.
+		reversed 	Is |v:true| when pum shown above cursor and
+				enable |suggest.reversePumAboveCursor|
 
 coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
 
