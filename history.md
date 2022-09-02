@@ -1,3 +1,7 @@
+# 2022-09-02
+
+- Support `diagnostic.virtualTextFormat`.
+
 # 2022-09-01
 
 - Add configuration "suggest.asciiMatch"
