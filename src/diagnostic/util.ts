@@ -43,6 +43,7 @@ export interface DiagnosticConfig {
   virtualTextCurrentLineOnly: boolean
   virtualTextSrcId?: number
   virtualTextPrefix: string
+  virtualTextFormat: string
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetypeMap: object

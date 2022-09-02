@@ -8,7 +8,7 @@ import Document from '../model/document'
 import { DidChangeTextDocumentParams, VirtualTextOption, HighlightItem, LocationListItem } from '../types'
 import { lineInRange, positionInRange } from '../util/position'
 import workspace from '../workspace'
-import { adjustDiagnostics, DiagnosticConfig, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
+import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, sortDiagnostics } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
@@ -334,7 +334,10 @@ export class DiagnosticBuffer implements SyncItem {
         .slice(0, this.config.virtualTextLines)
         .join(this.config.virtualTextLineSeparator)
       let arr = map.get(line) ?? []
-      arr.push([virtualTextPrefix + msg, highlight])
+      arr.unshift([virtualTextPrefix + formatDiagnostic(this.config.virtualTextFormat, {
+        ...diagnostic,
+        message: msg
+      }), highlight])
       map.set(line, arr)
     }
     for (let [line, blocks] of map.entries()) {

@@ -575,6 +575,7 @@ export class DiagnosticManager implements Disposable {
       virtualTextWinCol: workspace.has('nvim-0.5.1') ? config.get<number | null>('virtualTextWinCol', null) : null,
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
+      virtualTextFormat: config.get<string>('virtualTextFormat', "%message"),
       virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
       virtualTextLines: config.get<number>('virtualTextLines', 3),
       displayByAle: config.get<boolean>('displayByAle', false),
