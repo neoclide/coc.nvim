@@ -19,6 +19,7 @@ const config: any = {
   virtualText: false,
   virtualTextCurrentLineOnly: true,
   virtualTextPrefix: " ",
+  virtualTextFormat: "%message",
   virtualTextLines: 3,
   virtualTextLineSeparator: " \\ ",
   displayByAle: false,
