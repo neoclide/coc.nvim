@@ -2962,8 +2962,8 @@ Others~
 background color).
 *CocSelectedRange* for highlight ranges of outgoing calls.
 *CocSnippetVisual* for highlight snippet placeholders.
-*CocInlayHint* for highlight inlay hint virtual text block, default linked to
-|SignColumn|
+*CocInlayHint* for highlight inlay hint virtual text block, default uses
+forground from |CocHintSign| and background from |SignColumn|.
 
 ==============================================================================
 TREE SUPPORT 						*coc-tree*
