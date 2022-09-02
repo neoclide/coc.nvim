@@ -12,6 +12,11 @@ import { wait } from './util'
 import window from './window'
 import workspace from './workspace'
 import events from './events'
+import path from 'path'
+import os from 'os'
+import { v4 as uuid } from 'uuid'
+import { writeHeapSnapshot } from 'v8'
+
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -312,6 +317,14 @@ export class CommandManager implements Disposable {
         await plugin.cocAction('bufferCheck')
       }
     }, false, 'Check providers for current buffer.')
+    this.register({
+      id: 'workspace.writeHeapSnapshot',
+      execute: async () => {
+        let filepath = path.join(os.homedir(), `${uuid()}-${process.pid}.heapsnapshot`)
+        writeHeapSnapshot(filepath)
+        void window.showInformationMessage(`Create heapdump at: ${filepath}`)
+      }
+    }, false, 'Generates a snapshot of the current V8 heap and writes it to a JSON file.')
   }
 
   public get commandList(): CommandItem[] {
