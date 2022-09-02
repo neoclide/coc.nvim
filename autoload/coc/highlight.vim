@@ -497,6 +497,46 @@ function! coc#highlight#reversed(id) abort
   return 0
 endfunction
 
+function! coc#highlight#get_contrast(group1, group2) abort
+  let term = &termguicolors == 0 && !has('gui_running')
+  let id1 = synIDtrans(hlID(a:group1))
+  let id2 = synIDtrans(hlID(a:group2))
+  let bg1 = s:to_hex_color(coc#highlight#get_color(id1, 'bg', term ? 'cterm' : 'gui'), term)
+  let bg2 = s:to_hex_color(coc#highlight#get_color(id2, 'bg', term ? 'cterm' : 'gui'), term)
+  if empty(bg1) || empty(bg2)
+    return 1
+  endif
+  return coc#color#hex_contrast(bg1, bg2)
+endfunction
+
+" Darken or lighten background
+function! coc#highlight#create_bg_command(group, amount, term) abort
+  let id = synIDtrans(hlID(a:group))
+  let bg = s:to_hex_color(coc#highlight#get_color(id, 'bg', a:term ? 'cterm' : 'gui'), a:term)
+  if empty(bg)
+    return ''
+  endif
+  let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
+  if a:term
+    return 'ctermbg=' . coc#color#rgb2term(strpart(hex, 1))
+  endif
+  return 'guibg=' . hex
+endfunction
+
+function! s:to_hex_color(color, term) abort
+  if empty(a:color)
+    return ''
+  endif
+  if a:color =~# '^#\x\+$'
+    return a:color
+  endif
+  if a:term && a:color =~# '^\d\+$'
+    return coc#color#term2rgb(a:color)
+  endif
+  let hex = coc#color#nameToHex(tolower(a:color), a:term)
+  return empty(hex) ? '' : hex
+endfunction
+
 " add matches for winid, use 0 for current window.
 function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) abort
   let winid = a:winid == 0 ? win_getid() : a:winid

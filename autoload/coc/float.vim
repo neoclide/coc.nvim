@@ -125,10 +125,6 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     " happens when using getchar() #3921
     return []
   endtry
-  if get(g:, 'coc_floating_reversed', 0) && empty(get(a:config, 'border', [])) && get(a:config, 'highlight', 'CocFloating') ==# 'CocFloating'
-    let a:config['border'] = [1, 1, 1, 1]
-    let a:config['highlight'] = 'Normal'
-  endif
   let lnum = max([1, get(a:config, 'index', 0) + 1])
   " use exists
   if a:winid && coc#float#valid(a:winid)
@@ -194,6 +190,8 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'border': border,
           \ 'callback': { -> coc#float#on_close(winid)},
           \ 'borderhighlight': [s:get_borderhighlight(a:config)],
+          \ 'scrollbarhighlight': 'CocPmenuSbar',
+          \ 'thumbhighlight': 'CocPmenuThumb',
           \ }
     let winid = popup_create(bufnr, opts)
     if !s:popup_list_api
@@ -515,9 +513,9 @@ function! coc#float#nvim_scrollbar(winid) abort
   call nvim_buf_clear_namespace(sbuf, -1, 0, -1)
   for idx in range(0, height - 1)
     if idx >= start && idx < start + thumb_height
-      call nvim_buf_add_highlight(sbuf, -1, 'PmenuThumb', idx, 0, 1)
+      call nvim_buf_add_highlight(sbuf, -1, 'CocPmenuThumb', idx, 0, 1)
     else
-      call nvim_buf_add_highlight(sbuf, -1, 'PmenuSbar', idx, 0, 1)
+      call nvim_buf_add_highlight(sbuf, -1, 'CocPmenuSbar', idx, 0, 1)
     endif
   endfor
 endfunction
