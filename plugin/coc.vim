@@ -319,6 +319,7 @@ function! s:Enable(initialize)
     elseif get(g:, 'coc_start_at_startup', 1)
       autocmd VimEnter            * call coc#rpc#start_server()
     endif
+    autocmd VimEnter            * call timer_start(0, { -> s:Hi()})
     if s:is_vim
       if exists('##DirChanged')
         autocmd DirChanged        * call s:Autocmd('DirChanged', getcwd())
@@ -640,7 +641,6 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable(1)
-call s:Hi()
 
 " Default key-mappings for completion
 if empty(mapcheck('<C-n>', 'i'))
