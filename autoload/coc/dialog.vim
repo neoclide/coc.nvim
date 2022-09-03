@@ -452,7 +452,7 @@ function! coc#dialog#change_border_hl(winid, hlgroup) abort
   else
     let winid = coc#float#get_related(a:winid, 'border')
     if winid > 0
-      call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',NormalNC:'.a:hlgroup)
+      call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup)
     endif
   endif
 endfunction
