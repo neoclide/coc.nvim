@@ -576,6 +576,7 @@ export class DiagnosticManager implements Disposable {
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
       virtualTextFormat: config.get<string>('virtualTextFormat', "%message"),
+      virtualTextLimitInOneLine: config.get<number>('virtualTextLimitInOneLine', 999),
       virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
       virtualTextLines: config.get<number>('virtualTextLines', 3),
       displayByAle: config.get<boolean>('displayByAle', false),

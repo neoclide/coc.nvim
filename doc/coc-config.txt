@@ -496,6 +496,10 @@ Diagnostics~
 
 	Default: `%message`
 
+"diagnostic.virtualTextLimitInOneLine"				*coc-config-diagnostic-virtualTextLimitInOneLine*
+
+	The maximum number of diagnostic messages to display in one line, default: `999`
+
 "diagnostic.virtualTextLines"				*coc-config-diagnostic-virtualTextLines*
 
 	The number of non-empty lines from a diagnostic to display, default: `3`

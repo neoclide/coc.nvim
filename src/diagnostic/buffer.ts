@@ -302,7 +302,7 @@ export class DiagnosticBuffer implements SyncItem {
     let { config } = this
     let { virtualText, virtualTextLevel } = config
     if (!virtualText) return
-    let { virtualTextSrcId, virtualTextPrefix, virtualTextCurrentLineOnly } = this.config
+    let { virtualTextSrcId, virtualTextPrefix, virtualTextLimitInOneLine, virtualTextCurrentLineOnly } = this.config
     let { diagnostics, buffer } = this
     if (virtualTextCurrentLineOnly) {
       if (bufnr && this.bufnr != bufnr) return
@@ -341,7 +341,7 @@ export class DiagnosticBuffer implements SyncItem {
       map.set(line, arr)
     }
     for (let [line, blocks] of map.entries()) {
-      buffer.setVirtualText(virtualTextSrcId, line, blocks, opts)
+      buffer.setVirtualText(virtualTextSrcId, line, blocks.slice(0, virtualTextLimitInOneLine), opts)
     }
   }
 
