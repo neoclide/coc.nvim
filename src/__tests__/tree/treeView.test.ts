@@ -143,14 +143,6 @@ describe('TreeView', () => {
   })
 
   describe('configuration', () => {
-    afterAll(() => {
-      let { configurations } = workspace
-      configurations.updateUserConfig({
-        'tree.openedIcon': '-',
-        'tree.closedIcon': '+',
-      })
-    })
-
     it('should change open close icon', async () => {
       createTreeView(defaultDef)
       await treeView.show()
@@ -165,7 +157,7 @@ describe('TreeView', () => {
     })
   })
 
-  describe('attach events', () => {
+  describe('events', () => {
     function waitVisibilityEvent(visible: boolean): Promise<void> {
       return new Promise((resolve, reject) => {
         let timer = setTimeout(() => {
@@ -200,14 +192,31 @@ describe('TreeView', () => {
 
     it('should dispose on tab close', async () => {
       await nvim.command('tabe')
+      await nvim.command('tabe')
       createTreeView(defaultDef)
       await treeView.show()
+      await nvim.command('close')
+      await nvim.command('normal! 2gt')
       await nvim.command('close')
       await nvim.command('normal! 1gt')
       await nvim.command('tabonly')
       await helper.waitValue(() => {
         return treeView.valid
       }, false)
+    })
+
+    it('should registerLocalKeymap before shown', async () => {
+      createTreeView(defaultDef)
+      let called = false
+      treeView.registerLocalKeymap('n', 'p', () => {
+        called = true
+      }, true)
+      await treeView.show()
+      await events.race(['TextChanged'])
+      await nvim.input('p')
+      await helper.waitValue(() => {
+        return called
+      }, true)
     })
   })
 
@@ -279,6 +288,7 @@ describe('TreeView', () => {
       await events.race(['TextChanged'])
       let width = await nvim.call('winwidth', [0])
       expect(width).toBeGreaterThan(10)
+      expect(treeView.targetWinId).toBeDefined()
     })
 
     it('should support many selection', async () => {
@@ -683,20 +693,19 @@ describe('TreeView', () => {
         }
       })
       await treeView.show()
-      await helper.wait(50)
       await nvim.command('exe 2')
       let bufnr = await nvim.eval(`bufnr('%')`) as number
-      await events.fire('CursorHold', [bufnr])
+      await events.fire('CursorHold', [bufnr, [2, 1]])
       let win = await helper.getFloat()
       expect(win).toBeDefined()
       let buf = await win.buffer
       let lines = await buf.lines
       expect(lines).toEqual(['first'])
-      await helper.wait(50)
       await nvim.command('exe 3')
-      await events.fire('CursorHold', [bufnr])
+      await events.fire('CursorHold', [bufnr, [3, 1]])
       lines = await buf.lines
       expect(lines).toEqual(['#title'])
+      await events.fire('CursorHold', [bufnr, [1, 1]])
     })
   })
 
