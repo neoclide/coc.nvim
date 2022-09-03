@@ -292,6 +292,12 @@ function! s:HandleWinScrolled(winid) abort
   call s:Autocmd('WinScrolled', a:winid)
 endfunction
 
+function! s:HandleWinClosed(winid) abort
+  call coc#float#on_close(a:winid)
+  call coc#notify#on_close(a:winid)
+  call s:Autocmd('WinClosed', a:winid)
+endfunction
+
 function! s:SyncAutocmd(...)
   if !get(g:, 'coc_workspace_initialized', 0)
     return
@@ -313,6 +319,7 @@ function! s:Enable(initialize)
     elseif get(g:, 'coc_start_at_startup', 1)
       autocmd VimEnter            * call coc#rpc#start_server()
     endif
+    autocmd VimEnter            * call timer_start(0, { -> s:Hi()})
     if s:is_vim
       if exists('##DirChanged')
         autocmd DirChanged        * call s:Autocmd('DirChanged', getcwd())
@@ -331,8 +338,7 @@ function! s:Enable(initialize)
     autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
     autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')
-      autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
-      autocmd WinClosed         * call coc#notify#on_close(+expand('<amatch>'))
+      autocmd WinClosed         * call s:HandleWinClosed(+expand('<amatch>'))
     elseif exists('##TabEnter')
       autocmd TabEnter          * call coc#notify#reflow()
     endif
@@ -635,7 +641,6 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable(1)
-call s:Hi()
 
 " Default key-mappings for completion
 if empty(mapcheck('<C-n>', 'i'))

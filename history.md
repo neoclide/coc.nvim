@@ -1,3 +1,14 @@
+# 2022-09-03
+
+- Send "WinClosed" event to node client.
+- Add `onDidFilterStateChange` and `onDidCursorMoved` to `TreeView`.
+- Support `autoPreview` for outline.
+
+# 2022-09-02
+
+- Support `diagnostic.virtualTextFormat`.
+- Add command `workspace.writeHeapSnapshot`.
+
 # 2022-09-01
 
 - Add configuration "suggest.asciiMatch"

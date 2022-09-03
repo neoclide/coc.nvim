@@ -782,6 +782,11 @@
       "description": "The prefix added virtual text diagnostics",
       "default": " "
     },
+    "diagnostic.virtualTextFormat": {
+      "type": "string",
+      "description": "Define the virtual text diagnostic format, available parts: source, code, severity, message",
+      "default": "%message"
+    },
     "diagnostic.virtualTextLines": {
       "type": "number",
       "description": "The number of non empty lines from a diagnostic to display",
@@ -1488,6 +1493,11 @@
       "default": "<C-s>",
       "description": "The key used to switch sort method for symbols provider of current tree view."
     },
+    "outline.togglePreviewKey": {
+      "type": "string",
+      "default": "p",
+      "description": "The key used to toggle preview window."
+    },
     "outline.expandLevel": {
       "type": "number",
       "default": 1,
@@ -1506,6 +1516,43 @@
         "type": "string",
         "enum": ["", "quickfix", "refactor", "source"]
       }
+    },
+    "outline.autoPreview": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable auto preview on cursor move."
+    },
+    "outline.previewMaxWidth": {
+      "type": "number",
+      "default": 80,
+      "description": "Max width of preview window."
+    },
+    "outline.previewBorder": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use border for preview window."
+    },
+    "outline.previewBorderRounded": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use rounded border for preview window."
+    },
+    "outline.previewHighlightGroup": {
+      "type": "string",
+      "default": "Normal",
+      "description": "Highlight group of preview window."
+    },
+    "outline.previewBorderHighlightGroup": {
+      "type": "string",
+      "default": "Normal",
+      "description": "Border highlight group of preview window."
+    },
+    "outline.previewWinblend": {
+      "type": "integer",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Enables pseudo-transparency by set 'winblend' option of window, neovim only."
     },
     "callHierarchy.openCommand": {
       "type": "string",
