@@ -893,7 +893,7 @@ export class Window {
     let disabledList = config.get<string[]>('disabledProgressSources', [])
     let disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))
     return {
-      broder: config.get<boolean>('border', true),
+      border: config.get<boolean>('border', true),
       focusable: config.get<boolean>('focusable', true),
       marginRight: config.get<number>('marginRight', 10),
       timeout: config.get<number>('timeout', 10),

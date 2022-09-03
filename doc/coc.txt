@@ -1848,10 +1848,7 @@ b:coc_cursors_activated					*b:coc_cursors_activated*
 ------------------------------------------------------------------------------
 FUNCTIONS						*coc-functions*
 
-Coc functions are normally used by user defined command/keymap or other
-plugins.
-
-Note: some functions only work after the coc service has been initialized.
+Some functions only work after the coc.nvim has been initialized.
 
 To run a function on startup, use an autocmd like: >
 

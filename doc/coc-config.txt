@@ -1170,6 +1170,10 @@ Outline~
 	Sort method for symbols, available options: 'position', 'name' and
 	'category'. Default: 'category'.
 
+"outline.togglePreviewKey"				*coc-config-outline-togglePreviewKey*
+
+	The key used to toggle preview window. Default "p".
+
 "outline.switchSortKey"					*coc-config-outline-switchSortKey*
 
 	The key used to switch sort method for symbols provider of current
@@ -1198,6 +1202,35 @@ Outline~
 
 	Filter code actions in actions menu by kinds.
 	Default: ['', 'quickfix', 'refactor', 'source']
+
+"outline.autoPreview					*outline.autoPreview*
+
+	Enable auto preview on cursor move.  Default `false`.
+
+"outline.previewMaxWidth				*outline.previewMaxWidth*
+
+	Max width of preview window.  Default `80`.
+
+"outline.previewBorder 					*outline.previewBorder*
+
+	Use border for preview window.  Default `true`.
+
+"outline.previewBorderRounded 				*outline.previewBorderRoundedr*
+
+	Use rounded border for preview window.  Default `false`.
+
+"outline.previewHighlightGroup 				*outline.previewHighlightGroup*
+
+	Highlight group of preview window.  Default "Normal".
+
+"outline.previewBorderHighlightGroup 			*outline.previewBorderHighlightGroup*
+
+	Border highlight group of preview window.  Default "Normal".
+
+"outline.previewWinblend 				*outline.previewWinblend*
+
+	Enables pseudo-transparency by set 'winblend' option of window, neovim
+	only.  Default: `0`.
 
 ------------------------------------------------------------------------------
 Call hierarchy~

@@ -2,6 +2,7 @@
 
 - Send "WinClosed" event to node client.
 - Add `onDidFilterStateChange` and `onDidCursorMoved` to `TreeView`.
+- Support `autoPreview` for outline.
 
 # 2022-09-02
 

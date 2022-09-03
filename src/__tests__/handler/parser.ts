@@ -55,7 +55,7 @@ export default class Parser {
         this._symbols.push(symbolInfo)
       }
       this.currSymbol = symbolInfo
-    } else if (this.currSymbol && this.currSymbol.kind == SymbolKind.Class) {
+    } else {
       let ms = remain.match(/(\w+)\((.*)\)\s*\{/)
       if (ms) {
         // find method

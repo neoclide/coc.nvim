@@ -12,7 +12,7 @@ export interface NotificationPreferences {
   maxHeight: number
   highlight: string
   winblend: number
-  broder: boolean
+  border: boolean
   timeout: number
   marginRight: number
   focusable: boolean
@@ -73,7 +73,7 @@ export default class Notification {
     let opts: any = Object.assign({}, preferences)
     opts.kind = kind ?? ''
     if (title) opts.title = title
-    if (preferences.broder) {
+    if (preferences.border) {
       opts.borderhighlight = kind ? `CocNotification${kind[0].toUpperCase()}${kind.slice(1)}` : preferences.highlight
     }
     if (Array.isArray(buttons)) {

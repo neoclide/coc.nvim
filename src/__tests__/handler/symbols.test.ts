@@ -190,7 +190,7 @@ describe('symbols handler', () => {
         let foo;
       }
 }`
-      let buf = await createBuffer(code)
+      await createBuffer(code)
       await nvim.call('cursor', [3, 3])
       await symbols.selectSymbolRange(true, '', ['Method'])
       let mode = await nvim.mode
