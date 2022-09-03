@@ -234,6 +234,20 @@ describe('diagnostic buffer', () => {
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
     })
+
+    it('should limit virtual text count of one line', async () => {
+      config.virtualTextCurrentLineOnly = false
+      config.virtualTextLimitInOneLine = 1
+      let buf = await createDiagnosticBuffer()
+      let diagnostics = [
+        createDiagnostic('foo', Range.create(0, 0, 0, 1)),
+        createDiagnostic('bar', Range.create(0, 0, 0, 1)),
+      ]
+      await buf.update('', diagnostics)
+      let ns = config.virtualTextSrcId
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      expect(res[0][3].virt_text.length).toBe(1)
+    })
   })
 
   describe('updateLocationList()', () => {

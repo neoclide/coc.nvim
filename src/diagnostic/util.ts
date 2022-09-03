@@ -44,6 +44,7 @@ export interface DiagnosticConfig {
   virtualTextSrcId?: number
   virtualTextPrefix: string
   virtualTextFormat: string
+  virtualTextLimitInOneLine: number;
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetypeMap: object
