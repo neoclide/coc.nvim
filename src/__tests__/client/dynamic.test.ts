@@ -92,8 +92,10 @@ describe('DynamicFeature', () => {
           return next(item, token)
         }
       })
-      await helper.wait(50)
       let feature = client.getFeature(WorkspaceSymbolRequest.method)
+      await helper.waitValue(() => {
+        return feature.getProviders().length
+      }, 2)
       let provider = feature.getProviders().find(o => typeof o.resolveWorkspaceSymbol === 'function')
       expect(provider).toBeDefined()
       let token = CancellationToken.None
@@ -109,18 +111,21 @@ describe('DynamicFeature', () => {
   describe('SemanticTokensFeature', () => {
     it('should register semanticTokens', async () => {
       let client = await startServer({})
-      await helper.wait(50)
       let feature = client.getFeature(SemanticTokensRegistrationType.method)
-      let provider = feature.getProvider(textDocument)
-      expect(provider).toBeDefined()
-      expect(provider.range).toBeUndefined()
+      await helper.waitValue(() => {
+        let provider = feature.getProvider(textDocument)
+        expect(provider.range).toBeUndefined()
+        return provider != null
+      }, true)
       await client.stop()
     })
 
     it('should use middleware', async () => {
       let client = await startServer({ rangeTokens: true, delta: true }, {})
-      await helper.wait(50)
       let feature = client.getFeature(SemanticTokensRegistrationType.method)
+      await helper.waitValue(() => {
+        return feature.getProvider(textDocument) != null
+      }, true)
       let provider = feature.getProvider(textDocument)
       expect(provider).toBeDefined()
       expect(provider.range).toBeDefined()
@@ -133,8 +138,10 @@ describe('DynamicFeature', () => {
   describe('CodeActionFeature', () => {
     it('should use registered command', async () => {
       let client = await startServer({})
-      await helper.wait(50)
       let feature = client.getFeature(CodeActionRequest.method)
+      await helper.waitValue(() => {
+        return feature.getProvider(textDocument) != null
+      }, true)
       let provider = feature.getProvider(textDocument)
       let actions = await provider.provideCodeActions(textDocument, Range.create(0, 1, 0, 1), { diagnostics: [] }, token)
       expect(actions.length).toBe(1)
@@ -185,16 +192,17 @@ describe('DynamicFeature', () => {
   describe('InlineValueFeature', () => {
     it('should fire refresh', async () => {
       let client = await startServer({})
-      await helper.wait(50)
       let feature = client.getFeature(InlineValueRequest.method)
       expect(feature).toBeDefined()
+      await helper.waitValue(() => {
+        return feature.getProvider(textDocument) != null
+      }, true)
       let provider = feature.getProvider(textDocument)
       let called = false
       provider.onDidChangeInlineValues.event(() => {
         called = true
       })
       await client.sendNotification('fireInlineValueRefresh')
-      await helper.wait(50)
       await helper.waitValue(() => {
         return called
       }, true)
@@ -373,8 +381,9 @@ describe('DynamicFeature', () => {
       let folders = workspace.workspaceFolders
       expect(folders.length).toBe(0)
       await workspace.loadFile(__filename)
-      await helper.wait(300)
-      expect(called).toBe(true)
+      await helper.waitValue(() => {
+        return called
+      }, true)
       await client.stop()
     })
   })

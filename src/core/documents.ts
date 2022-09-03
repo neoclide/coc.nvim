@@ -82,6 +82,9 @@ export default class Documents implements Disposable {
     events.on('WinEnter', (winid: number) => {
       this.winids.add(winid)
     }, null, this.disposables)
+    events.on('WinClosed', (winid: number) => {
+      this.winids.delete(winid)
+    }, null, this.disposables)
     events.on('BufWinEnter', (_, winid: number) => {
       this.winids.add(winid)
     }, null, this.disposables)
@@ -91,13 +94,23 @@ export default class Documents implements Disposable {
     // check unloaded buffers
     events.on('CursorHold', async () => {
       let { bufnrs, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
+      let fns: (() => Promise<void>)[] = []
       for (let bufnr of this.buffers.keys()) {
-        if (!bufnrs.includes(bufnr)) void events.fire('BufUnload', [bufnr])
+        if (!bufnrs.includes(bufnr)) {
+          fns.push(async () => {
+            await events.fire('BufUnload', [bufnr])
+          })
+        }
       }
       for (let winid of this.winids) {
-        if (!winids.includes(winid)) void events.fire('WinClosed', [winid])
+        if (!winids.includes(winid)) {
+          fns.push(async () => {
+            await events.fire('WinClosed', [winid])
+          })
+        }
       }
       this.winids = new Set(winids)
+      await Promise.allSettled(fns.map(fn => fn()))
     }, null, this.disposables)
     const checkCurrentBuffer = (bufnr: number) => {
       this._bufnr = bufnr

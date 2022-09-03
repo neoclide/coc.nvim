@@ -292,6 +292,12 @@ function! s:HandleWinScrolled(winid) abort
   call s:Autocmd('WinScrolled', a:winid)
 endfunction
 
+function! s:HandleWinClosed(winid) abort
+  call coc#float#on_close(a:winid)
+  call coc#notify#on_close(a:winid)
+  call s:Autocmd('WinClosed', a:winid)
+endfunction
+
 function! s:SyncAutocmd(...)
   if !get(g:, 'coc_workspace_initialized', 0)
     return
@@ -331,8 +337,7 @@ function! s:Enable(initialize)
     autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
     autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')
-      autocmd WinClosed         * call coc#float#on_close(+expand('<amatch>'))
-      autocmd WinClosed         * call coc#notify#on_close(+expand('<amatch>'))
+      autocmd WinClosed         * call s:HandleWinClosed(+expand('<amatch>'))
     elseif exists('##TabEnter')
       autocmd TabEnter          * call coc#notify#reflow()
     endif
