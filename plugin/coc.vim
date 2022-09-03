@@ -319,7 +319,11 @@ function! s:Enable(initialize)
     elseif get(g:, 'coc_start_at_startup', 1)
       autocmd VimEnter            * call coc#rpc#start_server()
     endif
-    autocmd VimEnter            * call timer_start(0, { -> s:Hi()})
+    if v:vim_did_enter
+      call s:Hi()
+    else
+      autocmd VimEnter            * call timer_start(0, { -> s:Hi()})
+    endif
     if s:is_vim
       if exists('##DirChanged')
         autocmd DirChanged        * call s:Autocmd('DirChanged', getcwd())
