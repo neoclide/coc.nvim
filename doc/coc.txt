@@ -1113,6 +1113,7 @@ Following outline features are supported:
 - Automatic follow cursor position by default.
 - Different filter modes that can be changed on the fly
   |coc-config-outline-switchSortKey|.
+- Enable auto preview by |coc-config-outline-togglePreviewKey|.
 
 Note: outline would try to reload document symbols after 500ms when provider
 not registered, which avoid the necessary to check provider existence.
@@ -3739,8 +3740,8 @@ See |coc-dialog-input| for available key-mappings.
 
 							*coc-dialog-menu*
 
-A menu dialog is shown besides cursor for pick a single item from list of
-items, extensions could use `window.showMenuPicker` to create menu dialog.
+A menu dialog is used for pick a single item from list of items, extensions
+could use `window.showMenuPicker` to create menu dialog.
 
 Supported key-mappings:
 

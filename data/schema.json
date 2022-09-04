@@ -787,6 +787,12 @@
       "description": "Define the virtual text diagnostic format, available parts: source, code, severity, message",
       "default": "%message"
     },
+    "diagnostic.virtualTextLimitInOneLine": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The maximum number of diagnostic messages to disaply in one line",
+      "default": 999
+    },
     "diagnostic.virtualTextLines": {
       "type": "number",
       "description": "The number of non empty lines from a diagnostic to display",
