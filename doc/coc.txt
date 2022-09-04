@@ -1113,6 +1113,7 @@ Following outline features are supported:
 - Automatic follow cursor position by default.
 - Different filter modes that can be changed on the fly
   |coc-config-outline-switchSortKey|.
+- Enable auto preview by |coc-config-outline-togglePreviewKey|.
 
 Note: outline would try to reload document symbols after 500ms when provider
 not registered, which avoid the necessary to check provider existence.
