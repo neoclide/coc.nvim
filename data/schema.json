@@ -637,6 +637,11 @@
       "description": "Use highlight group 'CocSnippetVisual' to highlight placeholders with same index of current one.",
       "default": false
     },
+    "snippet.choicesMenuPicker": {
+      "type": "boolean",
+      "description": "Use menu picker instead of popup menu for choices placeholder.",
+      "default": false
+    },
     "snippet.nextPlaceholderOnDelete": {
       "type": "boolean",
       "description": "Automatically jump to the next placeholder when the current one is completely deleted.",

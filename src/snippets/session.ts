@@ -26,6 +26,7 @@ export interface SnippetConfig {
   readonly highlight: boolean
   readonly nextOnDelete: boolean
   readonly preferComplete: boolean
+  readonly choicesMenuPicker: boolean
 }
 
 export class SnippetSession {
@@ -164,7 +165,7 @@ export class SnippetSession {
   }
 
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
-    let { nvim, document } = this
+    let { nvim, document, config } = this
     if (!document || !placeholder) return
     let { start, end } = placeholder.range
     const len = end.character - start.character
@@ -172,7 +173,16 @@ export class SnippetSession {
     let marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
       let arr = marker.choice.options.map(o => o.value)
-      await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
+      if (config.choicesMenuPicker) {
+        await nvim.call('coc#snippet#cursor', [start.line + 1, col + len])
+        // await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
+        let n = await window.showMenuPicker(arr, { title: 'Pick word' })
+        if (n < 0) return
+        let edit = TextEdit.replace(placeholder.range, arr[n])
+        await document.applyEdits([edit], false, Position.create(end.line, end.character))
+      } else {
+        await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
+      }
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
       let finalCount = this.snippet.finalCount

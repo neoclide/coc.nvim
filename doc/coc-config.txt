@@ -275,23 +275,22 @@ Snippet related~
 "snippet.highlight"					*coc-config-snippet-highlight*
 
 	Use highlight group 'CocSnippetVisual' to highlight placeholders with
-	same index of current one.
-
-	default: `false`
+	same index of current one.  Default: `false`.
 
 "snippet.statusText"					*coc-config-snippet-statusText*
 
 	Text shown in 'statusline' to indicate snippet session is activate.
-	Check |coc-status| for statusline integration.
-
-	Default: `"SNIP"`
+	Check |coc-status| for statusline integration.  Default: `"SNIP"`.
 
 "snippet.nextPlaceholderOnDelete"			*coc-config-snippet-nextPlaceholderOnDelete*
 
 	Automatically jump to the next placeholder when the current one is
-	completely deleted.
+	completely deleted.  Default: `false`.
 
-	default: `false`
+"snippet.choicesMenuPicker" 				*coc-config-snippet-choicesMenuPicker*
+
+	Use menu picker instead of popup menu for choices placeholder.
+	Default: `false`.
 
 ------------------------------------------------------------------------------
 Document highlight~
@@ -1174,10 +1173,6 @@ Outline~
 	Sort method for symbols, available options: 'position', 'name' and
 	'category'. Default: 'category'.
 
-"outline.togglePreviewKey"				*coc-config-outline-togglePreviewKey*
-
-	The key used to toggle preview window. Default "p".
-
 "outline.switchSortKey"					*coc-config-outline-switchSortKey*
 
 	The key used to switch sort method for symbols provider of current
@@ -1206,6 +1201,10 @@ Outline~
 
 	Filter code actions in actions menu by kinds.
 	Default: ['', 'quickfix', 'refactor', 'source']
+
+"outline.togglePreviewKey"				*coc-config-outline-togglePreviewKey*
+
+	The key used to toggle preview window. Default "p".
 
 "outline.autoPreview					*outline.autoPreview*
 
