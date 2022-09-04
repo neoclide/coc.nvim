@@ -239,6 +239,15 @@ function! s:AddAnsiGroups() abort
   endtry
 endfunction
 
+function! s:CreateHighlight(group, fg, bg) abort
+  let cmd = coc#highlight#compose(a:fg, a:bg)
+  if !empty(trim(cmd))
+    exe 'hi default '.a:group.' '.cmd
+  else
+    exe 'hi default link '.a:group.' '.a:fg
+  endif
+endfunction
+
 function! s:CursorRangeFromSelected(type, ...) abort
   " add range by operator
   call coc#rpc#request('cursorsSelect', [bufnr('%'), 'operator', a:type])
@@ -494,15 +503,16 @@ function! s:Highlight() abort
     if hlexists('DiagnosticVirtualText'.suffix)
       exe 'hi default link Coc'.name.'VirtualText DiagnosticVirtualText'.suffix
     else
-      exe 'hi default Coc'.name.'VirtualText '.coc#highlight#compose('Coc'.name.'Sign', 'Normal')
+      call s:CreateHighlight('Coc'.name.'VirtualText', 'Coc'.name.'Sign', 'Normal')
     endif
     if hlexists('Diagnostic'.suffix)
       exe 'hi default link Coc'.name.'Float Diagnostic'.suffix
     else
-      exe 'hi default Coc'.name.'Float '.coc#highlight#compose('Coc'.name.'Sign', 'CocFloating')
+      call s:CreateHighlight('Coc'.name.'Float', 'Coc'.name.'Sign', 'CocFloating')
     endif
   endfor
-  exe 'hi default CocInlayHint '.coc#highlight#compose('CocHintSign', 'SignColumn')
+
+  call s:CreateHighlight('CocInlayHint', 'CocHintSign', 'SignColumn')
   call s:AddAnsiGroups()
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)

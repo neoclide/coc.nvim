@@ -1,3 +1,7 @@
+# 2022-09-04
+
+- Add configuration "snippet.choicesMenuPicker".
+
 # 2022-09-03
 
 - Send "WinClosed" event to node client.
