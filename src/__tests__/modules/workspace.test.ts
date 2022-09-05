@@ -145,15 +145,6 @@ describe('workspace methods', () => {
     expect(opts.tabSize).toBe(2)
   })
 
-  it('should get config files', async () => {
-    let file = workspace.getConfigFile(ConfigurationTarget.Global)
-    expect(file).toBeFalsy()
-    file = workspace.getConfigFile(ConfigurationTarget.User)
-    expect(file).toBeTruthy()
-    file = workspace.getConfigFile(ConfigurationTarget.Workspace)
-    expect(file).toBeTruthy()
-  })
-
   it('should create file watcher', async () => {
     let watcher = workspace.createFileSystemWatcher('**/*.ts')
     expect(watcher).toBeDefined()
@@ -523,9 +514,9 @@ describe('workspace events', () => {
       fn()
     })
     let config = workspace.getConfiguration('tsserver')
-    config.update('enable', false)
+    await config.update('enable', false)
     expect(fn).toHaveBeenCalledTimes(1)
-    config.update('enable', undefined)
+    await config.update('enable', undefined)
   })
 
   it('should get empty configuration for none exists section', () => {

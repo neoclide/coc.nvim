@@ -17,10 +17,10 @@ let disposables: Disposable[] = []
 let nvim: Neovim
 
 function updateConfiguration(key: string, value: any, defaults: any): void {
-  configurations.updateUserConfig({ [key]: value })
+  configurations.updateMemoryConfig({ [key]: value })
   disposables.push({
     dispose: () => {
-      configurations.updateUserConfig({ [key]: defaults })
+      configurations.updateMemoryConfig({ [key]: defaults })
     }
   })
 }

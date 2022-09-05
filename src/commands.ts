@@ -158,10 +158,10 @@ export class CommandManager implements Disposable {
         let config = workspace.getConfiguration('coc.preferences')
         let interval = config.get<string>('extensionUpdateCheck', 'daily')
         if (interval == 'never') {
-          config.update('extensionUpdateCheck', 'daily', true)
+          await config.update('extensionUpdateCheck', 'daily', true)
           window.showMessage('Extension auto update enabled.', 'more')
         } else {
-          config.update('extensionUpdateCheck', 'never', true)
+          await config.update('extensionUpdateCheck', 'never', true)
           window.showMessage('Extension auto update disabled.', 'more')
         }
       }

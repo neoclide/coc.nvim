@@ -133,9 +133,8 @@ describe('diagnostic manager', () => {
     })
 
     it('should show diagnostic virtual text on CursorMoved', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('virtualText', true)
-      config.update('virtualTextCurrentLineOnly', true)
+      helper.updateConfiguration('diagnostic.virtualText', true)
+      helper.updateConfiguration('diagnostic.virtualTextCurrentLineOnly', true)
       let doc = await createDocument()
       await helper.wait(30)
       let markers = await doc.buffer.getExtMarks(manager.config.virtualTextSrcId, 0, -1, { details: true })
@@ -203,10 +202,9 @@ describe('diagnostic manager', () => {
     })
 
     it('should filter diagnostics by configuration', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('level', 'warning')
-      config.update('showUnused', false)
-      config.update('showDeprecated', false)
+      helper.updateConfiguration('diagnostic.level', 'warning')
+      helper.updateConfiguration('diagnostic.showUnused', false)
+      helper.updateConfiguration('diagnostic.showDeprecated', false)
       let doc = await createDocument()
       let diagnostics = manager.getDiagnostics(doc.uri)['test']
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
@@ -313,14 +311,13 @@ describe('diagnostic manager', () => {
 
   describe('getCurrentDiagnostics', () => {
     it('should get diagnostics under cursor', async () => {
-      let config = workspace.getConfiguration('diagnostic')
       await createDocument()
       let diagnostics = await manager.getCurrentDiagnostics()
       expect(diagnostics.length).toBe(0)
       await nvim.call('cursor', [1, 4])
       diagnostics = await manager.getCurrentDiagnostics()
       expect(diagnostics.length).toBe(1)
-      config.update('checkCurrentLine', true)
+      helper.updateConfiguration('diagnostic.checkCurrentLine', true)
       await nvim.call('cursor', [1, 2])
       diagnostics = await manager.getCurrentDiagnostics()
       expect(diagnostics.length).toBe(2)
@@ -493,9 +490,8 @@ describe('diagnostic manager', () => {
 
   describe('diagnostic configuration', () => {
     it('should use filetype map from config', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('filetypeMap', { default: 'bufferType' })
-      config.update('messageDelay', 10)
+      helper.updateConfiguration('diagnostic.filetypeMap', { default: 'bufferType' })
+      helper.updateConfiguration('diagnostic.messageDelay', 10)
       let doc = await createDocument('foo.js')
       await nvim.setLine('foo')
       await doc.synchronize()
@@ -516,9 +512,8 @@ describe('diagnostic manager', () => {
     })
 
     it('should show floating window on cursor hold', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('messageTarget', 'float')
-      config.update('messageDelay', 10)
+      helper.updateConfiguration('diagnostic.messageTarget', 'float')
+      helper.updateConfiguration('diagnostic.messageDelay', 10)
       await createDocument()
       await nvim.call('cursor', [1, 3])
       await nvim.command('doautocmd CursorHold')
@@ -530,9 +525,8 @@ describe('diagnostic manager', () => {
     })
 
     it('should filter diagnostics by messageLevel', async () => {
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('messageLevel', 'error')
-      config.update('messageTarget', 'echo')
+      helper.updateConfiguration('diagnostic.messageLevel', 'error')
+      helper.updateConfiguration('diagnostic.messageTarget', 'echo')
       await createDocument()
       await nvim.call('cursor', [1, 6])
       await manager.echoMessage(false)
@@ -543,9 +537,8 @@ describe('diagnostic manager', () => {
     it('should echo messages on CursorHold', async () => {
       await createDocument()
       await helper.wait(30)
-      let config = workspace.getConfiguration('diagnostic')
-      config.update('messageTarget', 'echo')
-      config.update('messageDelay', 1)
+      helper.updateConfiguration('diagnostic.messageTarget', 'echo')
+      helper.updateConfiguration('diagnostic.messageDelay', 1)
       await nvim.call('cursor', [1, 3])
       await helper.wait(50)
       let line = await helper.getCmdline()
@@ -636,9 +629,8 @@ describe('diagnostic manager', () => {
   })
 
   describe('refresh', () => {
-    let config = workspace.getConfiguration('diagnostic')
     beforeEach(() => {
-      config.update('autoRefresh', false)
+      helper.updateConfiguration('diagnostic.autoRefresh', false)
     })
 
     it('should refresh by bufnr', async () => {

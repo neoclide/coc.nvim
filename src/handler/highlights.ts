@@ -4,7 +4,7 @@ import { CancellationTokenSource, Disposable, DocumentHighlight, DocumentHighlig
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('documentHighlight')
@@ -33,7 +33,7 @@ export default class Highlights {
     workspace.onDidChangeConfiguration(this.getConfiguration, this, this.disposables)
   }
 
-  private getConfiguration(e?: ConfigurationChangeEvent): void {
+  private getConfiguration(e?: IConfigurationChangeEvent): void {
     let config = workspace.getConfiguration('documentHighlight')
     if (!e || e.affectsConfiguration('documentHighlight')) {
       this.config = Object.assign(this.config || {}, {

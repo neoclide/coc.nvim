@@ -29,7 +29,7 @@ import Mru from './model/mru'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IWorkspace, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationScope, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IConfigurationChangeEvent, IWorkspace, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
 
 const APIVERSION = 32
@@ -42,7 +42,7 @@ const methods = [
 ]
 
 export class Workspace implements IWorkspace {
-  public readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent>
+  public readonly onDidChangeConfiguration: Event<IConfigurationChangeEvent>
   public readonly onDidOpenTextDocument: Event<LinesTextDocument>
   public readonly onDidCloseTextDocument: Event<LinesTextDocument>
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
@@ -130,7 +130,7 @@ export class Workspace implements IWorkspace {
       nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
     }
     this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
-    this.configurations.updateUserConfig(this._env.config)
+    this.configurations.updateMemoryConfig(this._env.config)
     this.files.attach(nvim, env, window)
     this.contentProvider.attach(nvim)
     this.keymaps.attach(nvim)
@@ -245,10 +245,6 @@ export class Workspace implements IWorkspace {
     return createNameSpace(name)
   }
 
-  public getConfigFile(target: ConfigurationTarget): string {
-    return this.configurations.getConfigFile(target)
-  }
-
   public has(feature: string): boolean {
     return has(this.env, feature)
   }
@@ -295,8 +291,8 @@ export class Workspace implements IWorkspace {
   /**
    * Get configuration by section and optional resource uri.
    */
-  public getConfiguration(section?: string, resource?: string): WorkspaceConfiguration {
-    return this.configurations.getConfiguration(section, resource)
+  public getConfiguration(section?: string, scope?: ConfigurationScope): WorkspaceConfiguration {
+    return this.configurations.getConfiguration(section, scope)
   }
 
   /**

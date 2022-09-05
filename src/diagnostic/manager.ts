@@ -6,7 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
-import { ConfigurationChangeEvent, FloatFactory, Documentation, ErrorItem, VirtualTextOption } from '../types'
+import { IConfigurationChangeEvent, FloatFactory, Documentation, ErrorItem, VirtualTextOption } from '../types'
 import { disposeAll } from '../util'
 import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
@@ -549,7 +549,7 @@ export class DiagnosticManager implements Disposable {
     return workspace.nvim
   }
 
-  private setConfiguration(event?: ConfigurationChangeEvent): void {
+  private setConfiguration(event?: IConfigurationChangeEvent): void {
     if (event && !event.affectsConfiguration('diagnostic')) return
     let config = workspace.getConfiguration('diagnostic')
     let messageTarget = config.get<string>('messageTarget', 'float')

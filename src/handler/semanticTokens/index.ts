@@ -6,7 +6,7 @@ import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
-import { ConfigurationChangeEvent, Documentation, FloatFactory } from '../../types'
+import { IConfigurationChangeEvent, Documentation, FloatFactory } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
 import { upperFirst } from '../../util/string'
@@ -90,7 +90,7 @@ export default class SemanticTokens {
     }, null, this.disposables)
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('semanticTokens')) {
       let highlightGroups = []
       if (this.config?.highlightGroups) {

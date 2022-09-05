@@ -248,9 +248,9 @@ export class Helper extends EventEmitter {
   public updateConfiguration(key: string, value: any): () => void {
     let { configurations } = workspace
     let curr = workspace.getConfiguration(key)
-    configurations.updateUserConfig({ [key]: value })
+    configurations.updateMemoryConfig({ [key]: value })
     return () => {
-      configurations.updateUserConfig({ [key]: curr })
+      configurations.updateMemoryConfig({ [key]: curr })
     }
   }
 

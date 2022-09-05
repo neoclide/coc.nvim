@@ -6,7 +6,7 @@ import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -84,7 +84,7 @@ export default class FormatHandler {
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
   }
 
-  private loadPreferences(e?: ConfigurationChangeEvent): void {
+  private loadPreferences(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('coc.preferences')) {
       let config = workspace.getConfiguration('coc.preferences')
       this.preferences = {

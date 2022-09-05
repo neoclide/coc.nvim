@@ -1890,7 +1890,7 @@ coc#config({section}, {value})				*coc#config()*
 	user config file and default values. Example: >
 
 	call coc#config('coc.preferences', {
-		\ 'timeout': 1000,
+		\ 'willSaveHandlerTimeout': 1000,
 		\})
 	call coc#config('languageserver', {
 		\ 'ccls': {

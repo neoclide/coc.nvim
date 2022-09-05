@@ -111,7 +111,7 @@ describe('publish configuration feature', () => {
     expect(changed.settings.coc).toBeDefined()
     expect(changed.settings.npm).toBeDefined()
     let { configurations } = workspace
-    configurations.updateUserConfig({ 'npm.binPath': 'cnpm' })
+    configurations.updateMemoryConfig({ 'npm.binPath': 'cnpm' })
     await helper.wait(500)
     expect(changed.settings.npm).toBeDefined()
     expect(changed.settings.npm.binPath).toBe('cnpm')

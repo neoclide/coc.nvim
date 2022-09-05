@@ -1,7 +1,7 @@
 'use strict'
 import { ClientCapabilities, ConfigurationRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, Disposable, RegistrationType, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { mergeConfigProperties, toJSONObject } from '../configuration/util'
-import { ConfigurationChangeEvent, FileSystemWatcher } from '../types'
+import { IConfigurationChangeEvent, FileSystemWatcher } from '../types'
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData, StaticFeature } from './features'
@@ -172,7 +172,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
     this._listeners.clear()
   }
 
-  private onDidChangeConfiguration(configurationSection: string | string[] | undefined, event: ConfigurationChangeEvent | undefined): void {
+  private onDidChangeConfiguration(configurationSection: string | string[] | undefined, event: IConfigurationChangeEvent | undefined): void {
     let { configuredSection } = this._client
     let sections: string[] | undefined
     if (Is.string(configurationSection)) {

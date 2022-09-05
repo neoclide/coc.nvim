@@ -784,9 +784,9 @@ export class Extensions {
     return this._additionalSchemes
   }
 
-  public addSchemeProperty(key: string, def: PropertyScheme): void {
+  public addSchemeProperty(key: string, def: PropertyScheme, id?: string): void {
     this._additionalSchemes[key] = def
-    workspace.configurations.extendsDefaults({ [key]: def.default })
+    workspace.configurations.extendsDefaults({ [key]: def.default }, id)
   }
 
   private async setupActiveEvents(id: string, packageJSON: any): Promise<void> {

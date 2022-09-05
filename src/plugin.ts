@@ -83,7 +83,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
     this.addAction('sendNotification', (id: string, method: string, params?: any) => services.sendNotification(id, method, params))
     this.addAction('registNotification', (id: string, method: string) => services.registNotification(id, method))
-    this.addAction('updateConfig', (section: string, val: any) => workspace.configurations.updateUserConfig({ [section]: val }))
+    this.addAction('updateConfig', (section: string, val: any) => workspace.configurations.updateMemoryConfig({ [section]: val }))
     this.addAction('links', () => this.handler.links.getLinks())
     this.addAction('openLink', () => this.handler.links.openCurrentLink())
     this.addAction('pickColor', () => this.handler.colors.pickColor())

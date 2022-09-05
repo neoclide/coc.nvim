@@ -5,7 +5,7 @@ import commandManager from '../../commands'
 import extensions from '../../extensions'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { IConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { toHexString } from '../../util/color'
 import window from '../../window'
@@ -38,7 +38,7 @@ export default class Colors {
     commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
   }
 
-  private setConfiguration(e?: ConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('colors')) {
       let c = workspace.getConfiguration('colors')
       this.config = Object.assign(this.config || {}, {

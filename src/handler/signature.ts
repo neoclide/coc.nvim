@@ -4,7 +4,7 @@ import { CancellationTokenSource, Disposable, MarkupContent, Position, Signature
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { ConfigurationChangeEvent, FloatConfig, FloatFactory, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, FloatConfig, FloatFactory, HandlerDelegate } from '../types'
 import { disposeAll, isMarkdown } from '../util'
 import { byteLength } from '../util/string'
 import window from '../window'
@@ -70,7 +70,7 @@ export default class Signature {
     }, null, this.disposables)
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('signature')) {
       let config = workspace.getConfiguration('signature')
       let target = config.get<string>('target', 'float')

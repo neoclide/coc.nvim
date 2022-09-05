@@ -3,7 +3,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import BufferSync from '../../model/bufferSync'
-import { ConfigurationChangeEvent } from '../../types'
+import { IConfigurationChangeEvent } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import CodeLensBuffer, { CodeLensConfig } from './buffer'
@@ -51,7 +51,7 @@ export default class CodeLensManager {
     }
   }
 
-  private setConfiguration(e?: ConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (e && !e.affectsConfiguration('codeLens')) return
     let config = workspace.getConfiguration('codeLens')
     let enable: boolean = this.nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', false)

@@ -5,7 +5,7 @@ import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteOption, ConfigurationChangeEvent, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
+import { CompleteOption, IConfigurationChangeEvent, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
 import { disposeAll } from '../util'
 import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
 import workspace from '../workspace'
@@ -107,7 +107,7 @@ export class Completion implements Disposable {
     return this.activeItems[this.popupEvent.index]
   }
 
-  private getCompleteConfig(e?: ConfigurationChangeEvent): CompleteConfig {
+  private getCompleteConfig(e?: IConfigurationChangeEvent): CompleteConfig {
     if (e && !e.affectsConfiguration('suggest')) return
     let suggest = workspace.getConfiguration('suggest')
     function getConfig<T>(key, defaultValue: T): T {

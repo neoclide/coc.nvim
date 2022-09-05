@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
-import { ConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { positionInRange } from '../util/position'
 import window from '../window'
@@ -30,7 +30,7 @@ export default class Links implements Disposable {
     }, null, this.disposables)
   }
 
-  private setConfiguration(e?: ConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('links')) {
       let config = workspace.getConfiguration('links')
       this._tooltip = config.get<boolean>('tooltip', false)

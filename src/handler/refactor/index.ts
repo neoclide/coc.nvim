@@ -4,7 +4,7 @@ import { Disposable, Emitter, Event, Location, Range, TextDocumentEdit, TextEdit
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import languages from '../../languages'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { IConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { getFileLineCount } from '../../util/fs'
 import { emptyWorkspaceEdit } from '../../util/textedit'
@@ -52,7 +52,7 @@ export default class Refactor {
     return this.buffers.has(bufnr)
   }
 
-  private setConfiguration(e?: ConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (e && !e.affectsConfiguration('refactor')) return
     let config = workspace.getConfiguration('refactor')
     this.config = Object.assign(this.config || {}, {

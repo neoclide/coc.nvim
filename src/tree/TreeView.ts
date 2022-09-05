@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, MarkupKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import events from '../events'
-import { ConfigurationChangeEvent, Documentation, FloatFactory, HighlightItem, LocalMode } from '../types'
+import { IConfigurationChangeEvent, Documentation, FloatFactory, HighlightItem, LocalMode } from '../types'
 import { disposeAll } from '../util'
 import { groupPositions, hasMatch, positions, score } from '../util/fzy'
 import { Mutex } from '../util/mutex'
@@ -288,7 +288,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     return this.filter != null && this.filter.activated
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('tree')) {
       let config = workspace.getConfiguration('tree')
       this.config = {

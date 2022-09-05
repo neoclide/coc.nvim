@@ -269,12 +269,8 @@ describe('diagnostic buffer', () => {
   })
 
   describe('clear()', () => {
-    let config = workspace.getConfiguration('diagnostic')
     beforeEach(() => {
-      config.update('virtualText', true)
-    })
-    afterEach(() => {
-      config.update('virtualText', false)
+      helper.updateConfiguration('diagnostic.virtualText', true)
     })
 
     it('should clear all diagnostics', async () => {
