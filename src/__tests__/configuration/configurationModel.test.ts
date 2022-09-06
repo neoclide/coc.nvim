@@ -66,6 +66,19 @@ describe('ConfigurationModel', () => {
 
     assert.deepStrictEqual(testObject.contents, { a: { b: 1 }, f: 1 })
     assert.deepStrictEqual(testObject.keys, ['a.b', 'f'])
+    let fn = console.error
+    Object.defineProperty(console, 'error', {
+      get: () => {
+        return () => {
+        }
+      }
+    })
+    testObject.setValue('a.b.c.d', { x: 3 })
+    Object.defineProperty(console, 'error', {
+      get: () => {
+        return fn
+      }
+    })
   })
 
   test('setValue for a key that has no sections and defined', () => {

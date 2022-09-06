@@ -38,6 +38,9 @@ describe('ConfigurationProxy', () => {
     await proxy.modifyConfiguration(uri.fsPath, 'foo', true)
     let content = fs.readFileSync(uri.fsPath, 'utf8')
     expect(JSON.parse(content)).toEqual({ foo: true })
+    await proxy.modifyConfiguration(uri.fsPath, 'foo', false)
+    content = fs.readFileSync(uri.fsPath, 'utf8')
+    expect(JSON.parse(content)).toEqual({ foo: false })
     rmdir(folder)
   })
 

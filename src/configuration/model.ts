@@ -150,7 +150,7 @@ export class ConfigurationModel implements IConfigurationModel {
 
   public setValue(key: string, value: any) {
     this.addKey(key)
-    addToValueTree(this.contents, key, value, e => { logger.error(e) })
+    addToValueTree(this.contents, key, value, e => { console.error(e) })
   }
 
   public removeValue(key: string): void {
