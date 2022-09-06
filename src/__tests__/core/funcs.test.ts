@@ -6,10 +6,7 @@ let configurations: Configurations
 
 beforeAll(async () => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
-  configurations = new Configurations(userConfigFile, {
-    $removeConfigurationOption: () => {},
-    $updateConfigurationOption: () => {}
-  })
+  configurations = new Configurations(userConfigFile, undefined)
 })
 
 describe('has()', () => {

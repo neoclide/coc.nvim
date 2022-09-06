@@ -29,10 +29,7 @@ beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
-  configurations = new Configurations(userConfigFile, {
-    $removeConfigurationOption: () => {},
-    $updateConfigurationOption: () => {}
-  })
+  configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
 })
 
