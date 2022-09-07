@@ -3003,12 +3003,12 @@ cursor position.
 Float window/popup related~
 
 *CocFloating* default highlight group of floating windows/popups.
-Default links to |NormalFloat| on neovim and|`Pmenu| on vim.
+Default links to |NormalFloat| on neovim and |Pmenu| on vim.
+*CocFloatThumb* thumb highlight of scrollbar.
+*CocFloatSbar* Scrollbar highlight of floating window/popups.
 *CocFloatDividingLine* for dividing lines, links to |NonText| by default.
-*CocErrorFloat* for errors in floating windows/popups.
-*CocWarningFloat* for warnings in floating windows/popups.
-*CocInfoFloat* for infos in floating windows/popups.
-*CocHintFloat* for hints in floating windows/popups.
+*CocErrorFloat* for error text in floating windows/popups.
+*CocHintFloat* for hint text in floating windows/popups.
 
 Notification window/popup related~
 
