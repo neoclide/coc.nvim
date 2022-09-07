@@ -190,8 +190,8 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'border': border,
           \ 'callback': { -> coc#float#on_close(winid)},
           \ 'borderhighlight': [s:get_borderhighlight(a:config)],
-          \ 'scrollbarhighlight': 'CocPmenuSbar',
-          \ 'thumbhighlight': 'CocPmenuThumb',
+          \ 'scrollbarhighlight': 'CocFloatSbar',
+          \ 'thumbhighlight': 'CocFloatThumb',
           \ }
     let winid = popup_create(bufnr, opts)
     if !s:popup_list_api
@@ -513,9 +513,9 @@ function! coc#float#nvim_scrollbar(winid) abort
   call nvim_buf_clear_namespace(sbuf, -1, 0, -1)
   for idx in range(0, height - 1)
     if idx >= start && idx < start + thumb_height
-      call nvim_buf_add_highlight(sbuf, -1, 'CocPmenuThumb', idx, 0, 1)
+      call nvim_buf_add_highlight(sbuf, -1, 'CocFloatThumb', idx, 0, 1)
     else
-      call nvim_buf_add_highlight(sbuf, -1, 'CocPmenuSbar', idx, 0, 1)
+      call nvim_buf_add_highlight(sbuf, -1, 'CocFloatSbar', idx, 0, 1)
     endif
   endfor
 endfunction

@@ -419,16 +419,15 @@ function! s:Highlight() abort
   hi default CocDisabled      guifg=#999999   ctermfg=gray
   hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
   if coc#highlight#get_contrast('Normal', has('nvim') ? 'NormalFloat' : 'Pmenu') > 2.0
-    let term = &termguicolors == 0 && !has('gui_running')
-    exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.4 : 0.1, term)
-    exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.2 : 0.05, term)
-    exe 'hi default CocPmenuThumb '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.3 : 0.2, term)
-    exe 'hi default CocPmenuSbar '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.5 : 0.3, term)
+    exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.4 : 0.1)
+    exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.2 : 0.05)
+    exe 'hi default CocFloatThumb '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.3 : 0.2)
+    exe 'hi default CocFloatSbar '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.5 : 0.3)
   else
     exe 'hi default link CocFloating '.(has('nvim') ? 'NormalFloat' : 'Pmenu')
     exe 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
-    hi default link CocPmenuThumb        PmenuThumb
-    hi default link CocPmenuSbar         PmenuSbar
+    hi default link CocFloatThumb        PmenuThumb
+    hi default link CocFloatSbar         PmenuSbar
   endif
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode

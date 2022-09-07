@@ -8,6 +8,7 @@ let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 " Maximum count to highlight each time.
 let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 100)
+let s:term = &termguicolors == 0 && !has('gui_running')
 
 if has('nvim-0.5.0') && s:clear_match_by_window == 0
   try
@@ -498,29 +499,27 @@ function! coc#highlight#reversed(id) abort
 endfunction
 
 function! coc#highlight#get_contrast(group1, group2) abort
-  let term = &termguicolors == 0 && !has('gui_running')
-  let id1 = synIDtrans(hlID(a:group1))
-  let id2 = synIDtrans(hlID(a:group2))
-  let bg1 = s:to_hex_color(coc#highlight#get_color(id1, 'bg', term ? 'cterm' : 'gui'), term)
-  let bg2 = s:to_hex_color(coc#highlight#get_color(id2, 'bg', term ? 'cterm' : 'gui'), term)
-  if empty(bg1) || empty(bg2)
-    return 1
-  endif
+  let bg1 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group1)), 'bg', '#000000')
+  let bg2 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group2)), 'bg', '#000000')
   return coc#color#hex_contrast(bg1, bg2)
 endfunction
 
 " Darken or lighten background
-function! coc#highlight#create_bg_command(group, amount, term) abort
+function! coc#highlight#create_bg_command(group, amount) abort
   let id = synIDtrans(hlID(a:group))
-  let bg = s:to_hex_color(coc#highlight#get_color(id, 'bg', a:term ? 'cterm' : 'gui'), a:term)
-  if empty(bg)
-    return ''
-  endif
+  let bg = coc#highlight#get_hex_color(id, 'bg', '#282828')
   let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
-  if a:term
-    return 'ctermbg=' . coc#color#rgb2term(strpart(hex, 1))
+  return 'ctermbg=' . coc#color#rgb2term(strpart(hex, 1)).' guibg=' . hex
+endfunction
+
+function! coc#highlight#get_hex_color(id, kind, fallback) abort
+  let attr = coc#highlight#get_color(a:id, a:kind, s:term ? 'cterm' : 'gui')
+  let hex = s:to_hex_color(attr, s:term)
+  if empty(hex) && !s:term
+    let attr = coc#highlight#get_color(a:id, a:kind, 'cterm')
+    let hex = s:to_hex_color(attr, 1)
   endif
-  return 'guibg=' . hex
+  return empty(hex) ? a:fallback : hex
 endfunction
 
 function! s:to_hex_color(color, term) abort
