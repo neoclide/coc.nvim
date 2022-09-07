@@ -223,9 +223,12 @@ describe('Configurations', () => {
     it('should update memory config #3', () => {
       let conf = new Configurations()
       conf.updateMemoryConfig({ 'suggest.floatConfig': { border: true } })
+      conf.updateMemoryConfig({ 'x.y': { foo: 1 } })
       let val = conf.getConfiguration()
       let res = val.get('suggest') as any
       expect(res.floatConfig).toEqual({ border: true })
+      res = val.get('x.y') as any
+      expect(res).toEqual({ foo: 1 })
     })
 
     it('should handle errors', () => {
