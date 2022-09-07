@@ -322,26 +322,6 @@ export class Extensions {
     await concurrent(list, fn)
   }
 
-  /**
-   * Get list of extensions in package.json that not installed
-   */
-  public getMissingExtensions(): string[] {
-    let json = this.loadJson() || { dependencies: {} }
-    let ids: string[] = []
-    for (let key of Object.keys(json.dependencies)) {
-      let folder = path.join(this.modulesFolder, key)
-      if (!fs.existsSync(folder)) {
-        let val = json.dependencies[key]
-        if (val.startsWith('http')) {
-          ids.push(val)
-        } else {
-          ids.push(key)
-        }
-      }
-    }
-    return ids
-  }
-
   public get npm(): string {
     let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
     npm = workspace.expand(npm)
@@ -462,7 +442,7 @@ export class Extensions {
   public async uninstallExtension(ids: string[]): Promise<string[]> {
     let removed: string[] = []
     // let [globals, filtered] = splitArray(ids, id => this.globalExtensions.includes(id))
-    let json = this.loadJson() ?? { dependencies: {} }
+    let json = this.loadJson()
     let results = await Promise.allSettled(ids.map(id => {
       let fn = async () => {
         await this.unloadExtension(id)
@@ -694,13 +674,11 @@ export class Extensions {
 
   public get globalExtensions(): string[] {
     let json = this.loadJson()
-    if (!json || !json.dependencies) return []
     return Object.keys(json.dependencies)
   }
 
   private async globalExtensionStats(): Promise<ExtensionInfo[]> {
     let json = this.loadJson()
-    if (!json || !json.dependencies) return []
     let { modulesFolder } = this
     let res: ExtensionInfo[] = await Promise.all(Object.keys(json.dependencies).map(key => new Promise<ExtensionInfo>(async resolve => {
       try {
@@ -776,9 +754,9 @@ export class Extensions {
     return res.filter(info => info != null)
   }
 
-  private loadJson(): any {
+  private loadJson(): { dependencies: Record<string, string> } {
     let { jsonFile } = this
-    if (!fs.existsSync(jsonFile)) return null
+    if (!fs.existsSync(jsonFile)) return { dependencies: {} }
     let errors: ParseError[] = []
     let content = fs.readFileSync(jsonFile, 'utf8')
     let data = parse(content, errors, { allowTrailingComma: true })
@@ -786,6 +764,7 @@ export class Extensions {
       window.showMessage(`Error on parse ${jsonFile}`, 'error')
       workspace.nvim.call('coc#util#open_file', ['edit', jsonFile], true)
     }
+    data.dependencies = data.dependencies ?? {}
     return data
   }
 
@@ -1029,15 +1008,13 @@ export class Extensions {
     let json = this.loadJson()
     let urls: string[] = []
     let exists: string[] = []
-    if (json && json.dependencies) {
-      for (let key of Object.keys(json.dependencies)) {
-        let val = json.dependencies[key]
-        if (typeof val !== 'string') continue
-        if (fs.existsSync(path.join(this.modulesFolder, key, 'package.json'))) {
-          exists.push(key)
-          if (/^https?:/.test(val)) {
-            urls.push(val)
-          }
+    for (let key of Object.keys(json.dependencies)) {
+      let val = json.dependencies[key]
+      if (typeof val !== 'string') continue
+      if (fs.existsSync(path.join(this.modulesFolder, key, 'package.json'))) {
+        exists.push(key)
+        if (/^https?:/.test(val)) {
+          urls.push(val)
         }
       }
     }
