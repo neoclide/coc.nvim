@@ -116,8 +116,8 @@ export default class InlayHintBuffer implements SyncItem {
     this.tokenSource = new CancellationTokenSource()
     let token = this.tokenSource.token
     let res = await this.nvim.call('coc#window#visible_range', [this.doc.bufnr]) as [number, number]
+    if (!Array.isArray(res) || res[1] <= 0 || token.isCancellationRequested) return
     if (!srcId) srcId = await this.nvim.createNamespace('coc-inlayHint')
-    if (!Array.isArray(res) || token.isCancellationRequested) return
     if (this.regions.has(res[0], res[1])) return
     let range = Range.create(res[0] - 1, 0, res[1], 0)
     let inlayHints = await languages.provideInlayHints(this.doc.textDocument, range, token)
