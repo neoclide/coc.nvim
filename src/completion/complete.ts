@@ -300,8 +300,8 @@ export default class Complete {
       let sb = b.sortText
       if (a.score !== b.score) return b.score - a.score
       if (a.priority !== b.priority) return b.priority - a.priority
-      if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
       if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1
+      if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
       // not sort with empty input
       if (input.length === 0) return 0
       switch (defaultSortMethod) {
