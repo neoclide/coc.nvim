@@ -1,7 +1,7 @@
 'use strict'
 import fs from 'fs'
 import os from 'os'
-import path, { dirname, resolve } from 'path'
+import path from 'path'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ConfigurationInspect, ConfigurationScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from '../types'
@@ -16,8 +16,6 @@ import { ConfigurationModelParser } from './parser'
 import { IConfigurationShape } from './shape'
 import { addToValueTree, convertTarget, scopeToOverrides } from './util'
 const logger = require('../util/logger')('configurations')
-declare const ESBUILD
-const pluginRoot = typeof ESBUILD === 'undefined' ? resolve(__dirname, '../..') : dirname(__dirname)
 
 export default class Configurations {
   private _watchedFiles: Set<string> = new Set()
@@ -54,6 +52,7 @@ export default class Configurations {
   }
 
   private loadDefaultConfigurations(): ConfigurationModel {
+    let pluginRoot = global.__TEST__ ? path.resolve(__dirname, '../..') : path.resolve(__dirname, '..')
     let file = path.join(pluginRoot, 'data/schema.json')
     let content = fs.readFileSync(file, 'utf8')
     let { properties } = JSON.parse(content)
@@ -69,7 +68,8 @@ export default class Configurations {
       }
     })
     this.builtinKeys = keys
-    return new ConfigurationModel(config, keys)
+    let model = new ConfigurationModel(config, keys)
+    return model
   }
   private parseConfigurationModel(filepath: string): ConfigurationModel {
     let parser = new ConfigurationModelParser(filepath)

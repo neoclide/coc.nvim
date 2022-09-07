@@ -28,7 +28,7 @@ import { isParentFolder, sameFile } from './util/fs'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
-import workspace from './workspace'
+import { Workspace } from './workspace'
 const logger = require('./util/logger')('window')
 const PLUGIN_ROOT = path.dirname(__dirname)
 let tab_global_id = 3000
@@ -86,6 +86,7 @@ export class Window {
   private readonly _onDidTabClose = new Emitter<number>()
   public readonly onDidTabClose: Event<number> = this._onDidTabClose.event
   public readonly cursors: Cursors
+  private workspace: Workspace
 
   public init(env: Env): void {
     for (let i = 1; i <= env.tabCount; i++) {
@@ -111,7 +112,7 @@ export class Window {
   }
 
   public get nvim(): Neovim {
-    return workspace.nvim
+    return this.workspace.nvim
   }
 
   public dispose(): void {
@@ -120,19 +121,19 @@ export class Window {
   }
 
   public get activeTextEditor(): TextEditor | undefined {
-    return workspace.editors.activeTextEditor
+    return this.workspace.editors.activeTextEditor
   }
 
   public get visibleTextEditors(): TextEditor[] {
-    return workspace.editors.visibleTextEditors
+    return this.workspace.editors.visibleTextEditors
   }
 
   public get onDidChangeActiveTextEditor(): Event<TextEditor | undefined> {
-    return workspace.editors.onDidChangeActiveTextEditor
+    return this.workspace.editors.onDidChangeActiveTextEditor
   }
 
   public get onDidChangeVisibleTextEditors(): Event<ReadonlyArray<TextEditor>> {
-    return workspace.editors.onDidChangeVisibleTextEditors
+    return this.workspace.editors.onDidChangeVisibleTextEditors
   }
 
   public get terminals(): ReadonlyArray<TerminalModel> {
@@ -158,11 +159,11 @@ export class Window {
    * @returns {FloatFactory}
    */
   public createFloatFactory(conf: FloatWinConfig): FloatFactory {
-    let preferences = workspace.getConfiguration('coc.preferences')
+    let preferences = this.workspace.getConfiguration('coc.preferences')
     let excludeImages = preferences.get<boolean>('excludeImageLinksInMarkdownDocument', true)
-    let c = workspace.getConfiguration('floatFactory')
+    let c = this.workspace.getConfiguration('floatFactory')
     let defaults = c.get<FloatConfig>('floatConfig', {})
-    return ui.createFloatFactory(workspace.nvim, Object.assign({ excludeImages, maxWidth: 80 }, conf), defaults)
+    return ui.createFloatFactory(this.workspace.nvim, Object.assign({ excludeImages, maxWidth: 80 }, conf), defaults)
   }
 
   /**
@@ -197,7 +198,7 @@ export class Window {
    * @param cwd Cwd of terminal, default to result of |getcwd()|.
    */
   public async runTerminalCommand(cmd: string, cwd?: string, keepfocus = false): Promise<TerminalResult> {
-    cwd = cwd || workspace.cwd
+    cwd = cwd || this.workspace.cwd
     return await this.nvim.callAsync('coc#ui#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
   }
 
@@ -275,7 +276,7 @@ export class Window {
 
   /**
    * Show menu picker at current cursor position, |inputlist()| is used as fallback.
-   * Use `workspace.env.dialog` to check if the picker window/popup could work.
+   * Use `this.workspace.env.dialog` to check if the picker window/popup could work.
    *
    * @param items Array of texts.
    * @param option Options for menu.
@@ -308,15 +309,15 @@ export class Window {
       void this.showWarningMessage(`Current buffer doesn't have valid file path.`)
       return
     }
-    let folder = workspace.getWorkspaceFolder(URI.file(fsPath).toString())
+    let folder = this.workspace.getWorkspaceFolder(URI.file(fsPath).toString())
     if (!folder) {
-      let c = workspace.getConfiguration('coc.preferences')
+      let c = this.workspace.getConfiguration('coc.preferences')
       let patterns = c.get<string[]>('rootPatterns', [])
-      let w = workspace.getConfiguration('workspace')
+      let w = this.workspace.getConfiguration('workspace')
       let ignored = w.get<string[]>('ignoredFiletypes', [])
       let msg: string
-      if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for workspace folder resolve.`
-      if (!msg) msg = `Can't resolve workspace folder for file '${fsPath}, consider create one of ${patterns.join(', ')} in your project root.'.`
+      if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for this.workspace folder resolve.`
+      if (!msg) msg = `Can't resolve this.workspace folder for file '${fsPath}, consider create one of ${patterns.join(', ')} in your project root.'.`
       void this.showWarningMessage(msg)
       return
     }
@@ -347,7 +348,7 @@ export class Window {
   /**
    * Show dialog window at the center of screen.
    * Note that the dialog would always be closed after button click.
-   * Use `workspace.env.dialog` to check if dialog could work.
+   * Use `this.workspace.env.dialog` to check if dialog could work.
    *
    * @param config Dialog configuration.
    * @returns Dialog or null when dialog can't work.
@@ -371,8 +372,8 @@ export class Window {
    */
   public async requestInput(title: string, defaultValue?: string, option?: InputOptions): Promise<string | undefined> {
     let { nvim } = this
-    const preferences = workspace.getConfiguration('coc.preferences')
-    if (workspace.env.dialog && preferences.get<boolean>('promptInput', true) && !isWindows) {
+    const preferences = this.workspace.getConfiguration('coc.preferences')
+    if (this.workspace.env.dialog && preferences.get<boolean>('promptInput', true) && !isWindows) {
       return await this.mutex.use(async () => {
         let input = new InputBox(nvim, defaultValue ?? '')
         await input.show(title, Object.assign(this.inputPreference, option ?? {}))
@@ -384,7 +385,7 @@ export class Window {
       })
     } else {
       return await this.mutex.use(async () => {
-        let res = await workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
+        let res = await this.workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
         nvim.command('normal! :<C-u>', true)
         return res
       })
@@ -434,7 +435,7 @@ export class Window {
    * @param preserveFocus Preserve window focus when true.
    */
   public showOutputChannel(name: string, preserveFocus?: boolean): void {
-    let config = workspace.getConfiguration('workspace')
+    let config = this.workspace.getConfiguration('workspace')
     let command = config.get<string>('openOutputCommand', 'vs')
     channels.show(name, command, preserveFocus)
   }
@@ -447,11 +448,11 @@ export class Window {
    */
   public async echoLines(lines: string[], truncate = false): Promise<void> {
     let { nvim } = this
-    let cmdHeight = workspace.env.cmdheight
+    let cmdHeight = this.workspace.env.cmdheight
     if (lines.length > cmdHeight && truncate) {
       lines = lines.slice(0, cmdHeight)
     }
-    let maxLen = workspace.env.columns - 12
+    let maxLen = this.workspace.env.columns - 12
     lines = lines.map(line => {
       line = line.replace(/\n/g, ' ')
       if (truncate) line = line.slice(0, maxLen)
@@ -479,7 +480,7 @@ export class Window {
    * @param position LSP position.
    */
   public async moveTo(position: Position): Promise<void> {
-    await ui.moveTo(this.nvim, position, workspace.env.isVim)
+    await ui.moveTo(this.nvim, position, this.workspace.env.isVim)
   }
 
   /**
@@ -518,7 +519,7 @@ export class Window {
 
   /**
    * Show multiple picker at center of screen.
-   * Use `workspace.env.dialog` to check if dialog could work.
+   * Use `this.workspace.env.dialog` to check if dialog could work.
    *
    * @param items Array of QuickPickItem or string.
    * @param title Title of picker dialog.
@@ -644,7 +645,7 @@ export class Window {
       title: options.title,
       cancellable: options.cancellable
     })
-    let config = workspace.getConfiguration('notification')
+    let config = this.workspace.getConfiguration('notification')
     let minWidth = config.get<number>('minProgressWidth', 30)
     let promise = new Promise<R>(resolve => {
       progress.onDidFinish(resolve)
@@ -683,7 +684,7 @@ export class Window {
     if (!curr || token?.isCancellationRequested) return null
     items.sort((a, b) => a.lnum - b.lnum)
     let linesToRemove = []
-    let checkMarkers = workspace.has('nvim-0.5.1') || workspace.isVim
+    let checkMarkers = this.workspace.has('nvim-0.5.1') || this.workspace.isVim
     let removeMarkers = []
     let newItems: HighlightItemDef[] = []
     let itemIndex = 0
@@ -791,7 +792,7 @@ export class Window {
   }
 
   public async bufferCheck(): Promise<void> {
-    let doc = await workspace.document
+    let doc = await this.workspace.document
     if (!doc.attached) {
       await this.showDialog({
         title: 'Buffer check result',
@@ -863,7 +864,7 @@ export class Window {
   }
 
   private get dialogPreference(): DialogPreferences {
-    let config = workspace.getConfiguration('dialog')
+    let config = this.workspace.getConfiguration('dialog')
     return {
       rounded: config.get<boolean>('rounded', true),
       maxWidth: config.get<number>('maxWidth'),
@@ -878,7 +879,7 @@ export class Window {
   }
 
   private get inputPreference(): InputPreference {
-    let config = workspace.getConfiguration('dialog')
+    let config = this.workspace.getConfiguration('dialog')
     return {
       rounded: config.get<boolean>('rounded', true),
       maxWidth: config.get<number>('maxWidth', 80),
@@ -889,7 +890,7 @@ export class Window {
 
   private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
     if (!source) source = this.parseSource(stack)
-    let config = workspace.getConfiguration('notification')
+    let config = this.workspace.getConfiguration('notification')
     let disabledList = config.get<string[]>('disabledProgressSources', [])
     let disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))
     return {
@@ -907,17 +908,17 @@ export class Window {
   }
 
   private checkDialog(name: string): void {
-    if (workspace.env.dialog) return
+    if (this.workspace.env.dialog) return
     throw new Error(`API window.${name} requires vim >= 8.2.0750 or neovim >= 0.4.0, please upgrade your vim`)
   }
 
   private get enableMessageDialog(): boolean {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = this.workspace.getConfiguration('coc.preferences')
     return config.get<boolean>('enableMessageDialog', false)
   }
 
   public get messageLevel(): MessageLevel {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = this.workspace.getConfiguration('coc.preferences')
     let level = config.get<string>('messageLevel', 'more')
     switch (level) {
       case 'error':

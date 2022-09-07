@@ -19,7 +19,11 @@ export class SnippetManager {
   private disposables: Disposable[] = []
   private statusItem: StatusBarItem
 
-  constructor() {
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
+  public init(): void {
     events.on('InsertCharPre', () => {
       // avoid update session when pumvisible
       // Update may cause completion unexpected terminated.
@@ -42,13 +46,6 @@ export class SnippetManager {
       let session = this.getSession(e.bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
-  }
-
-  private get nvim(): Neovim {
-    return workspace.nvim
-  }
-
-  public init(): void {
     if (!this.statusItem) this.statusItem = window.createStatusBarItem(0)
     let config = workspace.getConfiguration('coc.preferences')
     const snippetConfig = workspace.getConfiguration('snippet')

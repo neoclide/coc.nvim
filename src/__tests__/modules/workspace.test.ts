@@ -7,7 +7,6 @@ import { Location, Position, Range, TextEdit } from 'vscode-languageserver-types
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
-import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'

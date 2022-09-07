@@ -30,45 +30,45 @@ function generateTmpDir(): string {
   return path.join(os.tmpdir(), uuid())
 }
 
-describe('ConfigurationProxy', () => {
-  it('should create file and parent folder when necessary', async () => {
-    let folder = generateTmpDir()
-    let uri = URI.file(path.join(folder, 'a/b/settings.json'))
-    let proxy = new ConfigurationProxy({}, false)
-    await proxy.modifyConfiguration(uri.fsPath, 'foo', true)
-    let content = fs.readFileSync(uri.fsPath, 'utf8')
-    expect(JSON.parse(content)).toEqual({ foo: true })
-    await proxy.modifyConfiguration(uri.fsPath, 'foo', false)
-    content = fs.readFileSync(uri.fsPath, 'utf8')
-    expect(JSON.parse(content)).toEqual({ foo: false })
-    rmdir(folder)
-  })
-
-  it('should get folder from resolver', async () => {
-    let proxy = new ConfigurationProxy({
-      getWorkspaceFolder: (uri: string) => {
-        let fsPath = URI.parse(uri).fsPath
-        if (fsPath.startsWith(os.tmpdir())) {
-          return { uri: URI.file(os.tmpdir()).toString(), name: 'tmp' }
-        }
-        if (fsPath.startsWith(os.homedir())) {
-          return { uri: URI.file(os.homedir()).toString(), name: 'home' }
-        }
-        return undefined
-      },
-      root: __dirname
-    })
-    let uri = proxy.getWorkspaceFolder(URI.file(path.join(os.tmpdir(), 'foo')).toString())
-    expect(uri.fsPath.startsWith(os.tmpdir())).toBe(true)
-    uri = proxy.getWorkspaceFolder(URI.file('abc').toString())
-    expect(uri).toBeUndefined()
-    proxy = new ConfigurationProxy({})
-    uri = proxy.getWorkspaceFolder(URI.file(path.join(os.tmpdir(), 'foo')).toString())
-    expect(uri).toBeUndefined()
-  })
-})
-
 describe('Configurations', () => {
+  describe('ConfigurationProxy', () => {
+    it('should create file and parent folder when necessary', async () => {
+      let folder = generateTmpDir()
+      let uri = URI.file(path.join(folder, 'a/b/settings.json'))
+      let proxy = new ConfigurationProxy({}, false)
+      await proxy.modifyConfiguration(uri.fsPath, 'foo', true)
+      let content = fs.readFileSync(uri.fsPath, 'utf8')
+      expect(JSON.parse(content)).toEqual({ foo: true })
+      await proxy.modifyConfiguration(uri.fsPath, 'foo', false)
+      content = fs.readFileSync(uri.fsPath, 'utf8')
+      expect(JSON.parse(content)).toEqual({ foo: false })
+      rmdir(folder)
+    })
+
+    it('should get folder from resolver', async () => {
+      let proxy = new ConfigurationProxy({
+        getWorkspaceFolder: (uri: string) => {
+          let fsPath = URI.parse(uri).fsPath
+          if (fsPath.startsWith(os.tmpdir())) {
+            return { uri: URI.file(os.tmpdir()).toString(), name: 'tmp' }
+          }
+          if (fsPath.startsWith(os.homedir())) {
+            return { uri: URI.file(os.homedir()).toString(), name: 'home' }
+          }
+          return undefined
+        },
+        root: __dirname
+      })
+      let uri = proxy.getWorkspaceFolder(URI.file(path.join(os.tmpdir(), 'foo')).toString())
+      expect(uri.fsPath.startsWith(os.tmpdir())).toBe(true)
+      uri = proxy.getWorkspaceFolder(URI.file('abc').toString())
+      expect(uri).toBeUndefined()
+      proxy = new ConfigurationProxy({})
+      uri = proxy.getWorkspaceFolder(URI.file(path.join(os.tmpdir(), 'foo')).toString())
+      expect(uri).toBeUndefined()
+    })
+  })
+
   describe('watchFile', () => {
     it('should watch user config file', async () => {
       let userConfigFile = path.join(os.tmpdir(), 'settings.json')
@@ -112,6 +112,12 @@ describe('Configurations', () => {
   })
 
   describe('addFolderFile()', () => {
+    it('should not add invalid folder from cwd', async () => {
+      let conf = new Configurations(undefined, undefined, true, os.homedir())
+      let res = conf.folderToConfigfile(os.homedir())
+      expect(res).toBeUndefined()
+    })
+
     it('should add folder as workspace configuration', () => {
       let configurations = createConfigurations()
       disposables.push(configurations)
@@ -145,7 +151,9 @@ describe('Configurations', () => {
 
   describe('getConfiguration()', () => {
     it('should load default configurations', () => {
-      let conf = new Configurations()
+      let conf = new Configurations(undefined, {
+        modifyConfiguration: async () => {}
+      })
       disposables.push(conf)
       expect(conf.configuration.defaults.contents.coc).toBeDefined()
       let c = conf.getConfiguration('languageserver')
@@ -224,7 +232,9 @@ describe('Configurations', () => {
     })
 
     it('should not extends builtin keys', async () => {
-      let configurations = createConfigurations()
+      let configurations = new Configurations(undefined, {
+        modifyConfiguration: async () => {}
+      })
       disposables.push(configurations)
       configurations.extendsDefaults({ 'npm.binPath': 'cnpm' }, 'test')
       let o = configurations.configuration.defaults.contents

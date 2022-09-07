@@ -2,7 +2,7 @@
 import { attach, Attach, NeovimClient } from '@chemzqm/neovim'
 import log4js from 'log4js'
 import events from './events'
-import Plugin from './plugin'
+import type Plugin from './plugin'
 import semver from 'semver'
 import { objectLiteral } from './util/is'
 import { URI } from 'vscode-uri'
@@ -30,6 +30,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
     }).logError()
   }
   nvim.setVar('coc_process_pid', process.pid, true)
+  const Plugin = require('./plugin').default
   const plugin = new Plugin(nvim)
   let clientReady = false
   let initialized = false

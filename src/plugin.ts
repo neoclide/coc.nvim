@@ -3,7 +3,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import { CodeActionKind, Disposable } from 'vscode-languageserver-protocol'
 import commandManager from './commands'
-import completion from './completion'
+import completion, { Completion } from './completion'
 import channels from './core/channels'
 import Cursors from './cursors'
 import diagnosticManager from './diagnostic/manager'
@@ -16,7 +16,7 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import { disposeAll } from './util'
 import window from './window'
-import workspace from './workspace'
+import workspace, { Workspace } from './workspace'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -29,6 +29,9 @@ export default class Plugin extends EventEmitter {
   constructor(public nvim: Neovim) {
     super()
     this.disposables.push(workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim)))
+    Object.defineProperty(window, 'workspace', {
+      get: () => workspace
+    })
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
@@ -168,6 +171,14 @@ export default class Plugin extends EventEmitter {
     this.addAction('inspectSemanticToken', () => this.handler.semanticHighlighter.inspectSemanticToken())
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
     this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHighlightInfo())
+  }
+
+  public get workspace(): Workspace {
+    return workspace
+  }
+
+  public get completion(): Completion {
+    return completion
   }
 
   private addAction(key: string, fn: Function): void {
