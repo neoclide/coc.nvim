@@ -2,13 +2,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
-import { CancellationToken, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Emitter, Event, Position as IPosition, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import channels from './core/channels'
 import { TextEditor } from './core/editors'
 import Terminals from './core/terminals'
 import * as ui from './core/ui'
 import Cursors from './cursors/index'
+import { Position } from './edit/position'
 import events from './events'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
 import { FloatWinConfig } from './model/floatFactory'
@@ -469,8 +470,9 @@ export class Window {
    *
    * @returns Cursor position.
    */
-  public getCursorPosition(): Promise<Position> {
-    return ui.getCursorPosition(this.nvim)
+  public async getCursorPosition(): Promise<Position> {
+    const position = await ui.getCursorPosition(this.nvim)
+    return new Position(position.line, position.character)
   }
 
   /**
@@ -478,7 +480,7 @@ export class Window {
    *
    * @param position LSP position.
    */
-  public async moveTo(position: Position): Promise<void> {
+  public async moveTo(position: IPosition): Promise<void> {
     await ui.moveTo(this.nvim, position, workspace.env.isVim)
   }
 

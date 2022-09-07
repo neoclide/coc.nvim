@@ -1,7 +1,8 @@
 'use strict'
-import { Position, Range } from 'vscode-languageserver-protocol'
+import { Position as IPosition, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { TextLine } from './textline'
+import { Position } from '../edit/position'
 
 export function computeLinesOffsets(lines: ReadonlyArray<string>, eol: boolean): number[] {
   const result: number[] = []
@@ -72,8 +73,8 @@ export class LinesTextDocument implements TextDocument {
     return this.content
   }
 
-  public lineAt(lineOrPos: number | Position): TextLine {
-    const line = Position.is(lineOrPos) ? lineOrPos.line : lineOrPos
+  public lineAt(lineOrPos: number | IPosition): TextLine {
+    const line = IPosition.is(lineOrPos) ? lineOrPos.line : lineOrPos
     if (typeof line !== 'number' ||
       line < 0 ||
       line >= this.lineCount ||
@@ -90,7 +91,7 @@ export class LinesTextDocument implements TextDocument {
     let low = 0
     let high = lineOffsets.length
     if (high === 0) {
-      return { line: 0, character: offset }
+      return new Position(0, offset)
     }
     while (low < high) {
       let mid = Math.floor((low + high) / 2)
@@ -103,10 +104,10 @@ export class LinesTextDocument implements TextDocument {
     // low is the least x for which the line offset is larger than the current offset
     // or array.length if no line offset is larger than the current offset
     let line = low - 1
-    return { line, character: offset - lineOffsets[line] }
+    return new Position(line, offset - lineOffsets[line])
   }
 
-  public offsetAt(position: Position) {
+  public offsetAt(position: IPosition) {
     let lineOffsets = this.getLineOffsets()
     if (position.line >= lineOffsets.length) {
       return this.content.length
