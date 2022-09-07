@@ -507,7 +507,7 @@ endfunction
 " Darken or lighten background
 function! coc#highlight#create_bg_command(group, amount) abort
   let id = synIDtrans(hlID(a:group))
-  let bg = coc#highlight#get_hex_color(id, 'bg', '#282828')
+  let bg = coc#highlight#get_hex_color(id, 'bg', &background ==# 'dark' ? '#282828' : '#fefefe')
   let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
   return 'ctermbg=' . coc#color#rgb2term(strpart(hex, 1)).' guibg=' . hex
 endfunction
