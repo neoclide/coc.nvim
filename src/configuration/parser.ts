@@ -108,7 +108,7 @@ export class ConfigurationModelParser {
     if (content) {
       try {
         visit(content, visitor)
-        raw = currentParent[0] || {}
+        raw = currentParent[0] ?? {}
         const uri = URI.file(this._name).toString()
         if (_errors.length > 0) {
           this._parseErrors = convertErrors(uri, content, _errors)
@@ -125,47 +125,16 @@ export class ConfigurationModelParser {
     return raw
   }
 
-  protected doParseRaw(raw: any, options?: ConfigurationParseOptions): IConfigurationModel & { restricted?: string[] } {
+  protected doParseRaw(raw: any, _options?: ConfigurationParseOptions): IConfigurationModel & { restricted?: string[] } {
     // TODO create global Registry
     // const configurationProperties = Registry.as<IConfigurationRegistry>(Extensions.Configuration).getConfigurationProperties()
-    const configurationProperties = {}
-    const filtered = this.filter(raw, configurationProperties, true, options)
-    raw = filtered.raw
     const onError = (message: string) => {
       console.error(`Conflict in settings file ${this._name}: ${message}`)
     }
     const contents = toValuesTree(raw, onError)
     const keys = Object.keys(raw)
     const overrides = this.toOverrides(raw, onError)
-    return { contents, keys, overrides, restricted: filtered.restricted }
-  }
-
-  private filter(properties: any, configurationProperties: { [qualifiedKey: string]: any }, filterOverriddenProperties: boolean, options?: ConfigurationParseOptions): { raw: {}; restricted: string[] } {
-    if (!options?.scopes && !options?.skipRestricted) {
-      return { raw: properties, restricted: [] }
-    }
-    const raw: any = {}
-    const restricted: string[] = []
-    for (const key in properties) {
-      if (OVERRIDE_PROPERTY_REGEX.test(key) && filterOverriddenProperties) {
-        const result = this.filter(properties[key], configurationProperties, false, options)
-        raw[key] = result.raw
-        restricted.push(...result.restricted)
-      } else {
-        const propertySchema = configurationProperties[key]
-        const scope = propertySchema ? typeof propertySchema.scope !== 'undefined' ? propertySchema.scope : ConfigurationScope.WINDOW : undefined
-        if (propertySchema?.restricted) {
-          restricted.push(key)
-        }
-        // Load unregistered configurations always.
-        if (scope === undefined || options.scopes === undefined || options.scopes.includes(scope)) {
-          if (!(options.skipRestricted && propertySchema?.restricted)) {
-            raw[key] = properties[key]
-          }
-        }
-      }
-    }
-    return { raw, restricted }
+    return { contents, keys, overrides, restricted: [] }
   }
 
   private toOverrides(raw: any, conflictReporter: (message: string) => void): IOverrides[] {

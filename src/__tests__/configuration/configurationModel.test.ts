@@ -1,12 +1,12 @@
-import { ConfigurationModelParser } from '../../configuration/parser'
 import * as assert from 'assert'
-import { ConfigurationModel } from '../../configuration/model'
-import { convertErrors, mergeChanges } from '../../configuration/util'
 import { ParseError } from 'jsonc-parser'
-import { Configuration } from '../../configuration/configuration'
-import { URI } from 'vscode-uri'
 import { join } from 'path'
+import { URI } from 'vscode-uri'
+import { Configuration } from '../../configuration/configuration'
 import { AllKeysConfigurationChangeEvent, ConfigurationChangeEvent } from '../../configuration/event'
+import { ConfigurationModel } from '../../configuration/model'
+import { ConfigurationModelParser } from '../../configuration/parser'
+import { convertErrors, mergeChanges } from '../../configuration/util'
 import { ConfigurationTarget } from '../../types'
 
 function toConfigurationModel(content: any): ConfigurationModel {
@@ -29,6 +29,29 @@ describe('convertErrors()', () => {
 })
 
 describe('ConfigurationModelParser', () => {
+  test('parser error with empty text', async () => {
+    const parser = new ConfigurationModelParser('test')
+    parser.parse(' ')
+    expect(parser.errors.length).toBe(1)
+  })
+
+  test('parse invalid value', async () => {
+    let parser = new ConfigurationModelParser('test')
+    parser.parse(33 as any)
+    expect(parser.errors.length).toBe(1)
+  })
+
+  test('parse conflict properties', async () => {
+    let parser = new ConfigurationModelParser('test')
+    let called = false
+    let s = jest.spyOn(console, 'error').mockImplementation(() => {
+      called = true
+    })
+    parser.parse(JSON.stringify({ x: 1, 'x.y': {} }, null, 2))
+    s.mockRestore()
+    expect(called).toBe(true)
+  })
+
   test('parse configuration model with single override identifier', () => {
     const testObject = new ConfigurationModelParser('')
     testObject.parse(JSON.stringify({ '[x]': { a: 1 } }))
@@ -66,19 +89,12 @@ describe('ConfigurationModel', () => {
 
     assert.deepStrictEqual(testObject.contents, { a: { b: 1 }, f: 1 })
     assert.deepStrictEqual(testObject.keys, ['a.b', 'f'])
-    let fn = console.error
-    Object.defineProperty(console, 'error', {
-      get: () => {
-        return () => {
-        }
-      }
+    let called = false
+    let s = jest.spyOn(console, 'error').mockImplementation(() => {
+      called = true
     })
     testObject.setValue('a.b.c.d', { x: 3 })
-    Object.defineProperty(console, 'error', {
-      get: () => {
-        return fn
-      }
-    })
+    s.mockRestore()
   })
 
   test('setValue for a key that has no sections and defined', () => {

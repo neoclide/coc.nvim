@@ -1,11 +1,13 @@
-import fs from 'fs-extra'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v1 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration'
+import { ConfigurationModel } from '../../configuration/model'
 import ConfigurationProxy from '../../configuration/shape'
+import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
 import { CONFIG_FILE_NAME, disposeAll, wait } from '../../util'
 import helper, { rmdir } from '../helper'
 
@@ -111,10 +113,33 @@ describe('Configurations', () => {
     })
   })
 
+  describe('loadDefaultConfigurations', () => {
+    it('should not throw', async () => {
+      let fn = fs.readFileSync
+      let spy = jest.spyOn(fs, 'readFileSync').mockImplementation((path, opt) => {
+        if (typeof path === 'string' && path.endsWith('/data/schema.json')) {
+          return '{"properties":{"x":{"default":1},"x.y":{"default":{}}}}'
+        }
+        return fn(path, opt)
+      })
+      let called = false
+      let s = jest.spyOn(console, 'error').mockImplementation(() => {
+        called = true
+      })
+      new Configurations(undefined, undefined, true, os.homedir())
+      s.mockRestore()
+      spy.mockRestore()
+      expect(called).toBe(true)
+    })
+  })
+
   describe('addFolderFile()', () => {
     it('should not add invalid folder from cwd', async () => {
-      let conf = new Configurations(undefined, undefined, true, os.homedir())
+      let userConfigFile = path.join(__dirname, '.vim/coc-settings.json')
+      let conf = new Configurations(userConfigFile, undefined, true, os.homedir())
       let res = conf.folderToConfigfile(os.homedir())
+      expect(res).toBeUndefined()
+      res = conf.folderToConfigfile(__dirname)
       expect(res).toBeUndefined()
     })
 
@@ -168,6 +193,9 @@ describe('Configurations', () => {
       expect(res.defaultValue).toBeUndefined()
       expect(res.globalValue).toBeUndefined()
       expect(res.workspaceValue).toBeUndefined()
+      c = conf.getConfiguration()
+      res = c.inspect('not_exists')
+      expect(res.key).toBe('not_exists')
     })
 
     it('should update memory config #1', () => {
@@ -190,6 +218,14 @@ describe('Configurations', () => {
       conf.updateMemoryConfig({ x: undefined })
       let config = conf.configuration.user
       expect(config.contents).toEqual({})
+    })
+
+    it('should update memory config #3', () => {
+      let conf = new Configurations()
+      conf.updateMemoryConfig({ 'suggest.floatConfig': { border: true } })
+      let val = conf.getConfiguration()
+      let res = val.get('suggest') as any
+      expect(res.floatConfig).toEqual({ border: true })
     })
 
     it('should handle errors', () => {
@@ -229,6 +265,10 @@ describe('Configurations', () => {
       configurations.extendsDefaults({ 'a.b': 2 })
       let o = configurations.configuration.defaults.contents
       expect(o.a.b).toBe(2)
+      configurations.configuration.defaults.freeze()
+      configurations.extendsDefaults({ 'a.b': 3 })
+      o = configurations.configuration.defaults.contents
+      expect(o.a.b).toBe(3)
     })
 
     it('should not extends builtin keys', async () => {
@@ -283,6 +323,52 @@ describe('Configurations', () => {
     })
   })
 
+  describe('changeConfiguration', () => {
+    it('should change workspace configuration', async () => {
+      let con = createConfigurations()
+      let m = new ConfigurationModel({ x: { a: 1 } }, ['x.a'])
+      con.changeConfiguration(ConfigurationTarget.Workspace, m, undefined)
+      let res = con.getConfiguration('x')
+      expect(res.a).toBe(1)
+    })
+
+    it('should change default configuration', async () => {
+      let m = new ConfigurationModel({ x: { a: 1 } }, ['x.a'])
+      let con = createConfigurations()
+      con.changeConfiguration(ConfigurationTarget.Default, m, undefined)
+      let res = con.getConfiguration('x')
+      expect(res.a).toBe(1)
+    })
+  })
+
+  describe('update()', () => {
+    it('should update workspace configuration', async () => {
+      let target = ConfigurationUpdateTarget.Workspace
+      let con = createConfigurations()
+      let res = con.getConfiguration()
+      await res.update('x', 3, target)
+      let val = con.getConfiguration().get('x')
+      expect(val).toBe(3)
+    })
+
+    it('should show error when workspace folder not resovled', async () => {
+      let called = false
+      let s = jest.spyOn(console, 'error').mockImplementation(() => {
+        called = true
+      })
+      let con = new Configurations(undefined, {
+        modifyConfiguration: async () => {},
+        getWorkspaceFolder: () => {
+          return undefined
+        }
+      })
+      let conf = con.getConfiguration(undefined, 'file:///1')
+      await conf.update('x', 3, ConfigurationUpdateTarget.WorkspaceFolder)
+      s.mockRestore()
+      expect(called).toBe(true)
+    })
+  })
+
   describe('getWorkspaceConfigUri()', () => {
     it('should not get config uri for undefined resource', async () => {
       let conf = createConfigurations()
@@ -300,6 +386,22 @@ describe('Configurations', () => {
       let uri = U(__filename)
       let res = conf.resolveWorkspaceFolderForResource(uri)
       expect(res).toBeUndefined()
+    })
+
+    it('should create config file for workspace folder', async () => {
+      let folder = path.join(os.tmpdir(), `test-workspace-folder-${uuid()}`)
+      let conf = new Configurations(undefined, {
+        modifyConfiguration: async () => {},
+        getWorkspaceFolder: () => {
+          return URI.file(folder)
+        }
+      })
+      let res = conf.resolveWorkspaceFolderForResource('file:///1')
+      expect(res).toBe(folder)
+      let configFile = path.join(folder, '.vim/coc-settings.json')
+      expect(fs.existsSync(configFile)).toBe(true)
+      res = conf.resolveWorkspaceFolderForResource('file:///1')
+      expect(res).toBe(folder)
     })
   })
 })

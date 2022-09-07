@@ -63,7 +63,7 @@ export default class Configurations {
       keys.push(key)
       if (value !== undefined) {
         addToValueTree(config, key, value, message => {
-          logger.error(message)
+          console.error(`Conflict keys in ${file}, ${message}`)
         })
       }
     })
@@ -115,7 +115,7 @@ export default class Configurations {
       let val = props[key]
       if (val === undefined) {
         memoryModel.removeValue(key)
-      } else if (builtinKeys.includes(val)) {
+      } else if (builtinKeys.includes(key)) {
         memoryModel.setValue(key, val)
       } else if (objectLiteral(val)) {
         for (let k of Object.keys(val)) {
@@ -145,9 +145,6 @@ export default class Configurations {
     if (!fs.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return
     this._watchedFiles.add(filepath)
     let disposable = watchFile(filepath, () => {
-      if (!fs.existsSync(filepath)) {
-        disposable.dispose()
-      }
       let model = this.parseConfigurationModel(filepath)
       let folder = target === ConfigurationTarget.WorkspaceFolder ? path.resolve(filepath, '../..') : undefined
       this.changeConfiguration(target, model, folder)
@@ -158,7 +155,7 @@ export default class Configurations {
   /**
    * Update ConfigurationModel and fire event.
    */
-  private changeConfiguration(target: ConfigurationTarget, model: ConfigurationModel, folder: string | undefined, keys?: string[]): void {
+  public changeConfiguration(target: ConfigurationTarget, model: ConfigurationModel, folder: string | undefined, keys?: string[]): void {
     let configuration = this._configuration
     let previous = configuration.toData()
     let change: IConfigurationChange
@@ -210,6 +207,7 @@ export default class Configurations {
         if (target === ConfigurationTarget.WorkspaceFolder) {
           folder = this._configuration.resolveFolder(resource) ?? this.resolveWorkspaceFolderForResource(resource)
           if (!folder) {
+            console.error(`Unable to locate workspace folder configuration for ${resource}`)
             logger.error(`Unable to locate workspace folder configuration`, resource, Error().stack)
             return
           }
@@ -229,7 +227,7 @@ export default class Configurations {
         } else if (target === ConfigurationTarget.User) {
           fsPath = this.userConfigFile
         }
-        if (fsPath) return this._proxy?.modifyConfiguration(fsPath, entry, value)
+        return fsPath ? this._proxy?.modifyConfiguration(fsPath, entry, value) : Promise.resolve()
       },
       inspect: <T>(key: string): ConfigurationInspect<T> => {
         key = section ? `${section}.${key}` : key
@@ -289,14 +287,15 @@ export default class Configurations {
       // fallback to check workspace folder.
       let uri = this._proxy.getWorkspaceFolder(resource)
       if (!uri) return undefined
-      let configFilePath = this.folderToConfigfile(uri.fsPath)
+      let fsPath = uri.fsPath
+      let configFilePath = this.folderToConfigfile(fsPath)
       if (configFilePath) {
         if (!fs.existsSync(configFilePath)) {
           fs.mkdirSync(path.dirname(configFilePath), { recursive: true })
           fs.writeFileSync(configFilePath, '{}', 'utf8')
         }
         this.addFolderFile(configFilePath, false, resource)
-        return configFilePath
+        return fsPath
       }
     }
     return undefined
