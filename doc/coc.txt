@@ -3009,8 +3009,6 @@ Default links to |NormalFloat| on neovim and |Pmenu| on vim.
 *CocFloatDividingLine* for dividing lines, links to |NonText| by default.
 *CocErrorFloat* for error text in floating windows/popups.
 *CocHintFloat* for hint text in floating windows/popups.
-*CocFloatingThumb* thumb highlight of scrollbar.
-*CocFloatSbar* Scrollbar highlight of floating window/popups.
 
 Notification window/popup related~
 
