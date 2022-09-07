@@ -824,7 +824,7 @@ export enum ConfigurationUpdateTarget {
   WorkspaceFolder = 3
 }
 
-export type ConfigurationScope = string | URI | TextDocument | WorkspaceFolder | { uri?: string; languageId: string }
+export type ConfigurationScope = string | URI | TextDocument | WorkspaceFolder | { uri?: string; languageId?: string }
 
 export interface IConfigurationChangeEvent {
   readonly source: ConfigurationTarget
