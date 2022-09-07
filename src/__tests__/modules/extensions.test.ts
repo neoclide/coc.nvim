@@ -58,6 +58,12 @@ describe('extensions', () => {
     expect(stat).toBe('activated')
   })
 
+  it('should not throw when uninstall extension not exists', async () => {
+    await extensions.uninstallExtension(['coc-not_exists'])
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Error on uninstall')
+  })
+
   it('should install/uninstall npm extension', async () => {
     await extensions.installExtensions(['coc-omni'])
     let folder = path.join(__dirname, '../extensions/coc-omni')

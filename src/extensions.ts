@@ -17,7 +17,7 @@ import { createInstallerFactory } from './model/installer'
 import Memos from './model/memos'
 import { OutputChannel } from './types'
 import { concurrent, disposeAll, wait, watchFile } from './util'
-import { distinct, splitArray } from './util/array'
+import { distinct } from './util/array'
 import './util/extensions'
 import { createExtension, ExtensionExport } from './util/factory'
 import { checkFolder, readFile, statAsync } from './util/fs'
@@ -117,6 +117,10 @@ export class Extensions {
       let filepath = path.join(root, 'db.json')
       this.db = new DB(filepath)
     }
+  }
+
+  private get jsonFile(): string {
+    return path.join(this.root, 'package.json')
   }
 
   public checkRoot(root: string): boolean {
@@ -455,34 +459,40 @@ export class Extensions {
     return res
   }
 
-  public async uninstallExtension(ids: string[]): Promise<void> {
-    try {
-      if (!ids.length) return
-      let [globals, filtered] = splitArray(ids, id => this.globalExtensions.includes(id))
-      if (filtered.length) {
-        window.showMessage(`Extensions ${filtered} not global extensions, can't uninstall!`, 'warning')
-      }
-      let json = this.loadJson() || { dependencies: {} }
-      for (let id of globals) {
+  public async uninstallExtension(ids: string[]): Promise<string[]> {
+    let removed: string[] = []
+    // let [globals, filtered] = splitArray(ids, id => this.globalExtensions.includes(id))
+    let json = this.loadJson() ?? { dependencies: {} }
+    let results = await Promise.allSettled(ids.map(id => {
+      let fn = async () => {
         await this.unloadExtension(id)
         delete json.dependencies[id]
         // remove directory
         let folder = path.join(this.modulesFolder, id)
         if (fs.existsSync(folder)) {
           await fs.remove(folder)
+          removed.push(id)
+        } else {
+          throw new Error(`Extension ${id} not installed`)
         }
       }
-      // update package.json
-      const sortedObj = { dependencies: {} }
-      Object.keys(json.dependencies).sort().forEach(k => {
-        sortedObj.dependencies[k] = json.dependencies[k]
-      })
-      let jsonFile = path.join(this.root, 'package.json')
-      fs.writeFileSync(jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
-      window.showMessage(`Removed: ${globals.join(' ')}`)
-    } catch (e) {
-      window.showMessage(`Uninstall failed: ${e}`, 'error')
+      return fn()
+    }))
+    results.forEach(res => {
+      if (res.status === 'rejected') {
+        void window.showErrorMessage(`Error on uninstall extensions: ` + res.reason)
+      }
+    })
+    // update package.json
+    const sortedObj = { dependencies: {} }
+    Object.keys(json.dependencies).sort().forEach(k => {
+      sortedObj.dependencies[k] = json.dependencies[k]
+    })
+    await fs.writeFile(this.jsonFile, JSON.stringify(sortedObj, null, 2), { encoding: 'utf8' })
+    if (removed.length) {
+      void window.showInformationMessage(`Removed extensions: ${removed.join(' ')}`)
     }
+    return removed
   }
 
   public isDisabled(id: string): boolean {
@@ -767,8 +777,7 @@ export class Extensions {
   }
 
   private loadJson(): any {
-    let { root } = this
-    let jsonFile = path.join(root, 'package.json')
+    let { jsonFile } = this
     if (!fs.existsSync(jsonFile)) return null
     let errors: ParseError[] = []
     let content = fs.readFileSync(jsonFile, 'utf8')
