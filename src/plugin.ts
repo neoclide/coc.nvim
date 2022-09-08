@@ -258,7 +258,6 @@ export default class Plugin extends EventEmitter {
     channels.dispose()
     window.dispose()
     sources.dispose()
-    services.stopAll()
     services.dispose()
     if (this.handler) {
       this.handler.dispose()

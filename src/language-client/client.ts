@@ -1163,6 +1163,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public dispose(timeout = 2000): Promise<void> {
+    if (this._disposed) return
     try {
       this._disposed = 'disposing'
       return this.stop(timeout)
