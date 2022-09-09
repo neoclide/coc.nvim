@@ -3,28 +3,28 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import BufferSync from '../../model/bufferSync'
-import { IConfigurationChangeEvent } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import CodeLensBuffer, { CodeLensConfig } from './buffer'
+import CodeLensBuffer from './buffer'
 const logger = require('../../util/logger')('codelens')
 
 /**
  * Show codeLens of document, works on neovim only.
  */
 export default class CodeLensManager {
-  private config: CodeLensConfig
   private disposables: Disposable[] = []
   public buffers: BufferSync<CodeLensBuffer>
   constructor(private nvim: Neovim) {
-    this.setConfiguration()
-    this.nvim.createNamespace('coc-codelens').then(id => {
-      this.config.srcId = id
-    }).logError()
-    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
+    workspace.onDidChangeConfiguration(e => {
+      for (let item of this.buffers.items) {
+        if (e.affectsConfiguration('codeLens', item.document)) {
+          item.loadConfiguration()
+        }
+      }
+    }, this, this.disposables)
     this.buffers = workspace.registerBufferSync(doc => {
       if (doc.buftype != '') return undefined
-      return new CodeLensBuffer(nvim, doc, this.config)
+      return new CodeLensBuffer(nvim, doc)
     })
     this.disposables.push(this.buffers)
     this.listen()
@@ -49,18 +49,6 @@ export default class CodeLensManager {
     for (let buf of this.buffers.items) {
       await buf.forceFetch()
     }
-  }
-
-  private setConfiguration(e?: IConfigurationChangeEvent): void {
-    if (e && !e.affectsConfiguration('codeLens')) return
-    let config = workspace.getConfiguration('codeLens')
-    let enable: boolean = this.nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', false)
-    this.config = Object.assign(this.config || {}, {
-      enabled: enable,
-      position: config.get<'top' | 'eol'>('position', 'top'),
-      separator: config.get<string>('separator', '‣'),
-      subseparator: config.get<string>('subseparator', ' ')
-    })
   }
 
   public async doAction(): Promise<void> {

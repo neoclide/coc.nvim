@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, LinkedEditingRanges, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Position, TextEdit } from 'vscode-languageserver-protocol'
 import TextRange from '../cursors/textRange'
 import { getBeforeCount, getChange, getDelta } from '../cursors/util'
 import events from '../events'

@@ -64,10 +64,11 @@ describe('symbols handler', () => {
 
   describe('configuration', () => {
     it('should get configuration', async () => {
-      let functionUpdate = symbols.functionUpdate
+      let bufnr = await nvim.call('bufnr', ['%'])
+      let functionUpdate = symbols.autoUpdate(bufnr)
       expect(functionUpdate).toBe(false)
       helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
-      functionUpdate = symbols.functionUpdate
+      functionUpdate = symbols.autoUpdate(bufnr)
       expect(functionUpdate).toBe(true)
     })
 
@@ -78,12 +79,10 @@ describe('symbols handler', () => {
       }
     }`
       let buf = await createBuffer(code)
-      await nvim.call('cursor', [2, 8])
-      await events.fire('CursorHold', [buf.id])
+      await events.fire('CursorHold', [buf.id, [2, 8]])
       let val = await buf.getVar('coc_current_function')
       expect(val).toBe('fun1')
-      await nvim.call('cursor', [1, 8])
-      await events.fire('CursorHold', [buf.id])
+      await events.fire('CursorHold', [buf.id, [1, 8]])
       val = await buf.getVar('coc_current_function')
       expect(val).toBe('myClass')
     })

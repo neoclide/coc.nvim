@@ -58,7 +58,7 @@ export default class Rename {
       } else {
         curname = await this.nvim.eval('expand("<cword>")') as string
       }
-      const config = workspace.getConfiguration('coc.preferences')
+      const config = workspace.getConfiguration('coc.preferences', null)
       newName = await window.requestInput('New name', config.get<boolean>('renameFillCurrent', true) ? curname : undefined)
     }
     if (newName === '') void window.showWarningMessage('Empty word, rename canceled')

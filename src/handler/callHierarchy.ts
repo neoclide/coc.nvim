@@ -79,7 +79,7 @@ export default class CallHierarchyHandler {
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('callHierarchy')) {
-      let c = workspace.getConfiguration('callHierarchy')
+      let c = workspace.getConfiguration('callHierarchy', null)
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
         openCommand: c.get<string>('openCommand'),

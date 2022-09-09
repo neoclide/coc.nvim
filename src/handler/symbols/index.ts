@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Range, SymbolInformation } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Position, Range, SymbolInformation } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
@@ -8,6 +8,7 @@ import { HandlerDelegate } from '../../types'
 import { disposeAll, wait } from '../../util/index'
 import { equals } from '../../util/object'
 import { positionInRange, rangeInRange } from '../../util/position'
+import { characterIndex } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
 import SymbolsBuffer from './buffer'
@@ -34,9 +35,15 @@ export default class Symbols {
       return buf
     })
     this.outline = new Outline(nvim, this.buffers, handler)
-    events.on('CursorHold', async (bufnr: number) => {
-      if (!this.functionUpdate || !this.buffers.getItem(bufnr)) return
-      await this.getCurrentFunctionSymbol(bufnr)
+    events.on('CursorHold', async (bufnr: number, cursor) => {
+      if (!this.buffers.getItem(bufnr) || !this.autoUpdate(bufnr)) return
+      let doc = workspace.getDocument(bufnr)
+      let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1)
+      let pos = Position.create(cursor[0] - 1, character)
+      let func = await this.getFunctionSymbol(bufnr, pos)
+      let buffer = nvim.createBuffer(bufnr)
+      buffer.setVar('coc_current_function', func ?? '', true)
+      this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
     }, null, this.disposables)
     events.on('InsertEnter', (bufnr: number) => {
       let buf = this.buffers.getItem(bufnr)
@@ -44,8 +51,9 @@ export default class Symbols {
     }, null, this.disposables)
   }
 
-  public get functionUpdate(): boolean {
-    let config = workspace.getConfiguration('coc.preferences')
+  public autoUpdate(bufnr: number): boolean {
+    let doc = workspace.getDocument(bufnr)
+    let config = workspace.getConfiguration('coc.preferences', doc)
     return config.get<boolean>('currentFunctionSymbolAutoUpdate', false)
   }
 
@@ -68,7 +76,7 @@ export default class Symbols {
   public async getDocumentSymbols(bufnr?: number): Promise<SymbolInfo[] | undefined> {
     if (!bufnr) {
       let doc = await workspace.document
-      if (!doc|| !doc.attached) return undefined
+      if (!doc || !doc.attached) return undefined
       await wait(1)
       bufnr = doc.bufnr
     }
@@ -78,12 +86,7 @@ export default class Symbols {
     return res ? convertSymbols(res) : undefined
   }
 
-  public async getCurrentFunctionSymbol(bufnr?: number): Promise<string> {
-    if (!bufnr) bufnr = await this.nvim.call('bufnr', ['%'])
-    let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return
-    if (!languages.hasProvider('documentSymbol', doc.textDocument)) return
-    let position = await window.getCursorPosition()
+  public async getFunctionSymbol(bufnr: number, position: Position): Promise<string> {
     let symbols = await this.getDocumentSymbols(bufnr)
     let buffer = this.nvim.createBuffer(bufnr)
     if (!symbols || symbols.length === 0) {
@@ -98,21 +101,27 @@ export default class Symbols {
       'Struct',
     ].includes(s.kind))
     let functionName = ''
+    let labels = this.labels
     for (let sym of symbols.reverse()) {
       if (sym.range
         && positionInRange(position, sym.range) == 0
         && !sym.text.endsWith(') callback')) {
         functionName = sym.text
-        let label = this.labels[sym.kind.toLowerCase()]
+        let label = labels[sym.kind.toLowerCase()]
         if (label) functionName = `${label} ${functionName}`
         break
       }
     }
-    if (this.functionUpdate) {
-      buffer.setVar('coc_current_function', functionName, true)
-      this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
-    }
     return functionName
+  }
+
+  public async getCurrentFunctionSymbol(): Promise<string> {
+    let bufnr = await this.nvim.call('bufnr', ['%']) as number
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || !doc.attached) return ''
+    if (!languages.hasProvider('documentSymbol', doc.textDocument)) return
+    let position = await window.getCursorPosition()
+    return await this.getFunctionSymbol(bufnr, position)
   }
 
   /*

@@ -102,7 +102,7 @@ export default class SymbolsOutline {
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('outline')) {
-      let c = workspace.getConfiguration('outline')
+      let c = workspace.getConfiguration('outline', null)
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
         switchSortKey: c.get<string>('switchSortKey'),

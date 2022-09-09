@@ -408,9 +408,9 @@
     },
     "npm.binPath": {
       "type": "string",
+      "scope": "application",
       "default": "npm",
-      "description": "Command or absolute path to npm or yarn.",
-      "scope": "application"
+      "description": "Command or absolute path to npm or yarn."
     },
     "suggest.noselect": {
       "type": "boolean",
@@ -710,7 +710,7 @@
     "documentHighlight.priority": {
       "type": "number",
       "default": -1,
-      "scope": "language-overridable",
+      "scope": "resource",
       "description": "Match priority used by document highlight, see ':h matchadd'"
     },
     "documentHighlight.timeout": {
@@ -718,13 +718,13 @@
       "default": 300,
       "minimum": 200,
       "maximum": 5000,
-      "scope": "language-overridable",
+      "scope": "resource",
       "description": "Timeout for document highlight, in milliseconds."
     },
     "colors.filetypes": {
       "type": "array",
       "default": [],
-      "scope": "language-overridable",
+      "scope": "resource",
       "description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
       "items": {
         "type": "string"
@@ -732,14 +732,14 @@
     },
     "colors.highlightPriority": {
       "type": "number",
-      "scope": "language-overridable",
+      "scope": "resource",
       "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
       "default": 1000,
       "maximum": 4096
     },
     "links.tooltip": {
       "type": "boolean",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Show tooltip of link under cursor on CursorHold, neovim only",
       "default": false
     },
@@ -1039,14 +1039,14 @@
     },
     "signature.target": {
       "type": "string",
-      "scope": "resource",
+      "scope": "language-overridable",
       "description": "Target of signature help, use float when possible by default.",
       "default": "float",
       "enum": ["float", "echo"]
     },
     "signature.floatConfig": {
       "type": "object",
-      "scope": "application",
+      "scope": "language-overridable",
       "description": "Configure float window style of signature documents.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
@@ -1084,20 +1084,20 @@
     },
     "codeLens.position": {
       "type": "string",
-      "scope": "application",
+      "scope": "resource",
       "enum": ["top", "eol", "right_align"],
       "description": "Position of codeLens, requires nvim >= 0.6.0",
       "default": "top"
     },
     "codeLens.separator": {
       "type": "string",
-      "scope": "application",
+      "scope": "resource",
       "description": "Separator text for codeLens in virtual text",
       "default": ""
     },
     "codeLens.subseparator": {
       "type": "string",
-      "scope": "application",
+      "scope": "resource",
       "description": "Subseparator between codeLenses in virtual text",
       "default": " "
     },
@@ -1133,19 +1133,19 @@
     },
     "hover.target": {
       "type": "string",
-      "scope": "application",
+      "scope": "resource",
       "description": "Target to show hover information, default is floating window when possible.",
       "enum": ["preview", "echo", "float"]
     },
     "hover.previewMaxHeight": {
       "type": "number",
-      "scope": "application",
+      "scope": "resource",
       "default": 12,
       "description": "Max height of preview window for hover."
     },
     "hover.floatConfig": {
       "type": "object",
-      "scope": "application",
+      "scope": "resource",
       "description": "Configure float window style of hover documents.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
@@ -1525,11 +1525,18 @@
       "default": true,
       "description": "Searches wrap around the first or last cursors range."
     },
+    "inlayHint.enable": {
+      "type": "boolean",
+      "default": true,
+      "scope": "language-overridable",
+      "description": "Enable inlay hint support"
+    },
     "inlayHint.filetypes": {
-      "type": "array",
+      "type": ["array", "null"],
       "scope": "application",
       "description": "Filetypes that enable inlayHint, all filetypes are enabled by default",
-      "default": ["*"],
+      "deprecationMessage": "Use inlayHint.enable with language scope instead",
+      "default": null,
       "items": {
         "type": "string"
       }
@@ -1537,7 +1544,7 @@
     "inlayHint.refreshOnInsertMode": {
       "type": "boolean",
       "default": false,
-      "scope": "application",
+      "scope": "language-overridable",
       "description": "Refresh inlayHints on insert mode."
     },
     "inlayHint.enableParameter": {
@@ -1564,25 +1571,32 @@
       "default": " ",
       "description": "Separator for chained inlay hints, neovim only."
     },
+    "semanticTokens.enable": {
+      "type": "boolean",
+      "default": false,
+      "scope": "language-overridable",
+      "description": "Enable semantic tokens support"
+    },
     "semanticTokens.filetypes": {
-      "type": "array",
+      "type": ["array", "null"],
       "scope": "resource",
-      "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
-      "default": [],
+      "description": "Filetypes that enable semantic tokens highlighting or [\"*\"] for any filetype",
+      "deprecationMessage": "Use semanticTokens.enable with language scope instead",
+      "default": null,
       "items": {
         "type": "string"
       }
     },
     "semanticTokens.highlightPriority": {
       "type": "number",
-      "scope": "resource",
+      "scope": "language-overridable",
       "description": "Priority for semantic tokens highlight.",
       "default": 2048,
       "maximum": 4096
     },
     "semanticTokens.incrementTypes": {
       "type": "array",
-      "scope": "resource",
+      "scope": "language-overridable",
       "description": "Semantic token types that should increase highlight when insert at the start and end position of token.",
       "default": ["variable", "string", "parameter"],
       "items": {
@@ -1591,7 +1605,7 @@
     },
     "semanticTokens.combinedModifiers": {
       "type": "array",
-      "scope": "resource",
+      "scope": "language-overridable",
       "description": "Semantic token modifiers that should have highlight combined with syntax highlights.",
       "default": ["deprecated"],
       "items": {
@@ -1856,18 +1870,9 @@
     },
     "coc.preferences.currentFunctionSymbolAutoUpdate": {
       "type": "boolean",
-      "scope": "application",
+      "scope": "language-overridable",
       "description": "Automatically update the value of b:coc_current_function on CursorHold event",
       "default": false
-    },
-    "coc.preferences.formatOnSaveFiletypes": {
-      "type": "array",
-      "scope": "application",
-      "default": [],
-      "description": "Filetypes that should run format on save.",
-      "items": {
-        "type": "string"
-      }
     },
     "coc.preferences.rootPatterns": {
       "type": "array",
@@ -1913,9 +1918,18 @@
     },
     "coc.preferences.bracketEnterImprove": {
       "type": "boolean",
-      "scope": "application",
+      "scope": "language-overridable",
       "description": "Improve enter inside bracket `<> {} [] ()` by add new empty line below and place cursor to it. Works with `coc#on_enter()`",
       "default": true
+    },
+    "coc.preferences.formatOnSaveFiletypes": {
+      "type": "array",
+      "scope": "resource",
+      "default": [],
+      "description": "Filetypes that should run format on save.",
+      "items": {
+        "type": "string"
+      }
     },
     "coc.preferences.formatOnType": {
       "type": "boolean",
@@ -1926,7 +1940,7 @@
     "coc.preferences.formatOnTypeFiletypes": {
       "type": "array",
       "default": [],
-      "scope": "application",
+      "scope": "resource",
       "description": "Filetypes that should run format on typing. Only take effect when `coc.preferences.formatOnType` set `true`",
       "items": {
         "type": "string"
@@ -1934,7 +1948,7 @@
     },
     "coc.preferences.floatActions": {
       "type": "boolean",
-      "scope": "application",
+      "scope": "resource",
       "description": "Set to false to disable float/popup support for actions menu, won't work on vim without float or popup window support.",
       "default": true
     },

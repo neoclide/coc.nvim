@@ -571,10 +571,10 @@ Signature~
 ------------------------------------------------------------------------------
 Inlay hint~
 							*coc-config-inlayHint*
-"inlayHint.filetypes"					*coc-config-inlayHint-filetypes*
+"inlayHint.enable"					*coc-config-inlayHint-enable*
 
-	Filetypes that should enable inlay hint feature. Use
-	`["*"]` for all filetypes, default: `["*"]`
+	Enable inlay hint feature, could be override by language scope
+	configurations.  Default `true`.
 
 "inlayHint.refreshOnInsertMode"				*coc-config-inlayHint-refreshOnInsertMode*
 
@@ -1072,10 +1072,10 @@ Preferences~
 ------------------------------------------------------------------------------
 Semantic tokens~
 							*coc-config-semanticTokens*
-"semanticTokens.filetypes"				*coc-config-semanticTokens-filetypes*
+"semanticTokens.enable" 				*coc-config-semanticTokens-enable*
 
-	Filetypes that should enable semantic tokens highlight feature. Use
-	`["*"]` for all filetypes, default: `[]`
+	Enable semantic tokens feature, could be override by language scope
+	configurations.  Default: `false`
 
 	Note: semantic tokens highlight requires nvim >= 0.5.0 and vim >=
 	8.1.0579 to work.

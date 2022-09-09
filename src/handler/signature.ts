@@ -13,7 +13,7 @@ const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {
   wait: number
-  trigger: boolean
+  enableTrigger: boolean
   target: string
   preferAbove: boolean
   hideOnChange: boolean
@@ -63,24 +63,24 @@ export default class Signature {
       }
     }, null, this.disposables)
     events.on('TextInsert', async (bufnr, info, character) => {
-      if (!this.config.trigger) return
+      if (!this.config.enableTrigger) return
       let doc = workspace.getDocument(bufnr)
       if (!doc || !doc.attached || !languages.shouldTriggerSignatureHelp(doc.textDocument, character)) return
       await this._triggerSignatureHelp(doc, { line: info.lnum - 1, character: info.pre.length }, false)
+    }, null, this.disposables)
+    window.onDidChangeActiveTextEditor(() => {
+      this.loadConfiguration()
     }, null, this.disposables)
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('signature')) {
-      let config = workspace.getConfiguration('signature')
-      let target = config.get<string>('target', 'float')
-      if (target == 'float' && !workspace.floatSupported) {
-        target = 'echo'
-      }
+      let doc = window.activeTextEditor?.document
+      let config = workspace.getConfiguration('signature', doc)
       this.config = {
-        target,
+        target: config.get<string>('target', 'float'),
         floatConfig: config.get('floatConfig', {}),
-        trigger: config.get<boolean>('enable', true),
+        enableTrigger: config.get<boolean>('enable', true),
         wait: Math.max(config.get<number>('triggerSignatureWait', 500), 200),
         preferAbove: config.get<boolean>('preferShownAbove', true),
         hideOnChange: config.get<boolean>('hideOnTextChange', false),

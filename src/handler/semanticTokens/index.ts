@@ -6,32 +6,37 @@ import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
-import { IConfigurationChangeEvent, Documentation, FloatFactory } from '../../types'
+import { Documentation, FloatFactory } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
 import { upperFirst } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
-import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, SemanticTokensConfig } from './buffer'
+import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE } from './buffer'
 const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
 export default class SemanticTokens {
-  // shared with buffers
-  private config: SemanticTokensConfig
+  private highlightGroups: string[]
   private disposables: Disposable[] = []
   private highlighters: BufferSync<SemanticTokensBuffer>
   private floatFactory: FloatFactory
 
   constructor(private nvim: Neovim) {
-    this.loadConfiguration()
+    this.highlightGroups = workspace.env.semanticHighlights.slice()
     this.floatFactory = window.createFloatFactory({
       title: 'Semantic token info',
       highlight: 'Normal',
       borderhighlight: 'MoreMsg',
       border: [1, 1, 1, 1]
     })
-    workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
+    workspace.onDidChangeConfiguration(e => {
+      for (let item of this.highlighters.items) {
+        if (e.affectsConfiguration('semanticTokens'), item.doc) {
+          item.loadConfiguration()
+        }
+      }
+    }, this, this.disposables)
     commands.register({
       id: 'semanticTokens.checkCurrent',
       execute: async () => {
@@ -67,7 +72,7 @@ export default class SemanticTokens {
       }
     }, false, 'clear semantic tokens highlight of all buffers')
     this.highlighters = workspace.registerBufferSync(doc => {
-      return new SemanticTokensBuffer(this.nvim, doc, this.config)
+      return new SemanticTokensBuffer(this.nvim, doc, this.highlightGroups)
     })
     languages.onDidSemanticTokensRefresh(async selector => {
       let visibleBufs = await this.nvim.call('coc#window#bufnrs') as number[]
@@ -88,25 +93,6 @@ export default class SemanticTokens {
       let item = this.highlighters.getItem(bufnr)
       if (item) await item.onCursorMoved()
     }, null, this.disposables)
-  }
-
-  private loadConfiguration(e?: IConfigurationChangeEvent): void {
-    if (!e || e.affectsConfiguration('semanticTokens')) {
-      let highlightGroups = []
-      if (this.config?.highlightGroups) {
-        highlightGroups = this.config.highlightGroups
-      } else {
-        highlightGroups = workspace.env.semanticHighlights || []
-      }
-      let config = workspace.getConfiguration('semanticTokens')
-      this.config = Object.assign(this.config || {}, {
-        highlightGroups,
-        filetypes: config.get<string[]>('filetypes', []),
-        highlightPriority: config.get<number>('highlightPriority', 2048),
-        incrementTypes: config.get<string[]>('incrementTypes', []),
-        combinedModifiers: config.get<string[]>('combinedModifiers', [])
-      })
-    }
   }
 
   public async inspectSemanticToken(): Promise<void> {
@@ -156,7 +142,8 @@ export default class SemanticTokens {
 
   public async fetchHighlightGroups(): Promise<void> {
     let res = await this.nvim.call('coc#util#semantic_hlgroups') as string[]
-    this.config.highlightGroups = res
+    let len = this.highlightGroups.length
+    this.highlightGroups.splice(0, len, ...res)
   }
 
   public async getCurrentItem(): Promise<SemanticTokensBuffer | null> {

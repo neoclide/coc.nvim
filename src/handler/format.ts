@@ -6,7 +6,7 @@ import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
-import { IConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -23,7 +23,6 @@ const pairs: Map<string, string> = new Map([
 interface FormatPreferences {
   formatOnType: boolean
   formatOnTypeFiletypes: string[]
-  formatOnSaveFiletypes: string[]
   bracketEnterImprove: boolean
 }
 
@@ -33,11 +32,14 @@ export default class FormatHandler {
     private nvim: Neovim,
     private handler: HandlerDelegate
   ) {
-    this.loadPreferences()
-    handler.addDisposable(workspace.onDidChangeConfiguration(this.loadPreferences, this))
+    this.getConfiguration()
+    handler.addDisposable(workspace.onDidChangeConfiguration(this.getConfiguration, this))
+    handler.addDisposable(window.onDidChangeActiveTextEditor(() => {
+      this.getConfiguration()
+    }))
     handler.addDisposable(workspace.onWillSaveTextDocument(event => {
-      let { languageId } = event.document
-      let filetypes = this.preferences.formatOnSaveFiletypes
+      let { languageId, uri } = event.document
+      let filetypes = workspace.getConfiguration('coc.preferences', uri).get<string[]>('formatOnSaveFiletypes', [])
       if (filetypes.includes(languageId) || filetypes.includes('*')) {
         let willSaveWaitUntil = async (): Promise<TextEdit[] | undefined> => {
           if (!languages.hasFormatProvider(event.document)) {
@@ -62,19 +64,14 @@ export default class FormatHandler {
         event.waitUntil(willSaveWaitUntil())
       }
     }))
-    let enterTs: number
-    let enterBufnr: number
     handler.addDisposable(events.on('Enter', async bufnr => {
-      enterTs = Date.now()
-      enterBufnr = bufnr
-    }))
-    handler.addDisposable(events.on('CursorMovedI', async bufnr => {
-      if (bufnr == enterBufnr && Date.now() - enterTs < 100) {
-        enterBufnr = undefined
+      let res = await events.race(['CursorMovedI'], 100)
+      if (res.args && res.args[0] === bufnr) {
+        logger.debug('handleEnter')
         await this.handleEnter(bufnr)
       }
     }))
-    handler.addDisposable(events.on('TextInsert', async (bufnr: number, info, character: string) => {
+    handler.addDisposable(events.on('TextInsert', async (bufnr: number, _info, character: string) => {
       if (!events.pumvisible) await this.tryFormatOnType(character, bufnr)
     }))
     handler.addDisposable(commandManager.registerCommand('editor.action.formatDocument', async (uri?: string | number) => {
@@ -84,12 +81,12 @@ export default class FormatHandler {
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
   }
 
-  private loadPreferences(e?: IConfigurationChangeEvent): void {
+  private getConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('coc.preferences')) {
-      let config = workspace.getConfiguration('coc.preferences')
+      let doc = window.activeTextEditor?.document
+      let config = workspace.getConfiguration('coc.preferences', doc)
       this.preferences = {
         formatOnType: config.get<boolean>('formatOnType', false),
-        formatOnSaveFiletypes: config.get<string[]>('formatOnSaveFiletypes', []),
         formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
         bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       }
@@ -102,7 +99,7 @@ export default class FormatHandler {
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return
     const filetypes = this.preferences.formatOnTypeFiletypes
-    if (filetypes.length && !filetypes.includes(doc.filetype) && !filetypes.includes('*')) {
+    if (filetypes.length > 0 && !filetypes.includes(doc.filetype) && !filetypes.includes('*')) {
       // Only check formatOnTypeFiletypes when set, avoid breaking change
       return
     }

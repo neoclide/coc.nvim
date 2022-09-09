@@ -37,6 +37,9 @@ export default class HoverHandler {
       autoHide: this.config.autoHide
     }, this.config.floatConfig))
     this.disposables.push(this.hoverFactory)
+    window.onDidChangeActiveTextEditor(() => {
+      this.loadConfiguration()
+    }, null, this.disposables)
   }
 
   private registerProvider(): void {
@@ -60,7 +63,7 @@ export default class HoverHandler {
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('hover')) {
-      let config = workspace.getConfiguration('hover')
+      let config = workspace.getConfiguration('hover', this.handler.uri)
       this.config = {
         floatConfig: config.get('floatConfig', {}),
         autoHide: config.get('autoHide', true),

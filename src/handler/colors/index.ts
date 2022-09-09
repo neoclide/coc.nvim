@@ -5,7 +5,7 @@ import commandManager from '../../commands'
 import extensions from '../../extensions'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { IConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { HandlerDelegate, IConfigurationChangeEvent } from '../../types'
 import { disposeAll } from '../../util'
 import { toHexString } from '../../util/color'
 import window from '../../window'
@@ -19,7 +19,11 @@ export default class Colors {
   private highlighters: BufferSync<ColorBuffer>
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
-    this.setConfiguration()
+    this.getConfiguration()
+    workspace.onDidChangeConfiguration(this.getConfiguration, this, this.disposables)
+    window.onDidChangeActiveTextEditor(() => {
+      this.getConfiguration()
+    }, null, this.disposables)
     let usedColors: Set<string> = new Set()
     this.highlighters = workspace.registerBufferSync(doc => {
       return new ColorBuffer(this.nvim, doc.bufnr, this.config, usedColors)
@@ -27,7 +31,6 @@ export default class Colors {
     extensions.onDidActiveExtension(() => {
       this.highlightAll()
     }, null, this.disposables)
-    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
       return this.pickColor()
     }))
@@ -38,7 +41,7 @@ export default class Colors {
     commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
   }
 
-  private setConfiguration(e?: IConfigurationChangeEvent): void {
+  private getConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('colors')) {
       let c = workspace.getConfiguration('colors')
       this.config = Object.assign(this.config || {}, {

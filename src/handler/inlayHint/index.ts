@@ -1,24 +1,34 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { Disposable } from 'vscode-languageserver-protocol'
+import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
-import commands from '../../commands'
 import BufferSync from '../../model/bufferSync'
 import { HandlerDelegate } from '../../types'
-import workspace from '../../workspace'
-import InlayHintBuffer, { InlayHintConfig } from './buffer'
+import { disposeAll } from '../../util'
 import window from '../../window'
+import workspace from '../../workspace'
+import InlayHintBuffer from './buffer'
+const logger = require('../../util/logger')('inlayHint-index')
 
 export default class InlayHintHandler {
   private buffers: BufferSync<InlayHintBuffer> | undefined
+  private disposables: Disposable[] = []
   constructor(nvim: Neovim, handler: HandlerDelegate) {
     this.buffers = workspace.registerBufferSync(doc => {
       if (!workspace.env.virtualText) return
-      let config = this.getConfig(doc.uri)
-      return new InlayHintBuffer(nvim, doc, config, nvim.isVim)
+      return new InlayHintBuffer(nvim, doc)
     })
-    handler.addDisposable(this.buffers)
-    handler.addDisposable(languages.onDidInlayHintRefresh(async e => {
+    this.disposables.push(this.buffers)
+    workspace.onDidChangeConfiguration(e => {
+      for (let item of this.buffers.items) {
+        if (e.affectsConfiguration('inlayHint', item.doc)) {
+          item.loadConfiguration()
+        }
+      }
+    }, null, this.disposables)
+    languages.onDidInlayHintRefresh(async e => {
       for (let item of this.buffers.items) {
         if (workspace.match(e, item.doc.textDocument)) {
           item.clearCache()
@@ -29,39 +39,38 @@ export default class InlayHintHandler {
           }
         }
       }
-    }))
-    handler.addDisposable(events.on('CursorMoved', bufnr => {
+    }, null, this.disposables)
+    events.on('InsertLeave', async bufnr => {
+      let item = this.buffers.getItem(bufnr)
+      if (item) await item.onInsertLeave()
+    }, null, this.disposables)
+    events.on('InsertEnter', bufnr => {
+      let item = this.buffers.getItem(bufnr)
+      if (item) item.onInsertEnter()
+    }, null, this.disposables)
+    events.on('CursorMoved', bufnr => {
       this.refresh(bufnr)
-    }))
-    handler.addDisposable(events.on('WinScrolled', async winid => {
+    }, null, this.disposables)
+    events.on('WinScrolled', async winid => {
       let bufnr = await nvim.call('winbufnr', [winid])
       if (bufnr != -1) this.refresh(bufnr)
-    }))
-    handler.addDisposable(commands.registerCommand('document.toggleInlayHint', (bufnr?: number) => {
+    }, null, this.disposables)
+    this.disposables.push(commands.registerCommand('document.toggleInlayHint', (bufnr?: number) => {
       this.toggle(bufnr ?? workspace.bufnr)
+    }))
+    handler.addDisposable(Disposable.create(() => {
+      disposeAll(this.disposables)
     }))
   }
 
   public toggle(bufnr: number): void {
     let item = this.getItem(bufnr)
-    if (item) {
-      try {
-        item.toggle()
-      } catch (e) {
-        void window.showErrorMessage((e as Error).message)
-      }
-    }
-  }
-
-  private getConfig(uri: string): InlayHintConfig {
-    let config = workspace.getConfiguration('inlayHint', uri)
-    return {
-      filetypes: config.get<string[]>('filetypes', []),
-      refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
-      enableParameter: config.get<boolean>('enableParameter', false),
-      typeSeparator: config.get<string>('typeSeparator', ''),
-      parameterSeparator: config.get<string>('parameterSeparator', ''),
-      subSeparator: config.get<string>('subSeparator', ' ')
+    try {
+      if (!workspace.env.virtualText) throw new Error(`virtual text requires nvim >= 0.5.0 or vim >= 9.0.0067, please upgrade your vim.`)
+      workspace.getAttachedDocument(bufnr)
+      item.toggle()
+    } catch (e) {
+      void window.showErrorMessage((e as Error).message)
     }
   }
 

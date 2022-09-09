@@ -21,8 +21,7 @@ export default class Links implements Disposable {
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.floatFactory = window.createFloatFactory({})
     events.on('CursorHold', async () => {
-      if (!this._tooltip) return
-      if (!nvim.hasFunction('nvim_get_keymap')) return
+      if (!this._tooltip || !nvim.hasFunction('nvim_get_keymap')) return
       await this.showTooltip()
     }, null, this.disposables)
     events.on(['CursorMoved', 'InsertEnter'], () => {
@@ -32,7 +31,7 @@ export default class Links implements Disposable {
 
   private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('links')) {
-      let config = workspace.getConfiguration('links')
+      let config = workspace.getConfiguration('links', null)
       this._tooltip = config.get<boolean>('tooltip', false)
     }
   }

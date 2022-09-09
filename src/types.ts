@@ -95,6 +95,7 @@ export interface BufferOption {
 }
 
 export interface HandlerDelegate {
+  uri: string | undefined
   checkProvier: (id: ProviderName, document: TextDocument) => void
   withRequestToken: <T> (name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean) => Promise<T>
   getCurrentState: () => Promise<CurrentState>

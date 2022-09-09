@@ -226,7 +226,7 @@ export class Extensions {
     }
     // check extensions need watch & install
     this.checkExtensions()
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('coc.preferences', null)
     let interval = config.get<string>('extensionUpdateCheck', 'never')
     let silent = config.get<boolean>('silentAutoupdate', true)
     if (interval != 'never') {
@@ -339,7 +339,7 @@ export class Extensions {
   }
 
   public get npm(): string {
-    let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
+    let npm = workspace.getConfiguration('npm', null).get<string>('binPath', 'npm')
     npm = workspace.expand(npm)
     for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
       try {
