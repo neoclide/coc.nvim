@@ -425,7 +425,15 @@ function! s:Highlight() abort
     exe 'hi default CocFloatSbar '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.5 : 0.3)
   else
     exe 'hi default link CocFloating '.(has('nvim') ? 'NormalFloat' : 'Pmenu')
-    exe 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
+    if coc#highlight#get_contrast('CocFloating', 'PmenuSel') > 2.0
+      if &background ==# 'dark'
+        hi default CocMenuSel ctermbg=237 guibg=#13354A
+      else
+        exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -0.2 : 0.05)
+      endif
+    else
+      exe 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
+    endif
     hi default link CocFloatThumb        PmenuThumb
     hi default link CocFloatSbar         PmenuSbar
   endif
