@@ -412,9 +412,7 @@ export class SettingMonitor {
     return {
       dispose: () => {
         disposeAll(this._listeners)
-        if (this._client.needsStop()) {
-          void this._client.stop()
-        }
+        void this._client.dispose()
       }
     }
   }

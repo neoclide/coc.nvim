@@ -2,7 +2,8 @@
 import { SpawnOptions } from 'child_process'
 import fs from 'fs'
 import net from 'net'
-import { CancellationToken, Disposable, DocumentSelector, Emitter, Event } from 'vscode-languageserver-protocol'
+import path from 'path'
+import { CancellationToken, Disposable, DocumentSelector, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
@@ -50,25 +51,6 @@ export interface LanguageServerConfig {
   runtime?: string
 }
 
-export function getStateName(state: ServiceStat): string {
-  switch (state) {
-    case ServiceStat.Initial:
-      return 'init'
-    case ServiceStat.Running:
-      return 'running'
-    case ServiceStat.Starting:
-      return 'starting'
-    case ServiceStat.StartFailed:
-      return 'startFailed'
-    case ServiceStat.Stopping:
-      return 'stopping'
-    case ServiceStat.Stopped:
-      return 'stopped'
-    default:
-      return 'unknown'
-  }
-}
-
 export interface IServiceProvider {
   // unique service id
   id: string
@@ -92,15 +74,25 @@ class ServiceManager implements Disposable {
     workspace.onDidOpenTextDocument(document => {
       void this.start(document)
     }, null, this.disposables)
-    workspace.onDidChangeWorkspaceFolders(e => {
-      for (let folder of e.added) {
-        let lspConfig = workspace.getConfiguration(undefined, URI.parse(folder.uri))
-        let config = lspConfig.inspect('languageserver').workspaceFolderValue ?? {}
-        this.registClientsByConfig(config as { [key: string]: LanguageServerConfig })
+    const iterate = (folders: Iterable<WorkspaceFolder>) => {
+      for (let folder of folders) {
+        this.registClientsFromFolder(folder)
       }
+    }
+    workspace.onDidChangeWorkspaceFolders(e => {
+      iterate(e.added)
     }, null, this.disposables)
-    let lspConfig = workspace.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)
+    // Global configured languageserver
+    let lspConfig = workspace.getConfiguration(undefined, null).get<{ key: LanguageServerConfig }>('languageserver', {} as any)
     this.registClientsByConfig(lspConfig)
+    iterate(workspace.workspaceFolders)
+  }
+
+  private registClientsFromFolder(workspaceFolder: WorkspaceFolder): void {
+    let uri = URI.parse(workspaceFolder.uri)
+    let lspConfig = workspace.getConfiguration(undefined, uri)
+    let config = lspConfig.inspect('languageserver').workspaceFolderValue
+    if (config) this.registClientsByConfig(config as { [key: string]: LanguageServerConfig }, uri)
   }
 
   public regist(service: IServiceProvider): Disposable {
@@ -181,13 +173,13 @@ class ServiceManager implements Disposable {
     return res
   }
 
-  private registClientsByConfig(lspConfig: { [key: string]: LanguageServerConfig }): void {
+  private registClientsByConfig(lspConfig: { [key: string]: LanguageServerConfig }, folder?: URI): void {
     for (let key of Object.keys(lspConfig)) {
       let config: LanguageServerConfig = lspConfig[key]
       if (!isValidServerConfig(key, config)) {
         continue
       }
-      this.registLanguageClient(key, config)
+      this.registLanguageClient(key, config, folder)
     }
   }
 
@@ -221,8 +213,8 @@ class ServiceManager implements Disposable {
   }
 
   public registLanguageClient(client: LanguageClient): Disposable
-  public registLanguageClient(name: string, config: LanguageServerConfig): Disposable
-  public registLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig): Disposable {
+  public registLanguageClient(name: string, config: LanguageServerConfig, folder?: URI): Disposable
+  public registLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig, folder?: URI): Disposable {
     let id = typeof name === 'string' ? `languageserver.${name}` : name.id
     let disposables: Disposable[] = []
     let onDidServiceReady = new Emitter<void>()
@@ -240,8 +232,8 @@ class ServiceManager implements Disposable {
       start: async (): Promise<void> => {
         if (!created) {
           if (typeof name == 'string' && !client) {
-            let config: LanguageServerConfig = workspace.getConfiguration().get(`languageserver.${name}`, {} as any)
-            let opts = getLanguageServerOptions(id, name, config)
+            let config: LanguageServerConfig = workspace.getConfiguration(undefined, folder).get(`languageserver.${name}`, {} as any)
+            let opts = getLanguageServerOptions(id, name, config, folder)
             if (!opts || config.enable === false) return
             client = new LanguageClient(id, name, opts[1], opts[0])
             service.selector = opts[0].documentSelector
@@ -313,7 +305,7 @@ export function documentSelectorToLanguageIds(documentSelector: DocumentSelector
 }
 
 // convert config to options
-export function getLanguageServerOptions(id: string, name: string, config: Readonly<LanguageServerConfig>): [LanguageClientOptions, ServerOptions] {
+export function getLanguageServerOptions(id: string, name: string, config: Readonly<LanguageServerConfig>, folder?: URI): [LanguageClientOptions, ServerOptions] {
   let { command, module, port, args, filetypes } = config
   args = args || []
   if (!filetypes) {
@@ -372,6 +364,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
   let disableSnippetCompletion = !!config.disableSnippetCompletion
   let ignoredRootPaths = config.ignoredRootPaths ?? []
   let clientOptions: LanguageClientOptions = {
+    workspaceFolder: folder == null ? undefined : { name: path.basename(folder.fsPath), uri: folder.toString() },
     rootPatterns: config.rootPatterns,
     requireRootPattern: config.requireRootPattern,
     ignoredRootPaths: ignoredRootPaths.map(s => workspace.expand(s)),
@@ -488,6 +481,25 @@ export function stateString(state: State): string {
     case State.Starting:
       return 'starting'
     case State.Stopped:
+      return 'stopped'
+    default:
+      return 'unknown'
+  }
+}
+
+export function getStateName(state: ServiceStat): string {
+  switch (state) {
+    case ServiceStat.Initial:
+      return 'init'
+    case ServiceStat.Running:
+      return 'running'
+    case ServiceStat.Starting:
+      return 'starting'
+    case ServiceStat.StartFailed:
+      return 'startFailed'
+    case ServiceStat.Stopping:
+      return 'stopping'
+    case ServiceStat.Stopped:
       return 'stopped'
     default:
       return 'unknown'

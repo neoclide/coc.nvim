@@ -187,10 +187,8 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
       if (sections == null) {
         return this._client.sendNotification(DidChangeConfigurationNotification.type, { settings: null })
       }
-      let resource: string | undefined = this._client.clientOptions.workspaceFolder
-        ? this._client.clientOptions.workspaceFolder.uri
-        : undefined
-      let settings = configuredSection ? SyncConfigurationFeature.getConfiguredSettings(configuredSection, resource) : SyncConfigurationFeature.extractSettingsInformation(sections, resource)
+      let workspaceFolder = this._client.clientOptions.workspaceFolder
+      let settings = configuredSection ? SyncConfigurationFeature.getConfiguredSettings(configuredSection, workspaceFolder) : SyncConfigurationFeature.extractSettingsInformation(sections, workspaceFolder)
       return this._client.sendNotification(DidChangeConfigurationNotification.type, { settings })
     }
     let middleware = this._client.middleware.workspace?.didChangeConfiguration
@@ -200,13 +198,13 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
     })
   }
 
-  public static getConfiguredSettings(key: string, resource: string | undefined): any {
+  public static getConfiguredSettings(key: string, workspaceFolder: WorkspaceFolder | undefined): any {
     let len = '.settings'.length
-    let config = workspace.getConfiguration(key.slice(0, - len), resource)
+    let config = workspace.getConfiguration(key.slice(0, - len), workspaceFolder)
     return mergeConfigProperties(config.get<any>('settings', {}))
   }
 
-  public static extractSettingsInformation(keys: string[], resource?: string): any {
+  public static extractSettingsInformation(keys: string[], workspaceFolder?: WorkspaceFolder): any {
     function ensurePath(config: any, path: string[]): any {
       let current = config
       for (let i = 0; i < path.length - 1; i++) {
@@ -225,9 +223,9 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
       let index: number = key.indexOf('.')
       let config: WorkspaceConfiguration
       if (index >= 0) {
-        config = workspace.getConfiguration(key.substr(0, index), resource).get(key.substr(index + 1))
+        config = workspace.getConfiguration(key.substr(0, index), workspaceFolder).get(key.substr(index + 1))
       } else {
-        config = workspace.getConfiguration(key, resource)
+        config = workspace.getConfiguration(key, workspaceFolder)
       }
       let path = keys[i].split('.')
       ensurePath(result, path)[path[path.length - 1]] = config

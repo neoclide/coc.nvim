@@ -214,6 +214,18 @@
           "default": "off",
           "enum": ["off", "messages", "verbose"],
           "description": "Trace level of communication between server and client"
+        },
+        "trace.server.verbosity": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Trace level of communication between server and client"
+        },
+        "trace.server.format": {
+          "type": "string",
+          "default": "text",
+          "enum": ["text", "json"],
+          "description": "Text format of trace messages."
         }
       }
     },
@@ -247,7 +259,9 @@
         "initializationOptions": {},
         "settings": {},
         "stdioEncoding": {},
-        "trace.server": {}
+        "trace.server": {},
+        "trace.server.verbosity": {},
+        "trace.server.format": {}
       }
     },
     "languageServerModule": {
@@ -309,7 +323,9 @@
         "initializationOptions": {},
         "stdioEncoding": {},
         "settings": {},
-        "trace.server": {}
+        "trace.server": {},
+        "trace.server.verbosity": {},
+        "trace.server.format": {}
       }
     },
     "languageServerCommand": {
@@ -358,7 +374,9 @@
         "initializationOptions": {},
         "stdioEncoding": {},
         "settings": {},
-        "trace.server": {}
+        "trace.server": {},
+        "trace.server.verbosity": {},
+        "trace.server.format": {}
       }
     }
   },
@@ -1548,7 +1566,7 @@
     },
     "semanticTokens.filetypes": {
       "type": "array",
-      "scope": "application",
+      "scope": "resource",
       "description": "Filetypes that enable semanticTokens highlighting or [\"*\"] for any filetype",
       "default": [],
       "items": {
@@ -1557,14 +1575,14 @@
     },
     "semanticTokens.highlightPriority": {
       "type": "number",
-      "scope": "application",
+      "scope": "resource",
       "description": "Priority for semantic tokens highlight.",
       "default": 2048,
       "maximum": 4096
     },
     "semanticTokens.incrementTypes": {
       "type": "array",
-      "scope": "application",
+      "scope": "resource",
       "description": "Semantic token types that should increase highlight when insert at the start and end position of token.",
       "default": ["variable", "string", "parameter"],
       "items": {
@@ -1573,7 +1591,7 @@
     },
     "semanticTokens.combinedModifiers": {
       "type": "array",
-      "scope": "application",
+      "scope": "resource",
       "description": "Semantic token modifiers that should have highlight combined with syntax highlights.",
       "default": ["deprecated"],
       "items": {
@@ -2069,7 +2087,7 @@
       "type": "object",
       "default": {},
       "scope": "resource",
-      "description": "Dictionary of languageservers, key is used as id of languageserver.",
+      "description": "Dictionary of languageservers, key is used as id of languageserver, restart coc.nvim required after change.",
       "patternProperties": {
         "^[_a-zA-Z]+$": {
           "oneOf": [

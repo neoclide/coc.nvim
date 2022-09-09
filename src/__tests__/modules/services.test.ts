@@ -1,18 +1,18 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
+import net from 'net'
 import os from 'os'
 import path from 'path'
-import net from 'net'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { LanguageClient, RevealOutputChannelOn, ServerOptions, State, TransportKind } from '../../language-client'
-import services, { documentSelectorToLanguageIds, isValidServerConfig, getDocumentSelector, getForkOptions, getLanguageServerOptions, getRevealOutputChannelOn, getSpawnOptions, getStateName, getTransportKind, LanguageServerConfig, stateString, converState } from '../../services'
+import services, { converState, documentSelectorToLanguageIds, getDocumentSelector, getForkOptions, getLanguageServerOptions, getRevealOutputChannelOn, getSpawnOptions, getStateName, getTransportKind, isValidServerConfig, LanguageServerConfig, stateString } from '../../services'
 import { ServiceStat } from '../../types'
 import { disposeAll } from '../../util'
 import { Workspace } from '../../workspace'
 import helper from '../helper'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -76,15 +76,11 @@ describe('services', () => {
       let added = workspace.configurations.locateFolderConfigution(uri)
       expect(added).toBe(true)
       let w = workspace.workspaceFolderControl
-      let fn = jest.fn()
-      let spy = jest.spyOn(services, 'registLanguageClient').mockImplementation((id, config) => {
-        fn(id, config)
-        return Disposable.create(() => {})
-      })
       w.addWorkspaceFolder(folder, true)
-      spy.mockRestore()
+      let s = services.getService('foo')
+      expect(s).toBeDefined()
+      await s.start()
       w.removeWorkspaceFolder(folder)
-      expect(fn).toBeCalledWith('foo', { command: 'bar', filetypes: ['vim'] })
     })
 
     it('should get stateString', async () => {
