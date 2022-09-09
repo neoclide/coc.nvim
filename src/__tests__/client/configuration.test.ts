@@ -1,10 +1,12 @@
 import path from 'path'
-import { DocumentSelector } from 'vscode-languageserver-protocol'
+import { DidChangeConfigurationNotification, DocumentSelector } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import { SyncConfigurationFeature } from '../../language-client/configuration'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
-import helper from '../helper'
 import workspace from '../../workspace'
+import helper from '../helper'
 
-function createClient(section: string | string[] | undefined, middleware: Middleware = {}): LanguageClient {
+function createClient(section: string | string[] | undefined, middleware: Middleware = {}, opts: Partial<LanguageClientOptions> = {}): LanguageClient {
   const serverModule = path.join(__dirname, './server/configServer.js')
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.ipc },
@@ -12,15 +14,14 @@ function createClient(section: string | string[] | undefined, middleware: Middle
   }
 
   const documentSelector: DocumentSelector = [{ scheme: 'file' }]
-  const clientOptions: LanguageClientOptions = {
+  const clientOptions: LanguageClientOptions = Object.assign({
     documentSelector,
     synchronize: {
       configurationSection: section
     },
     initializationOptions: {},
     middleware
-  };
-  (clientOptions as ({ $testMode?: boolean })).$testMode = true
+  }, opts)
 
   const result = new LanguageClient('test', 'Test Language Server', serverOptions, clientOptions)
   return result
@@ -44,6 +45,7 @@ describe('pull configuration feature', () => {
   afterAll(async () => {
     await client.stop()
   })
+
   it('should request all configuration', async () => {
     let config: any
     client.middleware.workspace = client.middleware.workspace ?? {}
@@ -89,6 +91,29 @@ describe('publish configuration feature', () => {
     await client.stop()
   })
 
+  it('should get configuration from workspace folder', async () => {
+    let folder = path.resolve(__dirname, '../sample')
+    workspace.workspaceFolderControl.addWorkspaceFolder(folder, false)
+    let configFilePath = path.join(folder, '.vim/coc-settings.json')
+    workspace.configurations.addFolderFile(configFilePath, false, folder)
+    let client = createClient('coc.preferences', {}, {
+      workspaceFolder: { name: 'sample', uri: URI.file(folder).toString() }
+    })
+    let changed
+    client.onNotification('configurationChange', params => {
+      changed = params
+    })
+    await client.start()
+    await helper.waitValue(() => {
+      return changed != null
+    }, true)
+    expect(changed.settings.coc.preferences.rootPath).toBe('./src')
+    workspace.workspaceFolderControl.removeWorkspaceFolder(folder)
+    let feature = client.getFeature(DidChangeConfigurationNotification.method)
+    feature.dispose()
+    await client.stop()
+  })
+
   it('should send configuration for specific sections', async () => {
     let client: LanguageClient
     let called = false
@@ -116,5 +141,32 @@ describe('publish configuration feature', () => {
     expect(changed.settings.npm).toBeDefined()
     expect(changed.settings.npm.binPath).toBe('cnpm')
     await client.stop()
+  })
+
+  it('should catch reject error', async () => {
+    let client: LanguageClient
+    let called = false
+    client = createClient(['cpp'], {
+      workspace: {
+        didChangeConfiguration: () => {
+          return Promise.reject(new Error('custom error'))
+        }
+      }
+    })
+    let changed
+    client.onNotification('configurationChange', params => {
+      changed = params
+    })
+    await client.start()
+    await helper.wait(50)
+    expect(called).toBe(false)
+    void client.stop()
+    await client.stop()
+  })
+
+  it('should extractSettingsInformation', async () => {
+    let res = SyncConfigurationFeature.extractSettingsInformation(['http.proxy', 'http.proxyCA'])
+    expect(res.http).toBeDefined()
+    expect(res.http.proxy).toBeDefined()
   })
 })

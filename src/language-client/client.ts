@@ -1080,14 +1080,14 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         if (this._clientOptions.initializationFailedHandler(error)) {
           this.initialize(connection).catch(() => {})
         } else {
-          this.stop().catch(() => {})
+          void this.stop()
         }
       } else if (error instanceof ResponseError && error.data && error.data.retry) {
         void window.showErrorMessage(error.message, { title: 'Retry', id: 'retry' }).then(item => {
           if (item && item.id === 'retry') {
             this.initialize(connection).catch(() => {})
           } else {
-            this.stop().catch(() => {})
+            void this.stop()
           }
         })
       } else {
@@ -1095,7 +1095,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
           void window.showErrorMessage(error.message)
         }
         this.error('Server initialization failed.', error)
-        this.stop().catch(() => {})
+        void this.stop()
       }
       throw error
     }
@@ -1114,11 +1114,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
     // If we are stopping the client and have a stop promise return it.
     if (this.$state === ClientState.Stopping) {
-      if (this._onStop !== undefined) {
-        return this._onStop
-      } else {
-        throw new Error(`Client is stopping but no stop promise available.`)
-      }
+      return this._onStop
     }
 
     const connection = this.activeConnection()
@@ -1681,7 +1677,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 }
 
-export const ProposedFeatures = {
+const ProposedFeatures = {
   createAll: (_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] => {
     let result: (StaticFeature | DynamicFeature<any>)[] = []
     return result
