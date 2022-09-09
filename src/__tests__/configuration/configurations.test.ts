@@ -186,6 +186,19 @@ describe('Configurations', () => {
       expect(c.has('not_exists')).toBe(false)
     })
 
+    it('should load configuration without folder configuration', async () => {
+      let conf = new Configurations(undefined, {
+        root: path.join(path.dirname(__dirname), 'sample'),
+        modifyConfiguration: async () => {}
+      })
+      disposables.push(conf)
+      conf.addFolderFile(workspaceConfigFile)
+      let c = conf.getConfiguration('coc.preferences')
+      expect(c.rootPath).toBeDefined()
+      c = conf.getConfiguration('coc.preferences', null)
+      expect(c.rootPath).toBeUndefined()
+    })
+
     it('should inspect configuration', async () => {
       let conf = new Configurations()
       let c = conf.getConfiguration('suggest')

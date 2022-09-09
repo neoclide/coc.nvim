@@ -15,8 +15,8 @@ const logger = require('../util/logger')('model-fetch')
 export type ResponseResult = string | Buffer | { [name: string]: any }
 
 export interface ProxyOptions {
-  proxyUrl: string
-  strictSSL?: boolean
+  proxy: string
+  proxyStrictSSL?: boolean
   proxyAuthorization?: string | null
   proxyCA?: string | null
 }
@@ -94,7 +94,7 @@ function getSystemProxyURI(endpoint: UrlWithStringQuery): string {
 }
 
 export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): HttpsProxyAgent | HttpProxyAgent {
-  let proxy = options.proxyUrl || getSystemProxyURI(endpoint)
+  let proxy = options.proxy || getSystemProxyURI(endpoint)
   if (proxy) {
     const proxyEndpoint = parse(proxy)
     if (!/^https?:$/.test(proxyEndpoint.protocol)) {
@@ -104,21 +104,21 @@ export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): H
       host: proxyEndpoint.hostname,
       port: proxyEndpoint.port ? Number(proxyEndpoint.port) : (proxyEndpoint.protocol === 'https' ? '443' : '80'),
       auth: proxyEndpoint.auth,
-      rejectUnauthorized: typeof options.strictSSL === 'boolean' ? options.strictSSL : true
+      rejectUnauthorized: typeof options.proxyStrictSSL === 'boolean' ? options.proxyStrictSSL : true
     }
-    logger.info(`Using proxy ${proxy} from ${options.proxyUrl ? 'configuration' : 'system environment'} for ${endpoint.hostname}:`)
+    logger.info(`Using proxy ${proxy} from ${options.proxy ? 'configuration' : 'system environment'} for ${endpoint.hostname}:`)
     return endpoint.protocol === 'http:' ? createHttpProxyAgent(opts) : createHttpsProxyAgent(opts)
   }
   return null
 }
 
 export function resolveRequestOptions(url: string, options: FetchOptions = {}): any {
-  let config = workspace.getConfiguration('http')
+  let config = workspace.getConfiguration('http', null)
   let { data } = options
   let dataType = getDataType(data)
   let proxyOptions: ProxyOptions = {
-    proxyUrl: config.get<string>('proxy', ''),
-    strictSSL: config.get<boolean>('proxyStrictSSL', true),
+    proxy: config.get<string>('proxy', ''),
+    proxyStrictSSL: config.get<boolean>('proxyStrictSSL', true),
     proxyAuthorization: config.get<string | null>('proxyAuthorization', null),
     proxyCA: config.get<string | null>('proxyCA', null)
   }
@@ -134,7 +134,7 @@ export function resolveRequestOptions(url: string, options: FetchOptions = {}): 
     port: endpoint.port ? parseInt(endpoint.port, 10) : (endpoint.protocol === 'https:' ? 443 : 80),
     path: endpoint.path,
     agent,
-    rejectUnauthorized: proxyOptions.strictSSL,
+    rejectUnauthorized: proxyOptions.proxyStrictSSL,
     maxRedirects: 3,
     headers: Object.assign({
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
