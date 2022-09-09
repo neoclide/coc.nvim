@@ -23,8 +23,13 @@ export default class LinkedEditingRangeManager extends Manager<LinkedEditingRang
   public async provideLinkedEditingRanges(document: TextDocument, position: Position, token: CancellationToken): Promise<LinkedEditingRanges> {
     let items = this.getProviders(document)
     for (let item of items) {
-      let res = await Promise.resolve(item.provider.provideLinkedEditingRanges(document, position, token))
-      if (res != null) return res
+      let res: LinkedEditingRanges | undefined
+      try {
+        res = await Promise.resolve(item.provider.provideLinkedEditingRanges(document, position, token))
+        if (res != null) return res
+      } catch (e) {
+        logger.error(`Error on provideLinkedEditingRanges: `, e)
+      }
     }
     return null
   }

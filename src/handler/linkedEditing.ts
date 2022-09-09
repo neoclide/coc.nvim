@@ -122,7 +122,7 @@ export default class LinkedEditingHandler {
   private _checkPosition(bufnr: number, cursor: [number, number]): void {
     if (events.pumvisible || !workspace.isAttached(bufnr)) return
     let doc = workspace.getDocument(bufnr)
-    let config = workspace.getConfiguration('coc.preferences', doc.uri)
+    let config = workspace.getConfiguration('coc.preferences', doc)
     let enabled = config.get<boolean>('enableLinkedEditing', false)
     if (!enabled || !languages.hasProvider('linkedEditing', doc.textDocument)) return
     let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1)
@@ -141,14 +141,7 @@ export default class LinkedEditingHandler {
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let win = await this.nvim.window
-    let linkedRanges: LinkedEditingRanges | undefined
-    try {
-      linkedRanges = await languages.provideLinkedEdits(textDocument, position, token)
-    } catch (e) {
-      logger.error(`Error on provideLinkedEdits: `, e)
-      void window.showErrorMessage(`Error on provideLinkedEdits: ${e instanceof Error ? e.message : e}`)
-      return
-    }
+    let linkedRanges = await languages.provideLinkedEdits(textDocument, position, token)
     if (token.isCancellationRequested || !linkedRanges || linkedRanges.ranges.length == 0) return
     let ranges = linkedRanges.ranges.map(o => new TextRange(o.start.line, o.start.character, textDocument.getText(o)))
     this.wordPattern = linkedRanges.wordPattern
