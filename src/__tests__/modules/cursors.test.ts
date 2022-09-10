@@ -5,6 +5,7 @@ import CursorsSession, { surrondChanges } from '../../cursors/session'
 import TextRange from '../../cursors/textRange'
 import { getChange, getDelta, isSurrondChange, isTextChange, SurrondChange, TextChange } from '../../cursors/util'
 import workspace from '../../workspace'
+import window from '../../window'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -15,7 +16,7 @@ beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   ns = await nvim.createNamespace('coc-cursors')
-  cursors = new Cursors(nvim)
+  cursors = window.cursors
 })
 
 afterAll(async () => {
@@ -124,7 +125,6 @@ describe('cursors', () => {
       await nvim.call('cursor', [1, 1])
       await doc.synchronize()
       await cursors.select(doc.bufnr, 'position', 'n')
-      await helper.wait(30)
       let n = await rangeCount()
       expect(n).toBe(1)
       await nvim.setOption('virtualedit', 'onemore')
@@ -216,16 +216,28 @@ describe('cursors', () => {
       expect(n).toBe(2)
     })
 
-    it('should select by operator', async () => {
+    it('should select by operator char type', async () => {
       await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
+      let bufnr = await nvim.call('bufnr', ['%'])
       await nvim.call('setline', [1, ['"short"', '"long"']])
       await nvim.call('cursor', [1, 2])
-      await nvim.input('xa"')
-      await helper.wait(30)
-      await nvim.call('cursor', [2, 2])
-      await nvim.input('xa"')
-      await helper.wait(30)
-      await nvim.command('nunmap x')
+      await nvim.input('xi"')
+      await helper.waitValue(() => {
+        let s = cursors.getSession(bufnr)
+        return s ? s.currentRanges.length : 0
+      }, 1)
+    })
+
+    it('should select by operator line type', async () => {
+      await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
+      let bufnr = await nvim.call('bufnr', ['%'])
+      await nvim.call('setline', [1, ['"short"', '"long"']])
+      await nvim.call('cursor', [1, 2])
+      await nvim.input('xap')
+      await helper.waitValue(() => {
+        let s = cursors.getSession(bufnr)
+        return s ? s.currentRanges.length : 0
+      }, 2)
     })
   })
 
