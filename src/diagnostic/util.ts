@@ -14,7 +14,11 @@ export enum DiagnosticHighlight {
   Unused = 'CocUnusedHighlight'
 }
 
+/**
+ * Local diagnostic config
+ */
 export interface DiagnosticConfig {
+  enable: boolean
   highlightLimit: number
   highlightPriority: number
   autoRefresh: boolean
@@ -25,32 +29,26 @@ export interface DiagnosticConfig {
   enableMessage: string
   displayByAle: boolean
   signPriority: number
-  errorSign: string
-  warningSign: string
-  infoSign: string
-  hintSign: string
   level: number
   locationlistLevel: number | undefined
   signLevel: number | undefined
   messageLevel: number | undefined
   messageTarget: string
-  messageDelay: number
   refreshOnInsertMode: boolean
   virtualText: boolean
   virtualTextAlign: VirtualTextOption['text_align']
   virtualTextLevel: number | undefined
   virtualTextWinCol: number | null
   virtualTextCurrentLineOnly: boolean
-  virtualTextSrcId?: number
   virtualTextPrefix: string
   virtualTextFormat: string
-  virtualTextLimitInOneLine: number;
+  virtualTextLimitInOneLine: number
   virtualTextLines: number
   virtualTextLineSeparator: string
   filetypeMap: object
-  showUnused?: boolean
-  showDeprecated?: boolean
-  format?: string
+  showUnused: boolean
+  showDeprecated: boolean
+  format: string
   floatConfig: FloatConfig
 }
 
@@ -141,9 +139,9 @@ export function getLocationListItem(bufnr: number, diagnostic: Diagnostic, lines
  * Sort by severity and position
  */
 export function sortDiagnostics(a: Diagnostic, b: Diagnostic): number {
-  if ((a.severity || 1) != (b.severity || 1)) {
-    return (a.severity || 1) - (b.severity || 1)
-  }
+  let sa = a.severity ?? 1
+  let sb = b.severity ?? 1
+  if (sa != sb) return sa - sb
   let d = comparePosition(a.range.start, b.range.start)
   if (d != 0) return d
   return a.source > b.source ? 1 : -1

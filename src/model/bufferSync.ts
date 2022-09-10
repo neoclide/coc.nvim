@@ -39,7 +39,7 @@ export default class BufferSync<T extends SyncItem> {
     }, null, disposables)
   }
 
-  public get items(): Iterable<T> {
+  public get items(): ReadonlyArray<T> {
     return Array.from(this.itemsMap.values()).map(x => x.item)
   }
 

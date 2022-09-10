@@ -71,7 +71,8 @@ export default class Configurations {
     let model = new ConfigurationModel(config, keys)
     return model
   }
-  private parseConfigurationModel(filepath: string): ConfigurationModel {
+
+  public parseConfigurationModel(filepath: string): ConfigurationModel {
     let parser = new ConfigurationModelParser(filepath)
     let content = filepath && fs.existsSync(filepath) ? fs.readFileSync(filepath, 'utf8') : ''
     parser.parse(content)

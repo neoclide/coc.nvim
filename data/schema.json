@@ -771,7 +771,7 @@
     },
     "diagnostic.level": {
       "type": "string",
-      "scope": "language-overridable",
+      "scope": "resource",
       "description": "Used for filter diagnostics by diagnostic severity.",
       "default": "hint",
       "enum": ["hint", "information", "warning", "error"]
@@ -818,7 +818,7 @@
     },
     "diagnostic.messageDelay": {
       "type": "number",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float",
       "default": 200
     },
@@ -905,9 +905,9 @@
     },
     "diagnostic.enableHighlightLineNumber": {
       "type": "boolean",
-      "scope": "language-overridable",
+      "scope": "application",
       "default": true,
-      "description": "Enable highlighting line numbers for diagnostics, only works with neovim and diagnostic.enableSign is true."
+      "description": "Enable highlighting line numbers for diagnostics, only works with neovim."
     },
     "diagnostic.enableMessage": {
       "type": "string",
@@ -918,7 +918,7 @@
     },
     "diagnostic.signPriority": {
       "type": "number",
-      "scope": "application",
+      "scope": "resource",
       "description": "Priority of diagnostic signs, default to 10",
       "default": 10
     },
