@@ -59,11 +59,11 @@ class DelayTask extends BasicList {
     setTimeout(() => {
       if (disposed) return
       emitter.emit('data', { label: 'ahead' })
-    }, 100)
+    }, 10)
     setTimeout(() => {
       if (disposed) return
       emitter.emit('data', { label: 'abort' })
-    }, 200)
+    }, 20)
     emitter.dispose = () => {
       disposed = true
       emitter.emit('end')
@@ -144,9 +144,9 @@ describe('list worker', () => {
     disposables.push(manager.registerList(new IntervalTaskList(nvim)))
     await manager.start(['task'])
     await manager.session.ui.ready
-    await helper.wait(200)
-    let len = manager.session?.length
-    expect(len > 2).toBe(true)
+    await helper.waitValue(() => {
+      return manager.session?.length > 2
+    }, true)
     await manager.cancel()
   })
 
@@ -162,10 +162,7 @@ describe('list worker', () => {
     await manager.start(['data'])
     await manager.session.ui.ready
     await nvim.input('a')
-    await helper.wait(50)
-    let buf = await nvim.buffer
-    let lines = await buf.lines
-    expect(lines).toEqual(['ade', 'abc'])
+    await helper.waitFor('getline', ['.'], 'ade')
     await manager.cancel()
   })
 
@@ -181,7 +178,6 @@ describe('list worker', () => {
     disposables.push(manager.registerList(new IntervalTaskList(nvim)))
     await manager.start(['task'])
     expect(manager.session?.worker.isLoading).toBe(true)
-    await helper.wait(100)
     manager.session?.stop()
     expect(manager.session?.worker.isLoading).toBe(false)
   })
@@ -190,10 +186,7 @@ describe('list worker', () => {
     disposables.push(manager.registerList(new DelayTask(nvim)))
     await manager.start(['delay'])
     await nvim.input('a')
-    await helper.wait(600)
-    let buf = await nvim.buffer
-    let lines = await buf.lines
-    expect(lines).toEqual(['ahead', 'abort'])
+    await helper.waitFor('getline', [2], 'abort')
   })
 
   it('should work with interactive list', async () => {
@@ -201,14 +194,12 @@ describe('list worker', () => {
     await manager.start(['-I', 'test'])
     await manager.session?.ui.ready
     expect(manager.isActivated).toBe(true)
-    await nvim.eval('feedkeys("f", "in")')
-    await helper.wait(100)
-    await nvim.eval('feedkeys("a", "in")')
-    await helper.wait(100)
-    await nvim.eval('feedkeys("x", "in")')
-    await helper.wait(300)
-    let item = await manager.session?.ui.item
-    expect(item.label).toBe('fax')
+    await nvim.input('f')
+    await helper.wait(30)
+    await nvim.input('a')
+    await helper.wait(30)
+    await nvim.input('x')
+    await helper.waitFor('getline', ['.'], 'fax')
   })
 
   it('should not activate on load error', async () => {
@@ -220,7 +211,8 @@ describe('list worker', () => {
   it('should deactivate on task error', async () => {
     disposables.push(manager.registerList(new ErrorTaskList(nvim)))
     await manager.start(['task'])
-    await helper.wait(300)
-    expect(manager.isActivated).toBe(false)
+    await helper.waitValue(() => {
+      return manager.isActivated
+    }, false)
   })
 })
