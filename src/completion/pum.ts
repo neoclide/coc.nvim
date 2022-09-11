@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import stringWidth from '@chemzqm/string-width'
+import { CompletionItemKind } from 'vscode-languageserver-protocol'
 import sources from '../sources'
-import { CompleteOption, ExtendedCompleteItem, HighlightItem } from '../types'
-import { byteIndex, byteLength } from '../util/string'
-import { CompleteConfig } from './complete'
-import MruLoader from './mru'
-import { getFollowPart } from './util'
+import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem } from '../types'
+import { byteLength } from '../util/string'
+import MruLoader, { Selection } from './mru'
+import { getFollowPart, getValidWord, positionHighlights } from './util'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -48,11 +48,60 @@ export interface PumConfig {
   reverse?: boolean
 }
 
+export interface PopupMenuConfig {
+  kindMap: Map<CompletionItemKind, string>
+  defaultKindText: string
+  noselect: boolean
+  selection: Selection
+  enablePreselect: boolean
+  fixInsertedWord: boolean
+  floatConfig: FloatConfig
+  pumFloatConfig?: FloatConfig
+  formatItems: ReadonlyArray<string>
+  labelMaxLength: number
+  reversePumAboveCursor: boolean
+  snippetIndicator: string
+  virtualText: boolean
+  detailMaxLength: number
+  detailField: string
+  invalidInsertCharacters: string[]
+}
+
+const highlightsMap = {
+  [CompletionItemKind.Text]: 'CocSymbolText',
+  [CompletionItemKind.Method]: 'CocSymbolMethod',
+  [CompletionItemKind.Function]: 'CocSymbolFunction',
+  [CompletionItemKind.Constructor]: 'CocSymbolConstructor',
+  [CompletionItemKind.Field]: 'CocSymbolField',
+  [CompletionItemKind.Variable]: 'CocSymbolVariable',
+  [CompletionItemKind.Class]: 'CocSymbolClass',
+  [CompletionItemKind.Interface]: 'CocSymbolInterface',
+  [CompletionItemKind.Module]: 'CocSymbolModule',
+  [CompletionItemKind.Property]: 'CocSymbolProperty',
+  [CompletionItemKind.Unit]: 'CocSymbolUnit',
+  [CompletionItemKind.Value]: 'CocSymbolValue',
+  [CompletionItemKind.Enum]: 'CocSymbolEnum',
+  [CompletionItemKind.Keyword]: 'CocSymbolKeyword',
+  [CompletionItemKind.Snippet]: 'CocSymbolSnippet',
+  [CompletionItemKind.Color]: 'CocSymbolColor',
+  [CompletionItemKind.File]: 'CocSymbolFile',
+  [CompletionItemKind.Reference]: 'CocSymbolReference',
+  [CompletionItemKind.Folder]: 'CocSymbolFolder',
+  [CompletionItemKind.EnumMember]: 'CocSymbolEnumMember',
+  [CompletionItemKind.Constant]: 'CocSymbolConstant',
+  [CompletionItemKind.Struct]: 'CocSymbolStruct',
+  [CompletionItemKind.Event]: 'CocSymbolEvent',
+  [CompletionItemKind.Operator]: 'CocSymbolOperator',
+  [CompletionItemKind.TypeParameter]: 'CocSymbolTypeParameter',
+}
+
 export default class PopupMenu {
   private _search = ''
+  private _pumConfig: PumConfig
   constructor(
     private nvim: Neovim,
-    private config: CompleteConfig,
+    private config: PopupMenuConfig,
+    private env: Env,
     private mruLoader: MruLoader
   ) {
   }
@@ -61,7 +110,13 @@ export default class PopupMenu {
     return this._search
   }
 
+  public reset(): void {
+    this._search = ''
+    this._pumConfig = undefined
+  }
+
   public get pumConfig(): PumConfig {
+    if (this._pumConfig) return this._pumConfig
     let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config
     if (!pumFloatConfig) pumFloatConfig = floatConfig
     let obj: PumConfig = {}
@@ -74,11 +129,12 @@ export default class PopupMenu {
       obj.borderhighlight = pumFloatConfig.borderhighlight ?? 'CocFloating'
     }
     obj.reverse = reversePumAboveCursor === true
+    this._pumConfig = obj
     return obj
   }
 
   private stringWidth(text: string): number {
-    return stringWidth(text, { ambiguousIsNarrow: this.config.ambiguousIsNarrow })
+    return stringWidth(text, { ambiguousIsNarrow: this.env.ambiguousIsNarrow })
   }
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
@@ -92,13 +148,13 @@ export default class PopupMenu {
     let menuWidth = 0
     let kindWidth = 0
     let shortcutWidth = 0
-    let checkMru = selectedIndex == -1 && selection != 'first'
+    let checkMru = selectedIndex == -1 && !noselect && selection != 'first'
     let labels: LabelWithDetail[] = []
     // abbr kind, menu
     for (let i = 0; i < items.length; i++) {
       let item = items[i]
       if (checkMru) {
-        let n = this.mruLoader.getScore(search, item)
+        let n = this.mruLoader.getScore(search, item, selection)
         if (n > maxMru) {
           maxMru = n
           selectedIndex = i
@@ -114,7 +170,7 @@ export default class PopupMenu {
     }
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
-      if (!item.word?.startsWith(search)) {
+      if (!item.word.startsWith(search)) {
         selectedIndex = -1
       }
     }
@@ -134,7 +190,7 @@ export default class PopupMenu {
       line: option.linenr,
       col: option.col,
       virtualText,
-      words: items.map(o => getWord(fixInsertedWord, search, o.word, followPart))
+      words: items.map(o => this.getInsertWord(o, search, followPart))
     }
     let pumConfig = this.pumConfig
     let lines: string[] = []
@@ -153,26 +209,35 @@ export default class PopupMenu {
     this.nvim.redrawVim()
   }
 
+  private getInsertWord(item: ExtendedCompleteItem, search: string, followPart: string): string {
+    let { fixInsertedWord, invalidInsertCharacters } = this.config
+    let { word, isSnippet } = item
+    word = isSnippet ? getValidWord(word, invalidInsertCharacters) : word
+    if (fixInsertedWord && followPart.length > 0 && word.slice(search.length).endsWith(followPart)) {
+      word = word.slice(0, word.length - followPart.length)
+    }
+    return word
+  }
+
   private getLabel(item: ExtendedCompleteItem): LabelWithDetail {
-    let { labelDetails } = item
-    let { snippetIndicator, labelMaxLength } = this.config
+    let { labelDetails, detail } = item
+    let { snippetIndicator, labelMaxLength, detailField, detailMaxLength } = this.config
     let abbr = item.abbr ?? ''
     let label = item.abbr ?? item.word
     let hls: HighlightRange[] = []
+    if (detailField === 'abbr' && detail && !labelDetails && detail.length < detailMaxLength) {
+      labelDetails = { detail: ' ' + detail.replace(/\r?\n\s*/g, ' ') }
+    }
     if (labelDetails) {
       let added = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
       if (label.length + added.length <= labelMaxLength) {
         let start = byteLength(label)
-        hls.push({
-          start,
-          end: start + byteLength(added),
-          hlGroup: 'CocPumDetail'
-        })
+        hls.push({ start, end: start + byteLength(added), hlGroup: 'CocPumDetail' })
         label = label + added
         item.detailRendered = true
       }
     }
-    if (item.isSnippet && !abbr.endsWith(snippetIndicator)) {
+    if ((item.isSnippet || item.additionalEdits) && !abbr.endsWith(snippetIndicator)) {
       label = label + snippetIndicator
     }
     if (label.length > labelMaxLength) {
@@ -182,7 +247,8 @@ export default class PopupMenu {
   }
 
   private adjustAbbrWidth(config: BuildConfig): void {
-    let { formatItems, pumwidth } = this.config
+    let { formatItems } = this.config
+    let pumwidth = this.env.pumwidth || 15
     let len = 0
     for (const item of formatItems) {
       if (item == 'abbr') {
@@ -202,7 +268,7 @@ export default class PopupMenu {
 
   private buildItem(item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): string {
     // abbr menu kind shortcut
-    let { labelMaxLength, formatItems } = this.config
+    let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config
     let text = config.border ? '' : ' '
     for (const name of formatItems) {
       switch (name) {
@@ -251,13 +317,16 @@ export default class PopupMenu {
         case 'kind':
           if (config.kindWidth > 0) {
             let pre = byteLength(text)
-            text += this.fillWidth(item.kind ?? '', config.kindWidth + 1)
-            if (item.kind && item.kindHighlight) {
+            let { kind } = item
+            let kindText = typeof kind === 'number' ? kindMap.get(kind) ?? defaultKindText : kind
+            text += this.fillWidth(kindText ?? '', config.kindWidth + 1)
+            if (kindText) {
+              let highlight = typeof kind === 'number' ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'
               hls.push({
-                hlGroup: item.kindHighlight,
+                hlGroup: highlight,
                 lnum: index,
                 colStart: pre,
-                colEnd: pre + byteLength(item.kind)
+                colEnd: pre + byteLength(kindText)
               })
             }
           }
@@ -286,34 +355,4 @@ export default class PopupMenu {
     let n = width - this.stringWidth(text)
     return n <= 0 ? text : text + ' '.repeat(n)
   }
-}
-
-export function getWord(fixInsertedWord: boolean, search: string, word: string, followPart: string): string {
-  if (!fixInsertedWord || word.length <= followPart.length || !word.endsWith(followPart)) return word
-  if (word.length < search.length + followPart.length) return word
-  return word.slice(0, word.length - followPart.length)
-}
-
-export function positionHighlights(label: string, positions: number[], pre: number, line: number): HighlightItem[] {
-  let hls: HighlightItem[] = []
-  while (positions.length > 0) {
-    let start = positions.shift()
-    let end = start
-    while (positions.length > 0) {
-      let n = positions[0]
-      if (n - end == 1) {
-        end = n
-        positions.shift()
-      } else {
-        break
-      }
-    }
-    hls.push({
-      hlGroup: 'CocPumSearch',
-      lnum: line,
-      colStart: pre + byteIndex(label, start),
-      colEnd: pre + byteIndex(label, end + 1),
-    })
-  }
-  return hls
 }

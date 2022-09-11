@@ -1073,7 +1073,7 @@
     },
     "hover.floatConfig": {
       "type": "object",
-      "scope": "resource",
+      "scope": "application",
       "description": "Configure float window style of hover documents.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
@@ -1640,7 +1640,7 @@
     },
     "signature.floatConfig": {
       "type": "object",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Configure float window style of signature documents.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
@@ -1778,32 +1778,33 @@
     },
     "suggest.detailField": {
       "type": "string",
-      "scope": "language-overridable",
+      "scope": "application",
       "default": "preview",
       "description": "Where to show the detail text of CompleteItem from LS.",
       "enum": ["abbr", "preview"]
     },
     "suggest.detailMaxLength": {
       "type": "number",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Max length of detail that should be shown in popup menu.",
+      "deprecationMessage": "Use suggest.labelMaxLength instead.",
       "default": 100
     },
     "suggest.enablePreselect": {
       "type": "boolean",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Enable preselect feature of LSP, works when suggest.noselect is false.",
       "default": true
     },
     "suggest.fixInsertedWord": {
       "type": "boolean",
       "description": "Make inserted word replace word characters after cursor position.",
-      "scope": "language-overridable",
+      "scope": "application",
       "default": true
     },
     "suggest.floatConfig": {
       "type": "object",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Configure style of popup menu and documentation window of completion.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
@@ -1819,7 +1820,7 @@
     },
     "suggest.formatItems": {
       "type": "array",
-      "scope": "language-overridable",
+      "scope": "application",
       "items": {
         "enum": ["abbr", "menu", "kind", "shortcut"]
       },
@@ -1851,13 +1852,13 @@
       "items": {
         "type": "string"
       },
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Invalid character for strip valid word when inserting text of complete item.",
       "default": [" ", "(", "<", "{", "[", "\r", "\n"]
     },
     "suggest.labelMaxLength": {
       "type": "number",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Max length of abbr that shown as label of complete item.",
       "default": 200
     },
@@ -1894,7 +1895,7 @@
     },
     "suggest.noselect": {
       "type": "boolean",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Not make vim select first item on completion start",
       "default": false
     },
@@ -1906,7 +1907,7 @@
     },
     "suggest.pumFloatConfig": {
       "type": ["object", "null"],
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Configure style of popup menu, suggest.floatConfig is used when not specified.",
       "allOf": [{ "$ref": "#/definitions/float" }],
       "additionalProperties": false,
@@ -1929,13 +1930,13 @@
     },
     "suggest.reversePumAboveCursor": {
       "type": "boolean",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Reverse order of complete items when pum shown above cursor.",
       "default": false
     },
     "suggest.selection": {
       "type": "string",
-      "scope": "language-overridable",
+      "scope": "application",
       "default": "first",
       "description": "Controls how suggestions are pre-selected when showing the suggest list.",
       "enum": ["first", "recentlyUsed", "recentlyUsedByPrefix"]
@@ -1943,7 +1944,7 @@
     "suggest.snippetIndicator": {
       "type": "string",
       "default": "~",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "The character used in abbr of complete item to indicate the item could be expand as snippet."
     },
     "suggest.snippetsSupport": {
@@ -1976,7 +1977,7 @@
     },
     "suggest.virtualText": {
       "type": "boolean",
-      "scope": "language-overridable",
+      "scope": "application",
       "description": "Show virtual text for insert word of selected item, requires neovim >= 0.5.0 or vim >= 9.0.0067",
       "default": false
     },

@@ -1,7 +1,7 @@
 'use strict'
 // vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionKind, CompletionItemLabelDetails, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionKind, CompletionItemKind, CompletionItemLabelDetails, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 import type Configurations from './configuration'
@@ -699,7 +699,7 @@ export interface VimCompleteItem {
   abbr?: string
   menu?: string
   info?: string
-  kind?: string
+  kind?: string | CompletionItemKind
   icase?: number
   equal?: number
   dup?: number
@@ -718,6 +718,7 @@ export interface CompleteDoneItem {
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {
+  detail?: string
   labelDetails?: CompletionItemLabelDetails
   /**
    * labelDetail rendered after label
@@ -728,6 +729,7 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   sourceScore?: number
   filterText?: string
   isSnippet?: boolean
+  additionalEdits?: boolean
   source?: string
   matchScore?: number
   priority?: number
@@ -736,13 +738,11 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   index?: number
   // used for preview
   documentation?: Documentation[]
-  detailShown?: number
   resolved?: boolean
   // saved line for apply TextEdit
   line?: string
   deprecated?: boolean
   positions?: ReadonlyArray<number>
-  kindHighlight?: string
 }
 
 export interface CompleteResult {
@@ -808,7 +808,7 @@ export interface ISource {
   shouldComplete?(opt: CompleteOption): Promise<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult | null>
   onCompleteResolve?(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
-  onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption): ProviderResult<void>
+  onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
   shouldCommit?(item: ExtendedCompleteItem, character: string): boolean
 }
 // }}

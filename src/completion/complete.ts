@@ -3,32 +3,24 @@ import { Neovim } from '@chemzqm/neovim'
 import unidecode from 'unidecode'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, isWord } from '../util/string'
 import { matchScoreWithPositions } from './match'
-import type { Selection } from './mru'
 const logger = require('../util/logger')('completion-complete')
 
 export interface CompleteConfig {
-  noselect: boolean
-  pumwidth: number
-  enablePreselect: boolean
   asciiMatch: boolean
-  formatItems: ReadonlyArray<string>
-  selection: Selection
-  virtualText: boolean
-  labelMaxLength: number
   autoTrigger: string
+  snippetsSupport: boolean
+  languageSourcePriority: number
   triggerCompletionWait: number
   minTriggerInputLength: number
   triggerAfterInsertEnter: boolean
   acceptSuggestionOnCommitCharacter: boolean
   maxItemCount: number
   timeout: number
-  snippetIndicator: string
-  fixInsertedWord: boolean
   localityBonus: boolean
   highPrioritySourceLimit: number
   lowPrioritySourceLimit: number
@@ -36,10 +28,6 @@ export interface CompleteConfig {
   defaultSortMethod: string
   asciiCharactersOnly: boolean
   ignoreRegexps: ReadonlyArray<string>
-  ambiguousIsNarrow: boolean
-  floatConfig: FloatConfig
-  pumFloatConfig: FloatConfig
-  reversePumAboveCursor: boolean
 }
 
 export type Callback = () => void
@@ -62,7 +50,7 @@ export default class Complete {
     private sources: ISource[],
     private nvim: Neovim) {
     this.tokenSource = new CancellationTokenSource()
-    sources.sort((a, b) => b.priority - a.priority)
+    sources.sort((a, b) => (b.priority ?? 99) - (a.priority ?? 99))
     this.names = sources.map(o => o.name)
   }
 
@@ -71,6 +59,16 @@ export default class Complete {
     this.timer = setTimeout(() => {
       this._onDidRefresh.fire()
     }, waitTime)
+  }
+
+  private getPriority(source: ISource): number {
+    if (typeof source.priority === 'number') {
+      return source.priority
+    }
+    if (source.sourceType === SourceType.Service) {
+      return this.config.languageSourcePriority
+    }
+    return 0
   }
 
   public get isCompleting(): boolean {
@@ -188,7 +186,7 @@ export default class Complete {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
         if (!shouldRun || token.isCancellationRequested) return
       }
-      const priority = source.priority ?? 0
+      const priority = this.getPriority(source)
       const start = Date.now()
       await new Promise<void>((resolve, reject) => {
         Promise.resolve(source.doComplete(opt, token)).then(result => {

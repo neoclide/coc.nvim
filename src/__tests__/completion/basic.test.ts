@@ -144,7 +144,7 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.selection', 'recentlyUsed')
       let name = await create(['foo', 'bar', 'foobar'])
       await helper.confirmCompletion(1)
-      await nvim.input('<CR>')
+      await nvim.input('<CR>f')
       await triggerCompletion(name)
       let info = await nvim.call('coc#pum#info')
       expect(info.index).toBe(1)
@@ -323,6 +323,37 @@ describe('completion', () => {
   })
 
   describe('doComplete()', () => {
+    it('should create pum', async () => {
+      let source: ISource = {
+        enable: true,
+        name: 'menu',
+        shortcut: '',
+        sourceType: SourceType.Service,
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({
+            items: [{ word: 'foo', deprecated: true, menu: 'm', kind: 'k' }]
+          })
+        })
+      }
+      disposables.push(sources.addSource(source))
+      disposables.push(sources.addSource({
+        enable: true,
+        name: 'other',
+        shortcut: 's',
+        sourceType: SourceType.Service,
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({
+            items: [{ word: 'bar', menu: '' }]
+          })
+        })
+      }))
+      await nvim.input('i')
+      await nvim.call('coc#start', {})
+      await helper.waitPopup()
+      let info = await nvim.call('coc#pum#info')
+      expect(info.index).toBe(0)
+    })
+
     it('should show slow source', async () => {
       let source: ISource = {
         priority: 0,

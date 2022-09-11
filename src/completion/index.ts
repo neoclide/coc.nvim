@@ -5,15 +5,16 @@ import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteOption, IConfigurationChangeEvent, ExtendedCompleteItem, FloatConfig, ISource } from '../types'
+import { CompleteOption, ExtendedCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
 import { disposeAll } from '../util'
 import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
+import window from '../window'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
-import MruLoader, { Selection } from './mru'
-import PopupMenu from './pum'
-import { getInput, getPrependWord, getSources, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
+import MruLoader from './mru'
+import PopupMenu, { PopupMenuConfig } from './pum'
+import { createKindMap, getInput, getPrependWord, getSources, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -23,6 +24,7 @@ export interface LastInsert {
 
 export class Completion implements Disposable {
   public config: CompleteConfig
+  private staticConfig: PopupMenuConfig
   private _activated = false
   private nvim: Neovim
   private pum: PopupMenu
@@ -37,11 +39,14 @@ export class Completion implements Disposable {
 
   public init(): void {
     this.nvim = workspace.nvim
-    this.getCompleteConfig()
-    this.mru = new MruLoader(this.config.selection)
-    this.pum = new PopupMenu(this.nvim, this.config, this.mru)
-    workspace.onDidChangeConfiguration(this.getCompleteConfig, this, this.disposables)
-    this.floating = new Floating(workspace.nvim)
+    this.loadConfiguration()
+    workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
+    window.onDidChangeActiveTextEditor(e => {
+      this.loadLcoalConfig(e.document)
+    }, null, this.disposables)
+    this.mru = new MruLoader()
+    this.pum = new PopupMenu(this.nvim, this.staticConfig, workspace.env, this.mru)
+    this.floating = new Floating(workspace.nvim, this.staticConfig)
     if (this.config.autoTrigger !== 'none') {
       workspace.nvim.call('coc#ui#check_pum_keymappings', [], true)
     }
@@ -79,8 +84,7 @@ export class Completion implements Disposable {
       this.floating.cancel()
       let item = this.selectedItem
       if (!item || (!ev.move && this.complete?.isCompleting)) return
-      let config = this.config.floatConfig
-      await this.floating.resolveItem(item, config, this.option)
+      await this.floating.resolveItem(item, this.option)
     }, null, this.disposables)
   }
 
@@ -107,42 +111,57 @@ export class Completion implements Disposable {
     return this.activeItems[this.popupEvent.index]
   }
 
-  private getCompleteConfig(e?: IConfigurationChangeEvent): CompleteConfig {
-    if (e && !e.affectsConfiguration('suggest')) return
-    let suggest = workspace.getConfiguration('suggest')
-    function getConfig<T>(key, defaultValue: T): T {
-      return suggest.get<T>(key, defaultValue)
+  /**
+   * Configuration for current document
+   */
+  private loadLcoalConfig(doc?: Document): void {
+    let suggest = workspace.getConfiguration('suggest', doc)
+    this.config = {
+      autoTrigger: suggest.get<string>('autoTrigger', 'always'),
+      languageSourcePriority: suggest.get<number>('languageSourcePriority', 99),
+      snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
+      defaultSortMethod: suggest.get<string>('defaultSortMethod', 'length'),
+      removeDuplicateItems: suggest.get<boolean>('removeDuplicateItems', false),
+      acceptSuggestionOnCommitCharacter: suggest.get<boolean>('acceptSuggestionOnCommitCharacter', false),
+      triggerCompletionWait: suggest.get<number>('triggerCompletionWait', 0),
+      triggerAfterInsertEnter: suggest.get<boolean>('triggerAfterInsertEnter', false),
+      maxItemCount: suggest.get<number>('maxCompleteItemCount', 50),
+      timeout: suggest.get<number>('timeout', 500),
+      minTriggerInputLength: suggest.get<number>('minTriggerInputLength', 1),
+      localityBonus: suggest.get<boolean>('localityBonus', true),
+      highPrioritySourceLimit: suggest.get<number>('highPrioritySourceLimit', null),
+      lowPrioritySourceLimit: suggest.get<number>('lowPrioritySourceLimit', null),
+      ignoreRegexps: suggest.get<string[]>('ignoreRegexps', []),
+      asciiMatch: suggest.get<boolean>('asciiMatch', true),
+      asciiCharactersOnly: suggest.get<boolean>('asciiCharactersOnly', false),
     }
-    this.config = Object.assign(this.config ?? {}, {
-      ambiguousIsNarrow: workspace.env.ambiguousIsNarrow,
-      pumwidth: workspace.env.pumwidth || 15,
-      noselect: getConfig<boolean>('noselect', false),
-      enablePreselect: getConfig<boolean>('enablePreselect', true),
-      formatItems: getConfig<string[]>('formatItems', ['abbr', 'menu', 'kind', 'shortcut']),
-      autoTrigger: getConfig<string>('autoTrigger', 'always'),
-      virtualText: getConfig<boolean>('virtualText', false),
-      selection: getConfig<Selection>('selection', 'first'),
-      floatConfig: getConfig<FloatConfig>('floatConfig', {}),
-      pumFloatConfig: getConfig<FloatConfig>('pumFloatConfig', null),
-      defaultSortMethod: getConfig<string>('defaultSortMethod', 'length'),
-      removeDuplicateItems: getConfig<boolean>('removeDuplicateItems', false),
-      acceptSuggestionOnCommitCharacter: getConfig<boolean>('acceptSuggestionOnCommitCharacter', false),
-      triggerCompletionWait: getConfig<number>('triggerCompletionWait', 0),
-      labelMaxLength: getConfig<number>('labelMaxLength', 200),
-      triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
-      maxItemCount: getConfig<number>('maxCompleteItemCount', 50),
-      timeout: getConfig<number>('timeout', 500),
-      minTriggerInputLength: getConfig<number>('minTriggerInputLength', 1),
-      snippetIndicator: getConfig<string>('snippetIndicator', '~'),
-      fixInsertedWord: getConfig<boolean>('fixInsertedWord', true),
-      localityBonus: getConfig<boolean>('localityBonus', true),
-      highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),
-      lowPrioritySourceLimit: getConfig<number>('lowPrioritySourceLimit', null),
-      ignoreRegexps: getConfig<string[]>('ignoreRegexps', []),
-      asciiMatch: getConfig<boolean>('asciiMatch', true),
-      asciiCharactersOnly: getConfig<boolean>('asciiCharactersOnly', false),
-      reversePumAboveCursor: getConfig<boolean>('reversePumAboveCursor', false)
+  }
+
+  private loadConfiguration(e?: IConfigurationChangeEvent): CompleteConfig {
+    if (e && !e.affectsConfiguration('suggest')) return
+    if (e) this.pum.reset()
+    let suggest = workspace.getConfiguration('suggest', null)
+    let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
+    this.staticConfig = Object.assign(this.staticConfig ?? {}, {
+      kindMap: createKindMap(labels),
+      detailField: suggest.detailField,
+      detailMaxLength: suggest.detailMaxLength ?? 100,
+      invalidInsertCharacters: suggest.invalidInsertCharacters ?? [],
+      defaultKindText: labels['default'] ?? '',
+      formatItems: suggest.formatItems,
+      floatConfig: suggest.floatConfig ?? {},
+      pumFloatConfig: suggest.pumFloatConfig,
+      labelMaxLength: suggest.labelMaxLength,
+      reversePumAboveCursor: !!suggest.reversePumAboveCursor,
+      snippetIndicator: suggest.snippetIndicator ?? '~',
+      noselect: !!suggest.noselect,
+      fixInsertedWord: !!suggest.fixInsertedWord,
+      enablePreselect: !!suggest.enablePreselect,
+      virtualText: !!suggest.virtualText,
+      selection: suggest.selection
     })
+    let doc = workspace.getDocument(workspace.bufnr)
+    this.loadLcoalConfig(doc)
   }
 
   public async startCompletion(option: CompleteOption, sourceList?: ISource[]): Promise<void> {
@@ -195,7 +214,8 @@ export class Completion implements Disposable {
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     if (!workspace.isAttached(bufnr)) return
-    let { option } = this
+    const { option } = this
+    const doc = workspace.getDocument(bufnr)
     // detect item word insert
     if (!info.insertChar && option) {
       let pre = byteSlice(option.line, 0, option.col)
@@ -210,7 +230,7 @@ export class Completion implements Disposable {
     }
     // retrigger after indent
     if (option && info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
-      await this.triggerCompletion(this.document, info)
+      await this.triggerCompletion(doc, info)
       return
     }
     if (option && shouldStop(bufnr, this.pretext, info, option)) {
@@ -220,7 +240,6 @@ export class Completion implements Disposable {
     if (info.pre === this.pretext) return
     if (this.triggerTimer) clearTimeout(this.triggerTimer)
     let pretext = this.pretext = info.pre
-    let doc = workspace.getDocument(bufnr)
     // check commit
     if (info.insertChar && this.config.acceptSuggestionOnCommitCharacter && this.selectedItem) {
       let last = pretext.slice(-1)
@@ -344,7 +363,7 @@ export class Completion implements Disposable {
   public async doCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     let source = sources.getSource(item.source)
     if (source && typeof source.onCompleteDone === 'function') {
-      await Promise.resolve(source.onCompleteDone(item, opt))
+      await Promise.resolve(source.onCompleteDone(item, opt, this.config.snippetsSupport))
     }
   }
 

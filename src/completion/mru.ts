@@ -8,19 +8,19 @@ export default class MruLoader {
   private max = 0
   private items: Map<string, number> = new Map()
   private itemsNoPrefex: Map<string, number> = new Map()
-  constructor(private selection: Selection) {
+  constructor() {
   }
 
-  public getScore(input: string, item: ExtendedCompleteItem): number {
+  public getScore(input: string, item: ExtendedCompleteItem, selection: Selection): number {
     let key = toItemKey(item)
     if (input.length == 0) return this.itemsNoPrefex.get(key) ?? -1
-    if (this.selection === 'recentlyUsedByPrefix') key = `${input}|${key}`
-    let map = this.selection === 'recentlyUsed' ? this.itemsNoPrefex : this.items
+    if (selection === 'recentlyUsedByPrefix') key = `${input}|${key}`
+    let map = selection === 'recentlyUsed' ? this.itemsNoPrefex : this.items
     return map.get(key) ?? -1
   }
 
   public add(prefix: string, item: ExtendedCompleteItem): void {
-    if (this.selection == 'first' || ['around', 'buffer', 'word'].includes(item.source)) return
+    if (['around', 'buffer', 'word'].includes(item.source)) return
     let key = toItemKey(item)
     if (!item.word.toLowerCase().startsWith(prefix.toLowerCase())) {
       prefix = ''

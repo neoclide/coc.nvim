@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { CompletionItem, CompletionList, CompletionItemKind, InsertTextFormat, InsertTextMode, Position, Range, TextEdit, InsertReplaceEdit } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
-import { ItemDefaults, getRange, getStartColumn, getKindString } from '../../sources/source-language'
+import { getRange, getStartColumn, ItemDefaults } from '../../sources/source-language'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -23,21 +23,6 @@ afterAll(async () => {
 afterEach(async () => {
   disposeAll(disposables)
   await helper.reset()
-})
-
-describe('getKindString()', () => {
-  it('should get kind text', async () => {
-    let map = new Map()
-    map.set(CompletionItemKind.Enum, 'E')
-    let res = getKindString(CompletionItemKind.Enum, map, '')
-    expect(res).toBe('E')
-  })
-
-  it('should get default value', async () => {
-    let map = new Map()
-    let res = getKindString(CompletionItemKind.Enum, map, 'D')
-    expect(res).toBe('D')
-  })
 })
 
 describe('getStartColumn()', () => {
@@ -244,7 +229,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('snippets-test', 'st', null, provider))
       await nvim.input('if')
       await helper.waitPopup()
-      await helper.selectItem('foo')
+      await nvim.call('coc#pum#select', [0, 1, 0])
       await helper.waitFor('getline', ['.'], 'foo')
     })
 

@@ -141,13 +141,6 @@ export class Helper extends EventEmitter {
     await this.nvim.call('coc#pum#select', [idx, 1, 1])
   }
 
-  public async selectItem(word: string): Promise<void> {
-    if (!this.completion.activeItems) throw new Error('no active items')
-    let idx = this.completion.activeItems.findIndex((o => o.word == word))
-    if (idx == -1) throw new Error(`item not found by word "${word}"`)
-    await this.nvim.call('coc#pum#select', [idx, 1, 0])
-  }
-
   public async doAction(method: string, ...args: any[]): Promise<any> {
     return await this.plugin.cocAction(method, ...args)
   }

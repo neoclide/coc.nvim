@@ -3,21 +3,21 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
-import { CompletionItemKind, Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extensions'
+import BufferSync from '../model/bufferSync'
 import { CompletionItemProvider } from '../provider'
 import { CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
 import { disposeAll, getUri } from '../util'
 import { intersect } from '../util/array'
 import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
-import BufferSync from '../model/bufferSync'
-import KeywordsBuffer from './keywords'
 import window from '../window'
 import workspace from '../workspace'
+import KeywordsBuffer from './keywords'
 import Source from './source'
-import LanguageSource, { CompleteConfig } from './source-language'
+import LanguageSource from './source-language'
 import VimSource from './source-vim'
 const logger = require('../util/logger')('sources')
 
@@ -26,18 +26,11 @@ export class Sources {
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
   private keywords: BufferSync<KeywordsBuffer>
-  private completeConfig: CompleteConfig
 
   public init(): void {
-    this.loadCompleteConfig()
     this.keywords = workspace.registerBufferSync(doc => {
       return new KeywordsBuffer(doc)
     })
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('suggest')) {
-        this.loadCompleteConfig()
-      }
-    }, null, this.disposables)
     this.createNativeSources()
     this.createRemoteSources()
     events.on('InsertLeave', () => {
@@ -56,48 +49,6 @@ export class Sources {
   public getShortcut(name: string): string {
     let source = this.sourceMap.get(name)
     return source ? source.shortcut : ''
-  }
-
-  private loadCompleteConfig(): void {
-    let suggest = workspace.getConfiguration('suggest')
-    let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
-    let map = new Map([
-      [CompletionItemKind.Text, labels['text'] ?? 'v'],
-      [CompletionItemKind.Method, labels['method'] ?? 'f'],
-      [CompletionItemKind.Function, labels['function'] ?? 'f'],
-      [CompletionItemKind.Constructor, typeof labels['constructor'] == 'function' ? 'f' : labels['con' + 'structor'] ?? ''],
-      [CompletionItemKind.Field, labels['field'] ?? 'm'],
-      [CompletionItemKind.Variable, labels['variable'] ?? 'v'],
-      [CompletionItemKind.Class, labels['class'] ?? 'C'],
-      [CompletionItemKind.Interface, labels['interface'] ?? 'I'],
-      [CompletionItemKind.Module, labels['module'] ?? 'M'],
-      [CompletionItemKind.Property, labels['property'] ?? 'm'],
-      [CompletionItemKind.Unit, labels['unit'] ?? 'U'],
-      [CompletionItemKind.Value, labels['value'] ?? 'v'],
-      [CompletionItemKind.Enum, labels['enum'] ?? 'E'],
-      [CompletionItemKind.Keyword, labels['keyword'] ?? 'k'],
-      [CompletionItemKind.Snippet, labels['snippet'] ?? 'S'],
-      [CompletionItemKind.Color, labels['color'] ?? 'v'],
-      [CompletionItemKind.File, labels['file'] ?? 'F'],
-      [CompletionItemKind.Reference, labels['reference'] ?? 'r'],
-      [CompletionItemKind.Folder, labels['folder'] ?? 'F'],
-      [CompletionItemKind.EnumMember, labels['enumMember'] ?? 'm'],
-      [CompletionItemKind.Constant, labels['constant'] ?? 'v'],
-      [CompletionItemKind.Struct, labels['struct'] ?? 'S'],
-      [CompletionItemKind.Event, labels['event'] ?? 'E'],
-      [CompletionItemKind.Operator, labels['operator'] ?? 'O'],
-      [CompletionItemKind.TypeParameter, labels['typeParameter'] ?? 'T'],
-    ])
-    let detailField = suggest.get<string>('detailField', 'preview')
-    this.completeConfig = Object.assign(this.completeConfig || {}, {
-      labels: map,
-      detailField,
-      defaultKindText: labels['default'] || '',
-      priority: suggest.get<number>('languageSourcePriority', 99),
-      snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
-      detailMaxLength: suggest.get<number>('detailMaxLength', 100),
-      invalidInsertCharacters: suggest.get<string[]>('invalidInsertCharacters', ['(', '<', '{', '[', '\r', '\n']),
-    })
   }
 
   private get nvim(): Neovim {
@@ -126,8 +77,7 @@ export class Sources {
       selector,
       triggerCharacters || [],
       allCommitCharacters || [],
-      priority,
-      this.completeConfig)
+      priority)
     logger.debug('created service source', name)
     this.sourceMap.set(name, source)
     return {
