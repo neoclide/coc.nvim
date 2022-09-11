@@ -82,7 +82,7 @@ export default class TerminalModel {
 
   public async show(preserveFocus?: boolean): Promise<boolean> {
     let { bufnr, nvim } = this
-    if (!bufnr) return
+    if (!bufnr) return false
     let [loaded, winid, curr] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr}),win_getid()]`) as [number, number, number]
     if (!loaded) return false
     if (curr == winid) return true
