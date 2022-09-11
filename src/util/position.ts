@@ -12,7 +12,7 @@ export function samePosition(one: Position, two: Position): boolean {
 /**
  * Convert to well formed range
  */
-export function toValidRange(range: Range, max?: Position): Range {
+export function toValidRange(range: Range, max?: number): Range {
   let { start, end } = range
   if (start.line > end.line || (start.line === end.line && start.character > end.character)) {
     let m = start
@@ -20,7 +20,9 @@ export function toValidRange(range: Range, max?: Position): Range {
     end = m
   }
   start = Position.create(Math.max(0, start.line), Math.max(0, start.character))
-  end = Position.create(Math.max(0, end.line), Math.max(0, end.character))
+  let endCharacter = Math.max(0, end.character)
+  if (typeof max === 'number' && endCharacter > max) endCharacter = max
+  end = Position.create(Math.max(0, end.line), endCharacter)
   return { start, end }
 }
 
