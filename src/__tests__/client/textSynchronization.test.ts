@@ -172,8 +172,6 @@ describe('TextDocumentSynchronization', () => {
       await provider.send({ contentChanges: [], textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr, original: '', originalLines: [] })
       await client.sendNotification('unregisterDocumentSync')
       await helper.wait(30)
-      provider = feature.getProvider(doc.textDocument)
-      expect(provider).toBeUndefined()
       await client.stop()
     })
 
