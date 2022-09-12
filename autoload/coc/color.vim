@@ -432,7 +432,7 @@ endfun
 
 function! coc#color#term2rgb(term) abort
   if a:term < 0 || a:term > 255
-    throw 'bad term value '.a:term
+    return '#000000'
   endif
   return s:xterm_colors[a:term]
 endfunction
