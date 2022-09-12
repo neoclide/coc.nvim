@@ -32,7 +32,7 @@ interface SignItem {
   priority?: number
 }
 
-const delay = global.__TEST__ ? 10 : 300
+const delay = global.__TEST__ ? 10 : 500
 const aleMethod = global.__TEST__ ? 'MockAleResults' : 'ale#other_source#ShowResults'
 let virtualTextSrcId: number | undefined
 
