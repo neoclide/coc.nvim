@@ -441,28 +441,28 @@ describe('language source', () => {
       let line = await nvim.line
       expect(line).toBe('?foo')
     })
-  })
 
-  it('should fix range of removed text range', async () => {
-    let provider: CompletionItemProvider = {
-      provideCompletionItems: async (): Promise<CompletionItem[]> => {
-        return [{
-          label: 'React',
-          textEdit: {
-            range: Range.create(0, 0, 0, 8),
-            newText: 'import React$1 from "react"'
-          },
-          insertTextFormat: InsertTextFormat.Snippet
-        }]
+    it('should fix range of removed text range', async () => {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => {
+          return [{
+            label: 'React',
+            textEdit: {
+              range: Range.create(0, 0, 0, 8),
+              newText: 'import React$1 from "react"'
+            },
+            insertTextFormat: InsertTextFormat.Snippet
+          }]
+        }
       }
-    }
-    disposables.push(languages.registerCompletionItemProvider('fix', 'f', null, provider, ['?']))
-    await nvim.call('setline', ['.', 'import r;'])
-    await nvim.call('cursor', [1, 8])
-    await nvim.input('a')
-    await nvim.call('coc#start', { source: 'fix' })
-    await helper.waitPopup()
-    await helper.confirmCompletion(0)
-    await helper.waitFor('getline', ['.'], 'import React from "react";')
+      disposables.push(languages.registerCompletionItemProvider('fix', 'f', null, provider, ['?']))
+      await nvim.call('setline', ['.', 'import r;'])
+      await nvim.call('cursor', [1, 8])
+      await nvim.input('a')
+      await nvim.call('coc#start', { source: 'fix' })
+      await helper.waitPopup()
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], 'import React from "react";')
+    })
   })
 })

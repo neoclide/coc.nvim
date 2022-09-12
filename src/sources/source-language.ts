@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
 import { getCursorPosition } from '../core/ui'
 import Document from '../model/document'
@@ -24,13 +24,19 @@ export interface ItemDefaults {
   data?: any
 }
 
+interface TriggerContext {
+  line: string
+  lnum: number
+  character: number
+}
+
 export default class LanguageSource implements ISource {
   public sourceType: SourceType.Service
   private _enabled = true
   private completeItems: CompletionItem[] = []
   private itemDefaults: ItemDefaults = {}
   // cursor position on trigger
-  private triggerPosition: Position
+  private triggerContext: TriggerContext | undefined
   constructor(
     public readonly name: string,
     public readonly shortcut: string,
@@ -62,7 +68,7 @@ export default class LanguageSource implements ISource {
     let { triggerCharacter, input, bufnr, position } = opt
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
-    this.triggerPosition = { line: position.line, character: position.character }
+    this.triggerContext = { lnum: position.line, character: position.character, line: opt.line }
     let context: any = { triggerKind, option: opt }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
     let doc = workspace.getDocument(bufnr)
@@ -148,7 +154,6 @@ export default class LanguageSource implements ISource {
   public async onCompleteDone(vimItem: ExtendedCompleteItem, opt: CompleteOption, snippetSupport: boolean): Promise<void> {
     let item = this.completeItems[vimItem.index]
     if (!item) return
-    if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
     let doc = workspace.getDocument(opt.bufnr)
     await doc.patchChange(true)
     let additionalEdits = Array.isArray(item.additionalTextEdits) && item.additionalTextEdits.length > 0
@@ -183,12 +188,12 @@ export default class LanguageSource implements ISource {
   }
 
   private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption): Promise<boolean> {
-    let { line, linenr, col } = option
+    let { linenr, col } = option
+    let { character, line } = this.triggerContext
     let pos = await getCursorPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
     let range: Range | undefined
     let { textEdit, insertText, label } = item
-    let beginIdx = this.triggerPosition.character
     if (textEdit) {
       range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
     } else {
@@ -196,18 +201,18 @@ export default class LanguageSource implements ISource {
       if (editRange) {
         range = Range.is(editRange) ? editRange : editRange.replace
       } else if (item.insertText) {
-        range = Range.create(pos.line, characterIndex(line, col), pos.line, beginIdx)
+        range = Range.create(pos.line, characterIndex(line, col), pos.line, character)
       }
     }
     if (!range) return false
     // attempt to fix range from textEdit, range should include trigger position
-    if (range.end.character < beginIdx) range.end.character = beginIdx
+    if (range.end.character < character) range.end.character = character
     let currline = doc.getline(linenr - 1, false)
     let newText = textEdit ? textEdit.newText : insertText ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, currline, range)
     // cursor moved count
-    let delta = pos.character - beginIdx - indentCount
+    let delta = pos.character - character - indentCount
     // fix range by count cursor moved to replace insert word on complete done.
     if (delta !== 0) range.end.character += delta
     let isSnippet = this.isSnippetItem(item)
@@ -249,7 +254,6 @@ export default class LanguageSource implements ISource {
       labelDetails: item.labelDetails,
       dup: item.data?.dup == 0 ? 0 : 1
     }
-    obj.line = opt.line
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
@@ -301,23 +305,23 @@ export function getWord(item: CompletionItem, isSnippet: boolean, opt: CompleteO
   let newText: string = insertText ?? label
   let range: Range | undefined
   if (textEdit) {
-    range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
+    range = InsertReplaceEdit.is(textEdit) ? textEdit.insert : textEdit.range
     newText = textEdit.newText
   } else if (itemDefaults.editRange) {
-    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.replace
+    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.insert
   }
   if (range && range.start.line == range.end.line) {
-    let { line, col, colnr } = opt
+    let { line, col, position } = opt
     let character = characterIndex(line, col)
-    if (range.start.character > character) {
-      newText = line.slice(character, range.start.character) + newText
-    } else {
+    if (range.start.character < character) {
       let start = line.slice(range.start.character, character)
       if (start.length && newText.startsWith(start)) {
         newText = newText.slice(start.length)
       }
+    } else if (range.start.character > character) {
+      newText = line.slice(character, range.start.character) + newText
     }
-    character = characterIndex(line, colnr - 1)
+    character = position.character
     if (range.end.character > character) {
       let end = line.slice(character, range.end.character)
       if (newText.endsWith(end)) {
