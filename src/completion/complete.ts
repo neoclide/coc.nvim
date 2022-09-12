@@ -198,12 +198,13 @@ export default class Complete {
           logger.debug(`Source "${name}" finished with ${len} items ${Date.now() - start}ms`)
           if (len > 0) {
             result.items.forEach(item => {
+              let filterText = item.filterText ?? item.word
               item.word = item.word ?? ''
               item.abbr = item.abbr ?? item.word
               item.source = name
               item.priority = priority
-              item.filterText = asciiMatch ? unidecode(item.filterText ?? item.word) : item.filterText ?? item.word
-              if (name !== 'snippets') item.localBonus = this.localBonus.get(item.filterText) ?? 0
+              item.filterText = asciiMatch ? unidecode(filterText) : filterText
+              if (name !== 'snippets') item.localBonus = this.localBonus.get(filterText) ?? 0
             })
             this.setResult(name, result)
           } else {

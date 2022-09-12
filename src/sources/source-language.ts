@@ -31,7 +31,7 @@ interface TriggerContext {
 }
 
 export default class LanguageSource implements ISource {
-  public sourceType: SourceType.Service
+  public readonly sourceType = SourceType.Service
   private _enabled = true
   private completeItems: CompletionItem[] = []
   private itemDefaults: ItemDefaults = {}
