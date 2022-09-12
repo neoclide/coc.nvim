@@ -57,6 +57,7 @@ export interface InitializationFailedHandler {
 
 export class DefaultErrorHandler implements ErrorHandler {
   private readonly restarts: number[]
+  public milliseconds = 3 * 60 * 1000
 
   constructor(private name: string, private maxRestartCount: number) {
     this.restarts = []
@@ -74,8 +75,8 @@ export class DefaultErrorHandler implements ErrorHandler {
       return CloseAction.Restart
     } else {
       let diff = this.restarts[this.restarts.length - 1] - this.restarts[0]
-      if (diff <= 3 * 60 * 1000) {
-        window.showMessage(`The "${this.name}" server crashed ${this.maxRestartCount} times in the last 3 minutes. The server will not be restarted.`, 'error')
+      if (diff <= this.milliseconds) {
+        void window.showErrorMessage(`The "${this.name}" server crashed ${this.maxRestartCount} times in the last 3 minutes. The server will not be restarted.`)
         return CloseAction.DoNotRestart
       } else {
         this.restarts.shift()

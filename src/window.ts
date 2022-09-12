@@ -588,6 +588,7 @@ export class Window {
    * @return Promise that resolves to the selected item or `undefined` when being dismissed.
    */
   public async showErrorMessage<T extends MessageItem | string>(message: string, ...items: T[]): Promise<T | undefined> {
+    if (!this.workspace) return
     let stack = Error().stack
     return await this._showMessage('Error', message, items, stack)
   }
