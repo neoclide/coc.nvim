@@ -124,8 +124,9 @@ export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit
   let prevDelete: Position | undefined
   for (let i = 0; i < edits.length; i++) {
     let edit = edits[i]
-    let { newText } = edit
-    let range = toValidRange(edit.range)
+    let { newText, range } = edit
+    let max = (textDocument.lines[range.end.line] ?? '').length
+    range = toValidRange(edit.range, max)
     if (prevDelete) {
       // merge possible delete, insert edits.
       if (samePosition(prevDelete, range.start) && emptyRange(range) && newText.length > 0) {

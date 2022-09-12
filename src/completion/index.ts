@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
@@ -294,6 +294,7 @@ export class Completion implements Disposable {
     let input = getInput(doc, pre, asciiCharactersOnly)
     let option: CompleteOption = {
       input,
+      position: Position.create(info.lnum - 1, info.pre.length),
       line: info.line,
       filetype: doc.filetype,
       linenr: info.lnum,

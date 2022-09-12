@@ -5,6 +5,7 @@ import which from 'which'
 import Terminals from '../../core/terminals'
 import window from '../../window'
 import helper from '../helper'
+import { v4 as uuid } from 'uuid'
 
 let nvim: Neovim
 let terminals: Terminals
@@ -26,7 +27,7 @@ afterAll(async () => {
 describe('create terminal', () => {
   it('should use cleaned env', async () => {
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       shellPath: which.sync('bash'),
       strictEnv: true
     })
@@ -40,7 +41,7 @@ describe('create terminal', () => {
 
   it('should use custom shell command', async () => {
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       shellPath: which.sync('bash')
     })
     let bufnr = terminal.bufnr
@@ -51,7 +52,7 @@ describe('create terminal', () => {
   it('should use custom cwd', async () => {
     let basename = path.basename(os.tmpdir())
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       cwd: os.tmpdir()
     })
     let bufnr = terminal.bufnr
@@ -65,7 +66,7 @@ describe('create terminal', () => {
       exitStatus = terminal.exitStatus
     })
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       shellPath: which.sync('bash'),
       strictEnv: true
     })
@@ -79,7 +80,7 @@ describe('create terminal', () => {
 
   it('should not throw when show & hide disposed terminal', async () => {
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       shellPath: which.sync('bash')
     })
     terminal.dispose()
@@ -89,7 +90,7 @@ describe('create terminal', () => {
 
   it('should show terminal on current window', async () => {
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       shellPath: which.sync('bash')
     })
     let winid = await nvim.call('bufwinid', [terminal.bufnr])
@@ -100,7 +101,7 @@ describe('create terminal', () => {
 
   it('should show terminal that shown', async () => {
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       shellPath: which.sync('bash')
     })
     let res = await terminal.show(true)
@@ -113,7 +114,7 @@ describe('create terminal', () => {
 
   it('should show hidden terminal', async () => {
     let terminal = await terminals.createTerminal(nvim, {
-      name: 'test',
+      name: `test-${uuid()}`,
       shellPath: which.sync('bash')
     })
     await terminal.hide()
@@ -122,7 +123,7 @@ describe('create terminal', () => {
 
   it('should create terminal', async () => {
     let terminal = await window.createTerminal({
-      name: 'test',
+      name: `test-${uuid()}`,
     })
     expect(terminal).toBeDefined()
     expect(terminal.processId).toBeDefined()

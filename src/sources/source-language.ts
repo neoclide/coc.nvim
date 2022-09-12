@@ -32,6 +32,7 @@ export default class LanguageSource implements ISource {
   private _enabled = true
   private completeItems: CompletionItem[] = []
   private itemDefaults: ItemDefaults = {}
+  private triggerPosition: Position
   constructor(
     public readonly name: string,
     public readonly shortcut: string,
@@ -64,6 +65,7 @@ export default class LanguageSource implements ISource {
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
     let position = this.getPosition(opt)
+    this.triggerPosition = position
     let context: any = { triggerKind, option: opt }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
     let doc = workspace.getDocument(bufnr)
@@ -150,7 +152,7 @@ export default class LanguageSource implements ISource {
     let item = this.completeItems[vimItem.index]
     if (!item) return
     if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
-    let doc = workspace.getAttachedDocument(opt.bufnr)
+    let doc = workspace.getDocument(opt.bufnr)
     await doc.patchChange(true)
     let additionalEdits = Array.isArray(item.additionalTextEdits) && item.additionalTextEdits.length > 0
     if (additionalEdits) {
@@ -184,12 +186,12 @@ export default class LanguageSource implements ISource {
   }
 
   private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption): Promise<boolean> {
-    let { line, linenr, colnr, col } = option
+    let { line, linenr, col } = option
     let pos = await window.getCursorPosition()
     if (pos.line != linenr - 1) return
     let range: Range | undefined
     let { textEdit, insertText, label } = item
-    let beginIdx = characterIndex(line, colnr - 1)
+    let beginIdx = this.triggerPosition.character
     if (textEdit) {
       range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
     } else {
@@ -201,15 +203,15 @@ export default class LanguageSource implements ISource {
       }
     }
     if (!range) return false
-    let currline = doc.getline(linenr - 1)
-    let newText = textEdit ? textEdit.newText : insertText ?? label
-    // adjust range by indent
-    let n = fixIndent(line, currline, range)
-    if (n) beginIdx += n
     // attempt to fix range from textEdit, range should include trigger position
     if (range.end.character < beginIdx) range.end.character = beginIdx
+    let currline = doc.getline(linenr - 1, false)
+    let newText = textEdit ? textEdit.newText : insertText ?? label
+    // adjust range by indent
+    let indentCount = fixIndent(line, currline, range)
+    let delta = pos.character - beginIdx - indentCount
     // fix range by count cursor moved to replace insert word on complete done.
-    if (pos.character > beginIdx) range.end.character += pos.character - beginIdx
+    if (delta !== 0) range.end.character += delta
     let isSnippet = this.isSnippetItem(item)
     if (isSnippet) {
       let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip
@@ -341,7 +343,7 @@ export function getWord(item: CompletionItem, isSnippet: boolean, opt: CompleteO
 export function fixIndent(line: string, currline: string, range: Range): number {
   let oldIndent = line.match(/^\s*/)[0]
   let newIndent = currline.match(/^\s*/)[0]
-  if (oldIndent == newIndent) return
+  if (oldIndent === newIndent) return 0
   let d = newIndent.length - oldIndent.length
   range.start.character += d
   range.end.character += d

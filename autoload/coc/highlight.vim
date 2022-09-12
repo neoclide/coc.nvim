@@ -8,6 +8,7 @@ let s:ns_id = 1
 let s:diagnostic_hlgroups = ['CocErrorHighlight', 'CocWarningHighlight', 'CocInfoHighlight', 'CocHintHighlight', 'CocDeprecatedHighlight', 'CocUnusedHighlight']
 " Maximum count to highlight each time.
 let g:coc_highlight_maximum_count = get(g:, 'coc_highlight_maximum_count', 100)
+let s:term = &termguicolors == 0 && !has('gui_running')
 
 if has('nvim-0.5.0') && s:clear_match_by_window == 0
   try
@@ -495,6 +496,44 @@ function! coc#highlight#reversed(id) abort
     return 1
   endif
   return 0
+endfunction
+
+function! coc#highlight#get_contrast(group1, group2) abort
+  let bg1 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group1)), 'bg', '#000000')
+  let bg2 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group2)), 'bg', '#000000')
+  return coc#color#hex_contrast(bg1, bg2)
+endfunction
+
+" Darken or lighten background
+function! coc#highlight#create_bg_command(group, amount) abort
+  let id = synIDtrans(hlID(a:group))
+  let bg = coc#highlight#get_hex_color(id, 'bg', &background ==# 'dark' ? '#282828' : '#fefefe')
+  let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
+  return 'ctermbg=' . coc#color#rgb2term(strpart(hex, 1)).' guibg=' . hex
+endfunction
+
+function! coc#highlight#get_hex_color(id, kind, fallback) abort
+  let attr = coc#highlight#get_color(a:id, a:kind, s:term ? 'cterm' : 'gui')
+  let hex = s:to_hex_color(attr, s:term)
+  if empty(hex) && !s:term
+    let attr = coc#highlight#get_color(a:id, a:kind, 'cterm')
+    let hex = s:to_hex_color(attr, 1)
+  endif
+  return empty(hex) ? a:fallback : hex
+endfunction
+
+function! s:to_hex_color(color, term) abort
+  if empty(a:color)
+    return ''
+  endif
+  if a:color =~# '^#\x\+$'
+    return a:color
+  endif
+  if a:term && a:color =~# '^\d\+$'
+    return coc#color#term2rgb(a:color)
+  endif
+  let hex = coc#color#nameToHex(tolower(a:color), a:term)
+  return empty(hex) ? '' : hex
 endfunction
 
 " add matches for winid, use 0 for current window.

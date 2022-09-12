@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
 import events from '../../events'
 import sources from '../../sources'
@@ -835,7 +835,8 @@ describe('completion', () => {
       await doc.synchronize()
       await nvim.input('i')
       await nvim.call('cursor', [1, 2])
-      let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
+      let option = await nvim.call('coc#util#get_complete_option') as any
+      option.position = Position.create(0, 1)
       await completion.startCompletion(option)
       await helper.waitPopup()
       let items = await helper.items()

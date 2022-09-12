@@ -251,6 +251,13 @@ describe('textedit', () => {
     ])
   })
 
+  it('should fix edit range', async () => {
+    let doc = createTextDocument(['foo'])
+    let range = Range.create(0, 0, 0, 5)
+    let res = textedits.filterSortEdits(doc, [TextEdit.replace(range, 'bar')])
+    expect(res[0].range).toEqual(Range.create(0, 0, 0, 3))
+  })
+
   it('should merge textedits #1', async () => {
     let edits = [toEdit(0, 0, 0, 0, 'foo'), toEdit(0, 1, 0, 1, 'bar')]
     let lines = ['ab']

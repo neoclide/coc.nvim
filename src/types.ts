@@ -755,6 +755,7 @@ export interface CompleteResult {
 // what need change? line, col, input, colnr, changedtick
 // word = '', triggerForInComplete = false
 export interface CompleteOption {
+  readonly position: Position
   readonly bufnr: number
   readonly line: string
   col: number

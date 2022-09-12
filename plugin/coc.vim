@@ -418,10 +418,24 @@ function! s:Highlight() abort
   hi default CocMarkdownLink  ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocDisabled      guifg=#999999   ctermfg=gray
   hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
-  if hlexists('PmenuSel')
-    execute 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
+  if coc#highlight#get_contrast('Normal', has('nvim') ? 'NormalFloat' : 'Pmenu') > 2.0
+    exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.4 : 0.1)
+    exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.2 : 0.05)
+    exe 'hi default CocFloatThumb '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.3 : 0.2)
+    exe 'hi default CocFloatSbar '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.5 : 0.3)
   else
-    hi default CocMenuSel       ctermbg=237 guibg=#13354A
+    exe 'hi default link CocFloating '.(has('nvim') ? 'NormalFloat' : 'Pmenu')
+    if coc#highlight#get_contrast('CocFloating', 'PmenuSel') > 2.0
+      if &background ==# 'dark'
+        hi default CocMenuSel ctermbg=237 guibg=#13354A
+      else
+        exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -0.2 : 0.05)
+      endif
+    else
+      exe 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
+    endif
+    hi default link CocFloatThumb        PmenuThumb
+    hi default link CocFloatSbar         PmenuSbar
   endif
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
@@ -462,12 +476,6 @@ function! s:Highlight() abort
   hi default link CocPumDeprecated       CocStrikeThrough
   hi default link CocPumVirtualText      NonText
 
-  if has('nvim')
-    hi default link CocFloating NormalFloat
-  else
-    hi default link CocFloating Pmenu
-  endif
-  let g:coc_floating_reversed = coc#highlight#reversed(hlID('CocFloating'))
   hi default link CocFloatDividingLine NonText
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
