@@ -14,7 +14,7 @@ import TextRange from './textRange'
 import { getBeforeCount, getChange, getDelta, SurrondChange, TextChange } from './util'
 const logger = require('../util/logger')('cursors-session')
 
-export interface Config {
+export interface CursorsConfig {
   cancelKey: string
   previousKey: string
   nextKey: string
@@ -39,10 +39,8 @@ export default class CursorSession {
   private ranges: TextRange[] = []
   private activated = true
   private changing = false
-  private config: Config
-  constructor(private nvim: Neovim, private doc: Document) {
+  constructor(private nvim: Neovim, private doc: Document, private config: CursorsConfig) {
     doc.buffer.setVar('coc_cursors_activated', 1, true)
-    this.loadConfig()
     let { cancelKey, nextKey, previousKey } = this.config
     this.disposables.push(workspace.registerLocalKeymap('n', cancelKey, () => {
       this.cancel()
@@ -78,16 +76,6 @@ export default class CursorSession {
         this._onDidUpdate.fire()
       }
     }, this, this.disposables)
-  }
-
-  private loadConfig(): void {
-    let config = workspace.getConfiguration('cursors', this.doc.uri)
-    this.config = {
-      nextKey: config.get('nextKey', '<C-n>'),
-      previousKey: config.get('previousKey', '<C-p>'),
-      cancelKey: config.get('cancelKey', '<esc>'),
-      wrapscan: config.get('wrapscan', true),
-    }
   }
 
   /**
@@ -230,14 +218,11 @@ export default class CursorSession {
   public cancel(): void {
     if (!this.activated) return
     logger.debug('cursors cancel')
-    let { nvim, doc } = this
-    let buffer = doc.buffer
+    let buffer = this.doc.buffer
     this.activated = false
     this.ranges = []
-    nvim.pauseNotification()
     buffer.clearNamespace('cursors')
     buffer.setVar('coc_cursors_activated', 0, true)
-    nvim.resumeNotification(true, true)
     this._onDidUpdate.fire()
     this._onDidCancel.fire()
   }

@@ -3,7 +3,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import { CodeActionKind, Disposable } from 'vscode-languageserver-protocol'
 import commandManager from './commands'
-import completion from './completion'
+import completion, { Completion } from './completion'
 import channels from './core/channels'
 import Cursors from './cursors'
 import diagnosticManager from './diagnostic/manager'
@@ -16,7 +16,7 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import { disposeAll } from './util'
 import window from './window'
-import workspace from './workspace'
+import workspace, { Workspace } from './workspace'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -29,6 +29,9 @@ export default class Plugin extends EventEmitter {
   constructor(public nvim: Neovim) {
     super()
     this.disposables.push(workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim)))
+    Object.defineProperty(window, 'workspace', {
+      get: () => workspace
+    })
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
@@ -83,7 +86,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
     this.addAction('sendNotification', (id: string, method: string, params?: any) => services.sendNotification(id, method, params))
     this.addAction('registNotification', (id: string, method: string) => services.registNotification(id, method))
-    this.addAction('updateConfig', (section: string, val: any) => workspace.configurations.updateUserConfig({ [section]: val }))
+    this.addAction('updateConfig', (section: string, val: any) => workspace.configurations.updateMemoryConfig({ [section]: val }))
     this.addAction('links', () => this.handler.links.getLinks())
     this.addAction('openLink', () => this.handler.links.openCurrentLink())
     this.addAction('pickColor', () => this.handler.colors.pickColor())
@@ -95,7 +98,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('refreshSource', name => sources.refresh(name))
     this.addAction('toggleSource', name => sources.toggleSource(name))
     this.addAction('diagnosticRefresh', bufnr => diagnosticManager.refresh(bufnr))
-    this.addAction('diagnosticInfo', () => diagnosticManager.echoMessage())
+    this.addAction('diagnosticInfo', () => diagnosticManager.echoCurrentMessage())
     this.addAction('diagnosticToggle', enable => diagnosticManager.toggleDiagnostic(enable))
     this.addAction('diagnosticToggleBuffer', (bufnr, enable) => diagnosticManager.toggleDiagnosticBuffer(bufnr, enable))
     this.addAction('diagnosticNext', severity => diagnosticManager.jumpNext(severity))
@@ -168,6 +171,14 @@ export default class Plugin extends EventEmitter {
     this.addAction('inspectSemanticToken', () => this.handler.semanticHighlighter.inspectSemanticToken())
     this.addAction('semanticHighlight', () => this.handler.semanticHighlighter.highlightCurrent())
     this.addAction('showSemanticHighlightInfo', () => this.handler.semanticHighlighter.showHighlightInfo())
+  }
+
+  public get workspace(): Workspace {
+    return workspace
+  }
+
+  public get completion(): Completion {
+    return completion
   }
 
   private addAction(key: string, fn: Function): void {
@@ -247,7 +258,6 @@ export default class Plugin extends EventEmitter {
     channels.dispose()
     window.dispose()
     sources.dispose()
-    services.stopAll()
     services.dispose()
     if (this.handler) {
       this.handler.dispose()

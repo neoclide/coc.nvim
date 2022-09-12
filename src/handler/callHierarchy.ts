@@ -9,7 +9,7 @@ import events from '../events'
 import languages from '../languages'
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from '../tree/index'
 import BasicTreeView from '../tree/TreeView'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { omit } from '../util/lodash'
 import window from '../window'
@@ -77,9 +77,9 @@ export default class CallHierarchyHandler {
     }, null, this.disposables)
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('callHierarchy')) {
-      let c = workspace.getConfiguration('callHierarchy')
+      let c = workspace.getConfiguration('callHierarchy', null)
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
         openCommand: c.get<string>('openCommand'),

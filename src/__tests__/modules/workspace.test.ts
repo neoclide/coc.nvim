@@ -7,7 +7,6 @@ import { Location, Position, Range, TextEdit } from 'vscode-languageserver-types
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
-import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
@@ -143,15 +142,6 @@ describe('workspace methods', () => {
     let opts = await workspace.getFormatOptions(uri)
     expect(opts.insertSpaces).toBe(true)
     expect(opts.tabSize).toBe(2)
-  })
-
-  it('should get config files', async () => {
-    let file = workspace.getConfigFile(ConfigurationTarget.Global)
-    expect(file).toBeFalsy()
-    file = workspace.getConfigFile(ConfigurationTarget.User)
-    expect(file).toBeTruthy()
-    file = workspace.getConfigFile(ConfigurationTarget.Workspace)
-    expect(file).toBeTruthy()
   })
 
   it('should create file watcher', async () => {
@@ -523,9 +513,9 @@ describe('workspace events', () => {
       fn()
     })
     let config = workspace.getConfiguration('tsserver')
-    config.update('enable', false)
+    await config.update('enable', false)
     expect(fn).toHaveBeenCalledTimes(1)
-    config.update('enable', undefined)
+    await config.update('enable', undefined)
   })
 
   it('should get empty configuration for none exists section', () => {

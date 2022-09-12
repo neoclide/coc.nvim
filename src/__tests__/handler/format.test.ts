@@ -112,10 +112,11 @@ describe('format handler', () => {
 
     it('should cancel when timeout', async () => {
       helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['*'])
+      let timer
       disposables.push(languages.registerDocumentFormatProvider(['*'], {
         provideDocumentFormattingEdits: () => {
           return new Promise(resolve => {
-            setTimeout(() => {
+            timer = setTimeout(() => {
               resolve(undefined)
             }, 2000)
           })
@@ -126,6 +127,7 @@ describe('format handler', () => {
       let n = Date.now()
       await nvim.command('w')
       expect(Date.now() - n).toBeLessThan(1000)
+      clearTimeout(timer)
     })
   })
 

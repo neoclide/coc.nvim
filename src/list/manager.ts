@@ -410,7 +410,7 @@ export class ListManager implements Disposable {
       type: 'string',
       default: null,
       description: `Default action of "${name}" list.`
-    })
+    }, 'list-manager')
     extensions.addSchemeProperty(`list.source.${name}.defaultOptions`, {
       type: 'array',
       default: list.interactive ? ['--interactive'] : [],
@@ -422,14 +422,14 @@ export class ListManager implements Disposable {
           '--strict', '--regex', '--ignore-case', '--number-select',
           '--reverse', '--interactive', '--auto-preview', '--first', '--no-quit']
       }
-    })
+    }, 'list-manager')
     extensions.addSchemeProperty(`list.source.${name}.defaultArgs`, {
       type: 'array',
       default: [],
       description: `Default argument list of "${name}" list, only used when list argument is empty.`,
       uniqueItems: true,
       items: { type: 'string' }
-    })
+    }, 'list-manager')
     return Disposable.create(() => {
       if (typeof list.dispose == 'function') {
         list.dispose()

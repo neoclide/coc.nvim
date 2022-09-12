@@ -8,7 +8,7 @@ import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import { isParentFolder, sameFile } from '../util/fs'
 import Watchman, { FileChange } from './watchman'
-import WorkspaceFolderControl from './workspaceFolder'
+import type WorkspaceFolderControl from './workspaceFolder'
 const logger = require('../util/logger')('filesystem-watcher')
 
 export interface RenameEvent {

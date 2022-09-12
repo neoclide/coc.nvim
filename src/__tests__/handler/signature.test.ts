@@ -259,7 +259,7 @@ describe('signatureHelp', () => {
   describe('configurations', () => {
     let { configurations } = workspace
     afterEach(() => {
-      configurations.updateUserConfig({
+      configurations.updateMemoryConfig({
         'signature.target': 'float',
         'signature.hideOnTextChange': false,
         'signature.enable': true,
@@ -268,7 +268,7 @@ describe('signatureHelp', () => {
     })
 
     it('should cancel signature on timeout', async () => {
-      configurations.updateUserConfig({ 'signature.triggerSignatureWait': 50 })
+      configurations.updateMemoryConfig({ 'signature.triggerSignatureWait': 50 })
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position, token) => {
           return new Promise(resolve => {
@@ -290,11 +290,11 @@ describe('signatureHelp', () => {
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
       expect(win).toBeUndefined()
-      configurations.updateUserConfig({ 'signature.triggerSignatureWait': 100 })
+      configurations.updateMemoryConfig({ 'signature.triggerSignatureWait': 100 })
     })
 
     it('should hide signature window on text change', async () => {
-      configurations.updateUserConfig({ 'signature.hideOnTextChange': true })
+      configurations.updateMemoryConfig({ 'signature.hideOnTextChange': true })
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
           return {
@@ -311,11 +311,11 @@ describe('signatureHelp', () => {
       await helper.wait(100)
       let res = await nvim.call('coc#float#valid', [winid])
       expect(res).toBe(0)
-      configurations.updateUserConfig({ 'signature.hideOnTextChange': false })
+      configurations.updateMemoryConfig({ 'signature.hideOnTextChange': false })
     })
 
     it('should disable signature help trigger', async () => {
-      configurations.updateUserConfig({ 'signature.enable': false })
+      configurations.updateMemoryConfig({ 'signature.enable': false })
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
           return {
@@ -336,7 +336,7 @@ describe('signatureHelp', () => {
     it('should echo simple signature help', async () => {
       let idx = 0
       let activeSignature = null
-      configurations.updateUserConfig({ 'signature.target': 'echo' })
+      configurations.updateMemoryConfig({ 'signature.target': 'echo' })
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
           return {

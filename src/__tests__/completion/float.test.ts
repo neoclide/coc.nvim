@@ -101,17 +101,18 @@ describe('completion float', () => {
 
 describe('float config', () => {
   beforeEach(async () => {
-    let doc = await workspace.document
     await nvim.input('of')
     await helper.waitPopup()
   })
 
   async function createFloat(config: Partial<FloatConfig>, docs = [{ filetype: 'txt', content: 'doc' }]): Promise<Floating> {
-    let floating = new Floating(nvim)
-    floating.show(docs, Object.assign({
-      excludeImages: true,
-      border: false,
-    }, config))
+    let floating = new Floating(nvim, {
+      floatConfig: {
+        border: true,
+        ...config
+      }
+    })
+    floating.show(docs)
     return floating
   }
 
@@ -142,7 +143,7 @@ describe('float config', () => {
   })
 
   it('should show window with border', async () => {
-    await createFloat({ border: true })
+    await createFloat({ border: true, rounded: true, focusable: true })
     let winid = await getFloat()
     expect(winid).toBeGreaterThan(0)
     let id = await getRelated(winid, 'border')

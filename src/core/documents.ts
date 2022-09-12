@@ -10,7 +10,7 @@ import Configurations from '../configuration'
 import events, { InsertChange } from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import { BufferOption, ConfigurationChangeEvent, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
+import { BufferOption, IConfigurationChangeEvent, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll, platform } from '../util'
 import { readFileLine } from '../util/fs'
 import { byteIndex } from '../util/string'
@@ -148,7 +148,7 @@ export default class Documents implements Disposable {
     this._initialized = true
   }
 
-  private getConfiguration(e?: ConfigurationChangeEvent): void {
+  private getConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('coc.preferences')) {
       let config = this.configurations.getConfiguration('coc.preferences')
       let maxFileSize = config.get<string>('maxFileSize', '10MB')
@@ -380,10 +380,9 @@ export default class Documents implements Disposable {
     this.buffers.set(bufnr, doc)
     if (doc.attached) {
       if (doc.schema == 'file') {
-        let configfile = this.configurations.resolveFolderConfigution(doc.uri)
+        this.configurations.locateFolderConfigution(doc.uri)
         let root = this.workspaceFolder.resolveRoot(doc, this._cwd, this._initialized, this.expand.bind(this))
         if (bufnr == this._bufnr) {
-          if (configfile) this.configurations.setFolderConfiguration(doc.uri)
           if (root) this._root = root
         }
       }
@@ -398,7 +397,6 @@ export default class Documents implements Disposable {
     this._bufnr = bufnr
     let doc = this.buffers.get(bufnr)
     if (doc) {
-      this.configurations.setFolderConfiguration(doc.uri)
       let workspaceFolder = this.workspaceFolder.getWorkspaceFolder(URI.parse(doc.uri))
       if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
     }

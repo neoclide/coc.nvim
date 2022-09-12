@@ -4,8 +4,9 @@ import { CancellationTokenSource, Disposable, DocumentHighlight, DocumentHighlig
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
+import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('documentHighlight')
 
@@ -29,12 +30,15 @@ export default class Highlights {
       this.cancel()
       this.clearHighlights()
     }, null, this.disposables)
-    this.getConfiguration()
-    workspace.onDidChangeConfiguration(this.getConfiguration, this, this.disposables)
+    this.loadConfiguration()
+    workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
+    window.onDidChangeActiveTextEditor(() => {
+      this.loadConfiguration()
+    }, null, this.disposables)
   }
 
-  private getConfiguration(e?: ConfigurationChangeEvent): void {
-    let config = workspace.getConfiguration('documentHighlight')
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
+    let config = workspace.getConfiguration('documentHighlight', this.handler.uri)
     if (!e || e.affectsConfiguration('documentHighlight')) {
       this.config = Object.assign(this.config || {}, {
         priority: config.get<number>('priority', -1),

@@ -1,5 +1,9 @@
 'use strict'
 
+export function toArray<T>(item: T | T[] | null | undefined): T[] {
+  return Array.isArray(item) ? item : item == null ? [] : [item]
+}
+
 export function intersect<T>(array: T[], other: T[]): boolean {
   for (let item of other) {
     if (array.includes(item)) {

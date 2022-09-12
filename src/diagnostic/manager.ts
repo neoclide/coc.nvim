@@ -1,12 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Disposable, Emitter, Event, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
-import { ConfigurationChangeEvent, FloatFactory, Documentation, ErrorItem, VirtualTextOption } from '../types'
+import { ErrorItem, FloatFactory } from '../types'
 import { disposeAll } from '../util'
 import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
@@ -15,13 +14,21 @@ import window from '../window'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { DiagnosticConfig, formatDiagnostic, getSeverityName, severityLevel } from './util'
+import { getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticEventParams {
   bufnr: number
   uri: string
   diagnostics: ReadonlyArray<Diagnostic>
+}
+
+interface DiagnosticSignConfig {
+  errorSign?: string
+  warningSign?: string
+  infoSing?: string
+  hintSign?: string
+  enableHighlightLineNumber?: boolean
 }
 
 export interface DiagnosticItem {
@@ -38,122 +45,107 @@ export interface DiagnosticItem {
   location: Location
 }
 
-export class DiagnosticManager implements Disposable {
-  public config: DiagnosticConfig
-  private enabled = true
+class DiagnosticManager implements Disposable {
   private readonly _onDidRefresh = new Emitter<DiagnosticEventParams>()
   public readonly onDidRefresh: Event<DiagnosticEventParams> = this._onDidRefresh.event
+  private enabled = true
   private buffers: BufferSync<DiagnosticBuffer>
   private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private clearTimers: () => void | undefined
+  private messageTimer: NodeJS.Timeout
 
   public init(): void {
-    this.setConfiguration()
-    this.nvim.createNamespace('coc-diagnostic-virtualText').then(id => {
-      this.config.virtualTextSrcId = id
-    }).logError()
-    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
-    this.floatFactory = window.createFloatFactory(Object.assign({ modes: ['n'] }, this.config.floatConfig))
+    let config = workspace.getConfiguration('diagnostic')
+    this.floatFactory = window.createFloatFactory({ modes: ['n'], autoHide: true })
     this.buffers = workspace.registerBufferSync(doc => {
-      let buf = new DiagnosticBuffer(
-        this.nvim, doc, this.config,
-        diagnostics => {
-          this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
-          if (buf.bufnr === workspace.bufnr && this.config.messageTarget === 'float') {
-            void this.getCurrentDiagnostics().then(diagnostics => {
-              return this.showFloat(diagnostics)
-            })
-          }
-        })
-      if (this.enabled) {
-        let diagnostics = this.getDiagnostics(doc.uri)
-        // ignore empty diagnostics on first time.
-        if (Object.keys(diagnostics).length > 0) {
-          void buf.reset(diagnostics)
-        }
+      let buf = new DiagnosticBuffer(this.nvim, doc, this.floatFactory)
+      buf.onDidRefresh(diagnostics => {
+        this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
+      })
+      let diagnostics = this.getDiagnostics(buf)
+      // ignore empty diagnostics on first time.
+      if (Object.keys(diagnostics).length > 0 && buf.config.autoRefresh) {
+        void buf.reset(diagnostics)
       }
       return buf
     })
-
+    workspace.onDidChangeConfiguration(e => {
+      for (let item of this.buffers.items) {
+        if (e.affectsConfiguration('diagnostic', item.doc)) {
+          item.loadConfiguration()
+        }
+      }
+    }, null, this.disposables)
     workspace.onDidCloseTextDocument(e => {
       for (let collection of this.collections) {
         collection.delete(e.uri)
       }
     }, null, this.disposables)
 
-    let messageTimer: NodeJS.Timeout
-    events.on('CursorMoved', bufnr => {
-      if (this.config.enableMessage != 'always') return
-      if (messageTimer) clearTimeout(messageTimer)
-      messageTimer = setTimeout(async () => {
+    events.on('CursorMoved', (bufnr, cursor) => {
+      if (this.messageTimer) clearTimeout(this.messageTimer)
+      this.messageTimer = setTimeout(() => {
         let buf = this.buffers.getItem(bufnr)
-        if (!buf || buf.dirty) return
-        await this.echoMessage(true)
-      }, this.config.messageDelay)
+        if (buf == null || buf.dirty) return
+        let echoMessage = async () => {
+          if (buf.config.enableMessage !== 'always') return
+          let pos = buf.doc.getPosition(cursor[0], cursor[1])
+          await buf.echoMessage(true, pos)
+        }
+        void Promise.all([echoMessage(), buf.showVirtualTextCurrentLine(cursor[0])])
+      }, global.__TEST__ ? 10 : config.messageDelay)
     }, null, this.disposables)
 
-    let fn = debounce(async (bufnr, cursor) => {
-      if (!this.config.virtualTextCurrentLineOnly) return
-      if (events.insertMode && !this.config.refreshOnInsertMode) return
+    events.on(['InsertEnter', 'BufEnter'], () => {
+      if (this.messageTimer) clearTimeout(this.messageTimer)
+    }, null, this.disposables)
+    events.on('InsertLeave', async bufnr => {
       let buf = this.buffers.getItem(bufnr)
-      if (buf) {
-        let enabled = await buf.isEnabled()
-        if (enabled) buf.showVirtualText(cursor[0])
-      }
-    }, global.__TEST__ ? 10 : 100)
-    this.disposables.push(Disposable.create(() => {
-      fn.clear()
-    }))
-    events.on('CursorMoved', fn, null, this.disposables)
-    events.on('InsertLeave', async () => {
-      if (this.config.refreshOnInsertMode || !this.autoRefresh) return
+      if (!buf || buf.config.refreshOnInsertMode) return
       for (let buf of this.buffers.items) {
-        if (buf.dirty) buf.refreshHighlights()
+        if (buf.dirty && buf.config.autoRefresh) buf.refreshHighlights()
       }
     }, null, this.disposables)
     events.on('BufWinEnter', (bufnr: number) => {
       let buf = this.buffers.getItem(bufnr)
       if (buf && buf.dirty) buf.refreshHighlights()
     }, null, this.disposables)
-    this.clearTimers = () => {
-      if (messageTimer) clearTimeout(messageTimer)
-      messageTimer = undefined
-      fn.clear()
-    }
-    events.on('InsertEnter', this.clearTimers, this, this.disposables)
+
     let errorItems = workspace.configurations.errorItems
     this.setConfigurationErrors(errorItems)
     workspace.configurations.onError(items => {
       this.setConfigurationErrors(items)
     }, null, this.disposables)
+    this.defineSigns(config as DiagnosticSignConfig)
   }
 
-  private defineSigns(): void {
+  public defineSigns(config: DiagnosticSignConfig): void {
     let { nvim } = this
-    let { enableHighlightLineNumber, enableSign } = this.config
-    if (!enableSign) return
     nvim.pauseNotification()
     for (let kind of ['Error', 'Warning', 'Info', 'Hint']) {
-      let signText = this.config[kind.toLowerCase() + 'Sign']
       let cmd = `sign define Coc${kind} linehl=Coc${kind}Line`
+      let signText = config[kind.toLowerCase() + 'Sign']
       if (signText) cmd += ` texthl=Coc${kind}Sign text=${signText}`
-      if (enableHighlightLineNumber) cmd += ` numhl=Coc${kind}Sign`
+      if (workspace.isNvim && config.enableHighlightLineNumber) cmd += ` numhl=Coc${kind}Sign`
       nvim.command(cmd, true)
     }
     nvim.resumeNotification(false, true)
+  }
+
+  public getItem(bufnr: number): DiagnosticBuffer | undefined {
+    return this.buffers.getItem(bufnr)
   }
 
   /**
    * Fill location list with diagnostics
    */
   public async setLocationlist(bufnr: number): Promise<void> {
-    if (!this.enabled) throw new Error(`Diagnostic not enabled.`)
     let buf = this.buffers.getItem(bufnr)
-    if (!buf) throw new Error(`buffer ${bufnr} not attached.`)
+    let doc = workspace.getDocument(bufnr)
+    if (!buf) throw new Error(`buffer ${bufnr} not attached, ${doc ? doc.notAttachReason : ''}`)
     let diagnostics: Diagnostic[] = []
-    for (let diags of Object.values(this.getDiagnostics(buf.uri))) {
+    for (let diags of Object.values(this.getDiagnostics(buf))) {
       diagnostics.push(...diags)
     }
     let items = buf.toLocationListItems(diagnostics)
@@ -193,8 +185,7 @@ export class DiagnosticManager implements Disposable {
     this.collections.push(collection)
     collection.onDidDiagnosticsChange(uri => {
       let buf = this.buffers.getItem(uri)
-      if (!this.autoRefresh || !buf) return
-      void buf.update(name, this.getDiagnosticsByCollection(uri, collection))
+      if (buf && buf.config.autoRefresh) void buf.update(name, this.getDiagnosticsByCollection(buf, collection))
     })
     return collection
   }
@@ -202,7 +193,7 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get diagnostics ranges from document
    */
-  public getSortedRanges(uri: string, severity?: string): Range[] {
+  public getSortedRanges(uri: string, minLevel: number | undefined, severity?: string): Range[] {
     let collections = this.getCollections(uri)
     let res: Range[] = []
     let level = severity ? severityLevel(severity) : 0
@@ -211,7 +202,6 @@ export class DiagnosticManager implements Disposable {
       if (level) {
         diagnostics = diagnostics.filter(o => o.severity == level)
       } else {
-        let minLevel = this.config.level
         if (minLevel && minLevel < DiagnosticSeverity.Hint) {
           diagnostics = diagnostics.filter(o => {
             return o.severity && o.severity > minLevel ? false : true
@@ -233,12 +223,11 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get readonly diagnostics for a buffer
    */
-  public getDiagnostics(uri: string): { [collection: string]: Diagnostic[] } {
+  public getDiagnostics(buf: DiagnosticBuffer): { [collection: string]: Diagnostic[] } {
     let res: { [collection: string]: Diagnostic[] } = {}
-    let collections = this.getCollections(uri)
-    for (let collection of collections) {
-      if (!collection) continue
-      res[collection.name] = this.getDiagnosticsByCollection(uri, collection)
+    for (let collection of this.collections) {
+      if (!collection.has(buf.uri)) continue
+      res[collection.name] = this.getDiagnosticsByCollection(buf, collection)
     }
     return res
   }
@@ -246,9 +235,10 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get filtered diagnostics by collection.
    */
-  public getDiagnosticsByCollection(uri: string, collection: DiagnosticCollection): Diagnostic[] {
-    let { level, showUnused, showDeprecated } = this.config
-    let items = collection.get(uri) || []
+  public getDiagnosticsByCollection(buf: DiagnosticBuffer, collection: DiagnosticCollection): Diagnostic[] {
+    // let config = this.buffers.getItem(uri)
+    let { level, showUnused, showDeprecated } = buf.config
+    let items = collection.get(buf.uri) ?? []
     if (items.length) {
       items = items.filter(d => {
         if (level && d.severity && d.severity > level) {
@@ -270,12 +260,9 @@ export class DiagnosticManager implements Disposable {
   }
 
   public getDiagnosticsInRange(document: TextDocument, range: Range): Diagnostic[] {
-    let collections = this.getCollections(document.uri)
     let res: Diagnostic[] = []
-    for (let collection of collections) {
-      let items = collection.get(document.uri)
-      if (!items) continue
-      for (let item of items) {
+    for (let collection of this.collections) {
+      for (let item of collection.get(document.uri) ?? []) {
         if (rangeIntersect(item.range, range)) {
           res.push(item)
         }
@@ -312,7 +299,7 @@ export class DiagnosticManager implements Disposable {
     let item = this.buffers.getItem(buffer.id)
     if (!item) return
     let curpos = await window.getCursorPosition()
-    let ranges = this.getSortedRanges(item.uri, severity)
+    let ranges = this.getSortedRanges(item.uri, item.config.level, severity)
     let pos: Position
     for (let i = ranges.length - 1; i >= 0; i--) {
       let end = ranges[i].end
@@ -326,8 +313,7 @@ export class DiagnosticManager implements Disposable {
     }
     if (pos) {
       await window.moveTo(pos)
-      if (this.config.enableMessage == 'never') return
-      await this.echoMessage(false)
+      await item.echoMessage(false, pos)
     }
   }
 
@@ -339,7 +325,7 @@ export class DiagnosticManager implements Disposable {
     let item = this.buffers.getItem(buffer.id)
     if (!item) return
     let curpos = await window.getCursorPosition()
-    let ranges = this.getSortedRanges(item.uri, severity)
+    let ranges = this.getSortedRanges(item.uri, item.config.level, severity)
     let pos: Position
     for (let i = 0; i <= ranges.length - 1; i++) {
       let start = ranges[i].start
@@ -353,8 +339,7 @@ export class DiagnosticManager implements Disposable {
     }
     if (pos) {
       await window.moveTo(pos)
-      if (this.config.enableMessage == 'never') return
-      await this.echoMessage(false)
+      await item.echoMessage(false, pos)
     }
   }
 
@@ -363,7 +348,8 @@ export class DiagnosticManager implements Disposable {
    */
   public async getDiagnosticList(): Promise<DiagnosticItem[]> {
     let res: DiagnosticItem[] = []
-    const { level } = this.config
+    let config = workspace.getConfiguration('diagnostic')
+    let level = severityLevel(config.get<string>('level', 'hint'))
     for (let collection of this.collections) {
       for (let [uri, diagnostics] of collection.entries()) {
         if (diagnostics.length == 0) continue
@@ -388,10 +374,10 @@ export class DiagnosticManager implements Disposable {
             col: Array.isArray(lines) ? byteIndex(lines[start.line] ?? '', start.character) + 1 : start.character + 1,
             end_col: Array.isArray(lines) ? byteIndex(lines[end.line] ?? '', end.character) + 1 : end.character + 1,
             code: diagnostic.code,
-            source: diagnostic.source || collection.name,
+            source: diagnostic.source ?? collection.name,
             message: diagnostic.message,
             severity: getSeverityName(diagnostic.severity),
-            level: diagnostic.severity || 0,
+            level: diagnostic.severity ?? 0,
             location: Location.create(uri, diagnostic.range)
           }
           res.push(o)
@@ -414,98 +400,25 @@ export class DiagnosticManager implements Disposable {
     return res
   }
 
-  private getDiagnosticsAt(bufnr: number, cursor: [number, number], atEnd = false, lastline = false): Diagnostic[] {
-    let buffer = this.buffers.getItem(bufnr)
-    if (!buffer) return []
-    let pos = Position.create(cursor[0], cursor[1])
-    let res = buffer.getDiagnosticsAt(pos, this.config.checkCurrentLine)
-    if (this.config.checkCurrentLine || res.length) return res
-    // check next character when cursor at end of line.
-    if (atEnd) {
-      pos = Position.create(cursor[0], cursor[1] + 1)
-      res = buffer.getDiagnosticsAt(pos, false)
-      if (res.length) return res
-    }
-    // check next line when cursor at the beginning of last line.
-    if (lastline && cursor[1] == 0) {
-      pos = Position.create(cursor[0] + 1, 0)
-      res = buffer.getDiagnosticsAt(pos, false)
-    }
-    return res
+  private async getBufferAndPosition(): Promise<[DiagnosticBuffer, Position] | undefined> {
+    let [bufnr, lnum, col] = await this.nvim.eval(`[bufnr("%"),line('.'),col('.')]`) as [number, number, number]
+    let item = this.buffers.getItem(bufnr)
+    if (!item) return
+    let pos = item.doc.getPosition(lnum, col)
+    return [item, pos]
   }
 
-  public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
-    let [bufnr, cursor, eol, lastline] = await this.nvim.eval(`[bufnr("%"),coc#cursor#position(),col('.')==col('$')-1,line('.')==line('$')]`) as [number, [number, number], number, number]
-    return this.getDiagnosticsAt(bufnr, cursor, eol == 1, lastline == 1)
+  public async getCurrentDiagnostics(): Promise<Diagnostic[] | undefined> {
+    let res = await this.getBufferAndPosition()
+    if (!res) return
+    return res[0].getDiagnosticsAtPosition(res[1])
   }
 
-  /**
-   * Echo diagnostic message under cursor.
-   */
-  public async echoMessage(truncate = false): Promise<void> {
-    const config = this.config
-    if (!this.enabled || config.displayByAle) return
-    let useFloat = config.messageTarget == 'float'
-    let diagnostics = await this.getCurrentDiagnostics()
-    if (config.messageLevel) {
-      diagnostics = diagnostics.filter(diagnostic => {
-        return diagnostic.severity && diagnostic.severity <= config.messageLevel
-      })
-    }
-    if (useFloat) {
-      await this.showFloat(diagnostics)
-    } else {
-      if (truncate && events.insertMode) return
-      const lines = []
-      diagnostics.forEach(diagnostic => {
-        lines.push(formatDiagnostic(config.format, diagnostic))
-      })
-      if (lines.length) {
-        await this.nvim.command('echo ""')
-        await window.echoLines(lines, truncate)
-      }
-    }
-  }
-
-  private async showFloat(diagnostics: Diagnostic[]): Promise<void> {
-    if (this.config.messageTarget !== 'float') return
-    let { config } = this
-    if (diagnostics.length == 0) {
-      this.floatFactory.close()
-      return
-    }
-    if (events.insertMode) return
-    let ft = ''
-    let docs: Documentation[] = []
-    if (Object.keys(config.filetypeMap).length > 0) {
-      let doc = workspace.getDocument(workspace.bufnr)
-      let filetype = doc ? doc.filetype : ''
-      const defaultFiletype = config.filetypeMap['default'] || ''
-      ft = config.filetypeMap[filetype] || (defaultFiletype == 'bufferType' ? filetype : defaultFiletype)
-    }
-    diagnostics.forEach(diagnostic => {
-      let filetype = 'Error'
-      if (ft === '') {
-        switch (diagnostic.severity) {
-          case DiagnosticSeverity.Hint:
-            filetype = 'Hint'
-            break
-          case DiagnosticSeverity.Warning:
-            filetype = 'Warning'
-            break
-          case DiagnosticSeverity.Information:
-            filetype = 'Info'
-            break
-        }
-      } else {
-        filetype = ft
-      }
-      docs.push({ filetype, content: formatDiagnostic(config.format, diagnostic) })
-      if (diagnostic.codeDescription?.href) {
-        docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
-      }
-    })
-    await this.floatFactory.show(docs)
+  public async echoCurrentMessage(): Promise<void> {
+    let res = await this.getBufferAndPosition()
+    if (!res) return
+    let [item, position] = res
+    await item.echoMessage(false, position)
   }
 
   public async jumpRelated(): Promise<void> {
@@ -522,8 +435,8 @@ export class DiagnosticManager implements Disposable {
   }
 
   public reset(): void {
-    if (this.clearTimers) {
-      this.clearTimers()
+    if (this.messageTimer) {
+      clearTimeout(this.messageTimer)
     }
     this.buffers.reset()
     for (let collection of this.collections) {
@@ -533,71 +446,20 @@ export class DiagnosticManager implements Disposable {
   }
 
   public dispose(): void {
-    if (this.clearTimers) {
-      this.clearTimers()
+    if (this.messageTimer) {
+      clearTimeout(this.messageTimer)
     }
     this.buffers.dispose()
     for (let collection of this.collections) {
       collection.dispose()
     }
-    this.floatFactory?.dispose()
+    this.floatFactory.dispose()
     this.collections = []
     disposeAll(this.disposables)
   }
 
   private get nvim(): Neovim {
     return workspace.nvim
-  }
-
-  private setConfiguration(event?: ConfigurationChangeEvent): void {
-    if (event && !event.affectsConfiguration('diagnostic')) return
-    let config = workspace.getConfiguration('diagnostic')
-    let messageTarget = config.get<string>('messageTarget', 'float')
-    if (messageTarget == 'float' && !workspace.env.floating && !workspace.env.textprop) {
-      messageTarget = 'echo'
-    }
-    let enableHighlightLineNumber = config.get<boolean>('enableHighlightLineNumber', true)
-    if (!workspace.isNvim) enableHighlightLineNumber = false
-    this.config = Object.assign(this.config || {}, {
-      floatConfig: config.get('floatConfig', {}),
-      messageTarget,
-      enableHighlightLineNumber,
-      highlightLimit: config.get<number>('highlightLimit', 1000),
-      highlightPriority: config.get<number>('highlightPriority'),
-      autoRefresh: config.get<boolean>('autoRefresh', true),
-      checkCurrentLine: config.get<boolean>('checkCurrentLine', false),
-      enableSign: workspace.env.sign && config.get<boolean>('enableSign', true),
-      locationlistUpdate: config.get<boolean>('locationlistUpdate', true),
-      enableMessage: config.get<string>('enableMessage', 'always'),
-      messageDelay: config.get<number>('messageDelay', 200),
-      virtualText: config.get<boolean>('virtualText', false),
-      virtualTextAlign: config.get<VirtualTextOption['text_align']>('virtualTextAlign', 'after'),
-      virtualTextWinCol: workspace.has('nvim-0.5.1') ? config.get<number | null>('virtualTextWinCol', null) : null,
-      virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly', true),
-      virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
-      virtualTextFormat: config.get<string>('virtualTextFormat', "%message"),
-      virtualTextLimitInOneLine: config.get<number>('virtualTextLimitInOneLine', 999),
-      virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
-      virtualTextLines: config.get<number>('virtualTextLines', 3),
-      displayByAle: config.get<boolean>('displayByAle', false),
-      level: severityLevel(config.get<string>('level', 'hint')),
-      locationlistLevel: severityLevel(config.get<string>('locationlistLevel')),
-      signLevel: severityLevel(config.get<string>('signLevel')),
-      virtualTextLevel: severityLevel(config.get<string>('virtualTextLevel')),
-      messageLevel: severityLevel(config.get<string>('messageLevel')),
-      signPriority: config.get<number>('signPriority', 10),
-      errorSign: config.get<string>('errorSign', '>>'),
-      warningSign: config.get<string>('warningSign', '>>'),
-      infoSign: config.get<string>('infoSign', '>>'),
-      hintSign: config.get<string>('hintSign', '>>'),
-      refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode', false),
-      filetypeMap: config.get<object>('filetypeMap', {}),
-      showUnused: config.get<boolean>('showUnused', true),
-      showDeprecated: config.get<boolean>('showDeprecated', true),
-      format: config.get<string>('format', '[%source%code] [%severity] %message'),
-    })
-    this.enabled = config.get<boolean>('enable', true)
-    this.defineSigns()
   }
 
   public getCollectionByName(name: string): DiagnosticCollection {
@@ -608,35 +470,21 @@ export class DiagnosticManager implements Disposable {
     return this.collections.filter(c => c.has(uri))
   }
 
-  public toggleDiagnostic(enable?: number): void {
-    let enabled = enable == undefined ? this.enabled : enable == 0
-    this.enabled = !enabled
-    for (let buf of this.buffers.items) {
-      if (this.enabled) {
-        void this.refreshBuffer(buf.uri)
-      } else {
-        buf.clear()
-      }
-    }
+  public async toggleDiagnostic(enable?: number): Promise<void> {
+    this.enabled = enable == undefined ? !this.enabled : enable != 0
+    await Promise.allSettled(this.buffers.items.map(buf => {
+      return buf.setState(this.enabled)
+    }))
   }
 
   public async toggleDiagnosticBuffer(bufnr?: number, enable?: number): Promise<void> {
-    if (!this.enabled) return
-    bufnr = bufnr || workspace.bufnr
+    bufnr = bufnr ?? workspace.bufnr
     let buf = this.buffers.getItem(bufnr)
     if (buf) {
       let isEnabled = enable == undefined ? await buf.isEnabled() : enable == 0
       await this.nvim.call('setbufvar', [bufnr, 'coc_diagnostic_disable', isEnabled ? 1 : 0])
-      if (isEnabled) {
-        buf.clear()
-      } else {
-        void this.refreshBuffer(bufnr)
-      }
+      await buf.setState(!isEnabled)
     }
-  }
-
-  private get autoRefresh(): boolean {
-    return this.enabled && this.config.autoRefresh
   }
 
   /**
@@ -645,7 +493,7 @@ export class DiagnosticManager implements Disposable {
   public async refreshBuffer(uri: string | number, force?: boolean): Promise<boolean> {
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
-    await buf.reset(this.getDiagnostics(buf.uri), force)
+    await buf.reset(this.getDiagnostics(buf), force)
     return true
   }
 

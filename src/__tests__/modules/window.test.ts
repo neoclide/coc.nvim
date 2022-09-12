@@ -13,8 +13,8 @@ import Notification from '../../model/notification'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { MessageLevel } from '../../types'
 import { disposeAll } from '../../util'
-import window from '../../window'
 import workspace from '../../workspace'
+import window from '../../window'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -268,7 +268,7 @@ describe('window', () => {
       expect(bufname).toMatch('coc-settings.json')
     })
 
-    describe('should get messageLevel', () => {
+    it('should get messageLevel', () => {
       helper.updateConfiguration('coc.preferences.messageLevel', 'error')
       let level = window.messageLevel
       expect(level).toBe(MessageLevel.Error)

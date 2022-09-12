@@ -3,21 +3,22 @@ import fs from 'fs'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import Watchman, { FileChangeItem, isValidWatchRoot } from '../../core/watchman'
-import helper from '../helper'
+import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
-import Configurations from '../../configuration/index'
-import WorkspaceFolderController from '../../core/workspaceFolder'
-import { FileSystemWatcherManager, FileSystemWatcher } from '../../core/fileSystemWatcher'
-import { disposeAll } from '../../util'
 import { URI } from 'vscode-uri'
-import { GlobPattern } from '../../types'
+import Configurations from '../../configuration/index'
+import { FileSystemWatcher, FileSystemWatcherManager } from '../../core/fileSystemWatcher'
+import Watchman, { FileChangeItem, isValidWatchRoot } from '../../core/watchman'
+import WorkspaceFolderController from '../../core/workspaceFolder'
 import RelativePattern from '../../model/relativePattern'
+import { GlobPattern } from '../../types'
+import { disposeAll } from '../../util'
+import helper from '../helper'
 
 let server: net.Server
 let client: net.Socket
 const cwd = process.cwd()
-const sockPath = path.join(os.tmpdir(), `watchman-fake-${process.pid}`)
+const sockPath = path.join(os.tmpdir(), `watchman-fake-${uuid()}`)
 process.env.WATCHMAN_SOCK = sockPath
 
 let workspaceFolder: WorkspaceFolderController
@@ -58,12 +59,13 @@ function sendSubscription(uid: string, root: string, files: FileChangeItem[]): v
 
 let capabilities: any
 let watchResponse: any
+beforeAll(async () => {
+  await helper.setup()
+})
+
 beforeAll(done => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
-  configurations = new Configurations(userConfigFile, {
-    $removeConfigurationOption: () => {},
-    $updateConfigurationOption: () => {}
-  })
+  configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
   watcherManager = new FileSystemWatcherManager(workspaceFolder, '')
   watcherManager.attach(helper.createNullChannel())
@@ -110,6 +112,7 @@ afterEach(async () => {
 })
 
 afterAll(async () => {
+  await helper.shutdown()
   watcherManager.dispose()
   server.removeAllListeners()
   server.close()

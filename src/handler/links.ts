@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
-import { ConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { positionInRange } from '../util/position'
 import window from '../window'
@@ -21,8 +21,7 @@ export default class Links implements Disposable {
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.floatFactory = window.createFloatFactory({})
     events.on('CursorHold', async () => {
-      if (!this._tooltip) return
-      if (!nvim.hasFunction('nvim_get_keymap')) return
+      if (!this._tooltip || !nvim.hasFunction('nvim_get_keymap')) return
       await this.showTooltip()
     }, null, this.disposables)
     events.on(['CursorMoved', 'InsertEnter'], () => {
@@ -30,9 +29,9 @@ export default class Links implements Disposable {
     }, null, this.disposables)
   }
 
-  private setConfiguration(e?: ConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('links')) {
-      let config = workspace.getConfiguration('links')
+      let config = workspace.getConfiguration('links', null)
       this._tooltip = config.get<boolean>('tooltip', false)
     }
   }

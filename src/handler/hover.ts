@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import languages from '../languages'
 import { Documentation, FloatFactory } from '../types'
 import { TextDocumentContentProvider } from '../provider'
-import { ConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
 import { disposeAll, isMarkdown } from '../util'
 import { readFileLines } from '../util/fs'
 import workspace from '../workspace'
@@ -37,6 +37,9 @@ export default class HoverHandler {
       autoHide: this.config.autoHide
     }, this.config.floatConfig))
     this.disposables.push(this.hoverFactory)
+    window.onDidChangeActiveTextEditor(() => {
+      this.loadConfiguration()
+    }, null, this.disposables)
   }
 
   private registerProvider(): void {
@@ -58,9 +61,9 @@ export default class HoverHandler {
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('hover')) {
-      let config = workspace.getConfiguration('hover')
+      let config = workspace.getConfiguration('hover', this.handler.uri)
       this.config = {
         floatConfig: config.get('floatConfig', {}),
         autoHide: config.get('autoHide', true),

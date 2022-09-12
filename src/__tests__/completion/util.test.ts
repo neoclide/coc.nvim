@@ -36,6 +36,12 @@ describe('shouldIndent', () => {
     expect(res).toBe(false)
     res = shouldIndent('0{,0},0),0],!^F,o,O,e,=endif,=enddef,=endfu,=endfor', 'foo bar')
     expect(res).toBe(false)
+    res = shouldIndent('=~endif,=enddef,=endfu,=endfor', 'Endif')
+    expect(res).toBe(true)
+    res = shouldIndent(' ', '')
+    expect(res).toBe(false)
+    res = shouldIndent('*=endif', 'endif')
+    expect(res).toBe(false)
   })
 })
 

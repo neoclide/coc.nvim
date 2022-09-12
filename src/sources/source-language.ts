@@ -1,26 +1,17 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, CompletionList, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
+import { getCursorPosition } from '../core/ui'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, Documentation, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { isCompletionList } from '../util/is'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
-import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-language')
-
-export interface CompleteConfig {
-  labels: Map<CompletionItemKind, string>
-  snippetsSupport: boolean
-  defaultKindText: string
-  priority: number
-  detailMaxLength: number
-  detailField: string
-  invalidInsertCharacters: string[]
-}
 
 export interface ItemDefaults {
   commitCharacters?: string[]
@@ -33,45 +24,19 @@ export interface ItemDefaults {
   data?: any
 }
 
-const highlightsMap = {
-  [CompletionItemKind.Text]: 'CocSymbolText',
-  [CompletionItemKind.Method]: 'CocSymbolMethod',
-  [CompletionItemKind.Function]: 'CocSymbolFunction',
-  [CompletionItemKind.Constructor]: 'CocSymbolConstructor',
-  [CompletionItemKind.Field]: 'CocSymbolField',
-  [CompletionItemKind.Variable]: 'CocSymbolVariable',
-  [CompletionItemKind.Class]: 'CocSymbolClass',
-  [CompletionItemKind.Interface]: 'CocSymbolInterface',
-  [CompletionItemKind.Module]: 'CocSymbolModule',
-  [CompletionItemKind.Property]: 'CocSymbolProperty',
-  [CompletionItemKind.Unit]: 'CocSymbolUnit',
-  [CompletionItemKind.Value]: 'CocSymbolValue',
-  [CompletionItemKind.Enum]: 'CocSymbolEnum',
-  [CompletionItemKind.Keyword]: 'CocSymbolKeyword',
-  [CompletionItemKind.Snippet]: 'CocSymbolSnippet',
-  [CompletionItemKind.Color]: 'CocSymbolColor',
-  [CompletionItemKind.File]: 'CocSymbolFile',
-  [CompletionItemKind.Reference]: 'CocSymbolReference',
-  [CompletionItemKind.Folder]: 'CocSymbolFolder',
-  [CompletionItemKind.EnumMember]: 'CocSymbolEnumMember',
-  [CompletionItemKind.Constant]: 'CocSymbolConstant',
-  [CompletionItemKind.Struct]: 'CocSymbolStruct',
-  [CompletionItemKind.Event]: 'CocSymbolEvent',
-  [CompletionItemKind.Operator]: 'CocSymbolOperator',
-  [CompletionItemKind.TypeParameter]: 'CocSymbolTypeParameter',
-}
-
-function isCompletionList(obj: any): obj is CompletionList {
-  return !Array.isArray(obj) && Array.isArray(obj.items)
+interface TriggerContext {
+  line: string
+  lnum: number
+  character: number
 }
 
 export default class LanguageSource implements ISource {
-  public priority: number
-  public sourceType: SourceType.Service
+  public readonly sourceType = SourceType.Service
   private _enabled = true
   private completeItems: CompletionItem[] = []
   private itemDefaults: ItemDefaults = {}
-  private triggerPosition: Position
+  // cursor position on trigger
+  private triggerContext: TriggerContext | undefined
   constructor(
     public readonly name: string,
     public readonly shortcut: string,
@@ -79,10 +44,8 @@ export default class LanguageSource implements ISource {
     public readonly documentSelector: DocumentSelector,
     public readonly triggerCharacters: string[],
     public readonly allCommitCharacters: string[],
-    priority: number | undefined,
-    private readonly completeConfig: CompleteConfig,
+    public readonly priority: number | undefined
   ) {
-    this.priority = typeof priority === 'number' ? priority : completeConfig.priority
   }
 
   public get enable(): boolean {
@@ -93,7 +56,7 @@ export default class LanguageSource implements ISource {
     this._enabled = !this._enabled
   }
 
-  public shouldCommit?(item: ExtendedCompleteItem, character: string): boolean {
+  public shouldCommit(item: ExtendedCompleteItem, character: string): boolean {
     let completeItem = this.completeItems[item.index]
     if (!completeItem) return false
     if (this.allCommitCharacters.includes(character)) return true
@@ -102,11 +65,10 @@ export default class LanguageSource implements ISource {
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
-    let { triggerCharacter, input, bufnr } = opt
+    let { triggerCharacter, input, bufnr, position } = opt
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
-    let position = this.getPosition(opt)
-    this.triggerPosition = position
+    this.triggerContext = { lnum: position.line, character: position.character, line: opt.line }
     let context: any = { triggerKind, option: opt }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
     let doc = workspace.getDocument(bufnr)
@@ -168,7 +130,7 @@ export default class LanguageSource implements ISource {
     if (labelDetails && !detailRendered) {
       let content = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
       docs.push({ filetype: 'txt', content })
-    } else if (detail && !item.detailShown && detail != item.word) {
+    } else if (detail && !item.detailRendered && detail != item.abbr) {
       detail = detail.replace(/\n\s*/g, ' ')
       if (detail.length) {
         let isText = /^[\w-\s.,\t\n]+$/.test(detail)
@@ -189,10 +151,9 @@ export default class LanguageSource implements ISource {
     item.documentation = docs
   }
 
-  public async onCompleteDone(vimItem: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
+  public async onCompleteDone(vimItem: ExtendedCompleteItem, opt: CompleteOption, snippetSupport: boolean): Promise<void> {
     let item = this.completeItems[vimItem.index]
     if (!item) return
-    if (typeof vimItem.line === 'string') Object.assign(opt, { line: vimItem.line })
     let doc = workspace.getDocument(opt.bufnr)
     await doc.patchChange(true)
     let additionalEdits = Array.isArray(item.additionalTextEdits) && item.additionalTextEdits.length > 0
@@ -201,7 +162,12 @@ export default class LanguageSource implements ISource {
       if (shouldCancel) snippetManager.cancel()
     }
     let version = doc.version
-    let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, vimItem.word, opt)
+    let isSnippet = false
+    if (!snippetSupport) {
+      logger.info('Snippets support is disabled, no textEdit applied.')
+    } else {
+      isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt)
+    }
     if (additionalEdits) {
       // move cursor after edit
       await doc.applyEdits(item.additionalTextEdits, doc.version != version, !isSnippet)
@@ -221,13 +187,13 @@ export default class LanguageSource implements ISource {
     return insertTextFormat === InsertTextFormat.Snippet
   }
 
-  private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, word: string, option: CompleteOption): Promise<boolean> {
-    let { line, linenr, col } = option
-    let pos = await window.getCursorPosition()
+  private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption): Promise<boolean> {
+    let { linenr, col } = option
+    let { character, line } = this.triggerContext
+    let pos = await getCursorPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
     let range: Range | undefined
     let { textEdit, insertText, label } = item
-    let beginIdx = this.triggerPosition.character
     if (textEdit) {
       range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
     } else {
@@ -235,25 +201,21 @@ export default class LanguageSource implements ISource {
       if (editRange) {
         range = Range.is(editRange) ? editRange : editRange.replace
       } else if (item.insertText) {
-        range = Range.create(pos.line, characterIndex(line, col), pos.line, beginIdx)
+        range = Range.create(pos.line, characterIndex(line, col), pos.line, character)
       }
     }
     if (!range) return false
     // attempt to fix range from textEdit, range should include trigger position
-    if (range.end.character < beginIdx) range.end.character = beginIdx
+    if (range.end.character < character) range.end.character = character
     let currline = doc.getline(linenr - 1, false)
     let newText = textEdit ? textEdit.newText : insertText ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, currline, range)
-    let delta = pos.character - beginIdx - indentCount
+    // cursor moved count
+    let delta = pos.character - character - indentCount
     // fix range by count cursor moved to replace insert word on complete done.
     if (delta !== 0) range.end.character += delta
     let isSnippet = this.isSnippetItem(item)
-    if (isSnippet && this.completeConfig.snippetsSupport === false) {
-      // could be wrong, but maybe best we can do.
-      isSnippet = false
-      newText = word
-    }
     if (isSnippet) {
       let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip
       let insertTextMode = item.insertTextMode ?? this.itemDefaults.insertTextMode
@@ -276,17 +238,15 @@ export default class LanguageSource implements ISource {
   }
 
   private convertVimCompleteItem(item: CompletionItem, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
-    let { detailMaxLength, detailField, invalidInsertCharacters, labels, defaultKindText } = this.completeConfig
-    let hasAdditionalEdit = item.additionalTextEdits != null && item.additionalTextEdits.length > 0
-    let isSnippet = this.isSnippetItem(item) || hasAdditionalEdit
     let label = typeof item.label === 'string' ? item.label.trim() : item.insertText ?? ''
+    let isSnippet = this.isSnippetItem(item)
     let obj: ExtendedCompleteItem = {
-      word: getWord(item, opt, invalidInsertCharacters, this.itemDefaults),
+      word: getWord(item, isSnippet, opt, this.itemDefaults),
       abbr: label,
-      kind: getKindString(item.kind, labels, defaultKindText),
-      kindHighlight: highlightsMap[item.kind] ?? 'CocSymbolDefault',
-      sortText: item.sortText ?? null,
-      sourceScore: item['score'] ?? null,
+      kind: item.kind,
+      detail: item.detail,
+      additionalEdits: item.additionalTextEdits != null && item.additionalTextEdits.length > 0,
+      sortText: item.sortText,
       filterText: item.filterText ?? label,
       preselect: item.preselect === true,
       deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
@@ -294,7 +254,6 @@ export default class LanguageSource implements ISource {
       labelDetails: item.labelDetails,
       dup: item.data?.dup == 0 ? 0 : 1
     }
-    obj.line = opt.line
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
@@ -306,25 +265,9 @@ export default class LanguageSource implements ISource {
         obj.word = `${prefix}${obj.word}`
       }
     }
-    if (detailField == 'abbr' && item.detail) {
-      let detail = item.detail.replace(/\r?\n\s*/g, ' ')
-      if (byteLength(obj.abbr + detail) < detailMaxLength - 3) {
-        obj.abbr = `${obj.abbr} - ${detail}`
-        obj.detailShown = 1
-      }
-    }
-    if (item.kind === CompletionItemKind.Folder && !obj.abbr.endsWith('/')) obj.abbr = obj.abbr + '/'
+    if (typeof item['score'] === 'number') obj.sourceScore = item['score']
     if (item.data?.optional && !obj.abbr.endsWith('?')) obj.abbr = obj.abbr + '?'
     return obj
-  }
-
-  private getPosition(opt: CompleteOption): Position {
-    let { line, linenr, colnr } = opt
-    let part = byteSlice(line, 0, colnr - 1)
-    return {
-      line: linenr - 1,
-      character: part.length
-    }
   }
 }
 
@@ -356,38 +299,29 @@ export function getStartColumn(line: string, items: CompletionItem[], itemDefaul
   return byteIndex(line, range.start.character)
 }
 
-export function getKindString(kind: CompletionItemKind, map: Map<CompletionItemKind, string>, defaultValue = ''): string {
-  return map.get(kind) || defaultValue
-}
-
-export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsertCharacters: string[], itemDefaults: ItemDefaults): string {
-  let { label, data, insertTextFormat, insertText, textEdit } = item
-  let isSnippet = (insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet
-  let word: string
-  let newText: string = insertText
+export function getWord(item: CompletionItem, isSnippet: boolean, opt: CompleteOption, itemDefaults: ItemDefaults): string {
+  let { label, data, insertText, textEdit } = item
   if (data && typeof data.word === 'string') return data.word
+  let newText: string = insertText ?? label
   let range: Range | undefined
   if (textEdit) {
-    range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
+    range = InsertReplaceEdit.is(textEdit) ? textEdit.insert : textEdit.range
     newText = textEdit.newText
   } else if (itemDefaults.editRange) {
-    let editRange = itemDefaults.editRange
-    range = Range.is(editRange) ? editRange : editRange.replace
-    newText = insertText ?? label
+    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.insert
   }
   if (range && range.start.line == range.end.line) {
-    let { line, col, colnr } = opt
+    let { line, col, position } = opt
     let character = characterIndex(line, col)
-    if (range.start.character > character) {
-      let before = line.slice(character, range.start.character)
-      newText = before + newText
-    } else {
+    if (range.start.character < character) {
       let start = line.slice(range.start.character, character)
       if (start.length && newText.startsWith(start)) {
         newText = newText.slice(start.length)
       }
+    } else if (range.start.character > character) {
+      newText = line.slice(character, range.start.character) + newText
     }
-    character = characterIndex(line, colnr - 1)
+    character = position.character
     if (range.end.character > character) {
       let end = line.slice(character, range.end.character)
       if (newText.endsWith(end)) {
@@ -395,26 +329,8 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
       }
     }
   }
-  if (isSnippet && newText) {
-    let parser = new SnippetParser()
-    let text = parser.text(newText)
-    word = text ? getValidWord(text, invalidInsertCharacters) : label
-  } else {
-    word = getValidWord(newText, ['\n', '\r']) ?? label
-  }
-  return word ?? ''
-}
-
-export function getValidWord(text: string, invalidChars: string[], start = 2): string | undefined {
-  if (text == null) return undefined
-  if (invalidChars.length === 0) return text
-  for (let i = start; i < text.length; i++) {
-    let c = text[i]
-    if (invalidChars.includes(c)) {
-      return text.slice(0, i)
-    }
-  }
-  return text
+  let word = isSnippet ? (new SnippetParser()).text(newText) : newText
+  return word.indexOf('\n') === -1 ? word : word.replace(/\n.*$/s, '')
 }
 
 export function fixIndent(line: string, currline: string, range: Range): number {

@@ -632,8 +632,6 @@ describe('semanticTokens', () => {
       expect(item.enabled).toBe(false)
       helper.updateConfiguration('semanticTokens.filetypes', ['*'])
       expect(item.enabled).toBe(true)
-      doc.detach()
-      expect(item.enabled).toBe(false)
     })
   })
 

@@ -1,7 +1,7 @@
 'use strict'
 import { ClientCapabilities, ConfigurationRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, Disposable, RegistrationType, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { mergeConfigProperties, toJSONObject } from '../configuration/util'
-import { ConfigurationChangeEvent, FileSystemWatcher } from '../types'
+import { FileSystemWatcher, IConfigurationChangeEvent, WorkspaceConfiguration } from '../types'
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData, StaticFeature } from './features'
@@ -50,8 +50,7 @@ export class PullConfigurationFeature implements StaticFeature {
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    capabilities.workspace = capabilities.workspace || {}
-    capabilities.workspace.configuration = true
+    ensure(capabilities, 'workspace').configuration = true
   }
 
   public getState(): FeatureState {
@@ -85,7 +84,7 @@ export class PullConfigurationFeature implements StaticFeature {
         result = toJSONObject(workspace.getConfiguration(undefined, resource).get(section))
       } else {
         let config = workspace.getConfiguration(section.substr(0, index), resource)
-        if (config) result = toJSONObject(config.get(section.substr(index + 1)))
+        result = toJSONObject(config.get(section.substr(index + 1)))
       }
     } else {
       let config = workspace.getConfiguration(section, resource)
@@ -108,7 +107,7 @@ export interface DidChangeConfigurationSignature {
 }
 
 export interface DidChangeConfigurationMiddleware {
-  didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => void
+  didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => Promise<void>
 }
 
 interface DidChangeConfigurationWorkspaceMiddleware {
@@ -152,7 +151,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
       this.onDidChangeConfiguration(section, event)
     })
     this._listeners.set(data.id, disposable)
-    if (section != undefined) {
+    if (section !== undefined) {
       this.onDidChangeConfiguration(section, undefined)
     }
   }
@@ -172,7 +171,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
     this._listeners.clear()
   }
 
-  private onDidChangeConfiguration(configurationSection: string | string[] | undefined, event: ConfigurationChangeEvent | undefined): void {
+  private onDidChangeConfiguration(configurationSection: string | string[] | undefined, event: IConfigurationChangeEvent | undefined): void {
     let { configuredSection } = this._client
     let sections: string[] | undefined
     if (Is.string(configurationSection)) {
@@ -188,22 +187,24 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
       if (sections == null) {
         return this._client.sendNotification(DidChangeConfigurationNotification.type, { settings: null })
       }
-      let settings = configuredSection ? SyncConfigurationFeature.getConfiguredSettings(configuredSection) : this.extractSettingsInformation(sections)
+      let workspaceFolder = this._client.clientOptions.workspaceFolder
+      let settings = configuredSection ? SyncConfigurationFeature.getConfiguredSettings(configuredSection, workspaceFolder) : SyncConfigurationFeature.extractSettingsInformation(sections, workspaceFolder)
       return this._client.sendNotification(DidChangeConfigurationNotification.type, { settings })
     }
     let middleware = this._client.middleware.workspace?.didChangeConfiguration
-    middleware ? middleware(sections, didChangeConfiguration) : didChangeConfiguration(sections).catch(error => {
+    let promise = middleware ? Promise.resolve(middleware(sections, didChangeConfiguration)) : didChangeConfiguration(sections)
+    promise.catch(error => {
       this._client.error(`Sending notification ${DidChangeConfigurationNotification.type.method} failed`, error)
     })
   }
 
-  public static getConfiguredSettings(key: string): any {
+  public static getConfiguredSettings(key: string, workspaceFolder: WorkspaceFolder | undefined): any {
     let len = '.settings'.length
-    let config = workspace.getConfiguration(key.slice(0, - len))
+    let config = workspace.getConfiguration(key.slice(0, - len), workspaceFolder)
     return mergeConfigProperties(config.get<any>('settings', {}))
   }
 
-  private extractSettingsInformation(keys: string[]): any {
+  public static extractSettingsInformation(keys: string[], workspaceFolder?: WorkspaceFolder): any {
     function ensurePath(config: any, path: string[]): any {
       let current = config
       for (let i = 0; i < path.length - 1; i++) {
@@ -220,16 +221,14 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
     for (let i = 0; i < keys.length; i++) {
       let key = keys[i]
       let index: number = key.indexOf('.')
-      let config: any = null
+      let config: WorkspaceConfiguration
       if (index >= 0) {
-        config = workspace.getConfiguration(key.substr(0, index)).get(key.substr(index + 1))
+        config = workspace.getConfiguration(key.substr(0, index), workspaceFolder).get(key.substr(index + 1))
       } else {
-        config = workspace.getConfiguration(key)
+        config = workspace.getConfiguration(key, workspaceFolder)
       }
-      if (config) {
-        let path = keys[i].split('.')
-        ensurePath(result, path)[path[path.length - 1]] = config
-      }
+      let path = keys[i].split('.')
+      ensurePath(result, path)[path[path.length - 1]] = config
     }
     return result
   }

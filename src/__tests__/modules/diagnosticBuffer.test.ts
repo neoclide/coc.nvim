@@ -3,42 +3,12 @@ import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag, Position, TextEdit } from 'vscode-languageserver-types'
 import workspace from '../../workspace'
+import window from '../../window'
 
 let nvim: Neovim
-const config: any = {
-  autoRefresh: true,
-  checkCurrentLine: false,
-  locationlistUpdate: true,
-  enableSign: true,
-  enableHighlightLineNumber: true,
-  enableMessage: 'always',
-  messageTarget: 'echo',
-  messageDelay: 250,
-  refreshOnInsertMode: false,
-  virtualTextSrcId: 99,
-  virtualText: false,
-  virtualTextCurrentLineOnly: true,
-  virtualTextPrefix: " ",
-  virtualTextFormat: "%message",
-  virtualTextLines: 3,
-  virtualTextLineSeparator: " \\ ",
-  displayByAle: false,
-  level: DiagnosticSeverity.Hint,
-  signPriority: 11,
-  errorSign: '>>',
-  warningSign: '>>',
-  infoSign: '>>',
-  hintSign: '>>',
-  filetypeMap: {
-    default: ''
-  },
-}
-
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
   let doc = await workspace.document
-  return new DiagnosticBuffer(nvim, doc, config, () => {
-    // noop
-  })
+  return new DiagnosticBuffer(nvim, doc)
 }
 
 function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity, tags?: DiagnosticTag[]): Diagnostic & { collection: string } {
@@ -47,10 +17,12 @@ function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSever
 }
 
 let ns: number
+let virtualTextSrcId: number
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   ns = await nvim.createNamespace('coc-diagnostic')
+  virtualTextSrcId = await nvim.createNamespace('coc-diagnostic-virtualText')
 })
 
 afterAll(async () => {
@@ -62,27 +34,48 @@ afterEach(async () => {
 })
 
 describe('diagnostic buffer', () => {
+  describe('showFloat()', () => {
+    it('should not show float when disabled', async () => {
+      helper.updateConfiguration('diagnostic.messageTarget', 'echo')
+      let buf = await createDiagnosticBuffer()
+      let diagnostics = [createDiagnostic('foo')]
+      let res = await buf.showFloat(diagnostics)
+      expect(res).toBe(false)
+    })
+
+    it('should not show float in insert mode', async () => {
+      let doc = await workspace.document
+      let floatFactory = window.createFloatFactory({ autoHide: true })
+      let buf = new DiagnosticBuffer(nvim, doc, floatFactory)
+      await nvim.input('i')
+      let mode = await nvim.mode
+      expect(mode.mode).toBe('i')
+      let diagnostics = [createDiagnostic('foo')]
+      let res = await buf.showFloat(diagnostics)
+      expect(res).toBe(false)
+    })
+  })
+
   describe('refresh()', () => {
-    it('should add signs', async () => {
+    it('should not add signs when disabled', async () => {
+      helper.updateConfiguration('diagnostic.enableSign', false)
       let diagnostics = [createDiagnostic('foo'), createDiagnostic('bar')]
       let buf = await createDiagnosticBuffer()
       buf.addSigns('a', diagnostics)
       await helper.wait(30)
       let res = await nvim.call('sign_getplaced', [buf.bufnr, { group: 'CocDiagnostica' }])
       let signs = res[0].signs
-      expect(signs).toBeDefined()
-      expect(signs[0].name).toBe('CocError')
+      expect(signs).toEqual([])
     })
 
     it('should filter sign by signLevel', async () => {
-      config.signLevel = DiagnosticSeverity.Error
+      helper.updateConfiguration('diagnostic.signLevel', 'error')
       let range = Range.create(0, 0, 0, 3)
       let diagnostics = [createDiagnostic('foo', range, DiagnosticSeverity.Warning), createDiagnostic('bar', range, DiagnosticSeverity.Warning)]
       let buf = await createDiagnosticBuffer()
       buf.addSigns('a', diagnostics)
       await helper.wait(30)
       let res = await nvim.call('sign_getplaced', [buf.bufnr, { group: 'CocDiagnostica' }])
-      config.signLevel = undefined
       let signs = res[0].signs
       expect(signs).toBeDefined()
       expect(signs.length).toBe(0)
@@ -172,16 +165,54 @@ describe('diagnostic buffer', () => {
     })
   })
 
-  describe('showVirtualText()', () => {
-    beforeEach(async () => {
-      config.virtualText = true
-      config.virtualTextSrcId = await nvim.createNamespace('diagnostics-virtualText')
+  describe('setDiagnosticInfo()', () => {
+    it('should include lines', async () => {
+      helper.updateConfiguration('diagnostic.virtualTextCurrentLineOnly', false)
+      let buf = await createDiagnosticBuffer()
+      let r = Range.create(1, 1, 1, 3)
+      let diagnostics = [
+        createDiagnostic('foo', r, DiagnosticSeverity.Information),
+        createDiagnostic('foo', r, DiagnosticSeverity.Information),
+        createDiagnostic('foo', r, DiagnosticSeverity.Hint),
+        createDiagnostic('foo', r, DiagnosticSeverity.Hint),
+        createDiagnostic('foo', r, DiagnosticSeverity.Warning),
+        createDiagnostic('foo', r, DiagnosticSeverity.Warning),
+      ]
+      await buf.update('', diagnostics)
+      let buffer = await nvim.buffer
+      let res = await buffer.getVar("coc_diagnostic_info") as any
+      expect(res.lnums).toEqual([0, 2, 2, 2])
     })
-    afterEach(() => {
-      config.virtualText = false
-      config.virtualTextCurrentLineOnly = true
-      config.virtualTextWinCol = null
-      config.virtualTextLevel = null
+  })
+
+  describe('echoMessage', () => {
+    it('should not echoMessage when disabled', async () => {
+      helper.updateConfiguration('diagnostic.enableMessage', 'never')
+      let buf = await createDiagnosticBuffer()
+      let res = await buf.echoMessage(false, Position.create(0, 0))
+      expect(res).toBe(false)
+    })
+  })
+
+  describe('showVirtualText()', () => {
+    beforeEach(() => {
+      helper.updateConfiguration('diagnostic.virtualText', true)
+    })
+
+    it('should not show virtualText when disabled', async () => {
+      helper.updateConfiguration('diagnostic.virtualTextCurrentLineOnly', false)
+      let buf = await createDiagnosticBuffer()
+      await buf.setState(false)
+      let diagnostic = createDiagnostic('foo')
+      let diagnostics = [diagnostic]
+      await buf.update('', diagnostics)
+      let res = await buf.showVirtualTextCurrentLine(1)
+      expect(res).toBe(false)
+      helper.updateConfiguration('diagnostic.virtualTextCurrentLineOnly', true)
+      buf.loadConfiguration()
+      await buf.setState(false)
+      res = await buf.showVirtualTextCurrentLine(1)
+      expect(res).toBe(false)
     })
 
     it('should show virtual text on current line', async () => {
@@ -189,73 +220,67 @@ describe('diagnostic buffer', () => {
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]
       await buf.update('', diagnostics)
-      let ns = config.virtualTextSrcId
-      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
       let texts = res[0][3].virt_text
       expect(texts[0]).toEqual([' foo', 'CocErrorVirtualText'])
     })
 
     it('should show virtual text at window column', async () => {
-      config.virtualTextWinCol = 90
+      helper.updateConfiguration('diagnostic.virtualTextWinCol', 90)
       let diagnostic = createDiagnostic('foo')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]
       await buf.update('', diagnostics)
-      let ns = config.virtualTextSrcId
-      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
       let texts = res[0][3].virt_text
       expect(texts[0]).toEqual([' foo', 'CocErrorVirtualText'])
     })
 
     it('should virtual text on all lines', async () => {
-      config.virtualTextCurrentLineOnly = false
+      helper.updateConfiguration('diagnostic.virtualTextCurrentLineOnly', false)
       let buf = await createDiagnosticBuffer()
       let diagnostics = [
         createDiagnostic('foo', Range.create(0, 0, 0, 1)),
         createDiagnostic('bar', Range.create(1, 0, 1, 1)),
       ]
       await buf.update('', diagnostics)
-      let ns = config.virtualTextSrcId
-      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
       expect(res.length).toBe(2)
     })
 
     it('should filter by virtualTextLevel', async () => {
-      config.virtualTextLevel = DiagnosticSeverity.Error
+      helper.updateConfiguration('diagnostic.virtualTextLevel', 'error')
+      helper.updateConfiguration('diagnostic.virtualTextAlign', 'after')
       let buf = await createDiagnosticBuffer()
       let diagnostics = [
         createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Error),
+        createDiagnostic('foo', Range.create(0, 0, 0, 1), DiagnosticSeverity.Warning),
         createDiagnostic('bar', Range.create(1, 0, 1, 1), DiagnosticSeverity.Warning),
       ]
       await buf.update('', diagnostics)
-      let ns = config.virtualTextSrcId
-      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
       expect(res.length).toBe(1)
     })
 
     it('should limit virtual text count of one line', async () => {
-      config.virtualTextCurrentLineOnly = false
-      config.virtualTextLimitInOneLine = 1
+      helper.updateConfiguration('diagnostic.virtualTextCurrentLineOnly', false)
+      helper.updateConfiguration('diagnostic.virtualTextLimitInOneLine', 1)
       let buf = await createDiagnosticBuffer()
       let diagnostics = [
         createDiagnostic('foo', Range.create(0, 0, 0, 1)),
         createDiagnostic('bar', Range.create(0, 0, 0, 1)),
       ]
       await buf.update('', diagnostics)
-      let ns = config.virtualTextSrcId
-      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
+      let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
       expect(res[0][3].virt_text.length).toBe(1)
     })
   })
 
   describe('updateLocationList()', () => {
-    beforeEach(async () => {
-      config.locationlistUpdate = true
-    })
-    afterEach(() => {
-      config.locationlistUpdate = false
+    beforeEach(() => {
+      helper.updateConfiguration('diagnostic.locationlistUpdate', true)
     })
 
     it('should update location list', async () => {
@@ -269,12 +294,8 @@ describe('diagnostic buffer', () => {
   })
 
   describe('clear()', () => {
-    let config = workspace.getConfiguration('diagnostic')
     beforeEach(() => {
-      config.update('virtualText', true)
-    })
-    afterEach(() => {
-      config.update('virtualText', false)
+      helper.updateConfiguration('diagnostic.virtualText', true)
     })
 
     it('should clear all diagnostics', async () => {
@@ -288,6 +309,34 @@ describe('diagnostic buffer', () => {
       let buffer = await nvim.buffer
       let res = await buffer.getVar("coc_diagnostic_info")
       expect(res == null).toBe(true)
+    })
+  })
+
+  describe('reset()', () => {
+    it('should clear exists diagnostics', async () => {
+      let buf = await createDiagnosticBuffer()
+      let diagnostic = createDiagnostic('foo')
+      let diagnostics = [diagnostic]
+      await buf.update('test', diagnostics)
+      await helper.wait(30)
+      await buf.reset({})
+      let res = await buf.doc.buffer.getVar("coc_diagnostic_info") as any
+      expect(res?.error).toBe(0)
+    })
+
+    it('should not refresh when not enabled', async () => {
+      let buf = await createDiagnosticBuffer()
+      let diagnostic = createDiagnostic('foo')
+      let diagnostics = [diagnostic]
+      await buf.update('test', diagnostics)
+      await buf.setState(false)
+      await buf.setState(false)
+      await buf.reset({ diagnostics: [createDiagnostic('bar')] })
+      let res = await buf.doc.buffer.getVar("coc_diagnostic_info") as any
+      expect(res).toBeNull()
+      await buf.setState(true)
+      res = await buf.doc.buffer.getVar("coc_diagnostic_info") as any
+      expect(res?.error).toBe(1)
     })
   })
 

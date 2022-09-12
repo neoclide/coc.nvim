@@ -9721,7 +9721,7 @@ declare module 'coc.nvim' {
   }
 
   export interface _WorkspaceMiddleware {
-    didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => void
+    didChangeConfiguration?: (this: void, sections: string[] | undefined, next: DidChangeConfigurationSignature) => Promise<void>
     didChangeWatchedFile?: (this: void, event: FileEvent, next: DidChangeWatchedFileSignature) => void
   }
 

@@ -1,7 +1,7 @@
 'use strict'
 // vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionKind, CompletionItemLabelDetails, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionKind, CompletionItemKind, CompletionItemLabelDetails, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 import type Configurations from './configuration'
@@ -95,6 +95,7 @@ export interface BufferOption {
 }
 
 export interface HandlerDelegate {
+  uri: string | undefined
   checkProvier: (id: ProviderName, document: TextDocument) => void
   withRequestToken: <T> (name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean) => Promise<T>
   getCurrentState: () => Promise<CurrentState>
@@ -330,11 +331,10 @@ export interface IWorkspace {
   onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
   onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
   onDidSaveTextDocument: Event<TextDocument>
-  onDidChangeConfiguration: Event<ConfigurationChangeEvent>
+  onDidChangeConfiguration: Event<IConfigurationChangeEvent>
   findUp(filename: string | string[]): Promise<string | null>
   getDocument(uri: number | string): Document
   getFormatOptions(uri?: string): Promise<FormattingOptions>
-  getConfigFile(target: ConfigurationTarget): string
   applyEdit(edit: WorkspaceEdit): Promise<boolean>
   createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
@@ -555,9 +555,11 @@ export enum MessageLevel {
 }
 
 export enum ConfigurationTarget {
-  Global,
+  Default,
   User,
-  Workspace
+  Workspace,
+  WorkspaceFolder,
+  Memory,
 }
 
 export enum ServiceStat {
@@ -697,7 +699,7 @@ export interface VimCompleteItem {
   abbr?: string
   menu?: string
   info?: string
-  kind?: string
+  kind?: string | CompletionItemKind
   icase?: number
   equal?: number
   dup?: number
@@ -716,6 +718,7 @@ export interface CompleteDoneItem {
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {
+  detail?: string
   labelDetails?: CompletionItemLabelDetails
   /**
    * labelDetail rendered after label
@@ -726,6 +729,7 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   sourceScore?: number
   filterText?: string
   isSnippet?: boolean
+  additionalEdits?: boolean
   source?: string
   matchScore?: number
   priority?: number
@@ -734,13 +738,9 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   index?: number
   // used for preview
   documentation?: Documentation[]
-  detailShown?: number
   resolved?: boolean
-  // saved line for apply TextEdit
-  line?: string
   deprecated?: boolean
   positions?: ReadonlyArray<number>
-  kindHighlight?: string
 }
 
 export interface CompleteResult {
@@ -753,6 +753,7 @@ export interface CompleteResult {
 // what need change? line, col, input, colnr, changedtick
 // word = '', triggerForInComplete = false
 export interface CompleteOption {
+  readonly position: Position
   readonly bufnr: number
   readonly line: string
   col: number
@@ -806,25 +807,62 @@ export interface ISource {
   shouldComplete?(opt: CompleteOption): Promise<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult | null>
   onCompleteResolve?(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
-  onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption): ProviderResult<void>
+  onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
   shouldCommit?(item: ExtendedCompleteItem, character: string): boolean
 }
 // }}
 
 // Configuration {{
-/**
- * An event describing the change in Configuration
- */
-export interface ConfigurationChangeEvent {
+export interface IConfigurationChange {
+  keys: string[]
+  overrides: [string, string[]][]
+}
 
-  /**
-   * Returns `true` if the given section for the given resource (if provided) is affected.
-   *
-   * @param section Configuration name, supports _dotted_ names.
-   * @param resource A resource URI.
-   * @return `true` if the given section for the given resource (if provided) is affected.
-   */
-  affectsConfiguration(section: string, resource?: string): boolean
+export enum ConfigurationUpdateTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3
+}
+
+export type ConfigurationScope = string | null | URI | TextDocument | WorkspaceFolder | { uri?: string; languageId?: string }
+
+export interface IConfigurationChangeEvent {
+  readonly source: ConfigurationTarget
+  readonly affectedKeys: string[]
+  readonly change?: IConfigurationChange
+  affectsConfiguration(configuration: string, scope?: ConfigurationScope): boolean
+}
+
+export interface ConfigurationInspect<T> {
+  key: string
+  defaultValue?: T
+  globalValue?: T
+  workspaceValue?: T
+  workspaceFolderValue?: T
+}
+
+export interface IConfigurationOverrides {
+  overrideIdentifier?: string | null
+  resource?: string | null
+}
+
+export interface IOverrides {
+  contents: any
+  keys: string[]
+  identifiers: string[]
+}
+
+export interface IConfigurationModel {
+  contents: any
+  keys: string[]
+  overrides: IOverrides[]
+}
+
+export interface IConfigurationData {
+  defaults: IConfigurationModel
+  user: IConfigurationModel
+  workspace: IConfigurationModel
+  folders: [string, IConfigurationModel][]
 }
 
 export interface WorkspaceConfiguration {
@@ -873,7 +911,7 @@ export interface WorkspaceConfiguration {
    * @param value The new value.
    * @param isUser if true, always update user configuration
    */
-  update(section: string, value: any, isUser?: boolean): void
+  update(section: string, value: any, isUser?: ConfigurationUpdateTarget | boolean): Thenable<void>
 
   /**
    * Readable dictionary that backs this configuration.
@@ -884,37 +922,6 @@ export interface WorkspaceConfiguration {
 export interface ErrorItem {
   location: Location
   message: string
-}
-
-export interface ConfigurationInspect<T> {
-  key: string
-  defaultValue?: T
-  globalValue?: T
-  workspaceValue?: T
-}
-
-export interface IConfigurationOverrides {
-  overrideIdentifier?: string | null
-  resource?: URI | null
-}
-
-export interface ConfigurationShape {
-  /**
-   * Resolve possible workspace config from resource.
-   */
-  getWorkspaceConfig?(resource?: string): URI | undefined
-  $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any, overrides?: IConfigurationOverrides): void
-  $removeConfigurationOption(target: ConfigurationTarget, key: string, overrides?: IConfigurationOverrides): void
-}
-
-export interface IConfigurationModel {
-  contents: any
-}
-
-export interface IConfigurationData {
-  defaults: IConfigurationModel
-  user: IConfigurationModel
-  workspace: IConfigurationModel
 }
 // }}
 

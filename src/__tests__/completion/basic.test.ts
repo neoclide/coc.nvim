@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
 import events from '../../events'
 import sources from '../../sources'
@@ -144,7 +144,7 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.selection', 'recentlyUsed')
       let name = await create(['foo', 'bar', 'foobar'])
       await helper.confirmCompletion(1)
-      await nvim.input('<CR>')
+      await nvim.input('<CR>f')
       await triggerCompletion(name)
       let info = await nvim.call('coc#pum#info')
       expect(info.index).toBe(1)
@@ -323,6 +323,37 @@ describe('completion', () => {
   })
 
   describe('doComplete()', () => {
+    it('should create pum', async () => {
+      let source: ISource = {
+        enable: true,
+        name: 'menu',
+        shortcut: '',
+        sourceType: SourceType.Service,
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({
+            items: [{ word: 'foo', deprecated: true, menu: 'm', kind: 'k' }]
+          })
+        })
+      }
+      disposables.push(sources.addSource(source))
+      disposables.push(sources.addSource({
+        enable: true,
+        name: 'other',
+        shortcut: 's',
+        sourceType: SourceType.Service,
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({
+            items: [{ word: 'bar', menu: '' }]
+          })
+        })
+      }))
+      await nvim.input('i')
+      await nvim.call('coc#start', {})
+      await helper.waitPopup()
+      let info = await nvim.call('coc#pum#info')
+      expect(info.index).toBe(0)
+    })
+
     it('should show slow source', async () => {
       let source: ISource = {
         priority: 0,
@@ -804,7 +835,8 @@ describe('completion', () => {
       await doc.synchronize()
       await nvim.input('i')
       await nvim.call('cursor', [1, 2])
-      let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
+      let option = await nvim.call('coc#util#get_complete_option') as any
+      option.position = Position.create(0, 1)
       await completion.startCompletion(option)
       await helper.waitPopup()
       let items = await helper.items()

@@ -10,14 +10,14 @@ import util from 'util'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import attach from '../attach'
-import completion from '../completion'
+import type { Completion } from '../completion'
 import events from '../events'
-import Document from '../model/document'
-import Plugin from '../plugin'
+import type Document from '../model/document'
+import type Plugin from '../plugin'
 import { ProviderResult } from '../provider'
 import { ExtendedCompleteItem, OutputChannel, VimCompleteItem } from '../types'
 import { terminate } from '../util/processes'
-import workspace from '../workspace'
+import { Workspace } from '../workspace'
 
 export interface CursorPosition {
   bufnum: number
@@ -40,6 +40,7 @@ process.on('uncaughtException', err => {
   let msg = 'Uncaught exception: ' + err.stack
   console.error(msg)
 })
+
 export class Helper extends EventEmitter {
   public nvim: Neovim
   public proc: cp.ChildProcess
@@ -50,13 +51,14 @@ export class Helper extends EventEmitter {
     this.setMaxListeners(99)
   }
 
-  public setupNvim(): void {
-    const vimrc = path.resolve(__dirname, 'vimrc')
-    let proc = this.proc = cp.spawn(process.env.COC_TEST_NVIM ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
-      cwd: __dirname
-    })
-    let plugin = attach({ proc })
-    this.nvim = plugin.nvim
+  public get workspace(): Workspace {
+    if (!this.plugin || !this.plugin.workspace) throw new Error('helper not attached')
+    return this.plugin.workspace
+  }
+
+  public get completion(): Completion {
+    if (!this.plugin || !this.plugin.completion) throw new Error('helper not attached')
+    return this.plugin.completion
   }
 
   public setup(): Promise<void> {
@@ -139,19 +141,12 @@ export class Helper extends EventEmitter {
     await this.nvim.call('coc#pum#select', [idx, 1, 1])
   }
 
-  public async selectItem(word: string): Promise<void> {
-    if (!completion.activeItems) throw new Error('no active items')
-    let idx = completion.activeItems.findIndex((o => o.word == word))
-    if (idx == -1) throw new Error(`item not found by word "${word}"`)
-    await this.nvim.call('coc#pum#select', [idx, 1, 0])
-  }
-
   public async doAction(method: string, ...args: any[]): Promise<any> {
     return await this.plugin.cocAction(method, ...args)
   }
 
   public async synchronize(): Promise<void> {
-    let doc = await workspace.document
+    let doc = await this.workspace.document
     doc.forceSync()
   }
 
@@ -162,12 +157,12 @@ export class Helper extends EventEmitter {
     } else if (mode.mode != 'n' || mode.blocking) {
       await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
-    completion.stop(true)
-    workspace.reset()
+    this.completion.stop(true)
+    this.workspace.reset()
     await this.nvim.command('silent! %bwipeout!')
     await this.nvim.command('setl nopreviewwindow')
     await this.wait(30)
-    await workspace.document
+    await this.workspace.document
   }
 
   public async pumvisible(): Promise<boolean> {
@@ -185,7 +180,7 @@ export class Helper extends EventEmitter {
 
   public async visible(word: string, source?: string): Promise<boolean> {
     await this.waitPopup()
-    let items = completion.activeItems
+    let items = this.completion.activeItems
     if (!items) return false
     let item = items.find(o => o.word == word)
     if (!item) return false
@@ -201,7 +196,7 @@ export class Helper extends EventEmitter {
   public async getItems(): Promise<ReadonlyArray<ExtendedCompleteItem>> {
     let visible = await this.pumvisible()
     if (!visible) return []
-    return completion.activeItems.slice()
+    return this.completion.activeItems.slice()
   }
 
   public async edit(file?: string): Promise<Buffer> {
@@ -210,14 +205,14 @@ export class Helper extends EventEmitter {
     }
     let escaped = await this.nvim.call('fnameescape', file) as string
     await this.nvim.command(`edit ${escaped}`)
-    let doc = await workspace.document
+    let doc = await this.workspace.document
     return doc.buffer
   }
 
   public async createDocument(name?: string): Promise<Document> {
     let buf = await this.edit(name)
-    let doc = workspace.getDocument(buf.id)
-    if (!doc) return await workspace.document
+    let doc = this.workspace.getDocument(buf.id)
+    if (!doc) return await this.workspace.document
     return doc
   }
 
@@ -246,11 +241,11 @@ export class Helper extends EventEmitter {
   }
 
   public updateConfiguration(key: string, value: any): () => void {
-    let { configurations } = workspace
-    let curr = workspace.getConfiguration(key)
-    configurations.updateUserConfig({ [key]: value })
+    let curr = this.workspace.getConfiguration(key)
+    let { configurations } = this.workspace
+    configurations.updateMemoryConfig({ [key]: value })
     return () => {
-      configurations.updateUserConfig({ [key]: curr })
+      configurations.updateMemoryConfig({ [key]: curr })
     }
   }
 
@@ -263,7 +258,7 @@ export class Helper extends EventEmitter {
   }
 
   public async items(): Promise<VimCompleteItem[]> {
-    return completion?.activeItems.slice()
+    return this.completion?.activeItems.slice()
   }
 
   public async screenLine(line: number): Promise<string> {

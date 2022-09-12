@@ -476,6 +476,13 @@ describe('Arrays', () => {
     assert.ok(!arrays.intersect([1, 2, 3], [4, 5]))
   })
 
+  it('toArray()', async () => {
+    assert.deepStrictEqual(arrays.toArray(1), [1])
+    assert.deepStrictEqual(arrays.toArray(null), [])
+    assert.deepStrictEqual(arrays.toArray(undefined), [])
+    assert.deepStrictEqual(arrays.toArray([1, 2]), [1, 2])
+  })
+
   it('group()', () => {
     let res = arrays.group([1, 2, 3, 4, 5], 3)
     assert.deepStrictEqual(res, [[1, 2, 3], [4, 5]])

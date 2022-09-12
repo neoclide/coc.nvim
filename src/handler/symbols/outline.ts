@@ -6,7 +6,7 @@ import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import BasicTreeView from '../../tree/TreeView'
-import { ConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { IConfigurationChangeEvent, HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { comparePosition, positionInRange } from '../../util/position'
 import window from '../../window'
@@ -100,9 +100,9 @@ export default class SymbolsOutline {
     if (curr) await treeView.reveal(curr)
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('outline')) {
-      let c = workspace.getConfiguration('outline')
+      let c = workspace.getConfiguration('outline', null)
       this.config = {
         splitCommand: c.get<string>('splitCommand'),
         switchSortKey: c.get<string>('switchSortKey'),

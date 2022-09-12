@@ -1,19 +1,20 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationTokenSource, Disposable, Emitter, Event, InlayHintKind, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Emitter, Event, InlayHintKind, Range } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
-import { disposeAll } from '../../util'
 import { positionInRange } from '../../util/position'
 import { byteIndex } from '../../util/string'
+import workspace from '../../workspace'
 const logger = require('../../util/logger')('inlayHint-buffer')
 
 export interface InlayHintConfig {
+  enable: boolean
   filetypes: string[]
   refreshOnInsertMode: boolean
   enableParameter: boolean
@@ -28,9 +29,9 @@ const highlightGroup = 'CocInlayHint'
 
 export default class InlayHintBuffer implements SyncItem {
   private _enabled = true
-  private disposables: Disposable[] = []
   private tokenSource: CancellationTokenSource
   private regions = new Regions()
+  private config: InlayHintConfig
   // Saved for resolve and TextEdits in the future.
   private currentHints: InlayHintWithProvider[] = []
   private readonly _onDidRefresh = new Emitter<void>()
@@ -38,22 +39,46 @@ export default class InlayHintBuffer implements SyncItem {
   public render: Function & { clear(): void }
   constructor(
     private readonly nvim: Neovim,
-    public readonly doc: Document,
-    private readonly config: InlayHintConfig,
-    private isVim: boolean
+    public readonly doc: Document
   ) {
-    if (!config.refreshOnInsertMode) {
-      events.on('InsertLeave', () => {
-        void this.renderRange()
-      }, null, this.disposables)
-      events.on('InsertEnter', () => {
-        void this.cancel()
-      }, null, this.disposables)
-    }
+    this.loadConfiguration()
     this.render = debounce(() => {
       void this.renderRange()
     }, debounceInterval)
     this.render()
+  }
+
+  public loadConfiguration(): void {
+    let config = workspace.getConfiguration('inlayHint', this.doc)
+    let changed = this.config && this.config.enable != config.enable
+    this.config = {
+      enable: config.get<boolean>('enable'),
+      filetypes: config.get<string[]>('filetypes'),
+      refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
+      enableParameter: config.get<boolean>('enableParameter'),
+      typeSeparator: config.get<string>('typeSeparator', ''),
+      parameterSeparator: config.get<string>('parameterSeparator', ''),
+      subSeparator: config.get<string>('subSeparator', ' ')
+    }
+    if (changed) {
+      if (this.config.enable) {
+        this.clearCache()
+        this.clearVirtualText()
+      } else {
+        void this.renderRange()
+      }
+
+    }
+  }
+
+  public async onInsertLeave(): Promise<void> {
+    if (this.config.refreshOnInsertMode) return
+    await this.renderRange()
+  }
+
+  public onInsertEnter(): void {
+    if (this.config.refreshOnInsertMode) return
+    this.cancel()
   }
 
   public get current(): ReadonlyArray<InlayHintWithProvider> {
@@ -61,19 +86,20 @@ export default class InlayHintBuffer implements SyncItem {
   }
 
   public get enabled(): boolean {
-    let { filetypes } = this.config
     if (!this._enabled) return false
-    if (!filetypes.length) return false
-    if (!filetypes.includes('*') && !filetypes.includes(this.doc.filetype)) return false
+    if (!this.configEnabled) return false
     return languages.hasProvider('inlayHint', this.doc.textDocument)
+  }
+
+  public get configEnabled(): boolean {
+    let { filetypes, enable } = this.config
+    if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(this.doc.filetype)
+    return enable === true
   }
 
   public toggle(): void {
     if (!languages.hasProvider('inlayHint', this.doc.textDocument)) throw new Error('Inlay hint provider not found for current document')
-    let { filetypes } = this.config
-    if (!filetypes.includes('*') && !filetypes.includes(this.doc.filetype)) {
-      throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint.filetypes configuration`)
-    }
+    if (!this.configEnabled) throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint configuration`)
     if (this._enabled) {
       this._enabled = false
       this.clearCache()
@@ -129,7 +155,7 @@ export default class InlayHintBuffer implements SyncItem {
     this.regions.add(res[0], res[1])
     this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
     this.currentHints.push(...inlayHints)
-    this.setVirtualText(range, inlayHints, this.isVim)
+    this.setVirtualText(range, inlayHints, workspace.env.isVim)
   }
 
   public setVirtualText(range: Range, inlayHints: InlayHintWithProvider[], isVim: boolean): void {
@@ -184,7 +210,6 @@ export default class InlayHintBuffer implements SyncItem {
   }
 
   public dispose(): void {
-    disposeAll(this.disposables)
     this.cancel()
   }
 }

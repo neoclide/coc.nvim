@@ -7,18 +7,14 @@ import { CompleteOption, Documentation, ExtendedCompleteItem, FloatConfig } from
 import workspace from '../workspace'
 const logger = require('../util/logger')('completion-floating')
 
-export interface FloatingConfig extends FloatConfig {
-  excludeImages: boolean
-}
-
 export default class Floating {
   private tokenSource: CancellationTokenSource
   private excludeImages = true
-  constructor(private nvim: Neovim) {
+  constructor(private nvim: Neovim, private config: { floatConfig: FloatConfig }) {
     this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
   }
 
-  public async resolveItem(item: ExtendedCompleteItem, floatConfig: Readonly<FloatConfig>, opt: CompleteOption): Promise<void> {
+  public async resolveItem(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     let source = this.tokenSource = new CancellationTokenSource()
     let { token } = source
     await this.doCompleteResolve(item, opt, source)
@@ -27,15 +23,16 @@ export default class Floating {
     if (docs.length === 0 && typeof item.info === 'string') {
       docs = [{ filetype: 'txt', content: item.info }]
     }
-    this.show(docs, Object.assign({}, floatConfig, { excludeImages: this.excludeImages }))
+    this.show(docs)
   }
 
-  public show(docs: Documentation[], config: FloatingConfig): void {
+  public show(docs: Documentation[]): void {
+    let config = this.config.floatConfig
     docs = docs.filter(o => o.content.trim().length > 0)
     if (docs.length === 0) {
       this.close()
     } else {
-      let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: config.excludeImages })
+      let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: this.excludeImages })
       let opts: any = {
         codes,
         highlights,

@@ -7,7 +7,6 @@ import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import { DidChangeTextDocumentParams } from '../../types'
-import { waitImmediate } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('codelens-buffer')
@@ -22,8 +21,9 @@ export interface CodeLensConfig {
   enabled: boolean
   separator: string
   subseparator: string
-  srcId?: number
 }
+
+let srcId: number | undefined
 
 /**
  * CodeLens buffer
@@ -32,13 +32,14 @@ export default class CodeLensBuffer implements SyncItem {
   private codeLenses: CodeLensInfo
   private tokenSource: CancellationTokenSource
   private resolveTokenSource: CancellationTokenSource
+  private config: CodeLensConfig
   public resolveCodeLens: (() => void) & { clear(): void }
   private debounceFetch: (() => void) & { clear(): void }
   constructor(
     private nvim: Neovim,
-    public readonly document: Document,
-    private config: CodeLensConfig
+    public readonly document: Document
   ) {
+    this.loadConfiguration()
     this.resolveCodeLens = debounce(() => {
       void this._resolveCodeLenses()
     }, global.__TEST__ ? 20 : 200)
@@ -46,6 +47,17 @@ export default class CodeLensBuffer implements SyncItem {
       void this.fetchCodeLenses()
     }, global.__TEST__ ? 20 : 100)
     this.debounceFetch()
+  }
+
+  public loadConfiguration(): void {
+    let config = workspace.getConfiguration('codeLens', this.document)
+    let enable = this.nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', false)
+    this.config = {
+      enabled: enable,
+      position: config.get<'top' | 'eol'>('position', 'top'),
+      separator: config.get<string>('separator', '‣'),
+      subseparator: config.get<string>('subseparator', ' ')
+    }
   }
 
   private get bufnr(): number {
@@ -102,6 +114,7 @@ export default class CodeLensBuffer implements SyncItem {
     if (!this.enabled || !this.codeLenses || this.isChanged) return
     let { codeLenses } = this.codeLenses
     let [bufnr, start, end, total] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$'),line('$')]`) as [number, number, number, number]
+    if (!srcId) srcId = await this.nvim.createNamespace('coc-codelens')
     // only resolve current buffer
     if (this.isChanged || bufnr != this.bufnr) return
     if (this.resolveTokenSource) this.resolveTokenSource.cancel()
@@ -135,7 +148,7 @@ export default class CodeLensBuffer implements SyncItem {
    */
   private setVirtualText(codeLenses: CodeLens[]): void {
     let { document } = this
-    if (!document || !codeLenses.length) return
+    if (!srcId || !document || !codeLenses.length) return
     let list: Map<number, CodeLens[]> = new Map()
     let { position } = this.config
     for (let codeLens of codeLenses) {
@@ -164,7 +177,6 @@ export default class CodeLensBuffer implements SyncItem {
       if (this.config.separator) {
         chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
       }
-      let { srcId } = this.config
       if (workspace.has('nvim-0.6.0')) {
         let buf = this.document.buffer
         let line = document.getline(lnum)
@@ -189,7 +201,6 @@ export default class CodeLensBuffer implements SyncItem {
   }
 
   public clear(start = 0, end = -1): void {
-    let { srcId } = this.config
     if (!srcId) return
     let buf = this.nvim.createBuffer(this.bufnr)
     buf.clearNamespace(srcId, start, end)

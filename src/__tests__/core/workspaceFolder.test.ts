@@ -17,10 +17,10 @@ let disposables: Disposable[] = []
 let nvim: Neovim
 
 function updateConfiguration(key: string, value: any, defaults: any): void {
-  configurations.updateUserConfig({ [key]: value })
+  configurations.updateMemoryConfig({ [key]: value })
   disposables.push({
     dispose: () => {
-      configurations.updateUserConfig({ [key]: defaults })
+      configurations.updateMemoryConfig({ [key]: defaults })
     }
   })
 }
@@ -29,10 +29,7 @@ beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
-  configurations = new Configurations(userConfigFile, {
-    $removeConfigurationOption: () => {},
-    $updateConfigurationOption: () => {}
-  })
+  configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
 })
 

@@ -115,6 +115,10 @@ export default class Handler implements HandlerDelegate {
     void this.refactor.init()
   }
 
+  public get uri(): string | undefined {
+    return window.activeTextEditor?.document.uri
+  }
+
   public async getCurrentState(): Promise<CurrentState> {
     let { nvim } = this
     let [bufnr, [line, character], winid, mode] = await nvim.eval("[bufnr('%'),coc#cursor#position(),win_getid(),mode()]") as [number, [number, number], number, string]

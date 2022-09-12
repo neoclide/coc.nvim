@@ -339,17 +339,17 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     let disableSnippetCompletion = clientOptions.disableSnippetCompletion
     if (clientOptions.disableSnippetCompletion === undefined) {
-      let suggest = workspace.getConfiguration('suggest')
+      let suggest = workspace.getConfiguration('suggest', clientOptions.workspaceFolder)
       if (suggest.get<boolean>('snippetsSupport', true) === false) {
         disableSnippetCompletion = true
       }
     }
     let disableMarkdown = clientOptions.disableMarkdown
     if (disableMarkdown === undefined) {
-      let preferences = workspace.getConfiguration('coc.preferences')
+      let preferences = workspace.getConfiguration('coc.preferences', clientOptions.workspaceFolder)
       disableMarkdown = preferences.get<boolean>('enableMarkdown', true) === false
     }
-    const pullConfig = workspace.getConfiguration('pullDiagnostic')
+    const pullConfig = workspace.getConfiguration('pullDiagnostic', clientOptions.workspaceFolder)
     let pullOption = clientOptions.diagnosticPullOptions ?? {}
     if (pullOption.onChange === undefined) pullOption.onChange = pullConfig.get<boolean>('onChange')
     if (pullOption.onSave === undefined) pullOption.onSave = pullConfig.get<boolean>('onSave')
@@ -369,7 +369,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     let separateDiagnostics = clientOptions.separateDiagnostics
     if (clientOptions.separateDiagnostics === undefined) {
-      separateDiagnostics = workspace.getConfiguration('diagnostic').get('separateRelatedInformationAsDiagnostics') as boolean
+      separateDiagnostics = workspace.getConfiguration('diagnostic', clientOptions.workspaceFolder).get('separateRelatedInformationAsDiagnostics') as boolean
     }
     return {
       disabledFeatures,
@@ -975,7 +975,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
 
     let rootPath = resolved || workspace.rootPath || workspace.cwd
-    if (sameFile(rootPath, os.homedir()) || (Array.isArray(ignoredRootPaths) && ignoredRootPaths.some(p => sameFile(rootPath, p)))) {
+    if (sameFile(rootPath, os.homedir()) || ignoredRootPaths.some(p => sameFile(rootPath, p))) {
       this.warn(`Ignored rootPath ${rootPath} of client "${this._id}"`)
       return null
     }
@@ -983,17 +983,17 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private initialize(connection: Connection): Promise<InitializeResult> {
-    let { initializationOptions, progressOnInitialization } = this._clientOptions
+    let { initializationOptions, workspaceFolder, progressOnInitialization } = this._clientOptions
     this.refreshTrace(connection, false)
     let rootPath = this._rootPath
-    let initParams: any = {
+    let initParams: InitializeParams = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
       rootUri: rootPath ? cv.asUri(URI.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initializationOptions) ? initializationOptions() : initializationOptions,
       trace: Trace.toString(this._trace),
-      workspaceFolders: null,
+      workspaceFolders: workspaceFolder ? [workspaceFolder] : null,
       locale: this.getLocale(),
       clientInfo: {
         name: 'coc.nvim',
@@ -1076,26 +1076,26 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this.initializeFeatures(connection)
       return result
     } catch (error: any) {
-      if (this._clientOptions.initializationFailedHandler) {
-        if (this._clientOptions.initializationFailedHandler(error)) {
+      let cb = (retry: boolean) => {
+        if (retry) {
           this.initialize(connection).catch(() => {})
         } else {
           this.stop().catch(() => {})
         }
+      }
+      if (this._clientOptions.initializationFailedHandler) {
+        cb(this._clientOptions.initializationFailedHandler(error))
       } else if (error instanceof ResponseError && error.data && error.data.retry) {
         void window.showErrorMessage(error.message, { title: 'Retry', id: 'retry' }).then(item => {
-          if (item && item.id === 'retry') {
-            this.initialize(connection).catch(() => {})
-          } else {
-            this.stop().catch(() => {})
-          }
+          cb(item && item.id === 'retry')
         })
       } else {
         if (error && error.message) {
           void window.showErrorMessage(error.message)
         }
         this.error('Server initialization failed.', error)
-        this.stop().catch(() => {})
+        logger.error(`Server ${this.id} initialization failed.`, error)
+        cb(false)
       }
       throw error
     }
@@ -1114,11 +1114,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
     // If we are stopping the client and have a stop promise return it.
     if (this.$state === ClientState.Stopping) {
-      if (this._onStop !== undefined) {
-        return this._onStop
-      } else {
-        throw new Error(`Client is stopping but no stop promise available.`)
-      }
+      return this._onStop
     }
 
     const connection = this.activeConnection()
@@ -1163,8 +1159,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   public dispose(timeout = 2000): Promise<void> {
+    if (this._disposed) return
     try {
       this._disposed = 'disposing'
+      if (!this.needsStop()) return
       return this.stop(timeout)
     } finally {
       this._disposed = 'disposed'
@@ -1309,7 +1307,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     connection: Connection,
     sendNotification = false
   ): void {
-    let config = workspace.getConfiguration(this._id)
+    let config = workspace.getConfiguration(this._id, this.clientOptions.workspaceFolder)
     let trace: Trace = Trace.Off
     let traceFormat: TraceFormat = TraceFormat.Text
     if (config) {
@@ -1680,7 +1678,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 }
 
-export const ProposedFeatures = {
+const ProposedFeatures = {
   createAll: (_client: BaseLanguageClient): (StaticFeature | DynamicFeature<any>)[] => {
     let result: (StaticFeature | DynamicFeature<any>)[] = []
     return result

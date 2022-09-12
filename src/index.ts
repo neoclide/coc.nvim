@@ -55,7 +55,7 @@ import {
   DocumentDiagnosticReportKind,
 } from 'vscode-languageserver-protocol'
 
-import { PatternType, SourceType, MessageLevel, ConfigurationTarget, ServiceStat, FileType } from './types'
+import { PatternType, SourceType, MessageLevel, ConfigurationUpdateTarget, ServiceStat, FileType } from './types'
 import {
   State,
   NullLogger,
@@ -102,7 +102,7 @@ module.exports = {
   PatternType,
   SourceType,
   MessageLevel,
-  ConfigurationTarget,
+  ConfigurationTarget: ConfigurationUpdateTarget,
   ServiceStat,
   FileType,
   State,

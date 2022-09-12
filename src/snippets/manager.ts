@@ -9,7 +9,7 @@ import { emptyRange, rangeInRange, rangeOverlap } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
-import { SnippetSession, SnippetConfig } from './session'
+import { SnippetConfig, SnippetSession } from './session'
 import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
 const logger = require('../util/logger')('snippets-manager')
@@ -19,7 +19,11 @@ export class SnippetManager {
   private disposables: Disposable[] = []
   private statusItem: StatusBarItem
 
-  constructor() {
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
+  public init(): void {
     events.on('InsertCharPre', () => {
       // avoid update session when pumvisible
       // Update may cause completion unexpected terminated.
@@ -42,17 +46,9 @@ export class SnippetManager {
       let session = this.getSession(e.bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
-  }
-
-  private get nvim(): Neovim {
-    return workspace.nvim
-  }
-
-  public init(): void {
     if (!this.statusItem) this.statusItem = window.createStatusBarItem(0)
-    let config = workspace.getConfiguration('coc.preferences')
     const snippetConfig = workspace.getConfiguration('snippet')
-    this.statusItem.text = config.get<string>('snippetStatusText', snippetConfig.get<string>('statusText', 'SNIP'))
+    this.statusItem.text = snippetConfig.get<string>('statusText', '')
   }
 
   private getSnippetConfig(resource: string): SnippetConfig {
@@ -61,7 +57,7 @@ export class SnippetManager {
     const suggest = workspace.getConfiguration('suggest', resource)
     return {
       highlight: config.get<boolean>('snippetHighlight', snippetConfig.get<boolean>('highlight', false)),
-      nextOnDelete: config.get<boolean>('nextPlaceholderOnDelete', snippetConfig.get<boolean>('.nextPlaceholderOnDelete', false)),
+      nextOnDelete: config.get<boolean>('nextPlaceholderOnDelete', snippetConfig.get<boolean>('nextPlaceholderOnDelete', false)),
       preferComplete: suggest.get<boolean>('preferCompleteThanJumpPlaceholder', false),
       choicesMenuPicker: snippetConfig.get<boolean>('choicesMenuPicker', false)
     }

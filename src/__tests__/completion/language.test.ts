@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { CompletionItem, CompletionList, CompletionItemKind, InsertTextFormat, InsertTextMode, Position, Range, TextEdit, InsertReplaceEdit } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
-import { ItemDefaults, getRange, getStartColumn, getKindString } from '../../sources/source-language'
+import { getRange, getStartColumn, ItemDefaults } from '../../sources/source-language'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -26,21 +26,6 @@ afterEach(async () => {
 })
 
 describe('LanguageSource util', () => {
-  describe('getKindString()', () => {
-    it('should get kind text', async () => {
-      let map = new Map()
-      map.set(CompletionItemKind.Enum, 'E')
-      let res = getKindString(CompletionItemKind.Enum, map, '')
-      expect(res).toBe('E')
-    })
-
-    it('should get default value', async () => {
-      let map = new Map()
-      let res = getKindString(CompletionItemKind.Enum, map, 'D')
-      expect(res).toBe('D')
-    })
-  })
-
   describe('getStartColumn()', () => {
     it('should get start col', async () => {
       expect(getStartColumn('', [{ label: 'foo' }])).toBe(undefined)
@@ -246,7 +231,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('snippets-test', 'st', null, provider))
       await nvim.input('if')
       await helper.waitPopup()
-      await helper.selectItem('foo')
+      await nvim.call('coc#pum#select', [0, 1, 0])
       await helper.waitFor('getline', ['.'], 'foo')
     })
 
@@ -456,29 +441,28 @@ describe('language source', () => {
       let line = await nvim.line
       expect(line).toBe('?foo')
     })
-  })
 
-  it('should fix range of removed text range', async () => {
-    let provider: CompletionItemProvider = {
-      provideCompletionItems: async (): Promise<CompletionItem[]> => {
-        return [{
-          label: 'React',
-          textEdit: {
-            range: Range.create(0, 0, 0, 8),
-            newText: 'import React$1 from "react"'
-          },
-          insertTextFormat: InsertTextFormat.Snippet
-        }]
+    it('should fix range of removed text range', async () => {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => {
+          return [{
+            label: 'React',
+            textEdit: {
+              range: Range.create(0, 0, 0, 8),
+              newText: 'import React$1 from "react"'
+            },
+            insertTextFormat: InsertTextFormat.Snippet
+          }]
+        }
       }
-    }
-    disposables.push(languages.registerCompletionItemProvider('fix', 'f', null, provider, ['?']))
-    await nvim.call('setline', ['.', 'import r;'])
-    await nvim.call('cursor', [1, 8])
-    await nvim.input('a')
-    await nvim.call('coc#start', { source: 'fix' })
-    await helper.waitPopup()
-    let items = completion.activeItems
-    await helper.confirmCompletion(0)
-    await helper.waitFor('getline', ['.'], 'import React from "react";')
+      disposables.push(languages.registerCompletionItemProvider('fix', 'f', null, provider, ['?']))
+      await nvim.call('setline', ['.', 'import r;'])
+      await nvim.call('cursor', [1, 8])
+      await nvim.input('a')
+      await nvim.call('coc#start', { source: 'fix' })
+      await helper.waitPopup()
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], 'import React from "react";')
+    })
   })
 })

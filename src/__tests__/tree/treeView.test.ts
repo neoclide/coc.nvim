@@ -148,7 +148,7 @@ describe('TreeView', () => {
       await treeView.show()
       await helper.wait(50)
       let { configurations } = workspace
-      configurations.updateUserConfig({
+      configurations.updateMemoryConfig({
         'tree.openedIcon': '',
         'tree.closedIcon': '',
       })
