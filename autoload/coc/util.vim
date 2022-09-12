@@ -569,8 +569,13 @@ function! coc#util#get_complete_option()
   let line = getline(pos[1])
   let input = matchstr(strpart(line, 0, pos[2] - 1), '\k*$')
   let col = pos[2] - strlen(input)
+  let position = {
+      \ 'line': line('.')-1,
+      \ 'character': strchars(strpart(getline('.'), 0, col('.') - 1))
+      \ }
   return {
         \ 'word': matchstr(strpart(line, col - 1), '^\k\+'),
+        \ 'position': position,
         \ 'input': empty(input) ? '' : input,
         \ 'line': line,
         \ 'filetype': &filetype,
