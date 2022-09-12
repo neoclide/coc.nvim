@@ -144,10 +144,10 @@ export class Completion implements Disposable {
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
     this.staticConfig = Object.assign(this.staticConfig ?? {}, {
       kindMap: createKindMap(labels),
+      defaultKindText: labels['default'] ?? '',
       detailField: suggest.detailField,
       detailMaxLength: suggest.detailMaxLength ?? 100,
       invalidInsertCharacters: suggest.invalidInsertCharacters ?? [],
-      defaultKindText: labels['default'] ?? '',
       formatItems: suggest.formatItems,
       floatConfig: suggest.floatConfig ?? {},
       pumFloatConfig: suggest.pumFloatConfig,

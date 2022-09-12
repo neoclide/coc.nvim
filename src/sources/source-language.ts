@@ -51,7 +51,7 @@ export default class LanguageSource implements ISource {
     this._enabled = !this._enabled
   }
 
-  public shouldCommit?(item: ExtendedCompleteItem, character: string): boolean {
+  public shouldCommit(item: ExtendedCompleteItem, character: string): boolean {
     let completeItem = this.completeItems[item.index]
     if (!completeItem) return false
     if (this.allCommitCharacters.includes(character)) return true
@@ -234,8 +234,9 @@ export default class LanguageSource implements ISource {
 
   private convertVimCompleteItem(item: CompletionItem, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
     let label = typeof item.label === 'string' ? item.label.trim() : item.insertText ?? ''
+    let isSnippet = this.isSnippetItem(item)
     let obj: ExtendedCompleteItem = {
-      word: getWord(item, opt, this.itemDefaults),
+      word: getWord(item, isSnippet, opt, this.itemDefaults),
       abbr: label,
       kind: item.kind,
       detail: item.detail,
@@ -244,7 +245,7 @@ export default class LanguageSource implements ISource {
       filterText: item.filterText ?? label,
       preselect: item.preselect === true,
       deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
-      isSnippet: this.isSnippetItem(item),
+      isSnippet,
       labelDetails: item.labelDetails,
       dup: item.data?.dup == 0 ? 0 : 1
     }
@@ -303,10 +304,9 @@ export function getStartColumn(line: string, items: CompletionItem[], itemDefaul
   return byteIndex(line, range.start.character)
 }
 
-export function getWord(item: CompletionItem, opt: CompleteOption, itemDefaults: ItemDefaults): string {
-  let { label, data, insertTextFormat, insertText, textEdit } = item
+export function getWord(item: CompletionItem, isSnippet: boolean, opt: CompleteOption, itemDefaults: ItemDefaults): string {
+  let { label, data, insertText, textEdit } = item
   if (data && typeof data.word === 'string') return data.word
-  let isSnippet = (insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet
   let newText: string = insertText ?? label
   let range: Range | undefined
   if (textEdit) {
