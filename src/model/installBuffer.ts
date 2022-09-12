@@ -2,7 +2,8 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { OutputChannel } from '../types'
+import { HighlightItem, OutputChannel } from '../types'
+import { byteLength } from '../util/string'
 import { frames } from './status'
 const logger = require('../util/logger')('model-installBuffer')
 
@@ -15,6 +16,7 @@ export enum State {
 
 export default class InstallBuffer extends EventEmitter implements Disposable {
   private statMap: Map<string, State> = new Map()
+  private updated: Set<string> = new Set()
   private messagesMap: Map<string, string[]> = new Map()
   private names: string[] = []
   // eslint-disable-next-line no-undef
@@ -40,6 +42,9 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     if (isProgress && this.channel) return
     let lines = this.messagesMap.get(name) || []
     this.messagesMap.set(name, lines.concat(msg.trim().split(/\r?\n/)))
+    if (msg.startsWith('Updated to') || msg.startsWith('Installed extension')) {
+      this.updated.add(name)
+    }
     if (this.channel) this.channel.appendLine(`[${name}] ${msg}`)
   }
 
@@ -71,29 +76,40 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     return count
   }
 
-  private getLines(): string[] {
+  private getLinesAndHighlights(start: number): { lines: string[], highlights: HighlightItem[] } {
     let lines: string[] = []
+    let highlights: HighlightItem[] = []
     for (let name of this.names) {
       let state = this.statMap.get(name)
       let processText = '*'
+      let hlGroup: string | undefined
+      let lnum = start + lines.length
       switch (state) {
         case State.Progressing: {
           let d = new Date()
           let idx = Math.floor(d.getMilliseconds() / 100)
           processText = frames[idx]
+          hlGroup = undefined
           break
         }
         case State.Failed:
           processText = '✗'
+          hlGroup = 'ErrorMsg'
           break
         case State.Success:
           processText = '✓'
+          hlGroup = this.updated.has(name) ? 'MoreMsg' : 'NonText'
           break
       }
       let msgs = this.messagesMap.get(name) || []
-      lines.push(`- ${processText} ${name} ${msgs.length ? msgs[msgs.length - 1] : ''}`)
+      let pre = `- ${processText} `
+      let len = byteLength(pre)
+      if (hlGroup) {
+        highlights.push({ hlGroup, lnum, colStart: len, colEnd: len + byteLength(name) })
+      }
+      lines.push(`${pre}${name} ${msgs.length ? msgs[msgs.length - 1] : ''}`)
     }
-    return lines
+    return { lines, highlights }
   }
 
   public getMessages(line: number): string[] {
@@ -107,22 +123,24 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   private draw(nvim: Neovim, buffer: Buffer): void {
     let { remains } = this
     let first = remains == 0 ? `${this.isUpdate ? 'Update' : 'Install'} finished` : `Installing, ${remains} remaining...`
-    let lines = [first, '', ...this.getLines()]
-    buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
+    let { lines, highlights } = this.getLinesAndHighlights(2)
+    nvim.pauseNotification()
+    buffer.setLines([first, '', ...lines], { start: 0, end: -1, strictIndexing: false }, true)
+    buffer.updateHighlights('coc-extensions', highlights, { priority: 99 })
     if (remains == 0 && this.interval) {
       clearInterval(this.interval)
+      this.updated.clear()
+      this.statMap.clear()
       this.interval = null
     }
-    if (process.env.VIM_NODE_RPC) {
-      nvim.command('redraw', true)
-    }
+    nvim.resumeNotification(true, true)
   }
 
   public highlight(nvim: Neovim): void {
     nvim.call('matchadd', ['CocListFgCyan', '^\\-\\s\\zs\\*'], true)
     nvim.call('matchadd', ['CocListFgGreen', '^\\-\\s\\zs✓'], true)
     nvim.call('matchadd', ['CocListFgRed', '^\\-\\s\\zs✗'], true)
-    nvim.call('matchadd', ['CocListFgYellow', '^-.\\{3\\}\\zs\\S\\+'], true)
+    // nvim.call('matchadd', ['CocListFgYellow', '^-.\\{3\\}\\zs\\S\\+'], true)
   }
 
   public async show(nvim: Neovim): Promise<void> {
