@@ -445,7 +445,7 @@
     "coc.preferences.floatActions": {
       "type": "boolean",
       "scope": "application",
-      "description": "Set to false to disable float/popup support for actions menu, won't work on vim without float or popup window support.",
+      "description": "Set to false to disable float/popup support for actions menu.",
       "default": true
     },
     "coc.preferences.formatOnSaveFiletypes": {
@@ -911,7 +911,7 @@
     "diagnostic.virtualText": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Use NeoVim virtual text to display diagnostics",
+      "description": "Use virtual text to display diagnostics, requires neovim >= 0.5.0 or vim >= 9.0.0067.",
       "default": false
     },
     "diagnostic.virtualTextAlign": {
@@ -1099,6 +1099,7 @@
     },
     "hover.target": {
       "type": "string",
+      "default": "float",
       "scope": "resource",
       "description": "Target to show hover information, default is floating window when possible.",
       "enum": ["preview", "echo", "float"]
@@ -1532,7 +1533,7 @@
       "type": "string",
       "scope": "application",
       "default": "p",
-      "description": "The key used to toggle preview window."
+      "description": "The key used to toggle auto preview feature."
     },
     "pullDiagnostic.ignored": {
       "type": "array",
@@ -1896,7 +1897,7 @@
     "suggest.noselect": {
       "type": "boolean",
       "scope": "application",
-      "description": "Not make vim select first item on completion start",
+      "description": "Not make vim select first item on popupmenu shown",
       "default": false
     },
     "suggest.preferCompleteThanJumpPlaceholder": {

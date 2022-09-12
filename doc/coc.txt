@@ -1189,7 +1189,7 @@ depends on language specific symbol information.
 
 The feature requires vim >= 8.1.1719 or neovim >= 0.5.0.
 
-Use |coc-config-semanticTokens-filetypes| to enable semantic tokens highlights.
+Use |coc-config-semanticTokens-enable| to enable semantic tokens highlights.
 
 Use `:CocCommand semanticTokens.checkCurrent` to check semantic highlight
 information with current buffer.
@@ -1254,7 +1254,7 @@ you may also need enable code lens by configure extension or configured
 languageserver.
 
 Code lens are automatically requested on buffer create/change, checkout
-|coc-config-codelens| for available configurations.
+|coc-config-codeLens| for available configurations.
 
 ------------------------------------------------------------------------------
 LINKED EDITING 						*coc-linked-editing*
