@@ -1,6 +1,12 @@
 'use strict'
+import { CompletionList } from 'vscode-languageserver-protocol'
+
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
+
+export function isCompletionList(obj: any): obj is CompletionList {
+  return !Array.isArray(obj) && Array.isArray(obj.items)
+}
 
 export function boolean(value: any): value is boolean {
   return typeof value === 'boolean'

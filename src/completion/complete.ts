@@ -227,11 +227,12 @@ export default class Complete {
     let token = this.tokenSource.token
     await document.patchChange(true)
     if (token.isCancellationRequested) return undefined
-    let { input, colnr, linenr } = this.option
+    let { input, colnr, linenr, position } = this.option
     let character = resumeInput[resumeInput.length - 1]
     Object.assign(this.option, {
       input: resumeInput,
       line: document.getline(linenr - 1),
+      position: { line: position.line, character: position.character + resumeInput.length - input.length },
       colnr: colnr + (resumeInput.length - input.length),
       triggerCharacter: !character || isWord(character) ? undefined : character,
       triggerForInComplete: true

@@ -148,11 +148,7 @@ endfunction
 
 function! coc#start(...)
   let opt = coc#util#get_complete_option()
-  let position = {
-      \ 'line': line('.')-1,
-      \ 'character': strchars(strpart(getline('.'), 0, col('.') - 1))
-      \ }
-  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {'position': position})))
+  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
   return ''
 endfunction
 

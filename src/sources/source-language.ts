@@ -1,14 +1,15 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemTag, CompletionList, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
+import { getCursorPosition } from '../core/ui'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, Documentation, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { isCompletionList } from '../util/is'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
-import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-language')
 
@@ -23,15 +24,12 @@ export interface ItemDefaults {
   data?: any
 }
 
-function isCompletionList(obj: any): obj is CompletionList {
-  return !Array.isArray(obj) && Array.isArray(obj.items)
-}
-
 export default class LanguageSource implements ISource {
   public sourceType: SourceType.Service
   private _enabled = true
   private completeItems: CompletionItem[] = []
   private itemDefaults: ItemDefaults = {}
+  // cursor position on trigger
   private triggerPosition: Position
   constructor(
     public readonly name: string,
@@ -61,11 +59,10 @@ export default class LanguageSource implements ISource {
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
-    let { triggerCharacter, input, bufnr } = opt
+    let { triggerCharacter, input, bufnr, position } = opt
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
-    let position = this.getPosition(opt)
-    this.triggerPosition = position
+    this.triggerPosition = { line: position.line, character: position.character }
     let context: any = { triggerKind, option: opt }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
     let doc = workspace.getDocument(bufnr)
@@ -187,7 +184,7 @@ export default class LanguageSource implements ISource {
 
   private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption): Promise<boolean> {
     let { line, linenr, col } = option
-    let pos = await window.getCursorPosition()
+    let pos = await getCursorPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
     let range: Range | undefined
     let { textEdit, insertText, label } = item
@@ -209,6 +206,7 @@ export default class LanguageSource implements ISource {
     let newText = textEdit ? textEdit.newText : insertText ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, currline, range)
+    // cursor moved count
     let delta = pos.character - beginIdx - indentCount
     // fix range by count cursor moved to replace insert word on complete done.
     if (delta !== 0) range.end.character += delta
@@ -266,15 +264,6 @@ export default class LanguageSource implements ISource {
     if (typeof item['score'] === 'number') obj.sourceScore = item['score']
     if (item.data?.optional && !obj.abbr.endsWith('?')) obj.abbr = obj.abbr + '?'
     return obj
-  }
-
-  private getPosition(opt: CompleteOption): Position {
-    let { line, linenr, colnr } = opt
-    let part = byteSlice(line, 0, colnr - 1)
-    return {
-      line: linenr - 1,
-      character: part.length
-    }
   }
 }
 

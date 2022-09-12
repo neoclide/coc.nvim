@@ -462,7 +462,6 @@ describe('language source', () => {
     await nvim.input('a')
     await nvim.call('coc#start', { source: 'fix' })
     await helper.waitPopup()
-    let items = completion.activeItems
     await helper.confirmCompletion(0)
     await helper.waitFor('getline', ['.'], 'import React from "react";')
   })
