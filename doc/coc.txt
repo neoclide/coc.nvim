@@ -236,11 +236,28 @@ The global configuration file can be created in another directory by setting
 
 	let g:coc_config_home = '/path/to/folder'
 
-Workspace configuration file:~
+Folder configuration file:~
 
 To create a local configuration file for a specific workspace, use
 |:CocLocalConfig| to create and open `.vim/coc-settings.json` in current
-workspace folder.  Workspace configuration would overwrite user configuration.
+workspace folder.
+
+Folder configuration would overwrite user configuration.
+
+							*coc-configuration-scope*
+Configuration scope:~
+
+A configuration could be one of three different configuration scopes:
+
+- "application" the configuration could only be changed in user configuration
+  file.
+
+- "resource" the configuration could be changed in user and workspace folder
+  configuration file.
+
+- "language-overridable" the configuration could be changed in user and
+  workspace folder configuration file, and can be use used in language scoped
+  configuration section like `[typescript][json]`.
 
 ==============================================================================
 FLOATING WINDOWS					*coc-floating*

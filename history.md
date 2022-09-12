@@ -1,3 +1,12 @@
+# 2022-09-12
+
+- All configurations are now scoped #4185
+- No `onDidChangeConfiguration` event fired when workspace folder changed.
+- Deprecated configuration `suggest.detailMaxLength`, use `suggest.labelMaxLength` instead.
+- Deprecated configuration `inlayHint.filetypes`, use `inlayHint.enable` with scoped languages instead.
+- Deprecated configuration `semanticTokens.filetypes`, use `semanticTokens.enable` with scoped languages instead.
+- Use `workspaceFolderValue` instead of `workspaceValue` for `ConfigurationInspect` returned by `WorkspaceConfiguration.inspect()`.
+
 # 2022-09-04
 
 - Add configuration "snippet.choicesMenuPicker".
