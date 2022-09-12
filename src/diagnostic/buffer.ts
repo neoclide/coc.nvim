@@ -516,7 +516,7 @@ export class DiagnosticBuffer implements SyncItem {
    * Refresh all diagnostics
    */
   private async _refresh(): Promise<void> {
-    if (!this._dirty) return
+    if (!this._dirty || !this.config.enable) return
     let info = await this.getDiagnosticInfo()
     let noHighlights = !info || info.winid == -1
     if (noHighlights) return

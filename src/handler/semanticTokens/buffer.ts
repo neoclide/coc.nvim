@@ -70,16 +70,16 @@ export default class SemanticTokensBuffer implements SyncItem {
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public highlight: Function & { clear(): void }
   constructor(private nvim: Neovim, public readonly doc: Document, private highlightGroups: ReadonlyArray<string>) {
-    this.loadConfiguration(true)
+    this.loadConfiguration()
     this.highlight = debounce(() => {
       void this.doHighlight()
     }, debounceInterval)
     this.highlight()
   }
 
-  public loadConfiguration(init?: boolean): void {
+  public loadConfiguration(): void {
     let config = workspace.getConfiguration('semanticTokens', this.doc)
-    let changed = !init && this.config.enable != config.enable
+    let changed = this.config != null && this.config.enable != config.enable
     this.config = {
       enable: config.get<boolean>('enable'),
       filetypes: config.get<string[]>('filetypes'),

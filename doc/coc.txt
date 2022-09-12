@@ -256,8 +256,8 @@ A configuration could be one of three different configuration scopes:
   configuration file.
 
 - "language-overridable" the configuration could be changed in user and
-  workspace folder configuration file, and can use used in language scoped
-  configuration section like `[json,typescript]`.
+  workspace folder configuration file, and can be use used in language scoped
+  configuration section like `[typescript][json]`.
 
 ==============================================================================
 FLOATING WINDOWS					*coc-floating*
