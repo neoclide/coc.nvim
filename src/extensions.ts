@@ -247,7 +247,12 @@ export class Extensions {
     if (!this.npm) return
     let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
-    stats = stats.filter(o => ![...lockedList, ...this.disabled].includes(o.id))
+    let score = id => {
+      if (lockedList.includes(id)) return 2
+      if (this.disabled.has(id)) return 3
+      return 1
+    }
+    stats.sort((a, b) => score(a.id) - score(b.id))
     this.db.push('lastUpdate', Date.now())
     if (silent) {
       window.showMessage('Updating extensions, checkout output:///extensions for details.', 'more')
@@ -259,6 +264,12 @@ export class Extensions {
     let fn = (stat: ExtensionInfo): Promise<void> => {
       let { id } = stat
       installBuffer.startProgress([id])
+      if (this.disabled.has(id) || lockedList.includes(id)) {
+        let msg = this.disabled.has(id) ? 'disabled' : 'locked'
+        installBuffer.addMessage(id, `Skipped update for ${msg} extension`)
+        installBuffer.finishProgress(id, true)
+        return Promise.resolve()
+      }
       let url = stat.exotic ? stat.uri : null
       // msg => installBuffer.addMessage(id, msg)
       let installer = createInstaller(id)
