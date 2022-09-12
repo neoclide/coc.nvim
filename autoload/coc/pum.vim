@@ -425,7 +425,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   let pumheight = empty(&pumheight) ? vh : &pumheight
   let showTop = getwinvar(s:pum_winid, 'above', v:null)
   if type(showTop) != v:t_number
-    if vh - lineIdx - bh - 1 < min([pumheight, linecount]) && lineIdx > vh - lineIdx
+    if vh - lineIdx - bh - 1 < min([pumheight, linecount]) && vh - lineIdx < min([10, vh/2])
       let showTop = 1
     else
       let showTop = 0
