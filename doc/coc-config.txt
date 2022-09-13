@@ -1105,8 +1105,37 @@ Suggest~
 "suggest.completionItemKindLabels"			*coc-config-suggest-completionItemKindLabels*
 
 	Set custom labels to completion items' kinds.
-
-	Scope: `application`, default: `{}`
+	Default value: >
+	{
+	  "text": "v",
+	  "method": "f",
+	  "function": "f",
+	  "constructor": "f",
+	  "field": "m",
+	  "variable": "v",
+	  "class": "C",
+	  "interface": "I",
+	  "module": "M",
+	  "property": "m",
+	  "unit": "U",
+	  "value": "v",
+	  "enum": "E",
+	  "keyword": "k",
+	  "snippet": "S",
+	  "color": "v",
+	  "file": "F",
+	  "reference": "r",
+	  "folder": "F",
+	  "enumMember": "m",
+	  "constant": "v",
+	  "struct": "S",
+	  "event": "E",
+	  "operator": "O",
+	  "typeParameter": "T",
+	  "default": ""
+	}
+<
+	Scope: `application`
 
 "suggest.defaultSortMethod"				*coc-config-suggest-defaultSortMethod*
 
