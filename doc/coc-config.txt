@@ -1005,8 +1005,7 @@ Signature~
 							*coc-config-signature*
 "signature.enable"					*coc-config-signature-enable*
 
-	Enable signature help when trigger character typed, require restart
-	service on change.
+	Enable show signature help when trigger character typed.
 
 	Scope: `language-overridable`, default: `true`
 
@@ -1026,7 +1025,7 @@ Signature~
 "signature.preferShownAbove"				*coc-config-signature-preferShownAbove*
 
 	Show signature help float window above cursor when possible, require
-	restart service on change.
+	restart coc.nvim on change.
 
 	Scope: `application`, default: `true`
 

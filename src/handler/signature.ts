@@ -4,7 +4,7 @@ import { CancellationTokenSource, Disposable, MarkupContent, Position, Signature
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { IConfigurationChangeEvent, FloatConfig, FloatFactory, HandlerDelegate } from '../types'
+import { FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll, isMarkdown } from '../util'
 import { byteLength } from '../util/string'
 import window from '../window'

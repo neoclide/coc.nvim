@@ -42,7 +42,7 @@ export class Completion implements Disposable {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     window.onDidChangeActiveTextEditor(e => {
-      this.loadLcoalConfig(e.document)
+      this.loadLocallConfig(e.document)
     }, null, this.disposables)
     this.mru = new MruLoader()
     this.pum = new PopupMenu(this.nvim, this.staticConfig, workspace.env, this.mru)
@@ -114,7 +114,7 @@ export class Completion implements Disposable {
   /**
    * Configuration for current document
    */
-  private loadLcoalConfig(doc?: Document): void {
+  private loadLocallConfig(doc?: Document): void {
     let suggest = workspace.getConfiguration('suggest', doc)
     this.config = {
       autoTrigger: suggest.get<string>('autoTrigger', 'always'),
@@ -161,7 +161,7 @@ export class Completion implements Disposable {
       selection: suggest.selection
     })
     let doc = workspace.getDocument(workspace.bufnr)
-    this.loadLcoalConfig(doc)
+    this.loadLocallConfig(doc)
   }
 
   public async startCompletion(option: CompleteOption, sourceList?: ISource[]): Promise<void> {
