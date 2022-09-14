@@ -385,14 +385,18 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       if delCount
         let start = startLnum + len(replacement)
         let saved_reg = @"
-        let system_reg = @*
+        if has('clipboard')
+          let system_reg = @*
+        endif
         if exists('*deletebufline')
           silent call deletebufline(curr, start, start + delCount - 1)
         else
           silent execute start . ','.(start + delCount - 1).'d'
         endif
         let @" = saved_reg
-        let @* = system_reg
+        if has('clipboard')
+          let @* = system_reg
+        endif
       endif
     endif
     call winrestview(storeView)
@@ -412,11 +416,15 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       if delCount
         let start = startLnum + len(replacement)
         let saved_reg = @"
-        let system_reg = @*
+        if has('clipboard')
+          let system_reg = @*
+        endif
         "8.1.0039
         silent call deletebufline(bufnr, start, start + delCount - 1)
         let @" = saved_reg
-        let @* = system_reg
+        if has('clipboard')
+          let @* = system_reg
+        endif
       endif
     endif
   endif
