@@ -291,7 +291,9 @@ export class Window {
       let menu = new Menu(this.nvim, { items, ...option }, token)
       let promise = new Promise<number>(resolve => {
         menu.onDidClose(selected => {
-          resolve(selected)
+          events.race(['InputChar'], 20).finally(() => {
+            resolve(selected)
+          })
         })
       })
       await menu.show(this.dialogPreference)
