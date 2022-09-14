@@ -219,29 +219,27 @@ export function readFileLines(fullpath: string, start: number, end: number): Pro
 }
 
 export function readFileLine(fullpath: string, count: number): Promise<string> {
-  if (!fs.existsSync(fullpath)) {
-    return Promise.reject(new Error(`file does not exist: ${fullpath}`))
-  }
+  if (!fs.existsSync(fullpath)) return Promise.reject(new Error(`file does not exist: ${fullpath}`))
   const input = fs.createReadStream(fullpath, { encoding: 'utf8' })
-  const rl = readline.createInterface({
-    input,
-    crlfDelay: Infinity,
-    terminal: false
-  } as any)
+  const rl = readline.createInterface({ input, crlfDelay: Infinity, terminal: false } as any)
   let n = 0
+  let result = ''
   return new Promise((resolve, reject) => {
     rl.on('line', line => {
       if (n == count) {
         if (n == 0 && line.startsWith('\uFEFF')) {
           // handle BOM
-          line = line.slice(1)
+          result = line.slice(1)
+        } else {
+          result = line
         }
         rl.close()
         input.close()
-        resolve(line)
-        return
       }
       n = n + 1
+    })
+    rl.on('close', () => {
+      resolve(result)
     })
     rl.on('error', reject)
   })

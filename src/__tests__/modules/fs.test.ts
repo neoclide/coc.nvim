@@ -1,6 +1,5 @@
 import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
 import { FileType } from '../../types'
-import { v4 as uuid } from 'uuid'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -84,6 +83,9 @@ describe('fs', () => {
     it('should read line', async () => {
       let res = await readFileLine(__filename, 1)
       expect(res).toBeDefined()
+      res = await readFileLine(__filename, 9999)
+      expect(res).toBeDefined()
+      expect(res).toBe('')
     })
 
     it('should throw when file does not exist', async () => {
