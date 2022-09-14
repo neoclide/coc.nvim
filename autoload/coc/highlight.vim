@@ -509,7 +509,11 @@ function! coc#highlight#create_bg_command(group, amount) abort
   let id = synIDtrans(hlID(a:group))
   let bg = coc#highlight#get_hex_color(id, 'bg', &background ==# 'dark' ? '#282828' : '#fefefe')
   let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
-  return 'ctermbg=' . coc#color#rgb2term(strpart(hex, 1)).' guibg=' . hex
+  let ctermbg = coc#color#rgb2term(strpart(hex, 1))
+  if s:term && !s:check_ctermbg(id, ctermbg) && abs(a:amount) < 20.0
+    return coc#highlight#create_bg_command(a:group, a:amount * 2)
+  endif
+  return 'ctermbg=' . ctermbg.' guibg=' . hex
 endfunction
 
 function! coc#highlight#get_hex_color(id, kind, fallback) abort
@@ -520,6 +524,14 @@ function! coc#highlight#get_hex_color(id, kind, fallback) abort
     let hex = s:to_hex_color(attr, 1)
   endif
   return empty(hex) ? a:fallback : hex
+endfunction
+
+function! s:check_ctermbg(id, cterm) abort
+  let attr = coc#highlight#get_color(a:id, 'bg', 'cterm')
+  if attr ==# a:cterm
+    return 0
+  endif
+  return 1
 endfunction
 
 function! s:to_hex_color(color, term) abort
