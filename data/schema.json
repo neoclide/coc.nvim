@@ -1636,7 +1636,7 @@
     "signature.enable": {
       "type": "boolean",
       "scope": "language-overridable",
-      "description": "Enable signature help when trigger character typed, require restart service on change.",
+      "description": "Enable show signature help when trigger character typed.",
       "default": true
     },
     "signature.floatConfig": {
