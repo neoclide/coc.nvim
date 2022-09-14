@@ -66,9 +66,15 @@ export interface IServiceProvider {
   onServiceReady: Event<void>
 }
 
+export interface NotificationItem {
+  id: string
+  method: string
+}
+
 class ServiceManager implements Disposable {
   private readonly registered: Map<string, IServiceProvider> = new Map()
   private disposables: Disposable[] = []
+  private pendingNotifications: Map<string, NotificationItem[]> = new Map()
 
   public init(): void {
     workspace.onDidOpenTextDocument(document => {
@@ -206,10 +212,24 @@ class ServiceManager implements Disposable {
   }
 
   public async registNotification(id: string, method: string): Promise<void> {
-    let client = await this.getLanguageClient(id)
-    client.onNotification(method, async result => {
-      workspace.nvim.call('coc#do_notify', [id, method, result], true)
-    })
+    let service = this.getService(id)
+    if (service && service.client) {
+      service.client.onNotification(method, async result => {
+        this.sendNotificationVim(id, method, result)
+      })
+    }
+    let arr = this.pendingNotifications.get(id) ?? []
+    arr.push({ id, method })
+    this.pendingNotifications.set(id, arr)
+  }
+
+  private getRegisteredNotifications(id: string): NotificationItem[] {
+    id = id.startsWith('languageserver') ? id.slice('languageserver.'.length) : id
+    return this.pendingNotifications.get(id) ?? []
+  }
+
+  private sendNotificationVim(id: string, method: string, result: any): void {
+    workspace.nvim.call('coc#do_notify', [id, method, result], true)
   }
 
   public registLanguageClient(client: LanguageClient): Disposable
@@ -241,6 +261,11 @@ class ServiceManager implements Disposable {
             disposables.push(client)
           }
           created = true
+          for (let item of this.getRegisteredNotifications(id)) {
+            service.client.onNotification(item.method, async result => {
+              this.sendNotificationVim(item.id, item.method, result)
+            })
+          }
           client.onDidChangeState(changeEvent => {
             let { oldState, newState } = changeEvent
             service.state = converState(newState)

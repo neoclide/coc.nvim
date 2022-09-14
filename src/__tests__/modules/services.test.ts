@@ -347,7 +347,7 @@ describe('services', () => {
       await expect(fn()).rejects.toThrow(Error)
     })
 
-    it('should regist notification', async () => {
+    it('should regist notification when client created', async () => {
       const serverOptions: ServerOptions = {
         module: serverModule,
         transport: TransportKind.ipc,
@@ -360,6 +360,30 @@ describe('services', () => {
       await service.client.sendNotification('triggerNotification')
       await helper.wait(10)
       await services.stop('test')
+    })
+
+    it('should regist notification when client not created', async () => {
+      await helper.plugin.cocAction('registNotification', 'def', 'notification')
+      workspace.configurations.updateMemoryConfig({
+        languageserver: {
+          def: {
+            filetypes: ['vim'],
+            module: serverModule,
+          }
+        }
+      })
+      services.registLanguageClient('def', { filetypes: ['.vim'], module: serverModule }, URI.file(__dirname))
+      let res
+      let spy = jest.spyOn(services, 'sendNotificationVim' as any).mockImplementation((id, method, result) => {
+        res = { id, method, result }
+      })
+      let service = services.getService('def')
+      await service.start()
+      await service.client.sendNotification('triggerNotification')
+      await helper.wait(10)
+      await services.stop('def')
+      spy.mockRestore()
+      expect(res).toEqual({ id: 'def', method: 'notification', result: { x: 1 } })
     })
   })
 })
