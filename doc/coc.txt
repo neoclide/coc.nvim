@@ -92,12 +92,12 @@ It is designed for best possible integration with other Vim plugins.
 
 Note: coc.nvim doesn't come with support for any specific language. You
 will need to install coc.nvim extensions |coc-extensions| or set up the
-language server by configuration |coc-config-languageserver|.
+language server by use |coc-config-languageserver|.
 
 Note: multiple language servers for same document is allowed, but you should
 avoid configure same language server that already used by coc.nvim extension.
 
-Note: Automatic completion plugins can't play nicely together, you can disable
+Note: automatic completion plugins can't play nicely together, you can disable
 automatic completion of coc.nvim through `"suggest.autoTrigger": "none"` (or
 `"suggest.autoTrigger": "trigger"`) in your configuration file.
 
@@ -124,7 +124,7 @@ And run: >
   :PlugInstall
 
 For other plugin managers, make sure to use code from the release branch
-(unless you want to change typescript source code).
+(unless you want to build from typescript source code).
 
 To use Vim's native |packages| on Linux or MaxOS, use script like: >
 
@@ -154,9 +154,12 @@ Coc extensions are more powerful since they could contribute json schemes,
 commands, and use middleware methods of languageserver to provide better
 results.  It's also possible to provide features that beyond LSP.
 
+Coc extensions are loaded from `"extensions"` folder inside
+|coc#util#get_data_home()| and folders in 'runtimepath' when detected.
+
 Install extensions from git (not recommended):~
 
-- Download to code by `git clone` command.
+- Download the source code.
 - In project root, install dependencies and compile the code by `yarn install`
   (needed by most coc extensions).
 - Add the project root to vim's runtimepath by `set runtimepath^=/path/to/project`
@@ -181,7 +184,7 @@ To customize npm registry for coc.nvim add `coc.nvim:registry` in your
 >
 	coc.nvim:registry=https://registry.mycompany.org/
 <
-To customize extensions folder, user |g:coc_data_home|.
+To customize extension folder, configure |g:coc_data_home|.
 
 Uninstall global extensions:~
 
@@ -195,8 +198,8 @@ To update extensions automatically, config |coc-preferences-extensionUpdateCheck
 
 Manage extensions list:~
 
-Use |coc-list-extensions| or other list plugin that request extensions list by
-|CocAction('extensionStats')|.
+Use |coc-list-extensions| by `:CocList extensions` to open extensions list.
+Use |CocAction('extensionStats')| to get list of extensions.
 
 Single file extensions:~
 
@@ -295,6 +298,7 @@ To set custom window options on floating window create, use autocmd
 
 Related variables:
 
+- |g:coc_last_float_win|
 - |g:coc_borderchars|
 - |g:coc_border_joinchars|
 - |g:coc_markdown_disabled_languages|
@@ -1994,7 +1998,10 @@ coc#util#get_config_home()				*coc#util#get_config_home()*
 
 coc#util#get_data_home()				*coc#util#get_data_home()*
 
-	Get `coc` data directory.
+	Get data home directory, return |g:coc_data_home| when defined, else
+	use $XDG_CONFIG_HOME/coc when $XDG_CONFIG_HOME exists, else fallback
+	to `~/AppData/Local/coc` on windows and `~/.config/coc` on other
+	systems.
 
 coc#util#extension_root()				*coc#util#extension_root()*
 
