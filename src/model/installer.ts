@@ -76,7 +76,7 @@ export function getInstallArguments(exePath: string, url: string): string[] {
   if (isYarn(exePath)) {
     args.push('--ignore-engines')
   }
-  if (isPnPm(exePath)) {
+  if (isPnpm(exePath)) {
     args.push('--config.strict-peer-dependencies=false')
   }
   return args
