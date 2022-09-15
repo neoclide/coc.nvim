@@ -551,7 +551,7 @@ function! coc#util#get_data_home()
     endif
   endif
   if !isdirectory(dir)
-    call coc#notify#create(['creating data directory: '.dir], {
+    call coc#notify#create(['creating coc.nvim data directory: '.dir], {
           \ 'borderhighlight': 'CocInfoSign',
           \ 'timeout': 5000,
           \ 'kind': 'info',
