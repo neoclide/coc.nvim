@@ -90,7 +90,7 @@ describe('InlayHint', () => {
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
-      expect(res).toEqual([])
+      expect(res).toBeNull()
     })
 
     it('should merge provide results', async () => {

@@ -31,7 +31,7 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
     document: TextDocument,
     range: Range,
     token: CancellationToken
-  ): Promise<InlayHintWithProvider[]> {
+  ): Promise<InlayHintWithProvider[] | null> {
     let items = this.getProviders(document)
     let inlayHints: InlayHintWithProvider[] = []
     let results = await Promise.allSettled(items.map(item => {
@@ -46,8 +46,9 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
         }
       })
     }))
+    let failed = results.every(o => o.status === 'rejected')
     this.handleResults(results, 'provideInlayHints')
-    return inlayHints
+    return failed ? null : inlayHints
   }
 
   public async resolveInlayHint(hint: InlayHintWithProvider, token: CancellationToken): Promise<InlayHintWithProvider> {
