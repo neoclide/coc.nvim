@@ -147,7 +147,7 @@ export default class InlayHintBuffer implements SyncItem {
     if (this.regions.has(res[0], res[1])) return
     let range = Range.create(res[0] - 1, 0, res[1], 0)
     let inlayHints = await languages.provideInlayHints(this.doc.textDocument, range, token)
-    if (inlayHints == null || token.isCancellationRequested) return
+    if (inlayHints == null || inlayHints.length === 0 || token.isCancellationRequested) return
     if (!this.config.enableParameter) {
       inlayHints = inlayHints.filter(o => o.kind !== InlayHintKind.Parameter)
     }
