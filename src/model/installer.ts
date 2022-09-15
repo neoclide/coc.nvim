@@ -61,7 +61,7 @@ export function isYarn(exePath: string) {
 
 function isPnpm(exePath: string) {
   let name = path.basename(exePath)
-  return name === 'pnpm'
+  return name === 'pnpm' || name === 'pnpm.CMD'
 }
 
 export function getInstallArguments(exePath: string, url: string): string[] {
