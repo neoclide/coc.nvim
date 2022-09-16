@@ -58,6 +58,8 @@ export default class Plugin extends EventEmitter {
     this.addAction('attach', () => workspace.attach())
     this.addAction('detach', () => workspace.detach())
     this.addAction('doKeymap', async (key, defaultReturn, pressed) => this.handler.workspace.doKeymap(key, defaultReturn, pressed))
+    this.addAction('registerExtensions', (...folders: string[]) => extensions.loadExtension(folders))
+    // Deprecated, use registerExtensions instead.
     this.addAction('registExtensions', (...folders: string[]) => extensions.loadExtension(folders))
     this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => this.handler.workspace.snippetCheck(checkExpand, checkJump))
     this.addAction('snippetNext', () => snippetManager.nextPlaceholder())
@@ -85,7 +87,9 @@ export default class Plugin extends EventEmitter {
     this.addAction('listLast', (name?: string) => listManager.last(name))
     this.addAction('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
     this.addAction('sendNotification', (id: string, method: string, params?: any) => services.sendNotification(id, method, params))
-    this.addAction('registNotification', (id: string, method: string) => services.registNotification(id, method))
+    this.addAction('registerNotification', (id: string, method: string) => services.registerNotification(id, method))
+    // Deprecated, use registerNotification instead.
+    this.addAction('registNotification', (id: string, method: string) => services.registerNotification(id, method))
     this.addAction('updateConfig', (section: string, val: any) => workspace.configurations.updateMemoryConfig({ [section]: val }))
     this.addAction('links', () => this.handler.links.getLinks())
     this.addAction('openLink', () => this.handler.links.openCurrentLink())

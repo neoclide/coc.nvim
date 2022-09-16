@@ -26,7 +26,7 @@ afterEach(async () => {
   disposables = []
 })
 
-function registProvider(): void {
+function registerProvider(): void {
   disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
     provideDocumentHighlights: async document => {
       let word = await nvim.eval('expand("<cword>")')
@@ -119,7 +119,7 @@ describe('document highlights', () => {
   })
 
   it('should add highlights to symbols', async () => {
-    registProvider()
+    registerProvider()
     await helper.createDocument()
     await nvim.setLine('foo bar foo')
     await helper.doAction('highlight')
@@ -128,7 +128,7 @@ describe('document highlights', () => {
   })
 
   it('should return highlight ranges', async () => {
-    registProvider()
+    registerProvider()
     await helper.createDocument()
     await nvim.setLine('foo bar foo')
     let res = await helper.doAction('symbolRanges')

@@ -966,7 +966,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private registerKeymaps(): void {
     let { toggleSelection, actions, close, invoke, toggle, collapseAll, activeFilter } = this.keys
     let { nvim, _keymapDefs } = this
-    const regist = (mode: LocalMode, key: string | undefined, fn: (element: T | undefined) => Promise<void> | void, notify = true) => {
+    const register = (mode: LocalMode, key: string | undefined, fn: (element: T | undefined) => Promise<void> | void, notify = true) => {
       if (!key) return
       workspace.registerLocalKeymap(mode, key, async () => {
         let lnum = await this.nvim.call('line', ['.'])
@@ -977,24 +977,24 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.disposables.push(workspace.registerLocalKeymap('n', '<C-o>', () => {
       nvim.call('win_gotoid', [this._targetWinId], true)
     }, true))
-    regist('n', '<LeftRelease>', async element => {
+    register('n', '<LeftRelease>', async element => {
       if (element) await this.onClick(element)
     })
-    this.filter && regist('n', activeFilter, async () => {
+    this.filter && register('n', activeFilter, async () => {
       this.nvim.command(`exe ${this.startLnum}`, true)
       this.filter.active()
       this.filterText = ''
       this._onDidFilterStateChange.fire(true)
     })
-    regist('n', toggleSelection, element => this.toggleSelection(element))
-    regist('n', invoke, element => this.invokeCommand(element))
-    regist('n', actions, element => this.invokeActions(element))
-    regist('n', toggle, element => this.toggleExpand(element))
-    regist('n', collapseAll, () => this.collapseAll())
-    regist('n', close, () => this.hide())
+    register('n', toggleSelection, element => this.toggleSelection(element))
+    register('n', invoke, element => this.invokeCommand(element))
+    register('n', actions, element => this.invokeActions(element))
+    register('n', toggle, element => this.toggleExpand(element))
+    register('n', collapseAll, () => this.collapseAll())
+    register('n', close, () => this.hide())
     while (_keymapDefs.length) {
       const def = _keymapDefs.pop()
-      regist(def.mode, def.key, def.fn, def.notify)
+      register(def.mode, def.key, def.fn, def.notify)
     }
   }
 

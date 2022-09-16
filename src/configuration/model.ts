@@ -66,7 +66,7 @@ export class ConfigurationModel implements IConfigurationModel {
   }
 
   public getOverrideValue<V>(section: string | undefined, overrideIdentifier: string): V | undefined {
-    const overrideContents = this.getContentsForOverrideIdentifer(overrideIdentifier)
+    const overrideContents = this.getContentsForOverrideIdentifier(overrideIdentifier)
     return overrideContents
       ? section ? getConfigurationValue<any>(overrideContents, section) : overrideContents
       : undefined
@@ -179,7 +179,7 @@ export class ConfigurationModel implements IConfigurationModel {
   }
 
   private createOverrideConfigurationModel(identifier: string): ConfigurationModel {
-    const overrideContents = this.getContentsForOverrideIdentifer(identifier)
+    const overrideContents = this.getContentsForOverrideIdentifier(identifier)
 
     if (!overrideContents || typeof overrideContents !== 'object' || !Object.keys(overrideContents).length) {
       // If there are no valid overrides, return self
@@ -209,7 +209,7 @@ export class ConfigurationModel implements IConfigurationModel {
     return new ConfigurationModel(contents, this._keys, this.overrides)
   }
 
-  private getContentsForOverrideIdentifer(identifier: string): any {
+  private getContentsForOverrideIdentifier(identifier: string): any {
     let contentsForIdentifierOnly: IStringDictionary<any> | null = null
     let contents: IStringDictionary<any> | null = null
     const mergeContents = (contentsToMerge: any) => {

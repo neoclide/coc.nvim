@@ -135,7 +135,7 @@ endfunction
 function! coc#on_notify(id, method, Cb)
   let key = a:id. '-'.a:method
   let s:callbacks[key] = a:Cb
-  call coc#rpc#notify('registNotification', [a:id, a:method])
+  call coc#rpc#notify('registerNotification', [a:id, a:method])
 endfunction
 
 function! coc#do_notify(id, method, result)
@@ -158,7 +158,7 @@ endfunction
 
 function! coc#_select_confirm() abort
   call timer_start(10, { -> coc#pum#select_confirm()})
-  return s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>" 
+  return s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
 endfunction
 
 function! coc#complete_indent() abort

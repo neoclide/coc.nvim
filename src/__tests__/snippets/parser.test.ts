@@ -331,10 +331,10 @@ describe('SnippetParser', () => {
     let filtered = arr.filter(o => o.primary === true)
     assert.equal(filtered.length, 1)
     assert.equal(filtered[0], arr[2])
-    let childs = arr.map(o => o.children[0])
-    assert.ok(childs[0] instanceof Text)
-    assert.ok(childs[1] instanceof Text)
-    assert.ok(childs[2] instanceof CodeBlock)
+    let children = arr.map(o => o.children[0])
+    assert.ok(children[0] instanceof Text)
+    assert.ok(children[1] instanceof Text)
+    assert.ok(children[2] instanceof CodeBlock)
   })
 
   test('Parser, placeholder with CodeBlock not primary', () => {

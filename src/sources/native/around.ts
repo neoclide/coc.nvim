@@ -91,7 +91,7 @@ export default class Around extends Source {
   }
 }
 
-export function regist(sourceMap: Map<string, ISource>, keywords: BufferSync<KeywordsBuffer>): Disposable {
+export function register(sourceMap: Map<string, ISource>, keywords: BufferSync<KeywordsBuffer>): Disposable {
   sourceMap.set('around', new Around(keywords))
   return Disposable.create(() => {
     sourceMap.delete('around')

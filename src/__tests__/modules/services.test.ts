@@ -8,7 +8,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { LanguageClient, RevealOutputChannelOn, ServerOptions, State, TransportKind } from '../../language-client'
-import services, { converState, documentSelectorToLanguageIds, getDocumentSelector, getForkOptions, getLanguageServerOptions, getRevealOutputChannelOn, getSpawnOptions, getStateName, getTransportKind, isValidServerConfig, LanguageServerConfig, stateString } from '../../services'
+import services, { convertState, documentSelectorToLanguageIds, getDocumentSelector, getForkOptions, getLanguageServerOptions, getRevealOutputChannelOn, getSpawnOptions, getStateName, getTransportKind, isValidServerConfig, LanguageServerConfig, stateString } from '../../services'
 import { ServiceStat } from '../../types'
 import { disposeAll } from '../../util'
 import { Workspace } from '../../workspace'
@@ -41,8 +41,8 @@ function toConfig(c: Partial<LanguageServerConfig>): LanguageServerConfig {
 
 describe('services', () => {
   describe('functions', () => {
-    it('should converState', async () => {
-      expect(converState(null as any)).toBeUndefined()
+    it('should convertState', async () => {
+      expect(convertState(null as any)).toBeUndefined()
     })
 
     it('should check valid server config', async () => {
@@ -176,7 +176,7 @@ describe('services', () => {
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {
         documentSelector: [{ language: 'vim', scheme: 'file' }]
       })
-      let d = services.registLanguageClient(client)
+      let d = services.registerLanguageClient(client)
       disposables.push(d)
       let p = services.toggle('test')
       void services.toggle('test')
@@ -196,7 +196,7 @@ describe('services', () => {
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {
         documentSelector: [{ language: 'vim', scheme: 'file' }]
       })
-      disposables.push(services.registLanguageClient(client))
+      disposables.push(services.registerLanguageClient(client))
       let document = TextDocument.create('file:///1', 'vim', 1, '')
       await services.start(document)
       await services.start(TextDocument.create('file:///2', 'java', 1, ''))
@@ -221,8 +221,8 @@ describe('services', () => {
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {
         documentSelector: [{ language: 'vim', scheme: 'file' }]
       })
-      disposables.push(services.registLanguageClient(client))
-      services.regist({ id: 'test' } as any)
+      disposables.push(services.registerLanguageClient(client))
+      services.register({ id: 'test' } as any)
       await helper.waitValue(() => {
         return client.state
       }, State.Running)
@@ -239,12 +239,12 @@ describe('services', () => {
         documentSelector: [{ language: 'vim', scheme: 'file' }]
       })
       await client.start()
-      disposables.push(services.registLanguageClient(client))
+      disposables.push(services.registerLanguageClient(client))
       await nvim.command('bd!')
     })
   })
 
-  describe('registLanguageClient', () => {
+  describe('registerLanguageClient', () => {
 
     it('should not create client when not enabled', async () => {
       workspace.configurations.updateMemoryConfig({
@@ -255,7 +255,7 @@ describe('services', () => {
           }
         }
       })
-      disposables.push(services.registLanguageClient('test', { filetypes: ['vim'], enable: true }))
+      disposables.push(services.registerLanguageClient('test', { filetypes: ['vim'], enable: true }))
       let client = services.getService('test')
       expect(client).toBeDefined()
       await client.start()
@@ -270,7 +270,7 @@ describe('services', () => {
           }
         }
       })
-      disposables.push(services.registLanguageClient('test', { filetypes: ['vim'], enable: true }))
+      disposables.push(services.registerLanguageClient('test', { filetypes: ['vim'], enable: true }))
       let client = services.getService('test')
       expect(client).toBeDefined()
       await client.start()
@@ -282,8 +282,8 @@ describe('services', () => {
       workspace.configurations.updateMemoryConfig({
         languageserver: { test: config }
       })
-      disposables.push(services.registLanguageClient('test', config))
-      disposables.push(services.registLanguageClient('test', config))
+      disposables.push(services.registerLanguageClient('test', config))
+      disposables.push(services.registerLanguageClient('test', config))
       let client = services.getService('test')
       let p = client.start()
       void client.start()
@@ -301,7 +301,7 @@ describe('services', () => {
       workspace.configurations.updateMemoryConfig({
         languageserver: { test: config }
       })
-      disposables.push(services.registLanguageClient('test', config))
+      disposables.push(services.registerLanguageClient('test', config))
       let client = services.getService('test')
       await client.restart()
       expect(client.state).toBe(ServiceStat.Running)
@@ -316,7 +316,7 @@ describe('services', () => {
       let spy = jest.spyOn(client, 'start').mockImplementation(() => {
         throw new Error('custom error')
       })
-      disposables.push(services.registLanguageClient(client))
+      disposables.push(services.registerLanguageClient(client))
       let service = services.getService('test')
       await service.start()
       spy.mockRestore()
@@ -330,7 +330,7 @@ describe('services', () => {
         transport: TransportKind.ipc,
       }
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {})
-      disposables.push(services.registLanguageClient(client))
+      disposables.push(services.registerLanguageClient(client))
       let service = services.getService('test')
       await service.start()
       let res = await helper.plugin.cocAction('sendRequest', 'test', 'request', { value: 2 })
@@ -347,23 +347,23 @@ describe('services', () => {
       await expect(fn()).rejects.toThrow(Error)
     })
 
-    it('should regist notification when client created', async () => {
+    it('should register notification when client created', async () => {
       const serverOptions: ServerOptions = {
         module: serverModule,
         transport: TransportKind.ipc,
       }
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {})
-      services.registLanguageClient(client)
+      services.registerLanguageClient(client)
       let service = services.getService('test')
-      await helper.plugin.cocAction('registNotification', 'test', 'notification')
+      await helper.plugin.cocAction('registerNotification', 'test', 'notification')
       await service.start()
       await service.client.sendNotification('triggerNotification')
       await helper.wait(10)
       await services.stop('test')
     })
 
-    it('should regist notification when client not created', async () => {
-      await helper.plugin.cocAction('registNotification', 'def', 'notification')
+    it('should register notification when client not created', async () => {
+      await helper.plugin.cocAction('registerNotification', 'def', 'notification')
       workspace.configurations.updateMemoryConfig({
         languageserver: {
           def: {
@@ -372,7 +372,7 @@ describe('services', () => {
           }
         }
       })
-      services.registLanguageClient('def', { filetypes: ['.vim'], module: serverModule }, URI.file(__dirname))
+      services.registerLanguageClient('def', { filetypes: ['.vim'], module: serverModule }, URI.file(__dirname))
       let res
       let spy = jest.spyOn(services, 'sendNotificationVim' as any).mockImplementation((id, method, result) => {
         res = { id, method, result }

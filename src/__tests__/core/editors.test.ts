@@ -148,7 +148,7 @@ describe('editors', () => {
     expect(editors.visibleTextEditors.length).toBe(2)
   })
 
-  it('should have corrent tabnr after tab changed', async () => {
+  it('should have current tabnr after tab changed', async () => {
     await nvim.command('tabe')
     await helper.waitValue(() => {
       return editors.visibleTextEditors.length
