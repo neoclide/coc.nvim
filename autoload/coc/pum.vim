@@ -34,7 +34,7 @@ endfunction
 function! coc#pum#close_detail() abort
   let winid = coc#float#get_float_by_kind('pumdetail')
   if winid
-    call coc#float#close(winid)
+    call coc#float#close(winid, 1)
     if s:is_vim
       call timer_start(0, { -> execute('redraw')})
     endif
@@ -103,12 +103,12 @@ endfunction
 
 function! s:close_pum() abort
   call s:clear_virtual_text()
-  call coc#float#close(s:pum_winid)
+  call coc#float#close(s:pum_winid, 1)
   let s:pum_winid = 0
   let s:pum_size = 0
   let winid = coc#float#get_float_by_kind('pumdetail')
   if winid
-    call coc#float#close(winid)
+    call coc#float#close(winid, 1)
   endif
 endfunction
 
