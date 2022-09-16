@@ -121,7 +121,7 @@ function! coc#notify#create(lines, config) abort
   if winid != -1
     let row = getwinvar(winid, 'top', 0)
     call filter(s:winids, 'v:val != '.winid)
-    call coc#float#close(winid)
+    call coc#float#close(winid, 1)
     let winid = v:null
   endif
   let opts = coc#dict#pick(a:config, ['highlight', 'borderhighlight', 'focusable', 'shadow'])
@@ -282,7 +282,7 @@ function! coc#notify#close(winid) abort
     return
   endif
   if !coc#window#visible(a:winid)
-    call coc#float#close(a:winid)
+    call coc#float#close(a:winid, 1)
     return
   endif
   let row = coc#window#get_var(a:winid, 'top')
@@ -343,7 +343,7 @@ function! s:progress(winid, total, curr, index) abort
       let bufnr = winbufnr(a:winid)
       let percent = coc#window#get_var(a:winid, 'percent')
       if !empty(percent)
-        let width = strchars(getbufline(bufnr, 1)[0])
+        let width = strchars(get(getbufline(bufnr, 1), 0, ''))
         let line = repeat(s:progress_char, width - 4).printf('%4s', percent)
         let total = width - 4
         call setbufline(bufnr, 1, line)
@@ -436,7 +436,7 @@ function! s:animate(winid, from, to, prev, ...) abort
     call filter(s:winids, 'v:val != '.a:winid)
     let tabnr = coc#window#tabnr(a:winid)
     if tabnr != -1
-      call coc#float#close(a:winid)
+      call coc#float#close(a:winid, 1)
       call coc#notify#reflow(tabnr)
     endif
   endif

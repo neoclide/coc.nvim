@@ -276,6 +276,7 @@ function! coc#float#nvim_border_win(config, borderchars, winid, border, title, h
         \ }
   if has('nvim-0.5.0') && a:shadow && !a:hasbtn && a:border[2]
     let opt['border'] = 'shadow'
+    let opt['noautocmd'] = 1
   endif
   if winid
     call nvim_win_set_config(winid, opt)
@@ -456,7 +457,7 @@ function! coc#float#nvim_scrollbar(winid) abort
   if ch <= height || height <= 1
     " no scrollbar, remove exists
     if id
-      call s:close_win(id)
+      call s:close_win(id, 1)
     endif
     return
   endif
@@ -551,9 +552,10 @@ function! coc#float#create_border_lines(border, borderchars, title, width, heigh
 endfunction
 
 " Close float window by id
-function! coc#float#close(winid) abort
+function! coc#float#close(winid, ...) abort
+  let noautocmd = get(a:, 1, 0)
   call coc#float#close_related(a:winid)
-  call s:close_win(a:winid)
+  call s:close_win(a:winid, noautocmd)
   return 1
 endfunction
 
@@ -725,7 +727,7 @@ function! coc#float#close_related(winid, ...) abort
     let curr = coc#window#get_var(id, 'kind', '')
     if empty(kind) || curr ==# kind
       if curr == 'list'
-        call coc#float#close(id)
+        call coc#float#close(id, 1)
       elseif s:is_vim
         " vim doesn't throw
         noa call popup_close(id)
@@ -765,7 +767,7 @@ function! coc#float#vim_buttons(winid, config) abort
   let btns = get(a:config, 'buttons', [])
   if empty(btns)
     if winid
-      call s:close_win(winid)
+      call s:close_win(winid, 1)
       " fix padding
       let opts = popup_getoptions(a:winid)
       let padding = get(opts, 'padding', v:null)
@@ -1120,7 +1122,7 @@ function! s:gen_filter_keys(line) abort
   return [cols, used]
 endfunction
 
-function! s:close_win(winid) abort
+function! s:close_win(winid, noautocmd) abort
   if a:winid <= 0
     return
   endif
@@ -1129,7 +1131,11 @@ function! s:close_win(winid) abort
     call popup_close(a:winid)
   else
     if nvim_win_is_valid(a:winid)
-      call nvim_win_close(a:winid, 1)
+      if a:noautocmd
+        noa call nvim_win_close(a:winid, 1)
+      else
+        call nvim_win_close(a:winid, 1)
+      endif
     endif
   endif
 endfunction
