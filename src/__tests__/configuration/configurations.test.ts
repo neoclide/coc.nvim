@@ -9,7 +9,8 @@ import { ConfigurationModel } from '../../configuration/model'
 import ConfigurationProxy from '../../configuration/shape'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
 import { CONFIG_FILE_NAME, disposeAll, wait } from '../../util'
-import helper, { rmdir } from '../helper'
+import { remove } from '../../util/fs'
+import helper from '../helper'
 
 const workspaceConfigFile = path.resolve(__dirname, `../sample/.vim/${CONFIG_FILE_NAME}`)
 
@@ -44,7 +45,7 @@ describe('Configurations', () => {
       await proxy.modifyConfiguration(uri.fsPath, 'foo', false)
       content = fs.readFileSync(uri.fsPath, 'utf8')
       expect(JSON.parse(content)).toEqual({ foo: false })
-      rmdir(folder)
+      await remove(folder)
     })
 
     it('should get folder from resolver', async () => {

@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 import { isNpmCommand, isYarn, Info, getDependencies, Installer, registryUrl } from '../../extension/installer'
 import { v4 as uuid } from 'uuid'
-import { rmdir } from '../helper'
+import { remove } from '../../util/fs'
 import events from '../../events'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
@@ -282,7 +282,7 @@ describe('Installer', () => {
       expect(res).toBeDefined()
       spy.mockRestore()
       s.mockRestore()
-      rmdir(tmpfolder)
+      await remove(tmpfolder)
     })
   })
 
