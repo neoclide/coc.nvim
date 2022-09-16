@@ -58,9 +58,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('attach', () => workspace.attach())
     this.addAction('detach', () => workspace.detach())
     this.addAction('doKeymap', async (key, defaultReturn, pressed) => this.handler.workspace.doKeymap(key, defaultReturn, pressed))
-    this.addAction('registerExtensions', (...folders: string[]) => extensions.loadExtension(folders))
-    // Deprecated, use registerExtensions instead.
-    this.addAction('registExtensions', (...folders: string[]) => extensions.loadExtension(folders))
+    this.addAction('registerExtensions', (...folders: string[]) => extensions.loadExtension(folders), 'registExtensions')
     this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => this.handler.workspace.snippetCheck(checkExpand, checkJump))
     this.addAction('snippetNext', () => snippetManager.nextPlaceholder())
     this.addAction('snippetPrev', () => snippetManager.previousPlaceholder())
@@ -87,9 +85,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('listLast', (name?: string) => listManager.last(name))
     this.addAction('sendRequest', (id: string, method: string, params?: any) => services.sendRequest(id, method, params))
     this.addAction('sendNotification', (id: string, method: string, params?: any) => services.sendNotification(id, method, params))
-    this.addAction('registerNotification', (id: string, method: string) => services.registerNotification(id, method))
-    // Deprecated, use registerNotification instead.
-    this.addAction('registNotification', (id: string, method: string) => services.registerNotification(id, method))
+    this.addAction('registerNotification', (id: string, method: string) => services.registerNotification(id, method), 'registNotification')
     this.addAction('updateConfig', (section: string, val: any) => workspace.configurations.updateMemoryConfig({ [section]: val }))
     this.addAction('links', () => this.handler.links.getLinks())
     this.addAction('openLink', () => this.handler.links.openCurrentLink())
@@ -185,11 +181,12 @@ export default class Plugin extends EventEmitter {
     return completion
   }
 
-  private addAction(key: string, fn: Function): void {
+  private addAction(key: string, fn: Function, alias?: string): void {
     if (this.actions.has(key)) {
       throw new Error(`Action ${key} already exists`)
     }
     this.actions.set(key, fn)
+    if (alias) this.actions.set(alias, fn)
   }
 
   public async init(): Promise<void> {
