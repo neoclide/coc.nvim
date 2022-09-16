@@ -16,6 +16,7 @@ import type Document from '../model/document'
 import type Plugin from '../plugin'
 import { ProviderResult } from '../provider'
 import { ExtendedCompleteItem, OutputChannel, VimCompleteItem } from '../types'
+import { equals } from '../util/object'
 import { terminate } from '../util/processes'
 import { Workspace } from '../workspace'
 
@@ -307,7 +308,7 @@ export class Helper extends EventEmitter {
     for (let i = 0; i < 40; i++) {
       await this.wait(50)
       let res = await this.nvim.call(method, args) as T
-      if (res == value || (value instanceof RegExp && value.test(res.toString()))) {
+      if (equals(res, value) || (value instanceof RegExp && value.test(res.toString()))) {
         find = true
         break
       }

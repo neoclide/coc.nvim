@@ -175,9 +175,7 @@ describe('completion', () => {
         })
       }))
       await nvim.input('if')
-      await helper.wait(50)
-      let names = await nvim.getVar('coc_timeout_sources')
-      expect(names).toEqual(['timeout'])
+      await helper.waitFor('eval', ["get(g:,'coc_timeout_sources','')"], ['timeout'])
     })
 
     it('should change default sort method', async () => {
