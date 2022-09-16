@@ -137,6 +137,24 @@ export function getKeymapModifier(mode: MapMode): string {
   return ''
 }
 
+export function delay(func: () => void, defaultDelay: number): ((ms?: number) => void) & { clear: () => void } {
+  let timer: NodeJS.Timer
+  let fn = (ms?: number) => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      func()
+    }, ms ?? defaultDelay)
+  }
+  Object.defineProperty(fn, 'clear', {
+    get: () => {
+      return () => {
+        if (timer) clearTimeout(timer)
+      }
+    }
+  })
+  return fn as any
+}
+
 export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3): Promise<void> {
   if (arr.length == 0) return Promise.resolve()
   let finished = 0

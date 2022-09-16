@@ -5,8 +5,9 @@ import InlayHintHandler from '../../handler/inlayHint/index'
 import languages from '../../languages'
 import { InlayHintWithProvider, isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
 import { disposeAll } from '../../util'
+import { CancellationError } from '../../util/errors'
 import workspace from '../../workspace'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let handler: InlayHintHandler
@@ -81,16 +82,18 @@ describe('InlayHint', () => {
   })
 
   describe('provideInlayHints', () => {
-    it('should not throw when failed', async () => {
+    it('should throw when failed', async () => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return Promise.reject(new Error('Test failure'))
         }
       }))
       let doc = await workspace.document
-      let tokenSource = new CancellationTokenSource()
-      let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
-      expect(res).toBeNull()
+      let fn = async () => {
+        let tokenSource = new CancellationTokenSource()
+        await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
+      }
+      await expect(fn()).rejects.toThrow(Error)
     })
 
     it('should merge provide results', async () => {
@@ -264,7 +267,7 @@ describe('InlayHint', () => {
     })
   })
 
-  describe('setVirtualText', () => {
+  describe('render()', () => {
     it('should refresh on vim mode', async () => {
       let doc = await workspace.document
       await nvim.setLine('foo bar')
@@ -376,6 +379,24 @@ describe('InlayHint', () => {
       await item.renderRange()
       expect(item.current.length).toBe(1)
     })
+
+    it('should resend request on CancellationError', async () => {
+      let called = 0
+      let disposable = languages.registerInlayHintsProvider([{ language: 'vim' }], {
+        provideInlayHints: () => {
+          if (called == 0) {
+            called++
+            throw new CancellationError()
+          }
+          return []
+        }
+      })
+      disposables.push(disposable)
+      let filepath = await createTmpFile('a\n\b\nc\n', disposables)
+      let doc = await helper.createDocument(filepath)
+      await nvim.command('setfiletype vim')
+      await waitRefresh(doc.buffer.id)
+      expect(called).toBe(1)
+    })
   })
 })
-

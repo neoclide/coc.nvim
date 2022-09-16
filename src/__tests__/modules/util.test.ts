@@ -7,7 +7,7 @@ import vm from 'vm'
 import { Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../../model/textdocument'
-import { concurrent, executable, getKeymapModifier, getUri, isRunning, runCommand, wait, watchFile } from '../../util'
+import { concurrent, executable, getKeymapModifier, delay, getUri, isRunning, runCommand, wait, watchFile } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
 import * as arrays from '../../util/array'
 import * as color from '../../util/color'
@@ -728,6 +728,30 @@ describe('utility', () => {
     expect(getKeymapModifier('s')).toBe('<Esc>')
     expect(getKeymapModifier('x')).toBe('<C-U>')
     expect(getKeymapModifier('t' as any)).toBe('')
+  })
+
+  it('should delay function #1', async () => {
+    let times = 0
+    let fn = () => {
+      times++
+    }
+    let delied = delay(fn, 50)
+    delied()
+    delied(100)
+    expect(times).toBe(0)
+    delied.clear()
+  })
+
+  it('should delay function #2', async () => {
+    let times = 0
+    let fn = () => {
+      times++
+    }
+    let delied = delay(fn, 50)
+    delied(100)
+    delied(10)
+    await helper.wait(50)
+    expect(times).toBe(1)
   })
 })
 

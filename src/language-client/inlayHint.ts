@@ -63,7 +63,7 @@ export class InlayHintsFeature extends TextDocumentLanguageFeature<
             textDocument: cv.asTextDocumentIdentifier(document),
             range
           }
-          return this.sendRequest(InlayHintRequest.type, requestParams, token, [])
+          return this.sendRequest(InlayHintRequest.type, requestParams, token, null)
         }
         const middleware = client.middleware!
         return middleware.provideInlayHints

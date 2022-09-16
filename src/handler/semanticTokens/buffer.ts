@@ -1,12 +1,12 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { HighlightItem } from '../../types'
+import { delay } from '../../util'
 import { CancellationError } from '../../util/errors'
 import { wait, waitImmediate } from '../../util/index'
 import { byteIndex, upperFirst } from '../../util/string'
@@ -68,10 +68,10 @@ export default class SemanticTokensBuffer implements SyncItem {
   private config: SemanticTokensConfig
   private readonly _onDidRefresh = new Emitter<void>()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
-  public highlight: Function & { clear(): void }
+  public highlight: ((ms?: number) => void) & { clear: () => void }
   constructor(private nvim: Neovim, public readonly doc: Document, private highlightGroups: ReadonlyArray<string>) {
     this.loadConfiguration()
-    this.highlight = debounce(() => {
+    this.highlight = delay(() => {
       void this.doHighlight()
     }, debounceInterval)
     this.highlight()
@@ -348,7 +348,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     } catch (e) {
       if (!token.isCancellationRequested) {
         if (e instanceof CancellationError) {
-          this.highlight()
+          this.highlight(global.__TEST__ ? 10 : 500)
         } else {
           logger.error('Error on request semanticTokens: ', e)
         }

@@ -40,9 +40,9 @@ export default class InlayHintHandler {
         }
       }
     }, null, this.disposables)
-    events.on('InsertLeave', async bufnr => {
+    events.on('InsertLeave', bufnr => {
       let item = this.buffers.getItem(bufnr)
-      if (item) await item.onInsertLeave()
+      if (item) item.onInsertLeave()
     }, null, this.disposables)
     events.on('InsertEnter', bufnr => {
       let item = this.buffers.getItem(bufnr)

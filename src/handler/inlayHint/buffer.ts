@@ -1,13 +1,14 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import { CancellationTokenSource, Emitter, Event, InlayHintKind, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, InlayHintKind, Range } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
+import { delay } from '../../util'
+import { CancellationError } from '../../util/errors'
 import { positionInRange } from '../../util/position'
 import { byteIndex } from '../../util/string'
 import workspace from '../../workspace'
@@ -36,13 +37,13 @@ export default class InlayHintBuffer implements SyncItem {
   private currentHints: InlayHintWithProvider[] = []
   private readonly _onDidRefresh = new Emitter<void>()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
-  public render: Function & { clear(): void }
+  public render: ((ms?: number) => void) & { clear: () => void }
   constructor(
     private readonly nvim: Neovim,
     public readonly doc: Document
   ) {
     this.loadConfiguration()
-    this.render = debounce(() => {
+    this.render = delay(() => {
       void this.renderRange()
     }, debounceInterval)
     this.render()
@@ -71,9 +72,9 @@ export default class InlayHintBuffer implements SyncItem {
     }
   }
 
-  public async onInsertLeave(): Promise<void> {
+  public onInsertLeave(): void {
     if (this.config.refreshOnInsertMode) return
-    await this.renderRange()
+    this.render()
   }
 
   public onInsertEnter(): void {
@@ -117,12 +118,11 @@ export default class InlayHintBuffer implements SyncItem {
   }
 
   public onTextChange(): void {
-    this.regions.clear()
+    this.clearCache()
     this.cancel()
   }
 
   public onChange(): void {
-    this.clearCache()
     this.cancel()
     this.render()
   }
@@ -135,24 +135,33 @@ export default class InlayHintBuffer implements SyncItem {
     }
   }
 
+  private async requestInlayHints(range: Range, token: CancellationToken): Promise<InlayHintWithProvider[] | null> {
+    try {
+      return await languages.provideInlayHints(this.doc.textDocument, range, token)
+    } catch (e) {
+      if (!token.isCancellationRequested && e instanceof CancellationError) {
+        // wait for more time
+        this.render(global.__TEST__ ? 10 : 500)
+      }
+    }
+  }
+
   public async renderRange(): Promise<void> {
     this.cancel()
-    if (events.insertMode && !this.config.refreshOnInsertMode) return
-    if (!this.enabled) return
+    if ((events.insertMode && !this.config.refreshOnInsertMode) || !this.enabled) return
     this.tokenSource = new CancellationTokenSource()
     let token = this.tokenSource.token
     let res = await this.nvim.call('coc#window#visible_range', [this.doc.bufnr]) as [number, number]
     if (!Array.isArray(res) || res[1] <= 0 || token.isCancellationRequested) return
     if (!srcId) srcId = await this.nvim.createNamespace('coc-inlayHint')
-    if (this.regions.has(res[0], res[1])) return
+    if (token.isCancellationRequested || this.regions.has(res[0], res[1])) return
     let range = Range.create(res[0] - 1, 0, res[1], 0)
-    let inlayHints = await languages.provideInlayHints(this.doc.textDocument, range, token)
+    let inlayHints = await this.requestInlayHints(range, token)
     if (inlayHints == null || token.isCancellationRequested) return
+    this.regions.add(res[0], res[1])
     if (!this.config.enableParameter) {
       inlayHints = inlayHints.filter(o => o.kind !== InlayHintKind.Parameter)
     }
-    // Since no click available, no need to resolve.
-    this.regions.add(res[0], res[1])
     this.currentHints = this.currentHints.filter(o => positionInRange(o.position, range) !== 0)
     this.currentHints.push(...inlayHints)
     this.setVirtualText(range, inlayHints, workspace.env.isVim)

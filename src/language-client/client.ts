@@ -1641,6 +1641,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private static RequestsToCancelOnContentModified: Set<string> = new Set([
+    InlayHintRequest.method,
     SemanticTokensRequest.method,
     SemanticTokensRangeRequest.method,
     SemanticTokensDeltaRequest.method
