@@ -89,7 +89,7 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
   protected registerLanguageProvider(
     options: CodeActionRegistrationOptions
   ): [Disposable, CodeActionProvider] {
-    const registCommand = (id: string) => {
+    const registerCommand = (id: string) => {
       const client = this._client
       const executeCommand: ExecuteCommandSignature = (command: string, args: any[]): any => {
         const params: ExecuteCommandParams = {
@@ -122,7 +122,7 @@ export class CodeActionFeature extends TextDocumentLanguageFeature<boolean | Cod
               // some server may not registered commands to client.
               values.forEach(val => {
                 let cmd = Command.is(val) ? val.command : val.command?.command
-                if (cmd && !commands.has(cmd)) registCommand(cmd)
+                if (cmd && !commands.has(cmd)) registerCommand(cmd)
               })
               return values
             }

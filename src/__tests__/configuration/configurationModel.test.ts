@@ -518,7 +518,7 @@ describe('Configuration', () => {
     assert.strictEqual(testObject.getValue('a', {}), 2)
   })
 
-  test('Test update by resouce', async () => {
+  test('Test update by resource', async () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(JSON.stringify({ a: 1 }))
     const testObject: Configuration = new Configuration(parser.configurationModel, new ConfigurationModel(), new ConfigurationModel())
@@ -1015,7 +1015,7 @@ describe('ConfigurationChangeEvent', () => {
     const configuration = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     const change = configuration.compareAndUpdateUserConfiguration(toConfigurationModel({
       launch: {
-        configuraiton: {}
+        configuration: {}
       },
       'launch.version': 1,
       tasks: {

@@ -56,9 +56,9 @@ export class Sources {
   }
 
   private createNativeSources(): void {
-    this.disposables.push((require('./native/around')).regist(this.sourceMap, this.keywords))
-    this.disposables.push((require('./native/buffer')).regist(this.sourceMap, this.keywords))
-    this.disposables.push((require('./native/file')).regist(this.sourceMap))
+    this.disposables.push((require('./native/around')).register(this.sourceMap, this.keywords))
+    this.disposables.push((require('./native/buffer')).register(this.sourceMap, this.keywords))
+    this.disposables.push((require('./native/file')).register(this.sourceMap))
   }
 
   public createLanguageSource(

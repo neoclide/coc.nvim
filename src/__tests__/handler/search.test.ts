@@ -89,7 +89,7 @@ describe('search', () => {
     expect(lines[1]).toMatch(/No match found/)
   })
 
-  it('should use corrent search folder for rg', async () => {
+  it('should use current search folder for rg', async () => {
     let search = new Search(nvim, 'rg')
     await helper.createDocument()
     let buf = await refactor.createRefactorBuffer()

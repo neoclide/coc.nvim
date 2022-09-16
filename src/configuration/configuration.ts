@@ -296,7 +296,7 @@ export class Configuration {
     this._defaultConfiguration.freeze().keys.forEach(key => keys.add(key))
     this._userConfiguration.freeze().keys.forEach(key => keys.add(key))
     this._workspaceConfiguration.freeze().keys.forEach(key => keys.add(key))
-    this._folderConfigurations.forEach(folderConfiguraiton => folderConfiguraiton.freeze().keys.forEach(key => keys.add(key)))
+    this._folderConfigurations.forEach(folderConfiguration => folderConfiguration.freeze().keys.forEach(key => keys.add(key)))
     return [...keys.values()]
   }
 

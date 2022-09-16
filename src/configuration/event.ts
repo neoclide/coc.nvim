@@ -14,7 +14,7 @@ export class ConfigurationChangeEvent implements IConfigurationChangeEvent {
 
   constructor(public readonly change: IConfigurationChange,
     private readonly previous: IConfigurationData | undefined,
-    private readonly currentConfiguraiton: Configuration) {
+    private readonly currentConfiguration: Configuration) {
     const keysSet = new Set<string>()
     change.keys.forEach(key => keysSet.add(key))
     change.overrides.forEach(([, keys]) => keys.forEach(key => keysSet.add(key)))
@@ -38,7 +38,7 @@ export class ConfigurationChangeEvent implements IConfigurationChangeEvent {
     if (this.doesAffectedKeysTreeContains(this.affectedKeysTree, section)) {
       if (overrides) {
         const value1 = this.previousConfiguration ? this.previousConfiguration.getValue(section, overrides) : undefined
-        const value2 = this.currentConfiguraiton.getValue(section, overrides)
+        const value2 = this.currentConfiguration.getValue(section, overrides)
         return !equals(value1, value2)
       }
       return true

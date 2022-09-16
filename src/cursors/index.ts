@@ -9,7 +9,7 @@ import CursorSession, { CursorsConfig } from './session'
 import { getVisualRanges, splitRange } from './util'
 const logger = require('../util/logger')('cursors')
 
-export type CursorPostion = [number, number, number, number]
+export type CursorPosition = [number, number, number, number]
 
 export default class Cursors {
   private sessionsMap: Map<number, CursorSession> = new Map()
@@ -60,7 +60,7 @@ export default class Cursors {
     let session = this.createSession(doc)
     let range: Range
     if (kind == 'operator') {
-      let res = await nvim.eval(`[getpos("'["),getpos("']")]`) as [CursorPostion, CursorPostion]
+      let res = await nvim.eval(`[getpos("'["),getpos("']")]`) as [CursorPosition, CursorPosition]
       if (mode == 'char') {
         let start = doc.getPosition(res[0][1], res[0][2])
         let end = doc.getPosition(res[1][1], res[1][2] + 1)

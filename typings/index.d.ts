@@ -6121,9 +6121,17 @@ declare module 'coc.nvim' {
     /**
      * Register languageClient as service provider.
      */
+    export function registerLanguageClient(client: LanguageClient): Disposable
+    /**
+     * @deprecated use registerLanguageClient instead.
+     */
     export function registLanguageClient(client: LanguageClient): Disposable
     /**
      * Register service, nothing happens when `service.id` already exists.
+     */
+    export function register(service: IServiceProvider): Disposable
+    /**
+     * @deprecated use register instead.
      */
     export function regist(service: IServiceProvider): Disposable
     /**
@@ -6318,7 +6326,7 @@ declare module 'coc.nvim' {
     /**
      * Add source to sources list.
      *
-     * Note: Use `sources.createSource()` for regist new source is recommended for
+     * Note: Use `sources.createSource()` to register new source is recommended for
      * user configuration support.
      */
     export function addSource(source: ISource): Disposable
@@ -10378,7 +10386,7 @@ declare module 'coc.nvim' {
 
   /**
    * A language server for manage a language server.
-   * It's recommended to use `services.registLanguageClient` for regist language client to serviers,
+   * It's recommended to use `services.registerLanguageClient` to register language client to serviers,
    * you can have language client listed in `CocList services` and services could start the language client
    * by `documentselector` of `clientOptions`.
    */
@@ -10387,8 +10395,8 @@ declare module 'coc.nvim' {
     readonly name: string
     constructor(id: string, name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions, forceDebug?: boolean)
     /**
-     * Create language client by name and options, don't forget regist language client
-     * to services by `services.registLanguageClient`
+     * Create language client by name and options, don't forget to register language client
+     * to services by `services.registerLanguageClient`
      */
     constructor(name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions, forceDebug?: boolean)
     /**
@@ -10461,7 +10469,7 @@ declare module 'coc.nvim' {
     stop(): Promise<void>
 
     /**
-     * Start language server, not needed when registered to services by `services.registLanguageClient`
+     * Start language server, not needed when registered to services by `services.registerLanguageClient`
      */
     start(): Promise<void>
     /**

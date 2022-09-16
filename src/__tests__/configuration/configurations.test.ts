@@ -367,7 +367,7 @@ describe('Configurations', () => {
       expect(val).toBe(3)
     })
 
-    it('should show error when workspace folder not resovled', async () => {
+    it('should show error when workspace folder not resolved', async () => {
       let called = false
       let s = jest.spyOn(console, 'error').mockImplementation(() => {
         called = true

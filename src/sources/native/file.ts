@@ -152,7 +152,7 @@ export default class File extends Source {
   }
 }
 
-export function regist(sourceMap: Map<string, ISource>): Disposable {
+export function register(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('file', new File())
   return Disposable.create(() => {
     sourceMap.delete('file')

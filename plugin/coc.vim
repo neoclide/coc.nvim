@@ -117,6 +117,11 @@ function! CocNotify(...) abort
   return coc#rpc#request('sendNotification', a:000)
 endfunction
 
+function! CocRegisterNotification(id, method, cb) abort
+  call coc#on_notify(a:id, a:method, a:cb)
+endfunction
+
+" Deprecated, use CocRegisterNotification instead
 function! CocRegistNotification(id, method, cb) abort
   call coc#on_notify(a:id, a:method, a:cb)
 endfunction

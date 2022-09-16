@@ -580,8 +580,8 @@ describe('list sources', () => {
 
   describe('services', () => {
     function createService(name: string): IServiceProvider {
-      let _onServcieReady = new Emitter<void>()
-      // public readonly onServcieReady: Event<void> = this.
+      let _onServiceReady = new Emitter<void>()
+      // public readonly onServiceReady: Event<void> = this.
       let service: IServiceProvider = {
         id: name,
         name,
@@ -589,7 +589,7 @@ describe('list sources', () => {
         state: ServiceStat.Initial,
         start(): Promise<void> {
           service.state = ServiceStat.Running
-          _onServcieReady.fire()
+          _onServiceReady.fire()
           return Promise.resolve()
         },
         dispose(): void {
@@ -600,11 +600,11 @@ describe('list sources', () => {
         },
         restart(): void {
           service.state = ServiceStat.Running
-          _onServcieReady.fire()
+          _onServiceReady.fire()
         },
-        onServiceReady: _onServcieReady.event
+        onServiceReady: _onServiceReady.event
       }
-      disposables.push(services.regist(service))
+      disposables.push(services.register(service))
       return service
     }
 

@@ -400,7 +400,7 @@ describe('workspace utility', () => {
     disposables.forEach(d => d.dispose())
   })
 
-  it('should regist keymap', async () => {
+  it('should register keymap', async () => {
     let fn = jest.fn()
     await nvim.command('nmap go <Plug>(coc-echo)')
     let disposable = workspace.registerKeymap(['n', 'v'], 'echo', fn, { sync: true })
@@ -416,7 +416,7 @@ describe('workspace utility', () => {
     expect(fn).toBeCalledTimes(1)
   })
 
-  it('should regist expr keymap', async () => {
+  it('should register expr keymap', async () => {
     let called = false
     let fn = () => {
       called = true
@@ -435,7 +435,7 @@ describe('workspace utility', () => {
     disposable.dispose()
   })
 
-  it('should regist buffer expr keymap', async () => {
+  it('should register buffer expr keymap', async () => {
     let fn = () => '""'
     await nvim.input('i')
     let disposable = workspace.registerExprKeymap('i', '"', fn, true)
@@ -630,7 +630,7 @@ describe('workspace events', () => {
 
 describe('workspace textDocument content provider', () => {
 
-  it('should regist document content provider', async () => {
+  it('should register document content provider', async () => {
     let provider: TextDocumentContentProvider = {
       provideTextDocumentContent: (_uri, _token): string => 'sample text'
     }
@@ -660,7 +660,7 @@ describe('workspace textDocument content provider', () => {
 })
 
 describe('workspace registerBufferSync', () => {
-  it('should regist', async () => {
+  it('should register', async () => {
     await helper.createDocument()
     let created = 0
     let deleted = 0

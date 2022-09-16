@@ -82,7 +82,7 @@ class ServiceManager implements Disposable {
     }, null, this.disposables)
     const iterate = (folders: Iterable<WorkspaceFolder>) => {
       for (let folder of folders) {
-        this.registClientsFromFolder(folder)
+        this.registerClientsFromFolder(folder)
       }
     }
     workspace.onDidChangeWorkspaceFolders(e => {
@@ -90,18 +90,23 @@ class ServiceManager implements Disposable {
     }, null, this.disposables)
     // Global configured languageserver
     let lspConfig = workspace.getConfiguration(undefined, null).get<{ key: LanguageServerConfig }>('languageserver', {} as any)
-    this.registClientsByConfig(lspConfig)
+    this.registerClientsByConfig(lspConfig)
     iterate(workspace.workspaceFolders)
+    this.registLanguageClient = this.registerLanguageClient
   }
 
-  private registClientsFromFolder(workspaceFolder: WorkspaceFolder): void {
+  private registerClientsFromFolder(workspaceFolder: WorkspaceFolder): void {
     let uri = URI.parse(workspaceFolder.uri)
     let lspConfig = workspace.getConfiguration(undefined, uri)
     let config = lspConfig.inspect('languageserver').workspaceFolderValue
-    if (config) this.registClientsByConfig(config as { [key: string]: LanguageServerConfig }, uri)
+    if (config) this.registerClientsByConfig(config as { [key: string]: LanguageServerConfig }, uri)
   }
 
   public regist(service: IServiceProvider): Disposable {
+    return this.register(service)
+  }
+
+  public register(service: IServiceProvider): Disposable {
     let { id } = service
     if (this.registered.get(id)) return
     this.registered.set(id, service)
@@ -179,13 +184,13 @@ class ServiceManager implements Disposable {
     return res
   }
 
-  private registClientsByConfig(lspConfig: { [key: string]: LanguageServerConfig }, folder?: URI): void {
+  private registerClientsByConfig(lspConfig: { [key: string]: LanguageServerConfig }, folder?: URI): void {
     for (let key of Object.keys(lspConfig)) {
       let config: LanguageServerConfig = lspConfig[key]
       if (!isValidServerConfig(key, config)) {
         continue
       }
-      this.registLanguageClient(key, config, folder)
+      this.registerLanguageClient(key, config, folder)
     }
   }
 
@@ -211,7 +216,7 @@ class ServiceManager implements Disposable {
     return await Promise.resolve(client.sendRequest(method, params, token))
   }
 
-  public async registNotification(id: string, method: string): Promise<void> {
+  public async registerNotification(id: string, method: string): Promise<void> {
     let service = this.getService(id)
     if (service && service.client) {
       service.client.onNotification(method, async result => {
@@ -232,9 +237,13 @@ class ServiceManager implements Disposable {
     workspace.nvim.call('coc#do_notify', [id, method, result], true)
   }
 
-  public registLanguageClient(client: LanguageClient): Disposable
-  public registLanguageClient(name: string, config: LanguageServerConfig, folder?: URI): Disposable
   public registLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig, folder?: URI): Disposable {
+    return typeof name === 'string' ? this.registerLanguageClient(name, config, folder) : this.registerLanguageClient(name)
+  }
+
+  public registerLanguageClient(client: LanguageClient): Disposable
+  public registerLanguageClient(name: string, config: LanguageServerConfig, folder?: URI): Disposable
+  public registerLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig, folder?: URI): Disposable {
     let id = typeof name === 'string' ? `languageserver.${name}` : name.id
     let disposables: Disposable[] = []
     let onDidServiceReady = new Emitter<void>()
@@ -268,7 +277,7 @@ class ServiceManager implements Disposable {
           }
           client.onDidChangeState(changeEvent => {
             let { oldState, newState } = changeEvent
-            service.state = converState(newState)
+            service.state = convertState(newState)
             let oldStr = stateString(oldState)
             let newStr = stateString(newState)
             logger.info(`LanguageClient ${client.name} state change: ${oldStr} => ${newStr}`)
@@ -276,7 +285,7 @@ class ServiceManager implements Disposable {
         }
         try {
           if (!client.needsStart()) {
-            service.state = converState(client.state)
+            service.state = convertState(client.state)
           } else {
             service.state = ServiceStat.Starting
             logger.debug(`starting service: ${id}`)
@@ -306,7 +315,7 @@ class ServiceManager implements Disposable {
         }
       },
     }
-    return this.regist(service)
+    return this.register(service)
   }
 
   public dispose(): void {
@@ -486,7 +495,7 @@ export function getSpawnOptions(config: LanguageServerConfig): SpawnOptions {
   }
 }
 
-export function converState(state: State): ServiceStat {
+export function convertState(state: State): ServiceStat {
   switch (state) {
     case State.Running:
       return ServiceStat.Running
