@@ -1,3 +1,4 @@
+process.env.COC_NO_PLUGINS = '1'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
 import completion from '../../completion'

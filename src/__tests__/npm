@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+console.log('arguments' + JSON.stringify(process.argv))
+console.error('error msg')
+console.log('start')
+console.log('finish')
+
+if (process.argv.includes('--error')) {
+  process.exit(3)
+}

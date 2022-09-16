@@ -380,7 +380,9 @@ describe('services', () => {
       let service = services.getService('def')
       await service.start()
       await service.client.sendNotification('triggerNotification')
-      await helper.wait(10)
+      await helper.waitValue(() => {
+        return res != undefined
+      }, true)
       await services.stop('def')
       spy.mockRestore()
       expect(res).toEqual({ id: 'def', method: 'notification', result: { x: 1 } })

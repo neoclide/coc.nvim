@@ -1,6 +1,5 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
 import { CancellationToken, CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
@@ -73,7 +72,7 @@ export class Workspace implements IWorkspace {
 
   constructor() {
     this.version = VERSION
-    let home = path.normalize(process.env.COC_VIMCONFIG) || path.join(os.homedir(), '.vim')
+    let home = path.normalize(process.env.COC_VIMCONFIG) ?? path.join(os.homedir(), '.vim')
     let userConfigFile = path.join(home, CONFIG_FILE_NAME)
     this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
     this.workspaceFolderControl = new WorkspaceFolderController(this.configurations)
@@ -126,9 +125,7 @@ export class Workspace implements IWorkspace {
     }
     let env = this._env = await nvim.call('coc#util#vim_info') as Env
     window.init(env)
-    if (this._env.apiversion != APIVERSION) {
-      nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
-    }
+    this.checkVersion(APIVERSION)
     this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
     this.configurations.updateMemoryConfig(this._env.config)
     this.files.attach(nvim, env, window)
@@ -140,6 +137,12 @@ export class Workspace implements IWorkspace {
     await this.editors.attach(nvim)
     let channel = channels.create('watchman', nvim)
     this.fileSystemWatchers.attach(channel)
+  }
+
+  public checkVersion(version: number) {
+    if (this._env.apiversion != version) {
+      this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
+    }
   }
 
   public get cwd(): string {
@@ -169,8 +172,11 @@ export class Workspace implements IWorkspace {
     return events.insertMode
   }
 
+  /**
+   * @deprecated always true
+   */
   public get floatSupported(): boolean {
-    return this.env.floating || this.env.textprop
+    return true
   }
 
   /**
@@ -430,14 +436,7 @@ export class Workspace implements IWorkspace {
    * Create DB instance at extension root.
    */
   public createDatabase(name: string): DB {
-    let root: string
-    if (global.hasOwnProperty('__TEST__')) {
-      root = path.join(os.tmpdir(), `coc-${process.pid}`)
-      fs.mkdirpSync(root)
-    } else {
-      root = path.dirname(this.env.extensionRoot)
-    }
-    let filepath = path.join(root, name + '.json')
+    let filepath = path.join(process.env.COC_DATA_HOME, name + '.json')
     return new DB(filepath)
   }
 

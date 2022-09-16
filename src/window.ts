@@ -858,7 +858,7 @@ export class Window {
       if (ms) filepath = ms[1]
     }
     if (!filepath) return undefined
-    let arr = require('./extensions').default.getExtensionsInfo()
+    let arr = require('./extension/index').default.manager.getExtensionsInfo()
     let find = arr.find(o => sameFile(o.filepath, filepath))
     if (find) return find.name.startsWith('single') ? path.basename(find.filepath) : find.name
     find = arr.find(o => isParentFolder(o.directory, filepath))

@@ -7,7 +7,7 @@ export default class BufferChannel implements OutputChannel {
   private lines: string[] = ['']
   private _disposed = false
   public created = false
-  constructor(public name: string, private nvim: Neovim, private onDispose?: () => void) {
+  constructor(public name: string, private nvim?: Neovim, private onDispose?: () => void) {
     if (!/^[\w\s-.]+$/.test(name)) throw new Error(`Invalid channel name "${name}", only word characters and white space allowed.`)
   }
 
@@ -17,6 +17,10 @@ export default class BufferChannel implements OutputChannel {
 
   private _append(value: string): void {
     let { nvim } = this
+    if (!nvim) {
+      logger.info(`[${this.name} ${(new Date()).toLocaleTimeString()}] ${value}`)
+      return
+    }
     let idx = this.lines.length - 1
     let newlines = value.split(/\r?\n/)
     let lastline = this.lines[idx] + newlines[0]
@@ -43,8 +47,8 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public clear(keep?: number): void {
-    if (!this.validate()) return
     let { nvim } = this
+    if (!this.validate() || !nvim) return
     this.lines = keep ? this.lines.slice(-keep) : []
     if (!this.created) return
     nvim.pauseNotification()
@@ -57,7 +61,7 @@ export default class BufferChannel implements OutputChannel {
 
   public hide(): void {
     this.created = false
-    this.nvim.command(`exe 'silent! bd! '.fnameescape('${this.bufname}')`, true)
+    if (this.nvim) this.nvim.command(`exe 'silent! bd! '.fnameescape('${this.bufname}')`, true)
   }
 
   private get bufname(): string {
@@ -66,6 +70,7 @@ export default class BufferChannel implements OutputChannel {
 
   public show(preserveFocus?: boolean, cmd = 'vs'): void {
     let { nvim } = this
+    if (!nvim) return
     nvim.pauseNotification()
     nvim.command(`exe '${cmd} '.fnameescape('${this.bufname}')`, true)
     if (preserveFocus) {

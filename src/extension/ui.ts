@@ -1,11 +1,14 @@
 'use strict'
-import { Buffer, Neovim } from '@chemzqm/neovim'
-import { EventEmitter } from 'events'
+import { debounce } from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
+import events from '../events'
+import { frames } from '../model/status'
 import { HighlightItem, OutputChannel } from '../types'
+import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
-import { frames } from './status'
-const logger = require('../util/logger')('model-installBuffer')
+import window from '../window'
+import workspace from '../workspace'
+const logger = require('../util/logger')('extension-ui')
 
 export enum State {
   Waiting,
@@ -14,54 +17,92 @@ export enum State {
   Success,
 }
 
-export default class InstallBuffer extends EventEmitter implements Disposable {
+export interface InstallUI {
+  start(names: string[]): void | Promise<void>
+  addMessage(name: string, msg: string, isProgress?: boolean): void
+  startProgress(name: string): void
+  finishProgress(name: string, succeed?: boolean): void
+}
+
+export class InstallChannel implements InstallUI {
+  constructor(private isUpdate: boolean, private channel: OutputChannel) {
+  }
+
+  public start(names: string[]): void {
+    this.channel.appendLine(`${this.isUpdate ? 'Updating' : 'Installing'} ${names.join(', ')}`)
+  }
+
+  public addMessage(name: string, msg: string, isProgress?: boolean): void {
+    if (!isProgress) {
+      this.channel.appendLine(`${name} - ${msg}`)
+    }
+  }
+
+  public startProgress(name: string): void {
+    this.channel.appendLine(`Start ${this.isUpdate ? 'update' : 'install'} ${name}`)
+  }
+
+  public finishProgress(name: string, succeed?: boolean): void {
+    if (succeed) {
+      this.channel.appendLine(`${name} ${this.isUpdate ? 'update' : 'install'} succeed!`)
+    } else {
+      this.channel.appendLine(`${name} ${this.isUpdate ? 'update' : 'install'} failed!`)
+    }
+  }
+}
+
+export class InstallBuffer implements InstallUI {
   private statMap: Map<string, State> = new Map()
   private updated: Set<string> = new Set()
   private messagesMap: Map<string, string[]> = new Map()
+  private disposables: Disposable[] = []
   private names: string[] = []
-  // eslint-disable-next-line no-undef
   private interval: NodeJS.Timer
   public bufnr: number
 
-  constructor(
-    private isUpdate = false,
-    private isSync = false,
-    private channel: OutputChannel | undefined = undefined) {
-    super()
+  constructor(private isUpdate: boolean) {
+    let floatFactory = window.createFloatFactory({ modes: ['n'] })
+    this.disposables.push(floatFactory)
+    let fn = debounce(async (bufnr, cursor) => {
+      if (bufnr == this.bufnr) {
+        let msgs = this.getMessages(cursor[0] - 1)
+        let docs = msgs.length > 0 ? [{ content: msgs.join('\n'), filetype: 'txt' }] : []
+        await floatFactory.show(docs)
+      }
+    }, global.__TEST__ ? 10 : 500)
+    this.disposables.push(Disposable.create(() => {
+      fn.clear()
+    }))
+    events.on('CursorMoved', fn, this.disposables)
+    events.on('BufUnload', bufnr => {
+      if (bufnr === this.bufnr) {
+        this.dispose()
+      }
+    }, null, this.disposables)
   }
 
-  public setExtensions(names: string[]): void {
+  public async start(names: string[]): Promise<void> {
     this.statMap.clear()
     this.names = names
     for (let name of names) {
       this.statMap.set(name, State.Waiting)
     }
+    await this.show()
   }
 
-  public addMessage(name: string, msg: string, isProgress = false): void {
-    if (isProgress && this.channel) return
+  public addMessage(name: string, msg: string): void {
     let lines = this.messagesMap.get(name) || []
     this.messagesMap.set(name, lines.concat(msg.trim().split(/\r?\n/)))
-    if (msg.startsWith('Updated to') || msg.startsWith('Installed extension')) {
+    if ((msg.startsWith('Updated to') || msg.startsWith('Installed extension'))) {
       this.updated.add(name)
     }
-    if (this.channel) this.channel.appendLine(`[${name}] ${msg}`)
   }
 
-  public startProgress(names: string[]): void {
-    for (let name of names) {
-      this.statMap.set(name, State.Progressing)
-    }
+  public startProgress(name: string): void {
+    this.statMap.set(name, State.Progressing)
   }
 
-  public finishProgress(name: string, succeed = true): void {
-    if (this.channel) {
-      if (succeed) {
-        this.channel.appendLine(`[${name}] install succeed!`)
-      } else {
-        this.channel.appendLine(`[${name}] install failed!`)
-      }
-    }
+  public finishProgress(name: string, succeed?: boolean): void {
     this.statMap.set(name, succeed ? State.Success : State.Failed)
   }
 
@@ -113,15 +154,20 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
   }
 
   public getMessages(line: number): string[] {
-    if (line <= 1) return []
     let name = this.names[line - 2]
-    if (!name) return []
-    return this.messagesMap.get(name)
+    return this.messagesMap.get(name) ?? []
+  }
+
+  public get stopped(): boolean {
+    return this.interval == null
   }
 
   // draw frame
-  private draw(nvim: Neovim, buffer: Buffer): void {
-    let { remains } = this
+  public draw(): void {
+    let { remains, bufnr } = this
+    let { nvim } = workspace
+    if (!bufnr) return
+    let buffer = nvim.createBuffer(bufnr)
     let first = remains == 0 ? `${this.isUpdate ? 'Update' : 'Install'} finished` : `Installing, ${remains} remaining...`
     let { lines, highlights } = this.getLinesAndHighlights(2)
     nvim.pauseNotification()
@@ -136,35 +182,35 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
     nvim.resumeNotification(true, true)
   }
 
-  public highlight(nvim: Neovim): void {
+  private highlight(): void {
+    let { nvim } = workspace
     nvim.call('matchadd', ['CocListFgCyan', '^\\-\\s\\zs\\*'], true)
     nvim.call('matchadd', ['CocListFgGreen', '^\\-\\s\\zs✓'], true)
     nvim.call('matchadd', ['CocListFgRed', '^\\-\\s\\zs✗'], true)
-    // nvim.call('matchadd', ['CocListFgYellow', '^-.\\{3\\}\\zs\\S\\+'], true)
   }
 
-  public async show(nvim: Neovim): Promise<void> {
-    let { isSync } = this
-    if (this.channel) return
+  private async show(): Promise<void> {
+    let isSync = events.requesting === true
+    let { nvim } = workspace
     nvim.pauseNotification()
     nvim.command(isSync ? 'enew' : 'vs +enew', true)
     nvim.call('bufnr', ['%'], true)
     nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1', true)
-    if (!isSync) {
-      nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
-    }
-    this.highlight(nvim)
+    if (!isSync) nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
+    this.highlight()
     let res = await nvim.resumeNotification()
     this.bufnr = res[0][1] as number
-    let buffer = nvim.createBuffer(this.bufnr)
     this.interval = setInterval(() => {
-      this.draw(nvim, buffer)
+      this.draw()
     }, 100)
   }
 
   public dispose(): void {
-    if (this.interval) {
-      clearInterval(this.interval)
-    }
+    this.bufnr = undefined
+    this.messagesMap.clear()
+    this.statMap.clear()
+    disposeAll(this.disposables)
+    clearInterval(this.interval)
+    this.interval = null
   }
 }

@@ -6,8 +6,10 @@ import download from '../../model/download'
 import fetch, { getAgent } from '../../model/fetch'
 import helper from '../helper'
 
+let connected = false
 beforeAll(async () => {
   await helper.setup()
+  connected = await helper.hasConnection()
 })
 
 afterAll(async () => {
@@ -17,16 +19,19 @@ afterAll(async () => {
 describe('fetch', () => {
 
   it('should fetch json', async () => {
+    if (!connected) return
     let res = await fetch('https://nodejs.org/dist/index.json')
     expect(Array.isArray(res)).toBe(true)
   }, 10000)
 
   it('should fetch buffer', async () => {
+    if (!connected) return
     let res = await fetch('https://www.npmjs.com/', { buffer: true })
     expect(Buffer.isBuffer(res)).toBe(true)
   })
 
   it('should throw on request error', async () => {
+    if (!connected) return
     let err
     try {
       await fetch('http://not_exists_org')
@@ -37,6 +42,7 @@ describe('fetch', () => {
   })
 
   it('should report valid proxy', async () => {
+    if (!connected) return
     let agent = getAgent(parse('http://google.com'), { proxy: 'domain.com:1234' })
     expect(agent).toBe(null)
 
@@ -55,6 +61,7 @@ describe('fetch', () => {
 
 describe('download', () => {
   it('should download binary file', async () => {
+    if (!connected) return
     let url = 'https://registry.npmjs.org/coc-pairs/-/coc-pairs-1.2.13.tgz'
     let tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'coc-test'))
     let res = await download(url, { dest: tmpFolder })
@@ -63,6 +70,7 @@ describe('download', () => {
   }, 10000)
 
   it('should download tgz', async () => {
+    if (!connected) return
     let url = 'https://registry.npmjs.org/coc-pairs/-/coc-pairs-1.2.13.tgz'
     let tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'coc-test'))
     await download(url, { dest: tmpFolder, extract: 'untar' })
@@ -72,6 +80,7 @@ describe('download', () => {
   }, 10000)
 
   it('should extract zip file', async () => {
+    if (!connected) return
     let url = 'https://codeload.github.com/chemzqm/vimrc/zip/master'
     let tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'coc-test'))
     await download(url, { dest: tmpFolder, extract: 'unzip' })

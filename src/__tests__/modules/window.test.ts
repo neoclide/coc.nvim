@@ -7,7 +7,7 @@ import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-pr
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import events from '../../events'
-import extensions from '../../extensions'
+import extensions from '../../extension'
 import languages from '../../languages'
 import Notification from '../../model/notification'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
@@ -416,11 +416,11 @@ describe('window', () => {
   })
 
   describe('window parseSource()', () => {
-    it('should parse sour name', async () => {
+    it('should parse source name', async () => {
       expect(window.parseSource('\n\n')).toBeUndefined()
       expect(window.parseSource(`\n\n${path.join(process.cwd(), 'a/b.js')}:1:1`)).toBe('coc.nvim')
       expect(window.parseSource(`\n\n at Foo(${path.join(process.cwd(), 'a/b.js')}:1:1)`)).toBe('coc.nvim')
-      let info = extensions.getExtensionsInfo()
+      let info = extensions.manager.getExtensionsInfo()
       expect(window.parseSource(`\n\n${info[0].filepath}:1:1`)).toBe(info[0].name)
       let filepath = path.join(info[0].directory, 'a/b/c.js')
       expect(window.parseSource(`\n\n${filepath}:1:1`)).toBe(info[0].name)

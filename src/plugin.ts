@@ -8,7 +8,7 @@ import channels from './core/channels'
 import Cursors from './cursors'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
-import extensions from './extensions'
+import extensions from './extension'
 import Handler from './handler'
 import listManager from './list/manager'
 import services from './services'
@@ -58,7 +58,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('attach', () => workspace.attach())
     this.addAction('detach', () => workspace.detach())
     this.addAction('doKeymap', async (key, defaultReturn, pressed) => this.handler.workspace.doKeymap(key, defaultReturn, pressed))
-    this.addAction('registerExtensions', (...folders: string[]) => extensions.loadExtension(folders), 'registExtensions')
+    this.addAction('registerExtensions', (...folders: string[]) => extensions.manager.loadExtension(folders), 'registExtensions')
     this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => this.handler.workspace.snippetCheck(checkExpand, checkJump))
     this.addAction('snippetNext', () => snippetManager.nextPlaceholder())
     this.addAction('snippetPrev', () => snippetManager.previousPlaceholder())
@@ -146,15 +146,15 @@ export default class Plugin extends EventEmitter {
     this.addAction('refactor', () => this.handler.refactor.doRefactor())
     this.addAction('repeatCommand', () => this.handler.commands.repeat())
     this.addAction('installExtensions', (...list: string[]) => extensions.installExtensions(list))
-    this.addAction('updateExtensions', sync => extensions.updateExtensions(sync))
+    this.addAction('updateExtensions', () => extensions.updateExtensions())
     this.addAction('extensionStats', () => extensions.getExtensionStates())
-    this.addAction('loadedExtensions', () => extensions.loadedExtensions())
-    this.addAction('watchExtension', (id: string) => extensions.watchExtension(id))
-    this.addAction('activeExtension', name => extensions.activate(name))
-    this.addAction('deactivateExtension', name => extensions.deactivate(name))
-    this.addAction('reloadExtension', name => extensions.reloadExtension(name))
-    this.addAction('toggleExtension', name => extensions.toggleExtension(name))
-    this.addAction('uninstallExtension', (...args: string[]) => extensions.uninstallExtension(args))
+    this.addAction('loadedExtensions', () => extensions.manager.loadedExtensions)
+    this.addAction('watchExtension', (id: string) => extensions.manager.watchExtension(id))
+    this.addAction('activeExtension', name => extensions.manager.activate(name))
+    this.addAction('deactivateExtension', name => extensions.manager.deactivate(name))
+    this.addAction('reloadExtension', name => extensions.manager.reloadExtension(name))
+    this.addAction('toggleExtension', name => extensions.manager.toggleExtension(name))
+    this.addAction('uninstallExtension', (...args: string[]) => extensions.manager.uninstallExtensions(args))
     this.addAction('getCurrentFunctionSymbol', () => this.handler.symbols.getCurrentFunctionSymbol())
     this.addAction('showOutline', (keep?: number) => this.handler.symbols.showOutline(keep))
     this.addAction('hideOutline', () => this.handler.symbols.hideOutline())

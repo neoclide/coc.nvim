@@ -1,5 +1,6 @@
-import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
+import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
 import { FileType } from '../../types'
+import { v4 as uuid } from 'uuid'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -15,6 +16,36 @@ describe('fs', () => {
     it('fs statAsync #1', async () => {
       let res = await statAsync(path.join(__dirname, 'file_not_exist'))
       expect(res).toBeNull
+    })
+  })
+
+  describe('remove()', () => {
+    it('should remove files', async () => {
+      await remove(path.join(os.tmpdir(), uuid()))
+      let p = path.join(os.tmpdir(), uuid())
+      fs.writeFileSync(p, 'data', 'utf8')
+      await remove(p)
+      let exists = fs.existsSync(p)
+      expect(exists).toBe(false)
+      await remove(undefined)
+    })
+
+    it('should not throw error', async () => {
+      let spy = jest.spyOn(fs, 'rm').mockImplementation(() => {
+        throw new Error('my error')
+      })
+      let p = path.join(os.tmpdir(), uuid())
+      await remove(p)
+      spy.mockRestore()
+    })
+
+    it('should remove folder', async () => {
+      let f = path.join(os.tmpdir(), uuid())
+      let p = path.join(f, 'a/b/c')
+      fs.mkdirSync(p, { recursive: true })
+      await remove(f)
+      let exists = fs.existsSync(f)
+      expect(exists).toBe(false)
     })
   })
 
@@ -35,6 +66,8 @@ describe('fs', () => {
       res = await checkFolder(cwd, 'not_exists_fs')
       expect(res).toBe(false)
       res = await checkFolder(os.homedir(), 'not_exists_fs', 10)
+      expect(res).toBe(false)
+      res = await checkFolder('/a/b/c', 'not_exists_fs', 10)
       expect(res).toBe(false)
     })
   })

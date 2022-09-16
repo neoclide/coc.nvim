@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
-import extensions from '../../extensions'
+import extensions from '../../extension'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import { HandlerDelegate, IConfigurationChangeEvent } from '../../types'

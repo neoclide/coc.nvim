@@ -89,7 +89,7 @@ endfunction
 
 function! coc#util#path_replace_patterns() abort
   if has('win32unix') && exists('g:coc_cygqwin_path_prefixes')
-    echohl WarningMsg 
+    echohl WarningMsg
     echon 'g:coc_cygqwin_path_prefixes is deprecated, use g:coc_uri_prefix_replace_patterns instead' 
     echohl None
     return g:coc_cygqwin_path_prefixes

@@ -10,6 +10,7 @@ import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import decompressResponse from 'decompress-response'
+import events from '../events'
 const logger = require('../util/logger')('model-fetch')
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
@@ -256,6 +257,7 @@ function getDataType(data: any): string {
  * - Support of gzip & deflate response content.
  */
 export default function fetch(url: string, options: FetchOptions = {}, token?: CancellationToken): Promise<ResponseResult> {
+  if (events.disconnected) throw new Error('network not available')
   let opts = resolveRequestOptions(url, options)
   return request(url, options.data, opts, token).catch(err => {
     logger.error(`Fetch error for ${url}:`, opts, err)

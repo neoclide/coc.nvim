@@ -3,10 +3,9 @@ import { Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
 import fs from 'fs'
 import path from 'path'
-import extensions from '../extensions'
+import extensions from '../extension'
 import { HandlerDelegate, PatternType, WorkspaceConfiguration } from '../types'
 import workspace from '../workspace'
-import window from '../window'
 import snippetManager from '../snippets/manager'
 const logger = require('../util/logger')('handler-workspace')
 declare const REVISION
@@ -67,11 +66,8 @@ export default class WorkspaceHandler {
       if (jumpable) return true
     }
     if (checkExpand) {
-      let api = extensions.getExtensionApi('coc-snippets') as any
-      if (api && api.hasOwnProperty('expandable')) {
-        let expandable = await Promise.resolve(api.expandable())
-        if (expandable) return true
-      }
+      let expandable = await Promise.resolve(extensions.manager.call('coc-snippets', 'expandable', []))
+      if (expandable) return true
     }
     return false
   }

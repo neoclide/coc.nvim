@@ -8,7 +8,7 @@ import { URI } from 'vscode-uri'
 import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
 import { disposeAll } from '../../util'
-import workspace from '../../workspace'
+import workspace, { Workspace } from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
@@ -235,8 +235,19 @@ describe('workspace methods', () => {
   })
 
   it('should run command', async () => {
-    let res = await workspace.runCommand('ls', __dirname, 1)
+    let res = await workspace.runCommand('ls', __dirname, 1000)
     expect(res).toMatch('workspace')
+    res = await workspace.runCommand('ls')
+    expect(res).toBeDefined()
+  })
+
+  it('should export deprecated properties', async () => {
+    expect(workspace.completeOpt).toBeDefined()
+    expect(workspace.createNameSpace('name')).toBeDefined()
+    expect(Workspace).toBeDefined()
+    expect(workspace['onDidOpenTerminal']).toBeDefined()
+    expect(workspace['onDidCloseTerminal']).toBeDefined()
+    workspace.checkVersion(0)
   })
 
   it('should resolve module path if exists', async () => {
@@ -335,6 +346,10 @@ describe('workspace methods', () => {
 describe('workspace utility', () => {
 
   it('should create database', async () => {
+    let filpath = path.join(process.env.COC_DATA_HOME, 'test.json')
+    if (fs.existsSync(filpath)) {
+      fs.unlinkSync(filpath)
+    }
     let db = workspace.createDatabase('test')
     let res = db.exists('xyz')
     expect(res).toBe(false)

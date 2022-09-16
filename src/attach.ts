@@ -98,6 +98,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       logger.error('Request cost more than 3s', method, args)
     }, 3000)
     try {
+      events.requesting = true
       if (method == 'CocAutocmd') {
         logger.trace('Request autocmd:', ...args)
         await events.fire(args[0], args.slice(1))
@@ -113,7 +114,9 @@ export default (opts: Attach, requestApi = true): Plugin => {
         resp.send(res)
       }
       clearTimeout(timer)
+      events.requesting = false
     } catch (e) {
+      events.requesting = false
       clearTimeout(timer)
       resp.send(e instanceof Error ? e.message : e.toString(), true)
       logger.error(`Request error:`, method, args, e)

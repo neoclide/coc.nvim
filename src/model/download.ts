@@ -1,14 +1,15 @@
 'use strict'
 import contentDisposition from 'content-disposition'
 import { http, https } from 'follow-redirects'
-import fs, { Stats } from 'fs-extra'
+import fs from 'fs'
 import { IncomingMessage } from 'http'
 import path from 'path'
 import tar from 'tar'
 import unzip from 'unzip-stream'
 import { v1 as uuidv1 } from 'uuid'
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import { resolveRequestOptions, FetchOptions } from './fetch'
+import { FetchOptions, resolveRequestOptions } from './fetch'
+import events from '../events'
 const logger = require('../util/logger')('model-download')
 
 export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
@@ -34,18 +35,18 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
 export default function download(url: string, options: DownloadOptions, token?: CancellationToken): Promise<string> {
+  if (events.disconnected) throw new Error('network not available')
   let { dest, onProgress, extract } = options
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
   }
-  let stat: Stats
-  try {
-    stat = fs.statSync(dest)
-  } catch (_e) {
-    fs.mkdirpSync(dest)
-  }
-  if (stat && !stat.isDirectory()) {
-    throw new Error(`${dest} exists, but not directory!`)
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true })
+  } else {
+    let stat = fs.statSync(dest)
+    if (stat && !stat.isDirectory()) {
+      throw new Error(`${dest} exists, but not directory!`)
+    }
   }
   let mod = url.startsWith('https') ? https : http
   let opts = resolveRequestOptions(url, options)

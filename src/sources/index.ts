@@ -5,7 +5,7 @@ import path from 'path'
 import util from 'util'
 import { Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import events from '../events'
-import extensions from '../extensions'
+import extensions from '../extension'
 import BufferSync from '../model/bufferSync'
 import { CompletionItemProvider } from '../provider'
 import { CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
@@ -169,7 +169,7 @@ export class Sources {
       Object.defineProperty(extension, 'isActive', {
         get: () => isActive
       })
-      extensions.registerExtension(extension, () => {
+      void extensions.manager.registerInternalExtension(extension, () => {
         isActive = false
         this.removeSource(source)
       })

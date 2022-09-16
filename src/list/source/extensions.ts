@@ -4,7 +4,7 @@ import fs from 'fs-extra'
 import os from 'os'
 import path from 'path'
 import { URI } from 'vscode-uri'
-import extensions from '../../extensions'
+import extensions from '../../extension'
 import { ListContext, ListItem } from '../../types'
 import { wait } from '../../util'
 import workspace from '../../workspace'
@@ -24,9 +24,9 @@ export default class ExtensionList extends BasicList {
       let { id, state } = item.data
       if (state == 'disabled') return
       if (state == 'activated') {
-        await extensions.deactivate(id)
+        await extensions.manager.deactivate(id)
       } else {
-        await extensions.activate(id)
+        await extensions.manager.activate(id)
       }
       await wait(100)
     }, { persist: true, reload: true, parallel: true })
@@ -52,17 +52,17 @@ export default class ExtensionList extends BasicList {
 
     this.addAction('disable', async item => {
       let { id, state } = item.data
-      if (state !== 'disabled') await extensions.toggleExtension(id)
+      if (state !== 'disabled') await extensions.manager.toggleExtension(id)
     }, { persist: true, reload: true, parallel: true })
 
     this.addAction('enable', async item => {
       let { id, state } = item.data
-      if (state == 'disabled') await extensions.toggleExtension(id)
+      if (state == 'disabled') await extensions.manager.toggleExtension(id)
     }, { persist: true, reload: true, parallel: true })
 
     this.addAction('lock', async item => {
       let { id } = item.data
-      await extensions.lockExtension(id)
+      extensions.states.setLocked(id, true)
     }, { persist: true, reload: true })
 
     this.addAction('help', async item => {
@@ -74,7 +74,7 @@ export default class ExtensionList extends BasicList {
 
     this.addAction('reload', async item => {
       let { id } = item.data
-      await extensions.reloadExtension(id)
+      await extensions.manager.reloadExtension(id)
     }, { persist: true, reload: true })
 
     this.addAction('fix', async item => {
@@ -104,16 +104,13 @@ export default class ExtensionList extends BasicList {
         if (item.data.isLocal) continue
         ids.push(item.data.id)
       }
-      extensions.uninstallExtension(ids).catch(e => {
-        logger.error(e)
-      })
+      await extensions.manager.uninstallExtensions(ids)
     })
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let items: UnformattedListItem[] = []
     let list = await extensions.getExtensionStates()
-    let lockedList = await extensions.getLockedList()
     for (let stat of list) {
       let prefix = '+'
       if (stat.state == 'disabled') {
@@ -124,7 +121,7 @@ export default class ExtensionList extends BasicList {
         prefix = '?'
       }
       let root = await this.nvim.call('resolve', stat.root)
-      let locked = lockedList.includes(stat.id)
+      let locked = stat.isLocked
       items.push({
         label: [`${prefix} ${stat.id}${locked ? ' ' : ''}`, ...(stat.isLocal ? ['[RTP]'] : []), stat.version, root.replace(os.homedir(), '~')],
         filterText: stat.id,

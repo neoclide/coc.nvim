@@ -1,0 +1,335 @@
+import fs from 'fs'
+import path from 'path'
+import { promisify } from 'util'
+import { parse, ParseError } from 'jsonc-parser'
+import { objectLiteral } from '../util/is'
+import semver from 'semver'
+const logger = require('../util/logger')('extension-stat')
+
+interface DataBase {
+  extension?: {
+    [key: string]: {
+      disabled?: boolean
+      locked?: boolean
+    }
+  },
+  lastUpdate?: number
+}
+
+interface PackageJson {
+  disabled?: string[]
+  locked?: string[]
+  lastUpdate?: number
+  dependencies?: {
+    [key: string]: string
+  }
+}
+
+export interface ExtensionJson {
+  name: string
+  main?: string
+  engines?: {
+    [key: string]: string
+  }
+  activationEvents?: string[]
+  version?: string
+  [key: string]: any
+}
+
+export enum ExtensionStatus {
+  Normal,
+  Disabled,
+  Locked,
+}
+
+const ONE_DAY = 24 * 60 * 60 * 1000
+
+const TEST_JSON_FILE = global.__TEST__ ? path.resolve(__dirname, '../__tests__/extensions/package.json') : undefined
+const TEST_EXTENSIONS_FOLDER = global.__TEST__ ? path.resolve(__dirname, '../__tests__/extensions') : undefined
+
+/**
+ * Stat for global extensions
+ */
+export class ExtensionStat {
+  private disabled: Set<string> = new Set()
+  private locked: Set<string> = new Set()
+  private extensions: Set<string> = new Set()
+  constructor(private folder: string) {
+    try {
+      this.migrate()
+    } catch (e) {
+      logger.error(`Error on update package.json at ${folder}`, e)
+    }
+  }
+
+  private migrate(): void {
+    let curr = loadJson(this.jsonFile) as PackageJson
+    let db = path.join(this.folder, 'db.json')
+    let changed = false
+    if (fs.existsSync(db)) {
+      let obj = loadJson(db) as DataBase
+      let def = obj.extension ?? {}
+      for (let [key, o] of Object.entries(def)) {
+        if (o.disabled) this.disabled.add(key)
+        if (o.locked) this.locked.add(key)
+      }
+      curr.disabled = Array.from(this.disabled)
+      curr.locked = Array.from(this.locked)
+      curr.lastUpdate - obj.lastUpdate
+      changed = true
+    } else {
+      this.disabled = new Set(curr.disabled ?? [])
+      this.locked = new Set(curr.locked ?? [])
+    }
+    if (changed) writeJson(this.jsonFile, curr)
+    let ids = Object.keys(curr.dependencies ?? {})
+    this.extensions = new Set(ids)
+  }
+
+  public getExtensionsStat(): Record<string, ExtensionStatus> {
+    let res: Record<string, ExtensionStatus> = {}
+    for (let id of this.extensions) {
+      if (this.disabled.has(id)) {
+        res[id] = ExtensionStatus.Disabled
+      } else if (this.locked.has(id)) {
+        res[id] = ExtensionStatus.Locked
+      } else {
+        res[id] = ExtensionStatus.Normal
+      }
+    }
+    return res
+  }
+
+  public hasExtension(id: string): boolean {
+    return this.extensions.has(id)
+  }
+
+  public addExtension(id: string, val: string): void {
+    let curr = loadJson(this.jsonFile) as PackageJson
+    curr.dependencies = curr.dependencies ?? {}
+    curr.dependencies[id] = val
+    this.extensions.add(id)
+    writeJson(this.jsonFile, curr)
+  }
+
+  public removeExtension(id: string, modulesFolder: string): void {
+    let curr = loadJson(this.jsonFile) as PackageJson
+    if (curr.disabled) curr.disabled = curr.disabled.filter(key => key !== id)
+    if (curr.locked) curr.locked = curr.locked.filter(key => key !== id)
+    curr.dependencies = curr.dependencies ?? {}
+    delete curr.dependencies[id]
+    this.extensions.delete(id)
+    writeJson(this.jsonFile, curr)
+    let folder = path.join(modulesFolder, id)
+    if (fs.existsSync(folder)) {
+      fs.rmSync(folder, { recursive: true, force: true })
+    }
+  }
+
+  public isDisabled(id: string): boolean {
+    return this.disabled.has(id)
+  }
+
+  public get lockedExtensions(): string[] {
+    return Array.from(this.locked)
+  }
+
+  public get disabledExtensions(): string[] {
+    return Array.from(this.disabled)
+  }
+
+  public get dependencies(): { [key: string]: string } {
+    let curr = loadJson(this.jsonFile) as PackageJson
+    return curr.dependencies ?? {}
+  }
+
+  public setDisable(id: string, disable: boolean): void {
+    if (disable) {
+      this.disabled.add(id)
+    } else {
+      this.disabled.delete(id)
+    }
+    this.update('disabled', Array.from(this.disabled))
+  }
+
+  public setLocked(id: string, locked: boolean): void {
+    if (locked) {
+      this.locked.add(id)
+    } else {
+      this.locked.delete(id)
+    }
+    this.update('locked', Array.from(this.disabled))
+  }
+
+  public setLastUpdate(): void {
+    this.update('lastUpdate', Date.now())
+  }
+
+  public shouldUpdate(opt: string): boolean {
+    if (opt === 'never') return false
+    let interval = toInterval(opt)
+    let curr = loadJson(this.jsonFile) as PackageJson
+    return curr.lastUpdate == null || (Date.now() - curr.lastUpdate) > interval
+  }
+
+  /**
+   * Unload & remove all global extensions, return removed extensions.
+   */
+  public async cleanExtensions(folder: string): Promise<string[]> {
+    if (fs.existsSync(folder) && folder !== TEST_EXTENSIONS_FOLDER) {
+      fs.rmSync(folder, { recursive: true, force: true })
+      fs.mkdirSync(folder)
+    }
+    let curr = loadJson(this.jsonFile) as PackageJson
+    let keys = Object.keys(curr.dependencies ?? {})
+    return keys.filter(id => !this.disabled.has(id))
+  }
+
+  /**
+   * Filter out global extensions that needs install
+   */
+  public filterGlobalExtensions(names: string[]): string[] {
+    let disabledExtensions = this.disabledExtensions
+    let dependencies = this.dependencies
+    let map: Map<string, string> = new Map()
+    names.forEach(def => {
+      let name = getExtensionName(def)
+      map.set(name, def)
+    })
+    let currentUrls: string[] = []
+    let exists: string[] = []
+    for (let [key, val] of Object.entries(dependencies)) {
+      if (fs.existsSync(path.join(path.join(this.folder, 'node_modules'), key, 'package.json'))) {
+        exists.push(key)
+        if (typeof val === 'string' && /^https?:/.test(val)) {
+          currentUrls.push(val)
+        }
+      }
+    }
+    for (let name of map.keys()) {
+      if (disabledExtensions.includes(name) || this.extensions.has(name)) {
+        map.delete(name)
+        continue
+      }
+      if ((/^https?:/.test(name) && currentUrls.some(url => url.startsWith(name))) || exists.includes(name)) {
+        map.delete(name)
+      }
+    }
+    return Array.from(map.values())
+  }
+
+  private update(key: keyof PackageJson, value: any): void {
+    let curr = loadJson(this.jsonFile) as PackageJson
+    curr[key] = value
+    writeJson(this.jsonFile, curr)
+  }
+
+  private get jsonFile(): string {
+    return path.join(this.folder, 'package.json')
+  }
+}
+
+export function writeJson(filepath: string, obj: any): void {
+  if (filepath === TEST_JSON_FILE) return
+  let dir = path.dirname(filepath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+    logger.info(`Creating directory ${dir}`)
+  }
+  fs.writeFileSync(filepath, JSON.stringify(obj, null, 2), 'utf8')
+}
+
+export function loadJson(filepath: string): unknown {
+  try {
+    let errors: ParseError[] = []
+    let text = fs.readFileSync(filepath, 'utf8')
+    let data = parse(text, errors, { allowTrailingComma: true })
+    if (errors.length > 0) {
+      logger.error(`Error on parse json file ${filepath}`, errors)
+    }
+    return data ?? {}
+  } catch (e) {
+    return {}
+  }
+}
+
+export function toInterval(opt: string): number {
+  return opt === 'daily' ? ONE_DAY : ONE_DAY * 7
+}
+
+export function validExtensionFolder(folder: string, version: string): boolean {
+  let errors: string[] = []
+  let res = loadExtensionJson(folder, version, errors)
+  return res != null && errors.length == 0
+}
+
+export function loadExtensionJson(folder: string, version: string, errors: string[]): ExtensionJson | undefined {
+  let jsonFile = path.join(folder, 'package.json')
+  if (!fs.existsSync(jsonFile)) {
+    errors.push(`package.json not found in ${folder}`)
+    return undefined
+  }
+  let packageJSON = loadJson(jsonFile) as ExtensionJson
+  let { name, engines, main } = packageJSON
+  main = main ?? 'index.js'
+  if (!main.endsWith('.js')) main = main + '.js'
+  if (!name) {
+    errors.push(`can't find name in package.json`)
+  }
+  if (!engines || !objectLiteral(engines)) {
+    errors.push(`invalid engines in ${jsonFile}`)
+  }
+  if (!fs.existsSync(path.join(folder, main))) {
+    errors.push(`main file ${main} not found, you may need to build the project.`)
+  }
+  if (objectLiteral(engines)) {
+    let keys = Object.keys(engines)
+    if (!keys.includes('coc') && !keys.includes('vscode')) {
+      errors.push(`Engines in package.json doesn't have coc or vscode`)
+    }
+    if (keys.includes('coc')) {
+      let required = engines['coc'].replace(/^\^/, '>=')
+      if (!semver.satisfies(version, required)) {
+        errors.push(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines['coc']}`)
+      }
+    }
+  }
+  return packageJSON
+}
+
+/**
+ * Name of extension
+ */
+export function getExtensionName(def: string): string {
+  if (/^https?:/.test(def)) return def
+  if (!def.includes('@')) return def
+  return def.replace(/@[\d.]+$/, '')
+}
+
+export function checkExtensionRoot(root: string): boolean {
+  try {
+    if (!fs.existsSync(root)) {
+      fs.mkdirSync(root, { recursive: true })
+    }
+    let stat = fs.statSync(root)
+    if (!stat.isDirectory()) {
+      logger.info(`Trying to delete ${root}`)
+      fs.unlinkSync(root)
+      fs.mkdirSync(root, { recursive: true })
+    }
+    let jsonFile = path.join(root, 'package.json')
+    if (!fs.existsSync(jsonFile)) {
+      fs.writeFileSync(jsonFile, '{"dependencies":{}}', 'utf8')
+    }
+  } catch (e) {
+    console.error(`Unexpected error when check data home ${root}: ${e}`)
+    return false
+  }
+  return true
+}
+
+export async function getJsFiles(folder: string): Promise<string[]> {
+  if (!fs.existsSync(folder)) return []
+  let files = await promisify(fs.readdir)(folder)
+  return files.filter(f => f.endsWith('.js'))
+}

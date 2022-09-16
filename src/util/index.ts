@@ -99,7 +99,7 @@ export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number
   })
 }
 
-export function watchFile(filepath: string, onChange: () => void): Disposable {
+export function watchFile(filepath: string, onChange: () => void, immediate = false): Disposable {
   let callback = debounce(onChange, 100)
   try {
     let watcher = fs.watch(filepath, {
@@ -109,6 +109,9 @@ export function watchFile(filepath: string, onChange: () => void): Disposable {
     }, () => {
       callback()
     })
+    if (immediate) {
+      setTimeout(onChange, 10)
+    }
     return Disposable.create(() => {
       callback.clear()
       watcher.close()

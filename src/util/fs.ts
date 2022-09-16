@@ -1,11 +1,11 @@
 'use strict'
 import { exec } from 'child_process'
-import fs from 'fs-extra'
+import fs from 'fs'
 import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
 import readline from 'readline'
-import util from 'util'
+import { promisify } from 'util'
 import glob from 'glob'
 import * as platform from './platform'
 import { FileType } from '../types'
@@ -16,7 +16,7 @@ export type OnReadLine = (line: string) => void
 export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   let stat = null
   try {
-    stat = await fs.stat(filepath)
+    stat = await promisify(fs.stat)(filepath)
   } catch (e) {}
   return stat
 }
@@ -29,6 +29,16 @@ export function renameAsync(oldPath: string, newPath: string): Promise<void> {
     })
   })
 }
+
+export async function remove(filepath: string | undefined): Promise<void> {
+  if (!filepath) return
+  try {
+    await promisify(fs.rm)(filepath, { force: true, recursive: true })
+  } catch (e) {
+    return
+  }
+}
+
 export async function getFileType(filepath: string): Promise<FileType | undefined> {
   try {
     const stat = await statAsync(filepath)
@@ -53,13 +63,13 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   if (!stat || !stat.isFile()) return false
   let root = null
   try {
-    let { stdout } = await util.promisify(exec)('git rev-parse --show-toplevel', { cwd: path.dirname(fullpath) })
+    let { stdout } = await promisify(exec)('git rev-parse --show-toplevel', { cwd: path.dirname(fullpath) })
     root = stdout.trim()
   } catch (e) {}
   if (!root) return false
   let file = path.relative(root, fullpath)
   try {
-    let { stdout } = await util.promisify(exec)(`git check-ignore ${file}`, { cwd: root })
+    let { stdout } = await promisify(exec)(`git check-ignore ${file}`, { cwd: root })
     return stdout.trim() == file
   } catch (e) {}
   return false
@@ -100,7 +110,8 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string, bottom
   }
 }
 
-export async function checkFolder(dir: string, pattern: string, timeout = 500): Promise<boolean> {
+export function checkFolder(dir: string, pattern: string, timeout = 500): Promise<boolean> {
+  if (!fs.existsSync(dir)) return Promise.resolve(false)
   return new Promise((resolve, reject) => {
     let timer = setTimeout(() => {
       gl.abort()
@@ -259,7 +270,7 @@ export function fileStartsWith(dir: string, pdir: string) {
 }
 
 export async function writeFile(fullpath: string, content: string): Promise<void> {
-  await fs.writeFile(fullpath, content, { encoding: 'utf8' })
+  await promisify(fs.writeFile)(fullpath, content, { encoding: 'utf8' })
 }
 
 export function isFile(uri: string): boolean {

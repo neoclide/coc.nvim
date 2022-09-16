@@ -18,6 +18,15 @@ afterAll(async () => {
 })
 
 describe('OutputChannel', () => {
+  test('without nvim', () => {
+    let o = new OutputChannel('f')
+    o.appendLine('foo')
+    o.append('bar')
+    o.show()
+    o.hide()
+    o.clear()
+  })
+
   test('bad channel name', () => {
     let err
     try {

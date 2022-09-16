@@ -3,7 +3,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import WorkspaceHandler from '../../handler/workspace'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import extensions from '../../extensions'
+import extensions from '../../extension'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -71,29 +71,6 @@ describe('Workspace handler', () => {
 
     it('should check jump', async () => {
       expect(await handler.snippetCheck(false, true)).toBe(false)
-    })
-
-    it('should check expand by coc-snippets', async () => {
-      let has = extensions.has
-      let getExtensionApi = extensions.getExtensionApi
-      extensions.has = () => {
-        return true
-      }
-      extensions.getExtensionApi = () => {
-        return {
-          expandable: () => {
-            return true
-          }
-        }
-      }
-      disposables.push({
-        dispose: () => {
-          extensions.has = has
-          extensions.getExtensionApi = getExtensionApi
-        }
-      })
-      let res = await handler.snippetCheck(true, false)
-      expect(res).toBe(true)
     })
   })
 })

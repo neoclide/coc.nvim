@@ -83,7 +83,17 @@ class Events {
   private _pumAlignTop = false
   private _pumVisible = false
   private _completing = false
+  private _requesting = false
+  public disconnected = false
   // public completing = false
+
+  public set requesting(val: boolean) {
+    this._requesting = val
+  }
+
+  public get requesting(): boolean {
+    return this._requesting
+  }
 
   public set completing(completing: boolean) {
     this._completing = completing
