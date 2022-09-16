@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { parseDocuments } from '../markdown'
 import sources from '../sources'
 import { CompleteOption, Documentation, ExtendedCompleteItem, FloatConfig } from '../types'
@@ -17,7 +17,7 @@ export default class Floating {
   public async resolveItem(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     let source = this.tokenSource = new CancellationTokenSource()
     let { token } = source
-    await this.doCompleteResolve(item, opt, source)
+    await this.doCompleteResolve(item, opt, token)
     if (token.isCancellationRequested) return
     let docs = item.documentation ?? []
     if (docs.length === 0 && typeof item.info === 'string') {
@@ -50,19 +50,19 @@ export default class Floating {
     }
   }
 
-  public doCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, tokenSource: CancellationTokenSource): Promise<void> {
+  public doCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     let source = sources.getSource(item.source)
     return new Promise<void>(resolve => {
       if (source && typeof source.onCompleteResolve === 'function') {
         let timer = setTimeout(() => {
-          if (!tokenSource.token.isCancellationRequested) {
-            tokenSource.cancel()
+          if (!token.isCancellationRequested) {
+            this.cancel()
             this.close()
           }
           logger.warn(`Resolve timeout after 500ms: ${source.name}`)
           resolve()
         }, global.__TEST__ ? 100 : 500)
-        Promise.resolve(source.onCompleteResolve(item, opt, tokenSource.token)).then(() => {
+        Promise.resolve(source.onCompleteResolve(item, opt, token)).then(() => {
           clearTimeout(timer)
           resolve()
         }, e => {

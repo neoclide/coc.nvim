@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
@@ -344,7 +344,6 @@ export class Completion implements Disposable {
       indent = pretext && shouldIndent(option.indentkeys, pretext)
     }
     if (close) this.nvim.call('coc#pum#_close', [], true)
-    if (!doc || !doc.attached) return
     doc._forceSync()
     if (kind == 'confirm' && item) {
       void this.confirmCompletion(item, option).then(() => {
@@ -354,10 +353,7 @@ export class Completion implements Disposable {
   }
 
   private async confirmCompletion(item: ExtendedCompleteItem, option: CompleteOption): Promise<void> {
-    let source = new CancellationTokenSource()
-    let { token } = source
-    await this.floating.doCompleteResolve(item, option, source)
-    if (token.isCancellationRequested) return
+    await this.floating.doCompleteResolve(item, option, CancellationToken.None)
     await this.doCompleteDone(item, option)
   }
 
@@ -424,7 +420,6 @@ export class Completion implements Disposable {
       clearTimeout(this.triggerTimer)
       this.triggerTimer = null
     }
-    this.floating.cancel()
     this.pretext = undefined
     this.activeItems = undefined
     this.popupEvent = undefined

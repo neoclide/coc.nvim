@@ -37,6 +37,8 @@ export default class LanguageSource implements ISource {
   private itemDefaults: ItemDefaults = {}
   // cursor position on trigger
   private triggerContext: TriggerContext | undefined
+  // Keeped Promise for resolve
+  private resolving: WeakMap<CompletionItem, Promise<void>> = new WeakMap()
   constructor(
     public readonly name: string,
     public readonly shortcut: string,
@@ -114,28 +116,48 @@ export default class LanguageSource implements ISource {
     return { startcol, isIncomplete, items }
   }
 
-  public async onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
-    let { index, detailRendered } = item
+  public onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
+    let { index } = item
     let completeItem = this.completeItems[index]
-    if (!completeItem || item.resolved) return
+    if (!completeItem) return Promise.resolve()
     let hasResolve = typeof this.provider.resolveCompletionItem === 'function'
-    if (hasResolve) {
-      let resolved = await Promise.resolve(this.provider.resolveCompletionItem(completeItem, token))
-      if (token.isCancellationRequested || !resolved) return
-      Object.assign(completeItem, resolved)
+    if (!hasResolve) {
+      this.addDocumentation(item, completeItem, opt.filetype)
+      return Promise.resolve()
     }
-    item.resolved = true
+    let promise = this.resolving.get(completeItem)
+    if (promise) return promise
+    promise = new Promise((resolve, reject) => {
+      let disposable = token.onCancellationRequested(() => {
+        this.resolving.delete(completeItem)
+      })
+      Promise.resolve(this.provider.resolveCompletionItem(completeItem, token)).then(resolved => {
+        disposable.dispose()
+        if (token.isCancellationRequested || !resolved) {
+          this.resolving.delete(completeItem)
+          resolve()
+          return
+        }
+        Object.assign(completeItem, resolved)
+        this.addDocumentation(item, completeItem, opt.filetype)
+        resolve()
+      }, reject)
+    })
+    this.resolving.set(completeItem, promise)
+    return promise
+  }
+
+  private addDocumentation(item: ExtendedCompleteItem, completeItem: CompletionItem, filetype: string): void {
+    if (item.documentation) return
+    let { detailRendered } = item
     let { documentation, detail, labelDetails } = completeItem
     let docs: Documentation[] = []
     if (labelDetails && !detailRendered) {
       let content = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
       docs.push({ filetype: 'txt', content })
     } else if (detail && !item.detailRendered && detail != item.abbr) {
-      detail = detail.replace(/\n\s*/g, ' ')
-      if (detail.length) {
-        let isText = /^[\w-\s.,\t\n]+$/.test(detail)
-        docs.push({ filetype: isText ? 'txt' : opt.filetype, content: detail })
-      }
+      let isText = /^[\w-\s.,\t\n]+$/.test(detail)
+      docs.push({ filetype: isText ? 'txt' : filetype, content: detail })
     }
     if (documentation) {
       if (typeof documentation == 'string') {

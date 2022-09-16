@@ -738,7 +738,6 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   index?: number
   // used for preview
   documentation?: Documentation[]
-  resolved?: boolean
   deprecated?: boolean
   positions?: ReadonlyArray<number>
 }

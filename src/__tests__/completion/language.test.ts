@@ -58,6 +58,138 @@ describe('LanguageSource util', () => {
 })
 
 describe('language source', () => {
+  describe('resolveCompletionItem()', () => {
+    async function getDetailContent(): Promise<string | undefined> {
+      let winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail'])
+      if (!winid) return
+      let bufnr = await nvim.call('winbufnr', [winid])
+      let lines = await (nvim.createBuffer(bufnr)).lines
+      return lines.join('\n')
+    }
+
+    it('should add detail to preview when no resolve exists', async () => {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          detail: 'detail of foo'
+        }, {
+          label: 'bar',
+          detail: 'bar()'
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      await nvim.input('i')
+      await nvim.call('coc#start', { source: 'foo' })
+      await helper.waitPopup()
+      await helper.wait(10)
+      let content = await getDetailContent()
+      expect(content).toMatch('foo')
+      await nvim.input('<C-n>')
+      await helper.wait(30)
+      content = await getDetailContent()
+      expect(content).toMatch('bar')
+    })
+
+    it('should add documentation to preview when no resolve exists', async () => {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          documentation: 'detail of foo'
+        }, {
+          label: 'bar',
+          documentation: {
+            kind: 'plaintext',
+            value: 'bar'
+          }
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      await nvim.input('i')
+      await nvim.call('coc#start', { source: 'foo' })
+      await helper.waitPopup()
+      await helper.wait(10)
+      let content = await getDetailContent()
+      expect(content).toMatch('foo')
+      await nvim.input('<C-n>')
+      await helper.wait(30)
+      content = await getDetailContent()
+      expect(content).toMatch('bar')
+    })
+
+    it('should resolve again when request cancelled', async () => {
+      let count = 0
+      let cancelled = false
+      let resolved = false
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'this'
+        }, {
+          label: 'other',
+        }, {
+          label: 'third',
+        }],
+        resolveCompletionItem: (item, token) => {
+          if (item.label === 'this') {
+            count++
+            if (count == 1) {
+              return new Promise(resolve => {
+                token.onCancellationRequested(() => {
+                  cancelled = true
+                  clearTimeout(timer)
+                  resolve(undefined)
+                })
+                let timer = setTimeout(() => {
+                  resolve(item)
+                }, 1000)
+              })
+            } else {
+              resolved = true
+              item.documentation = 'doc of this'
+            }
+          }
+          return item
+        }
+      }
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      await nvim.input('i')
+      await nvim.call('coc#start', { source: 'foo' })
+      await helper.waitPopup()
+      await nvim.input('<C-n>')
+      await helper.waitValue(() => {
+        return cancelled
+      }, true)
+      await nvim.input('<C-p>')
+      await helper.waitValue(() => {
+        return resolved
+      }, true)
+    })
+
+    it('should resolve once for same CompletionItem', async () => {
+      let count = 0
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'this',
+          documentation: 'detail of this'
+        }],
+        resolveCompletionItem: item => {
+          if (item.label === 'this') {
+            count++
+          }
+          return item
+        }
+      }
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      await nvim.input('i')
+      await nvim.call('coc#start', { source: 'foo' })
+      await helper.waitPopup()
+      await nvim.input('h')
+      await helper.wait(20)
+      await nvim.input('i')
+      await helper.wait(20)
+      expect(count).toBe(1)
+    })
+  })
+
   describe('labelDetails', () => {
     it('should show labelDetails to documentation window', async () => {
       helper.updateConfiguration('suggest.labelMaxLength', 10)
