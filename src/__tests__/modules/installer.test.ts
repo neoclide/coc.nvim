@@ -22,7 +22,7 @@ describe('Installer', () => {
   })
 
   it('should get install arguments', async () => {
-    expect(getInstallArguments('pnpm', 'https://github.com/')).toEqual(['install'])
+    expect(getInstallArguments('pnpm', 'https://github.com/')).toEqual(['install', '--config.strict-peer-dependencies=false'])
     expect(getInstallArguments('npm', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--production', '--legacy-peer-deps', '--no-global'])
     expect(getInstallArguments('yarn', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'])
   })

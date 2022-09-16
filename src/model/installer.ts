@@ -59,6 +59,11 @@ export function isYarn(exePath: string) {
   return ['yarn', 'yarn.CMD', 'yarnpkg', 'yarnpkg.CMD'].includes(name)
 }
 
+function isPnpm(exePath: string) {
+  let name = path.basename(exePath)
+  return name === 'pnpm' || name === 'pnpm.CMD'
+}
+
 export function getInstallArguments(exePath: string, url: string): string[] {
   let args = ['install', '--ignore-scripts', '--no-lockfile', '--production']
   if (url.startsWith('https://github.com')) {
@@ -70,6 +75,9 @@ export function getInstallArguments(exePath: string, url: string): string[] {
   }
   if (isYarn(exePath)) {
     args.push('--ignore-engines')
+  }
+  if (isPnpm(exePath)) {
+    args.push('--config.strict-peer-dependencies=false')
   }
   return args
 }
