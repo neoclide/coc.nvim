@@ -98,7 +98,7 @@ export default class InstallBuffer extends EventEmitter implements Disposable {
           break
         case State.Success:
           processText = '✓'
-          hlGroup = this.updated.has(name) ? 'MoreMsg' : 'NonText'
+          hlGroup = this.updated.has(name) ? 'MoreMsg' : 'Comment'
           break
       }
       let msgs = this.messagesMap.get(name) || []
