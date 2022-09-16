@@ -122,11 +122,11 @@ export class Sources {
               },
               [`coc.source.${name}.priority`]: {
                 type: 'number',
-                default: props.priority || 9
+                default: props.priority ?? 9
               },
               [`coc.source.${name}.shortcut`]: {
                 type: 'string',
-                default: props.shortcut || name.slice(0, 3).toUpperCase(),
+                default: props.shortcut ?? name.slice(0, 3).toUpperCase(),
                 description: 'Shortcut text shown in complete menu.'
               },
               [`coc.source.${name}.disableSyntaxes`]: {
@@ -325,10 +325,14 @@ export class Sources {
   public sourceStats(): SourceStat[] {
     let res: SourceStat[] = []
     let items = this.sources
+    let doc = workspace.getDocument(workspace.bufnr)
+    let suggest = workspace.getConfiguration('suggest', doc)
+    let languageSourcePriority = suggest.get<number>('languageSourcePriority', 99)
     for (let item of items) {
+      let priority = typeof item.priority === 'number' ? item.priority : item.sourceType == SourceType.Service ? languageSourcePriority : 0
       res.push({
         name: item.name,
-        priority: item.priority,
+        priority,
         triggerCharacters: item.triggerCharacters || [],
         shortcut: item.shortcut || '',
         filetypes: item.filetypes || [],
