@@ -140,7 +140,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   let startLnum = 0
   let parsed = marked(content)
   let links = Renderer.getLinks()
-  parsed = parsed.replace(/\n\n/g, '\n').replace(/\s*$/, '')
+  parsed = parsed.replace(/\s*$/, '')
   if (links.length) {
     parsed = parsed + '\n\n' + links.join('\n')
   }
