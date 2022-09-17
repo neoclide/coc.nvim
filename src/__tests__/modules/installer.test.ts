@@ -1,10 +1,9 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { isNpmCommand, isYarn, Info, getDependencies, Installer, registryUrl } from '../../extension/installer'
 import { v4 as uuid } from 'uuid'
+import { getDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
-import events from '../../events'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
 let tmpfolder: string
@@ -58,22 +57,17 @@ describe('utils', () => {
 })
 
 describe('Installer', () => {
-  afterEach(() => {
-    events.disconnected = false
-  })
-
   describe('fetch() & download()', () => {
-    it('should throw when disconnected', async () => {
-      events.disconnected = true
+    it('should throw with invalid url', async () => {
       let installer = new Installer(__dirname, 'npm', 'foo')
       let fn = async () => {
         await installer.fetch('url')
       }
-      await expect(fn()).rejects.toThrow(Error)
+      await expect(fn()).rejects.toThrow()
       fn = async () => {
         await installer.download('url', { dest: '' })
       }
-      await expect(fn()).rejects.toThrow(Error)
+      await expect(fn()).rejects.toThrow()
     })
   })
 

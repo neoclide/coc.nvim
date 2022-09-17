@@ -84,7 +84,6 @@ class Events {
   private _pumVisible = false
   private _completing = false
   private _requesting = false
-  public disconnected = false
   // public completing = false
 
   public set requesting(val: boolean) {
