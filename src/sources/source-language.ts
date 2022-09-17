@@ -1,5 +1,5 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemLabelDetails, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
 import { getCursorPosition } from '../core/ui'
 import Document from '../model/document'
@@ -148,11 +148,10 @@ export default class LanguageSource implements ISource {
   }
 
   private addDocumentation(item: ExtendedCompleteItem, completeItem: CompletionItem, filetype: string): void {
-    if (item.documentation) return
     let { detailRendered } = item
     let { documentation, detail, labelDetails } = completeItem
     let docs: Documentation[] = []
-    if (labelDetails && !detailRendered) {
+    if (!emptLabelDetails(labelDetails) && !detailRendered) {
       let content = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
       docs.push({ filetype: 'txt', content })
     } else if (detail && !item.detailRendered && detail != item.abbr) {
@@ -363,4 +362,9 @@ export function fixIndent(line: string, currline: string, range: Range): number 
   range.start.character += d
   range.end.character += d
   return d
+}
+
+export function emptLabelDetails(labelDetails: CompletionItemLabelDetails): boolean {
+  if (!labelDetails) return true
+  return !labelDetails.detail && !labelDetails.description
 }

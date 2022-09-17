@@ -5,7 +5,7 @@ import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
-import { getRange, getStartColumn, ItemDefaults } from '../../sources/source-language'
+import { getRange, emptLabelDetails, getStartColumn, ItemDefaults } from '../../sources/source-language'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -26,6 +26,16 @@ afterEach(async () => {
 })
 
 describe('LanguageSource util', () => {
+  describe('emptLabelDetails', () => {
+    it('should check emptLabelDetails', async () => {
+      expect(emptLabelDetails(null)).toBe(true)
+      expect(emptLabelDetails({})).toBe(true)
+      expect(emptLabelDetails({ detail: '' })).toBe(true)
+      expect(emptLabelDetails({ detail: 'detail' })).toBe(false)
+      expect(emptLabelDetails({ description: 'detail' })).toBe(false)
+    })
+  })
+
   describe('getStartColumn()', () => {
     it('should get start col', async () => {
       expect(getStartColumn('', [{ label: 'foo' }])).toBe(undefined)
@@ -94,6 +104,7 @@ describe('language source', () => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
+          labelDetails: {},
           documentation: 'detail of foo'
         }, {
           label: 'bar',
