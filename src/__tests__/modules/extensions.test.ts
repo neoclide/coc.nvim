@@ -2,15 +2,13 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { v1 as uuidv1 } from 'uuid'
-import events from '../../events'
-import extensions, { Extensions, toUrl } from '../../extension'
-import commandManager from '../../commands'
-import { API, Extension } from '../../extension/manager'
-import which from 'which'
 import { v4 as uuid } from 'uuid'
+import which from 'which'
+import commandManager from '../../commands'
+import extensions, { Extensions, toUrl } from '../../extension'
+import { writeJson } from '../../extension/stat'
+import { writeFile } from '../../util/fs'
 import helper from '../helper'
-import { writeJson } from '../../extension/extensionStat'
 
 let nvim: Neovim
 let tmpfolder: string
@@ -29,10 +27,12 @@ afterEach(() => {
     tmpfolder = undefined
   }
 })
+
 describe('extensions', () => {
   it('should convert url', async () => {
     expect(toUrl('https://github.com/a/b.git#master')).toBe('https://github.com/a/b')
     expect(toUrl('https://github.com/a/b.git#main')).toBe('https://github.com/a/b')
+    expect(toUrl('url')).toBe('')
   })
 
   it('should have events', async () => {
@@ -44,14 +44,22 @@ describe('extensions', () => {
     expect(extensions.creteInstaller('npm', 'id')).toBeDefined()
   })
 
+  it('should get extensions stat', async () => {
+    let stats = await extensions.getExtensionStates()
+    expect(stats.length).toBe(0)
+  })
+
+  it('should has extension', () => {
+    let res = extensions.has('test')
+    expect(res).toBe(false)
+    expect(extensions.isActivated('unknown')).toBe(false)
+  })
+
   it('should load global extensions', async () => {
-    tmpfolder = path.join(os.tmpdir(), uuid())
-    fs.mkdirSync(tmpfolder)
-    writeJson(path.join(tmpfolder, 'package.json'), {})
-    let extensions = new Extensions()
-    Object.assign(extensions, { modulesFolder: tmpfolder })
+    extensions.states.addExtension('foo', '0.0.1')
     let stats = extensions.globalExtensionStats()
     expect(stats).toEqual([])
+    extensions.states.removeExtension('foo')
   })
 
   it('should load extension stats from runtimepath', async () => {
@@ -63,9 +71,11 @@ describe('extensions', () => {
     fs.mkdirSync(f2)
     writeJson(path.join(f2, 'package.json'), { name: 'folder', engines: { coc: '>=0.0.1' } })
     fs.writeFileSync(path.join(f2, 'index.js'), '')
-    let res = extensions.runtimeExtensionStats(['folder'], `${f1},${f2}`)
+    extensions.states.addExtension('folder', '0.0.1')
+    let res = extensions.runtimeExtensionStats(`${f1},${f2}`)
     expect(res.length).toBe(1)
     expect(res[0].id).toBe('name')
+    extensions.states.removeExtension('folder')
   })
 
   it('should force update extensions', async () => {
@@ -88,11 +98,6 @@ describe('extensions', () => {
     s.mockRestore()
   })
 
-  it('should check isActivated', async () => {
-    expect(extensions.isActivated('unknown')).toBe(false)
-    expect(extensions.isActivated('test')).toBe(true)
-  })
-
   it('should not throw when npm not found', async () => {
     let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
       throw new Error('not executable')
@@ -101,6 +106,18 @@ describe('extensions', () => {
     expect(res).toBeNull()
     await extensions.updateExtensions()
     spy.mockRestore()
+  })
+
+  it('should get all extensions', () => {
+    let list = extensions.all
+    expect(Array.isArray(list)).toBe(true)
+  })
+
+  it('should call extension API', async () => {
+    let fn = async () => {
+      await extensions.call('test', 'echo', ['5'])
+    }
+    await expect(fn()).rejects.toThrow(Error)
   })
 
   it('should catch error when installExtensions', async () => {
@@ -122,6 +139,23 @@ describe('extensions', () => {
     s.mockRestore()
   })
 
+  it('should catch error on updateExtensions', async () => {
+    let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+      return [{ id: 'test' }] as any
+    })
+    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+      return {
+        on: () => {},
+        update: () => {
+          return Promise.resolve(path.join(os.tmpdir(), uuid()))
+        }
+      } as any
+    })
+    await extensions.updateExtensions(true)
+    spy.mockRestore()
+    s.mockRestore()
+  })
+
   it('should update enabled extensions', async () => {
     let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }, { id: 'global', isLocked: true }, { id: 'disabled', state: 'disabled' }] as any
@@ -131,8 +165,9 @@ describe('extensions', () => {
         on: (_key, cb) => {
           cb('msg', false)
         },
-        update: () => {
-          return Promise.resolve('')
+        update: async () => {
+          await helper.wait(1)
+          return ''
         }
       } as any
     })
@@ -151,10 +186,11 @@ describe('extensions', () => {
         on: (_key, cb) => {
           cb('msg', false)
         },
-        update: url => {
+        update: async url => {
+          await helper.wait(1)
           called = true
           expect(url).toBe('http://example.com')
-          return Promise.resolve('')
+          return ''
         }
       } as any
     })
@@ -164,52 +200,17 @@ describe('extensions', () => {
     s.mockRestore()
   })
 
-  it('should catch error on updateExtensions', async () => {
-    let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
-      return [{ id: 'test' }] as any
-    })
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
-      return {
-        on: () => {},
-        update: () => {
-          return Promise.resolve(path.join(os.tmpdir(), uuid()))
-        }
-      } as any
-    })
-    await extensions.updateExtensions(true)
-    spy.mockRestore()
-    s.mockRestore()
-  })
-
-  it('should load global extensions', async () => {
-    let stat = extensions.getExtensionState('test')
-    expect(stat).toBe('activated')
-  })
-
-  it('should load local extensions from &rtp', async () => {
-    let folder = path.resolve(__dirname, '../extensions/vim/local')
-    await nvim.command(`set runtimepath^=${folder}`)
-    await helper.wait(200)
-    let stat = extensions.getExtensionState('local')
-    expect(stat).toBe('activated')
-  })
-
-  it('should not throw when uninstall extension not exists', async () => {
-    await extensions.manager.uninstallExtensions(['coc-not_exists'])
-    let line = await helper.getCmdline()
-    expect(line).toMatch('not found')
-  })
-
-  it('should install/uninstall npm extension', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
+  it('should install global extension', async () => {
+    let folder = path.join(extensions.modulesFolder, 'coc-omni')
     let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
       return {
         on: () => {},
-        install: () => {
+        install: async () => {
+          fs.mkdirSync(folder, { recursive: true })
           let file = path.join(folder, 'package.json')
-          writeJson(file, { name: 'coc-omni', engines: { coc: '>=0.0.1' }, version: '0.0.1' })
-          fs.writeFileSync(path.join(folder, 'index.js'), 'exports.activate = () => {}')
-          return Promise.resolve({ name: 'coc-omni', version: '1.0.0', folder })
+          await writeFile(file, JSON.stringify({ name: 'coc-omni', engines: { coc: '>=0.0.1' }, version: '0.0.1' }, null, 2))
+          await writeFile(path.join(folder, 'index.js'), 'exports.activate = () => {}')
+          return { name: 'coc-omni', version: '1.0.0', folder }
         }
       } as any
     })
@@ -217,140 +218,13 @@ describe('extensions', () => {
     let item = extensions.getExtension('coc-omni')
     expect(item).toBeDefined()
     expect(item.extension.isActive).toBe(true)
+    expect(extensions.isActivated('coc-omni')).toBe(true)
+    let globals = extensions.globalExtensionStats()
+    expect(globals.length).toBe(1)
+    expect((await extensions.getExtensionStates()).length).toBeGreaterThan(0)
     spy.mockRestore()
     await extensions.manager.uninstallExtensions(['coc-omni'])
     item = extensions.getExtension('coc-omni')
     expect(item).toBeUndefined()
-  })
-
-  it('should get all extensions', () => {
-    let list = extensions.all
-    expect(Array.isArray(list)).toBe(true)
-  })
-
-  it('should get extensions stat', async () => {
-    let stats = await extensions.getExtensionStates()
-    expect(stats.length).toBeGreaterThan(0)
-  })
-
-  it('should toggle extension', async () => {
-    await extensions.manager.toggleExtension('test')
-    let stat = extensions.getExtensionState('test')
-    expect(stat).toBe('disabled')
-    await extensions.manager.toggleExtension('test')
-    stat = extensions.getExtensionState('test')
-    expect(stat).toBe('activated')
-  })
-
-  it('should has extension', () => {
-    let res = extensions.has('test')
-    expect(res).toBe(true)
-  })
-
-  it('should be activated', async () => {
-    let res = extensions.has('test')
-    expect(res).toBe(true)
-  })
-
-  it('should activate & deactivate extension', async () => {
-    await extensions.manager.deactivate('test')
-    let stat = extensions.getExtensionState('test')
-    expect(stat).toBe('loaded')
-    await extensions.manager.activate('test')
-    stat = extensions.getExtensionState('test')
-    expect(stat).toBe('activated')
-  })
-
-  it('should call extension API', async () => {
-    let res = await extensions.call('test', 'echo', ['5'])
-    expect(res).toBe('5')
-    let p: string = await extensions.call('test', 'asAbsolutePath', ['..'])
-    expect(p.endsWith('extensions')).toBe(true)
-  })
-
-  it('should load single file extension', async () => {
-    let filepath = path.join(__dirname, '../extensions/root.js')
-    await extensions.manager.loadExtensionFile(filepath)
-    expect(extensions.has('single-root')).toBe(true)
-  })
-})
-
-describe('extensions active events', () => {
-
-  async function createExtension(...events: string[]): Promise<Extension<API>> {
-    let id = uuidv1()
-    let isActive = false
-    let packageJSON = {
-      name: id,
-      activationEvents: events
-    }
-    let ext = {
-      id,
-      packageJSON,
-      exports: void 0,
-      extensionPath: '',
-      activate: async () => {
-        isActive = true
-      }
-    } as any
-    Object.defineProperty(ext, 'isActive', {
-      get: () => isActive
-    })
-    await extensions.manager.registerInternalExtension(ext, () => {
-      isActive = false
-    })
-    return ext
-  }
-
-  it('should activate on language', async () => {
-    let ext = await createExtension('workspaceContains:foobar', 'onLanguage:javascript')
-    expect(ext.isActive).toBe(false)
-    await nvim.command('edit /tmp/a.js')
-    await nvim.command('setf javascript')
-    await helper.wait(50)
-    expect(ext.isActive).toBe(true)
-    ext = await createExtension('onLanguage:javascript')
-    expect(ext.isActive).toBe(true)
-  })
-
-  it('should activate on command', async () => {
-    let ext = await createExtension('onCommand:test.echo')
-    await events.fire('Command', ['test.bac'])
-    await events.fire('Command', ['test.echo'])
-    await helper.wait(30)
-    expect(ext.isActive).toBe(true)
-  })
-
-  it('should activate on workspace contains', async () => {
-    let ext = await createExtension('workspaceContains:package.json')
-    await createExtension('workspaceContains:file_not_exists')
-    let root = path.resolve(__dirname, '../../..')
-    await nvim.command(`edit ${path.join(root, 'file.js')}`)
-    await helper.wait(50)
-    expect(ext.isActive).toBe(true)
-  })
-
-  it('should activate on file system', async () => {
-    let ext = await createExtension('onFileSystem:zip')
-    await nvim.command('edit zip:///a')
-    await helper.wait(30)
-    expect(ext.isActive).toBe(true)
-    ext = await createExtension('onFileSystem:zip')
-    expect(ext.isActive).toBe(true)
-  })
-})
-
-describe('extension properties', () => {
-  it('should get extensionPath', () => {
-    let ext = extensions.getExtension('test')
-    let p = ext.extension.extensionPath
-    expect(p.endsWith('test')).toBe(true)
-  })
-
-  it('should deactivate', async () => {
-    let ext = extensions.getExtension('test')
-    await ext.deactivate()
-    expect(ext.extension.isActive).toBe(false)
-    await extensions.manager.activate('test')
   })
 })

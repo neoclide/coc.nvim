@@ -220,13 +220,16 @@ describe('fs', () => {
     })
 
     it('should resolve from parent folders with bottom-up method', () => {
-      let root = path.resolve(__dirname, '../extensions/snippet-sample')
-      let res = resolveRoot(root, ['package.json'], null, true)
+      let dir = path.join(os.tmpdir(), 'extensions/snippet-sample')
+      fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(path.resolve(dir, '../package.json'), '{}')
+      let res = resolveRoot(dir, ['package.json'], null, true)
       expect(res.endsWith('extensions')).toBe(true)
+      fs.rmSync(path.dirname(dir), { recursive: true, force: true })
     })
 
     it('should resolve to cwd', () => {
-      let root = path.resolve(__dirname, '../extensions/test/')
+      let root = path.resolve(__dirname, '../../..')
       let res = resolveRoot(root, ['package.json'], root, false, true)
       expect(res).toBe(root)
     })

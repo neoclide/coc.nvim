@@ -10,7 +10,7 @@ import { v4 as uuid } from 'uuid'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import workspace from '../workspace'
-import { ExtensionJson, loadJson } from './extensionStat'
+import { loadJson } from './stat'
 const logger = require('../util/logger')('extension-installer')
 const HOME_DIR = global.__TEST__ ? os.tmpdir() : os.homedir()
 const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']

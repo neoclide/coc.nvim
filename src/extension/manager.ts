@@ -1,5 +1,5 @@
 import fs from 'fs'
-import path, { sep } from 'path'
+import path from 'path'
 import { Disposable, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
@@ -9,10 +9,10 @@ import Memos from '../model/memos'
 import { disposeAll, wait, watchFile } from '../util'
 import { splitArray } from '../util/array'
 import { createExtension, ExtensionExport } from '../util/factory'
-import { checkFolder } from '../util/fs'
+import { checkFolder, remove } from '../util/fs'
 import window from '../window'
 import workspace from '../workspace'
-import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, loadJson, validExtensionFolder } from './extensionStat'
+import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, loadJson, validExtensionFolder } from './stat'
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 const createLogger = require('../util/logger')
@@ -27,7 +27,7 @@ export enum ExtensionType {
 
 export interface ExtensionInfo {
   id: string
-  version: string
+  version?: string
   description?: string
   root: string
   exotic: boolean
@@ -79,11 +79,15 @@ export class ExtensionManager {
     this.memos = new Memos(path.resolve(process.env.COC_DATA_HOME, '../memos.json'))
   }
 
-  public async activateExtensions(): Promise<void> {
+  private get modulesFolder(): string {
+    return path.join(this.folder, 'node_modules')
+  }
+
+  public activateExtensions(): Promise<PromiseSettledResult<void>[]> {
     this.activated = true
     this.attachEvents()
     let keys = Array.from(this.extensions.keys())
-    await Promise.allSettled(keys.map(key => {
+    return Promise.allSettled(keys.map(key => {
       let { extension } = this.extensions.get(key)
       return this.autoActiavte(key, extension)
     }))
@@ -130,6 +134,15 @@ export class ExtensionManager {
         })
       }
     }, null, this.disposables)
+  }
+
+  /**
+   * Unload & remove all global extensions, return removed extensions.
+   */
+  public async cleanExtensions(): Promise<string[]> {
+    let { globalIds } = this.states
+    await remove(this.modulesFolder)
+    return globalIds.filter(id => !this.states.isDisabled(id))
   }
 
   public tryActivateExtensions(event: string, check: (activationEvents: string[]) => boolean | Promise<boolean>): void {
@@ -225,12 +238,11 @@ export class ExtensionManager {
     let errors: string[] = []
     let obj = loadExtensionJson(folder, workspace.version, errors)
     if (errors.length > 0) throw new Error(errors[0])
-    let parentFolder = path.dirname(folder)
-    let isLocal = path.normalize(parentFolder) != path.normalize(path.join(this.folder, 'node_modules'))
     let { name } = obj
     if (this.states.isDisabled(name)) return false
     // unload if loaded
     await this.unloadExtension(name)
+    let isLocal = !this.states.hasExtension(name)
     await this.registerExtension(folder, Object.freeze(obj), isLocal ? ExtensionType.Local : ExtensionType.Global)
     return true
   }
@@ -280,7 +292,7 @@ export class ExtensionManager {
       res.push({
         name: key,
         filepath,
-        directory: directory.endsWith(sep) ? directory : directory + sep
+        directory
       })
     }
     return res
@@ -335,9 +347,9 @@ export class ExtensionManager {
     let basename = path.basename(filepath, '.js')
     let name = 'single-' + basename
     let root = path.dirname(filepath)
-    let packageJSON = { name, main: filename }
+    let packageJSON = { name, main: filename, engines: { coc: '>=0.0.82' } }
     let confpath = path.join(root, basename + '.json')
-    let obj = loadJson(confpath)
+    let obj = loadJson(confpath) as any
     for (const attr of ['activationEvents', 'contributes']) {
       packageJSON[attr] = obj[attr]
     }
@@ -356,12 +368,13 @@ export class ExtensionManager {
     }
   }
 
-  public async registerExtension(root: string, packageJSON: ExtensionJson, type: ExtensionType): Promise<void> {
+  public async registerExtension(root: string, packageJSON: ExtensionJson, extensionType: ExtensionType): Promise<void> {
     let id = packageJSON.name
     if (this.states.isDisabled(id)) return
     let isActive = false
     let result: Promise<API> | undefined
     let filename = path.join(root, packageJSON.main || 'index.js')
+    let extensionPath = extensionType === ExtensionType.SingleFile ? filename : root
     let exports: any
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
@@ -371,11 +384,11 @@ export class ExtensionManager {
         result = new Promise(async (resolve, reject) => {
           logger.debug(`activating extension ${id}`)
           try {
-            let isEmpty = !(packageJSON.engines || {}).hasOwnProperty('coc')
+            let isEmpty = typeof packageJSON.engines.coc === 'undefined'
             ext = createExtension(id, filename, isEmpty)
             let context = {
               subscriptions,
-              extensionPath: root,
+              extensionPath,
               globalState: this.memos.createMemento(`${id}|global`),
               workspaceState: this.memos.createMemento(`${id}|${workspace.rootPath}`),
               asAbsolutePath: relativePath => path.join(root, relativePath),
@@ -396,7 +409,7 @@ export class ExtensionManager {
       },
       id,
       packageJSON,
-      extensionPath: root,
+      extensionPath,
       get isActive() {
         return isActive
       },
@@ -408,8 +421,8 @@ export class ExtensionManager {
     Object.freeze(extension)
     this.extensions.set(id, {
       id,
-      type,
-      isLocal: type == ExtensionType.Local,
+      type: extensionType,
+      isLocal: extensionType == ExtensionType.Local,
       extension,
       directory: root,
       filepath: filename,
@@ -454,7 +467,8 @@ export class ExtensionManager {
     let [globals, filtered] = splitArray(ids, id => this.states.hasExtension(id))
     for (let id of globals) {
       await this.unloadExtension(id)
-      this.states.removeExtension(id, this.modulesFolder)
+      this.states.removeExtension(id)
+      await remove(path.join(this.modulesFolder, id))
     }
     if (filtered.length > 0) {
       void window.showWarningMessage(`Global extensions ${filtered.join(', ')} not found`)
@@ -476,14 +490,10 @@ export class ExtensionManager {
       // TODO find folder for local extension
       this.states.setDisable(id, false)
       let folder = path.join(this.modulesFolder, id)
-      if (fs.existsSync(folder)) {
+      if (this.states.hasExtension(id) && fs.existsSync(folder)) {
         await this.loadExtension(folder)
       }
     }
-  }
-
-  private get modulesFolder(): string {
-    return path.join(this.folder, global.__TEST__ ? '' : 'node_modules')
   }
 
   public async watchExtension(id: string): Promise<void> {

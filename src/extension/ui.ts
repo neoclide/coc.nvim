@@ -175,8 +175,6 @@ export class InstallBuffer implements InstallUI {
     buffer.updateHighlights('coc-extensions', highlights, { priority: 99 })
     if (remains == 0 && this.interval) {
       clearInterval(this.interval)
-      this.updated.clear()
-      this.statMap.clear()
       this.interval = null
     }
     nvim.resumeNotification(true, true)

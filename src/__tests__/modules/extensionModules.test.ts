@@ -1,4 +1,4 @@
-import { loadJson, validExtensionFolder, getJsFiles, writeJson, toInterval, getExtensionName, loadExtensionJson, ExtensionStat, checkExtensionRoot } from '../../extension/extensionStat'
+import { loadJson, validExtensionFolder, getJsFiles, writeJson, toInterval, getExtensionName, loadExtensionJson, ExtensionStat, checkExtensionRoot } from '../../extension/stat'
 import { InstallChannel, InstallBuffer } from '../../extension/ui'
 import fs from 'fs'
 import path from 'path'
@@ -243,7 +243,7 @@ describe('ExtensionStat', () => {
     expect(stat.getExtensionsStat()).toEqual({ foo: 0 })
     let res = loadJson(jsonFile) as any
     expect(res).toEqual({ dependencies: { foo: '' } })
-    stat.removeExtension('foo', path.dirname(jsonFile))
+    stat.removeExtension('foo',)
     expect(stat.isDisabled('foo')).toBe(false)
     expect(stat.getExtensionsStat()).toEqual({})
     res = loadJson(jsonFile) as any
@@ -251,8 +251,8 @@ describe('ExtensionStat', () => {
   })
 
   it('should remove extension not exists', async () => {
-    let [stat, jsonFile] = create()
-    stat.removeExtension('foo', path.dirname(jsonFile))
+    let [stat] = create()
+    stat.removeExtension('foo')
   })
 
   it('should remove from disabled and locked extensions', async () => {
@@ -263,7 +263,7 @@ describe('ExtensionStat', () => {
     let res = loadJson(jsonFile) as any
     expect(res.disabled).toEqual(['foo'])
     expect(res.locked).toEqual(['foo'])
-    stat.removeExtension('foo', path.dirname(jsonFile))
+    stat.removeExtension('foo')
     res = loadJson(jsonFile) as any
     expect(res.disabled).toEqual([])
     expect(res.locked).toEqual([])
@@ -305,8 +305,10 @@ describe('ExtensionStat', () => {
   it('should get dependencies', async () => {
     let [stat] = create()
     expect(stat.dependencies).toEqual({})
+    expect(stat.globalIds).toEqual([])
     stat.addExtension('foo', '')
     expect(stat.dependencies).toEqual({ foo: '' })
+    expect(stat.globalIds).toEqual(['foo'])
   })
 
   it('should filterGlobalExtensions', async () => {
@@ -327,26 +329,6 @@ describe('ExtensionStat', () => {
     let res = stat.filterGlobalExtensions(['http://git'])
     expect(res).toEqual([])
   })
-
-  it('should cleanExtensions #1', async () => {
-    let [stat] = create()
-    let folder = path.join(os.tmpdir(), uuid())
-    let res = await stat.cleanExtensions(folder)
-    expect(res).toEqual([])
-  })
-
-  it('should cleanExtensions #2', async () => {
-    let [stat, jsonFile] = create()
-    writeJson(jsonFile, { dependencies: { foo: '1.0.0' } })
-    let folder = path.join(os.tmpdir(), uuid())
-    fs.mkdirSync(folder, { recursive: true })
-    let file = path.join(folder, 'file')
-    fs.writeFileSync(file, 'data', 'utf8')
-    let res = await stat.cleanExtensions(folder)
-    expect(res).toEqual(['foo'])
-    let exists = fs.existsSync(file)
-    expect(exists).toBe(false)
-  })
 })
 
 describe('InstallBuffer', () => {
@@ -355,12 +337,14 @@ describe('InstallBuffer', () => {
   })
 
   it('should sync by not split', async () => {
+    global.__TEST__ = false
     let buf = new InstallBuffer(false)
     disposables.push(buf)
     events.requesting = true
     await buf.start(['a', 'b', 'c'])
     let wins = await nvim.windows
     expect(wins.length).toBe(1)
+    global.__TEST__ = true
   })
 
   it('should draw buffer with stats', async () => {

@@ -10,9 +10,9 @@ import { distinct } from '../util/array'
 import '../util/extensions'
 import window from '../window'
 import workspace from '../workspace'
-import { checkExtensionRoot, ExtensionStat, loadExtensionJson } from './extensionStat'
 import { IInstaller, Installer } from './installer'
 import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState } from './manager'
+import { checkExtensionRoot, ExtensionStat, loadExtensionJson } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
 
 const createLogger = require('../util/logger')
@@ -27,14 +27,14 @@ export interface PropertyScheme {
   [key: string]: any
 }
 
-const DATA_HOME = global.__TEST__ ? path.join(__dirname, '../__tests__') : process.env.COC_DATA_HOME
+const DATA_HOME = process.env.COC_DATA_HOME
 const EXTENSIONS_FOLDER = path.join(DATA_HOME, 'extensions')
 
 // global local file native
 export class Extensions {
   public readonly manager: ExtensionManager
   public readonly states: ExtensionStat
-  public readonly modulesFolder = path.join(EXTENSIONS_FOLDER, global.__TEST__ ? '' : 'node_modules')
+  public readonly modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
   private _additionalSchemes: { [key: string]: PropertyScheme } = {}
   constructor() {
     checkExtensionRoot(EXTENSIONS_FOLDER)
@@ -46,7 +46,7 @@ export class Extensions {
     if (process.env.COC_NO_PLUGINS) return
     let stats = this.globalExtensionStats()
     let runtimepath = await workspace.nvim.eval('join(globpath(&runtimepath, "", 0, 1), ",")') as string
-    let localStats = this.runtimeExtensionStats(stats.map(o => o.id), runtimepath)
+    let localStats = this.runtimeExtensionStats(runtimepath)
     stats = stats.concat(localStats)
     this.manager.registerExtensions(stats)
     let folder = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
@@ -54,7 +54,7 @@ export class Extensions {
     commandManager.register({
       id: 'extensions.forceUpdateAll',
       execute: async () => {
-        let arr = await this.states.cleanExtensions(this.modulesFolder)
+        let arr = await this.manager.cleanExtensions()
         logger.info(`Force update extensions: ${arr}`)
         await this.installExtensions(arr)
       }
@@ -62,6 +62,7 @@ export class Extensions {
   }
 
   public activateExtensions(): void {
+    if (process.env.COC_NO_PLUGINS) return
     void this.manager.activateExtensions()
     let names = this.states.filterGlobalExtensions(workspace.env.globalExtensions)
     void this.installExtensions(names)
@@ -71,7 +72,7 @@ export class Extensions {
     let silent = config.get<boolean>('silentAutoupdate', true)
     if (this.states.shouldUpdate(interval)) {
       this.outputChannel.appendLine('Start auto update...')
-      this.updateExtensions(silent, true).catch(e => {
+      this.updateExtensions(silent).catch(e => {
         this.outputChannel.appendLine(`Error on updateExtensions ${e}`)
       })
     }
@@ -186,9 +187,9 @@ export class Extensions {
   /**
    * Update global extensions
    */
-  public async updateExtensions(silent = false, autoUpdate = false): Promise<void> {
+  public async updateExtensions(silent = false): Promise<void> {
     let { npm } = this
-    if (!npm || (autoUpdate && global.__TEST__)) return
+    if (!npm) return
     let stats = this.globalExtensionStats()
     stats = stats.filter(s => {
       if (s.isLocked || s.state === 'disabled') {
@@ -227,10 +228,9 @@ export class Extensions {
    */
   public async getExtensionStates(): Promise<ExtensionInfo[]> {
     let runtimepath = await workspace.nvim.eval('join(globpath(&runtimepath, "", 0, 1), ",")') as string
-    let extensions = Object.keys(this.states.getExtensionsStat())
-    let localStats = this.runtimeExtensionStats(extensions, runtimepath)
+    let localStats = this.runtimeExtensionStats(runtimepath)
     let globalStats = this.globalExtensionStats()
-    return localStats.concat(globalStats.filter(o => localStats.find(s => s.id == o.id) == null))
+    return localStats.concat(globalStats)
   }
 
   public globalExtensionStats(): ExtensionInfo[] {
@@ -249,7 +249,7 @@ export class Extensions {
       infos.push({
         id: key,
         isLocal: false,
-        version: obj.version ?? '',
+        version: obj.version,
         description: obj.description ?? '',
         isLocked: lockedExtensions.includes(key),
         exotic: /^https?:/.test(val),
@@ -262,7 +262,7 @@ export class Extensions {
     return infos
   }
 
-  public runtimeExtensionStats(excludes: string[], runtimepath: string): ExtensionInfo[] {
+  public runtimeExtensionStats(runtimepath: string): ExtensionInfo[] {
     let lockedExtensions = this.states.lockedExtensions
     let paths = runtimepath.split(',')
     let infos: ExtensionInfo[] = []
@@ -271,12 +271,12 @@ export class Extensions {
       let obj = loadExtensionJson(root, workspace.version, errors)
       if (errors.length > 0) return
       let { name } = obj
-      if (!name || excludes.includes(name)) return
+      if (!name || this.states.hasExtension(name)) return
       infos.push(({
         id: obj.name,
         isLocal: true,
         isLocked: lockedExtensions.includes(name),
-        version: obj.version ?? '',
+        version: obj.version,
         description: obj.description ?? '',
         exotic: false,
         root,

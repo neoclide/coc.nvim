@@ -41,6 +41,8 @@ describe('utils', () => {
     })
     expect(registryUrl()).toBe('https://registry.npmjs.org/')
     spy.mockRestore()
+    fs.unlinkSync(rcfile)
+    expect(registryUrl()).toBe('https://registry.npmjs.org/')
   })
 
   it('should parse name & version', async () => {

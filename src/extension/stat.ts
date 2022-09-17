@@ -1,9 +1,9 @@
 import fs from 'fs'
-import path from 'path'
-import { promisify } from 'util'
 import { parse, ParseError } from 'jsonc-parser'
-import { objectLiteral } from '../util/is'
+import path from 'path'
 import semver from 'semver'
+import { promisify } from 'util'
+import { objectLiteral } from '../util/is'
 const logger = require('../util/logger')('extension-stat')
 
 interface DataBase {
@@ -28,7 +28,7 @@ interface PackageJson {
 export interface ExtensionJson {
   name: string
   main?: string
-  engines?: {
+  engines: {
     [key: string]: string
   }
   activationEvents?: string[]
@@ -43,9 +43,6 @@ export enum ExtensionStatus {
 }
 
 const ONE_DAY = 24 * 60 * 60 * 1000
-
-const TEST_JSON_FILE = global.__TEST__ ? path.resolve(__dirname, '../__tests__/extensions/package.json') : undefined
-const TEST_EXTENSIONS_FOLDER = global.__TEST__ ? path.resolve(__dirname, '../__tests__/extensions') : undefined
 
 /**
  * Stat for global extensions
@@ -112,7 +109,7 @@ export class ExtensionStat {
     writeJson(this.jsonFile, curr)
   }
 
-  public removeExtension(id: string, modulesFolder: string): void {
+  public removeExtension(id: string): void {
     let curr = loadJson(this.jsonFile) as PackageJson
     if (curr.disabled) curr.disabled = curr.disabled.filter(key => key !== id)
     if (curr.locked) curr.locked = curr.locked.filter(key => key !== id)
@@ -120,10 +117,6 @@ export class ExtensionStat {
     delete curr.dependencies[id]
     this.extensions.delete(id)
     writeJson(this.jsonFile, curr)
-    let folder = path.join(modulesFolder, id)
-    if (fs.existsSync(folder)) {
-      fs.rmSync(folder, { recursive: true, force: true })
-    }
   }
 
   public isDisabled(id: string): boolean {
@@ -172,17 +165,9 @@ export class ExtensionStat {
     return curr.lastUpdate == null || (Date.now() - curr.lastUpdate) > interval
   }
 
-  /**
-   * Unload & remove all global extensions, return removed extensions.
-   */
-  public async cleanExtensions(folder: string): Promise<string[]> {
-    if (fs.existsSync(folder) && folder !== TEST_EXTENSIONS_FOLDER) {
-      fs.rmSync(folder, { recursive: true, force: true })
-      fs.mkdirSync(folder)
-    }
+  public get globalIds(): ReadonlyArray<string> {
     let curr = loadJson(this.jsonFile) as PackageJson
-    let keys = Object.keys(curr.dependencies ?? {})
-    return keys.filter(id => !this.disabled.has(id))
+    return Object.keys(curr.dependencies ?? {})
   }
 
   /**
@@ -199,7 +184,7 @@ export class ExtensionStat {
     let currentUrls: string[] = []
     let exists: string[] = []
     for (let [key, val] of Object.entries(dependencies)) {
-      if (fs.existsSync(path.join(path.join(this.folder, 'node_modules'), key, 'package.json'))) {
+      if (fs.existsSync(path.join(this.folder, 'node_modules', key, 'package.json'))) {
         exists.push(key)
         if (typeof val === 'string' && /^https?:/.test(val)) {
           currentUrls.push(val)
@@ -230,7 +215,6 @@ export class ExtensionStat {
 }
 
 export function writeJson(filepath: string, obj: any): void {
-  if (filepath === TEST_JSON_FILE) return
   let dir = path.dirname(filepath)
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })

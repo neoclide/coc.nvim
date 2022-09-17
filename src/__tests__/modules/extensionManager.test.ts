@@ -1,3 +1,4 @@
+process.env.COC_NO_PLUGINS = '1'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
@@ -5,12 +6,13 @@ import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Disposable, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { ExtensionJson, ExtensionStat } from '../../extension/extensionStat'
-import { checkCommand, checkFileSystem, checkLanguageId, getActivationEvents, checkWorkspaceContains, ExtensionManager, getEvents, ExtensionType } from '../../extension/manager'
+import { ExtensionJson, ExtensionStat, writeJson } from '../../extension/stat'
+import { checkCommand, checkFileSystem, checkLanguageId, getActivationEvents, checkWorkspaceContains, ExtensionManager, getEvents, ExtensionType, Extension, API } from '../../extension/manager'
 import { disposeAll } from '../../util'
 import Watchman from '../../core/watchman'
 import helper from '../helper'
 import workspace from '../../workspace'
+import events from '../../events'
 
 let disposables: Disposable[] = []
 let nvim: Neovim
@@ -86,9 +88,11 @@ describe('utils', () => {
 })
 
 describe('ExtensionManager', () => {
-  function create(folder = createFolder()): ExtensionManager {
+  function create(folder = createFolder(), activate = false): ExtensionManager {
     let stats = new ExtensionStat(folder)
-    return new ExtensionManager(stats, tmpfolder)
+    let manager = new ExtensionManager(stats, tmpfolder)
+    if (activate) void manager.activateExtensions()
+    return manager
   }
 
   function createExtension(folder: string, packageJSON: ExtensionJson, code?: string): void {
@@ -136,16 +140,122 @@ describe('ExtensionManager', () => {
     it('should automatically activated', async () => {
       workspace.workspaceFolderControl.addWorkspaceFolder(__dirname, false)
       tmpfolder = createFolder()
+      let code = `exports.activate = (ctx) => {return {abs: ctx.asAbsolutePath('./foo')}}`
       createExtension(tmpfolder, {
         name: 'name',
         engines: { coc: '>= 0.0.80' },
-        activationEvents: ['workspaceContains:extensionManager.test.ts']
-      })
+        activationEvents: ['workspaceContains:extensionManager.test.ts'],
+        contributes: {
+          rootPatterns: [
+            {
+              filetype: "javascript",
+              patterns: [
+                "package.json",
+                "jsconfig.json"
+              ]
+            }
+          ],
+          commands: [
+            {
+              title: "Test",
+              command: "test.run"
+            }
+          ]
+        }
+      }, code)
       let manager = create(tmpfolder)
       await manager.activateExtensions()
       await manager.loadExtension(tmpfolder)
       let item = manager.getExtension('name')
       expect(item.extension.isActive).toBe(true)
+      expect(manager.all.length).toBe(1)
+      expect(manager.getExtensionState('name')).toBe('activated')
+      expect(item.extension.exports['abs']).toBeDefined()
+    })
+  })
+
+  describe('activationEvents', () => {
+    async function createExtension(manager: ExtensionManager, ...events: string[]): Promise<Extension<API>> {
+      let id = uuid()
+      let isActive = false
+      let packageJSON = {
+        name: id,
+        activationEvents: events
+      }
+      let ext = {
+        id,
+        packageJSON,
+        exports: void 0,
+        extensionPath: '',
+        activate: async () => {
+          isActive = true
+        }
+      } as any
+      Object.defineProperty(ext, 'isActive', {
+        get: () => isActive
+      })
+      await manager.registerInternalExtension(ext, () => {
+        isActive = false
+      })
+      return ext
+    }
+
+    it('should load local extension on runtimepath change', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, true)
+      writeJson(path.join(tmpfolder, 'package.json'), { name: 'local', engines: { coc: '>=0.0.1' } })
+      fs.writeFileSync(path.join(tmpfolder, 'index.js'), '')
+      await nvim.command(`set runtimepath^=${tmpfolder}`)
+      await helper.waitValue(() => {
+        return manager.has('local')
+      }, true)
+      let ext = manager.getExtension('local')
+      expect(ext.extension.isActive).toBe(true)
+    })
+
+    it('should activate on language', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, true)
+      let ext = await createExtension(manager, 'workspaceContains:foobar', 'onLanguage:javascript')
+      expect(ext.isActive).toBe(false)
+      await nvim.command('edit /tmp/a.js')
+      await nvim.command('setf javascript')
+      await helper.wait(50)
+      expect(ext.isActive).toBe(true)
+      ext = await createExtension(manager, 'onLanguage:javascript')
+      expect(ext.isActive).toBe(true)
+    })
+
+    it('should activate on command', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, true)
+      let ext = await createExtension(manager, 'onCommand:test.echo')
+      await events.fire('Command', ['test.bac'])
+      await events.fire('Command', ['test.echo'])
+      await helper.wait(30)
+      expect(ext.isActive).toBe(true)
+    })
+
+    it('should activate on workspace contains', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, true)
+      let ext = await createExtension(manager, 'workspaceContains:package.json')
+      await createExtension(manager, 'workspaceContains:file_not_exists')
+      let root = path.resolve(__dirname, '../../..')
+      await nvim.command(`edit ${path.join(root, 'file.js')}`)
+      await helper.wait(50)
+      expect(ext.isActive).toBe(true)
+    })
+
+    it('should activate on file system', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, true)
+      let ext = await createExtension(manager, 'onFileSystem:zip')
+      await nvim.command('edit zip:///a')
+      await helper.wait(30)
+      expect(ext.isActive).toBe(true)
+      ext = await createExtension(manager, 'onFileSystem:zip')
+      expect(ext.isActive).toBe(true)
     })
   })
 
@@ -192,15 +302,58 @@ describe('ExtensionManager', () => {
     })
   })
 
+  describe('loadExtensionFile()', () => {
+    it('should load single file extension', async () => {
+      tmpfolder = createFolder()
+      let filepath = path.join(tmpfolder, 'abc.js')
+      fs.writeFileSync(filepath, `exports.activate = (ctx) => {return {storagePath: ctx.storagePath}}`, 'utf8')
+      let manager = create(tmpfolder, true)
+      await manager.loadExtensionFile(filepath)
+      let item = manager.getExtension('single-abc')
+      expect(item.extension.isActive).toBe(true)
+      let file = path.join(tmpfolder, 'single-abc-data')
+      expect(item.extension.exports['storagePath']).toBe(file)
+      manager.dispose()
+    })
+  })
+
+  describe('uninstallExtensions()', () => {
+    it('should show message for extensions not found', async () => {
+      let manager = create(tmpfolder)
+      await manager.uninstallExtensions(['foo'])
+      let line = await helper.getCmdline()
+      expect(line).toMatch('not found')
+    })
+  })
+
   describe('getExtensionsInfo()', () => {
     it('should getExtensionsInfo', async () => {
       tmpfolder = createFolder()
       let filepath = path.join(tmpfolder, 'test.js')
       fs.writeFileSync(filepath, `exports.activate = () => {return {file: "${filepath}"}}`, 'utf8')
-      let manager = create(tmpfolder)
+      let manager = create(tmpfolder, true)
       await manager.loadExtensionFile(filepath)
       let arr = manager.getExtensionsInfo()
-      expect(arr[0].directory.endsWith(path.sep)).toBe(true)
+      expect(arr.length).toBe(1)
+      manager.dispose()
+    })
+  })
+
+  describe('cleanExtensions()', () => {
+    it('should return extension ids that not disabled', async () => {
+      tmpfolder = createFolder()
+      let foo = path.join(tmpfolder, 'foo')
+      createExtension(foo, { name: 'foo', engines: { coc: '>=0.0.1' } })
+      let bar = path.join(tmpfolder, 'bar')
+      createExtension(bar, { name: 'bar', engines: { coc: '>=0.0.1' } })
+      let obj = { dependencies: { foo: '1.0.0', bar: '1.0.0' } }
+      writeJson(path.join(tmpfolder, 'package.json'), obj)
+      let manager = create(tmpfolder)
+      await manager.loadExtension(foo)
+      await manager.loadExtension(bar)
+      manager.states.setDisable('foo', true)
+      let res = await manager.cleanExtensions()
+      expect(res).toEqual(['bar'])
     })
   })
 
@@ -237,6 +390,8 @@ describe('ExtensionManager', () => {
       let item = manager.getExtension('name')
       expect(item.isLocal).toBe(true)
       expect(item.extension.isActive).toBe(false)
+      await item.extension.activate()
+      expect(item.extension.isActive).toBe(true)
     })
 
     it('should load and activate global extension', async () => {
@@ -244,15 +399,19 @@ describe('ExtensionManager', () => {
       let extFolder = path.join(tmpfolder, 'node_modules', 'name')
       createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
       let manager = create(tmpfolder)
+      manager.states.addExtension('name', '>=0.0.1')
       let res = await manager.loadExtension(extFolder)
       await manager.activateExtensions()
       expect(res).toBe(true)
       let item = manager.getExtension('name')
       expect(item.isLocal).toBe(false)
+      expect(item.extension.extensionPath.endsWith('name')).toBe(true)
       let result = await item.extension.activate()
       expect(result).toBeDefined()
       expect(result).toEqual(item.extension.exports)
       await manager.deactivate('name')
+      let stat = manager.getExtensionState('name')
+      expect(stat).toBe('loaded')
       manager.dispose()
     })
   })
@@ -378,20 +537,107 @@ describe('ExtensionManager', () => {
   })
 
   describe('toggleExtension()', () => {
-    it('should toggle extension', async () => {
+    it('should not toggle disabled extension', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      manager.states.setDisable('foo', true)
+      await manager.toggleExtension('foo')
+    })
+
+    it('should toggle single file extension', async () => {
       tmpfolder = createFolder()
       let filepath = path.join(tmpfolder, 'test.js')
       fs.writeFileSync(filepath, `exports.activate = () => {return {file: "${filepath}"}};exports.deactivate = () => {}`, 'utf8')
-      let manager = create(tmpfolder)
+      let manager = create(tmpfolder, true)
       await manager.loadFileExtensions(tmpfolder)
       await manager.toggleExtension('single-test')
       let item = manager.getExtension('single-test')
       expect(item).toBeUndefined()
       await manager.toggleExtension('single-test')
+      manager.dispose()
+    })
+
+    it('should toggle global extensions', async () => {
+      tmpfolder = createFolder()
+      writeJson(path.join(tmpfolder, 'package.json'), { dependencies: { global: '0.0.1' } })
+      let folder = path.join(tmpfolder, 'node_modules', 'global')
+      fs.mkdirSync(folder, { recursive: true })
+      fs.writeFileSync(path.join(folder, 'index.js'), `exports.activate = () => {}`, 'utf8')
+      writeJson(path.join(folder, 'package.json'), {
+        name: 'global',
+        engines: {
+          coc: '>=0.0.1'
+        }
+      })
+      let manager = create(tmpfolder, true)
+      await manager.loadExtension(folder)
+      let item = manager.getExtension('global')
+      expect(item.extension.isActive).toBe(true)
+      await manager.toggleExtension('global')
+      item = manager.getExtension('global')
+      expect(item).toBeUndefined()
+      await manager.toggleExtension('global')
+      item = manager.getExtension('global')
+      expect(item.extension.isActive).toBe(true)
+      manager.dispose()
     })
   })
 
   describe('watchExtension()', () => {
+    it('should throw when watchman not found', async () => {
+      tmpfolder = createFolder()
+      let extFolder = path.join(tmpfolder, 'node_modules', 'name')
+      createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
+      let manager = create(tmpfolder)
+      let res = await manager.loadExtension(extFolder)
+      expect(res).toBe(true)
+      let spy = jest.spyOn(workspace, 'getWatchmanPath').mockImplementation(() => {
+        return ''
+      })
+      let fn = async () => {
+        await manager.watchExtension('name')
+      }
+      await expect(fn()).rejects.toThrow(Error)
+      spy.mockRestore()
+    })
+
+    it('should reload extension on file change', async () => {
+      tmpfolder = createFolder()
+      let extFolder = path.join(tmpfolder, 'node_modules', 'name')
+      createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
+      let manager = create(tmpfolder)
+      let res = await manager.loadExtension(extFolder)
+      expect(res).toBe(true)
+      let called = false
+      let fn = jest.fn()
+      let r = jest.spyOn(workspace, 'getWatchmanPath').mockImplementation(() => {
+        return 'watchman'
+      })
+      let s = jest.spyOn(manager, 'reloadExtension').mockImplementation(() => {
+        fn()
+        return Promise.resolve()
+      })
+      let spy = jest.spyOn(Watchman, 'createClient').mockImplementation(() => {
+        return {
+          dispose: () => {},
+          subscribe: (_key: string, cb: Function) => {
+            setTimeout(() => {
+              called = true
+              cb()
+            }, 20)
+          }
+        } as any
+      })
+      await manager.watchExtension('name')
+      await helper.waitValue(() => {
+        return called
+      }, true)
+      expect(fn).toBeCalled()
+      r.mockRestore()
+      spy.mockRestore()
+      s.mockRestore()
+    })
+
     it('should watch single file extension', async () => {
       let dir = createFolder()
       let id = uuid()
@@ -416,55 +662,5 @@ describe('ExtensionManager', () => {
       fs.unlinkSync(filepath)
       manager.dispose()
     })
-  })
-
-  it('should throw when watchman not found', async () => {
-    tmpfolder = createFolder()
-    let extFolder = path.join(tmpfolder, 'node_modules', 'name')
-    createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
-    let manager = create(tmpfolder)
-    let res = await manager.loadExtension(extFolder)
-    expect(res).toBe(true)
-    let spy = jest.spyOn(workspace, 'getWatchmanPath').mockImplementation(() => {
-      return ''
-    })
-    let fn = async () => {
-      await manager.watchExtension('name')
-    }
-    await expect(fn()).rejects.toThrow(Error)
-    spy.mockRestore()
-  })
-
-  it('should reload extension on file change', async () => {
-    tmpfolder = createFolder()
-    let extFolder = path.join(tmpfolder, 'node_modules', 'name')
-    createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
-    let manager = create(tmpfolder)
-    let res = await manager.loadExtension(extFolder)
-    expect(res).toBe(true)
-    let called = false
-    let fn = jest.fn()
-    let s = jest.spyOn(manager, 'reloadExtension').mockImplementation(() => {
-      fn()
-      return Promise.resolve()
-    })
-    let spy = jest.spyOn(Watchman, 'createClient').mockImplementation(() => {
-      return {
-        dispose: () => {},
-        subscribe: (key: string, cb: Function) => {
-          setTimeout(() => {
-            called = true
-            cb()
-          }, 20)
-        }
-      } as any
-    })
-    await manager.watchExtension('name')
-    await helper.waitValue(() => {
-      return called
-    }, true)
-    expect(fn).toBeCalled()
-    spy.mockRestore()
-    s.mockRestore()
   })
 })
