@@ -80,8 +80,6 @@ async function createServer(): Promise<number> {
         res.end('not found')
       }
       if (req.url === '/reject') {
-        res.writeHead(200)
-        res.write('abc')
         setTimeout(() => {
           res.socket.destroy(new Error('Rejected'))
         }, 20)
@@ -277,8 +275,11 @@ describe('fetch', () => {
     let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/reject`)
     }
-    await expect(fn()).rejects.toThrow(Error)
-    fn = async () => {
+    await expect(fn()).rejects.toThrow()
+  })
+
+  it('should throw on 404 response', async () => {
+    let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/404`)
     }
     await expect(fn()).rejects.toThrow(Error)
@@ -385,7 +386,7 @@ describe('download', () => {
     fn = async () => {
       await download(`http://127.0.0.1:${port}/reject`, { dest: tempdir })
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await expect(fn()).rejects.toThrow()
     fn = async () => {
       let port = await getPort()
       await download(`http://127.0.0.1:${port}/not_exists`, { dest: tempdir, timeout: 2000 })
