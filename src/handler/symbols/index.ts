@@ -139,7 +139,7 @@ export default class Symbols {
     }
     let symbols = await this.getDocumentSymbols(doc.bufnr)
     if (!symbols || symbols.length === 0) {
-      window.showMessage('No symbols found', 'warning')
+      void window.showWarningMessage('No symbols found')
       return
     }
     symbols = symbols.filter(s => supportedSymbols.includes(s.kind))

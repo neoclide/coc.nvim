@@ -178,7 +178,7 @@ export default class Handler implements HandlerDelegate {
     if (token.isCancellationRequested) return null
     statusItem.hide()
     if (checkEmpty && (!res || (Array.isArray(res) && res.length == 0))) {
-      window.showMessage(`${name} not found`, 'warning')
+      void window.showWarningMessage(`${name} not found`)
       return null
     }
     return res

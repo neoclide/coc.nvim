@@ -131,7 +131,7 @@ export default class Search {
       })
       this.task.on('error', message => {
         clearInterval(interval)
-        window.showMessage(`Error on command "${cmd}": ${message}`, 'error')
+        void window.showErrorMessage(`Error on command "${cmd}": ${message}`)
         this.task = null
         reject(new Error(message))
       })

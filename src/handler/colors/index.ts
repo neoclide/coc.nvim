@@ -55,7 +55,7 @@ export default class Colors {
     let { doc } = await this.handler.getCurrentState()
     this.handler.checkProvier('documentColor', doc.textDocument)
     let info = await this.getColorInformation(doc.bufnr)
-    if (!info) return window.showMessage('Color not found at current position', 'warning')
+    if (!info) return void window.showWarningMessage('Color not found at current position')
     let tokenSource = new CancellationTokenSource()
     let presentations = await languages.provideColorPresentations(info, doc.textDocument, tokenSource.token)
     if (!presentations?.length) return
@@ -74,7 +74,7 @@ export default class Colors {
     let { doc } = await this.handler.getCurrentState()
     this.handler.checkProvier('documentColor', doc.textDocument)
     let info = await this.getColorInformation(doc.bufnr)
-    if (!info) return window.showMessage('Color not found at current position', 'warning')
+    if (!info) return void window.showWarningMessage('Color not found at current position')
     let { color } = info
     let colorArr = [(color.red * 255).toFixed(0), (color.green * 255).toFixed(0), (color.blue * 255).toFixed(0)]
     let res = await this.nvim.call('coc#color#pick_color', [colorArr])

@@ -48,7 +48,7 @@ export default class Plugin extends EventEmitter {
     commandManager.init(nvim, this)
     this.addAction('checkJsonExtension', () => {
       if (extensions.has('coc-json')) return
-      window.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more')
+      void window.showInformationMessage(`Run :CocInstall coc-json for json intellisense`)
     })
     this.addAction('rootPatterns', (bufnr: number) => this.handler.workspace.getRootPatterns(bufnr))
     this.addAction('ensureDocument', () => this.handler.workspace.ensureDocument())

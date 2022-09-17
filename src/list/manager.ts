@@ -106,7 +106,7 @@ export class ListManager implements Disposable {
     } catch (e) {
       this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
       let msg = e instanceof Error ? e.message : e.toString()
-      window.showMessage(`Error on "CocList ${name}": ${msg}`, 'error')
+      void window.showErrorMessage(`Error on "CocList ${name}": ${msg}`)
       logger.error(e)
     }
   }
@@ -138,7 +138,7 @@ export class ListManager implements Disposable {
     } else {
       let session = this.sessionsMap.get(name)
       if (!session) {
-        window.showMessage(`Can't find exists ${name} list`)
+        void window.showWarningMessage(`Can't find exists ${name} list`)
         return
       }
       await session.resume()
@@ -234,7 +234,7 @@ export class ListManager implements Disposable {
         listOptions.push(arg)
       } else if (!name) {
         if (!/^\w+$/.test(arg)) {
-          window.showMessage(`Invalid list option: "${arg}"`, 'error')
+          void window.showErrorMessage(`Invalid list option: "${arg}"`)
           return null
         }
         name = arg
@@ -272,17 +272,17 @@ export class ListManager implements Disposable {
       } else if (opt == '--no-quit') {
         noQuit = true
       } else {
-        window.showMessage(`Invalid option "${opt}" of list`, 'error')
+        void window.showErrorMessage(`Invalid option "${opt}" of list`)
         return null
       }
     }
     let list = this.listMap.get(name)
     if (!list) {
-      window.showMessage(`List ${name} not found`, 'error')
+      void window.showErrorMessage(`List ${name} not found`)
       return null
     }
     if (interactive && !list.interactive) {
-      window.showMessage(`Interactive mode of "${name}" list not supported`, 'error')
+      void window.showErrorMessage(`Interactive mode of "${name}" list not supported`)
       return null
     }
     return {
@@ -403,7 +403,7 @@ export class ListManager implements Disposable {
         }
         this.listMap.delete(name)
       }
-      window.showMessage(`list "${name}" recreated.`)
+      void window.showWarningMessage(`list "${name}" recreated.`)
     }
     this.listMap.set(name, list)
     extensions.addSchemeProperty(`list.source.${name}.defaultAction`, {

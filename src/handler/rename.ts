@@ -29,7 +29,7 @@ export default class Rename {
         if (edit) return edit
       }
     }
-    window.showMessage('Rename provider not found, extract word ranges from current buffer', 'more')
+    void window.showInformationMessage('Rename provider not found, extract word ranges from current buffer')
     let ranges = doc.getSymbolRanges(curname)
     return {
       changes: {

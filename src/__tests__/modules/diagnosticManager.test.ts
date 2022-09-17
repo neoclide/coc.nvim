@@ -91,7 +91,7 @@ describe('diagnostic manager', () => {
   describe('events', () => {
     it('should delay refresh when buffer visible', async () => {
       let doc = await helper.createDocument()
-      await helper.edit()
+      await nvim.command('edit tmp')
       let collection = manager.create('foo')
       let diagnostics: Diagnostic[] = []
       await doc.buffer.setLines(['foo bar foo bar', 'foo bar', 'foo', 'bar'], {
@@ -102,7 +102,6 @@ describe('diagnostic manager', () => {
       await doc.synchronize()
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
       collection.set(doc.uri, diagnostics)
-      await helper.wait(20)
       let buf = doc.buffer
       let val = await buf.getVar('coc_diagnostic_info') as any
       expect(val == null).toBe(true)
@@ -616,14 +615,11 @@ describe('diagnostic manager', () => {
       let file = await createTmpFile(content)
       await nvim.command(`source ${file}`)
       await createDocument()
-      await helper.wait(50)
       let items = await nvim.getVar('items') as any[]
       expect(Array.isArray(items)).toBe(true)
       expect(items.length).toBeGreaterThan(0)
       await nvim.command('bd!')
-      await helper.wait(50)
-      items = await nvim.getVar('items') as any[]
-      expect(items).toEqual([])
+      await helper.waitFor('eval', ['get(g:,"items",[])'], [])
     })
   })
 
@@ -680,12 +676,12 @@ describe('diagnostic manager', () => {
       let res = await buf.getVar('coc_diagnostic_info') as any
       // should not refresh
       expect(res == null).toBe(true)
-      manager.refresh(doc.bufnr)
+      await manager.refresh(doc.bufnr)
       await helper.waitValue(async () => {
         let res = await buf.getVar('coc_diagnostic_info') as any
         return res?.error
       }, 2)
-      manager.refresh(99)
+      await manager.refresh(99)
     })
 
     it('should refresh all buffers', async () => {
@@ -693,8 +689,7 @@ describe('diagnostic manager', () => {
       await workspace.loadFiles(uris)
       let collection = manager.create('tmp')
       collection.set([[uris[0], [createDiagnostic('Error one')]], [uris[1], [createDiagnostic('Error two')]]])
-      manager.refresh()
-      await helper.wait(50)
+      await manager.refresh()
       let bufnrs = [workspace.getDocument(uris[0]).bufnr, workspace.getDocument(uris[1]).bufnr]
       for (let bufnr of bufnrs) {
         let buf = nvim.createBuffer(bufnr)

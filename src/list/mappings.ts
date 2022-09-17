@@ -200,7 +200,7 @@ export default class Mappings {
     let res: Map<string, string> = new Map()
     for (let [key, value] of Object.entries(mappings)) {
       if (!this.isValidAction(value)) {
-        window.showMessage(`Invalid configuration - unable to support action "${value}" in "${entry}"`, 'warning')
+        void window.showWarningMessage(`Invalid configuration - unable to support action "${value}" in "${entry}"`)
         continue
       }
       if (key.length == 1) {
@@ -221,10 +221,10 @@ export default class Mappings {
               break
             }
           }
-          if (!find) window.showMessage(`Invalid configuration - unable to recognize "${key}" in "${entry}"`, 'warning')
+          if (!find) void window.showWarningMessage(`Invalid configuration - unable to recognize "${key}" in "${entry}"`)
         }
       } else {
-        window.showMessage(`Invalid configuration - unable to recognize key "${key}" in "${entry}"`, 'warning')
+        void window.showWarningMessage(`Invalid configuration - unable to recognize key "${key}" in "${entry}"`)
       }
     }
     return res

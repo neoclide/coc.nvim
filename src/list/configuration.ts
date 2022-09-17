@@ -119,7 +119,7 @@ export default class ListConfiguration extends EventEmitter {
     if (validKeys.includes(key)) return key
     let find = validKeys.find(s => s.toLowerCase() == key.toLowerCase())
     if (find) return find
-    window.showMessage(`Configured key "${key}" not supported.`, 'error')
+    void window.showErrorMessage(`Configured key "${key}" not supported.`)
     return null
   }
 }

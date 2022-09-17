@@ -94,7 +94,7 @@ export class Sources {
       let fns = await nvim.call('coc#util#remote_fns', name) as string[]
       for (let fn of ['init', 'complete']) {
         if (!fns.includes(fn)) {
-          window.showMessage(`${fn} not found for source ${name}`, 'error')
+          void window.showErrorMessage(`${fn} not found for source ${name}`)
           return null
         }
       }
@@ -174,7 +174,7 @@ export class Sources {
         this.removeSource(source)
       })
     } catch (e) {
-      window.showMessage(`Error on create vim source ${name}: ${e}`, 'error')
+      void window.showErrorMessage(`Error on create vim source ${name}: ${e}`)
     }
   }
 

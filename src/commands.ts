@@ -135,7 +135,7 @@ export class CommandManager implements Disposable {
       id: 'workspace.clearWatchman',
       execute: async () => {
         let res = await window.runTerminalCommand('watchman watch-del-all')
-        if (res.success) window.showMessage('Cleared watchman watching directories.')
+        if (res.success) void window.showInformationMessage('Cleared watchman watching directories.')
       }
     }, false, 'run watch-del-all for watchman to free up memory.')
     this.register({
@@ -218,7 +218,7 @@ export class CommandManager implements Disposable {
         if (!doc) return
         let edit = await plugin.cocAction('getWordEdit') as WorkspaceEdit
         if (!edit) {
-          window.showMessage('Invalid position', 'warning')
+          void window.showWarningMessage('Invalid position')
           return
         }
         let ranges: Range[] = []

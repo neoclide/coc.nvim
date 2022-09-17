@@ -500,7 +500,7 @@ class DiagnosticManager implements Disposable {
   /**
    * Force diagnostics refresh.
    */
-  public refresh(bufnr?: number): void {
+  public async refresh(bufnr?: number): Promise<void> {
     let items: Iterable<DiagnosticBuffer>
     if (!bufnr) {
       items = this.buffers.items
@@ -509,7 +509,7 @@ class DiagnosticManager implements Disposable {
       items = item ? [item] : []
     }
     for (let item of items) {
-      void this.refreshBuffer(item.uri, true)
+      await this.refreshBuffer(item.uri, true)
     }
   }
 }

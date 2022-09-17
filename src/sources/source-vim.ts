@@ -18,7 +18,7 @@ export default class VimSource extends Source {
     try {
       res = await this.nvim.call(name, args)
     } catch (e) {
-      window.showMessage(`Vim error from source ${this.name}: ${e}`, 'error')
+      void window.showErrorMessage(`Vim error from source ${this.name}: ${e}`)
       return null
     }
     return res

@@ -21,7 +21,7 @@ export default class FoldList extends BasicList {
       let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir'])
       let stat = await statAsync(newPath)
       if (!stat || !stat.isDirectory()) {
-        window.showMessage(`invalid path: ${newPath}`, 'error')
+        void window.showErrorMessage(`invalid path: ${newPath}`)
         return
       }
       workspace.workspaceFolderControl.renameWorkspaceFolder(item.label, newPath)

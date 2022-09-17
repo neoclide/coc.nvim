@@ -81,7 +81,7 @@ export default class ExtensionList extends BasicList {
       let { root, isLocal } = item.data
       let { npm } = extensions
       if (isLocal) {
-        window.showMessage(`Can't fix for local extension.`, 'warning')
+        void window.showWarningMessage(`Can't fix for local extension.`)
         return
       }
       if (!npm) return

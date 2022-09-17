@@ -32,7 +32,7 @@ export default class CodeActions {
     let codeActions = await this.getCodeActions(doc, range, only ? [only] : null)
     codeActions = codeActions.filter(o => !o.disabled)
     if (!codeActions || codeActions.length == 0) {
-      window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
+      void window.showWarningMessage(`No${only ? ' ' + only : ''} code action available`)
       return
     }
     let idx = await window.showMenuPicker(codeActions.map(o => o.title), 'Choose action')
@@ -89,7 +89,7 @@ export default class CodeActions {
       codeActions = codeActions.filter(o => only.some(k => o.kind && o.kind.startsWith(k)))
     }
     if (!codeActions || codeActions.length == 0) {
-      window.showMessage(`No${only ? ' ' + only : ''} code action available`, 'warning')
+      void window.showWarningMessage(`No${only ? ' ' + only : ''} code action available`)
       return
     }
     if (only && codeActions.length == 1 && !codeActions[0].disabled) {
