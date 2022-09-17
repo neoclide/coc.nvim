@@ -5,7 +5,6 @@ import * as cp from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import os from 'os'
-import dns from 'dns'
 import path from 'path'
 import util from 'util'
 import { v4 as uuid } from 'uuid'
@@ -103,14 +102,6 @@ export class Helper extends EventEmitter {
       this.proc = null
     }
     await this.wait(60)
-  }
-
-  public hasConnection(): Promise<boolean> {
-    return new Promise(resolve => {
-      dns.resolve('www.baidu.com', err => {
-        resolve(err == null)
-      })
-    })
   }
 
   public async waitPopup(): Promise<void> {

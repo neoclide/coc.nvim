@@ -1,16 +1,16 @@
 'use strict'
+import decompressResponse from 'decompress-response'
 import { http, https } from 'follow-redirects'
-import { Readable } from 'stream'
-import { parse, UrlWithStringQuery } from 'url'
 import fs from 'fs'
-import { objectLiteral } from '../util/is'
-import workspace from '../workspace'
-import { ParsedUrlQueryInput, stringify } from 'querystring'
 import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
+import { ParsedUrlQueryInput, stringify } from 'querystring'
+import { Readable } from 'stream'
+import { URL } from 'url'
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import decompressResponse from 'decompress-response'
-import events from '../events'
+import { CancellationError } from '../util/errors'
+import { objectLiteral } from '../util/is'
+import workspace from '../workspace'
 const logger = require('../util/logger')('model-fetch')
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
@@ -56,17 +56,40 @@ export interface FetchOptions {
   password?: string
 }
 
-function getSystemProxyURI(endpoint: UrlWithStringQuery): string {
-  let env: string | null
-  if (endpoint.protocol === 'http:') {
-    env = process.env.HTTP_PROXY || process.env.http_proxy || null
-  } else if (endpoint.protocol === 'https:') {
-    env = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy || null
-  }
-  let noProxy = process.env.NO_PROXY || process.env.no_proxy
+function toText(text: string | undefined | null): string {
+  return text ? text : ''
+}
+
+export function getRequestModule(url: URL): typeof http | typeof https {
+  return url.protocol === 'https:' ? https : http
+}
+
+export function getText(data: any): string | Buffer {
+  if (typeof data === 'string' || Buffer.isBuffer(data)) return data
+  return JSON.stringify(data)
+}
+
+export function toURL(urlInput: string): URL {
+  let url = new URL(urlInput)
+  if (!['https:', 'http:'].includes(url.protocol)) throw new Error(`Not valid protocol with ${urlInput}, should be http: or https:`)
+  return url
+}
+
+export function getDataType(data: any): string {
+  if (data === null) return 'null'
+  if (data === undefined) return 'undefined'
+  if (typeof data == 'string') return 'string'
+  if (Buffer.isBuffer(data)) return 'buffer'
+  if (Array.isArray(data) || objectLiteral(data)) return 'object'
+  return 'unknown'
+}
+
+export function getSystemProxyURI(endpoint: URL, env = process.env): string | null {
+  let noProxy = env.NO_PROXY ?? env.no_proxy
   if (noProxy === '*') {
-    env = null
-  } else if (noProxy) {
+    return null
+  }
+  if (noProxy) {
     // canonicalize the hostname, so that 'oogle.com' won't match 'google.com'
     const hostname = endpoint.hostname.replace(/^\.*/, '.').toLowerCase()
     const port = endpoint.port || endpoint.protocol.startsWith('https') ? '443' : '80'
@@ -79,32 +102,39 @@ function getSystemProxyURI(endpoint: UrlWithStringQuery): string {
         let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.')
         let noProxyPort = noProxyItemParts[1]
         if (port === noProxyPort && hostname.endsWith(noProxyHost)) {
-          env = null
-          break
+          return null
         }
       } else {
         noProxyItem = noProxyItem.replace(/^\.*/, '.')
         if (hostname.endsWith(noProxyItem)) {
-          env = null
-          break
+          return null
         }
       }
     }
   }
-  return env
+  let proxyUri: string | null
+  if (endpoint.protocol === 'http:') {
+    proxyUri = env.HTTP_PROXY || env.http_proxy || null
+  } else {
+    proxyUri = env.HTTPS_PROXY || env.https_proxy || env.HTTP_PROXY || env.http_proxy || null
+  }
+  return proxyUri
 }
 
-export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): HttpsProxyAgent | HttpProxyAgent {
+export function getAgent(endpoint: URL, options: ProxyOptions): HttpsProxyAgent | HttpProxyAgent {
   let proxy = options.proxy || getSystemProxyURI(endpoint)
   if (proxy) {
-    const proxyEndpoint = parse(proxy)
-    if (!/^https?:$/.test(proxyEndpoint.protocol)) {
+    let proxyURL: URL
+    try {
+      proxyURL = new URL(proxy)
+      if (!/^https?:$/.test(proxyURL.protocol)) return null
+    } catch (e) {
       return null
     }
     let opts = {
-      host: proxyEndpoint.hostname,
-      port: proxyEndpoint.port ? Number(proxyEndpoint.port) : (proxyEndpoint.protocol === 'https' ? '443' : '80'),
-      auth: proxyEndpoint.auth,
+      host: proxyURL.hostname,
+      port: proxyURL.port ? Number(proxyURL.port) : (proxyURL.protocol === 'https:' ? 443 : 80),
+      auth: proxyURL.username ? `${proxyURL.username}:${toText(proxyURL.password)}` : undefined,
       rejectUnauthorized: typeof options.proxyStrictSSL === 'boolean' ? options.proxyStrictSSL : true
     }
     logger.info(`Using proxy ${proxy} from ${options.proxy ? 'configuration' : 'system environment'} for ${endpoint.hostname}:`)
@@ -113,68 +143,61 @@ export function getAgent(endpoint: UrlWithStringQuery, options: ProxyOptions): H
   return null
 }
 
-export function resolveRequestOptions(url: string, options: FetchOptions = {}): any {
+export function resolveRequestOptions(url: URL, options: FetchOptions): any {
   let config = workspace.getConfiguration('http', null)
-  let { data } = options
-  let dataType = getDataType(data)
+  let dataType = getDataType(options.data)
   let proxyOptions: ProxyOptions = {
     proxy: config.get<string>('proxy', ''),
     proxyStrictSSL: config.get<boolean>('proxyStrictSSL', true),
     proxyAuthorization: config.get<string | null>('proxyAuthorization', null),
     proxyCA: config.get<string | null>('proxyCA', null)
   }
-  if (options.query && !url.includes('?')) {
-    url = `${url}?${stringify(options.query)}`
+  if (options.query && !url.search) {
+    url.search = `?${stringify(options.query)}`
   }
-  let headers = Object.assign(options.headers || {}, { 'Proxy-Authorization': proxyOptions.proxyAuthorization })
-  let endpoint = parse(url)
-  let agent = getAgent(endpoint, proxyOptions)
+  let agent = getAgent(url, proxyOptions)
   let opts: any = {
-    method: options.method || 'GET',
-    hostname: endpoint.hostname,
-    port: endpoint.port ? parseInt(endpoint.port, 10) : (endpoint.protocol === 'https:' ? 443 : 80),
-    path: endpoint.path,
+    method: options.method ?? 'GET',
+    hostname: url.hostname,
+    port: url.port ? parseInt(url.port, 10) : (url.protocol === 'https:' ? 443 : 80),
+    path: url.pathname + url.search,
     agent,
     rejectUnauthorized: proxyOptions.proxyStrictSSL,
     maxRedirects: 3,
-    headers: Object.assign({
+    headers: {
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
-      'Accept-Encoding': 'gzip, deflate'
-    }, headers)
-  }
-  if (proxyOptions.proxyCA) {
-    opts.ca = fs.readFileSync(proxyOptions.proxyCA)
+      'Accept-Encoding': 'gzip, deflate',
+      ...(options.headers ?? {})
+    }
   }
   if (dataType == 'object') {
     opts.headers['Content-Type'] = 'application/json'
   } else if (dataType == 'string') {
     opts.headers['Content-Type'] = 'text/plain'
   }
-  if (options.user && options.password) {
-    opts.auth = options.user + ':' + options.password
-  }
-  if (options.timeout) {
-    opts.timeout = options.timeout
-  }
+  if (proxyOptions.proxyAuthorization) opts.headers['Proxy-Authorization'] = proxyOptions.proxyAuthorization
+  if (proxyOptions.proxyCA) opts.ca = fs.readFileSync(proxyOptions.proxyCA)
+  if (options.user) opts.auth = options.user + ':' + (toText(options.password))
+  if (url.username) opts.auth = url.username + ':' + (toText(url.password))
+  if (options.timeout) opts.timeout = options.timeout
   if (options.buffer) opts.buffer = true
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return opts
 }
 
-function request(url: string, data: any, opts: any, token?: CancellationToken): Promise<ResponseResult> {
-  let mod = url.startsWith('https:') ? https : http
+export function request(url: URL, data: any, opts: any, token?: CancellationToken): Promise<ResponseResult> {
+  let mod = getRequestModule(url)
   return new Promise<ResponseResult>((resolve, reject) => {
     if (token) {
       let disposable = token.onCancellationRequested(() => {
         disposable.dispose()
-        req.destroy(new Error('request aborted'))
+        req.destroy(new CancellationError())
       })
     }
     let timer: NodeJS.Timer
     const req = mod.request(opts, res => {
       let readable: Readable = res
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
-        let headers = res.headers || {}
+        let headers = res.headers ?? {}
         let chunks: Buffer[] = []
         let contentType: string = headers['content-type'] || ''
         readable = decompressResponse(res)
@@ -203,7 +226,7 @@ function request(url: string, data: any, opts: any, token?: CancellationToken): 
           }
         })
         readable.on('error', err => {
-          reject(new Error(`Unable to connect ${url}: ${err.message}`))
+          reject(new Error(`Connection error to ${url}: ${err.message}`))
         })
       } else {
         reject(new Error(`Bad response from ${url}: ${res.statusCode}`))
@@ -211,7 +234,7 @@ function request(url: string, data: any, opts: any, token?: CancellationToken): 
     })
     req.on('error', e => {
       // Possible succeed proxy request with ECONNRESET error on node > 14
-      if (opts.agent && e.code == 'ECONNRESET') {
+      if (opts.agent && e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
           reject(e)
         }, 500)
@@ -222,27 +245,10 @@ function request(url: string, data: any, opts: any, token?: CancellationToken): 
     req.on('timeout', () => {
       req.destroy(new Error(`Request timeout after ${opts.timeout}ms`))
     })
-    if (data) {
-      if (typeof data === 'string' || Buffer.isBuffer(data)) {
-        req.write(data)
-      } else {
-        req.write(JSON.stringify(data))
-      }
-    }
-    if (opts.timeout) {
-      req.setTimeout(opts.timeout)
-    }
+    if (data) req.write(getText(data))
+    if (opts.timeout) req.setTimeout(opts.timeout)
     req.end()
   })
-}
-
-function getDataType(data: any): string {
-  if (data === null) return 'null'
-  if (data === undefined) return 'undefined'
-  if (typeof data == 'string') return 'string'
-  if (Buffer.isBuffer(data)) return 'buffer'
-  if (Array.isArray(data) || objectLiteral(data)) return 'object'
-  return 'unknown'
 }
 
 /**
@@ -256,8 +262,8 @@ function getDataType(data: any): string {
  * - Redirect support, limited to 3.
  * - Support of gzip & deflate response content.
  */
-export default function fetch(url: string, options: FetchOptions = {}, token?: CancellationToken): Promise<ResponseResult> {
-  if (events.disconnected) throw new Error('network not available')
+export default function fetch(urlInput: string, options: FetchOptions = {}, token?: CancellationToken): Promise<ResponseResult> {
+  let url = toURL(urlInput)
   let opts = resolveRequestOptions(url, options)
   return request(url, options.data, opts, token).catch(err => {
     logger.error(`Fetch error for ${url}:`, opts, err)

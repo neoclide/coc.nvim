@@ -1,15 +1,14 @@
 'use strict'
 import contentDisposition from 'content-disposition'
-import { http, https } from 'follow-redirects'
 import fs from 'fs'
+import http from 'http'
 import { IncomingMessage } from 'http'
 import path from 'path'
 import tar from 'tar'
 import unzip from 'unzip-stream'
 import { v1 as uuidv1 } from 'uuid'
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import { FetchOptions, resolveRequestOptions } from './fetch'
-import events from '../events'
+import { FetchOptions, getRequestModule, resolveRequestOptions, toURL } from './fetch'
 const logger = require('../util/logger')('model-download')
 
 export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
@@ -26,6 +25,7 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
    */
   extract?: boolean | 'untar' | 'unzip'
   onProgress?: (percent: string) => void
+  agent?: http.Agent
 }
 
 /**
@@ -34,8 +34,8 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
-export default function download(url: string, options: DownloadOptions, token?: CancellationToken): Promise<string> {
-  if (events.disconnected) throw new Error('network not available')
+export default function download(urlInput: string, options: DownloadOptions, token?: CancellationToken): Promise<string> {
+  let url = toURL(urlInput)
   let { dest, onProgress, extract } = options
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
@@ -48,9 +48,10 @@ export default function download(url: string, options: DownloadOptions, token?: 
       throw new Error(`${dest} exists, but not directory!`)
     }
   }
-  let mod = url.startsWith('https') ? https : http
+  let mod = getRequestModule(url)
   let opts = resolveRequestOptions(url, options)
-  let extname = path.extname(url)
+  if (!opts.agent && options.agent) opts.agent = options.agent
+  let extname = path.extname(url.pathname)
   return new Promise<string>((resolve, reject) => {
     if (token) {
       let disposable = token.onCancellationRequested(() => {
@@ -61,7 +62,7 @@ export default function download(url: string, options: DownloadOptions, token?: 
     let timer: NodeJS.Timer
     const req = mod.request(opts, (res: IncomingMessage) => {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
-        let headers = res.headers || {}
+        let headers = res.headers ?? {}
         let dispositionHeader = headers['content-disposition']
         if (!extname && dispositionHeader) {
           let disposition = contentDisposition.parse(dispositionHeader)
@@ -75,7 +76,7 @@ export default function download(url: string, options: DownloadOptions, token?: 
           } else if (extname == '.tgz') {
             extract = 'untar'
           } else {
-            reject(new Error(`Unable to extract for ${url}`))
+            reject(new Error(`Unable to detect extract method for ${url}`))
             return
           }
         }
@@ -96,10 +97,8 @@ export default function download(url: string, options: DownloadOptions, token?: 
           reject(new Error(`Unable to connect ${url}: ${err.message}`))
         })
         res.on('data', () => {
-          if (timer) {
-            clearTimeout(timer)
-            timer = undefined
-          }
+          clearTimeout(timer)
+          timer = undefined
         })
         res.on('end', () => {
           logger.info('Download completed:', url)
@@ -126,18 +125,23 @@ export default function download(url: string, options: DownloadOptions, token?: 
     })
     req.on('error', e => {
       // Possible succeed proxy request with ECONNRESET error on node > 14
-      if (opts.agent && e.code == 'ECONNRESET') {
+      if (opts.agent && e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
           reject(e)
         }, 500)
       } else {
+        clearTimeout(timer)
+        if (opts.agent && opts.agent.proxy) {
+          reject(new Error(`Request failed using proxy ${opts.agent.proxy.host}: ${e.message}`))
+          return
+        }
         reject(e)
       }
     })
     req.on('timeout', () => {
       req.destroy(new Error(`request timeout after ${options.timeout}ms`))
     })
-    if (options.timeout) {
+    if (typeof options.timeout === 'number' && options.timeout) {
       req.setTimeout(options.timeout)
     }
     req.end()

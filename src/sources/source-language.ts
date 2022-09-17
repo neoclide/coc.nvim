@@ -272,9 +272,9 @@ export default class LanguageSource implements ISource {
       preselect: item.preselect === true,
       deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
       isSnippet,
-      labelDetails: item.labelDetails,
       dup: item.data?.dup == 0 ? 0 : 1
     }
+    if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails
     if (prefix) {
       if (!obj.filterText.startsWith(prefix)) {
         if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
