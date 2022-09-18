@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs-extra'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
@@ -86,7 +86,7 @@ augroup end`
     if (this.nvim.hasFunction('nvim_exec')) {
       void this.nvim.exec(content, false)
     } else {
-      let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}.vim`)
+      let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)
       fs.mkdirSync(dir, { recursive: true })
       let filepath = path.join(dir, `coc-${process.pid}.vim`)
       fs.writeFileSync(filepath, content, 'utf8')

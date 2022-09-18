@@ -14,7 +14,7 @@ import { getAnnotationKey, getPositionFromEdits, mergeSort } from '../util/texte
 import Highlighter from './highligher'
 const logger = require('../util/logger')('mdoe-editInspect')
 
-export type RecoverFunc = () => Promise<any>
+export type RecoverFunc = () => Promise<any> | void
 
 export interface EditState {
   edit: WorkspaceEdit

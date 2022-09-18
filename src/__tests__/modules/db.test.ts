@@ -1,9 +1,13 @@
 import DB from '../../model/db'
 import path from 'path'
+import Mru from '../../model/mru'
+import os from 'os'
+import fs from 'fs'
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mru-'))
 
 let db: DB
 beforeAll(async () => {
-  db = new DB(path.join(__dirname, 'db.json'))
+  db = new DB(path.join(root, 'db.json'))
 })
 
 afterAll(async () => {
@@ -56,5 +60,42 @@ describe('DB', () => {
       n: null,
       o: { x: 1 }
     })
+  })
+})
+
+describe('Mru', () => {
+  it('should load items', async () => {
+    let mru = new Mru('test', root)
+    await mru.clean()
+    let res = await mru.load()
+    expect(res.length).toBe(0)
+    res = mru.loadSync()
+    expect(res.length).toBe(0)
+  })
+
+  it('should add items', async () => {
+    let mru = new Mru('test', root)
+    await mru.add('a')
+    await mru.add('b')
+    let res = await mru.load()
+    expect(res.length).toBe(2)
+    await mru.clean()
+  })
+
+  it('should add when file it does not exist', async () => {
+    let mru = new Mru('test', root)
+    await mru.clean()
+    await mru.add('a')
+    let res = await mru.load()
+    expect(res).toEqual(['a'])
+  })
+
+  it('should remove item', async () => {
+    let mru = new Mru('test', root)
+    await mru.add('a')
+    await mru.remove('a')
+    let res = await mru.load()
+    expect(res.length).toBe(0)
+    await mru.clean()
   })
 })

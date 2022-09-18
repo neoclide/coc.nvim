@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { URI } from 'vscode-uri'
-import fs from 'fs-extra'
+import fs from 'fs'
 import { ListContext, ListItem } from '../../types'
 import { statAsync } from '../../util/fs'
 import workspace from '../../workspace'
@@ -37,7 +37,7 @@ export default class FoldList extends BasicList {
       let dir = path.dirname(file)
       let stat = await statAsync(dir)
       if (!stat || !stat.isDirectory()) {
-        fs.mkdirpSync(dir)
+        fs.mkdirSync(dir, { recursive: true })
       }
       await workspace.createFile(file, { overwrite: false, ignoreIfExists: true })
       await this.jumpTo(URI.file(file).toString(), null, context)

@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import fs from 'fs-extra'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
@@ -520,7 +520,7 @@ describe('createFile()', () => {
     const folder = path.join(os.tmpdir(), uuid())
     const filepath = path.join(folder, 'bar')
     disposables.push(Disposable.create(() => {
-      if (fs.existsSync(folder)) fs.removeSync(folder)
+      fs.rmSync(folder, { recursive: true, force: true })
     }))
     let fns: RecoverFunc[] = []
     expect(fs.existsSync(folder)).toBe(false)
@@ -648,8 +648,8 @@ describe('renameFile', () => {
     let newFolder = path.join(os.tmpdir(), uuid())
     fs.mkdirSync(folder)
     disposables.push(Disposable.create(() => {
-      if (fs.existsSync(folder)) fs.removeSync(folder)
-      if (fs.existsSync(newFolder)) fs.removeSync(newFolder)
+      fs.rmSync(folder, { recursive: true, force: true })
+      fs.rmSync(newFolder, { recursive: true, force: true })
     }))
     let filepath = path.join(folder, 'new_file')
     await workspace.createFile(filepath)
@@ -732,10 +732,10 @@ describe('deleteFile()', () => {
   it('should delete and recover folder recursive', async () => {
     let folder = path.join(os.tmpdir(), uuid())
     disposables.push(Disposable.create(() => {
-      if (fs.existsSync(folder)) fs.removeSync(folder)
+      fs.rmSync(folder, { recursive: true, force: true })
     }))
     fs.mkdirSync(folder)
-    await fs.writeFile(path.join(folder, 'new_file'), '', 'utf8')
+    fs.writeFileSync(path.join(folder, 'new_file'), '', 'utf8')
     let fns: RecoverFunc[] = []
     await workspace.files.deleteFile(folder, { recursive: true }, fns)
     expect(fs.existsSync(folder)).toBe(false)

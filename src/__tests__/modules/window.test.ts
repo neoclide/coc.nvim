@@ -1,13 +1,12 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
-import fs from 'fs-extra'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import events from '../../events'
-import extensions from '../../extension'
 import languages from '../../languages'
 import Notification from '../../model/notification'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
@@ -250,10 +249,7 @@ describe('window', () => {
 
     it('should open local config', async () => {
       let dir = path.join(os.tmpdir(), '.vim')
-      if (fs.existsSync(dir)) {
-        fs.emptyDirSync(dir)
-        fs.rmdirSync(dir)
-      }
+      fs.rmSync(dir, { recursive: true, force: true })
       if (!fs.existsSync(path.join(os.tmpdir(), '.git'))) {
         fs.mkdirSync(path.join(os.tmpdir(), '.git'))
       }

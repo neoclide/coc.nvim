@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs-extra'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { URI } from 'vscode-uri'
@@ -67,7 +67,7 @@ export default class ExtensionList extends BasicList {
 
     this.addAction('help', async item => {
       let { root } = item.data
-      let files = await fs.readdir(root)
+      let files = fs.readdirSync(root, { encoding: 'utf8' })
       let file = files.find(f => /^readme/i.test(f))
       if (file) await workspace.callAsync('coc#util#jump', ['edit', path.join(root, file)])
     })
@@ -86,9 +86,7 @@ export default class ExtensionList extends BasicList {
       }
       if (!npm) return
       let folder = path.join(root, 'node_modules')
-      if (fs.existsSync(folder)) {
-        fs.removeSync(folder)
-      }
+      fs.rmSync(folder, { recursive: true, force: true })
       let terminal = await window.createTerminal({
         cwd: root
       })

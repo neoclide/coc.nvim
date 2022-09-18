@@ -1,6 +1,7 @@
 'use strict'
 import path from 'path'
-import fs from 'fs-extra'
+import fs from 'fs'
+import { promisify } from 'util'
 import { readFileLines, writeFile } from '../util/fs'
 import { distinct } from '../util/array'
 const logger = require('../util/logger')('model-mru')
@@ -21,7 +22,7 @@ export default class Mru {
     private maximum = 5000) {
     this.file = path.join(base || process.env.COC_DATA_HOME, name)
     let dir = path.dirname(this.file)
-    fs.mkdirpSync(dir)
+    fs.mkdirSync(dir, { recursive: true })
   }
 
   /**
@@ -65,7 +66,7 @@ export default class Mru {
     } catch (e) {
       buf = Buffer.concat([Buffer.from(item, 'utf8'), new Uint8Array([10])])
     }
-    await fs.writeFile(this.file, buf, 'utf8')
+    await promisify(fs.writeFile)(this.file, buf)
   }
 
   /**
@@ -76,7 +77,7 @@ export default class Mru {
     let len = items.length
     items = items.filter(s => s != item)
     if (items.length != len) {
-      await fs.writeFile(this.file, items.join('\n'), 'utf8')
+      await writeFile(this.file, items.join('\n'))
     }
   }
 
@@ -85,7 +86,7 @@ export default class Mru {
    */
   public async clean(): Promise<void> {
     try {
-      await fs.unlink(this.file)
+      await promisify(fs.unlink)(this.file)
     } catch (e) {
       // noop
     }

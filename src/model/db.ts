@@ -1,5 +1,5 @@
 'use strict'
-import fs from 'fs-extra'
+import fs from 'fs'
 import path from 'path'
 
 export default class DB {
@@ -78,7 +78,7 @@ export default class DB {
     let len = parts.length
     if (obj == null) {
       let dir = path.dirname(this.filepath)
-      fs.mkdirpSync(dir)
+      fs.mkdirSync(dir, { recursive: true })
       obj = origin
     }
     for (let i = 0; i < len; i++) {
@@ -101,7 +101,7 @@ export default class DB {
     let dir = path.dirname(this.filepath)
     let stat = fs.statSync(dir)
     if (!stat || !stat.isDirectory()) {
-      fs.mkdirpSync(dir)
+      fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(this.filepath, '{}', 'utf8')
       return {}
     }

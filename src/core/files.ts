@@ -1,12 +1,12 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs-extra'
+import crypto from 'crypto'
+import fs from 'fs'
 import glob from 'glob'
 import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
-import { v4 as uuid } from 'uuid'
 import { CancellationToken, CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
@@ -15,7 +15,7 @@ import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, LinesChange } from '../types'
 import * as errors from '../util/errors'
-import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
+import { fixDriver, isFile, isParentFolder, remove, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
 import { getAnnotationKey, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
@@ -194,18 +194,14 @@ export default class Files {
           }
           curr = path.dirname(curr)
         }
-        await fs.mkdirp(dir)
-        recovers && recovers.push(async () => {
-          if (fs.existsSync(folder)) {
-            await fs.remove(folder)
-          }
+        fs.mkdirSync(dir, { recursive: true })
+        recovers && recovers.push(() => {
+          fs.rmSync(folder, { force: true, recursive: true })
         })
       }
       fs.writeFileSync(filepath, '', 'utf8')
       recovers && recovers.push(async () => {
-        if (fs.existsSync(filepath)) {
-          await fs.unlink(filepath)
-        }
+        fs.rmSync(filepath, { force: true, recursive: true })
       })
       let doc = await this.loadResource(filepath)
       let bufnr = doc.bufnr
@@ -240,28 +236,29 @@ export default class Files {
         })
       }
     }
+    let folder = path.join(os.tmpdir(), 'coc-' + process.pid)
+    fs.mkdirSync(folder, { recursive: true })
+    let md5 = crypto.createHash('md5').update(filepath).digest('hex')
     if (isDir && recursive) {
-      // copy files for recover
-      let folder = path.join(os.tmpdir(), 'coc-' + uuid())
-      await fs.mkdir(folder)
-      await fs.copy(filepath, folder, { recursive: true })
-      await fs.remove(filepath)
+      let dest = path.join(folder, md5)
+      let dir = path.dirname(filepath)
+      fs.renameSync(filepath, dest)
       recovers && recovers.push(async () => {
-        await fs.mkdir(filepath)
-        await fs.copy(folder, filepath, { recursive: true })
-        await fs.remove(folder)
+        fs.mkdirSync(dir, { recursive: true })
+        fs.renameSync(dest, filepath)
       })
     } else if (isDir) {
-      await fs.rmdir(filepath)
+      fs.rmdirSync(filepath)
       recovers && recovers.push(() => {
-        return fs.mkdir(filepath)
+        fs.mkdirSync(filepath)
       })
     } else {
-      let dest = path.join(os.tmpdir(), 'coc-' + uuid())
-      await fs.copyFile(filepath, dest)
-      await fs.unlink(filepath)
+      let dest = path.join(folder, md5)
+      let dir = path.dirname(filepath)
+      fs.renameSync(filepath, dest)
       recovers && recovers.push(() => {
-        return fs.move(dest, filepath, { overwrite: true })
+        fs.mkdirSync(dir, { recursive: true })
+        fs.renameSync(dest, filepath)
       })
     }
     this._onDidDeleteFiles.fire({ files: [uri] })
@@ -399,7 +396,7 @@ export default class Files {
   private async undoChanges(recovers: RecoverFunc[]): Promise<void> {
     while (recovers.length > 0) {
       let fn = recovers.pop()
-      await fn()
+      await Promise.resolve(fn())
     }
   }
 
