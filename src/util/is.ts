@@ -1,8 +1,18 @@
 'use strict'
 import { CompletionList } from 'vscode-languageserver-protocol'
+import { URL } from 'url'
 
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
+
+export function isUrl(url: any): boolean {
+  try {
+    new URL(url)
+    return true
+  } catch (e) {
+    return false
+  }
+}
 
 export function isCompletionList(obj: any): obj is CompletionList {
   return !Array.isArray(obj) && Array.isArray(obj.items)

@@ -369,6 +369,12 @@ describe('getSymbolKind()', () => {
 })
 
 describe('Is', () => {
+  it('should url', async () => {
+    expect(Is.isUrl('')).toBe(false)
+    expect(Is.isUrl(undefined)).toBe(false)
+    expect(Is.isUrl('file:1')).toBe(true)
+  })
+
   it('should check array', async () => {
     expect(Is.array(false)).toBe(false)
   })

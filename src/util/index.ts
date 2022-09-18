@@ -2,11 +2,11 @@
 import { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
-import isuri from 'isuri'
 import path from 'path'
 import { Disposable, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
+import { isUrl } from './is'
 import * as platform from './platform'
 export { platform }
 const logger = require('./logger')('util-index')
@@ -53,7 +53,7 @@ export function getUri(fullpath: string, id: number, buftype: string, isCygwin: 
   // https://github.com/neoclide/coc-java/issues/82
   if (platform.isWindows && !isCygwin && !fullpath.startsWith('jdt://')) fullpath = path.win32.normalize(fullpath)
   if (path.isAbsolute(fullpath)) return URI.file(fullpath).toString()
-  if (isuri.isValid(fullpath)) return URI.parse(fullpath).toString()
+  if (isUrl(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
   return `unknown:${id}`
 }

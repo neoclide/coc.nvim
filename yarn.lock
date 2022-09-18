@@ -2290,13 +2290,6 @@ istanbul-reports@^3.0.2:
     html-escaper "^2.0.0"
     istanbul-lib-report "^3.0.0"
 
-isuri@^2.0.3:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/isuri/-/isuri-2.0.3.tgz#3437121db2fe65af0ba080b7e1a8636f632cca91"
-  integrity sha1-NDcSHbL+Za8LoIC34ahjb2MsypE=
-  dependencies:
-    rfc-3986 "1.0.1"
-
 jest-changed-files@^27.4.2:
   version "27.4.2"
   resolved "https://registry.yarnpkg.com/jest-changed-files/-/jest-changed-files-27.4.2.tgz#da2547ea47c6e6a5f6ed336151bd2075736eb4a5"
@@ -3228,11 +3221,6 @@ reusify@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/reusify/-/reusify-1.0.4.tgz#90da382b1e126efc02146e90845a88db12925d76"
   integrity sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==
-
-rfc-3986@1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/rfc-3986/-/rfc-3986-1.0.1.tgz#eeeb88342fadbe8027c0f36ada921a13e6f96206"
-  integrity sha1-7uuINC+tvoAnwPNq2pIaE+b5YgY=
 
 rfdc@^1.3.0:
   version "1.3.0"

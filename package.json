@@ -105,7 +105,6 @@
     "glob": "^7.2.0",
     "http-proxy-agent": "^5.0.0",
     "https-proxy-agent": "^5.0.0",
-    "isuri": "^2.0.3",
     "jsonc-parser": "^3.0.0",
     "log4js": "^6.4.0",
     "marked": "^4.0.12",

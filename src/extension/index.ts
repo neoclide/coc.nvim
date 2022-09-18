@@ -1,6 +1,5 @@
 'use strict'
 import fs from 'fs'
-import isuri from 'isuri'
 import path from 'path'
 import { Event } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
@@ -8,6 +7,7 @@ import type { OutputChannel } from '../types'
 import { concurrent, executable } from '../util'
 import { distinct } from '../util/array'
 import '../util/extensions'
+import { isUrl } from '../util/is'
 import window from '../window'
 import workspace from '../workspace'
 import { IInstaller, Installer } from './installer'
@@ -293,7 +293,7 @@ export class Extensions {
 }
 
 export function toUrl(val: string): string {
-  return isuri.isValid(val) ? val.replace(/\.git(#master|#main)?$/, '') : ''
+  return isUrl(val) ? val.replace(/\.git(#master|#main)?$/, '') : ''
 }
 
 export default new Extensions()
