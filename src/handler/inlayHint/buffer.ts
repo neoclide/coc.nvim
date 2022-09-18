@@ -26,7 +26,7 @@ export interface InlayHintConfig {
 
 let srcId: number | undefined
 const debounceInterval = global.__TEST__ ? 10 : 100
-const getHighlightGroup = (kind: InlayHintKind): string => {
+function getHighlightGroup(kind: InlayHintKind): string {
   switch (kind) {
     case InlayHintKind.Parameter:
       return 'CocInlayHintParameter'
