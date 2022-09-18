@@ -98,6 +98,11 @@ describe('extensions', () => {
     s.mockRestore()
   })
 
+  it('should use absolute path for npm', async () => {
+    let res = extensions.npm
+    expect(path.isAbsolute(res)).toBe(true)
+  })
+
   it('should not throw when npm not found', async () => {
     let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
       throw new Error('not executable')

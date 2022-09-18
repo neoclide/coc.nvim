@@ -1,6 +1,7 @@
 'use strict'
 import fs from 'fs'
 import path from 'path'
+import which from 'which'
 import { Event } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import type { OutputChannel } from '../types'
@@ -138,7 +139,7 @@ export class Extensions {
     let npm = workspace.getConfiguration('npm', null).get<string>('binPath', 'npm')
     npm = workspace.expand(npm)
     for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
-      if (executable(exe)) return exe
+      if (executable(exe)) return which.sync(exe)
     }
     void window.showErrorMessage(`Can't find npm or yarn in your $PATH`)
     return null
