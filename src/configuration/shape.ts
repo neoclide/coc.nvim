@@ -34,12 +34,12 @@ export default class ConfigurationProxy implements IConfigurationShape {
     logger.info(`modify configuration file: ${fsPath}`, key, value)
     let dir = path.dirname(fsPath)
     let formattingOptions = { tabSize: 2, insertSpaces: true }
-    if (!fs.existsSync(dir)) await promisify(fs.mkdir)(dir, { recursive: true })
-    let content = await promisify(fs.readFile)(fsPath, { encoding: 'utf8', flag: 'a+' })
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    let content = fs.readFileSync(fsPath, { encoding: 'utf8', flag: 'a+' })
     content = content || '{}'
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)
-    await promisify(fs.writeFile)(fsPath, content, 'utf8')
+    fs.writeFileSync(fsPath, content, { encoding: 'utf8' })
   }
 
   public getWorkspaceFolder(resource: string): URI | undefined {
