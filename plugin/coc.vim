@@ -522,6 +522,10 @@ function! s:Highlight() abort
   endfor
 
   call s:CreateHighlight('CocInlayHint', 'CocHintSign', 'SignColumn')
+  for name in ['Parameter', 'Type']
+    exe 'hi default link CocInlayHint'.name.' CocInlayHint'
+  endfor
+
   call s:AddAnsiGroups()
 
   if get(g:, 'coc_default_semantic_highlight_groups', 1)

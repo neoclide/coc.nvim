@@ -794,6 +794,8 @@ To temporarily toggle inlay hint of current buffer, use command
 Change highlight group:~
 
 |CocInlayHint|
+|CocInlayHintType|
+|CocInlayHintParameter|
 
 Configure inlay hint support:~
 

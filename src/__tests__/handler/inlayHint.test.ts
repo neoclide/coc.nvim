@@ -206,7 +206,7 @@ describe('InlayHint', () => {
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       let obj = markers[0][3].virt_text
-      expect(obj).toEqual([['baz', 'CocInlayHint']])
+      expect(obj).toEqual([['baz', 'CocInlayHintType']])
     })
 
     it('should disable parameter inlayHint', async () => {
@@ -227,7 +227,7 @@ describe('InlayHint', () => {
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       let virt_text = markers[0][3].virt_text
-      expect(virt_text[1]).toEqual(['|', 'CocInlayHint'])
+      expect(virt_text[1]).toEqual(['|', 'CocInlayHintType'])
     })
   })
 

@@ -26,7 +26,16 @@ export interface InlayHintConfig {
 
 let srcId: number | undefined
 const debounceInterval = global.__TEST__ ? 10 : 100
-const highlightGroup = 'CocInlayHint'
+const getHighlightGroup = (kind: InlayHintKind): string => {
+  switch (kind) {
+    case InlayHintKind.Parameter:
+      return 'CocInlayHintParameter'
+    case InlayHintKind.Type:
+      return 'CocInlayHintType'
+    default:
+      return 'CocInlayHint'
+  }
+}
 
 export default class InlayHintBuffer implements SyncItem {
   private _enabled = true
@@ -177,10 +186,10 @@ export default class InlayHintBuffer implements SyncItem {
         let { line } = item.position
         const chunks: [string, string][] = chunksMap.get(line) ?? []
         if (chunks.length > 0) {
-          chunks.push([subSeparator, subSeparator === ' ' ? 'Normal' : highlightGroup])
+          chunks.push([subSeparator, subSeparator === ' ' ? 'Normal' : getHighlightGroup(item.kind)])
         }
         let sep = item.kind === InlayHintKind.Parameter ? parameterSeparator : typeSeparator
-        chunks.push([sep + getLabel(item), highlightGroup])
+        chunks.push([sep + getLabel(item), getHighlightGroup(item.kind)])
         chunksMap.set(line, chunks)
       }
     }
@@ -195,7 +204,7 @@ export default class InlayHintBuffer implements SyncItem {
         if (item.paddingLeft) {
           chunks.push([' ', 'Normal'])
         }
-        chunks.push([getLabel(item), highlightGroup])
+        chunks.push([getLabel(item), getHighlightGroup(item.kind)])
         if (item.paddingRight) {
           chunks.push([' ', 'Normal'])
         }
