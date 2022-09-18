@@ -5,6 +5,7 @@ Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
 
 /// <reference types="node" />
 import cp from 'child_process'
+import { URL } from 'url'
 
 declare module 'coc.nvim' {
   // Language server protocol interfaces {{
@@ -5208,7 +5209,7 @@ declare module 'coc.nvim' {
    *
    * @return Parsed object if response content type is application/json, text if content type starts with `text/`
    */
-  export function fetch(url: string, options?: FetchOptions, token?: CancellationToken): Promise<ResponseResult>
+  export function fetch(url: string | URL, options?: FetchOptions, token?: CancellationToken): Promise<ResponseResult>
 
   /**
    * Download file from url, with optional untar/unzip support.
@@ -5218,7 +5219,7 @@ declare module 'coc.nvim' {
    * @param {string} url
    * @param {DownloadOptions} options contains dest folder and optional onProgress callback
    */
-  export function download(url: string, options: DownloadOptions, token?: CancellationToken): Promise<string>
+  export function download(url: string | URL, options: DownloadOptions, token?: CancellationToken): Promise<string>
 
   interface ExecOptions {
     cwd?: string

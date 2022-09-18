@@ -6,6 +6,7 @@ import { IncomingMessage } from 'http'
 import path from 'path'
 import tar from 'tar'
 import unzip from 'unzip-stream'
+import { URL } from 'url'
 import { v1 as uuidv1 } from 'uuid'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { FetchOptions, getRequestModule, resolveRequestOptions, toURL } from './fetch'
@@ -34,7 +35,7 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
  * @param {string} url
  * @param {DownloadOptions} options contains dest folder and optional onProgress callback
  */
-export default function download(urlInput: string, options: DownloadOptions, token?: CancellationToken): Promise<string> {
+export default function download(urlInput: string | URL, options: DownloadOptions, token?: CancellationToken): Promise<string> {
   let url = toURL(urlInput)
   let { dest, onProgress, extract } = options
   if (!dest || !path.isAbsolute(dest)) {

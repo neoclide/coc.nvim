@@ -196,7 +196,6 @@ describe('CallHierarchy', () => {
       }
     }))
     let win = await nvim.window
-    let tab = await nvim.call('tabpagenr')
     await callHierarchy.showCallHierarchyTree('outgoing')
     let buf = await nvim.buffer
     let lines = await buf.lines
@@ -207,11 +206,9 @@ describe('CallHierarchy', () => {
     ])
     await nvim.command('exe 3')
     await nvim.input('<tab>')
-    await helper.wait(100)
+    await helper.waitPrompt()
     await nvim.input('<cr>')
-    await helper.wait(200)
-    let newTab = await nvim.call('tabpagenr')
-    expect(newTab != tab).toBe(true)
+    await helper.waitFor('tabpagenr', [], 2)
     doc = await workspace.document
     expect(doc.uri).toBe(uri)
     let res = await nvim.call('getmatches', [win.id])
@@ -383,12 +380,12 @@ describe('CallHierarchy', () => {
     ])
     await nvim.command('exe 3')
     await nvim.input('t')
-    await helper.wait(50)
+    await helper.waitFor('line', ['$'], 4)
     await nvim.command('exe 4')
     await nvim.input('<tab>')
-    await helper.wait(50)
+    await helper.waitPrompt()
     await nvim.input('4')
-    await helper.wait(200)
+    await helper.waitFor('line', ['$'], 3)
     lines = await buf.lines
     expect(lines).toEqual([
       'OUTGOING CALLS',

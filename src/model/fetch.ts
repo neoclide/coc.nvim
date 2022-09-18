@@ -69,7 +69,8 @@ export function getText(data: any): string | Buffer {
   return JSON.stringify(data)
 }
 
-export function toURL(urlInput: string): URL {
+export function toURL(urlInput: string | URL): URL {
+  if (urlInput instanceof URL) return urlInput
   let url = new URL(urlInput)
   if (!['https:', 'http:'].includes(url.protocol)) throw new Error(`Not valid protocol with ${urlInput}, should be http: or https:`)
   return url
@@ -262,7 +263,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
  * - Redirect support, limited to 3.
  * - Support of gzip & deflate response content.
  */
-export default function fetch(urlInput: string, options: FetchOptions = {}, token?: CancellationToken): Promise<ResponseResult> {
+export default function fetch(urlInput: string | URL, options: FetchOptions = {}, token?: CancellationToken): Promise<ResponseResult> {
   let url = toURL(urlInput)
   let opts = resolveRequestOptions(url, options)
   return request(url, options.data, opts, token).catch(err => {

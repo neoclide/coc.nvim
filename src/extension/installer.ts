@@ -7,12 +7,12 @@ import path from 'path'
 import readline from 'readline'
 import semver from 'semver'
 import { v4 as uuid } from 'uuid'
+import { URL } from 'url'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import workspace from '../workspace'
 import { loadJson } from './stat'
 const logger = require('../util/logger')('extension-installer')
-const HOME_DIR = global.__TEST__ ? os.tmpdir() : os.homedir()
 const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']
 
 export interface Info {
@@ -32,29 +32,26 @@ export interface InstallResult {
   url?: string
 }
 
-export function registryUrl(scope = 'coc.nvim'): string {
-  let res = 'https://registry.npmjs.org/'
-  let filepath = path.join(HOME_DIR, '.npmrc')
+export function registryUrl(home = os.homedir()): URL {
+  let res: URL
+  let filepath = path.join(home, '.npmrc')
   if (fs.existsSync(filepath)) {
     try {
       let content = fs.readFileSync(filepath, 'utf8')
-      let obj = {}
+      let uri: string
       for (let line of content.split(/\r?\n/)) {
-        if (line.indexOf('=') > -1) {
-          let [_, key, val] = line.match(/^(.*?)=(.*)$/)
-          obj[key] = val
+        if (line.startsWith('#')) continue
+        let ms = line.match(/^(.*?)=(.*)$/)
+        if (ms && ms[1] === 'coc.nvim:registry') {
+          uri = ms[2]
         }
       }
-      if (obj[`${scope}:registry`]) {
-        res = obj[`${scope}:registry`]
-      } else if (obj['registry']) {
-        res = obj['registry']
-      }
+      if (uri) res = new URL(uri)
     } catch (e) {
-      logger.error('Error on read .npmrc:', e)
+      logger.debug('Error on parse .npmrc:', e)
     }
   }
-  return res.endsWith('/') ? res : res + '/'
+  return res ?? new URL('https://registry.npmjs.org')
 }
 
 export function isNpmCommand(exePath: string): boolean {
@@ -120,7 +117,7 @@ export class Installer extends EventEmitter implements IInstaller {
     if (this.url) return await this.getInfoFromUri()
     let registry = registryUrl()
     this.log(`Get info from ${registry}`)
-    let buffer = await this.fetch(registry + this.name, { timeout: 10000, buffer: true })
+    let buffer = await this.fetch(new URL(this.name, registry), { timeout: 10000, buffer: true })
     let res = JSON.parse(buffer.toString())
     if (!this.version) this.version = res['dist-tags']['latest']
     let obj = res['versions'][this.version]
@@ -281,7 +278,7 @@ export class Installer extends EventEmitter implements IInstaller {
     return await download(url, options)
   }
 
-  public async fetch(url: string, options: FetchOptions = {}): Promise<any> {
+  public async fetch(url: string | URL, options: FetchOptions = {}): Promise<any> {
     return await fetch(url, options)
   }
 }

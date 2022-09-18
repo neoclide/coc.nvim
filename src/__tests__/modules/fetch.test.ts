@@ -142,16 +142,13 @@ describe('utils', () => {
     expect(getDataType(new Date())).toBe('unknown')
   })
 
-  it('should throw for invalid url', async () => {
-    expect(() => {
-      toURL('')
-    }).toThrow()
-    expect(() => {
-      toURL('file:///1')
-    }).toThrow()
-    expect(() => {
-      toURL(undefined)
-    }).toThrow()
+  it('should convert to URL', () => {
+    expect(() => { toURL('') }).toThrow()
+    expect(() => { toURL('file:///1') }).toThrow()
+    expect(() => { toURL(undefined) }).toThrow()
+    expect(toURL('http://www.baidu.com').toString()).toBe('http://www.baidu.com/')
+    let u = new URL('http://www.baidu.com')
+    expect(toURL(u)).toBe(u)
   })
 
   it('should report valid proxy', async () => {

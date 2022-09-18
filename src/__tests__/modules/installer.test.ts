@@ -8,7 +8,7 @@ import { remove } from '../../util/fs'
 const rcfile = path.join(os.tmpdir(), '.npmrc')
 let tmpfolder: string
 afterEach(() => {
-  if (fs.existsSync(tmpfolder)) {
+  if (tmpfolder) {
     fs.rmSync(tmpfolder, { force: true, recursive: true })
   }
 })
@@ -25,23 +25,20 @@ describe('utils', () => {
   })
 
   it('should get registry url', async () => {
-    fs.writeFileSync(rcfile, '', 'utf8')
-    expect(registryUrl()).toBe('https://registry.npmjs.org/')
-    fs.writeFileSync(rcfile, 'coc.nvim:registry=https://example.org', 'utf8')
-    expect(registryUrl()).toBe('https://example.org/')
-    fs.writeFileSync(rcfile, 'registry=https://example.org/', 'utf8')
-    expect(registryUrl()).toBe('https://example.org/')
-    if (fs.existsSync(rcfile)) {
-      fs.unlinkSync(rcfile)
+    const getUrl = () => {
+      return registryUrl(os.tmpdir())
     }
+    fs.rmSync(rcfile, { force: true, recursive: true })
+    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
     fs.writeFileSync(rcfile, '', 'utf8')
-    let spy = jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
-      throw new Error('read error')
-    })
-    expect(registryUrl()).toBe('https://registry.npmjs.org/')
-    spy.mockRestore()
-    fs.unlinkSync(rcfile)
-    expect(registryUrl()).toBe('https://registry.npmjs.org/')
+    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    fs.writeFileSync(rcfile, 'coc.nvim:registry=https://example.org', 'utf8')
+    expect(getUrl().toString()).toBe('https://example.org/')
+    fs.writeFileSync(rcfile, '#coc.nvim:registry=https://example.org', 'utf8')
+    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    fs.writeFileSync(rcfile, 'coc.nvim:registry=example.org', 'utf8')
+    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    fs.rmSync(rcfile, { force: true, recursive: true })
   })
 
   it('should parse name & version', async () => {
@@ -91,7 +88,8 @@ describe('Installer', () => {
 
     it('should use latest version', async () => {
       let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
+      let spy = jest.spyOn(installer, 'fetch').mockImplementation(url => {
+        expect(url.toString()).toBe('https://registry.npmjs.org/coc-omni')
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
           'dist-tags': { latest: '1.0.0' },
