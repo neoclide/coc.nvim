@@ -1,4 +1,5 @@
 'use strict'
+import debounce from 'debounce'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, MarkupContent, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
 import events from '../events'
@@ -6,7 +7,7 @@ import languages from '../languages'
 import Document from '../model/document'
 import { FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll, isMarkdown } from '../util'
-import { byteLength } from '../util/string'
+import { byteLength, byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 const logger = require('../util/logger')('handler-signature')
@@ -47,13 +48,7 @@ export default class Signature {
     }, this.config.floatConfig))
     this.disposables.push(this.signatureFactory)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    events.on('CursorMovedI', async (bufnr, cursor) => {
-      let pos = this.lastPosition
-      if (!pos) return
-      // avoid close signature for valid position.
-      if (pos.bufnr == bufnr && pos.lnum == cursor[0] && pos.col <= cursor[1]) return
-      this.signatureFactory.close()
-    }, null, this.disposables)
+    events.on('CursorMovedI', debounce(this.checkCurosr.bind(this), global.__TEST__ ? 10 : 100), null, this.disposables)
     events.on(['InsertLeave', 'BufEnter'], () => {
       this.tokenSource?.cancel()
     }, null, this.disposables)
@@ -71,6 +66,17 @@ export default class Signature {
     window.onDidChangeActiveTextEditor(() => {
       this.loadConfiguration()
     }, null, this.disposables)
+  }
+
+  private checkCurosr(bufnr: number, cursor: [number, number]): void {
+    let pos = this.lastPosition
+    let floatFactory = this.signatureFactory
+    if (!pos || bufnr !== pos.bufnr || floatFactory.window == null) return
+    let doc = workspace.getDocument(bufnr)
+    if (!doc || cursor[0] != pos.lnum || cursor[1] < pos.col) return floatFactory.close()
+    let line = doc.getline(pos.lnum - 1)
+    let text = byteSlice(line, pos.col - 1, cursor[1] - 1)
+    if (!doc.isWord(text)) return floatFactory.close()
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {

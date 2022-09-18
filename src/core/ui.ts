@@ -18,6 +18,9 @@ export function createFloatFactory(nvim: Neovim, conf: FloatWinConfig, defaults:
   let opts = Object.assign({}, defaults, conf)
   let factory = new FloatFactoryImpl(nvim)
   return {
+    get window() {
+      return factory.window
+    },
     show: (docs: Documentation[], option?: FloatOptions) => {
       return factory.show(docs, option ? Object.assign({}, opts, option) : opts)
     },

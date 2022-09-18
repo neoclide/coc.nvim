@@ -122,6 +122,7 @@ export interface FileSystemWatcher extends Disposable {
 }
 
 export interface FloatFactory {
+  window: Window | null
   activated: () => Promise<boolean>
   show: (docs: Documentation[], options?: FloatOptions) => Promise<void>
   close: () => void

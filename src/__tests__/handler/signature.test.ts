@@ -204,6 +204,41 @@ describe('signatureHelp', () => {
       let res = await nvim.call('coc#float#valid', [win.id])
       expect(res).toBe(0)
     })
+
+    it('should close float on cursor moved', async () => {
+      disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
+        provideSignatureHelp: (_doc, _position) => {
+          return {
+            signatures: [SignatureInformation.create('foo()', 'my signature')],
+            activeParameter: null,
+            activeSignature: null
+          }
+        }
+      }, ['(', ',']))
+      const show = async () => {
+        await helper.createDocument()
+        await nvim.input('i')
+        await nvim.call('append', [1, 'bar'])
+        await nvim.input('(')
+        await helper.waitValue(async () => {
+          let win = await helper.getFloat()
+          return win != null
+        }, true)
+      }
+      await show()
+      await nvim.call('cursor', [2, 1])
+      await helper.waitValue(async () => {
+        let win = await helper.getFloat()
+        return win == null
+      }, true)
+      await nvim.input('<esc>')
+      await show()
+      await nvim.input(')')
+      await helper.waitValue(async () => {
+        let win = await helper.getFloat()
+        return win == null
+      }, true)
+    })
   })
 
   describe('float window', () => {

@@ -53,6 +53,7 @@ describe('createFloatFactory()', () => {
     await f.show([{ content: 'shown', filetype: 'txt' }])
     let activated = await f.activated()
     expect(activated).toBe(true)
+    expect(f.window != null).toBe(true)
     let win = await helper.getFloat()
     expect(win).toBeDefined()
     let id = await nvim.call('coc#float#get_related', [win.id, 'border', 0]) as number
