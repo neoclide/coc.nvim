@@ -1,12 +1,41 @@
 import os from 'os'
+import fs from 'fs'
 import path from 'path'
 import Configurations from '../../configuration/index'
 import * as funcs from '../../core/funcs'
+import Resolver from '../../model/resolver'
+import which from 'which'
+import { v4 as uuid } from 'uuid'
 let configurations: Configurations
 
 beforeAll(async () => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, undefined)
+})
+
+describe('Resolver()', () => {
+  it('should resolve null', async () => {
+    let r = new Resolver()
+    let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
+      throw new Error('not found')
+    })
+    let res = await r.resolveModule('mode')
+    expect(res).toBe(null)
+    spy.mockRestore()
+  })
+
+  it('should resolve npm module', async () => {
+    let r = new Resolver()
+    let folder = path.join(os.tmpdir(), uuid())
+    Object.assign(r, {
+      _npmFolder: folder,
+      _yarnFolder: __dirname,
+    })
+    fs.mkdirSync(path.join(folder, 'name'), { recursive: true })
+    fs.writeFileSync(path.join(folder, 'name', 'package.json'), '', 'utf8')
+    let res = await r.resolveModule('name')
+    expect(res).toBe(path.join(folder, 'name'))
+  })
 })
 
 describe('has()', () => {

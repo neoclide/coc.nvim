@@ -47,12 +47,8 @@ export default class Menu {
     this.total = config.items.length
     if (token) {
       token.onCancellationRequested(() => {
-        if (this.win) {
-          this.win?.close()
-        } else {
-          this._onDidClose.fire(-1)
-          this.dispose()
-        }
+        this._onDidClose.fire(-1)
+        this.dispose()
       })
     }
     this.disposables.push(this._onDidClose)
@@ -79,18 +75,17 @@ export default class Menu {
       this.selectCurrent()
     })
     let setCursorIndex = idx => {
-      if (!this.win) return
       nvim.pauseNotification()
       this.setCursor(idx + this.contentHeight)
-      this.win?.refreshScrollbar()
+      this.win.refreshScrollbar()
       nvim.command('redraw', true)
       nvim.resumeNotification(false, true)
     }
     this.addKeys('<C-f>', async () => {
-      await this.win?.scrollForward()
+      await this.win.scrollForward()
     })
     this.addKeys('<C-b>', async () => {
-      await this.win?.scrollBackward()
+      await this.win.scrollBackward()
     })
     this.addKeys(['j', '<down>', '<tab>', '<C-n>'], () => {
       // next
@@ -184,6 +179,11 @@ export default class Menu {
     }
     if (preferences.rounded) opts.rounded = 1
     if (typeof content === 'string') opts.content = content
+    if (preferences.confirmKey) {
+      this.addKeys(preferences.confirmKey, () => {
+        this.selectCurrent()
+      })
+    }
     let highlights: HighlightItem[] = []
     let lines = items.map((v, i) => {
       let text: string = isMenuItem(v) ? v.text : v
@@ -211,11 +211,6 @@ export default class Menu {
       }
     })
     if (highlights.length) opts.highlights = highlights
-    if (preferences.confirmKey && preferences.confirmKey != '<cr>') {
-      this.addKeys(preferences.confirmKey, () => {
-        this.selectCurrent()
-      })
-    }
     let res = await nvim.call('coc#dialog#create_menu', [lines, opts]) as [number, number, number]
     if (!res) throw new Error('Unable to create menu window')
     nvim.command('redraw', true)
@@ -244,6 +239,7 @@ export default class Menu {
   }
 
   public dispose(): void {
+    if (this._disposed) return
     this._disposed = true
     disposeAll(this.disposables)
     this.shortcutIndexes.clear()
@@ -254,7 +250,7 @@ export default class Menu {
     this.win = undefined
   }
 
-  private async onInputChar(session: string, character: string): Promise<void> {
+  public async onInputChar(session: string, character: string): Promise<void> {
     if (session != 'menu' || !this.win) return
     let fn = this.keyMappings.get(character)
     if (fn) {
@@ -265,7 +261,6 @@ export default class Menu {
   }
 
   private setCursor(index: number): void {
-    if (!this.win) return
     this.currIndex = index - this.contentHeight
     this.win.setCursor(index)
   }

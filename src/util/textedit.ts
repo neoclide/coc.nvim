@@ -71,6 +71,16 @@ export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
   return data
 }
 
+export function mergeSortEdits(edits: TextEdit[]): TextEdit[] {
+  return mergeSort(edits, (a, b) => {
+    let diff = a.range.start.line - b.range.start.line
+    if (diff === 0) {
+      return a.range.start.character - b.range.start.character
+    }
+    return diff
+  })
+}
+
 export function emptyTextEdit(edit: TextEdit): boolean {
   return emptyRange(edit.range) && edit.newText.length === 0
 }
@@ -152,13 +162,7 @@ export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit
       res.push({ range, newText })
     }
   }
-  return mergeSort(res, (a, b) => {
-    let diff = a.range.start.line - b.range.start.line
-    if (diff === 0) {
-      return a.range.start.character - b.range.start.character
-    }
-    return diff
-  })
+  return mergeSortEdits(res)
 }
 
 /**

@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { RecoverFunc } from '../../model/editInspect'
+import { RecoverFunc, getOriginalLine } from '../../model/editInspect'
 import RelativePattern from '../../model/relativePattern'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
@@ -413,401 +413,420 @@ describe('applyEdits()', () => {
   })
 })
 
-describe('inspectEdit', () => {
-  async function inspect(edit: WorkspaceEdit): Promise<Buffer> {
-    await workspace.applyEdit(edit)
-    await workspace.files.inspectEdit()
-    let buf = await nvim.buffer
-    return buf
-  }
-
-  it('should show wanring when edit not exists', async () => {
-    (workspace.files as any).editState = undefined
-    await workspace.files.inspectEdit()
-  })
-
-  it('should render with changes', async () => {
-    let fsPath = await createTmpFile('foo\n1\n2\nbar')
-    let doc = await helper.createDocument(fsPath)
-    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
-    let newUri = URI.file(newFile).toString()
-    let createFile = path.join(os.tmpdir(), `coc-${process.pid}/create-${uuid()}`)
-    let deleteFile = await createTmpFile('delete')
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
-      if (fs.existsSync(createFile)) fs.unlinkSync(createFile)
-      if (fs.existsSync(deleteFile)) fs.unlinkSync(deleteFile)
-    }))
-    let edit: WorkspaceEdit = {
-      documentChanges: [
+describe('getOriginalLine', () => {
+  it('should get original line', async () => {
+    let item = { index: 0, filepath: '' }
+    expect(getOriginalLine(item, undefined)).toBeUndefined()
+    expect(getOriginalLine({ index: 0, filepath: '', lnum: 1 }, undefined)).toBe(1)
+    let doc = await helper.createDocument()
+    let change = {
+      textDocument: { version: doc.version, uri: doc.uri },
+      edits: [
         {
-          textDocument: { version: null, uri: doc.uri, },
-          edits: [
-            TextEdit.del(Range.create(0, 0, 1, 0)),
-            TextEdit.replace(Range.create(3, 0, 3, 3), 'xyz'),
-          ]
-        },
-        {
-          kind: 'rename',
-          oldUri: doc.uri,
-          newUri
-        }, {
-          kind: 'create',
-          uri: URI.file(createFile).toString()
-        }, {
-          kind: 'delete',
-          uri: URI.file(deleteFile).toString()
+          range: Range.create(0, 0, 0, 0),
+          newText: 'bar',
         }
       ]
     }
-    let buf = await inspect(edit)
-    let lines = await buf.lines
-    let content = lines.join('\n')
-    expect(content).toMatch('Change')
-    expect(content).toMatch('Rename')
-    expect(content).toMatch('Create')
-    expect(content).toMatch('Delete')
-    await nvim.command('exe 5')
-    await nvim.input('<CR>')
-    await helper.waitFor('expand', ['%:p'], newFile)
-    let line = await nvim.call('line', ['.'])
-    expect(line).toBe(3)
+    expect(getOriginalLine({ index: 0, filepath: '', lnum: 1 }, change)).toBe(1)
   })
 
-  it('should render annotation label', async () => {
-    let doc = await helper.createDocument(uuid())
-    let edit: WorkspaceEdit = {
-      documentChanges: [
-        {
-          textDocument: { version: doc.version, uri: doc.uri },
-          edits: [
-            {
-              range: Range.create(0, 0, 0, 0),
-              newText: 'bar',
-              annotationId: 'dd866f37-a24c-4503-9c35-c139fb28e25b'
-            }
-          ]
-        },
-      ],
-      changeAnnotations: {
-        'dd866f37-a24c-4503-9c35-c139fb28e25b': {
-          needsConfirmation: false,
-          label: 'Text changes'
+  describe('inspectEdit', () => {
+    async function inspect(edit: WorkspaceEdit): Promise<Buffer> {
+      await workspace.applyEdit(edit)
+      await workspace.files.inspectEdit()
+      let buf = await nvim.buffer
+      return buf
+    }
+
+    it('should show wanring when edit not exists', async () => {
+      (workspace.files as any).editState = undefined
+      await workspace.files.inspectEdit()
+    })
+
+    it('should render with changes', async () => {
+      let fsPath = await createTmpFile('foo\n1\n2\nbar')
+      let doc = await helper.createDocument(fsPath)
+      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+      let newUri = URI.file(newFile).toString()
+      let createFile = path.join(os.tmpdir(), `coc-${process.pid}/create-${uuid()}`)
+      let deleteFile = await createTmpFile('delete')
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
+        if (fs.existsSync(createFile)) fs.unlinkSync(createFile)
+        if (fs.existsSync(deleteFile)) fs.unlinkSync(deleteFile)
+      }))
+      let edit: WorkspaceEdit = {
+        documentChanges: [
+          {
+            textDocument: { version: null, uri: doc.uri, },
+            edits: [
+              TextEdit.del(Range.create(0, 0, 1, 0)),
+              TextEdit.replace(Range.create(3, 0, 3, 3), 'xyz'),
+            ]
+          },
+          {
+            kind: 'rename',
+            oldUri: doc.uri,
+            newUri
+          }, {
+            kind: 'create',
+            uri: URI.file(createFile).toString()
+          }, {
+            kind: 'delete',
+            uri: URI.file(deleteFile).toString()
+          }
+        ]
+      }
+      let buf = await inspect(edit)
+      let lines = await buf.lines
+      let content = lines.join('\n')
+      expect(content).toMatch('Change')
+      expect(content).toMatch('Rename')
+      expect(content).toMatch('Create')
+      expect(content).toMatch('Delete')
+      await nvim.command('exe 5')
+      await nvim.input('<CR>')
+      await helper.waitFor('expand', ['%:p'], newFile)
+      let line = await nvim.call('line', ['.'])
+      expect(line).toBe(3)
+    })
+
+    it('should render annotation label', async () => {
+      let doc = await helper.createDocument(uuid())
+      let edit: WorkspaceEdit = {
+        documentChanges: [
+          {
+            textDocument: { version: doc.version, uri: doc.uri },
+            edits: [
+              {
+                range: Range.create(0, 0, 0, 0),
+                newText: 'bar',
+                annotationId: 'dd866f37-a24c-4503-9c35-c139fb28e25b'
+              }
+            ]
+          },
+        ],
+        changeAnnotations: {
+          'dd866f37-a24c-4503-9c35-c139fb28e25b': {
+            needsConfirmation: false,
+            label: 'Text changes'
+          }
         }
       }
-    }
-    let buf = await inspect(edit)
-    await events.fire('BufUnload', [buf.id + 1])
-    let winid = await nvim.call('win_getid')
-    let lines = await buf.lines
-    expect(lines[0]).toBe('Text changes')
-    await nvim.command('exe 1')
-    await nvim.input('<CR>')
-    let bufnr = await nvim.call('bufnr', ['%'])
-    expect(bufnr).toBe(buf.id)
-    await nvim.command('exe 3')
-    await nvim.input('<CR>')
-    let fsPath = URI.parse(doc.uri).fsPath
-    await helper.waitFor('expand', ['%:p'], fsPath)
-    await nvim.call('win_gotoid', [winid])
-    await nvim.input('<esc>')
-    await helper.wait(10)
-  })
-})
-
-describe('createFile()', () => {
-  it('should create and revert parent folder', async () => {
-    const folder = path.join(os.tmpdir(), uuid())
-    const filepath = path.join(folder, 'bar')
-    disposables.push(Disposable.create(() => {
-      fs.rmSync(folder, { recursive: true, force: true })
-    }))
-    let fns: RecoverFunc[] = []
-    expect(fs.existsSync(folder)).toBe(false)
-    await workspace.files.createFile(filepath, {}, fns)
-    expect(fs.existsSync(filepath)).toBe(true)
-    for (let i = fns.length - 1; i >= 0; i--) {
-      await fns[i]()
-    }
-    expect(fs.existsSync(folder)).toBe(false)
+      let buf = await inspect(edit)
+      await events.fire('BufUnload', [buf.id + 1])
+      let winid = await nvim.call('win_getid')
+      let lines = await buf.lines
+      expect(lines[0]).toBe('Text changes')
+      await nvim.command('exe 1')
+      await nvim.input('<CR>')
+      let bufnr = await nvim.call('bufnr', ['%'])
+      expect(bufnr).toBe(buf.id)
+      await nvim.command('exe 3')
+      await nvim.input('<CR>')
+      let fsPath = URI.parse(doc.uri).fsPath
+      await helper.waitFor('expand', ['%:p'], fsPath)
+      await nvim.call('win_gotoid', [winid])
+      await nvim.input('<esc>')
+      await helper.wait(10)
+    })
   })
 
-  it('should throw when file already exists', async () => {
-    let filepath = await createTmpFile('foo', disposables)
-    let fn = async () => {
-      await workspace.createFile(filepath, {})
-    }
-    await expect(fn()).rejects.toThrow(Error)
+  describe('createFile()', () => {
+    it('should create and revert parent folder', async () => {
+      const folder = path.join(os.tmpdir(), uuid())
+      const filepath = path.join(folder, 'bar')
+      disposables.push(Disposable.create(() => {
+        fs.rmSync(folder, { recursive: true, force: true })
+      }))
+      let fns: RecoverFunc[] = []
+      expect(fs.existsSync(folder)).toBe(false)
+      await workspace.files.createFile(filepath, {}, fns)
+      expect(fs.existsSync(filepath)).toBe(true)
+      for (let i = fns.length - 1; i >= 0; i--) {
+        await fns[i]()
+      }
+      expect(fs.existsSync(folder)).toBe(false)
+    })
+
+    it('should throw when file already exists', async () => {
+      let filepath = await createTmpFile('foo', disposables)
+      let fn = async () => {
+        await workspace.createFile(filepath, {})
+      }
+      await expect(fn()).rejects.toThrow(Error)
+    })
+
+    it('should not create file if file exists with ignoreIfExists', async () => {
+      let file = await createTmpFile('foo')
+      await workspace.createFile(file, { ignoreIfExists: true })
+      let content = fs.readFileSync(file, 'utf8')
+      expect(content).toBe('foo')
+    })
+
+    it('should create file if does not exist', async () => {
+      await helper.edit()
+      let filepath = path.join(__dirname, 'foo')
+      await workspace.createFile(filepath, { ignoreIfExists: true })
+      let exists = fs.existsSync(filepath)
+      expect(exists).toBe(true)
+      fs.unlinkSync(filepath)
+    })
+
+    it('should revert file create', async () => {
+      let filepath = path.join(os.tmpdir(), uuid())
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+      }))
+      let fns: RecoverFunc[] = []
+      await workspace.files.createFile(filepath, { overwrite: true }, fns)
+      expect(fs.existsSync(filepath)).toBe(true)
+      let bufnr = await nvim.call('bufnr', [filepath])
+      expect(bufnr).toBeGreaterThan(0)
+      let doc = workspace.getDocument(bufnr)
+      expect(doc).toBeDefined()
+      for (let fn of fns) {
+        await fn()
+      }
+      expect(fs.existsSync(filepath)).toBe(false)
+      let loaded = await nvim.call('bufloaded', [filepath])
+      expect(loaded).toBe(0)
+    })
   })
 
-  it('should not create file if file exists with ignoreIfExists', async () => {
-    let file = await createTmpFile('foo')
-    await workspace.createFile(file, { ignoreIfExists: true })
-    let content = fs.readFileSync(file, 'utf8')
-    expect(content).toBe('foo')
-  })
+  describe('renameFile', () => {
+    it('should throw when oldPath not exists', async () => {
+      let filepath = path.join(__dirname, 'not_exists_file')
+      let newPath = path.join(__dirname, 'bar')
+      let fn = async () => {
+        await workspace.renameFile(filepath, newPath)
+      }
+      await expect(fn()).rejects.toThrow(Error)
+    })
 
-  it('should create file if does not exist', async () => {
-    await helper.edit()
-    let filepath = path.join(__dirname, 'foo')
-    await workspace.createFile(filepath, { ignoreIfExists: true })
-    let exists = fs.existsSync(filepath)
-    expect(exists).toBe(true)
-    fs.unlinkSync(filepath)
-  })
+    it('should rename file on disk', async () => {
+      let filepath = await createTmpFile('test')
+      let newPath = path.join(path.dirname(filepath), 'new_file')
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+        if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+      }))
+      let fns: RecoverFunc[] = []
+      await workspace.files.renameFile(filepath, newPath, { overwrite: true }, fns)
+      expect(fs.existsSync(newPath)).toBe(true)
+      for (let fn of fns) {
+        await fn()
+      }
+      expect(fs.existsSync(newPath)).toBe(false)
+      expect(fs.existsSync(filepath)).toBe(true)
+    })
 
-  it('should revert file create', async () => {
-    let filepath = path.join(os.tmpdir(), uuid())
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
-    }))
-    let fns: RecoverFunc[] = []
-    await workspace.files.createFile(filepath, { overwrite: true }, fns)
-    expect(fs.existsSync(filepath)).toBe(true)
-    let bufnr = await nvim.call('bufnr', [filepath])
-    expect(bufnr).toBeGreaterThan(0)
-    let doc = workspace.getDocument(bufnr)
-    expect(doc).toBeDefined()
-    for (let fn of fns) {
-      await fn()
-    }
-    expect(fs.existsSync(filepath)).toBe(false)
-    let loaded = await nvim.call('bufloaded', [filepath])
-    expect(loaded).toBe(0)
-  })
-})
-
-describe('renameFile', () => {
-  it('should throw when oldPath not exists', async () => {
-    let filepath = path.join(__dirname, 'not_exists_file')
-    let newPath = path.join(__dirname, 'bar')
-    let fn = async () => {
+    it('should rename if file does not exist', async () => {
+      let filepath = path.join(__dirname, 'foo')
+      let newPath = path.join(__dirname, 'bar')
+      await workspace.createFile(filepath)
       await workspace.renameFile(filepath, newPath)
-    }
-    await expect(fn()).rejects.toThrow(Error)
+      expect(fs.existsSync(newPath)).toBe(true)
+      expect(fs.existsSync(filepath)).toBe(false)
+      fs.unlinkSync(newPath)
+    })
+
+    it('should rename current buffer with same bufnr', async () => {
+      let file = await createTmpFile('test')
+      let doc = await helper.createDocument(file)
+      await nvim.setLine('bar')
+      await doc.patchChange()
+      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
+      }))
+      await workspace.renameFile(file, newFile)
+      let bufnr = await nvim.call('bufnr', ['%'])
+      expect(bufnr).toBe(doc.bufnr)
+      let line = await nvim.line
+      expect(line).toBe('bar')
+      let exists = fs.existsSync(newFile)
+      expect(exists).toBe(true)
+    })
+
+    it('should overwrite if file exists', async () => {
+      let filepath = path.join(os.tmpdir(), uuid())
+      let newPath = path.join(os.tmpdir(), uuid())
+      await workspace.createFile(filepath)
+      await workspace.createFile(newPath)
+      await workspace.renameFile(filepath, newPath, { overwrite: true })
+      expect(fs.existsSync(newPath)).toBe(true)
+      expect(fs.existsSync(filepath)).toBe(false)
+      fs.unlinkSync(newPath)
+    })
+
+    it('should rename buffer in directory and revert', async () => {
+      let folder = path.join(os.tmpdir(), uuid())
+      let newFolder = path.join(os.tmpdir(), uuid())
+      fs.mkdirSync(folder)
+      disposables.push(Disposable.create(() => {
+        fs.rmSync(folder, { recursive: true, force: true })
+        fs.rmSync(newFolder, { recursive: true, force: true })
+      }))
+      let filepath = path.join(folder, 'new_file')
+      await workspace.createFile(filepath)
+      let bufnr = await nvim.call('bufnr', [filepath])
+      expect(bufnr).toBeGreaterThan(0)
+      let fns: RecoverFunc[] = []
+      await workspace.files.renameFile(folder, newFolder, { overwrite: true }, fns)
+      bufnr = await nvim.call('bufnr', [path.join(newFolder, 'new_file')])
+      expect(bufnr).toBeGreaterThan(0)
+      for (let i = fns.length - 1; i >= 0; i--) {
+        await fns[i]()
+      }
+      bufnr = await nvim.call('bufnr', [filepath])
+      expect(bufnr).toBeGreaterThan(0)
+    })
   })
 
-  it('should rename file on disk', async () => {
-    let filepath = await createTmpFile('test')
-    let newPath = path.join(path.dirname(filepath), 'new_file')
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
-      if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
-    }))
-    let fns: RecoverFunc[] = []
-    await workspace.files.renameFile(filepath, newPath, { overwrite: true }, fns)
-    expect(fs.existsSync(newPath)).toBe(true)
-    for (let fn of fns) {
-      await fn()
-    }
-    expect(fs.existsSync(newPath)).toBe(false)
-    expect(fs.existsSync(filepath)).toBe(true)
+  describe('loadResource()', () => {
+    it('should load file as hidden buffer', async () => {
+      helper.updateConfiguration('workspace.openResourceCommand', '')
+      let filepath = await createTmpFile('foo')
+      let uri = URI.file(filepath).toString()
+      let doc = await workspace.files.loadResource(uri)
+      let bufnrs = await nvim.call('coc#window#bufnrs') as number[]
+      expect(bufnrs.indexOf(doc.bufnr)).toBe(-1)
+    })
   })
 
-  it('should rename if file does not exist', async () => {
-    let filepath = path.join(__dirname, 'foo')
-    let newPath = path.join(__dirname, 'bar')
-    await workspace.createFile(filepath)
-    await workspace.renameFile(filepath, newPath)
-    expect(fs.existsSync(newPath)).toBe(true)
-    expect(fs.existsSync(filepath)).toBe(false)
-    fs.unlinkSync(newPath)
-  })
+  describe('deleteFile()', () => {
+    it('should throw when file not exists', async () => {
+      let filepath = path.join(__dirname, 'not_exists')
+      let fn = async () => {
+        await workspace.deleteFile(filepath)
+      }
+      await expect(fn()).rejects.toThrow(Error)
+    })
 
-  it('should rename current buffer with same bufnr', async () => {
-    let file = await createTmpFile('test')
-    let doc = await helper.createDocument(file)
-    await nvim.setLine('bar')
-    await doc.patchChange()
-    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${uuid()}`)
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
-    }))
-    await workspace.renameFile(file, newFile)
-    let bufnr = await nvim.call('bufnr', ['%'])
-    expect(bufnr).toBe(doc.bufnr)
-    let line = await nvim.line
-    expect(line).toBe('bar')
-    let exists = fs.existsSync(newFile)
-    expect(exists).toBe(true)
-  })
+    it('should ignore when ignoreIfNotExists set', async () => {
+      let filepath = path.join(__dirname, 'not_exists')
+      let fns: RecoverFunc[] = []
+      await workspace.files.deleteFile(filepath, { ignoreIfNotExists: true }, fns)
+      expect(fns.length).toBe(0)
+    })
 
-  it('should overwrite if file exists', async () => {
-    let filepath = path.join(os.tmpdir(), uuid())
-    let newPath = path.join(os.tmpdir(), uuid())
-    await workspace.createFile(filepath)
-    await workspace.createFile(newPath)
-    await workspace.renameFile(filepath, newPath, { overwrite: true })
-    expect(fs.existsSync(newPath)).toBe(true)
-    expect(fs.existsSync(filepath)).toBe(false)
-    fs.unlinkSync(newPath)
-  })
+    it('should unload loaded buffer', async () => {
+      let filepath = await createTmpFile('file to delete')
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+      }))
+      await workspace.files.loadResource(URI.file(filepath).toString())
+      let fns: RecoverFunc[] = []
+      await workspace.files.deleteFile(filepath, {}, fns)
+      let loaded = await nvim.call('bufloaded', [filepath])
+      expect(loaded).toBe(0)
+      for (let i = fns.length - 1; i >= 0; i--) {
+        await fns[i]()
+      }
+      expect(fs.existsSync(filepath)).toBe(true)
+      loaded = await nvim.call('bufloaded', [filepath])
+      expect(loaded).toBe(1)
+    })
 
-  it('should rename buffer in directory and revert', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
-    let newFolder = path.join(os.tmpdir(), uuid())
-    fs.mkdirSync(folder)
-    disposables.push(Disposable.create(() => {
-      fs.rmSync(folder, { recursive: true, force: true })
-      fs.rmSync(newFolder, { recursive: true, force: true })
-    }))
-    let filepath = path.join(folder, 'new_file')
-    await workspace.createFile(filepath)
-    let bufnr = await nvim.call('bufnr', [filepath])
-    expect(bufnr).toBeGreaterThan(0)
-    let fns: RecoverFunc[] = []
-    await workspace.files.renameFile(folder, newFolder, { overwrite: true }, fns)
-    bufnr = await nvim.call('bufnr', [path.join(newFolder, 'new_file')])
-    expect(bufnr).toBeGreaterThan(0)
-    for (let i = fns.length - 1; i >= 0; i--) {
-      await fns[i]()
-    }
-    bufnr = await nvim.call('bufnr', [filepath])
-    expect(bufnr).toBeGreaterThan(0)
-  })
-})
+    it('should delete and recover folder', async () => {
+      let folder = path.join(os.tmpdir(), uuid())
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(folder)) fs.rmdirSync(folder)
+      }))
+      fs.mkdirSync(folder)
+      expect(fs.existsSync(folder)).toBe(true)
+      let fns: RecoverFunc[] = []
+      await workspace.files.deleteFile(folder, {}, fns)
+      expect(fs.existsSync(folder)).toBe(false)
+      for (let i = fns.length - 1; i >= 0; i--) {
+        await fns[i]()
+      }
+      expect(fs.existsSync(folder)).toBe(true)
+      await workspace.files.deleteFile(folder, {})
+    })
 
-describe('loadResource()', () => {
-  it('should load file as hidden buffer', async () => {
-    helper.updateConfiguration('workspace.openResourceCommand', '')
-    let filepath = await createTmpFile('foo')
-    let uri = URI.file(filepath).toString()
-    let doc = await workspace.files.loadResource(uri)
-    let bufnrs = await nvim.call('coc#window#bufnrs') as number[]
-    expect(bufnrs.indexOf(doc.bufnr)).toBe(-1)
-  })
-})
+    it('should delete and recover folder recursive', async () => {
+      let folder = path.join(os.tmpdir(), uuid())
+      disposables.push(Disposable.create(() => {
+        fs.rmSync(folder, { recursive: true, force: true })
+      }))
+      fs.mkdirSync(folder)
+      fs.writeFileSync(path.join(folder, 'new_file'), '', 'utf8')
+      let fns: RecoverFunc[] = []
+      await workspace.files.deleteFile(folder, { recursive: true }, fns)
+      expect(fs.existsSync(folder)).toBe(false)
+      for (let i = fns.length - 1; i >= 0; i--) {
+        await fns[i]()
+      }
+      expect(fs.existsSync(folder)).toBe(true)
+      expect(fs.existsSync(path.join(folder, 'new_file'))).toBe(true)
+      await workspace.files.deleteFile(folder, { recursive: true })
+    })
 
-describe('deleteFile()', () => {
-  it('should throw when file not exists', async () => {
-    let filepath = path.join(__dirname, 'not_exists')
-    let fn = async () => {
+    it('should delete file if exists', async () => {
+      let filepath = path.join(__dirname, 'foo')
+      await workspace.createFile(filepath)
+      expect(fs.existsSync(filepath)).toBe(true)
       await workspace.deleteFile(filepath)
-    }
-    await expect(fn()).rejects.toThrow(Error)
+      expect(fs.existsSync(filepath)).toBe(false)
+    })
   })
 
-  it('should ignore when ignoreIfNotExists set', async () => {
-    let filepath = path.join(__dirname, 'not_exists')
-    let fns: RecoverFunc[] = []
-    await workspace.files.deleteFile(filepath, { ignoreIfNotExists: true }, fns)
-    expect(fns.length).toBe(0)
+  describe('loadFile()', () => {
+    it('should single loadFile', async () => {
+      let doc = await helper.createDocument()
+      let newFile = URI.file(path.join(__dirname, 'abc')).toString()
+      let document = await workspace.loadFile(newFile)
+      let bufnr = await nvim.call('bufnr', '%')
+      expect(document.uri.endsWith('abc')).toBe(true)
+      expect(bufnr).toBe(doc.bufnr)
+    })
   })
 
-  it('should unload loaded buffer', async () => {
-    let filepath = await createTmpFile('file to delete')
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
-    }))
-    await workspace.files.loadResource(URI.file(filepath).toString())
-    let fns: RecoverFunc[] = []
-    await workspace.files.deleteFile(filepath, {}, fns)
-    let loaded = await nvim.call('bufloaded', [filepath])
-    expect(loaded).toBe(0)
-    for (let i = fns.length - 1; i >= 0; i--) {
-      await fns[i]()
-    }
-    expect(fs.existsSync(filepath)).toBe(true)
-    loaded = await nvim.call('bufloaded', [filepath])
-    expect(loaded).toBe(1)
+  describe('loadFiles', () => {
+    it('should loadFiles', async () => {
+      let files = ['a', 'b', 'c'].map(key => URI.file(path.join(__dirname, key)).toString())
+      let docs = await workspace.loadFiles(files)
+      let uris = docs.map(o => o.uri)
+      expect(uris).toEqual(files)
+    })
+
+    it('should load empty files array', async () => {
+      await workspace.loadFiles([])
+    })
   })
 
-  it('should delete and recover folder', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(folder)) fs.rmdirSync(folder)
-    }))
-    fs.mkdirSync(folder)
-    expect(fs.existsSync(folder)).toBe(true)
-    let fns: RecoverFunc[] = []
-    await workspace.files.deleteFile(folder, {}, fns)
-    expect(fs.existsSync(folder)).toBe(false)
-    for (let i = fns.length - 1; i >= 0; i--) {
-      await fns[i]()
-    }
-    expect(fs.existsSync(folder)).toBe(true)
-    await workspace.files.deleteFile(folder, {})
-  })
+  describe('openTextDocument()', () => {
+    it('should open document already exists', async () => {
+      let doc = await helper.createDocument('a')
+      await nvim.command('enew')
+      await workspace.openTextDocument(URI.parse(doc.uri))
+      let curr = await workspace.document
+      expect(curr.uri).toBe(doc.uri)
+    })
 
-  it('should delete and recover folder recursive', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
-    disposables.push(Disposable.create(() => {
-      fs.rmSync(folder, { recursive: true, force: true })
-    }))
-    fs.mkdirSync(folder)
-    fs.writeFileSync(path.join(folder, 'new_file'), '', 'utf8')
-    let fns: RecoverFunc[] = []
-    await workspace.files.deleteFile(folder, { recursive: true }, fns)
-    expect(fs.existsSync(folder)).toBe(false)
-    for (let i = fns.length - 1; i >= 0; i--) {
-      await fns[i]()
-    }
-    expect(fs.existsSync(folder)).toBe(true)
-    expect(fs.existsSync(path.join(folder, 'new_file'))).toBe(true)
-    await workspace.files.deleteFile(folder, { recursive: true })
-  })
+    it('should throw when file does not exist', async () => {
+      let err
+      try {
+        await workspace.openTextDocument('/a/b/c')
+      } catch (e) {
+        err = e
+      }
+      expect(err).toBeDefined()
+    })
 
-  it('should delete file if exists', async () => {
-    let filepath = path.join(__dirname, 'foo')
-    await workspace.createFile(filepath)
-    expect(fs.existsSync(filepath)).toBe(true)
-    await workspace.deleteFile(filepath)
-    expect(fs.existsSync(filepath)).toBe(false)
-  })
-})
+    it('should open untitled document', async () => {
+      let doc = await workspace.openTextDocument(URI.parse(`untitled:///a/b.js`))
+      expect(doc.uri).toBe('file:///a/b.js')
+    })
 
-describe('loadFile()', () => {
-  it('should single loadFile', async () => {
-    let doc = await helper.createDocument()
-    let newFile = URI.file(path.join(__dirname, 'abc')).toString()
-    let document = await workspace.loadFile(newFile)
-    let bufnr = await nvim.call('bufnr', '%')
-    expect(document.uri.endsWith('abc')).toBe(true)
-    expect(bufnr).toBe(doc.bufnr)
-  })
-})
-
-describe('loadFiles', () => {
-  it('should loadFiles', async () => {
-    let files = ['a', 'b', 'c'].map(key => URI.file(path.join(__dirname, key)).toString())
-    let docs = await workspace.loadFiles(files)
-    let uris = docs.map(o => o.uri)
-    expect(uris).toEqual(files)
-  })
-
-  it('should load empty files array', async () => {
-    await workspace.loadFiles([])
-  })
-})
-
-describe('openTextDocument()', () => {
-  it('should open document already exists', async () => {
-    let doc = await helper.createDocument('a')
-    await nvim.command('enew')
-    await workspace.openTextDocument(URI.parse(doc.uri))
-    let curr = await workspace.document
-    expect(curr.uri).toBe(doc.uri)
-  })
-
-  it('should throw when file does not exist', async () => {
-    let err
-    try {
-      await workspace.openTextDocument('/a/b/c')
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeDefined()
-  })
-
-  it('should open untitled document', async () => {
-    let doc = await workspace.openTextDocument(URI.parse(`untitled:///a/b.js`))
-    expect(doc.uri).toBe('file:///a/b.js')
-  })
-
-  it('should load file that exists', async () => {
-    let doc = await workspace.openTextDocument(URI.file(__filename))
-    expect(URI.parse(doc.uri).fsPath).toBe(__filename)
-    let curr = await workspace.document
-    expect(curr.uri).toBe(doc.uri)
+    it('should load file that exists', async () => {
+      let doc = await workspace.openTextDocument(URI.file(__filename))
+      expect(URI.parse(doc.uri).fsPath).toBe(__filename)
+      let curr = await workspace.document
+      expect(curr.uri).toBe(doc.uri)
+    })
   })
 })

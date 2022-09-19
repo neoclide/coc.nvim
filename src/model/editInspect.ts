@@ -10,7 +10,7 @@ import events from '../events'
 import { DocumentChange, LinesChange } from '../types'
 import { disposeAll } from '../util'
 import { isParentFolder } from '../util/fs'
-import { getAnnotationKey, getPositionFromEdits, mergeSort } from '../util/textedit'
+import { getAnnotationKey, getPositionFromEdits, mergeSortEdits } from '../util/textedit'
 import Highlighter from './highligher'
 const logger = require('../util/logger')('mdoe-editInspect')
 
@@ -136,24 +136,9 @@ export default class EditInspect {
       let uri = URI.file(absPath(find.filepath)).toString()
       let filepath = this.renameMap.has(find.filepath) ? this.renameMap.get(find.filepath) : find.filepath
       await nvim.call('coc#util#open_file', ['tab drop', absPath(filepath)])
-      // need change old lnum to new lnum
-      if (typeof find.lnum === 'number') {
-        let changes = state.edit.documentChanges ?? []
-        let change = changes.find(o => TextDocumentEdit.is(o) && o.textDocument.uri == uri) as TextDocumentEdit
-        let lnum = find.lnum
-        if (change) {
-          let edits = mergeSort(change.edits, (a, b) => {
-            let diff = a.range.start.line - b.range.start.line
-            if (diff === 0) {
-              return a.range.start.character - b.range.start.character
-            }
-            return diff
-          })
-          let pos = getPositionFromEdits(Position.create(lnum - 1, 0), edits)
-          lnum = pos.line + 1
-        }
-        await nvim.call('cursor', [lnum, col])
-      }
+      let change = (state.edit.documentChanges ?? []).find(o => TextDocumentEdit.is(o) && o.textDocument.uri == uri) as TextDocumentEdit
+      let originLine = getOriginalLine(find, change)
+      if (originLine !== undefined) await nvim.call('cursor', [originLine, col])
       nvim.redrawVim()
     }, true))
     this.disposables.push(this.keymaps.registerLocalKeymap('n', '<esc>', async () => {
@@ -189,7 +174,7 @@ export default class EditInspect {
       } else if (diff[0] == fastDiff.DELETE) {
         lnum += diff[1].split('\n').length - 1
         highligher.addText(diff[1], 'DiffDelete')
-      } else if (diff[0] == fastDiff.INSERT) {
+      } else {
         highligher.addText(diff[1], 'DiffAdd')
       }
     }
@@ -200,11 +185,22 @@ export default class EditInspect {
   }
 }
 
-export function grouByAnnotation(changes: DocumentChange[], annotations: { [id: string]: ChangeAnnotation }): Map<string | null, DocumentChange[]> {
+export function getOriginalLine(item: ChangedFileItem, change: TextDocumentEdit | undefined): number | undefined {
+  if (typeof item.lnum !== 'number') return undefined
+  let lnum = item.lnum
+  if (change) {
+    let edits = mergeSortEdits(change.edits)
+    let pos = getPositionFromEdits(Position.create(lnum - 1, 0), edits)
+    lnum = pos.line + 1
+  }
+  return lnum
+}
+
+function grouByAnnotation(changes: DocumentChange[], annotations: { [id: string]: ChangeAnnotation }): Map<string | null, DocumentChange[]> {
   let map: Map<string | null, DocumentChange[]> = new Map()
   for (let change of changes) {
     let id = getAnnotationKey(change) ?? null
-    let key = id ? annotations[id].label ?? null : null
+    let key = id ? annotations[id].label : null
     let arr = map.get(key)
     if (arr) {
       arr.push(change)

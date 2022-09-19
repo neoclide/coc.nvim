@@ -105,6 +105,24 @@ describe('window', () => {
       expect(id).toBeGreaterThan(0)
     })
 
+    it('should createStatusBarItem', async () => {
+      let item = window.createStatusBarItem(1, { progress: true })
+      item.text = 'test'
+      item.show()
+      expect(item.text).toBe('test')
+      expect(item.isProgress).toBe(true)
+      let other = window.createStatusBarItem()
+      other.text = 'bar'
+      other.show()
+      await helper.waitValue(async () => {
+        let res = await nvim.getVar('coc_status') as string
+        return res.includes('bar')
+      }, true)
+      item.hide()
+      item.dispose()
+      other.dispose()
+    })
+
     it('should create outputChannel', () => {
       let channel = window.createOutputChannel('channel')
       expect(channel.name).toBe('channel')

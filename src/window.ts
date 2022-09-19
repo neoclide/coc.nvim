@@ -417,7 +417,7 @@ export class Window {
     if (!this.statusLine) {
       this.statusLine = new StatusLine(this.nvim)
     }
-    return this.statusLine.createStatusBarItem(priority, option.progress || false)
+    return this.statusLine.createStatusBarItem(priority, option.progress)
   }
 
   /**

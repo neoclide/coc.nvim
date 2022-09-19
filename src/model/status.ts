@@ -36,7 +36,7 @@ export default class StatusLine implements Disposable {
     clearInterval(this.interval)
   }
 
-  public createStatusBarItem(priority = 0, isProgress = false): StatusBarItem {
+  public createStatusBarItem(priority: number, isProgress = false): StatusBarItem {
     let uid = uuidv1()
 
     let item: StatusBarItem = {
@@ -86,7 +86,6 @@ export default class StatusLine implements Disposable {
   private setStatusText(): void {
     let text = this.getText()
     let { nvim } = this
-    if (!nvim) return
     if (text != this._text) {
       this._text = text
       nvim.pauseNotification()
