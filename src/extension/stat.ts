@@ -73,6 +73,7 @@ export class ExtensionStat {
       curr.disabled = Array.from(this.disabled)
       curr.locked = Array.from(this.locked)
       curr.lastUpdate - obj.lastUpdate
+      fs.unlinkSync(db)
       changed = true
     } else {
       this.disabled = new Set(curr.disabled ?? [])
