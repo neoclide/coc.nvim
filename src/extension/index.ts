@@ -199,6 +199,7 @@ export class Extensions {
       return true
     })
     this.states.setLastUpdate()
+    this.cleanModulesFolder()
     let installBuffer = this.createInstallerUI(true, silent)
     await Promise.resolve(installBuffer.start(stats.map(o => o.id)))
     let fn = async (stat: ExtensionInfo): Promise<void> => {
@@ -288,6 +289,26 @@ export class Extensions {
       }))
     })
     return infos
+  }
+
+  /**
+   * Remove unnecessary folders in node_modules
+   */
+  public cleanModulesFolder(): void {
+    let globalIds = this.states.globalIds
+    let folders = globalIds.map(s => s.replace(/\/.*$/, ''))
+    if (!fs.existsSync(this.modulesFolder)) return
+    let files = fs.readdirSync(this.modulesFolder)
+    for (let file of files) {
+      if (folders.includes(file)) continue
+      let p = path.join(this.modulesFolder, file)
+      let stat = fs.lstatSync(p)
+      if (stat.isSymbolicLink()) {
+        fs.unlinkSync(p)
+      } else if (stat.isDirectory()) {
+        fs.rmSync(p, { recursive: true, force: true })
+      }
+    }
   }
 
   public dispose(): void {

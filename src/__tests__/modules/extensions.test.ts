@@ -1,4 +1,3 @@
-import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -10,11 +9,9 @@ import { writeJson } from '../../extension/stat'
 import { writeFile } from '../../util/fs'
 import helper from '../helper'
 
-let nvim: Neovim
 let tmpfolder: string
 beforeAll(async () => {
   await helper.setup()
-  nvim = helper.nvim
 })
 
 afterAll(async () => {
@@ -22,7 +19,7 @@ afterAll(async () => {
 })
 
 afterEach(() => {
-  if (tmpfolder && fs.existsSync(tmpfolder)) {
+  if (tmpfolder) {
     fs.rmSync(tmpfolder, { force: true, recursive: true })
     tmpfolder = undefined
   }
@@ -203,6 +200,17 @@ describe('extensions', () => {
     expect(called).toBe(true)
     spy.mockRestore()
     s.mockRestore()
+  })
+
+  it('should clean unnecessary folders & links', async () => {
+    // create folder and link in modulesFolder
+    let folder = path.join(extensions.modulesFolder, 'test')
+    let link = path.join(extensions.modulesFolder, 'test-link')
+    fs.mkdirSync(folder, { recursive: true })
+    fs.symlinkSync(folder, link)
+    extensions.cleanModulesFolder()
+    expect(fs.existsSync(folder)).toBe(false)
+    expect(fs.existsSync(link)).toBe(false)
   })
 
   it('should install global extension', async () => {
