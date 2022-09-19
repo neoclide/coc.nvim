@@ -45,7 +45,7 @@ interface PreviewConfig {
 
 export interface PreviewOptions {
   bufname?: string
-  filetype: string
+  filetype?: string
   lines: string[]
   lnum?: number
   range?: Range
@@ -274,7 +274,7 @@ export default abstract class BasicList implements IList, Disposable {
     let config: PreviewConfig = {
       winid: context.window.id,
       lnum: range ? range.start.line + 1 : lnum || 1,
-      filetype: filetype || 'txt',
+      filetype,
       position: context.options.position,
       maxHeight: this.previewHeight,
       splitRight: this.splitRight,
