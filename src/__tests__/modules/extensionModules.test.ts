@@ -150,9 +150,11 @@ describe('utils', () => {
 })
 
 describe('ExtensionStat', () => {
-  function createDB(folder: string, data: any): void {
+  function createDB(folder: string, data: any): string {
     let s = JSON.stringify(data, null, 2)
-    fs.writeFileSync(path.join(folder, 'db.json'), s, 'utf8')
+    let filepath = path.join(folder, 'db.json')
+    fs.writeFileSync(filepath, s, 'utf8')
+    return filepath
   }
 
   function create(): [ExtensionStat, string] {
@@ -175,6 +177,14 @@ describe('ExtensionStat', () => {
     expect(stat).toBeDefined()
   })
 
+  it('should add local extension', async () => {
+    let folder = path.join(os.tmpdir(), uuid())
+    let stat = new ExtensionStat(folder)
+    stat.addLocalExtension('name', folder)
+    expect(stat.getFolder('name')).toBe(folder)
+    expect(stat.getFolder('unknown')).toBeUndefined()
+  })
+
   it('should migrate #1', async () => {
     let folder = path.join(os.tmpdir(), uuid())
     fs.mkdirSync(folder)
@@ -187,7 +197,7 @@ describe('ExtensionStat', () => {
         z: {}
       }
     }
-    createDB(folder, data)
+    let filepath = createDB(folder, data)
     writeJson(path.join(folder, 'package.json'), {
       dependencies: { x: '', y: '', z: '', a: '' }
     })
@@ -197,6 +207,7 @@ describe('ExtensionStat', () => {
     let obj = loadJson(path.join(folder, 'package.json')) as any
     expect(obj.disabled).toEqual(['x'])
     expect(obj.locked).toEqual(['y'])
+    expect(fs.existsSync(filepath)).toBe(false)
     fs.rmSync(folder, { force: true, recursive: true })
   })
 

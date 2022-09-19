@@ -104,6 +104,13 @@ describe('ExtensionManager', () => {
     fs.writeFileSync(path.join(folder, file), code, 'utf8')
   }
 
+  function createGlobalExtension(name: string): string {
+    tmpfolder = createFolder()
+    let extFolder = path.join(tmpfolder, 'node_modules', name)
+    createExtension(extFolder, { name, main: 'entry.js', engines: { coc: '>=0.0.1' } })
+    return extFolder
+  }
+
   describe('activateExtensions()', () => {
     it('should not throw no error', async () => {
       tmpfolder = createFolder()
@@ -315,6 +322,15 @@ describe('ExtensionManager', () => {
       expect(item.extension.exports['storagePath']).toBe(file)
       manager.dispose()
     })
+
+    it('should not load extension when filepath not exists', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, true)
+      let filepath = path.join(tmpfolder, 'abc.js')
+      await manager.loadExtensionFile(filepath)
+      let item = manager.getExtension('single-abc')
+      expect(item).toBeUndefined()
+    })
   })
 
   describe('uninstallExtensions()', () => {
@@ -395,9 +411,7 @@ describe('ExtensionManager', () => {
     })
 
     it('should load and activate global extension', async () => {
-      tmpfolder = createFolder()
-      let extFolder = path.join(tmpfolder, 'node_modules', 'name')
-      createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
+      let extFolder = createGlobalExtension('name')
       let manager = create(tmpfolder)
       manager.states.addExtension('name', '>=0.0.1')
       let res = await manager.loadExtension(extFolder)
@@ -418,17 +432,21 @@ describe('ExtensionManager', () => {
 
   describe('unloadExtension()', () => {
     it('should unload extension', async () => {
-      tmpfolder = createFolder()
-      let extFolder = path.join(tmpfolder, 'node_modules', 'name')
-      createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
+      let extFolder = createGlobalExtension('name')
       let manager = create(tmpfolder)
+      manager.states.addExtension('name', '>=0.0.1')
       await manager.loadExtension(extFolder)
       let res = manager.getExtension('name')
       expect(res).toBeDefined()
+      let fn = jest.fn()
+      manager.onDidUnloadExtension(() => {
+        fn()
+      })
       await manager.unloadExtension('name')
       res = manager.getExtension('name')
       expect(res).toBeUndefined()
       await manager.unloadExtension('name')
+      expect(fn).toBeCalledTimes(1)
       manager.dispose()
     })
   })
@@ -449,7 +467,7 @@ describe('ExtensionManager', () => {
       fs.writeFileSync(filepath, `exports.activate = () => {return {file: "${filepath}"}};exports.deactivate = () => {}`, 'utf8')
       let manager = create(tmpfolder)
       await manager.activateExtensions()
-      await manager.loadFileExtensions(tmpfolder)
+      await manager.loadExtensionFile(filepath)
       let item = manager.getExtension('single-test')
       expect(item.extension.isActive).toBe(true)
       await manager.activate('single-test')
@@ -549,7 +567,7 @@ describe('ExtensionManager', () => {
       let filepath = path.join(tmpfolder, 'test.js')
       fs.writeFileSync(filepath, `exports.activate = () => {return {file: "${filepath}"}};exports.deactivate = () => {}`, 'utf8')
       let manager = create(tmpfolder, true)
-      await manager.loadFileExtensions(tmpfolder)
+      await manager.loadExtensionFile(filepath)
       await manager.toggleExtension('single-test')
       let item = manager.getExtension('single-test')
       expect(item).toBeUndefined()
@@ -557,19 +575,11 @@ describe('ExtensionManager', () => {
       manager.dispose()
     })
 
-    it('should toggle global extensions', async () => {
+    it('should toggle global extension', async () => {
       tmpfolder = createFolder()
-      writeJson(path.join(tmpfolder, 'package.json'), { dependencies: { global: '0.0.1' } })
-      let folder = path.join(tmpfolder, 'node_modules', 'global')
-      fs.mkdirSync(folder, { recursive: true })
-      fs.writeFileSync(path.join(folder, 'index.js'), `exports.activate = () => {}`, 'utf8')
-      writeJson(path.join(folder, 'package.json'), {
-        name: 'global',
-        engines: {
-          coc: '>=0.0.1'
-        }
-      })
+      let folder = createGlobalExtension('global')
       let manager = create(tmpfolder, true)
+      manager.states.addExtension('global', '>=0.0.1')
       await manager.loadExtension(folder)
       let item = manager.getExtension('global')
       expect(item.extension.isActive).toBe(true)
@@ -579,6 +589,24 @@ describe('ExtensionManager', () => {
       await manager.toggleExtension('global')
       item = manager.getExtension('global')
       expect(item.extension.isActive).toBe(true)
+      manager.dispose()
+    })
+
+    it('should toggle local extension', async () => {
+      tmpfolder = createFolder()
+      let folder = path.join(tmpfolder, 'local')
+      createExtension(folder, { name: 'local', main: 'entry.js', engines: { coc: '>=0.0.1' } })
+      let manager = create(tmpfolder, true)
+      await manager.loadExtension(folder)
+      let item = manager.getExtension('local')
+      expect(item.extension.isActive).toBe(true)
+      expect(item.isLocal).toBe(true)
+      await manager.toggleExtension('local')
+      item = manager.getExtension('local')
+      expect(item).toBeUndefined()
+      await manager.toggleExtension('local')
+      let state = manager.getExtensionState('local')
+      expect(state).toBe('activated')
       manager.dispose()
     })
   })
@@ -644,7 +672,7 @@ describe('ExtensionManager', () => {
       let filepath = path.join(dir, `${id}.js`)
       fs.writeFileSync(filepath, `exports.activate = () => {return {file: "${filepath}"}};exports.deactivate = () => {}`, 'utf8')
       let manager = create(dir)
-      await manager.loadFileExtensions(dir)
+      await manager.loadExtensionFile(filepath)
       await manager.watchExtension(`single-${id}`)
       let fn = async () => {
         await manager.watchExtension('single-unknown')
@@ -661,6 +689,19 @@ describe('ExtensionManager', () => {
       spy.mockRestore()
       fs.unlinkSync(filepath)
       manager.dispose()
+    })
+  })
+
+  describe('loadFileExtensions', () => {
+    it('should load extension files', async () => {
+      tmpfolder = createFolder()
+      let filepath = path.join(tmpfolder, 'abc.js')
+      fs.writeFileSync(filepath, `exports.activate = (ctx) => {return {storagePath: ctx.storagePath}}`, 'utf8')
+      let manager = create(tmpfolder, true)
+      Object.assign(manager, { singleExtensionsRoot: tmpfolder })
+      await manager.loadFileExtensions()
+      let item = manager.getExtension('single-abc')
+      expect(item.extension.isActive).toBe(true)
     })
   })
 })

@@ -1,8 +1,8 @@
 'use strict'
 import fs from 'fs'
 import path from 'path'
-import which from 'which'
 import { Event } from 'vscode-languageserver-protocol'
+import which from 'which'
 import commandManager from '../commands'
 import type { OutputChannel } from '../types'
 import { concurrent, executable } from '../util'
@@ -50,8 +50,7 @@ export class Extensions {
     let localStats = this.runtimeExtensionStats(runtimepath)
     stats = stats.concat(localStats)
     this.manager.registerExtensions(stats)
-    let folder = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
-    await this.manager.loadFileExtensions(folder)
+    await this.manager.loadFileExtensions()
     commandManager.register({
       id: 'extensions.forceUpdateAll',
       execute: async () => {
@@ -267,12 +266,15 @@ export class Extensions {
     let lockedExtensions = this.states.lockedExtensions
     let paths = runtimepath.split(',')
     let infos: ExtensionInfo[] = []
+    let localIds: Set<string> = new Set()
     paths.map(root => {
       let errors: string[] = []
       let obj = loadExtensionJson(root, workspace.version, errors)
       if (errors.length > 0) return
       let { name } = obj
-      if (!name || this.states.hasExtension(name)) return
+      if (!name || this.states.hasExtension(name) || localIds.has(name)) return
+      this.states.addLocalExtension(name, root)
+      localIds.add(name)
       infos.push(({
         id: obj.name,
         isLocal: true,

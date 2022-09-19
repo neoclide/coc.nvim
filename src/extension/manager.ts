@@ -71,6 +71,7 @@ export class ExtensionManager {
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
+  private singleExtensionsRoot = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
 
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -93,7 +94,8 @@ export class ExtensionManager {
     }))
   }
 
-  public async loadFileExtensions(folder: string): Promise<void> {
+  public async loadFileExtensions(): Promise<void> {
+    let folder = this.singleExtensionsRoot
     let files = await getJsFiles(folder)
     await Promise.allSettled(files.map(file => {
       return this.loadExtensionFile(path.join(folder, file))
@@ -243,6 +245,7 @@ export class ExtensionManager {
     // unload if loaded
     await this.unloadExtension(name)
     let isLocal = !this.states.hasExtension(name)
+    if (isLocal) this.states.addLocalExtension(name, folder)
     await this.registerExtension(folder, Object.freeze(obj), isLocal ? ExtensionType.Local : ExtensionType.Global)
     return true
   }
@@ -343,6 +346,7 @@ export class ExtensionManager {
   }
 
   public async loadExtensionFile(filepath: string): Promise<void> {
+    if (!fs.existsSync(filepath)) return
     let filename = path.basename(filepath)
     let basename = path.basename(filepath, '.js')
     let name = 'single-' + basename
@@ -463,6 +467,9 @@ export class ExtensionManager {
     await this.autoActiavte(id, extension)
   }
 
+  /**
+   * Only global extensions can be uninstalled
+   */
   public async uninstallExtensions(ids: string[]): Promise<void> {
     let [globals, filtered] = splitArray(ids, id => this.states.hasExtension(id))
     for (let id of globals) {
@@ -480,18 +487,22 @@ export class ExtensionManager {
 
   public async toggleExtension(id: string): Promise<void> {
     let state = this.getExtensionState(id)
-    if (state == 'activated') {
-      await this.deactivate(id)
-    }
+    if (state == 'activated') await this.deactivate(id)
     if (state != 'disabled') {
       this.states.setDisable(id, true)
       await this.unloadExtension(id)
     } else {
-      // TODO find folder for local extension
       this.states.setDisable(id, false)
-      let folder = path.join(this.modulesFolder, id)
-      if (this.states.hasExtension(id) && fs.existsSync(folder)) {
-        await this.loadExtension(folder)
+      if (id.startsWith('single-')) {
+        let filepath = path.join(this.singleExtensionsRoot, `${id.replace(/^single-/, '')}.js`)
+        await this.loadExtensionFile(filepath)
+      } else {
+        let folder = this.states.getFolder(id)
+        if (folder) {
+          await this.loadExtension(folder)
+        } else {
+          void window.showWarningMessage(`Extension ${id} not found`)
+        }
       }
     }
   }

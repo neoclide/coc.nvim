@@ -51,6 +51,7 @@ export class ExtensionStat {
   private disabled: Set<string> = new Set()
   private locked: Set<string> = new Set()
   private extensions: Set<string> = new Set()
+  private localExtensions: Map<string, string> = new Map()
   constructor(private folder: string) {
     try {
       this.migrate()
@@ -82,6 +83,15 @@ export class ExtensionStat {
     if (changed) writeJson(this.jsonFile, curr)
     let ids = Object.keys(curr.dependencies ?? {})
     this.extensions = new Set(ids)
+  }
+
+  public addLocalExtension(name: string, folder: string): void {
+    this.localExtensions.set(name, folder)
+  }
+
+  public getFolder(name: string): string | undefined {
+    if (this.extensions.has(name)) return path.join(this.folder, 'node_modules', name)
+    return this.localExtensions.get(name)
   }
 
   public getExtensionsStat(): Record<string, ExtensionStatus> {

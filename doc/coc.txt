@@ -3851,7 +3851,11 @@ shown in statusline.
 The easiest way is add `%{coc#status()}` to your 'statusline' option. Example: >
 
 	set statusline^=%{coc#status()}
->
+<
+You may need to use |CocStatusChange| for automatically refresh statusline: >
+
+	autocmd User CocStatusChange redrawstatus
+<
 ------------------------------------------------------------------------------
 
 							*coc-status-manual*
