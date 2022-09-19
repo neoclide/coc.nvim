@@ -9049,7 +9049,7 @@ declare module 'coc.nvim' {
   export interface PreviewOptions {
     bufname?: string
     lines: string[]
-    filetype: string
+    filetype?: string
     lnum?: number
     range?: Range
     /**
