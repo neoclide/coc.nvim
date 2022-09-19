@@ -5,6 +5,7 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { HighlightItem, QuickPickItem } from '../types'
 import { disposeAll } from '../util'
+import { toArray } from '../util/array'
 import { hasMatch, positions } from '../util/fzy'
 import { byteIndex, byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
@@ -32,7 +33,7 @@ export default class QuickPick<T extends QuickPickItem> {
   public selectedItems: T[]
   private bufnr: number
   private win: Popup
-  private filteredItems: readonly T[]
+  private filteredItems: readonly T[] = []
   private disposables: Disposable[] = []
   private input: InputBox | undefined
   private _changed = false
@@ -98,8 +99,8 @@ export default class QuickPick<T extends QuickPickItem> {
     return this.bufnr ? this.nvim.createBuffer(this.bufnr) : undefined
   }
 
-  private setCursor(index: number): void {
-    this.win?.setCursor(index, true)
+  public setCursor(index: number): void {
+    if (this.win) this.win.setCursor(index, true)
   }
 
   private attachEvents(inputBufnr: number): void {
@@ -111,9 +112,9 @@ export default class QuickPick<T extends QuickPickItem> {
     events.on('PromptKeyPress', async (bufnr, key) => {
       if (bufnr == inputBufnr) {
         if (key == 'C-f') {
-          await this.win?.scrollForward()
+          await this.win.scrollForward()
         } else if (key == 'C-b') {
-          await this.win?.scrollBackward()
+          await this.win.scrollBackward()
         } else if (['C-j', 'C-n', 'down'].includes(key)) {
           this.setCursor(this.currIndex + 1)
         } else if (['C-k', 'C-p', 'up'].includes(key)) {
@@ -187,7 +188,7 @@ export default class QuickPick<T extends QuickPickItem> {
   /**
    * Filter items with input
    */
-  private filterItems(input: string): void {
+  public filterItems(input: string): void {
     let { items, win, selectedItems } = this
     if (!win) return
     let { canSelectMany } = this.config
@@ -225,7 +226,7 @@ export default class QuickPick<T extends QuickPickItem> {
     this.setCursor(0)
   }
 
-  private showFilteredItems(): void {
+  public showFilteredItems(): void {
     let { win, input, filteredItems } = this
     if (!win) return
     let { canSelectMany } = this.config
@@ -258,7 +259,7 @@ export default class QuickPick<T extends QuickPickItem> {
     this.selectedItems = selectedItems
     this.win.linecount = lines.length
     this.nvim.call('coc#dialog#update_list', [this.win.winid, this.win.bufnr, lines, highlights], true)
-    this.setCursor(canSelectMany || selectedItems.length == 0 ? 0 : filteredItems.indexOf(selectedItems[0]))
+    this.setCursor(0)
   }
 
   private onFinish(input: string | undefined): void {
@@ -279,10 +280,10 @@ export default class QuickPick<T extends QuickPickItem> {
     let { canSelectMany } = this.config
     if (canSelectMany) return this.selectedItems
     let item = this.filteredItems[win.currIndex]
-    return item == null ? [] : [item]
+    return toArray(item)
   }
 
-  private toggePicked(index: number): void {
+  public toggePicked(index: number): void {
     let { nvim, filteredItems, selectedItems } = this
     let item = filteredItems[index]
     if (!item) return
