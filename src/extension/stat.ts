@@ -234,7 +234,7 @@ export function writeJson(filepath: string, obj: any): void {
   fs.writeFileSync(filepath, JSON.stringify(obj, null, 2), 'utf8')
 }
 
-export function loadJson(filepath: string): unknown {
+export function loadJson(filepath: string): object {
   try {
     let errors: ParseError[] = []
     let text = fs.readFileSync(filepath, 'utf8')

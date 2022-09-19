@@ -317,10 +317,13 @@ describe('Installer', () => {
       spy.mockRestore()
     })
 
-    it('should throw when download failed', async () => {
+    it('should throw and remove folder when download failed', async () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
-      let spy = jest.spyOn(installer, 'download').mockImplementation(() => {
+      let folder: string
+      let spy = jest.spyOn(installer, 'download').mockImplementation((_url, opt) => {
+        folder = opt.dest
+        fs.mkdirSync(folder, { recursive: true })
         throw new Error('my error')
       })
       let info: Info = { name: 'coc-omni', version: '1.0.0', 'dist.tarball': 'tarball' }
@@ -328,6 +331,8 @@ describe('Installer', () => {
         await installer.doInstall(info)
       }
       await expect(fn()).rejects.toThrow(Error)
+      let exists = fs.existsSync(folder)
+      expect(exists).toBe(false)
       spy.mockRestore()
     })
 

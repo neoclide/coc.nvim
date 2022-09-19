@@ -1,8 +1,8 @@
 'use strict'
 import contentDisposition from 'content-disposition'
+import crypto from 'crypto'
 import fs from 'fs'
-import http from 'http'
-import { IncomingMessage } from 'http'
+import http, { IncomingHttpHeaders, IncomingMessage } from 'http'
 import path from 'path'
 import tar from 'tar'
 import unzip from 'unzip-stream'
@@ -18,6 +18,10 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
    */
   dest: string
   /**
+   * algorithm for check etag.
+   */
+  etagAlgorithm?: string
+  /**
    * Remove the specified number of leading path elements for *untar* only, default to `1`.
    */
   strip?: number
@@ -29,6 +33,14 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
   agent?: http.Agent
 }
 
+export function getEtag(headers: IncomingHttpHeaders): string | undefined {
+  let header = headers['etag']
+  if (typeof header !== 'string') return undefined
+  header = header.replace(/^W\//, '')
+  if (!header.startsWith('"') || !header.endsWith('"')) return undefined
+  return header.slice(1, -1)
+}
+
 /**
  * Download file from url, with optional untar/unzip support.
  *
@@ -37,6 +49,7 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
  */
 export default function download(urlInput: string | URL, options: DownloadOptions, token?: CancellationToken): Promise<string> {
   let url = toURL(urlInput)
+  let { etagAlgorithm } = options
   let { dest, onProgress, extract } = options
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
@@ -53,6 +66,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
   let opts = resolveRequestOptions(url, options)
   if (!opts.agent && options.agent) opts.agent = options.agent
   let extname = path.extname(url.pathname)
+  let finished = false
   return new Promise<string>((resolve, reject) => {
     if (token) {
       let disposable = token.onCancellationRequested(() => {
@@ -65,6 +79,8 @@ export default function download(urlInput: string | URL, options: DownloadOption
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = res.headers ?? {}
         let dispositionHeader = headers['content-disposition']
+        let etag = getEtag(headers)
+        let checkEtag = etag && typeof etagAlgorithm === 'string'
         if (!extname && dispositionHeader) {
           let disposition = contentDisposition.parse(dispositionHeader)
           if (disposition.parameters?.filename) {
@@ -82,26 +98,24 @@ export default function download(urlInput: string | URL, options: DownloadOption
           }
         }
         let total = Number(headers['content-length'])
+        let hasTotal = !isNaN(total)
         let cur = 0
-        if (!isNaN(total)) {
-          res.on('data', chunk => {
-            cur += chunk.length
-            let percent = (cur / total * 100).toFixed(1)
-            if (onProgress) {
-              onProgress(percent)
-            } else {
-              logger.info(`Download ${url} progress ${percent}%`)
-            }
-          })
-        }
         res.on('error', err => {
           reject(new Error(`Unable to connect ${url}: ${err.message}`))
         })
-        res.on('data', () => {
-          clearTimeout(timer)
-          timer = undefined
+        let hash = checkEtag ? crypto.createHash(etagAlgorithm) : undefined
+        res.on('data', chunk => {
+          cur += chunk.length
+          if (hash) hash.update(chunk)
+          if (hasTotal) {
+            let percent = (cur / total * 100).toFixed(1)
+            typeof onProgress === 'function' ? onProgress(percent) : logger.info(`Download ${url} progress ${percent}%`)
+          }
         })
         res.on('end', () => {
+          if (finished) return
+          clearTimeout(timer)
+          timer = undefined
           logger.info('Download completed:', url)
         })
         let stream: any
@@ -114,6 +128,13 @@ export default function download(urlInput: string | URL, options: DownloadOption
           stream = res.pipe(fs.createWriteStream(dest))
         }
         stream.on('finish', () => {
+          if (finished) return
+          if (hash) {
+            if (hash.digest('hex') !== etag) {
+              reject(new Error(`Etag check failed by ${etagAlgorithm}, content not match.`))
+              return
+            }
+          }
           logger.info(`Downloaded ${url} => ${dest}`)
           setTimeout(() => {
             resolve(dest)
@@ -128,6 +149,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
       // Possible succeed proxy request with ECONNRESET error on node > 14
       if (opts.agent && e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
+          finished = true
           reject(e)
         }, 500)
       } else {
@@ -136,6 +158,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
           reject(new Error(`Request failed using proxy ${opts.agent.proxy.host}: ${e.message}`))
           return
         }
+        finished = true
         reject(e)
       }
     })

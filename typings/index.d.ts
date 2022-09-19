@@ -5181,6 +5181,10 @@ declare module 'coc.nvim' {
      */
     strip?: number
     /**
+     * algorithm for check etag header with response data, used by `crypto.createHash()`.
+     */
+    etagAlgorithm?: string
+    /**
      * If true, use untar for `.tar.gz` filename
      */
     extract?: boolean | 'untar' | 'unzip'
@@ -6705,7 +6709,7 @@ declare module 'coc.nvim' {
      * @param resource A resource URI.
      * @return `true` if the given section for the given resource (if provided) is affected.
      */
-    affectsConfiguration(section: string, resource?: string): boolean
+    affectsConfiguration(section: string, scope?: ConfigurationScope): boolean
   }
 
   export interface WillSaveEvent extends TextDocumentWillSaveEvent {
@@ -7040,11 +7044,14 @@ declare module 'coc.nvim' {
     dispose(): void
   }
 
+  export type ConfigurationScope = string | null | Uri | TextDocument | WorkspaceFolder | { uri?: string; languageId?: string }
+
   export interface ConfigurationInspect<T> {
     key: string
     defaultValue?: T
     globalValue?: T
     workspaceValue?: T
+    workspaceFolderValue?: T
   }
 
   export interface WorkspaceConfiguration {
@@ -7093,7 +7100,7 @@ declare module 'coc.nvim' {
      * @param value The new value.
      * @param isUser if true, always update user configuration
      */
-    update(section: string, value: any, isUser?: boolean): void
+    update(section: string, value: any, isUser?: boolean): Thenable<void>
 
     /**
      * Readable dictionary that backs this configuration.
@@ -7355,7 +7362,7 @@ declare module 'coc.nvim' {
     /**
      * Get configuration by section and optional resource uri.
      */
-    export function getConfiguration(section?: string, resource?: string): WorkspaceConfiguration
+    export function getConfiguration(section?: string, scope?: ConfigurationScope): WorkspaceConfiguration
 
     /**
      * Get created document by uri or bufnr.

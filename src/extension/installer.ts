@@ -261,14 +261,23 @@ export class Installer extends EventEmitter implements IInstaller {
     let downloadFolder = path.join(this.root, `${key}-${uuid()}`)
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
-    await this.download(url, { dest: downloadFolder, onProgress: p => this.log(`Download progress ${p}%`, true), extract: 'untar' })
-    this.log(`Extension download at ${downloadFolder}`)
-    let obj = loadJson(path.join(downloadFolder, 'package.json')) as any
-    await this.installDependencies(downloadFolder, getDependencies(obj))
-    this.log(`Download extension ${info.name}@${info.version} at ${downloadFolder}`)
-    if (fs.existsSync(dest)) {
-      fs.rmSync(dest, { force: true, recursive: true })
+    try {
+      await this.download(url, {
+        dest: downloadFolder,
+        etagAlgorithm: 'md5',
+        extract: 'untar',
+        onProgress: p => this.log(`Download progress ${p}%`, true),
+      })
+      this.log(`Extension download at ${downloadFolder}`)
+      let obj = loadJson(path.join(downloadFolder, 'package.json')) as any
+      await this.installDependencies(downloadFolder, getDependencies(obj))
+    } catch (e) {
+      fs.rmSync(downloadFolder, { recursive: true, force: true })
+      throw e
     }
+    this.log(`Download extension ${info.name}@${info.version} at ${downloadFolder}`)
+    fs.mkdirSync(path.dirname(dest), { recursive: true })
+    if (fs.existsSync(dest)) fs.rmSync(dest, { force: true, recursive: true })
     fs.renameSync(downloadFolder, dest)
     this.log(`Move extension ${info.name}@${info.version} to ${dest}`)
     return true

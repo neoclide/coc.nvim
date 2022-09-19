@@ -6,7 +6,7 @@ import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
 import { promisify } from 'util'
 import http, { Server } from 'http'
-import download from '../../model/download'
+import download, { getEtag } from '../../model/download'
 import fetch, { getAgent, getDataType, request, getText, getSystemProxyURI, resolveRequestOptions, toURL } from '../../model/fetch'
 import helper from '../helper'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
@@ -93,6 +93,7 @@ async function createServer(): Promise<number> {
         }
         let stat = fs.statSync(file)
         res.setHeader('Content-Length', stat.size)
+        res.setHeader('Etag', '"4c6426ac7ef186464ecbb0d81cbfcb1e"')
         res.writeHead(200)
         let stream = fs.createReadStream(file, { highWaterMark: 10 * 1024 })
         stream.pipe(res)
@@ -130,6 +131,13 @@ async function createServer(): Promise<number> {
 describe('utils', () => {
   it('should getText', async () => {
     expect(getText({ x: 1 })).toBe('{"x":1}')
+  })
+
+  it('should getEtag', async () => {
+    expect(getEtag({})).toBeUndefined()
+    expect(getEtag({ etag: '"abc"' })).toBe('abc')
+    expect(getEtag({ etag: 'W/"abc"' })).toBe('abc')
+    expect(getEtag({ etag: 'Wabc"' })).toBeUndefined()
   })
 
   it('should get data type', async () => {
@@ -343,7 +351,6 @@ describe('fetch', () => {
 
 describe('download', () => {
   let binary_file: string
-  let binary_zip: string
   let tempdir = path.join(os.tmpdir(), uuid())
 
   beforeAll(async () => {
@@ -402,6 +409,7 @@ describe('download', () => {
     let url = `http://127.0.0.1:${port}/binary`
     let called = false
     let res = await download(url, {
+      etagAlgorithm: 'md5',
       dest: tempdir, onProgress: p => {
         expect(typeof p).toBe('string')
         called = true
@@ -410,6 +418,21 @@ describe('download', () => {
     expect(called).toBe(true)
     let exists = fs.existsSync(res)
     expect(exists).toBe(true)
+  })
+
+  it('should throw when etag check failed', async () => {
+    let url = `http://127.0.0.1:${port}/binary`
+    let called = false
+    let fn = async () => {
+      await download(url, {
+        etagAlgorithm: 'sha256',
+        dest: tempdir, onProgress: p => {
+          expect(typeof p).toBe('string')
+          called = true
+        }
+      })
+    }
+    await expect(fn()).rejects.toThrow(/Etag check failed/)
   })
 
   it('should download zip file', async () => {
