@@ -67,7 +67,7 @@ export default class Configurations {
         })
       }
     })
-    this.builtinKeys = keys
+    this.builtinKeys = keys.slice()
     let model = new ConfigurationModel(config, keys)
     return model
   }
@@ -98,7 +98,7 @@ export default class Configurations {
     let model = defaults.isFrozen ? defaults.clone() : defaults
     Object.keys(props).forEach(key => {
       if (id && this.builtinKeys.includes(key)) {
-        logger.error(`Invalid configuration "${key}" from ${id}, overwrite defaults is fobidden.`)
+        logger.error(`Invalid configuration "${key}" from ${id}, overwrite defaults is forbidden.`)
         return
       }
       model.setValue(key, props[key])
