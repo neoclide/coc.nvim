@@ -766,6 +766,11 @@ Notification~
 
 	Scope: `application`, default: `30`
 
+"notification.statusLineProgress"			*coc-config-notification-statusLineProgress*
+
+	Show progress notification in status line, instead of use float
+	window/popup.
+
 "notification.timeout"					*coc-config-notification-timeout*
 
 	Timeout for auto close notifications, in milliseconds.

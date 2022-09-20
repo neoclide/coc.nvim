@@ -1343,6 +1343,12 @@
       },
       "description": "An array of statusline segments that will be used to draw the status line for list windows."
     },
+    "notification.statusLineProgress": {
+      "type": "boolean",
+      "default": true,
+      "scope": "application",
+      "description": "Show progress notification in status line, instead of float window/popup."
+    },
     "notification.border": {
       "type": "boolean",
       "default": true,

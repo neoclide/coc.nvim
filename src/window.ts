@@ -17,7 +17,7 @@ import InputBox, { InputOptions, InputPreference } from './model/input'
 import Menu, { MenuItem } from './model/menu'
 import Notification, { NotificationConfig, NotificationKind, NotificationPreferences } from './model/notification'
 import Picker from './model/picker'
-import ProgressNotification, { Progress } from './model/progress'
+import ProgressNotification, { formatMessage, Progress } from './model/progress'
 import QuickPick, { QuickPickConfig } from './model/quickpick'
 import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
@@ -642,19 +642,40 @@ export class Window {
    */
   public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
     this.checkDialog('withProgress')
+    let config = this.workspace.getConfiguration('notification')
     let stack = Error().stack
+    if (config.get<boolean>('statusLineProgress', true)) {
+      return await this.createStatusLineProgress(options, task)
+    }
     let progress = new ProgressNotification(this.nvim, {
       task,
       title: options.title,
       cancellable: options.cancellable
     })
-    let config = this.workspace.getConfiguration('notification')
     let minWidth = config.get<number>('minProgressWidth', 30)
     let promise = new Promise<R>(resolve => {
       progress.onDidFinish(resolve)
     })
     await progress.show(Object.assign(this.getNotificationPreference(stack, options.source), { minWidth }))
     return await promise
+  }
+
+  private async createStatusLineProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
+    let { title } = options
+    let statusItem = this.createStatusBarItem(0, { progress: true })
+    statusItem.text = title ?? ''
+    statusItem.show()
+    let total = 0
+    let result = await task({
+      report: p => {
+        if (p.increment) {
+          total += p.increment
+        }
+        statusItem.text = formatMessage(title, p.message, total)
+      }
+    }, CancellationToken.None)
+    statusItem.dispose()
+    return result
   }
 
   /**

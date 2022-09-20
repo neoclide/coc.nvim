@@ -15,6 +15,14 @@ export interface ProgressOptions<R> {
   task: (progress: Progress, token: CancellationToken) => Thenable<R>
 }
 
+export function formatMessage(title: string | undefined, message: string | undefined, total: number) {
+  let parts = []
+  if (title) parts.push(title)
+  if (message) parts.push(message)
+  if (total) parts.push(total + '%')
+  return parts.join(' ')
+}
+
 export default class ProgressNotification<R> extends Notification {
   private tokenSource: CancellationTokenSource
   private readonly _onDidFinish = new Emitter<R>()

@@ -15,6 +15,7 @@ import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import window from '../../window'
 import helper, { createTmpFile } from '../helper'
+import { formatMessage } from '../../model/progress'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -47,6 +48,12 @@ describe('window', () => {
   describe('functions', () => {
     it('should get tab number', async () => {
       expect(window.getTabNumber(33)).toBeUndefined()
+    })
+
+    it('should formatMessage', async () => {
+      expect(formatMessage('a', 'b', 1)).toBe('a b 1%')
+      expect(formatMessage(undefined, undefined, 1)).toBe('1%')
+      expect(formatMessage('a', undefined, 0)).toBe('a')
     })
 
     it('should get offset', async () => {
@@ -491,7 +498,33 @@ describe('window', () => {
       expect(height).toBe(2)
     })
 
+    it('should show status line progress by default', async () => {
+      let called = 0
+      let text: string
+      setTimeout(async () => {
+        text = await nvim.getVar('coc_status') as string
+      }, 10)
+      let res = await window.withProgress({ title: 'Processing' }, progress => {
+        let n = 0
+        return new Promise(resolve => {
+          let interval = setInterval(() => {
+            progress.report({ message: 'progress', increment: 1 })
+            n = n + 10
+            called = called + 1
+            if (n == 30) {
+              clearInterval(interval)
+              resolve('done')
+            }
+          }, 10)
+        })
+      })
+      expect(text).toMatch('Processing')
+      expect(called).toBeGreaterThan(1)
+      expect(res).toBe('done')
+    })
+
     it('should show progress notification', async () => {
+      helper.updateConfiguration('notification.statusLineProgress', false)
       let called = 0
       let res = await window.withProgress({ title: 'Downloading', cancellable: true }, (progress, token) => {
         let n = 0
@@ -516,6 +549,7 @@ describe('window', () => {
     })
 
     it('should cancel progress notification on window close', async () => {
+      helper.updateConfiguration('notification.statusLineProgress', false)
       let called = 0
       let p = window.withProgress({ title: 'Downloading', cancellable: true }, (progress, token) => {
         let n = 0
@@ -543,6 +577,7 @@ describe('window', () => {
     })
 
     it('should cancel progress when resolved', async () => {
+      helper.updateConfiguration('notification.statusLineProgress', false)
       let called = 0
       let p = window.withProgress({ title: 'Process' }, () => {
         called = called + 1
@@ -558,6 +593,7 @@ describe('window', () => {
     })
 
     it('should be disabled by configuration', async () => {
+      helper.updateConfiguration('notification.statusLineProgress', false)
       helper.updateConfiguration('notification.disabledProgressSources', ['test'])
       let p = window.withProgress({ title: 'Downloading', source: 'test' }, (progress, token) => {
         let n = 0
@@ -580,6 +616,7 @@ describe('window', () => {
     })
 
     it('should show error message when rejected', async () => {
+      helper.updateConfiguration('notification.statusLineProgress', false)
       let p = window.withProgress({ title: 'Process' }, () => {
         return Promise.reject(new Error('Unable to fetch'))
       })
