@@ -1253,6 +1253,13 @@ Suggest~
 	Configure style of popup menu, |coc-config-suggest-floatConfig| is
 	used when not specified, see |coc-config-float|.
 
+	Available properties: "border", "rounded", "highlight",
+	"borderhighlight", "winblend" and "shadow".
+
+	Note: 'winblend' option is used for custom popup menu when not
+	configured, use 'pumwidth' for minimal width of popup menu and
+	'pumheight' for maximum height of popup menu.
+
 	Scope: `application`, default: `null`
 
 "suggest.removeDuplicateItems"				*coc-config-suggest-removeDuplicateItems*

@@ -139,9 +139,8 @@ export default class PopupMenu {
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { noselect, fixInsertedWord, enablePreselect, selection, virtualText } = this.config
+    let { noselect, enablePreselect, selection, virtualText } = this.config
     let followPart = getFollowPart(option)
-    if (followPart.length === 0) fixInsertedWord = false
     let selectedIndex = enablePreselect ? items.findIndex(o => o.preselect) : -1
     let maxMru = -1
     let abbrWidth = 0
