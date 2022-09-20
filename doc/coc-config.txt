@@ -766,6 +766,11 @@ Notification~
 
 	Scope: `application`, default: `30`
 
+"notification.statusLineProgress"			*coc-config-notification-statusLineProgress*
+
+	Show progress notification in status line, instead of use float
+	window/popup.
+
 "notification.timeout"					*coc-config-notification-timeout*
 
 	Timeout for auto close notifications, in milliseconds.
@@ -1252,6 +1257,13 @@ Suggest~
 
 	Configure style of popup menu, |coc-config-suggest-floatConfig| is
 	used when not specified, see |coc-config-float|.
+
+	Available properties: "border", "rounded", "highlight",
+	"borderhighlight", "winblend" and "shadow".
+
+	Note: 'winblend' option is used for custom popup menu when not
+	configured, use 'pumwidth' for minimal width of popup menu and
+	'pumheight' for maximum height of popup menu.
 
 	Scope: `application`, default: `null`
 
