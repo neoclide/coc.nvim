@@ -1,9 +1,10 @@
-import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync } from '../../util/fs'
+import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, checkFolderPatterns } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 
 describe('fs', () => {
   describe('stat()', () => {
@@ -63,12 +64,27 @@ describe('fs', () => {
       expect(res).toBe(true)
       res = await checkFolder(cwd, '**/schema.json')
       expect(res).toBe(true)
-      res = await checkFolder(cwd, 'not_exists_fs')
+      res = await checkFolder(cwd, 'not_exists_fs', CancellationToken.None)
       expect(res).toBe(false)
-      res = await checkFolder(os.homedir(), 'not_exists_fs', 10)
+      res = await checkFolder(os.homedir(), 'not_exists_fs')
       expect(res).toBe(false)
-      res = await checkFolder('/a/b/c', 'not_exists_fs', 10)
+      res = await checkFolder('/a/b/c', 'not_exists_fs')
       expect(res).toBe(false)
+      let tokenSource = new CancellationTokenSource()
+      let p = checkFolder(cwd, '**/a.java', tokenSource.token)
+      tokenSource.cancel()
+      res = await p
+      expect(res).toBe(false)
+    })
+  })
+
+  describe('checkFolderPatterns()', () => {
+    it('should check patterns in folder', async () => {
+      let cwd = process.cwd()
+      let res = await checkFolderPatterns(cwd, ['file_not_exist'], CancellationToken.None)
+      expect(res).toBe(false)
+      res = await checkFolderPatterns(cwd, ['file_not_exist', 'package.json'], CancellationToken.None)
+      expect(res).toBe(true)
     })
   })
 

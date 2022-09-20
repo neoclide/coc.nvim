@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { Disposable, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import Watchman from '../core/watchman'
@@ -9,7 +9,7 @@ import Memos from '../model/memos'
 import { disposeAll, wait, watchFile } from '../util'
 import { splitArray } from '../util/array'
 import { createExtension, ExtensionExport } from '../util/factory'
-import { checkFolder, remove } from '../util/fs'
+import { checkFolderPatterns, remove } from '../util/fs'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, loadJson, validExtensionFolder } from './stat'
@@ -132,7 +132,8 @@ export class ExtensionManager {
     workspace.onDidChangeWorkspaceFolders(e => {
       if (e.added.length > 0) {
         this.tryActivateExtensions('workspaceContains', events => {
-          return checkWorkspaceContains(e.added, events)
+          let patterns = toWorkspaceContinsPatterns(events)
+          return workspaceContains(e.added, patterns)
         })
       }
     }, null, this.disposables)
@@ -174,9 +175,6 @@ export class ExtensionManager {
         if (workspace.languageIds.has(parts[1]) || workspace.filetypes.has(parts[1])) {
           return true
         }
-      } else if (ev === 'workspaceContains') {
-        let res = await workspaceContains(workspace.workspaceFolders, parts[1])
-        if (res) return true
       } else if (ev === 'onFileSystem') {
         for (let doc of workspace.documents) {
           let u = URI.parse(doc.uri)
@@ -185,6 +183,11 @@ export class ExtensionManager {
           }
         }
       }
+    }
+    let patterns = toWorkspaceContinsPatterns(activationEvents)
+    if (patterns.length > 0) {
+      let res = await workspaceContains(workspace.workspaceFolders, patterns)
+      if (res) return true
     }
     return false
   }
@@ -440,6 +443,7 @@ export class ExtensionManager {
         if (ext && typeof ext.deactivate === 'function') {
           try {
             await Promise.resolve(ext.deactivate())
+            ext = undefined
           } catch (e) {
             logger.error(`Error on ${id} deactivate: `, e)
           }
@@ -577,26 +581,48 @@ export function checkFileSystem(uri: string, activationEvents: string[]): boolea
   return false
 }
 
-export async function checkWorkspaceContains(workspaceFolders: ReadonlyArray<WorkspaceFolder>, activationEvents: string[]): Promise<boolean> {
+/**
+ * Convert globl patterns
+ */
+export function toWorkspaceContinsPatterns(activationEvents: string[]): string[] {
+  let patterns: string[] = []
+  let normals: string[] = []
+  let globs: string[] = []
   for (let eventName of activationEvents as string[]) {
     let parts = eventName.split(':')
-    let ev = parts[0]
-    if (ev == 'workspaceContains' && parts[1]) {
-      let res = await workspaceContains(workspaceFolders, parts[1])
-      if (res) return true
+    if (parts[0] == 'workspaceContains' && parts[1]) {
+      if (parts[1].startsWith('**/')) {
+        globs.push(parts[1])
+      } else if (parts[1]) {
+        normals.push(parts[1])
+      }
     }
   }
-  return false
+  if (normals.length > 0) normals.length == 1 ? patterns.push(normals[0]) : patterns.push(`?(${normals.join('|')})`)
+  if (globs.length > 0) globs.length == 1 ? patterns.push(globs[0]) : patterns.push(`**/?(${globs.map(s => s.slice(3)).join('|')})`)
+  return patterns
 }
 
-async function workspaceContains(workspaceFolders: ReadonlyArray<WorkspaceFolder>, patterns: string): Promise<boolean> {
+export async function workspaceContains(workspaceFolders: ReadonlyArray<WorkspaceFolder>, patterns: string[]): Promise<boolean> {
   let folders = workspaceFolders.map(o => URI.parse(o.uri).fsPath)
-  for (let folder of folders) {
-    let pattern = `*(${patterns.split(/\s+/).join('|')})`
-    let exists = await checkFolder(folder, pattern)
-    if (exists) return true
-  }
-  return false
+  let tokenSource = new CancellationTokenSource()
+  let token = tokenSource.token
+  let checked = false
+  let results = await Promise.allSettled(folders.map(folder => {
+    return checkFolderPatterns(folder, patterns, token).then(find => {
+      if (find) {
+        checked = true
+        tokenSource.cancel()
+      }
+    })
+  }))
+  results.forEach(res => {
+    if (res.status === 'rejected') {
+      console.error(`Error on check workspaceContains:` + res.reason)
+      logger.error(`Error on check workspaceContains:`, patterns, res.reason)
+    }
+  })
+  return checked
 }
 
 export function getActivationEvents(json: ExtensionJson): string[] {

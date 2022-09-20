@@ -9,6 +9,7 @@ import { promisify } from 'util'
 import glob from 'glob'
 import * as platform from './platform'
 import { FileType } from '../types'
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -110,33 +111,55 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string, bottom
   }
 }
 
-export function checkFolder(dir: string, pattern: string, timeout = 500): Promise<boolean> {
-  if (!fs.existsSync(dir)) return Promise.resolve(false)
+export function checkFolderPatterns(folder: string, patterns: string[], token: CancellationToken) {
   return new Promise((resolve, reject) => {
-    let timer = setTimeout(() => {
-      gl.abort()
-      resolve(false)
-    }, timeout)
+    let n = patterns.length
+    let c = 0
+    for (let pattern of patterns) {
+      checkFolder(folder, pattern, token).then(find => {
+        if (find === true) {
+          resolve(true)
+          return
+        }
+        c++
+        if (c === n) {
+          resolve(false)
+        }
+      }, reject)
+    }
+  })
+}
+
+export function checkFolder(dir: string, pattern: string, token?: CancellationToken): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    let disposable: Disposable | undefined
+    if (token) {
+      disposable = token.onCancellationRequested(() => {
+        gl.abort()
+        resolve(false)
+      })
+    }
     let find = false
     let gl = glob(pattern, {
       nosort: true,
+      ignore: ['node_modules', '.git'],
       dot: true,
       cwd: dir,
       nodir: true,
       absolute: false
     }, err => {
-      clearTimeout(timer)
+      if (disposable) disposable.dispose()
       if (err) return reject(err)
       resolve(find)
     })
     gl.on('match', () => {
-      clearTimeout(timer)
+      if (disposable) disposable.dispose()
       find = true
       gl.abort()
       resolve(true)
     })
     gl.on('end', () => {
-      clearTimeout(timer)
+      if (disposable) disposable.dispose()
       resolve(find)
     })
   })
