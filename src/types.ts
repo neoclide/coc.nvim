@@ -1153,7 +1153,17 @@ export interface ListAction {
   parallel?: boolean
   multiple?: boolean
   tabPersist?: boolean
-  execute: (item: ListItem | ListItem[], context: ListContext) => ProviderResult<void>
+  execute: Function
+}
+
+export interface SingleListAction extends ListAction {
+  multiple?: false
+  execute: (item: ListItem, context: ListContext) => ProviderResult<void>
+}
+
+export interface MultipleListAction extends ListAction {
+  multiple: boolean
+  execute: (item: ListItem[], context: ListContext) => ProviderResult<void>
 }
 
 export interface ListTask {

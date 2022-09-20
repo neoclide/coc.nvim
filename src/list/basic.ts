@@ -6,7 +6,7 @@ import readline from 'readline'
 import { CancellationToken, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, LocationWithTarget, WorkspaceConfiguration } from '../types'
+import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, LocationWithTarget, MultipleListAction, SingleListAction, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
 import { readFile } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
@@ -126,7 +126,7 @@ export default abstract class BasicList implements IList, Disposable {
     this.createAction(Object.assign({
       name,
       execute: fn
-    }, options || {}))
+    } as any, options || {}))
   }
 
   protected addMultipleAction(name: string, fn: (item: ListItem[], context: ListContext) => ProviderResult<void>, options?: ActionOptions): void {
@@ -225,7 +225,7 @@ export default abstract class BasicList implements IList, Disposable {
     await workspace.jumpTo(uri, position, command)
   }
 
-  public createAction(action: ListAction): void {
+  public createAction(action: SingleListAction | MultipleListAction): void {
     let { name } = action
     let idx = this.actions.findIndex(o => o.name == name)
     // allow override

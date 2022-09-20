@@ -1,8 +1,8 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Range } from 'vscode-languageserver-protocol'
-import { ConfigurationChangeEvent } from '../configuration/event'
 import Document from '../model/document'
+import { IConfigurationChangeEvent } from '../types'
 import window from '../window'
 import workspace from '../workspace'
 import CursorSession, { CursorsConfig } from './session'
@@ -26,7 +26,7 @@ export default class Cursors {
     }, null, this.disposables)
   }
 
-  private loadConfiguration(e?: ConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('cursors')) {
       let config = workspace.getConfiguration('cursors', null)
       this.config = Object.assign(this.config ?? {}, {

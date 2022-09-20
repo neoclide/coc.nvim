@@ -440,7 +440,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     await Promise.resolve(actions[res].handler(element))
   }
 
-  private async onDataChange(node: T | undefined): Promise<void> {
+  private async onDataChange(node: T | undefined | null | void): Promise<void> {
     if (this.filter?.activated) {
       this.itemsToFilter = undefined
       await this.doFilter(this.filterText)

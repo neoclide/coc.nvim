@@ -52,7 +52,7 @@ export default class Plugin extends EventEmitter {
     })
     this.addAction('rootPatterns', (bufnr: number) => this.handler.workspace.getRootPatterns(bufnr))
     this.addAction('ensureDocument', () => this.handler.workspace.ensureDocument())
-    this.addAction('getConfig', async key => this.handler.workspace.getConfiguration(key))
+    this.addAction('getConfig', async (key: string) => this.handler.workspace.getConfiguration(key))
     this.addAction('doAutocmd', async (id: number, ...args: []) => this.handler.workspace.doAutocmd(id, args))
     this.addAction('openLog', async () => this.handler.workspace.openLog())
     this.addAction('attach', () => workspace.attach())

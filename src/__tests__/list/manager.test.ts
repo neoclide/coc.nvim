@@ -4,6 +4,7 @@ import manager from '../../list/manager'
 import events from '../../events'
 import { QuickfixItem, IList, ListItem } from '../../types'
 import helper from '../helper'
+import { toArray } from '../../util/array'
 
 let nvim: Neovim
 const locations: ReadonlyArray<QuickfixItem> = [{
@@ -372,8 +373,8 @@ describe('list', () => {
         name: 'test',
         actions: [{
           name: 'open',
-          execute: (item: ListItem) => {
-            last = item.label
+          execute: item => {
+            last = toArray(item)[0].label
           }
         }],
         defaultAction: 'open',
@@ -419,7 +420,7 @@ describe('list', () => {
         name: 'test',
         actions: [{
           name: 'open',
-          execute: (_item: ListItem) => {
+          execute: _item => {
           }
         }],
         defaultAction: 'open',

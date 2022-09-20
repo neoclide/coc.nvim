@@ -12,11 +12,11 @@ export interface ExtensionExport {
   deactivate: () => any | null
 }
 export interface ILogger {
-  debug: (data: string, ...meta: any[]) => void
-  log: (data: string, ...meta: any[]) => void
-  error: (data: string, ...meta: any[]) => void
-  warn: (data: string, ...meta: any[]) => void
-  info: (data: string, ...meta: any[]) => void
+  debug: (...meta: any[]) => void
+  log: (...meta: any[]) => void
+  error: (...meta: any[]) => void
+  warn: (...meta: any[]) => void
+  info: (...meta: any[]) => void
 }
 
 export interface IModule {
