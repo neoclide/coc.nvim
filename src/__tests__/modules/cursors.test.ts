@@ -646,9 +646,9 @@ describe('cursors', () => {
       await nvim.call('cursor', [1, 1])
       const next = async (line: number, character: number) => {
         await nvim.input('<C-n>')
-        await helper.wait(30)
-        let cursor = await nvim.call('coc#cursor#position')
-        expect(cursor).toEqual([line, character])
+        await helper.waitValue(async () => {
+          return await nvim.call('coc#cursor#position')
+        }, [line, character])
       }
       await next(1, 0)
       await next(2, 0)
@@ -660,9 +660,9 @@ describe('cursors', () => {
       await nvim.call('cursor', [3, 1])
       const prev = async (line: number, character: number) => {
         await nvim.input('<C-p>')
-        await helper.wait(30)
-        let cursor = await nvim.call('coc#cursor#position')
-        expect(cursor).toEqual([line, character])
+        await helper.waitValue(async () => {
+          return await nvim.call('coc#cursor#position')
+        }, [line, character])
       }
       await prev(1, 0)
       await prev(0, 0)

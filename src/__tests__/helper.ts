@@ -121,8 +121,8 @@ export class Helper extends EventEmitter {
   }
 
   public async waitPrompt(): Promise<void> {
-    for (let i = 0; i < 40; i++) {
-      await this.wait(50)
+    for (let i = 0; i < 60; i++) {
+      await this.wait(30)
       let prompt = await this.nvim.call('coc#prompt#activated')
       if (prompt) return
     }
@@ -323,7 +323,7 @@ export class Helper extends EventEmitter {
     for (let i = 0; i < 50; i++) {
       await this.wait(20)
       let res = await Promise.resolve(fn())
-      if (res == value) {
+      if (equals(res, value)) {
         find = true
         break
       }

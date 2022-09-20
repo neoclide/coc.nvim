@@ -262,8 +262,9 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
       await doc.synchronize()
       nvim.command('w', true)
-      await helper.wait(50)
-      expect(called).toBe(true)
+      await helper.waitValue(() => {
+        return called
+      }, true)
       await client.stop()
     })
 

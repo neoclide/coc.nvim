@@ -50,7 +50,7 @@ describe('Menu', () => {
       })
     })
     await menu.show()
-    await helper.wait(30)
+    await helper.waitPrompt()
     await nvim.input('<esc>')
     let res = await p
     expect(res).toBe(-1)
@@ -79,7 +79,7 @@ describe('Menu', () => {
       })
     })
     await menu.show()
-    await helper.wait(30)
+    await helper.waitPrompt()
     await nvim.input('b')
     let res = await p
     expect(res).toBe(1)
@@ -109,10 +109,8 @@ describe('Menu', () => {
       })
     })
     await menu.show()
-    await helper.wait(30)
-    await nvim.input('j')
-    await helper.wait(30)
-    await nvim.input('<cr>')
+    await helper.waitPrompt()
+    await nvim.input('j<cr>')
     let res = await p
     expect(res).toBe(1)
   })
@@ -126,7 +124,7 @@ describe('Menu', () => {
   it('should ignore invalid index', async () => {
     menu = new Menu(nvim, { items: ['foo', 'bar'] })
     await menu.show()
-    await helper.wait(30)
+    await helper.waitPrompt()
     await nvim.input('0')
     await helper.wait(30)
     let exists = await nvim.call('coc#float#has_float', [])
@@ -141,7 +139,7 @@ describe('Menu', () => {
       })
     })
     await menu.show()
-    await helper.wait(30)
+    await helper.waitPrompt()
     await nvim.input('1')
     let res = await p
     expect(res).toBe(0)
@@ -155,6 +153,7 @@ describe('Menu', () => {
         resolve(n)
       })
     })
+    await helper.waitPrompt()
     await nvim.input('1')
     let res = await p
     expect(res).toBe(0)
@@ -165,7 +164,6 @@ describe('Menu', () => {
     expect(menu.buffer).toBeUndefined()
     await menu.onInputChar('session', 'j')
     await menu.show({ floatHighlight: 'CocFloating', floatBorderHighlight: 'CocFloating' })
-    await helper.wait(50)
     let id = await nvim.call('GetFloatWin')
     expect(id).toBeGreaterThan(0)
     let win = nvim.createWindow(id)
@@ -193,7 +191,7 @@ describe('Menu', () => {
     await nvim.input('<C-f>')
     await nvim.input('<C-b>')
     await nvim.input('9')
-    await helper.wait(50)
+    await helper.wait(20)
   })
 
   it('should select by numbers', async () => {
@@ -206,9 +204,9 @@ describe('Menu', () => {
         resolve(undefined)
       })
     })
-    await helper.wait(50)
+    await helper.waitPrompt()
     await nvim.input('1')
-    await helper.wait(50)
+    await helper.wait(10)
     await nvim.input('0')
     await promise
     expect(selected).toBe(9)

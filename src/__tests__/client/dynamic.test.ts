@@ -112,11 +112,12 @@ describe('DynamicFeature', () => {
     it('should register semanticTokens', async () => {
       let client = await startServer({})
       let feature = client.getFeature(SemanticTokensRegistrationType.method)
+      let provider: any
       await helper.waitValue(() => {
-        let provider = feature.getProvider(textDocument)
-        expect(provider.range).toBeUndefined()
+        provider = feature.getProvider(textDocument)
         return provider != null
       }, true)
+      expect(provider.range).toBeUndefined()
       await client.stop()
     })
 

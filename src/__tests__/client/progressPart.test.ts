@@ -63,6 +63,7 @@ describe('ProgressPart', () => {
   })
 
   it('should close notification on cancel', async () => {
+    helper.updateConfiguration('notification.statusLineProgress', false)
     let client = createClient()
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
     let started = p.begin({ kind: 'begin', title: 'canceleld' })
@@ -78,6 +79,7 @@ describe('ProgressPart', () => {
   })
 
   it('should send notification on cancel', async () => {
+    helper.updateConfiguration('notification.statusLineProgress', false)
     let client = createClient()
     let token = '0c7faec8-e36c-4cde-9815-95635c37d696'
     let p = new ProgressPart(client, token)
