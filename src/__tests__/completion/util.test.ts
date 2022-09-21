@@ -1,8 +1,9 @@
 import { matchScore, matchScoreWithPositions } from '../../completion/match'
-import { getInput, shouldIndent, shouldStop } from '../../completion/util'
+import { getInput, getKindText, shouldIndent, shouldStop } from '../../completion/util'
 import { getCharCodes } from '../../util/fuzzy'
 import { CompleteOption } from '../../types'
 import helper from '../helper'
+import { CompletionItemKind } from 'vscode-languageserver-types'
 
 beforeAll(async () => {
   await helper.setup()
@@ -10,6 +11,16 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await helper.shutdown()
+})
+
+describe('getKindText', () => {
+  it('should getKindText', async () => {
+    expect(getKindText('t', new Map(), '')).toBe('t')
+    let m = new Map()
+    m.set(CompletionItemKind.Class, 'C')
+    expect(getKindText(CompletionItemKind.Class, m, 'D')).toBe('C')
+    expect(getKindText(CompletionItemKind.Class, new Map(), 'D')).toBe('D')
+  })
 })
 
 describe('shouldStop', () => {

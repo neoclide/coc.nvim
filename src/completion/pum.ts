@@ -5,7 +5,7 @@ import sources from '../sources'
 import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem } from '../types'
 import { byteLength } from '../util/string'
 import MruLoader, { Selection } from './mru'
-import { getFollowPart, getValidWord, positionHighlights } from './util'
+import { getFollowPart, getKindText, getValidWord, positionHighlights } from './util'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -139,7 +139,7 @@ export default class PopupMenu {
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { noselect, enablePreselect, selection, virtualText } = this.config
+    let { noselect, enablePreselect, selection, virtualText, kindMap, defaultKindText } = this.config
     let followPart = getFollowPart(option)
     let selectedIndex = enablePreselect ? items.findIndex(o => o.preselect) : -1
     let maxMru = -1
@@ -163,7 +163,7 @@ export default class PopupMenu {
       let label = this.getLabel(item)
       labels.push(label)
       abbrWidth = Math.max(this.stringWidth(label.text), abbrWidth)
-      if (item.kind) kindWidth = 1
+      if (item.kind) kindWidth = Math.max(this.stringWidth(getKindText(item.kind, kindMap, defaultKindText)), kindWidth)
       if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu), menuWidth)
       if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut) + 2, shortcutWidth)
     }
@@ -317,7 +317,8 @@ export default class PopupMenu {
           if (config.kindWidth > 0) {
             let pre = byteLength(text)
             let { kind } = item
-            let kindText = typeof kind === 'number' ? kindMap.get(kind) ?? defaultKindText : kind
+            let kindText = getKindText(kind, kindMap, defaultKindText)
+            logger.debug('kindText:', kindText)
             text += this.fillWidth(kindText ?? '', config.kindWidth + 1)
             if (kindText) {
               let highlight = typeof kind === 'number' ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'

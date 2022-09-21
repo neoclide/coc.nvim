@@ -8,6 +8,10 @@ import { toArray } from '../util/array'
 import { byteIndex, byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
+export function getKindText(kind: string | CompletionItemKind, kindMap: Map<CompletionItemKind, string>, defaultKindText: string): string {
+  return typeof kind === 'number' ? kindMap.get(kind) ?? defaultKindText : kind
+}
+
 export function createKindMap(labels: { [key: string]: string }): Map<CompletionItemKind, string> {
   return new Map([
     [CompletionItemKind.Text, labels['text'] ?? 'v'],
