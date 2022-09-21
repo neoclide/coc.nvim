@@ -40,7 +40,6 @@ export function matchScoreWithPositions(word: string, input: number[]): [number,
 function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: ReadonlyArray<number>, positions: ReadonlyArray<number>): [number, ReadonlyArray<number>] | undefined {
   if (inputCodes.length === 0) return [0, positions]
   let len = codes.length
-  if (index >= len) return undefined
   let input = inputCodes[0]
   let nextCodes = inputCodes.slice(1)
   // not alphabet
@@ -52,7 +51,7 @@ function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: Read
     return next === undefined ? undefined : [score + next[0], next[1]]
   }
   // check beginning
-  let isStart = positions.length == 0
+  let isStart = index === 0
   let score = caseScore(input, codes[index], isStart ? 0.2 : 1)
   if (score > 0) {
     let next = nextScore(codes, index + 1, nextCodes, [...positions, index])

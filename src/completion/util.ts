@@ -8,8 +8,30 @@ import { toArray } from '../util/array'
 import { byteIndex, byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
+type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
+
 export function getKindText(kind: string | CompletionItemKind, kindMap: Map<CompletionItemKind, string>, defaultKindText: string): string {
   return typeof kind === 'number' ? kindMap.get(kind) ?? defaultKindText : kind
+}
+export function getResumeInput(option: PartialOption, pretext: string): string {
+  let buf = Buffer.from(pretext, 'utf8')
+  if (buf.length < option.colnr - 1) return null
+  let pre = byteSlice(option.line, 0, option.colnr - 1)
+  if (!pretext.startsWith(pre)) return null
+  let remain = pretext.slice(pre.length)
+  if (remain.includes(' ')) return null
+  return buf.slice(option.col).toString('utf8')
+}
+
+export function checkIgnoreRegexps(ignoreRegexps: ReadonlyArray<string>, input: string): boolean {
+  if (!ignoreRegexps || ignoreRegexps.length == 0 || input.length == 0) return false
+  return ignoreRegexps.some(regexp => {
+    try {
+      return new RegExp(regexp).test(input)
+    } catch (e) {
+      return false
+    }
+  })
 }
 
 export function createKindMap(labels: { [key: string]: string }): Map<CompletionItemKind, string> {

@@ -14,7 +14,7 @@ import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
 import MruLoader from './mru'
 import PopupMenu, { PopupMenuConfig } from './pum'
-import { createKindMap, getInput, getPrependWord, getSources, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
+import { checkIgnoreRegexps, createKindMap, getInput, getPrependWord as getAppendWord, getResumeInput, getSources, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -35,7 +35,7 @@ export class Completion implements Disposable {
   private floating: Floating
   private disposables: Disposable[] = []
   private complete: Complete | null = null
-  public activeItems: ReadonlyArray<ExtendedCompleteItem> | undefined
+  public activeItems: ReadonlyArray<ExtendedCompleteItem> = []
 
   public init(): void {
     this.nvim = workspace.nvim
@@ -107,7 +107,7 @@ export class Completion implements Disposable {
   }
 
   public get selectedItem(): ExtendedCompleteItem | undefined {
-    if (!this.popupEvent || !this.activeItems) return undefined
+    if (!this.popupEvent) return undefined
     return this.activeItems[this.popupEvent.index]
   }
 
@@ -195,17 +195,6 @@ export class Completion implements Disposable {
     if (shouldStop) this.stop(false)
   }
 
-  private showCompletion(items: ExtendedCompleteItem[], search: string): void {
-    let { option } = this
-    if (!option) return
-    if (items.length == 0) {
-      this.stop(true)
-    } else {
-      this.activeItems = items
-      this.pum.show(items, search, option)
-    }
-  }
-
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
     if (this.option && bufnr === this.option.bufnr) {
       this.pretext = info.pre
@@ -238,7 +227,7 @@ export class Completion implements Disposable {
       if (!info.insertChar) return
     }
     if (info.pre === this.pretext) return
-    if (this.triggerTimer) clearTimeout(this.triggerTimer)
+    clearTimeout(this.triggerTimer)
     let pretext = this.pretext = info.pre
     // check commit
     if (info.insertChar && this.config.acceptSuggestionOnCommitCharacter && this.selectedItem) {
@@ -276,7 +265,7 @@ export class Completion implements Disposable {
       // triggering without results
       this.triggerTimer = setTimeout(async () => {
         await this.triggerCompletion(doc, info)
-      }, 200)
+      }, global.__TEST__ ? 20 : 200)
       return
     }
     await this.filterResults()
@@ -301,7 +290,7 @@ export class Completion implements Disposable {
       col: info.col - 1 - byteLength(input),
       colnr: info.col,
       bufnr: doc.bufnr,
-      word: input + getPrependWord(doc, info.line.slice(pre.length)),
+      word: input + getAppendWord(doc, info.line.slice(pre.length)),
       changedtick: info.changedtick,
       indentkeys: doc.indentkeys,
       synname: '',
@@ -312,16 +301,7 @@ export class Completion implements Disposable {
       logger.warn(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
       return false
     }
-    if (this.config.ignoreRegexps.length > 0 && option.input.length > 0) {
-      const ignore = this.config.ignoreRegexps.some(regexp => {
-        if (new RegExp(regexp).test(option.input)) {
-          logger.warn(`Suggest disabled by ignore regexp: ${regexp}`)
-          return true
-        }
-      })
-      if (ignore) return false
-    }
-    // if (pre.length) option.triggerCharacter = pre[pre.length - 1]
+    if (checkIgnoreRegexps(this.config.ignoreRegexps, option.input)) return false
     await this.startCompletion(option, sources)
     return true
   }
@@ -366,12 +346,10 @@ export class Completion implements Disposable {
 
   private async onInsertEnter(bufnr: number): Promise<void> {
     if (!this.config.triggerAfterInsertEnter || this.config.autoTrigger !== 'always') return
-    if (!workspace.isAttached(bufnr)) return
     let change = await this.nvim.call('coc#util#change_info') as InsertChange
     change.pre = byteSlice(change.line, 0, change.col - 1)
-    if (!change.pre) return
     let doc = workspace.getDocument(bufnr)
-    await this.triggerCompletion(doc, change)
+    if (doc && doc.attached) await this.triggerCompletion(doc, change)
   }
 
   public shouldTrigger(doc: Document, pre: string): boolean {
@@ -382,21 +360,9 @@ export class Completion implements Disposable {
     return true
   }
 
-  public getResumeInput(): string {
-    let { option, pretext, document } = this
-    if (!option || !document) return null
-    let buf = Buffer.from(pretext, 'utf8')
-    if (buf.length < option.colnr - 1) return null
-    let pre = byteSlice(option.line, 0, option.colnr - 1)
-    if (!pretext.startsWith(pre)) return null
-    let remain = pretext.slice(pre.length)
-    if (remain.includes(' ')) return null
-    return buf.slice(option.col).toString('utf8')
-  }
-
   private async filterResults(): Promise<void> {
-    let { complete } = this
-    let search = this.getResumeInput()
+    let { complete, option, pretext } = this
+    let search = getResumeInput(option, pretext)
     if (search == null) {
       this.stop(true)
       return
@@ -404,14 +370,15 @@ export class Completion implements Disposable {
     let items = await complete.filterResults(search)
     // cancelled
     if (items === undefined) return
-    if (items.length == 0) {
+    if (items.length == 0 || !this.option) {
       if (!complete.isCompleting) this.stop(true)
       return
     }
-    this.showCompletion(items, search)
+    this.activeItems = items
+    this.pum.show(items, search, this.option)
   }
 
-  private cancel(): void {
+  public cancel(): void {
     if (this.complete != null) {
       this.complete.dispose()
       this.complete = null
@@ -421,7 +388,7 @@ export class Completion implements Disposable {
       this.triggerTimer = null
     }
     this.pretext = undefined
-    this.activeItems = undefined
+    this.activeItems = []
     this.popupEvent = undefined
   }
 

@@ -318,7 +318,6 @@ export default class PopupMenu {
             let pre = byteLength(text)
             let { kind } = item
             let kindText = getKindText(kind, kindMap, defaultKindText)
-            logger.debug('kindText:', kindText)
             text += this.fillWidth(kindText ?? '', config.kindWidth + 1)
             if (kindText) {
               let highlight = typeof kind === 'number' ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'

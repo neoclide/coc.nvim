@@ -1,7 +1,7 @@
 process.env.COC_NO_PLUGINS = '1'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
-import completion from '../../completion'
+import completion, { Completion } from '../../completion'
 import events from '../../events'
 import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType } from '../../types'
@@ -54,6 +54,7 @@ describe('completion', () => {
   describe('suggest configurations', () => {
     it('should not select complete item', async () => {
       helper.updateConfiguration('suggest.noselect', true)
+      expect(Completion).toBeDefined()
       await create(['foobar'])
       let info = await nvim.call('coc#pum#info')
       expect(info.index).toBe(-1)
@@ -268,19 +269,44 @@ describe('completion', () => {
 
     it('should do filter when autoTrigger is none', async () => {
       helper.updateConfiguration('suggest.autoTrigger', 'none')
+      let doc = await workspace.document
+      expect(completion.shouldTrigger(doc, '')).toBe(false)
       disposables.push(sources.createSource({
         name: 'words',
         doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
           resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
         })
       }))
-      await nvim.input('i')
+      await nvim.input('if')
+      await helper.wait(20)
+      expect(completion.activeItems.length).toBe(0)
       nvim.call('coc#start', [], true)
       await helper.waitPopup()
-      expect(completion.activeItems.length).toBe(2)
-      await nvim.input('f')
-      await helper.wait(50)
       expect(completion.activeItems.length).toBe(1)
+      await nvim.input('o')
+      await helper.wait(20)
+      expect(completion.activeItems.length).toBe(1)
+    })
+
+    it('should trigger on trigger character', async () => {
+      helper.updateConfiguration('suggest.autoTrigger', 'trigger')
+      let fn = jest.fn()
+      let source: ISource = {
+        name: 'trigger',
+        enable: true,
+        sourceType: SourceType.Service,
+        triggerCharacters: ['.'],
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          fn()
+          resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
+        })
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('if')
+      await helper.wait(20)
+      expect(fn).toBeCalledTimes(0)
+      await nvim.input('.')
+      await helper.waitPopup()
     })
   })
 
@@ -482,8 +508,8 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('c')
       await helper.waitFor('coc#pum#visible', [], 0)
-      expect(completion.activeItems).toBeUndefined()
       expect(completion.isActivated).toBe(false)
+      completion.cancel()
     })
 
     it('should deactivate when insert space', async () => {
@@ -653,6 +679,8 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('if')
       await helper.waitPopup()
+      await nvim.input('o')
+      await helper.wait(10)
       await nvim.input('.')
       await helper.waitFor('getline', ['.'], 'foo.')
     })
@@ -860,9 +888,10 @@ describe('completion', () => {
       expect(completion.isActivated).toBe(true)
     })
 
-    it('should not trigger when input length too small', async () => {
+    it('should not trigger when document not attached', async () => {
+      await nvim.command('edit t|setl buftype=nofile')
       await nvim.setLine('foo ')
-      await nvim.input('A')
+      await nvim.input('o')
       await helper.wait(30)
       expect(completion.isActivated).toBe(false)
     })

@@ -383,7 +383,7 @@ function! coc#pum#create(lines, opt, config) abort
       call coc#float#close_related(s:pum_winid, 'scrollbar')
     endif
   endif
-  call timer_start(10, { -> s:on_pum_change(0)})
+  call s:on_pum_change(0)
 endfunction
 
 function! s:get_firstline(lnum, total, height) abort

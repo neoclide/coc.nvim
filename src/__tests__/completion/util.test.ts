@@ -1,5 +1,5 @@
-import { matchScore, matchScoreWithPositions } from '../../completion/match'
-import { getInput, getKindText, shouldIndent, shouldStop } from '../../completion/util'
+import { matchScore, caseScore, matchScoreWithPositions } from '../../completion/match'
+import { createKindMap, checkIgnoreRegexps, getInput, getKindText, getResumeInput, getValidWord, shouldIndent, shouldStop } from '../../completion/util'
 import { getCharCodes } from '../../util/fuzzy'
 import { CompleteOption } from '../../types'
 import helper from '../helper'
@@ -13,7 +13,13 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-describe('getKindText', () => {
+describe('caseScore()', () => {
+  it('should get caseScore', async () => {
+    expect(typeof caseScore(10, 10, 2)).toBe('number')
+  })
+})
+
+describe('getKindText()', () => {
   it('should getKindText', async () => {
     expect(getKindText('t', new Map(), '')).toBe('t')
     let m = new Map()
@@ -23,7 +29,39 @@ describe('getKindText', () => {
   })
 })
 
-describe('shouldStop', () => {
+describe('createKindMap()', () => {
+  it('should createKindMap', async () => {
+    let map = createKindMap({ constructor: 'C' })
+    expect(map.get(CompletionItemKind.Constructor)).toBe('C')
+    map = createKindMap({ constructor: undefined })
+    expect(map.get(CompletionItemKind.Constructor)).toBe('')
+  })
+})
+
+describe('getValidWord()', () => {
+  it('should getValidWord', async () => {
+    expect(getValidWord('label', [])).toBe('label')
+  })
+})
+
+describe('checkIgnoreRegexps()', () => {
+  it('should checkIgnoreRegexps', async () => {
+    expect(checkIgnoreRegexps([], '')).toBe(false)
+    expect(checkIgnoreRegexps(['^^*^^'], 'input')).toBe(false)
+    expect(checkIgnoreRegexps(['^inp', '^ind'], 'input')).toBe(true)
+  })
+})
+
+describe('getResumeInput()', () => {
+  it('should getResumeInput', async () => {
+    let opt = { line: 'foo', colnr: 4, col: 1 }
+    expect(getResumeInput(opt, 'f')).toBeNull()
+    expect(getResumeInput(opt, 'bar')).toBeNull()
+    expect(getResumeInput(opt, 'foo f')).toBeNull()
+  })
+})
+
+describe('shouldStop()', () => {
   function createOption(bufnr: number, linenr: number, line: string, colnr: number): Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'> {
     return { bufnr, linenr, line, colnr }
   }
@@ -39,7 +77,7 @@ describe('shouldStop', () => {
   })
 })
 
-describe('shouldIndent', () => {
+describe('shouldIndent()', () => {
   it('should check indent', async () => {
     let res = shouldIndent('0{,0},0),0],!^F,o,O,e,=endif,=enddef,=endfu,=endfor', 'endfor')
     expect(res).toBe(true)
@@ -56,7 +94,7 @@ describe('shouldIndent', () => {
   })
 })
 
-describe('getInput', () => {
+describe('getInput()', () => {
   it('should consider none word character as input', async () => {
     let doc = await helper.createDocument('t.vim')
     let res = getInput(doc, 'a#b#', false)
@@ -76,7 +114,15 @@ describe('matchScore', () => {
     expect(score('bar', 'f')).toBe(0)
   })
 
+  it('should return 0 when not matched', async () => {
+    expect(score('and', '你')).toBe(0)
+    expect(score('你and', '你的')).toBe(0)
+    expect(score('fooBar', 'Bt')).toBe(0)
+    expect(score('thisbar', 'tihc')).toBe(0)
+  })
+
   it('should match first letter', () => {
+    expect(score('abc', '')).toBe(0)
     expect(score('abc', 'a')).toBe(5)
     expect(score('Abc', 'a')).toBe(2.5)
     expect(score('__abc', 'a')).toBe(2)
@@ -91,6 +137,7 @@ describe('matchScore', () => {
     expect(score('bar', 'a')).toBe(1)
     expect(score('fooBar', 'B')).toBe(2)
     expect(score('fooBar', 'b')).toBe(1)
+    expect(score('fobtoBar', 'bt')).toBe(2)
   })
 
   it('should match follow letters', () => {
