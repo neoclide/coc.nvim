@@ -205,18 +205,21 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public getInstallArguments(exePath: string, url: string | undefined): string[] {
-    let args = ['install', '--ignore-scripts', '--no-lockfile', '--production']
+    let args = ['install', '--ignore-scripts', '--no-lockfile']
     if (url && url.startsWith('https://github.com')) {
       args = ['install']
     }
     if (isNpmCommand(exePath)) {
+      args.push('--omit=dev')
       args.push('--legacy-peer-deps')
       args.push('--no-global')
     }
     if (isYarn(exePath)) {
+      args.push('--production')
       args.push('--ignore-engines')
     }
     if (isPnpm(exePath)) {
+      args.push('--production')
       args.push('--config.strict-peer-dependencies=false')
     }
     return args
@@ -238,6 +241,7 @@ export class Installer extends EventEmitter implements IInstaller {
       this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
       const child = spawn(this.npm, args, {
         cwd: folder,
+        env: Object.assign(process.env, { NODE_ENV: 'production' })
       })
       this.readLines('[npm stdout]', child.stdout)
       this.readLines('[npm stderr]', child.stderr)

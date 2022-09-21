@@ -71,8 +71,8 @@ describe('Installer', () => {
   describe('getInfo()', () => {
     it('should get install arguments', async () => {
       let installer = new Installer(__dirname, 'npm', 'https://github.com/')
-      expect(installer.getInstallArguments('pnpm', 'https://github.com/')).toEqual(['install', '--config.strict-peer-dependencies=false'])
-      expect(installer.getInstallArguments('npm', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--production', '--legacy-peer-deps', '--no-global'])
+      expect(installer.getInstallArguments('pnpm', 'https://github.com/')).toEqual(['install', '--production', '--config.strict-peer-dependencies=false'])
+      expect(installer.getInstallArguments('npm', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--omit=dev', '--legacy-peer-deps', '--no-global'])
       expect(installer.getInstallArguments('yarn', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'])
     })
 
