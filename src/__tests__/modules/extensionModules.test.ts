@@ -131,11 +131,15 @@ describe('utils', () => {
 
     it('should add errors', async () => {
       testErrors(undefined, '', 1)
-      testErrors({}, '', 3)
-      testErrors({ name: 'name', main: 'main' }, '', 2)
+      testErrors({}, '', 2)
+      testErrors({ name: 'name', main: 'main' }, '', 1)
       testErrors({ name: 'name', engines: {} }, '', 2)
       testErrors({ name: 'name', engines: { coc: '>=0.0.81' } }, '0.0.79', 1, true)
       testErrors({ name: 'name', engines: { coc: '>=0.0.81', main: 'index.js' } }, '0.0.82', 0, true)
+    })
+
+    it('should not check entry for vscode extension', async () => {
+      testErrors({ name: 'name', engines: { vscode: '0.10.x' } }, '', 0)
     })
   })
 

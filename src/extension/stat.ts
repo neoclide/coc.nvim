@@ -274,7 +274,7 @@ export function loadExtensionJson(folder: string, version: string, errors: strin
   if (!engines || !objectLiteral(engines)) {
     errors.push(`invalid engines in ${jsonFile}`)
   }
-  if (!fs.existsSync(path.join(folder, main))) {
+  if (engines && !engines.vscode && !fs.existsSync(path.join(folder, main))) {
     errors.push(`main file ${main} not found, you may need to build the project.`)
   }
   if (objectLiteral(engines)) {
