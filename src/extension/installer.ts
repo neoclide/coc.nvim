@@ -265,10 +265,11 @@ export class Installer extends EventEmitter implements IInstaller {
     let downloadFolder = path.join(this.root, `${key}-${uuid()}`)
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
+    let etagAlgorithm = url.startsWith('https://registry.npmjs.org') ? 'md5' : undefined
     try {
       await this.download(url, {
         dest: downloadFolder,
-        etagAlgorithm: 'md5',
+        etagAlgorithm,
         extract: 'untar',
         onProgress: p => this.log(`Download progress ${p}%`, true),
       })

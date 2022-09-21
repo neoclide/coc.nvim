@@ -321,16 +321,19 @@ describe('Installer', () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let folder: string
+      let option: any
       let spy = jest.spyOn(installer, 'download').mockImplementation((_url, opt) => {
         folder = opt.dest
+        option = opt
         fs.mkdirSync(folder, { recursive: true })
         throw new Error('my error')
       })
-      let info: Info = { name: 'coc-omni', version: '1.0.0', 'dist.tarball': 'tarball' }
+      let info: Info = { name: 'coc-omni', version: '1.0.0', 'dist.tarball': 'https://registry.npmjs.org/-/coc-omni-1.0.0.tgz' }
       let fn = async () => {
         await installer.doInstall(info)
       }
       await expect(fn()).rejects.toThrow(Error)
+      expect(option.etagAlgorithm).toBe('md5')
       let exists = fs.existsSync(folder)
       expect(exists).toBe(false)
       spy.mockRestore()
