@@ -248,7 +248,7 @@ function! coc#float#nvim_create_related(winid, config, opts) abort
   endif
   " Check right border
   if pad
-    call coc#float#nvim_right_pad(a:config, a:winid, related)
+    call coc#float#nvim_right_pad(a:config, a:winid, shadow, related)
   elseif exists
     call coc#float#close_related(a:winid, 'pad')
   endif
@@ -315,7 +315,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
 endfunction
 
 " Create padding window by config of current window & border config
-function! coc#float#nvim_right_pad(config, winid, related) abort
+function! coc#float#nvim_right_pad(config, winid, shadow, related) abort
   let winid = coc#float#get_related(a:winid, 'pad')
   let config = {
         \ 'relative': a:config['relative'],
@@ -328,6 +328,9 @@ function! coc#float#nvim_right_pad(config, winid, related) abort
         \ }
   if has('nvim-0.5.1')
     let config['zindex'] = 300
+  endif
+  if has('nvim-0.5.0') && a:shadow
+    let config['border'] = 'shadow'
   endif
   if winid && nvim_win_is_valid(winid)
     if has('nvim-0.5.0')
@@ -476,8 +479,12 @@ function! coc#float#nvim_scrollbar(winid) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
+  call coc#rpc#notify('Log', ['config', config])
   if has('nvim-0.5.1')
-    let opts['zindex'] = 300
+    let opts['zindex'] = get(config, 'zindex', 50)
+  endif
+  if has('nvim-0.5.0') && s:has_shadow(config)
+    let opts['border'] = 'shadow'
   endif
   if id
     call nvim_win_set_config(id, opts)
@@ -1430,4 +1437,10 @@ function! s:get_borderhighlight(config) abort
   endif
   let highlight = type(borderhighlight) == 3 ? borderhighlight[0] : borderhighlight
   return coc#highlight#compose_hlgroup(highlight, hlgroup)
+endfunction
+
+function! s:has_shadow(config) abort
+  let border = get(a:config, 'border', [])
+  let filtered = filter(copy(border), 'type(v:val) == 3 && get(v:val, 1, "") ==# "FloatShadow"')
+  return len(filtered) > 0
 endfunction
