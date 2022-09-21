@@ -1,4 +1,4 @@
-import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, checkFolderPatterns } from '../../util/fs'
+import { findUp, checkFolder, globFiles, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, matchPatterns } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -78,12 +78,23 @@ describe('fs', () => {
     })
   })
 
-  describe('checkFolderPatterns()', () => {
-    it('should check patterns in folder', async () => {
+  describe('globFiles', () => {
+    it('should globFiles', async () => {
       let cwd = process.cwd()
-      let res = await checkFolderPatterns(cwd, ['file_not_exist'], CancellationToken.None)
+      let res = globFiles(cwd)
+      expect(Array.isArray(res)).toBe(true)
+      res = globFiles(path.join(cwd, '__not_exists__'))
+      expect(res).toEqual([])
+    })
+  })
+
+  describe('matchPatterns', () => {
+    it('should matchPatterns', async () => {
+      let res = matchPatterns([], ['ab'])
       expect(res).toBe(false)
-      res = await checkFolderPatterns(cwd, ['file_not_exist', 'package.json'], CancellationToken.None)
+      res = matchPatterns(['a.js'], ['**/*.js', 'def'])
+      expect(res).toBe(true)
+      res = matchPatterns(['a.js'], ['a.js', 'def'])
       expect(res).toBe(true)
     })
   })

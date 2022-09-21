@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { Disposable, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ExtensionJson, ExtensionStat, writeJson } from '../../extension/stat'
-import { checkCommand, toWorkspaceContinsPatterns, checkFileSystem, checkLanguageId, getActivationEvents, ExtensionManager, getEvents, ExtensionType, Extension, API, workspaceContains } from '../../extension/manager'
+import { checkCommand, toWorkspaceContinsPatterns, checkFileSystem, checkLanguageId, getActivationEvents, ExtensionManager, getEvents, ExtensionType, Extension, API } from '../../extension/manager'
 import { disposeAll } from '../../util'
 import Watchman from '../../core/watchman'
 import helper from '../helper'
@@ -71,35 +71,9 @@ describe('utils', () => {
 
   it('should toWorkspaceContinsPatterns', async () => {
     let res = toWorkspaceContinsPatterns(['workspaceContains:', 'workspaceContains:a.js', 'workspaceContains:b.js'])
-    expect(res).toEqual(['?(a.js|b.js)'])
-    res = toWorkspaceContinsPatterns(['workspaceContains:**/a.js', 'workspaceContains:**/b.js'])
-    expect(res).toEqual(["**/?(a.js|b.js)"])
-    res = toWorkspaceContinsPatterns(['workspaceContains:a.js', 'workspaceContains:**/b.js'])
-    expect(res).toEqual(['a.js', '**/b.js'])
-  })
-
-  it('should check workspaceContains', async () => {
-    const toFolder = (folder: string): WorkspaceFolder => {
-      return { uri: URI.file(folder).toString(), name: path.basename(folder) }
-    }
-    tmpfolder = createFolder()
-    let res = await workspaceContains([toFolder(tmpfolder)], ['abc'])
-    expect(res).toBe(false)
-    fs.rmSync(tmpfolder, { force: true, recursive: true })
-    let folders = [toFolder(tmpfolder)]
-    tmpfolder = createFolder()
-    folders.push(toFolder(tmpfolder))
-    let file = path.join(tmpfolder, '.xyz')
-    fs.writeFileSync(file, '', 'utf8')
-    res = await workspaceContains(folders, ['file_not_exists', '?(def|.xyz)'])
-    expect(res).toBe(true)
-    let fn = jest.fn()
-    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
-      fn()
-    })
-    res = await workspaceContains(folders, [undefined])
-    expect(fn).toBeCalled()
-    spy.mockRestore()
+    expect(res).toEqual(['a.js', 'b.js'])
+    res = toWorkspaceContinsPatterns(['workspaceContains:', 'workspaceContains:**/b.js'])
+    expect(res).toEqual(['**/b.js'])
   })
 })
 
@@ -128,7 +102,7 @@ describe('ExtensionManager', () => {
   }
 
   describe('activateExtensions()', () => {
-    it('should not throw no error', async () => {
+    it('should throw on error', async () => {
       tmpfolder = createFolder()
       createExtension(tmpfolder, {
         name: 'name',
@@ -138,9 +112,12 @@ describe('ExtensionManager', () => {
       })
       let manager = create(tmpfolder)
       await manager.loadExtension(tmpfolder)
-      manager.tryActivateExtensions('onLanguage', () => {
-        return Promise.reject(new Error('test error'))
-      })
+      let fn = () => {
+        manager.tryActivateExtensions('onLanguage', () => {
+          throw new Error('test error')
+        })
+      }
+      expect(fn).toThrow(Error)
     })
 
     it('should not throw when autoActiavte throws', async () => {

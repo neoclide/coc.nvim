@@ -111,22 +111,23 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string, bottom
   }
 }
 
-export function checkFolderPatterns(folder: string, patterns: string[], token: CancellationToken) {
-  return new Promise((resolve, reject) => {
-    let n = patterns.length
-    let c = 0
-    for (let pattern of patterns) {
-      checkFolder(folder, pattern, token).then(find => {
-        if (find === true) {
-          resolve(true)
-          return
-        }
-        c++
-        if (c === n) {
-          resolve(false)
-        }
-      }, reject)
+export function matchPatterns(files: string[], patterns: string[]): boolean {
+  for (let file of files) {
+    if (patterns.some(p => minimatch(file, p))) {
+      return true
     }
+  }
+  return false
+}
+
+export function globFiles(dir: string, pattern = '**/*'): string[] {
+  return glob.sync(pattern, {
+    nosort: true,
+    ignore: ['node_modules/**', '.git/**'],
+    dot: true,
+    cwd: dir,
+    nodir: true,
+    absolute: false
   })
 }
 
@@ -142,7 +143,7 @@ export function checkFolder(dir: string, pattern: string, token?: CancellationTo
     let find = false
     let gl = glob(pattern, {
       nosort: true,
-      ignore: ['node_modules', '.git'],
+      ignore: ['node_modules/**', '.git/**'],
       dot: true,
       cwd: dir,
       nodir: true,

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { CancellationTokenSource, Disposable, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import Watchman from '../core/watchman'
@@ -9,7 +9,7 @@ import Memos from '../model/memos'
 import { disposeAll, wait, watchFile } from '../util'
 import { splitArray } from '../util/array'
 import { createExtension, ExtensionExport } from '../util/factory'
-import { checkFolderPatterns, remove } from '../util/fs'
+import { globFiles, matchPatterns, remove } from '../util/fs'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, loadJson, validExtensionFolder } from './stat'
@@ -72,6 +72,7 @@ export class ExtensionManager {
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
   private singleExtensionsRoot = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
+  private workspaceFiles: Map<string, string[]> = new Map()
 
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -92,6 +93,25 @@ export class ExtensionManager {
       let { extension } = this.extensions.get(key)
       return this.autoActiavte(key, extension)
     }))
+  }
+
+  public getFolderFiles(folder: string): string[] {
+    let curr = this.workspaceFiles.get(folder)
+    if (curr) return curr
+    let files = globFiles(folder)
+    this.workspaceFiles.set(folder, files)
+    return files
+  }
+
+  public hasMatchedFile(workspaceFolders: ReadonlyArray<WorkspaceFolder>, patterns: string[]): boolean {
+    let folders = workspaceFolders.map(o => URI.parse(o.uri).fsPath)
+    for (let folder of folders) {
+      let files = this.getFolderFiles(folder)
+      if (matchPatterns(files, patterns)) {
+        return true
+      }
+    }
+    return false
   }
 
   public async loadFileExtensions(): Promise<void> {
@@ -133,7 +153,7 @@ export class ExtensionManager {
       if (e.added.length > 0) {
         this.tryActivateExtensions('workspaceContains', events => {
           let patterns = toWorkspaceContinsPatterns(events)
-          return workspaceContains(e.added, patterns)
+          return this.hasMatchedFile(e.added, patterns)
         })
       }
     }, null, this.disposables)
@@ -148,26 +168,24 @@ export class ExtensionManager {
     return globalIds.filter(id => !this.states.isDisabled(id))
   }
 
-  public tryActivateExtensions(event: string, check: (activationEvents: string[]) => boolean | Promise<boolean>): void {
-    for (let [id, item] of this.extensions.entries()) {
+  public tryActivateExtensions(event: string, check: (activationEvents: string[]) => boolean): void {
+    for (let item of this.extensions.values()) {
       if (item.extension.isActive) continue
       let events = item.events
+      if (!events.includes(event)) continue
       let { extension } = item
-      let { activationEvents } = extension.packageJSON
-      if (!events.includes(event) || !Array.isArray(activationEvents)) continue
-      Promise.resolve(check(activationEvents)).then(checked => {
-        if (checked) return Promise.resolve(extension.activate())
-      }, e => {
-        logger.error(`Error on check extension ${id}`, e)
-      })
+      let activationEvents = getActivationEvents(extension.packageJSON)
+      let checked = check(activationEvents)
+      if (checked) void Promise.resolve(extension.activate())
     }
   }
 
-  private async checkAutoActivate(packageJSON: ExtensionJson): Promise<boolean> {
+  private checkAutoActivate(packageJSON: ExtensionJson): boolean {
     let activationEvents = getActivationEvents(packageJSON)
     if (activationEvents.length === 0 || activationEvents.includes('*')) {
       return true
     }
+    let patterns: string[] = []
     for (let eventName of activationEvents as string[]) {
       let parts = eventName.split(':')
       let ev = parts[0]
@@ -175,6 +193,8 @@ export class ExtensionManager {
         if (workspace.languageIds.has(parts[1]) || workspace.filetypes.has(parts[1])) {
           return true
         }
+      } else if (ev === 'workspaceContains' && parts[1]) {
+        patterns.push(parts[1])
       } else if (ev === 'onFileSystem') {
         for (let doc of workspace.documents) {
           let u = URI.parse(doc.uri)
@@ -184,9 +204,8 @@ export class ExtensionManager {
         }
       }
     }
-    let patterns = toWorkspaceContinsPatterns(activationEvents)
     if (patterns.length > 0) {
-      let res = await workspaceContains(workspace.workspaceFolders, patterns)
+      let res = this.hasMatchedFile(workspace.workspaceFolders, patterns)
       if (res) return true
     }
     return false
@@ -341,7 +360,7 @@ export class ExtensionManager {
 
   public async autoActiavte(id: string, extension: Extension<API>): Promise<void> {
     try {
-      let checked = await this.checkAutoActivate(extension.packageJSON)
+      let checked = this.checkAutoActivate(extension.packageJSON)
       if (checked) await Promise.resolve(extension.activate())
     } catch (e) {
       logger.error(`Error on activate ${id}`, e)
@@ -551,7 +570,7 @@ export function checkLanguageId(document: { languageId: string, filetype: string
   for (let eventName of activationEvents as string[]) {
     let parts = eventName.split(':')
     let ev = parts[0]
-    if (ev == 'onLanguage' && document.languageId == parts[1] || document.filetype == parts[1]) {
+    if (ev == 'onLanguage' && (document.languageId == parts[1] || document.filetype == parts[1])) {
       return true
     }
   }
@@ -581,52 +600,22 @@ export function checkFileSystem(uri: string, activationEvents: string[]): boolea
   return false
 }
 
+export function getActivationEvents(json: ExtensionJson): string[] {
+  let { activationEvents } = json
+  if (!activationEvents || !Array.isArray(activationEvents)) return []
+  return activationEvents.filter(key => typeof key === 'string' && key.length > 0)
+}
+
 /**
  * Convert globl patterns
  */
 export function toWorkspaceContinsPatterns(activationEvents: string[]): string[] {
   let patterns: string[] = []
-  let normals: string[] = []
-  let globs: string[] = []
-  for (let eventName of activationEvents as string[]) {
+  for (let eventName of activationEvents) {
     let parts = eventName.split(':')
     if (parts[0] == 'workspaceContains' && parts[1]) {
-      if (parts[1].startsWith('**/')) {
-        globs.push(parts[1])
-      } else if (parts[1]) {
-        normals.push(parts[1])
-      }
+      patterns.push(parts[1])
     }
   }
-  if (normals.length > 0) normals.length == 1 ? patterns.push(normals[0]) : patterns.push(`?(${normals.join('|')})`)
-  if (globs.length > 0) globs.length == 1 ? patterns.push(globs[0]) : patterns.push(`**/?(${globs.map(s => s.slice(3)).join('|')})`)
   return patterns
-}
-
-export async function workspaceContains(workspaceFolders: ReadonlyArray<WorkspaceFolder>, patterns: string[]): Promise<boolean> {
-  let folders = workspaceFolders.map(o => URI.parse(o.uri).fsPath)
-  let tokenSource = new CancellationTokenSource()
-  let token = tokenSource.token
-  let checked = false
-  let results = await Promise.allSettled(folders.map(folder => {
-    return checkFolderPatterns(folder, patterns, token).then(find => {
-      if (find) {
-        checked = true
-        tokenSource.cancel()
-      }
-    })
-  }))
-  results.forEach(res => {
-    if (res.status === 'rejected') {
-      console.error(`Error on check workspaceContains:` + res.reason)
-      logger.error(`Error on check workspaceContains:`, patterns, res.reason)
-    }
-  })
-  return checked
-}
-
-export function getActivationEvents(json: ExtensionJson): string[] {
-  let { activationEvents } = json
-  if (!activationEvents || !Array.isArray(activationEvents)) return []
-  return activationEvents.filter(key => typeof key === 'string' && key.length > 0)
 }
