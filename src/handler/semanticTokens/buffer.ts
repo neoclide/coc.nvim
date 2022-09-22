@@ -504,8 +504,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public dispose(): void {
     this.cancel()
-    this.previousResults = undefined
-    this._highlights = undefined
+    this.clearHighlight()
     this._onDidRefresh.dispose()
   }
 }
