@@ -44,12 +44,13 @@ local function addHighlights(bufnr, ns, highlights, priority)
     local startCol = items[3]
     local endCol = items[4]
     local hlMode = items[5] and 'combine' or 'replace'
-    api.nvim_buf_set_extmark(bufnr, ns, line, startCol, {
-      end_col = endCol,
-      hl_group = hlGroup,
-      hl_mode = hlMode,
-      right_gravity = true,
-      priority = type(priority) == 'numbers' and math.min(priority, 4096) or 4096
+    -- Error: col value outside range
+    pcall(api.nvim_buf_set_extmark, bufnr, ns, line, startCol, {
+          end_col = endCol,
+          hl_group = hlGroup,
+          hl_mode = hlMode,
+          right_gravity = true,
+          priority = type(priority) == 'numbers' and math.min(priority, 4096) or 4096
     })
   end
 end
