@@ -246,7 +246,7 @@ nnoremap <silent><nowait> <space>k  :<C-u>CocPrev<CR>
 nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
 ```
 
-## Example lua configured
+## Example lua configuration
 NOTE: This works in Neovim 0.7.0dev+ only.
 
 ```lua
