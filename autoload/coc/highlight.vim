@@ -193,7 +193,7 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
       endfor
     endif
   else
-    throw 'Get highlights requires vim support prop_list'
+    throw 'Get highlights requires neovim 0.5.0 or vim support prop_list'
   endif
   return res
 endfunction

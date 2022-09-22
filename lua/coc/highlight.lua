@@ -13,11 +13,11 @@ function M.getHighlights(bufnr, key, s, e)
   local ns = api.nvim_create_namespace('coc-' .. key)
   local markers = api.nvim_buf_get_extmarks(bufnr, ns, {s, 0}, {e, -1}, {details = true})
   local res = {}
-  for i = 1, #markers do
-    local id = markers[i][1]
-    local line = markers[i][2]
-    local startCol = markers[i][3]
-    local details = markers[i][4]
+  for _, mark in ipairs(markers) do
+    local id = mark[1]
+    local line = mark[2]
+    local startCol = mark[3]
+    local details = mark[4]
     local endCol = details.end_col
     if line < max then
       local delta = details.end_row - line
