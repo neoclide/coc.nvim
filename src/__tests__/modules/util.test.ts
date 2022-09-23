@@ -9,6 +9,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../../model/textdocument'
 import { concurrent, executable, getKeymapModifier, delay, getUri, isRunning, runCommand, wait, watchFile } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
+import bytes from '../../util/bytes'
 import * as arrays from '../../util/array'
 import * as color from '../../util/color'
 import { getSymbolKind } from '../../util/convert'
@@ -115,6 +116,19 @@ console.warn('warn')`, sandbox)
     let obj: any = {}
     fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, filename])
     expect(typeof obj.exports).toBe('function')
+  })
+})
+
+describe('bytes()', () => {
+  it('should get byte indexes', async () => {
+    let fn = bytes('abcde')
+    expect(fn(0)).toBe(0)
+    expect(fn(1)).toBe(1)
+    expect(fn(8)).toBe(5)
+    fn = bytes('你ab好')
+    expect(fn(0)).toBe(0)
+    expect(fn(1)).toBe(3)
+    expect(fn(2)).toBe(4)
   })
 })
 
@@ -781,6 +795,29 @@ describe('score test', () => {
 })
 
 describe('fuzzy match test', () => {
+  it('should mergePositions', async () => {
+    let arr = []
+    fuzzy.mergePositions([0, 1, 3], (a, b) => {
+      arr.push([a, b + 1])
+    })
+    expect(arr).toEqual([[0, 2], [3, 4]])
+    arr = []
+    fuzzy.mergePositions([0], (a, b) => {
+      arr.push([a, b + 1])
+    })
+    expect(arr).toEqual([[0, 1]])
+    arr = []
+    fuzzy.mergePositions([0, 2, 3, 4, 1], (a, b) => {
+      arr.push([a, b + 1])
+    })
+    expect(arr).toEqual([[0, 1], [2, 5]])
+    arr = []
+    fuzzy.mergePositions([0, 2, 4], (a, b) => {
+      arr.push([a, b + 1])
+    })
+    expect(arr).toEqual([[0, 1], [2, 3], [4, 5]])
+  })
+
   it('should be fuzzy match', () => {
     let needle = 'aBc'
     let codes = fuzzy.getCharCodes(needle)

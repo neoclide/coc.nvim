@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import manager from '../../list/manager'
-import { parseInput } from '../../list/worker'
+import { parseInput, getHighlights } from '../../list/worker'
 import helper from '../helper'
 import { ListContext, ListTask, ListItem } from '../../types'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
@@ -122,6 +122,17 @@ afterEach(async () => {
   disposeAll(disposables)
   manager.reset()
   await helper.reset()
+})
+
+describe('getHighlights()', () => {
+  it('should getHighlights', async () => {
+    let { spans } = getHighlights('abc', [0, 1, 2])
+    expect(spans).toEqual([[0, 3]])
+    spans = getHighlights('abc', [0, 2]).spans
+    expect(spans).toEqual([[0, 1], [2, 3]])
+    spans = getHighlights('abcdefghijklmn', [0, 2, 3, 5, 6]).spans
+    expect(spans).toEqual([[0, 1], [2, 4], [5, 7]])
+  })
 })
 
 describe('parseInput', () => {

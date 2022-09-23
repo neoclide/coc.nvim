@@ -20,6 +20,34 @@ export function caseMatch(input: number, code: number, ignorecase = false): bool
   return false
 }
 
+export function mergePositions(matches: ArrayLike<number>, cb: (start: number, end: number) => void): void {
+  let start: number | undefined
+  let prev: number | undefined
+  let len = matches.length
+  for (let i = 0; i < len; i++) {
+    let curr = matches[i]
+    if (prev != undefined) {
+      let d = curr - prev
+      if (d == 1) {
+        prev = curr
+      } else if (d > 1) {
+        cb(start, prev)
+        start = curr
+      } else {
+        // invalid number
+        cb(start, prev)
+        break
+      }
+    } else {
+      start = curr
+    }
+    prev = curr
+    if (i == len - 1) {
+      cb(start, prev)
+    }
+  }
+}
+
 export function fuzzyChar(a: string, b: string, ignorecase = false): boolean {
   let ca = a.charCodeAt(0)
   let cb = b.charCodeAt(0)

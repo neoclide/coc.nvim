@@ -275,8 +275,7 @@ export default class PopupMenu {
           let pre = byteLength(text)
           if (item.positions?.length > 0) {
             let positions = item.positions.filter(i => i < labelMaxLength)
-            let highlights = positionHighlights(item.abbr, positions, pre, index)
-            hls.push(...highlights)
+            positionHighlights(hls, item.abbr, positions, pre, index)
           }
           let abbr = label.text
           text += this.fillWidth(abbr, config.abbrWidth + 1)

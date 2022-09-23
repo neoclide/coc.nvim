@@ -16,6 +16,7 @@ declare global {
     interface Global {
       __TEST__?: boolean
       REVISION?: string
+      WebAssembly: any
     }
   }
 }

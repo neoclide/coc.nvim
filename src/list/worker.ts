@@ -1,15 +1,16 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
+import { FuzzyMatch } from '../model/fuzzyMatch'
 import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListItemWithHighlights, ListOptions, ListTask } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { filter } from '../util/async'
+import bytes from '../util/bytes'
 import { patchLine } from '../util/diff'
-import { fuzzyPositions } from '../util/fuzzy'
-import { score } from '../util/fzy'
+import { mergePositions } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
 import { getMatchResult } from '../util/score'
-import { byteIndex, byteLength, smartcaseIndex } from '../util/string'
+import { byteLength, smartcaseIndex } from '../util/string'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
@@ -25,6 +26,8 @@ export interface FilterOption {
 }
 
 export type OnFilter = (arr: ListItemWithHighlights[], finished: boolean, sort?: boolean) => void
+
+const fuzzyMatch = new FuzzyMatch()
 
 // perform loading task
 export default class Worker {
@@ -60,6 +63,7 @@ export default class Worker {
   }
 
   public async loadItems(context: ListContext, reload = false): Promise<void> {
+    await fuzzyMatch.load()
     this.cancelFilter()
     this.filteredCount = 0
     this._finished = false
@@ -231,6 +235,7 @@ export default class Worker {
       this.convertItemLabel(item)
       let spans: [number, number][] = []
       let filterLabel = getFilterLabel(item)
+      let byteIndex = bytes(filterLabel)
       let match = true
       for (let input of inputs) {
         let idx: number
@@ -243,7 +248,7 @@ export default class Worker {
           match = false
           break
         }
-        spans.push([byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + byteLength(input))])
+        spans.push([byteIndex(idx), byteIndex(idx + byteLength(input))])
       }
       if (!match) return false
       return { highlights: { spans } }
@@ -263,6 +268,7 @@ export default class Worker {
       this.convertItemLabel(item)
       let spans: [number, number][] = []
       let filterLabel = getFilterLabel(item)
+      let byteIndex = bytes(filterLabel)
       let match = true
       for (let regex of regexes) {
         let ms = filterLabel.match(regex)
@@ -270,38 +276,26 @@ export default class Worker {
           match = false
           break
         }
-        spans.push([byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + byteLength(ms[0]))])
+        spans.push([byteIndex(ms.index), byteIndex(ms.index + byteLength(ms[0]))])
       }
       if (!match) return false
       return { highlights: { spans } }
     }, onFilter, token)
   }
 
-  private async filterItemsByFuzzyMatch(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
-    let { sort, smartcase } = this.listOptions
+  private async filterItemsByFuzzyMatch(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+    let { sort } = this.listOptions
     let idx = 0
+    fuzzyMatch.setPattern(input, !this.config.extendedSearchMode)
     await filter(items, item => {
       this.convertItemLabel(item)
-      let filterText = item.filterText ?? item.label
-      let matchScore = 0
-      let matches: number[] = []
       let filterLabel = getFilterLabel(item)
-      let match = true
-      for (let input of inputs) {
-        let positions = fuzzyPositions(input, filterLabel, smartcase, matches)
-        if (!positions) {
-          match = false
-          break
-        }
-        matches.push(...positions)
-        if (sort) matchScore += score(input, filterText)
-      }
-      idx = idx + 1
+      let match = fuzzyMatch.match(filterLabel)
       if (!match) return false
       return {
         sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
-        score: matchScore,
-        highlights: getHighlights(filterLabel, matches)
+        score: match.score,
+        highlights: getHighlights(filterLabel, match.positions)
       }
     }, (items, done) => {
       onFilter(items, done, sort)
@@ -341,7 +335,7 @@ export default class Worker {
         await this.filterItemsByRegex(inputs, arr, token, onFilter)
         break
       default:
-        await this.filterItemsByFuzzyMatch(inputs, arr, token, onFilter)
+        await this.filterItemsByFuzzyMatch(input, arr, token, onFilter)
     }
   }
 
@@ -397,24 +391,13 @@ export function parseInput(input: string): string[] {
   return res.map(s => s.replace(/\\\s/g, ' ').trim()).filter(s => s.length > 0)
 }
 
-export function getHighlights(text: string, matches?: number[]): ListHighlights {
+export function getHighlights(text: string, matches?: ArrayLike<number>): ListHighlights {
   let spans: [number, number][] = []
-  if (matches && matches.length) {
-    let start = matches.shift()
-    let next = matches.shift()
-    let curr = start
-    while (next) {
-      if (next == curr + 1) {
-        curr = next
-        next = matches.shift()
-        continue
-      }
-      spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
-      start = next
-      curr = start
-      next = matches.shift()
-    }
-    spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
+  if (matches && matches.length > 0) {
+    let byteIndex = bytes(text)
+    mergePositions(matches, (start, end) => {
+      spans.push([byteIndex(start), byteIndex(end) + 1])
+    })
   }
   return { spans }
 }

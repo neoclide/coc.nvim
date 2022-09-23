@@ -5,6 +5,8 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, HighlightItem, ISource } from '../types'
 import { toArray } from '../util/array'
+import bytes from '../util/bytes'
+import { mergePositions } from '../util/fuzzy'
 import { byteIndex, byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
@@ -160,26 +162,14 @@ export function getValidWord(text: string, invalidChars: string[], start = 2): s
   return text
 }
 
-export function positionHighlights(label: string, positions: number[], pre: number, line: number): HighlightItem[] {
-  let hls: HighlightItem[] = []
-  while (positions.length > 0) {
-    let start = positions.shift()
-    let end = start
-    while (positions.length > 0) {
-      let n = positions[0]
-      if (n - end == 1) {
-        end = n
-        positions.shift()
-      } else {
-        break
-      }
-    }
+export function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number): void {
+  let byteIndex = bytes(label)
+  mergePositions(positions, (start, end) => {
     hls.push({
       hlGroup: 'CocPumSearch',
       lnum: line,
-      colStart: pre + byteIndex(label, start),
-      colEnd: pre + byteIndex(label, end + 1),
+      colStart: pre + byteIndex(start),
+      colEnd: pre + byteIndex(end) + 1,
     })
-  }
-  return hls
+  })
 }
