@@ -800,6 +800,7 @@ Try these steps when you have problem with coc.nvim.
       <td align="center"><a href="https://github.com/timsu92"><img src="https://avatars.githubusercontent.com/u/33785401?v=4?s=50" width="50px;" alt=""/><br /><sub><b>timsu92</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=timsu92" title="Documentation">📖</a></td>
       <td align="center"><a href="https://sartak.org"><img src="https://avatars.githubusercontent.com/u/45430?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Shawn M Moore</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=sartak" title="Code">💻</a></td>
       <td align="center"><a href="https://github.com/aauren"><img src="https://avatars.githubusercontent.com/u/1392295?v=4?s=50" width="50px;" alt=""/><br /><sub><b>Aaron U'Ren</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Aaauren" title="Bug reports">🐛</a></td>
+      <td align="center"><a href="https://github.com/SirCharlieMars"><img src="https://avatars.githubusercontent.com/u/31679231?v=4?s=50" width="50px;" alt=""/><br /><sub><b>SeniorMars</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=SirCharlieMars" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>
