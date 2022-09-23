@@ -1,4 +1,6 @@
+import { matchScoreWithPositions } from '../../completion/match'
 import { FuzzyMatch } from '../../model/fuzzyMatch'
+import { getCharCodes } from '../../util/fuzzy'
 
 describe('FuzzyMatch', () => {
 
@@ -70,5 +72,37 @@ describe('FuzzyMatch', () => {
     p.setPattern('f b', true)
     res = p.match('foo bar')
     expect(Array.from(res.positions)).toEqual([0, 3, 4])
+  })
+
+  it('should better performance', async () => {
+    function makeid(length) {
+      var result = ''
+      var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+      var charactersLength = characters.length
+      for (var i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() *
+          charactersLength))
+      }
+      return result
+    }
+    let arr: string[] = []
+    for (let i = 0; i < 4000; i++) {
+      arr.push(makeid(50))
+    }
+    let pat = makeid(5)
+    let p = new FuzzyMatch()
+    await p.load()
+    p.setPattern(pat, true)
+    let ts = Date.now()
+    for (const text of arr) {
+      p.match(text)
+    }
+    // console.log(Date.now() - ts)
+    let codes = getCharCodes(pat)
+    ts = Date.now()
+    for (const text of arr) {
+      matchScoreWithPositions(text, codes)
+    }
+    // console.log(Date.now() - ts)
   })
 })
