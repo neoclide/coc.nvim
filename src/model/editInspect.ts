@@ -12,7 +12,7 @@ import { disposeAll } from '../util'
 import { isParentFolder } from '../util/fs'
 import { getAnnotationKey, getPositionFromEdits, mergeSortEdits } from '../util/textedit'
 import Highlighter from './highligher'
-const logger = require('../util/logger')('mdoe-editInspect')
+const logger = require('../util/logger')('model-editInspect')
 
 export type RecoverFunc = () => Promise<any> | void
 
@@ -200,7 +200,7 @@ function grouByAnnotation(changes: DocumentChange[], annotations: { [id: string]
   let map: Map<string | null, DocumentChange[]> = new Map()
   for (let change of changes) {
     let id = getAnnotationKey(change) ?? null
-    let key = id ? annotations[id].label : null
+    let key = id && annotations?.id ? annotations[id].label : null
     let arr = map.get(key)
     if (arr) {
       arr.push(change)
