@@ -200,7 +200,7 @@ function grouByAnnotation(changes: DocumentChange[], annotations: { [id: string]
   let map: Map<string | null, DocumentChange[]> = new Map()
   for (let change of changes) {
     let id = getAnnotationKey(change) ?? null
-    let key = id && annotations?.id ? annotations[id].label : null
+    let key = id ? annotations[id]?.label : null
     let arr = map.get(key)
     if (arr) {
       arr.push(change)

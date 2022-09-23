@@ -2,6 +2,7 @@
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { CompleteDoneItem } from './types'
 import { disposeAll } from './util'
+import { CancellationError } from './util/errors'
 import { deepClone, equals } from './util/object'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('events')
@@ -84,6 +85,7 @@ class Events {
   private _pumVisible = false
   private _completing = false
   private _requesting = false
+  public timeout = 1000
   // public completing = false
 
   public set requesting(val: boolean) {
@@ -223,14 +225,28 @@ class Events {
       if (this._cursor && equals(this._cursor, cursor)) return
       this._cursor = Object.freeze(cursor)
     }
-    if (cbs) {
-      try {
-        // need slice since the array might changed when execute fn
-        await Promise.all(cbs.slice().map(fn => fn(deepClone(args))))
-      } catch (e) {
-        if (e instanceof Error && e.message?.includes('transport disconnected')) return
-        logger.error(`Error on event: ${event}`, e instanceof Error ? e.stack : e)
-      }
+    if (cbs?.length) {
+      let fns = cbs.slice()
+      let traceSlow = this.requesting
+      await Promise.allSettled(fns.map(fn => {
+        let promiseFn = async () => {
+          let timer: NodeJS.Timer
+          if (traceSlow) {
+            timer = setTimeout(() => {
+              logger.error(`Slow event handler detected`, fn['stack'])
+              console.error(`Slow event handler detected`, fn['stack'])
+            }, this.timeout)
+          }
+          try {
+            await fn(deepClone(args))
+          } catch (e) {
+            let res = shouldIgnore(e)
+            if (!res) logger.error(`Error on event: ${event}`, e instanceof Error ? e.stack : e)
+          }
+          clearTimeout(timer)
+        }
+        return promiseFn()
+      }))
     }
   }
 
@@ -284,6 +300,7 @@ class Events {
           reject(e)
         }
       })
+      Error.captureStackTrace(wrappedhandler)
       arr.push(wrappedhandler)
       this.handlers.set(event, arr)
       let disposable = Disposable.create(() => {
@@ -299,4 +316,10 @@ class Events {
     }
   }
 }
+
+function shouldIgnore(err: any): boolean {
+  if (err instanceof CancellationError || (err instanceof Error && err.message?.includes('transport disconnected'))) return true
+  return false
+}
+
 export default new Events()

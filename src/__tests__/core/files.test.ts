@@ -505,8 +505,16 @@ describe('getOriginalLine', () => {
                 annotationId: 'dd866f37-a24c-4503-9c35-c139fb28e25b'
               }
             ]
-          },
-        ],
+          }, {
+            textDocument: { version: 1, uri: doc.uri },
+            edits: [
+              {
+                range: Range.create(0, 0, 0, 0),
+                newText: 'bar',
+                annotationId: '9468b9bf-97b6-4b37-b21f-aba8df3ce658'
+              }
+            ]
+          }],
         changeAnnotations: {
           'dd866f37-a24c-4503-9c35-c139fb28e25b': {
             needsConfirmation: false,
