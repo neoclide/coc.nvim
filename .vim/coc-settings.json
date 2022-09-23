@@ -1,6 +1,7 @@
 {
   "eslint.validate": ["typescript"],
   "eslint.lintTask.options": [".", "--ext", ".ts"],
+  "sumneko-lua.enableNvimLuaDev": true,
   "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
   "typescript.suggestionActions.enabled": false

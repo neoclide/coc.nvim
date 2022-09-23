@@ -50,7 +50,7 @@ local function addHighlights(bufnr, ns, highlights, priority)
           hl_group = hlGroup,
           hl_mode = hlMode,
           right_gravity = true,
-          priority = type(priority) == 'numbers' and math.min(priority, 4096) or 4096
+          priority = type(priority) == 'number' and math.min(priority, 4096) or 4096
     })
   end
 end
