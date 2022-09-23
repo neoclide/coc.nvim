@@ -7,7 +7,7 @@ import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, HighlightItem, 
 import { toArray } from '../util/array'
 import bytes from '../util/bytes'
 import { mergePositions } from '../util/fuzzy'
-import { byteIndex, byteSlice, characterIndex } from '../util/string'
+import { byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>

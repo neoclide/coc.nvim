@@ -17,8 +17,6 @@ export interface MatchResult {
 
 const filePath = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/fuzzy.wasm')
 
-const env = { LANG: 'en_GB.UTF-8', TERM: 'xterm' }
-
 export async function initWasi(): Promise<WasiExports> {
   const buf = fs.readFileSync(filePath)
   let keys = ['environ_get', 'environ_sizes_get', 'proc_exit']
@@ -30,7 +28,6 @@ export async function initWasi(): Promise<WasiExports> {
     wasi_snapshot_preview1: obj,
     env: {}
   })
-  let memory = res.instance.exports.memory
   return res.instance.exports as WasiExports
 }
 
@@ -63,7 +60,7 @@ export class FuzzyMatch {
     if (pattern.length > 256) pattern = pattern.slice(0, 256)
     this.matchSeq = matchSeq
     this.patternLength = matchSeq ? pattern.length : pattern.replace(/(\s|\t)/g, '').length
-    let { memory, malloc, free } = this.exports
+    let { memory } = this.exports
     let buf = Buffer.from(pattern, 'utf8')
     let len = buf.length
     let bytes = new Uint8Array(memory.buffer, this.patternPtr, len + 1)

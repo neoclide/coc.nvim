@@ -152,16 +152,13 @@ export default class ListUI {
     this.nvim.callTimer('coc#ui#echo_lines', [[msg]], true)
   }
 
-  public updateItem(item: ListItemWithHighlights, index: number, labelChanged: boolean): void {
+  public updateItem(item: ListItemWithHighlights, index: number): void {
     if (!this.buffer || index >= this.length) return
-    let prev = this.items[index]
-    Object.assign(prev, item, { resolved: true })
-    if (!labelChanged) return
     let { nvim } = this
     let lnum = this.indexToLnum(index)
     nvim.pauseNotification()
     this.buffer.setOption('modifiable', true, true)
-    nvim.call('setbufline', [this.bufnr, lnum, prev.label], true)
+    nvim.call('setbufline', [this.bufnr, lnum, item.label], true)
     this.doHighlight(index, index + 1)
     this.buffer.setOption('modifiable', false, true)
     nvim.resumeNotification(true, true)

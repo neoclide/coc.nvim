@@ -9,7 +9,6 @@ import bytes from '../util/bytes'
 import { patchLine } from '../util/diff'
 import { mergePositions } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
-import { getMatchResult } from '../util/score'
 import { byteLength, smartcaseIndex } from '../util/string'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')
@@ -220,10 +219,16 @@ export default class Worker {
    */
   private convertToHighlightItems(items: ListItem[]): ListItemWithHighlights[] {
     let input = this.input ?? ''
+    if (input.length > 0) fuzzyMatch.setPattern(input)
     let res = items.map(item => {
       this.convertItemLabel(item)
-      let highlights = input.length > 0 ? getItemHighlights(input, item) : undefined
-      return Object.assign({}, item, { highlights })
+      let search = input.length > 0 && item.filterText !== ''
+      if (search) {
+        let filterLabel = getFilterLabel(item)
+        let results = fuzzyMatch.match(filterLabel)
+        if (results) Object.assign(item, { highlights: getHighlights(filterLabel, results.positions) })
+      }
+      return item
     })
     return res
   }
@@ -400,11 +405,4 @@ export function getHighlights(text: string, matches?: ArrayLike<number>): ListHi
     })
   }
   return { spans }
-}
-
-export function getItemHighlights(input: string, item: ListItem): ListHighlights {
-  let filterLabel = getFilterLabel(item)
-  let res = getMatchResult(filterLabel, input)
-  if (!res?.score) return { spans: [] }
-  return getHighlights(filterLabel, res.matches)
 }

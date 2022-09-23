@@ -12,7 +12,7 @@ import ListConfiguration from './configuration'
 import InputHistory from './history'
 import Prompt from './prompt'
 import UI from './ui'
-import Worker, { getItemHighlights } from './worker'
+import Worker from './worker'
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-session')
 
@@ -347,12 +347,13 @@ export default class ListSession {
     let item = this.ui.getItem(index)
     if (!item || item.resolved) return
     let { list } = this
-    if (typeof list.resolveItem == 'function') {
+    if (typeof list.resolveItem === 'function') {
       let label = item.label
       let resolved = await Promise.resolve(list.resolveItem(item))
       if (resolved && index == this.ui.index) {
-        let highlights = getItemHighlights(this.prompt.input, resolved)
-        this.ui.updateItem(Object.assign({ highlights }, resolved), index, label != resolved.label)
+        Object.assign(item, resolved, { resolved: true })
+        if (label == resolved.label) return
+        this.ui.updateItem(item, index)
       }
     }
   }
