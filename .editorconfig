@@ -20,3 +20,15 @@ indent_style = space
 indent_size = 2
 trim_trailing_whitespace = true
 max_line_length = 120
+
+
+[*.lua]
+indent_size = 2
+max_line_length = 120
+align_call_args = only_not_exist_cross_row_expression
+align_table_field_to_first_field = true
+local_assign_continuation_align_to_first_expression = true
+keep_one_space_between_table_and_bracket = false
+quote_style = single
+remove_empty_header_and_footer_lines_in_function = true
+remove_expression_list_finish_comma= true

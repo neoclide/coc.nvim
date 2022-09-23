@@ -152,6 +152,9 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
   endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
+  if has('nvim-0.5.0')
+    return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
+  endif
   let res = []
   let ns = s:namespace_map[a:key]
   if exists('*prop_list')
@@ -189,32 +192,6 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
         endfor
       endfor
     endif
-  elseif has('nvim-0.5.0')
-    let start = [start, 0]
-    let maximum = end == -1 ? nvim_buf_line_count(a:bufnr) : end + 1
-    let end = end == -1 ? -1 : [end + 1, 0]
-    let markers = nvim_buf_get_extmarks(a:bufnr, ns, start, -1, {'details': v:true})
-    for [marker_id, line, start_col, details] in markers
-      if line >= maximum
-        " Could be markers exceed end of line
-        continue
-      endif
-      let delta = details['end_row'] - line
-      if delta > 1 || (delta == 1 && details['end_col'] != 0)
-        " can't handle, single line only
-        continue
-      endif
-      let endCol = details['end_col']
-      if endCol == start_col
-        call nvim_buf_del_extmark(a:bufnr, ns, marker_id)
-        continue
-      endif
-      if delta == 1
-        let text = get(nvim_buf_get_lines(a:bufnr, line, line + 1, 0), 0, '')
-        let endCol = strlen(text)
-      endif
-      call add(res, [details['hl_group'], line, start_col, endCol, marker_id])
-    endfor
   else
     throw 'Get highlights requires neovim 0.5.0 or vim support prop_list'
   endif
@@ -227,12 +204,16 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
   if !bufloaded(a:bufnr)
     return
   endif
-    let ns = coc#highlight#create_namespace(a:key)
+  let ns = coc#highlight#create_namespace(a:key)
+  if has('nvim-0.5.0')
+    call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
+  else
     if len(a:highlights) > g:coc_highlight_maximum_count
       call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
     else
       call s:add_highlights(a:bufnr, ns, a:highlights, a:priority)
     endif
+  endif
 endfunction
 
 " Clear highlights by 0 based line numbers.
