@@ -180,7 +180,7 @@ export default class PopupMenu {
         let [item] = items.splice(selectedIndex, 1)
         items.unshift(item)
       }
-      selectedIndex == -1
+      selectedIndex = -1
     }
     let opt = {
       input: search,
