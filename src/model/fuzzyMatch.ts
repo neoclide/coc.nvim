@@ -16,15 +16,15 @@ export interface MatchResult {
 }
 
 const filePath = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/fuzzy.wasm')
+const buffer = fs.readFileSync(filePath)
 
 export async function initWasi(): Promise<WasiExports> {
-  const buf = fs.readFileSync(filePath)
   let keys = ['environ_get', 'environ_sizes_get', 'proc_exit']
   let obj = {}
   keys.forEach(k => {
     obj[k] = () => 0
   })
-  const res = await global.WebAssembly.instantiate(buf, {
+  const res = await global.WebAssembly.instantiate(buffer, {
     wasi_snapshot_preview1: obj,
     env: {}
   })

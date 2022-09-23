@@ -97,12 +97,12 @@ describe('FuzzyMatch', () => {
     for (const text of arr) {
       p.match(text)
     }
-    // console.log(Date.now() - ts)
+    console.log(Date.now() - ts)
     let codes = getCharCodes(pat)
     ts = Date.now()
     for (const text of arr) {
       matchScoreWithPositions(text, codes)
     }
-    // console.log(Date.now() - ts)
+    console.log(Date.now() - ts)
   })
 })

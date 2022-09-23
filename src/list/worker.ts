@@ -7,7 +7,7 @@ import { parseAnsiHighlights } from '../util/ansiparse'
 import { filter } from '../util/async'
 import bytes from '../util/bytes'
 import { patchLine } from '../util/diff'
-import { mergePositions } from '../util/fuzzy'
+import { fuzzyMatch, getCharCodes, mergePositions } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
 import { byteLength, smartcaseIndex } from '../util/string'
 import Prompt from './prompt'
@@ -26,8 +26,6 @@ export interface FilterOption {
 
 export type OnFilter = (arr: ListItemWithHighlights[], finished: boolean, sort?: boolean) => void
 
-const fuzzyMatch = new FuzzyMatch()
-
 // perform loading task
 export default class Worker {
   private _loading = false
@@ -39,6 +37,7 @@ export default class Worker {
   private filterTokenSource: CancellationTokenSource
   private _onDidChangeItems = new Emitter<ListItemsEvent>()
   private _onDidChangeLoading = new Emitter<boolean>()
+  private fuzzyMatch = new FuzzyMatch()
   public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
   public readonly onDidChangeLoading: Event<boolean> = this._onDidChangeLoading.event
 
@@ -62,7 +61,7 @@ export default class Worker {
   }
 
   public async loadItems(context: ListContext, reload = false): Promise<void> {
-    await fuzzyMatch.load()
+    await this.fuzzyMatch.load()
     this.cancelFilter()
     this.filteredCount = 0
     this._finished = false
@@ -219,13 +218,13 @@ export default class Worker {
    */
   private convertToHighlightItems(items: ListItem[]): ListItemWithHighlights[] {
     let input = this.input ?? ''
-    if (input.length > 0) fuzzyMatch.setPattern(input)
+    if (input.length > 0) this.fuzzyMatch.setPattern(input)
     let res = items.map(item => {
       this.convertItemLabel(item)
       let search = input.length > 0 && item.filterText !== ''
       if (search) {
         let filterLabel = getFilterLabel(item)
-        let results = fuzzyMatch.match(filterLabel)
+        let results = this.fuzzyMatch.match(filterLabel)
         if (results) Object.assign(item, { highlights: getHighlights(filterLabel, results.positions) })
       }
       return item
@@ -289,13 +288,15 @@ export default class Worker {
   }
 
   private async filterItemsByFuzzyMatch(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
-    let { sort } = this.listOptions
+    let { sort, smartcase } = this.listOptions
     let idx = 0
-    fuzzyMatch.setPattern(input, !this.config.extendedSearchMode)
+    this.fuzzyMatch.setPattern(input, !this.config.extendedSearchMode)
+    let codes = getCharCodes(input)
     await filter(items, item => {
       this.convertItemLabel(item)
       let filterLabel = getFilterLabel(item)
-      let match = fuzzyMatch.match(filterLabel)
+      if (smartcase && !fuzzyMatch(codes, filterLabel)) return false
+      let match = this.fuzzyMatch.match(filterLabel)
       if (!match) return false
       return {
         sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
