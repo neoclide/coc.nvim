@@ -224,6 +224,9 @@ export default class PopupMenu {
     let abbr = item.abbr ?? ''
     let label = item.abbr ?? item.word
     let hls: HighlightRange[] = []
+    if ((item.isSnippet || item.additionalEdits) && !abbr.endsWith(snippetIndicator)) {
+      label = label + snippetIndicator
+    }
     if (detailField === 'abbr' && detail && !labelDetails && detail.length < detailMaxLength) {
       labelDetails = { detail: ' ' + detail.replace(/\r?\n\s*/g, ' ') }
     }
@@ -235,9 +238,6 @@ export default class PopupMenu {
         label = label + added
         item.detailRendered = true
       }
-    }
-    if ((item.isSnippet || item.additionalEdits) && !abbr.endsWith(snippetIndicator)) {
-      label = label + snippetIndicator
     }
     if (label.length > labelMaxLength) {
       label = label.slice(0, labelMaxLength - 1) + '.'
@@ -269,44 +269,49 @@ export default class PopupMenu {
     // abbr menu kind shortcut
     let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config
     let text = config.border ? '' : ' '
+    let len = byteLength(text)
+    let append = (str: string, width: number): void => {
+      let s = this.fillWidth(str, width)
+      len += byteLength(s)
+      text += s
+    }
     for (const name of formatItems) {
       switch (name) {
         case 'abbr': {
-          let pre = byteLength(text)
           if (item.positions?.length > 0) {
-            let positions = item.positions.filter(i => i < labelMaxLength)
-            positionHighlights(hls, item.abbr, positions, pre, index)
+            positionHighlights(hls, item.abbr, item.positions, len, index, labelMaxLength)
           }
           let abbr = label.text
-          text += this.fillWidth(abbr, config.abbrWidth + 1)
+          let start = len
+          append(abbr, config.abbrWidth + 1)
           label.highlights.forEach(hl => {
             hls.push({
               hlGroup: hl.hlGroup,
               lnum: index,
-              colStart: pre + hl.start,
-              colEnd: pre + hl.end
+              colStart: start + hl.start,
+              colEnd: start + hl.end
             })
           })
           if (item.deprecated) {
             hls.push({
               hlGroup: 'CocPumDeprecated',
               lnum: index,
-              colStart: pre,
-              colEnd: pre + byteLength(abbr)
+              colStart: start,
+              colEnd: len - 1,
             })
           }
           break
         }
         case 'menu': {
           if (config.menuWidth > 0) {
-            let pre = byteLength(text)
-            text += this.fillWidth(item.menu ?? '', config.menuWidth + 1)
+            let colStart = len
+            append(item.menu ?? '', config.menuWidth + 1)
             if (item.menu) {
               hls.push({
                 hlGroup: 'CocPumMenu',
                 lnum: index,
-                colStart: pre,
-                colEnd: pre + byteLength(item.menu)
+                colStart,
+                colEnd: colStart + byteLength(item.menu)
               })
             }
           }
@@ -314,32 +319,32 @@ export default class PopupMenu {
         }
         case 'kind':
           if (config.kindWidth > 0) {
-            let pre = byteLength(text)
             let { kind } = item
             let kindText = getKindText(kind, kindMap, defaultKindText)
-            text += this.fillWidth(kindText ?? '', config.kindWidth + 1)
+            let colStart = len
+            append(kindText ?? '', config.kindWidth + 1)
             if (kindText) {
               let highlight = typeof kind === 'number' ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'
               hls.push({
                 hlGroup: highlight,
                 lnum: index,
-                colStart: pre,
-                colEnd: pre + byteLength(kindText)
+                colStart,
+                colEnd: colStart + byteLength(kindText)
               })
             }
           }
           break
         case 'shortcut':
           if (config.shortcutWidth > 0) {
-            let pre = byteLength(text)
+            let colStart = len
             let shortcut = sources.getShortcut(item.source)
-            text += this.fillWidth(shortcut ? `[${shortcut}]` : '', config.shortcutWidth + 1)
+            append(shortcut ? `[${shortcut}]` : '', config.shortcutWidth + 1)
             if (shortcut) {
               hls.push({
                 hlGroup: 'CocPumShortcut',
                 lnum: index,
-                colStart: pre,
-                colEnd: pre + byteLength(shortcut) + 2
+                colStart,
+                colEnd: colStart + byteLength(shortcut) + 2
               })
             }
           }

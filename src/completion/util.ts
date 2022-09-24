@@ -162,9 +162,10 @@ export function getValidWord(text: string, invalidChars: string[], start = 2): s
   return text
 }
 
-export function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number): void {
+export function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number, max: number): void {
   let byteIndex = bytes(label)
   mergePositions(positions, (start, end) => {
+    if (start >= max) return
     hls.push({
       hlGroup: 'CocPumSearch',
       lnum: line,
