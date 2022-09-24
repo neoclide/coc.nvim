@@ -1,15 +1,15 @@
 'use strict'
 import { exec } from 'child_process'
 import fs from 'fs'
+import glob, { Glob } from 'glob'
 import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import { promisify } from 'util'
-import glob from 'glob'
-import * as platform from './platform'
-import { FileType } from '../types'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import { FileType } from '../types'
+import * as platform from './platform'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -118,6 +118,33 @@ export function matchPatterns(files: string[], patterns: string[]): boolean {
     }
   }
   return false
+}
+
+export function globFilesAsync(dir: string, pattern = '**/*', timeout = 300): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    let timer = setTimeout(() => {
+      try {
+        g.abort()
+        let files = fs.readdirSync(dir, { encoding: 'utf8' })
+        files = files.filter(f => fs.statSync(path.join(dir, f)).isFile())
+        resolve(files)
+      } catch (e) {
+        resolve([])
+      }
+    }, timeout)
+    let g = new Glob(pattern, {
+      nosort: true,
+      ignore: ['**/node_modules/**', '**/.git/**'],
+      dot: true,
+      cwd: dir,
+      nodir: true,
+      absolute: false
+    }, (err, matches) => {
+      clearTimeout(timer)
+      if (err) return reject(err)
+      resolve(matches)
+    })
+  })
 }
 
 export function globFiles(dir: string, pattern = '**/*'): string[] {

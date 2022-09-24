@@ -9,7 +9,7 @@ import Memos from '../model/memos'
 import { disposeAll, wait, watchFile } from '../util'
 import { splitArray } from '../util/array'
 import { createExtension, ExtensionExport } from '../util/factory'
-import { globFiles, matchPatterns, remove } from '../util/fs'
+import { globFilesAsync, matchPatterns, remove } from '../util/fs'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, loadJson, validExtensionFolder } from './stat'
@@ -95,18 +95,18 @@ export class ExtensionManager {
     }))
   }
 
-  public getFolderFiles(folder: string): string[] {
+  public async getFolderFiles(folder: string): Promise<string[]> {
     let curr = this.workspaceFiles.get(folder)
     if (curr) return curr
-    let files = globFiles(folder)
+    let files = await globFilesAsync(folder)
     this.workspaceFiles.set(folder, files)
     return files
   }
 
-  public hasMatchedFile(workspaceFolders: ReadonlyArray<WorkspaceFolder>, patterns: string[]): boolean {
+  public async hasMatchedFile(workspaceFolders: ReadonlyArray<WorkspaceFolder>, patterns: string[]): Promise<boolean> {
     let folders = workspaceFolders.map(o => URI.parse(o.uri).fsPath)
     for (let folder of folders) {
-      let files = this.getFolderFiles(folder)
+      let files = await this.getFolderFiles(folder)
       if (matchPatterns(files, patterns)) {
         return true
       }
@@ -168,19 +168,20 @@ export class ExtensionManager {
     return globalIds.filter(id => !this.states.isDisabled(id))
   }
 
-  public tryActivateExtensions(event: string, check: (activationEvents: string[]) => boolean): void {
+  public tryActivateExtensions(event: string, check: (activationEvents: string[]) => boolean | Promise<boolean>): void {
     for (let item of this.extensions.values()) {
       if (item.extension.isActive) continue
       let events = item.events
       if (!events.includes(event)) continue
       let { extension } = item
       let activationEvents = getActivationEvents(extension.packageJSON)
-      let checked = check(activationEvents)
-      if (checked) void Promise.resolve(extension.activate())
+      void Promise.resolve(check(activationEvents)).then(checked => {
+        if (checked) void Promise.resolve(extension.activate())
+      })
     }
   }
 
-  private checkAutoActivate(packageJSON: ExtensionJson): boolean {
+  private async checkAutoActivate(packageJSON: ExtensionJson): Promise<boolean> {
     let activationEvents = getActivationEvents(packageJSON)
     if (activationEvents.length === 0 || activationEvents.includes('*')) {
       return true
@@ -205,7 +206,7 @@ export class ExtensionManager {
       }
     }
     if (patterns.length > 0) {
-      let res = this.hasMatchedFile(workspace.workspaceFolders, patterns)
+      let res = await this.hasMatchedFile(workspace.workspaceFolders, patterns)
       if (res) return true
     }
     return false
@@ -360,7 +361,7 @@ export class ExtensionManager {
 
   public async autoActiavte(id: string, extension: Extension<API>): Promise<void> {
     try {
-      let checked = this.checkAutoActivate(extension.packageJSON)
+      let checked = await this.checkAutoActivate(extension.packageJSON)
       if (checked) await Promise.resolve(extension.activate())
     } catch (e) {
       logger.error(`Error on activate ${id}`, e)

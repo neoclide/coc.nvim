@@ -4,15 +4,14 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { Disposable, WorkspaceFolder } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
-import { ExtensionJson, ExtensionStat, writeJson } from '../../extension/stat'
-import { checkCommand, toWorkspaceContinsPatterns, checkFileSystem, checkLanguageId, getActivationEvents, ExtensionManager, getEvents, ExtensionType, Extension, API } from '../../extension/manager'
-import { disposeAll } from '../../util'
+import { Disposable } from 'vscode-languageserver-protocol'
 import Watchman from '../../core/watchman'
-import helper from '../helper'
-import workspace from '../../workspace'
 import events from '../../events'
+import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, toWorkspaceContinsPatterns } from '../../extension/manager'
+import { ExtensionJson, ExtensionStat, writeJson } from '../../extension/stat'
+import { disposeAll } from '../../util'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 let disposables: Disposable[] = []
 let nvim: Neovim
@@ -243,8 +242,9 @@ describe('ExtensionManager', () => {
       await createExtension(manager, 'workspaceContains:file_not_exists')
       let root = path.resolve(__dirname, '../../..')
       await nvim.command(`edit ${path.join(root, 'file.js')}`)
-      await helper.wait(50)
-      expect(ext.isActive).toBe(true)
+      await helper.waitValue(() => {
+        return ext.isActive
+      }, true)
     })
 
     it('should activate on file system', async () => {

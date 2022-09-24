@@ -54,8 +54,9 @@ describe('pull configuration feature', () => {
       return config
     }
     await client.sendNotification('pull0')
-    await helper.wait(50)
-    expect(config).toBeDefined()
+    await helper.waitValue(() => {
+      return config != null
+    }, true)
     expect(config[0].http).toBeDefined()
   })
 

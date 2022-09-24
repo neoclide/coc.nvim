@@ -1,4 +1,4 @@
-import { findUp, checkFolder, globFiles, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, matchPatterns } from '../../util/fs'
+import { findUp, checkFolder, globFiles, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, matchPatterns, globFilesAsync } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -75,6 +75,18 @@ describe('fs', () => {
       tokenSource.cancel()
       res = await p
       expect(res).toBe(false)
+    })
+  })
+
+  describe('globFilesAsync()', () => {
+    it('should globFilesAsync', async () => {
+      let cwd = process.cwd()
+      let res = await globFilesAsync(cwd, '**/*', 500)
+      expect(res.length).toBeGreaterThan(0)
+      res = await globFilesAsync(os.homedir(), '**/*', 1)
+      expect(Array.isArray(res)).toBe(true)
+      res = await globFilesAsync('/not_exists', 'not_exists', 1)
+      expect(res).toEqual([])
     })
   })
 
