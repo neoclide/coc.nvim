@@ -2962,12 +2962,14 @@ AUTOCMD							*coc-autocmds*
 
 HIGHLIGHTS						*coc-highlights*
 
-To customize a highlight, simply use |:highlight| command in your vimrc, like:
+The best place to override highlight groups is a file named
+after/colors/<colorschemename> .vim in your 'runtimepath' (e.g.,
+~/.config/nvim/after/colors/solarized.vim). Example declaration:
 >
 	" make error texts have a red color
 	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
 <
-Type |:highlight| command with group name to check current highlight.
+Use |:highlight| with group name to check current highlight.
 
 Note: don't use `:hi default` for overwriting the highlights.
 
