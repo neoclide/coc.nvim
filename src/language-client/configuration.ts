@@ -116,6 +116,7 @@ interface DidChangeConfigurationWorkspaceMiddleware {
 
 export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigurationRegistrationOptions> {
   private _listeners: Map<string, Disposable> = new Map<string, Disposable>()
+  private configuredUID: string | undefined
 
   constructor(private _client: FeatureClient<DidChangeConfigurationWorkspaceMiddleware, $ConfigurationOptions>) {}
 
@@ -134,8 +135,9 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
   public initialize(): void {
     let section = this._client.clientOptions.synchronize?.configurationSection
     if (section !== undefined) {
+      let id = this.configuredUID = UUID.generateUuid()
       this.register({
-        id: UUID.generateUuid(),
+        id,
         registerOptions: {
           section
         }
@@ -146,6 +148,7 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
   public register(
     data: RegistrationData<DidChangeConfigurationRegistrationOptions>
   ): void {
+    if (this._client.configuredSection && data.id !== this.configuredUID) return
     let { section } = data.registerOptions
     let disposable = workspace.onDidChangeConfiguration(event => {
       this.onDidChangeConfiguration(section, event)
