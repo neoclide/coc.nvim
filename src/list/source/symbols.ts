@@ -5,12 +5,9 @@ import { CancellationToken, CancellationTokenSource, SymbolInformation } from 'v
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
-import { FuzzyMatch } from '../../model/fuzzyMatch'
 import { AnsiHighlight, ListContext, ListItem } from '../../types'
-import bytes from '../../util/bytes'
 import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
-import { mergePositions } from '../../util/fuzzy'
 import { byteLength } from '../../util/string'
 import workspace from '../../workspace'
 import LocationList from './location'
@@ -20,7 +17,7 @@ export default class Symbols extends LocationList {
   public readonly interactive = true
   public readonly description = 'search workspace symbols'
   public readonly detail = 'Symbols list is provided by server, it works on interactive mode only.'
-  private fuzzyMatch = new FuzzyMatch()
+  private fuzzyMatch = workspace.createFuzzyMatch()
   public name = 'symbols'
   public options = [{
     name: '-k, -kind KIND',
@@ -39,7 +36,6 @@ export default class Symbols extends LocationList {
       throw new Error('No workspace symbols provider registered')
     }
     let symbols = await languages.getWorkspaceSymbols(input, token)
-    await this.fuzzyMatch.load()
     let config = this.getConfig()
     let excludes = config.get<string[]>('excludes', [])
     let items: ListItem[] = []
@@ -62,6 +58,7 @@ export default class Symbols extends LocationList {
       let item = this.createListItem(input, s, kind, file)
       items.push(item)
     }
+    this.fuzzyMatch.free()
     items.sort((a, b) => {
       if (a.data.score != b.data.score) {
         return b.data.score - a.data.score
@@ -104,16 +101,10 @@ export default class Symbols extends LocationList {
     }
     let score = 0
     if (input.length > 0) {
-      let result = this.fuzzyMatch.match(name)
+      let result = this.fuzzyMatch.matchHighlights(name, 'CocListSearch')
       if (result) {
-        let byteIndex = bytes(name)
         score = result.score
-        mergePositions(result.positions, (start, end) => {
-          ansiHighlights.push({
-            span: [byteIndex(start), byteIndex(end) + 1],
-            hlGroup: 'CocListSearch'
-          })
-        })
+        ansiHighlights.push(...result.highlights)
       }
     }
     return {

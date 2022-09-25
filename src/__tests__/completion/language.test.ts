@@ -444,9 +444,10 @@ describe('language source', () => {
       await nvim.input('i.')
       await helper.waitPopup()
       await nvim.input('fo')
-      await helper.wait(50)
-      let res = await helper.getItems()
-      expect(res.length).toBe(1)
+      await helper.waitValue(async () => {
+        let items = await helper.getItems()
+        return items.length
+      }, 1)
     })
   })
 

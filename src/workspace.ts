@@ -24,6 +24,7 @@ import events from './events'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import DB from './model/db'
 import type Document from './model/document'
+import { FuzzyMatch, FuzzyWasi, initFuzzyWasm } from './model/fuzzyMatch'
 import Mru from './model/mru'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
@@ -67,6 +68,7 @@ export class Workspace implements IWorkspace {
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
+  private fuzzyExports: FuzzyWasi
 
   private _env: Env
 
@@ -123,6 +125,7 @@ export class Workspace implements IWorkspace {
         }
       })
     }
+    this.fuzzyExports = await initFuzzyWasm()
     let env = this._env = await nvim.call('coc#util#vim_info') as Env
     window.init(env)
     this.checkVersion(APIVERSION)
@@ -288,6 +291,10 @@ export class Workspace implements IWorkspace {
    */
   public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete)
+  }
+
+  public createFuzzyMatch(): FuzzyMatch {
+    return new FuzzyMatch(this.fuzzyExports)
   }
 
   public getWatchmanPath(): string | null {

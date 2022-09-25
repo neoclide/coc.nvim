@@ -301,18 +301,21 @@ describe('TreeView', () => {
       })
       await nvim.command('exe 1')
       await nvim.input('<space>')
-      await helper.wait(10)
+      await helper.wait(30)
       await nvim.command('exe 2')
       await nvim.input('<space>')
-      await helper.wait(50)
-      expect(selection.length).toBe(1)
+      await helper.waitValue(() => {
+        return selection.length
+      }, 1)
       await nvim.command('exe 3')
       await nvim.input('<space>')
-      await helper.wait(50)
-      expect(selection.length).toBe(2)
+      await helper.waitValue(() => {
+        return selection.length
+      }, 2)
       await nvim.input('<space>')
-      await helper.wait(50)
-      expect(selection.length).toBe(1)
+      await helper.waitValue(() => {
+        return selection.length
+      }, 1)
       let buf = await nvim.buffer
       let res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
       let signs = res[0].signs

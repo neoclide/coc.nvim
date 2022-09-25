@@ -2,17 +2,20 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
 import { FuzzyMatch } from '../model/fuzzyMatch'
-import { IList, ListContext, ListHighlights, ListItem, ListItemsEvent, ListItemWithHighlights, ListOptions, ListTask } from '../types'
+import { IList, ListContext, ListItem, ListItemsEvent, ListItemWithScore, ListOptions, ListTask } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { filter } from '../util/async'
 import bytes from '../util/bytes'
 import { patchLine } from '../util/diff'
-import { fuzzyMatch, getCharCodes, mergePositions } from '../util/fuzzy'
+import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
 import { byteLength, smartcaseIndex } from '../util/string'
+import workspace from '../workspace'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
+const WHITE_SPACE_CHARS = [32, 9]
+const SERCH_HL_GROUP = 'CocListSearch'
 
 export interface WorkerConfiguration {
   interactiveDebounceTime: number
@@ -24,7 +27,7 @@ export interface FilterOption {
   reload?: boolean
 }
 
-export type OnFilter = (arr: ListItemWithHighlights[], finished: boolean, sort?: boolean) => void
+export type OnFilter = (arr: ListItem[], finished: boolean, sort?: boolean) => void
 
 // perform loading task
 export default class Worker {
@@ -37,7 +40,7 @@ export default class Worker {
   private filterTokenSource: CancellationTokenSource
   private _onDidChangeItems = new Emitter<ListItemsEvent>()
   private _onDidChangeLoading = new Emitter<boolean>()
-  private fuzzyMatch = new FuzzyMatch()
+  private fuzzyMatch: FuzzyMatch
   public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
   public readonly onDidChangeLoading: Event<boolean> = this._onDidChangeLoading.event
 
@@ -48,6 +51,7 @@ export default class Worker {
     private listOptions: ListOptions,
     private config: WorkerConfiguration
   ) {
+    this.fuzzyMatch = workspace.createFuzzyMatch()
   }
 
   private set loading(loading: boolean) {
@@ -61,7 +65,6 @@ export default class Worker {
   }
 
   public async loadItems(context: ListContext, reload = false): Promise<void> {
-    await this.fuzzyMatch.load()
     this.cancelFilter()
     this.filteredCount = 0
     this._finished = false
@@ -78,7 +81,7 @@ export default class Worker {
       this.totalItems = items
       this.loading = false
       this._finished = true
-      let filtered: ListItemWithHighlights[]
+      let filtered: ListItem[]
       if (!interactive) {
         let tokenSource = this.filterTokenSource = new CancellationTokenSource()
         await this.mutex.use(async () => {
@@ -216,7 +219,7 @@ export default class Worker {
   /**
    * Add highlights for interactive list
    */
-  private convertToHighlightItems(items: ListItem[]): ListItemWithHighlights[] {
+  private convertToHighlightItems(items: ListItem[]): ListItem[] {
     let input = this.input ?? ''
     if (input.length > 0) this.fuzzyMatch.setPattern(input)
     let res = items.map(item => {
@@ -224,11 +227,15 @@ export default class Worker {
       let search = input.length > 0 && item.filterText !== ''
       if (search) {
         let filterLabel = getFilterLabel(item)
-        let results = this.fuzzyMatch.match(filterLabel)
-        if (results) Object.assign(item, { highlights: getHighlights(filterLabel, results.positions) })
+        let results = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
+        if (results) {
+          item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SERCH_HL_GROUP) : []
+          item.ansiHighlights.push(...results.highlights)
+        }
       }
       return item
     })
+    this.fuzzyMatch.free()
     return res
   }
 
@@ -296,12 +303,14 @@ export default class Worker {
       this.convertItemLabel(item)
       let filterLabel = getFilterLabel(item)
       if (smartcase && !fuzzyMatch(codes, filterLabel)) return false
-      let match = this.fuzzyMatch.match(filterLabel)
+      let match = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
       if (!match) return false
+      let ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup != SERCH_HL_GROUP) : []
+      ansiHighlights.push(...match.highlights)
       return {
         sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
         score: match.score,
-        highlights: getHighlights(filterLabel, match.positions)
+        ansiHighlights
       }
     }, (items, done) => {
       onFilter(items, done, sort)
@@ -319,7 +328,7 @@ export default class Worker {
     }
     let inputs = this.config.extendedSearchMode ? parseInput(input) : [input]
     let called = false
-    const onFilter = (items: ListItemWithHighlights[], finished: boolean, sort?: boolean) => {
+    const onFilter = (items: ListItemWithScore[], finished: boolean, sort?: boolean) => {
       finished = finished && this._finished
       if (token.isCancellationRequested || (!finished && items.length == 0)) return
       if (sort) {
@@ -381,7 +390,7 @@ export function parseInput(input: string): string[] {
   let prev = ''
   for (; currIdx < input.length; currIdx++) {
     let ch = input[currIdx]
-    if (ch.charCodeAt(0) === 32) {
+    if (WHITE_SPACE_CHARS.includes(ch.charCodeAt(0))) {
       // find space
       if (prev && prev != '\\' && startIdx != currIdx) {
         res.push(input.slice(startIdx, currIdx))
@@ -395,15 +404,4 @@ export function parseInput(input: string): string[] {
     res.push(input.slice(startIdx, input.length))
   }
   return res.map(s => s.replace(/\\\s/g, ' ').trim()).filter(s => s.length > 0)
-}
-
-export function getHighlights(text: string, matches?: ArrayLike<number>): ListHighlights {
-  let spans: [number, number][] = []
-  if (matches && matches.length > 0) {
-    let byteIndex = bytes(text)
-    mergePositions(matches, (start, end) => {
-      spans.push([byteIndex(start), byteIndex(end) + 1])
-    })
-  }
-  return { spans }
 }

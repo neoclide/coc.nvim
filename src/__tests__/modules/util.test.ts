@@ -128,6 +128,8 @@ describe('bytes()', () => {
     expect(fn(0)).toBe(0)
     expect(fn(1)).toBe(3)
     expect(fn(2)).toBe(4)
+    fn = bytes('abcdefghi', 3)
+    expect(fn(5)).toBe(3)
   })
 })
 
@@ -731,29 +733,6 @@ describe('score test', () => {
 })
 
 describe('fuzzy match test', () => {
-  it('should mergePositions', async () => {
-    let arr = []
-    fuzzy.mergePositions([0, 1, 3], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 2], [3, 4]])
-    arr = []
-    fuzzy.mergePositions([0], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 1]])
-    arr = []
-    fuzzy.mergePositions([0, 2, 3, 4, 1], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 1], [2, 5]])
-    arr = []
-    fuzzy.mergePositions([0, 2, 4], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 1], [2, 3], [4, 5]])
-  })
-
   it('should be fuzzy match', () => {
     let needle = 'aBc'
     let codes = fuzzy.getCharCodes(needle)
