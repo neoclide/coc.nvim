@@ -15,6 +15,18 @@ export function omitUndefined(obj: object): object {
   return result
 }
 
+export function toReadonly<T extends object>(obj: T): T {
+  const result = {}
+  for (let key of Object.keys(obj)) {
+    Object.defineProperty(result, key, {
+      value: obj[key],
+      writable: false,
+      enumerable: true
+    })
+  }
+  return result as T
+}
+
 export function deepClone<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') {
     return obj

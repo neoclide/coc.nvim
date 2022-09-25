@@ -843,6 +843,15 @@ describe('object test', () => {
     expect(objects.deepClone(re)).toBe(re)
   })
 
+  it('should change to readonly', async () => {
+    let obj = { x: 1 }
+    let res = objects.toReadonly(obj)
+    let fn = () => {
+      res.x = 3
+    }
+    expect(fn).toThrow()
+  })
+
   it('should not deep freeze', async () => {
     objects.deepFreeze(false)
     objects.deepFreeze(true)

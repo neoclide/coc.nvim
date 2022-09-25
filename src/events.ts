@@ -3,9 +3,11 @@ import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { CompleteDoneItem } from './types'
 import { disposeAll } from './util'
 import { CancellationError } from './util/errors'
-import { deepClone, equals } from './util/object'
+import { objectLiteral } from './util/is'
+import { deepClone, equals, toReadonly } from './util/object'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('events')
+const SYNC_AUTOCMDS = ['BufWritePre']
 
 export type Result = void | Promise<void>
 
@@ -227,18 +229,21 @@ class Events {
     }
     if (cbs?.length) {
       let fns = cbs.slice()
-      let traceSlow = this.requesting
+      let traceSlow = SYNC_AUTOCMDS.includes(event)
+      args.forEach(arg => {
+        if (objectLiteral(arg)) toReadonly(arg)
+      })
       await Promise.allSettled(fns.map(fn => {
         let promiseFn = async () => {
           let timer: NodeJS.Timer
           if (traceSlow) {
             timer = setTimeout(() => {
-              logger.error(`Slow event handler detected`, fn['stack'])
-              console.error(`Slow event handler detected`, fn['stack'])
+              console.error(`Slow "${event}" handler detected`, fn['stack'])
+              logger.error(`Slow "${event}" handler detected`, fn['stack'])
             }, this.timeout)
           }
           try {
-            await fn(deepClone(args))
+            await fn(args)
           } catch (e) {
             let res = shouldIgnore(e)
             if (!res) logger.error(`Error on event: ${event}`, e instanceof Error ? e.stack : e)
