@@ -180,7 +180,8 @@ export class SyncConfigurationFeature implements DynamicFeature<DidChangeConfigu
       sections = configurationSection
     }
     if (sections != null && event != null) {
-      let affected = sections.some(section => event.affectsConfiguration(section))
+      let keys = sections.map(s => s.startsWith('languageserver.') ? 'languageserver' : s)
+      let affected = keys.some(section => event.affectsConfiguration(section))
       if (!affected) return
     }
     let didChangeConfiguration = (sections: string[] | undefined): Promise<void> => {
