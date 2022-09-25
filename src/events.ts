@@ -4,7 +4,7 @@ import { CompleteDoneItem } from './types'
 import { disposeAll } from './util'
 import { CancellationError } from './util/errors'
 import { objectLiteral } from './util/is'
-import { deepClone, equals, toReadonly } from './util/object'
+import { equals, toReadonly } from './util/object'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('events')
 const SYNC_AUTOCMDS = ['BufWritePre']
