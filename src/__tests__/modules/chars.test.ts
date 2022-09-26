@@ -73,15 +73,19 @@ describe('chars computeWordRanges', () => {
   })
 
   it('should wait after timeout', async () => {
-    let l = makeLine(50)
+    let l = makeLine(200)
     let arr: string[] = []
-    for (let i = 0; i < 2000; i++) {
+    for (let i = 0; i < 8000; i++) {
       arr.push(l)
     }
-    let n = Date.now()
     let chars = new Chars('@')
-    await chars.computeWordRanges(arr, Range.create(0, 0, 2000, 0))
-    expect(Date.now() - n).toBeGreaterThan(30)
+    let tokenSource = new CancellationTokenSource()
+    let timer = setTimeout(() => {
+      tokenSource.cancel()
+    }, 30)
+    await chars.computeWordRanges(arr, Range.create(0, 0, 8000, 0), tokenSource.token)
+    clearTimeout(timer)
+    expect(tokenSource.token.isCancellationRequested).toBe(true)
   })
 })
 

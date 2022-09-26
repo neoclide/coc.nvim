@@ -696,13 +696,6 @@ export default class Document {
   }
 
   /**
-   * Get localify bonus map.
-   */
-  public getLocalifyBonus(sp: Position, ep: Position, max?: number): Map<string, number> {
-    return this.chars.getLocalifyBonus(sp, ep, this.lines, max)
-  }
-
-  /**
    * Synchronize latest document content
    */
   public async synchronize(): Promise<void> {

@@ -1,16 +1,29 @@
-import { matchScore, caseScore, matchScoreWithPositions } from '../../completion/match'
-import { createKindMap, checkIgnoreRegexps, getInput, getKindText, getResumeInput, getValidWord, shouldIndent, shouldStop } from '../../completion/util'
-import { getCharCodes } from '../../util/fuzzy'
+import { Neovim } from '@chemzqm/neovim'
+import { CompletionItemKind, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
+import { checkIgnoreRegexps, createKindMap, getInput, getKindText, getResumeInput, getValidWord, shouldIndent, shouldStop } from '../../completion/util'
+import { WordDistance } from '../../completion/wordDistance'
+import languages from '../../languages'
 import { CompleteOption } from '../../types'
-import helper from '../helper'
-import { CompletionItemKind } from 'vscode-languageserver-types'
+import { disposeAll } from '../../util'
+import { getCharCodes } from '../../util/fuzzy'
+import workspace from '../../workspace'
+import events from '../../events'
+import helper, { createTmpFile } from '../helper'
+let disposables: Disposable[] = []
 
+let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
+  nvim = helper.nvim
 })
 
 afterAll(async () => {
   await helper.shutdown()
+})
+
+afterEach(() => {
+  disposeAll(disposables)
 })
 
 describe('caseScore()', () => {
@@ -202,5 +215,86 @@ describe('matchScoreWithPositions', () => {
     assertMatch('this', 'th', [6, [0, 1]])
     assertMatch('foo_bar', 'fb', [6, [0, 4]])
     assertMatch('assertMatch', 'am', [5.75, [0, 6]])
+  })
+})
+
+describe('wordDistance', () => {
+  it('should empty when not enabled', async () => {
+    let w = await WordDistance.create(false, {} as any)
+    expect(w.distance(Position.create(0, 0), {} as any)).toBe(0)
+  })
+
+  it('should empty when selectRanges is empty', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let w = await WordDistance.create(true, opt)
+    expect(w).toBe(WordDistance.None)
+  })
+
+  it('should empty when timeout', async () => {
+    disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+      provideSelectionRanges: _doc => {
+        return [{
+          range: Range.create(0, 0, 0, 1)
+        }]
+      }
+    }))
+    let spy = jest.spyOn(workspace, 'computeWordRanges').mockImplementation(() => {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(null)
+        }, 50)
+      })
+    })
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let w = await WordDistance.create(true, opt)
+    spy.mockRestore()
+    expect(w).toBe(WordDistance.None)
+  })
+
+  it('should get distance', async () => {
+    disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+      provideSelectionRanges: _doc => {
+        return [{
+          range: Range.create(0, 0, 1, 0),
+          parent: {
+            range: Range.create(0, 0, 3, 0)
+          }
+        }]
+      }
+    }))
+    let filepath = await createTmpFile('foo bar\ndef', disposables)
+    await helper.edit(filepath)
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let w = await WordDistance.create(true, opt)
+    expect(w.distance(Position.create(1, 0), {} as any)).toBeGreaterThan(0)
+    expect(w.distance(Position.create(0, 0), { word: '', kind: CompletionItemKind.Keyword })).toBeGreaterThan(0)
+    expect(w.distance(Position.create(0, 0), { word: 'not_exists' })).toBeGreaterThan(0)
+    expect(w.distance(Position.create(0, 0), { word: 'bar' })).toBe(0)
+    expect(w.distance(Position.create(0, 0), { word: 'def' })).toBeGreaterThan(0)
+    await nvim.call('cursor', [1, 2])
+    await events.fire('CursorMoved', [opt.bufnr, [1, 2]])
+    expect(w.distance(Position.create(0, 0), { word: 'bar' })).toBe(0)
+  })
+
+  it('should get same range', async () => {
+    disposables.push(languages.registerSelectionRangeProvider([{ language: '*' }], {
+      provideSelectionRanges: _doc => {
+        return [{
+          range: Range.create(0, 0, 1, 0),
+          parent: {
+            range: Range.create(0, 0, 3, 0)
+          }
+        }]
+      }
+    }))
+    let spy = jest.spyOn(workspace, 'computeWordRanges').mockImplementation(() => {
+      return Promise.resolve({ foo: [Range.create(0, 0, 0, 0)] })
+    })
+    let opt = await nvim.call('coc#util#get_complete_option') as any
+    opt.word = ''
+    let w = await WordDistance.create(true, opt)
+    spy.mockRestore()
+    let res = w.distance(Position.create(0, 0), { word: 'foo' })
+    expect(res).toBe(0)
   })
 })

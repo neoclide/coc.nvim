@@ -561,6 +561,18 @@ describe('Position', () => {
     expect(positions.samePosition(pos, Position.create(0, 0))).toBe(true)
   })
 
+  test('compareRangesUsingStarts', () => {
+    let pos = Position.create(3, 3)
+    let range = Range.create(pos, pos)
+    const r = (a, b, c, d) => {
+      return Range.create(a, b, c, d)
+    }
+    expect(positions.compareRangesUsingStarts(range, range)).toBe(0)
+    expect(positions.compareRangesUsingStarts(r(1, 1, 1, 1), range)).toBeLessThan(0)
+    expect(positions.compareRangesUsingStarts(r(3, 3, 3, 4), range)).toBeGreaterThan(0)
+    expect(positions.compareRangesUsingStarts(r(4, 0, 4, 1), range)).toBeGreaterThan(0)
+  })
+
   test('rangeInRange', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)

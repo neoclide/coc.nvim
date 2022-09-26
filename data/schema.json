@@ -1877,7 +1877,7 @@
     },
     "suggest.localityBonus": {
       "type": "boolean",
-      "description": "Boost suggestions that appear closer to the cursor position.",
+      "description": "Controls whether sorting favors words that appear close to the cursor.",
       "scope": "language-overridable",
       "default": true
     },

@@ -6,9 +6,11 @@ import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
-import { byteSlice, isWord } from '../util/string'
+import { byteSlice, characterIndex, isWord } from '../util/string'
 import { matchScoreWithPositions } from './match'
+import { WordDistance } from './wordDistance'
 const logger = require('../util/logger')('completion-complete')
+const MAX_DISTANCE = 2 << 20
 
 export interface CompleteConfig {
   asciiMatch: boolean
@@ -37,12 +39,12 @@ export default class Complete {
   private results: Map<string, CompleteResult> = new Map()
   private _input = ''
   private _completing = false
-  private localBonus: Map<string, number> = new Map()
   private tokenSource: CancellationTokenSource
   private timer: NodeJS.Timer
   private names: string[] = []
   private inputOffset = 0
   private readonly _onDidRefresh = new Emitter<void>()
+  private wordDistance: WordDistance | undefined
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   constructor(public option: CompleteOption,
     private document: Document,
@@ -127,19 +129,13 @@ export default class Complete {
         return true
       }
     }
-    let { triggerCompletionWait, localityBonus } = this.config
-    await wait(Math.min(triggerCompletionWait ?? 0, 50))
+    await wait(Math.min(this.config.triggerCompletionWait ?? 0, 50))
     if (token.isCancellationRequested) return
-    let { colnr, linenr, col } = this.option
-    if (localityBonus) {
-      let line = linenr - 1
-      this.localBonus = this.document.getLocalifyBonus(Position.create(line, col - 1), Position.create(line, colnr))
-    }
     await this.completeSources(this.sources, false)
   }
 
   private async completeSources(sources: ReadonlyArray<ISource>, isFilter: boolean): Promise<void> {
-    let { timeout } = this.config
+    let { timeout, localityBonus } = this.config
     let { results, tokenSource, } = this
     let col = this.option.col
     let names = sources.map(s => s.name)
@@ -159,9 +155,11 @@ export default class Complete {
       }, typeof timeout === 'number' ? timeout : 500)
     })
     const finished: string[] = []
-    await Promise.race([
-      tp,
-      Promise.all(sources.map(s => this.completeSource(s, token).then(() => {
+    let promises = [
+      WordDistance.create(localityBonus, this.option).then(instance => {
+        this.wordDistance = instance
+      }),
+      ...sources.map(s => this.completeSource(s, token).then(() => {
         finished.push(s.name)
         if (token.isCancellationRequested || isFilter) return
         let colChanged = this.option.col !== col
@@ -171,7 +169,9 @@ export default class Complete {
         } else if (results.has(s.name)) {
           this.fireRefresh(16)
         }
-      })))])
+      }))
+    ]
+    await Promise.race([tp, Promise.all(promises)])
     clearTimeout(timer)
     this._completing = false
   }
@@ -204,7 +204,6 @@ export default class Complete {
               item.source = name
               item.priority = priority
               item.filterText = asciiMatch ? unidecode(filterText) : filterText
-              if (name !== 'snippets') item.localBonus = this.localBonus.get(filterText) ?? 0
             })
             this.setResult(name, result)
           } else {
@@ -245,11 +244,12 @@ export default class Complete {
   }
 
   public filterItems(input: string): ExtendedCompleteItem[] | undefined {
-    let { results, names, inputOffset } = this
+    let { results, names, inputOffset, option } = this
     if (inputOffset > 0) input = byteSlice(input, inputOffset)
     this._input = input
     if (results.size == 0) return []
     let len = input.length
+    let anchor = Position.create(option.linenr - 1, characterIndex(option.line, option.col))
     let emptyInput = len == 0
     let { maxItemCount, asciiMatch, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
@@ -290,6 +290,7 @@ export default class Complete {
           } else {
             item.score = score * (item.sourceScore || 1)
           }
+          if (this.wordDistance) item.localBonus = MAX_DISTANCE - this.wordDistance.distance(anchor, item)
         }
         words.add(word)
         arr.push(item)

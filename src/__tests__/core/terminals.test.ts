@@ -4,6 +4,7 @@ import path from 'path'
 import which from 'which'
 import Terminals from '../../core/terminals'
 import window from '../../window'
+import TerminalModel from '../../model/terminal'
 import helper from '../helper'
 import { v4 as uuid } from 'uuid'
 
@@ -76,6 +77,15 @@ describe('create terminal', () => {
     await helper.wait(50)
     expect(exitStatus).toBeDefined()
     expect(exitStatus.code).toBeDefined()
+  })
+
+  it('should return false on show when buffer unloaded', async () => {
+    let model = new TerminalModel('bash', [], nvim)
+    await model.start()
+    expect(model.bufnr).toBeDefined()
+    await nvim.command(`bd! ${model.bufnr}`)
+    let res = await model.show()
+    expect(res).toBe(false)
   })
 
   it('should not throw when show & hide disposed terminal', async () => {

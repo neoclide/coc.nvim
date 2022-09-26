@@ -134,7 +134,7 @@ export class Chars {
       let start = -1
       const add = (end: number) => {
         let word = text.slice(start, end)
-        let arr = res[word] ?? []
+        let arr = res.hasOwnProperty(word) ? res[word] : []
         arr.push(Range.create(i, start + sc, i, end + sc))
         res[word] = arr
       }
@@ -153,78 +153,6 @@ export class Chars {
           add(l)
         }
       }
-    }
-    return res
-  }
-
-  public getLocalifyBonus(sp: Position, ep: Position, lines: ReadonlyArray<string>, max = 10 * 1024): Map<string, number> {
-    let res: Map<string, number> = new Map()
-    let startLine = Math.max(0, sp.line - 50)
-    let endLine = Math.min(lines.length, sp.line + 50)
-    let content = lines.slice(startLine, endLine).join('\n')
-    // limit content to parse
-    if (content.length > max) {
-      let len = content.length
-      let finished = false
-      while (endLine > sp.line + 1) {
-        let length = lines[endLine - 1].length
-        if (len - length < max) {
-          finished = true
-          break
-        }
-        endLine = endLine - 1
-        len -= length
-      }
-      if (!finished) {
-        while (startLine <= sp.line) {
-          let length = lines[startLine].length
-          if (len - length < max) {
-            break
-          }
-          len -= length
-          startLine += 1
-        }
-      }
-      content = lines.slice(startLine, endLine).join('\n')
-    }
-    sp = Position.create(sp.line - startLine, sp.character)
-    ep = Position.create(ep.line - startLine, ep.character)
-    let doc = TextDocument.create('', '', 1, content)
-    let headCount = doc.offsetAt(sp)
-    let len = content.length
-    let tailCount = len - doc.offsetAt(ep)
-    let start = 0
-    let preKeyword = false
-    for (let i = 0; i < headCount; i++) {
-      let iskeyword = this.isKeyword(content[i])
-      if (!preKeyword && iskeyword) {
-        start = i
-      } else if (preKeyword && !iskeyword) {
-        if (i - start > 1) {
-          let str = content.substring(start, i)
-          res.set(str, i / headCount)
-        }
-      }
-      preKeyword = iskeyword
-    }
-    start = len - tailCount
-    preKeyword = false
-    for (let i = start; i < content.length; i++) {
-      let iskeyword = this.isKeyword(content[i])
-      if (!preKeyword && iskeyword) {
-        start = i
-      } else if (preKeyword && (!iskeyword || i == len - 1)) {
-        if (i - start > 1) {
-          let end = i == len - 1 ? i + 1 : i
-          let str = content.substring(start, end)
-          let score = res.get(str) || 0
-          let n = len - i + (end - start)
-          if (n !== tailCount) {
-            res.set(str, Math.max(score, n / tailCount))
-          }
-        }
-      }
-      preKeyword = iskeyword
     }
     return res
   }
