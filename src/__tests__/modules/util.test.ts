@@ -497,6 +497,21 @@ describe('Arrays', () => {
     assert.ok(!arrays.intersect([1, 2, 3], [4, 5]))
   })
 
+  it('isFalsyOrEmpty()', async () => {
+    assert.ok(arrays.isFalsyOrEmpty([]))
+    assert.ok(arrays.isFalsyOrEmpty(false))
+    assert.ok(!arrays.isFalsyOrEmpty([1]))
+  })
+
+  it('binarySearch()', async () => {
+    let comparator = (a, b) => a - b
+    assert.ok(arrays.binarySearch([1, 2, 3], 2, comparator) == 1)
+    assert.ok(arrays.binarySearch([1, 2, 3, 4], 3, comparator) == 2)
+    assert.ok(arrays.binarySearch([1, 2, 3, 4], 1, comparator) == 0)
+    assert.ok(arrays.binarySearch([1, 2, 3, 4], 0.5, comparator) == -1)
+    assert.ok(arrays.binarySearch([1, 2, 3, 5], 6, comparator) == -5)
+  })
+
   it('toArray()', async () => {
     assert.deepStrictEqual(arrays.toArray(1), [1])
     assert.deepStrictEqual(arrays.toArray(null), [])
