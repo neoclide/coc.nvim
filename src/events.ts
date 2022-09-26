@@ -108,7 +108,7 @@ class Events {
   }
 
   public get cursor(): CursorPosition {
-    return this._cursor
+    return this._cursor ?? { bufnr: this._bufnr, col: 1, lnum: 1, insert: false }
   }
 
   public get bufnr(): number {

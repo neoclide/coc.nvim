@@ -361,11 +361,11 @@ describe('DynamicFeature', () => {
         }
       })
       await client.sendNotification('requestFolders')
-      await helper.wait(30)
-      let res = await client.sendRequest('getFolders') as WorkspaceFolder[]
+      await helper.waitValue(async () => {
+        let res = await client.sendRequest('getFolders') as WorkspaceFolder[]
+        return Array.isArray(res) && res.length == 1
+      }, true)
       expect(called).toBe(true)
-      expect(Array.isArray(res)).toBe(true)
-      expect(res.length).toBe(1)
       await client.stop()
     })
 

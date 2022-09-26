@@ -9,6 +9,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LinesTextDocument } from '../../model/textdocument'
 import { concurrent, executable, getKeymapModifier, delay, getUri, isRunning, runCommand, wait, watchFile } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
+import bytes from '../../util/bytes'
 import * as arrays from '../../util/array'
 import * as color from '../../util/color'
 import { getSymbolKind } from '../../util/convert'
@@ -22,7 +23,6 @@ import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
 import * as positions from '../../util/position'
 import { terminate } from '../../util/processes'
-import { getMatchResult, getMatchHighlights } from '../../util/score'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
 import { filter } from '../../util/async'
@@ -115,6 +115,21 @@ console.warn('warn')`, sandbox)
     let obj: any = {}
     fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, filename])
     expect(typeof obj.exports).toBe('function')
+  })
+})
+
+describe('bytes()', () => {
+  it('should get byte indexes', async () => {
+    let fn = bytes('abcde')
+    expect(fn(0)).toBe(0)
+    expect(fn(1)).toBe(1)
+    expect(fn(8)).toBe(5)
+    fn = bytes('你ab好')
+    expect(fn(0)).toBe(0)
+    expect(fn(1)).toBe(3)
+    expect(fn(2)).toBe(4)
+    fn = bytes('abcdefghi', 3)
+    expect(fn(5)).toBe(3)
   })
 })
 
@@ -482,6 +497,21 @@ describe('Arrays', () => {
     assert.ok(!arrays.intersect([1, 2, 3], [4, 5]))
   })
 
+  it('isFalsyOrEmpty()', async () => {
+    assert.ok(arrays.isFalsyOrEmpty([]))
+    assert.ok(arrays.isFalsyOrEmpty(false))
+    assert.ok(!arrays.isFalsyOrEmpty([1]))
+  })
+
+  it('binarySearch()', async () => {
+    let comparator = (a, b) => a - b
+    assert.ok(arrays.binarySearch([1, 2, 3], 2, comparator) == 1)
+    assert.ok(arrays.binarySearch([1, 2, 3, 4], 3, comparator) == 2)
+    assert.ok(arrays.binarySearch([1, 2, 3, 4], 1, comparator) == 0)
+    assert.ok(arrays.binarySearch([1, 2, 3, 4], 0.5, comparator) == -1)
+    assert.ok(arrays.binarySearch([1, 2, 3, 5], 6, comparator) == -5)
+  })
+
   it('toArray()', async () => {
     assert.deepStrictEqual(arrays.toArray(1), [1])
     assert.deepStrictEqual(arrays.toArray(null), [])
@@ -529,6 +559,18 @@ describe('Position', () => {
   test('samePosition', () => {
     let pos = Position.create(0, 0)
     expect(positions.samePosition(pos, Position.create(0, 0))).toBe(true)
+  })
+
+  test('compareRangesUsingStarts', () => {
+    let pos = Position.create(3, 3)
+    let range = Range.create(pos, pos)
+    const r = (a, b, c, d) => {
+      return Range.create(a, b, c, d)
+    }
+    expect(positions.compareRangesUsingStarts(range, range)).toBe(0)
+    expect(positions.compareRangesUsingStarts(r(1, 1, 1, 1), range)).toBeLessThan(0)
+    expect(positions.compareRangesUsingStarts(r(3, 3, 3, 4), range)).toBeGreaterThan(0)
+    expect(positions.compareRangesUsingStarts(r(4, 0, 4, 1), range)).toBeGreaterThan(0)
   })
 
   test('rangeInRange', () => {
@@ -586,69 +628,6 @@ describe('Position', () => {
     })).toEqual(Range.create(0, 0, 0, 0))
   })
 
-})
-
-describe('match highlights', () => {
-  it('should get match highlights', async () => {
-    let res = getMatchHighlights('fob', 'foobar', 0, 'Search')
-    expect(res).toEqual([
-      { span: [0, 2], hlGroup: 'Search' },
-      { span: [3, 4], hlGroup: 'Search' }
-    ])
-  })
-})
-
-describe('match result', () => {
-  it('should match empty text', async () => {
-    expect(getMatchResult('', 'foo')).toEqual({ score: 0 })
-  })
-
-  it('should match empty query', async () => {
-    expect(getMatchResult('foo', '')).toEqual({ score: 1 })
-  })
-
-  it('should respect filename #1', () => {
-    let res = getMatchResult('/coc.nvim/coc.txt', 'coc', 'coc.txt')
-    expect(res).toEqual({ score: 4, matches: [10, 11, 12] })
-  })
-
-  it('should respect filename #2', () => {
-    let res = getMatchResult('/coc.nvim/Coc.txt', 'coc', 'Coc.txt')
-    expect(res).toEqual({ score: 3.5, matches: [10, 11, 12] })
-  })
-
-  it('should respect filename #3', () => {
-    let res = getMatchResult('/coc.nvim/cdoxc.txt', 'coc', 'cdoxc.txt')
-    expect(res).toEqual({ score: 3, matches: [10, 12, 14] })
-  })
-
-  it('should respect filename #4', () => {
-    let res = getMatchResult('/coc.nvim/fileName.txt', 'namt', 'fileName.txt')
-    expect(res).toEqual({ score: 3.5, matches: [14, 15, 16, 19] })
-  })
-
-  it('should respect path start', () => {
-    let res = getMatchResult('/foob/baxr/xyz', 'fbx')
-    expect(res).toEqual({ score: 3, matches: [1, 6, 11] })
-  })
-
-  it('should find fuzzy result', () => {
-    let res = getMatchResult('foobarzyx', 'fbx')
-    expect(res).toEqual({ score: 2, matches: [0, 3, 8] })
-  })
-
-  it('should find fuzzy result #1', () => {
-    let res = getMatchResult('LICENSES/preferred/MIT', 'lsit')
-    expect(res).toEqual({ score: 1.4, matches: [0, 5, 20, 21] })
-    expect(getMatchResult('foo', 'Fo')).toEqual({ score: 1.5, matches: [0, 1] })
-  })
-
-  it('should find fuzzy result #2', async () => {
-    let res = getMatchResult('_api', 'AP')
-    expect(res).toEqual({ score: 0.8, matches: [1, 2] })
-    res = getMatchResult('_api', 'API')
-    expect(res).toEqual({ score: 1.3, matches: [1, 2, 3] })
-  })
 })
 
 describe('utility', () => {

@@ -7139,6 +7139,53 @@ declare module 'coc.nvim' {
     dispose: () => void
   }
 
+  export interface FuzzyMatchResult {
+    score: number,
+    positions: Uint32Array
+  }
+
+  export interface FuzzyMatchHighlights {
+    score: number
+    highlights: AnsiHighlight[]
+  }
+
+  export interface FuzzyMatch {
+    /**
+     * Initialize match by set the match pattern and matchSeq.
+     *
+     * @param {string} pattern The match pattern Limited length to 256.
+     * @param {boolean} matchSeq Match the sequence characters instead of split pattern by white spaces.
+     * @returns {void}
+     */
+    setPattern(pattern: string, matchSeq?: boolean): void
+    /**
+     * Get the match result of text including score and character index
+     * positions, return undefined when no match found.
+     *
+     * @param {string} text Content to match
+     * @returns {FuzzyMatchResult | undefined}
+     */
+    match(text: string): FuzzyMatchResult | undefined
+    /**
+     * Match character positions to column spans.
+     * Better than matchHighlights method by reduce iteration.
+     *
+     * @param {string} text Context to match
+     * @param {ArrayLike<number>} positions Matched character index positions.
+     * @param {number} max Maximum column number to calculate
+     * @returns {Iterable<[number, number]>}
+     */
+    matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]>
+    /**
+     * Get the match highlights result, including score and highlight items.
+     * Return undefined when no match found.
+     *
+     * @param {string} text Content to match
+     * @returns {FuzzyMatchHighlights | undefined}
+     */
+    matchHighlights(text: string, hlGroup: string): FuzzyMatchHighlights | undefined
+  }
+
   export namespace workspace {
     export const nvim: Neovim
     /**
@@ -7507,6 +7554,21 @@ declare module 'coc.nvim' {
      */
     export function registerBufferSync<T extends BufferSyncItem>(create: (doc: Document) => T | undefined): BufferSync<T>
 
+    /**
+     * Create a FuzzyMatch instance using wasm module.
+     * The FuzzyMatch does the same match algorithm as vim's `:h matchfuzzypos()`
+     */
+    export function createFuzzyMatch(): FuzzyMatch
+
+    /**
+     * Compute word ranges of opened document in specified range.
+     *
+     * @param {string | number} uri Uri of resource
+     * @param {Range} range Range of resource
+     * @param {CancellationToken} token
+     * @returns {Promise<{ [word: string]: Range[] } | null>}
+     */
+    export function computeWordRanges(uri: string | number, range: Range, token?: CancellationToken): Promise<{ [word: string]: Range[] } | null>
     /**
      * Create a FileSystemWatcher instance, when watchman doesn't exist, the
      * returned FileSystemWatcher can still be used, but not work at all.
@@ -8889,17 +8951,6 @@ declare module 'coc.nvim' {
     data?: any
     ansiHighlights?: AnsiHighlight[]
     resolved?: boolean
-  }
-
-  export interface ListHighlights {
-    /**
-     * Byte indexes list, 0 based.
-     */
-    spans: [number, number][]
-    /**
-     * `CocListSearch` is used when it not exist.
-     */
-    hlGroup?: string
   }
 
   export type ListMode = 'normal' | 'insert'

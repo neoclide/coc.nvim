@@ -3,7 +3,7 @@ import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { HighlightItem, ListItem, ListItemWithHighlights, ListOptions } from '../types'
+import { HighlightItem, ListItem, ListOptions } from '../types'
 import { disposeAll } from '../util'
 import { Mutex } from '../util/mutex'
 import workspace from '../workspace'
@@ -33,7 +33,7 @@ export default class ListUI {
   private reversed = false
   private buffer: Buffer
   private currIndex = 0
-  private items: ListItemWithHighlights[] = []
+  private items: ListItem[] = []
   private disposables: Disposable[] = []
   private signOffset: number
   private selected: Set<number> = new Set()
@@ -152,16 +152,13 @@ export default class ListUI {
     this.nvim.callTimer('coc#ui#echo_lines', [[msg]], true)
   }
 
-  public updateItem(item: ListItemWithHighlights, index: number, labelChanged: boolean): void {
+  public updateItem(item: ListItem, index: number): void {
     if (!this.buffer || index >= this.length) return
-    let prev = this.items[index]
-    Object.assign(prev, item, { resolved: true })
-    if (!labelChanged) return
     let { nvim } = this
     let lnum = this.indexToLnum(index)
     nvim.pauseNotification()
     this.buffer.setOption('modifiable', true, true)
-    nvim.call('setbufline', [this.bufnr, lnum, prev.label], true)
+    nvim.call('setbufline', [this.bufnr, lnum, item.label], true)
     this.doHighlight(index, index + 1)
     this.buffer.setOption('modifiable', false, true)
     nvim.resumeNotification(true, true)
@@ -425,17 +422,10 @@ export default class ListUI {
     const highlightItems: HighlightItem[] = []
     const iterate = (i: number): void => {
       let lnum = this.indexToLnum(i) - 1
-      let { ansiHighlights, highlights } = items[i]
+      let { ansiHighlights } = items[i]
       if (ansiHighlights) {
         for (let hi of ansiHighlights) {
           let { span, hlGroup } = hi
-          highlightItems.push({ hlGroup, lnum, colStart: span[0], colEnd: span[1] })
-        }
-      }
-      if (highlights && Array.isArray(highlights.spans)) {
-        let { spans, hlGroup } = highlights
-        for (let span of spans) {
-          hlGroup = hlGroup ?? 'CocListSearch'
           highlightItems.push({ hlGroup, lnum, colStart: span[0], colEnd: span[1] })
         }
       }

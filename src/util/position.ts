@@ -10,6 +10,34 @@ export function samePosition(one: Position, two: Position): boolean {
 }
 
 /**
+ * A function that compares ranges, useful for sorting ranges
+ * It will first compare ranges on the startPosition and then on the endPosition
+ */
+export function compareRangesUsingStarts(a: Range, b: Range): number {
+  const aStartLineNumber = a.start.line | 0
+  const bStartLineNumber = b.start.line | 0
+
+  if (aStartLineNumber === bStartLineNumber) {
+    const aStartColumn = a.start.character | 0
+    const bStartColumn = b.start.character | 0
+
+    if (aStartColumn === bStartColumn) {
+      const aEndLineNumber = a.end.line | 0
+      const bEndLineNumber = b.end.line | 0
+
+      if (aEndLineNumber === bEndLineNumber) {
+        const aEndColumn = a.end.character | 0
+        const bEndColumn = b.end.character | 0
+        return aEndColumn - bEndColumn
+      }
+      return aEndLineNumber - bEndLineNumber
+    }
+    return aStartColumn - bStartColumn
+  }
+  return aStartLineNumber - bStartLineNumber
+}
+
+/**
  * Convert to well formed range
  */
 export function toValidRange(range: Range, max?: number): Range {

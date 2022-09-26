@@ -2,7 +2,7 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
-import { CancellationToken, CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CancellationToken, CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { version as VERSION } from '../package.json'
@@ -24,6 +24,7 @@ import events from './events'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import DB from './model/db'
 import type Document from './model/document'
+import { FuzzyMatch, FuzzyWasi, initFuzzyWasm } from './model/fuzzyMatch'
 import Mru from './model/mru'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
@@ -67,6 +68,7 @@ export class Workspace implements IWorkspace {
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
+  private fuzzyExports: FuzzyWasi
 
   private _env: Env
 
@@ -123,6 +125,7 @@ export class Workspace implements IWorkspace {
         }
       })
     }
+    this.fuzzyExports = await initFuzzyWasm()
     let env = this._env = await nvim.call('coc#util#vim_info') as Env
     window.init(env)
     this.checkVersion(APIVERSION)
@@ -288,6 +291,10 @@ export class Workspace implements IWorkspace {
    */
   public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete)
+  }
+
+  public createFuzzyMatch(): FuzzyMatch {
+    return new FuzzyMatch(this.fuzzyExports)
   }
 
   public getWatchmanPath(): string | null {
@@ -510,6 +517,12 @@ export class Workspace implements IWorkspace {
    */
   public async openResource(uri: string): Promise<void> {
     await this.files.openResource(uri)
+  }
+
+  public async computeWordRanges(uri: string | number, range: Range, token?: CancellationToken): Promise<{ [word: string]: Range[] } | null> {
+    let doc = this.getDocument(uri)
+    if (!doc) return null
+    return await doc.chars.computeWordRanges(doc.textDocument.lines, range, token)
   }
 
   public openTextDocument(uri: URI | string): Promise<Document> {

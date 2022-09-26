@@ -4,7 +4,7 @@ describe('Regions', () => {
   it('should add #1', async () => {
     let r = new Regions()
     r.add(1, 2)
-    r.add(1, 2)
+    r.add(2, 1)
     expect(r.current).toEqual([1, 2])
   })
 

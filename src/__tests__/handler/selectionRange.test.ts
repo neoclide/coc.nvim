@@ -24,7 +24,6 @@ afterAll(async () => {
 afterEach(async () => {
   await helper.reset()
   disposeAll(disposables)
-  disposables = []
 })
 
 describe('selectionRange', () => {

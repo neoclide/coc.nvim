@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { promisify } from 'util'
 import http, { Server } from 'http'
 import download, { getEtag } from '../../model/download'
-import fetch, { getAgent, getDataType, request, getText, getSystemProxyURI, resolveRequestOptions, toURL } from '../../model/fetch'
+import fetch, { getAgent, getDataType, request, getText, getRequestModule, getSystemProxyURI, resolveRequestOptions, toURL } from '../../model/fetch'
 import helper from '../helper'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 
@@ -150,11 +150,16 @@ describe('utils', () => {
     expect(getDataType(new Date())).toBe('unknown')
   })
 
+  it('should getRequestModule', async () => {
+    let url = toURL('https://www.baidu.com')
+    expect(getRequestModule(url)).toBeDefined()
+  })
+
   it('should convert to URL', () => {
     expect(() => { toURL('') }).toThrow()
     expect(() => { toURL('file:///1') }).toThrow()
     expect(() => { toURL(undefined) }).toThrow()
-    expect(toURL('http://www.baidu.com').toString()).toBe('http://www.baidu.com/')
+    expect(toURL('https://www.baidu.com').toString()).toBe('https://www.baidu.com/')
     let u = new URL('http://www.baidu.com')
     expect(toURL(u)).toBe(u)
   })

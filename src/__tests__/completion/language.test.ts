@@ -91,13 +91,15 @@ describe('language source', () => {
       await nvim.input('i')
       await nvim.call('coc#start', { source: 'foo' })
       await helper.waitPopup()
-      await helper.wait(10)
-      let content = await getDetailContent()
-      expect(content).toMatch('foo')
+      await helper.waitValue(async () => {
+        let content = await getDetailContent()
+        return content && /foo/.test(content)
+      }, true)
       await nvim.input('<C-n>')
-      await helper.wait(30)
-      content = await getDetailContent()
-      expect(content).toMatch('bar')
+      await helper.waitValue(async () => {
+        let content = await getDetailContent()
+        return content && /bar/.test(content)
+      }, true)
     })
 
     it('should add documentation to preview when no resolve exists', async () => {
@@ -444,9 +446,10 @@ describe('language source', () => {
       await nvim.input('i.')
       await helper.waitPopup()
       await nvim.input('fo')
-      await helper.wait(50)
-      let res = await helper.getItems()
-      expect(res.length).toBe(1)
+      await helper.waitValue(async () => {
+        let items = await helper.getItems()
+        return items.length
+      }, 1)
     })
   })
 

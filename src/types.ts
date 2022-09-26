@@ -16,6 +16,7 @@ declare global {
     interface Global {
       __TEST__?: boolean
       REVISION?: string
+      WebAssembly: any
     }
   }
 }
@@ -1093,15 +1094,8 @@ export interface ListItem {
   converted?: boolean
 }
 
-export interface ListHighlights {
-  // column indexes
-  spans: [number, number][]
-  hlGroup?: string
-}
-
-export interface ListItemWithHighlights extends ListItem {
+export interface ListItemWithScore extends ListItem {
   score?: number
-  highlights?: ListHighlights
 }
 
 export interface AnsiHighlight {

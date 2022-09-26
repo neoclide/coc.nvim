@@ -1,6 +1,6 @@
 process.env.COC_NO_PLUGINS = '1'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import completion, { Completion } from '../../completion'
 import events from '../../events'
 import sources from '../../sources'
@@ -306,6 +306,21 @@ describe('completion', () => {
       await helper.wait(20)
       expect(fn).toBeCalledTimes(0)
       await nvim.input('.')
+      await helper.waitPopup()
+    })
+
+    it('should disable localityBonus', async () => {
+      helper.updateConfiguration('suggest.localityBonus', false)
+      let doc = await workspace.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), '\nfoo\nfoobar')])
+      disposables.push(sources.createSource({
+        name: 'words',
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          resolve({ items: [{ word: 'foo' }, { word: 'foobar' }] })
+        })
+      }))
+      await nvim.input('i')
+      await triggerCompletion('words')
       await helper.waitPopup()
     })
   })

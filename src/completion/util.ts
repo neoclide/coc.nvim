@@ -3,9 +3,9 @@ import { CompletionItemKind } from 'vscode-languageserver-types'
 import { InsertChange } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, HighlightItem, ISource } from '../types'
+import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, ISource } from '../types'
 import { toArray } from '../util/array'
-import { byteIndex, byteSlice, characterIndex } from '../util/string'
+import { byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
@@ -158,28 +158,4 @@ export function getValidWord(text: string, invalidChars: string[], start = 2): s
     }
   }
   return text
-}
-
-export function positionHighlights(label: string, positions: number[], pre: number, line: number): HighlightItem[] {
-  let hls: HighlightItem[] = []
-  while (positions.length > 0) {
-    let start = positions.shift()
-    let end = start
-    while (positions.length > 0) {
-      let n = positions[0]
-      if (n - end == 1) {
-        end = n
-        positions.shift()
-      } else {
-        break
-      }
-    }
-    hls.push({
-      hlGroup: 'CocPumSearch',
-      lnum: line,
-      colStart: pre + byteIndex(label, start),
-      colEnd: pre + byteIndex(label, end + 1),
-    })
-  }
-  return hls
 }
