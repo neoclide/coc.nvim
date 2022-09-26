@@ -7561,6 +7561,15 @@ declare module 'coc.nvim' {
     export function createFuzzyMatch(): FuzzyMatch
 
     /**
+     * Compute word ranges of opened document in specified range.
+     *
+     * @param {string | number} uri Uri of resource
+     * @param {Range} range Range of resource
+     * @param {CancellationToken} token
+     * @returns {Promise<{ [word: string]: Range[] } | null>}
+     */
+    export function computeWordRanges(uri: string | number, range: Range, token?: CancellationToken): Promise<{ [word: string]: Range[] } | null>
+    /**
      * Create a FileSystemWatcher instance, when watchman doesn't exist, the
      * returned FileSystemWatcher can still be used, but not work at all.
      */
