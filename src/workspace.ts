@@ -2,7 +2,7 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
-import { CancellationToken, CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CancellationToken, CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { version as VERSION } from '../package.json'
@@ -517,6 +517,12 @@ export class Workspace implements IWorkspace {
    */
   public async openResource(uri: string): Promise<void> {
     await this.files.openResource(uri)
+  }
+
+  public async computeWordRanges(uri: string | number, range: Range, token?: CancellationToken): Promise<{ [word: string]: Range[] } | null> {
+    let doc = this.getDocument(uri)
+    if (!doc) return null
+    return await doc.chars.computeWordRanges(doc.textDocument.lines, range, token)
   }
 
   public openTextDocument(uri: URI | string): Promise<Document> {

@@ -198,7 +198,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
     const req = mod.request(opts, res => {
       let readable: Readable = res
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
-        let headers = res.headers ?? {}
+        let headers = res.headers
         let chunks: Buffer[] = []
         let contentType: string = headers['content-type'] || ''
         readable = decompressResponse(res)
@@ -206,7 +206,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
           chunks.push(chunk)
         })
         readable.on('end', () => {
-          if (timer) clearTimeout(timer)
+          clearTimeout(timer)
           let buf = Buffer.concat(chunks)
           if (!opts.buffer && (contentType.startsWith('application/json') || contentType.startsWith('text/'))) {
             let ms = contentType.match(/charset=(\S+)/)

@@ -1,10 +1,10 @@
 'use strict'
-import { Position, CancellationToken } from 'vscode-languageserver-protocol'
-import { waitImmediate } from '../util'
+import { CancellationToken, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { waitImmediate } from '../util'
 const logger = require('../util/logger')('model-chars')
 
-export class Range {
+class CodeRange {
   public start: number
   public end: number
   constructor(start: number, end?: number) {
@@ -12,25 +12,25 @@ export class Range {
     this.end = end ? end : start
   }
 
-  public static fromKeywordOption(keywordOption: string): Range[] {
+  public static fromKeywordOption(keywordOption: string): CodeRange[] {
     let parts = keywordOption.split(',')
-    let ranges: Range[] = []
-    ranges.push(new Range(65, 90))
-    ranges.push(new Range(97, 122))
+    let ranges: CodeRange[] = []
+    ranges.push(new CodeRange(65, 90))
+    ranges.push(new CodeRange(97, 122))
     for (let part of parts) {
       if (part == '@') {
-        ranges.push(new Range(256, 65535))
+        ranges.push(new CodeRange(256, 65535))
       } else if (part == '@-@') {
-        ranges.push(new Range(64))
+        ranges.push(new CodeRange(64))
       } else if (/^\d+-\d+$/.test(part)) {
         let ms = part.match(/^(\d+)-(\d+)$/)
-        ranges.push(new Range(Number(ms[1]), Number(ms[2])))
+        ranges.push(new CodeRange(Number(ms[1]), Number(ms[2])))
       } else if (/^\d+$/.test(part)) {
-        ranges.push(new Range(Number(part)))
+        ranges.push(new CodeRange(Number(part)))
       } else {
         let c = part.charCodeAt(0)
         if (!ranges.some(o => o.contains(c))) {
-          ranges.push(new Range(c))
+          ranges.push(new CodeRange(c))
         }
       }
     }
@@ -43,27 +43,27 @@ export class Range {
 }
 
 export class Chars {
-  public ranges: Range[] = []
-  constructor(keywordOption?: string) {
-    if (keywordOption) this.ranges = Range.fromKeywordOption(keywordOption)
+  public ranges: CodeRange[] = []
+  constructor(keywordOption: string) {
+    this.ranges = CodeRange.fromKeywordOption(keywordOption)
   }
 
   public addKeyword(ch: string): void {
     let c = ch.charCodeAt(0)
     let { ranges } = this
     if (!ranges.some(o => o.contains(c))) {
-      ranges.push(new Range(c))
+      ranges.push(new CodeRange(c))
     }
   }
 
   public clone(): Chars {
-    let chars = new Chars()
+    let chars = new Chars('')
     chars.ranges = this.ranges.slice()
     return chars
   }
 
   public setKeywordOption(keywordOption: string): void {
-    this.ranges = Range.fromKeywordOption(keywordOption)
+    this.ranges = CodeRange.fromKeywordOption(keywordOption)
   }
 
   public async matchLines(lines: ReadonlyArray<string>, min = 2, token?: CancellationToken): Promise<Set<string> | undefined> {
@@ -113,6 +113,48 @@ export class Chars {
       if (!this.isKeywordChar(word[i])) return false
     }
     return true
+  }
+
+  public async computeWordRanges(lines: ReadonlyArray<string>, range: Range, token?: CancellationToken): Promise<{ [word: string]: Range[] }> {
+    let s = range.start.line
+    let e = range.end.line
+    let res: { [word: string]: Range[] } = {}
+    let ts = Date.now()
+    for (let i = s; i <= e; i++) {
+      let text = lines[i]
+      if (text === undefined) break
+      let sc = i === s ? range.start.character : 0
+      if (i === s) text = text.slice(sc)
+      if (i === e) text = text.slice(0, range.end.character - sc)
+      if (Date.now() - ts > 15) {
+        if (token && token.isCancellationRequested) break
+        await waitImmediate()
+        ts = Date.now()
+      }
+      let start = -1
+      const add = (end: number) => {
+        let word = text.slice(start, end)
+        let arr = res[word] ?? []
+        arr.push(Range.create(i, start + sc, i, end + sc))
+        res[word] = arr
+      }
+      for (let i = 0, l = text.length; i < l; i++) {
+        if (this.isKeywordChar(text[i])) {
+          if (start == -1) {
+            start = i
+          }
+        } else {
+          if (start != -1) {
+            add(i)
+            start = -1
+          }
+        }
+        if (i === l - 1 && start != -1) {
+          add(l)
+        }
+      }
+    }
+    return res
   }
 
   public getLocalifyBonus(sp: Position, ep: Position, lines: ReadonlyArray<string>, max = 10 * 1024): Map<string, number> {

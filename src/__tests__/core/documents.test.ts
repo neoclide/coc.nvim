@@ -107,4 +107,10 @@ describe('documents', () => {
     documents.detach()
     await events.fire('CursorMoved', [1, [1, 1]])
   })
+
+  it('should compute word ranges', async () => {
+    expect(await workspace.computeWordRanges('file:///1', Range.create(0, 0, 1, 0))).toBeNull()
+    let doc = await workspace.document
+    expect(await workspace.computeWordRanges(doc.uri, Range.create(0, 0, 1, 0))).toBeDefined()
+  })
 })
