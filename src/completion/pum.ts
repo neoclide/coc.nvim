@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import stringWidth from '@chemzqm/string-width'
 import { CompletionItemKind } from 'vscode-languageserver-protocol'
+import { matchSpans } from '../model/fuzzyMatch'
 import sources from '../sources'
 import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem } from '../types'
 import { byteLength } from '../util/string'
 import MruLoader, { Selection } from './mru'
-import { getFollowPart, getKindText, getValidWord, positionHighlights } from './util'
+import { getFollowPart, getKindText, getValidWord } from './util'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -357,5 +358,16 @@ export default class PopupMenu {
   private fillWidth(text: string, width: number): string {
     let n = width - this.stringWidth(text)
     return n <= 0 ? text : text + ' '.repeat(n)
+  }
+}
+
+export function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number, max: number): void {
+  for (let span of matchSpans(label, positions, max)) {
+    hls.push({
+      hlGroup: 'CocPumSearch',
+      lnum: line,
+      colStart: pre + span[0],
+      colEnd: pre + span[1],
+    })
   }
 }

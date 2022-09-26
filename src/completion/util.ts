@@ -2,11 +2,9 @@
 import { CompletionItemKind } from 'vscode-languageserver-types'
 import { InsertChange } from '../events'
 import Document from '../model/document'
-import { FuzzyMatch } from '../model/fuzzyMatch'
 import sources from '../sources'
-import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, HighlightItem, ISource } from '../types'
+import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, ISource } from '../types'
 import { toArray } from '../util/array'
-import bytes from '../util/bytes'
 import { byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
@@ -160,17 +158,4 @@ export function getValidWord(text: string, invalidChars: string[], start = 2): s
     }
   }
   return text
-}
-
-export function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number, max: number): void {
-  let byteIndex = bytes(label)
-  FuzzyMatch.mergePositions(positions, (start, end) => {
-    if (start >= max) return
-    hls.push({
-      hlGroup: 'CocPumSearch',
-      lnum: line,
-      colStart: pre + byteIndex(start),
-      colEnd: pre + byteIndex(end + 1),
-    })
-  })
 }

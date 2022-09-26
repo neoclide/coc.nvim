@@ -29,6 +29,40 @@ export async function initFuzzyWasm(): Promise<FuzzyWasi> {
   return res.instance.exports as FuzzyWasi
 }
 
+export function* matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]> {
+  max = max ? Math.min(max, text.length) : text.length
+  let byteIndex = bytes(text, Math.min(text.length, 4096))
+  let start: number | undefined
+  let prev: number | undefined
+  let len = positions.length
+  for (let i = 0; i < len; i++) {
+    let curr = positions[i]
+    if (curr >= max) {
+      if (start != null) yield [byteIndex(start), byteIndex(prev + 1)]
+      break
+    }
+    if (prev != undefined) {
+      let d = curr - prev
+      if (d == 1) {
+        prev = curr
+      } else if (d > 1) {
+        yield [byteIndex(start), byteIndex(prev + 1)]
+        start = curr
+      } else {
+        // invalid number
+        yield [byteIndex(start), byteIndex(prev + 1)]
+        break
+      }
+    } else {
+      start = curr
+    }
+    prev = curr
+    if (i == len - 1) {
+      yield [byteIndex(start), byteIndex(prev + 1)]
+    }
+  }
+}
+
 export class FuzzyMatch {
   private contentPtr: number | undefined
   private patternPtr: number | undefined
@@ -40,33 +74,11 @@ export class FuzzyMatch {
   constructor(private exports: FuzzyWasi) {
   }
 
-  public static mergePositions(matches: ArrayLike<number>, cb: (start: number, end: number) => void): void {
-    let start: number | undefined
-    let prev: number | undefined
-    let len = matches.length
-    for (let i = 0; i < len; i++) {
-      let curr = matches[i]
-      if (prev != undefined) {
-        let d = curr - prev
-        if (d == 1) {
-          prev = curr
-        } else if (d > 1) {
-          cb(start, prev)
-          start = curr
-        } else {
-          // invalid number
-          cb(start, prev)
-          break
-        }
-      } else {
-        start = curr
-      }
-      prev = curr
-      if (i == len - 1) {
-        cb(start, prev)
-      }
-    }
-
+  /**
+   * Match character positions to column spans.
+   */
+  public matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]> {
+    return matchSpans(text, positions, max)
   }
 
   public getSizes(): number[] {
@@ -123,14 +135,10 @@ export class FuzzyMatch {
   public matchHighlights(text: string, hlGroup: string): MatchHighlights | undefined {
     let res = this.match(text)
     if (!res) return undefined
-    let byteIndex = bytes(text, Math.min(text.length, 4096))
     let highlights: AnsiHighlight[] = []
-    FuzzyMatch.mergePositions(res.positions, (start, end) => {
-      highlights.push({
-        span: [byteIndex(start), byteIndex(end + 1)],
-        hlGroup
-      })
-    })
+    for (let span of this.matchSpans(text, res.positions)) {
+      highlights.push({ span, hlGroup })
+    }
     return { score: res.score, highlights }
   }
 

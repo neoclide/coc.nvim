@@ -8,27 +8,25 @@ describe('FuzzyMatch', () => {
     api = await initFuzzyWasm()
   })
 
-  it('should merge positions', async () => {
-    let arr = []
-    FuzzyMatch.mergePositions([0, 1, 3], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 2], [3, 4]])
-    arr = []
-    FuzzyMatch.mergePositions([0], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 1]])
-    arr = []
-    FuzzyMatch.mergePositions([0, 2, 3, 4, 1], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 1], [2, 5]])
-    arr = []
-    FuzzyMatch.mergePositions([0, 2, 4], (a, b) => {
-      arr.push([a, b + 1])
-    })
-    expect(arr).toEqual([[0, 1], [2, 3], [4, 5]])
+  it('should match spans', async () => {
+    let f = new FuzzyMatch(api)
+    const verify = (input: string, positions: number[], results: [number, number][], max?: number) => {
+      let arr = f.matchSpans(input, positions, max)
+      let res: [number, number][] = []
+      for (let item of arr) {
+        res.push(item)
+      }
+      expect(res).toEqual(results)
+    }
+    verify('foobar', [0, 1, 3], [[0, 2], [3, 4]])
+    verify('foobar', [0], [[0, 1]])
+    verify('你', [0], [[0, 3]])
+    verify(' 你', [1], [[1, 4]])
+    verify('foobar', [0, 2, 3, 4, 1], [[0, 1], [2, 5]])
+    verify('foobar', [10], [])
+    verify('foobar', [0, 2, 4], [[0, 1], [2, 3], [4, 5]])
+    verify('foobar', [1, 4], [[1, 2]], 3)
+    verify('foobar', [5], [], 3)
   })
 
   it('should throw when not set pattern', async () => {

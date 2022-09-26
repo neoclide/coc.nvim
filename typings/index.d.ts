@@ -7167,6 +7167,16 @@ declare module 'coc.nvim' {
      */
     match(text: string): FuzzyMatchResult | undefined
     /**
+     * Match character positions to column spans.
+     * Better than matchHighlights method by reduce iteration.
+     *
+     * @param {string} text Context to match
+     * @param {ArrayLike<number>} positions Matched character index positions.
+     * @param {number} max Maximum column number to calculate
+     * @returns {Iterable<[number, number]>}
+     */
+    matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]>
+    /**
      * Get the match highlights result, including score and highlight items.
      * Return undefined when no match found.
      *
