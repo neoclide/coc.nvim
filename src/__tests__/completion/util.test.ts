@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CompletionItemKind, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import { checkIgnoreRegexps, createKindMap, getInput, getKindText, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
+import { checkIgnoreRegexps, indentChanged, createKindMap, getInput, getKindText, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import languages from '../../languages'
 import { CompleteOption } from '../../types'
@@ -29,6 +29,14 @@ afterEach(() => {
 describe('caseScore()', () => {
   it('should get caseScore', () => {
     expect(typeof caseScore(10, 10, 2)).toBe('number')
+  })
+})
+
+describe('indentChanged()', () => {
+  it('should check indentChanged', async () => {
+    expect(indentChanged(undefined, [1, 1, ''], '')).toBe(false)
+    expect(indentChanged({ word: 'foo' }, [1, 4, 'foo'], '  foo')).toBe(true)
+    expect(indentChanged({ word: 'foo' }, [1, 4, 'bar'], '  foo')).toBe(false)
   })
 })
 

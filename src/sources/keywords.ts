@@ -1,4 +1,5 @@
 'use strict'
+import unidecode from 'unidecode'
 import { URI } from 'vscode-uri'
 import { SyncItem } from '../model/bufferSync'
 import { Chars } from '../model/chars'
@@ -6,7 +7,6 @@ import Document from '../model/document'
 import { DidChangeTextDocumentParams } from '../types'
 import { isGitIgnored } from '../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes, wordChar } from '../util/fuzzy'
-import unidecode from 'unidecode'
 const logger = require('../util/logger')('sources-keywords')
 const WORD_PREFIXES = ['_', '$']
 
@@ -18,7 +18,7 @@ export function matchLine(line: string, chars: Chars, min = 2): string[] {
     l = 1024
   }
   let start = -1
-  const add = (end: number) => {
+  const add = (end: number): void => {
     if (end - start < min) return
     let word = line.slice(start, end)
     if (!res.includes(word)) res.push(word)

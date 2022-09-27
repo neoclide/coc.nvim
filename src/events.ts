@@ -57,7 +57,9 @@ export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | Wi
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert'
   | 'PromptKeyPress'
 
-export type CursorEvents = 'CursorMoved' | 'CursorMovedI' | 'CursorHold' | 'CursorHoldI'
+export type CursorEvents = CursorHoldEvents | CursorMoveEvents
+export type CursorHoldEvents = 'CursorHold' | 'CursorHoldI'
+export type CursorMoveEvents = 'CursorMoved' | 'CursorMovedI'
 
 export type OptionValue = string | number | boolean
 
@@ -256,10 +258,11 @@ class Events {
   }
 
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: CursorEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: CursorHoldEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: WindowEvents, handler: (winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: TabEvents, handler: (tabnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: CursorMoveEvents, handler: (bufnr: number, cursor: [number, number, string], hasInsert: boolean) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'PromptKeyPress', handler: (bufnr: number, key: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

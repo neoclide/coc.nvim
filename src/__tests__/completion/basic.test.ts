@@ -101,7 +101,7 @@ describe('completion', () => {
     it('should trigger with none ascii characters', async () => {
       helper.updateConfiguration('suggest.asciiCharactersOnly', false)
       await create(['你好'], false)
-      await nvim.input('N')
+      await nvim.input('ni')
       await helper.waitPopup()
     })
 
@@ -745,7 +745,7 @@ describe('completion', () => {
       await helper.waitPopup()
       void events.fire('CompleteDone', [{}])
       await helper.wait(10)
-      await events.fire('CursorMovedI', [buf.id, [2, 1]])
+      await events.fire('CursorMovedI', [buf.id, [2, 1, '']])
       expect(completion.isActivated).toBe(false)
       await nvim.input('<esc>')
     })
@@ -1351,7 +1351,6 @@ describe('completion', () => {
 
     it('should trigger completion after indent change', async () => {
       await helper.createDocument('t.vim')
-      // doc._indentkeys = '=end'
       let source: ISource = {
         name: 'source1',
         priority: 90,
@@ -1366,7 +1365,6 @@ describe('completion', () => {
       }
       disposables.push(sources.addSource(source))
       await nvim.input('i')
-      await helper.wait(10)
       await nvim.input('  endi')
       await helper.waitPopup()
       await nvim.input('f')

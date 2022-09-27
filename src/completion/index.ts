@@ -14,7 +14,7 @@ import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
 import MruLoader from './mru'
 import PopupMenu, { PopupMenuConfig } from './pum'
-import { checkIgnoreRegexps, createKindMap, getInput, getPrependWord as getAppendWord, getResumeInput, getSources, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
+import { checkIgnoreRegexps, createKindMap, getInput, getPrependWord as getAppendWord, getResumeInput, getSources, indentChanged, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -57,7 +57,7 @@ export class Completion implements Disposable {
         if (cursor[1] == this.option.colnr && cursor[1] === byteLength(this.pretext ?? '') + 1) {
           return
         }
-        let line = workspace.getDocument(bufnr).getline(cursor[0] - 1)
+        let line = cursor[2]
         let curr = characterIndex(line, cursor[1] - 1)
         let start = characterIndex(line, this.option.col)
         if (start < curr) {
@@ -66,6 +66,7 @@ export class Completion implements Disposable {
           if (!this.inserted && text == this.complete?.input) return
           // TODO retrigger when input moved left or right
         }
+        if (indentChanged(this.popupEvent, cursor, this.option.line)) return
       }
       this.stop(true)
     }, null, this.disposables)

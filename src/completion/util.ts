@@ -64,6 +64,15 @@ export function createKindMap(labels: { [key: string]: string }): Map<Completion
   ])
 }
 
+export function indentChanged(event: { word: string } | undefined, cursor: [number, number, string], line: string): boolean {
+  if (!event) return false
+  let pre = byteSlice(cursor[2], 0, cursor[1] - 1)
+  if (pre.endsWith(event.word) && pre.match(/^\s*/)[0] != line.match(/^\s*/)[0]) {
+    return true
+  }
+  return false
+}
+
 export function toCompleteDoneItem(item: ExtendedCompleteItem | undefined): CompleteDoneItem | {} {
   if (!item) return {}
   return {

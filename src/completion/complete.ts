@@ -5,6 +5,7 @@ import { CancellationToken, CancellationTokenSource, Emitter, Event, Position } 
 import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex } from '../util/string'
 import { matchScoreWithPositions } from './match'
@@ -119,14 +120,14 @@ export default class Complete {
       logger.warn('suggest cancelled by b:coc_suggest_disable')
       return true
     }
-    if (variables.disabled_sources?.length) {
+    if (!isFalsyOrEmpty(variables.disabled_sources)) {
       this.sources = this.sources.filter(s => !variables.disabled_sources.includes(s.name))
       if (this.sources.length === 0) {
         logger.warn('suggest cancelled by b:coc_disabled_sources')
         return true
       }
     }
-    if (variables.blacklist?.length) {
+    if (!isFalsyOrEmpty(variables.blacklist)) {
       if (variables.blacklist.includes(this.option.input)) {
         logger.warn('suggest cancelled by b:coc_suggest_blacklist')
         return true

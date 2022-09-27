@@ -46,32 +46,33 @@ async function registerProvider(content: string, position: Position): Promise<vo
   await handler.enable(doc, position)
 }
 
-async function assertMatches(len: number): Promise<void> {
+async function matches(): Promise<number> {
   let res = await nvim.call('getmatches') as any[]
   res = res.filter(o => o.group === 'CocLinkedEditing')
-  expect(res.length).toBe(len)
+  return res.length
 }
 
 describe('LinkedEditing', () => {
   it('should active and cancel on cursor moved', async () => {
     await registerProvider('foo foo a ', Position.create(0, 0))
-    await assertMatches(2)
+    expect(await matches()).toBe(2)
     await nvim.command(`normal! $`)
-    await helper.wait(50)
-    await assertMatches(0)
+    await helper.waitValue(() => {
+      return matches()
+    }, 0)
   })
 
   it('should active when moved to another word', async () => {
     await registerProvider('foo foo bar bar bar', Position.create(0, 0))
     await nvim.call('cursor', [1, 9])
-    await helper.wait(50)
-    await assertMatches(3)
+    await helper.waitValue(() => {
+      return matches()
+    }, 3)
   })
 
   it('should active on text change', async () => {
     let doc = await workspace.document
     await registerProvider('foo foo a ', Position.create(0, 0))
-    await assertMatches(2)
     await nvim.call('cursor', [1, 1])
     await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 0, 0, 0, ['i']])
     await doc.synchronize()
@@ -86,17 +87,23 @@ describe('LinkedEditing', () => {
   it('should cancel when change out of range', async () => {
     let doc = await workspace.document
     await registerProvider('foo foo bar', Position.create(0, 0))
-    await assertMatches(2)
+    await helper.waitValue(() => {
+      return matches()
+    }, 2)
     await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 9, 0, 10, ['']])
     await doc.synchronize()
-    await assertMatches(0)
+    await helper.waitValue(() => {
+      return matches()
+    }, 0)
   })
 
   it('should cancel on editor change', async () => {
     await registerProvider('foo foo a ', Position.create(0, 0))
     await nvim.command(`enew`)
     await helper.wait(50)
-    await assertMatches(0)
+    await helper.waitValue(() => {
+      return matches()
+    }, 0)
   })
 
   it('should cancel when insert none word character', async () => {
@@ -104,12 +111,14 @@ describe('LinkedEditing', () => {
     await nvim.call('cursor', [1, 4])
     await nvim.input('i')
     await nvim.input('a')
-    await helper.wait(50)
-    await assertMatches(2)
+    await helper.waitValue(() => {
+      return matches()
+    }, 2)
     await nvim.input('i')
     await nvim.input('@')
-    await helper.wait(50)
-    await assertMatches(0)
+    await helper.waitValue(() => {
+      return matches()
+    }, 0)
   })
 
   it('should cancel when insert not match wordPattern', async () => {
@@ -118,12 +127,14 @@ describe('LinkedEditing', () => {
     await nvim.call('cursor', [1, 4])
     await nvim.input('i')
     await nvim.input('A')
-    await helper.wait(50)
-    await assertMatches(2)
+    await helper.waitValue(() => {
+      return matches()
+    }, 2)
     await nvim.input('i')
     await nvim.input('3')
-    await helper.wait(50)
-    await assertMatches(0)
+    await helper.waitValue(() => {
+      return matches()
+    }, 0)
   })
 
   it('should cancel request on cursor moved', async () => {
@@ -149,9 +160,10 @@ describe('LinkedEditing', () => {
     await nvim.setLine('foo foo  ')
     await doc.synchronize()
     await nvim.call('cursor', [1, 2])
-    await helper.wait(30)
+    await helper.wait(10)
     await nvim.call('cursor', [1, 9])
-    await helper.wait(30)
-    await assertMatches(0)
+    await helper.waitValue(() => {
+      return matches()
+    }, 0)
   })
 })
