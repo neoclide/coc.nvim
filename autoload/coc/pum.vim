@@ -159,40 +159,41 @@ function! coc#pum#info() abort
   let bufnr = winbufnr(s:pum_winid)
   let words = getwinvar(s:pum_winid, 'words', [])
   let word = s:pum_index < 0 ? '' : get(words, s:pum_index, '')
+  let pretext = strpart(getline('.'), 0, col('.') - 1)
   if s:is_vim
     let pos = popup_getpos(s:pum_winid)
     let border = has_key(popup_getoptions(s:pum_winid), 'border')
     let add = pos['scrollbar'] && border ? 1 : 0
     return {
-        \ 'word': word,
-        \ 'index': s:pum_index,
-        \ 'scrollbar': pos['scrollbar'],
-        \ 'row': pos['line'] - 1,
-        \ 'col': pos['col'] - 1,
-        \ 'width': pos['width'] + add,
-        \ 'height': pos['height'],
-        \ 'size': s:pum_size,
-        \ 'border': border,
-        \ 'inserted': s:inserted ? v:true : v:false,
-        \ 'reversed': s:reversed ? v:true : v:false,
-        \ }
+          \ 'word': word,
+          \ 'index': s:pum_index,
+          \ 'scrollbar': pos['scrollbar'],
+          \ 'row': pos['line'] - 1,
+          \ 'col': pos['col'] - 1,
+          \ 'width': pos['width'] + add,
+          \ 'height': pos['height'],
+          \ 'size': s:pum_size,
+          \ 'border': border,
+          \ 'inserted': s:inserted ? v:true : v:false,
+          \ 'reversed': s:reversed ? v:true : v:false,
+          \ }
   else
     let scrollbar = coc#float#get_related(s:pum_winid, 'scrollbar')
     let winid = coc#float#get_related(s:pum_winid, 'border', s:pum_winid)
     let pos = nvim_win_get_position(winid)
     return {
-        \ 'word': word,
-        \ 'index': s:pum_index,
-        \ 'scrollbar': scrollbar && nvim_win_is_valid(scrollbar) ? 1 : 0,
-        \ 'row': pos[0],
-        \ 'col': pos[1],
-        \ 'width': nvim_win_get_width(winid),
-        \ 'height': nvim_win_get_height(winid),
-        \ 'size': s:pum_size,
-        \ 'border': winid != s:pum_winid,
-        \ 'inserted': s:inserted ? v:true : v:false,
-        \ 'reversed': s:reversed ? v:true : v:false,
-        \ }
+          \ 'word': word,
+          \ 'index': s:pum_index,
+          \ 'scrollbar': scrollbar && nvim_win_is_valid(scrollbar) ? 1 : 0,
+          \ 'row': pos[0],
+          \ 'col': pos[1],
+          \ 'width': nvim_win_get_width(winid),
+          \ 'height': nvim_win_get_height(winid),
+          \ 'size': s:pum_size,
+          \ 'border': winid != s:pum_winid,
+          \ 'inserted': s:inserted ? v:true : v:false,
+          \ 'reversed': s:reversed ? v:true : v:false,
+          \ }
   endif
 endfunction
 

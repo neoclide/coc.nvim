@@ -479,7 +479,6 @@ function! coc#float#nvim_scrollbar(winid) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  call coc#rpc#notify('Log', ['config', config])
   if has('nvim-0.5.1')
     let opts['zindex'] = get(config, 'zindex', 50)
   endif
