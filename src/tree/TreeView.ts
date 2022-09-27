@@ -194,7 +194,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     events.on(['CursorMoved', 'BufEnter'], () => {
       this.cancelResolve()
     }, null, this.disposables)
-    events.on('CursorMoved', (bufnr: number, cursor: [number, number]) => {
+    events.on('CursorMoved', (bufnr: number, cursor: [number, number, string]) => {
       if (bufnr == this.bufnr) {
         let element = this.getElementByLnum(cursor[0] - 1)
         this._onDidCursorMoved.fire(element)

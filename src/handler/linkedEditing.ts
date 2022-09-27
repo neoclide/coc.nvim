@@ -26,11 +26,11 @@ export default class LinkedEditingHandler {
     this.checkPosition = debounce(this._checkPosition, global.__TEST__ ? 10 : 100)
     handler.addDisposable(events.on('CursorMoved', (bufnr, cursor) => {
       this.cancel()
-      this.checkPosition(bufnr, cursor)
+      this.checkPosition(bufnr, [cursor[0], cursor[1]])
     }))
     handler.addDisposable(events.on('CursorMovedI', (bufnr, cursor) => {
       this.cancel()
-      this.checkPosition(bufnr, cursor)
+      this.checkPosition(bufnr, [cursor[0], cursor[1]])
     }))
     handler.addDisposable(window.onDidChangeActiveTextEditor(() => {
       this.cancel()
