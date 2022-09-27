@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
+import { waitImmediate } from '../util'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('sources-source')

@@ -6,8 +6,9 @@ import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { getCharCodes } from '../util/fuzzy'
-import { byteSlice, characterIndex, isWord } from '../util/string'
+import { byteSlice, characterIndex } from '../util/string'
 import { matchScoreWithPositions } from './match'
+import { getFollowPart } from './util'
 import { WordDistance } from './wordDistance'
 const logger = require('../util/logger')('completion-complete')
 const MAX_DISTANCE = 2 << 20
@@ -46,6 +47,7 @@ export default class Complete {
   private readonly _onDidRefresh = new Emitter<void>()
   private wordDistance: WordDistance | undefined
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
+  private asciiMatch: boolean
   constructor(public option: CompleteOption,
     private document: Document,
     private config: CompleteConfig,
@@ -54,6 +56,7 @@ export default class Complete {
     this.tokenSource = new CancellationTokenSource()
     sources.sort((a, b) => (b.priority ?? 99) - (a.priority ?? 99))
     this.names = sources.map(o => o.name)
+    this.asciiMatch = config.asciiMatch && option.input.length > 0 && option.input.charCodeAt(0) < 128
   }
 
   private fireRefresh(waitTime: number): void {
@@ -179,7 +182,7 @@ export default class Complete {
   private async completeSource(source: ISource, token: CancellationToken): Promise<void> {
     // new option for each source
     let opt = Object.assign({}, this.option)
-    let { asciiMatch } = this.config
+    let { asciiMatch } = this
     let { name } = source
     try {
       if (typeof source.shouldComplete === 'function') {
@@ -228,13 +231,14 @@ export default class Complete {
     await document.patchChange(true)
     if (token.isCancellationRequested) return undefined
     let { input, colnr, linenr, position } = this.option
-    let character = resumeInput[resumeInput.length - 1]
+    let word = resumeInput + getFollowPart(this.option)
     Object.assign(this.option, {
+      word,
       input: resumeInput,
       line: document.getline(linenr - 1),
       position: { line: position.line, character: position.character + resumeInput.length - input.length },
       colnr: colnr + (resumeInput.length - input.length),
-      triggerCharacter: !character || isWord(character) ? undefined : character,
+      triggerCharacter: undefined,
       triggerForInComplete: true
     })
     let sources = this.sources.filter(s => names.includes(s.name))
@@ -251,44 +255,28 @@ export default class Complete {
     let len = input.length
     let anchor = Position.create(option.linenr - 1, characterIndex(option.line, option.col))
     let emptyInput = len == 0
-    let { maxItemCount, asciiMatch, defaultSortMethod, removeDuplicateItems } = this.config
+    let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue
-      let snippetSource = name === 'snippets'
       let items = result.items
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
-        let { word, filterText, abbr, dup } = item
+        let { word, filterText, dup } = item
         if (dup !== 1 && words.has(word)) continue
         if (filterText.length < len) continue
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         if (!emptyInput) {
-          let positions: ReadonlyArray<number> | undefined
-          let score: number
           if (item.kind && filterText === input) {
-            score = 64
-            positions = Array.from({ length: filterText.length }, (x, i) => i)
+            item.score = 64
           } else {
             let res = matchScoreWithPositions(filterText, codes)
-            score = res == null ? 0 : res[0]
-            if (res != null) positions = res[1]
-          }
-          // let score = item.kind && filterText == input ? 64 : matchScore(filterText, codes)
-          if (score === 0) continue
-          if (filterText == (asciiMatch ? unidecode(abbr) : abbr)) {
-            item.positions = positions
-          } else if (positions && positions.length > 0) {
-            let idx = abbr.indexOf(filterText.slice(0, positions[positions.length - 1] + 1))
-            if (idx !== -1) item.positions = positions.map(i => i + idx)
-          }
-          if (snippetSource && word === input) {
-            item.score = 99
-          } else {
-            item.score = score * (item.sourceScore || 1)
+            if (res == null || res[0] === 0) continue
+            item.score = res[0]
+            item.positions = res[1]
           }
           if (this.wordDistance) item.localBonus = MAX_DISTANCE - this.wordDistance.distance(anchor, item)
         }

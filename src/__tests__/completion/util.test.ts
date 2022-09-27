@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CompletionItemKind, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import { checkIgnoreRegexps, createKindMap, getInput, getKindText, getResumeInput, getValidWord, shouldIndent, shouldStop } from '../../completion/util'
+import { checkIgnoreRegexps, createKindMap, getInput, getKindText, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import languages from '../../languages'
 import { CompleteOption } from '../../types'
@@ -27,8 +27,17 @@ afterEach(() => {
 })
 
 describe('caseScore()', () => {
-  it('should get caseScore', async () => {
+  it('should get caseScore', () => {
     expect(typeof caseScore(10, 10, 2)).toBe('number')
+  })
+})
+
+describe('highlightOffert()', () => {
+  it('should get highlight offset', () => {
+    let n = highlightOffert(3, { abbr: 'abc', word: '', filterText: 'def' })
+    expect(n).toBe(-1)
+    expect(highlightOffert(3, { abbr: 'abc', word: '', filterText: 'abc' })).toBe(3)
+    expect(highlightOffert(3, { abbr: 'xy abc', word: '', filterText: 'abc' })).toBe(6)
   })
 })
 

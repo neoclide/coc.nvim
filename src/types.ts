@@ -696,19 +696,6 @@ export interface Documentation {
   active?: [number, number]
 }
 
-export interface VimCompleteItem {
-  word: string
-  abbr?: string
-  menu?: string
-  info?: string
-  kind?: string | CompletionItemKind
-  icase?: number
-  equal?: number
-  dup?: number
-  empty?: number
-  user_data?: string
-}
-
 export interface CompleteDoneItem {
   readonly word: string
   readonly abbr?: string
@@ -717,6 +704,17 @@ export interface CompleteDoneItem {
   readonly kind?: string
   readonly menu?: string
   readonly user_data?: string
+}
+
+export interface VimCompleteItem {
+  word: string
+  abbr?: string
+  menu?: string
+  info?: string
+  kind?: string | CompletionItemKind
+  equal?: number
+  dup?: number
+  user_data?: string
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {
@@ -728,12 +726,9 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   detailRendered?: boolean
   score?: number
   sortText?: string
-  sourceScore?: number
   filterText?: string
   isSnippet?: boolean
-  additionalEdits?: boolean
   source?: string
-  matchScore?: number
   priority?: number
   preselect?: boolean
   localBonus?: number

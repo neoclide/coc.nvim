@@ -1,3 +1,12 @@
+# 2022-09-27
+
+- Use fuzzy.wasm for native fuzzy match.
+- Add `binarySearch` and `isFalsyOrEmpty` functions for array.
+- `suggest.localityBonus` works like VSCode, using selection ranges.
+- Add and export `workspace.computeWordRanges`.
+- Rework keywords parse for better performance (parse changed lines only and use
+  yield to reduce iteration).
+
 # 2022-09-12
 
 - All configurations are now scoped #4185

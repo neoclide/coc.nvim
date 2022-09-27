@@ -1,6 +1,5 @@
 'use strict'
-import { CancellationToken, Position, Range } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CancellationToken, Range } from 'vscode-languageserver-protocol'
 import { waitImmediate } from '../util'
 const logger = require('../util/logger')('model-chars')
 

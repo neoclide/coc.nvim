@@ -6,7 +6,7 @@ import sources from '../sources'
 import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem } from '../types'
 import { byteLength } from '../util/string'
 import MruLoader, { Selection } from './mru'
-import { getFollowPart, getKindText, getValidWord } from './util'
+import { getFollowPart, getKindText, getValidWord, highlightOffert } from './util'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -200,7 +200,7 @@ export default class PopupMenu {
     let buildConfig: BuildConfig = { border: !!pumConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
     this.adjustAbbrWidth(buildConfig)
     for (let index = 0; index < items.length; index++) {
-      let text = this.buildItem(items[index], labels[index], highlights, index, buildConfig)
+      let text = this.buildItem(search, items[index], labels[index], highlights, index, buildConfig)
       width = Math.max(width, this.stringWidth(text))
       lines.push(text)
     }
@@ -225,7 +225,7 @@ export default class PopupMenu {
     let abbr = item.abbr ?? ''
     let label = item.abbr ?? item.word
     let hls: HighlightRange[] = []
-    if ((item.isSnippet || item.additionalEdits) && !abbr.endsWith(snippetIndicator)) {
+    if (item.isSnippet && !abbr.endsWith(snippetIndicator)) {
       label = label + snippetIndicator
     }
     if (detailField === 'abbr' && detail && !labelDetails && detail.length < detailMaxLength) {
@@ -266,7 +266,7 @@ export default class PopupMenu {
     }
   }
 
-  private buildItem(item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): string {
+  private buildItem(input: string, item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): string {
     // abbr menu kind shortcut
     let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config
     let text = config.border ? '' : ' '
@@ -279,8 +279,15 @@ export default class PopupMenu {
     for (const name of formatItems) {
       switch (name) {
         case 'abbr': {
-          if (item.positions?.length > 0) {
-            positionHighlights(hls, item.abbr, item.positions, len, index, labelMaxLength)
+          if (input.length > 0) {
+            let pre = highlightOffert(len, item)
+            if (pre != -1) {
+              if (item.filterText === input) {
+                hls.push({ hlGroup: 'CocPumSearch', lnum: index, colStart: pre, colEnd: pre + byteLength(item.filterText) })
+              } else if (item.positions && item.positions.length > 0) {
+                positionHighlights(hls, item.abbr, item.positions, pre, index, labelMaxLength)
+              }
+            }
           }
           let abbr = label.text
           let start = len

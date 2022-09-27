@@ -5,7 +5,7 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, ISource } from '../types'
 import { toArray } from '../util/array'
-import { byteSlice, characterIndex } from '../util/string'
+import { byteLength, byteSlice, characterIndex } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
@@ -158,4 +158,12 @@ export function getValidWord(text: string, invalidChars: string[], start = 2): s
     }
   }
   return text
+}
+
+export function highlightOffert(pre: number, item: ExtendedCompleteItem): number {
+  let { filterText, abbr } = item
+  let idx = abbr.indexOf(filterText)
+  if (idx == -1) return -1
+  let n = idx == 0 ? 0 : byteLength(abbr.slice(0, idx))
+  return pre + n
 }

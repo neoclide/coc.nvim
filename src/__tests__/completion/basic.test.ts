@@ -730,22 +730,6 @@ describe('completion', () => {
       expect(items[0].word).toBe('foo#abc')
     })
 
-    it('should cancel on InsertLeave', async () => {
-      let source: ISource = {
-        priority: 99,
-        enable: true,
-        name: 'temp',
-        sourceType: SourceType.Service,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo#abc' }] }),
-      }
-      disposables.push(sources.addSource(source))
-      await nvim.input('if')
-      await helper.waitPopup()
-      await nvim.input('<esc>')
-      await helper.wait(50)
-      expect(completion.isActivated).toBe(false)
-    })
-
     it('should cancel on CursorMoved', async () => {
       let buf = await nvim.buffer
       await buf.setLines(['', 'bar'], { start: 0, end: -1, strictIndexing: false })
@@ -764,29 +748,6 @@ describe('completion', () => {
       await events.fire('CursorMovedI', [buf.id, [2, 1]])
       expect(completion.isActivated).toBe(false)
       await nvim.input('<esc>')
-    })
-
-    it('should use source-provided score', async () => {
-      let source: ISource = {
-        priority: 0,
-        enable: true,
-        name: 'source',
-        sourceType: SourceType.Service,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({
-          items: [
-            { word: 'candidate_a', sourceScore: 0.1 },
-            { word: 'candidate_b', sourceScore: 10 },
-            { word: 'candidate_c' },
-          ]
-        }),
-      }
-      disposables.push(sources.addSource(source))
-      await nvim.input('ocand')
-      await helper.waitPopup()
-      let items = await helper.getItems()
-      expect(items[0].word).toBe('candidate_b')
-      expect(items[1].word).toBe('candidate_c')
-      expect(items[2].word).toBe('candidate_a')
     })
   })
 
@@ -1451,7 +1412,7 @@ describe('completion', () => {
          noa call setline('.', 'foobar')
          noa call cursor(1, 7)
          `)
-      await helper.wait(50)
+      await helper.wait(30)
       let res = await helper.pumvisible()
       expect(res).toBe(false)
       line = await nvim.line

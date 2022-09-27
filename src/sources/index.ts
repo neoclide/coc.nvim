@@ -15,7 +15,7 @@ import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import KeywordsBuffer from './keywords'
+import { KeywordsBuffer } from './keywords'
 import Source from './source'
 import LanguageSource from './source-language'
 import VimSource from './source-vim'
@@ -33,11 +33,6 @@ export class Sources {
     })
     this.createNativeSources()
     this.createRemoteSources()
-    events.on('InsertLeave', () => {
-      for (let item of this.keywords.items) {
-        item.parse()
-      }
-    }, this, this.disposables)
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
     workspace.onDidRuntimePathChange(newPaths => {
       for (let p of newPaths) {
@@ -53,6 +48,10 @@ export class Sources {
 
   private get nvim(): Neovim {
     return workspace.nvim
+  }
+
+  public getKeywordsBuffer(bufnr: number): KeywordsBuffer {
+    return this.keywords.getItem(bufnr)
   }
 
   private createNativeSources(): void {

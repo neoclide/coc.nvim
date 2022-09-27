@@ -7,6 +7,7 @@ import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, Documentation, ExtendedCompleteItem, ISource, SourceType } from '../types'
+import { isFalsyOrEmpty } from '../util/array'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { isCompletionList } from '../util/is'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
@@ -177,7 +178,7 @@ export default class LanguageSource implements ISource {
     if (!item) return
     let doc = workspace.getDocument(opt.bufnr)
     await doc.patchChange(true)
-    let additionalEdits = Array.isArray(item.additionalTextEdits) && item.additionalTextEdits.length > 0
+    let additionalEdits = !isFalsyOrEmpty(item.additionalTextEdits)
     if (additionalEdits) {
       let shouldCancel = await snippetManager.editsInsideSnippet(item.additionalTextEdits)
       if (shouldCancel) snippetManager.cancel()
@@ -261,12 +262,12 @@ export default class LanguageSource implements ISource {
   private convertVimCompleteItem(item: CompletionItem, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
     let label = typeof item.label === 'string' ? item.label.trim() : item.insertText ?? ''
     let isSnippet = this.isSnippetItem(item)
+    if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
     let obj: ExtendedCompleteItem = {
       word: getWord(item, isSnippet, opt, this.itemDefaults),
       abbr: label,
       kind: item.kind,
       detail: item.detail,
-      additionalEdits: item.additionalTextEdits != null && item.additionalTextEdits.length > 0,
       sortText: item.sortText,
       filterText: item.filterText ?? label,
       preselect: item.preselect === true,
@@ -286,7 +287,9 @@ export default class LanguageSource implements ISource {
         obj.word = `${prefix}${obj.word}`
       }
     }
-    if (typeof item['score'] === 'number') obj.sourceScore = item['score']
+    if (typeof item['score'] === 'number' && !obj.sortText) {
+      obj.sortText = String.fromCodePoint(2 << 20 - Math.round(item['score']))
+    }
     if (item.data?.optional && !obj.abbr.endsWith('?')) obj.abbr = obj.abbr + '?'
     return obj
   }
