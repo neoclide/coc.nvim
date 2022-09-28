@@ -1,3 +1,10 @@
+# 2022-09-28
+
+- Limit popupmenu width when exceed screen to &pumwidth, instead of change
+  completion column.
+- Make escape of `${name}` for ultisnip snippets the same behavior as
+  Ultisnip.vim.
+
 # 2022-09-27
 
 - Use fuzzy.wasm for native fuzzy match.
