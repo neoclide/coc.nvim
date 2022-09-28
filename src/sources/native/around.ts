@@ -19,16 +19,18 @@ export default class Around extends Source {
     let { menu } = this
     let start = Date.now()
     let prev = start
+    let n = 0
     for (let w of iterable) {
       let curr = Date.now()
-      if (token.isCancellationRequested) return true
       if (curr - prev > 15) {
         await waitImmediate()
         prev = curr
       }
-      if (curr - start > 80) return true
+      if (token.isCancellationRequested || curr - start > 80) return true
       if (w == exclude) continue
+      n++
       items.push({ word: w, menu })
+      if (n == 100) return true
     }
     return false
   }

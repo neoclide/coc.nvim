@@ -418,7 +418,9 @@ function! s:get_pum_dimension(lines, col, config) abort
   let linecount = len(a:lines)
   let [lineIdx, colIdx] = coc#cursor#screen_pos()
   let bh = empty(get(a:config, 'border', [])) ? 0 : 2
-  let width = min([&columns, max([exists('&pumwidth') ? &pumwidth : 15, a:config['width']])])
+  let columns = &columns
+  let pumwidth = max([15, &pumwidth])
+  let width = min([columns, max([pumwidth, a:config['width']])])
   let vh = &lines - &cmdheight - 1 - !empty(&tabline)
   if vh <= 0
     return v:null
@@ -439,10 +441,13 @@ function! s:get_pum_dimension(lines, col, config) abort
   let col = - (col('.') - a:col - 1) - 1
   let row = showTop ? - height : 1
   let delta = colIdx + col
+  if width > pumwidth && delta + width > columns
+    let width = max([columns - delta, pumwidth])
+  endif
   if delta < 0
     let col = col - delta
-  elseif delta + width > &columns
-    let col = max([-colIdx, col - (delta + width - &columns)])
+  elseif delta + width > columns
+    let col = max([-colIdx, col - (delta + width - columns)])
   endif
   return {
         \ 'row': row,
