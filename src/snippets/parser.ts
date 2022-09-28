@@ -6,6 +6,7 @@ import { CharCode } from '../util/charCode'
 import { getCharIndexes } from '../util/string'
 import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode, prepareMatchCode, UltiSnippetContext } from './eval'
 const logger = require('../util/logger')('snippets-parser')
+const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']
 export const enum TokenType {
@@ -1263,11 +1264,16 @@ export class SnippetParser {
     if (!match) {
       return this._backTo(token)
     }
+    if (/^\d+$/.test(value)) {
+      parent.appendChild(new Placeholder(Number(value)))
+    } else {
+      if (this.ultisnip && !ULTISNIP_VARIABLES.includes(value)) {
+        parent.appendChild(new Text('${' + value + '}'))
+      } else {
+        parent.appendChild(new Variable(value))
+      }
+    }
 
-    parent.appendChild(/^\d+$/.test(value)
-      ? new Placeholder(Number(value))
-      : new Variable(value)
-    )
     return true
   }
 
@@ -1399,6 +1405,9 @@ export class SnippetParser {
       && (name = this._accept(TokenType.VariableName, true))
 
     if (!match) {
+      return this._backTo(token)
+    }
+    if (this.ultisnip && !ULTISNIP_VARIABLES.includes(name)) {
       return this._backTo(token)
     }
 

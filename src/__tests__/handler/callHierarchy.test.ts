@@ -211,8 +211,10 @@ describe('CallHierarchy', () => {
     await helper.waitFor('tabpagenr', [], 2)
     doc = await workspace.document
     expect(doc.uri).toBe(uri)
-    let res = await nvim.call('getmatches', [win.id])
-    expect(res.length).toBe(1)
+    await helper.waitValue(async () => {
+      let res = await nvim.call('getmatches', [win.id])
+      return res.length
+    }, 1)
   })
 
   it('should invoke show incoming calls action', async () => {

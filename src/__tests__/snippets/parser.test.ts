@@ -160,7 +160,7 @@ describe('SnippetParser', () => {
 
   test('Parser, first placeholder / variable', function() {
     const first = (input: string): Marker => {
-      const p = new SnippetParser(true)
+      const p = new SnippetParser(false)
       let s = p.parse(input, true)
       return s.first
     }
@@ -401,14 +401,28 @@ describe('SnippetParser', () => {
     assert.equal(v.name, 'VISUAL')
   })
 
+  test('Parser, resolved ultisnip variable', async () => {
+    const c = text => {
+      return (new SnippetParser(true)).parse(text)
+    }
+    let s = c('${VISUAL} ${visual}')
+    await s.resolveVariables({
+      resolve: async (variable) => {
+        if (variable.name === 'VISUAL') return 'visual'
+        return ''
+      }
+    })
+    expect(s.toString()).toBe('visual ${visual}')
+  })
+
   test('Parser variable with code', () => {
     // not allowed on ultisnips.
     const c = text => {
       return (new SnippetParser(true)).parse(text)
     }
     let s = c('${foo:`!p snip.rv = "bar"`}')
-    assert.ok(s.children[0] instanceof Variable)
-    assert.ok(s.children[0].children[0] instanceof CodeBlock)
+    assert.ok(s.children[0] instanceof Text)
+    assert.ok(s.children[1] instanceof CodeBlock)
   })
 
   test('Parser, transform condition if text', () => {
