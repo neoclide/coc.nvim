@@ -123,6 +123,7 @@ export class FuzzyMatch {
 
   public match(text: string): MatchResult | undefined {
     if (this.patternPtr == null) throw new Error('setPattern not called before match')
+    if (this.patternLength === 0) return { score: 100, positions: new Uint32Array() }
     this.changeContent(text)
     let { fuzzyMatch, memory } = this.exports
     let { resultPtr } = this

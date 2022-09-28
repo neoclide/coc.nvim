@@ -227,11 +227,9 @@ export default class Worker {
       let search = input.length > 0 && item.filterText !== ''
       if (search) {
         let filterLabel = getFilterLabel(item)
-        let results = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
-        if (results) {
-          item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SERCH_HL_GROUP) : []
-          item.ansiHighlights.push(...results.highlights)
-        }
+        let results = input.length > 0 ? this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP) : undefined
+        item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SERCH_HL_GROUP) : []
+        if (results) item.ansiHighlights.push(...results.highlights)
       }
       return item
     })
@@ -239,8 +237,9 @@ export default class Worker {
     return res
   }
 
-  private async filterItemsByInclude(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+  private async filterItemsByInclude(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let { ignorecase, smartcase } = this.listOptions
+    let inputs = this.toInputs(input)
     if (ignorecase) inputs = inputs.map(s => s.toLowerCase())
     await filter(items, item => {
       this.convertItemLabel(item)
@@ -266,9 +265,10 @@ export default class Worker {
     }, onFilter, token)
   }
 
-  private async filterItemsByRegex(inputs: string[], items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+  private async filterItemsByRegex(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let { ignorecase } = this.listOptions
     let flags = ignorecase ? 'iu' : 'u'
+    let inputs = this.toInputs(input)
     let regexes = inputs.reduce((p, c) => {
       try {
         p.push(new RegExp(c, flags))
@@ -295,26 +295,28 @@ export default class Worker {
   }
 
   private async filterItemsByFuzzyMatch(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
+    let { extendedSearchMode } = this.config
     let { sort, smartcase } = this.listOptions
     let idx = 0
-    this.fuzzyMatch.setPattern(input, !this.config.extendedSearchMode)
+    this.fuzzyMatch.setPattern(input, !extendedSearchMode)
     let codes = getCharCodes(input)
-    await filter(items, item => {
-      this.convertItemLabel(item)
-      let filterLabel = getFilterLabel(item)
-      if (smartcase && !fuzzyMatch(codes, filterLabel)) return false
-      let match = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
-      if (!match) return false
-      let ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup != SERCH_HL_GROUP) : []
-      ansiHighlights.push(...match.highlights)
-      return {
-        sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
-        score: match.score,
-        ansiHighlights
-      }
-    }, (items, done) => {
-      onFilter(items, done, sort)
-    }, token)
+    if (extendedSearchMode) codes = codes.filter(c => !WHITE_SPACE_CHARS.includes(c))
+    if (this.config.extendedSearchMode)
+      await filter(items, item => {
+        this.convertItemLabel(item)
+        let filterLabel = getFilterLabel(item)
+        let match = this.fuzzyMatch.matchHighlights(filterLabel, SERCH_HL_GROUP)
+        if (!match || (smartcase && !fuzzyMatch(codes, filterLabel))) return false
+        let ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup != SERCH_HL_GROUP) : []
+        ansiHighlights.push(...match.highlights)
+        return {
+          sortText: typeof item.sortText === 'string' ? item.sortText : String.fromCharCode(idx),
+          score: match.score,
+          ansiHighlights
+        }
+      }, (items, done) => {
+        onFilter(items, done, sort)
+      }, token)
   }
 
   private async filterItems(arr: ListItem[], opts: FilterOption, token: CancellationToken): Promise<void> {
@@ -326,7 +328,6 @@ export default class Worker {
       this._onDidChangeItems.fire({ items, finished: this._finished, ...opts })
       return
     }
-    let inputs = this.config.extendedSearchMode ? parseInput(input) : [input]
     let called = false
     const onFilter = (items: ListItemWithScore[], finished: boolean, sort?: boolean) => {
       finished = finished && this._finished
@@ -344,14 +345,18 @@ export default class Worker {
     }
     switch (this.listOptions.matcher) {
       case 'strict':
-        await this.filterItemsByInclude(inputs, arr, token, onFilter)
+        await this.filterItemsByInclude(input, arr, token, onFilter)
         break
       case 'regex':
-        await this.filterItemsByRegex(inputs, arr, token, onFilter)
+        await this.filterItemsByRegex(input, arr, token, onFilter)
         break
       default:
         await this.filterItemsByFuzzyMatch(input, arr, token, onFilter)
     }
+  }
+
+  private toInputs(input: string): string[] {
+    return this.config.extendedSearchMode ? parseInput(input) : [input]
   }
 
   // set correct label, add ansi highlights

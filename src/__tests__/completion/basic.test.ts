@@ -55,7 +55,7 @@ describe('completion', () => {
     it('should not select complete item', async () => {
       helper.updateConfiguration('suggest.noselect', true)
       expect(Completion).toBeDefined()
-      await create(['foobar'])
+      await create(['foobar'], true)
       let info = await nvim.call('coc#pum#info')
       expect(info.index).toBe(-1)
       await nvim.call('coc#pum#select_confirm', [])

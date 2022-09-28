@@ -47,6 +47,14 @@ describe('FuzzyMatch', () => {
     expect(res.positions.length).toBe(256)
   })
 
+  it('should match empty pattern', async () => {
+    let p = new FuzzyMatch(api)
+    p.setPattern('')
+    let res = p.match('foo')
+    expect(res.score).toBe(100)
+    expect(res.positions.length).toBe(0)
+  })
+
   it('should increase content size when necessary', async () => {
     let p = new FuzzyMatch(api)
     p.setPattern('p')
