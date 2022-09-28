@@ -24,10 +24,11 @@ export class SnippetManager {
   }
 
   public init(): void {
-    events.on('InsertCharPre', () => {
+    events.on('InsertCharPre', (_, bufnr: number) => {
       // avoid update session when pumvisible
       // Update may cause completion unexpected terminated.
-      this.session?.cancel()
+      let session = this.getSession(bufnr)
+      if (session) session.cancel()
     }, null, this.disposables)
     window.onDidChangeActiveTextEditor(e => {
       if (!this.statusItem) return
@@ -73,7 +74,6 @@ export class SnippetManager {
       throw new Error(`Unable to insert snippet, invalid range.`)
     }
     let context: UltiSnippetContext
-    if (events.pumvisible) this.nvim.call('coc#pum#close', [], true)
     if (!range) {
       let pos = await window.getCursorPosition()
       range = Range.create(pos, pos)
@@ -81,8 +81,6 @@ export class SnippetManager {
     const currentLine = doc.getline(range.start.line)
     const snippetStr = SnippetString.isSnippetString(snippet) ? snippet.value : snippet
     const inserted = await this.normalizeInsertText(doc.uri, snippetStr, currentLine, insertTextMode)
-    let session = this.getSession(bufnr)
-    if (session) session.cancel()
     if (ultisnip != null) {
       context = Object.assign({ range: deepClone(range), line: currentLine }, ultisnip)
       if (!emptyRange(range) && inserted.includes('`!p')) {
@@ -92,6 +90,7 @@ export class SnippetManager {
         range.end = Position.create(range.start.line, range.start.character)
       }
     }
+    let session = this.getSession(bufnr)
     if (session) {
       await session.forceSynchronize()
       // current session could be canceled on synchronize.

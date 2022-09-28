@@ -240,7 +240,6 @@ export class SnippetSession {
   }
 
   public async synchronize(change?: DocumentChange): Promise<void> {
-    this.cancel()
     await this.mutex.use(() => {
       let version = this.textDocument ? this.textDocument.version : -1
       if (change && (this.document.version != change.version || change.version - version !== 1)) {
@@ -360,11 +359,19 @@ export class SnippetSession {
     }
   }
 
+  public async waitSynchronize(): Promise<void> {
+    let release = await this.mutex.acquire()
+    release()
+  }
+
   public async forceSynchronize(): Promise<void> {
-    this.cancel()
     await this.document.patchChange()
     let release = await this.mutex.acquire()
     release()
+    // text change event may not fired
+    if (this.document.version !== this.textDocument?.version) {
+      await this.synchronize()
+    }
   }
 
   public cancel(): void {
