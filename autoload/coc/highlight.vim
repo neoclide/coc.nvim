@@ -480,15 +480,17 @@ function! coc#highlight#reversed(id) abort
 endfunction
 
 function! coc#highlight#get_contrast(group1, group2) abort
-  let bg1 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group1)), 'bg', '#000000')
-  let bg2 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group2)), 'bg', '#000000')
+  let normal = coc#highlight#get_hex_color(synIDtrans(hlID('Normal')), 'bg', '#000000')
+  let bg1 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group1)), 'bg', normal)
+  let bg2 = coc#highlight#get_hex_color(synIDtrans(hlID(a:group2)), 'bg', normal)
   return coc#color#hex_contrast(bg1, bg2)
 endfunction
 
 " Darken or lighten background
 function! coc#highlight#create_bg_command(group, amount) abort
   let id = synIDtrans(hlID(a:group))
-  let bg = coc#highlight#get_hex_color(id, 'bg', &background ==# 'dark' ? '#282828' : '#fefefe')
+  let normal = coc#highlight#get_hex_color(synIDtrans(hlID('Normal')), 'bg', &background ==# 'dark' ? '#282828' : '#fefefe')
+  let bg = coc#highlight#get_hex_color(id, 'bg', normal)
   let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
   let ctermbg = coc#color#rgb2term(strpart(hex, 1))
   if s:term && !s:check_ctermbg(id, ctermbg) && abs(a:amount) < 20.0
@@ -509,6 +511,9 @@ endfunction
 
 function! s:check_ctermbg(id, cterm) abort
   let attr = coc#highlight#get_color(a:id, 'bg', 'cterm')
+  if empty(attr)
+    let attr = coc#highlight#get_color(synIDtrans(hlID('Normal')), 'bg', 'cterm')
+  endif
   if attr ==# a:cterm
     return 0
   endif
