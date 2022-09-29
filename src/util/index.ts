@@ -1,5 +1,5 @@
 'use strict'
-import { exec, ExecOptions } from 'child_process'
+import { ChildProcess, exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
 import path from 'path'
@@ -83,12 +83,14 @@ export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number
   opts.maxBuffer = 500 * 1024
   return new Promise<string>((resolve, reject) => {
     let timer: NodeJS.Timer
+    let cp: ChildProcess
     if (timeout) {
       timer = setTimeout(() => {
+        cp.kill('SIGKILL')
         reject(new Error(`timeout after ${timeout}s`))
       }, timeout * 1000)
     }
-    exec(cmd, opts, (err, stdout, stderr) => {
+    cp = exec(cmd, opts, (err, stdout, stderr) => {
       if (timer) clearTimeout(timer)
       if (err) {
         reject(new Error(`exited with ${err.code}\n${err}\n${stderr}`))

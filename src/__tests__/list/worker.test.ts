@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import manager from '../../list/manager'
-import { parseInput } from '../../list/worker'
+import { parseInput, indexOf } from '../../list/worker'
 import helper from '../helper'
 import { ListContext, ListTask, ListItem } from '../../types'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
@@ -124,12 +124,22 @@ afterEach(async () => {
   await helper.reset()
 })
 
+describe('indexOf()', () => {
+  it('should get index', async () => {
+    expect(indexOf('Abc', 'a', true, false)).toBe(0)
+    expect(indexOf('Abc', 'A', false, false)).toBe(0)
+    expect(indexOf('abc', 'A', false, true)).toBe(0)
+  })
+})
+
 describe('parseInput', () => {
   it('should parse input with space', async () => {
     let res = parseInput('a b')
     expect(res).toEqual(['a', 'b'])
     res = parseInput('a b ')
     expect(res).toEqual(['a', 'b'])
+    res = parseInput('ab ')
+    expect(res).toEqual(['ab'])
   })
 
   it('should parse input with escaped space', async () => {

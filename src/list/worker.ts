@@ -9,7 +9,7 @@ import bytes from '../util/bytes'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
-import { byteLength, smartcaseIndex } from '../util/string'
+import { smartcaseIndex } from '../util/string'
 import workspace from '../workspace'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')
@@ -246,22 +246,21 @@ export default class Worker {
       let spans: [number, number][] = []
       let filterLabel = getFilterLabel(item)
       let byteIndex = bytes(filterLabel)
-      let match = true
+      let curr = 0
+      item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SERCH_HL_GROUP) : []
       for (let input of inputs) {
-        let idx: number
-        if (smartcase) {
-          idx = smartcaseIndex(input, filterLabel)
-        } else {
-          idx = ignorecase ? filterLabel.toLowerCase().indexOf(input) : filterLabel.indexOf(input)
-        }
-        if (idx == -1) {
-          match = false
-          break
-        }
-        spans.push([byteIndex(idx), byteIndex(idx + byteLength(input))])
+        let label = curr == 0 ? filterLabel : filterLabel.slice(curr)
+        let idx = indexOf(label, input, smartcase, ignorecase)
+        if (idx === -1) break
+        let end = idx + curr + input.length
+        spans.push([byteIndex(idx + curr), byteIndex(end)])
+        curr = end
       }
-      if (!match) return false
-      return { highlights: { spans } }
+      if (spans.length !== inputs.length) return false
+      item.ansiHighlights.push(...spans.map(s => {
+        return { span: s, hlGroup: SERCH_HL_GROUP }
+      }))
+      return true
     }, onFilter, token)
   }
 
@@ -270,27 +269,28 @@ export default class Worker {
     let flags = ignorecase ? 'iu' : 'u'
     let inputs = this.toInputs(input)
     let regexes = inputs.reduce((p, c) => {
-      try {
-        p.push(new RegExp(c, flags))
-      } catch (e) {}
+      try { p.push(new RegExp(c, flags)) } catch (e) {}
       return p
     }, [])
     await filter(items, item => {
       this.convertItemLabel(item)
+      item.ansiHighlights = Array.isArray(item.ansiHighlights) ? item.ansiHighlights.filter(o => o.hlGroup !== SERCH_HL_GROUP) : []
       let spans: [number, number][] = []
       let filterLabel = getFilterLabel(item)
       let byteIndex = bytes(filterLabel)
-      let match = true
+      let curr = 0
       for (let regex of regexes) {
-        let ms = filterLabel.match(regex)
-        if (ms == null) {
-          match = false
-          break
-        }
-        spans.push([byteIndex(ms.index), byteIndex(ms.index + byteLength(ms[0]))])
+        let ms = filterLabel.slice(curr).match(regex)
+        if (ms == null) break
+        let end = ms.index + curr + ms[0].length
+        spans.push([byteIndex(ms.index + curr), byteIndex(end)])
+        curr = end
       }
-      if (!match) return false
-      return { highlights: { spans } }
+      if (spans.length !== inputs.length) return false
+      item.ansiHighlights.push(...spans.map(s => {
+        return { span: s, hlGroup: SERCH_HL_GROUP }
+      }))
+      return true
     }, onFilter, token)
   }
 
@@ -382,6 +382,11 @@ export default class Worker {
 
 function getFilterLabel(item: ListItem): string {
   return item.filterText != null ? patchLine(item.filterText, item.label) : item.label
+}
+
+export function indexOf(label: string, input: string, smartcase: boolean, ignorecase: boolean): number {
+  if (smartcase) return smartcaseIndex(input, label)
+  return ignorecase ? label.toLowerCase().indexOf(input.toLowerCase()) : label.indexOf(input)
 }
 
 /**
