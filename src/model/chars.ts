@@ -133,7 +133,7 @@ export class Chars {
       let start = -1
       const add = (end: number) => {
         let word = text.slice(start, end)
-        let arr = res.hasOwnProperty(word) ? res[word] : []
+        let arr = Object.hasOwnProperty.call(res, word) ? res[word] : []
         arr.push(Range.create(i, start + sc, i, end + sc))
         res[word] = arr
       }
