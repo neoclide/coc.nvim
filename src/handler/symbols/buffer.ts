@@ -19,7 +19,7 @@ export default class SymbolsBuffer implements SyncItem {
   constructor(public readonly bufnr: number, private autoUpdateBufnrs: Set<number>) {
     this.fetchSymbols = debounce(() => {
       this._fetchSymbols().logError()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 500)
+    }, global.__TEST__ ? 10 : 500)
   }
 
   /**

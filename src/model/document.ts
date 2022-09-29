@@ -396,7 +396,7 @@ export default class Document {
 
   public forceSync(): void {
     // may cause bugs, prevent extensions use it.
-    if (global.hasOwnProperty('__TEST__')) {
+    if (global.__TEST__) {
       this._forceSync()
     }
   }

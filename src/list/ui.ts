@@ -80,7 +80,7 @@ export default class ListUI {
       this.doHighlight(s, e)
       nvim.command('redraw', true)
       nvim.resumeNotification(false, true)
-    }, global.hasOwnProperty('__TEST__') ? 20 : 100)
+    }, global.__TEST__ ? 20 : 100)
     this.disposables.push({
       dispose: () => {
         debounced.clear()

@@ -34,7 +34,7 @@ export default class ColorBuffer implements SyncItem {
     private usedColors: Set<string>) {
     this.highlight = debounce(() => {
       this.doHighlight().logError()
-    }, global.hasOwnProperty('__TEST__') ? 10 : 300)
+    }, global.__TEST__ ? 10 : 300)
     this.highlight()
   }
 

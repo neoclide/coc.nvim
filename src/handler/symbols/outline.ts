@@ -6,7 +6,7 @@ import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import BasicTreeView from '../../tree/TreeView'
-import { IConfigurationChangeEvent, HandlerDelegate } from '../../types'
+import { HandlerDelegate, IConfigurationChangeEvent } from '../../types'
 import { disposeAll } from '../../util'
 import { comparePosition, positionInRange } from '../../util/position'
 import window from '../../window'
@@ -215,7 +215,7 @@ export default class SymbolsOutline {
         setTimeout(() => {
           buf.clearNamespace('outline-hover')
           nvim.command('redraw', true)
-        }, global.hasOwnProperty('__TEST__') ? 10 : 300)
+        }, global.__TEST__ ? 10 : 300)
       },
       resolveActions: async (_, element) => {
         let winnr = await nvim.call('bufwinnr', [bufnr])

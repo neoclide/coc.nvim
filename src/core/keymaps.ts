@@ -81,7 +81,7 @@ export default class Keymaps {
     let modify = getKeymapModifier(mode)
     // neoivm's bug '<' can't be used.
     let escaped = key.startsWith('<') && key.endsWith('>') ? `{${key.slice(1, -1)}}` : key
-    if (this.nvim.hasFunction('nvim_buf_set_keymap') && !global.hasOwnProperty('__TEST__')) {
+    if (this.nvim.hasFunction('nvim_buf_set_keymap') && !global.__TEST__) {
       nvim.call('nvim_buf_set_keymap', [0, mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
         silent: true,
         nowait: true
