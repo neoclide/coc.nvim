@@ -2,6 +2,7 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Position, SignatureHelp, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { isFalsyOrEmpty } from '../util/array'
 import { SignatureHelpProvider } from './index'
 import Manager from './manager'
 
@@ -12,7 +13,7 @@ interface ProviderMeta {
 export default class SignatureManager extends Manager<SignatureHelpProvider, ProviderMeta> {
 
   public register(selector: DocumentSelector, provider: SignatureHelpProvider, triggerCharacters: string[] | undefined): Disposable {
-    triggerCharacters = triggerCharacters ?? []
+    triggerCharacters = isFalsyOrEmpty(triggerCharacters) ? [] : triggerCharacters
     let characters = triggerCharacters.reduce((p, c) => p.concat(c.length == 1 ? [c] : c.split(/\s*/g)), [] as string[])
     return this.addProvider({
       id: uuid(),
