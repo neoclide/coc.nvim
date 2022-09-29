@@ -475,9 +475,9 @@ function! s:Highlight() abort
   hi default link CocPumMenu             CocFloating
   hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough
-  hi default CocPumVirtualText       ctermfg=12 guifg=#504945
+  hi default CocPumVirtualText        ctermfg=12 guifg=#504945
+  hi default CocFloatDividingLine     ctermfg=12 guifg=#504945
 
-  hi default link CocFloatDividingLine NonText
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
   endif
