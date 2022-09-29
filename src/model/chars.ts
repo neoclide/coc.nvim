@@ -1,6 +1,7 @@
 'use strict'
 import { CancellationToken, Range } from 'vscode-languageserver-protocol'
 import { waitImmediate } from '../util'
+import { hasOwnProperty } from '../util/object'
 const logger = require('../util/logger')('model-chars')
 
 class CodeRange {
@@ -133,7 +134,7 @@ export class Chars {
       let start = -1
       const add = (end: number) => {
         let word = text.slice(start, end)
-        let arr = Object.hasOwnProperty.call(res, word) ? res[word] : []
+        let arr = hasOwnProperty(res, word) ? res[word] : []
         arr.push(Range.create(i, start + sc, i, end + sc))
         res[word] = arr
       }

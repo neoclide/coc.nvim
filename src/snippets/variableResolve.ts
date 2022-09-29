@@ -5,6 +5,7 @@ import { Variable, VariableResolver } from "./parser"
 import WorkspaceFolderController from '../core/workspaceFolder'
 import { v4 as uuid } from 'uuid'
 import { URI } from 'vscode-uri'
+import { hasOwnProperty } from '../util/object'
 const logger = require('../util/logger')('snippets-variable')
 
 function padZero(n: number): string {
@@ -150,7 +151,7 @@ export class SnippetVariableResolver implements VariableResolver {
     let resolved = this._variableToValue[name]
     if (resolved != null) return resolved.toString()
     // resolve known value
-    if (this._variableToValue.hasOwnProperty(name)) {
+    if (hasOwnProperty(this._variableToValue, name)) {
       let value = await this.resolveValue(name)
       if (!value && variable.children.length) {
         return variable.toString()

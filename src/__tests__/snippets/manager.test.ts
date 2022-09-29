@@ -126,14 +126,14 @@ describe('snippet provider', () => {
 
     it('should respect preferCompleteThanJumpPlaceholder', async () => {
       helper.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true)
-      await nvim.setLine('foo')
+      let doc = await workspace.document
       await nvim.input('o')
-      await snippetManager.insertSnippet('${1:foo} ${2:bar}')
+      await snippetManager.insertSnippet('${1} ${2:bar} foot')
+      await doc.synchronize()
       await nvim.input('f')
-      await nvim.eval(`feedkeys("\\<C-n>", 'in')`)
-      await helper.waitFor('pumvisible', [], 1)
-      await nvim.input('<C-j>')
-      await helper.waitFor('getline', ['.'], 'foo bar')
+      await helper.waitPopup()
+      await nvim.call('coc#_select_confirm')
+      await helper.waitFor('getline', ['.'], 'foot bar foot')
     })
   })
 

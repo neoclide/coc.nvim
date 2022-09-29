@@ -6,6 +6,7 @@ import { URI } from 'vscode-uri'
 import languages from '../languages'
 import services from '../services'
 import { HandlerDelegate, LocationWithTarget, ProviderName } from '../types'
+import { hasOwnProperty } from '../util/object'
 import workspace from '../workspace'
 const logger = require('../util/logger')('handler-hover')
 
@@ -147,7 +148,7 @@ export default class LocationsHandler {
 
   public toLocations(location: Location | LocationLink | Location[] | LocationLink[] | null): LocationWithTarget[] {
     let res: LocationWithTarget[] = []
-    if (location && location.hasOwnProperty('location') && location.hasOwnProperty('children')) {
+    if (location && hasOwnProperty(location, 'location') && hasOwnProperty(location, 'children')) {
       let getLocation = (item: any): void => {
         if (!item) return
         if (Location.is(item.location)) {

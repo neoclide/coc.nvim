@@ -8,7 +8,7 @@ import { ConfigurationInspect, ConfigurationScope, ConfigurationTarget, Configur
 import { CONFIG_FILE_NAME, disposeAll, watchFile } from '../util'
 import { findUp, sameFile } from '../util/fs'
 import { objectLiteral } from '../util/is'
-import { deepFreeze, mixin } from '../util/object'
+import { deepFreeze, hasOwnProperty, mixin } from '../util/object'
 import { Configuration } from './configuration'
 import { ConfigurationChangeEvent } from './event'
 import { ConfigurationModel } from './model'
@@ -320,7 +320,7 @@ export default class Configurations {
 
 function lookUp(tree: any, key: string): any {
   if (key) {
-    if (tree && tree.hasOwnProperty(key)) return tree[key]
+    if (tree && hasOwnProperty(tree, key)) return tree[key]
     const parts = key.split('.')
     let node = tree
     for (let i = 0; node && i < parts.length; i++) {

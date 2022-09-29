@@ -305,7 +305,7 @@ export class ExtensionManager {
       await this.activate(id)
     }
     let { exports } = extension
-    if (!exports || !exports.hasOwnProperty(method)) {
+    if (!exports || typeof exports[method] !== 'function') {
       throw new Error(`method ${method} not found on extension ${id}`)
     }
     return await Promise.resolve(exports[method].apply(null, args))

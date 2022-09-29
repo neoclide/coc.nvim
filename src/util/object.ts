@@ -48,6 +48,10 @@ export function deepClone<T>(obj: T): T {
 
 const _hasOwnProperty = Object.prototype.hasOwnProperty
 
+export function hasOwnProperty(obj: any, key: string): boolean {
+  return _hasOwnProperty.call(obj, key)
+}
+
 export function deepFreeze<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') {
     return obj

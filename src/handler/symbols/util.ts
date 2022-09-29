@@ -55,7 +55,7 @@ export function addDocumentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level:
 }
 
 function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentSymbol {
-  return a && !a.hasOwnProperty('location')
+  return a && DocumentSymbol.is(a)
 }
 
 export function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {

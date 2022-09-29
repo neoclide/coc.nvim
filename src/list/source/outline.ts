@@ -44,7 +44,7 @@ export default class Outline extends LocationList {
     if (symbols.length == 0) return []
     let filterKind = args.kind ? (args.kind as string).toLowerCase() : null
     let items: UnformattedListItem[] = []
-    let isSymbols = !symbols[0].hasOwnProperty('location')
+    let isSymbols = DocumentSymbol.is(symbols[0])
     if (isSymbols) {
       // eslint-disable-next-line no-inner-declarations
       function addSymbols(symbols: DocumentSymbol[], level = 0): void {

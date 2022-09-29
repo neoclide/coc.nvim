@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
-import { waitImmediate } from '../util'
+import { hasOwnProperty } from '../util/object'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('sources-source')
@@ -77,7 +77,7 @@ export default class Source implements ISource {
 
   public getConfig<T>(key: string, defaultValue?: T): T | null {
     let config = workspace.getConfiguration(`coc.source.${this.name}`)
-    defaultValue = this.defaults.hasOwnProperty(key) ? this.defaults[key] : defaultValue
+    defaultValue = hasOwnProperty(this.defaults, key) ? this.defaults[key] : defaultValue
     return config.get(key, defaultValue)
   }
 
