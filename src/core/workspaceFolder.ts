@@ -1,12 +1,13 @@
 'use strict'
 import path from 'path'
-import { Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Document from '../model/document'
 import { PatternType } from '../types'
-import { distinct } from '../util/array'
-import { isParentFolder, resolveRoot } from '../util/fs'
+import { distinct, isFalsyOrEmpty } from '../util/array'
+import { checkFolder, isParentFolder, resolveRoot } from '../util/fs'
+const logger = require('../util/logger')('core-workspaceFolder')
 
 function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
   if (!fsPath || !path.isAbsolute(fsPath)) return undefined
@@ -182,5 +183,36 @@ export default class WorkspaceFolderController {
     }
     patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
     return patterns.length ? distinct(patterns) : []
+  }
+
+  public checkFolder(dir: string, patterns: string[], token?: CancellationToken): Promise<boolean> {
+    return checkFolder(dir, patterns, token)
+  }
+
+  public async checkPatterns(folders: ReadonlyArray<WorkspaceFolder>, patterns: string[]): Promise<boolean> {
+    if (isFalsyOrEmpty(folders)) return false
+    let dirs = folders.map(f => URI.parse(f.uri).fsPath)
+    let find = false
+    let tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
+    let timer = setTimeout(() => {
+      tokenSource.cancel()
+    }, global.__TEST__ ? 50 : 5000)
+    let results = await Promise.allSettled(dirs.map(dir => {
+      return this.checkFolder(dir, patterns, token).then(checked => {
+        if (checked) {
+          find = true
+          clearTimeout(timer)
+          tokenSource.cancel()
+        }
+      })
+    }))
+    clearTimeout(timer)
+    results.forEach(res => {
+      if (res.status === 'rejected') {
+        logger.error(`checkPatterns error:`, res.reason)
+      }
+    })
+    return find
   }
 }

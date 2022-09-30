@@ -72,7 +72,6 @@ export class ExtensionManager {
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
   private singleExtensionsRoot = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
-  private workspaceFiles: Map<string, string[]> = new Map()
 
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -93,25 +92,6 @@ export class ExtensionManager {
       let { extension } = this.extensions.get(key)
       return this.autoActiavte(key, extension)
     }))
-  }
-
-  public async getFolderFiles(folder: string): Promise<string[]> {
-    let curr = this.workspaceFiles.get(folder)
-    if (curr) return curr
-    let files = await globFilesAsync(folder)
-    this.workspaceFiles.set(folder, files)
-    return files
-  }
-
-  public async hasMatchedFile(workspaceFolders: ReadonlyArray<WorkspaceFolder>, patterns: string[]): Promise<boolean> {
-    let folders = workspaceFolders.map(o => URI.parse(o.uri).fsPath)
-    for (let folder of folders) {
-      let files = await this.getFolderFiles(folder)
-      if (matchPatterns(files, patterns)) {
-        return true
-      }
-    }
-    return false
   }
 
   public async loadFileExtensions(): Promise<void> {
@@ -153,7 +133,7 @@ export class ExtensionManager {
       if (e.added.length > 0) {
         this.tryActivateExtensions('workspaceContains', events => {
           let patterns = toWorkspaceContinsPatterns(events)
-          return this.hasMatchedFile(e.added, patterns)
+          return workspace.checkPatterns(patterns, e.added)
         })
       }
     }, null, this.disposables)
@@ -206,7 +186,7 @@ export class ExtensionManager {
       }
     }
     if (patterns.length > 0) {
-      let res = await this.hasMatchedFile(workspace.workspaceFolders, patterns)
+      let res = await workspace.checkPatterns(patterns)
       if (res) return true
     }
     return false

@@ -212,6 +212,10 @@ export class Workspace implements IWorkspace {
     return this.workspaceFolderControl.workspaceFolders
   }
 
+  public checkPatterns(patterns: string[], folders?: WorkspaceFolder[]): Promise<boolean> {
+    return this.workspaceFolderControl.checkPatterns(folders ?? this.workspaceFolderControl.workspaceFolders, patterns)
+  }
+
   public get folderPaths(): string[] {
     return this.workspaceFolders.map(f => URI.parse(f.uri).fsPath)
   }

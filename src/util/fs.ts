@@ -9,6 +9,8 @@ import readline from 'readline'
 import { promisify } from 'util'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { FileType } from '../types'
+import { isFalsyOrEmpty } from './array'
+import { CancellationError } from './errors'
 import * as platform from './platform'
 const logger = require('./logger')('util-fs')
 
@@ -147,27 +149,18 @@ export function globFilesAsync(dir: string, pattern = '**/*', timeout = 300): Pr
   })
 }
 
-export function globFiles(dir: string, pattern = '**/*'): string[] {
-  return glob.sync(pattern, {
-    nosort: true,
-    ignore: ['node_modules/**', '.git/**'],
-    dot: true,
-    cwd: dir,
-    nodir: true,
-    absolute: false
-  })
-}
-
-export function checkFolder(dir: string, pattern: string, token?: CancellationToken): Promise<boolean> {
+export function checkFolder(dir: string, patterns: string[], token?: CancellationToken): Promise<boolean> {
   return new Promise((resolve, reject) => {
+    if (isFalsyOrEmpty(patterns)) return resolve(false)
     let disposable: Disposable | undefined
     if (token) {
       disposable = token.onCancellationRequested(() => {
         gl.abort()
-        resolve(false)
+        reject(new CancellationError())
       })
     }
     let find = false
+    let pattern = patterns.length == 1 ? patterns[0] : `{${patterns.join(',')}}`
     let gl = glob(pattern, {
       nosort: true,
       ignore: ['node_modules/**', '.git/**'],

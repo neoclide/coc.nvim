@@ -1,4 +1,4 @@
-import { findUp, checkFolder, globFiles, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, matchPatterns, globFilesAsync } from '../../util/fs'
+import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, matchPatterns, globFilesAsync } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -60,20 +60,23 @@ describe('fs', () => {
   describe('checkFolder()', () => {
     it('should check file in folder', async () => {
       let cwd = process.cwd()
-      let res = await checkFolder(cwd, 'package.json')
+      let res = await checkFolder(cwd, ['package.json'])
       expect(res).toBe(true)
-      res = await checkFolder(cwd, '**/schema.json')
+      res = await checkFolder(cwd, ['**/schema.json', 'package.json'])
       expect(res).toBe(true)
-      res = await checkFolder(cwd, 'not_exists_fs', CancellationToken.None)
+      res = await checkFolder(cwd, ['not_exists_fs'], CancellationToken.None)
       expect(res).toBe(false)
-      res = await checkFolder(os.homedir(), 'not_exists_fs')
+      res = await checkFolder(os.homedir(), ['not_exists_fs'])
       expect(res).toBe(false)
-      res = await checkFolder('/a/b/c', 'not_exists_fs')
+      res = await checkFolder('/a/b/c', ['not_exists_fs'])
       expect(res).toBe(false)
       let tokenSource = new CancellationTokenSource()
-      let p = checkFolder(cwd, '**/a.java', tokenSource.token)
-      tokenSource.cancel()
-      res = await p
+      let p = checkFolder(cwd, ['**/a.java'], tokenSource.token)
+      let fn = async () => {
+        tokenSource.cancel()
+        res = await p
+      }
+      await expect(fn()).rejects.toThrow(Error)
       expect(res).toBe(false)
     })
   })
@@ -86,16 +89,6 @@ describe('fs', () => {
       res = await globFilesAsync(os.homedir(), '**/*', 1)
       expect(Array.isArray(res)).toBe(true)
       res = await globFilesAsync('/not_exists', 'not_exists', 1)
-      expect(res).toEqual([])
-    })
-  })
-
-  describe('globFiles', () => {
-    it('should globFiles', async () => {
-      let cwd = process.cwd()
-      let res = globFiles(cwd)
-      expect(Array.isArray(res)).toBe(true)
-      res = globFiles(path.join(cwd, '__not_exists__'))
       expect(res).toEqual([])
     })
   })

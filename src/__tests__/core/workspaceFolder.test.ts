@@ -2,12 +2,13 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { Disposable, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { Disposable, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../../configuration/index'
 import WorkspaceFolderController from '../../core/workspaceFolder'
 import { PatternType } from '../../types'
 import { disposeAll } from '../../util'
+import { CancellationError } from '../../util/errors'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -282,6 +283,33 @@ describe('WorkspaceFolderController', () => {
       workspaceFolder.removeWorkspaceFolder('/a/b')
       expect(e.removed.length).toBe(1)
       expect(e.added.length).toBe(0)
+    })
+  })
+
+  describe('checkPatterns()', () => {
+    it('should check if pattern exists', async () => {
+      expect(await workspaceFolder.checkPatterns([], ['p'])).toBe(false)
+      let folder: WorkspaceFolder = { name: '', uri: URI.file(process.cwd()).toString() }
+      let res = await workspaceFolder.checkPatterns([folder], ['package.json', '**/not_exists'])
+      expect(res).toBe(true)
+      res = await workspaceFolder.checkPatterns([folder], ['**/not_exists'])
+      expect(res).toBe(false)
+    })
+
+    it('should not throw on timeout', async () => {
+      let spy = jest.spyOn(workspaceFolder, 'checkFolder').mockImplementation((_dir, _patterns, token) => {
+        return new Promise((resolve, reject) => {
+          let timer = setTimeout(resolve, 200)
+          token.onCancellationRequested(() => {
+            clearTimeout(timer)
+            reject(new CancellationError())
+          })
+        })
+      })
+      let folder: WorkspaceFolder = { name: '', uri: URI.file(process.cwd()).toString() }
+      let res = await workspaceFolder.checkPatterns([folder], ['**/schema.json'])
+      spy.mockRestore()
+      expect(res).toBe(false)
     })
   })
 })
