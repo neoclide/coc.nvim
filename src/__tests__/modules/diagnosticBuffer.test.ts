@@ -113,7 +113,7 @@ describe('diagnostic buffer', () => {
       expect(markers.length).toBe(1)
       buf.clearHighlight('')
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
-      await buf.onTextChange()
+      buf.onTextChange()
       buf.refreshHighlights()
       await helper.wait(50)
       markers = await helper.getExtmarkers(buf.bufnr, ns)

@@ -11,6 +11,7 @@ import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from '../tree/in
 import BasicTreeView from '../tree/TreeView'
 import { IConfigurationChangeEvent, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
 import window from '../window'
 import workspace from '../workspace'
@@ -88,7 +89,7 @@ export default class CallHierarchyHandler {
     }
   }
 
-  private createProvider(rootItems: CallHierarchyDataItem[], doc: TextDocument, winid: number, position: Position, kind: 'incoming' | 'outgoing'): CallHierarchyProvider {
+  private createProvider(rootItems: CallHierarchyDataItem[], doc: TextDocument, winid: number, kind: 'incoming' | 'outgoing'): CallHierarchyProvider {
     let _onDidChangeTreeData = new Emitter<void | CallHierarchyDataItem>()
     let source: CancellationTokenSource | undefined
     const cancel = () => {
@@ -240,11 +241,11 @@ export default class CallHierarchyHandler {
     }
     const res = await languages.prepareCallHierarchy(doc.textDocument, position, CancellationToken.None)
     const rootItems: CallHierarchyItem[] = isCallHierarchyItem(res) ? [res] : res
-    if (!Array.isArray(rootItems) || rootItems.length == 0) {
+    if (isFalsyOrEmpty(rootItems)) {
       void window.showWarningMessage('Unable to get CallHierarchyItem at cursor position.')
       return
     }
-    let provider = this.createProvider(rootItems, doc.textDocument, winid, position, kind)
+    let provider = this.createProvider(rootItems, doc.textDocument, winid, kind)
     let treeView = new BasicTreeView('calls', { treeDataProvider: provider })
     treeView.title = `${kind.toUpperCase()} CALLS`
     provider.onDidChangeTreeData(e => {

@@ -1,16 +1,19 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, TypeHierarchyItem, Disposable, Range, SymbolKind, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, TypeHierarchyItem, Disposable, Range, SymbolKind, Position, SymbolTag } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import languages from '../../languages'
+import TypeHierarchyHandler from '../../handler/typeHierarchy'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
+let handler: TypeHierarchyHandler
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  // hover = helper.plugin.getHandler().hover
+  handler = helper.plugin.getHandler().typeHierarchy
 })
 
 afterAll(async () => {
@@ -26,13 +29,14 @@ afterEach(async () => {
   await helper.reset()
 })
 
-function createItem(name: string): TypeHierarchyItem {
+function createItem(name: string, kind?: SymbolKind, uri?: string, range?: Range): TypeHierarchyItem {
+  range = range ?? Range.create(0, 0, 0, 3)
   return {
-    uri: 'file:///1',
     name,
-    kind: SymbolKind.Function,
-    range: Range.create(0, 0, 0, 3),
-    selectionRange: Range.create(0, 0, 0, 3),
+    kind: kind ?? SymbolKind.Function,
+    uri: uri ?? 'file:///1',
+    range,
+    selectionRange: range,
   }
 }
 const position = Position.create(0, 0)
@@ -136,6 +140,79 @@ describe('TypeHierarchy', () => {
       expect(arr).toEqual([])
       arr = await languages.provideTypeHierarchySupertypes(res[0], token)
       expect(arr).toEqual([])
+    })
+  })
+
+  describe('TypeHierarchyHandler', () => {
+    it('should throw when provider not exist', async () => {
+      let fn = async () => {
+        await handler.showTypeHierarchyTree('supertypes')
+      }
+      await expect(fn()).rejects.toThrow(Error)
+    })
+
+    it('should show warning when prepare return empty', async () => {
+      disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
+        prepareTypeHierarchy() {
+          return null
+        },
+        provideTypeHierarchySupertypes() {
+          return []
+        },
+        provideTypeHierarchySubtypes() {
+          return []
+        }
+      }))
+      let plugin = helper.plugin
+      await plugin.cocAction('showSuperTypes')
+      await nvim.command('echo ""')
+      await plugin.cocAction('showSubTypes')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('Unable')
+    })
+
+    it('should render description and support default action', async () => {
+      let doc = await workspace.document
+      let bufnr = doc.bufnr
+      await doc.buffer.setLines(['foo'], { start: 0, end: -1, strictIndexing: false })
+      let fsPath = await createTmpFile('foo\nbar\ncontent\n')
+      let uri = URI.file(fsPath).toString()
+      disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
+        prepareTypeHierarchy() {
+          return [createItem('foo', SymbolKind.Class, doc.uri, Range.create(0, 0, 0, 3))]
+        },
+        provideTypeHierarchySupertypes() {
+          let item = createItem('bar', SymbolKind.Class, uri, Range.create(1, 0, 1, 3))
+          item.detail = 'Detail'
+          item.tags = [SymbolTag.Deprecated]
+          return [item]
+        },
+        provideTypeHierarchySubtypes() {
+          return []
+        }
+      }))
+      await handler.showTypeHierarchyTree('supertypes')
+      let buf = await nvim.buffer
+      let lines = await buf.lines
+      expect(lines).toEqual([
+        'Super types',
+        '- c foo',
+        '  + c bar Detail'
+      ])
+      await nvim.command('exe 3')
+      await nvim.input('t')
+      await helper.waitFor('getline', ['.'], '  - c bar Detail')
+      await nvim.input('<cr>')
+      await helper.waitFor('expand', ['%:p'], fsPath)
+      let res = await nvim.call('coc#cursor#position')
+      expect(res).toEqual([1, 0])
+      let matches = await nvim.call('getmatches') as any[]
+      expect(matches.length).toBe(1)
+      await nvim.command(`b ${bufnr}`)
+      await helper.wait(50)
+      matches = await nvim.call('getmatches')
+      expect(matches.length).toBe(0)
+      await nvim.command(`wincmd o`)
     })
   })
 })

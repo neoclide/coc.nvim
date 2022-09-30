@@ -25,6 +25,7 @@ import Rename from './rename'
 import WorkspaceHandler from './workspace'
 import SelectionRange from './selectionRange'
 import CallHierarchy from './callHierarchy'
+import TypeHierarchy from './typeHierarchy'
 import SemanticTokens from './semanticTokens/index'
 import Signature from './signature'
 import Symbols from './symbols/index'
@@ -59,6 +60,7 @@ export default class Handler implements HandlerDelegate {
   public readonly fold: Fold
   public readonly selectionRange: SelectionRange
   public readonly callHierarchy: CallHierarchy
+  public readonly typeHierarchy: TypeHierarchy
   public readonly semanticHighlighter: SemanticTokens
   public readonly workspace: WorkspaceHandler
   public readonly linkedEditingHandler: LinkedEditingHandler
@@ -93,6 +95,7 @@ export default class Handler implements HandlerDelegate {
     this.codeActions = new CodeActions(nvim, this)
     this.commands = new Commands(nvim, workspace.env)
     this.callHierarchy = new CallHierarchy(nvim, this)
+    this.typeHierarchy = new TypeHierarchy(nvim, this)
     this.documentHighlighter = new Highlights(nvim, this)
     this.semanticHighlighter = new SemanticTokens(nvim)
     this.selectionRange = new SelectionRange(nvim, this)
@@ -101,6 +104,7 @@ export default class Handler implements HandlerDelegate {
     this.disposables.push({
       dispose: () => {
         this.callHierarchy.dispose()
+        this.typeHierarchy.dispose()
         this.codeLens.dispose()
         this.links.dispose()
         this.refactor.dispose()
