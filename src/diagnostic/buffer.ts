@@ -6,6 +6,7 @@ import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem, LocationListItem, VirtualTextOption } from '../types'
+import { isFalsyOrEmpty } from '../util/array'
 import { lineInRange, positionInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
@@ -47,6 +48,7 @@ let virtualTextSrcId: number | undefined
  */
 export class DiagnosticBuffer implements SyncItem {
   private diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
+  private versionsMap: Map<string, number> = new Map()
   private _disposed = false
   private _dirty = false
   private _changeTs = 0
@@ -164,7 +166,7 @@ export class DiagnosticBuffer implements SyncItem {
     return this._config.displayByAle
   }
 
-  private clearHighlight(collection: string): void {
+  public clearHighlight(collection: string): void {
     this.buffer.clearNamespace(NAMESPACE + collection)
   }
 
@@ -207,9 +209,10 @@ export class DiagnosticBuffer implements SyncItem {
    * @param {Diagnostic[]} diagnostics
    */
   public async update(collection: string, diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
-    let { diagnosticsMap } = this
-    let curr = diagnosticsMap.get(collection) || []
-    if (!this._dirty && diagnostics.length == 0 && curr.length == 0) return
+    let { diagnosticsMap, versionsMap } = this
+    let curr = diagnosticsMap.get(collection)
+    versionsMap.set(collection, this.doc.version)
+    if (!this._dirty && isFalsyOrEmpty(diagnostics) && isFalsyOrEmpty(curr)) return
     diagnosticsMap.set(collection, diagnostics)
     void this.checkFloat()
     if (!this.config.enable || this._dirty || Date.now() - this._changeTs < delay) {
@@ -515,12 +518,21 @@ export class DiagnosticBuffer implements SyncItem {
   /**
    * Refresh all diagnostics
    */
-  private async _refresh(): Promise<void> {
+  public async _refresh(): Promise<void> {
     if (!this._dirty || !this.config.enable) return
     let info = await this.getDiagnosticInfo()
     let noHighlights = !info || info.winid == -1
     if (noHighlights) return
-    this.refresh(this.diagnosticsMap, info)
+    let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
+    for (let [key, diagnostics] of this.diagnosticsMap.entries()) {
+      // Ignore if exists and version too old.
+      let version = this.versionsMap.get(key)
+      if (diagnostics.length > 0 && version != null && this.doc.version > version) {
+        continue
+      }
+      map.set(key, diagnostics)
+    }
+    this.refresh(map, info)
   }
 
   public getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
