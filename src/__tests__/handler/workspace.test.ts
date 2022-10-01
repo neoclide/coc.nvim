@@ -42,6 +42,8 @@ describe('Workspace handler', () => {
       let doc = await helper.createDocument()
       let patterns = handler.getRootPatterns(doc.bufnr)
       expect(patterns).toBeDefined()
+      patterns = handler.getRootPatterns(999)
+      expect(patterns).toBeNull()
     })
   })
 
@@ -66,7 +68,15 @@ describe('Workspace handler', () => {
 
   describe('snippetCheck()', () => {
     it('should return false when coc-snippets not found', async () => {
-      expect(await handler.snippetCheck(true, false)).toBe(false)
+      let fn = async () => {
+        expect(await handler.snippetCheck(true, false)).toBe(false)
+      }
+      await expect(fn()).rejects.toThrow(Error)
+      let spy = jest.spyOn(extensions.manager, 'call').mockImplementation(() => {
+        return Promise.resolve(true)
+      })
+      expect(await handler.snippetCheck(true, false)).toBe(true)
+      spy.mockRestore()
     })
 
     it('should check jump', async () => {

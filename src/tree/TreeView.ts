@@ -319,7 +319,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     try {
       if (!this.itemsToFilter) {
         let itemsToFilter: T[] = []
-        const addNodes = async (nodes: T[]): Promise<void> => {
+        const addNodes = async (nodes: ReadonlyArray<T>): Promise<void> => {
           for (let n of nodes) {
             itemsToFilter.push(n)
             let arr = await Promise.resolve(this.provider.getChildren(n))

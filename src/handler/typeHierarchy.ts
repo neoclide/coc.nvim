@@ -1,13 +1,12 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
-import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Position, SymbolTag, TypeHierarchyItem } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position, TypeHierarchyItem } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { URI } from 'vscode-uri'
 import commands from '../commands'
 import events from '../events'
 import languages from '../languages'
-import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from '../tree/index'
+import { TreeDataProvider } from '../tree/index'
+import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
 import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
@@ -30,7 +29,7 @@ interface TypeHierarchyConfig {
 type TypeHierarchyKind = 'supertypes' | 'subtypes'
 
 interface TypeHierarchyProvider extends TreeDataProvider<TypeHierarchyDataItem> {
-  kind: TypeHierarchyKind
+  meta: TypeHierarchyKind
   dispose: () => void
 }
 
@@ -73,103 +72,25 @@ export default class TypeHierarchyHandler {
   }
 
   private createProvider(rootItems: TypeHierarchyDataItem[], winid: number, kind: TypeHierarchyKind): TypeHierarchyProvider {
-    let _onDidChangeTreeData = new Emitter<void | TypeHierarchyDataItem>()
-    let source: CancellationTokenSource | undefined
-    const cancel = () => {
-      if (source) {
-        source.cancel()
-        source.dispose()
-        source = null
-      }
-    }
-    const findParent = (curr: TypeHierarchyDataItem, element: TypeHierarchyDataItem): TypeHierarchyDataItem | undefined => {
-      let children = curr.children
-      if (!Array.isArray(children)) return undefined
-      let find = children.find(o => o == element)
-      if (find) return curr
-      for (let item of children) {
-        let res = findParent(item, element)
-        if (res) return res
-      }
-    }
-    let provider: TypeHierarchyProvider = {
+    let provider = new LocationsDataProvider<TypeHierarchyDataItem, TypeHierarchyKind>(
       kind,
-      onDidChangeTreeData: _onDidChangeTreeData.event,
-      getTreeItem: element => {
-        let item = new TreeItem(element.name, element.children ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed)
-        if (this.config.enableTooltip) {
-          item.tooltip = path.relative(workspace.cwd, URI.parse(element.uri).fsPath)
-        }
-        item.description = element.detail
-        item.deprecated = element.tags?.includes(SymbolTag.Deprecated)
-        item.icon = this.handler.getIcon(element.kind)
-        item.command = {
-          command: TypeHierarchyHandler.commandId,
-          title: 'open location',
-          arguments: [winid, element, this.config.openCommand]
-        }
-        return item
-      },
-      getChildren: async element => {
-        cancel()
-        source = new CancellationTokenSource()
-        let { token } = source
-        if (!element) {
-          for (let o of rootItems) {
-            let children = await this.getChildren(o, provider.kind, token)
-            if (token.isCancellationRequested) break
-            o.children = children
-          }
-          return rootItems
-        }
-        if (element.children) return element.children
-        let items = await this.getChildren(element, provider.kind, token)
-        source = null
-        if (token.isCancellationRequested) return []
-        element.children = items
-        return items
-      },
-      resolveActions: () => {
-        return [{
-          title: 'Open in new tab',
-          handler: async element => {
-            await commands.executeCommand(TypeHierarchyHandler.commandId, winid, element, 'tabe')
-          }
-        }, {
-          title: 'Show super types',
-          handler: element => {
-            rootItems = [omit(element, ['children'])]
-            provider.kind = 'supertypes'
-            _onDidChangeTreeData.fire(undefined)
-          }
-        }, {
-          title: 'Show sub types',
-          handler: element => {
-            rootItems = [omit(element, ['children'])]
-            provider.kind = 'subtypes'
-            _onDidChangeTreeData.fire(undefined)
-          }
-        }, {
-          title: 'Dismiss',
-          handler: async element => {
-            let parentElement: TypeHierarchyDataItem | undefined
-            for (let curr of rootItems) {
-              parentElement = findParent(curr, element)
-              if (parentElement) break
-            }
-            if (!parentElement) return
-            let idx = parentElement.children.findIndex(o => o === element)
-            parentElement.children.splice(idx, 1)
-            _onDidChangeTreeData.fire(parentElement)
-          }
-        }]
-      },
-      dispose: () => {
-        cancel()
-        _onDidChangeTreeData.dispose()
-        rootItems = undefined
-      }
-    }
+      winid,
+      this.config,
+      TypeHierarchyHandler.commandId,
+      rootItems,
+      kind => this.handler.getIcon(kind),
+      (el, meta, token) => this.getChildren(el, meta, token)
+    )
+    provider.addAction(`Show Super Types`, (el: TypeHierarchyDataItem) => {
+      provider.meta = 'supertypes'
+      let rootItems = [omit(el, ['children', 'parent'])]
+      provider.reset(rootItems)
+    })
+    provider.addAction(`Show Sub Types`, (el: TypeHierarchyDataItem) => {
+      provider.meta = 'subtypes'
+      let rootItems = [omit(el, ['children', 'parent'])]
+      provider.reset(rootItems)
+    })
     return provider
   }
 
@@ -202,7 +123,7 @@ export default class TypeHierarchyHandler {
     let treeView = new BasicTreeView('types', { treeDataProvider: provider })
     treeView.title = getTitle(kind)
     provider.onDidChangeTreeData(e => {
-      if (!e) treeView.title = getTitle(provider.kind)
+      if (!e) treeView.title = getTitle(provider.meta)
     })
     treeView.onDidChangeVisibility(e => {
       if (!e.visible) provider.dispose()

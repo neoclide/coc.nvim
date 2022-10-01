@@ -1,9 +1,9 @@
 'use strict'
 import { Disposable, Event, CancellationToken } from 'vscode-languageserver-protocol'
 import { ProviderResult } from '../provider'
-import { TreeItem, TreeItemIcon, TreeItemCollapsibleState } from './TreeItem'
+import { TreeItem, TreeItemCollapsibleState } from './TreeItem'
 
-export { TreeItem, TreeItemIcon, TreeItemCollapsibleState }
+export { TreeItem, TreeItemCollapsibleState }
 
 export interface TreeItemAction<T> {
   /**
@@ -211,7 +211,7 @@ export interface TreeDataProvider<T> {
    * @param element The element from which the provider gets children. Can be `undefined`.
    * @return Children of `element` or root if no element is passed.
    */
-  getChildren(element?: T): ProviderResult<T[]>
+  getChildren(element?: T): ProviderResult<ReadonlyArray<T>>
 
   /**
    * Optional method to return the parent of `element`.
@@ -254,5 +254,5 @@ export interface TreeDataProvider<T> {
    * @param item Resolved item.
    * @param element The object under cursor.
    */
-  resolveActions?(item: TreeItem, element: T): ProviderResult<TreeItemAction<T>[]>
+  resolveActions?(item: TreeItem, element: T): ProviderResult<ReadonlyArray<TreeItemAction<T>>>
 }

@@ -57,10 +57,6 @@ export default class WorkspaceHandler {
   }
 
   public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {
-    if (checkExpand && !extensions.has('coc-snippets')) {
-      this.nvim.echoError('coc-snippets required for check expand status!')
-      return false
-    }
     if (checkJump) {
       let jumpable = snippetManager.jumpable()
       if (jumpable) return true

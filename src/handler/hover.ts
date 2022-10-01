@@ -1,16 +1,16 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import { CancellationTokenSource, Disposable, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, DefinitionLink, Disposable, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import languages from '../languages'
-import { Documentation, FloatFactory } from '../types'
 import { TextDocumentContentProvider } from '../provider'
-import { IConfigurationChangeEvent, FloatConfig, HandlerDelegate } from '../types'
+import { Documentation, FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll, isMarkdown } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { readFileLines } from '../util/fs'
-import workspace from '../workspace'
 import window from '../window'
+import workspace from '../workspace'
 const logger = require('../util/logger')('handler-hover')
 
 export type HoverTarget = 'float' | 'preview' | 'echo'
@@ -106,31 +106,19 @@ export default class HoverHandler {
     const hovers: (Hover | Documentation)[] = await this.handler.withRequestToken('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
     }, true)
-    if (!hovers?.length) return false
+    if (isFalsyOrEmpty(hovers)) return false
     const defs = await this.handler.withRequestToken('definitionHover', token => {
       return languages.getDefinitionLinks(doc.textDocument, position, token)
     }, false)
-    if (defs?.length) {
-      for (const def of defs) {
-        if (!def.targetRange) continue
-        const { start, end } = def.targetRange
-        const endLine = end.line - start.line >= 100 ? start.line + 100 : (end.character == 0 ? end.line - 1 : end.line)
-        let lines = await readLines(def.targetUri, start.line, endLine)
-        if (lines.length) {
-          let indent = lines[0].match(/^\s*/)[0]
-          if (indent) lines = lines.map(l => l.startsWith(indent) ? l.substring(indent.length) : l)
-          hovers.push({ content: lines.join('\n'), filetype: doc.filetype })
-        }
-      }
-    }
+    await addDefinitions(hovers, defs, doc.filetype)
     let hover = hovers.find(o => Hover.is(o) && Range.is(o.range)) as Hover
-    if (hover?.range) {
+    if (hover) {
       let win = this.nvim.createWindow(winid)
       win.highlightRanges('CocHoverRange', [hover.range], 99, true)
       this.timer = setTimeout(() => {
         win.clearMatchGroup('CocHoverRange')
         this.nvim.redrawVim()
-      }, 500)
+      }, global.__TEST__ ? 10 : 500)
     }
     await this.previewHover(hovers, hoverTarget)
     return true
@@ -138,7 +126,7 @@ export default class HoverHandler {
 
   private async previewHover(hovers: (Hover | Documentation)[], target?: string): Promise<void> {
     let docs: Documentation[] = []
-    target = target || this.config.target
+    target = target ?? this.config.target
     let isPreview = target === 'preview'
     for (let hover of hovers) {
       if (isDocumentation(hover)) {
@@ -193,18 +181,16 @@ export default class HoverHandler {
     await doc.synchronize()
     let tokenSource = new CancellationTokenSource()
     let hovers = await languages.getHover(doc.textDocument, position, tokenSource.token)
-    if (Array.isArray(hovers)) {
-      for (let h of hovers) {
-        let { contents } = h
-        if (Array.isArray(contents)) {
-          contents.forEach(c => {
-            result.push(typeof c === 'string' ? c : c.value)
-          })
-        } else if (MarkupContent.is(contents)) {
-          result.push(contents.value)
-        } else {
-          result.push(typeof contents === 'string' ? contents : contents.value)
-        }
+    for (let h of hovers) {
+      let { contents } = h
+      if (Array.isArray(contents)) {
+        contents.forEach(c => {
+          result.push(typeof c === 'string' ? c : c.value)
+        })
+      } else if (MarkupContent.is(contents)) {
+        result.push(contents.value)
+      } else {
+        result.push(typeof contents === 'string' ? contents : contents.value)
       }
     }
     result = result.filter(s => s != null && s.length > 0)
@@ -217,22 +203,36 @@ export default class HoverHandler {
   }
 }
 
-function addDocument(docs: Documentation[], text: string, filetype: string, isPreview = false): void {
+export async function addDefinitions(hovers: (Hover | Documentation)[], definitions: DefinitionLink[], filetype: string): Promise<void> {
+  for (const def of definitions) {
+    if (!def?.targetRange) continue
+    const { start, end } = def.targetRange
+    // def.targetSelectionRange
+    const endLine = end.line - start.line >= 100 ? start.line + 100 : (end.character == 0 ? end.line - 1 : end.line)
+    let lines = await readLines(def.targetUri, start.line, endLine)
+    if (lines.length) {
+      let indent = lines[0].match(/^\s*/)[0]
+      if (indent) lines = lines.map(l => l.startsWith(indent) ? l.substring(indent.length) : l)
+      hovers.push({ content: lines.join('\n'), filetype })
+    }
+  }
+}
+
+export function addDocument(docs: Documentation[], text: string, filetype: string, isPreview = false): void {
   let content = text.trim()
-  if (!content.length)
-    return
+  if (!content.length) return
   if (isPreview && filetype !== 'markdown') {
     content = '``` ' + filetype + '\n' + content + '\n```'
   }
   docs.push({ content, filetype })
 }
 
-function isDocumentation(obj: any): obj is Documentation {
+export function isDocumentation(obj: any): obj is Documentation {
   if (!obj) return false
   return typeof obj.filetype === 'string' && typeof obj.content === 'string'
 }
 
-async function readLines(uri: string, start: number, end: number): Promise<string[]> {
+export async function readLines(uri: string, start: number, end: number): Promise<string[]> {
   let doc = workspace.getDocument(uri)
   if (doc) return doc.getLines(start, end + 1)
   let fsPath = URI.parse(uri).fsPath

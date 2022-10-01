@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, MarkedString, Hover, Range, TextEdit, Position, CancellationToken } from 'vscode-languageserver-protocol'
-import HoverHandler from '../../handler/hover'
+import { Disposable, MarkedString, Hover, Range, TextEdit, Position, CancellationToken, MarkupKind } from 'vscode-languageserver-protocol'
+import HoverHandler, { addDefinitions, addDocument, isDocumentation, readLines } from '../../handler/hover'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import helper, { createTmpFile } from '../helper'
 import workspace from '../../workspace'
+import { Documentation } from '../../types'
 
 let nvim: Neovim
 let hover: HoverHandler
@@ -41,6 +42,35 @@ async function getDocumentText(): Promise<string> {
 }
 
 describe('Hover', () => {
+  describe('utils', () => {
+    it('should addDocument', async () => {
+      let docs: Documentation[] = []
+      addDocument(docs, '', '')
+      expect(docs.length).toBe(0)
+    })
+
+    it('should check documentation', async () => {
+      expect(isDocumentation({})).toBe(false)
+      expect(isDocumentation({ filetype: '', content: '' })).toBe(true)
+    })
+
+    it('should readLines', async () => {
+      let res = await readLines('file:///not_exists', 0, 1)
+      expect(res).toEqual([])
+    })
+
+    it('should addDefinitions', async () => {
+      let hovers = []
+      let range = Range.create(0, 0, 0, 0)
+      await addDefinitions(hovers, [undefined, {} as any, { targetUri: 'file:///not_exists', targetRange: range, targetSelectionRange: range }], '')
+      expect(hovers.length).toBe(0)
+      let file = await createTmpFile('  foo\n  bar\n', disposables)
+      range = Range.create(0, 0, 300, 0)
+      await addDefinitions(hovers, [{ targetUri: URI.file(file).toString(), targetRange: range, targetSelectionRange: range }], '')
+      expect(hovers.length).toBe(1)
+    })
+  })
+
   describe('onHover', () => {
     it('should return false when hover not found', async () => {
       hoverResult = null
@@ -49,8 +79,9 @@ describe('Hover', () => {
     })
 
     it('should show MarkupContent hover', async () => {
+      helper.updateConfiguration('hover.target', 'preview')
       hoverResult = { contents: { kind: 'plaintext', value: 'my hover' } }
-      await hover.onHover('preview')
+      await hover.onHover()
       let res = await getDocumentText()
       expect(res).toMatch('my hover')
     })
@@ -148,8 +179,13 @@ describe('Hover', () => {
 
     it('should filter empty hover message', async () => {
       hoverResult = { contents: [''] }
+      disposables.push(languages.registerHoverProvider([{ language: '*' }], {
+        provideHover: (_doc, _pos, _token) => {
+          return { contents: { kind: MarkupKind.PlainText, value: 'value' } }
+        }
+      }))
       let res = await hover.getHover()
-      expect(res.length).toBe(0)
+      expect(res).toEqual(['value'])
     })
   })
 
@@ -175,7 +211,7 @@ describe('Hover', () => {
 
     it('should load definition link from file', async () => {
       let fsPath = await createTmpFile('foo\nbar\n')
-      hoverResult = { contents: 'string hover' }
+      hoverResult = { contents: 'string hover', range: Range.create(0, 0, 0, 3) }
       let doc = await helper.createDocument()
       await nvim.call('cursor', [1, 1])
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar')])
@@ -191,6 +227,12 @@ describe('Hover', () => {
       await hover.definitionHover('preview')
       let res = await getDocumentText()
       expect(res).toBe('string hover\n\nfoo\nbar')
+    })
+
+    it('should return false when hover not found', async () => {
+      hoverResult = undefined
+      let res = await hover.definitionHover('float')
+      expect(res).toBe(false)
     })
   })
 })

@@ -1,15 +1,14 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, Disposable, Emitter, Position, Range, SymbolTag } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { URI } from 'vscode-uri'
 import commands from '../commands'
 import events from '../events'
 import languages from '../languages'
-import { TreeDataProvider, TreeItem, TreeItemCollapsibleState } from '../tree/index'
+import { TreeDataProvider } from '../tree/index'
+import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
-import { IConfigurationChangeEvent, HandlerDelegate } from '../types'
+import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
@@ -30,7 +29,7 @@ interface CallHierarchyConfig {
 }
 
 interface CallHierarchyProvider extends TreeDataProvider<CallHierarchyDataItem> {
-  kind: 'incoming' | 'outgoing'
+  meta: 'incoming' | 'outgoing'
   dispose: () => void
 }
 
@@ -55,6 +54,7 @@ export default class CallHierarchyHandler {
       let win = await nvim.window
       win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
       win.highlightRanges(CallHierarchyHandler.rangesHighlight, [item.selectionRange], 10, true)
+
       if (!item.ranges?.length) return
       if (item.sourceUri) {
         let doc = workspace.getDocument(item.sourceUri)
@@ -90,103 +90,21 @@ export default class CallHierarchyHandler {
   }
 
   private createProvider(rootItems: CallHierarchyDataItem[], doc: TextDocument, winid: number, kind: 'incoming' | 'outgoing'): CallHierarchyProvider {
-    let _onDidChangeTreeData = new Emitter<void | CallHierarchyDataItem>()
-    let source: CancellationTokenSource | undefined
-    const cancel = () => {
-      if (source) {
-        source.cancel()
-        source.dispose()
-        source = null
-      }
-    }
-    const findParent = (curr: CallHierarchyDataItem, element: CallHierarchyDataItem): CallHierarchyDataItem | undefined => {
-      let children = curr.children
-      if (!Array.isArray(children)) return undefined
-      let find = children.find(o => o == element)
-      if (find) return curr
-      for (let item of children) {
-        let res = findParent(item, element)
-        if (res) return res
-      }
-    }
-    let provider: CallHierarchyProvider = {
+    let provider = new LocationsDataProvider<CallHierarchyDataItem, 'incoming' | 'outgoing'>(
       kind,
-      onDidChangeTreeData: _onDidChangeTreeData.event,
-      getTreeItem: element => {
-        let item = new TreeItem(element.name, element.children ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed)
-        if (this.config.enableTooltip) {
-          item.tooltip = path.relative(workspace.cwd, URI.parse(element.uri).fsPath)
-        }
-        item.description = element.detail
-        item.deprecated = element.tags?.includes(SymbolTag.Deprecated)
-        item.icon = this.handler.getIcon(element.kind)
-        item.command = {
-          command: CallHierarchyHandler.commandId,
-          title: 'open location',
-          arguments: [winid, element, this.config.openCommand]
-        }
-        return item
-      },
-      getChildren: async element => {
-        cancel()
-        source = new CancellationTokenSource()
-        let { token } = source
-        if (!element) {
-          for (let o of rootItems) {
-            let children = await this.getChildren(doc, o, provider.kind, token)
-            if (token.isCancellationRequested) break
-            if (Array.isArray(children)) o.children = children
-          }
-          return rootItems
-        }
-        if (element.children) return element.children
-        let items = await this.getChildren(doc, element, provider.kind, token)
-        source = null
-        if (token.isCancellationRequested) return []
-        element.children = items
-        return items
-      },
-      resolveActions: () => {
-        return [{
-          title: 'Open in new tab',
-          handler: async element => {
-            await commands.executeCommand(CallHierarchyHandler.commandId, winid, element, 'tabe')
-          }
-        }, {
-          title: 'Show Incoming Calls',
-          handler: element => {
-            rootItems = [omit(element, ['children', 'ranges', 'sourceUri'])]
-            provider.kind = 'incoming'
-            _onDidChangeTreeData.fire(undefined)
-          }
-        }, {
-          title: 'Show Outgoing Calls',
-          handler: element => {
-            rootItems = [omit(element, ['children', 'ranges', 'sourceUri'])]
-            provider.kind = 'outgoing'
-            _onDidChangeTreeData.fire(undefined)
-          }
-        }, {
-          title: 'Dismiss',
-          handler: async element => {
-            let parentElement: CallHierarchyDataItem | undefined
-            for (let curr of rootItems) {
-              parentElement = findParent(curr, element)
-              if (parentElement) break
-            }
-            if (!parentElement) return
-            let idx = parentElement.children.findIndex(o => o === element)
-            parentElement.children.splice(idx, 1)
-            _onDidChangeTreeData.fire(parentElement)
-          }
-        }]
-      },
-      dispose: () => {
-        cancel()
-        _onDidChangeTreeData.dispose()
-        rootItems = undefined
-        _onDidChangeTreeData = undefined
-      }
+      winid,
+      this.config,
+      CallHierarchyHandler.commandId,
+      rootItems,
+      kind => this.handler.getIcon(kind),
+      (el, meta, token) => this.getChildren(doc, el, meta, token)
+    )
+    for (let kind of ['incoming', 'outgoing']) {
+      provider.addAction(`Show ${kind[0].toUpperCase()}${kind.slice(1)} Calls`, (el: CallHierarchyDataItem) => {
+        provider.meta = kind as 'incoming' | 'outgoing'
+        let rootItems = [omit(el, ['children', 'parent', 'ranges', 'sourceUri'])]
+        provider.reset(rootItems)
+      })
     }
     return provider
   }
@@ -247,9 +165,9 @@ export default class CallHierarchyHandler {
     }
     let provider = this.createProvider(rootItems, doc.textDocument, winid, kind)
     let treeView = new BasicTreeView('calls', { treeDataProvider: provider })
-    treeView.title = `${kind.toUpperCase()} CALLS`
+    treeView.title = getTitle(kind)
     provider.onDidChangeTreeData(e => {
-      if (!e) treeView.title = `${provider.kind.toUpperCase()} CALLS`
+      if (!e) treeView.title = getTitle(provider.meta)
     })
     treeView.onDidChangeVisibility(e => {
       if (!e.visible) provider.dispose()
@@ -262,4 +180,8 @@ export default class CallHierarchyHandler {
     this.highlightWinids.clear()
     disposeAll(this.disposables)
   }
+}
+
+function getTitle(kind: string): string {
+  return `${kind.toUpperCase()} CALLS`
 }

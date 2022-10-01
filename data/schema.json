@@ -2063,13 +2063,13 @@
       "type": "string",
       "scope": "application",
       "default": "edit",
-      "description": "Open command for callHierarchy tree view."
+      "description": "Open command for type hierarchy tree view."
     },
     "typeHierarchy.splitCommand": {
       "type": "string",
       "scope": "application",
       "default": "botright 30vs",
-      "description": "Window split command used by callHierarchy tree view."
+      "description": "Window split command used by type hierarchy tree view."
     },
     "workspace.bottomUpFiletypes": {
       "type": "array",

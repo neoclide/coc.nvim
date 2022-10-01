@@ -128,6 +128,7 @@ describe('CallHierarchy', () => {
   })
 
   it('should render description and support default action', async () => {
+    helper.updateConfiguration('callHierarchy.enableTooltip', false)
     let doc = await workspace.document
     let bufnr = doc.bufnr
     await doc.buffer.setLines(['foo'], { start: 0, end: -1, strictIndexing: false })
@@ -251,8 +252,8 @@ describe('CallHierarchy', () => {
     ])
     await nvim.command('exe 3')
     await nvim.input('<tab>')
-    await helper.wait(50)
-    await nvim.input('2')
+    await helper.waitPrompt()
+    await nvim.input('3')
     await helper.wait(200)
     lines = await buf.lines
     expect(lines).toEqual([
@@ -260,7 +261,6 @@ describe('CallHierarchy', () => {
       '- c bar Detail',
       '  + c test'
     ])
-    await nvim.command('bd!')
   })
 
   it('should invoke show outgoing calls action', async () => {
@@ -297,8 +297,8 @@ describe('CallHierarchy', () => {
     ])
     await nvim.command('exe 3')
     await nvim.input('<tab>')
-    await helper.wait(50)
-    await nvim.input('3')
+    await helper.waitPrompt()
+    await nvim.input('4')
     await helper.wait(200)
     lines = await buf.lines
     expect(lines).toEqual([
@@ -306,7 +306,6 @@ describe('CallHierarchy', () => {
       '- c test',
       '  + c bar Detail'
     ])
-    await nvim.command('bd!')
   })
 
   it('should invoke dismiss action #1', async () => {
@@ -340,15 +339,19 @@ describe('CallHierarchy', () => {
     ])
     await nvim.command('exe 3')
     await nvim.input('<tab>')
-    await helper.wait(50)
-    await nvim.input('4')
+    await helper.waitPrompt()
+    await nvim.input('2')
     await helper.wait(200)
     lines = await buf.lines
     expect(lines).toEqual([
       'OUTGOING CALLS',
       '- c foo'
     ])
-    await nvim.command('wincmd c')
+    await nvim.command('exe 2')
+    await nvim.input('<tab>')
+    await helper.waitPrompt()
+    await nvim.input('2')
+    await helper.wait(30)
   })
 
   it('should invoke dismiss action #2', async () => {
@@ -386,7 +389,7 @@ describe('CallHierarchy', () => {
     await nvim.command('exe 4')
     await nvim.input('<tab>')
     await helper.waitPrompt()
-    await nvim.input('4')
+    await nvim.input('2')
     await helper.waitFor('line', ['$'], 3)
     lines = await buf.lines
     expect(lines).toEqual([
@@ -394,6 +397,5 @@ describe('CallHierarchy', () => {
       '- c foo',
       '  - c bar Detail'
     ])
-    await nvim.command('wincmd c')
   })
 })

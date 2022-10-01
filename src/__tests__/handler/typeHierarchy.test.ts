@@ -3,6 +3,7 @@ import { CancellationToken, TypeHierarchyItem, Disposable, Range, SymbolKind, Po
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import TypeHierarchyHandler from '../../handler/typeHierarchy'
+import { addChildren } from '../../tree/LocationsDataProvider'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
@@ -144,6 +145,14 @@ describe('TypeHierarchy', () => {
   })
 
   describe('TypeHierarchyHandler', () => {
+    it('should add children', async () => {
+      let item = createItem('foo')
+      addChildren(item, undefined)
+      expect(item['children']).toBeUndefined()
+      addChildren(item, [], CancellationToken.Cancelled)
+      expect(item['children']).toBeUndefined()
+    })
+
     it('should throw when provider not exist', async () => {
       let fn = async () => {
         await handler.showTypeHierarchyTree('supertypes')
@@ -169,6 +178,32 @@ describe('TypeHierarchy', () => {
       await plugin.cocAction('showSubTypes')
       let line = await helper.getCmdline()
       expect(line).toMatch('Unable')
+    })
+
+    it('should invoke super types and sub types action', async () => {
+      let doc = await workspace.document
+      disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
+        prepareTypeHierarchy() {
+          return [createItem('foo', SymbolKind.Class, doc.uri, Range.create(0, 0, 0, 3))]
+        },
+        provideTypeHierarchySupertypes() {
+          return undefined
+        },
+        provideTypeHierarchySubtypes() {
+          return undefined
+        }
+      }))
+      await handler.showTypeHierarchyTree('supertypes')
+      await helper.waitFor('getline', [2], '- c foo')
+      await nvim.command('exe 2')
+      await nvim.input('<tab>')
+      await helper.waitPrompt()
+      await nvim.input('4')
+      await helper.waitFor('getline', [1], 'Sub types')
+      await nvim.input('<tab>')
+      await helper.waitPrompt()
+      await nvim.input('3')
+      await helper.waitFor('getline', [1], 'Super types')
     })
 
     it('should render description and support default action', async () => {
