@@ -2,7 +2,7 @@
 
 CONTENTS
 
-Call Hierarchy 					|coc-config-callHierarchy|
+Call hierarchy 					|coc-config-callHierarchy|
 CodeLens 					|coc-config-codeLens|
 Colors 						|coc-config-colors|
 Completion 					|coc-config-suggest|
@@ -24,6 +24,7 @@ Refactor 					|coc-config-refactor|
 Semantic tokens 				|coc-config-semanticTokens|
 Signature 					|coc-config-signature|
 Tree 						|coc-config-tree|
+Type hierarchy					|coc-config-typeHierarchy|
 Workspace 					|coc-config-workspace|
 Preferences 					|coc-config-preferences|
 Float 						|coc-config-float|
@@ -40,19 +41,19 @@ CallHierarchy~
 							*coc-config-callHierarchy*
 "callHierarchy.enableTooltip"				*coc-config-callHierarchy-enableTooltip*
 
-	Enable tooltip to show relative filepath of call hierarchy.
+	Enable tooltip to show relative filepath of call hierarchy item.
 
 	Scope: `application`, default: `true`
 
 "callHierarchy.openCommand"				*coc-config-callHierarchy-openCommand*
 
-	Open command for callHierarchy tree view.
+	Open command for call hierarchy tree view.
 
 	Scope: `application`, default: `"edit"`
 
 "callHierarchy.splitCommand"				*coc-config-callHierarchy-splitCommand*
 
-	Window split command used by callHierarchy tree view.
+	Window split command used by call hierarchy tree view.
 
 	Scope: `application`, default: `"botright 30vs"`
 
@@ -1395,6 +1396,27 @@ Tree~
 	Opened icon of tree view.
 
 	Scope: `application`, default: `"-"`
+
+------------------------------------------------------------------------------
+TypeHierarchy~
+							*coc-config-typeHierarchy*
+"typeHierarchy.enableTooltip"				*coc-config-typeHierarchy-enableTooltip*
+
+	Enable tooltip to show relative filepath of type hierarchy item.
+
+	Scope: `application`, default: `true`
+
+"typeHierarchy.openCommand"				*coc-config-typeHierarchy-openCommand*
+
+	Open command for type hierarchy tree view.
+
+	Scope: `application`, default: `"edit"`
+
+"typeHierarchy.splitCommand"				*coc-config-typeHierarchy-splitCommand*
+
+	Window split command used by type hierarchy tree view.
+
+	Scope: `application`, default: `"botright 30vs"`
 
 ------------------------------------------------------------------------------
 Workspace~

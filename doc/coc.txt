@@ -32,6 +32,7 @@ LSP features 					|coc-lsp|
   Cursors 					|coc-cursors|
   Outline 					|coc-outline|
   Call hierarchy 				|coc-callHierarchy|
+  Type hierarchy 				|coc-typeHierarchy|
   Semantic highlights 				|coc-semantic-highlights|
   Fold 						|coc-fold|
   Selection range 				|coc-selection-range|
@@ -365,6 +366,7 @@ Features requested by user:~
 - Locations related (including definitions, references etc.) |coc-locations|
 - Invoke code action |coc-code-actions|.
 - Show call hierarchy tree |coc-callHierarchy|.
+- Show type hierarchy tree |coc-typeHierarchy|
 - Format, range format and on type format |coc-format|.
 - Highlight same symbol ranges |coc-document-highlights|.
 - Outline of document symbols |coc-outline| and |coc-list-symbols|.
@@ -1182,8 +1184,8 @@ Create a key-mapping to toggle outline, like:
 ------------------------------------------------------------------------------
 CALL HIERARCHY						*coc-callHierarchy*
 
-A call hierarchy is a split |coc-tree| with locations for incoming or
-outgoing calls of current function.
+A call hierarchy is a split |coc-tree| window with locations for incoming or
+outgoing calls of function under cursor position.
 
 Call hierarchy window is opened by |CocAction('showIncomingCalls')| and
 |CocAction('showOutgoingCalls')|.
@@ -1194,8 +1196,8 @@ Call hierarchy is configured by |CocSymbol|, |coc-config-callHierarchy| and
 Related ranges are highlighted with |CocSelectedRange| highlight group in
 opened buffer.
 
-|coc-dialog-menu| could be invoked by |coc-config-tree-key-actions|.
-Available actions:
+|coc-dialog-menu| could be invoked by |coc-config-tree-key-actions| (default
+to <tab>).  Available actions:
 
 - Dismiss.
 - Open in new tab.
@@ -1203,6 +1205,20 @@ Available actions:
 - Show Outgoing Calls.
 
 Use <CR> in call hierarchy tree to open location in original window.
+
+------------------------------------------------------------------------------
+TYPE HIERARCHY						*coc-typeHierarchy*
+
+A type hierarchy is a split |coc-tree| window with locations for super types
+or sub types from types at current position.
+
+Type hierarchy window is opened by |CocAction('showSuperTypes')| and
+|CocAction('showSubTypes')|.
+
+Type hierarchy is configured by |CocSymbol|, |coc-config-typeHierarchy| and
+|coc-config-tree|.
+
+Actions are the same as |coc-callHierarchy|.
 
 ------------------------------------------------------------------------------
 SEMANTIC HIGHLIGHTS					*coc-semantic-highlights*
@@ -2711,6 +2727,18 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 "showOutgoingCalls"  					*CocAction('showOutgoingCalls')*
 
 	Show outgoing calls of current function with |coc-tree|.
+
+"showSuperTypes"  					*CocAction('showSuperTypes')*
+
+	Show super types of types under cursor with |coc-tree|, see
+	|coc-typeHierarchy|.  A warning is shown when no types found under
+	cursor.
+
+"showSubTypes"  					*CocAction('showSubTypes')*
+
+	Show sub types of types under cursor with |coc-tree|, see
+	|coc-typeHierarchy|.  A warning is shown when no types found under
+	cursor.
 
 "semanticHighlight" 					*CocAction('semanticHighlight')*
 

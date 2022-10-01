@@ -2053,6 +2053,24 @@
       "default": "-",
       "description": "Opened icon of tree view."
     },
+    "typeHierarchy.enableTooltip": {
+      "type": "boolean",
+      "scope": "application",
+      "default": true,
+      "description": "Enable tooltip to show relative filepath of type hierarchy."
+    },
+    "typeHierarchy.openCommand": {
+      "type": "string",
+      "scope": "application",
+      "default": "edit",
+      "description": "Open command for type hierarchy tree view."
+    },
+    "typeHierarchy.splitCommand": {
+      "type": "string",
+      "scope": "application",
+      "default": "botright 30vs",
+      "description": "Window split command used by type hierarchy tree view."
+    },
     "workspace.bottomUpFiletypes": {
       "type": "array",
       "default": [],
