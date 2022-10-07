@@ -1,6 +1,6 @@
 'use strict'
-import debounce from 'debounce'
 import { Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { CancellationTokenSource, Disposable, MarkupContent, Position, SignatureHelp, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
@@ -73,10 +73,13 @@ export default class Signature {
     let floatFactory = this.signatureFactory
     if (!pos || bufnr !== pos.bufnr || floatFactory.window == null) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc || cursor[0] != pos.lnum || cursor[1] < pos.col) return floatFactory.close()
+    if (!doc || cursor[0] != pos.lnum || cursor[1] < pos.col) {
+      floatFactory.close()
+      return
+    }
     let line = doc.getline(pos.lnum - 1)
     let text = byteSlice(line, pos.col - 1, cursor[1] - 1)
-    if (!doc.isWord(text)) return floatFactory.close()
+    if (text.endsWith(')')) return floatFactory.close()
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
