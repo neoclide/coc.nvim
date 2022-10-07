@@ -438,6 +438,7 @@ function! s:Highlight() abort
     hi default link CocFloatThumb        PmenuThumb
     hi default link CocFloatSbar         PmenuSbar
   endif
+  hi default link CocFloatActive         CocSearch
   hi default link CocFadeOut             Conceal
   hi default link CocMarkdownCode        markdownCode
   hi default link CocMarkdownHeader      markdownH1

@@ -261,14 +261,14 @@ function! coc#list#preview(lines, config) abort
     " vim send <esc> to buffer on FocusLost, <C-w> and other cases
     call coc#compat#execute(winid, 'nnoremap <silent><nowait><buffer> <esc> :call CocActionAsync("listCancel")<CR>')
   endif
+  if !empty(targetRange)
+    for lnum in range(targetRange['start']['line'] + 1, targetRange['end']['line'] + 1)
+      call sign_place(0, 'CocCursorLine', 'CocListCurrent', bufnr, {'lnum': lnum})
+    endfor
+  else
+    call sign_unplace('CocCursorLine', { 'buffer': bufnr })
+  endif
   if !empty(range)
-    if !empty(targetRange)
-      for lnum in range(targetRange['start']['line'] + 1, targetRange['end']['line'] + 1)
-        call sign_place(0, 'CocCursorLine', 'CocListCurrent', bufnr, {'lnum': lnum})
-      endfor
-    else
-      call sign_place(0, 'CocCursorLine', 'CocCurrentLine', bufnr, {'lnum': lnum})
-    endif
     call coc#highlight#match_ranges(winid, bufnr, [range], hlGroup, 10)
   endif
 endfunction
