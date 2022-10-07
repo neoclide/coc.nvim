@@ -165,7 +165,9 @@ function! s:start_prompt()
     endwhile
   catch /^Vim:Interrupt$/
     let s:activated = 0
-    call coc#rpc#notify('InputChar', [s:current_session(), '<esc>'])
+    call coc#rpc#notify('InputChar', [s:current_session(), '<esc>', 0])
+    let s:session_names = []
+    call s:reset()
     return
   endtry
   let s:activated = 0
