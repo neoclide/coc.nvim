@@ -32,10 +32,10 @@ export default class HoverHandler {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    this.hoverFactory = window.createFloatFactory(Object.assign({
+    this.hoverFactory = window.createFloatFactory({
       modes: ['n'],
       autoHide: this.config.autoHide
-    }, this.config.floatConfig))
+    })
     this.disposables.push(this.hoverFactory)
     window.onDidChangeActiveTextEditor(() => {
       this.loadConfiguration()
@@ -153,7 +153,7 @@ export default class HoverHandler {
       }
     }
     if (target == 'float') {
-      await this.hoverFactory.show(docs)
+      await this.hoverFactory.show(docs, this.config.floatConfig)
       return
     }
     let lines = docs.reduce((p, c) => {
