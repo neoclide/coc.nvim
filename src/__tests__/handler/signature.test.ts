@@ -65,7 +65,7 @@ describe('signatureHelp', () => {
       expect(win).toBeDefined()
       let highlights = await win.getVar('highlights')
       expect(highlights).toBeDefined()
-      expect(highlights[0].hlGroup).toBe('CocUnderline')
+      expect(highlights[0].hlGroup).toBe('CocFloatActive')
     })
 
     it('should trigger by space', async () => {

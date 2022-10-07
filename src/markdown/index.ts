@@ -8,6 +8,8 @@ import { HighlightItem, Documentation } from '../types'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const logger = require('../util/logger')('markdown-index')
 
+const ACTIVE_HL_GROUP = 'CocFloatActive'
+
 export interface MarkdownParseOptions {
   excludeImages?: boolean
 }
@@ -82,7 +84,7 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
 }
 
 /**
- * Get 'CocUnderline' highlights from offset range
+ * Get 'CocSearch' highlights from offset range
  */
 export function getHighlightItems(content: string, currline: number, active: [number, number]): HighlightItem[] {
   let res: HighlightItem[] = []
@@ -99,22 +101,22 @@ export function getHighlightItems(content: string, currline: number, active: [nu
         if (used + line.length > end) {
           let colEnd = byteLength(line.slice(0, end - used))
           inRange = false
-          res.push({ colStart, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+          res.push({ colStart, colEnd, lnum: i + currline, hlGroup: ACTIVE_HL_GROUP })
           break
         } else {
           let colEnd = byteLength(line)
-          res.push({ colStart, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+          res.push({ colStart, colEnd, lnum: i + currline, hlGroup: ACTIVE_HL_GROUP })
         }
       }
     } else {
       if (used + line.length > end) {
         let colEnd = byteLength(line.slice(0, end - used))
-        res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+        res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: ACTIVE_HL_GROUP })
         inRange = false
         break
       } else {
         let colEnd = byteLength(line)
-        res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: 'CocUnderline' })
+        res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: ACTIVE_HL_GROUP })
       }
     }
     used = used + line.length + 1

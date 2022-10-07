@@ -8,7 +8,7 @@ describe('getHighlightItems', () => {
       colStart: 10,
       colEnd: 15,
       lnum: 0,
-      hlGroup: 'CocUnderline'
+      hlGroup: 'CocFloatActive'
     }])
   })
 
@@ -18,22 +18,22 @@ describe('getHighlightItems', () => {
       colStart: 5,
       colEnd: 9,
       lnum: 0,
-      hlGroup: 'CocUnderline'
+      hlGroup: 'CocFloatActive'
     }])
   })
 
   it('should get highlights across line', async () => {
     let res = getHighlightItems('this line\nhas highlights', 0, [5, 15])
     expect(res).toEqual([{
-      colStart: 5, colEnd: 9, lnum: 0, hlGroup: 'CocUnderline'
+      colStart: 5, colEnd: 9, lnum: 0, hlGroup: 'CocFloatActive'
     }, {
-      colStart: 0, colEnd: 5, lnum: 1, hlGroup: 'CocUnderline'
+      colStart: 0, colEnd: 5, lnum: 1, hlGroup: 'CocFloatActive'
     }])
     res = getHighlightItems('a\nb\nc\nd', 0, [2, 5])
     expect(res).toEqual([
-      { colStart: 0, colEnd: 1, lnum: 1, hlGroup: 'CocUnderline' },
-      { colStart: 0, colEnd: 1, lnum: 2, hlGroup: 'CocUnderline' },
-      { colStart: 0, colEnd: 0, lnum: 3, hlGroup: 'CocUnderline' }
+      { colStart: 0, colEnd: 1, lnum: 1, hlGroup: 'CocFloatActive' },
+      { colStart: 0, colEnd: 1, lnum: 2, hlGroup: 'CocFloatActive' },
+      { colStart: 0, colEnd: 0, lnum: 3, hlGroup: 'CocFloatActive' }
     ])
   })
 })
@@ -264,6 +264,6 @@ describe('parseDocuments', () => {
       active: [15, 20]
     }]
     let res = parseDocuments(docs as any)
-    expect(res.highlights[0]).toEqual({ colStart: 5, colEnd: 8, lnum: 0, hlGroup: 'CocUnderline' })
+    expect(res.highlights[0]).toEqual({ colStart: 5, colEnd: 8, lnum: 0, hlGroup: 'CocFloatActive' })
   })
 })
