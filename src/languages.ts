@@ -289,8 +289,7 @@ class Languages {
   }
 
   public async getWorkspaceSymbols(query: string, token: CancellationToken): Promise<SymbolInformation[]> {
-    query = query || ''
-    return await this.workspaceSymbolsManager.provideWorkspaceSymbols(query, token)
+    return await this.workspaceSymbolsManager.provideWorkspaceSymbols(query ?? '', token)
   }
 
   public async resolveWorkspaceSymbol(symbol: SymbolInformation, token: CancellationToken): Promise<SymbolInformation> {

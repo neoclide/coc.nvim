@@ -82,7 +82,7 @@ function createItem(filename: string, loc: QuickfixItem): ListItem {
     let end = Position.create((loc.end_lnum ?? loc.lnum) - 1, (loc.end_col ?? loc.col) - 1)
     location = Location.create(uri, Range.create(start, end))
   }
-  if (loc.targetRange) location.targetRange = loc.targetRange
+  location.targetRange = loc.targetRange ? loc.targetRange : Range.create(lnum - 1, 0, lnum - 1, 99)
   return {
     label,
     location,

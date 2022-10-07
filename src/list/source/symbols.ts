@@ -1,11 +1,11 @@
 'use strict'
 import minimatch from 'minimatch'
 import path from 'path'
-import { CancellationToken, CancellationTokenSource, SymbolInformation } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Location, Range, SymbolInformation } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
-import { AnsiHighlight, ListContext, ListItem } from '../../types'
+import { AnsiHighlight, ListContext, ListItem, LocationWithTarget } from '../../types'
 import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
 import { byteLength } from '../../util/string'
@@ -78,7 +78,7 @@ export default class Symbols extends LocationList {
     let resolved = await languages.resolveWorkspaceSymbol(s, tokenSource.token)
     if (!resolved) return null
     s.location = resolved.location
-    item.location = resolved.location
+    item.location = toTargetLocation(resolved.location)
     return item
   }
 
@@ -111,7 +111,7 @@ export default class Symbols extends LocationList {
       label,
       filterText: '',
       ansiHighlights,
-      location: item.location,
+      location: toTargetLocation(item.location),
       data: {
         original: item, input, kind: item.kind, file, score,
       }
@@ -120,4 +120,10 @@ export default class Symbols extends LocationList {
 
   public doHighlight(): void {
   }
+}
+
+function toTargetLocation(location: Location): LocationWithTarget {
+  let loc: LocationWithTarget = Location.create(location.uri, Range.create(location.range.start, location.range.start))
+  loc.targetRange = location.range
+  return loc
 }

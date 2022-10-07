@@ -1077,7 +1077,7 @@ export interface ListItem {
   label: string
   filterText?: string
   preselect?: boolean
-  location?: Location | LocationWithLine | string
+  location?: LocationWithTarget | LocationWithLine | string
   data?: any
   ansiHighlights?: AnsiHighlight[]
   resolved?: boolean
