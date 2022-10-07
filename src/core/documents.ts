@@ -10,9 +10,9 @@ import Configurations from '../configuration'
 import events, { InsertChange } from '../events'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import { BufferOption, IConfigurationChangeEvent, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
+import { BufferOption, DidChangeTextDocumentParams, Env, IConfigurationChangeEvent, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll, platform } from '../util'
-import { readFileLine } from '../util/fs'
+import { readFile, readFileLine } from '../util/fs'
 import { byteIndex } from '../util/string'
 import WorkspaceFolder from './workspaceFolder'
 const logger = require('../util/logger')('core-documents')
@@ -308,6 +308,34 @@ export default class Documents implements Disposable {
       res.add(doc.filetype)
     }
     return res
+  }
+
+  /**
+   * Get filetype by check same extension name buffer.
+   */
+  public getLanguageId(filepath: string): string {
+    let extname = path.extname(filepath)
+    if (!extname) return ''
+    for (let doc of this.documents) {
+      let fsPath = URI.parse(doc.uri).fsPath
+      if (path.extname(fsPath) == extname) {
+        return doc.languageId
+      }
+    }
+    return ''
+  }
+
+  public async getLines(uri: string): Promise<readonly string[]> {
+    let doc = this.getDocument(uri)
+    if (doc) return doc.textDocument.lines
+    let u = URI.parse(uri)
+    if (u.scheme !== 'file') return []
+    try {
+      let content = await readFile(u.fsPath, 'utf8')
+      return content.split(/\r?\n/)
+    } catch (e) {
+      return []
+    }
   }
 
   /**

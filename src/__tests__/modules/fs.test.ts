@@ -1,10 +1,10 @@
-import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, resolveRoot, statAsync, matchPatterns, globFilesAsync } from '../../util/fs'
+import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, matchPatterns, globFilesAsync } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
-import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
 
 describe('fs', () => {
   describe('stat()', () => {
@@ -17,6 +17,20 @@ describe('fs', () => {
     it('fs statAsync #1', async () => {
       let res = await statAsync(path.join(__dirname, 'file_not_exist'))
       expect(res).toBeNull
+    })
+  })
+
+  describe('lineToLocation', () => {
+    it('should not throw when file not exists', async () => {
+      let res = await lineToLocation('/a/b/not_exists', 'ab')
+      expect(res).toBeDefined()
+    })
+
+    it('should get location', async () => {
+      let file = path.join(os.tmpdir(), uuid())
+      fs.writeFileSync(file, '\nfoo\n', 'utf8')
+      let res = await lineToLocation(file, 'foo', 'foo')
+      expect(res.range).toEqual(Range.create(1, 0, 1, 3))
     })
   })
 

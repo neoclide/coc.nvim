@@ -11,6 +11,8 @@ import window from '../window'
 import ListConfiguration from './configuration'
 import Mappings from './mappings'
 import Prompt from './prompt'
+import History from './history'
+import { DataBase } from './db'
 import ListSession from './session'
 import CommandsList from './source/commands'
 import DiagnosticsList from './source/diagnostics'
@@ -32,6 +34,7 @@ export class ListManager implements Disposable {
   public prompt: Prompt
   public config: ListConfiguration
   public mappings: Mappings
+  public db: DataBase
   private nvim: Neovim
   private plugTs = 0
   private sessionsMap: Map<string, ListSession> = new Map()
@@ -44,6 +47,8 @@ export class ListManager implements Disposable {
     this.config = new ListConfiguration()
     this.prompt = new Prompt(nvim, this.config)
     this.mappings = new Mappings(this, nvim, this.config)
+    this.db = new DataBase()
+    History.migrate(process.env.COC_DATA_HOME)
     let signText = this.config.get<string>('selectedSignText', '*')
     nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true)
     events.on('InputChar', this.onInputChar, this, this.disposables)
@@ -65,6 +70,9 @@ export class ListManager implements Disposable {
           this.prompt.cancel()
         }, workspace.isVim ? 50 : 0)
       }
+    }, null, this.disposables)
+    events.on('VimLeavePre', () => {
+      this.db.save()
     }, null, this.disposables)
     this.disposables.push({
       dispose: () => {
@@ -98,7 +106,7 @@ export class ListManager implements Disposable {
     let curr = this.sessionsMap.get(name)
     if (curr) curr.dispose()
     this.prompt.start(res.options)
-    let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.config)
+    let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.config, this.db)
     this.sessionsMap.set(name, session)
     this.lastSession = session
     try {

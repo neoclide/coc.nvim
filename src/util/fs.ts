@@ -6,8 +6,9 @@ import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
 import readline from 'readline'
+import { URI } from 'vscode-uri'
 import { promisify } from 'util'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
 import { FileType } from '../types'
 import { isFalsyOrEmpty } from './array'
 import { CancellationError } from './errors'
@@ -298,6 +299,35 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
     })
     rl.on('error', reject)
   })
+}
+
+export async function lineToLocation(fsPath: string, match: string, text?: string): Promise<Location> {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(fsPath, { encoding: 'utf8' }),
+  })
+  let n = 0
+  let line = await new Promise<string>(resolve => {
+    rl.on('line', line => {
+      if (line.includes(match)) {
+        rl.removeAllListeners()
+        rl.close()
+        resolve(line)
+        return
+      }
+      n = n + 1
+    })
+    rl.on('error', () => {
+      resolve(null)
+    })
+  })
+  let uri = URI.file(fsPath).toString()
+  if (line != null) {
+    let character = text == null ? 0 : line.indexOf(text)
+    if (character == 0) character = line.match(/^\s*/)[0].length
+    let end = Position.create(n, character + (text ? text.length : 0))
+    return Location.create(uri, Range.create(Position.create(n, character), end))
+  }
+  return Location.create(uri, Range.create(0, 0, 0, 0))
 }
 
 export function sameFile(fullpath: string | null, other: string | null, caseInsensitive?: boolean): boolean {

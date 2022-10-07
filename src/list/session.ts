@@ -11,6 +11,7 @@ import workspace from '../workspace'
 import ListConfiguration from './configuration'
 import InputHistory from './history'
 import Prompt from './prompt'
+import { DataBase } from './db'
 import UI from './ui'
 import Worker from './worker'
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
@@ -42,10 +43,11 @@ export default class ListSession {
     private list: IList,
     public readonly listOptions: ListOptions,
     private listArgs: string[] = [],
-    private config: ListConfiguration
+    private config: ListConfiguration,
+    db: DataBase
   ) {
     this.ui = new UI(nvim, list.name, listOptions, config)
-    this.history = new InputHistory(prompt, list.name)
+    this.history = new InputHistory(prompt, list.name, db, workspace.cwd)
     this.worker = new Worker(nvim, list, prompt, listOptions, {
       interactiveDebounceTime: config.get<number>('interactiveDebounceTime', 100),
       extendedSearchMode: config.get<boolean>('extendedSearchMode', true)
@@ -141,10 +143,10 @@ export default class ListSession {
     this.args = args
     this.cwd = workspace.cwd
     this.hidden = false
-    let { listOptions, listArgs } = this
+    let { listArgs } = this
     let res = await this.nvim.eval('[win_getid(),bufnr("%"),winheight("%")]')
     this.listArgs = listArgs
-    this.history.load(listOptions.input || '')
+    this.history.filter()
     this.window = this.nvim.createWindow(res[0])
     this.buffer = this.nvim.createBuffer(res[1])
     this.savedHeight = res[2]

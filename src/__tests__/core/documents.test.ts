@@ -3,7 +3,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { LocationLink, Range } from 'vscode-languageserver-types'
+import { LocationLink, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Documents from '../../core/documents'
 import events from '../../events'
@@ -33,6 +33,27 @@ describe('documents', () => {
     let doc = await helper.createDocument('foo')
     let res = documents.getDocument(doc.uri)
     expect(res.uri).toBe(doc.uri)
+  })
+
+  it('should get languageId', async () => {
+    await helper.createDocument('t.vim')
+    expect(documents.getLanguageId('/a/b')).toBe('')
+    expect(documents.getLanguageId('/a/b.vim')).toBe('vim')
+    expect(documents.getLanguageId('/a/b.c')).toBe('')
+  })
+
+  it('should get lines', async () => {
+    let doc = await helper.createDocument('tmp')
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar')])
+    let lines = await documents.getLines(doc.uri)
+    expect(lines).toEqual(['foo', 'bar'])
+    lines = await documents.getLines('lsptest:///1')
+    expect(lines).toEqual([])
+    lines = await documents.getLines('file:///not_exists_file')
+    expect(lines).toEqual([])
+    let uri = URI.file(__filename).toString()
+    lines = await documents.getLines(uri)
+    expect(lines.length).toBeGreaterThan(0)
   })
 
   it('should read empty string from none file', async () => {

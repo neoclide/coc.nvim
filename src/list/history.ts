@@ -1,84 +1,107 @@
 'use strict'
-import DB from '../model/db'
+import fs from 'fs'
+import path from 'path'
+import { isFalsyOrEmpty } from '../util/array'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
-import workspace from '../workspace'
-import Prompt from './prompt'
+import { DataBase } from './db'
 const logger = require('../util/logger')('list-history')
 
 export default class InputHistory {
-  private db: DB
-  private index = -1
-  private loaded: string[] = []
-  private current: string[] = []
+  private _index = -1
+  private _filtered: string[] = []
   private historyInput: string
-  private key: string
 
   constructor(
-    private prompt: Prompt,
-    private name: string
+    private prompt: { input: string },
+    private name: string,
+    private db: DataBase,
+    private cwd: string
   ) {
-    this.db = workspace.createDatabase(`list-${name}-history`)
-    this.key = Buffer.from(workspace.cwd).toString('base64')
+  }
+
+  private get loaded(): string[] {
+    return this.db.getHistory(this.name, this.cwd)
+  }
+
+  public get filtered(): ReadonlyArray<string> {
+    return this._filtered
+  }
+
+  public get index(): number {
+    return this._index
+  }
+
+  public static migrate(folder: string): void {
+    try {
+      let files = fs.readdirSync(folder)
+      files = files.filter(f => f.startsWith('list-') && f.endsWith('-history.json') && fs.statSync(path.join(folder, f)).isFile())
+      if (files.length === 0) return
+      let db = new DataBase()
+      for (let file of files) {
+        let name = file.match(/^list-(.*)-history.json$/)[1]
+        let content = fs.readFileSync(path.join(folder, file), 'utf8')
+        let obj = JSON.parse(content) as { [key: string]: string[] }
+        for (let [key, texts] of Object.entries(obj)) {
+          let folder = Buffer.from(key, 'base64').toString('utf8')
+          if (Array.isArray(texts)) {
+            texts.forEach(text => {
+              db.addItem(name, text, folder)
+            })
+          }
+        }
+      }
+      files.forEach(f => {
+        fs.unlinkSync(path.join(folder, f))
+      })
+      db.save()
+    } catch (e) {
+      logger.error(`Error on migrate history:`, e)
+    }
+  }
+
+  public get curr(): string | null {
+    return this._index == -1 || this._filtered == null ? null : this._filtered[this._index]
   }
 
   public filter(): void {
     let { input } = this.prompt
-    if (input == this.curr) return
+    if (input === this.curr) return
     this.historyInput = ''
-    let codes = getCharCodes(input)
-    this.current = this.loaded.filter(s => fuzzyMatch(codes, s))
-    this.index = -1
-  }
-
-  public get curr(): string | null {
-    return this.index == -1 ? null : this.current[this.index]
-  }
-
-  public load(input: string): void {
-    let { db } = this
-    input = input || ''
-    let arr = db.fetch(this.key)
-    if (!arr || !Array.isArray(arr)) {
-      this.loaded = []
+    if (input.length > 0) {
+      let codes = getCharCodes(input)
+      this._filtered = this.loaded.filter(s => fuzzyMatch(codes, s))
     } else {
-      this.loaded = arr
+      this._filtered = this.loaded
     }
-    this.index = -1
-    this.current = this.loaded.filter(s => s.startsWith(input))
+    this._index = -1
   }
 
   public add(): void {
-    let { loaded, db, prompt } = this
+    let { db, prompt, cwd } = this
     let { input } = prompt
     if (!input || input.length < 2 || input == this.historyInput) return
-    let idx = loaded.indexOf(input)
-    if (idx != -1) loaded.splice(idx, 1)
-    loaded.push(input)
-    if (loaded.length > 200) {
-      loaded = loaded.slice(-200)
-    }
-    db.push(this.key, loaded)
+    db.addItem(this.name, input, cwd)
   }
 
   public previous(): void {
-    let { current, index } = this
-    if (!current || !current.length) return
-    if (index <= 0) {
-      this.index = current.length - 1
+    let { _filtered, _index } = this
+    if (isFalsyOrEmpty(_filtered)) return
+    if (_index <= 0) {
+      this._index = _filtered.length - 1
     } else {
-      this.index = index - 1
+      this._index = _index - 1
     }
-    this.historyInput = this.prompt.input = current[this.index] || ''
+    this.historyInput = this.prompt.input = _filtered[this._index] ?? ''
   }
 
   public next(): void {
-    let { current, index } = this
-    if (!current || !current.length) return
-    if (index == current.length - 1) {
-      this.index = 0
+    let { _filtered, _index } = this
+    if (isFalsyOrEmpty(_filtered)) return
+    if (_index == _filtered.length - 1) {
+      this._index = 0
     } else {
-      this.index = index + 1
+      this._index = _index + 1
     }
-    this.historyInput = this.prompt.input = current[this.index] || ''
+    this.historyInput = this.prompt.input = _filtered[this._index] ?? ''
   }
 }

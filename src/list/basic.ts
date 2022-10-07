@@ -1,14 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import path from 'path'
-import readline from 'readline'
-import { CancellationToken, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ProviderResult } from '../provider'
 import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, LocationWithTarget, MultipleListAction, SingleListAction, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
-import { readFile } from '../util/fs'
+import { lineToLocation } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
 import workspace from '../workspace'
 import CommandTask, { CommandTaskOption } from './commandTask'
@@ -176,36 +173,7 @@ export default abstract class BasicList implements IList, Disposable {
     if (Location.is(location)) return location
     let u = URI.parse(location.uri)
     if (u.scheme != 'file') return Location.create(location.uri, Range.create(0, 0, 0, 0))
-    const rl = readline.createInterface({
-      input: fs.createReadStream(u.fsPath, { encoding: 'utf8' }),
-    })
-    let match = location.line
-    let n = 0
-    let resolved = false
-    let line = await new Promise<string>(resolve => {
-      rl.on('line', line => {
-        if (resolved) return
-        if (line.includes(match)) {
-          rl.removeAllListeners()
-          rl.close()
-          resolved = true
-          resolve(line)
-          return
-        }
-        n = n + 1
-      })
-      rl.on('error', e => {
-        this.nvim.errWriteLine(`Read ${u.fsPath} error: ${e.message}`)
-        resolve(null)
-      })
-    })
-    if (line != null) {
-      let character = location.text ? line.indexOf(location.text) : 0
-      if (character == 0) character = line.match(/^\s*/)[0].length
-      let end = Position.create(n, character + (location.text ? location.text.length : 0))
-      return Location.create(location.uri, Range.create(Position.create(n, character), end))
-    }
-    return Location.create(location.uri, Range.create(0, 0, 0, 0))
+    return await lineToLocation(u.fsPath, location.line, location.text)
   }
 
   public async jumpTo(location: Location | LocationWithLine | string, command?: string, context?: ListContext): Promise<void> {
@@ -234,28 +202,17 @@ export default abstract class BasicList implements IList, Disposable {
   }
 
   protected async previewLocation(location: LocationWithTarget, context: ListContext): Promise<void> {
-    if (!context.listWindow) return
     let { nvim } = this
     let { uri, range } = location
     let doc = workspace.getDocument(location.uri)
     let u = URI.parse(uri)
-    let lines: string[] = []
-    if (doc) {
-      lines = doc.getLines()
-    } else if (u.scheme == 'file') {
-      try {
-        let content = await readFile(u.fsPath, 'utf8')
-        lines = content.split(/\r?\n/)
-      } catch (e) {
-        [`Error on read file ${u.fsPath}`, e.toString()]
-      }
-    }
+    let lines = await workspace.documentsManager.getLines(uri)
     let config: PreviewConfig = {
       winid: context.window.id,
       range: emptyRange(range) ? null : range,
       lnum: range.start.line + 1,
       name: u.scheme == 'file' ? u.fsPath : uri,
-      filetype: toVimFiletype(doc ? doc.languageId : this.getLanguageId(u.fsPath)),
+      filetype: toVimFiletype(doc ? doc.languageId : workspace.documentsManager.getLanguageId(u.fsPath)),
       position: context.options.position,
       maxHeight: this.previewHeight,
       splitRight: this.splitRight,
@@ -296,21 +253,6 @@ export default abstract class BasicList implements IList, Disposable {
 
   public dispose(): void {
     disposeAll(this.disposables)
-  }
-
-  /**
-   * Get filetype by check same extension name buffer.
-   */
-  private getLanguageId(filepath: string): string {
-    let extname = path.extname(filepath)
-    if (!extname) return ''
-    for (let doc of workspace.documents) {
-      let fsPath = URI.parse(doc.uri).fsPath
-      if (path.extname(fsPath) == extname) {
-        return doc.languageId
-      }
-    }
-    return ''
   }
 }
 
