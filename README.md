@@ -267,7 +267,7 @@ local keyset = vim.keymap.set
 -- Auto complete
 function _G.check_back_space()
     local col = vim.fn.col('.') - 1
-    return col == 0 or vim.fn.getline('.'):sub(col, col):match('%s')
+    return col ~= 0 or vim.fn.getline('.'):sub(col, col):match('%s')
 end
 
 -- Use tab for trigger completion with characters ahead and navigate.
