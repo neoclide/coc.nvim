@@ -231,7 +231,7 @@ export default class Documents implements Disposable {
           case 'workspaceFolder':
             return this._root
           case 'workspaceFolderBasename':
-            return path.dirname(this._root)
+            return path.basename(this._root)
           case 'cwd':
             return this._cwd
           case 'file':

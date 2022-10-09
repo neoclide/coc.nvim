@@ -224,7 +224,7 @@ describe('workspace methods', () => {
     expect(workspace.expand('${workspace}/foo')).toBe(`${workspace.root}/foo`)
     expect(workspace.expand('${env:NODE_ENV}')).toBe(process.env.NODE_ENV)
     expect(workspace.expand('${cwd}')).toBe(workspace.cwd)
-    let folder = path.dirname(workspace.root)
+    let folder = path.basename(workspace.root)
     expect(workspace.expand('${workspaceFolderBasename}')).toBe(folder)
     await helper.edit('bar.ts')
     expect(workspace.expand('${file}')).toContain('bar')
