@@ -722,7 +722,7 @@ Related APIs~
 - |CocAction('jumpDeclaration')| Jump to declaration locations.
 - |CocAction('jumpImplementation')| Jump to implementation locations.
 - |CocAction('jumpTypeDefinition')| Jump to type definition locations.
-- |CocAction('jumpReferences')|| Jump to references
+- |CocAction('jumpReferences')|| Jump to references.
 - |CocAction('jumpUsed')| Jump to references without declarations.
 - |CocAction('definitions')| Get definition list.
 - |CocAction('declarations')| Get declaration list.
@@ -769,19 +769,19 @@ window with current variable name.
 ------------------------------------------------------------------------------
 SIGNATURE HELP 						*coc-signature*
 
-Signature help of function is automatically triggered by default (when user
-type trigger characters defined by the provider), which will use float
-window/popup to show the signature documentations by default.
+Signature help for functions is shown automatically when user
+types trigger characters defined by the provider, which will use floating
+window/popup to show relevant documentation.
 
 Use |CocAction('showSignatureHelp')| to trigger signature help manually.
 
-Note error will not be thrown when provider not exists or nothing returned
-from languageserver, use `echo CocAction('hasProvider', 'signature')` to check
-if signature help provider exists.
+Note error will not be thrown when provider does not exist or nothing is returned
+by languageserver, use `echo CocAction('hasProvider', 'signature')` to check
+if a signature help provider exists.
 
 Use |coc-config-signature| to change default signature help behavior.
 
-|CocFloatActive| is used for highlight activated parameter part.
+|CocFloatActive| is used to highlight activated parameter part.
 
 ------------------------------------------------------------------------------
 INLAY HINT 						*coc-inlayHint*
