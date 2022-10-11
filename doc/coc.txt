@@ -738,11 +738,11 @@ Send custom locations request to languageserver:
 ------------------------------------------------------------------------------
 RENAME 							*coc-rename*
 
-Rename feature provide workspace-wide rename of a symbol. Workspace edit
+Rename provides workspace-wide rename of a symbol. Workspace edit
 |coc-workspace-edit| is requested and applied to related buffers when
 confirmed.
 
-Check if current buffer have rename provider by
+Check if current buffer has rename provider with
 `:echo CocAction('hasProvider', 'rename')`
 
 Rename key-mappings:~
@@ -751,19 +751,19 @@ Rename key-mappings:~
 
 Rename functions:~
 
-- |CocAction('rename')| Rename the symbol under the cursor position.
+- |CocAction('rename')| Rename the symbol under the cursor.
 - |CocAction('refactor')| Open refactor buffer for all references (including
   definitions), recommended for function signature refactor.
 
 Rename local variable:~
 
 Use command `:CocCommand document.renameCurrentWord` which uses |coc-cursors|
-for edit multiple locations at the same time and fallback to word extraction
-when rename provider not exists.
+to edit multiple locations at the same time and defaults to word extraction
+when rename provider doesn't exist.
 
 Rename configuration:~
 
-use |coc-preferences-renameFillCurrent| to enable/disable populating prompt
+Use |coc-preferences-renameFillCurrent| to enable/disable populating prompt
 window with current variable name.
 
 ------------------------------------------------------------------------------
