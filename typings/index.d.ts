@@ -6827,6 +6827,10 @@ declare module 'coc.nvim' {
      */
     readonly runtimepath: string
     /**
+     * |virtualText| support in (neo)vim, needs nvim >= 0.5.0 or vim >= 9.0067
+     */
+    readonly virtualText: boolean
+    /**
      * |guicursor| option of (neo)vim
      */
     readonly guicursor: string
