@@ -16,6 +16,7 @@ const logger = require('../../util/logger')('inlayHint-buffer')
 
 export interface InlayHintConfig {
   enable: boolean
+  display: boolean
   filetypes: string[]
   refreshOnInsertMode: boolean
   enableParameter: boolean
@@ -38,7 +39,6 @@ function getHighlightGroup(kind: InlayHintKind): string {
 }
 
 export default class InlayHintBuffer implements SyncItem {
-  private _enabled = true
   private tokenSource: CancellationTokenSource
   private regions = new Regions()
   private config: InlayHintConfig
@@ -63,6 +63,7 @@ export default class InlayHintBuffer implements SyncItem {
     let changed = this.config && this.config.enable != config.enable
     this.config = {
       enable: config.get<boolean>('enable'),
+      display: config.get<boolean>('display', true),
       filetypes: config.get<string[]>('filetypes'),
       refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode'),
       enableParameter: config.get<boolean>('enableParameter'),
@@ -75,7 +76,9 @@ export default class InlayHintBuffer implements SyncItem {
         this.clearCache()
         this.clearVirtualText()
       } else {
-        void this.renderRange()
+        if (this.config.display) {
+         void this.renderRange()
+        }
       }
 
     }
@@ -96,7 +99,7 @@ export default class InlayHintBuffer implements SyncItem {
   }
 
   public get enabled(): boolean {
-    if (!this._enabled) return false
+    if (!this.config.display) return false
     if (!this.configEnabled) return false
     return languages.hasProvider('inlayHint', this.doc.textDocument)
   }
@@ -110,12 +113,12 @@ export default class InlayHintBuffer implements SyncItem {
   public toggle(): void {
     if (!languages.hasProvider('inlayHint', this.doc.textDocument)) throw new Error('Inlay hint provider not found for current document')
     if (!this.configEnabled) throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint configuration`)
-    if (this._enabled) {
-      this._enabled = false
+    if (this.config.display) {
+      this.config.display = false
       this.clearCache()
       this.clearVirtualText()
     } else {
-      this._enabled = true
+      this.config.display = true
       void this.renderRange()
     }
   }
