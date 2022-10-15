@@ -73,6 +73,11 @@ describe('task test', () => {
     task.onStdout(arr => {
       lines.push(...arr)
     })
+    let p = new Promise<void>(resolve => {
+      task.onExit(() => {
+        resolve()
+      })
+    })
     await task.start({
       cmd: '/bin/sh',
       args: [file],
@@ -81,11 +86,7 @@ describe('task test', () => {
         COC_NVIM_TEST: 'yes'
       }
     })
-    await new Promise<void>(resolve => {
-      task.onExit(() => {
-        resolve()
-      })
-    })
+    await p
     expect(lines).toEqual(['production', 'yes'])
     let res = await nvim.call('getenv', 'COC_NVIM_TEST')
     expect(res).toBeNull()

@@ -220,7 +220,9 @@ describe('DynamicFeature', () => {
           return next(cmd, args)
         }
       })
-      await helper.wait(50)
+      await helper.waitValue(() => {
+        return commands.has('test_command')
+      }, true)
       let feature = client.getFeature(ExecuteCommandRequest.method)
       expect(feature).toBeDefined()
       expect(feature.getState().kind).toBe('workspace')

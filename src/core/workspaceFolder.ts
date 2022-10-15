@@ -5,7 +5,9 @@ import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Document from '../model/document'
 import { PatternType } from '../types'
+import events from '../events'
 import { distinct, isFalsyOrEmpty } from '../util/array'
+import { isCancellationError } from '../util/errors'
 import { checkFolder, isParentFolder, resolveRoot } from '../util/fs'
 const logger = require('../util/logger')('core-workspaceFolder')
 
@@ -23,9 +25,17 @@ export default class WorkspaceFolderController {
   // filetype => patterns
   private rootPatterns: Map<string, string[]> = new Map()
   private _workspaceFolders: WorkspaceFolder[] = []
+  private _tokenSources: Set<CancellationTokenSource> = new Set()
   constructor(
     private readonly configurations: Configurations
   ) {
+    events.on('VimLeavePre', this.cancelAll, this)
+  }
+
+  public cancelAll(): void {
+    for (let tokenSource of this._tokenSources) {
+      tokenSource.cancel()
+    }
   }
 
   public setWorkspaceFolders(folders: string[] | undefined): void {
@@ -194,12 +204,14 @@ export default class WorkspaceFolderController {
     let dirs = folders.map(f => URI.parse(f.uri).fsPath)
     let find = false
     let tokenSource = new CancellationTokenSource()
+    this._tokenSources.add(tokenSource)
     let token = tokenSource.token
     let timer = setTimeout(() => {
       tokenSource.cancel()
     }, global.__TEST__ ? 50 : 5000)
     let results = await Promise.allSettled(dirs.map(dir => {
       return this.checkFolder(dir, patterns, token).then(checked => {
+        this._tokenSources.delete(tokenSource)
         if (checked) {
           find = true
           clearTimeout(timer)
@@ -209,8 +221,8 @@ export default class WorkspaceFolderController {
     }))
     clearTimeout(timer)
     results.forEach(res => {
-      if (res.status === 'rejected') {
-        logger.error(`checkPatterns error:`, res.reason)
+      if (res.status === 'rejected' && !isCancellationError(res.reason)) {
+        logger.error(`checkPatterns error:`, patterns, res.reason)
       }
     })
     return find
