@@ -2049,11 +2049,21 @@ coc#util#get_config({key})				*coc#util#get_config()*
 coc#snippet#next() 					*coc#snippet#next()*
 
 	Jump to next placeholder, does nothing when |coc#jumpable| is 0.
+	
+	Required to install `coc-snippets` and put like this in `.vimrc`: >
+	
+	inoremap <silent><expr> <C-j> "\<C-r>=coc#snippet#next()\<CR>"
+	let g:coc_snippet_next = '<c-j>'
 
 coc#snippet#prev() 					*coc#snippet#prev()*
 
 	Jump to previous placeholder, does nothing when |coc#jumpable| is 0.
-
+	
+	Required to install `coc-snippets` and put like this in `.vimrc`: >
+	
+	inoremap <silent><expr> <C-k> "\<C-r>=coc#snippet#prev()\<CR>"
+	let g:coc_snippet_prev = '<c-k>'
+<
 							*coc#pum*
 coc#pum#visible() 					*coc#pum#visible()*
 
