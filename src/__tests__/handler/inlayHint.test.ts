@@ -3,7 +3,7 @@ import { CancellationTokenSource, Disposable, InlayHint, InlayHintKind, Position
 import commands from '../../commands'
 import InlayHintHandler from '../../handler/inlayHint/index'
 import languages from '../../languages'
-import { InlayHintWithProvider, isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
+import { InlayHintWithProvider, isInlayHint, isValidInlayHint, sameHint } from '../../provider/inlayHintManager'
 import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
 import workspace from '../../workspace'
@@ -78,6 +78,13 @@ describe('InlayHint', () => {
       expect(isValidInlayHint(InlayHint.create(Position.create(0, 0), ''), Range.create(0, 0, 1, 0))).toBe(false)
       expect(isValidInlayHint(InlayHint.create(Position.create(3, 0), 'foo'), Range.create(0, 0, 1, 0))).toBe(false)
       expect(isValidInlayHint({ label: 'f' } as any, Range.create(0, 0, 1, 0))).toBe(false)
+    })
+
+    it('should check inlayHint instance', async () => {
+      expect(isInlayHint(null)).toBe(false)
+      let position = Position.create(0, 0)
+      expect(isInlayHint({ position, label: null })).toBe(false)
+      expect(isInlayHint({ position, label: { value: '' } })).toBe(true)
     })
   })
 

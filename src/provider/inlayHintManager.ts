@@ -1,6 +1,6 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, InlayHint, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, InlayHint, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { comparePosition, positionInRange } from '../util/position'
 import { InlayHintsProvider } from './index'
@@ -63,12 +63,18 @@ export function sameHint(one: InlayHint, other: InlayHint): boolean {
   return getLabel(one) === getLabel(other)
 }
 
+export function isInlayHint(obj: any): obj is InlayHint {
+  if (!obj || !Position.is(obj.position) || obj.label == null) return false
+  if (typeof obj.label !== 'string' && typeof obj.label.value !== 'string') return false
+  return true
+}
+
 export function isValidInlayHint(hint: InlayHint, range: Range): boolean {
   if (hint.label.length === 0 || (Array.isArray(hint.label) && hint.label.every(part => part.value.length === 0))) {
     logger.warn('INVALID inlay hint, empty label', hint)
     return false
   }
-  if (!InlayHint.is(hint)) {
+  if (!isInlayHint(hint)) {
     logger.warn('INVALID inlay hint', hint)
     return false
   }

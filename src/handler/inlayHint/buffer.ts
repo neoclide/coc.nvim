@@ -72,15 +72,13 @@ export default class InlayHintBuffer implements SyncItem {
       subSeparator: config.get<string>('subSeparator', ' ')
     }
     if (changed) {
-      if (this.config.enable) {
+      let { enable, display } = this.config
+      if (enable) {
         this.clearCache()
         this.clearVirtualText()
-      } else {
-        if (this.config.display) {
-         void this.renderRange()
-        }
+      } else if (display) {
+        void this.renderRange()
       }
-
     }
   }
 
