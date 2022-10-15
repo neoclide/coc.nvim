@@ -45,10 +45,10 @@ export default class Mappings {
       manager.session?.jumpBack()
     })
     this.addAction('do:previous', async () => {
-      await manager.normal('k')
+      await this.navigate(true)
     })
     this.addAction('do:next', async () => {
-      await manager.normal('j')
+      await this.navigate(false)
     })
     this.addAction('do:defaultaction', async () => {
       await manager.doAction()
@@ -230,17 +230,16 @@ export default class Mappings {
     return res
   }
 
+  private async navigate(up: boolean): Promise<boolean> {
+    let ui = this.manager?.session.ui
+    if (!ui) return false
+    await ui.moveCursor(up ? -1 : 1)
+    return true
+  }
+
   public async doInsertKeymap(key: string): Promise<boolean> {
-    let nextKey = this.config.nextKey
-    let previousKey = this.config.previousKey
-    if (key == nextKey) {
-      this.manager?.session.ui.moveDown()
-      return true
-    }
-    if (key == previousKey) {
-      this.manager?.session.ui.moveUp()
-      return true
-    }
+    if (key === this.config.nextKey) return await this.navigate(false)
+    if (key === this.config.previousKey) return await this.navigate(true)
     let expr = this.userInsertMappings.get(key)
     if (expr) {
       let fn = this.getAction(expr)

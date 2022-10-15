@@ -215,9 +215,9 @@ describe('reversed list', () => {
     await manager.start(['--reverse', 'simple'])
     let ui = manager.session.ui
     await ui.ready
-    ui.moveUp()
+    await ui.moveCursor(-1)
     await helper.waitFor('line', ['.'], 3)
-    ui.moveDown()
+    await ui.moveCursor(1)
     await helper.waitFor('line', ['.'], 4)
   })
 

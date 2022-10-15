@@ -5,7 +5,7 @@ import { CancellationTokenSource, Disposable } from 'vscode-languageserver-proto
 import events from '../events'
 import extensions from '../extension'
 import { IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import window from '../window'
 import ListConfiguration from './configuration'

@@ -1,10 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import manager from '../../list/manager'
 import events from '../../events'
-import { QuickfixItem, IList, ListItem } from '../../types'
-import helper from '../helper'
+import manager from '../../list/manager'
+import { IList, QuickfixItem } from '../../types'
 import { toArray } from '../../util/array'
+import helper from '../helper'
 
 let nvim: Neovim
 const locations: ReadonlyArray<QuickfixItem> = [{
@@ -92,7 +92,7 @@ describe('list', () => {
       await manager.session.ui.ready
       let winnr = await nvim.eval('win_getid()') as number
       await manager.doAction()
-      await helper.wait(100)
+      await helper.wait(50)
       let wins = await nvim.windows
       let ids = wins.map(o => o.id)
       expect(ids).toContain(winnr)
@@ -100,10 +100,11 @@ describe('list', () => {
 
     it('should do default action for first item', async () => {
       await manager.start(['--normal', '--first', 'location'])
-      await helper.wait(300)
-      let name = await nvim.eval('bufname("%")') as string
       let filename = path.basename(__filename)
-      expect(name.includes(filename)).toBe(true)
+      await helper.waitValue(async () => {
+        let name = await nvim.eval('bufname("%")') as string
+        return name.includes(filename)
+      }, true)
       let pos = await nvim.eval('getcurpos()')
       expect(pos[1]).toBe(1)
       expect(pos[2]).toBe(2)
@@ -112,7 +113,7 @@ describe('list', () => {
     it('should goto next & previous', async () => {
       await manager.start(['location'])
       await manager.session?.ui.ready
-      await helper.wait(60)
+      await helper.waitPrompt()
       await manager.doAction()
       await manager.cancel()
       let bufname = await nvim.eval('expand("%:p")')
@@ -120,7 +121,6 @@ describe('list', () => {
       await manager.next()
       let line = await nvim.call('line', '.')
       expect(line).toBe(2)
-      await helper.wait(60)
       await manager.previous()
       line = await nvim.call('line', '.')
       expect(line).toBe(1)
@@ -488,9 +488,9 @@ describe('list', () => {
       await manager.session.ui.ready
       expect(manager.isActivated).toBe(true)
       await nvim.input('bar')
-      await helper.wait(100)
-      let n = manager.session?.ui.length
-      expect(n).toBe(1)
+      await helper.waitValue(() => {
+        return manager.session?.ui.length
+      }, 1)
       let line = await nvim.line
       expect(line).toMatch('Bar')
     })
@@ -505,21 +505,16 @@ describe('list', () => {
     it('should respect number select option', async () => {
       await manager.start(['--number-select', 'location'])
       await manager.session.ui.ready
-      await helper.wait(100)
+      await helper.waitPrompt()
       await nvim.eval('feedkeys("2", "in")')
-      await helper.wait(100)
       let lnum = locations[1].lnum
-      let curr = await nvim.call('line', '.')
-      expect(lnum).toBe(curr)
+      await helper.waitFor('line', ['.'], lnum)
     })
 
     it('should respect tab option', async () => {
       await manager.start(['--tab', '--auto-preview', 'location'])
       await manager.session.ui.ready
-      await helper.wait(100)
-      await nvim.command('wincmd l')
-      let previewwindow = await nvim.eval('w:previewwindow')
-      expect(previewwindow).toBe(1)
+      await helper.waitFor('tabpagenr', ['$'], 2)
     })
   })
 })

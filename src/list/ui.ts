@@ -118,16 +118,6 @@ export default class ListUI {
     this._onDidChangeLine.fire(index)
   }
 
-  public set index(n: number) {
-    if (n < 0 || n >= this.items.length) return
-    let { nvim } = this
-    let lnum = this.indexToLnum(n)
-    nvim.pauseNotification()
-    this.setCursor(lnum)
-    nvim.command('redraw', true)
-    nvim.resumeNotification(false, true)
-  }
-
   public get index(): number {
     return this.currIndex
   }
@@ -448,25 +438,30 @@ export default class ListUI {
     buffer.updateHighlights('list', highlightItems, { start, end: end + 1, priority: 99 })
   }
 
-  public setCursor(lnum: number, col = 0): void {
+  public setCursor(lnum: number, col = 0, index?: number): void {
     let { items } = this
     let max = items.length == 0 ? 1 : items.length
     if (lnum > max) return
     // change index since CursorMoved event not fired (seems bug of neovim)!
-    let idx = this.lnumToIndex(lnum)
-    this.onLineChange(idx)
+    index = index == null ? this.lnumToIndex(lnum) : index
+    this.onLineChange(index)
     this.window?.setCursor([lnum, col], true)
     this.nvim.call('coc#list#select', [this.bufnr, lnum], true)
   }
 
-  public moveUp(): void {
-    let { index, reversed } = this
-    this.index = reversed ? index + 1 : index - 1
+  public async setIndex(index: number): Promise<void> {
+    if (index < 0 || index >= this.items.length) return
+    let { nvim } = this
+    let lnum = this.indexToLnum(index)
+    nvim.pauseNotification()
+    this.setCursor(lnum, 0, index)
+    nvim.command('redraw', true)
+    await nvim.resumeNotification(false)
   }
 
-  public moveDown(): void {
+  public async moveCursor(delta: number): Promise<void> {
     let { index, reversed } = this
-    this.index = reversed ? index - 1 : index + 1
+    await this.setIndex(reversed ? index - delta : index + delta)
   }
 
   private async getSelectedRange(): Promise<[number, number]> {

@@ -269,7 +269,7 @@ export default class ListSession {
     let { ui } = this
     let item = ui.getItem(index)
     if (!item) return
-    ui.index = index
+    await this.ui.setIndex(index)
     await this.doItemAction([item], this.defaultAction)
     await ui.echoMessage(item)
   }
