@@ -28,20 +28,30 @@ export default class ProgressNotification<R> extends Notification {
   private readonly _onDidFinish = new Emitter<R>()
   public readonly onDidFinish: Event<R> = this._onDidFinish.event
   constructor(nvim: Neovim, private option: ProgressOptions<R>) {
+    const buttons = [{ index: 0, text: 'Cancel' }]
     super(nvim, {
       kind: 'progress',
       title: option.title,
-      buttons: option.cancellable ? [{ index: 1, text: 'Cancel' }] : undefined
+      buttons: option.cancellable ? buttons : undefined
     }, false)
     this.disposables.push(this._onDidFinish)
-    events.on('BufWinLeave', bufnr => {
-      if (bufnr == this.bufnr) {
-        if (this.tokenSource) this.tokenSource.cancel()
-        this._onDidFinish.fire(undefined)
-        this._winid = undefined
-        this.dispose()
-      }
-    }, null, this.disposables)
+    events.on('BufWinLeave', this.cancelProgress, null, this.disposables)
+    if (option.cancellable) {
+      events.on('FloatBtnClick', (bufnr, buttonIndex) => {
+        if (buttonIndex == buttons.findIndex(button => button.text == 'Cancel')) {
+          this.cancelProgress(bufnr)
+        }
+      }, null, this.disposables)
+    }
+  }
+
+  private cancelProgress = (bufnr: any) => {
+    if (bufnr == this.bufnr) {
+      if (this.tokenSource) this.tokenSource.cancel()
+      this._onDidFinish.fire(undefined)
+      this._winid = undefined
+      this.dispose()
+    }
   }
 
   public async show(preferences: Partial<NotificationPreferences>): Promise<void> {
