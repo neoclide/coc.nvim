@@ -1023,6 +1023,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     try {
       const result = await connection.initialize(initParams)
       if (result.capabilities.positionEncoding !== undefined && result.capabilities.positionEncoding !== PositionEncodingKind.UTF16) {
+        await connection.shutdown()
+        await connection.exit()
+        connection.end()
+        connection.dispose()
         throw new Error(`Unsupported position encoding (${result.capabilities.positionEncoding}) received from server ${this.name}`)
       }
 
@@ -1086,6 +1090,12 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       if (this._clientOptions.initializationFailedHandler) {
         cb(this._clientOptions.initializationFailedHandler(error))
       } else if (error instanceof ResponseError && error.data && error.data.retry) {
+        if (this._connection) {
+          let connection = this._connection
+          connection.end()
+          this._connection.dispose()
+          this._connection = null
+        }
         void window.showErrorMessage(error.message, { title: 'Retry', id: 'retry' }).then(item => {
           cb(item && item.id === 'retry')
         })

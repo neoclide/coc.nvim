@@ -11,9 +11,15 @@ documents.listen(connection)
 connection.onInitialize((params) => {
   options = params.initializationOptions || {}
   if (options.throwError) {
+    setTimeout(() => {
+      process.exit()
+    }, 10)
     return new ResponseError(1, 'message', {retry: true})
   }
   if (options.normalThrow) {
+    setTimeout(() => {
+      process.exit()
+    }, 10)
     throw new Error('message')
   }
   if (options.utf8) {

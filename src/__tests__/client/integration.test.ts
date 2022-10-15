@@ -485,54 +485,6 @@ describe('Client integration', () => {
     await client.stop()
   })
 
-  it('should handle error on initialize', async () => {
-    async function startServer(handler: InitializationFailedHandler | undefined, key = 'throwError'): Promise<lsclient.LanguageClient> {
-      let clientOptions: lsclient.LanguageClientOptions = {
-        initializationFailedHandler: handler,
-        initializationOptions: {
-          [key]: true
-        }
-      }
-      let serverModule = path.join(__dirname, './server/eventServer.js')
-      let serverOptions: lsclient.ServerOptions = {
-        module: serverModule,
-        transport: lsclient.TransportKind.ipc,
-      }
-      let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-      await client.start()
-      return client
-    }
-    let n = 0
-    try {
-      let client = await startServer(() => {
-        n++
-        return n == 1
-      })
-      await client.stop()
-    } catch (e) {
-      // ignore
-    }
-    try {
-      let client = await startServer(undefined)
-      await client.stop()
-    } catch (e) {
-      // ignore
-    }
-    try {
-      let client = await startServer(undefined, 'normalThrow')
-      await client.stop()
-    } catch (e) {
-      // ignore
-    }
-    try {
-      let client = await startServer(undefined, 'utf8')
-      void client.stop()
-      await client.stop()
-    } catch (e) {
-      // ignore
-    }
-  })
-
   it('should separate diagnostics', async () => {
     async function startServer(disable?: boolean, handleDiagnostics?: (uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void): Promise<lsclient.LanguageClient> {
       let clientOptions: lsclient.LanguageClientOptions = {
@@ -554,15 +506,16 @@ describe('Client integration', () => {
     }
     let client = await startServer()
     await client.sendNotification('diagnostics')
-    await helper.wait(30)
-    let collection = client.diagnostics
-    let res = collection.get('lsptest:/2')
-    expect(res.length).toBe(2)
+    await helper.waitValue(() => {
+      let collection = client.diagnostics
+      let res = collection.get('lsptest:/2')
+      return res.length
+    }, 2)
     await client.stop()
     client = await startServer(true)
     await client.sendNotification('diagnostics')
     await helper.wait(30)
-    collection = client.diagnostics
+    let collection = client.diagnostics
     expect(collection).toBeUndefined()
     await client.stop()
     let called = false
@@ -594,7 +547,6 @@ describe('Client integration', () => {
       res = p
     })
     await client.start()
-    await helper.wait(10)
     await client.sendNotification('edits')
     await helper.wait(50)
     expect(res).toBeDefined()
@@ -622,6 +574,58 @@ describe('Client integration', () => {
     expect(res).toBeDefined()
     expect(res).toEqual({ applied: true })
     await client.stop()
+  })
+
+  it('should handle error on initialize', async () => {
+    let client: lsclient.LanguageClient
+    async function startServer(handler: InitializationFailedHandler | undefined, key = 'throwError'): Promise<lsclient.LanguageClient> {
+      let clientOptions: lsclient.LanguageClientOptions = {
+        initializationFailedHandler: handler,
+        initializationOptions: {
+          [key]: true
+        }
+      }
+      let serverModule = path.join(__dirname, './server/eventServer.js')
+      let serverOptions: lsclient.ServerOptions = {
+        module: serverModule,
+        transport: lsclient.TransportKind.ipc,
+      }
+      client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+      await client.start()
+      return client
+    }
+    let n = 0
+    let fn = async () => {
+      await startServer(() => {
+        n++
+        return n == 1
+      })
+    }
+    await expect(fn()).rejects.toThrow(Error)
+    await helper.waitValue(() => {
+      return n
+    }, 5)
+    fn = async () => {
+      await startServer(undefined, 'normalThrow')
+    }
+    await expect(fn()).rejects.toThrow(Error)
+    fn = async () => {
+      await startServer(undefined, 'utf8')
+    }
+    await expect(fn()).rejects.toThrow(Error)
+    fn = async () => {
+      await client.stop()
+    }
+    await expect(fn()).rejects.toThrow(Error)
+    let spy = jest.spyOn(window, 'showErrorMessage').mockImplementation(() => {
+      return undefined
+    })
+    fn = async () => {
+      await startServer(undefined)
+    }
+    await expect(fn()).rejects.toThrow(Error)
+    spy.mockRestore()
+    await helper.wait(100)
   })
 })
 

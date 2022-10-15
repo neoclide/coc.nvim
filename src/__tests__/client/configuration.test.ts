@@ -68,9 +68,9 @@ describe('pull configuration feature', () => {
       return config
     }
     await client.sendNotification('pull1')
-    await helper.wait(50)
-    expect(config).toBeDefined()
-    expect(config.length).toBe(3)
+    await helper.waitValue(() => {
+      return config?.length
+    }, 3)
     expect(config[1]).toBeNull()
     expect(config[0].proxy).toBeDefined()
     expect(config[2]).toBeNull()

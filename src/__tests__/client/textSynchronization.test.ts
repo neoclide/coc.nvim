@@ -181,8 +181,11 @@ describe('TextDocumentSynchronization', () => {
       await client.sendNotification('registerDocumentSync')
       await nvim.command('edit x.vim')
       let doc = await workspace.document
-      await helper.wait(30)
+
       let feature = client.getFeature(DidChangeTextDocumentNotification.method)
+      await helper.waitValue(() => {
+        return feature.getProvider(doc.textDocument) != null
+      }, true)
       let provider = feature.getProvider(doc.textDocument)
       let changes: TextDocumentContentChange[] = [{
         range: Range.create(0, 0, 0, 0),
@@ -191,6 +194,7 @@ describe('TextDocumentSynchronization', () => {
       await provider.send({ contentChanges: changes, textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr } as any)
       let res = await client.sendRequest('getLastChange') as any
       expect(res.text).toBe('\n')
+      await client.stop()
     })
   })
 
