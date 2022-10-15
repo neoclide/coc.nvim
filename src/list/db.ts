@@ -16,6 +16,7 @@ export class DataBase {
   private folders: string[] = []
   private names: string[] = []
   private items: HistoryItem[] = []
+  private _changed = false
   constructor() {
     try {
       this.load()
@@ -56,10 +57,12 @@ export class DataBase {
     let idx = this.items.findIndex(o => o[0] == text && o[1] == nameIndex && o[2] == folderIndex)
     if (idx != -1) this.items.splice(idx, 1)
     this.items.push([text, nameIndex, folderIndex])
+    this._changed = true
   }
 
   public save(): void {
     let { folders, items, names } = this
+    if (!this._changed) return
     let bufs = folders.reduce((p, folder) => {
       p.push(Buffer.from(folder, 'utf8'), Buffer.alloc(1))
       return p
@@ -81,6 +84,7 @@ export class DataBase {
     }, [] as Buffer[])
     let resultBuf = Buffer.concat([buf, folderBuf, nameBuf, ...bufs])
     fs.writeFileSync(DB_PATH, resultBuf)
+    this._changed = false
   }
 
   public load(): void {

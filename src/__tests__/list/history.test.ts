@@ -38,6 +38,7 @@ describe('History', () => {
 
   it('should filter history', async () => {
     let db = new DataBase()
+    db.save()
     db.addItem('name', 'text', '/a/b')
     let p = { input: '' }
     let history = new History(p, 'name', db, '/a/b')
