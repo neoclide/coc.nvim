@@ -330,12 +330,18 @@ export default class Worker {
       return
     }
     let called = false
-    const onFilter = (items: ListItemWithScore[], finished: boolean, sort?: boolean) => {
-      finished = finished && this._finished
+    let itemsToSort: ListItemWithScore[] = []
+    const onFilter = (items: ListItemWithScore[], done: boolean, sort?: boolean) => {
+      let finished = done && this._finished
       if (token.isCancellationRequested || (!finished && items.length == 0)) return
-      let append = opts.append === true || called
-      called = true
-      this._onDidChangeItems.fire({ items, append, sorted: !sort, reload: opts.reload, finished })
+      if (sort) {
+        itemsToSort.push(...items)
+        if (done) this._onDidChangeItems.fire({ items: itemsToSort, append: false, sorted: false, reload: opts.reload, finished })
+      } else {
+        let append = opts.append === true || called
+        called = true
+        this._onDidChangeItems.fire({ items, append, sorted: true, reload: opts.reload, finished })
+      }
     }
     switch (this.listOptions.matcher) {
       case 'strict':
