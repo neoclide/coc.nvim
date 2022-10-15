@@ -120,8 +120,9 @@ describe('fs', () => {
 
   describe('renameAsync()', () => {
     it('should rename file', async () => {
-      let filepath = path.join(os.tmpdir(), 'foo')
-      await writeFile(filepath, 'foo')
+      let id = uuid()
+      let filepath = path.join(os.tmpdir(), id)
+      await writeFile(filepath, id)
       let dest = path.join(os.tmpdir(), 'bar')
       await renameAsync(filepath, dest)
       let exists = fs.existsSync(dest)
@@ -305,5 +306,4 @@ describe('fs', () => {
       expect(filepath).toMatch('coc.nvim')
     })
   })
-
 })

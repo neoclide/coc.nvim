@@ -47,7 +47,7 @@ afterEach(async () => {
 describe('window', () => {
   describe('functions', () => {
     it('should get tab number', async () => {
-      expect(window.getTabNumber(33)).toBeUndefined()
+      expect(window.getTabNumber(2 << 5)).toBeUndefined()
     })
 
     it('should formatMessage', async () => {

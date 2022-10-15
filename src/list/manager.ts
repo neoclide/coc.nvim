@@ -79,12 +79,8 @@ export class ListManager implements Disposable {
         debounced.clear()
       }
     })
-    // filter history on input
     this.prompt.onDidChangeInput(() => {
-      let { session } = this
-      if (!session) return
-      session.onInputChange()
-      session.history.filter()
+      this.session?.onInputChange()
     })
     this.registerList(new LinksList(nvim))
     this.registerList(new LocationList(nvim))

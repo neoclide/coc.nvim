@@ -92,6 +92,7 @@ export default class Worker {
       } else {
         filtered = this.convertToHighlightItems(items)
         this._onDidChangeItems.fire({
+          sorted: true,
           items: filtered,
           reload,
           finished: true
@@ -123,7 +124,7 @@ export default class Worker {
             }
           } else {
             let items = this.convertToHighlightItems(remain)
-            this._onDidChangeItems.fire({ items, append, reload, finished })
+            this._onDidChangeItems.fire({ items, append, reload, sorted: true, finished })
           }
         })
         filtering = false
@@ -148,7 +149,7 @@ export default class Worker {
         promise.then(() => {
           if (token.isCancellationRequested) return
           if (totalItems.length == 0) {
-            this._onDidChangeItems.fire({ items: [], append: false, reload, finished: true })
+            this._onDidChangeItems.fire({ items: [], append: false, sorted: true, reload, finished: true })
             return
           }
           return _onData(true)
@@ -325,23 +326,16 @@ export default class Worker {
       let items = arr.map(item => {
         return this.convertItemLabel(item)
       })
-      this._onDidChangeItems.fire({ items, finished: this._finished, ...opts })
+      this._onDidChangeItems.fire({ items, sorted: true, finished: this._finished, ...opts })
       return
     }
     let called = false
     const onFilter = (items: ListItemWithScore[], finished: boolean, sort?: boolean) => {
       finished = finished && this._finished
       if (token.isCancellationRequested || (!finished && items.length == 0)) return
-      if (sort) {
-        items.sort((a, b) => {
-          if (a.score != b.score) return b.score - a.score
-          if (a.sortText > b.sortText) return 1
-          return -1
-        })
-      }
       let append = opts.append === true || called
       called = true
-      this._onDidChangeItems.fire({ items, append, reload: opts.reload, finished })
+      this._onDidChangeItems.fire({ items, append, sorted: !sort, reload: opts.reload, finished })
     }
     switch (this.listOptions.matcher) {
       case 'strict':

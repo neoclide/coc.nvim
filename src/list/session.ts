@@ -92,23 +92,11 @@ export default class ListSession {
         await this.doAction()
       }
     }, null, this.disposables)
-    this.ui.onDidClose(async () => {
-      await this.hide()
-    }, null, this.disposables)
-    this.ui.onDidDoubleClick(async () => {
-      await this.doAction()
-    }, null, this.disposables)
-    this.worker.onDidChangeItems(async ({ items, reload, append, finished }) => {
+    this.ui.onDidClose(this.hide as any, this, this.disposables)
+    this.ui.onDidDoubleClick(this.doAction as any, this, this.disposables)
+    this.worker.onDidChangeItems(ev => {
       if (this.hidden) return
-      if (append) {
-        await this.ui.appendItems(items)
-      } else {
-        let height = this.config.get<number>('height', 10)
-        if (finished && !listOptions.interactive && listOptions.input.length == 0) {
-          height = Math.min(items.length, height)
-        }
-        await this.ui.drawItems(items, Math.max(1, height), reload)
-      }
+      this.ui.onDidChangeItems(ev)
     }, null, this.disposables)
     let start = 0
     let timer: NodeJS.Timeout
@@ -566,6 +554,8 @@ export default class ListSession {
 
   public onInputChange(): void {
     if (this.timer) clearTimeout(this.timer)
+    this.ui?.cancel()
+    this.history.filter()
     this.listOptions.input = this.prompt.input
     // reload or filter items
     if (this.listOptions.interactive) {

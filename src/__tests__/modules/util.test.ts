@@ -20,6 +20,7 @@ import * as fzy from '../../util/fzy'
 import * as Is from '../../util/is'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
+import { Sequence } from '../../util/sequence'
 import * as objects from '../../util/object'
 import * as positions from '../../util/position'
 import { terminate } from '../../util/processes'
@@ -927,6 +928,43 @@ describe('Mutex', () => {
     }
     expect(err).toBeDefined()
     expect(mutex.busy).toBe(false)
+  })
+})
+
+describe('Sequence', () => {
+  it('should run sequence', async () => {
+    let s = new Sequence()
+    let res: number[] = []
+    s.run(async () => {
+      await helper.wait(3)
+      res.push(0)
+    })
+    s.run(async () => {
+      await helper.wait(2)
+      res.push(1)
+    })
+    s.run(async () => {
+      await helper.wait(1)
+      res.push(2)
+    })
+    await s.waitFinish()
+    expect(res).toEqual([0, 1, 2])
+  })
+
+  it('should cancel sequence', async () => {
+    let s = new Sequence()
+    let res: number[] = []
+    s.run(async () => {
+      await helper.wait(10)
+      res.push(0)
+    })
+    s.run(async () => {
+      await helper.wait(20)
+      res.push(1)
+    })
+    s.cancel()
+    await s.waitFinish()
+    expect(res).toEqual([])
   })
 })
 

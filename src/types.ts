@@ -1099,8 +1099,9 @@ export interface AnsiHighlight {
 }
 
 export interface ListItemsEvent {
-  items: ListItem[]
+  items: ListItemWithScore[]
   finished: boolean
+  sorted: boolean
   append?: boolean
   reload?: boolean
 }

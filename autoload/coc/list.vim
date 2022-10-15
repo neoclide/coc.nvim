@@ -102,7 +102,7 @@ function! coc#list#setup(source)
 endfunction
 
 function! coc#list#select(bufnr, line) abort
-  if bufloaded(a:bufnr)
+  if !empty(a:bufnr) && bufloaded(a:bufnr)
     call sign_unplace(s:sign_group, { 'buffer': a:bufnr })
     if a:line > 0
       call sign_place(6, s:sign_group, 'CocListCurrent', a:bufnr, {'lnum': a:line})
