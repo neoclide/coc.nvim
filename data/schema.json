@@ -1141,6 +1141,12 @@
       "default": true,
       "description": "Enable inlay hints for parameters."
     },
+    "inlayHint.display": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "default": true,
+      "description": "Display inlay hints."
+    },
     "inlayHint.filetypes": {
       "type": ["array", "null"],
       "scope": "application",
