@@ -46,11 +46,8 @@ export default class ProgressNotification<R> extends Notification {
   }
 
   private cancelProgress = (bufnr: any) => {
-    if (bufnr == this.bufnr) {
-      if (this.tokenSource) this.tokenSource.cancel()
-      this._onDidFinish.fire(undefined)
-      this._winid = undefined
-      this.dispose()
+    if (bufnr == this.bufnr && this.tokenSource) {
+      this.tokenSource.cancel()
     }
   }
 
