@@ -493,7 +493,6 @@ function! coc#util#get_bufoptions(bufnr, max) abort
         \ 'buftype': buftype,
         \ 'previewwindow': v:false,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
-        \ 'indentkeys': coc#util#get_indentkeys(),
         \ 'variables': coc#util#variables(a:bufnr),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
@@ -587,7 +586,6 @@ function! coc#util#get_complete_option()
         \ 'changedtick': b:changedtick,
         \ 'blacklist': get(b:, 'coc_suggest_blacklist', []),
         \ 'disabled': get(b:, 'coc_disabled_sources', []),
-        \ 'indentkeys': coc#util#get_indentkeys()
         \}
 endfunction
 

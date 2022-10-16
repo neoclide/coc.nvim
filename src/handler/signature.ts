@@ -68,7 +68,7 @@ export default class Signature {
     }, null, this.disposables)
   }
 
-  private checkCurosr(bufnr: number, cursor: [number, number, string]): void {
+  private checkCurosr(bufnr: number, cursor: [number, number]): void {
     let pos = this.lastPosition
     let floatFactory = this.signatureFactory
     if (!pos || bufnr !== pos.bufnr || floatFactory.window == null) return

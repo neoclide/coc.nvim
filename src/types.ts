@@ -92,7 +92,6 @@ export interface BufferOption {
   readonly iskeyword: string
   readonly changedtick: number
   readonly previewwindow: number
-  readonly indentkeys: string
 }
 
 export interface HandlerDelegate {
@@ -763,7 +762,6 @@ export interface CompleteOption {
   readonly linenr: number
   readonly source?: string
   readonly changedtick: number
-  readonly indentkeys: string
   readonly triggerCharacter?: string
   triggerForInComplete?: boolean
 }

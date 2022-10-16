@@ -10,6 +10,8 @@ let s:virtual_text_ns = coc#highlight#create_namespace('pum-virtual')
 let s:ignore = s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
 let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
 let s:virtual_text_support = has('nvim-0.5.0') || has('patch-9.0.0067')
+" bufnr, &indentkeys
+let s:saved_indenetkeys = []
 let s:prop_id = 0
 let s:reversed = 0
 let s:check_hl_group = 0
@@ -43,24 +45,26 @@ endfunction
 
 function! coc#pum#close(...) abort
   if coc#float#valid(s:pum_winid)
-    if get(a:, 1, '') ==# 'cancel'
+    let kind = get(a:, 1, '')
+    if kind ==# 'cancel'
       let input = getwinvar(s:pum_winid, 'input', '')
       let s:pum_index = -1
       call s:insert_word(input)
       call s:on_pum_change(0)
       doautocmd <nomodeline> TextChangedI
-    elseif get(a:, 1, '') ==# 'confirm'
+    elseif kind ==# 'confirm'
       let words = getwinvar(s:pum_winid, 'words', [])
       if s:pum_index >= 0
         let word = get(words, s:pum_index, '')
         call s:insert_word(word)
+        call s:restore_indentkeys()
       endif
       doautocmd <nomodeline> TextChangedI
     endif
     call s:close_pum()
     if !get(a:, 2, 0)
-      let pretext = strpart(getline('.'), 0, col('.') - 1)
-      call coc#rpc#notify('CompleteStop', [get(a:, 1, ''), pretext])
+      " vim possible have unexpected text inserted without timer.
+      call timer_start(1, { -> coc#rpc#notify('CompleteStop', [kind])})
     endif
   endif
 endfunction
@@ -93,11 +97,11 @@ function! s:insert_current() abort
       let words = getwinvar(s:pum_winid, 'words', [])
       let word = get(words, s:pum_index, '')
       call s:insert_word(word)
+      call s:restore_indentkeys()
     endif
     doautocmd <nomodeline> TextChangedI
     call s:close_pum()
-    let pretext = strpart(getline('.'), 0, col('.') - 1)
-    call coc#rpc#notify('CompleteStop', ['', pretext])
+    call coc#rpc#notify('CompleteStop', [''])
   endif
 endfunction
 
@@ -110,30 +114,38 @@ function! s:close_pum() abort
   if winid
     call coc#float#close(winid, 1)
   endif
+  call s:restore_indentkeys()
+endfunction
+
+function! s:restore_indentkeys() abort
+  if get(s:saved_indenetkeys, 0, 0) == bufnr('%')
+    execute 'setl indentkeys='.get(s:saved_indenetkeys, 1, '')
+    let s:saved_indenetkeys = []
+  endif
 endfunction
 
 function! coc#pum#next(insert) abort
-  call timer_start(10, { -> s:navigate(1, a:insert)})
+  call timer_start(1, { -> s:navigate(1, a:insert)})
   return s:ignore
 endfunction
 
 function! coc#pum#prev(insert) abort
-  call timer_start(10, { -> s:navigate(0, a:insert)})
+  call timer_start(1, { -> s:navigate(0, a:insert)})
   return s:ignore
 endfunction
 
 function! coc#pum#stop() abort
-  call timer_start(10, { -> coc#pum#close()})
+  call timer_start(1, { -> coc#pum#close()})
   return s:ignore
 endfunction
 
 function! coc#pum#cancel() abort
-  call timer_start(10, { -> coc#pum#close('cancel')})
+  call timer_start(1, { -> coc#pum#close('cancel')})
   return s:ignore
 endfunction
 
 function! coc#pum#confirm() abort
-  call timer_start(10, { -> coc#pum#close('confirm')})
+  call timer_start(1, { -> coc#pum#close('confirm')})
   return s:ignore
 endfunction
 
@@ -295,9 +307,6 @@ function! s:insert_word(word) abort
   let parts = getwinvar(s:pum_winid, 'parts', [])
   if !empty(parts) && mode() ==# 'i'
     let curr = getline('.')
-    if curr ==# parts[0].a:word.parts[1]
-      return
-    endif
     let saved_completeopt = &completeopt
     if saved_completeopt =~ 'menuone'
       noa set completeopt=menu
@@ -385,6 +394,11 @@ function! coc#pum#create(lines, opt, config) abort
     endif
   endif
   call s:on_pum_change(0)
+  let bufnr = bufnr('%')
+  if !empty(&indentexpr) && get(s:saved_indenetkeys, 0, 0) != bufnr
+    let s:saved_indenetkeys = [bufnr, &indentkeys]
+    execute 'setl indentkeys='
+  endif
 endfunction
 
 function! s:get_firstline(lnum, total, height) abort

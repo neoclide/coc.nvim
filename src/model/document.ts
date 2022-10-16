@@ -45,7 +45,6 @@ export default class Document {
   private _filetype: string
   private _bufname: string
   private _uri: string
-  private _indentkeys: string
   private _changedtick: number
   private variables: { [key: string]: VimValue }
   private disposables: Disposable[] = []
@@ -180,10 +179,6 @@ export default class Document {
     return this._winid
   }
 
-  public get indentkeys(): string {
-    return this._indentkeys
-  }
-
   /**
    * Returns if current document is opended with previewwindow
    *
@@ -198,7 +193,6 @@ export default class Document {
    */
   private init(opts: BufferOption): void {
     let buftype = this.buftype = opts.buftype
-    this._indentkeys = opts.indentkeys
     this._bufname = opts.bufname
     this._previewwindow = !!opts.previewwindow
     this._winid = opts.winid

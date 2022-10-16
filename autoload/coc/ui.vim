@@ -6,20 +6,22 @@ let s:sign_groups = []
 let s:outline_preview_bufnr = 0
 
 " Check <Tab> and <CR>
-function! coc#ui#check_pum_keymappings() abort
-  for key in ['<cr>', '<tab>', '<c-y>', '<s-tab>']
-    let arg = maparg(key, 'i', 0, 1)
-    if get(arg, 'expr', 0)
-      let rhs = get(arg, 'rhs', '')
-      if rhs =~# '\<pumvisible()' && rhs !~# '\<coc#pum#visible()'
-        let rhs = substitute(rhs, '\Cpumvisible()', 'coc#pum#visible()', 'g')
-        let rhs = substitute(rhs, '\c"\\<C-n>"', 'coc#pum#next(1)', '')
-        let rhs = substitute(rhs, '\c"\\<C-p>"', 'coc#pum#prev(1)', '')
-        let rhs = substitute(rhs, '\c"\\<C-y>"', 'coc#pum#confirm()', '')
-        execute 'inoremap <silent><nowait><expr> '.arg['lhs'].' '.rhs
+function! coc#ui#check_pum_keymappings(trigger) abort
+  if a:trigger !=# 'none'
+    for key in ['<cr>', '<tab>', '<c-y>', '<s-tab>']
+      let arg = maparg(key, 'i', 0, 1)
+      if get(arg, 'expr', 0)
+        let rhs = get(arg, 'rhs', '')
+        if rhs =~# '\<pumvisible()' && rhs !~# '\<coc#pum#visible()'
+          let rhs = substitute(rhs, '\Cpumvisible()', 'coc#pum#visible()', 'g')
+          let rhs = substitute(rhs, '\c"\\<C-n>"', 'coc#pum#next(1)', '')
+          let rhs = substitute(rhs, '\c"\\<C-p>"', 'coc#pum#prev(1)', '')
+          let rhs = substitute(rhs, '\c"\\<C-y>"', 'coc#pum#confirm()', '')
+          execute 'inoremap <silent><nowait><expr> '.arg['lhs'].' '.rhs
+        endif
       endif
-    endif
-  endfor
+    endfor
+  endif
 endfunction
 
 function! coc#ui#quickpick(title, items, cb) abort

@@ -7,6 +7,7 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, ExtendedCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
 import { disposeAll } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -14,7 +15,7 @@ import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
 import MruLoader from './mru'
 import PopupMenu, { PopupMenuConfig } from './pum'
-import { checkIgnoreRegexps, createKindMap, getInput, getPrependWord as getAppendWord, getResumeInput, getSources, indentChanged, shouldIndent, shouldStop, toCompleteDoneItem } from './util'
+import { checkIgnoreRegexps, createKindMap, getInput, getPrependWord as getAppendWord, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -47,34 +48,13 @@ export class Completion implements Disposable {
     this.mru = new MruLoader()
     this.pum = new PopupMenu(this.nvim, this.staticConfig, workspace.env, this.mru)
     this.floating = new Floating(workspace.nvim, this.staticConfig)
-    if (this.config.autoTrigger !== 'none') {
-      workspace.nvim.call('coc#ui#check_pum_keymappings', [], true)
-    }
-    events.on('CursorMovedI', (bufnr, cursor, hasInsert) => {
-      if (this.triggerTimer) clearTimeout(this.triggerTimer)
-      if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
-      if (this.option.linenr === cursor[0]) {
-        if (cursor[1] == this.option.colnr && cursor[1] === byteLength(this.pretext ?? '') + 1) {
-          return
-        }
-        let line = cursor[2]
-        let curr = characterIndex(line, cursor[1] - 1)
-        let start = characterIndex(line, this.option.col)
-        if (start < curr) {
-          let text = line.substring(start, curr)
-          if (this.selectedItem && text === this.selectedItem.word) return
-          if (!this.inserted && text == this.complete?.input) return
-          // TODO retrigger when input moved left or right
-        }
-        if (indentChanged(this.popupEvent, cursor, this.option.line)) return
-      }
-      this.stop(true)
-    }, null, this.disposables)
+    workspace.nvim.call('coc#ui#check_pum_keymappings', [this.config.autoTrigger], true)
+    events.on('CursorMovedI', this.onCursorMovedI, this, this.disposables)
     events.on('InsertLeave', () => {
       this.stop(true)
     }, null, this.disposables)
-    events.on('CompleteStop', (kind, pretext) => {
-      this.stop(false, kind, pretext)
+    events.on('CompleteStop', kind => {
+      this.stop(false, kind)
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
@@ -87,6 +67,32 @@ export class Completion implements Disposable {
       if (!item || (!ev.move && this.complete?.isCompleting)) return
       await this.floating.resolveItem(item, this.option)
     }, null, this.disposables)
+  }
+
+  public onCursorMovedI(bufnr: number, cursor: [number, number], hasInsert: boolean): void {
+    clearTimeout(this.triggerTimer)
+    if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
+    let { linenr, colnr, col } = this.option
+    if (linenr === cursor[0]) {
+      if (cursor[1] == colnr && cursor[1] === byteLength(this.pretext ?? '') + 1) {
+        return
+      }
+      let line = this.document.getline(cursor[0] - 1)
+      if (line.match(/^\s*/)[0] !== this.option.line.match(/^\s*/)[0]) {
+        return
+      }
+      let curr = characterIndex(line, cursor[1] - 1)
+      let start = characterIndex(line, col)
+      if (start < curr) {
+        let text = line.substring(start, curr)
+        if ((this.selectedItem && text === this.selectedItem.word)
+          || (!this.inserted && text == this.complete?.input)
+        ) {
+          return
+        }
+      }
+    }
+    this.stop(true)
   }
 
   public get option(): CompleteOption {
@@ -102,7 +108,7 @@ export class Completion implements Disposable {
     return this.popupEvent != null && this.popupEvent.inserted
   }
 
-  private get document(): Document | null {
+  public get document(): Document | null {
     if (!this.option) return null
     return workspace.getDocument(this.option.bufnr)
   }
@@ -172,7 +178,7 @@ export class Completion implements Disposable {
     this.stop(true)
     this.pretext = byteSlice(option.line, 0, option.colnr - 1)
     sourceList = sourceList ?? getSources(option)
-    if (!sourceList || sourceList.length === 0) return
+    if (isFalsyOrEmpty(sourceList)) return
     let complete = this.complete = new Complete(
       option,
       doc,
@@ -182,9 +188,7 @@ export class Completion implements Disposable {
     this._activated = true
     events.completing = true
     complete.onDidRefresh(async () => {
-      if (this.triggerTimer != null) {
-        clearTimeout(this.triggerTimer)
-      }
+      clearTimeout(this.triggerTimer)
       if (complete.isEmpty) {
         this.stop(false)
         return
@@ -203,35 +207,40 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
-    if (!workspace.isAttached(bufnr)) return
-    const { option } = this
     const doc = workspace.getDocument(bufnr)
-    // detect item word insert
-    if (!info.insertChar && option) {
-      let pre = byteSlice(option.line, 0, option.col)
-      if (this.selectedItem) {
-        if (pre + this.popupEvent.word == info.pre) {
-          this.pretext = info.pre
+    if (!doc.attached) return
+    const { option } = this
+    if (option != null) {
+      // detect item word insert
+      if (!info.insertChar) {
+        let pre = byteSlice(option.line, 0, option.col)
+        if (this.selectedItem) {
+          if (pre + this.popupEvent.word == info.pre) {
+            this.pretext = info.pre
+            return
+          }
+        } else if (pre + this.pum.search == info.pre) {
           return
         }
-      } else if (pre + this.pum.search == info.pre) {
+      }
+      // retrigger after indent
+      if (info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
+        await this.triggerCompletion(doc, info)
         return
       }
-    }
-    // retrigger after indent
-    if (option && info.pre.match(/^\s*/)[0] !== option.line.match(/^\s*/)[0]) {
-      await this.triggerCompletion(doc, info)
-      return
-    }
-    if (option && shouldStop(bufnr, this.pretext, info, option)) {
-      this.stop(true)
-      if (!info.insertChar) return
+      if (shouldStop(bufnr, this.pretext, info, option)) {
+        this.stop(true)
+      }
     }
     if (info.pre === this.pretext) return
     clearTimeout(this.triggerTimer)
     let pretext = this.pretext = info.pre
+    if (!info.insertChar) {
+      if (this.complete) await this.filterResults()
+      return
+    }
     // check commit
-    if (info.insertChar && this.config.acceptSuggestionOnCommitCharacter && this.selectedItem) {
+    if (this.config.acceptSuggestionOnCommitCharacter && this.selectedItem) {
       let last = pretext.slice(-1)
       let resolvedItem = this.selectedItem
       if (sources.shouldCommit(resolvedItem, last)) {
@@ -248,7 +257,7 @@ export class Completion implements Disposable {
       }
     }
     // trigger character
-    if (info.insertChar && !isWord(info.insertChar)) {
+    if (!isWord(info.insertChar)) {
       let disabled = doc.getVar('disabled_sources', [])
       let triggerSources = sources.getTriggerSources(pretext, doc.filetype, doc.uri, disabled)
       if (triggerSources.length > 0) {
@@ -258,11 +267,10 @@ export class Completion implements Disposable {
     }
     // trigger by normal character
     if (!this.complete) {
-      if (!info.insertChar) return
       await this.triggerCompletion(doc, info)
       return
     }
-    if (info.insertChar && this.complete.isEmpty) {
+    if (this.complete.isEmpty) {
       // triggering without results
       this.triggerTimer = setTimeout(async () => {
         await this.triggerCompletion(doc, info)
@@ -293,7 +301,6 @@ export class Completion implements Disposable {
       bufnr: doc.bufnr,
       word: input + getAppendWord(doc, info.line.slice(pre.length)),
       changedtick: info.changedtick,
-      indentkeys: doc.indentkeys,
       synname: '',
       filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',
       triggerCharacter: pre.length ? pre.slice(-1) : undefined
@@ -307,29 +314,22 @@ export class Completion implements Disposable {
     return true
   }
 
-  public stop(close: boolean, kind: 'cancel' | 'confirm' | '' = '', pretext?: string): void {
+  public stop(close: boolean, kind: 'cancel' | 'confirm' | '' = ''): void {
     if (!this._activated) return
     let inserted = kind === 'confirm' || (this.popupEvent?.inserted && kind != 'cancel')
     this._activated = false
-    pretext = pretext ?? this.pretext
     let doc = this.document
     let input = this.complete.input
     let option = this.complete.option
     let item = this.selectedItem
     events.completing = false
     this.cancel()
-    let indent = false
     void events.fire('CompleteDone', [toCompleteDoneItem(item)])
-    if (item && inserted) {
-      this.mru.add(input, item)
-      indent = pretext && shouldIndent(option.indentkeys, pretext)
-    }
+    if (item && inserted) this.mru.add(input, item)
     if (close) this.nvim.call('coc#pum#_close', [], true)
     doc._forceSync()
     if (kind == 'confirm' && item) {
-      void this.confirmCompletion(item, option).then(() => {
-        if (indent) this.nvim.call('coc#complete_indent', [], true)
-      })
+      void this.confirmCompletion(item, option)
     }
   }
 
@@ -370,7 +370,7 @@ export class Completion implements Disposable {
     }
     let items = await complete.filterResults(search)
     // cancelled
-    if (items === undefined) return
+    if (items === undefined || this.inserted) return
     if (items.length == 0 || !this.option) {
       if (!complete.isCompleting) this.stop(true)
       return
