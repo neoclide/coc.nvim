@@ -21,7 +21,7 @@ jobs:
           - "16"
           - "14"
         nvim:
-          - "0.7.0"
+          - "0.7.2"
         include:
           # only enable coverage on the fastest job
           - node: "16"
