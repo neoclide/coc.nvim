@@ -86,8 +86,9 @@ describe('publish configuration feature', () => {
       changed = params
     })
     await client.start()
-    await helper.wait(50)
-    expect(changed).toBeDefined()
+    await helper.waitValue(() => {
+      return changed != null
+    }, true)
     expect(changed).toEqual({ settings: {} })
     await client.stop()
   })

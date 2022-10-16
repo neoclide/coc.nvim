@@ -5,7 +5,7 @@ import sources from '../sources'
 import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem } from '../types'
 import { byteLength } from '../util/string'
 import MruLoader, { Selection } from './mru'
-import { getFollowPart, getKindText, getValidWord, highlightOffert } from './util'
+import { getKindText, getValidWord, highlightOffert } from './util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('completion-pum')
 
@@ -141,7 +141,7 @@ export default class PopupMenu {
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
     let { noselect, enablePreselect, selection, virtualText, kindMap, defaultKindText } = this.config
-    let followPart = getFollowPart(option)
+    let followWord = option.followWord
     let selectedIndex = enablePreselect ? items.findIndex(o => o.preselect) : -1
     let maxMru = -1
     let abbrWidth = 0
@@ -190,7 +190,7 @@ export default class PopupMenu {
       line: option.linenr,
       col: option.col,
       virtualText,
-      words: items.map(o => this.getInsertWord(o, search, followPart))
+      words: items.map(o => this.getInsertWord(o, search, followWord))
     }
     let pumConfig = this.pumConfig
     let lines: string[] = []

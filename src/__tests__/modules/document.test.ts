@@ -145,6 +145,14 @@ describe('Document', () => {
       expect(opt).toBe('a-z,A-Z,48-57,_')
     })
 
+    it('should get start word', async () => {
+      let doc = await workspace.document
+      expect(doc.getStartWord('abc def')).toBe('abc')
+      expect(doc.getStartWord('x')).toBe('x')
+      expect(doc.getStartWord(' ')).toBe('')
+      expect(doc.getStartWord('')).toBe('')
+    })
+
     it('should get word range', async () => {
       let doc = await workspace.document
       await nvim.setLine('foo bar')

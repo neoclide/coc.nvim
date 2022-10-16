@@ -412,6 +412,14 @@ export default class Document {
     return this.chars.isKeyword(word)
   }
 
+  public getStartWord(text: string): string {
+    let i = 0
+    for (; i < text.length; i++) {
+      if (!this.chars.isKeywordChar(text[i])) break
+    }
+    return text.slice(0, i)
+  }
+
   public async matchWords(token: CancellationToken): Promise<Set<string> | undefined> {
     return await this.chars.matchLines(this.textDocument.lines, 2, token)
   }

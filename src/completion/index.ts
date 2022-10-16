@@ -15,7 +15,7 @@ import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
 import MruLoader from './mru'
 import PopupMenu, { PopupMenuConfig } from './pum'
-import { checkIgnoreRegexps, createKindMap, getInput, getPrependWord as getAppendWord, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
+import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -290,16 +290,18 @@ export class Completion implements Disposable {
       if (!shouldTrigger) return false
     }
     let input = getInput(doc, pre, asciiCharactersOnly)
+    let followWord = doc.getStartWord(info.line.slice(info.pre.length))
     let option: CompleteOption = {
       input,
       position: Position.create(info.lnum - 1, info.pre.length),
       line: info.line,
+      followWord,
       filetype: doc.filetype,
       linenr: info.lnum,
       col: info.col - 1 - byteLength(input),
       colnr: info.col,
       bufnr: doc.bufnr,
-      word: input + getAppendWord(doc, info.line.slice(pre.length)),
+      word: input + followWord,
       changedtick: info.changedtick,
       synname: '',
       filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',

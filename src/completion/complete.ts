@@ -9,7 +9,6 @@ import { isFalsyOrEmpty } from '../util/array'
 import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex } from '../util/string'
 import { matchScoreWithPositions } from './match'
-import { getFollowPart } from './util'
 import { WordDistance } from './wordDistance'
 const logger = require('../util/logger')('completion-complete')
 const MAX_DISTANCE = 2 << 20
@@ -231,8 +230,8 @@ export default class Complete {
     let token = this.tokenSource.token
     await document.patchChange(true)
     if (token.isCancellationRequested) return undefined
-    let { input, colnr, linenr, position } = this.option
-    let word = resumeInput + getFollowPart(this.option)
+    let { input, colnr, linenr, followWord, position } = this.option
+    let word = resumeInput + followWord
     Object.assign(this.option, {
       word,
       input: resumeInput,

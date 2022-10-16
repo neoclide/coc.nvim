@@ -756,6 +756,7 @@ export interface CompleteOption {
   filetype: string
   readonly filepath: string
   readonly word: string
+  readonly followWord: string
   // cursor position
   colnr: number
   synname?: string

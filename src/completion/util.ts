@@ -95,14 +95,6 @@ export function shouldStop(bufnr: number, pretext: string, info: InsertChange, o
   return false
 }
 
-export function getFollowPart(option: CompleteOption): string {
-  let { colnr, line } = option
-  let idx = characterIndex(line, colnr - 1)
-  if (idx == line.length) return ''
-  let part = line.slice(idx - line.length)
-  return part.match(/^\S?[\w-]*/)[0]
-}
-
 export function getInput(document: Document, pre: string, asciiCharactersOnly: boolean): string {
   let len = 0
   for (let i = pre.length - 1; i >= 0; i--) {
@@ -121,18 +113,6 @@ export function getSources(option: CompleteOption): ISource[] {
   let { source } = option
   if (source) return toArray(sources.getSource(source))
   return sources.getCompleteSources(option)
-}
-
-export function getPrependWord(document: Document, remain: string): string {
-  let idx = 0
-  for (let i = 0; i < remain.length; i++) {
-    if (document.isWord(remain[i])) {
-      idx = i + 1
-    } else {
-      break
-    }
-  }
-  return idx == 0 ? '' : remain.slice(0, idx)
 }
 
 export function shouldIndent(indentkeys: string, pretext: string): boolean {

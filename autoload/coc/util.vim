@@ -572,8 +572,11 @@ function! coc#util#get_complete_option()
       \ 'line': line('.')-1,
       \ 'character': strchars(strpart(getline('.'), 0, col('.') - 1))
       \ }
+  let word = matchstr(strpart(line, col - 1), '^\k\+')
+  let followWord = len(word) > 0 ? strcharpart(word, strchars(input)) : ''
   return {
-        \ 'word': matchstr(strpart(line, col - 1), '^\k\+'),
+        \ 'word': word,
+        \ 'followWord': followWord,
         \ 'position': position,
         \ 'input': empty(input) ? '' : input,
         \ 'line': line,
