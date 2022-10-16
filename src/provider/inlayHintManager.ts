@@ -65,7 +65,7 @@ export function sameHint(one: InlayHint, other: InlayHint): boolean {
 
 export function isInlayHint(obj: any): obj is InlayHint {
   if (!obj || !Position.is(obj.position) || obj.label == null) return false
-  if (typeof obj.label !== 'string' && typeof obj.label.value !== 'string') return false
+  if (typeof obj.label !== 'string') return Array.isArray(obj.label) && obj.label.every(p => typeof p.value === 'string')
   return true
 }
 
