@@ -84,7 +84,7 @@ describe('InlayHint', () => {
       expect(isInlayHint(null)).toBe(false)
       let position = Position.create(0, 0)
       expect(isInlayHint({ position, label: null })).toBe(false)
-      expect(isInlayHint({ position, label: { value: '' } })).toBe(true)
+      expect(isInlayHint({ position, label: [{ value: '' }] })).toBe(true)
     })
   })
 
