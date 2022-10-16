@@ -762,17 +762,14 @@ describe('completion', () => {
 
   describe('CompleteDone', () => {
     it('should fix word on CompleteDone', async () => {
-      await create(['fball', 'football'], false)
       await nvim.setLine('fball')
       await nvim.call('cursor', [1, 2])
+      await create(['football'], false)
       let option = await nvim.call('coc#util#get_complete_option') as any
       option.position = Position.create(0, 1)
       await completion.startCompletion(option)
       await helper.waitPopup()
-      let items = await helper.items()
-      let idx = items.findIndex(o => o.word == 'football')
-      expect(idx).toBeGreaterThan(0)
-      await helper.confirmCompletion(idx)
+      await nvim.call('coc#_select_confirm')
       await helper.waitFor('getline', ['.'], 'football')
     })
   })

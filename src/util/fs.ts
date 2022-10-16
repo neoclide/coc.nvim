@@ -317,6 +317,8 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
 }
 
 export async function lineToLocation(fsPath: string, match: string, text?: string): Promise<Location> {
+  let uri = URI.file(fsPath).toString()
+  if (!fs.existsSync(fsPath)) return Location.create(uri, Range.create(0, 0, 0, 0))
   const rl = readline.createInterface({
     input: fs.createReadStream(fsPath, { encoding: 'utf8' }),
   })
@@ -335,7 +337,6 @@ export async function lineToLocation(fsPath: string, match: string, text?: strin
       resolve(null)
     })
   })
-  let uri = URI.file(fsPath).toString()
   if (line != null) {
     let character = text == null ? 0 : line.indexOf(text)
     if (character == 0) character = line.match(/^\s*/)[0].length
