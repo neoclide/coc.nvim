@@ -1,4 +1,4 @@
-import { loadJson, validExtensionFolder, getJsFiles, writeJson, toInterval, getExtensionName, loadExtensionJson, ExtensionStat, checkExtensionRoot } from '../../extension/stat'
+import { validExtensionFolder, getJsFiles, toInterval, getExtensionName, loadExtensionJson, ExtensionStat, checkExtensionRoot } from '../../extension/stat'
 import { InstallChannel, InstallBuffer } from '../../extension/ui'
 import fs from 'fs'
 import path from 'path'
@@ -10,6 +10,7 @@ import helper from '../helper'
 import events from '../../events'
 import window from '../../window'
 import { Neovim } from '@chemzqm/neovim'
+import { loadJson, writeJson } from '../../util/fs'
 
 let disposables: Disposable[] = []
 let nvim: Neovim
@@ -31,33 +32,6 @@ describe('utils', () => {
     it('should get js files', async () => {
       let res = await getJsFiles(__dirname)
       expect(Array.isArray(res)).toBe(true)
-    })
-  })
-
-  describe('loadJson()', () => {
-    it('should loadJson()', () => {
-      let file = path.join(__dirname, 'not_exists.json')
-      expect(loadJson(file)).toEqual({})
-    })
-
-    it('should loadJson with bad format', async () => {
-      let file = path.join(os.tmpdir(), uuid())
-      fs.writeFileSync(file, 'foo', 'utf8')
-      expect(loadJson(file)).toEqual({})
-    })
-  })
-
-  describe('writeJson()', () => {
-    it('should writeJson file', async () => {
-      let file = path.join(os.tmpdir(), uuid())
-      writeJson(file, { x: 1 })
-      expect(loadJson(file)).toEqual({ x: 1 })
-    })
-
-    it('should create file with folder', async () => {
-      let file = path.join(os.tmpdir(), uuid(), 'foo', 'bar')
-      writeJson(file, { foo: '1' })
-      expect(loadJson(file)).toEqual({ foo: '1' })
     })
   })
 

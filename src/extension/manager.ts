@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { Disposable, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
 import Watchman from '../core/watchman'
@@ -9,10 +9,10 @@ import Memos from '../model/memos'
 import { disposeAll, wait, watchFile } from '../util'
 import { splitArray } from '../util/array'
 import { createExtension, ExtensionExport } from '../util/factory'
-import { globFilesAsync, matchPatterns, remove } from '../util/fs'
+import { loadJson, remove } from '../util/fs'
 import window from '../window'
 import workspace from '../workspace'
-import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, loadJson, validExtensionFolder } from './stat'
+import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 const createLogger = require('../util/logger')
@@ -77,7 +77,9 @@ export class ExtensionManager {
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
   constructor(public readonly states: ExtensionStat, private folder: string) {
-    this.memos = new Memos(path.resolve(process.env.COC_DATA_HOME, '../memos.json'))
+    let memos = this.memos = new Memos(path.resolve(process.env.COC_DATA_HOME, 'memos.json'))
+    let oldPath = path.resolve(process.env.COC_DATA_HOME, '../memos.json')
+    memos.merge(oldPath)
   }
 
   private get modulesFolder(): string {

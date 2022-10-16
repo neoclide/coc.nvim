@@ -11,7 +11,7 @@ import { URL } from 'url'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import workspace from '../workspace'
-import { loadJson } from './stat'
+import { loadJson } from '../util/fs'
 const logger = require('../util/logger')('extension-installer')
 const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']
 

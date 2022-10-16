@@ -13,9 +13,33 @@ import { FileType } from '../types'
 import { isFalsyOrEmpty } from './array'
 import { CancellationError } from './errors'
 import * as platform from './platform'
+import { parse, ParseError } from 'jsonc-parser'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
+
+export function loadJson(filepath: string): object {
+  try {
+    let errors: ParseError[] = []
+    let text = fs.readFileSync(filepath, 'utf8')
+    let data = parse(text, errors, { allowTrailingComma: true })
+    if (errors.length > 0) {
+      logger.error(`Error on parse json file ${filepath}`, errors)
+    }
+    return data ?? {}
+  } catch (e) {
+    return {}
+  }
+}
+
+export function writeJson(filepath: string, obj: any): void {
+  let dir = path.dirname(filepath)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+    logger.info(`Creating directory ${dir}`)
+  }
+  fs.writeFileSync(filepath, JSON.stringify(obj ?? {}, null, 2), 'utf8')
+}
 
 export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   let stat = null
@@ -112,15 +136,6 @@ export function resolveRoot(folder: string, subs: string[], cwd?: string, bottom
     }
     return null
   }
-}
-
-export function matchPatterns(files: string[], patterns: string[]): boolean {
-  for (let file of files) {
-    if (patterns.some(p => minimatch(file, p))) {
-      return true
-    }
-  }
-  return false
 }
 
 export function globFilesAsync(dir: string, pattern = '**/*', timeout = 300): Promise<string[]> {

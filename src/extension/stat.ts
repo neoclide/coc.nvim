@@ -1,10 +1,10 @@
 import fs from 'fs'
-import { parse, ParseError } from 'jsonc-parser'
 import path from 'path'
 import semver from 'semver'
 import { promisify } from 'util'
+import { loadJson, writeJson } from '../util/fs'
 import { objectLiteral } from '../util/is'
-const logger = require('../util/logger')('extension-stat')
+export const logger = require('../util/logger')('extension-stat')
 
 interface DataBase {
   extension?: {
@@ -222,29 +222,6 @@ export class ExtensionStat {
 
   private get jsonFile(): string {
     return path.join(this.folder, 'package.json')
-  }
-}
-
-export function writeJson(filepath: string, obj: any): void {
-  let dir = path.dirname(filepath)
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
-    logger.info(`Creating directory ${dir}`)
-  }
-  fs.writeFileSync(filepath, JSON.stringify(obj, null, 2), 'utf8')
-}
-
-export function loadJson(filepath: string): object {
-  try {
-    let errors: ParseError[] = []
-    let text = fs.readFileSync(filepath, 'utf8')
-    let data = parse(text, errors, { allowTrailingComma: true })
-    if (errors.length > 0) {
-      logger.error(`Error on parse json file ${filepath}`, errors)
-    }
-    return data ?? {}
-  } catch (e) {
-    return {}
   }
 }
 

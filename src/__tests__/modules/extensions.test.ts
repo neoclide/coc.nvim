@@ -5,8 +5,7 @@ import { v4 as uuid } from 'uuid'
 import which from 'which'
 import commandManager from '../../commands'
 import extensions, { Extensions, toUrl } from '../../extension'
-import { writeJson } from '../../extension/stat'
-import { writeFile } from '../../util/fs'
+import { writeFile, writeJson } from '../../util/fs'
 import helper from '../helper'
 
 let tmpfolder: string

@@ -1,4 +1,4 @@
-import { findUp, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, matchPatterns, globFilesAsync } from '../../util/fs'
+import { findUp, writeJson, loadJson, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, globFilesAsync } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -17,6 +17,33 @@ describe('fs', () => {
     it('fs statAsync #1', async () => {
       let res = await statAsync(path.join(__dirname, 'file_not_exist'))
       expect(res).toBeNull
+    })
+  })
+
+  describe('loadJson()', () => {
+    it('should loadJson()', () => {
+      let file = path.join(__dirname, 'not_exists.json')
+      expect(loadJson(file)).toEqual({})
+    })
+
+    it('should loadJson with bad format', async () => {
+      let file = path.join(os.tmpdir(), uuid())
+      fs.writeFileSync(file, 'foo', 'utf8')
+      expect(loadJson(file)).toEqual({})
+    })
+  })
+
+  describe('writeJson()', () => {
+    it('should writeJson file', async () => {
+      let file = path.join(os.tmpdir(), uuid())
+      writeJson(file, { x: 1 })
+      expect(loadJson(file)).toEqual({ x: 1 })
+    })
+
+    it('should create file with folder', async () => {
+      let file = path.join(os.tmpdir(), uuid(), 'foo', 'bar')
+      writeJson(file, { foo: '1' })
+      expect(loadJson(file)).toEqual({ foo: '1' })
     })
   })
 
@@ -104,17 +131,6 @@ describe('fs', () => {
       expect(Array.isArray(res)).toBe(true)
       res = await globFilesAsync('/not_exists', 'not_exists', 1)
       expect(res).toEqual([])
-    })
-  })
-
-  describe('matchPatterns', () => {
-    it('should matchPatterns', async () => {
-      let res = matchPatterns([], ['ab'])
-      expect(res).toBe(false)
-      res = matchPatterns(['a.js'], ['**/*.js', 'def'])
-      expect(res).toBe(true)
-      res = matchPatterns(['a.js'], ['a.js', 'def'])
-      expect(res).toBe(true)
     })
   })
 
