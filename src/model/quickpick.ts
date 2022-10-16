@@ -1,6 +1,5 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import stringWidth from '@chemzqm/string-width'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { HighlightItem, QuickPickItem } from '../types'
@@ -9,6 +8,7 @@ import { toArray } from '../util/array'
 import { hasMatch, positions } from '../util/fzy'
 import { byteIndex, byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
+import { StrWidth } from './strwidth'
 import InputBox from './input'
 import Popup from './popup'
 const logger = require('../util/logger')('model-quickpick')
@@ -154,7 +154,8 @@ export default class QuickPick<T extends QuickPickItem> {
       this.filterItems(value)
     }, this)
     input.onDidFinish(this.onFinish, this)
-    let minWidth = Math.max(40, Math.min(80, lines.reduce<number>((p, c) => Math.max(p, stringWidth(c)), 0)))
+    let sw = await StrWidth.create()
+    let minWidth = Math.max(40, Math.min(80, lines.reduce<number>((p, c) => Math.max(p, sw.getWidth(c)), 0)))
     await input.show(title ?? '', {
       position: 'center',
       marginTop: 10,

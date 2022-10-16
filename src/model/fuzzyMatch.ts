@@ -70,8 +70,10 @@ export class FuzzyMatch {
   private patternLength = 0
   private matchSeq = false
   private sizes: number[] = [2048, 1024, 1024]
+  private bytes: Uint8Array
 
   constructor(private exports: FuzzyWasi) {
+    this.bytes = new Uint8Array(exports.memory.buffer)
   }
 
   /**
@@ -90,8 +92,8 @@ export class FuzzyMatch {
     if (pattern.length > 256) pattern = pattern.slice(0, 256)
     this.matchSeq = matchSeq
     this.patternLength = matchSeq ? pattern.length : pattern.replace(/(\s|\t)/g, '').length
-    let { memory, malloc } = this.exports
     if (this.patternPtr == null) {
+      let { malloc } = this.exports
       let { sizes } = this
       this.contentPtr = malloc(sizes[0])
       this.patternPtr = malloc(sizes[1])
@@ -99,26 +101,24 @@ export class FuzzyMatch {
     }
     let buf = Buffer.from(pattern, 'utf8')
     let len = buf.length
-    let bytes = new Uint8Array(memory.buffer, this.patternPtr, len + 1)
-    bytes.set(buf)
-    bytes[len] = 0
+    this.bytes.set(buf, this.patternPtr)
+    this.bytes[this.patternPtr + len] = 0
   }
 
   private changeContent(text: string): void {
     let { sizes } = this
-    let { memory, malloc, free } = this.exports
     if (text.length > 4096) text = text.slice(0, 4096)
     let buf = Buffer.from(text, 'utf8')
     let len = buf.length
     if (len > sizes[0]) {
+      let { malloc, free } = this.exports
       free(this.contentPtr)
       let byteLength = len + 1
       this.contentPtr = malloc(byteLength)
       sizes[0] = byteLength
     }
-    let contentBytes = new Uint8Array(memory.buffer, this.contentPtr, len + 1)
-    contentBytes.set(buf)
-    contentBytes[len] = 0
+    this.bytes.set(buf, this.contentPtr)
+    this.bytes[this.contentPtr + len] = 0
   }
 
   public match(text: string): MatchResult | undefined {

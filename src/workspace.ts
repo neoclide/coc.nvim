@@ -26,6 +26,7 @@ import DB from './model/db'
 import type Document from './model/document'
 import { FuzzyMatch, FuzzyWasi, initFuzzyWasm } from './model/fuzzyMatch'
 import Mru from './model/mru'
+import { StrWidth } from './model/strwidth'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
@@ -69,6 +70,7 @@ export class Workspace implements IWorkspace {
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
   private fuzzyExports: FuzzyWasi
+  private strWdith: StrWidth
 
   private _env: Env
 
@@ -125,8 +127,19 @@ export class Workspace implements IWorkspace {
         }
       })
     }
-    this.fuzzyExports = await initFuzzyWasm()
-    let env = this._env = await nvim.call('coc#util#vim_info') as Env
+    let promises: Promise<void>[] = []
+    let env: Env
+    promises.push(nvim.call('coc#util#vim_info').then(res => {
+      env = this._env = res
+    }))
+    promises.push(initFuzzyWasm().then(api => {
+      this.fuzzyExports = api
+    }))
+    promises.push(StrWidth.create().then(strWdith => {
+      this.strWdith = strWdith
+    }))
+    await Promise.all(promises)
+    this.strWdith.setAmbw(!env.ambiguousIsNarrow)
     window.init(env)
     this.checkVersion(APIVERSION)
     this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
@@ -146,6 +159,10 @@ export class Workspace implements IWorkspace {
     if (this._env.apiversion != version) {
       this.nvim.echoError(`API version ${this._env.apiversion} is not ${APIVERSION}, please build coc.nvim by 'yarn install' after pull source code.`)
     }
+  }
+
+  public getDisplayWidth(text: string, cache = false): number {
+    return this.strWdith.getWidth(text, cache)
   }
 
   public get cwd(): string {

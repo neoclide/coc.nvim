@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import stringWidth from '@chemzqm/string-width'
 import { CompletionItemKind } from 'vscode-languageserver-protocol'
 import { matchSpans } from '../model/fuzzyMatch'
 import sources from '../sources'
@@ -7,6 +6,7 @@ import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem }
 import { byteLength } from '../util/string'
 import MruLoader, { Selection } from './mru'
 import { getFollowPart, getKindText, getValidWord, highlightOffert } from './util'
+import workspace from '../workspace'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -134,8 +134,8 @@ export default class PopupMenu {
     return obj
   }
 
-  private stringWidth(text: string): number {
-    return stringWidth(text, { ambiguousIsNarrow: this.env.ambiguousIsNarrow })
+  private stringWidth(text: string, cache = false): number {
+    return workspace.getDisplayWidth(text, cache)
   }
 
   public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
@@ -163,10 +163,10 @@ export default class PopupMenu {
       let shortcut = sources.getShortcut(item.source)
       let label = this.getLabel(item)
       labels.push(label)
-      abbrWidth = Math.max(this.stringWidth(label.text), abbrWidth)
-      if (item.kind) kindWidth = Math.max(this.stringWidth(getKindText(item.kind, kindMap, defaultKindText)), kindWidth)
-      if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu), menuWidth)
-      if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut) + 2, shortcutWidth)
+      abbrWidth = Math.max(this.stringWidth(label.text, true), abbrWidth)
+      if (item.kind) kindWidth = Math.max(this.stringWidth(getKindText(item.kind, kindMap, defaultKindText), true), kindWidth)
+      if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu, true), menuWidth)
+      if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut, true) + 2, shortcutWidth)
     }
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
@@ -200,8 +200,8 @@ export default class PopupMenu {
     let buildConfig: BuildConfig = { border: !!pumConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
     this.adjustAbbrWidth(buildConfig)
     for (let index = 0; index < items.length; index++) {
-      let text = this.buildItem(search, items[index], labels[index], highlights, index, buildConfig)
-      width = Math.max(width, this.stringWidth(text))
+      let [displayWidth, text] = this.buildItem(search, items[index], labels[index], highlights, index, buildConfig)
+      width = Math.max(width, displayWidth)
       lines.push(text)
     }
     let config: PumConfig = Object.assign({ width, highlights }, pumConfig)
@@ -266,13 +266,15 @@ export default class PopupMenu {
     }
   }
 
-  private buildItem(input: string, item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): string {
+  private buildItem(input: string, item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): [number, string] {
     // abbr menu kind shortcut
     let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config
     let text = config.border ? '' : ' '
     let len = byteLength(text)
+    let displayWidth = text.length
     let append = (str: string, width: number): void => {
       let s = this.fillWidth(str, width)
+      displayWidth += width
       len += byteLength(s)
       text += s
     }
@@ -359,7 +361,7 @@ export default class PopupMenu {
           break
       }
     }
-    return text
+    return [displayWidth, text]
   }
 
   private fillWidth(text: string, width: number): string {

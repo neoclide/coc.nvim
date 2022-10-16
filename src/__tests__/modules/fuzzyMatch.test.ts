@@ -133,7 +133,7 @@ describe('FuzzyMatch', () => {
       return result
     }
     let arr: string[] = []
-    for (let i = 0; i < 4000; i++) {
+    for (let i = 0; i < 8000; i++) {
       arr.push(makeid(50))
     }
     let pat = makeid(3)

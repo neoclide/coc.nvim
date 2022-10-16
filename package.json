@@ -91,7 +91,6 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "^5.7.10",
-    "@chemzqm/string-width": "^5.1.2",
     "ansi-styles": "^5.0.0",
     "bytes": "^3.1.0",
     "cli-table": "^0.3.4",
