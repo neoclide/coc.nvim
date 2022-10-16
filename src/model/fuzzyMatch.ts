@@ -70,10 +70,8 @@ export class FuzzyMatch {
   private patternLength = 0
   private matchSeq = false
   private sizes: number[] = [2048, 1024, 1024]
-  private bytes: Uint8Array
 
   constructor(private exports: FuzzyWasi) {
-    this.bytes = new Uint8Array(exports.memory.buffer)
   }
 
   /**
@@ -101,8 +99,9 @@ export class FuzzyMatch {
     }
     let buf = Buffer.from(pattern, 'utf8')
     let len = buf.length
-    this.bytes.set(buf, this.patternPtr)
-    this.bytes[this.patternPtr + len] = 0
+    let bytes = new Uint8Array(this.exports.memory.buffer, this.patternPtr, len + 1)
+    bytes.set(buf)
+    bytes[len] = 0
   }
 
   private changeContent(text: string): void {
@@ -117,8 +116,9 @@ export class FuzzyMatch {
       this.contentPtr = malloc(byteLength)
       sizes[0] = byteLength
     }
-    this.bytes.set(buf, this.contentPtr)
-    this.bytes[this.contentPtr + len] = 0
+    let bytes = new Uint8Array(this.exports.memory.buffer, this.contentPtr, len + 1)
+    bytes.set(buf)
+    bytes[len] = 0
   }
 
   public match(text: string): MatchResult | undefined {
