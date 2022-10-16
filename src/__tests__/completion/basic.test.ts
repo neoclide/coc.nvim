@@ -1,7 +1,7 @@
 process.env.COC_NO_PLUGINS = '1'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
-import completion, { Completion } from '../../completion'
+import completion from '../../completion'
 import events from '../../events'
 import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType, VimCompleteItem } from '../../types'
@@ -770,8 +770,9 @@ describe('completion', () => {
       await completion.startCompletion(option)
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items.length).toBe(2)
-      await helper.confirmCompletion(1)
+      let idx = items.findIndex(o => o.word == 'football')
+      expect(idx).toBeGreaterThan(0)
+      await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'football')
     })
   })

@@ -49,7 +49,7 @@ describe('fs', () => {
 
   describe('lineToLocation', () => {
     it('should not throw when file not exists', async () => {
-      let res = await lineToLocation('/a/b/not_exists', 'ab')
+      let res = await lineToLocation(path.join(os.tmpdir(), 'not_exists'), 'ab')
       expect(res).toBeDefined()
     })
 
