@@ -714,6 +714,7 @@ export interface VimCompleteItem {
   kind?: string | CompletionItemKind
   equal?: number
   dup?: number
+  preselect?: boolean
   user_data?: string
 }
 
@@ -730,7 +731,6 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   isSnippet?: boolean
   source?: string
   priority?: number
-  preselect?: boolean
   localBonus?: number
   index?: number
   // used for preview
