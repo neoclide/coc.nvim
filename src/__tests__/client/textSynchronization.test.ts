@@ -155,7 +155,7 @@ describe('TextDocumentSynchronization', () => {
       feature.onNotificationSent(() => {
         fn()
       })
-      await nvim.command('edit t.vim')
+      await nvim.command(`edit ${uuidv4()}.vim`)
       let doc = await workspace.document
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
@@ -171,7 +171,7 @@ describe('TextDocumentSynchronization', () => {
       expect(provider).toBeDefined()
       await provider.send({ contentChanges: [], textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr, original: '', originalLines: [] })
       await client.sendNotification('unregisterDocumentSync')
-      await helper.wait(30)
+      await helper.wait(10)
       await client.stop()
     })
 

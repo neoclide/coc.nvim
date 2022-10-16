@@ -314,6 +314,8 @@ class DiagnosticManager implements Disposable {
     if (pos) {
       await window.moveTo(pos)
       await item.echoMessage(false, pos)
+    } else {
+      void window.showWarningMessage(`No more diagnostic before cursor position`)
     }
   }
 
@@ -340,6 +342,8 @@ class DiagnosticManager implements Disposable {
     if (pos) {
       await window.moveTo(pos)
       await item.echoMessage(false, pos)
+    } else {
+      void window.showWarningMessage(`No more diagnostic after cursor position`)
     }
   }
 
