@@ -7366,6 +7366,14 @@ declare module 'coc.nvim' {
     export function createNameSpace(name: string): number
 
     /**
+     * Get display cell count of text on vim.
+     * Control character below 0x80 are considered as 1.
+     *
+     * @param text Text to display.
+     * @return The cells count.
+     */
+    export function getDisplayWidth(text: string, cache?: boolean): number
+    /**
      * Like vim's has(), but for version check only.
      * Check patch on neovim and check nvim on vim would return false.
      *

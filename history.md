@@ -1,3 +1,18 @@
+# 2022-10-17
+
+- Set `g:coc_service_initialized` to `0` before service restart.
+- Show warning when diagnostic jump failed.
+- Use strwidth.wasm module for string display width.
+- Add API `workspace.getDisplayWidth`.
+
+# 2022-10-15
+
+- Add configuration `inlayHint.display`.
+
+# 2022-10-07
+
+- Use `CocFloatActive` for highlight active parameters.
+
 # 2022-09-28
 
 - Limit popupmenu width when exceed screen to &pumwidth, instead of change
