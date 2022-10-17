@@ -1239,7 +1239,7 @@ Suggest~
 
 	Maximum number of complete items shown in vim.
 
-	Scope: `language-overridable`, default: `50`
+	Scope: `language-overridable`, default: `256`
 
 "suggest.minTriggerInputLength"				*coc-config-suggest-minTriggerInputLength*
 

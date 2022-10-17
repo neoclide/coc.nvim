@@ -495,6 +495,7 @@ function! coc#util#get_bufoptions(bufnr, max) abort
         \ 'eol': getbufvar(a:bufnr, '&eol'),
         \ 'variables': coc#util#variables(a:bufnr),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
+        \ 'lisp': getbufvar(a:bufnr, '&lisp'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
@@ -615,6 +616,16 @@ function! coc#util#get_changeinfo()
         \ 'line': getline('.'),
         \ 'changedtick': b:changedtick,
         \}
+endfunction
+
+" Get the valid position from line, character of current buffer
+function! coc#util#valid_position(line, character) abort
+  let total = line('$') - 1
+  if a:line > total
+    return [total, 0]
+  endif
+  let max = strchars(getline(a:line + 1))
+  return a:character > max ? [a:line, max] : [a:line, a:character]
 endfunction
 
 function! s:visible_ranges(winid) abort
