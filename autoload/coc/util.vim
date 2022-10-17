@@ -493,7 +493,6 @@ function! coc#util#get_bufoptions(bufnr, max) abort
         \ 'buftype': buftype,
         \ 'previewwindow': v:false,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
-        \ 'indentkeys': coc#util#get_indentkeys(),
         \ 'variables': coc#util#variables(a:bufnr),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
@@ -573,8 +572,11 @@ function! coc#util#get_complete_option()
       \ 'line': line('.')-1,
       \ 'character': strchars(strpart(getline('.'), 0, col('.') - 1))
       \ }
+  let word = matchstr(strpart(line, col - 1), '^\k\+')
+  let followWord = len(word) > 0 ? strcharpart(word, strchars(input)) : ''
   return {
-        \ 'word': matchstr(strpart(line, col - 1), '^\k\+'),
+        \ 'word': word,
+        \ 'followWord': followWord,
         \ 'position': position,
         \ 'input': empty(input) ? '' : input,
         \ 'line': line,
@@ -587,7 +589,6 @@ function! coc#util#get_complete_option()
         \ 'changedtick': b:changedtick,
         \ 'blacklist': get(b:, 'coc_suggest_blacklist', []),
         \ 'disabled': get(b:, 'coc_disabled_sources', []),
-        \ 'indentkeys': coc#util#get_indentkeys()
         \}
 endfunction
 

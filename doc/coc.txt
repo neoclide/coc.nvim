@@ -655,8 +655,8 @@ Jump between diagnostics~
 
 Use key-mappings:
 
-	|<Plug>(coc-diagnostic-next)| jump to next diagnostic.
-	|<Plug>(coc-diagnostic-prev)| jump to previous diagnostic.
+	|<Plug>(coc-diagnostic-next)| jump to diagnostic after cursor position.
+	|<Plug>(coc-diagnostic-prev)| jump to diagnostic before cursor position.
 	|<Plug>(coc-diagnostic-next-error)| jump to next error.
 	|<Plug>(coc-diagnostic-prev-error)| jump to previous error.
 
@@ -1342,9 +1342,11 @@ Normal mode key-mappings:~
 *<Plug>(coc-diagnostic-info)* Show diagnostic message of current position by
 invoke |CocAction('diagnosticInfo')|
 
-*<Plug>(coc-diagnostic-next)* Jump to next diagnostic position.
+*<Plug>(coc-diagnostic-next)* Jump to next diagnostic position after current
+cursor position.
 
-*<Plug>(coc-diagnostic-prev)* Jump to previous diagnostic position.
+*<Plug>(coc-diagnostic-prev)* Jump to previous diagnostic position before
+current cursor position.
 
 *<Plug>(coc-diagnostic-next-error)* Jump to next diagnostic error position.
 
