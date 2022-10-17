@@ -2,9 +2,11 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import events from '../../events'
 import manager from '../../list/manager'
+import window from '../../window'
 import { IList, QuickfixItem } from '../../types'
 import { toArray } from '../../util/array'
 import helper from '../helper'
+import { Range } from 'vscode-languageserver-types'
 
 let nvim: Neovim
 const locations: ReadonlyArray<QuickfixItem> = [{
@@ -194,15 +196,11 @@ describe('list', () => {
     it('should toggle selection mode', async () => {
       await manager.start(['--normal', 'location'])
       await manager.session?.ui.ready
-      await nvim.input('V')
-      await helper.wait(30)
-      await nvim.input('1')
-      await helper.wait(30)
-      await nvim.input('j')
-      await helper.wait(100)
+      await helper.waitPrompt()
+      await window.selectRange(Range.create(0, 0, 3, 0))
       await manager.session?.ui.toggleSelection()
       let items = await manager.session?.ui.getItems()
-      expect(items.length).toBe(2)
+      expect(items.length).toBeGreaterThan(0)
     })
 
     it('should change next/previous keymap', async () => {

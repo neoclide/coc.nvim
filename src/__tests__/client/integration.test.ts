@@ -514,7 +514,7 @@ describe('Client integration', () => {
     await client.stop()
     client = await startServer(true)
     await client.sendNotification('diagnostics')
-    await helper.wait(30)
+    await helper.wait(50)
     let collection = client.diagnostics
     expect(collection).toBeUndefined()
     await client.stop()
@@ -524,8 +524,9 @@ describe('Client integration', () => {
       next(uri, diagnostics)
     })
     await client.sendNotification('diagnostics')
-    await helper.wait(30)
-    expect(called).toBe(true)
+    await helper.waitValue(() => {
+      return called
+    }, true)
     await client.stop()
   })
 

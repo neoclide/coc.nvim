@@ -414,11 +414,9 @@ describe('completion', () => {
 
   describe('resumeCompletion()', () => {
     it('should stop if no filtered items', async () => {
-      await create(['foo'], true)
+      await create(['foo', 'bar'], true)
       expect(completion.isActivated).toBe(true)
-      await nvim.input('f')
-      await helper.wait(5)
-      await nvim.input('p')
+      await nvim.input('fp')
       await helper.waitValue(() => {
         return completion.isActivated
       }, false)

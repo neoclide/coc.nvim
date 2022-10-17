@@ -132,16 +132,19 @@ describe('publish configuration feature', () => {
       changed = params
     })
     await client.start()
-    await helper.wait(50)
-    expect(called).toBe(true)
-    expect(changed).toBeDefined()
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    await helper.waitValue(() => {
+      return changed != null
+    }, true)
     expect(changed.settings.coc).toBeDefined()
     expect(changed.settings.npm).toBeDefined()
     let { configurations } = workspace
     configurations.updateMemoryConfig({ 'npm.binPath': 'cnpm' })
-    await helper.wait(500)
-    expect(changed.settings.npm).toBeDefined()
-    expect(changed.settings.npm.binPath).toBe('cnpm')
+    await helper.waitValue(() => {
+      return changed.settings.npm?.binPath
+    }, 'cnpm')
     await client.stop()
   })
 

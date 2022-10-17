@@ -214,18 +214,19 @@ describe('fs', () => {
 
     it('should be ignored', async () => {
       let res = await isGitIgnored('')
+      let uid = uuid()
       expect(res).toBe(false)
-      res = await isGitIgnored(path.join(os.tmpdir(), 'foo'))
+      res = await isGitIgnored(path.join(os.tmpdir(), uid))
       expect(res).toBe(false)
       res = await isGitIgnored(path.resolve(__dirname, '../lib/index.js.map'))
       expect(res).toBe(false)
       res = await isGitIgnored(__filename)
       expect(res).toBe(false)
-      let filepath = path.join(os.tmpdir(), 'foo')
+      let filepath = path.join(os.tmpdir(), uid)
       fs.writeFileSync(filepath, '', { encoding: 'utf8' })
       res = await isGitIgnored(filepath)
       expect(res).toBe(false)
-      fs.unlinkSync(filepath)
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
     })
   })
 

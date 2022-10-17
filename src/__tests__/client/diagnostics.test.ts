@@ -292,9 +292,10 @@ describe('DiagnosticFeature', () => {
       }
     })
     expect(called).toBe(true)
-    await helper.wait(60)
-    let count = await client.sendRequest('getWorkspceCount')
-    expect(count).toBeGreaterThan(1)
+    await helper.waitValue(async () => {
+      let count = await client.sendRequest('getWorkspceCount')
+      return count > 1
+    }, true)
     await client.stop()
   })
 

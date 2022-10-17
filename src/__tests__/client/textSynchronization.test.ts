@@ -4,6 +4,7 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, Range, TextDocumentSaveReason, TextEdit, WillSaveTextDocumentNotification } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
 import { TextDocumentContentChange } from '../../types'
@@ -259,9 +260,13 @@ describe('TextDocumentSynchronization', () => {
       })
       await client.start()
       await client.sendNotification('registerDocumentSync')
-      await helper.wait(30)
       let fsPath = path.join(os.tmpdir(), `${uuidv4()}-error.vim`)
       let uri = URI.file(fsPath)
+      await helper.waitValue(() => {
+        let feature = client.getFeature(DidOpenTextDocumentNotification.method)
+        let provider = feature.getProvider(TextDocument.create(uri.toString(), 'vim', 1, ''))
+        return provider != null
+      }, true)
       await workspace.openResource(uri.toString())
       let doc = await workspace.document
       await doc.synchronize()
@@ -276,9 +281,17 @@ describe('TextDocumentSynchronization', () => {
       let client = createClient(null)
       await client.start()
       await client.sendNotification('registerDocumentSync')
-      await helper.wait(30)
+      await helper.waitValue(() => {
+        let feature = client.getFeature(DidOpenTextDocumentNotification.method)
+        let provider = feature.getProvider(TextDocument.create('file:///f.vim', 'vim', 1, ''))
+        return provider != null
+      }, true)
       await client.sendNotification('unregisterDocumentSync')
-      await helper.wait(30)
+      await helper.waitValue(() => {
+        let feature = client.getFeature(DidOpenTextDocumentNotification.method)
+        let provider = feature.getProvider(TextDocument.create('file:///f.vim', 'vim', 1, ''))
+        return provider == null
+      }, true)
       await client.stop()
     })
   })

@@ -107,8 +107,8 @@ export class Helper extends EventEmitter {
   public async waitPopup(): Promise<void> {
     let visible = await this.nvim.call('coc#pum#visible')
     if (visible) return
-    let res = await events.race(['MenuPopupChanged'], 5000)
-    if (!res) throw new Error('wait pum timeout after 5s')
+    let res = await events.race(['MenuPopupChanged'], 3000)
+    if (!res) throw new Error('wait pum timeout after 3s')
   }
 
   public async waitPreviewWindow(): Promise<void> {

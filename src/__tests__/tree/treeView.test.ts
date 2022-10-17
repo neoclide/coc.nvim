@@ -987,9 +987,12 @@ describe('TreeView', () => {
     async function createFilterTreeView(opts: Partial<ProviderOptions<TreeNode>> = {}): Promise<void> {
       createTreeView(defaultDef, { enableFilter: true }, opts)
       await treeView.show()
-      await helper.wait(50)
+      let tick = await nvim.eval('b:changedtick') as number
       await nvim.input('f')
-      await helper.wait(50)
+      await helper.waitValue(async () => {
+        let c = await nvim.eval('b:changedtick') as number
+        return c - tick > 1
+      }, true)
     }
 
     it('should start filter by input', async () => {
@@ -998,12 +1001,7 @@ describe('TreeView', () => {
         'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
       ])
       await nvim.input('a')
-      await helper.wait(50)
-      await checkLines([
-        'test',
-        'a ',
-        '  a',
-      ])
+      await helper.waitFor('getline', [2], 'a ')
     })
 
     it('should not throw error on filter', async () => {

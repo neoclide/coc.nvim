@@ -74,17 +74,17 @@ describe('Configurations', () => {
 
   describe('watchFile', () => {
     it('should watch user config file', async () => {
-      let userConfigFile = path.join(os.tmpdir(), 'settings.json')
+      let userConfigFile = path.join(os.tmpdir(), `settings-${uuid()}.json`)
       fs.writeFileSync(userConfigFile, '{"foo.bar": true}', { encoding: 'utf8' })
       let conf = new Configurations(userConfigFile, undefined, false)
       disposables.push(conf)
-      await wait(20)
+      await wait(50)
       fs.writeFileSync(userConfigFile, '{"foo.bar": false}', { encoding: 'utf8' })
       await helper.waitValue(() => {
         let c = conf.getConfiguration('foo')
         return c.get('bar')
       }, false)
-      fs.unlinkSync(userConfigFile)
+      if (fs.existsSync(userConfigFile)) fs.unlinkSync(userConfigFile)
     })
 
     it('should watch folder config file', async () => {

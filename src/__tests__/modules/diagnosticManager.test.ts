@@ -125,17 +125,19 @@ describe('diagnostic manager', () => {
       await doc.synchronize()
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
       collection.set(doc.uri, diagnostics)
-      await helper.wait(30)
       let buf = doc.buffer
-      let val = await buf.getVar('coc_diagnostic_info') as any
-      expect(val == null).toBe(true)
+      await helper.waitValue(async () => {
+        let val = await buf.getVar('coc_diagnostic_info') as any
+        return val == null
+      }, true)
       let ns = await nvim.createNamespace('coc-diagnosticfoo')
       let markers = await buf.getExtMarks(ns, 0, -1)
       expect(markers.length).toBe(0)
       await nvim.input('<esc>')
-      await helper.wait(30)
-      markers = await buf.getExtMarks(ns, 0, -1)
-      expect(markers.length).toBe(1)
+      await helper.waitValue(async () => {
+        let markers = await buf.getExtMarks(ns, 0, -1)
+        return markers.length
+      }, 1)
     })
 
     it('should show diagnostic virtual text on CursorMoved', async () => {
@@ -565,9 +567,10 @@ describe('diagnostic manager', () => {
       helper.updateConfiguration('diagnostic.messageTarget', 'echo')
       await createDocument()
       await nvim.call('cursor', [1, 3])
-      await helper.wait(50)
-      let line = await helper.getCmdline()
-      expect(line).toMatch('error')
+      await helper.waitValue(async () => {
+        let line = await helper.getCmdline()
+        return line.length > 0
+      }, true)
     })
 
     it('should not echo messages on CursorHold', async () => {

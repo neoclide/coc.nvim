@@ -71,11 +71,11 @@ describe('create terminal', () => {
       shellPath: which.sync('bash'),
       strictEnv: true
     })
-    await helper.wait(50)
     terminal.sendText('exit', true)
     await helper.waitFor('bufloaded', [terminal.bufnr], 0)
-    await helper.wait(50)
-    expect(exitStatus).toBeDefined()
+    await helper.waitValue(() => {
+      return exitStatus != null
+    }, true)
     expect(exitStatus.code).toBeDefined()
   })
 

@@ -125,9 +125,11 @@ describe('signatureHelp', () => {
       await helper.createDocument()
       await nvim.input('foo')
       await nvim.input('(')
-      await helper.wait(100)
+      await helper.waitValue(async () => {
+        let win = await helper.getFloat()
+        return win != null
+      }, true)
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
       let lines = await helper.getWinLines(win.id)
       expect(lines[2]).toMatch('my signature')
     })
