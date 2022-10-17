@@ -35,6 +35,12 @@ describe('documents', () => {
     expect(res.uri).toBe(doc.uri)
   })
 
+  it('should consider lisp option for iskeyword', async () => {
+    await nvim.command(`e +setl\\ lisp t`)
+    let doc = await workspace.document
+    expect(doc.isWord('-')).toBe(true)
+  })
+
   it('should get languageId', async () => {
     await helper.createDocument('t.vim')
     expect(documents.getLanguageId('/a/b')).toBe('')

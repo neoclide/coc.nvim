@@ -215,7 +215,7 @@ export default class Document {
       }
     }
     this._filetype = this.convertFiletype(opts.filetype)
-    this.setIskeyword(opts.iskeyword)
+    this.setIskeyword(opts.iskeyword, opts.lisp)
     this.createTextDocument(1, this.lines)
   }
 
@@ -427,8 +427,9 @@ export default class Document {
    * Current word for replacement
    */
   public getWordRangeAtPosition(position: Position, extraChars?: string, current = true): Range | null {
-    let chars = this.chars.clone()
+    let chars = this.chars
     if (extraChars && extraChars.length) {
+      chars = this.chars.clone()
       for (let ch of extraChars) {
         chars.addKeyword(ch)
       }
@@ -673,9 +674,10 @@ export default class Document {
   /**
    * Change iskeyword option of document
    */
-  public setIskeyword(iskeyword: string): void {
+  public setIskeyword(iskeyword: string, lisp?: number): void {
     let chars = this.chars = new Chars(iskeyword)
     let additional = this.getVar<string[]>('additional_keywords', [])
+    if (lisp) chars.addKeyword('-')
     if (additional && Array.isArray(additional)) {
       for (let ch of additional) {
         chars.addKeyword(ch)

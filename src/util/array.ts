@@ -11,6 +11,33 @@ export function isFalsyOrEmpty(obj: any): boolean {
   return !Array.isArray(obj) || obj.length === 0
 }
 
+function compareValue(n: number, r: [number, number]): number {
+  if (n < r[0]) return 1
+  if (n > r[1]) return -1
+  return 0
+}
+
+/**
+ * Check if n in sorted table
+ */
+export function intable(n: number, table: ReadonlyArray<[number, number]>): boolean {
+  // do binary search
+  let low = 0
+  let high = table.length - 1
+  while (low <= high) {
+    const mid = ((low + high) / 2) | 0
+    const comp = compareValue(n, table[mid])
+    if (comp < 0) {
+      low = mid + 1
+    } else if (comp > 0) {
+      high = mid - 1
+    } else {
+      return true
+    }
+  }
+  return false
+}
+
 /**
  * Performs a binary search algorithm over a sorted array.
  *

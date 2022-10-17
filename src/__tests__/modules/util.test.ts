@@ -504,6 +504,13 @@ describe('Arrays', () => {
     assert.ok(!arrays.isFalsyOrEmpty([1]))
   })
 
+  it('should check intable', async () => {
+    assert.ok(arrays.intable(1, [[0, 1], [2, 3], [4, 5]]))
+    assert.ok(arrays.intable(2, [[0, 1], [4, 6], [8, 9]]) === false)
+    assert.ok(arrays.intable(5, [[0, 1], [2, 3], [4, 5]]))
+    assert.ok(arrays.intable(6, [[0, 1], [2, 3], [4, 5]]) === false)
+  })
+
   it('binarySearch()', async () => {
     let comparator = (a, b) => a - b
     assert.ok(arrays.binarySearch([1, 2, 3], 2, comparator) == 1)
