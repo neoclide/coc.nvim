@@ -110,6 +110,7 @@ describe('diagnostic manager', () => {
       expect(markers.length).toBe(0)
       await nvim.command(`b ${buf.id}`)
       await helper.waitFor('eval', ['empty(get(b:,"coc_diagnostic_info",{}))'], 0)
+      collection.dispose()
     })
 
     it('should delay refresh on InsertLeave', async () => {
@@ -494,6 +495,26 @@ describe('diagnostic manager', () => {
         expect(pos).toEqual(ranges[i].start)
       }
       await manager.jumpNext()
+    })
+
+    it('should consider invalid position', async () => {
+      let doc = await helper.createDocument('foo.js')
+      let collection = manager.create('foo')
+      let diagnostics: Diagnostic[] = []
+      await doc.buffer.setLines(['foo bar', '', 'foo', 'bar'], {
+        start: 0,
+        end: -1,
+        strictIndexing: false
+      })
+      await nvim.call('cursor', [2, 0])
+      await doc.synchronize()
+      diagnostics.push(createDiagnostic('error', Range.create(0, 1, 0, 2), DiagnosticSeverity.Error))
+      diagnostics.push(createDiagnostic('warning', Range.create(1, 1, 1, 1), DiagnosticSeverity.Warning))
+      diagnostics.push(createDiagnostic('warning', Range.create(2, 1, 2, 1), DiagnosticSeverity.Warning))
+      collection.set(doc.uri, diagnostics)
+      await manager.jumpNext()
+      let pos = await window.getCursorPosition()
+      expect(pos).toEqual(Position.create(2, 1))
     })
 
     it('should not throw for buffer not attached', async () => {

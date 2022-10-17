@@ -332,7 +332,13 @@ class DiagnosticManager implements Disposable {
     for (let i = 0; i <= ranges.length - 1; i++) {
       let start = ranges[i].start
       if (comparePosition(start, curpos) > 0) {
-        pos = ranges[i].start
+        // The position could be invalid (ex: exceed end of line)
+        let arr = await this.nvim.call('coc#util#valid_position', [start.line, start.character])
+        if ((arr[0] != start.line || arr[1] != start.character)
+          && comparePosition(Position.create(arr[0], arr[1]), curpos) <= 0) {
+          continue
+        }
+        pos = Position.create(arr[0], arr[1])
         break
       } else if (i == ranges.length - 1) {
         let wrapscan = await this.nvim.getOption('wrapscan')

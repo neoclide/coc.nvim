@@ -618,6 +618,16 @@ function! coc#util#get_changeinfo()
         \}
 endfunction
 
+" Get the valid position from line, character of current buffer
+function! coc#util#valid_position(line, character) abort
+  let total = line('$') - 1
+  if a:line > total
+    return [total, 0]
+  endif
+  let max = strchars(getline(a:line + 1))
+  return a:character > max ? [a:line, max] : [a:line, a:character]
+endfunction
+
 function! s:visible_ranges(winid) abort
   let info = getwininfo(a:winid)[0]
   let res = []
