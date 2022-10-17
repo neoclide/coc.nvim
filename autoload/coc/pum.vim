@@ -433,7 +433,7 @@ function! s:get_pum_dimension(lines, col, config) abort
   let [lineIdx, colIdx] = coc#cursor#screen_pos()
   let bh = empty(get(a:config, 'border', [])) ? 0 : 2
   let columns = &columns
-  let pumwidth = max([15, &pumwidth])
+  let pumwidth = max([15, exists('&pumwidth') ? &pumwidth : 0])
   let width = min([columns, max([pumwidth, a:config['width']])])
   let vh = &lines - &cmdheight - 1 - !empty(&tabline)
   if vh <= 0
