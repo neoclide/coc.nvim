@@ -132,7 +132,7 @@ export class Completion implements Disposable {
       acceptSuggestionOnCommitCharacter: suggest.get<boolean>('acceptSuggestionOnCommitCharacter', false),
       triggerCompletionWait: suggest.get<number>('triggerCompletionWait', 0),
       triggerAfterInsertEnter: suggest.get<boolean>('triggerAfterInsertEnter', false),
-      maxItemCount: suggest.get<number>('maxCompleteItemCount', 50),
+      maxItemCount: suggest.get<number>('maxCompleteItemCount', 256),
       timeout: suggest.get<number>('timeout', 500),
       minTriggerInputLength: suggest.get<number>('minTriggerInputLength', 1),
       localityBonus: suggest.get<boolean>('localityBonus', true),

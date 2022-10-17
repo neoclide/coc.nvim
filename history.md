@@ -1,3 +1,7 @@
+# 2022-10-18
+
+- Change `suggest.maxCompleteItemCount` default to 256.
+
 # 2022-10-17
 
 - Set `g:coc_service_initialized` to `0` before service restart.

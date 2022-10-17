@@ -1896,7 +1896,7 @@
     },
     "suggest.maxCompleteItemCount": {
       "type": "number",
-      "default": 50,
+      "default": 256,
       "scope": "language-overridable",
       "description": "Maximum number of complete items shown in vim"
     },
