@@ -211,11 +211,8 @@ export default class PopupMenu {
 
   private getInsertWord(item: ExtendedCompleteItem, search: string, followPart: string): string {
     let { fixInsertedWord, invalidInsertCharacters } = this.config
-    let { word, isSnippet } = item
-    word = isSnippet ? getValidWord(word, invalidInsertCharacters) : word
-    if (fixInsertedWord && followPart.length > 0 && word.slice(search.length).endsWith(followPart)) {
-      word = word.slice(0, word.length - followPart.length)
-    }
+    let word = item.isSnippet ? getValidWord(item.word, invalidInsertCharacters) : item.word
+    if (fixInsertedWord) return fixFollow(word, search, followPart)
     return word
   }
 
@@ -368,6 +365,14 @@ export default class PopupMenu {
     let n = width - this.stringWidth(text)
     return n <= 0 ? text : text + ' '.repeat(n)
   }
+}
+
+export function fixFollow(word: string, search: string, follow: string): string {
+  if (follow.length === 0) return word
+  if (search.length + follow.length <= word.length && word.endsWith(follow)) {
+    return word.slice(0, word.length - follow.length)
+  }
+  return word
 }
 
 export function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number, max: number): void {

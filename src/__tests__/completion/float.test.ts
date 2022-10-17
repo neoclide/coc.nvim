@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import Floating from '../../completion/floating'
+import { fixFollow } from '../../completion/pum'
 import sources from '../../sources'
-import workspace from '../../workspace'
 import { CompleteResult, FloatConfig, ISource, SourceType } from '../../types'
 import helper from '../helper'
 
@@ -40,6 +40,13 @@ afterEach(async () => {
 })
 
 describe('completion float', () => {
+  it('should fix word by check follow', async () => {
+    expect(fixFollow('foo', '', '')).toBe('foo')
+    expect(fixFollow('foobar', '', 'oobar')).toBe('f')
+    expect(fixFollow('foobar', 'f', 'oobar')).toBe('f')
+    expect(fixFollow('foobar', 'foo', 'oobar')).toBe('foobar')
+  })
+
   it('should cancel float window', async () => {
     await helper.edit()
     await nvim.input('if')

@@ -760,22 +760,6 @@ describe('completion', () => {
     })
   })
 
-  describe('CompleteDone', () => {
-    it('should fix word on CompleteDone', async () => {
-      let doc = await workspace.document
-      await nvim.setLine('fball')
-      await nvim.call('cursor', [1, 2])
-      await doc.synchronize()
-      await create(['football'], false)
-      let option = await nvim.call('coc#util#get_complete_option') as any
-      option.position = Position.create(0, 1)
-      await completion.startCompletion(option)
-      await helper.waitPopup()
-      await nvim.call('coc#_select_confirm')
-      await helper.waitFor('getline', ['.'], 'football')
-    })
-  })
-
   describe('InsertEnter', () => {
     beforeEach(() => {
       helper.updateConfiguration('suggest.triggerAfterInsertEnter', true)
