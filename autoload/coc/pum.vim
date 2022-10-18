@@ -119,7 +119,7 @@ endfunction
 
 function! s:restore_indentkeys() abort
   if get(s:saved_indenetkeys, 0, 0) == bufnr('%')
-    execute 'setl indentkeys='.get(s:saved_indenetkeys, 1, '')
+    call setbufvar(s:saved_indenetkeys[0], '&indentkeys', get(s:saved_indenetkeys, 1, ''))
     let s:saved_indenetkeys = []
   endif
 endfunction
