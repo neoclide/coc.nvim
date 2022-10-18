@@ -1,19 +1,17 @@
 'use strict'
-import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import readline from 'readline'
 import semver from 'semver'
-import { v4 as uuid } from 'uuid'
 import { URL } from 'url'
+import { v4 as uuid } from 'uuid'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
-import workspace from '../workspace'
 import { loadJson } from '../util/fs'
+import workspace from '../workspace'
+import { DependenciesInstaller } from './dependency'
 const logger = require('../util/logger')('extension-installer')
-const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']
 
 export interface Info {
   'dist.tarball'?: string
@@ -52,21 +50,6 @@ export function registryUrl(home = os.homedir()): URL {
     }
   }
   return res ?? new URL('https://registry.npmjs.org')
-}
-
-export function isNpmCommand(exePath: string): boolean {
-  let name = path.basename(exePath)
-  return name === 'npm' || name === 'npm.CMD'
-}
-
-export function isYarn(exePath: string) {
-  let name = path.basename(exePath)
-  return ['yarn', 'yarn.CMD', 'yarnpkg', 'yarnpkg.CMD'].includes(name)
-}
-
-function isPnpm(exePath: string) {
-  let name = path.basename(exePath)
-  return name === 'pnpm' || name === 'pnpm.CMD'
 }
 
 function isSymbolicLink(folder: string): boolean {
@@ -204,58 +187,12 @@ export class Installer extends EventEmitter implements IInstaller {
     return path.dirname(jsonFile)
   }
 
-  public getInstallArguments(exePath: string, url: string | undefined): string[] {
-    let args = ['install', '--ignore-scripts', '--no-lockfile']
-    if (url && url.startsWith('https://github.com')) {
-      args = ['install']
-    }
-    if (isNpmCommand(exePath)) {
-      args.push('--omit=dev')
-      args.push('--legacy-peer-deps')
-      args.push('--no-global')
-    }
-    if (isYarn(exePath)) {
-      args.push('--production')
-      args.push('--ignore-engines')
-    }
-    if (isPnpm(exePath)) {
-      args.push('--production')
-      args.push('--config.strict-peer-dependencies=false')
-    }
-    return args
-  }
-
-  private readLines(key: string, stream: NodeJS.ReadableStream): void {
-    const rl = readline.createInterface({
-      input: stream
+  public async installDependencies(folder: string): Promise<void> {
+    let registry = registryUrl()
+    let installer = new DependenciesInstaller(registry, this.root, msg => {
+      this.log(msg)
     })
-    rl.on('line', line => {
-      this.log(`${key} ${line}`, true)
-    })
-  }
-
-  public installDependencies(folder: string, dependencies: string[]): Promise<void> {
-    if (dependencies.length == 0) return Promise.resolve()
-    return new Promise<void>((resolve, reject) => {
-      let args = this.getInstallArguments(this.npm, this.url)
-      this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
-      const child = spawn(this.npm, args, {
-        cwd: folder,
-        env: Object.assign(process.env, { NODE_ENV: 'production' })
-      })
-      this.readLines('[npm stdout]', child.stdout)
-      this.readLines('[npm stderr]', child.stderr)
-      child.stderr.setEncoding('utf8')
-      child.stdout.setEncoding('utf8')
-      child.on('error', reject)
-      child.on('exit', code => {
-        if (code) {
-          reject(new Error(`${this.npm} install exited with ${code}`))
-          return
-        }
-        resolve()
-      })
-    })
+    await installer.installDependencies(folder)
   }
 
   public async doInstall(info: Info): Promise<boolean> {
@@ -274,8 +211,7 @@ export class Installer extends EventEmitter implements IInstaller {
         onProgress: p => this.log(`Download progress ${p}%`, true),
       })
       this.log(`Extension download at ${downloadFolder}`)
-      let obj = loadJson(path.join(downloadFolder, 'package.json')) as any
-      await this.installDependencies(downloadFolder, getDependencies(obj))
+      await this.installDependencies(downloadFolder)
     } catch (e) {
       fs.rmSync(downloadFolder, { recursive: true, force: true })
       throw e
@@ -295,8 +231,4 @@ export class Installer extends EventEmitter implements IInstaller {
   public async fetch(url: string | URL, options: FetchOptions = {}): Promise<any> {
     return await fetch(url, options)
   }
-}
-
-export function getDependencies(obj: { dependencies?: { [key: string]: string } }): string[] {
-  return Object.keys(obj.dependencies ?? {}).filter(id => !local_dependencies.includes(id))
 }

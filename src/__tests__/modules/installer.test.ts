@@ -2,7 +2,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { getDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
+import { Info, Installer, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
@@ -14,15 +14,6 @@ afterEach(() => {
 })
 
 describe('utils', () => {
-  it('should getDependencies', async () => {
-    expect(getDependencies({})).toEqual([])
-    expect(getDependencies({ dependencies: { 'coc.nvim': '0.0.1' } })).toEqual([])
-  })
-
-  it('should check command is npm or yarn', async () => {
-    expect(isNpmCommand('npm')).toBe(true)
-    expect(isYarn('yarnpkg')).toBe(true)
-  })
 
   it('should get registry url', async () => {
     const getUrl = () => {
@@ -69,13 +60,6 @@ describe('Installer', () => {
   })
 
   describe('getInfo()', () => {
-    it('should get install arguments', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/')
-      expect(installer.getInstallArguments('pnpm', 'https://github.com/')).toEqual(['install', '--production', '--config.strict-peer-dependencies=false'])
-      expect(installer.getInstallArguments('npm', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--omit=dev', '--legacy-peer-deps', '--no-global'])
-      expect(installer.getInstallArguments('yarn', '')).toEqual(['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'])
-    })
-
     it('should getInfo from url', async () => {
       let installer = new Installer(__dirname, 'npm', 'https://github.com/')
       let spy = jest.spyOn(installer, 'getInfoFromUri').mockImplementation(() => {
@@ -411,23 +395,8 @@ describe('Installer', () => {
       installer.on('message', () => {
         called = true
       })
-      await installer.installDependencies(tmpfolder, ['a', 'b'])
+      await installer.installDependencies(tmpfolder)
       expect(called).toBe(true)
-    })
-
-    it('should reject on install error', async () => {
-      let npm = path.resolve(__dirname, '../npm')
-      tmpfolder = path.join(os.tmpdir(), uuid())
-      fs.mkdirSync(tmpfolder)
-      let installer = new Installer(tmpfolder, npm, 'coc-omni')
-      let spy = jest.spyOn(installer, 'getInstallArguments').mockImplementation(() => {
-        return ['--error']
-      })
-      let fn = async () => {
-        await installer.installDependencies(tmpfolder, ['a', 'b'])
-      }
-      await expect(fn()).rejects.toThrow(Error)
-      spy.mockRestore()
     })
   })
 })
