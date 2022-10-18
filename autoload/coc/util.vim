@@ -624,7 +624,7 @@ function! coc#util#valid_position(line, character) abort
   if a:line > total
     return [total, 0]
   endif
-  let max = strchars(getline(a:line + 1))
+  let max = strchars(getline(a:line + 1)) - (mode() ==# 'n' ? 1 : 0)
   return a:character > max ? [a:line, max] : [a:line, a:character]
 endfunction
 

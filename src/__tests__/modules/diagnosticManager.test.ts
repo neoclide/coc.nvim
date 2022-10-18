@@ -517,12 +517,13 @@ describe('diagnostic manager', () => {
       expect(pos).toEqual(Position.create(2, 1))
     })
 
-    it('should not throw for buffer not attached', async () => {
-      await nvim.command('edit foo | setl buftype=nofile')
+    it('should not throw when buffer not attached', async () => {
       let doc = await workspace.document
+      await manager.jumpNext()
+      await nvim.command('edit foo | setl buftype=nofile')
+      doc = await workspace.document
       expect(doc.attached).toBe(false)
       await manager.jumpNext()
-      await manager.jumpPrevious()
     })
 
     it('should respect wrapscan', async () => {

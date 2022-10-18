@@ -358,9 +358,9 @@ fun1() {}
       await helper.waitFor('getline', [3], '    m fun1 2')
       await nvim.command('exe 3')
       await nvim.input('<cr>')
-      await helper.wait(50)
-      let curr = await nvim.call('bufnr', ['%'])
-      expect(curr).toBe(bufnr)
+      await helper.waitValue(async () => {
+        return await nvim.call('bufnr', ['%'])
+      }, bufnr)
       let cursor = await nvim.call('coc#cursor#position')
       expect(cursor).toEqual([1, 2])
     })

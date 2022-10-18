@@ -7,6 +7,7 @@ import events from '../events'
 import BufferSync from '../model/bufferSync'
 import { ErrorItem, FloatFactory } from '../types'
 import { disposeAll } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
 import { byteIndex } from '../util/string'
@@ -43,6 +44,13 @@ export interface DiagnosticItem {
   severity: string
   level: number
   location: Location
+}
+
+interface PrepareResult {
+  item: DiagnosticBuffer
+  wrapscan: boolean
+  ranges: ReadonlyArray<Range>
+  curpos: Position
 }
 
 class DiagnosticManager implements Disposable {
@@ -291,26 +299,38 @@ class DiagnosticManager implements Disposable {
     this.nvim.call('coc#ui#preview_info', [lines, 'txt'], true)
   }
 
+  private async prepareJump(severity?: string): Promise<PrepareResult | undefined> {
+    let bufnr = await this.nvim.call('bufnr', ['%']) as number
+    let item = this.buffers.getItem(bufnr)
+    if (!item) return
+    let ranges = this.getSortedRanges(item.uri, item.config.level, severity)
+    if (isFalsyOrEmpty(ranges)) return
+    let curpos = await window.getCursorPosition()
+    let wrapscan = await this.nvim.getOption('wrapscan')
+    return {
+      item,
+      curpos,
+      wrapscan: wrapscan != 0,
+      ranges
+    }
+  }
+
   /**
    * Jump to previous diagnostic position
    */
   public async jumpPrevious(severity?: string): Promise<void> {
-    let buffer = await this.nvim.buffer
-    let item = this.buffers.getItem(buffer.id)
-    if (!item) return
-    let curpos = await window.getCursorPosition()
-    let ranges = this.getSortedRanges(item.uri, item.config.level, severity)
+    let result = await this.prepareJump(severity)
+    if (!result) return
+    let { curpos, item, wrapscan, ranges } = result
     let pos: Position
     for (let i = ranges.length - 1; i >= 0; i--) {
       let end = ranges[i].end
       if (comparePosition(end, curpos) < 0) {
         pos = ranges[i].start
         break
-      } else if (i == 0) {
-        let wrapscan = await this.nvim.getOption('wrapscan')
-        if (wrapscan) pos = ranges[ranges.length - 1].start
       }
     }
+    if (!pos && wrapscan) pos = ranges[ranges.length - 1].start
     if (pos) {
       await window.moveTo(pos)
       await item.echoMessage(false, pos)
@@ -323,11 +343,9 @@ class DiagnosticManager implements Disposable {
    * Jump to next diagnostic position
    */
   public async jumpNext(severity?: string): Promise<void> {
-    let buffer = await this.nvim.buffer
-    let item = this.buffers.getItem(buffer.id)
-    if (!item) return
-    let curpos = await window.getCursorPosition()
-    let ranges = this.getSortedRanges(item.uri, item.config.level, severity)
+    let result = await this.prepareJump(severity)
+    if (!result) return
+    let { curpos, item, wrapscan, ranges } = result
     let pos: Position
     for (let i = 0; i <= ranges.length - 1; i++) {
       let start = ranges[i].start
@@ -340,11 +358,9 @@ class DiagnosticManager implements Disposable {
         }
         pos = Position.create(arr[0], arr[1])
         break
-      } else if (i == ranges.length - 1) {
-        let wrapscan = await this.nvim.getOption('wrapscan')
-        if (wrapscan) pos = ranges[0].start
       }
     }
+    if (!pos && wrapscan) pos = ranges[0].start
     if (pos) {
       await window.moveTo(pos)
       await item.echoMessage(false, pos)
