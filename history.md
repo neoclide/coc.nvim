@@ -1,3 +1,7 @@
+# 2022-10-19
+
+- Trigger for trigger sources when no filter results available.
+
 # 2022-10-18
 
 - Change `suggest.maxCompleteItemCount` default to 256.
