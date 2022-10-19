@@ -279,19 +279,17 @@ fun1() {}
       await symbols.showOutline(0)
       await nvim.command('tabe')
       await nvim.command(`bd! ${curr}`)
-      await helper.wait(30)
-      let buf = await getOutlineBuffer()
-      expect(buf).toBeUndefined()
+      await helper.waitValue(async () => {
+        let buf = await getOutlineBuffer()
+        return buf == null
+      }, true)
     })
 
     it('should check current window on BufEnter', async () => {
       await createBuffer()
       await symbols.showOutline(1)
-      let winid = await nvim.call('win_getid', [])
       await nvim.command('enew')
-      await helper.wait(100)
-      let win = await nvim.window
-      expect(win.id).toBe(winid)
+      await helper.wait(30)
     })
 
     it('should recreated when original window exists', async () => {

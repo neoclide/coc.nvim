@@ -379,18 +379,21 @@ export class Completion implements Disposable {
     }
     let items = await complete.filterResults(search)
     // cancelled or have inserted text
-    if (items === undefined || this.inserted) return
+    if (items === undefined || !this.option) return
+    let doc = workspace.getDocument(option.bufnr)
     // trigger completion when trigger source available
-    if (info && option && items.length == 0) {
-      let doc = workspace.getDocument(option.bufnr)
+    if (info && info.insertChar && items.length == 0) {
       let triggerSources = this.getTriggerSources(doc, pretext)
       if (triggerSources.length > 0) {
         await this.triggerCompletion(doc, info, triggerSources)
         return
       }
     }
-    if (items.length == 0 || !this.option) {
-      if (!complete.isCompleting) this.stop(true)
+    if (items.length == 0) {
+      let last = search.slice(-1)
+      if (!complete.isCompleting || last.length === 0 || !doc.chars.isKeywordChar(last)) {
+        this.stop(true)
+      }
       return
     }
     this.activeItems = items

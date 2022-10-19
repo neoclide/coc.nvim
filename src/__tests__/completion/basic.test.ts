@@ -447,6 +447,18 @@ describe('completion', () => {
       }, false)
     })
 
+    it('should stop when selected and no filtered items', async () => {
+      helper.updateConfiguration('suggest.noselect', true)
+      await create(['foo'], true)
+      expect(completion.isActivated).toBe(true)
+      await nvim.call('coc#pum#next', [1])
+      await helper.waitFor('getline', ['.'], 'foo')
+      await nvim.input('(')
+      await helper.waitValue(() => {
+        return completion.isActivated
+      }, false)
+    })
+
     it('should not resume after text change', async () => {
       await create(['foo'], false)
       await nvim.input('f')

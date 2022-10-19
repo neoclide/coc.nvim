@@ -5,7 +5,7 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, ISource } from '../types'
 import { toArray } from '../util/array'
-import { byteLength, byteSlice, characterIndex } from '../util/string'
+import { byteLength, byteSlice } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
