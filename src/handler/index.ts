@@ -173,7 +173,8 @@ export default class Handler implements HandlerDelegate {
     try {
       res = await Promise.resolve(fn(token))
     } catch (e) {
-      this.nvim.echoError(e)
+      logger.error(`Error on request ${name}`, e)
+      this.nvim.errWriteLine(`Error on ${name}: ${e}`)
     }
     if (this.requestTokenSource) {
       this.requestTokenSource.dispose()

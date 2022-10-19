@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { ExtendedCodeAction } from '../types'
+import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
 import { CodeActionProvider } from './index'
 import Manager from './manager'
@@ -43,8 +44,9 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
     let res: ExtendedCodeAction[] = []
     let results = await Promise.allSettled(providers.map(item => {
       let { provider, id } = item
-      return Promise.resolve(provider.provideCodeActions(document, range, context, token)).then(actions => {
-        if (!actions || actions.length == 0) return
+      let fn = async () => {
+        let actions = await Promise.resolve(provider.provideCodeActions(document, range, context, token))
+        if (isFalsyOrEmpty(actions)) return
         let noCheck = res.length === 0
         for (let action of actions) {
           if (Command.is(action)) {
@@ -64,7 +66,8 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
             }
           }
         }
-      })
+      }
+      return fn()
     }))
     this.handleResults(results, 'provideCodeActions')
     return res
