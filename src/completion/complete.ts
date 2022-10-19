@@ -148,10 +148,10 @@ export default class Complete {
     let timer: NodeJS.Timer
     let tp = new Promise<void>(resolve => {
       timer = setTimeout(() => {
-        if (!tokenSource.token.isCancellationRequested) {
+        if (!token.isCancellationRequested) {
           names = names.filter(n => !finished.includes(n))
           tokenSource.cancel()
-          logger.warn(`Complete timeout after ${timeout}ms`, names)
+          logger.warn(`Completion timeout after ${timeout}ms`, names)
           this.nvim.setVar(`coc_timeout_sources`, names, true)
         }
         resolve()
@@ -307,7 +307,7 @@ export default class Complete {
   }
 
   public async filterResults(input: string): Promise<ExtendedCompleteItem[] | undefined> {
-    if (this.timer) clearTimeout(this.timer)
+    clearTimeout(this.timer)
     if (input !== this.option.input) {
       let names = this.getIncompleteSources()
       if (names.length) {
@@ -350,7 +350,7 @@ export default class Complete {
     }
   }
 
-  private cancel(): void {
+  public cancel(): void {
     let { tokenSource, timer } = this
     if (timer) clearTimeout(timer)
     tokenSource.cancel()

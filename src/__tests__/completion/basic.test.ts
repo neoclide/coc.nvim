@@ -228,6 +228,31 @@ describe('completion', () => {
       expect(completion.activeItems.length).toBe(1)
     })
 
+    it('should trigger for trigger character when filter failed', async () => {
+      await nvim.command('edit t|setl iskeyword=@,-')
+      let doc = await workspace.document
+      expect(doc.chars.isKeywordChar('-')).toBe(true)
+      let source: ISource = {
+        name: 'dash',
+        enable: true,
+        sourceType: SourceType.Service,
+        triggerCharacters: ['-'],
+        doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+          if (opt.triggerCharacter == '-') return { items: [{ word: '-foo' }] }
+          return { items: [{ word: 'foo' }, { word: 'bar' }] }
+        }
+      }
+      disposables.push(sources.addSource(source))
+      await nvim.input('i')
+      await triggerCompletion('dash')
+      await helper.waitPopup()
+      await nvim.input('-')
+      await helper.waitValue(() => {
+        let items = completion.activeItems
+        return items && items.length == 1 && items[0].word == '-foo'
+      }, true)
+    })
+
     it('should trigger on trigger character', async () => {
       helper.updateConfiguration('suggest.autoTrigger', 'trigger')
       let fn = jest.fn()
@@ -774,7 +799,6 @@ describe('completion', () => {
 
     it('should not trigger when document not attached', async () => {
       await nvim.command('edit t|setl buftype=nofile')
-      await nvim.setLine('foo ')
       await nvim.input('o')
       await helper.wait(10)
       expect(completion.isActivated).toBe(false)
@@ -782,7 +806,7 @@ describe('completion', () => {
   })
 
   describe('trigger completion', () => {
-    it('should trigger complete on trigger patterns match', async () => {
+    it('should trigger complete when trigger patterns match', async () => {
       let source: ISource = {
         priority: 99,
         enable: true,

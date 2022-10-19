@@ -90,6 +90,8 @@ describe('IntegerRanges', () => {
     expect(r.includes(9)).toBe(true)
     r = IntegerRanges.fromKeywordOption('65,-x,x-')
     expect(r.includes(65)).toBe(true)
+    r = IntegerRanges.fromKeywordOption('128-140,-')
+    expect(r.includes('-'.charCodeAt(0))).toBe(true)
   })
 })
 

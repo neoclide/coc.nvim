@@ -8,7 +8,7 @@ import sources from '../sources'
 import { CompleteOption, ExtendedCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
-import { byteLength, byteSlice, characterIndex, isWord } from '../util/string'
+import { byteLength, byteSlice, characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
@@ -201,14 +201,17 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
-    if (this.option && bufnr === this.option.bufnr) {
-      this.pretext = info.pre
+    if (bufnr !== this.option?.bufnr) return
+    // navigate item or finish completion
+    if (!info.insertChar && this.complete) {
+      this.complete.cancel()
     }
+    this.pretext = info.pre
   }
 
   private async onTextChangedI(bufnr: number, info: InsertChange): Promise<void> {
     const doc = workspace.getDocument(bufnr)
-    if (!doc.attached) return
+    if (!doc || !doc.attached) return
     const { option } = this
     if (option != null) {
       // detect item word insert
@@ -257,9 +260,8 @@ export class Completion implements Disposable {
       }
     }
     // trigger character
-    if (!isWord(info.insertChar)) {
-      let disabled = doc.getVar('disabled_sources', [])
-      let triggerSources = sources.getTriggerSources(pretext, doc.filetype, doc.uri, disabled)
+    if (!doc.chars.isKeywordChar(info.insertChar)) {
+      let triggerSources = this.getTriggerSources(doc, pretext)
       if (triggerSources.length > 0) {
         await this.triggerCompletion(doc, info, triggerSources)
         return
@@ -277,7 +279,12 @@ export class Completion implements Disposable {
       }, global.__TEST__ ? 20 : 200)
       return
     }
-    await this.filterResults()
+    await this.filterResults(info)
+  }
+
+  private getTriggerSources(doc: Document, pretext: string): ISource[] {
+    let disabled = doc.getVar('disabled_sources', [])
+    return sources.getTriggerSources(pretext, doc.filetype, doc.uri, disabled)
   }
 
   private async triggerCompletion(doc: Document, info: InsertChange, sources?: ISource[]): Promise<boolean> {
@@ -363,7 +370,7 @@ export class Completion implements Disposable {
     return true
   }
 
-  private async filterResults(): Promise<void> {
+  private async filterResults(info?: InsertChange): Promise<void> {
     let { complete, option, pretext } = this
     let search = getResumeInput(option, pretext)
     if (search == null) {
@@ -371,8 +378,17 @@ export class Completion implements Disposable {
       return
     }
     let items = await complete.filterResults(search)
-    // cancelled
+    // cancelled or have inserted text
     if (items === undefined || this.inserted) return
+    // trigger completion when trigger source available
+    if (info && option && items.length == 0) {
+      let doc = workspace.getDocument(option.bufnr)
+      let triggerSources = this.getTriggerSources(doc, pretext)
+      if (triggerSources.length > 0) {
+        await this.triggerCompletion(doc, info, triggerSources)
+        return
+      }
+    }
     if (items.length == 0 || !this.option) {
       if (!complete.isCompleting) this.stop(true)
       return
