@@ -1,13 +1,13 @@
 import fs from 'fs'
-import tar from 'tar'
 import http, { Server } from 'http'
 import os from 'os'
 import path from 'path'
+import tar from 'tar'
 import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
-import { checkFileSha1, DependenciesInstaller, DependencyItem, findItem, getModuleInfo, getRegistries, getVersion, readDependencies, shouldRetry, untar, VersionInfo } from '../../extension/dependency'
+import { checkFileSha1, DependenciesInstaller, DependencyItem, findItem, getModuleInfo, getRegistries, getVersion, readDependencies, shouldRetry, untar, validVersionInfo, VersionInfo } from '../../extension/dependency'
 import { Dependencies } from '../../extension/installer'
-import { writeJson, remove, loadJson } from '../../util/fs'
+import { loadJson, remove, writeJson } from '../../util/fs'
 import helper, { getPort } from '../helper'
 
 process.env.NO_PROXY = '*'
@@ -22,6 +22,19 @@ describe('utils', () => {
     expect(getRegistries(u).length).toBe(3)
   })
 
+  it('should check valid versionInfo', async () => {
+    expect(validVersionInfo(null)).toBe(false)
+    expect(validVersionInfo({ name: 3 })).toBe(false)
+    expect(validVersionInfo({ name: 'name', version: '', dist: {} })).toBe(false)
+    expect(validVersionInfo({
+      name: 'name', version: '1.0.0', dist: {
+        tarball: '',
+        integrity: '',
+        shasum: ''
+      }
+    })).toBe(true)
+  })
+
   it('should checkFileSha1', async () => {
     let not_exists = path.join(os.tmpdir(), 'not_exists')
     let checked = await checkFileSha1(not_exists, 'shasum')
@@ -29,6 +42,14 @@ describe('utils', () => {
     let tarfile = path.resolve(__dirname, '../test.tar.gz')
     checked = await checkFileSha1(tarfile, 'bf0d88712fc3dbf6e3ab9a6968c0b4232779dbc4')
     expect(checked).toBe(true)
+    // throw on error
+    let bigfile = path.join(os.tmpdir(), 'bigfile')
+    let buf = Buffer.allocUnsafe(1024 * 1024)
+    fs.writeFileSync(bigfile, buf)
+    let p = checkFileSha1(bigfile, '')
+    fs.unlinkSync(bigfile)
+    let res = await p
+    expect(res).toBe(false)
   })
 
   it('should untar files', async () => {
@@ -259,6 +280,10 @@ describe('DependenciesInstaller', () => {
       await install.loadInfo(url, 'foo', 10)
     }
     await expect(fn()).rejects.toThrow(Error)
+    fn = async () => {
+      await install.loadInfo(url, 'bar')
+    }
+    await expect(fn()).rejects.toThrow(Error)
   })
 
   it('should fetchInfos', async () => {
@@ -266,14 +291,6 @@ describe('DependenciesInstaller', () => {
     let install = create()
     await install.fetchInfos({ a: '^0.0.1' })
     expect(install.resolvedInfos.size).toBe(4)
-    expect(install.resolvedVersions).toEqual([
-      { name: 'a', requirement: '^0.0.1', version: '0.0.1' },
-      { name: 'b', requirement: '^1.0.0', version: '1.0.0' },
-      { name: 'c', requirement: '^2.0.0', version: '2.0.0' },
-      { name: 'b', requirement: '^2.0.0', version: '2.0.0' },
-      { name: 'd', requirement: '^1.0.0', version: '1.0.0' },
-      { name: 'd', requirement: '>= 0.0.1', version: '1.0.0' }
-    ])
   })
 
   it('should linkDependencies', async () => {
@@ -303,6 +320,25 @@ describe('DependenciesInstaller', () => {
     res = await install.download(new URL('test.tgz', url), 'test.tgz', 'bf0d88712fc3dbf6e3ab9a6968c0b4232779dbc4')
     expect(fs.existsSync(res)).toBe(true)
     fs.unlinkSync(res)
+  })
+
+  it('should throw when unable to resolve version', async () => {
+    let install = create()
+    expect(() => {
+      install.resolveVersion('foo', '^1.0.0')
+    }).toThrow()
+    install.resolvedInfos.set('foo', {
+      name: 'foo',
+      versions: {
+        '2.0.0': {} as any
+      }
+    })
+    expect(() => {
+      install.resolveVersion('foo', '^1.0.0')
+    }).toThrow()
+    expect(() => {
+      install.resolveVersion('foo', '^2.0.0')
+    }).toThrow()
   })
 
   it('should check exists and download items', async () => {

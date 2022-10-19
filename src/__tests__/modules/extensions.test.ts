@@ -207,9 +207,12 @@ describe('extensions', () => {
     let link = path.join(extensions.modulesFolder, 'test-link')
     fs.mkdirSync(folder, { recursive: true })
     fs.symlinkSync(folder, link)
+    let cacheFolder = path.join(extensions.modulesFolder, '.cache')
+    fs.mkdirSync(cacheFolder, { recursive: true })
     extensions.cleanModulesFolder()
     expect(fs.existsSync(folder)).toBe(false)
     expect(fs.existsSync(link)).toBe(false)
+    expect(fs.existsSync(cacheFolder)).toBe(true)
   })
 
   it('should install global extension', async () => {

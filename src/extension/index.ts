@@ -305,14 +305,9 @@ export class Extensions {
     if (!fs.existsSync(this.modulesFolder)) return
     let files = fs.readdirSync(this.modulesFolder)
     for (let file of files) {
-      if (folders.includes(file)) continue
+      if (folders.includes(file) || file === '.cache') continue
       let p = path.join(this.modulesFolder, file)
-      let stat = fs.lstatSync(p)
-      if (stat.isSymbolicLink()) {
-        fs.unlinkSync(p)
-      } else if (stat.isDirectory()) {
-        fs.rmSync(p, { recursive: true, force: true })
-      }
+      fs.rmSync(p, { recursive: true, force: true })
     }
   }
 

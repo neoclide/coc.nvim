@@ -9,6 +9,8 @@ import download from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import { concurrent } from '../util'
 import { loadJson, writeJson } from '../util/fs'
+import { objectLiteral } from '../util/is'
+import { Mutex } from '../util/mutex'
 const logger = require('../util/logger')('extension-dependency')
 
 export interface Dependencies { [key: string]: string }
@@ -33,12 +35,6 @@ interface ModuleInfo {
   }
 }
 
-interface ResolvedVersion {
-  name: string
-  requirement: string
-  version: string
-}
-
 export interface DependencyItem {
   name: string
   version: string
@@ -53,8 +49,10 @@ export interface DependencyItem {
 
 const NPM_REGISTRY = new URL('https://registry.npmjs.org')
 const YARN_REGISTRY = new URL('https://registry.yarnpkg.com')
+const TAOBAO_REGISTRY = new URL('https://registry.npmmirror.com')
 const DEV_DEPENDENCIES = ['coc.nvim', 'webpack', 'esbuild']
 const INFO_TIMEOUT = global.__TEST__ ? 100 : 10000
+const DOWNLOAD_TIMEOUT = global.__TEST__ ? 500 : 3 * 60 * 1000
 
 function toFilename(item: DependencyItem): string {
   return `${item.name}.${item.version}.tgz`
@@ -73,6 +71,14 @@ export function getRegistries(registry: URL): URL[] {
   return urls
 }
 
+export function validVersionInfo(info: any): info is VersionInfo {
+  if (!info) return false
+  if (typeof info.name !== 'string' || typeof info.version !== 'string' || !info.dist) return false
+  let { tarball, integrity, shasum } = info.dist
+  if (typeof tarball !== 'string' || typeof integrity !== 'string' || typeof shasum !== 'string') return false
+  return true
+}
+
 export function getModuleInfo(text: string): ModuleInfo {
   let obj
   try {
@@ -80,7 +86,7 @@ export function getModuleInfo(text: string): ModuleInfo {
   } catch (e) {
     throw new Error(`Invalid JSON data, ${e}`)
   }
-  if (typeof obj.name !== 'string' || obj.versions == null) throw new Error(`Invalid JSON data, name or versions not found`)
+  if (typeof obj.name !== 'string' || !objectLiteral(obj.versions)) throw new Error(`Invalid JSON data, name or versions not found`)
   return {
     name: obj.name,
     latest: obj['dist-tags']?.latest,
@@ -109,7 +115,7 @@ export function readDependencies(directory: string): { [key: string]: string } {
 }
 
 export function getVersion(requirement: string, versions: string[], latest?: string): string | undefined {
-  if (latest && semver.satisfies(latest, requirement)) return latest
+  if (latest && validVersionInfo(versions[latest]) && semver.satisfies(latest, requirement)) return latest
   let sorted = semver.rsort(versions.filter(v => semver.valid(v, { includePrerelease: false })))
   for (let v of sorted) {
     if (semver.satisfies(v, requirement)) return v
@@ -137,7 +143,7 @@ export async function checkFileSha1(filepath: string, shasum: string): Promise<b
   if (!fs.existsSync(filepath)) return Promise.resolve(false)
   return new Promise(resolve => {
     const input = createReadStream(filepath)
-    input.on('error', () => {
+    input.on('error', e => {
       resolve(false)
     })
     input.on('readable', () => {
@@ -152,8 +158,9 @@ export async function checkFileSha1(filepath: string, shasum: string): Promise<b
   })
 }
 
+const mutex = new Mutex()
+
 export class DependenciesInstaller {
-  public resolvedVersions: ResolvedVersion[] = []
   public resolvedInfos: Map<string, ModuleInfo> = new Map()
   private tokenSource: CancellationTokenSource = new CancellationTokenSource()
   constructor(
@@ -168,28 +175,29 @@ export class DependenciesInstaller {
   }
 
   public async installDependencies(directory: string): Promise<void> {
-    // TODO reuse resolved.json
     let dependencies = readDependencies(directory)
     // no need to install
     if (!dependencies || Object.keys(dependencies).length == 0) {
       this.onMessage(`No dependencies`)
       return
     }
-    this.onMessage('Resolving dependencies.')
-    await this.fetchInfos(dependencies)
-    this.onMessage('Linking dependencies.')
-    // create DependencyItems
-    let items: DependencyItem[] = []
-    this.linkDependencies(dependencies, items)
-    if (items.length > 0) {
+    this.onMessage('Waiting for install dependencies.')
+    // TODO reuse resolved.json
+    await mutex.use(async () => {
+      this.onMessage('Resolving dependencies.')
+      await this.fetchInfos(dependencies)
+      this.onMessage('Linking dependencies.')
+      // create DependencyItems
+      let items: DependencyItem[] = []
+      this.linkDependencies(dependencies, items)
       let filepath = path.join(directory, 'resolved.json')
       writeJson(filepath, items)
-    }
-    this.onMessage('Downloading dependencies.')
-    await this.downloadItems(items)
-    this.onMessage('Extract modules.')
-    await this.extractDependencies(items, dependencies, directory)
-    this.onMessage('Done')
+      this.onMessage('Downloading dependencies.')
+      await this.downloadItems(items)
+      this.onMessage('Extract modules.')
+      await this.extractDependencies(items, dependencies, directory)
+      this.onMessage('Done')
+    })
   }
 
   public async extractDependencies(items: DependencyItem[], dependencies: Dependencies, directory: string): Promise<void> {
@@ -211,19 +219,12 @@ export class DependenciesInstaller {
       addToRoot(item)
     })
     rootPackages.clear()
-
-    let err: unknown
-    await concurrent(rootItems, async item => {
-      try {
-        let filename = toFilename(item)
-        let tarfile = path.join(this.dest, filename)
-        let dest = path.join(directory, 'node_modules', item.name)
-        await untar(dest, tarfile)
-      } catch (e) {
-        err = e
-      }
-    }, 5)
-    if (err) throw err
+    for (let item of rootItems) {
+      let filename = toFilename(item)
+      let tarfile = path.join(this.dest, filename)
+      let dest = path.join(directory, 'node_modules', item.name)
+      await untar(dest, tarfile)
+    }
     for (let item of rootItems) {
       let folder = path.join(directory, 'node_modules', item.name)
       await this.extractFor(item, items, rootItems, folder)
@@ -250,25 +251,20 @@ export class DependenciesInstaller {
     }))
     newRoot.push(...rootItems)
     for (let item of deps.values()) {
-      if (item.dependencies) {
-        let dest = path.join(folder, 'node_modules', item.name)
-        await this.extractFor(item, items, newRoot, dest)
-      }
+      let dest = path.join(folder, 'node_modules', item.name)
+      await this.extractFor(item, items, newRoot, dest)
     }
   }
 
   public linkDependencies(dependencies: Dependencies | undefined, items: DependencyItem[]): void {
     if (!dependencies) return
     for (let [name, requirement] of Object.entries(dependencies)) {
-      let version = this.resolveVersion(name, requirement)
-      let item = items.find(o => o.name === name && o.version === version)
+      let versionInfo = this.resolveVersion(name, requirement)
+      let item = items.find(o => o.name === name && o.version === versionInfo.version)
       if (item) {
         if (!item.satisfiedVersions.includes(requirement)) item.satisfiedVersions.push(requirement)
       } else {
-        let info = this.resolvedInfos.get(name)
-        let versionInfo = info ? info.versions[version] : undefined
-        if (!versionInfo) throw new Error(`Version data not found for "${name}@${version}"`)
-        let { dist } = versionInfo
+        let { dist, version } = versionInfo
         items.push({
           name,
           version,
@@ -283,15 +279,14 @@ export class DependenciesInstaller {
     }
   }
 
-  private resolveVersion(name: string, requirement: string): string {
-    let item = this.resolvedVersions.find(o => o.name == name && o.requirement == requirement)
-    if (item) return item.version
+  public resolveVersion(name: string, requirement: string): VersionInfo {
     let info = this.resolvedInfos.get(name)
     if (info) {
       let version = getVersion(requirement, Object.keys(info.versions), info.latest)
       if (version) {
-        this.resolvedVersions.push({ name, requirement, version })
-        return version
+        let versionInfo = info.versions[version]
+        versionInfo.version = version
+        if (validVersionInfo(versionInfo)) return versionInfo
       }
     }
     throw new Error(`No valid version found for "${name}" ${requirement}`)
@@ -300,25 +295,18 @@ export class DependenciesInstaller {
   /**
    * Recursive fetch
    */
-  public async fetchInfos(dependencies: Dependencies): Promise<void> {
-    let keys = Object.keys(dependencies)
+  public async fetchInfos(dependencies: Dependencies | undefined): Promise<void> {
+    let keys = Object.keys(dependencies ?? {})
     if (keys.length === 0) return
-    let fetched: Map<string, ModuleInfo> = new Map()
     await Promise.all(keys.map(key => {
-      if (this.resolvedInfos.has(key)) {
-        fetched.set(key, this.resolvedInfos.get(key))
-        return Promise.resolve()
-      }
+      if (this.resolvedInfos.has(key)) return Promise.resolve()
       return this.loadInfo(this.registry, key, INFO_TIMEOUT).then(info => {
-        fetched.set(key, info)
         this.resolvedInfos.set(key, info)
       })
     }))
-    for (let [key, info] of fetched.entries()) {
-      let requirement = dependencies[key]
-      let version = this.resolveVersion(key, requirement)
-      let deps = info.versions[version].dependencies
-      if (deps) await this.fetchInfos(deps)
+    for (let key of keys) {
+      let versionInfo = this.resolveVersion(key, dependencies[key])
+      await this.fetchInfos(versionInfo.dependencies)
     }
   }
 
@@ -338,13 +326,13 @@ export class DependenciesInstaller {
         let onFinish = () => {
           res.set(filename, filepath)
           finished++
-          this.onMessage(`Downloaded ${finished}/${total}`)
+          this.onMessage(`Downloaded ${filename} ${finished}/${total}`)
         }
         if (checked) {
           onFinish()
         } else {
           // 5min timeout
-          await this.download(new URL(item.resolved), filename, item.shasum, retry, global.__TEST__ ? 1000 : 5 * 60 * 1000)
+          await this.download(new URL(item.resolved), filename, item.shasum, retry, DOWNLOAD_TIMEOUT)
           onFinish()
         }
       } catch (e) {
@@ -355,7 +343,7 @@ export class DependenciesInstaller {
     return res
   }
 
-  public async fetch(url: string | URL, options: FetchOptions = {}, retry = 1): Promise<any> {
+  public async fetch(url: string | URL, options: FetchOptions, retry = 1): Promise<any> {
     for (let i = 0; i < retry; i++) {
       try {
         return await fetch(url, options, this.tokenSource.token)
@@ -381,8 +369,7 @@ export class DependenciesInstaller {
         this.onMessage(`Error on fetch ${url.hostname}/${name}: ${e}`)
       }
     }
-    if (!info) throw new Error(`Unable to fetch info for "${name}"`)
-    return info
+    throw new Error(`Unable to fetch info for "${name}"`)
   }
 
   public async download(url: string | URL, filename: string, shasum: string, retry = 1, timeout?: number): Promise<string> {
