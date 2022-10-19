@@ -372,16 +372,12 @@ describe('handler codeActions', () => {
   })
 
   describe('doQuickfix', () => {
-    it('should throw when quickfix action does not exist', async () => {
-      let err
+    it('should show message when quickfix action does not exist', async () => {
       currActions = []
       await helper.createDocument()
-      try {
-        await codeActions.doQuickfix()
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await codeActions.doQuickfix()
+      let msg = await helper.getCmdline()
+      expect(msg).toMatch('No quickfix')
     })
 
     it('should do preferred quickfix action', async () => {

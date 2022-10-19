@@ -618,7 +618,7 @@ bar
       })
       await refactor.doRefactor()
       let res = await helper.getCmdline()
-      expect(res).toMatch(/unable to rename/)
+      expect(res).toMatch(/Error/)
     })
 
     it('should show message when returned edits is null', async () => {

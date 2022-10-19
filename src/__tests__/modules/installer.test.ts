@@ -89,7 +89,7 @@ describe('Installer', () => {
     it('should use latest version', async () => {
       let installer = new Installer(__dirname, 'npm', 'coc-omni')
       let spy = jest.spyOn(installer, 'fetch').mockImplementation(url => {
-        expect(url.toString()).toBe('https://registry.npmjs.org/coc-omni')
+        expect(url.toString()).toMatch('coc-omni')
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
           'dist-tags': { latest: '1.0.0' },
