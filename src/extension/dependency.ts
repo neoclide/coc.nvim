@@ -115,7 +115,7 @@ export function readDependencies(directory: string): { [key: string]: string } {
 }
 
 export function getVersion(requirement: string, versions: string[], latest?: string): string | undefined {
-  if (latest && validVersionInfo(versions[latest]) && semver.satisfies(latest, requirement)) return latest
+  if (latest && semver.satisfies(latest, requirement)) return latest
   let sorted = semver.rsort(versions.filter(v => semver.valid(v, { includePrerelease: false })))
   for (let v of sorted) {
     if (semver.satisfies(v, requirement)) return v
@@ -285,7 +285,6 @@ export class DependenciesInstaller {
       let version = getVersion(requirement, Object.keys(info.versions), info.latest)
       if (version) {
         let versionInfo = info.versions[version]
-        versionInfo.version = version
         if (validVersionInfo(versionInfo)) return versionInfo
       }
     }
