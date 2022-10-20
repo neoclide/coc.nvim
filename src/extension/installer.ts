@@ -165,6 +165,7 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async install(): Promise<InstallResult> {
+    this.emit('message', `fetch info of ${this.def}`, false)
     let info = await this.getInfo()
     logger.info(`Fetched info of ${this.def}`, info)
     let { name, version } = info
@@ -254,6 +255,5 @@ export class Installer extends EventEmitter implements IInstaller {
 
   public dispose(): void {
     this.tokenSource.cancel()
-    this.tokenSource = new CancellationTokenSource()
   }
 }

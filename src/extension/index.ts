@@ -172,8 +172,16 @@ export class Extensions {
     let disposables: Disposable[] = this.disposables = []
     let installBuffer = this.createInstallerUI(false, false, disposables)
     let tokenSource = new CancellationTokenSource()
+    let installers: Map<string, IInstaller> = new Map()
+    installBuffer.onDidCancel(key => {
+      let item = installers.get(key)
+      if (item) item.dispose()
+    })
     disposables.push(Disposable.create(() => {
       tokenSource.cancel()
+      for (let item of installers.values()) {
+        item.dispose()
+      }
     }))
     await Promise.resolve(installBuffer.start(list))
     let registry = await registryUrl()
@@ -182,28 +190,24 @@ export class Extensions {
       try {
         installBuffer.startProgress(key)
         installer = this.createInstaller(registry, key)
-        disposables.push(installer)
+        installers.set(key, installer)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(key, msg, isProgress)
         })
+        logger.debug('install:', key)
         let result = await installer.install()
-        disposables = disposables.filter(o => o !== installer)
         installBuffer.finishProgress(key, true)
         this.states.addExtension(result.name, result.url ? result.url : `>=${result.version}`)
         let ms = key.match(/@[\d.]+$/)
         if (ms != null) this.states.setLocked(result.name, true)
         await this.manager.loadExtension(result.folder)
       } catch (err: any) {
-        installBuffer.addMessage(key, err.message)
-        installBuffer.finishProgress(key, false)
-        if (!isCancellationError(err)) {
-          void window.showErrorMessage(`Error on install ${key}: ${err}`)
-          logger.error(`Error on install ${key}`, err)
-        }
+        this.onInstallError(key, installBuffer, err)
       }
     }
     await concurrent(list, fn, 3, tokenSource.token)
-    disposables.splice(0, disposables.length)
+    let len = disposables.length
+    disposables.splice(0, len)
   }
 
   /**
@@ -223,11 +227,19 @@ export class Extensions {
     this.cleanModulesFolder()
     let registry = await registryUrl()
     let disposables: Disposable[] = this.disposables = []
+    let installers: Map<string, IInstaller> = new Map()
     let installBuffer = this.createInstallerUI(true, silent, disposables)
     let tokenSource = new CancellationTokenSource()
     disposables.push(Disposable.create(() => {
       tokenSource.cancel()
+      for (let item of installers.values()) {
+        item.dispose()
+      }
     }))
+    installBuffer.onDidCancel(key => {
+      let item = installers.get(key)
+      if (item) item.dispose()
+    })
     await Promise.resolve(installBuffer.start(stats.map(o => o.id)))
     let fn = async (stat: ExtensionInfo): Promise<void> => {
       let { id } = stat
@@ -236,25 +248,28 @@ export class Extensions {
         installBuffer.startProgress(id)
         let url = stat.exotic ? stat.uri : null
         installer = this.createInstaller(registry, id)
-        disposables.push(installer)
+        installers.set(id, installer)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(id, msg, isProgress)
         })
         let directory = await installer.update(url)
-        disposables = disposables.filter(o => o !== installer)
         installBuffer.finishProgress(id, true)
         if (directory) await this.manager.loadExtension(directory)
       } catch (err: any) {
-        installBuffer.addMessage(id, err.message)
-        installBuffer.finishProgress(id, false)
-        if (!isCancellationError(err)) {
-          void window.showErrorMessage(`Error on update ${id}: ${err}`)
-          logger.error(`Error on update ${id}`, err)
-        }
+        this.onInstallError(id, installBuffer, err)
       }
     }
     await concurrent(stats, fn, silent ? 1 : 3, tokenSource.token)
     disposables.splice(0, disposables.length)
+  }
+
+  private onInstallError(id: string, installBuffer: InstallUI, err: Error): void {
+    installBuffer.addMessage(id, err.message)
+    installBuffer.finishProgress(id, false)
+    if (!isCancellationError(err)) {
+      void window.showErrorMessage(`Error on install ${id}: ${err}`)
+      logger.error(`Error on update ${id}`, err)
+    }
   }
 
   /**

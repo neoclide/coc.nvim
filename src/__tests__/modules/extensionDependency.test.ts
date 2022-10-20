@@ -254,11 +254,7 @@ describe('DependenciesInstaller', () => {
     let directory = path.join(os.tmpdir(), uuid())
     dirs.push(directory)
     writeJson(path.join(directory, 'package.json'), { dependencies: { foo: '>= 0.0.1' } })
-    let other = path.join(os.tmpdir(), uuid())
-    dirs.push(other)
-    writeJson(path.join(other, 'package.json'), { dependencies: { bar: '>= 0.0.1' } })
     let one = session.createInstaller(directory, () => {})
-    let two = session.createInstaller(other, () => {})
     let spy = jest.spyOn(one, 'fetchInfos').mockImplementation(() => {
       return new Promise((resolve, reject) => {
         one.token.onCancellationRequested(() => {
@@ -271,20 +267,26 @@ describe('DependenciesInstaller', () => {
       })
     })
     let p = one.installDependencies()
-    let err
-    two.installDependencies().catch(error => {
-      err = error
-    })
     await helper.wait(30)
-    session.cancel()
+    one.cancel()
     let fn = async () => {
       await p
     }
     await expect(fn()).rejects.toThrow(Error)
     spy.mockRestore()
-    await helper.waitValue(() => {
-      return err != null
-    }, true)
+  })
+
+  it('should throw when Cancellation requested', async () => {
+    let install = create(undefined, '')
+    install.cancel()
+    let fn = async () => {
+      await install.fetch(new URL('/', url), { timeout: 10 }, 3)
+    }
+    await expect(fn()).rejects.toThrow(CancellationError)
+    fn = async () => {
+      await install.download(new URL('/', url), 'filename', '')
+    }
+    await expect(fn()).rejects.toThrow(CancellationError)
   })
 
   it('should retry fetch', async () => {

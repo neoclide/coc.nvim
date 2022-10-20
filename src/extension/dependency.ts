@@ -352,6 +352,7 @@ export class DependenciesInstaller {
   }
 
   public async fetch(url: string | URL, options: FetchOptions, retry = 1): Promise<any> {
+    if (this.tokenSource.token.isCancellationRequested) throw new CancellationError()
     for (let i = 0; i < retry; i++) {
       try {
         return await fetch(url, options, this.tokenSource.token)
@@ -369,6 +370,7 @@ export class DependenciesInstaller {
    * Download tgz file with sha1 check.
    */
   public async download(url: string | URL, filename: string, shasum: string, retry = 1, timeout?: number): Promise<string> {
+    if (this.tokenSource.token.isCancellationRequested) throw new CancellationError()
     for (let i = 0; i < retry; i++) {
       try {
         let fullpath = path.join(this.dest, filename)
@@ -395,13 +397,11 @@ export class DependenciesInstaller {
 
   public cancel(): void {
     this.tokenSource.cancel()
-    this.tokenSource = new CancellationTokenSource()
   }
 }
 
 export class DependencySession {
   private resolvedInfos: Map<string, ModuleInfo> = new Map()
-  private installers: Set<DependenciesInstaller> = new Set()
   constructor(
     public readonly registry: URL,
     public readonly modulesRoot: string
@@ -409,18 +409,6 @@ export class DependencySession {
   }
 
   public createInstaller(directory: string, onMessage: (msg: string) => void): DependenciesInstaller {
-    let installer = new DependenciesInstaller(this.registry, this.resolvedInfos, this.modulesRoot, directory, onMessage)
-    this.installers.add(installer)
-    return installer
-  }
-
-  /**
-   * Cancel all installer
-   */
-  public cancel(): void {
-    for (let item of this.installers) {
-      item.cancel()
-    }
-    this.installers.clear()
+    return new DependenciesInstaller(this.registry, this.resolvedInfos, this.modulesRoot, directory, onMessage)
   }
 }

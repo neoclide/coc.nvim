@@ -46,11 +46,11 @@ export function delay(func: () => void, defaultDelay: number): ((ms?: number) =>
   return fn as any
 }
 
-export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3, token?: CancellationToken): Promise<void> {
+export function concurrent<T>(arr: ReadonlyArray<T>, fn: (val: T) => Promise<void>, limit = 3, token?: CancellationToken): Promise<void> {
   if (arr.length == 0) return Promise.resolve()
   let finished = 0
   let total = arr.length
-  let remain = arr.slice()
+  let curr = 0
   return new Promise(resolve => {
     let run = (val): void => {
       if (token && token.isCancellationRequested) return resolve()
@@ -58,16 +58,16 @@ export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3
         finished = finished + 1
         if (finished == total) {
           resolve()
-        } else if (remain.length) {
-          let next = remain.shift()
-          run(next)
+        } else if (curr < total - 1) {
+          curr++
+          run(arr[curr])
         }
       }
       fn(val).then(cb, cb)
     }
-    for (let i = 0; i < Math.min(limit, remain.length); i++) {
-      let val = remain.shift()
-      run(val)
+    curr = Math.min(limit, total) - 1
+    for (let i = 0; i <= curr; i++) {
+      run(arr[i])
     }
   })
 }

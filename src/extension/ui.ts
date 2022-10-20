@@ -1,6 +1,6 @@
 'use strict'
 import { debounce } from 'debounce'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { frames } from '../model/status'
 import { HighlightItem, OutputChannel } from '../types'
@@ -18,6 +18,7 @@ export enum State {
 }
 
 export interface InstallUI {
+  onDidCancel: Event<string>
   start(names: string[]): void | Promise<void>
   addMessage(name: string, msg: string, isProgress?: boolean): void
   startProgress(name: string): void
@@ -25,6 +26,8 @@ export interface InstallUI {
 }
 
 export class InstallChannel implements InstallUI {
+  private readonly _onDidCancel = new Emitter<string>()
+  public readonly onDidCancel: Event<string> = this._onDidCancel.event
   constructor(private isUpdate: boolean, private channel: OutputChannel) {
   }
 
@@ -59,6 +62,8 @@ export class InstallBuffer implements InstallUI {
   private names: string[] = []
   private interval: NodeJS.Timer
   public bufnr: number
+  private readonly _onDidCancel = new Emitter<string>()
+  public readonly onDidCancel: Event<string> = this._onDidCancel.event
 
   constructor(private isUpdate: boolean, onClose = () => {}) {
     let floatFactory = window.createFloatFactory({ modes: ['n'] })
@@ -163,6 +168,21 @@ export class InstallBuffer implements InstallUI {
     return this.interval == null
   }
 
+  public async onTab(): Promise<void> {
+    let line = await workspace.nvim.eval(`line(".")-1`) as number
+    let name = this.names[line - 2]
+    if (!name) return
+    let state = this.statMap.get(name)
+    let couldCancel = state === State.Progressing
+    let actions: string[] = []
+    if (couldCancel) actions.push('Cancel')
+    if (actions.length === 0) return
+    let idx = await window.showMenuPicker(['Cancel'])
+    if (idx === 0) {
+      this._onDidCancel.fire(name)
+    }
+  }
+
   // draw frame
   public draw(): void {
     let { remains, bufnr } = this
@@ -198,6 +218,7 @@ export class InstallBuffer implements InstallUI {
     if (!isSync) nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
     this.highlight()
     let res = await nvim.resumeNotification()
+    workspace.registerLocalKeymap('n', '<tab>', this.onTab.bind(this))
     this.bufnr = res[0][1] as number
     this.interval = setInterval(() => {
       this.draw()
