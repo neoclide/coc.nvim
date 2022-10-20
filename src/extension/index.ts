@@ -1,14 +1,16 @@
 'use strict'
 import fs from 'fs'
 import path from 'path'
-import { Event } from 'vscode-languageserver-protocol'
+import { URL } from 'url'
+import { CancellationTokenSource, Disposable, Event } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
+import events from '../events'
 import type { OutputChannel } from '../types'
-import { concurrent } from '../util'
+import { concurrent, disposeAll } from '../util'
 import { distinct } from '../util/array'
+import { isCancellationError } from '../util/errors'
 import '../util/extensions'
 import { isUrl } from '../util/is'
-import { executable } from '../util/processes'
 import window from '../window'
 import workspace from '../workspace'
 import { DependencySession } from './dependency'
@@ -37,10 +39,18 @@ export class Extensions {
   public readonly manager: ExtensionManager
   public readonly states: ExtensionStat
   public readonly modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
+  private disposables: Disposable[] = []
   constructor() {
     checkExtensionRoot(EXTENSIONS_FOLDER)
     this.states = new ExtensionStat(EXTENSIONS_FOLDER)
     this.manager = new ExtensionManager(this.states, EXTENSIONS_FOLDER)
+    events.on('VimLeavePre', () => {
+      this.cancelInstallers()
+    })
+  }
+
+  public cancelInstallers() {
+    disposeAll(this.disposables)
   }
 
   public async init(): Promise<void> {
@@ -139,13 +149,17 @@ export class Extensions {
     return await this.manager.call(id, method, args)
   }
 
-  private createInstallerUI(isUpdate: boolean, silent: boolean): InstallUI {
-    return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate)
+  private createInstallerUI(isUpdate: boolean, silent: boolean, disposables: Disposable[]): InstallUI {
+    return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate, async () => {
+      if (disposables.length > 0) {
+        disposeAll(disposables)
+        void window.showWarningMessage(`Extension install process canceled`)
+      }
+    })
   }
 
-  public async creteInstaller(def: string): Promise<IInstaller> {
-    let url = await registryUrl()
-    return new Installer(new DependencySession(url, this.modulesFolder), def)
+  public createInstaller(registry: URL, def: string): IInstaller {
+    return new Installer(new DependencySession(registry, this.modulesFolder), def)
   }
 
   /**
@@ -153,17 +167,27 @@ export class Extensions {
    */
   public async installExtensions(list: string[]): Promise<void> {
     if (list.length == 0) return
+    this.cancelInstallers()
     list = distinct(list)
-    let installBuffer = this.createInstallerUI(false, false)
+    let disposables: Disposable[] = this.disposables = []
+    let installBuffer = this.createInstallerUI(false, false, disposables)
+    let tokenSource = new CancellationTokenSource()
+    disposables.push(Disposable.create(() => {
+      tokenSource.cancel()
+    }))
     await Promise.resolve(installBuffer.start(list))
+    let registry = await registryUrl()
     let fn = async (key: string): Promise<void> => {
+      let installer: IInstaller
       try {
         installBuffer.startProgress(key)
-        let installer = await this.creteInstaller(key)
+        installer = this.createInstaller(registry, key)
+        disposables.push(installer)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(key, msg, isProgress)
         })
         let result = await installer.install()
+        disposables = disposables.filter(o => o !== installer)
         installBuffer.finishProgress(key, true)
         this.states.addExtension(result.name, result.url ? result.url : `>=${result.version}`)
         let ms = key.match(/@[\d.]+$/)
@@ -172,17 +196,21 @@ export class Extensions {
       } catch (err: any) {
         installBuffer.addMessage(key, err.message)
         installBuffer.finishProgress(key, false)
-        void window.showErrorMessage(`Error on install ${key}: ${err}`)
-        logger.error(`Error on install ${key}`, err)
+        if (!isCancellationError(err)) {
+          void window.showErrorMessage(`Error on install ${key}: ${err}`)
+          logger.error(`Error on install ${key}`, err)
+        }
       }
     }
-    await concurrent(list, fn)
+    await concurrent(list, fn, 3, tokenSource.token)
+    disposables.splice(0, disposables.length)
   }
 
   /**
    * Update global extensions
    */
   public async updateExtensions(silent = false): Promise<void> {
+    this.cancelInstallers()
     let stats = this.globalExtensionStats()
     stats = stats.filter(s => {
       if (s.isLocked || s.state === 'disabled') {
@@ -193,28 +221,40 @@ export class Extensions {
     })
     this.states.setLastUpdate()
     this.cleanModulesFolder()
-    let installBuffer = this.createInstallerUI(true, silent)
+    let registry = await registryUrl()
+    let disposables: Disposable[] = this.disposables = []
+    let installBuffer = this.createInstallerUI(true, silent, disposables)
+    let tokenSource = new CancellationTokenSource()
+    disposables.push(Disposable.create(() => {
+      tokenSource.cancel()
+    }))
     await Promise.resolve(installBuffer.start(stats.map(o => o.id)))
     let fn = async (stat: ExtensionInfo): Promise<void> => {
       let { id } = stat
+      let installer: IInstaller
       try {
         installBuffer.startProgress(id)
         let url = stat.exotic ? stat.uri : null
-        let installer = await this.creteInstaller(id)
+        installer = this.createInstaller(registry, id)
+        disposables.push(installer)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(id, msg, isProgress)
         })
         let directory = await installer.update(url)
+        disposables = disposables.filter(o => o !== installer)
         installBuffer.finishProgress(id, true)
         if (directory) await this.manager.loadExtension(directory)
       } catch (err: any) {
         installBuffer.addMessage(id, err.message)
         installBuffer.finishProgress(id, false)
-        void window.showErrorMessage(`Error on update ${id}: ${err}`)
-        logger.error(`Error on update ${id}`, err)
+        if (!isCancellationError(err)) {
+          void window.showErrorMessage(`Error on update ${id}: ${err}`)
+          logger.error(`Error on update ${id}`, err)
+        }
       }
     }
-    await concurrent(stats, fn, silent ? 1 : 3)
+    await concurrent(stats, fn, silent ? 1 : 3, tokenSource.token)
+    disposables.splice(0, disposables.length)
   }
 
   /**
@@ -300,6 +340,7 @@ export class Extensions {
   }
 
   public dispose(): void {
+    this.cancelInstallers()
     this.manager.dispose()
   }
 }

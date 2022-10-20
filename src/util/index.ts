@@ -1,7 +1,5 @@
 'use strict'
-interface Disposable {
-  dispose(): void
-}
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 
 export const CONFIG_FILE_NAME = 'coc-settings.json'
 
@@ -48,13 +46,14 @@ export function delay(func: () => void, defaultDelay: number): ((ms?: number) =>
   return fn as any
 }
 
-export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3): Promise<void> {
+export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3, token?: CancellationToken): Promise<void> {
   if (arr.length == 0) return Promise.resolve()
   let finished = 0
   let total = arr.length
   let remain = arr.slice()
   return new Promise(resolve => {
     let run = (val): void => {
+      if (token && token.isCancellationRequested) return resolve()
       let cb = () => {
         finished = finished + 1
         if (finished == total) {

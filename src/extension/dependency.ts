@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import fs, { createReadStream } from 'fs'
+import bytes from 'bytes'
 import path from 'path'
 import semver from 'semver'
 import tar from 'tar'
@@ -326,9 +327,10 @@ export class DependenciesInstaller {
         res.set(filename, filepath)
         finished++
         if (checked) {
-          this.onMessage(`Downloaded ${filename} cost ${Date.now() - ts}ms [${finished}/${total}]`)
+          this.onMessage(`File ${filename} already exists [${finished}/${total}]`)
         } else {
-          this.onMessage(`File ${filename} exists [${finished}/${total}]`)
+          let stat = fs.statSync(filepath)
+          this.onMessage(`Downloaded ${filename} (${bytes(stat.size)}) cost ${Date.now() - ts}ms [${finished}/${total}]`)
         }
       }
       if (checked) {

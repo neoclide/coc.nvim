@@ -60,7 +60,7 @@ export class InstallBuffer implements InstallUI {
   private interval: NodeJS.Timer
   public bufnr: number
 
-  constructor(private isUpdate: boolean) {
+  constructor(private isUpdate: boolean, onClose = () => {}) {
     let floatFactory = window.createFloatFactory({ modes: ['n'] })
     this.disposables.push(floatFactory)
     let fn = debounce(async (bufnr, cursor) => {
@@ -77,6 +77,7 @@ export class InstallBuffer implements InstallUI {
     events.on('BufUnload', bufnr => {
       if (bufnr === this.bufnr) {
         this.dispose()
+        onClose()
       }
     }, null, this.disposables)
   }

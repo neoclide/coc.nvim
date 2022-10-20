@@ -6,6 +6,7 @@ import path from 'path'
 import semver from 'semver'
 import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import { isFalsyOrEmpty } from '../util/array'
@@ -41,9 +42,8 @@ const PINGTIMEOUT = global.__TEST__ ? 50 : 500
  * Find the user configured registry or the best one
  */
 export async function registryUrl(home = os.homedir(), registries?: URL[], timeout = PINGTIMEOUT): Promise<URL> {
-  let res: URL
-  let filepath = path.join(home, '.npmrc')
   try {
+    let filepath = path.join(home, '.npmrc')
     if (fs.existsSync(filepath)) {
       let content = fs.readFileSync(filepath, 'utf8')
       let uri: string
@@ -54,9 +54,8 @@ export async function registryUrl(home = os.homedir(), registries?: URL[], timeo
           uri = ms[2]
         }
       }
-      if (uri) res = new URL(uri)
+      if (uri) return new URL(uri)
     }
-    if (res) return res
     registries = isFalsyOrEmpty(registries) ? [TAOBAO_REGISTRY, NPM_REGISTRY, YARN_REGISTRY] : registries
     const hosts = registries.map(o => o.hostname)
     let host = await findBestHost(hosts, timeout)
@@ -81,12 +80,14 @@ export interface IInstaller {
   on(event: 'message', cb: (msg: string, isProgress: boolean) => void): void
   install(): Promise<InstallResult>
   update(url?: string): Promise<string | undefined>
+  dispose(): void
 }
 
 export class Installer extends EventEmitter implements IInstaller {
   private name: string
   private url: string
   private version: string
+  private tokenSource = new CancellationTokenSource()
   constructor(
     private dependencySession: DependencySession,
     // could be url or name@version or name
@@ -204,9 +205,12 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async installDependencies(folder: string): Promise<void> {
-    let { dependencySession } = this
+    let { dependencySession, tokenSource } = this
     let installer = dependencySession.createInstaller(folder, msg => {
       this.log(msg)
+    })
+    tokenSource.token.onCancellationRequested(() => {
+      installer.cancel()
     })
     await installer.installDependencies()
   }
@@ -241,10 +245,15 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async download(url: string, options: DownloadOptions): Promise<any> {
-    return await download(url, options)
+    return await download(url, options, this.tokenSource.token)
   }
 
   public async fetch(url: string | URL, options: FetchOptions = {}): Promise<any> {
-    return await fetch(url, options)
+    return await fetch(url, options, this.tokenSource.token)
+  }
+
+  public dispose(): void {
+    this.tokenSource.cancel()
+    this.tokenSource = new CancellationTokenSource()
   }
 }

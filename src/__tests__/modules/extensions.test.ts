@@ -1,9 +1,12 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import extensions, { Extensions, toUrl } from '../../extension'
+import { CancellationError } from '../../util/errors'
 import { writeFile, writeJson } from '../../util/fs'
 import helper from '../helper'
 
@@ -36,7 +39,7 @@ describe('extensions', () => {
     expect(extensions.onDidActiveExtension).toBeDefined()
     expect(extensions.onDidUnloadExtension).toBeDefined()
     expect(extensions.schemes).toBeDefined()
-    let res = await extensions.creteInstaller('id')
+    let res = extensions.createInstaller(new URL('https://github.com'), 'id')
     expect(res).toBeDefined()
   })
 
@@ -107,13 +110,18 @@ describe('extensions', () => {
   })
 
   it('should catch error when installExtensions', async () => {
-    let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
         },
         install: () => {
           return Promise.resolve({ name: 'name', url: 'http://e', version: '1.0.0' })
+        },
+        update: () => {
+          return ''
+        },
+        dispose: () => {
         }
       } as any
     })
@@ -125,15 +133,51 @@ describe('extensions', () => {
     s.mockRestore()
   })
 
+  it('should cancel extension install', async () => {
+    let called = false
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      return {
+        on: (_key, cb) => {
+          cb('msg', false)
+        },
+        update: () => {
+          return Promise.resolve('')
+        },
+        install: () => {
+          called = true
+          return new Promise((_resolve, reject) => {
+            token.onCancellationRequested(() => {
+              reject(new CancellationError())
+            })
+          })
+        },
+        dispose: () => {
+          tokenSource.cancel()
+        }
+      }
+    })
+    let p = extensions.installExtensions(['abc@1.0.0', 'def@2.0.0'])
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    extensions.cancelInstallers()
+    await p
+    spy.mockRestore()
+  })
+
   it('should catch error on updateExtensions', async () => {
     let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }] as any
     })
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         update: () => {
           return Promise.resolve(path.join(os.tmpdir(), uuid()))
+        },
+        dispose: () => {
         }
       } as any
     })
@@ -142,11 +186,49 @@ describe('extensions', () => {
     s.mockRestore()
   })
 
+  it('should cancel extension update', async () => {
+    let s = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+      return [{ id: 'test' }, { id: 'foo' }] as any
+    })
+    let called = false
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      return {
+        on: (_key, cb) => {
+          cb('msg', false)
+        },
+        update: () => {
+          called = true
+          return new Promise((_resolve, reject) => {
+            token.onCancellationRequested(() => {
+              reject(new CancellationError())
+            })
+          })
+        },
+        install: () => {
+          return Promise.reject(new CancellationError())
+        },
+        dispose: () => {
+          tokenSource.cancel()
+        }
+      }
+    })
+    let p = extensions.updateExtensions(true)
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    extensions.cancelInstallers()
+    await p
+    s.mockRestore()
+    spy.mockRestore()
+  })
+
   it('should update enabled extensions', async () => {
     let spy = jest.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
       return [{ id: 'test' }, { id: 'global', isLocked: true }, { id: 'disabled', state: 'disabled' }] as any
     })
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -154,6 +236,8 @@ describe('extensions', () => {
         update: async () => {
           await helper.wait(1)
           return ''
+        },
+        dispose: () => {
         }
       } as any
     })
@@ -167,7 +251,7 @@ describe('extensions', () => {
       return [{ id: 'test', exotic: true, uri: 'http://example.com' }] as any
     })
     let called = false
-    let s = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let s = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -177,6 +261,8 @@ describe('extensions', () => {
           called = true
           expect(url).toBe('http://example.com')
           return ''
+        },
+        dispose: () => {
         }
       } as any
     })
@@ -202,7 +288,7 @@ describe('extensions', () => {
 
   it('should install global extension', async () => {
     let folder = path.join(extensions.modulesFolder, 'coc-omni')
-    let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
+    let spy = jest.spyOn(extensions, 'createInstaller').mockImplementation(() => {
       return {
         on: () => {},
         install: async () => {
@@ -211,6 +297,8 @@ describe('extensions', () => {
           await writeFile(file, JSON.stringify({ name: 'coc-omni', engines: { coc: '>=0.0.1' }, version: '0.0.1' }, null, 2))
           await writeFile(path.join(folder, 'index.js'), 'exports.activate = () => {}')
           return { name: 'coc-omni', version: '1.0.0', folder }
+        },
+        dispose: () => {
         }
       } as any
     })
