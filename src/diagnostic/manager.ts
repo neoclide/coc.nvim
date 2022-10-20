@@ -112,12 +112,12 @@ class DiagnosticManager implements Disposable {
       let buf = this.buffers.getItem(bufnr)
       if (!buf || buf.config.refreshOnInsertMode) return
       for (let buf of this.buffers.items) {
-        if (buf.dirty && buf.config.autoRefresh) buf.refreshHighlights()
+        buf.refreshHighlights()
       }
     }, null, this.disposables)
     events.on('BufWinEnter', (bufnr: number) => {
       let buf = this.buffers.getItem(bufnr)
-      if (buf && buf.dirty) buf.refreshHighlights()
+      if (buf) buf.refreshHighlights()
     }, null, this.disposables)
 
     let errorItems = workspace.configurations.errorItems

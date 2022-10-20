@@ -1,6 +1,5 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { debounce } from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Emitter, Event, Position, TextEdit } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
@@ -50,8 +49,8 @@ export class DiagnosticBuffer implements SyncItem {
   private diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
   private versionsMap: Map<string, number> = new Map()
   private _disposed = false
-  private _dirty = false
-  private _changeTs = 0
+  private _dirties: Set<string> = new Set()
+  private _refreshing = false
   private _config: DiagnosticConfig
   public refreshHighlights: Function & { clear(): void }
   private readonly _onDidRefresh = new Emitter<ReadonlyArray<Diagnostic>>()
@@ -62,7 +61,25 @@ export class DiagnosticBuffer implements SyncItem {
     private floatFactory?: FloatFactory
   ) {
     this.loadConfiguration()
-    this.refreshHighlights = debounce(this._refresh.bind(this), delay)
+    let timer: NodeJS.Timer
+    let fn: any = () => {
+      clearTimeout(timer)
+      this._refreshing = true
+      timer = setTimeout(() => {
+        this._refreshing = false
+        if (!this._autoRefresh) return
+        void this._refresh()
+      }, delay)
+    }
+    fn.clear = () => {
+      this._refreshing = false
+      clearTimeout(timer)
+    }
+    this.refreshHighlights = fn
+  }
+
+  private get _autoRefresh(): boolean {
+    return this.config.enable && this.config.autoRefresh && this.dirty
   }
 
   public get config(): Readonly<DiagnosticConfig> {
@@ -132,7 +149,7 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   public get dirty(): boolean {
-    return this._dirty
+    return this._dirties.size > 0
   }
 
   public get bufnr(): number {
@@ -146,7 +163,6 @@ export class DiagnosticBuffer implements SyncItem {
   public onChange(e: DidChangeTextDocumentParams): void {
     let changes = e.contentChanges
     if (changes.length > 0) {
-      this._changeTs = Date.now()
       let edit = TextEdit.replace(changes[0].range, changes[0].text)
       for (let [collection, diagnostics] of this.diagnosticsMap.entries()) {
         let arr = adjustDiagnostics(diagnostics, edit)
@@ -158,7 +174,7 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   public onTextChange(): void {
-    this._dirty = true
+    this._dirties = new Set(this.diagnosticsMap.keys())
     this.refreshHighlights.clear()
   }
 
@@ -212,17 +228,17 @@ export class DiagnosticBuffer implements SyncItem {
     let { diagnosticsMap, versionsMap } = this
     let curr = diagnosticsMap.get(collection)
     versionsMap.set(collection, this.doc.version)
-    if (!this._dirty && isFalsyOrEmpty(diagnostics) && isFalsyOrEmpty(curr)) return
+    if (!this._dirties.has(collection) && isFalsyOrEmpty(diagnostics) && isFalsyOrEmpty(curr)) return
     diagnosticsMap.set(collection, diagnostics)
     void this.checkFloat()
-    if (!this.config.enable || this._dirty || Date.now() - this._changeTs < delay) {
-      this._dirty = true
+    if (!this.config.enable || (diagnostics.length > 0 && this._refreshing)) {
+      this._dirties.add(collection)
       return
     }
-    let info = await this.getDiagnosticInfo()
+    let info = await this.getDiagnosticInfo(diagnostics.length === 0)
     // avoid highlights on invalid state or buffer hidden.
-    if (this._dirty || !info || info.winid == -1) {
-      this._dirty = true
+    if (!info || info.winid == -1) {
+      this._dirties.add(collection)
       return
     }
     let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
@@ -243,7 +259,8 @@ export class DiagnosticBuffer implements SyncItem {
    * Reset all diagnostics of current buffer
    */
   public async reset(diagnostics: { [collection: string]: Diagnostic[] }, force?: boolean): Promise<void> {
-    this._changeTs = Date.now()
+    this.refreshHighlights.clear()
+    this._dirties.clear()
     let { diagnosticsMap } = this
     for (let key of diagnosticsMap.keys()) {
       // make sure clear collection when it's empty.
@@ -254,7 +271,7 @@ export class DiagnosticBuffer implements SyncItem {
     }
     let info = await this.getDiagnosticInfo(force)
     if (!info || !this.config.enable) {
-      this._dirty = true
+      this._dirties = new Set(diagnosticsMap.keys())
       return
     }
     this.refresh(this.diagnosticsMap, info)
@@ -359,7 +376,9 @@ export class DiagnosticBuffer implements SyncItem {
    */
   private refresh(diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>>, info: DiagnosticInfo): void {
     let { nvim, displayByAle } = this
-    this._dirty = false
+    for (let collection of diagnosticsMap.keys()) {
+      this._dirties.delete(collection)
+    }
     if (displayByAle) {
       nvim.pauseNotification()
       for (let [collection, diagnostics] of diagnosticsMap.entries()) {
@@ -462,7 +481,7 @@ export class DiagnosticBuffer implements SyncItem {
   public showVirtualText(lnum: number): void {
     let { _config: config } = this
     let { virtualText, virtualTextLevel } = config
-    if (!virtualText) return
+    if (!virtualText || lnum < 0) return
     let { virtualTextPrefix, virtualTextLimitInOneLine, virtualTextCurrentLineOnly } = this._config
     let { diagnostics, buffer } = this
     if (virtualTextCurrentLineOnly) {
@@ -475,9 +494,7 @@ export class DiagnosticBuffer implements SyncItem {
     buffer.clearNamespace(virtualTextSrcId)
     let map: Map<number, [string, string][]> = new Map()
     let opts: VirtualTextOption = {}
-    if (typeof config.virtualTextAlign === 'string') {
-      opts.text_align = config.virtualTextAlign
-    }
+    opts.text_align = config.virtualTextAlign
     if (typeof config.virtualTextWinCol === 'number') {
       opts.virt_text_win_col = config.virtualTextWinCol
     }
@@ -518,8 +535,7 @@ export class DiagnosticBuffer implements SyncItem {
   /**
    * Refresh all diagnostics
    */
-  public async _refresh(): Promise<void> {
-    if (!this._dirty || !this.config.enable) return
+  private async _refresh(): Promise<void> {
     let info = await this.getDiagnosticInfo()
     let noHighlights = !info || info.winid == -1
     if (noHighlights) return
@@ -558,8 +574,8 @@ export class DiagnosticBuffer implements SyncItem {
   public clear(): void {
     let { nvim } = this
     let collections = Array.from(this.diagnosticsMap.keys())
-    this._dirty = collections.length > 0
     this.refreshHighlights.clear()
+    this._dirties.clear()
     if (this.displayByAle) {
       for (let collection of collections) {
         this.nvim.call(aleMethod, [this.bufnr, collection, []], true)
@@ -624,6 +640,5 @@ export class DiagnosticBuffer implements SyncItem {
     this.diagnosticsMap.clear()
     this._onDidRefresh.dispose()
     this._disposed = true
-    this.refreshHighlights.clear()
   }
 }

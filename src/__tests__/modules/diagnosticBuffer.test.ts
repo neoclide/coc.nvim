@@ -208,6 +208,7 @@ describe('diagnostic buffer', () => {
       helper.updateConfiguration('diagnostic.enableMessage', 'never')
       let buf = await createDiagnosticBuffer()
       let res = await buf.echoMessage(false, Position.create(0, 0))
+      res = await buf.echoMessage(true, Position.create(0, 0))
       expect(res).toBe(false)
     })
   })

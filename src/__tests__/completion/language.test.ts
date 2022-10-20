@@ -89,7 +89,7 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       await nvim.input('i')
-      await nvim.call('coc#start', { source: 'foo' })
+      nvim.call('coc#start', { source: 'foo' }, true)
       await helper.waitPopup()
       await helper.waitValue(async () => {
         let content = await getDetailContent()

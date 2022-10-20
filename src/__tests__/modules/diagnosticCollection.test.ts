@@ -1,5 +1,5 @@
 import DiagnosticCollection from '../../diagnostic/collection'
-import { Diagnostic, Range } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range } from 'vscode-languageserver-types'
 
 function createDiagnostic(msg: string, range?: Range): Diagnostic {
   range = range ? range : Range.create(0, 0, 0, 1)
@@ -11,6 +11,7 @@ describe('diagnostic collection', () => {
   it('should create collection', () => {
     let collection = new DiagnosticCollection('test')
     expect(collection.name).toBe('test')
+    collection.dispose()
   })
 
   it('should set diagnostic with uri', () => {
@@ -21,6 +22,25 @@ describe('diagnostic collection', () => {
     expect(collection.get(uri).length).toBe(1)
     collection.set(uri, [])
     expect(collection.get(uri).length).toBe(0)
+  })
+
+  it('should set severity for hint tags', async () => {
+    let collection = new DiagnosticCollection('test')
+    let diagnostics = [{
+      range: null,
+      message: undefined,
+      tags: [DiagnosticTag.Deprecated]
+    }, {
+      range: Range.create(0, 0, 0, 1),
+      message: undefined,
+      tags: [DiagnosticTag.Unnecessary]
+    }]
+    let uri = 'file:///1'
+    collection.set(uri, diagnostics)
+    let arr = collection.get(uri)
+    expect(arr.length).toBe(2)
+    expect(arr[0].severity).toBe(DiagnosticSeverity.Hint)
+    expect(arr[1].severity).toBe(DiagnosticSeverity.Hint)
   })
 
   it('should clear diagnostics with null as diagnostics', () => {
