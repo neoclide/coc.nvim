@@ -2,7 +2,6 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import which from 'which'
 import commandManager from '../../commands'
 import extensions, { Extensions, toUrl } from '../../extension'
 import { writeFile, writeJson } from '../../util/fs'
@@ -37,7 +36,8 @@ describe('extensions', () => {
     expect(extensions.onDidActiveExtension).toBeDefined()
     expect(extensions.onDidUnloadExtension).toBeDefined()
     expect(extensions.schemes).toBeDefined()
-    expect(extensions.creteInstaller('npm', 'id')).toBeDefined()
+    let res = await extensions.creteInstaller('id')
+    expect(res).toBeDefined()
   })
 
   it('should get extensions stat', async () => {
@@ -92,21 +92,6 @@ describe('extensions', () => {
     extensions.activateExtensions()
     spy.mockRestore()
     s.mockRestore()
-  })
-
-  it('should use absolute path for npm', async () => {
-    let res = extensions.npm
-    expect(path.isAbsolute(res)).toBe(true)
-  })
-
-  it('should not throw when npm not found', async () => {
-    let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
-      throw new Error('not executable')
-    })
-    let res = extensions.npm
-    expect(res).toBeNull()
-    await extensions.updateExtensions()
-    spy.mockRestore()
   })
 
   it('should get all extensions', () => {

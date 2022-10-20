@@ -295,7 +295,7 @@ describe('TreeView', () => {
       createTreeView(defaultDef, { canSelectMany: true })
       await treeView.show()
       await events.race(['TextChanged'])
-      let selection: TreeNode[]
+      let selection: TreeNode[] = []
       treeView.onDidChangeSelection(e => {
         selection = e.selection
       })

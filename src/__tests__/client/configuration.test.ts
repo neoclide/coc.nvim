@@ -119,7 +119,7 @@ describe('publish configuration feature', () => {
   it('should send configuration for specific sections', async () => {
     let client: LanguageClient
     let called = false
-    client = createClient(['coc.preferences', 'npm', 'unknown'], {
+    client = createClient(['coc.preferences', 'http', 'unknown'], {
       workspace: {
         didChangeConfiguration: (sections, next) => {
           called = true
@@ -139,12 +139,12 @@ describe('publish configuration feature', () => {
       return changed != null
     }, true)
     expect(changed.settings.coc).toBeDefined()
-    expect(changed.settings.npm).toBeDefined()
+    expect(changed.settings.http).toBeDefined()
     let { configurations } = workspace
-    configurations.updateMemoryConfig({ 'npm.binPath': 'cnpm' })
+    configurations.updateMemoryConfig({ 'http.proxyStrictSSL': false })
     await helper.waitValue(() => {
-      return changed.settings.npm?.binPath
-    }, 'cnpm')
+      return changed.settings.http?.proxyStrictSSL
+    }, false)
     await client.stop()
   })
 

@@ -2,7 +2,6 @@
 import fs from 'fs'
 import path from 'path'
 import { Event } from 'vscode-languageserver-protocol'
-import which from 'which'
 import commandManager from '../commands'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
@@ -12,7 +11,8 @@ import { isUrl } from '../util/is'
 import { executable } from '../util/processes'
 import window from '../window'
 import workspace from '../workspace'
-import { IInstaller, Installer } from './installer'
+import { DependencySession } from './dependency'
+import { IInstaller, Installer, registryUrl } from './installer'
 import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState } from './manager'
 import { checkExtensionRoot, ExtensionStat, loadExtensionJson } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
@@ -139,37 +139,27 @@ export class Extensions {
     return await this.manager.call(id, method, args)
   }
 
-  public get npm(): string {
-    let npm = workspace.getConfiguration('npm', null).get<string>('binPath', 'npm')
-    npm = workspace.expand(npm)
-    for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
-      if (executable(exe)) return which.sync(exe)
-    }
-    void window.showErrorMessage(`Can't find npm or yarn in your $PATH`)
-    return null
-  }
-
   private createInstallerUI(isUpdate: boolean, silent: boolean): InstallUI {
     return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate)
   }
 
-  public creteInstaller(npm: string, def: string): IInstaller {
-    return new Installer(this.modulesFolder, npm, def)
+  public async creteInstaller(def: string): Promise<IInstaller> {
+    let url = await registryUrl()
+    return new Installer(new DependencySession(url, this.modulesFolder), def)
   }
 
   /**
    * Install extensions, can be called without initialize.
    */
   public async installExtensions(list: string[]): Promise<void> {
-    let { npm } = this
-    if (!npm || list.length == 0) return
+    if (list.length == 0) return
     list = distinct(list)
     let installBuffer = this.createInstallerUI(false, false)
     await Promise.resolve(installBuffer.start(list))
     let fn = async (key: string): Promise<void> => {
       try {
         installBuffer.startProgress(key)
-        let installer = this.creteInstaller(npm, key)
+        let installer = await this.creteInstaller(key)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(key, msg, isProgress)
         })
@@ -193,8 +183,6 @@ export class Extensions {
    * Update global extensions
    */
   public async updateExtensions(silent = false): Promise<void> {
-    let { npm } = this
-    if (!npm) return
     let stats = this.globalExtensionStats()
     stats = stats.filter(s => {
       if (s.isLocked || s.state === 'disabled') {
@@ -212,7 +200,7 @@ export class Extensions {
       try {
         installBuffer.startProgress(id)
         let url = stat.exotic ? stat.uri : null
-        let installer = this.creteInstaller(npm, id)
+        let installer = await this.creteInstaller(id)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(id, msg, isProgress)
         })

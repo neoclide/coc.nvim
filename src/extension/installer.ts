@@ -8,9 +8,11 @@ import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
+import { isFalsyOrEmpty } from '../util/array'
 import { loadJson } from '../util/fs'
+import { findBestHost } from '../util/ping'
 import workspace from '../workspace'
-import { DependenciesInstaller } from './dependency'
+import { DependencySession } from './dependency'
 const logger = require('../util/logger')('extension-installer')
 
 export interface Info {
@@ -30,11 +32,19 @@ export interface InstallResult {
   url?: string
 }
 
-export function registryUrl(home = os.homedir()): URL {
+const TAOBAO_REGISTRY = new URL('https://registry.npmmirror.com')
+const NPM_REGISTRY = new URL('https://registry.npmjs.org')
+const YARN_REGISTRY = new URL('https://registry.yarnpkg.com')
+const PINGTIMEOUT = global.__TEST__ ? 50 : 500
+
+/**
+ * Find the user configured registry or the best one
+ */
+export async function registryUrl(home = os.homedir(), registries?: URL[], timeout = PINGTIMEOUT): Promise<URL> {
   let res: URL
   let filepath = path.join(home, '.npmrc')
-  if (fs.existsSync(filepath)) {
-    try {
+  try {
+    if (fs.existsSync(filepath)) {
       let content = fs.readFileSync(filepath, 'utf8')
       let uri: string
       for (let line of content.split(/\r?\n/)) {
@@ -45,11 +55,16 @@ export function registryUrl(home = os.homedir()): URL {
         }
       }
       if (uri) res = new URL(uri)
-    } catch (e) {
-      logger.debug('Error on parse .npmrc:', e)
     }
+    if (res) return res
+    registries = isFalsyOrEmpty(registries) ? [TAOBAO_REGISTRY, NPM_REGISTRY, YARN_REGISTRY] : registries
+    const hosts = registries.map(o => o.hostname)
+    let host = await findBestHost(hosts, timeout)
+    return host == null ? NPM_REGISTRY : registries[hosts.indexOf(host)]
+  } catch (e) {
+    logger.debug('Error on get registry', e)
+    return NPM_REGISTRY
   }
-  return res ?? new URL('https://registry.npmjs.org')
 }
 
 function isSymbolicLink(folder: string): boolean {
@@ -73,8 +88,7 @@ export class Installer extends EventEmitter implements IInstaller {
   private url: string
   private version: string
   constructor(
-    private root: string,
-    private npm: string,
+    private dependencySession: DependencySession,
     // could be url or name@version or name
     private def: string
   ) {
@@ -92,13 +106,17 @@ export class Installer extends EventEmitter implements IInstaller {
     }
   }
 
+  private get root(): string {
+    return this.dependencySession.modulesRoot
+  }
+
   public get info() {
     return { name: this.name, version: this.version }
   }
 
   public async getInfo(): Promise<Info> {
     if (this.url) return await this.getInfoFromUri()
-    let registry = registryUrl()
+    let registry = this.dependencySession.registry
     this.log(`Get info from ${registry}`)
     let buffer = await this.fetch(new URL(this.name, registry), { timeout: 10000, buffer: true })
     let res = JSON.parse(buffer.toString())
@@ -146,7 +164,6 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async install(): Promise<InstallResult> {
-    this.log(`Using npm from: ${this.npm}`)
     let info = await this.getInfo()
     logger.info(`Fetched info of ${this.def}`, info)
     let { name, version } = info
@@ -170,7 +187,6 @@ export class Installer extends EventEmitter implements IInstaller {
       let obj = loadJson(path.join(folder, 'package.json')) as any
       version = obj.version
     }
-    this.log(`Using npm from: ${this.npm}`)
     let info = await this.getInfo()
     if (version && info.version && semver.gte(version, info.version)) {
       this.log(`Current version ${version} is up to date.`)
@@ -188,11 +204,11 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async installDependencies(folder: string): Promise<void> {
-    let registry = registryUrl()
-    let installer = new DependenciesInstaller(registry, this.root, msg => {
+    let { dependencySession } = this
+    let installer = dependencySession.createInstaller(folder, msg => {
       this.log(msg)
     })
-    await installer.installDependencies(folder)
+    await installer.installDependencies()
   }
 
   public async doInstall(info: Info): Promise<boolean> {

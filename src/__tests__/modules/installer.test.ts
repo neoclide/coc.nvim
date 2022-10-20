@@ -3,7 +3,9 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Info, Installer, registryUrl } from '../../extension/installer'
+import { DependencySession } from '../../extension/dependency'
 import { remove } from '../../util/fs'
+import { URL } from 'url'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
 let tmpfolder: string
@@ -13,28 +15,41 @@ afterEach(() => {
   }
 })
 
+function createSession(root: string, registry?: string): DependencySession {
+  return new DependencySession(new URL(registry ?? 'https://registry.npmjs.org/'), root)
+}
+
 describe('utils', () => {
 
   it('should get registry url', async () => {
+    let url = await registryUrl(os.tmpdir(), [], 50)
+    expect(url).toBeDefined()
     const getUrl = () => {
       return registryUrl(os.tmpdir())
     }
     fs.rmSync(rcfile, { force: true, recursive: true })
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    async function check(res: string): Promise<void> {
+      let url = await registryUrl(os.tmpdir(), [new URL('https://registry.npmjs.org')], 10)
+      expect(url.toString()).toBe(res)
+    }
+    await check('https://registry.npmjs.org/')
     fs.writeFileSync(rcfile, '', 'utf8')
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    await check('https://registry.npmjs.org/')
     fs.writeFileSync(rcfile, 'coc.nvim:registry=https://example.org', 'utf8')
-    expect(getUrl().toString()).toBe('https://example.org/')
+    await check('https://example.org/')
     fs.writeFileSync(rcfile, '#coc.nvim:registry=https://example.org', 'utf8')
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    await check('https://registry.npmjs.org/')
     fs.writeFileSync(rcfile, 'coc.nvim:registry=example.org', 'utf8')
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    url = await getUrl()
+    expect(url).toBeDefined()
+    url = await registryUrl(os.tmpdir(), [new URL('https://127.0.0.1')], 50)
+    expect(url).toBeDefined()
     fs.rmSync(rcfile, { force: true, recursive: true })
   })
 
   it('should parse name & version', async () => {
     const getInfo = (def: string): { name?: string, version?: string } => {
-      let installer = new Installer(__dirname, 'npm', def)
+      let installer = new Installer(createSession(__dirname), def)
       return installer.info
     }
     expect(getInfo('https://github.com')).toEqual({ name: undefined, version: undefined })
@@ -47,7 +62,7 @@ describe('utils', () => {
 describe('Installer', () => {
   describe('fetch() & download()', () => {
     it('should throw with invalid url', async () => {
-      let installer = new Installer(__dirname, 'npm', 'foo')
+      let installer = new Installer(createSession(__dirname), 'foo')
       let fn = async () => {
         await installer.fetch('url')
       }
@@ -61,7 +76,7 @@ describe('Installer', () => {
 
   describe('getInfo()', () => {
     it('should getInfo from url', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/')
+      let installer = new Installer(createSession(__dirname), 'https://github.com/')
       let spy = jest.spyOn(installer, 'getInfoFromUri').mockImplementation(() => {
         return Promise.resolve({ name: 'vue-vscode-snippets', version: '1.0.0' })
       })
@@ -71,7 +86,7 @@ describe('Installer', () => {
     })
 
     it('should use latest version', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(__dirname), 'coc-omni')
       let spy = jest.spyOn(installer, 'fetch').mockImplementation(url => {
         expect(url.toString()).toMatch('coc-omni')
         return Promise.resolve(JSON.stringify({
@@ -92,7 +107,7 @@ describe('Installer', () => {
     })
 
     it('should throw when version not found', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni@1.0.2')
+      let installer = new Installer(createSession(__dirname), 'coc-omni@1.0.2')
       let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
@@ -114,7 +129,7 @@ describe('Installer', () => {
     })
 
     it('should throw when not coc.nvim extension', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(__dirname), 'coc-omni')
       let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
@@ -137,7 +152,7 @@ describe('Installer', () => {
 
   describe('getInfoFromUri()', () => {
     it('should throw for url that not supported', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://example.com')
+      let installer = new Installer(createSession(__dirname), 'https://example.com')
       let fn = async () => {
         await installer.getInfoFromUri()
       }
@@ -145,7 +160,7 @@ describe('Installer', () => {
     })
 
     it('should get info from url #1', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets')
+      let installer = new Installer(createSession(__dirname), 'https://github.com/sdras/vue-vscode-snippets')
       let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve(JSON.stringify({ name: 'vue-vscode-snippets', version: '1.0.0' }))
       })
@@ -155,7 +170,7 @@ describe('Installer', () => {
     })
 
     it('should get info from url #2', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets@main')
+      let installer = new Installer(createSession(__dirname), 'https://github.com/sdras/vue-vscode-snippets@main')
       let spy = jest.spyOn(installer, 'fetch').mockImplementation(() => {
         return Promise.resolve({ name: 'vue-vscode-snippets', version: '1.0.0', engines: { coc: '>=0.0.1' } })
       })
@@ -173,7 +188,7 @@ describe('Installer', () => {
         fs.unlinkSync(tmpfolder)
       }
       fs.symlinkSync(__dirname, tmpfolder, 'dir')
-      let installer = new Installer(os.tmpdir(), 'npm', 'foo')
+      let installer = new Installer(createSession(os.tmpdir()), 'foo')
       let res = await installer.doInstall({ name: 'foo' })
       expect(res).toBe(false)
       let val = await installer.update()
@@ -182,7 +197,7 @@ describe('Installer', () => {
 
     it('should update from url', async () => {
       let url = 'https://github.com/sdras/vue-vscode-snippets@main'
-      let installer = new Installer(__dirname, 'npm', url)
+      let installer = new Installer(createSession(__dirname), url)
       let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version: '1.0.0', name: 'vue-vscode-snippets' })
       })
@@ -197,7 +212,7 @@ describe('Installer', () => {
 
     it('should skip update when current version is latest', async () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
-      let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
+      let installer = new Installer(createSession(os.tmpdir()), 'coc-pairs')
       let version = '1.0.0'
       let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version })
@@ -212,7 +227,7 @@ describe('Installer', () => {
 
     it('should skip update when version not satisfies', async () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
-      let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
+      let installer = new Installer(createSession(os.tmpdir()), 'coc-pairs')
       let version = '2.0.0'
       let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version, 'engines.coc': '>=99.0.0' })
@@ -228,7 +243,7 @@ describe('Installer', () => {
 
     it('should return undefined when update not performed', async () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
-      let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
+      let installer = new Installer(createSession(os.tmpdir()), 'coc-pairs')
       let version = '2.0.0'
       let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version })
@@ -246,7 +261,7 @@ describe('Installer', () => {
 
     it('should update extension', async () => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
-      let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
+      let installer = new Installer(createSession(os.tmpdir()), 'coc-pairs')
       let version = '2.0.0'
       let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({ version, name: 'coc-pairs' })
@@ -266,7 +281,7 @@ describe('Installer', () => {
 
   describe('install()', () => {
     it('should throw when version not match required', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(__dirname), 'coc-pairs')
       let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({
           name: 'coc-omni',
@@ -283,7 +298,7 @@ describe('Installer', () => {
     })
 
     it('should return install info', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(__dirname), 'coc-omni')
       let spy = jest.spyOn(installer, 'getInfo').mockImplementation(() => {
         return Promise.resolve({
           name: 'coc-omni',
@@ -303,7 +318,7 @@ describe('Installer', () => {
 
     it('should throw and remove folder when download failed', async () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
-      let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(tmpfolder), 'coc-omni')
       let folder: string
       let option: any
       let spy = jest.spyOn(installer, 'download').mockImplementation((_url, opt) => {
@@ -325,7 +340,7 @@ describe('Installer', () => {
 
     it('should revert folder when download failed', async () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
-      let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(tmpfolder), 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
       fs.writeFileSync(path.join(f, 'package.json'), '{}', 'utf8')
@@ -344,7 +359,7 @@ describe('Installer', () => {
 
     it('should install new extension', async () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
-      let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(tmpfolder), 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       let spy = jest.spyOn(installer, 'download').mockImplementation((_url, option) => {
         if (option.onProgress) {
@@ -365,7 +380,7 @@ describe('Installer', () => {
 
     it('should install new version', async () => {
       tmpfolder = path.join(os.tmpdir(), uuid())
-      let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
+      let installer = new Installer(createSession(tmpfolder), 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
       fs.writeFileSync(path.join(f, 'package.json'), '{}', 'utf8')
@@ -387,10 +402,9 @@ describe('Installer', () => {
     })
 
     it('should install dependencies', async () => {
-      let npm = path.resolve(__dirname, '../npm')
       tmpfolder = path.join(os.tmpdir(), uuid())
       fs.mkdirSync(tmpfolder)
-      let installer = new Installer(tmpfolder, npm, 'coc-omni')
+      let installer = new Installer(createSession(tmpfolder), 'coc-omni')
       let called = false
       installer.on('message', () => {
         called = true

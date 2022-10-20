@@ -1421,12 +1421,6 @@
       "scope": "application",
       "description": "Winblend option of notification window, neovim only."
     },
-    "npm.binPath": {
-      "type": "string",
-      "scope": "application",
-      "default": "npm",
-      "description": "Command or absolute path to npm or yarn."
-    },
     "outline.autoPreview": {
       "type": "boolean",
       "scope": "application",

@@ -17,7 +17,6 @@ Inlay hint 					|coc-config-inlayHint|
 Links 						|coc-config-links|
 List 						|coc-config-list|
 Notification 					|coc-config-notification|
-Npm 						|coc-config-npm|
 Outline 					|coc-config-outline|
 Pull diagnostics 				|coc-config-pullDiagnostic|
 Refactor 					|coc-config-refactor|
@@ -789,16 +788,6 @@ Notification~
 	Winblend option of notification window, neovim only.
 
 	Scope: `application`, default: `30`
-
-------------------------------------------------------------------------------
-Npm~
-							*coc-config-npm*
-"npm.binPath"						*coc-config-npm-binPath*
-
-	Command or absolute path to npm or yarn for global extension
-	install/uninstall.
-
-	Scope: `application`, default: `"npm"`
 
 ------------------------------------------------------------------------------
 Outline~

@@ -4,10 +4,10 @@ import path from 'path'
 import semver from 'semver'
 import tar from 'tar'
 import { URL } from 'url'
-import { CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
-import { concurrent } from '../util'
+import { CancellationError } from '../util/errors'
 import { loadJson, writeJson } from '../util/fs'
 import { objectLiteral } from '../util/is'
 import { Mutex } from '../util/mutex'
@@ -47,9 +47,6 @@ export interface DependencyItem {
   }
 }
 
-const NPM_REGISTRY = new URL('https://registry.npmjs.org')
-const YARN_REGISTRY = new URL('https://registry.yarnpkg.com')
-const TAOBAO_REGISTRY = new URL('https://registry.npmmirror.com')
 const DEV_DEPENDENCIES = ['coc.nvim', 'webpack', 'esbuild']
 const INFO_TIMEOUT = global.__TEST__ ? 100 : 10000
 const DOWNLOAD_TIMEOUT = global.__TEST__ ? 500 : 3 * 60 * 1000
@@ -62,13 +59,6 @@ export function findItem(name: string, requirement: string, items: ReadonlyArray
   let item = items.find(o => o.name === name && o.satisfiedVersions.includes(requirement))
   if (!item) throw new Error(`item not found for: ${name} ${requirement}`)
   return item
-}
-
-export function getRegistries(registry: URL): URL[] {
-  let urls: URL[] = [registry]
-  if (registry.host !== NPM_REGISTRY.host) urls.push(NPM_REGISTRY)
-  if (registry.host !== YARN_REGISTRY.host) urls.push(YARN_REGISTRY)
-  return urls
 }
 
 export function validVersionInfo(info: any): info is VersionInfo {
@@ -122,6 +112,9 @@ export function getVersion(requirement: string, versions: string[], latest?: str
   }
 }
 
+/**
+ * Extract tarfile to dest folder, with strip option.
+ */
 export async function untar(dest: string, tarfile: string, strip = 1): Promise<void> {
   if (!fs.existsSync(tarfile)) throw new Error(`${tarfile} not exists`)
   fs.rmSync(dest, { recursive: true, force: true })
@@ -161,20 +154,26 @@ export async function checkFileSha1(filepath: string, shasum: string): Promise<b
 const mutex = new Mutex()
 
 export class DependenciesInstaller {
-  public resolvedInfos: Map<string, ModuleInfo> = new Map()
   private tokenSource: CancellationTokenSource = new CancellationTokenSource()
   constructor(
     private registry: URL,
+    public readonly resolvedInfos: Map<string, ModuleInfo>,
     public readonly modulesRoot: string,
+    private directory: string,
     private onMessage: (msg: string) => void
   ) {
+  }
+
+  public get token(): CancellationToken {
+    return this.tokenSource.token
   }
 
   private get dest(): string {
     return path.join(this.modulesRoot, '.cache')
   }
 
-  public async installDependencies(directory: string): Promise<void> {
+  public async installDependencies(): Promise<void> {
+    let { directory, tokenSource } = this
     let dependencies = readDependencies(directory)
     // no need to install
     if (!dependencies || Object.keys(dependencies).length == 0) {
@@ -182,8 +181,10 @@ export class DependenciesInstaller {
       return
     }
     this.onMessage('Waiting for install dependencies.')
+    let token = tokenSource.token
     // TODO reuse resolved.json
     await mutex.use(async () => {
+      if (token.isCancellationRequested) throw new CancellationError()
       this.onMessage('Resolving dependencies.')
       await this.fetchInfos(dependencies)
       this.onMessage('Linking dependencies.')
@@ -192,8 +193,8 @@ export class DependenciesInstaller {
       this.linkDependencies(dependencies, items)
       let filepath = path.join(directory, 'resolved.json')
       writeJson(filepath, items)
-      this.onMessage('Downloading dependencies.')
-      await this.downloadItems(items)
+      this.onMessage(`Downloading dependencies to ${this.dest}.`)
+      await this.downloadItems(items, 3)
       this.onMessage('Extract modules.')
       await this.extractDependencies(items, dependencies, directory)
       this.onMessage('Done')
@@ -292,7 +293,7 @@ export class DependenciesInstaller {
   }
 
   /**
-   * Recursive fetch
+   * Recursive fetch module info
    */
   public async fetchInfos(dependencies: Dependencies | undefined): Promise<void> {
     let keys = Object.keys(dependencies ?? {})
@@ -312,34 +313,40 @@ export class DependenciesInstaller {
   /**
    * Concurrent download necessary dependencies
    */
-  public async downloadItems(items: DependencyItem[], retry = 3): Promise<Map<string, string>> {
+  public async downloadItems(items: DependencyItem[], retry: number): Promise<Map<string, string>> {
     let res: Map<string, string> = new Map()
     let total = items.length
     let finished = 0
-    let err: unknown
-    await concurrent(items, async item => {
-      try {
-        let filename = toFilename(item)
-        let filepath = path.join(this.dest, filename)
-        let checked = await checkFileSha1(filepath, item.shasum)
-        let onFinish = () => {
-          res.set(filename, filepath)
-          finished++
-          this.onMessage(`Downloaded ${filename} ${finished}/${total}`)
-        }
+    for (let item of items) {
+      let ts = Date.now()
+      let filename = toFilename(item)
+      let filepath = path.join(this.dest, filename)
+      let checked = await checkFileSha1(filepath, item.shasum)
+      let onFinish = () => {
+        res.set(filename, filepath)
+        finished++
         if (checked) {
-          onFinish()
+          this.onMessage(`Downloaded ${filename} cost ${Date.now() - ts}ms [${finished}/${total}]`)
         } else {
-          // 5min timeout
-          await this.download(new URL(item.resolved), filename, item.shasum, retry, DOWNLOAD_TIMEOUT)
-          onFinish()
+          this.onMessage(`File ${filename} exists [${finished}/${total}]`)
         }
-      } catch (e) {
-        err = e
       }
-    }, 3)
-    if (finished !== total) throw new Error(err ? err.toString() : 'unknown error')
+      if (checked) {
+        onFinish()
+      } else {
+        await this.download(new URL(item.resolved), filename, item.shasum, retry, DOWNLOAD_TIMEOUT)
+        onFinish()
+      }
+    }
     return res
+  }
+
+  /**
+   * Fetch module info
+   */
+  public async loadInfo(registry: URL, name: string, timeout = 100): Promise<ModuleInfo> {
+    let buffer = await this.fetch(new URL(name, registry), { timeout, buffer: true }) as Buffer
+    return getModuleInfo(buffer.toString())
   }
 
   public async fetch(url: string | URL, options: FetchOptions, retry = 1): Promise<any> {
@@ -356,21 +363,9 @@ export class DependenciesInstaller {
     }
   }
 
-  // Try different registries
-  public async loadInfo(registry: URL, name: string, timeout = 100): Promise<ModuleInfo> {
-    let info: ModuleInfo
-    for (let url of getRegistries(registry)) {
-      try {
-        let buffer = await this.fetch(new URL(name, url), { timeout, buffer: true }) as Buffer
-        info = getModuleInfo(buffer.toString())
-        return info
-      } catch (e) {
-        this.onMessage(`Error on fetch ${url.hostname}/${name}: ${e}`)
-      }
-    }
-    throw new Error(`Unable to fetch info for "${name}"`)
-  }
-
+  /**
+   * Download tgz file with sha1 check.
+   */
   public async download(url: string | URL, filename: string, shasum: string, retry = 1, timeout?: number): Promise<string> {
     for (let i = 0; i < retry; i++) {
       try {
@@ -399,5 +394,31 @@ export class DependenciesInstaller {
   public cancel(): void {
     this.tokenSource.cancel()
     this.tokenSource = new CancellationTokenSource()
+  }
+}
+
+export class DependencySession {
+  private resolvedInfos: Map<string, ModuleInfo> = new Map()
+  private installers: Set<DependenciesInstaller> = new Set()
+  constructor(
+    public readonly registry: URL,
+    public readonly modulesRoot: string
+  ) {
+  }
+
+  public createInstaller(directory: string, onMessage: (msg: string) => void): DependenciesInstaller {
+    let installer = new DependenciesInstaller(this.registry, this.resolvedInfos, this.modulesRoot, directory, onMessage)
+    this.installers.add(installer)
+    return installer
+  }
+
+  /**
+   * Cancel all installer
+   */
+  public cancel(): void {
+    for (let item of this.installers) {
+      item.cancel()
+    }
+    this.installers.clear()
   }
 }

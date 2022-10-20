@@ -1,10 +1,12 @@
 import style from 'ansi-styles'
 import * as assert from 'assert'
 import { spawn } from 'child_process'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import vm from 'vm'
 import { CancellationTokenSource, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import which from 'which'
 import { LinesTextDocument } from '../../model/textdocument'
 import { ConfigurationScope } from '../../types'
 import { concurrent, delay, disposeAll, wait } from '../../util'
@@ -24,6 +26,7 @@ import { Extensions, IJSONContributionRegistry } from '../../util/jsonRegistry'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
+import * as ping from '../../util/ping'
 import * as platform from '../../util/platform'
 import * as positions from '../../util/position'
 import { executable, isRunning, runCommand, terminate } from '../../util/processes'
@@ -1345,6 +1348,38 @@ describe('diff', () => {
       }, (_, done) => {
         expect(done).toBeFalsy()
       }, token)
+    })
+  })
+
+  describe('ping', () => {
+    it('should get ping config', async () => {
+      let check = (platform: NodeJS.Platform) => {
+        let res = ping.getPing(platform)
+        if (res) {
+          expect(fs.existsSync(res.bin)).toBe(true)
+        }
+      }
+      check('darwin')
+      check('linux')
+      check('win32')
+      check('android')
+      check('freebsd')
+      let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
+        throw Error('not found')
+      })
+      check('freebsd')
+      spy.mockRestore()
+    })
+
+    it('should find best host', async () => {
+      let res = await ping.findBestHost([], 500)
+      expect(res).toBeUndefined()
+      res = await ping.findBestHost(['www.baidu.com', 'www.google.com'], 1)
+      expect(res).toBeUndefined()
+      res = await ping.findBestHost(['www.baidu.com', 'www.google.com'], 500, 'not_exists_bin')
+      expect(res).toBeUndefined()
+      res = await ping.findBestHost(['127.0.0.1', 'registry.npmjs.org', 'registry.yarnpkg.com', 'registry.npmmirror.com'], 500)
+      expect(res).toBeDefined()
     })
   })
 })

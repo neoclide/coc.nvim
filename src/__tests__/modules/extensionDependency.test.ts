@@ -5,23 +5,15 @@ import path from 'path'
 import tar from 'tar'
 import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
-import { checkFileSha1, DependenciesInstaller, DependencyItem, findItem, getModuleInfo, getRegistries, getVersion, readDependencies, shouldRetry, untar, validVersionInfo, VersionInfo } from '../../extension/dependency'
+import { checkFileSha1, DependencySession, DependenciesInstaller, DependencyItem, findItem, getModuleInfo, getVersion, readDependencies, shouldRetry, untar, validVersionInfo, VersionInfo } from '../../extension/dependency'
 import { Dependencies } from '../../extension/installer'
+import { CancellationError } from '../../util/errors'
 import { loadJson, remove, writeJson } from '../../util/fs'
 import helper, { getPort } from '../helper'
 
 process.env.NO_PROXY = '*'
 
 describe('utils', () => {
-  it('should getRegistries', () => {
-    let u = new URL('https://registry.npmjs.org')
-    expect(getRegistries(u).length).toBe(2)
-    u = new URL('https://registry.yarnpkg.com')
-    expect(getRegistries(u).length).toBe(2)
-    u = new URL('https://example.com')
-    expect(getRegistries(u).length).toBe(3)
-  })
-
   it('should check valid versionInfo', async () => {
     expect(validVersionInfo(null)).toBe(false)
     expect(validVersionInfo({ name: 3 })).toBe(false)
@@ -194,7 +186,7 @@ describe('DependenciesInstaller', () => {
     })
   }
 
-  function create(root?: string, onMessage?: (msg: string) => void): DependenciesInstaller {
+  function create(root: string | undefined, directory: string, onMessage?: (msg: string) => void): DependenciesInstaller {
     if (!root) {
       root = path.join(os.tmpdir(), uuid())
       fs.mkdirSync(root)
@@ -202,7 +194,8 @@ describe('DependenciesInstaller', () => {
     }
     let registry = new URL(`http://127.0.0.1:${httpPort}`)
     onMessage = onMessage ?? function() {}
-    return new DependenciesInstaller(registry, root, onMessage)
+    let session = new DependencySession(registry, root)
+    return session.createInstaller(directory, onMessage)
   }
 
   function createVersion(name: string, version: string, dependencies?: Dependencies): VersionInfo {
@@ -252,8 +245,50 @@ describe('DependenciesInstaller', () => {
     }))
   }
 
+  it('should throw on cancel', async () => {
+    let root = path.join(os.tmpdir(), uuid())
+    fs.mkdirSync(root)
+    dirs.push(root)
+    let registry = new URL(`http://127.0.0.1:${httpPort}`)
+    let session = new DependencySession(registry, root)
+    let directory = path.join(os.tmpdir(), uuid())
+    dirs.push(directory)
+    writeJson(path.join(directory, 'package.json'), { dependencies: { foo: '>= 0.0.1' } })
+    let other = path.join(os.tmpdir(), uuid())
+    dirs.push(other)
+    writeJson(path.join(other, 'package.json'), { dependencies: { bar: '>= 0.0.1' } })
+    let one = session.createInstaller(directory, () => {})
+    let two = session.createInstaller(other, () => {})
+    let spy = jest.spyOn(one, 'fetchInfos').mockImplementation(() => {
+      return new Promise((resolve, reject) => {
+        one.token.onCancellationRequested(() => {
+          clearTimeout(timer)
+          reject(new CancellationError())
+        })
+        let timer = setTimeout(() => {
+          resolve()
+        }, 500)
+      })
+    })
+    let p = one.installDependencies()
+    let err
+    two.installDependencies().catch(error => {
+      err = error
+    })
+    await helper.wait(30)
+    session.cancel()
+    let fn = async () => {
+      await p
+    }
+    await expect(fn()).rejects.toThrow(Error)
+    spy.mockRestore()
+    await helper.waitValue(() => {
+      return err != null
+    }, true)
+  })
+
   it('should retry fetch', async () => {
-    let install = create()
+    let install = create(undefined, '')
     let fn = async () => {
       await install.fetch(new URL('/', url), { timeout: 10 }, 3)
     }
@@ -264,7 +299,7 @@ describe('DependenciesInstaller', () => {
   })
 
   it('should cancel request', async () => {
-    let install = create()
+    let install = create(undefined, '')
     let p = install.fetch(new URL('/slow', url), {}, 1)
     await helper.wait(10)
     let fn = async () => {
@@ -275,7 +310,7 @@ describe('DependenciesInstaller', () => {
   })
 
   it('should throw when unable to load info', async () => {
-    let install = create()
+    let install = create(undefined, '')
     let fn = async () => {
       await install.loadInfo(url, 'foo', 10)
     }
@@ -288,14 +323,14 @@ describe('DependenciesInstaller', () => {
 
   it('should fetchInfos', async () => {
     addJsonData()
-    let install = create()
+    let install = create(undefined, '')
     await install.fetchInfos({ a: '^0.0.1' })
     expect(install.resolvedInfos.size).toBe(4)
   })
 
   it('should linkDependencies', async () => {
     addJsonData()
-    let install = create()
+    let install = create(undefined, '')
     await install.fetchInfos({ a: '^0.0.1' })
     let items: DependencyItem[] = []
     install.linkDependencies(undefined, items)
@@ -305,7 +340,7 @@ describe('DependenciesInstaller', () => {
   })
 
   it('should retry download', async () => {
-    let install = create()
+    let install = create(undefined, '')
     let fn = async () => {
       await install.download(new URL('res', url), 'res', '', 3, 10)
     }
@@ -323,7 +358,7 @@ describe('DependenciesInstaller', () => {
   })
 
   it('should throw when unable to resolve version', async () => {
-    let install = create()
+    let install = create(undefined, '')
     expect(() => {
       install.resolveVersion('foo', '^1.0.0')
     }).toThrow()
@@ -359,12 +394,12 @@ describe('DependenciesInstaller', () => {
       shasum: 'bf0d88712fc3dbf6e3ab9a6968c0b4232779dbc4',
       version: '0.0.2'
     })
-    let install = create()
+    let install = create(undefined, '')
     let dest = path.join(install.modulesRoot, '.cache')
     fs.mkdirSync(dest, { recursive: true })
     let tarfile = path.resolve(__dirname, '../test.tar.gz')
     fs.copyFileSync(tarfile, path.join(dest, `foo.0.0.1.tgz`))
-    let res = await install.downloadItems(items)
+    let res = await install.downloadItems(items, 1)
     expect(res.size).toBe(2)
   })
 
@@ -378,22 +413,22 @@ describe('DependenciesInstaller', () => {
       shasum: 'badsum',
       version: '0.0.2'
     })
-    let install = create()
+    let install = create(undefined, '')
     let fn = async () => {
-      await install.downloadItems(items)
+      await install.downloadItems(items, 2)
     }
     await expect(fn()).rejects.toThrow(Error)
   })
 
   it('should no nothing if no dependencies', async () => {
     let msg: string
-    let install = create(undefined, s => {
-      msg = s
-    })
     let directory = path.join(os.tmpdir(), uuid())
     let file = path.join(directory, 'package.json')
     writeJson(file, { dependencies: {} })
-    await install.installDependencies(directory)
+    let install = create(undefined, directory, s => {
+      msg = s
+    })
+    await install.installDependencies()
     expect(msg).toMatch('No dependencies')
     fs.rmSync(directory, { recursive: true })
   })
@@ -401,12 +436,12 @@ describe('DependenciesInstaller', () => {
   it('should install dependencies ', async () => {
     createFiles = true
     addJsonData()
-    let install = create()
     let directory = path.join(os.tmpdir(), uuid())
     fs.mkdirSync(directory, { recursive: true })
     let file = path.join(directory, 'package.json')
+    let install = create(undefined, directory)
     writeJson(file, { dependencies: { a: '^0.0.1' } })
-    await install.installDependencies(directory)
+    await install.installDependencies()
     let folder = path.join(directory, 'node_modules')
     let res = fs.readdirSync(folder)
     expect(res).toEqual(['a', 'b', 'c', 'd'])
