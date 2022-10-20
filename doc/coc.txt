@@ -526,6 +526,7 @@ Related functions:~
 - Get information of the popupmenu: |coc#pum#info()|.
 - Select specific complete item: |coc#pum#select()|.
 - Insert word of selected item and finish completion: |coc#pum#insert()|.
+- Insert one more character from current complete item: |coc#pum#one_more()|.
 - Scroll popupmenu: |coc#pum#scroll()|.
 
 							*coc-completion-customize*
@@ -2119,6 +2120,15 @@ coc#pum#insert() 					*coc#pum#insert()*
 
 	Insert word of current selected item and finish completion.
 	Timer is used to make it works as rhs of key-mappings.
+
+coc#pum#one_more() 					*coc#pum#one_more()*
+
+	Insert one more character from current complete item (first complete
+	item when no complete item selected), works like <CTRL-L> of
+	|popupmenu-keys|.  Note that the word of complete item should starts
+	with current input.
+
+	Nothing happens when failed.
 
 coc#pum#scroll({forward}) 				*coc#pum#scroll()*
 

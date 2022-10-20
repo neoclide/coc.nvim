@@ -1,3 +1,7 @@
+# 2022-10-20
+
+- Add `coc#pum#one_more()`
+
 # 2022-10-19
 
 - Trigger for trigger sources when no filter results available.
