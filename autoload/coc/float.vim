@@ -1324,9 +1324,7 @@ function! s:set_float_defaults(winid, config) abort
     call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',FoldColumn:'.hlgroup.',Search:')
     call setwinvar(a:winid, 'border', get(a:config, 'border', []))
     call setwinvar(a:winid, 'scrollinside', get(a:config, 'scrollinside', 0))
-    if !get(a:config, 'nopad', 0)
-      call setwinvar(a:winid, '&foldcolumn', s:nvim_enable_foldcolumn(get(a:config, 'border', v:null)))
-    endif
+    call setwinvar(a:winid, '&foldcolumn', s:nvim_get_foldcolumn(a:config))
     call setwinvar(a:winid, '&signcolumn', 'no')
     call setwinvar(a:winid, '&cursorcolumn', 0)
   else
@@ -1379,11 +1377,13 @@ function! s:nvim_add_related(winid, target, kind, winhl, related) abort
   call add(a:related, a:winid)
 endfunction
 
-function! s:nvim_enable_foldcolumn(border) abort
-  if a:border is 1
+function! s:nvim_get_foldcolumn(config) abort
+  let nopad = get(a:config, 'nopad', 0)
+  if nopad
     return 0
   endif
-  if type(a:border) == v:t_list && get(a:border, 3, 0) == 1
+  let border = get(a:config, 'border', v:null)
+  if border is 1 || (type(border) == v:t_list && get(border, 3, 0) == 1)
     return 0
   endif
   return 1
