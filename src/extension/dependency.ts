@@ -1,10 +1,11 @@
+import bytes from 'bytes'
 import { createHash } from 'crypto'
 import fs, { createReadStream } from 'fs'
-import bytes from 'bytes'
 import path from 'path'
 import semver from 'semver'
 import tar from 'tar'
 import { URL } from 'url'
+import { promisify } from 'util'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
@@ -95,7 +96,10 @@ export function shouldRetry(error: any): boolean {
   return false
 }
 
-export function readDependencies(directory: string): { [key: string]: string } {
+/**
+ * Production dependencies in directory
+ */
+export function readDependencies(directory: string): Dependencies {
   let jsonfile = path.join(directory, 'package.json')
   let obj = loadJson(jsonfile) as any
   let dependencies = obj.dependencies as { [key: string]: string }
@@ -118,8 +122,8 @@ export function getVersion(requirement: string, versions: string[], latest?: str
  */
 export async function untar(dest: string, tarfile: string, strip = 1): Promise<void> {
   if (!fs.existsSync(tarfile)) throw new Error(`${tarfile} not exists`)
-  fs.rmSync(dest, { recursive: true, force: true })
-  fs.mkdirSync(dest, { recursive: true })
+  await promisify(fs.rm)(dest, { recursive: true, force: true })
+  await promisify(fs.mkdir)(dest, { recursive: true })
   await new Promise<void>((resolve, reject) => {
     const input = createReadStream(tarfile)
     input.on('error', reject)
