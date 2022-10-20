@@ -78,8 +78,15 @@ function! coc#pum#select_confirm() abort
 endfunction
 
 function! coc#pum#insert() abort
-  call timer_start(10, { -> s:insert_current()})
+  call timer_start(1, { -> s:insert_current()})
   return s:ignore
+endfunction
+
+" Add one more character from the matched complete item(or first one),
+" the word should starts with input, the same as vim's CTRL-L behavior.
+function! coc#pum#one_more() abort
+  call timer_start(1, { -> s:insert_one_more()})
+  return ''
 endfunction
 
 function! coc#pum#_close() abort
@@ -87,6 +94,21 @@ function! coc#pum#_close() abort
     call s:close_pum()
     if s:is_vim
       call timer_start(0, { -> execute('redraw')})
+    endif
+  endif
+endfunction
+
+function! s:insert_one_more() abort
+  if coc#float#valid(s:pum_winid)
+    let parts = getwinvar(s:pum_winid, 'parts', [])
+    let input = strpart(getline('.'), strchars(parts[0]), col('.') - 1)
+    let words = getwinvar(s:pum_winid, 'words', [])
+    let word = get(words, s:pum_index == -1 ? 0 : s:pum_index, '')
+    if !empty(word) && strcharpart(word, 0, strchars(input)) ==# input
+      let ch = strcharpart(word, strchars(input), 1)
+      if !empty(ch)
+        call feedkeys(ch, "int")
+      endif
     endif
   endif
 endfunction
