@@ -139,7 +139,7 @@ function! coc#util#diagnostic_info(bufnr, checkInsert) abort
   return {
       \ 'bufnr': bufnr('%'),
       \ 'winid': winid,
-      \ 'lnum': line('.'),
+      \ 'lnum': winid == -1 ? -1 : getcurpos(winid)[1],
       \ 'locationlist': locationlist
       \ }
 endfunction
