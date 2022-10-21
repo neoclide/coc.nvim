@@ -59,14 +59,13 @@ export class KeywordsBuffer implements SyncItem {
     if (e.contentChanges.length == 0) return
     let { lineWords, doc } = this
     let { range, text } = e.contentChanges[0]
-    let sl = range.start.line
-    let el = range.end.line
-    let n = el - sl
-    let add = n == 0 ? 0 : 1
-    let nc = text.split(/\n/).length - n + add
-    let newLines = doc.textDocument.lines.slice(sl, sl + nc)
+    let { start, end } = range
+    let sl = start.line
+    let el = end.line
+    let del = el - sl
+    let newLines = doc.textDocument.lines.slice(sl, sl + text.split(/\n/).length)
     let arr = newLines.map(line => doc.chars.matchLine(line, 2))
-    lineWords.splice(sl, n + 1, ...arr)
+    lineWords.splice(sl, del + 1, ...arr)
   }
 
   public *matchWords(line: number, input: string, firstMatch: boolean): Iterable<string> {
