@@ -322,9 +322,7 @@ describe('diagnostic buffer', () => {
       let buf = await createDiagnosticBuffer()
       let diagnostics = [diagnostic]
       await buf.update('', diagnostics)
-      await helper.wait(50)
       buf.clear()
-      await helper.wait(50)
       let buffer = await nvim.buffer
       let res = await buffer.getVar("coc_diagnostic_info")
       expect(res == null).toBe(true)

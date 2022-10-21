@@ -711,7 +711,8 @@ describe('diagnostic manager', () => {
 
     it('should refresh all buffers', async () => {
       let uris = ['one', 'two'].map(s => URI.file(path.join(os.tmpdir(), s)).toString())
-      await workspace.loadFiles(uris)
+      await workspace.loadFile(uris[0], 'tabe')
+      await workspace.loadFile(uris[1], 'tabe')
       let collection = manager.create('tmp')
       collection.set([[uris[0], [createDiagnostic('Error one')]], [uris[1], [createDiagnostic('Error two')]]])
       await manager.refresh()

@@ -516,10 +516,10 @@ class DiagnosticManager implements Disposable {
   /**
    * Refresh diagnostics by uri or bufnr
    */
-  public async refreshBuffer(uri: string | number, force?: boolean): Promise<boolean> {
+  public async refreshBuffer(uri: string | number): Promise<boolean> {
     let buf = this.buffers.getItem(uri)
     if (!buf) return false
-    await buf.reset(this.getDiagnostics(buf), force)
+    await buf.reset(this.getDiagnostics(buf))
     return true
   }
 
@@ -535,7 +535,7 @@ class DiagnosticManager implements Disposable {
       items = item ? [item] : []
     }
     for (let item of items) {
-      await this.refreshBuffer(item.uri, true)
+      await this.refreshBuffer(item.uri)
     }
   }
 }

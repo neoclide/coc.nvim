@@ -571,8 +571,9 @@ describe('Client integration', () => {
     })
     await client.start()
     await client.sendNotification('simpleEdit')
-    await helper.wait(30)
-    expect(res).toBeDefined()
+    await helper.waitValue(() => {
+      return res != null
+    }, true)
     expect(res).toEqual({ applied: true })
     await client.stop()
   })
@@ -643,11 +644,13 @@ describe('SettingMonitor', () => {
     let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
     let disposable = monitor.start()
     helper.updateConfiguration('html.enabled', false)
-    await helper.wait(30)
-    expect(client.state).toBe(lsclient.State.Stopped)
+    await helper.waitValue(() => {
+      return client.state
+    }, lsclient.State.Stopped)
     helper.updateConfiguration('html.enabled', true)
-    await helper.wait(30)
-    expect(client.state).toBe(lsclient.State.Starting)
+    await helper.waitValue(() => {
+      return client.state != lsclient.State.Stopped
+    }, true)
     await client.onReady()
     disposable.dispose()
   })

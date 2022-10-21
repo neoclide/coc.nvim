@@ -68,7 +68,7 @@ export class DiagnosticBuffer implements SyncItem {
       timer = setTimeout(() => {
         this._refreshing = false
         if (!this._autoRefresh) return
-        void this._refresh()
+        void this._refresh(true)
       }, delay)
     }
     fn.clear = () => {
@@ -130,7 +130,7 @@ export class DiagnosticBuffer implements SyncItem {
     }
     if (changed) {
       if (this.config.enable) {
-        void this._refresh()
+        void this._refresh(false)
       } else {
         this.clear()
       }
@@ -142,7 +142,7 @@ export class DiagnosticBuffer implements SyncItem {
     if (curr == enable) return
     this._config.enable = enable
     if (enable) {
-      await this._refresh()
+      await this._refresh(false)
     } else {
       this.clear()
     }
@@ -258,23 +258,19 @@ export class DiagnosticBuffer implements SyncItem {
   /**
    * Reset all diagnostics of current buffer
    */
-  public async reset(diagnostics: { [collection: string]: Diagnostic[] }, force?: boolean): Promise<void> {
+  public async reset(diagnostics: { [collection: string]: Diagnostic[] }): Promise<void> {
     this.refreshHighlights.clear()
-    this._dirties.clear()
+    this.versionsMap.clear()
     let { diagnosticsMap } = this
     for (let key of diagnosticsMap.keys()) {
       // make sure clear collection when it's empty.
-      if (diagnostics[key] == null) diagnostics[key] = []
+      if (isFalsyOrEmpty(diagnostics[key])) diagnostics[key] = []
     }
     for (let [key, value] of Object.entries(diagnostics)) {
-      this.diagnosticsMap.set(key, value)
+      diagnosticsMap.set(key, value)
     }
-    let info = await this.getDiagnosticInfo(force)
-    if (!info || !this.config.enable) {
-      this._dirties = new Set(diagnosticsMap.keys())
-      return
-    }
-    this.refresh(this.diagnosticsMap, info)
+    this._dirties = new Set(diagnosticsMap.keys())
+    await this._refresh(false)
   }
 
   /**
@@ -535,16 +531,19 @@ export class DiagnosticBuffer implements SyncItem {
   /**
    * Refresh all diagnostics
    */
-  private async _refresh(): Promise<void> {
+  private async _refresh(dirtyOnly: boolean): Promise<void> {
     let info = await this.getDiagnosticInfo()
     let noHighlights = !info || info.winid == -1
-    if (noHighlights) return
+    if (noHighlights || !this.config.enable) return
+    let { _dirties } = this
     let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
     for (let [key, diagnostics] of this.diagnosticsMap.entries()) {
-      // Ignore if exists and version too old.
-      let version = this.versionsMap.get(key)
-      if (diagnostics.length > 0 && version != null && this.doc.version > version) {
-        continue
+      if (dirtyOnly || !_dirties.has(key)) {
+        // Ignore if exists and version too old.
+        let version = this.versionsMap.get(key)
+        if (diagnostics.length > 0 && version != null && this.doc.version > version) {
+          continue
+        }
       }
       map.set(key, diagnostics)
     }
@@ -552,12 +551,10 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   public getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
-    let doc = workspace.getDocument(this.uri)
-    if (!doc) return []
     let res: HighlightItem[] = []
     for (let diagnostic of diagnostics.slice(0, this._config.highlightLimit)) {
       let hlGroup = getHighlightGroup(diagnostic)
-      doc.addHighlights(res, hlGroup, diagnostic.range)
+      this.doc.addHighlights(res, hlGroup, diagnostic.range)
     }
     // needed for iteration performance and since diagnostic highlight may cross lines.
     res.sort((a, b) => {
@@ -575,6 +572,7 @@ export class DiagnosticBuffer implements SyncItem {
     let { nvim } = this
     let collections = Array.from(this.diagnosticsMap.keys())
     this.refreshHighlights.clear()
+    this.versionsMap.clear()
     this._dirties.clear()
     if (this.displayByAle) {
       for (let collection of collections) {
