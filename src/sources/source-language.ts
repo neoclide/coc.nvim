@@ -7,6 +7,7 @@ import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, Documentation, ExtendedCompleteItem, ISource, SourceType } from '../types'
+import { waitImmediate } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { isCompletionList } from '../util/is'
@@ -75,6 +76,7 @@ export default class LanguageSource implements ISource {
     let context: any = { triggerKind, option: opt }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
     let doc = workspace.getDocument(bufnr)
+    await waitImmediate()
     let result = await Promise.resolve(this.provider.provideCompletionItems(doc.textDocument, position, token, context))
     if (!result || token.isCancellationRequested) return null
     let completeItems = Array.isArray(result) ? result : result.items

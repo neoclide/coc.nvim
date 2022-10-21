@@ -37,7 +37,6 @@ export default class Around extends Source {
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
     let { bufnr, input, word, linenr } = opt
-    await waitImmediate()
     let buf = this.keywords.getItem(bufnr)
     if (input.length === 0 || !buf || token.isCancellationRequested) return null
     let iterable = buf.matchWords(linenr - 1, input, true)
