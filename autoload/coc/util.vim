@@ -199,11 +199,7 @@ function! coc#util#jump(cmd, filepath, ...) abort
   endif
   if !empty(get(a:, 1, []))
     let line = getline(a:1[0] + 1)
-    " TODO need to use utf16 here
-    let col = byteidx(line, a:1[1]) + 1
-    if col == 0
-      let col = 999
-    endif
+    let col = coc#string#byte_index(line, a:1[1]) + 1
     call cursor(a:1[0] + 1, col)
   endif
   if &filetype ==# ''
