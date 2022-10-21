@@ -1,7 +1,7 @@
 'use strict'
 import { Buffer, Neovim, VimValue } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CancellationToken, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
@@ -420,9 +420,6 @@ export default class Document {
     return text.slice(0, i)
   }
 
-  public async matchWords(token: CancellationToken): Promise<Set<string> | undefined> {
-    return await this.chars.matchLines(this.textDocument.lines, 2, token)
-  }
   /**
    * Current word for replacement
    */

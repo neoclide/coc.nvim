@@ -2,44 +2,12 @@
 import unidecode from 'unidecode'
 import { URI } from 'vscode-uri'
 import { SyncItem } from '../model/bufferSync'
-import { Chars } from '../model/chars'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams } from '../types'
 import { isGitIgnored } from '../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes, wordChar } from '../util/fuzzy'
 const logger = require('../util/logger')('sources-keywords')
 const WORD_PREFIXES = ['_', '$']
-
-export function matchLine(line: string, chars: Chars, min = 2): string[] {
-  let res: string[] = []
-  let l = line.length
-  if (l > 1024) {
-    line = line.slice(0, 1024)
-    l = 1024
-  }
-  let start = -1
-  const add = (end: number): void => {
-    if (end - start < min) return
-    let word = line.slice(start, end)
-    if (!res.includes(word)) res.push(word)
-  }
-  for (let i = 0, l = line.length; i < l; i++) {
-    if (chars.isKeywordChar(line[i])) {
-      if (start == -1) {
-        start = i
-      }
-    } else {
-      if (start != -1) {
-        add(i)
-        start = -1
-      }
-    }
-    if (i === l - 1 && start != -1) {
-      add(l)
-    }
-  }
-  return res
-}
 
 export class KeywordsBuffer implements SyncItem {
   private lineWords: ReadonlyArray<string>[] = []
@@ -69,10 +37,12 @@ export class KeywordsBuffer implements SyncItem {
   public parseWords(): void {
     let { lineWords, doc } = this
     let { chars } = doc
+    let n = Date.now()
     for (let line of this.doc.textDocument.lines) {
-      let words = matchLine(line, chars)
+      let words = chars.matchLine(line, 2)
       lineWords.push(words)
     }
+    logger.debug('cost:', Date.now() - n)
   }
 
   public get bufnr(): number {
@@ -97,7 +67,7 @@ export class KeywordsBuffer implements SyncItem {
     let add = n == 0 ? 0 : 1
     let nc = text.split(/\n/).length - n + add
     let newLines = doc.textDocument.lines.slice(sl, sl + nc)
-    let arr = newLines.map(line => matchLine(line, doc.chars))
+    let arr = newLines.map(line => doc.chars.matchLine(line, 2))
     lineWords.splice(sl, n + 1, ...arr)
   }
 

@@ -8,6 +8,8 @@ const logger = require('../util/logger')('model-chars')
 // Word ranges from vim, tested by '\k' option when '@' in iskeyword option.
 const WORD_RANGES: [number, number][] = [[257, 893], [895, 902], [904, 1369], [1376, 1416], [1418, 1469], [1471, 1471], [1473, 1474], [1476, 1522], [1525, 1547], [1549, 1562], [1564, 1566], [1568, 1641], [1646, 1747], [1749, 1791], [1806, 2403], [2406, 2415], [2417, 3571], [3573, 3662], [3664, 3673], [3676, 3843], [3859, 3897], [3902, 3972], [3974, 4169], [4176, 4346], [4348, 4960], [4969, 5740], [5743, 5759], [5761, 5786], [5789, 5866], [5870, 5940], [5943, 6099], [6109, 6143], [6155, 8191], [10240, 10495], [10649, 10711], [10716, 10747], [10750, 11775], [11904, 12287], [12321, 12335], [12337, 12348], [12350, 64829], [64832, 65071], [65132, 65279], [65296, 65305], [65313, 65338], [65345, 65370], [65382, 65535]]
 
+const MAX_CODE_UNIT = 65535
+
 export function getCharCode(str: string): number | undefined {
   if (/^\d+$/.test(str)) return parseInt(str, 10)
   if (str.length > 0) return str.charCodeAt(0)
@@ -171,12 +173,13 @@ export class Chars {
   }
 
   public isKeywordCode(code: number): boolean {
+    if (code === 32 || code > MAX_CODE_UNIT) return false
     return this.ranges.includes(code)
   }
 
   public isKeywordChar(ch: string): boolean {
-    if (/\s/.test(ch)) return false
-    return this.isKeywordCode(ch.charCodeAt(0))
+    let code = ch.charCodeAt(0)
+    return this.isKeywordCode(code)
   }
 
   public isKeyword(word: string): boolean {
@@ -184,6 +187,42 @@ export class Chars {
       if (!this.isKeywordChar(word[i])) return false
     }
     return true
+  }
+
+  public matchLine(line: string, min = 2, max = 1024): string[] {
+    let res: string[] = []
+    let l = line.length
+    if (l > max) {
+      line = line.slice(0, max)
+      l = max
+    }
+    let start = -1
+    let idx = 0
+    const add = (end: number): void => {
+      if (end - start < min) return
+      let word = line.slice(start, end)
+      if (!res.includes(word)) res.push(word)
+    }
+    for (const codePoint of line) {
+      let code = codePoint.codePointAt(0)
+      if (this.isKeywordCode(code)) {
+        if (start == -1) {
+          start = idx
+        }
+      } else {
+        if (start != -1) {
+          add(idx)
+          start = -1
+        }
+      }
+      if (code > MAX_CODE_UNIT) {
+        idx += codePoint.length
+      } else {
+        idx++
+      }
+    }
+    if (start != -1) add(l)
+    return res
   }
 
   public async matchLines(lines: ReadonlyArray<string>, min = 2, token?: CancellationToken): Promise<Set<string> | undefined> {

@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import sources from '../../sources/index'
-import { matchLine } from '../../sources/keywords'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
@@ -17,19 +16,6 @@ afterAll(async () => {
 
 afterEach(async () => {
   await helper.reset()
-})
-
-describe('utils', () => {
-  it('should matchLine', async () => {
-    let doc = await workspace.document
-    let text = 'a'.repeat(2048)
-    expect(matchLine(text, doc.chars)).toEqual(['a'.repeat(1024)])
-    expect(matchLine('a b c', doc.chars)).toEqual([])
-    expect(matchLine('foo bar', doc.chars)).toEqual(['foo', 'bar'])
-    expect(matchLine('?foo bar', doc.chars)).toEqual(['foo', 'bar'])
-    expect(matchLine('?foo $', doc.chars)).toEqual(['foo'])
-    expect(matchLine('?foo foo foo', doc.chars)).toEqual(['foo'])
-  })
 })
 
 describe('KeywordsBuffer', () => {
