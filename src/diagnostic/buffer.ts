@@ -79,7 +79,7 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   private get _autoRefresh(): boolean {
-    return this.config.enable && this.config.autoRefresh && this.dirty
+    return this.config.enable && this.config.autoRefresh && this.dirty && !this.doc.hasChanged
   }
 
   public get config(): Readonly<DiagnosticConfig> {
@@ -532,22 +532,24 @@ export class DiagnosticBuffer implements SyncItem {
    * Refresh all diagnostics
    */
   private async _refresh(dirtyOnly: boolean): Promise<void> {
-    let info = await this.getDiagnosticInfo()
-    let noHighlights = !info || info.winid == -1
-    if (noHighlights || !this.config.enable) return
+    let info = await this.getDiagnosticInfo(!dirtyOnly)
+    if (!info || info.winid == -1 || !this.config.enable) return
     let { _dirties } = this
-    let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
-    for (let [key, diagnostics] of this.diagnosticsMap.entries()) {
-      if (dirtyOnly || !_dirties.has(key)) {
+    if (dirtyOnly) {
+      let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
+      for (let [key, diagnostics] of this.diagnosticsMap.entries()) {
+        if (!_dirties.has(key)) continue
         // Ignore if exists and version too old.
         let version = this.versionsMap.get(key)
         if (diagnostics.length > 0 && version != null && this.doc.version > version) {
           continue
         }
+        map.set(key, diagnostics)
       }
-      map.set(key, diagnostics)
+      this.refresh(map, info)
+    } else {
+      this.refresh(this.diagnosticsMap, info)
     }
-    this.refresh(map, info)
   }
 
   public getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
