@@ -25,8 +25,8 @@ afterEach(async () => {
   await helper.reset()
 })
 
-async function triggerCompletion(source: string): Promise<void> {
-  await nvim.call('coc#start', { source })
+function triggerCompletion(source: string): void {
+  nvim.call('coc#start', { source }, true)
 }
 
 async function create(items: string[] | VimCompleteItem[], trigger = true): Promise<string> {
@@ -48,7 +48,7 @@ async function create(items: string[] | VimCompleteItem[], trigger = true): Prom
     await nvim.input('i')
   }
   if (trigger) {
-    await triggerCompletion(name)
+    triggerCompletion(name)
     await helper.waitPopup()
   }
   return name
@@ -119,7 +119,7 @@ describe('completion', () => {
       let name = await create(['foo', 'bar', 'foobar'])
       await helper.confirmCompletion(1)
       await nvim.input('<CR>f')
-      await triggerCompletion(name)
+      triggerCompletion(name)
       let info = await nvim.call('coc#pum#info')
       expect(info.index).toBe(1)
     })
@@ -244,7 +244,7 @@ describe('completion', () => {
       }
       disposables.push(sources.addSource(source))
       await nvim.input('i')
-      await triggerCompletion('dash')
+      triggerCompletion('dash')
       await helper.waitPopup()
       await nvim.input('-')
       await helper.waitValue(() => {
@@ -1179,7 +1179,7 @@ describe('completion', () => {
         })
       }))
       await nvim.input('i')
-      await triggerCompletion('test')
+      triggerCompletion('test')
       await helper.waitPopup()
       let winid = await nvim.call('coc#float#get_float_by_kind', ['pum'])
       let win = nvim.createWindow(winid)
@@ -1307,7 +1307,7 @@ describe('completion', () => {
       await nvim.setLine('f')
       await nvim.input('A')
       await doc.synchronize()
-      await triggerCompletion('insert')
+      triggerCompletion('insert')
       await helper.waitPopup()
       let line = await nvim.line
       expect(line).toBe('f')

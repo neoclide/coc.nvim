@@ -88,7 +88,10 @@ describe('language source', () => {
         }]
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
-      await nvim.input('i')
+      let mode = await nvim.mode
+      if (mode.mode !== 'i') {
+        await nvim.input('i')
+      }
       nvim.call('coc#start', { source: 'foo' }, true)
       await helper.waitPopup()
       await helper.waitValue(async () => {
