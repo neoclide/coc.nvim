@@ -315,7 +315,7 @@ export class Completion implements Disposable {
       triggerCharacter: pre.length ? pre.slice(-1) : undefined
     }
     if (sources == null && input.length < minTriggerInputLength) {
-      logger.warn(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
+      logger.trace(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
       return false
     }
     if (checkIgnoreRegexps(this.config.ignoreRegexps, option.input)) return false

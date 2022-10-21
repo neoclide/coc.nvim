@@ -63,7 +63,6 @@ export abstract class WordDistance {
         }
         const idx = binarySearch(wordLines, Range.create(anchor, anchor), compareRangesUsingStarts)
         const bestWordRange = idx >= 0 ? wordLines[idx] : wordLines[Math.max(0, ~idx - 1)]
-        logger.debug('bestWordRange:', bestWordRange)
         let blockDistance = ranges.length
         for (const range of ranges) {
           if (!rangeInRange(bestWordRange, range)) {

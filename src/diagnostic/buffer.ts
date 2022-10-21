@@ -168,6 +168,7 @@ export class DiagnosticBuffer implements SyncItem {
         let arr = adjustDiagnostics(diagnostics, edit)
         this.diagnosticsMap.set(collection, arr)
       }
+      this._dirties = new Set(this.diagnosticsMap.keys())
     }
     if (!this.config.autoRefresh) return
     this.refreshHighlights()
@@ -554,7 +555,8 @@ export class DiagnosticBuffer implements SyncItem {
 
   public getHighlightItems(diagnostics: ReadonlyArray<Diagnostic>): HighlightItem[] {
     let res: HighlightItem[] = []
-    for (let diagnostic of diagnostics.slice(0, this._config.highlightLimit)) {
+    for (let i = 0; i < Math.min(this._config.highlightLimit, diagnostics.length); i++) {
+      let diagnostic = diagnostics[i]
       let hlGroup = getHighlightGroup(diagnostic)
       this.doc.addHighlights(res, hlGroup, diagnostic.range)
     }

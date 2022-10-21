@@ -37,12 +37,10 @@ export class KeywordsBuffer implements SyncItem {
   public parseWords(): void {
     let { lineWords, doc } = this
     let { chars } = doc
-    let n = Date.now()
     for (let line of this.doc.textDocument.lines) {
       let words = chars.matchLine(line, 2)
       lineWords.push(words)
     }
-    logger.debug('cost:', Date.now() - n)
   }
 
   public get bufnr(): number {
