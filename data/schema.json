@@ -1726,7 +1726,7 @@
       "type": "boolean",
       "default": false,
       "scope": "language-overridable",
-      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character. Requires CompleteChanged event to work."
+      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character."
     },
     "suggest.asciiCharactersOnly": {
       "type": "boolean",

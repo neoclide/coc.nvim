@@ -1,11 +1,50 @@
 scriptencoding utf-8
 
-function! coc#string#get_character(line, col) abort
-  return strchars(strpart(a:line, 0, a:col - 1))
-endfunction
-
 function! coc#string#last_character(line) abort
   return strcharpart(a:line, strchars(a:line) - 1, 1)
+endfunction
+
+" Get utf16 code unit index from col (0 based)
+function! coc#string#character_index(line, byteIdx) abort
+  if a:byteIdx <= 0
+    return 0
+  endif
+  let i = 0
+  let len = 0
+  for char in split(a:line, '\zs')
+    let i += char2nr(char) > 65535 ? 2 : 1
+    let len += strlen(char)
+    if len >= a:byteIdx
+      break
+    endif
+  endfor
+  return i
+endfunction
+
+" Convert utf16 character index to byte index
+function! coc#string#byte_index(line, character) abort
+  if a:character == 0
+    return 0
+  endif
+  " code unit index
+  let i = 0
+  let len = 0
+  for char in split(a:line, '\zs')
+    let i += char2nr(char) > 65535 ? 2 : 1
+    let len += strlen(char)
+    if i >= a:character
+      break
+    endif
+  endfor
+  return len
+endfunction
+
+function! coc#string#character_length(line) abort
+  let i = 0
+  for char in split(a:line, '\zs')
+    let i += char2nr(char) > 65535 ? 2 : 1
+  endfor
+  return i
 endfunction
 
 function! coc#string#reflow(lines, width) abort

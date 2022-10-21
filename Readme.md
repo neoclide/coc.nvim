@@ -94,6 +94,10 @@ possible to avoid conflict with your other plugins.
 command like`:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
+
+" May need for vim (not neovim) since coc.nvim calculate byte offset by count
+" utf-8 byte sequence.
+set encoding=utf-8
 " Some servers have issues with backup files, see #649.
 set nobackup
 set nowritebackup

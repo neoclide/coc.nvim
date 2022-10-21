@@ -14,15 +14,14 @@ endfunction
 
 " Get cursor position.
 function! coc#cursor#position()
-  return [line('.') - 1, strchars(strpart(getline('.'), 0, col('.') - 1))]
+  let line = getline('.')
+  return [line('.') - 1, coc#string#character_index(line, col('.') - 1)]
 endfunction
 
 " Move cursor to position.
 function! coc#cursor#move_to(line, character) abort
   let content = getline(a:line + 1)
-  let pre = strcharpart(content, 0, a:character)
-  let col = strlen(pre) + 1
-  call cursor(a:line + 1, col)
+  call cursor(a:line + 1, coc#string#byte_index(content, a:character) + 1)
 endfunction
 
 " Character offset of current cursor, vim provide bytes offset only.
@@ -47,14 +46,14 @@ function! coc#cursor#get_selection(char) abort
   endif
   let [_, sl, sc, soff] = getpos(m ==# 'char' ? "'[" : "'<")
   let [_, el, ec, eoff] = getpos(m ==# 'char' ? "']" : "'>")
-  let start_idx = coc#string#get_character(getline(sl), sc)
+  let start_idx = coc#string#character_index(getline(sl), sc - 1)
   if m ==# 'V'
     return [sl - 1, start_idx, el, 0]
   endif
   let line = getline(el)
-  let end_idx = coc#string#get_character(line, ec)
+  let end_idx = coc#string#character_index(line, ec - 1)
   if m !=# 'char'
-    let end_idx = end_idx == strchars(line) ? end_idx : end_idx + 1
+    let end_idx = end_idx == coc#string#character_length(line) ? end_idx : end_idx + 1
   endif
   return [sl - 1, start_idx, el - 1, end_idx]
 endfunction

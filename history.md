@@ -1,3 +1,9 @@
+# 2022-10-21
+
+- Consider utf-16 code unit instead of unicode code point.
+- Add `coc#string#character_index()` `coc#string#byte_index()` and
+  `coc#string#character_length()`.
+
 # 2022-10-20
 
 - Add `coc#pum#one_more()`

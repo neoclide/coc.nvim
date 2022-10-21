@@ -275,9 +275,8 @@ function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
       if start['character'] > synmaxcol || end['character'] > synmaxcol
         continue
       endif
-      " TODO don't know how to count UTF16 code point, should work most cases.
-      let colStart = lnum == start['line'] + 1 ? strlen(strcharpart(line, 0, start['character'])) : 0
-      let colEnd = lnum == end['line'] + 1 ? strlen(strcharpart(line, 0, end['character'])) : strlen(line)
+      let colStart = lnum == start['line'] + 1 ? coc#string#byte_index(line, start['character']) : 0
+      let colEnd = lnum == end['line'] + 1 ? coc#string#byte_index(line, end['character']) : strlen(line)
       if colStart == colEnd
         continue
       endif

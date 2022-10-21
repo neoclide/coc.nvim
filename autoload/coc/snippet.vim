@@ -155,5 +155,5 @@ function! coc#snippet#to_cursor(position) abort
   if line is v:null
     return [a:position.line + 1, a:position.character + 1]
   endif
-  return [a:position.line + 1, byteidx(line, a:position.character) + 1]
+  return [a:position.line + 1, coc#string#byte_index(line, a:position.character) + 1]
 endfunction
