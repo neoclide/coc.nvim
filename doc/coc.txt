@@ -2030,10 +2030,6 @@ coc#util#extension_root()				*coc#util#extension_root()*
 
 	Return extensions root of coc.nvim.
 
-coc#util#rebuild()					*coc#util#rebuild()*
-
-	Run `npm rebuild` for all coc extensions.
-
 coc#util#root_patterns()				*coc#util#root_patterns()*
 
 	Get root patterns used for current document.
@@ -2829,12 +2825,6 @@ COMMANDS						*coc-commands*
 :CocUpdateSync						*:CocUpdateSync*
 
 	Block version of update coc extensions.
-
-:CocRebuild						*:CocRebuild*
-
-	Run `npm rebuild` for coc extensions.
-
-	May be required when environment nodejs get upgraded.
 
 :CocCommand {name} [{args}] ... 			*:CocCommand*
 

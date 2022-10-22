@@ -55,7 +55,7 @@ endfunction
 
 " get cursor position
 function! coc#util#cursor()
-  return [line('.') - 1, strchars(strpart(getline('.'), 0, col('.') - 1))]
+  return [line('.') - 1, coc#string#character_length(strpart(getline('.'), 0, col('.') - 1))]
 endfunction
 
 function! coc#util#change_info() abort
@@ -365,16 +365,6 @@ function! coc#util#do_autocmd(name) abort
   endif
 endfunction
 
-function! coc#util#rebuild()
-  let dir = coc#util#extension_root()
-  if !isdirectory(dir) | return | endif
-  call coc#ui#open_terminal({
-        \ 'cwd': dir,
-        \ 'cmd': 'npm rebuild',
-        \ 'keepfocus': 1,
-        \})
-endfunction
-
 function! coc#util#unmap(bufnr, keys) abort
   if bufnr('%') == a:bufnr
     for key in a:keys
@@ -567,7 +557,7 @@ function! coc#util#get_complete_option()
   let col = pos[2] - strlen(input)
   let position = {
       \ 'line': line('.')-1,
-      \ 'character': strchars(strpart(getline('.'), 0, col('.') - 1))
+      \ 'character': coc#string#character_length(strpart(getline('.'), 0, col('.') - 1))
       \ }
   let word = matchstr(strpart(line, col - 1), '^\k\+')
   let followWord = len(word) > 0 ? strcharpart(word, strchars(input)) : ''
@@ -620,7 +610,7 @@ function! coc#util#valid_position(line, character) abort
   if a:line > total
     return [total, 0]
   endif
-  let max = strchars(getline(a:line + 1)) - (mode() ==# 'n' ? 1 : 0)
+  let max = max([0, coc#string#character_length(getline(a:line + 1)) - (mode() ==# 'n' ? 1 : 0)])
   return a:character > max ? [a:line, max] : [a:line, a:character]
 endfunction
 
