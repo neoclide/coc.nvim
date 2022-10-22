@@ -23,7 +23,7 @@ endfunction
 
 " Convert utf16 character index to byte index
 function! coc#string#byte_index(line, character) abort
-  if a:character == 0
+  if a:character <= 0
     return 0
   endif
   " code unit index
@@ -39,9 +39,9 @@ function! coc#string#byte_index(line, character) abort
   return len
 endfunction
 
-function! coc#string#character_length(line) abort
+function! coc#string#character_length(text) abort
   let i = 0
-  for char in split(a:line, '\zs')
+  for char in split(a:text, '\zs')
     let i += char2nr(char) > 65535 ? 2 : 1
   endfor
   return i

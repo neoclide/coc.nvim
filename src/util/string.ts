@@ -1,6 +1,10 @@
 'use strict'
 import { Range } from 'vscode-languageserver-protocol'
 
+const UTF8_2BYTES_START = 0x80
+const UTF8_3BYTES_START = 0x800
+const UTF8_4BYTES_START = 65536
+
 export function rangeParts(text: string, range: Range): [string, string] {
   let { start, end } = range
   let lines = text.split(/\r?\n/)
@@ -64,9 +68,11 @@ export function upperFirst(str: string): string {
   return str?.length > 0 ? str[0].toUpperCase() + str.slice(1) : ''
 }
 
+/**
+ * utf16 code unit to byte index.
+ */
 export function byteIndex(content: string, index: number): number {
-  let s = content.slice(0, index)
-  return Buffer.byteLength(s)
+  return Buffer.byteLength(content.slice(0, index), 'utf8')
 }
 
 export function indexOf(str: string, ch: string, count = 1): number {
@@ -83,8 +89,28 @@ export function indexOf(str: string, ch: string, count = 1): number {
 }
 
 export function characterIndex(content: string, byteIndex: number): number {
-  let buf = Buffer.from(content, 'utf8')
-  return buf.slice(0, byteIndex).toString('utf8').length
+  if (byteIndex == 0) return 0
+  let characterIndex = 0
+  let total = 0
+  for (let codePoint of content) {
+    let code = codePoint.codePointAt(0)
+    if (code >= UTF8_4BYTES_START) {
+      characterIndex += 2
+      total += 4
+    } else {
+      characterIndex += 1
+      total += utf8_code2len(code)
+    }
+    if (total >= byteIndex) break
+  }
+  return characterIndex
+}
+
+export function utf8_code2len(code: number): number {
+  if (code < UTF8_2BYTES_START) return 1
+  if (code < UTF8_3BYTES_START) return 2
+  if (code < UTF8_4BYTES_START) return 3
+  return 4
 }
 
 export function byteSlice(content: string, start: number, end?: number): string {

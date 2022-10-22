@@ -297,6 +297,19 @@ describe('textedit', () => {
 })
 
 describe('strings', () => {
+  it('should get character index from byte index', async () => {
+    expect(strings.characterIndex('ab', 0)).toBe(0)
+    expect(strings.characterIndex('abc', 1)).toBe(1)
+    expect(strings.characterIndex('ab', 99)).toBe(2)
+    expect(strings.characterIndex('abc', 1)).toBe(1)
+    expect(strings.characterIndex('ôbc', 2)).toBe(1)
+    expect(strings.characterIndex('ô你c', 2)).toBe(1)
+    expect(strings.characterIndex('你c', 3)).toBe(1)
+    expect(strings.characterIndex('😘def', 4)).toBe(2)
+    expect(strings.characterIndex('\ude18def', 3)).toBe(1)
+    expect(strings.utf8_code2len(65537)).toBe(4)
+  })
+
   it('should get case', async () => {
     expect(strings.getCase('a'.charCodeAt(0))).toBe(1)
     expect(strings.getCase('A'.charCodeAt(0))).toBe(2)
@@ -654,8 +667,7 @@ describe('utility', () => {
     let called = false
     let disposable = watchFile(filepath, () => {
       called = true
-    })
-    await wait(10)
+    }, true)
     fs.writeFileSync(filepath, 'new file', 'utf8')
     await helper.waitValue(() => {
       return called
