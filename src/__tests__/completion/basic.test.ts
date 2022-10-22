@@ -92,7 +92,8 @@ describe('completion', () => {
       await helper.wait(50)
       let visible = await helper.pumvisible()
       expect(visible).toBe(false)
-      await nvim.input(' f')
+      await nvim.input('<cr>')
+      await nvim.input('f')
       await helper.waitPopup()
     })
 

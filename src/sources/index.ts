@@ -9,7 +9,7 @@ import extensions from '../extension'
 import BufferSync from '../model/bufferSync'
 import { CompletionItemProvider } from '../provider'
 import { CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
-import { disposeAll, getUri } from '../util'
+import { disposeAll } from '../util'
 import { intersect } from '../util/array'
 import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
@@ -229,7 +229,8 @@ export class Sources {
     let { filetype } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && !!opt.triggerCharacter
-    let uri = getUri(opt.filepath, opt.bufnr, '', workspace.env.isCygwin)
+    let doc = workspace.getDocument(opt.bufnr)
+    let uri = doc ? doc.uri : `unknown:${opt.bufnr}`
     if (isTriggered) return this.getTriggerSources(pre, filetype, uri)
     return this.getNormalSources(opt.filetype, uri)
   }

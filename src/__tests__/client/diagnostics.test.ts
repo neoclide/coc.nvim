@@ -223,9 +223,9 @@ describe('DiagnosticFeature', () => {
       return provider.knows(PullState.document, doc.textDocument)
     }, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
-    await helper.wait(30)
-    let changeCount = await client.sendRequest('getChangeCount')
-    expect(changeCount).toBe(2)
+    await helper.waitValue(async () => {
+      return await client.sendRequest('getChangeCount')
+    }, 2)
     await nvim.call('setline', [1, 'foo'])
     let d = await workspace.loadFile(getUri('filtered'), 'tabe')
     await d.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
