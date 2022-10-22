@@ -563,10 +563,11 @@ describe('list sources', () => {
       await manager.start(['lists'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
-      await helper.listInput('<cr>')
-      await helper.wait(50)
-      let s = manager.getSession()
-      expect(s.name != 'lists').toBe(true)
+      await manager.doAction()
+      await helper.waitValue(() => {
+        let s = manager.getSession()
+        return s && s.name !== 'lists'
+      }, true)
     })
   })
 

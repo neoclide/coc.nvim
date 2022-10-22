@@ -523,7 +523,7 @@ endfunction
 function! s:funcs.win_get_cursor(win_id) abort
   let ref = {}
   call s:win_execute(a:win_id, "[line('.'), col('.')-1]", ref)
-  return get(ref, 'out', 0)
+  return get(ref, 'out', [1, 0])
 endfunction
 
 function! s:funcs.win_get_var(win_id, name, ...) abort

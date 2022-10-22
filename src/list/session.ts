@@ -303,6 +303,7 @@ export default class ListSession {
     this.ui.reset()
     this.hidden = true
     let { isVim } = workspace
+    if (isVim) await nvim.call('feedkeys', ['\x1b', 'int'])
     nvim.pauseNotification()
     if (!isVim) nvim.call('coc#prompt#stop_prompt', ['list'], true)
     if (tabnr) nvim.call('coc#list#close_preview', [tabnr], true)
@@ -311,14 +312,8 @@ export default class ListSession {
     if (window && this.savedHeight && this.listOptions.position !== 'tab') {
       nvim.call('coc#window#set_height', [window.id, this.savedHeight], true)
     }
-    if (notify) return nvim.resumeNotification(false, true)
-    await nvim.resumeNotification(false)
-    if (isVim) {
-      // otherwise we could receive <esc> for new list.
-      await wait(10)
-      nvim.call('feedkeys', ['\x1b', 'int'], true)
-      nvim.command('redraw', true)
-    }
+    if (notify) return nvim.resumeNotification(true, true)
+    await nvim.resumeNotification(true)
   }
 
   public toggleMode(): void {

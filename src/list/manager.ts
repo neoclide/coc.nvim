@@ -108,9 +108,11 @@ export class ListManager implements Disposable {
     try {
       await session.start(args)
     } catch (e) {
+      this.nvim.command(`echo ""`, true)
       this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
       let msg = e instanceof Error ? e.message : e.toString()
       void window.showErrorMessage(`Error on "CocList ${name}": ${msg}`)
+      this.nvim.redrawVim()
       logger.error(e)
     }
   }

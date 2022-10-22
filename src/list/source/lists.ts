@@ -17,7 +17,9 @@ export default class ListsList extends BasicList {
     this.addAction('open', async item => {
       let { name } = item.data
       await this.mru.add(name)
-      nvim.command(`CocList ${name}`, true)
+      setTimeout(() => {
+        nvim.command(`CocList ${name}`, true)
+      }, nvim.isVim ? 50 : 0)
     })
   }
 

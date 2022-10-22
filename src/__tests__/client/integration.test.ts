@@ -72,25 +72,26 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.ipc
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-    let fn = jest.fn()
+    let n = 0
     let disposable = client.onRequest('customRequest', () => {
-      fn()
+      n++
       disposable.dispose()
       return {}
     })
     let dispose = client.onNotification('customNotification', () => {
-      fn()
+      n++
       dispose.dispose()
     })
     let dis = client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', p => {
       expect(p).toEqual({ kind: 'end', message: 'end message' })
-      fn()
+      n++
       dis.dispose()
     })
     await client.start()
     await client.sendNotification('send')
-    await helper.wait(60)
-    expect(fn).toBeCalledTimes(3)
+    await helper.waitValue(() => {
+      return n
+    }, 3)
     //   let client = await testEventServer({ initEvent: true })
     await client.stop()
   })
