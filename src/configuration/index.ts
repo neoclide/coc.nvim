@@ -6,7 +6,7 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { ConfigurationInspect, ConfigurationScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from '../types'
 import { CONFIG_FILE_NAME, disposeAll, watchFile } from '../util'
-import { findUp, sameFile } from '../util/fs'
+import { findUp, normalizeFilePath, sameFile } from '../util/fs'
 import { objectLiteral } from '../util/is'
 import { deepFreeze, hasOwnProperty, mixin } from '../util/object'
 import { Configuration } from './configuration'
@@ -133,7 +133,7 @@ export default class Configurations {
    * Add new folder config file.
    */
   public addFolderFile(configFilePath: string, fromCwd = false, resource?: string): boolean {
-    let folder = path.resolve(configFilePath, '../..')
+    let folder = normalizeFilePath(path.resolve(configFilePath, '../..'))
     if (this._configuration.hasFolder(folder) || !fs.existsSync(configFilePath)) return false
     this.watchFile(configFilePath, ConfigurationTarget.WorkspaceFolder)
     let model = this.parseConfigurationModel(configFilePath)
@@ -145,9 +145,9 @@ export default class Configurations {
   private watchFile(filepath: string, target: ConfigurationTarget): void {
     if (!fs.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return
     this._watchedFiles.add(filepath)
+    const folder = ConfigurationTarget.WorkspaceFolder ? normalizeFilePath(path.resolve(filepath, '../..')) : undefined
     let disposable = watchFile(filepath, () => {
       let model = this.parseConfigurationModel(filepath)
-      let folder = target === ConfigurationTarget.WorkspaceFolder ? path.resolve(filepath, '../..') : undefined
       this.changeConfiguration(target, model, folder)
     })
     this.disposables.push(disposable)

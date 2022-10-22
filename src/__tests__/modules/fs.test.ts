@@ -1,4 +1,4 @@
-import { findUp, writeJson, loadJson, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, fixDriver, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, globFilesAsync } from '../../util/fs'
+import { findUp, writeJson, loadJson, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, globFilesAsync } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -246,18 +246,12 @@ describe('fs', () => {
 
   describe('isParentFolder', () => {
     it('check parent folder', () => {
-      expect(isParentFolder('/a', '/a/b')).toBe(true)
       expect(isParentFolder('/a/b', '/a/b/')).toBe(false)
+      expect(isParentFolder('/a', '/a/b')).toBe(true)
       expect(isParentFolder('/a/b', '/a/b')).toBe(false)
       expect(isParentFolder('/a/b', '/a/b', true)).toBe(true)
       expect(isParentFolder('//', '/', true)).toBe(true)
       expect(isParentFolder('/a/b/', '/a/b/c', true)).toBe(true)
-    })
-  })
-
-  describe('fixDriver', () => {
-    it('should fix driver', async () => {
-      expect(fixDriver('c:/foo', 'win32')).toBe('C:/foo')
     })
   })
 

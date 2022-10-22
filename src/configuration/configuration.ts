@@ -2,7 +2,7 @@
 import { URI } from 'vscode-uri'
 import { ConfigurationTarget, IConfigurationChange, IConfigurationData, IConfigurationModel, IConfigurationOverrides } from '../types'
 import { distinct } from '../util/array'
-import { isParentFolder } from '../util/fs'
+import { isParentFolder, normalizeFilePath, sameFile } from '../util/fs'
 import { equals } from '../util/object'
 import { ConfigurationModel } from './model'
 import { compareConfigurationContents, IConfigurationCompareResult, overrideIdentifiersFromKey } from './util'
@@ -22,6 +22,40 @@ export interface IConfigurationValue<T> {
   readonly overrideIdentifiers?: string[]
 }
 
+export class FolderConfigutions {
+  private _folderConfigurations: Map<string, ConfigurationModel> = new Map()
+
+  public get keys(): Iterable<string> {
+    return this._folderConfigurations.keys()
+  }
+
+  public has(folder: string): boolean {
+    for (let key of this.keys) {
+      if (sameFile(folder, key)) return true
+    }
+    return false
+  }
+
+  public set(folder: string, model: ConfigurationModel): void {
+    let key = normalizeFilePath(folder)
+    this._folderConfigurations.set(key, model)
+  }
+
+  public get(folder: string): ConfigurationModel | undefined {
+    let key = normalizeFilePath(folder)
+    return this._folderConfigurations.get(key)
+  }
+
+  public delete(folder: string): void {
+    let key = normalizeFilePath(folder)
+    this._folderConfigurations.delete(key)
+  }
+
+  public forEach(fn: (model: ConfigurationModel, key: string) => void): void {
+    this._folderConfigurations.forEach(fn)
+  }
+}
+
 export class Configuration {
   private _workspaceConsolidatedConfiguration: ConfigurationModel | null = null
   private _resolvedFolderConfigurations: Map<string, string> = new Map()
@@ -31,7 +65,7 @@ export class Configuration {
     private _defaultConfiguration: ConfigurationModel,
     private _userConfiguration: ConfigurationModel,
     private _workspaceConfiguration: ConfigurationModel = new ConfigurationModel(),
-    private _folderConfigurations: Map<string, ConfigurationModel> = new Map(),
+    private _folderConfigurations: FolderConfigutions = new FolderConfigutions(),
     private _memoryConfiguration: ConfigurationModel = new ConfigurationModel()
   ) {
   }
@@ -58,7 +92,10 @@ export class Configuration {
   }
 
   public hasFolder(folder: string): boolean {
-    return this._folderConfigurations.has(folder)
+    for (let p of this._folderConfigurations.keys) {
+      if (sameFile(p, folder)) return true
+    }
+    return false
   }
 
   public addFolderConfiguration(folder: string, model: ConfigurationModel, resource?: string): void {
@@ -91,7 +128,7 @@ export class Configuration {
     let u = URI.parse(uri)
     let fullpath = u.scheme === 'file' ? u.fsPath : undefined
     if (!fullpath) return undefined
-    let folders = Array.from(this._folderConfigurations.keys())
+    let folders = Array.from(this._folderConfigurations.keys)
     folders.sort((a, b) => b.length - a.length)
     for (let folder of folders) {
       if (isParentFolder(folder, fullpath, true)) {
@@ -105,7 +142,7 @@ export class Configuration {
   public resolveFolder(uri: string): string | undefined {
     let folder = this._resolvedFolderConfigurations.get(uri)
     if (folder) return folder
-    let folders = Array.from(this._folderConfigurations.keys())
+    let folders = Array.from(this._folderConfigurations.keys)
     folders.sort((a, b) => b.length - a.length)
     for (let folder of folders) {
       if (isParentFolder(folder, URI.parse(uri).fsPath, true)) {
@@ -303,9 +340,9 @@ export class Configuration {
   public toData(): IConfigurationData {
     let { _defaultConfiguration, _userConfiguration, _workspaceConfiguration, _folderConfigurations } = this
     let folders: [string, IConfigurationModel][] = []
-    for (let [fsPath, model] of _folderConfigurations.entries()) {
+    _folderConfigurations.forEach((model, fsPath) => {
       folders.push([fsPath, model.toJSON()])
-    }
+    })
     return {
       defaults: _defaultConfiguration.toJSON(),
       user: _userConfiguration.toJSON(),
@@ -318,12 +355,11 @@ export class Configuration {
     const defaultConfiguration = this.parseConfigurationModel(data.defaults)
     const userConfiguration = this.parseConfigurationModel(data.user)
     const workspaceConfiguration = this.parseConfigurationModel(data.workspace)
-    const folders: Map<string, ConfigurationModel> = data.folders.reduce((result, value) => {
-      result.set(value[0], this.parseConfigurationModel(value[1]))
-      return result
-    }, new Map())
-
-    return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, folders)
+    const folderConfigurations: FolderConfigutions = new FolderConfigutions()
+    data.folders.forEach(value => {
+      folderConfigurations.set(value[0], this.parseConfigurationModel(value[1]))
+    })
+    return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, folderConfigurations)
   }
 
   private static parseConfigurationModel(model: IConfigurationModel): ConfigurationModel {

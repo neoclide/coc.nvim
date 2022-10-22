@@ -15,7 +15,7 @@ import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, LinesChange } from '../types'
 import * as errors from '../util/errors'
-import { fixDriver, isFile, isParentFolder, statAsync } from '../util/fs'
+import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
 import { byteLength } from '../util/string'
 import { getAnnotationKey, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
@@ -104,7 +104,7 @@ export default class Files {
       let { fsPath, scheme } = URI.parse(uri)
       let pos = position == null ? null : [position.line, position.character]
       if (scheme == 'file') {
-        let bufname = fixDriver(path.normalize(fsPath))
+        let bufname = normalizeFilePath(fsPath)
         await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
       } else {
         await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])

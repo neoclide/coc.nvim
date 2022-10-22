@@ -3,7 +3,6 @@ import { exec } from 'child_process'
 import fs from 'fs'
 import glob, { Glob } from 'glob'
 import minimatch from 'minimatch'
-import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import { URI } from 'vscode-uri'
@@ -109,7 +108,7 @@ export function isFolderIgnored(folder: string, ignored: string[] = []): boolean
 }
 
 export function resolveRoot(folder: string, subs: string[], cwd?: string, bottomup = false, checkCwd = true, ignored: string[] = []): string | null {
-  let dir = fixDriver(folder)
+  let dir = normalizeFilePath(folder)
   if (checkCwd
     && cwd
     && isParentFolder(cwd, dir, true)
@@ -349,6 +348,8 @@ export async function lineToLocation(fsPath: string, match: string, text?: strin
 export function sameFile(fullpath: string | null, other: string | null, caseInsensitive?: boolean): boolean {
   caseInsensitive = typeof caseInsensitive == 'boolean' ? caseInsensitive : platform.isWindows || platform.isMacintosh
   if (!fullpath || !other) return false
+  fullpath = normalizeFilePath(fullpath)
+  other = normalizeFilePath(other)
   if (caseInsensitive) return fullpath.toLowerCase() === other.toLowerCase()
   return fullpath === other
 }
@@ -378,17 +379,15 @@ export function parentDirs(pth: string): string[] {
   return dirs
 }
 
+export function normalizeFilePath(filepath: string) {
+  return URI.file(path.resolve(path.normalize(filepath))).fsPath
+}
+
 export function isParentFolder(folder: string, filepath: string, checkEqual = false): boolean {
-  let pdir = fixDriver(path.resolve(path.normalize(folder)))
-  let dir = fixDriver(path.resolve(path.normalize(filepath)))
-  if (pdir == '//') pdir = '/'
+  let pdir = normalizeFilePath(folder)
+  let dir = normalizeFilePath(filepath)
+  if (pdir === '//') pdir = '/'
   if (sameFile(pdir, dir)) return checkEqual ? true : false
   if (pdir.endsWith(path.sep)) return fileStartsWith(dir, pdir)
   return fileStartsWith(dir, pdir) && dir[pdir.length] == path.sep
-}
-
-// use uppercase for windows driver
-export function fixDriver(filepath: string, platform = os.platform()): string {
-  if (platform != 'win32' || filepath[1] != ':') return filepath
-  return filepath[0].toUpperCase() + filepath.slice(1)
 }

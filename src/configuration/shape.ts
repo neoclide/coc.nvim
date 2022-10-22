@@ -2,7 +2,6 @@
 import fs from 'fs'
 import { applyEdits, modify } from 'jsonc-parser'
 import path from 'path'
-import { promisify } from 'util'
 import { WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 const logger = require('../util/logger')('configuration-shape')
