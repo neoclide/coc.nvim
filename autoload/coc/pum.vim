@@ -290,6 +290,7 @@ function! s:navigate(next, insert) abort
   if !coc#float#valid(s:pum_winid)
     return
   endif
+  call s:save_indentkeys()
   let index = s:get_index(a:next)
   call s:select_by_index(index, a:insert)
 endfunction
@@ -416,6 +417,9 @@ function! coc#pum#create(lines, opt, config) abort
     endif
   endif
   call s:on_pum_change(0)
+endfunction
+
+function! s:save_indentkeys() abort
   let bufnr = bufnr('%')
   if !empty(&indentexpr) && get(s:saved_indenetkeys, 0, 0) != bufnr
     let s:saved_indenetkeys = [bufnr, &indentkeys]
