@@ -242,17 +242,14 @@ export class Sources {
    * @returns {ISource[]}
    */
   public getNormalSources(filetype: string, uri: string): ISource[] {
-    let languageIds = filetype.split('.')
-    return this.sources.filter(source => {
+    let languageIds = filetype ? [] : filetype.split('.')
+    let res = this.sources.filter(source => {
       let { filetypes, triggerOnly, documentSelector, enable } = source
-      if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) {
-        return false
-      }
-      if (documentSelector && languageIds.every(filetype => workspace.match(documentSelector, { uri, languageId: filetype }) == 0)) {
-        return false
-      }
+      if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) return false
+      if (documentSelector && languageIds.every(filetype => workspace.match(documentSelector, { uri, languageId: filetype }) == 0)) return false
       return true
     })
+    return res
   }
 
   private checkTrigger(source: ISource, pre: string, character: string): boolean {
@@ -292,12 +289,14 @@ export class Sources {
     }
     this.sourceMap.set(name, source)
     return Disposable.create(() => {
-      this.sourceMap.delete(name)
+      this.removeSource(source)
     })
   }
 
   public removeSource(source: ISource | string): void {
     let name = typeof source == 'string' ? source : source.name
+    let obj = typeof source === 'string' ? this.sourceMap.get(source) : source
+    if (obj && typeof obj.dispose === 'function') obj.dispose()
     this.sourceMap.delete(name)
   }
 

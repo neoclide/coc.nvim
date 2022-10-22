@@ -82,7 +82,7 @@ export class KeywordsBuffer implements SyncItem {
       for (let word of words ?? []) {
         let ch = word[0]
         if (ascii && WORD_PREFIXES.includes(ch)) ch = word[1]
-        if (firstMatch && !fuzzyChar(first, ascii ? unidecode(ch) : ch)) continue
+        if (firstMatch && !fuzzyChar(first, ascii && ch.charCodeAt(0) >= 128 ? unidecode(ch) : ch)) continue
         if (results.includes(word) || (len > 1 && !fuzzyMatch(codes, ascii ? unidecode(word) : word))) continue
         results.push(word)
         yield word

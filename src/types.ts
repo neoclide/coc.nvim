@@ -805,6 +805,7 @@ export interface ISource {
   onCompleteResolve?(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
   onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
   shouldCommit?(item: ExtendedCompleteItem, character: string): boolean
+  dispose?(): void
 }
 // }}
 

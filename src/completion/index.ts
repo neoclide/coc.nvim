@@ -176,7 +176,8 @@ export class Completion implements Disposable {
     option.filetype = doc.filetype
     logger.debug('trigger completion with', option)
     this.stop(true)
-    this.pretext = byteSlice(option.line, 0, option.colnr - 1)
+    this.pretext = option.line.slice(0, option.position.character)
+    // byteSlice(option.line, 0, option.colnr - 1)
     sourceList = sourceList ?? getSources(option)
     if (isFalsyOrEmpty(sourceList)) return
     let complete = this.complete = new Complete(

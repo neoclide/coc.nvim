@@ -1,17 +1,30 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
-import { hasOwnProperty } from '../util/object'
-import { byteSlice } from '../util/string'
+import { disposeAll } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import workspace from '../workspace'
 const logger = require('../util/logger')('sources-source')
+
+export interface SourceConfiguration {
+  readonly priority?: number
+  readonly triggerCharacters?: string[]
+  readonly firstMatch?: boolean
+  readonly triggerPatterns?: string[]
+  readonly shortcut?: string
+  readonly enable?: boolean
+  readonly filetypes?: string[]
+  readonly disableSyntaxes?: string[]
+}
 
 export default class Source implements ISource {
   public readonly name: string
   public readonly filepath: string
   public readonly sourceType: SourceType
   public readonly isSnippet: boolean
+  private config: SourceConfiguration
+  private disposables: Disposable[] = []
   protected readonly nvim: Neovim
   private _disabled = false
   private defaults: any
@@ -23,6 +36,13 @@ export default class Source implements ISource {
     this.sourceType = option.sourceType || SourceType.Native
     this.isSnippet = !!option.isSnippet
     this.defaults = option
+    let key = `coc.source.${option.name}`
+    this.config = workspace.getConfiguration(key) as SourceConfiguration
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration(key)) {
+        this.config = workspace.getConfiguration(key) as SourceConfiguration
+      }
+    }, null, this.disposables)
   }
 
   /**
@@ -46,6 +66,10 @@ export default class Source implements ISource {
     return this.getConfig('triggerCharacters', null)
   }
 
+  public get firstMatch(): boolean {
+    return this.getConfig('firstMatch', true)
+  }
+
   // exists opitonnal function names for remote source
   public get optionalFns(): string[] {
     return this.defaults['optionalFns'] || []
@@ -53,7 +77,7 @@ export default class Source implements ISource {
 
   public get triggerPatterns(): RegExp[] | null {
     let patterns = this.getConfig<any[]>('triggerPatterns', null)
-    if (!patterns || patterns.length == 0) return null
+    if (isFalsyOrEmpty(patterns)) return null
     return patterns.map(s => (typeof s === 'string') ? new RegExp(s + '$') : s)
   }
 
@@ -76,48 +100,17 @@ export default class Source implements ISource {
   }
 
   public getConfig<T>(key: string, defaultValue?: T): T | null {
-    let config = workspace.getConfiguration(`coc.source.${this.name}`)
-    defaultValue = hasOwnProperty(this.defaults, key) ? this.defaults[key] : defaultValue
-    return config.get(key, defaultValue)
+    let val = this.config[key]
+    if (typeof val === 'function' || val == null) return defaultValue ?? null
+    return val as T
   }
 
   public toggle(): void {
     this._disabled = !this._disabled
   }
 
-  public get firstMatch(): boolean {
-    return this.getConfig('firstMatch', true)
-  }
-
   public get menu(): string {
     return ''
-  }
-
-  /**
-   * fix start column for new valid characters
-   *
-   * @protected
-   * @param {CompleteOption} opt
-   * @param {string[]} valids - valid charscters
-   * @returns {number}
-   */
-  protected fixStartcol(opt: CompleteOption, valids: string[]): number {
-    let { col, input, line, bufnr } = opt
-    let start = byteSlice(line, 0, col)
-    let document = workspace.getDocument(bufnr)
-    if (!document) return col
-    let { chars } = document
-    for (let i = start.length - 1; i >= 0; i--) {
-      let c = start[i]
-      if (!chars.isKeywordChar(c) && !valids.includes(c)) {
-        break
-      }
-      input = `${c}${input}`
-      col = col - 1
-    }
-    opt.col = col
-    opt.input = input
-    return col
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
@@ -152,5 +145,9 @@ export default class Source implements ISource {
   public async onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     let fn = this.defaults['onCompleteResolve']
     if (typeof fn === 'function') await Promise.resolve(fn.call(this, item, opt, token))
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
   }
 }
