@@ -365,16 +365,6 @@ function! coc#util#do_autocmd(name) abort
   endif
 endfunction
 
-function! coc#util#rebuild()
-  let dir = coc#util#extension_root()
-  if !isdirectory(dir) | return | endif
-  call coc#ui#open_terminal({
-        \ 'cwd': dir,
-        \ 'cmd': 'npm rebuild',
-        \ 'keepfocus': 1,
-        \})
-endfunction
-
 function! coc#util#unmap(bufnr, keys) abort
   if bufnr('%') == a:bufnr
     for key in a:keys
