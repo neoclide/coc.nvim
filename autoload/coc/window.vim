@@ -22,9 +22,14 @@ function! coc#window#tabnr(winid) abort
   endif
 endfunction
 
+" (1, 0) based line, column
 function! coc#window#get_cursor(winid) abort
   if exists('*nvim_win_get_cursor')
     return nvim_win_get_cursor(a:winid)
+  endif
+  if has('patch-8.2.1727')
+    let pos = getcurpos(a:winid)
+    return [pos[1], pos[2] - 1]
   endif
   return coc#api#exec('win_get_cursor', [a:winid])
 endfunction
