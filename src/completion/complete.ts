@@ -159,7 +159,8 @@ export default class Complete {
     })
     const finished: string[] = []
     let promises = [
-      WordDistance.create(localityBonus, this.option).then(instance => {
+      isFilter ? Promise.resolve() : WordDistance.create(localityBonus, this.option, token).then(instance => {
+        if (token.isCancellationRequested) return
         this.wordDistance = instance
       }),
       ...sources.map(s => this.completeSource(s, token).then(() => {

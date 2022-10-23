@@ -25,7 +25,7 @@ export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
-  private keywords: BufferSync<KeywordsBuffer>
+  public keywords: BufferSync<KeywordsBuffer>
 
   public init(): void {
     this.keywords = workspace.registerBufferSync(doc => {
@@ -36,7 +36,7 @@ export class Sources {
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
     workspace.onDidRuntimePathChange(newPaths => {
       for (let p of newPaths) {
-        if (p) void this.createVimSources(p)
+        void this.createVimSources(p)
       }
     }, null, this.disposables)
   }
@@ -117,7 +117,7 @@ export class Sources {
               },
               [`coc.source.${name}.triggerCharacters`]: {
                 type: 'number',
-                default: props.triggerCharacters || []
+                default: props.triggerCharacters ?? []
               },
               [`coc.source.${name}.priority`]: {
                 type: 'number',
@@ -147,12 +147,6 @@ export class Sources {
           }
         }
       }
-      let source = new VimSource({
-        name,
-        filepath,
-        sourceType: SourceType.Remote,
-        optionalFns: fns.filter(n => !['init', 'complete'].includes(n))
-      })
       let isActive = false
       let extension: any = {
         id: packageJSON.name,
@@ -161,6 +155,12 @@ export class Sources {
         extensionPath: filepath,
         activate: () => {
           isActive = true
+          let source = new VimSource({
+            name,
+            filepath,
+            sourceType: SourceType.Remote,
+            optionalFns: fns.filter(n => !['init', 'complete'].includes(n))
+          })
           this.addSource(source)
           return Promise.resolve()
         }
@@ -170,7 +170,7 @@ export class Sources {
       })
       void extensions.manager.registerInternalExtension(extension, () => {
         isActive = false
-        this.removeSource(source)
+        this.removeSource(name)
       })
     } catch (e) {
       void window.showErrorMessage(`Error on create vim source ${name}: ${e}`)
@@ -181,21 +181,23 @@ export class Sources {
     let { runtimepath } = workspace.env
     let paths = runtimepath.split(',')
     for (let path of paths) {
-      this.createVimSources(path).logError()
+      void this.createVimSources(path)
     }
   }
 
   private async createVimSources(pluginPath: string): Promise<void> {
-    if (this.remoteSourcePaths.includes(pluginPath)) return
+    if (this.remoteSourcePaths.includes(pluginPath) || !pluginPath) return
     this.remoteSourcePaths.push(pluginPath)
     let folder = path.join(pluginPath, 'autoload/coc/source')
-    let stat = await statAsync(folder)
-    if (stat && stat.isDirectory()) {
-      let arr = await util.promisify(fs.readdir)(folder)
-      arr = arr.filter(s => s.endsWith('.vim'))
-      let files = arr.map(s => path.join(folder, s))
-      if (files.length == 0) return
-      await Promise.all(files.map(p => this.createVimSourceExtension(this.nvim, p)))
+    try {
+      let stat = await statAsync(folder)
+      if (stat && stat.isDirectory()) {
+        let arr = await util.promisify(fs.readdir)(folder)
+        let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
+        await Promise.all(files.map(p => this.createVimSourceExtension(this.nvim, p)))
+      }
+    } catch (e) {
+      logger.error(`Error on create vim source from ${pluginPath}`, e)
     }
   }
 
@@ -212,8 +214,7 @@ export class Sources {
   }
 
   public getSource(name: string): ISource | null {
-    if (!name) return null
-    return this.sourceMap.get(name) || null
+    return this.sourceMap.get(name) ?? null
   }
 
   public shouldCommit(item: ExtendedCompleteItem, commitCharacter: string): boolean {
@@ -242,7 +243,7 @@ export class Sources {
    * @returns {ISource[]}
    */
   public getNormalSources(filetype: string, uri: string): ISource[] {
-    let languageIds = filetype ? [] : filetype.split('.')
+    let languageIds = filetype ? filetype.split('.') : []
     let res = this.sources.filter(source => {
       let { filetypes, triggerOnly, documentSelector, enable } = source
       if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) return false
@@ -311,7 +312,6 @@ export class Sources {
   }
 
   public toggleSource(name: string): void {
-    if (!name) return
     let source = this.getSource(name)
     if (!source) return
     if (typeof source.toggle === 'function') {

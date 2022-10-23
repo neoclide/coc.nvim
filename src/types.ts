@@ -779,7 +779,7 @@ export interface SourceStat {
   filetypes: string[]
 }
 
-export type SourceConfig = Omit<Partial<ISource>, 'shortcut' | 'priority' | 'triggerOnly' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
+export type SourceConfig = Omit<Partial<ISource>, 'shortcut' | 'priority' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
 
 export interface ISource {
   name: string

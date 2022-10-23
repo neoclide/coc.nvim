@@ -4,6 +4,7 @@ import WorkspaceHandler from '../../handler/workspace'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import extensions from '../../extension'
+import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -26,8 +27,37 @@ afterEach(async () => {
 
 describe('Workspace handler', () => {
   describe('methods', () => {
+    it('should check env on vim resized', async () => {
+      await events.fire('VimResized', [80, 80])
+      expect(workspace.env.columns).toBe(80)
+      await events.fire('VimResized', [160, 80])
+      expect(workspace.env.columns).toBe(160)
+    })
+
+    it('should check json extension', async () => {
+      let spy = jest.spyOn(extensions, 'has').mockImplementation(() => {
+        return true
+      })
+      await helper.doAction('checkJsonExtension')
+      spy.mockRestore()
+      await helper.doAction('checkJsonExtension')
+      let line = await helper.getCmdline()
+      expect(line).toBeDefined()
+    })
+
+    it('should get rootPatterns', async () => {
+      let bufnr = await nvim.call('bufnr', ['%'])
+      let res = await helper.doAction('rootPatterns', bufnr)
+      expect(res).toBeDefined()
+    })
+
+    it('should get config by key', async () => {
+      let res = await helper.doAction('getConfig', ['suggest'])
+      expect(res.autoTrigger).toBeDefined()
+    })
+
     it('should open log', async () => {
-      await handler.openLog()
+      await helper.doAction('openLog')
       let bufname = await nvim.call('bufname', ['%']) as string
       expect(bufname).toMatch('coc-nvim')
     })
@@ -59,10 +89,14 @@ describe('Workspace handler', () => {
       disposables.push(workspace.registerKeymap(['n'], 'test', () => {
         called = true
       }, { repeat: true, silent: true, sync: false }))
-      await helper.wait(100)
+      await helper.waitValue(async () => {
+        let res = await nvim.call('maparg', ['<Plug>(coc-test)', 'n']) as string
+        return res.length > 0
+      }, true)
       await nvim.call('feedkeys', ['do', 'i'])
-      await helper.wait(30)
-      expect(called).toBe(true)
+      await helper.waitValue(() => {
+        return called
+      }, true)
     })
   })
 

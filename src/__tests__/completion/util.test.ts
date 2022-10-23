@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CompletionItemKind, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { CompletionItemKind, Disposable, CancellationToken, Position, Range } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import { checkIgnoreRegexps, indentChanged, createKindMap, getInput, getKindText, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
@@ -237,13 +237,13 @@ describe('matchScoreWithPositions', () => {
 
 describe('wordDistance', () => {
   it('should empty when not enabled', async () => {
-    let w = await WordDistance.create(false, {} as any)
+    let w = await WordDistance.create(false, {} as any, CancellationToken.None)
     expect(w.distance(Position.create(0, 0), {} as any)).toBe(0)
   })
 
   it('should empty when selectRanges is empty', async () => {
     let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
-    let w = await WordDistance.create(true, opt)
+    let w = await WordDistance.create(true, opt, CancellationToken.None)
     expect(w).toBe(WordDistance.None)
   })
 
@@ -263,7 +263,7 @@ describe('wordDistance', () => {
       })
     })
     let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
-    let w = await WordDistance.create(true, opt)
+    let w = await WordDistance.create(true, opt, CancellationToken.None)
     spy.mockRestore()
     expect(w).toBe(WordDistance.None)
   })
@@ -282,7 +282,7 @@ describe('wordDistance', () => {
     let filepath = await createTmpFile('foo bar\ndef', disposables)
     await helper.edit(filepath)
     let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
-    let w = await WordDistance.create(true, opt)
+    let w = await WordDistance.create(true, opt, CancellationToken.None)
     expect(w.distance(Position.create(1, 0), {} as any)).toBeGreaterThan(0)
     expect(w.distance(Position.create(0, 0), { word: '', kind: CompletionItemKind.Keyword })).toBeGreaterThan(0)
     expect(w.distance(Position.create(0, 0), { word: 'not_exists' })).toBeGreaterThan(0)
@@ -309,7 +309,7 @@ describe('wordDistance', () => {
     })
     let opt = await nvim.call('coc#util#get_complete_option') as any
     opt.word = ''
-    let w = await WordDistance.create(true, opt)
+    let w = await WordDistance.create(true, opt, CancellationToken.None)
     spy.mockRestore()
     let res = w.distance(Position.create(0, 0), { word: 'foo' })
     expect(res).toBe(0)

@@ -2,14 +2,14 @@
 import fs from 'fs'
 import minimatch from 'minimatch'
 import path from 'path'
-import util from 'util'
-import { Disposable } from 'vscode-languageserver-protocol'
-import Source from '../source'
+import { promisify } from 'util'
+import { CancellationToken, CompletionItemKind, Disposable } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../../types'
 import { statAsync } from '../../util/fs'
-import { byteSlice } from '../../util/string'
 import { isWindows } from '../../util/platform'
+import { byteSlice } from '../../util/string'
 import workspace from '../../workspace'
+import Source from '../source'
 const logger = require('../../util/logger')('sources-file')
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|[a-zA-Z]:|)(\/|\\+)(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-]+(\/|\\+))*(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-])*$/
 
@@ -20,8 +20,61 @@ interface PathOption {
   input: string
 }
 
-export default class File extends Source {
-  constructor() {
+export function resolveEnvVariables(str: string, env = process.env): string {
+  let replaced = str
+  // windows
+  replaced = replaced.replace(/%([^%]+)%/g, (m, n) => env[n] ?? m)
+  // linux and mac
+  replaced = replaced.replace(
+    /\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/gi,
+    (m, a, b) => (env[a || b] ?? m)
+  )
+  return replaced
+}
+
+export async function getFileItem(root: string, filename: string): Promise<VimCompleteItem | null> {
+  let f = path.join(root, filename)
+  let stat = await statAsync(f)
+  if (stat) {
+    let dir = stat.isDirectory()
+    let abbr = dir ? filename + '/' : filename
+    let word = filename
+    return { word, abbr, kind: dir ? CompletionItemKind.Folder : CompletionItemKind.File }
+  }
+  return null
+}
+
+export function filterFiles(files: string[], ignoreHidden: boolean, ignorePatterns: string[] = []): string[] {
+  return files.filter(f => {
+    if (!f || (ignoreHidden && f.startsWith("."))) return false
+    for (let p of ignorePatterns) {
+      if (minimatch(f, p, { dot: true })) return false
+    }
+    return true
+  })
+}
+
+export function getDirectory(pathstr: string, root: string): string {
+  let part = /[\\/]$/.test(pathstr) ? pathstr : path.dirname(pathstr)
+  return path.isAbsolute(pathstr) ? part : path.join(root, part)
+}
+
+export async function getItemsFromRoot(pathstr: string, root: string, ignoreHidden: boolean, ignorePatterns: string[]): Promise<VimCompleteItem[]> {
+  let res = []
+  let dir = getDirectory(pathstr, root)
+  let stat = await statAsync(dir)
+  if (stat && stat.isDirectory()) {
+    let files = await promisify(fs.readdir)(dir)
+    files = filterFiles(files, ignoreHidden, ignorePatterns)
+    let items = await Promise.all(files.map(filename => getFileItem(dir, filename)))
+    res = res.concat(items)
+  }
+  res = res.filter(item => item != null)
+  return res
+}
+
+export class File extends Source {
+  constructor(public isWindows: boolean) {
     super({
       name: 'file',
       filepath: __filename
@@ -30,25 +83,13 @@ export default class File extends Source {
 
   public get triggerCharacters(): string[] {
     let characters = this.getConfig('triggerCharacters', [])
-    return isWindows ? characters : characters.filter(s => s != '\\')
-  }
-
-  private resolveEnvVariables(str: string): string {
-    let replaced = str
-    // windows
-    replaced = replaced.replace(/%([^%]+)%/g, (_, n) => process.env[n])
-    // linux and mac
-    replaced = replaced.replace(
-      /\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/gi,
-      (_, a, b) => process.env[a || b]
-    )
-    return replaced
+    return this.isWindows ? characters : characters.filter(s => s != '\\')
   }
 
   private getPathOption(opt: CompleteOption): PathOption | null {
     let { line, colnr } = opt
     let part = byteSlice(line, 0, colnr - 1)
-    part = this.resolveEnvVariables(part)
+    part = resolveEnvVariables(part)
     if (!part || part.endsWith('//')) return null
     let ms = part.match(pathRe)
     if (ms && ms.length) {
@@ -59,85 +100,46 @@ export default class File extends Source {
     return null
   }
 
-  private async getFileItem(root: string, filename: string): Promise<VimCompleteItem | null> {
-    let f = path.join(root, filename)
-    let stat = await statAsync(f)
-    if (stat) {
-      let abbr = stat.isDirectory() ? filename + '/' : filename
-      let word = filename
-      return { word, abbr }
-    }
-    return null
+  public shouldTrim(ext: string): boolean {
+    let trimSameExts = this.getConfig('trimSameExts', [])
+    return trimSameExts.includes(ext)
   }
 
-  public filterFiles(files: string[]): string[] {
-    let ignoreHidden = this.getConfig('ignoreHidden', true)
-    let ignorePatterns = this.getConfig('ignorePatterns', [])
-    return files.filter(f => {
-      if (f == null) return false
-      if (ignoreHidden && f.startsWith(".")) return false
-      for (let p of ignorePatterns) {
-        if (minimatch(f, p, { dot: true })) return false
-      }
-      return true
-    })
-  }
-
-  public async getItemsFromRoot(pathstr: string, root: string): Promise<VimCompleteItem[]> {
-    let res = []
-    let part = /[\\/]$/.test(pathstr) ? pathstr : path.dirname(pathstr)
-    let dir = path.isAbsolute(pathstr) ? part : path.join(root, part)
-    try {
-      let stat = await statAsync(dir)
-      if (stat && stat.isDirectory()) {
-        let files = await util.promisify(fs.readdir)(dir)
-        files = this.filterFiles(files)
-        let items = await Promise.all(files.map(filename => this.getFileItem(dir, filename)))
-        res = res.concat(items)
-      }
-      res = res.filter(item => item != null)
-      return res
-    } catch (e) {
-      logger.error(`Error on list files:`, e)
-      return res
-    }
-  }
-
-  public get trimSameExts(): string[] {
-    return this.getConfig('trimSameExts', [])
-  }
-
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { col, filepath } = opt
-    let option = this.getPathOption(opt)
-    if (!option) return null
-    let { pathstr, part, startcol, input } = option
-    if (startcol < opt.col) return null
-    let startPart = opt.col == startcol ? '' : byteSlice(opt.line, opt.col, startcol)
-    let dirname = path.dirname(filepath)
-    let ext = path.extname(path.basename(filepath))
-    let cwd = await this.nvim.call('getcwd', [])
-    let root
+  public async getRoot(pathstr: string, part: string, filepath: string, cwd: string): Promise<string | undefined> {
+    let root: string | undefined
+    let dirname = filepath ? path.dirname(filepath) : ''
     if (pathstr.startsWith(".")) {
-      root = filepath ? path.dirname(filepath) : cwd
-    } else if (isWindows && /^\w+:/.test(pathstr)) {
-      root = /[\\/]$/.test(pathstr) ? pathstr : path.dirname(pathstr)
-    } else if (!isWindows && pathstr.startsWith("/")) {
-      root = pathstr.endsWith("/") ? pathstr : path.dirname(pathstr)
+      root = filepath ? dirname : cwd
+    } else if (this.isWindows && /^\w+:/.test(pathstr)) {
+      root = /[\\/]$/.test(pathstr) ? pathstr : path.win32.dirname(pathstr)
+    } else if (!this.isWindows && pathstr.startsWith("/")) {
+      root = pathstr.endsWith("/") ? pathstr : path.posix.dirname(pathstr)
     } else if (part) {
-      if (fs.existsSync(path.join(dirname, part))) {
+      let exists = await promisify(fs.exists)(path.join(dirname, part))
+      if (exists) {
         root = dirname
-      } else if (fs.existsSync(path.join(cwd, part))) {
-        root = cwd
+      } else {
+        exists = await promisify(fs.exists)(path.join(cwd, part))
+        if (exists) root = cwd
       }
     } else {
       root = cwd
     }
-    if (!root) return null
-    let items = await this.getItemsFromRoot(pathstr, root)
-    let trimExt = this.trimSameExts.includes(ext)
-    let first = input[0]
-    if (first && col == startcol) items = items.filter(o => o.word[0] === first)
+    return root
+  }
+
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
+    let { filepath } = opt
+    let option = this.getPathOption(opt)
+    if (!option || option.startcol < opt.col) return null
+    let { pathstr, part, startcol } = option
+    let startPart = opt.col == startcol ? '' : byteSlice(opt.line, opt.col, startcol)
+    let ext = path.extname(path.basename(filepath))
+    let cwd = await this.nvim.call('getcwd', [])
+    let root = await this.getRoot(pathstr, part, filepath, cwd)
+    if (!root || token.isCancellationRequested) return null
+    let items = await getItemsFromRoot(pathstr, root, this.getConfig('ignoreHidden', true), this.getConfig('ignorePatterns', []))
+    let trimExt = this.shouldTrim(ext)
     return {
       items: items.map(item => {
         let ex = path.extname(item.word)
@@ -153,7 +155,7 @@ export default class File extends Source {
 }
 
 export function register(sourceMap: Map<string, ISource>): Disposable {
-  sourceMap.set('file', new File())
+  sourceMap.set('file', new File(isWindows))
   return Disposable.create(() => {
     sourceMap.delete('file')
   })

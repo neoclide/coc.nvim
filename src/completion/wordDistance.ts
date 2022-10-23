@@ -1,4 +1,4 @@
-import { CancellationTokenSource, CompletionItemKind, Position, Range, SelectionRange } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItemKind, Position, Range, SelectionRange } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
 import { CompleteOption, ExtendedCompleteItem } from '../types'
@@ -14,19 +14,15 @@ export abstract class WordDistance {
     public distance() { return 0 }
   }()
 
-  public static async create(localityBonus: boolean, opt: Pick<CompleteOption, 'position' | 'bufnr' | 'word' | 'linenr' | 'colnr'>): Promise<WordDistance> {
+  public static async create(localityBonus: boolean, opt: Pick<CompleteOption, 'position' | 'bufnr' | 'word' | 'linenr' | 'colnr'>, token: CancellationToken): Promise<WordDistance> {
     let { position } = opt
     let cursor: [number, number] = [opt.linenr, opt.colnr]
-    if (!localityBonus) {
-      return WordDistance.None
-    }
+    if (!localityBonus) return WordDistance.None
 
     let doc = workspace.getDocument(opt.bufnr)
-    let tokenSource = new CancellationTokenSource()
-    const selectionRanges = await languages.getSelectionRanges(doc.textDocument, [position], tokenSource.token)
-    if (isFalsyOrEmpty(selectionRanges)) {
-      return WordDistance.None
-    }
+    const selectionRanges = await languages.getSelectionRanges(doc.textDocument, [position], token)
+    if (isFalsyOrEmpty(selectionRanges)) return WordDistance.None
+
     let ranges: Range[] = []
     const iterate = (r?: SelectionRange) => {
       if (r && r.range.end.line - r.range.start.line < 2000) {
@@ -38,14 +34,12 @@ export abstract class WordDistance {
 
     const tp = new Promise(resolve => {
       setTimeout(() => {
-        tokenSource.cancel()
         resolve(undefined)
       }, global.__TEST__ ? 10 : 100)
     })
-    let wordRanges = await Promise.race([tp, workspace.computeWordRanges(opt.bufnr, ranges[0], tokenSource.token)])
-    if (!wordRanges) {
-      return WordDistance.None
-    }
+    let wordRanges = await Promise.race([tp, workspace.computeWordRanges(opt.bufnr, ranges[0], token)])
+    if (!wordRanges) return WordDistance.None
+
     // remove current word
     delete wordRanges[opt.word]
     return new class extends WordDistance {

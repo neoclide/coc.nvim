@@ -262,9 +262,7 @@ export default class Plugin extends EventEmitter {
     window.dispose()
     sources.dispose()
     services.dispose()
-    if (this.handler) {
-      this.handler.dispose()
-    }
+    this.handler?.dispose()
     snippetManager.dispose()
     commandManager.dispose()
     completion.dispose()

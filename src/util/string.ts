@@ -39,7 +39,7 @@ export function getCase(code: number): number {
   return 0
 }
 
-export function getNextWord(codes: ReadonlyArray<number>, index: number): [number, number] | undefined {
+export function getNextWord(codes: Uint16Array, index: number): [number, number] | undefined {
   let preCase = index == 0 ? 0 : getCase(codes[index - 1])
   for (let i = index; i < codes.length; i++) {
     let curr = getCase(codes[i])

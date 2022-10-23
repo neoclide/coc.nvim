@@ -95,7 +95,7 @@ export function intersect<T>(array: T[], other: T[]): boolean {
   return false
 }
 
-export function findIndex<T>(array: ReadonlyArray<T>, val: T, start = 0): number {
+export function findIndex<T>(array: ArrayLike<T>, val: T, start = 0): number {
   let idx = -1
   for (let i = start; i < array.length; i++) {
     if (array[i] === val) {

@@ -116,21 +116,16 @@ describe('sources#refresh', () => {
 })
 
 describe('sources#createSource', () => {
-  it('should create source', async () => {
-    disposables.push(sources.createSource({
-      name: 'custom',
-      doComplete: () => Promise.resolve({
-        items: [{
-          word: 'custom'
-        }]
+  it('should throw on create source', async () => {
+    expect(() => {
+      sources.createSource({
+        doComplete: () => Promise.resolve({
+          items: [{
+            word: 'custom'
+          }]
+        })
       })
-    }))
-    await helper.createDocument()
-    await nvim.input('i')
-    await helper.wait(30)
-    await nvim.input('c')
-    let visible = await helper.visible('custom', 'custom')
-    expect(visible).toBe(true)
+    }).toThrow()
   })
 
   it('should create vim source', async () => {
@@ -138,7 +133,6 @@ describe('sources#createSource', () => {
     await nvim.command(`set runtimepath+=${folder}`)
     disposables.push({
       dispose: () => {
-        nvim.command(`set runtimepath-=${folder}`, true)
         sources.removeSource('email')
       }
     })

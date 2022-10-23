@@ -84,7 +84,7 @@ export async function getFileType(filepath: string): Promise<FileType | undefine
   }
 }
 
-export async function isGitIgnored(fullpath: string): Promise<boolean> {
+export async function isGitIgnored(fullpath: string | undefined): Promise<boolean> {
   if (!fullpath) return false
   let stat = await statAsync(fullpath)
   if (!stat || !stat.isFile()) return false

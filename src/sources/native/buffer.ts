@@ -1,18 +1,15 @@
 'use strict'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BufferSync from '../../model/bufferSync'
-import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../../types'
+import { CompleteOption, CompleteResult, ISource } from '../../types'
 import { waitImmediate } from '../../util'
 import { KeywordsBuffer } from '../keywords'
 import Source from '../source'
 const logger = require('../../util/logger')('sources-buffer')
 
-export default class Buffer extends Source {
+export class Buffer extends Source {
   constructor(private keywords: BufferSync<KeywordsBuffer>) {
-    super({
-      name: 'buffer',
-      filepath: __filename
-    })
+    super({ name: 'buffer', filepath: __filename })
   }
 
   public get ignoreGitignore(): boolean {
@@ -20,42 +17,31 @@ export default class Buffer extends Source {
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
-    let { bufnr, input, word } = opt
+    let { bufnr, input, word, triggerForInComplete } = opt
     await waitImmediate()
+    if (!triggerForInComplete) this.noMatchWords = new Set()
     if (input.length === 0 || token.isCancellationRequested) return null
     let { menu } = this
-    let isIncomplete = false
-    let start = Date.now()
-    let prev = start
-    let words: Set<string> = new Set()
-    let items: VimCompleteItem[] = []
+    let iterables: Iterable<string>[] = []
     for (let buf of this.keywords.items) {
       if (buf.bufnr === bufnr || (this.ignoreGitignore && buf.gitIgnored)) continue
-      let iterable = buf.matchWords(0, input, true)
-      for (let w of iterable) {
-        let curr = Date.now()
-        if (token.isCancellationRequested) return null
-        if (curr - prev > 15) {
-          await waitImmediate()
-          prev = curr
-        }
-        if (curr - start > 80 || words.size > 100) {
-          isIncomplete = true
-          break
-        }
-        if (w == word || words.has(w)) continue
-        words.add(w)
-        items.push({ word: w, menu })
-      }
-      if (isIncomplete) break
+      iterables.push(buf.matchWords(0))
     }
-    return { isIncomplete, items }
+    let items: Set<string> = new Set()
+    let isIncomplete = await this.getResults(iterables, input, word, items, token)
+    return {
+      isIncomplete, items: Array.from(items).map(s => {
+        return { word: s, menu }
+      })
+    }
   }
 }
 
 export function register(sourceMap: Map<string, ISource>, keywords: BufferSync<KeywordsBuffer>): Disposable {
-  sourceMap.set('buffer', new Buffer(keywords))
+  let source = new Buffer(keywords)
+  sourceMap.set('buffer', source)
   return Disposable.create(() => {
+    source.dispose()
     sourceMap.delete('buffer')
   })
 }

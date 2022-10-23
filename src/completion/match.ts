@@ -1,11 +1,16 @@
 'use strict'
 import { findIndex } from '../util/array'
-import { getCharCodes, wordChar } from '../util/fuzzy'
+import { getCharCodes, wordChar, caseMatch } from '../util/fuzzy'
 import { getNextWord } from '../util/string'
+
+/**
+ * Score and positions
+ */
+export type MatchResult = [number, ReadonlyArray<number>] | undefined
 
 export function caseScore(input: number, curr: number, divide = 1): number {
   if (input === curr) return 1 / divide
-  if (curr + 32 === input) return 0.5 / divide
+  if (caseMatch(input, curr)) return 0.5 / divide
   return 0
 }
 
@@ -23,13 +28,13 @@ export function caseScore(input: number, curr: number, divide = 1): number {
  * @param {number[]} input
  * @returns {number}
  */
-export function matchScore(word: string, input: number[]): number {
+export function matchScore(word: string, input: Uint16Array): number {
   if (input.length == 0 || word.length < input.length) return 0
   let next = nextScore(getCharCodes(word), 0, input, [])
   return next == null ? 0 : next[0]
 }
 
-export function matchScoreWithPositions(word: string, input: number[]): [number, ReadonlyArray<number>] | undefined {
+export function matchScoreWithPositions(word: string, input: Uint16Array): [number, ReadonlyArray<number>] | undefined {
   if (input.length == 0 || word.length < input.length) return undefined
   return nextScore(getCharCodes(word), 0, input, [])
 }
@@ -37,24 +42,25 @@ export function matchScoreWithPositions(word: string, input: number[]): [number,
 /**
  * Return score and positions.
  */
-function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: ReadonlyArray<number>, positions: ReadonlyArray<number>): [number, ReadonlyArray<number>] | undefined {
-  if (inputCodes.length === 0) return [0, positions]
+function nextScore(codes: Uint16Array, index: number, inputCodes: Uint16Array, positions: ReadonlyArray<number>, inputIndex = 0): MatchResult {
+  let input = inputCodes[inputIndex]
+  if (input === undefined) return [0, positions]
   let len = codes.length
-  let input = inputCodes[0]
-  let nextCodes = inputCodes.slice(1)
+  // let nextCodes = inputCodes.slice(1)
+  let nextIndex = inputIndex + 1
   // not alphabet
   if (!wordChar(input)) {
     let idx = findIndex(codes, input, index)
     if (idx == -1) return undefined
     let score = idx == 0 ? 5 : 1
-    let next = nextScore(codes, idx + 1, nextCodes, [...positions, idx])
+    let next = nextScore(codes, idx + 1, inputCodes, [...positions, idx], nextIndex)
     return next === undefined ? undefined : [score + next[0], next[1]]
   }
   // check beginning
   let isStart = index === 0
   let score = caseScore(input, codes[index], isStart ? 0.2 : 1)
   if (score > 0) {
-    let next = nextScore(codes, index + 1, nextCodes, [...positions, index])
+    let next = nextScore(codes, index + 1, inputCodes, [...positions, index], nextIndex)
     return next === undefined ? undefined : [score + next[0], next[1]]
   }
   // check next word
@@ -65,7 +71,7 @@ function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: Read
     if (score > 0) {
       let ps = [...positions, word[0]]
       if (score === 0.5) score = 0.75
-      let next = nextScore(codes, word[0] + 1, nextCodes, ps)
+      let next = nextScore(codes, word[0] + 1, inputCodes, ps, nextIndex)
       if (next !== undefined) positionMap.set(score + next[0], next[1])
     }
   }
@@ -73,7 +79,7 @@ function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: Read
   for (let i = index + 1; i < len; i++) {
     let score = caseScore(input, codes[i], isStart ? 1 : 10)
     if (score > 0) {
-      let next = nextScore(codes, i + 1, nextCodes, [...positions, i])
+      let next = nextScore(codes, i + 1, inputCodes, [...positions, i], nextIndex)
       if (next !== undefined) positionMap.set(score + next[0], next[1])
       break
     }
@@ -85,7 +91,7 @@ function nextScore(codes: ReadonlyArray<number>, index: number, inputCodes: Read
       if (last > 0 && codes[last] !== input && codes[last - 1] === input) {
         let ps = positions.slice()
         ps.splice(positions.length - 1, 0, last - 1)
-        let next = nextScore(codes, last + 1, nextCodes, ps)
+        let next = nextScore(codes, last + 1, inputCodes, ps, nextIndex)
         if (next === undefined) return undefined
         return [0.5 + next[0], next[1]]
       }

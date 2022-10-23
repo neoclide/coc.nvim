@@ -783,45 +783,32 @@ describe('fuzzy match test', () => {
   it('should be fuzzy match', () => {
     let needle = 'aBc'
     let codes = fuzzy.getCharCodes(needle)
-    expect(fuzzy.fuzzyMatch(codes, 'abc')).toBeFalsy
-    expect(fuzzy.fuzzyMatch(codes, 'ab')).toBeFalsy
-    expect(fuzzy.fuzzyMatch(codes, 'addbdd')).toBeFalsy
-    expect(fuzzy.fuzzyMatch(codes, 'abbbBc')).toBeTruthy
-    expect(fuzzy.fuzzyMatch(codes, 'daBc')).toBeTruthy
-    expect(fuzzy.fuzzyMatch(codes, 'ABCz')).toBeTruthy
+    expect(fuzzy.fuzzyMatch(codes, 'abc')).toBeFalsy()
+    expect(fuzzy.fuzzyMatch(codes, 'ab')).toBeFalsy()
+    expect(fuzzy.fuzzyMatch(codes, 'addbdd')).toBeFalsy()
+    expect(fuzzy.fuzzyMatch(codes, 'abbbBc')).toBeTruthy()
+    expect(fuzzy.fuzzyMatch(codes, 'daBc')).toBeTruthy()
+    expect(fuzzy.fuzzyMatch(codes, 'ABCz')).toBeTruthy()
+    expect(fuzzy.fuzzyMatch(codes, 'axy')).toBeFalsy()
   })
 
   it('should be fuzzy for character', () => {
-    expect(fuzzy.fuzzyChar('a', 'a')).toBeTruthy
-    expect(fuzzy.fuzzyChar('a', 'A')).toBeTruthy
-    expect(fuzzy.fuzzyChar('z', 'z')).toBeTruthy
-    expect(fuzzy.fuzzyChar('z', 'Z')).toBeTruthy
-    expect(fuzzy.fuzzyChar('A', 'a')).toBeFalsy
-    expect(fuzzy.fuzzyChar('A', 'A')).toBeTruthy
-    expect(fuzzy.fuzzyChar('Z', 'z')).toBeFalsy
-    expect(fuzzy.fuzzyChar('Z', 'Z')).toBeTruthy
-  })
-
-  it('should get fuzzy positions', async () => {
-    expect(fuzzy.fuzzyPositions('', 'Z')).toEqual([])
-    expect(fuzzy.fuzzyPositions('ZZ', 'Z')).toBeUndefined()
-    expect(fuzzy.fuzzyPositions('bC', 'abCde', true)).toEqual([1, 2])
-    expect(fuzzy.fuzzyPositions('de', 'aDEf', false)).toEqual([1, 2])
-    expect(fuzzy.fuzzyPositions('ab', 'acbef', false)).toEqual([0, 2])
-    expect(fuzzy.fuzzyPositions('ab', 'acBef', false)).toEqual([0, 2])
-    expect(fuzzy.fuzzyPositions('abc', 'acbef', false)).toBeUndefined()
-    expect(fuzzy.fuzzyPositions('abc', 'aebec', false)).toEqual([0, 2, 4])
-    expect(fuzzy.fuzzyPositions('abc', 'aebec', true)).toEqual([0, 2, 4])
-    expect(fuzzy.fuzzyPositions('aB', 'aebec', true)).toBeUndefined()
-    expect(fuzzy.fuzzyPositions('aB', 'AebeB', true)).toEqual([0, 4])
-    expect(fuzzy.fuzzyPositions('aB', 'AebeB', true, [0])).toBeUndefined()
-    expect(fuzzy.fuzzyPositions('aB', 'AabeB', true, [0])).toEqual([1, 4])
-    expect(fuzzy.fuzzyPositions('aB', 'abaB', true, [])).toEqual([2, 3])
-    expect(fuzzy.fuzzyPositions('aB', 'axybaB', true, [])).toEqual([4, 5])
-    expect(fuzzy.fuzzyPositions('aB', 'axybaB', false, [4, 5])).toEqual([0, 3])
-    expect(fuzzy.fuzzyPositions('work', 'wword work', true, [])).toEqual([6, 7, 8, 9])
-    expect(fuzzy.fuzzyPositions('wo', 'wxo won', true, [])).toEqual([4, 5])
-    expect(fuzzy.fuzzyPositions('won', 'wxo WOn', false, [])).toEqual([4, 5, 6])
+    expect(fuzzy.fuzzyChar('a', 'a')).toBeTruthy()
+    expect(fuzzy.fuzzyChar('a', 'A')).toBeTruthy()
+    expect(fuzzy.fuzzyChar('z', 'z')).toBeTruthy()
+    expect(fuzzy.fuzzyChar('z', 'Z')).toBeTruthy()
+    expect(fuzzy.fuzzyChar('A', 'a')).toBeFalsy()
+    expect(fuzzy.fuzzyChar('A', 'A')).toBeTruthy()
+    expect(fuzzy.fuzzyChar('Z', 'z')).toBeFalsy()
+    expect(fuzzy.fuzzyChar('Z', 'Z')).toBeTruthy()
+    expect(fuzzy.fuzzyChar('Z', 'z', true)).toBeTruthy()
+    expect(fuzzy.fuzzyChar('i', 'İ')).toBeTruthy()
+    expect(fuzzy.fuzzyChar('a', 'İ')).toBeFalsy()
+    expect(fuzzy.fuzzyChar('i', 'İ', true)).toBeTruthy()
+    expect(fuzzy.fuzzyChar('İ', 'i')).toBeFalsy()
+    expect(fuzzy.fuzzyChar('İ', 'i', true)).toBeTruthy()
+    expect(fuzzy.fuzzyChar('Ᾰ', 'ᾰ', true)).toBeTruthy()
+    expect(fuzzy.fuzzyChar('ᾰ', 'Ᾰ')).toBeTruthy()
   })
 })
 
