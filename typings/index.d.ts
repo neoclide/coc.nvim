@@ -5866,7 +5866,7 @@ declare module 'coc.nvim' {
      * @param provider A document highlight provider.
      * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
      */
-    export function registerDocumentHighlightProvider(selector: DocumentSelector, provider: any): Disposable
+    export function registerDocumentHighlightProvider(selector: DocumentSelector, provider: DocumentHighlightProvider): Disposable
 
     /**
      * Register a code lens provider.
