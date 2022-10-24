@@ -12,7 +12,7 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, IConfigurationChangeEvent, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll, platform } from '../util'
-import { readFile, readFileLine } from '../util/fs'
+import { normalizeFilePath, readFile, readFileLine } from '../util/fs'
 import { byteIndex } from '../util/string'
 import WorkspaceFolder from './workspaceFolder'
 const logger = require('../util/logger')('core-documents')
@@ -60,7 +60,7 @@ export default class Documents implements Disposable {
     private readonly configurations: Configurations,
     private readonly workspaceFolder: WorkspaceFolder,
   ) {
-    this._cwd = process.cwd()
+    this._cwd = normalizeFilePath(process.cwd())
     this.config = { willSaveHandlerTimeout: 500, maxFileSize: 2097152 }
   }
 
@@ -89,7 +89,7 @@ export default class Documents implements Disposable {
       this.winids.add(winid)
     }, null, this.disposables)
     events.on('DirChanged', cwd => {
-      this._cwd = cwd
+      this._cwd = normalizeFilePath(cwd)
     }, null, this.disposables)
     // check unloaded buffers
     events.on('CursorHold', async () => {
@@ -410,7 +410,7 @@ export default class Documents implements Disposable {
         this.configurations.locateFolderConfigution(doc.uri)
         let root = this.workspaceFolder.resolveRoot(doc, this._cwd, this._initialized, this.expand.bind(this))
         if (bufnr == this._bufnr) {
-          if (root) this._root = root
+          if (root) this.changeRoot(root)
         }
       }
       this._onDidOpenTextDocument.fire(doc.textDocument)
@@ -654,7 +654,11 @@ export default class Documents implements Disposable {
       this.onBufUnload(bufnr)
     }
     this.buffers.clear()
-    this._root = process.cwd()
+    this.changeRoot(process.cwd())
+  }
+
+  private changeRoot(dir: string): void {
+    this._root = normalizeFilePath(dir)
   }
 
   public dispose(): void {

@@ -7,6 +7,7 @@ import { URI } from 'vscode-uri'
 import Configurations from '../../configuration'
 import { ConfigurationModel } from '../../configuration/model'
 import ConfigurationProxy from '../../configuration/shape'
+import { FolderConfigutions } from '../../configuration/configuration'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
 import { CONFIG_FILE_NAME, disposeAll, wait } from '../../util'
 import { remove } from '../../util/fs'
@@ -32,6 +33,19 @@ afterEach(() => {
 function generateTmpDir(): string {
   return path.join(os.tmpdir(), uuid())
 }
+
+describe('FolderConfigutions', () => {
+  it('should getConfigurationByResource', async () => {
+    let c = new FolderConfigutions()
+    expect(c.getConfigurationByResource('')).toBeUndefined()
+    expect(c.getConfigurationByResource('file:///a')).toBeUndefined()
+    let model = new ConfigurationModel()
+    c.set(os.tmpdir(), model)
+    let uri = URI.file(path.join(os.tmpdir(), 'a/foo.js')).toString()
+    let res = c.getConfigurationByResource(uri)
+    expect(res.model).toBe(model)
+  })
+})
 
 describe('Configurations', () => {
   describe('ConfigurationProxy', () => {
@@ -78,6 +92,7 @@ describe('Configurations', () => {
       fs.writeFileSync(userConfigFile, '{"foo.bar": true}', { encoding: 'utf8' })
       let conf = new Configurations(userConfigFile, undefined, false)
       disposables.push(conf)
+      expect(conf.getDefaultResource()).toBe(undefined)
       await wait(50)
       fs.writeFileSync(userConfigFile, '{"foo.bar": false}', { encoding: 'utf8' })
       await helper.waitValue(() => {
@@ -101,6 +116,7 @@ describe('Configurations', () => {
           return URI.file(dir)
         }
       }, false)
+      expect(conf.getDefaultResource()).toMatch('file:')
       disposables.push(conf)
       let uri = U(dir)
       let resolved = conf.locateFolderConfigution(uri)

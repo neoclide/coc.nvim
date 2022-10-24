@@ -54,6 +54,20 @@ export class FolderConfigutions {
   public forEach(fn: (model: ConfigurationModel, key: string) => void): void {
     this._folderConfigurations.forEach(fn)
   }
+
+  public getConfigurationByResource(uri: string): { folder: string, model: ConfigurationModel } | undefined {
+    let u = URI.parse(uri)
+    if (u.scheme !== 'file') return undefined
+    let folders = Array.from(this._folderConfigurations.keys())
+    folders.sort((a, b) => b.length - a.length)
+    let fullpath = u.fsPath
+    for (let folder of folders) {
+      if (isParentFolder(folder, fullpath, true)) {
+        return { folder, model: this._folderConfigurations.get(folder) }
+      }
+    }
+    return undefined
+  }
 }
 
 export class Configuration {
@@ -125,18 +139,10 @@ export class Configuration {
   public getFolderConfigurationModelForResource(uri: string): ConfigurationModel | undefined {
     let folder = this._resolvedFolderConfigurations.get(uri)
     if (folder) return this._folderConfigurations.get(folder)
-    let u = URI.parse(uri)
-    let fullpath = u.scheme === 'file' ? u.fsPath : undefined
-    if (!fullpath) return undefined
-    let folders = Array.from(this._folderConfigurations.keys)
-    folders.sort((a, b) => b.length - a.length)
-    for (let folder of folders) {
-      if (isParentFolder(folder, fullpath, true)) {
-        this._resolvedFolderConfigurations.set(uri, folder)
-        return this._folderConfigurations.get(folder)
-      }
-    }
-    return undefined
+    let conf = this._folderConfigurations.getConfigurationByResource(uri)
+    if (!conf) return undefined
+    this._resolvedFolderConfigurations.set(uri, conf.folder)
+    return conf.model
   }
 
   public resolveFolder(uri: string): string | undefined {

@@ -177,12 +177,18 @@ export default class Configurations {
     this._onChange.fire(ev)
   }
 
+  public getDefaultResource(): string | undefined {
+    let root = this._proxy?.root
+    if (!root) return undefined
+    return URI.file(root).toString()
+  }
+
   /**
    * Get workspace configuration
    */
   public getConfiguration(section?: string, scope?: ConfigurationScope): WorkspaceConfiguration {
     let configuration = this._configuration
-    let overrides: IConfigurationOverrides = scope ? scopeToOverrides(scope) : { resource: scope === null ? undefined : this._proxy?.root }
+    let overrides: IConfigurationOverrides = scope ? scopeToOverrides(scope) : { resource: scope === null ? undefined : this.getDefaultResource() }
     const config = Object.freeze(lookUp(configuration.getValue(undefined, overrides), section))
 
     const result: WorkspaceConfiguration = {
