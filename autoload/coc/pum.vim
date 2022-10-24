@@ -478,7 +478,9 @@ function! s:get_pum_dimension(lines, col, config) abort
   if height <= 0
     return v:null
   endif
-  let col = - (col('.') - a:col - 1) - 1
+  " should use strdiplaywidth here
+  let text = strpart(getline('.'), a:col, col('.') - 1 - a:col)
+  let col = - strdisplaywidth(text, a:col) - 1
   let row = showTop ? - height : 1
   let delta = colIdx + col
   if width > pumwidth && delta + width > columns
