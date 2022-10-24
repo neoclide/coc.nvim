@@ -1,3 +1,10 @@
+# 2022-10-24
+
+- Use builtin static words source for snippet choices.
+- Remove configuration `"snippet.choicesMenuPicker"`
+- Remove unused internal functions `coc#complete_indent()` and
+  `coc#_do_complete()`
+
 # 2022-10-21
 
 - Consider utf-16 code unit instead of unicode code point.

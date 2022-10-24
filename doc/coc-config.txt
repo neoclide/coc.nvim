@@ -1056,12 +1056,6 @@ Signature~
 ------------------------------------------------------------------------------
 Snippet~
 							*coc-config-snippet*
-"snippet.choicesMenuPicker"				*coc-config-snippet-choicesMenuPicker*
-
-	Use menu picker instead of popup menu for choices placeholder.
-
-	Scope: `resource`, default: `false`
-
 "snippet.highlight"					*coc-config-snippet-highlight*
 
 	Use highlight group 'CocSnippetVisual' to highlight placeholders with 

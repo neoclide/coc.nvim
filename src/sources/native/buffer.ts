@@ -21,7 +21,6 @@ export class Buffer extends Source {
     await waitImmediate()
     if (!triggerForInComplete) this.noMatchWords = new Set()
     if (input.length === 0 || token.isCancellationRequested) return null
-    let { menu } = this
     let iterables: Iterable<string>[] = []
     for (let buf of this.keywords.items) {
       if (buf.bufnr === bufnr || (this.ignoreGitignore && buf.gitIgnored)) continue
@@ -31,7 +30,7 @@ export class Buffer extends Source {
     let isIncomplete = await this.getResults(iterables, input, word, items, token)
     return {
       isIncomplete, items: Array.from(items).map(s => {
-        return { word: s, menu }
+        return { word: s }
       })
     }
   }

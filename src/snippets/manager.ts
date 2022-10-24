@@ -59,8 +59,7 @@ export class SnippetManager {
     return {
       highlight: config.get<boolean>('snippetHighlight', snippetConfig.get<boolean>('highlight', false)),
       nextOnDelete: config.get<boolean>('nextPlaceholderOnDelete', snippetConfig.get<boolean>('nextPlaceholderOnDelete', false)),
-      preferComplete: suggest.get<boolean>('preferCompleteThanJumpPlaceholder', false),
-      choicesMenuPicker: snippetConfig.get<boolean>('choicesMenuPicker', false)
+      preferComplete: suggest.get<boolean>('preferCompleteThanJumpPlaceholder', false)
     }
   }
 

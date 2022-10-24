@@ -10,6 +10,7 @@ import { comparePosition, emptyRange, getEnd, isSingleLine, positionInRange, ran
 import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
+import type { Sources } from '../sources'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEndPosition, getParts, reduceTextEdit } from "./snippet"
@@ -26,7 +27,6 @@ export interface SnippetConfig {
   readonly highlight: boolean
   readonly nextOnDelete: boolean
   readonly preferComplete: boolean
-  readonly choicesMenuPicker: boolean
 }
 
 export class SnippetSession {
@@ -165,24 +165,16 @@ export class SnippetSession {
   }
 
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
-    let { nvim, document, config } = this
+    let { nvim, document } = this
     if (!document || !placeholder) return
     let { start, end } = placeholder.range
-    const len = end.character - start.character
-    const col = byteLength(document.getline(start.line).slice(0, start.character)) + 1
+    const line = document.getline(start.line)
+    const col = byteLength(line.slice(0, start.character)) + 1
     let marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
-      let arr = marker.choice.options.map(o => o.value)
-      if (config.choicesMenuPicker) {
-        await nvim.call('coc#snippet#cursor', [start.line + 1, col + len])
-        // await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
-        let n = await window.showMenuPicker(arr, { title: 'Pick word' })
-        if (n < 0) return
-        let edit = TextEdit.replace(placeholder.range, arr[n])
-        await document.applyEdits([edit], false, Position.create(end.line, end.character))
-      } else {
-        await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, arr])
-      }
+      let sources = require('../sources/index').default as Sources
+      sources.setWords(marker.choice.options.map(o => o.value))
+      await nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value])
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
     } else {
       let finalCount = this.snippet.finalCount

@@ -14,7 +14,6 @@ export class Around extends Source {
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
     let { bufnr, input, word, linenr, triggerForInComplete } = opt
-    let { menu } = this
     let buf = this.keywords.getItem(bufnr)
     await waitImmediate()
     if (!triggerForInComplete) this.noMatchWords = new Set()
@@ -24,7 +23,7 @@ export class Around extends Source {
     let isIncomplete = await this.getResults([iterable], input, word, items, token)
     return {
       isIncomplete, items: Array.from(items).map(s => {
-        return { word: s, menu }
+        return { word: s }
       })
     }
   }

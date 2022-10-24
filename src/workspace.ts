@@ -336,6 +336,11 @@ export class Workspace implements IWorkspace {
     return this.documentsManager.getDocument(uri)
   }
 
+  public getUri(bufnr: number, defaultValue = ''): string {
+    let doc = this.documentsManager.getDocument(bufnr)
+    return doc ? doc.uri : defaultValue
+  }
+
   public isAttached(bufnr: number): boolean {
     let doc = this.documentsManager.getDocument(bufnr)
     return doc != null && doc.attached

@@ -21,9 +21,9 @@ afterEach(async () => {
   await helper.reset()
 })
 
-async function createSession(enableHighlight = false, preferComplete = false, nextOnDelete = false, choicesMenuPicker = false): Promise<SnippetSession> {
+async function createSession(enableHighlight = false, preferComplete = false, nextOnDelete = false): Promise<SnippetSession> {
   let doc = await workspace.document
-  let config: SnippetConfig = { highlight: enableHighlight, preferComplete, nextOnDelete, choicesMenuPicker }
+  let config: SnippetConfig = { highlight: enableHighlight, preferComplete, nextOnDelete }
   return new SnippetSession(nvim, doc, config)
 }
 
@@ -37,7 +37,7 @@ describe('SnippetSession', () => {
   async function start(inserted: string, range = defaultRange, select = true, context?: UltiSnippetContext): Promise<boolean> {
     await nvim.input('i')
     let doc = await workspace.document
-    let session = new SnippetSession(nvim, doc, { highlight: false, nextOnDelete: false, preferComplete: false, choicesMenuPicker: false })
+    let session = new SnippetSession(nvim, doc, { highlight: false, nextOnDelete: false, preferComplete: false })
     return await session.start(inserted, range, select, context)
   }
 
@@ -289,17 +289,6 @@ describe('SnippetSession', () => {
       expect(col).toBe(5)
     })
 
-    it('should use menu picker for choices', async () => {
-      let session = await createSession(false, false, true, true)
-      await nvim.input('i')
-      let p = session.start('a ${1|one,two,three|} b', defaultRange, true)
-      await helper.waitPrompt()
-      await nvim.input('2')
-      await p
-      let line = await nvim.line
-      expect(line).toBe('a two b')
-    })
-
     it('should prefer range contains current cursor', async () => {
       let session = await createSession()
       await nvim.input('i')
@@ -539,10 +528,9 @@ describe('SnippetSession', () => {
       await session.start('${1|one,two,three|}', defaultRange)
       let line = await nvim.line
       expect(line).toBe('one')
-      await helper.waitFor('pumvisible', [], 1)
-      let val = await nvim.eval('g:coc#_context') as any
-      expect(val.start).toBe(0)
-      expect(val.candidates).toEqual(['one', 'two', 'three'])
+      await helper.waitPopup()
+      let items = await helper.items()
+      expect(items.length).toBe(3)
     })
   })
 })

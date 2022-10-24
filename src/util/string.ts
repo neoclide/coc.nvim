@@ -106,6 +106,15 @@ export function characterIndex(content: string, byteIndex: number): number {
   return characterIndex
 }
 
+/**
+ * No need to create Buffer
+ */
+export function utf8ByteSlice(content: string, start: number, end: number) {
+  let si = characterIndex(content, start)
+  let ei = characterIndex(content, end)
+  return content.slice(si, ei)
+}
+
 export function utf8_code2len(code: number): number {
   if (code < UTF8_2BYTES_START) return 1
   if (code < UTF8_3BYTES_START) return 2

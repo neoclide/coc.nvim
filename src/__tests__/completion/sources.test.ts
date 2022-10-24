@@ -297,4 +297,21 @@ describe('native sources', () => {
     let res = await p
     expect(res).toBeNull()
   })
+
+  it('should complete with words source', async () => {
+    let stats = sources.sourceStats()
+    let find = stats.find(o => o.name === '$words')
+    expect(find).toBeUndefined()
+    let s = sources.getSource('$words')
+    expect(s.name).toBe('$words')
+    expect(s.shortcut).toBe('')
+    expect(s.triggerOnly).toBe(true)
+    sources.setWords(['foo', 'bar'])
+    await nvim.setLine('longwords')
+    await nvim.input('A')
+    nvim.call('coc#start', { source: '$words' }, true)
+    await helper.waitPopup()
+    let items = await helper.items()
+    expect(items.map(o => o.word)).toEqual(['foo', 'bar'])
+  })
 })

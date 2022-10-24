@@ -1698,12 +1698,6 @@
       "maximum": 1000,
       "description": "Timeout for trigger signature help, in milliseconds."
     },
-    "snippet.choicesMenuPicker": {
-      "type": "boolean",
-      "scope": "resource",
-      "description": "Use menu picker instead of popup menu for choices placeholder.",
-      "default": false
-    },
     "snippet.highlight": {
       "type": "boolean",
       "scope": "resource",

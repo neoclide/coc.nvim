@@ -8,9 +8,9 @@ import events from '../events'
 import extensions from '../extension'
 import BufferSync from '../model/bufferSync'
 import { CompletionItemProvider } from '../provider'
-import { CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
 import { disposeAll } from '../util'
-import { intersect } from '../util/array'
+import { intersect, isFalsyOrEmpty } from '../util/array'
 import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
 import window from '../window'
@@ -21,11 +21,31 @@ import LanguageSource from './source-language'
 import VimSource from './source-vim'
 const logger = require('../util/logger')('sources')
 
+/**
+ * For static words, must be triggered by source option.
+ * Used for completion of snippet choices.
+ */
+export class WordsSource {
+  public readonly name = '$words'
+  public readonly shortcut = ''
+  public readonly triggerOnly = true
+  public words: string[] = []
+
+  public doComplete(opt: CompleteOption): CompleteResult {
+    return {
+      items: this.words.map(s => {
+        return { word: s, filterText: opt.input }
+      })
+    }
+  }
+}
+
 export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private remoteSourcePaths: string[] = []
   public keywords: BufferSync<KeywordsBuffer>
+  private wordsSource = new WordsSource()
 
   public init(): void {
     this.keywords = workspace.registerBufferSync(doc => {
@@ -54,7 +74,12 @@ export class Sources {
     return this.keywords.getItem(bufnr)
   }
 
+  public setWords(words: string[]): void {
+    this.wordsSource.words = words
+  }
+
   private createNativeSources(): void {
+    this.sourceMap.set(this.wordsSource.name, this.wordsSource)
     this.disposables.push((require('./native/around')).register(this.sourceMap, this.keywords))
     this.disposables.push((require('./native/buffer')).register(this.sourceMap, this.keywords))
     this.disposables.push((require('./native/file')).register(this.sourceMap))
@@ -230,8 +255,7 @@ export class Sources {
     let { filetype } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr - 1)
     let isTriggered = opt.input == '' && !!opt.triggerCharacter
-    let doc = workspace.getDocument(opt.bufnr)
-    let uri = doc ? doc.uri : `unknown:${opt.bufnr}`
+    let uri = workspace.getUri(opt.bufnr)
     if (isTriggered) return this.getTriggerSources(pre, filetype, uri)
     return this.getNormalSources(opt.filetype, uri)
   }
@@ -255,10 +279,10 @@ export class Sources {
 
   private checkTrigger(source: ISource, pre: string, character: string): boolean {
     let { triggerCharacters, triggerPatterns } = source
-    if (triggerCharacters?.length > 0 && triggerCharacters.includes(character)) {
+    if (!isFalsyOrEmpty(triggerCharacters) && triggerCharacters.includes(character)) {
       return true
     }
-    if (triggerPatterns?.length > 0 && triggerPatterns.findIndex(p => p.test(pre)) !== -1) {
+    if (!isFalsyOrEmpty(triggerPatterns) && triggerPatterns.findIndex(p => p.test(pre)) !== -1) {
       return true
     }
     return false
@@ -326,12 +350,13 @@ export class Sources {
     let suggest = workspace.getConfiguration('suggest', doc)
     let languageSourcePriority = suggest.get<number>('languageSourcePriority', 99)
     for (let item of items) {
+      if (item.name === '$words') continue
       let priority = typeof item.priority === 'number' ? item.priority : item.sourceType == SourceType.Service ? languageSourcePriority : 0
       res.push({
         name: item.name,
         priority,
         triggerCharacters: item.triggerCharacters || [],
-        shortcut: item.shortcut || '',
+        shortcut: item.shortcut ?? '',
         filetypes: item.filetypes || [],
         filepath: item.filepath || '',
         type: item.sourceType == SourceType.Native
@@ -354,6 +379,7 @@ export class Sources {
 
   public createSource(config: SourceConfig): Disposable {
     if (!config.name || !config.doComplete) {
+      logger.error(`Bad config for createSource:`, config)
       throw new Error(`name and doComplete required for createSource`)
     }
     let source = new Source(Object.assign({ sourceType: SourceType.Service } as any, config))

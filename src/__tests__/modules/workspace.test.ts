@@ -100,6 +100,13 @@ describe('workspace methods', () => {
     expect(doc.buffer.equals(buf)).toBeTruthy()
   })
 
+  it('should get uri', async () => {
+    let doc = await workspace.document
+    expect(workspace.getUri(doc.bufnr, undefined)).toBeDefined()
+    expect(workspace.getUri(999, null)).toBeNull()
+    expect(workspace.getUri(999)).toBe('')
+  })
+
   it('should get attached document', async () => {
     let fn = () => {
       workspace.getAttachedDocument('file://not_exists')
