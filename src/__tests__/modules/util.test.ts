@@ -310,6 +310,12 @@ describe('strings', () => {
     expect(strings.utf8_code2len(65537)).toBe(4)
   })
 
+  it('should slice content by bytes', async () => {
+    expect(strings.byteSlice('你', 0, 1)).toBe('你')
+    expect(strings.byteSlice('你', 0, 3)).toBe('你')
+    expect(strings.byteSlice('abc你', 3, 6)).toBe('你')
+  })
+
   it('should get case', async () => {
     expect(strings.getCase('a'.charCodeAt(0))).toBe(1)
     expect(strings.getCase('A'.charCodeAt(0))).toBe(2)

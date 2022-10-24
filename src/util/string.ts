@@ -106,15 +106,6 @@ export function characterIndex(content: string, byteIndex: number): number {
   return characterIndex
 }
 
-/**
- * No need to create Buffer
- */
-export function utf8ByteSlice(content: string, start: number, end: number) {
-  let si = characterIndex(content, start)
-  let ei = characterIndex(content, end)
-  return content.slice(si, ei)
-}
-
 export function utf8_code2len(code: number): number {
   if (code < UTF8_2BYTES_START) return 1
   if (code < UTF8_3BYTES_START) return 2
@@ -122,9 +113,13 @@ export function utf8_code2len(code: number): number {
   return 4
 }
 
+/**
+ * No need to create Buffer
+ */
 export function byteSlice(content: string, start: number, end?: number): string {
-  let buf = Buffer.from(content, 'utf8')
-  return buf.slice(start, end).toString('utf8')
+  let si = characterIndex(content, start)
+  let ei = characterIndex(content, end)
+  return content.slice(si, ei)
 }
 
 export function isWord(character: string): boolean {
