@@ -5,7 +5,7 @@ import { CancellationTokenSource, Disposable } from 'vscode-languageserver-proto
 import events from '../events'
 import extensions from '../extension'
 import { IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
 import workspace from '../workspace'
 import window from '../window'
 import ListConfiguration from './configuration'
@@ -26,6 +26,7 @@ import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
 import stripAnsi from 'strip-ansi'
+import { toInteger } from '../util/string'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -235,6 +236,7 @@ export class ListManager implements Disposable {
     let position = 'bottom'
     let listArgs: string[] = []
     let listOptions: string[] = []
+    let height: number | undefined
     for (let arg of args) {
       if (!name && arg.startsWith('-')) {
         listOptions.push(arg)
@@ -253,8 +255,10 @@ export class ListManager implements Disposable {
     if (!listOptions.length && !listArgs.length) listOptions = config.get<string[]>('defaultOptions', [])
     if (!listArgs.length) listArgs = config.get<string[]>('defaultArgs', [])
     for (let opt of listOptions) {
-      if (opt.startsWith('--input')) {
+      if (opt.startsWith('--input=')) {
         input = opt.slice(8)
+      } else if (opt.startsWith('--height=')) {
+        height = toInteger(opt.slice(9))
       } else if (opt == '--number-select' || opt == '-N') {
         numberSelect = true
       } else if (opt == '--auto-preview' || opt == '-A') {
@@ -297,6 +301,7 @@ export class ListManager implements Disposable {
       options: {
         numberSelect,
         autoPreview,
+        height,
         reverse,
         noQuit,
         first,

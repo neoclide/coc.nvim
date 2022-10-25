@@ -317,8 +317,9 @@ export default class ListUI {
   }
 
   public getHeight(len: number, finished: boolean): number {
-    let height = this.config.get<number>('height', 10)
     let { listOptions } = this
+    if (typeof listOptions.height === 'number') return listOptions.height
+    let height = this.config.get<number>('height', 10)
     if (finished && !listOptions.interactive && listOptions.input.length == 0) {
       height = Math.min(len, height)
     }

@@ -661,7 +661,7 @@ List~
 
 "list.previewToplineStyle"				*coc-config-list-previewToplineStyle*
 
-	Topline style for list previews
+	Topline style for list previews, could be "offset" or "middle".
 
 	Scope: `application`, default: `"offset"`
 

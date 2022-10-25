@@ -1,3 +1,7 @@
+# 2022-10-25
+
+- Add `--height` support to `CocList`.
+
 # 2022-10-24
 
 - Use builtin static words source for snippet choices.

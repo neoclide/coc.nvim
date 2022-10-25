@@ -305,8 +305,8 @@ export class Helper extends EventEmitter {
 
   public async waitFor<T>(method: string, args: any[], value: T): Promise<void> {
     let find = false
-    for (let i = 0; i < 40; i++) {
-      await this.wait(50)
+    for (let i = 0; i < 100; i++) {
+      await this.wait(20)
       let res = await this.nvim.call(method, args) as T
       if (equals(res, value) || (value instanceof RegExp && value.test(res.toString()))) {
         find = true

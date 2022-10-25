@@ -1125,6 +1125,7 @@ export interface ListOptions {
   numberSelect: boolean
   noQuit: boolean
   first: boolean
+  height?: number
 }
 
 export interface ListContext {

@@ -5,6 +5,11 @@ const UTF8_2BYTES_START = 0x80
 const UTF8_3BYTES_START = 0x800
 const UTF8_4BYTES_START = 65536
 
+export function toInteger(text: string): number | undefined {
+  let n = parseInt(text, 10)
+  return isNaN(n) ? undefined : n
+}
+
 export function rangeParts(text: string, range: Range): [string, string] {
   let { start, end } = range
   let lines = text.split(/\r?\n/)

@@ -151,11 +151,11 @@ EXTENSIONS						*coc-extensions*
 To provide LSP features of different filetypes, the user have to config
 |coc-config-languageserver| or install coc extensions.
 
-Coc extensions are more powerful since they could contribute json schemes,
+Extensions are more powerful since they could contribute json schemes,
 commands, and use middleware methods of languageserver to provide better
 results.  It's also possible to provide features that beyond LSP.
 
-Coc extensions are loaded from `"extensions"` folder inside
+Extensions are loaded from `"extensions"` folder inside
 |coc#util#get_data_home()| and folders in 'runtimepath' when detected.
 
 Install extensions from git (not recommended):~
@@ -199,8 +199,7 @@ To update extensions automatically, config |coc-preferences-extensionUpdateCheck
 
 Manage extensions list:~
 
-Use |coc-list-extensions| by `:CocList extensions` to open extensions list.
-Use |CocAction('extensionStats')| to get list of extensions.
+Use |coc-list-extensions| or |CocAction('extensionStats')| to get list of extensions.
 
 Single file extensions:~
 
@@ -253,13 +252,13 @@ Configuration scope:~
 
 A configuration could be one of three different configuration scopes:
 
-- "application" the configuration could only be changed in user configuration
+- `"application"` the configuration could only be changed in user configuration
   file.
 
-- "resource" the configuration could be changed in user and workspace folder
+- `"resource"` the configuration could be changed in user and workspace folder
   configuration file.
 
-- "language-overridable" the configuration could be changed in user and
+- `"language-overridable"` the configuration could be changed in user and
   workspace folder configuration file, and can be use used in language scoped
   configuration section like `[typescript][json]`.
 
@@ -308,8 +307,8 @@ Related highlight groups:
 
 - |CocFloating| For floating window background.
 - |CocFloatDividingLine| For dividing lines.
+- |CocFloatActive| For active parts.
 - |CocMenuSel| For selected line.
-- |CocUnderline| For active parts.
 
 To customize floating windows used by popup menu. Use configurations:
 
@@ -3303,7 +3302,7 @@ LIST COMMAND						*coc-list-command*
 <
 	For current jump locations.
 
-	See |coc-list-options| for available list options,
+	For {options}, see |coc-list-options|.
 
 	Also check |coc-config-list| for list configuration.
 
@@ -3311,7 +3310,7 @@ LIST COMMAND						*coc-list-command*
 	Press `?` on normal mode to get supported {args} of current
 	list.
 
-	When {source} is empty, lists source is used.
+	When {source} is empty, the lists source with list of sources is used.
 
 :CocListResume [{name}]					*:CocListResume*
 
@@ -3362,6 +3361,12 @@ Options of CocList command~
 
 	Specify the input on session start.
 
+--height={number}
+
+	Specify the height of list window, override configuration
+	|coc-config-list-height|.  No effect when list opened in new tab by
+	`--tab`.
+
 --strict
 -S
 	Use strict matching instead of fuzzy matching.
@@ -3398,7 +3403,7 @@ Options of CocList command~
 
 --no-quit
 
-	Not quit list session after do action.
+	Not quit list session after invoke action.
 
 	Note: you may need to refresh the list for current state.
 
@@ -3409,7 +3414,8 @@ Options of CocList command~
 
 --reverse
 
-	Reverse lines order of list.
+	Reverse the order of list items shown in the window, the bottom line
+	would shown the first item.
 
 ------------------------------------------------------------------------------
 
@@ -3436,7 +3442,8 @@ in your coc-settings.json
 
 Change default options:~
 
-Use `list.source.{name}.defaultOptions` setting like: >
+To change |coc-list-options| for source with {name}, use
+`list.source.{name}.defaultOptions` configuration like: >
 
 	// make symbols list use normal mode and interactive by default
 	"list.source.symbols.defaultOptions": ["--interactive", "--number-select"],

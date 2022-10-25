@@ -356,6 +356,11 @@ describe('strings', () => {
     expect(strings.smartcaseIndex('abC', 'aaBDefabC')).toBe(6)
   })
 
+  it('should convert to integer', async () => {
+    expect(strings.toInteger('a')).toBeUndefined()
+    expect(strings.toInteger('1')).toBe(1)
+  })
+
   it('should get parts', async () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
     expect(res).toEqual(['', 'bar'])
