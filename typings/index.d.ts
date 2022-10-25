@@ -25,6 +25,7 @@ declare module 'coc.nvim' {
   export namespace Disposable {
     function create(func: () => void): Disposable
   }
+
   /**
    * The declaration of a symbol representation as one or many [locations](#Location).
    */
@@ -4635,6 +4636,21 @@ declare module 'coc.nvim' {
   // }}
 
   // Classes {{
+  /**
+   * An error type that should be used to signal cancellation of an operation.
+   *
+   * This type can be used in response to a {@link CancellationToken cancellation token}
+   * being cancelled or when an operation is being cancelled by the
+   * executor of that operation.
+   */
+  export class CancellationError extends Error {
+
+    /**
+     * Creates a new cancellation error.
+     */
+    constructor()
+  }
+
   /**
    * A semantic tokens builder can help with creating a `SemanticTokens` instance
    * which contains delta encoded semantic tokens.

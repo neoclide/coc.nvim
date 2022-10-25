@@ -18,6 +18,7 @@ import snippetManager from './snippets/manager'
 import { SnippetString } from './snippets/string'
 import diagnosticManager from './diagnostic/manager'
 import { ansiparse } from './util/ansiparse'
+import { CancellationError } from './util/errors'
 import BasicList from './list/basic'
 import { Mutex } from './util/mutex'
 import { URI } from 'vscode-uri'
@@ -96,6 +97,7 @@ module.exports = {
   SemanticTokensBuilder,
   FloatFactory,
   RelativePattern,
+  CancellationError,
   DocumentDiagnosticReportKind,
   UniquenessLevel,
   MonikerKind,
