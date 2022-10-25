@@ -27,18 +27,14 @@ function! coc#snippet#_select_mappings()
   snoremap <c-r> <c-g>"_c<c-r>
 endfunction
 
-function! coc#snippet#cursor(lnum, col) abort
-  let m = mode()
-  call cursor(a:lnum, a:col)
-  if m !=# 'i'
-    call feedkeys("\<Esc>i", 'in')
-  endif
-endfunction
-
-function! coc#snippet#show_choices(lnum, col, len, values) abort
-  call coc#snippet#cursor(a:lnum, a:col + a:len)
-  let changedtick = b:changedtick
-  call timer_start(20, { -> coc#_do_complete(a:col - 1, a:values, 0, changedtick)})
+function! coc#snippet#show_choices(lnum, col, position, input) abort
+  call coc#snippet#move(a:position)
+  let opt = coc#util#get_complete_option()
+  call CocActionAsync('startCompletion', extend(opt, {
+        \ 'input': a:input,
+        \ 'source': '$words',
+        \ 'col': a:col - 1
+        \ }))
   redraw
 endfunction
 
@@ -138,8 +134,6 @@ function! coc#snippet#move(position) abort
   let m = mode()
   if m == 's'
     call feedkeys("\<Esc>", 'in')
-  elseif coc#pum#visible()
-    call coc#pum#close()
   endif
   let pos = coc#snippet#to_cursor(a:position)
   call cursor(pos)
