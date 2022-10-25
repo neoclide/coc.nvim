@@ -57,34 +57,27 @@ describe('list', () => {
   })
 
   describe('list commands', () => {
-    it('should be activated', async () => {
-      await manager.start(['location'])
-      await manager.session.ui.ready
-      await helper.waitValue(async () => {
-        let line = await nvim.getLine()
-        return line.includes('manager.test.ts')
-      }, true)
-      let names = manager.names
-      expect(names.length > 0).toBe(true)
-    })
-
-    it('should resume list', async () => {
-      await manager.start(['--normal', 'location'])
-      await manager.session.ui.ready
-      await helper.waitPrompt()
-      await nvim.eval('feedkeys("j", "in")')
-      await helper.waitFor('line', ['.'], 2)
-      await manager.cancel()
-      await helper.wait(10)
-      await manager.resume()
-      await helper.waitFor('line', ['.'], 2)
-    })
-
     it('should not quit list with --no-quit', async () => {
-      await manager.start(['--normal', '--no-quit', 'location'])
+      let list: IList = {
+        name: 'test',
+        actions: [{
+          name: 'open', execute: _item => {
+            // noop
+          }
+        }],
+        defaultAction: 'open',
+        loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'bar' }]),
+        resolveItem: item => {
+          item.label = item.label.slice(0, 1)
+          return Promise.resolve(item)
+        }
+      }
+      let disposable = manager.registerList(list)
+      await manager.start(['--normal', '--no-quit', 'test'])
       await manager.session.ui.ready
       let id = await nvim.eval('win_getid()') as number
       await manager.doAction()
+      disposable.dispose()
       let wins = await nvim.windows
       let ids = wins.map(o => o.id)
       expect(ids).toContain(id)
@@ -120,7 +113,7 @@ describe('list', () => {
 
     it('should parse arguments', async () => {
       await manager.start(['--input=test', '--reverse', '--normal', '--no-sort', '--ignore-case', '--top', '--number-select', '--auto-preview', '--strict', 'location'])
-      await helper.wait(30)
+      await manager.session?.ui.ready
       let opts = manager.session?.listOptions
       expect(opts).toEqual({
         smartcase: false,
@@ -228,9 +221,10 @@ describe('list', () => {
       await manager.onNormalInput('<LeftDrag>')
       await setMouseEvent(3)
       await manager.onNormalInput('<LeftRelease>')
-      await helper.wait(100)
-      let items = await manager.session?.ui.getItems()
-      expect(items.length).toBe(3)
+      await helper.waitValue(async () => {
+        let items = await manager.session?.ui.getItems()
+        return items.length
+      }, 3)
     })
 
     it('should toggle preview', async () => {
@@ -275,9 +269,7 @@ describe('list', () => {
       let disposable = manager.registerList(list)
       await manager.start(['--normal', 'test'])
       await manager.session.ui.ready
-      await helper.wait(50)
-      let line = await nvim.line
-      expect(line).toBe('f')
+      await helper.waitFor('getline', ['.'], 'f')
       disposable.dispose()
     })
   })
@@ -327,7 +319,7 @@ describe('list', () => {
       await manager.start(['location'])
       await manager.session.ui.ready
       await nvim.eval('feedkeys("\\<plug>x", "in")')
-      await helper.wait(50)
+      await helper.wait(20)
       expect(manager.isActivated).toBe(true)
     })
   })
@@ -358,9 +350,27 @@ describe('list', () => {
       await manager.start(['location'])
       await manager.session.ui.ready
       await manager.session.hide()
-      await helper.wait(100)
       await manager.resume('location')
+      await manager.resume()
       expect(manager.isActivated).toBe(true)
+    })
+  })
+
+  describe('triggerCursorMoved()', () => {
+    it('should triggerCursorMoved autocmd', async () => {
+      let called = 0
+      let disposable = events.on('CursorMoved', () => {
+        called++
+      })
+      Object.assign(events, { _cursor: undefined })
+      Object.assign(nvim, { isVim: true })
+      manager.triggerCursorMoved()
+      manager.triggerCursorMoved()
+      Object.assign(nvim, { isVim: false })
+      await helper.waitValue(() => {
+        return called
+      }, 1)
+      disposable.dispose()
     })
   })
 
@@ -406,9 +416,10 @@ describe('list', () => {
       helper.updateConfiguration('list.source.test.defaultAction', 'open')
       let disposable = manager.registerList(list)
       disposable.dispose()
-      await helper.wait(30)
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('recreated')
+      await helper.waitValue(async () => {
+        let msg = await helper.getCmdline()
+        return msg.includes('recreated')
+      }, true)
     })
   })
 
@@ -428,10 +439,7 @@ describe('list', () => {
       }
       manager.registerList(list)
       await manager.start(['test'])
-      await helper.waitValue(async () => {
-        let s = await helper.getCmdline()
-        return s.includes('Error')
-      }, true)
+      await helper.wait(20)
     })
   })
 

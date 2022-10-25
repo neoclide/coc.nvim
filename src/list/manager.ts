@@ -1,18 +1,20 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
+import stripAnsi from 'strip-ansi'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extension'
 import { IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
 import { disposeAll } from '../util'
-import workspace from '../workspace'
+import { toInteger } from '../util/string'
 import window from '../window'
+import workspace from '../workspace'
 import ListConfiguration from './configuration'
+import { DataBase } from './db'
+import History from './history'
 import Mappings from './mappings'
 import Prompt from './prompt'
-import History from './history'
-import { DataBase } from './db'
 import ListSession from './session'
 import CommandsList from './source/commands'
 import DiagnosticsList from './source/diagnostics'
@@ -25,8 +27,6 @@ import OutlineList from './source/outline'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
-import stripAnsi from 'strip-ansi'
-import { toInteger } from '../util/string'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -379,6 +379,7 @@ export class ListManager implements Disposable {
     key = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key
     await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.call('eval', [`feedkeys("${key}", "${remap ? 'i' : 'in'}")`])
+    this.triggerCursorMoved()
     this.prompt.start()
   }
 
@@ -386,6 +387,7 @@ export class ListManager implements Disposable {
     let { nvim } = this
     await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.command(command)
+    this.triggerCursorMoved()
     this.prompt.start()
   }
 
@@ -393,7 +395,12 @@ export class ListManager implements Disposable {
     let { nvim } = this
     await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.command(`normal${bang ? '!' : ''} ${command}`)
+    this.triggerCursorMoved()
     this.prompt.start()
+  }
+
+  public triggerCursorMoved(): void {
+    if (this.nvim.isVim) this.nvim.command('doautocmd <nomodeline> CursorMoved', true)
   }
 
   public async call(fname: string): Promise<any> {
