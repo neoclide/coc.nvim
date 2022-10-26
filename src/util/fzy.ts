@@ -151,7 +151,7 @@ export function positions(needle: string, haystack: string): number[] {
   }
 
   if (m > 1024) {
-    return positions
+    return []
   }
 
   let D = new Array(n)

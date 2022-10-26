@@ -436,17 +436,6 @@ describe('window', () => {
     })
   })
 
-  describe('window parseSource()', () => {
-    it('should parse source name', async () => {
-      expect(window.parseSource('\n\n')).toBeUndefined()
-      expect(window.parseSource(`\n\n${path.join(process.cwd(), 'a/b.js')}:1:1`)).toBe('coc.nvim')
-      expect(window.parseSource(`\n\n at Foo(${path.join(process.cwd(), 'a/b.js')}:1:1)`)).toBe('coc.nvim')
-      // expect(window.parseSource(`\n\n${__filename}:1:1`)).toBe('coc.nvim')
-      // let filepath = path.join(info[0].directory, 'a/b/c.js')
-      // expect(window.parseSource(`\n\n${filepath}:1:1`)).toBe(info[0].name)
-    })
-  })
-
   describe('window notifications', () => {
     it('should show notification with options', async () => {
       await window.showNotification({
@@ -847,23 +836,6 @@ describe('window', () => {
       let lines = await buf.lines
       expect(lines.join('\n')).toMatch(content)
     }
-
-    it('should should error message for document not attached', async () => {
-      await nvim.command('edit t|let b:coc_enabled = 0')
-      await window.bufferCheck()
-      await checkFloat('not attached')
-      await nvim.call('coc#float#close_all', [])
-      await nvim.command('edit +setl\\ buftype=nofile b')
-      await window.bufferCheck()
-      await checkFloat('not attached')
-      await nvim.call('coc#float#close_all', [])
-      helper.updateConfiguration('coc.preferences.maxFileSize', '5KB')
-      let filepath = path.join(process.cwd(), 'data/schema.json')
-      await helper.edit(filepath)
-      await window.bufferCheck()
-      await checkFloat('not attached')
-      await nvim.call('coc#float#close_all', [])
-    })
 
     it('should show state of current buffer', async () => {
       disposables.push(languages.registerDocumentFormatProvider(['*'], {

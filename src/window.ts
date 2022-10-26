@@ -12,7 +12,6 @@ import Cursors from './cursors/index'
 import events from './events'
 import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
 import { FloatWinConfig } from './model/floatFactory'
-import Highligher from './model/highligher'
 import InputBox, { InputOptions, InputPreference } from './model/input'
 import Menu, { MenuItem } from './model/menu'
 import Notification, { NotificationConfig, NotificationKind, NotificationPreferences } from './model/notification'
@@ -24,46 +23,15 @@ import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
 import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME } from './util'
-import { isParentFolder, sameFile } from './util/fs'
+import { parseExtensionName } from './util/extensionRegistry'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import { Workspace } from './workspace'
 const logger = require('./util/logger')('window')
-const PLUGIN_ROOT = path.dirname(__dirname)
 let tab_global_id = 3000
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 export type Item = QuickPickItem | string
-
-export const PROVIDER_NAMES = [
-  'formatOnType',
-  'rename',
-  'onTypeEdit',
-  'documentLink',
-  'documentColor',
-  'foldingRange',
-  'format',
-  'codeAction',
-  'formatRange',
-  'hover',
-  'signature',
-  'documentSymbol',
-  'documentHighlight',
-  'definition',
-  'declaration',
-  'typeDefinition',
-  'reference',
-  'implementation',
-  'codeLens',
-  'selectionRange',
-  'callHierarchy',
-  'semanticTokens',
-  'semanticTokensRange',
-  'linkedEditing',
-  'inlayHint',
-  'inlineValue',
-  'typeHierarchy',
-]
 
 function generateTabId(): number {
   return tab_global_id++
@@ -609,7 +577,7 @@ export class Window {
   private async _showMessage<T extends MessageItem | string>(kind: MessageKind, message: string, items: T[], stack: string): Promise<T | undefined> {
     if (!this.enableMessageDialog) return await this.showConfirm(message, items, kind) as any
     if (items.length > 0) {
-      let source = this.parseSource(stack)
+      let source = parseExtensionName(stack)
       return await this.showMessagePicker(`Choose action (${source})`, message, `Coc${kind}Float`, items)
     }
     await this.createNotification(kind.toLowerCase() as NotificationKind, message, [], stack)
@@ -815,37 +783,6 @@ export class Window {
     }
   }
 
-  public async bufferCheck(): Promise<void> {
-    let doc = await this.workspace.document
-    if (!doc.attached) {
-      await this.showDialog({
-        title: 'Buffer check result',
-        content: `Document not attached, ${doc.notAttachReason}`,
-        highlight: 'WarningMsg'
-      })
-      return
-    }
-    let hi = new Highligher()
-    hi.addLine('Provider state', 'Title')
-    hi.addLine('')
-    let languages = require('./languages').default
-    for (let name of PROVIDER_NAMES) {
-      let exists = languages.hasProvider(name, doc.textDocument)
-      hi.addTexts([
-        { text: '-', hlGroup: 'Comment' },
-        { text: ' ' },
-        exists ? { text: '✓', hlGroup: 'CocListFgGreen' } : { text: '✗', hlGroup: 'CocListFgRed' },
-        { text: ' ' },
-        { text: name, hlGroup: exists ? 'Normal' : 'CocFadeOut' }
-      ])
-    }
-    await this.showDialog({
-      title: 'Buffer check result',
-      content: hi.content,
-      highlights: hi.highlights
-    })
-  }
-
   private createNotification(kind: NotificationKind, message: string, items: string[], stack: string): Promise<number> {
     return new Promise((resolve, reject) => {
       let config: NotificationConfig = {
@@ -861,30 +798,6 @@ export class Window {
       let notification = new Notification(this.nvim, config)
       notification.show(this.getNotificationPreference(stack)).catch(reject)
     })
-  }
-
-  /**
-   * Get extension name from error stack
-   */
-  public parseSource(stack: string, level = 2): string | undefined {
-    let line = stack.split(/\r?\n/).slice(level)[0]
-    if (!line) return undefined
-    line = line.replace(/^\s*at\s*/, '')
-    let filepath: string
-    if (line.endsWith(')')) {
-      let ms = line.match(/(\((.*?):\d+:\d+\))$/)
-      if (ms) filepath = ms[2]
-    } else {
-      let ms = line.match(/(.*?):\d+:\d+$/)
-      if (ms) filepath = ms[1]
-    }
-    if (!filepath) return undefined
-    let arr = require('./extension/index').default.manager.getExtensionsInfo()
-    let find = arr.find(o => sameFile(o.filepath, filepath))
-    if (find) return find.name.startsWith('single') ? path.basename(find.filepath) : find.name
-    find = arr.find(o => isParentFolder(o.directory, filepath))
-    if (find) return find.name
-    if (isParentFolder(PLUGIN_ROOT, filepath)) return 'coc.nvim'
   }
 
   private get dialogPreference(): DialogPreferences {
@@ -913,7 +826,7 @@ export class Window {
   }
 
   private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
-    if (!source) source = this.parseSource(stack)
+    if (!source) source = parseExtensionName(stack)
     let config = this.workspace.getConfiguration('notification')
     let disabledList = config.get<string[]>('disabledProgressSources', [])
     let disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))

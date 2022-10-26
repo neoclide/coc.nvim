@@ -2,31 +2,38 @@ import style from 'ansi-styles'
 import * as assert from 'assert'
 import { spawn } from 'child_process'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import vm from 'vm'
-import { Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CancellationTokenSource, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
-import { concurrent, executable, getKeymapModifier, delay, getUri, isRunning, runCommand, wait, watchFile } from '../../util'
+import { ConfigurationScope } from '../../types'
+import { concurrent, delay, disposeAll, executable, getKeymapModifier, getUri, isRunning, runCommand, wait, waitNextTick, watchFile } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
-import bytes from '../../util/bytes'
 import * as arrays from '../../util/array'
+import { filter } from '../../util/async'
+import bytes from '../../util/bytes'
 import * as color from '../../util/color'
 import { getSymbolKind } from '../../util/convert'
 import * as diff from '../../util/diff'
+import * as errors from '../../util/errors'
+import * as extension from '../../util/extensionRegistry'
 import * as factory from '../../util/factory'
 import * as fuzzy from '../../util/fuzzy'
 import * as fzy from '../../util/fzy'
 import * as Is from '../../util/is'
+import { Extensions, IJSONContributionRegistry } from '../../util/jsonRegistry'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
-import { Sequence } from '../../util/sequence'
 import * as objects from '../../util/object'
+import * as platform from '../../util/platform'
 import * as positions from '../../util/position'
 import { terminate } from '../../util/processes'
+import { convertProperties, Registry } from '../../util/registry'
+import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
-import { filter } from '../../util/async'
 import helper, { createTmpFile } from '../helper'
 const createLogger = require('../../util/logger')
 
@@ -134,6 +141,17 @@ describe('bytes()', () => {
   })
 })
 
+describe('platform', () => {
+  it('should check platform', async () => {
+    expect(platform.isWeb).toBeDefined()
+    expect(platform.isLinux).toBeDefined()
+    expect(platform.isNative).toBeDefined()
+    expect(platform.isWindows).toBeDefined()
+    expect(platform.isMacintosh).toBeDefined()
+    expect(platform.OS).toBeDefined()
+  })
+})
+
 describe('logger', () => {
   it('should get log file', async () => {
     let val = process.env.NVIM_COC_LOG_FILE
@@ -197,6 +215,7 @@ describe('textedit', () => {
     assertChange(0, 1, 1, 1, 'abc', Position.create(0, 6))
     assertChange(0, 1, 1, 0, 'abc\n', Position.create(1, 3))
     assertChange(1, 1, 1, 2, '', Position.create(1, 2))
+    assertChange(1, 1, 3, 0, '', Position.create(1, 3))
   })
 
   test('getStartLine()', () => {
@@ -242,6 +261,10 @@ describe('textedit', () => {
     let edit: TextEdit = { range: r, newText: 'foo' }
     let res = textedits.getWellformedEdit(edit)
     expect(res.range).toEqual(Range.create(0, 0, 1, 0))
+    r = Range.create(0, 0, 1, 0)
+    edit = { range: r, newText: 'foo' }
+    res = textedits.getWellformedEdit(edit)
+    expect(res.range).toBe(r)
   })
 
   it('should check line count change', async () => {
@@ -293,6 +316,90 @@ describe('textedit', () => {
     let lines = ['a', 'b', 'c']
     let res = textedits.mergeTextEdits(edits, lines, ['d', 'e', 'f'])
     expect(res).toEqual(toEdit(0, 0, 3, 0, 'd\ne\nf\n'))
+  })
+})
+
+describe('Registry', () => {
+  it('should add to registry', async () => {
+    Registry.add('key', {})
+    expect(Registry.knows('key')).toBe(true)
+    expect(Registry.as('key')).toEqual({})
+    expect(Registry.as('not_exits')).toBeNull()
+  })
+
+  it('should get jsonRegistry', async () => {
+    let r = Registry.as<IJSONContributionRegistry>(Extensions.JSONContribution)
+    expect(r).toBeDefined()
+    r.registerSchema('uri', {} as any)
+    let res = r.getSchemaContributions()
+    expect(res.schemas.uri).toBeDefined()
+  })
+
+  it('should convertProperties', async () => {
+    expect(convertProperties(undefined)).toEqual({})
+    expect(convertProperties({ key: { type: 'number' } }, ConfigurationScope.RESOURCE)).toEqual({
+      key: { scope: ConfigurationScope.RESOURCE, type: 'number' }
+    })
+    let properties = {
+      foo: {
+      },
+      bar: {
+        type: 'string',
+        scope: 'language-overridable'
+      },
+      resource: {
+        type: 'string',
+        scope: 'resource'
+      },
+      window: {
+        type: 'string',
+        default: ''
+      }
+    }
+    let res = convertProperties(properties)
+    expect(res.foo).toBeDefined()
+    expect(res.bar.scope).toBe(ConfigurationScope.LANGUAGE_OVERRIDABLE)
+    expect(res.resource.scope).toBe(ConfigurationScope.RESOURCE)
+    expect(res.window.scope).toBe(ConfigurationScope.WINDOW)
+  })
+
+  it('should parse extension name', async () => {
+    let parseSource = extension.parseExtensionName
+    expect(parseSource(``)).toBeUndefined()
+    expect(parseSource(`a)`, 0)).toBeUndefined()
+    expect(parseSource(`a`, 0)).toBeUndefined()
+    let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
+    let filepath = path.join(os.tmpdir(), 'single')
+    registry.registerExtension('single', { name: 'single', directory: os.tmpdir(), filepath })
+    expect(parseSource(`\n\n${filepath}:1:1`)).toBe('single')
+    expect(parseSource(`\n\n${filepath.slice(0, -3)}:1:1`)).toBe('single')
+    expect(parseSource(`\n\n/a/b:1:1`)).toBeUndefined()
+  })
+})
+
+describe('errors', () => {
+  it('should return errors', () => {
+    expect(errors.directoryNotExists('dir').message).toMatch('dir')
+    expect(errors.illegalArgument('name') instanceof Error).toBe(true)
+    expect(errors.illegalArgument() instanceof Error).toBe(true)
+    expect(errors.shouldNotAsync('method') instanceof Error).toBe(true)
+    errors.onUnexpectedError(new errors.CancellationError())
+    expect(() => {
+      errors.onUnexpectedError(new Error('my error'))
+    }).toThrowError()
+    expect(() => {
+      errors.onUnexpectedError('error')
+    }).toThrowError()
+    errors.assert(true)
+    expect(() => {
+      errors.assert(false)
+    }).toThrowError()
+  })
+
+  it('should check CancellationError', async () => {
+    let err = new Error('Canceled')
+    err.name = 'Canceled'
+    expect(errors.isCancellationError(err)).toBe(true)
   })
 })
 
@@ -356,20 +463,25 @@ describe('strings', () => {
     expect(strings.smartcaseIndex('abC', 'aaBDefabC')).toBe(6)
   })
 
-  it('should convert to integer', async () => {
+  it('should convert to integer', () => {
     expect(strings.toInteger('a')).toBeUndefined()
     expect(strings.toInteger('1')).toBe(1)
   })
 
-  it('should get parts', async () => {
+  it('should convert to text', async () => {
+    expect(strings.toText(undefined)).toBe('')
+    expect(strings.toText(null)).toBe('')
+  })
+
+  it('should get parts', () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
     expect(res).toEqual(['', 'bar'])
     res = strings.rangeParts('foo\nbar', Range.create(0, 1, 1, 1))
     expect(res).toEqual(['f', 'ar'])
     res = strings.rangeParts('x\nfoo\nbar\ny', Range.create(0, 1, 2, 3))
     expect(res).toEqual(['x', '\ny'])
-    res = strings.rangeParts('foo\nbar', Range.create(1, 0, 1, 1))
-    expect(res).toEqual(['foo\n', 'ar'])
+    res = strings.rangeParts('foo\nbar\nx', Range.create(1, 0, 1, 1))
+    expect(res).toEqual(['foo\n', 'ar\nx'])
   })
 
   it('should equalsIgnoreCase', () => {
@@ -383,25 +495,32 @@ describe('strings', () => {
     expect(strings.equalsIgnoreCase('ÖL', 'Öl')).toBe(true)
   })
 
-  it('should check isWord', async () => {
+  it('should check isWord', () => {
     expect(strings.isWord('_')).toBe(true)
     expect(strings.isWord('0')).toBe(true)
+  })
+
+  it('should doEqualsIgnoreCase', () => {
+    expect(strings.doEqualsIgnoreCase('a', undefined)).toBe(false)
+    expect(strings.doEqualsIgnoreCase('a', 'b')).toBe(false)
+    expect(strings.doEqualsIgnoreCase('你', '的')).toBe(false)
   })
 
   it('should find index', () => {
     expect(strings.indexOf('a,b,c', ',', 2)).toBe(3)
     expect(strings.indexOf('a,b,c', ',', 1)).toBe(1)
-    expect(strings.indexOf('a,b,c', 't', 1)).toBe(-1)
+    expect(strings.indexOf('a,b,c', 't')).toBe(-1)
   })
 
-  it('should upperFirst', async () => {
+  it('should upperFirst', () => {
     expect(strings.upperFirst('')).toBe('')
     expect(strings.upperFirst('abC')).toBe('AbC')
+    expect(strings.upperFirst(undefined)).toBe('')
   })
 })
 
 describe('getSymbolKind()', () => {
-  it('should get symbol kind', async () => {
+  it('should get symbol kind', () => {
     for (let i = 1; i <= 27; i++) {
       expect(getSymbolKind(i as SymbolKind)).toBeDefined()
     }
@@ -469,6 +588,9 @@ describe('parseAnsiHighlights', () => {
     let res = parseAnsiHighlights(text, false)
     expect(res.highlights.length).toBeGreaterThan(0)
     expect(res.highlights[0].hlGroup).toBe('CocListBgRed')
+    text = '\u001b[33m\u001b[mnormal'
+    res = parseAnsiHighlights(text, false)
+    expect(res.highlights.length).toBe(0)
   })
 
   it('should parse foreground and background', async () => {
@@ -537,6 +659,7 @@ describe('Arrays', () => {
 
   it('binarySearch()', async () => {
     let comparator = (a, b) => a - b
+    assert.ok(typeof arrays.binarySearch2 === 'function')
     assert.ok(arrays.binarySearch([1, 2, 3], 2, comparator) == 1)
     assert.ok(arrays.binarySearch([1, 2, 3, 4], 3, comparator) == 2)
     assert.ok(arrays.binarySearch([1, 2, 3, 4], 1, comparator) == 0)
@@ -549,6 +672,10 @@ describe('Arrays', () => {
     assert.deepStrictEqual(arrays.toArray(null), [])
     assert.deepStrictEqual(arrays.toArray(undefined), [])
     assert.deepStrictEqual(arrays.toArray([1, 2]), [1, 2])
+  })
+
+  it('findIndex()', async () => {
+    expect(arrays.findIndex([1, 2, 3, 4], 3, 1)).toBe(2)
   })
 
   it('group()', () => {
@@ -603,6 +730,12 @@ describe('Position', () => {
     expect(positions.compareRangesUsingStarts(r(1, 1, 1, 1), range)).toBeLessThan(0)
     expect(positions.compareRangesUsingStarts(r(3, 3, 3, 4), range)).toBeGreaterThan(0)
     expect(positions.compareRangesUsingStarts(r(4, 0, 4, 1), range)).toBeGreaterThan(0)
+    expect(positions.compareRangesUsingStarts(r(3, 3, 4, 1), range)).toBeGreaterThan(0)
+  })
+
+  test('adjustRangePosition', () => {
+    let pos = Position.create(3, 3)
+    expect(positions.adjustRangePosition(Range.create(0, 0, 1, 0), pos)).toEqual(Range.create(3, 3, 4, 0))
   })
 
   test('rangeInRange', () => {
@@ -668,9 +801,23 @@ describe('utility', () => {
     await wait(-1)
   })
 
+  it('should waitNextTick', async () => {
+    let fn = jest.fn()
+    await waitNextTick(fn)
+    expect(fn).toBeCalled()
+  })
+
   it('should get uri for unknown buftype', async () => {
     let res = getUri('foo', 3, '', false)
     expect(res).toBe('unknown:3')
+    res = getUri('foo', 3, 'terminal', false)
+    expect(res).toEqual('terminal:3')
+    res = getUri(__filename, 3, 'terminal', true)
+    expect(URI.parse(res).fsPath).toBe(__filename)
+  })
+
+  it('should disposeAll', async () => {
+    disposeAll([undefined, undefined])
   })
 
   it('should watch file', async () => {
@@ -683,6 +830,8 @@ describe('utility', () => {
     await helper.waitValue(() => {
       return called
     }, true)
+    disposable.dispose()
+    disposable = watchFile('file_not_exists', () => {}, true)
     disposable.dispose()
   })
 
@@ -777,11 +926,15 @@ describe('score test', () => {
     let a = fzy.score("amuser", "app/models/user.rb")
     let b = fzy.score("amuser", "app/models/customer.rb")
     expect(a).toBeGreaterThan(b)
+    expect(fzy.score('', '')).toBe(-Infinity)
+    expect(fzy.score('a', 'x'.repeat(2048))).toBe(-Infinity)
   })
 
   it('fzy#positions', async () => {
     let arr = fzy.positions("amuser", "app/models/user.rb")
     expect(arr).toEqual([0, 4, 11, 12, 13, 14])
+    arr = fzy.positions("amuser", 'x'.repeat(1025))
+    expect(arr).toEqual([])
   })
 
   it('fzy#groupPositions', async () => {
@@ -833,6 +986,10 @@ describe('object test', () => {
     expect(res).toEqual({})
     res = objects.mixin({ x: 1 }, { x: 2 }, false)
     expect(res).toEqual({ x: 1 })
+    res = objects.mixin(Date, {})
+    expect(res).toEqual({})
+    res = objects.mixin({ x: 3, y: new Date() }, { y: 4 }, true)
+    expect(res).toEqual({ x: 3, y: 4 })
   })
 
   it('should deep clone', async () => {
@@ -1104,116 +1261,10 @@ describe('diff', () => {
       let res = diff.patchLine('foo', 'bar foo bar')
       expect(res.length).toBe(7)
       expect(res).toBe('    foo')
-    })
-  })
-
-  describe('should get text edits', () => {
-
-    function applyEdits(oldStr: string, newStr: string): void {
-      let doc = TextDocument.create('untitled://1', 'markdown', 0, oldStr)
-      let change = diff.getChange(doc.getText(), newStr)
-      let start = doc.positionAt(change.start)
-      let end = doc.positionAt(change.end)
-      let edit: TextEdit = {
-        range: { start, end },
-        newText: change.newText
-      }
-      let res = TextDocument.applyEdits(doc, [edit])
-      expect(res).toBe(newStr)
-    }
-
-    it('should get diff for comments ', async () => {
-      let oldStr = '/*\n *\n * \n'
-      let newStr = '/*\n *\n *\n * \n'
-      let doc = TextDocument.create('untitled://1', 'markdown', 0, oldStr)
-      let change = diff.getChange(doc.getText(), newStr, 1)
-      let start = doc.positionAt(change.start)
-      let end = doc.positionAt(change.end)
-      let edit: TextEdit = {
-        range: { start, end },
-        newText: change.newText
-      }
-      let res = TextDocument.applyEdits(doc, [edit])
-      expect(res).toBe(newStr)
-    })
-
-    it('should return null for same content', () => {
-      let change = diff.getChange('', '')
-      expect(change).toBeNull()
-      change = diff.getChange('abc', 'abc')
-      expect(change).toBeNull()
-    })
-
-    it('should get diff for added', () => {
-      applyEdits('1\n2', '1\n2\n3\n4')
-    })
-
-    it('should get diff for added #0', () => {
-      applyEdits('\n\n', '\n\n\n')
-    })
-
-    it('should get diff for added #1', () => {
-      applyEdits('1\n2\n3', '5\n1\n2\n3')
-    })
-
-    it('should get diff for added #2', () => {
-      applyEdits('1\n2\n3', '1\n2\n4\n3')
-    })
-
-    it('should get diff for added #3', () => {
-      applyEdits('1\n2\n3', '4\n1\n2\n3\n5')
-    })
-
-    it('should get diff for added #4', () => {
-      applyEdits(' ', '   ')
-    })
-
-    it('should get diff for replace', () => {
-      applyEdits('1\n2\n3\n4\n5', '1\n5\n3\n6\n7')
-    })
-
-    it('should get diff for replace #1', () => {
-      applyEdits('1\n2\n3\n4\n5', '1\n5\n3\n6\n7')
-    })
-
-    it('should get diff for remove #0', () => {
-      applyEdits('1\n2\n3\n4', '1\n4')
-    })
-
-    it('should get diff for remove #1', () => {
-      applyEdits('1\n2\n3\n4', '1')
-    })
-
-    it('should get diff for remove #2', () => {
-      applyEdits('  ', ' ')
-    })
-
-    it('should prefer cursor position for change', async () => {
-      let res = diff.getChange(' int n', ' n', 0)
-      expect(res).toEqual({ start: 1, end: 5, newText: '' })
-      res = diff.getChange(' int n', ' n')
-      expect(res).toEqual({ start: 0, end: 4, newText: '' })
-    })
-
-    it('should prefer next line for change', async () => {
-      let res = diff.getChange('a\nb', 'a\nc\nb')
-      expect(res).toEqual({ start: 2, end: 2, newText: 'c\n' })
-      applyEdits('a\nb', 'a\nc\nb')
-    })
-
-    it('should prefer previous line for change', async () => {
-      let res = diff.getChange('\n\na', '\na')
-      expect(res).toEqual({ start: 0, end: 1, newText: '' })
-    })
-
-    it('should consider cursor', () => {
-      let res = diff.getChange('\n\n\n', '\n\n\n\n', 1)
-      expect(res).toEqual({ start: 2, end: 2, newText: '\n' })
-    })
-
-    it('should get minimal diff', () => {
-      let res = diff.getChange('foo\nbar', 'fab\nbar', 2)
-      expect(res).toEqual({ start: 1, end: 3, newText: 'ab' })
+      res = diff.patchLine('foo', 'foo')
+      expect(res).toBe('foo')
+      res = diff.patchLine('foo', 'oo')
+      expect(res).toBe('oo')
     })
   })
 
@@ -1231,6 +1282,7 @@ describe('diff', () => {
 
   describe('async', () => {
     it('should do async filter', async () => {
+      await filter([], () => true, () => {})
       await filter([{ label: 'a' }, { label: 'b' }, { label: 'c' }], v => {
         return { code: v.label.charCodeAt(0) }
       }, (items, done) => {
@@ -1251,6 +1303,26 @@ describe('diff', () => {
       expect(n).toBe(3)
       expect(res).toEqual(['a', 'b', 'c'])
       expect(finished).toEqual(true)
+    })
+
+    it('should cancel filter when possible', async () => {
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      process.nextTick(() => {
+        tokenSource.cancel()
+      })
+      await filter([1, 2, 3, 4, 5, 6, 7, 8], i => {
+        if (i > 1) {
+          let ts = Date.now()
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            if (Date.now() - ts > 40) break
+          }
+        }
+        return true
+      }, (_, done) => {
+        expect(done).toBeFalsy()
+      }, token)
     })
   })
 })

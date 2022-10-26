@@ -7440,6 +7440,10 @@ declare module 'coc.nvim' {
     export function getConfiguration(section?: string, scope?: ConfigurationScope): WorkspaceConfiguration
 
     /**
+     * Resolve internal json schema, uri should starts with `vscode://`
+     */
+    export function resolveJSONSchema(uri: string): any
+    /**
      * Get created document by uri or bufnr.
      */
     export function getDocument(uri: number | string): Document
@@ -8937,11 +8941,6 @@ declare module 'coc.nvim' {
      * Check if extension is activated.
      */
     export function isActivated(id: string): boolean
-
-    /**
-     * Dynamic add custom json schemes without using package.json.
-     */
-    export function addSchemeProperty(key: string, def: PropertyScheme): void
   }
   // }}
 

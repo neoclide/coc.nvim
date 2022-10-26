@@ -60,68 +60,6 @@ export function diffLines(oldLines: ReadonlyArray<string>, newLines: ReadonlyArr
   }
 }
 
-export function getChange(oldStr: string, newStr: string, cursorEnd?: number): Change {
-  let ol = oldStr.length
-  let nl = newStr.length
-  let max = Math.min(ol, nl)
-  let newText = ''
-  let startOffset = 0
-  let endOffset = -1
-  let shouldLimit = false
-  // find first endOffset, could <= this. one
-  for (let i = 0; i <= max; i++) {
-    if (cursorEnd != null && i == cursorEnd) {
-      endOffset = i
-      shouldLimit = true
-      break
-    }
-    if (oldStr[ol - i - 1] != newStr[nl - i - 1]) {
-      endOffset = i
-      break
-    }
-  }
-  if (endOffset == -1) return null
-  // find start offset
-  let remain = max - endOffset
-  if (remain == 0) {
-    startOffset = 0
-  } else {
-    for (let i = 0; i <= remain; i++) {
-      if (oldStr[i] != newStr[i] || i == remain) {
-        startOffset = i
-        break
-      }
-    }
-  }
-  // limit to minimal change
-  remain = remain - startOffset
-  if (shouldLimit && remain > 0) {
-    let end = endOffset
-    for (let i = 0; i < remain; i++) {
-      let oc = oldStr[ol - end - 1 - i]
-      let nc = newStr[nl - end - 1 - i]
-      if (oc == nc) {
-        endOffset = endOffset + 1
-      } else {
-        break
-      }
-    }
-  }
-  let end = ol - endOffset
-  if (ol == nl && startOffset == end) return null
-  newText = newStr.slice(startOffset, nl - endOffset)
-  // optimize for add new line(s)
-  if (startOffset == end) {
-    let pre = startOffset == 0 ? '' : newStr[startOffset - 1]
-    if (pre && pre != '\n'
-      && oldStr[startOffset] == '\n'
-      && newText.startsWith('\n')) {
-      return { start: startOffset + 1, end: end + 1, newText: newText.slice(1) + '\n' }
-    }
-  }
-  return { start: startOffset, end, newText }
-}
-
 export function patchLine(from: string, to: string, fill = ' '): string {
   if (from == to) return to
   let idx = to.indexOf(from)

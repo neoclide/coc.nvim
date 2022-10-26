@@ -43,6 +43,31 @@ describe('LinesTextDocument', () => {
     expect(res).toEqual(['use std::io::{Result, Error};'])
   })
 
+  it('should throw for overlapping edits', async () => {
+    let textDocument = new LinesTextDocument('', '', 1, [
+      'use std::io::Result;'
+    ], 1, true)
+    let edits = [
+      { range: { start: { line: 0, character: 1 }, end: { line: 0, character: 3 } }, newText: "foo" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 0, character: 5 } }, newText: "new" }
+    ]
+    expect(() => {
+      applyEdits(textDocument, edits)
+    }).toThrow()
+  })
+
+  it('should return undefined when not changed', async () => {
+    let textDocument = new LinesTextDocument('', '', 1, [
+      'foo bar'
+    ], 1, true)
+    let edits = [
+      { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } }, newText: "f" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 0, character: 3 } }, newText: "o" }
+    ]
+    let res = applyEdits(textDocument, edits)
+    expect(res).toBeUndefined()
+  })
+
   it('should get length', async () => {
     let doc = createTextDocument(['foo'])
     expect(doc.length).toBe(4)

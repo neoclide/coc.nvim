@@ -4,11 +4,44 @@ import { URI } from 'vscode-uri'
 import fs from 'fs'
 import path from 'path'
 import extensions from '../extension'
-import { HandlerDelegate, PatternType, WorkspaceConfiguration } from '../types'
+import { HandlerDelegate, PatternType, ProviderName, WorkspaceConfiguration } from '../types'
 import workspace from '../workspace'
+import window from '../window'
 import snippetManager from '../snippets/manager'
+import Highligher from '../model/highligher'
+import languages from '../languages'
 const logger = require('../util/logger')('handler-workspace')
 declare const REVISION
+
+export const PROVIDER_NAMES: ProviderName[] = [
+  'formatOnType',
+  'rename',
+  'onTypeEdit',
+  'documentLink',
+  'documentColor',
+  'foldingRange',
+  'format',
+  'codeAction',
+  'formatRange',
+  'hover',
+  'signature',
+  'documentSymbol',
+  'documentHighlight',
+  'definition',
+  'declaration',
+  'typeDefinition',
+  'reference',
+  'implementation',
+  'codeLens',
+  'selectionRange',
+  'callHierarchy',
+  'semanticTokens',
+  'semanticTokensRange',
+  'linkedEditing',
+  'inlayHint',
+  'inlineValue',
+  'typeHierarchy',
+]
 
 interface RootPatterns {
   buffer: string[]
@@ -26,6 +59,36 @@ export default class WorkspaceHandler {
   public async openLog(): Promise<void> {
     let file = logger.logfile
     await workspace.jumpTo(URI.file(file).toString())
+  }
+
+  public async bufferCheck(): Promise<void> {
+    let doc = await workspace.document
+    if (!doc.attached) {
+      await window.showDialog({
+        title: 'Buffer check result',
+        content: `Document not attached, ${doc.notAttachReason}`,
+        highlight: 'WarningMsg'
+      })
+      return
+    }
+    let hi = new Highligher()
+    hi.addLine('Provider state', 'Title')
+    hi.addLine('')
+    for (let name of PROVIDER_NAMES) {
+      let exists = languages.hasProvider(name as ProviderName, doc.textDocument)
+      hi.addTexts([
+        { text: '-', hlGroup: 'Comment' },
+        { text: ' ' },
+        exists ? { text: '✓', hlGroup: 'CocListFgGreen' } : { text: '✗', hlGroup: 'CocListFgRed' },
+        { text: ' ' },
+        { text: name, hlGroup: exists ? 'Normal' : 'CocFadeOut' }
+      ])
+    }
+    await window.showDialog({
+      title: 'Buffer check result',
+      content: hi.content,
+      highlights: hi.highlights
+    })
   }
 
   public async doAutocmd(id: number, args: any[]): Promise<void> {

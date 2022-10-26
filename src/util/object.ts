@@ -7,6 +7,10 @@ export function isEmpty(obj: object | null | undefined): boolean {
   return Object.keys(obj).length == 0
 }
 
+export function toObject(obj: object | null | undefined): object {
+  return obj == null ? {} : obj
+}
+
 export function omitUndefined(obj: object): object {
   const result: any = {}
   Object.entries(obj).forEach(([key, val]) => {
@@ -60,12 +64,10 @@ export function deepFreeze<T>(obj: T): T {
   while (stack.length > 0) {
     let obj = stack.shift()
     Object.freeze(obj)
-    for (const key in obj) {
-      if (_hasOwnProperty.call(obj, key)) {
-        let prop = obj[key]
-        if (typeof prop === 'object' && !Object.isFrozen(prop)) {
-          stack.push(prop)
-        }
+    for (const key of Object.keys(obj)) {
+      let prop = obj[key]
+      if (typeof prop === 'object' && !Object.isFrozen(prop)) {
+        stack.push(prop)
       }
     }
   }

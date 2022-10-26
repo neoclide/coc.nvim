@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import events from '../../events'
-import manager from '../../list/manager'
+import manager, { createConfigurationNode } from '../../list/manager'
 import window from '../../window'
 import { IList, QuickfixItem } from '../../types'
 import { toArray } from '../../util/array'
@@ -42,6 +42,14 @@ afterAll(async () => {
 })
 
 describe('list', () => {
+  describe('createConfigurationNode', () => {
+    it('should createConfigurationNode', async () => {
+      expect(createConfigurationNode('foo', true)).toBeDefined()
+      expect(createConfigurationNode('bar', false)).toBeDefined()
+      expect(createConfigurationNode('foo', false, 'id')).toBeDefined()
+    })
+  })
+
   describe('events', () => {
     it('should cancel and enable prompt', async () => {
       let winid = await nvim.call('win_getid')
@@ -72,7 +80,9 @@ describe('list', () => {
           return Promise.resolve(item)
         }
       }
+      global.__TEST__ = false
       let disposable = manager.registerList(list)
+      global.__TEST__ = true
       await manager.start(['--normal', '--no-quit', 'test'])
       await manager.session.ui.ready
       let id = await nvim.eval('win_getid()') as number
@@ -266,7 +276,7 @@ describe('list', () => {
           return Promise.resolve(item)
         }
       }
-      let disposable = manager.registerList(list)
+      let disposable = manager.registerList(list, true)
       await manager.start(['--normal', 'test'])
       await manager.session.ui.ready
       await helper.waitFor('getline', ['.'], 'f')
@@ -388,7 +398,7 @@ describe('list', () => {
         defaultAction: 'open',
         loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'bar' }])
       }
-      manager.registerList(list)
+      manager.registerList(list, true)
       await manager.start(['test'])
       await manager.session.ui.ready
       await manager.first('a')
@@ -412,9 +422,9 @@ describe('list', () => {
         defaultAction: 'open',
         loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'bar' }])
       }
-      manager.registerList(list)
+      manager.registerList(list, true)
       helper.updateConfiguration('list.source.test.defaultAction', 'open')
-      let disposable = manager.registerList(list)
+      let disposable = manager.registerList(list, true)
       disposable.dispose()
       await helper.waitValue(async () => {
         let msg = await helper.getCmdline()
@@ -437,7 +447,7 @@ describe('list', () => {
           throw new Error('test error')
         }
       }
-      manager.registerList(list)
+      manager.registerList(list, true)
       await manager.start(['test'])
       await helper.wait(20)
     })

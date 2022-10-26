@@ -4,7 +4,7 @@ import path from 'path'
 import { v1 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import Configurations from '../../configuration'
+import Configurations, { folderSettingsSchemaId, userSettingsSchemaId } from '../../configuration'
 import { ConfigurationModel } from '../../configuration/model'
 import ConfigurationProxy from '../../configuration/shape'
 import { FolderConfigutions } from '../../configuration/configuration'
@@ -12,6 +12,7 @@ import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
 import { CONFIG_FILE_NAME, disposeAll, wait } from '../../util'
 import { remove } from '../../util/fs'
 import helper from '../helper'
+import { resourceLanguageSettingsSchemaId } from '../../configuration/registry'
 
 const workspaceConfigFile = path.resolve(__dirname, `../sample/.vim/${CONFIG_FILE_NAME}`)
 
@@ -130,23 +131,14 @@ describe('Configurations', () => {
     })
   })
 
-  describe('loadDefaultConfigurations', () => {
-    it('should not throw', async () => {
-      let fn = fs.readFileSync
-      let spy = jest.spyOn(fs, 'readFileSync').mockImplementation((path, opt) => {
-        if (typeof path === 'string' && path.endsWith('/data/schema.json')) {
-          return '{"properties":{"x":{"default":1},"x.y":{"default":{}}}}'
-        }
-        return fn(path, opt)
-      })
-      let called = false
-      let s = jest.spyOn(console, 'error').mockImplementation(() => {
-        called = true
-      })
-      new Configurations(undefined, undefined, true, os.homedir())
-      s.mockRestore()
-      spy.mockRestore()
-      expect(called).toBe(true)
+  describe('getJSONSchema()', () => {
+    it('should getJSONSchema', () => {
+      let userConfigFile = path.join(__dirname, '.vim/coc-settings.json')
+      let conf = new Configurations(userConfigFile, undefined)
+      expect(conf.getJSONSchema(userSettingsSchemaId)).toBeDefined()
+      expect(conf.getJSONSchema(folderSettingsSchemaId)).toBeDefined()
+      expect(conf.getJSONSchema(resourceLanguageSettingsSchemaId)).toBeDefined()
+      expect(conf.getJSONSchema('vscode://not_exists')).toBeUndefined()
     })
   })
 
@@ -289,29 +281,6 @@ describe('Configurations', () => {
       let value = configurations.configuration.getValue(undefined, {})
       expect(value.foo).toBeDefined()
       expect(value.foo.bar).toBe(1)
-    })
-
-    it('should extends defaults', () => {
-      let configurations = createConfigurations()
-      disposables.push(configurations)
-      configurations.extendsDefaults({ 'a.b': 1 })
-      configurations.extendsDefaults({ 'a.b': 2 })
-      let o = configurations.configuration.defaults.contents
-      expect(o.a.b).toBe(2)
-      configurations.configuration.defaults.freeze()
-      configurations.extendsDefaults({ 'a.b': 3 })
-      o = configurations.configuration.defaults.contents
-      expect(o.a.b).toBe(3)
-    })
-
-    it('should not extends builtin keys', async () => {
-      let configurations = new Configurations(undefined, {
-        modifyConfiguration: async () => {}
-      })
-      disposables.push(configurations)
-      configurations.extendsDefaults({ 'npm.binPath': 'cnpm' }, 'test')
-      let o = configurations.configuration.defaults.contents
-      expect(o.npm.binPath).toBe('npm')
     })
 
     it('should update configuration', async () => {

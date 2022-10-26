@@ -20,8 +20,6 @@ declare let process: INodeProcess
 declare let global: any
 declare let self: any
 
-export const language = 'en'
-
 // OS detection
 if (
   typeof process === 'object' &&
@@ -58,14 +56,6 @@ export const isLinux = _isLinux
 export const isNative = _isNative
 export const isWeb = _isWeb
 export const platform = _platform
-
-const _globals =
-  typeof self === 'object'
-    ? self
-    : typeof global === 'object'
-      ? global
-      : ({} as any)
-export const globals: any = _globals
 
 export const enum OperatingSystem {
   Windows = 1,

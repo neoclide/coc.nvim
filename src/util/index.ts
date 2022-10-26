@@ -3,7 +3,7 @@ import { ChildProcess, exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
 import path from 'path'
-import { Disposable, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import which from 'which'
 import { isUrl } from './is'
@@ -14,13 +14,6 @@ const logger = require('./logger')('util-index')
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 
 export const CONFIG_FILE_NAME = 'coc-settings.json'
-
-export function isMarkdown(content: MarkupContent | string | undefined): boolean {
-  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
-    return true
-  }
-  return false
-}
 
 export function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve(undefined)
@@ -59,9 +52,7 @@ export function getUri(fullpath: string, id: number, buftype: string, isCygwin: 
 export function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {
     const item = disposables.pop()
-    if (item) {
-      item.dispose()
-    }
+    item?.dispose()
   }
 }
 
@@ -151,7 +142,7 @@ export function delay(func: () => void, defaultDelay: number): ((ms?: number) =>
   Object.defineProperty(fn, 'clear', {
     get: () => {
       return () => {
-        if (timer) clearTimeout(timer)
+        clearTimeout(timer)
       }
     }
   })

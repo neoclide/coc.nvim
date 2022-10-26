@@ -113,9 +113,12 @@ export class Extensions {
     return this.manager.getExtension(id)
   }
 
-  public addSchemeProperty(key: string, def: PropertyScheme, id?: string): void {
+  /**
+   * @deprecated
+   */
+  public addSchemeProperty(key: string, def: PropertyScheme): void {
     this._additionalSchemes[key] = def
-    workspace.configurations.extendsDefaults({ [key]: def.default }, id)
+    // workspace.configurations.extendsDefaults({ [key]: def.default }, id)
   }
 
   /**

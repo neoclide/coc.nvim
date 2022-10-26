@@ -106,10 +106,7 @@ export class Configuration {
   }
 
   public hasFolder(folder: string): boolean {
-    for (let p of this._folderConfigurations.keys) {
-      if (sameFile(p, folder)) return true
-    }
-    return false
+    return this._folderConfigurations.has(folder)
   }
 
   public addFolderConfiguration(folder: string, model: ConfigurationModel, resource?: string): void {

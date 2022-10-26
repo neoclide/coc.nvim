@@ -26,12 +26,36 @@ afterEach(async () => {
 })
 
 describe('Workspace handler', () => {
+  async function checkFloat(content: string) {
+    let win = await helper.getFloat()
+    expect(win).toBeDefined()
+    let buf = await win.buffer
+    let lines = await buf.lines
+    expect(lines.join('\n')).toMatch(content)
+  }
+
   describe('methods', () => {
     it('should check env on vim resized', async () => {
       await events.fire('VimResized', [80, 80])
       expect(workspace.env.columns).toBe(80)
       await events.fire('VimResized', [160, 80])
       expect(workspace.env.columns).toBe(160)
+    })
+
+    it('should should error message for document not attached', async () => {
+      await nvim.command('edit t|let b:coc_enabled = 0')
+      await handler.bufferCheck()
+      await checkFloat('not attached')
+      await nvim.call('coc#float#close_all', [])
+      await nvim.command('edit +setl\\ buftype=nofile b')
+      await handler.bufferCheck()
+      await checkFloat('not attached')
+      await nvim.call('coc#float#close_all', [])
+      helper.updateConfiguration('coc.preferences.maxFileSize', '1KB')
+      await helper.edit(__filename)
+      await handler.bufferCheck()
+      await checkFloat('not attached')
+      await nvim.call('coc#float#close_all', [])
     })
 
     it('should check json extension', async () => {
