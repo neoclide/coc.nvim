@@ -543,8 +543,9 @@ export class ExtensionManager {
 export function getEvents(activationEvents: string[] | undefined): string[] {
   let res: string[] = []
   for (let ev of activationEvents ?? []) {
-    let name = ev.split(':')[0]
+    let [name, command] = ev.split(':', 2)
     if (name && !res.includes(name)) res.push(name)
+    if (name === 'onCommand' && command) commandManager.onCommandList.push(command)
   }
   return res
 }
