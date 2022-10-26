@@ -10,6 +10,7 @@ import { caseMatch, fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import workspace from '../workspace'
 const logger = require('../util/logger')('sources-source')
 const WORD_PREFIXES = ['_', '$', '-']
+const WORD_PREFIXES_CODE = [95, 36, 45]
 const ASCII_END = 128
 const MAX_DURATION = global.__TEST__ ? 20 : 80
 const MAX_COUNT = 50
@@ -207,7 +208,7 @@ export default class Source implements ISource {
 
 export function firstMatchFuzzy(firstCode: number, ascii: boolean, word: string) {
   let ch = word[0]
-  if (ascii && WORD_PREFIXES.includes(ch)) ch = word[1]
+  if (ascii && !WORD_PREFIXES_CODE.includes(firstCode) && WORD_PREFIXES.includes(ch)) ch = word[1]
   if (ascii && ch.charCodeAt(0) > ASCII_END) ch = unidecode(ch)
   return caseMatch(firstCode, ch.charCodeAt(0))
 }
