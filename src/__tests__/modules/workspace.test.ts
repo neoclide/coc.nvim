@@ -398,6 +398,7 @@ describe('workspace utility', () => {
     let disposables = []
     disposables.push(workspace.registerAutocmd({
       event: 'TextYankPost',
+      request: true,
       arglist: ['v:event'],
       callback: ev => {
         eventCount += 1

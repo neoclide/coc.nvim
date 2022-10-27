@@ -111,7 +111,6 @@ class ServiceManager implements Disposable {
     let { id } = service
     if (this.registered.get(id)) return
     this.registered.set(id, service)
-    logger.info(`registered service "${id}"`)
     if (this.shouldStart(service)) {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       service.start()

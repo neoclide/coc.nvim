@@ -31,6 +31,7 @@ import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationResourceScope, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IConfigurationChangeEvent, IWorkspace, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { parseExtensionName } from './util/extensionRegistry'
 import { CONFIG_FILE_NAME } from './util/index'
 import { IJSONSchema } from './util/jsonSchema'
 import { runCommand } from './util/processes'
@@ -285,6 +286,10 @@ export class Workspace implements IWorkspace {
    * Register autocmd on vim.
    */
   public registerAutocmd(autocmd: Autocmd): Disposable {
+    if (autocmd.request) {
+      let name = parseExtensionName(Error().stack)
+      logger.warn(`Extension "${name}" registered synchronized autocmd "${autocmd.event}", which could be slow.`)
+    }
     return this.autocmds.registerAutocmd(autocmd)
   }
 
