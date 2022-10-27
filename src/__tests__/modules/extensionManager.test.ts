@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Watchman from '../../core/watchman'
 import events from '../../events'
-import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, toWorkspaceContinsPatterns } from '../../extension/manager'
+import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContinsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
 import { disposeAll } from '../../util'
 import { writeJson } from '../../util/fs'
@@ -44,6 +44,12 @@ describe('utils', () => {
     expect(getEvents(undefined)).toEqual([])
     expect(getEvents(['a', 'b'])).toEqual(['a', 'b'])
     expect(getEvents(['x:y', 'x:z'])).toEqual(['x'])
+  })
+
+  it('should get onCommand list', async () => {
+    let res = getOnCommandList(['onCommand:a', 'onCommand', 'onCommand:b'])
+    expect(res).toEqual(['a', 'b'])
+    expect(getOnCommandList(undefined)).toEqual([])
   })
 
   it('should getActivationEvents', async () => {

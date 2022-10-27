@@ -258,7 +258,7 @@ describe('window', () => {
     })
 
     it('should not throw when workspace folder does not exist', async () => {
-      helper.updateConfiguration('coc.preferences.rootPatterns', [])
+      helper.updateConfiguration('workspace.rootPatterns', [])
       helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'])
       await nvim.command('enew')
       await window.openLocalConfig()

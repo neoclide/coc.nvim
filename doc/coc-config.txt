@@ -1420,6 +1420,13 @@ TypeHierarchy~
 ------------------------------------------------------------------------------
 Workspace~
 							*coc-config-workspace*
+"workspace.rootPatterns"				*coc-configu-workspace-rootPatterns*
+
+	Root patterns to resolve workspaceFolder from parent folders of opened
+	files, resolved from up to down.
+
+	Scope: `application`, default: `[".git",".hg",".projections.json"]`
+
 "workspace.bottomUpFiletypes"				*coc-config-workspace-bottomUpFiletypes*
 
 	Filetypes that should have workspace folder should resolved from base 
@@ -1574,13 +1581,6 @@ Preferences~
 	with old name in the New Name field.
 
 	Scope: `application`, default: `true`
-
-"coc.preferences.rootPatterns"				*coc-preferences-rootPatterns*
-
-	Root patterns to resolve workspaceFolder from parent folders of opened
-	files, resolved from up to down.
-
-	Scope: `application`, default: `[".git",".hg",".projections.json"]`
 
 "coc.preferences.silentAutoupdate"			*coc-preferences-silentAutoupdate*
 

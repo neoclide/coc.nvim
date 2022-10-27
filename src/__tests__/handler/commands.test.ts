@@ -48,7 +48,7 @@ describe('Commands', () => {
 
   describe('getCommands', () => {
     it('should get command items', async () => {
-      let res = commands.getCommands()
+      let res = await helper.doAction('commands')
       let idx = res.findIndex(o => o.id == 'workspace.showOutput')
       expect(idx != -1).toBe(true)
     })

@@ -16,6 +16,9 @@ import path from 'path'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { writeHeapSnapshot } from 'v8'
+import { Registry } from './util/registry'
+import { IExtensionRegistry, Extensions as ExtensionsInfo } from './util/extensionRegistry'
+import { toText } from './util/string'
 
 const logger = require('./util/logger')('commands')
 
@@ -45,10 +48,11 @@ class CommandItem implements Disposable, Command {
   }
 }
 
+const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
+
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
   public titles = new Map<string, string>()
-  public onCommandList: string[] = []
   private mru: Mru
 
   public init(nvim: Neovim, plugin: Plugin): void {
@@ -327,10 +331,14 @@ export class CommandManager implements Disposable {
     }, false, 'Generates a snapshot of the current V8 heap and writes it to a JSON file.')
   }
 
-  public get commandList(): CommandItem[] {
-    let res: CommandItem[] = []
+  public get commandList(): { id: string, title: string }[] {
+    let res: { id: string, title: string }[] = []
     for (let item of this.commands.values()) {
-      if (!item.internal) res.push(item)
+      if (!item.internal) {
+        let { id } = item
+        let title = this.titles.get(id) ?? extensionRegistry.getCommandTitle(id)
+        res.push({ id, title: toText(title) })
+      }
     }
     return res
   }

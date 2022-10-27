@@ -37,7 +37,6 @@ export class Extensions {
   public readonly manager: ExtensionManager
   public readonly states: ExtensionStat
   public readonly modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
-  private _additionalSchemes: { [key: string]: PropertyScheme } = {}
   constructor() {
     checkExtensionRoot(EXTENSIONS_FOLDER)
     this.states = new ExtensionStat(EXTENSIONS_FOLDER)
@@ -91,10 +90,6 @@ export class Extensions {
     return this.manager.onDidUnloadExtension
   }
 
-  public get schemes(): { [key: string]: PropertyScheme } {
-    return this._additionalSchemes
-  }
-
   private get outputChannel(): OutputChannel {
     return window.createOutputChannel('extensions')
   }
@@ -115,10 +110,16 @@ export class Extensions {
   }
 
   /**
-   * @deprecated
+   * @deprecated Used by old version coc-json.
+   */
+  public get schemes(): { [key: string]: PropertyScheme } {
+    return {}
+  }
+
+  /**
+   * @deprecated Used by old version coc-json.
    */
   public addSchemeProperty(key: string, def: PropertyScheme): void {
-    this._additionalSchemes[key] = def
     // workspace.configurations.extendsDefaults({ [key]: def.default }, id)
   }
 

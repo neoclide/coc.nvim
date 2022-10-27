@@ -129,19 +129,17 @@ describe('WorkspaceFolderController', () => {
       expect(res).toEqual(['foo'])
     })
 
-    it('should get patterns from languageserver', async () => {
-      updateConfiguration('languageserver', {
+    it('should add patterns from languageserver', () => {
+      workspaceFolder.addServerRootPatterns({
         test: {
           filetypes: ['vim'],
           rootPatterns: ['bar']
         }
-      }, {})
+      })
       workspaceFolder.addRootPattern('vim', ['foo'])
-      await nvim.command('edit t.vim')
-      await nvim.command('setf vim')
-      let doc = await workspace.document
-      let res = workspaceFolder.getRootPatterns(doc, PatternType.LanguageServer)
-      expect(res).toEqual(['bar', 'foo'])
+      let res = workspaceFolder.getServerRootPatterns('vim')
+      expect(res.includes('foo')).toBe(true)
+      expect(res.includes('bar')).toBe(true)
     })
 
     it('should get patterns from user configuration', async () => {
@@ -158,7 +156,7 @@ describe('WorkspaceFolderController', () => {
     }
 
     it('should resolve to cwd for file in cwd', async () => {
-      updateConfiguration('coc.preferences.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
       let file = path.join(os.tmpdir(), 'foo')
       await nvim.command(`edit ${file}`)
       let doc = await workspace.document
@@ -167,7 +165,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should not fallback to cwd as workspace folder', async () => {
-      updateConfiguration('coc.preferences.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)
       let file = path.join(os.tmpdir(), 'foo')
       await nvim.command(`edit ${file}`)
@@ -221,38 +219,31 @@ describe('WorkspaceFolderController', () => {
       expect(res).toBe(null)
     })
 
-    describe('bottomUpFileTypes', () => {
-      it('should respect specific filetype', async () => {
-        updateConfiguration('coc.preferences.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
-        updateConfiguration('workspace.bottomUpFiletypes', ['vim'], [])
-        let root = path.join(os.tmpdir(), 'a')
-        let dir = path.join(root, '.vim')
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true })
-        }
-        let file = path.join(dir, 'foo.vim')
-        await nvim.command(`edit ${file}`)
-        let doc = await workspace.document
-        expect(doc.filetype).toBe('vim')
-        let res = workspaceFolder.resolveRoot(doc, file, true, expand)
-        expect(res).toBe(root)
-      })
+    it('should respect specific filetype for bottomUpFileTypes', async () => {
+      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.bottomUpFiletypes', ['vim'], [])
+      let root = path.join(os.tmpdir(), 'a')
+      let dir = path.join(root, '.vim')
+      fs.mkdirSync(dir, { recursive: true })
+      let file = path.join(dir, 'foo.vim')
+      await nvim.command(`edit ${file}`)
+      let doc = await workspace.document
+      expect(doc.filetype).toBe('vim')
+      let res = workspaceFolder.resolveRoot(doc, file, true, expand)
+      expect(res).toBe(root)
+    })
 
-      it('should respect wildcard', async () => {
-        updateConfiguration('coc.preferences.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
-        updateConfiguration('workspace.bottomUpFiletypes', ['*'], [])
-        let root = path.join(os.tmpdir(), 'a')
-        let dir = path.join(root, '.vim')
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true })
-          await helper.wait(30)
-        }
-        let file = path.join(dir, 'foo')
-        await nvim.command(`edit ${file}`)
-        let doc = await workspace.document
-        let res = workspaceFolder.resolveRoot(doc, file, true, expand)
-        expect(res).toBe(root)
-      })
+    it('should respect wildcard', async () => {
+      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.bottomUpFiletypes', ['*'], [])
+      let root = path.join(os.tmpdir(), 'a')
+      let dir = path.join(root, '.vim')
+      fs.mkdirSync(dir, { recursive: true })
+      let file = path.join(dir, 'foo')
+      await nvim.command(`edit ${file}`)
+      let doc = await workspace.document
+      let res = workspaceFolder.resolveRoot(doc, file, true, expand)
+      expect(res).toBe(root)
     })
   })
 

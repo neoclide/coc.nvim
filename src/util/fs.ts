@@ -133,7 +133,7 @@ function isFolderIgnored(folder: string, ignored: string[] | undefined): boolean
   return ignored.some(p => minimatch(folder, p, { dot: true }))
 }
 
-export function resolveRoot(folder: string, subs: string[], cwd?: string, bottomup = false, checkCwd = true, ignored: string[] = []): string | null {
+export function resolveRoot(folder: string, subs: ReadonlyArray<string>, cwd?: string, bottomup = false, checkCwd = true, ignored: string[] = []): string | null {
   let dir = normalizeFilePath(folder)
   if (checkCwd
     && cwd
@@ -199,7 +199,7 @@ export function checkFolder(dir: string, patterns: string[], token?: Cancellatio
   })
 }
 
-export function inDirectory(dir: string, subs: string[]): boolean {
+export function inDirectory(dir: string, subs: ReadonlyArray<string>): boolean {
   try {
     let files = fs.readdirSync(dir)
     for (let pattern of subs) {

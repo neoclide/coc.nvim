@@ -44,9 +44,9 @@ export const PROVIDER_NAMES: ProviderName[] = [
 ]
 
 interface RootPatterns {
-  buffer: string[]
-  server: string[]
-  global: string[]
+  buffer: ReadonlyArray<string>
+  server: ReadonlyArray<string>
+  global: ReadonlyArray<string>
 }
 
 export default class WorkspaceHandler {

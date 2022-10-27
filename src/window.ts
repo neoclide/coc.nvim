@@ -281,7 +281,7 @@ export class Window {
     }
     let folder = this.workspace.getWorkspaceFolder(URI.file(fsPath).toString())
     if (!folder) {
-      let c = this.workspace.getConfiguration('coc.preferences')
+      let c = this.workspace.getConfiguration('workspace')
       let patterns = c.get<string[]>('rootPatterns', [])
       let w = this.workspace.getConfiguration('workspace')
       let ignored = w.get<string[]>('ignoredFiletypes', [])

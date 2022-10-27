@@ -408,11 +408,10 @@ export default class Documents implements Disposable {
     this.buffers.set(bufnr, doc)
     if (doc.attached) {
       if (doc.schema == 'file') {
+        // TODO use workspaceFolder for root when exists
         this.configurations.locateFolderConfigution(doc.uri)
         let root = this.workspaceFolder.resolveRoot(doc, this._cwd, this._initialized, this.expand.bind(this))
-        if (bufnr == this._bufnr) {
-          if (root) this.changeRoot(root)
-        }
+        if (root && bufnr == this._bufnr) this.changeRoot(root)
       }
       this._onDidOpenTextDocument.fire(doc.textDocument)
       doc.onDocumentChange(e => this._onDidChangeDocument.fire(e))

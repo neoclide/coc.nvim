@@ -399,6 +399,16 @@
       "default": "botright 30vs",
       "description": "Window split command used by callHierarchy tree view."
     },
+    "coc.preferences.rootPatterns": {
+      "type": ["array", "null"],
+      "default": null,
+      "scope": "application",
+      "description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
+      "deprecationMessage": "Use 'workspace.rootPatterns' instead.",
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.preferences.bracketEnterImprove": {
       "type": "boolean",
       "scope": "language-overridable",
@@ -516,15 +526,6 @@
       "scope": "application",
       "default": true,
       "description": "Disable to stop Refactor-Rename float/popup window from populating with old name in the New Name field."
-    },
-    "coc.preferences.rootPatterns": {
-      "type": "array",
-      "default": [".git", ".hg", ".projections.json"],
-      "scope": "application",
-      "description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
-      "items": {
-        "type": "string"
-      }
     },
     "coc.preferences.silentAutoupdate": {
       "type": "boolean",
@@ -2071,6 +2072,15 @@
       "default": "botright 30vs",
       "description": "Window split command used by type hierarchy tree view."
     },
+    "workspace.rootPatterns": {
+      "type": "array",
+      "default": [".git", ".hg", ".projections.json"],
+      "scope": "application",
+      "description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
+      "items": {
+        "type": "string"
+      }
+    },
     "workspace.bottomUpFiletypes": {
       "type": "array",
       "default": [],
@@ -2083,7 +2093,7 @@
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": [],
-      "scope": "resource",
+      "scope": "application",
       "description": "Filetypes that should be ignored for workspace folder resolve.",
       "items": {
         "type": "string"

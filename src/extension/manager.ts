@@ -2,7 +2,6 @@ import fs from 'fs'
 import path from 'path'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import commandManager from '../commands'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import Watchman from '../core/watchman'
 import events from '../events'
@@ -306,31 +305,27 @@ export class ExtensionManager {
     return await Promise.resolve(exports[method].apply(null, args))
   }
 
-  public registContribution(id: string, packageJSON: any): void {
-    let { contributes } = packageJSON
-    if (contributes) {
-      let { configuration, rootPatterns, commands } = contributes
-      if (configuration && !isEmpty(configuration.properties)) {
-        let properties = convertProperties(configuration.properties, ConfigurationScope.RESOURCE)
-        let node: IConfigurationNode = { properties, extensionInfo: { id, displayName: packageJSON.displayName } }
-        this.configurationNodes.push(node)
-        if (this.activated) {
-          let toRemove = this.configurationNodes.find(o => o.extensionInfo!.id === id)
-          const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
-          configurationRegistry.updateConfigurations({ add: [node], remove: toArray(toRemove) })
-        }
-      }
-      if (rootPatterns && rootPatterns.length) {
-        for (let item of rootPatterns) {
-          workspace.workspaceFolderControl.addRootPattern(item.filetype, item.patterns)
-        }
-      }
-      if (commands && commands.length) {
-        for (let cmd of commands) {
-          commandManager.titles.set(cmd.command, cmd.title)
-        }
+  public registContribution(id: string, packageJSON: any, directory: string, filepath?: string): void {
+    let { contributes, activationEvents } = packageJSON
+    let { configuration, rootPatterns, commands } = contributes ?? {}
+    if (configuration && !isEmpty(configuration.properties)) {
+      let properties = convertProperties(configuration.properties, ConfigurationScope.RESOURCE)
+      let node: IConfigurationNode = { properties, extensionInfo: { id, displayName: packageJSON.displayName } }
+      this.configurationNodes.push(node)
+      if (this.activated) {
+        let toRemove = this.configurationNodes.find(o => o.extensionInfo!.id === id)
+        const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+        configurationRegistry.updateConfigurations({ add: [node], remove: toArray(toRemove) })
       }
     }
+    extensionRegistry.registerExtension(id, {
+      name: id,
+      directory,
+      filepath,
+      onCommands: getOnCommandList(activationEvents),
+      commands,
+      rootPatterns
+    })
   }
 
   public getExtensionState(id: string): ExtensionState {
@@ -373,7 +368,7 @@ export class ExtensionManager {
         let extensionType = stat.isLocal ? ExtensionType.Local : ExtensionType.Global
         void this.registerExtension(stat.root, stat.packageJSON, extensionType)
       } catch (e) {
-        logger.error(`Error on regist extension: `, e)
+        logger.error(`Error on regist extension from ${stat.root}: `, e)
       }
     }
   }
@@ -453,8 +448,7 @@ export class ExtensionManager {
         }
       }
     })
-    extensionRegistry.registerExtension(id, { name: id, directory: root, filepath: filename })
-    this.registContribution(id, packageJSON)
+    this.registContribution(id, packageJSON, root, filename)
     this._onDidLoadExtension.fire(extension)
     if (this.activated) await this.autoActiavte(id, extension)
   }
@@ -481,8 +475,7 @@ export class ExtensionManager {
       deactivate,
       isLocal: true
     })
-    extensionRegistry.registerExtension(id, { name: id, directory: __dirname })
-    this.registContribution(id, packageJSON)
+    this.registContribution(id, packageJSON, __dirname)
     this._onDidLoadExtension.fire(extension)
     await this.autoActiavte(id, extension)
   }
@@ -495,6 +488,7 @@ export class ExtensionManager {
     for (let id of globals) {
       await this.unloadExtension(id)
       this.states.removeExtension(id)
+      extensionRegistry.unregistExtension(id)
       await remove(path.join(this.modulesFolder, id))
     }
     if (filtered.length > 0) {
@@ -557,10 +551,18 @@ export class ExtensionManager {
 
 export function getEvents(activationEvents: string[] | undefined): string[] {
   let res: string[] = []
-  for (let ev of activationEvents ?? []) {
-    let [name, command] = ev.split(':', 2)
+  for (let ev of toArray(activationEvents)) {
+    let [name] = ev.split(':', 2)
     if (name && !res.includes(name)) res.push(name)
-    if (name === 'onCommand' && command) commandManager.onCommandList.push(command)
+  }
+  return res
+}
+
+export function getOnCommandList(activationEvents: string[] | undefined): string[] {
+  let res: string[] = []
+  for (let ev of toArray(activationEvents)) {
+    let [name, command] = ev.split(':', 2)
+    if (name === 'onCommand' && command) res.push(command)
   }
   return res
 }
@@ -600,9 +602,7 @@ export function checkFileSystem(uri: string, activationEvents: string[]): boolea
 }
 
 export function getActivationEvents(json: ExtensionJson): string[] {
-  let { activationEvents } = json
-  if (!activationEvents || !Array.isArray(activationEvents)) return []
-  return activationEvents.filter(key => typeof key === 'string' && key.length > 0)
+  return toArray(json.activationEvents).filter(key => typeof key === 'string' && key.length > 0)
 }
 
 /**

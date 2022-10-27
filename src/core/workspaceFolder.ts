@@ -3,13 +3,18 @@ import path from 'path'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
+import events from '../events'
 import Document from '../model/document'
 import { PatternType } from '../types'
-import events from '../events'
-import { distinct, isFalsyOrEmpty } from '../util/array'
+import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
+import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
 import { checkFolder, isParentFolder, resolveRoot } from '../util/fs'
+import { toObject } from '../util/object'
+import { Registry } from '../util/registry'
 const logger = require('../util/logger')('core-workspaceFolder')
+const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
+const checkPatternTimeout = global.__TEST__ ? 50 : 5000
 
 function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
   if (!fsPath || !path.isAbsolute(fsPath)) return undefined
@@ -18,18 +23,69 @@ function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
     uri: URI.file(fsPath).toString()
   }
 }
+const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
+
+interface WorkspaceConfig {
+  readonly ignoredFiletypes: string[]
+  readonly bottomUpFiletypes: string[]
+  readonly ignoredFolders: string[]
+  readonly workspaceFolderCheckCwd: boolean
+  readonly workspaceFolderFallbackCwd: boolean
+  rootPatterns: string[]
+}
 
 export default class WorkspaceFolderController {
+  private config: WorkspaceConfig
   private _onDidChangeWorkspaceFolders = new Emitter<WorkspaceFoldersChangeEvent>()
   public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent> = this._onDidChangeWorkspaceFolders.event
   // filetype => patterns
   private rootPatterns: Map<string, string[]> = new Map()
   private _workspaceFolders: WorkspaceFolder[] = []
   private _tokenSources: Set<CancellationTokenSource> = new Set()
-  constructor(
-    private readonly configurations: Configurations
-  ) {
+  constructor(private configurations: Configurations) {
     events.on('VimLeavePre', this.cancelAll, this)
+    const allConfig = configurations.getConfiguration(undefined, null)
+    let config = allConfig.get<WorkspaceConfig>('workspace')
+    let oldConfig = allConfig.get<string[] | null>('coc.preferences.rootPatterns')
+    this.config = {
+      rootPatterns: isFalsyOrEmpty(oldConfig) ? toArray(config.rootPatterns) : oldConfig,
+      ignoredFiletypes: toArray(config.ignoredFiletypes),
+      bottomUpFiletypes: toArray(config.bottomUpFiletypes),
+      ignoredFolders: toArray(config.ignoredFolders),
+      workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
+      workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
+    }
+    const lspConfig = allConfig.get<Record<string, unknown>>('languageserver', {})
+    this.addServerRootPatterns(lspConfig)
+    configurations.onDidChange(e => {
+      if (e.affectsConfiguration('workspace')) {
+        this.updateConfiguration()
+      }
+    })
+  }
+
+  private updateConfiguration(): void {
+    const config = this.configurations.getConfiguration('workspace', null)
+    this.config = {
+      ignoredFiletypes: toArray(config.ignoredFiletypes),
+      bottomUpFiletypes: toArray(config.bottomUpFiletypes),
+      ignoredFolders: toArray(config.ignoredFolders),
+      rootPatterns: toArray(config.rootPatterns),
+      workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
+      workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
+    }
+  }
+
+  public addServerRootPatterns(lspConfig: Record<string, unknown> | undefined): void {
+    for (let key of Object.keys(toObject(lspConfig))) {
+      let config = lspConfig[key] as any
+      let { filetypes, rootPatterns } = config
+      if (Array.isArray(filetypes) && !isFalsyOrEmpty(rootPatterns)) {
+        filetypes.filter(s => typeof s === 'string').forEach(filetype => {
+          this.addRootPattern(filetype, rootPatterns)
+        })
+      }
+    }
   }
 
   public cancelAll(): void {
@@ -82,7 +138,7 @@ export default class WorkspaceFolderController {
   }
 
   public addRootPattern(filetype: string, rootPatterns: string[]): void {
-    let patterns = this.rootPatterns.get(filetype) || []
+    let patterns = this.rootPatterns.get(filetype) ?? []
     for (let p of rootPatterns) {
       if (!patterns.includes(p)) {
         patterns.push(p)
@@ -92,33 +148,27 @@ export default class WorkspaceFolderController {
   }
 
   public resolveRoot(document: Document, cwd: string, fireEvent: boolean, expand: ((input: string) => string)): string | null {
-    if (document.buftype !== '' || document.schema !== 'file' || !document.enabled) return null
-    let types = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
+    if (document.buftype !== '' || document.schema !== 'file') return null
     let u = URI.parse(document.uri)
-    let dir = path.dirname(u.fsPath)
-    let config = this.configurations.getConfiguration('workspace', document.uri)
-    let ignoredFiletypes = config.get<string[]>('ignoredFiletypes', [])
-    let bottomUpFiletypes = config.get<string[]>('bottomUpFiletypes', [])
-    let checkCwd = config.get<boolean>('workspaceFolderCheckCwd', true)
-    let ignored = config.get<string[]>('ignoredFolders', [])
-    let fallbackCwd = config.get<boolean>('workspaceFolderFallbackCwd', true)
-    if (ignoredFiletypes?.includes(document.filetype)) return null
-    let curr = this.getWorkspaceFolder(URI.parse(document.uri))
+    let curr = this.getWorkspaceFolder(u)
     if (curr) return URI.parse(curr.uri).fsPath
-    ignored = Array.isArray(ignored) ? ignored.filter(s => s && s.length > 0).map(s => expand(s)) : []
+    let dir = path.dirname(u.fsPath)
+    let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config
+    if (ignoredFiletypes?.includes(document.filetype)) return null
+    ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter(s => s && s.length > 0).map(s => expand(s)) : []
     let res: string | null = null
-    for (let patternType of types) {
+    for (let patternType of PatternTypes) {
       let patterns = this.getRootPatterns(document, patternType)
       if (patterns && patterns.length) {
         let isBottomUp = bottomUpFiletypes.includes('*') || bottomUpFiletypes.includes(document.filetype)
-        let root = resolveRoot(dir, patterns, cwd, isBottomUp, checkCwd, ignored)
+        let root = resolveRoot(dir, patterns, cwd, isBottomUp, workspaceFolderCheckCwd, ignoredFolders)
         if (root) {
           res = root
           break
         }
       }
     }
-    if (fallbackCwd && !res && !ignored.includes(cwd) && isParentFolder(cwd, dir, true)) {
+    if (workspaceFolderFallbackCwd && !res && !ignoredFolders.includes(cwd) && isParentFolder(cwd, dir, true)) {
       res = cwd
     }
     if (res) this.addWorkspaceFolder(res, fireEvent)
@@ -165,12 +215,10 @@ export default class WorkspaceFolderController {
     })
   }
 
-  public getRootPatterns(document: Document, patternType: PatternType): string[] {
-    let { uri } = document
+  public getRootPatterns(document: Document, patternType: PatternType): ReadonlyArray<string> {
     if (patternType == PatternType.Buffer) return document.getVar('root_patterns', []) || []
     if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.languageId)
-    const preferences = this.configurations.getConfiguration('coc.preferences', uri)
-    return preferences.get<string[]>('rootPatterns', ['.git', '.hg', '.projections.json']).slice()
+    return this.config.rootPatterns
   }
 
   public reset(): void {
@@ -181,18 +229,10 @@ export default class WorkspaceFolderController {
   /**
    * Get rootPatterns of filetype by languageserver configuration and extension configuration.
    */
-  private getServerRootPatterns(filetype: string): string[] {
-    let lspConfig = this.configurations.getConfiguration().get<{ [key: string]: unknown }>('languageserver', {})
-    let patterns: string[] = []
-    for (let key of Object.keys(lspConfig)) {
-      let config: any = lspConfig[key]
-      let { filetypes, rootPatterns } = config
-      if (Array.isArray(filetypes) && rootPatterns && filetypes.includes(filetype)) {
-        patterns.push(...rootPatterns)
-      }
-    }
-    patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
-    return patterns.length ? distinct(patterns) : []
+  public getServerRootPatterns(filetype: string): string[] {
+    let patterns = extensionRegistry.getRootPatternsByFiletype(filetype)
+    patterns = patterns.concat(toArray(this.rootPatterns.get(filetype)))
+    return distinct(patterns)
   }
 
   public checkFolder(dir: string, patterns: string[], token?: CancellationToken): Promise<boolean> {
@@ -208,7 +248,7 @@ export default class WorkspaceFolderController {
     let token = tokenSource.token
     let timer = setTimeout(() => {
       tokenSource.cancel()
-    }, global.__TEST__ ? 50 : 5000)
+    }, checkPatternTimeout)
     let results = await Promise.allSettled(dirs.map(dir => {
       return this.checkFolder(dir, patterns, token).then(checked => {
         this._tokenSources.delete(tokenSource)

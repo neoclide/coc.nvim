@@ -1050,7 +1050,7 @@ could comes from:
 - |b:coc_root_patterns|
 - `rootPatterns` field of configured language server.
 - `rootPatterns` contributions from coc extensions.
-- |coc-preferences-rootPatterns|
+- |coc-config-workspace-rootPatterns|
 
 Workspace folder is resolved from cwd of vim first and then from top directory
 to the parent directory of current filepath, when workspace folder not
@@ -1513,7 +1513,7 @@ b:coc_root_patterns					*b:coc_root_patterns*
 
 	Root patterns used for resolving workspaceFolder for
 	the current file, will be used instead of
-	`"coc.preferences.rootPatterns"` setting. Example: >
+	`"workspace.rootPatterns"` setting. Example: >
 
 	autocmd FileType python let b:coc_root_patterns =
 				\ ['.git', '.env']

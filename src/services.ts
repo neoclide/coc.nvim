@@ -9,6 +9,7 @@ import { URI } from 'vscode-uri'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
+import { toObject } from './util/object'
 import window from './window'
 import workspace from './workspace'
 const logger = require('./util/logger')('services')
@@ -185,7 +186,7 @@ class ServiceManager implements Disposable {
   }
 
   private registerClientsByConfig(lspConfig: { [key: string]: LanguageServerConfig }, folder?: URI): void {
-    for (let key of Object.keys(lspConfig)) {
+    for (let key of Object.keys(toObject(lspConfig))) {
       let config: LanguageServerConfig = lspConfig[key]
       if (!isValidServerConfig(key, config)) {
         continue

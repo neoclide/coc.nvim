@@ -131,7 +131,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('resolveWorkspaceSymbol', symbolInfo => this.handler.symbols.resolveWorkspaceSymbol(symbolInfo))
     this.addAction('formatSelected', mode => this.handler.format.formatCurrentRange(mode))
     this.addAction('format', () => this.handler.format.formatCurrentBuffer())
-    this.addAction('commands', () => this.handler.commands.getCommands())
+    this.addAction('commands', () => commandManager.commandList)
     this.addAction('services', () => services.getServiceStats())
     this.addAction('toggleService', name => services.toggle(name))
     this.addAction('codeAction', (mode, only) => this.handler.codeActions.doCodeAction(mode, only))

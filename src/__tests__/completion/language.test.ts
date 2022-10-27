@@ -345,6 +345,7 @@ describe('language source', () => {
 
     it('should cancel current snippet session when additionalTextEdits inside snippet', async () => {
       await nvim.input('i')
+      snippetManager.cancel()
       await snippetManager.insertSnippet('foo($1, $2)$0', true)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
@@ -360,9 +361,8 @@ describe('language source', () => {
       let res = await helper.getItems()
       let idx = res.findIndex(o => o.source == 'edits')
       await helper.confirmCompletion(idx)
+      await helper.waitFor('col', ['.'], 6)
       await helper.waitFor('getline', ['.'], '(bar(), )')
-      let col = await nvim.call('col', ['.'])
-      expect(col).toBe(6)
     })
   })
 

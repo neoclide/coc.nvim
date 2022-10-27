@@ -327,7 +327,7 @@ describe('Registry', () => {
     Registry.add('key', {})
     expect(Registry.knows('key')).toBe(true)
     expect(Registry.as('key')).toEqual({})
-    expect(Registry.as('not_exits')).toBeNull()
+    expect(Registry.as('not_exists')).toBeNull()
   })
 
   it('should get jsonRegistry', async () => {
@@ -377,6 +377,39 @@ describe('Registry', () => {
     expect(parseSource(`\n\n${filepath}:1:1`)).toBe('single')
     expect(parseSource(`\n\n${filepath.slice(0, -3)}:1:1`)).toBe('single')
     expect(parseSource(`\n\n/a/b:1:1`)).toBeUndefined()
+    registry.unregistExtension('single')
+  })
+
+  it('should check rootPattern and commands', async () => {
+    expect(extension.validRootPattern({} as any)).toBe(false)
+    expect(extension.validCommandContribution({} as any)).toBe(false)
+  })
+
+  it('should get onCommands and commands', async () => {
+    let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
+    registry.registerExtension('single', {
+      name: 'single',
+      directory: os.tmpdir(),
+      onCommands: ['a', 'b'],
+      commands: [{ command: 'cmd', title: 'title' }]
+    })
+    expect(registry.commands.length).toBeGreaterThan(0)
+    expect(registry.onCommands.length).toBeGreaterThan(0)
+    expect(registry.getCommandTitle('cmd')).toBe('title')
+    expect(registry.getCommandTitle('not_exists')).toBeUndefined()
+    registry.unregistExtension('single')
+  })
+
+  it('should get rootPatterns by fieltype', async () => {
+    let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
+    registry.registerExtension('single', {
+      name: 'single',
+      directory: os.tmpdir(),
+      rootPatterns: [{ filetype: 'vim', patterns: ['.foo', '.bar', undefined] }]
+    })
+    expect(registry.getRootPatternsByFiletype('vim')).toEqual(['.foo', '.bar'])
+    expect(registry.getRootPatternsByFiletype('ts')).toEqual([])
+    registry.unregistExtension('single')
   })
 })
 
