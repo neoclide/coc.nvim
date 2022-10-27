@@ -81,6 +81,7 @@ describe('ExtensionManager', () => {
   function create(folder = createFolder(), activate = false): ExtensionManager {
     let stats = new ExtensionStat(folder)
     let manager = new ExtensionManager(stats, tmpfolder)
+    disposables.push(manager)
     if (activate) void manager.activateExtensions()
     return manager
   }
@@ -94,10 +95,10 @@ describe('ExtensionManager', () => {
     fs.writeFileSync(path.join(folder, file), code, 'utf8')
   }
 
-  function createGlobalExtension(name: string): string {
+  function createGlobalExtension(name: string, contributes?: any): string {
     tmpfolder = createFolder()
     let extFolder = path.join(tmpfolder, 'node_modules', name)
-    createExtension(extFolder, { name, main: 'entry.js', engines: { coc: '>=0.0.1' } })
+    createExtension(extFolder, { name, main: 'entry.js', engines: { coc: '>=0.0.1' }, contributes })
     return extFolder
   }
 
@@ -203,14 +204,38 @@ describe('ExtensionManager', () => {
     it('should load local extension on runtimepath change', async () => {
       tmpfolder = createFolder()
       let manager = create(tmpfolder, true)
-      writeJson(path.join(tmpfolder, 'package.json'), { name: 'local', engines: { coc: '>=0.0.1' } })
+      writeJson(path.join(tmpfolder, 'package.json'), {
+        name: 'local',
+        engines: { coc: '>=0.0.1' },
+        contributes: {
+          configuration: {
+            properties: {
+              'local.enable': {
+                type: 'boolean',
+                default: true,
+                description: "Enable local"
+              }
+            }
+          }
+        }
+      })
       fs.writeFileSync(path.join(tmpfolder, 'index.js'), '')
+      let called = false
+      workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('local.enable')) {
+          called = true
+        }
+      })
       await nvim.command(`set runtimepath^=${tmpfolder}`)
       await helper.waitValue(() => {
         return manager.has('local')
       }, true)
+      expect(called).toBe(true)
       let ext = manager.getExtension('local')
       expect(ext.extension.isActive).toBe(true)
+      let c = workspace.getConfiguration('local')
+      expect(c.get('enable')).toBe(true)
+      fs.rmSync(tmpfolder, { force: true, recursive: true })
     })
 
     it('should activate on language', async () => {
@@ -314,7 +339,6 @@ describe('ExtensionManager', () => {
       expect(item.extension.isActive).toBe(true)
       let file = path.join(tmpfolder, 'single-abc-data')
       expect(item.extension.exports['storagePath']).toBe(file)
-      manager.dispose()
     })
 
     it('should not load extension when filepath not exists', async () => {
@@ -333,19 +357,6 @@ describe('ExtensionManager', () => {
       await manager.uninstallExtensions(['foo'])
       let line = await helper.getCmdline()
       expect(line).toMatch('not found')
-    })
-  })
-
-  describe('getExtensionsInfo()', () => {
-    it('should getExtensionsInfo', async () => {
-      tmpfolder = createFolder()
-      let filepath = path.join(tmpfolder, 'test.js')
-      fs.writeFileSync(filepath, `exports.activate = () => {return {file: "${filepath}"}}`, 'utf8')
-      let manager = create(tmpfolder, true)
-      await manager.loadExtensionFile(filepath)
-      let arr = manager.getExtensionsInfo()
-      expect(arr.length).toBe(1)
-      manager.dispose()
     })
   })
 
@@ -405,7 +416,17 @@ describe('ExtensionManager', () => {
     })
 
     it('should load and activate global extension', async () => {
-      let extFolder = createGlobalExtension('name')
+      let contributes = {
+        configuration: {
+          properties: {
+            'name.enable': {
+              type: 'boolean',
+              description: "Enable name"
+            }
+          }
+        }
+      }
+      let extFolder = createGlobalExtension('name', contributes)
       let manager = create(tmpfolder)
       manager.states.addExtension('name', '>=0.0.1')
       let res = await manager.loadExtension(extFolder)
@@ -420,7 +441,11 @@ describe('ExtensionManager', () => {
       await manager.deactivate('name')
       let stat = manager.getExtensionState('name')
       expect(stat).toBe('loaded')
-      manager.dispose()
+      let c = workspace.getConfiguration('name')
+      expect(c.get('enable')).toBe(false)
+      manager.unregistContribution('name')
+      c = workspace.getConfiguration('name')
+      expect(c.get('enable', undefined)).toBe(undefined)
     })
   })
 
@@ -441,7 +466,6 @@ describe('ExtensionManager', () => {
       expect(res).toBeUndefined()
       await manager.unloadExtension('name')
       expect(fn).toBeCalledTimes(1)
-      manager.dispose()
     })
   })
 
@@ -470,7 +494,6 @@ describe('ExtensionManager', () => {
       expect(item.extension.isActive).toBe(true)
       await item.deactivate()
       expect(item.extension.isActive).toBe(false)
-      manager.dispose()
     })
 
     it('should reload extension from directory', async () => {
@@ -483,7 +506,6 @@ describe('ExtensionManager', () => {
       await manager.reloadExtension('name')
       let item = manager.getExtension('name')
       expect(item.extension.isActive).toBe(false)
-      manager.dispose()
     })
   })
 
@@ -566,7 +588,6 @@ describe('ExtensionManager', () => {
       let item = manager.getExtension('single-test')
       expect(item).toBeUndefined()
       await manager.toggleExtension('single-test')
-      manager.dispose()
     })
 
     it('should toggle global extension', async () => {
@@ -583,7 +604,6 @@ describe('ExtensionManager', () => {
       await manager.toggleExtension('global')
       item = manager.getExtension('global')
       expect(item.extension.isActive).toBe(true)
-      manager.dispose()
     })
 
     it('should toggle local extension', async () => {
@@ -601,7 +621,6 @@ describe('ExtensionManager', () => {
       await manager.toggleExtension('local')
       let state = manager.getExtensionState('local')
       expect(state).toBe('activated')
-      manager.dispose()
     })
   })
 
@@ -682,7 +701,6 @@ describe('ExtensionManager', () => {
       }, true)
       spy.mockRestore()
       fs.unlinkSync(filepath)
-      manager.dispose()
     })
   })
 

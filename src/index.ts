@@ -70,7 +70,9 @@ import {
   RevealOutputChannelOn,
 } from './language-client'
 
-import { disposeAll, concurrent, watchFile, wait, runCommand, isRunning, executable } from './util'
+import { disposeAll, concurrent, wait } from './util'
+import { isRunning, terminate, executable, runCommand } from './util/processes'
+import { watchFile } from './util/fs'
 import { TreeItem, TreeItemCollapsibleState } from './tree/index'
 import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
 import LineBuilder from './model/line'
@@ -147,6 +149,7 @@ module.exports = {
   extensions,
   listManager,
   TreeItemCollapsibleState,
+  terminate,
   fetch,
   download,
   ansiparse,

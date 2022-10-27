@@ -24,6 +24,7 @@ export interface CodeLensConfig {
 }
 
 let srcId: number | undefined
+const debounceTme = global.__TEST__ ? 20 : 200
 
 /**
  * CodeLens buffer
@@ -42,10 +43,10 @@ export default class CodeLensBuffer implements SyncItem {
     this.loadConfiguration()
     this.resolveCodeLens = debounce(() => {
       void this._resolveCodeLenses()
-    }, global.__TEST__ ? 20 : 200)
+    }, debounceTme)
     this.debounceFetch = debounce(() => {
       void this.fetchCodeLenses()
-    }, global.__TEST__ ? 20 : 100)
+    }, debounceTme)
     this.debounceFetch()
   }
 

@@ -6,13 +6,13 @@ import which from 'which'
 import languages from '../../languages'
 import Document from '../../model/document'
 import { ListContext, ListItem, ListArgument } from '../../types'
-import { runCommand } from '../../util'
 import { writeFile } from '../../util/fs'
 import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { formatListItems, UnformattedListItem } from '../formatting'
+import { runCommand } from '../../util/processes'
 const logger = require('../../util/logger')('list-symbols')
 
 function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {

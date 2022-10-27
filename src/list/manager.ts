@@ -3,10 +3,12 @@ import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import stripAnsi from 'strip-ansi'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import events from '../events'
-import extensions from '../extension'
-import { IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
+import { ConfigurationScope, IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
 import { disposeAll } from '../util'
+import { parseExtensionName } from '../util/extensionRegistry'
+import { Registry } from '../util/registry'
 import { toInteger } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -83,17 +85,17 @@ export class ListManager implements Disposable {
     this.prompt.onDidChangeInput(() => {
       this.session?.onInputChange()
     })
-    this.registerList(new LinksList(nvim))
-    this.registerList(new LocationList(nvim))
-    this.registerList(new SymbolsList(nvim))
-    this.registerList(new OutlineList(nvim))
-    this.registerList(new CommandsList(nvim))
-    this.registerList(new ExtensionList(nvim))
-    this.registerList(new DiagnosticsList(nvim, this))
-    this.registerList(new SourcesList(nvim))
-    this.registerList(new ServicesList(nvim))
-    this.registerList(new ListsList(nvim, this.listMap))
-    this.registerList(new FolderList(nvim))
+    this.registerList(new LinksList(nvim), true)
+    this.registerList(new LocationList(nvim), true)
+    this.registerList(new SymbolsList(nvim), true)
+    this.registerList(new OutlineList(nvim), true)
+    this.registerList(new CommandsList(nvim), true)
+    this.registerList(new ExtensionList(nvim), true)
+    this.registerList(new DiagnosticsList(nvim, this), true)
+    this.registerList(new SourcesList(nvim), true)
+    this.registerList(new ServicesList(nvim), true)
+    this.registerList(new ListsList(nvim, this.listMap), true)
+    this.registerList(new FolderList(nvim), true)
   }
 
   public async start(args: string[]): Promise<void> {
@@ -411,11 +413,17 @@ export class ListManager implements Disposable {
     return this.lastSession
   }
 
-  public registerList(list: IList): Disposable {
-    let { name } = list
+  public registerList(list: IList, internal = false): Disposable {
+    let { name, interactive } = list
     let exists = this.listMap.get(name)
+    let id: string | undefined
+    if (!internal && !global.__TEST__) id = parseExtensionName(Error().stack)
+    const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+    let toRemove: IConfigurationNode[] = []
     if (this.listMap.has(name)) {
       if (exists) {
+        let configNode = createConfigurationNode(name, interactive, id)
+        toRemove.push(configNode)
         if (typeof exists.dispose == 'function') {
           exists.dispose()
         }
@@ -424,34 +432,13 @@ export class ListManager implements Disposable {
       void window.showWarningMessage(`list "${name}" recreated.`)
     }
     this.listMap.set(name, list)
-    extensions.addSchemeProperty(`list.source.${name}.defaultAction`, {
-      type: 'string',
-      default: null,
-      description: `Default action of "${name}" list.`
-    }, 'list-manager')
-    extensions.addSchemeProperty(`list.source.${name}.defaultOptions`, {
-      type: 'array',
-      default: list.interactive ? ['--interactive'] : [],
-      description: `Default list options of "${name}" list, only used when both list option and argument are empty.`,
-      uniqueItems: true,
-      items: {
-        type: 'string',
-        enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
-          '--strict', '--regex', '--ignore-case', '--number-select',
-          '--reverse', '--interactive', '--auto-preview', '--first', '--no-quit']
-      }
-    }, 'list-manager')
-    extensions.addSchemeProperty(`list.source.${name}.defaultArgs`, {
-      type: 'array',
-      default: [],
-      description: `Default argument list of "${name}" list, only used when list argument is empty.`,
-      uniqueItems: true,
-      items: { type: 'string' }
-    }, 'list-manager')
+    let configNode = createConfigurationNode(name, interactive, id)
+    configurationRegistry.updateConfigurations({ add: [configNode], remove: toRemove })
     return Disposable.create(() => {
       if (typeof list.dispose == 'function') {
         list.dispose()
       }
+      configurationRegistry.deregisterConfigurations([configNode])
       this.listMap.delete(name)
     })
   }
@@ -540,3 +527,37 @@ export class ListManager implements Disposable {
 }
 
 export default new ListManager()
+
+export function createConfigurationNode(name: string, interactive: boolean, id?: string): IConfigurationNode {
+  let properties = {}
+  properties[`list.source.${name}.defaultAction`] = {
+    type: 'string',
+    default: null,
+    description: `Default action of "${name}" list.`
+  }
+  properties[`list.source.${name}.defaultOptions`] = {
+    type: 'array',
+    default: interactive ? ['--interactive'] : [],
+    description: `Default list options of "${name}" list, only used when both list option and argument are empty.`,
+    uniqueItems: true,
+    items: {
+      type: 'string',
+      enum: ['--top', '--normal', '--no-sort', '--input', '--height', '--tab',
+        '--strict', '--regex', '--ignore-case', '--number-select',
+        '--reverse', '--interactive', '--auto-preview', '--first', '--no-quit']
+    }
+  }
+  properties[`list.source.${name}.defaultArgs`] = {
+    type: 'array',
+    default: [],
+    description: `Default argument list of "${name}" list, only used when list argument is empty.`,
+    uniqueItems: true,
+    items: { type: 'string' }
+  }
+  let node: IConfigurationNode = {
+    scope: ConfigurationScope.WINDOW,
+    properties,
+  }
+  if (id) node.extensionInfo = { id }
+  return node
+}

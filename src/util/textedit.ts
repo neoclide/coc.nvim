@@ -2,8 +2,9 @@
 import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
+import { toObject } from './object'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
-import { byteLength, contentToLines } from './string'
+import { byteLength, contentToLines, toText } from './string'
 
 export type TextChangeItem = [string[], number, number, number, number]
 
@@ -39,7 +40,7 @@ export function getWellformedEdit(textEdit: TextEdit) {
   return textEdit
 }
 
-export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
+function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
   if (data.length <= 1) {
     // sorted
     return data
@@ -116,10 +117,8 @@ export function getAnnotationKey(change: DocumentChange): string | undefined {
 export function toDocumentChanges(edit: WorkspaceEdit): DocumentChange[] {
   if (edit.documentChanges) return edit.documentChanges
   let changes: DocumentChange[] = []
-  if (edit.changes) {
-    for (let [uri, edits] of Object.entries(edit.changes)) {
-      changes.push({ textDocument: { uri, version: null }, edits })
-    }
+  for (let [uri, edits] of Object.entries(toObject(edit.changes))) {
+    changes.push({ textDocument: { uri, version: null }, edits })
   }
   return changes
 }
@@ -207,9 +206,9 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): stri
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {
   return edits.map(o => {
     let { start, end } = o.range
-    let sl = lines[start.line] ?? ''
+    let sl = toText(lines[start.line])
     let sc = byteLength(sl.slice(0, start.character))
-    let el = end.line == start.line ? sl : lines[end.line] ?? ''
+    let el = end.line == start.line ? sl : toText(lines[end.line])
     let ec = byteLength(el.slice(0, end.character))
     let { newText } = o
     return [newText.length > 0 ? newText.split('\n') : [], start.line, sc, end.line, ec]
@@ -303,7 +302,7 @@ export function mergeTextEdits(edits: TextEdit[], oldLines: ReadonlyArray<string
 
 function getText(start: Position, end: Position, lines: ReadonlyArray<string>): string {
   if (start.line === end.line) {
-    return (lines[start.line] ?? '').slice(start.character, end.character)
+    return toText(lines[start.line]).slice(start.character, end.character)
   }
   let spans: string[] = []
   for (let i = start.line; i <= end.line; i++) {

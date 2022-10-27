@@ -1,4 +1,4 @@
-import { findUp, writeJson, loadJson, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, globFilesAsync } from '../../util/fs'
+import { findUp, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -6,7 +6,38 @@ import fs from 'fs'
 import os from 'os'
 import { CancellationToken, CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
 
+export function wait(ms: number): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(undefined)
+    }, ms)
+  })
+}
+
 describe('fs', () => {
+  describe('normalizeFilePath()', () => {
+    it('should fs normalizeFilePath', () => {
+      let res = normalizeFilePath('//')
+      expect(res).toBe('/')
+      res = normalizeFilePath('/a/b/')
+      expect(res).toBe('/a/b')
+    })
+  })
+
+  it('should watch file', async () => {
+    let filepath = path.join(os.tmpdir(), uuid())
+    fs.writeFileSync(filepath, 'file', 'utf8')
+    let called = false
+    let disposable = watchFile(filepath, () => {
+      called = true
+    }, true)
+    fs.writeFileSync(filepath, 'new file', 'utf8')
+    await wait(2)
+    disposable.dispose()
+    disposable = watchFile('file_not_exists', () => {}, true)
+    disposable.dispose()
+  })
+
   describe('stat()', () => {
     it('fs statAsync', async () => {
       let res = await statAsync(__filename)
@@ -53,6 +84,12 @@ describe('fs', () => {
       expect(res).toBeDefined()
     })
 
+    it('should use empty range when not found', async () => {
+      let res = await lineToLocation(__filename, 'a'.repeat(100))
+      expect(res).toBeDefined()
+      expect(res.range).toEqual(Range.create(0, 0, 0, 0))
+    })
+
     it('should get location', async () => {
       let file = path.join(os.tmpdir(), uuid())
       fs.writeFileSync(file, '\nfoo\n', 'utf8')
@@ -95,6 +132,24 @@ describe('fs', () => {
     it('should get filetype', async () => {
       let res = await getFileType(__dirname)
       expect(res).toBe(FileType.Directory)
+      res = await getFileType(__filename)
+      expect(res).toBe(FileType.File)
+      let newPath = path.join(os.tmpdir(), uuid())
+      fs.symlinkSync(__filename, newPath)
+      res = await getFileType(newPath)
+      expect(res).toBe(FileType.SymbolicLink)
+      fs.unlinkSync(newPath)
+      let spy = jest.spyOn(fs, 'lstat').mockImplementation((...args) => {
+        let cb = args[args.length - 1] as Function
+        return cb(undefined, {
+          isFile: () => { return false },
+          isDirectory: () => { return false },
+          isSymbolicLink: () => { return false }
+        })
+      })
+      res = await getFileType('__file')
+      expect(res).toBe(FileType.Unknown)
+      spy.mockRestore()
     })
   })
 
@@ -105,6 +160,8 @@ describe('fs', () => {
       expect(res).toBe(true)
       res = await checkFolder(cwd, ['**/schema.json', 'package.json'])
       expect(res).toBe(true)
+      res = await checkFolder(cwd, [])
+      expect(res).toBe(false)
       res = await checkFolder(cwd, ['not_exists_fs'], CancellationToken.None)
       expect(res).toBe(false)
       res = await checkFolder(os.homedir(), ['not_exists_fs'])
@@ -119,18 +176,6 @@ describe('fs', () => {
       }
       await expect(fn()).rejects.toThrow(Error)
       expect(res).toBe(false)
-    })
-  })
-
-  describe('globFilesAsync()', () => {
-    it('should globFilesAsync', async () => {
-      let cwd = process.cwd()
-      let res = await globFilesAsync(cwd, '**/*', 500)
-      expect(res.length).toBeGreaterThan(0)
-      res = await globFilesAsync(os.homedir(), '**/*', 1)
-      expect(Array.isArray(res)).toBe(true)
-      res = await globFilesAsync('/not_exists', 'not_exists', 1)
-      expect(res).toEqual([])
     })
   })
 
@@ -206,10 +251,19 @@ describe('fs', () => {
     })
   })
 
+  describe('fileStartsWith()', () => {
+    it('should check casesensitive case', async () => {
+      expect(fileStartsWith('/a/b', '/A', false)).toBe(false)
+    })
+  })
+
   describe('isGitIgnored()', () => {
     it('should be not ignored', async () => {
       let res = await isGitIgnored(__filename)
-      expect(res).toBeFalsy
+      expect(res).toBeFalsy()
+      let filepath = path.join(process.cwd(), 'build/index.js')
+      res = await isGitIgnored(filepath)
+      expect(res).toBe(true)
     })
 
     it('should be ignored', async () => {
@@ -241,6 +295,7 @@ describe('fs', () => {
     it('get parentDirs', () => {
       let dirs = parentDirs('/a/b/c')
       expect(dirs).toEqual(['/', '/a', '/a/b'])
+      expect(parentDirs('/')).toEqual(['/'])
     })
   })
 
@@ -305,6 +360,13 @@ describe('fs', () => {
   })
 
   describe('findUp', () => {
+    it('should findMatch by pattern', async () => {
+      let res = findMatch(process.cwd(), ['*.json'])
+      expect(res).toMatch('.json')
+      res = findMatch(process.cwd(), ['*.json_not_exists'])
+      expect(res).toBeUndefined()
+    })
+
     it('findUp by filename', () => {
       let filepath = findUp('package.json', __dirname)
       expect(filepath).toMatch('coc.nvim')

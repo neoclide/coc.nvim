@@ -5,10 +5,11 @@ import { Event } from 'vscode-languageserver-protocol'
 import which from 'which'
 import commandManager from '../commands'
 import type { OutputChannel } from '../types'
-import { concurrent, executable } from '../util'
+import { concurrent } from '../util'
 import { distinct } from '../util/array'
 import '../util/extensions'
 import { isUrl } from '../util/is'
+import { executable } from '../util/processes'
 import window from '../window'
 import workspace from '../workspace'
 import { IInstaller, Installer } from './installer'
@@ -113,9 +114,12 @@ export class Extensions {
     return this.manager.getExtension(id)
   }
 
-  public addSchemeProperty(key: string, def: PropertyScheme, id?: string): void {
+  /**
+   * @deprecated
+   */
+  public addSchemeProperty(key: string, def: PropertyScheme): void {
     this._additionalSchemes[key] = def
-    workspace.configurations.extendsDefaults({ [key]: def.default }, id)
+    // workspace.configurations.extendsDefaults({ [key]: def.default }, id)
   }
 
   /**

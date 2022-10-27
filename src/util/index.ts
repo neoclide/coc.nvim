@@ -1,26 +1,9 @@
 'use strict'
-import { ChildProcess, exec, ExecOptions } from 'child_process'
-import debounce from 'debounce'
-import fs from 'fs'
-import path from 'path'
-import { Disposable, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
-import which from 'which'
-import { isUrl } from './is'
-import * as platform from './platform'
-export { platform }
-const logger = require('./logger')('util-index')
-
-export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
+interface Disposable {
+  dispose(): void
+}
 
 export const CONFIG_FILE_NAME = 'coc-settings.json'
-
-export function isMarkdown(content: MarkupContent | string | undefined): boolean {
-  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
-    return true
-  }
-  return false
-}
 
 export function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve(undefined)
@@ -31,10 +14,9 @@ export function wait(ms: number): Promise<void> {
   })
 }
 
-export function waitNextTick(fn?: () => void): Promise<void> {
+export function waitNextTick(): Promise<void> {
   return new Promise(resolve => {
     process.nextTick(() => {
-      if (fn) fn()
       resolve(undefined)
     })
   })
@@ -48,98 +30,6 @@ export function waitImmediate(): Promise<void> {
   })
 }
 
-export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
-  if (!fullpath) return `untitled:${id}`
-  if (path.isAbsolute(fullpath)) return URI.file(isCygwin ? fullpath : path.normalize(fullpath)).toString()
-  if (isUrl(fullpath)) return URI.parse(fullpath).toString()
-  if (buftype != '') return `${buftype}:${id}`
-  return `unknown:${id}`
-}
-
-export function disposeAll(disposables: Disposable[]): void {
-  while (disposables.length) {
-    const item = disposables.pop()
-    if (item) {
-      item.dispose()
-    }
-  }
-}
-
-export function executable(command: string): boolean {
-  try {
-    which.sync(command)
-  } catch (e) {
-    return false
-  }
-  return true
-}
-
-export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise<string> {
-  if (!platform.isWindows) {
-    opts.shell = opts.shell || process.env.SHELL
-  }
-  opts.maxBuffer = 500 * 1024
-  return new Promise<string>((resolve, reject) => {
-    let timer: NodeJS.Timer
-    let cp: ChildProcess
-    if (timeout) {
-      timer = setTimeout(() => {
-        cp.kill('SIGKILL')
-        reject(new Error(`timeout after ${timeout}s`))
-      }, timeout * 1000)
-    }
-    cp = exec(cmd, opts, (err, stdout, stderr) => {
-      if (timer) clearTimeout(timer)
-      if (err) {
-        reject(new Error(`exited with ${err.code}\n${err}\n${stderr}`))
-        return
-      }
-      resolve(stdout)
-    })
-  })
-}
-
-export function watchFile(filepath: string, onChange: () => void, immediate = false): Disposable {
-  let callback = debounce(onChange, 100)
-  try {
-    let watcher = fs.watch(filepath, {
-      persistent: true,
-      recursive: false,
-      encoding: 'utf8'
-    }, () => {
-      callback()
-    })
-    if (immediate) {
-      setTimeout(onChange, 10)
-    }
-    return Disposable.create(() => {
-      callback.clear()
-      watcher.close()
-    })
-  } catch (e) {
-    return Disposable.create(() => {
-      callback.clear()
-    })
-  }
-}
-
-export function isRunning(pid: number): boolean {
-  try {
-    let res: any = process.kill(pid, 0)
-    return res == true
-  }
-  catch (e) {
-    return e['code'] === 'EPERM'
-  }
-}
-
-export function getKeymapModifier(mode: MapMode): string {
-  if (mode == 'n' || mode == 'o' || mode == 'x' || mode == 'v') return '<C-U>'
-  if (mode == 'i') return '<C-o>'
-  if (mode == 's') return '<Esc>'
-  return ''
-}
-
 export function delay(func: () => void, defaultDelay: number): ((ms?: number) => void) & { clear: () => void } {
   let timer: NodeJS.Timer
   let fn = (ms?: number) => {
@@ -151,7 +41,7 @@ export function delay(func: () => void, defaultDelay: number): ((ms?: number) =>
   Object.defineProperty(fn, 'clear', {
     get: () => {
       return () => {
-        if (timer) clearTimeout(timer)
+        clearTimeout(timer)
       }
     }
   })
@@ -181,4 +71,11 @@ export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit = 3
       run(val)
     }
   })
+}
+
+export function disposeAll(disposables: Disposable[]): void {
+  while (disposables.length) {
+    const item = disposables.pop()
+    item?.dispose()
+  }
 }

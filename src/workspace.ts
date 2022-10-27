@@ -16,7 +16,7 @@ import Editors from './core/editors'
 import Files from './core/files'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
-import Keymaps from './core/keymaps'
+import Keymaps, { MapMode } from './core/keymaps'
 import * as ui from './core/ui'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
@@ -30,8 +30,10 @@ import { StrWidth } from './model/strwidth'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationScope, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IConfigurationChangeEvent, IWorkspace, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
-import { CONFIG_FILE_NAME, MapMode, runCommand } from './util/index'
+import { Autocmd, ConfigurationResourceScope, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IConfigurationChangeEvent, IWorkspace, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { CONFIG_FILE_NAME } from './util/index'
+import { IJSONSchema } from './util/jsonSchema'
+import { runCommand } from './util/processes'
 
 const APIVERSION = 32
 const logger = require('./util/logger')('workspace')
@@ -325,8 +327,12 @@ export class Workspace implements IWorkspace {
   /**
    * Get configuration by section and optional resource uri.
    */
-  public getConfiguration(section?: string, scope?: ConfigurationScope): WorkspaceConfiguration {
+  public getConfiguration(section?: string, scope?: ConfigurationResourceScope): WorkspaceConfiguration {
     return this.configurations.getConfiguration(section, scope)
+  }
+
+  public resolveJSONSchema(uri: string): IJSONSchema | undefined {
+    return this.configurations.getJSONSchema(uri)
   }
 
   /**

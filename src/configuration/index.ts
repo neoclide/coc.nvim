@@ -4,9 +4,9 @@ import os from 'os'
 import path from 'path'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { ConfigurationInspect, ConfigurationScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from '../types'
-import { CONFIG_FILE_NAME, disposeAll, watchFile } from '../util'
-import { findUp, normalizeFilePath, sameFile } from '../util/fs'
+import { ConfigurationInspect, ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from '../types'
+import { CONFIG_FILE_NAME, disposeAll } from '../util'
+import { findUp, normalizeFilePath, sameFile, watchFile } from '../util/fs'
 import { objectLiteral } from '../util/is'
 import { deepFreeze, hasOwnProperty, mixin } from '../util/object'
 import { Configuration } from './configuration'
@@ -15,7 +15,17 @@ import { ConfigurationModel } from './model'
 import { ConfigurationModelParser } from './parser'
 import { IConfigurationShape } from './shape'
 import { addToValueTree, convertTarget, scopeToOverrides } from './util'
+import defaultSchema from '../../data/schema.json'
+import { convertProperties, Registry } from '../util/registry'
+import { Extensions, IConfigurationNode, allSettings, resourceSettings, IConfigurationRegistry } from './registry'
+import { IJSONSchema } from '../util/jsonSchema'
+import { IJSONContributionRegistry, Extensions as JSONExtensions } from '../util/jsonRegistry'
 const logger = require('../util/logger')('configurations')
+
+export const userSettingsSchemaId = 'vscode://schemas/settings/user'
+export const folderSettingsSchemaId = 'vscode://schemas/settings/folder'
+
+const jsonRegistry = Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONContribution)
 
 export default class Configurations {
   private _watchedFiles: Set<string> = new Set()
@@ -52,24 +62,64 @@ export default class Configurations {
   }
 
   private loadDefaultConfigurations(): ConfigurationModel {
-    let pluginRoot = global.__TEST__ ? path.resolve(__dirname, '../..') : path.resolve(__dirname, '..')
-    let file = path.join(pluginRoot, 'data/schema.json')
-    let content = fs.readFileSync(file, 'utf8')
-    let { properties } = JSON.parse(content)
+    // register properties and listen events
+    let configuration = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+    let node: IConfigurationNode = { properties: convertProperties(defaultSchema.properties) }
+    configuration.registerConfiguration(node)
+    configuration.onDidUpdateConfiguration(e => {
+      if (e.properties.length === 0) return
+      // update default configuration with new value
+      let defaults = this._configuration.defaults
+      let model = defaults.isFrozen ? defaults.clone() : defaults
+      let dict = configuration.getConfigurationProperties()
+      for (let key of e.properties) {
+        let def = dict[key]
+        if (def) {
+          model.setValue(key, def.default)
+        } else {
+          model.removeValue(key)
+        }
+      }
+      this.changeConfiguration(ConfigurationTarget.Default, model, undefined, e.properties)
+    }, null, this.disposables)
+    let properties = configuration.getConfigurationProperties()
     let config = {}
     let keys: string[] = []
     Object.keys(properties).forEach(key => {
       let value = properties[key].default
       keys.push(key)
-      if (value !== undefined) {
-        addToValueTree(config, key, value, message => {
-          console.error(`Conflict keys in ${file}, ${message}`)
-        })
-      }
+      addToValueTree(config, key, value, undefined)
     })
     this.builtinKeys = keys.slice()
     let model = new ConfigurationModel(config, keys)
     return model
+  }
+
+  public getJSONSchema(uri: string): IJSONSchema | undefined {
+    if (uri === userSettingsSchemaId) {
+      return {
+        properties: allSettings.properties,
+        patternProperties: allSettings.patternProperties,
+        definitions: defaultSchema.definitions as any,
+        additionalProperties: false,
+        allowTrailingCommas: true,
+        allowComments: true
+      }
+    }
+    if (uri === folderSettingsSchemaId) {
+      return {
+        properties: resourceSettings.properties,
+        patternProperties: resourceSettings.patternProperties,
+        definitions: defaultSchema.definitions as any,
+        errorMessage: 'Configuration property may not work as folder configuration',
+        additionalProperties: false,
+        allowTrailingCommas: true,
+        allowComments: true
+      }
+    }
+    let schemas = jsonRegistry.getSchemaContributions().schemas
+    if (hasOwnProperty(schemas, uri)) return schemas[uri]
+    return undefined
   }
 
   public parseConfigurationModel(filepath: string): ConfigurationModel {
@@ -88,22 +138,6 @@ export default class Configurations {
     let filepath = path.join(folder, `.vim/${CONFIG_FILE_NAME}`)
     if (sameFile(filepath, this.userConfigFile)) return undefined
     return filepath
-  }
-
-  /**
-   * Used for extensions, no change event fired
-   */
-  public extendsDefaults(props: { [key: string]: any }, id?: string): void {
-    let { defaults } = this._configuration
-    let model = defaults.isFrozen ? defaults.clone() : defaults
-    Object.keys(props).forEach(key => {
-      if (id && this.builtinKeys.includes(key)) {
-        logger.error(`Invalid configuration "${key}" from ${id}, overwrite defaults is forbidden.`)
-        return
-      }
-      model.setValue(key, props[key])
-    })
-    this._configuration.updateDefaultConfiguration(model)
   }
 
   // change memory configuration
@@ -186,7 +220,7 @@ export default class Configurations {
   /**
    * Get workspace configuration
    */
-  public getConfiguration(section?: string, scope?: ConfigurationScope): WorkspaceConfiguration {
+  public getConfiguration(section?: string, scope?: ConfigurationResourceScope): WorkspaceConfiguration {
     let configuration = this._configuration
     let overrides: IConfigurationOverrides = scope ? scopeToOverrides(scope) : { resource: scope === null ? undefined : this.getDefaultResource() }
     const config = Object.freeze(lookUp(configuration.getValue(undefined, overrides), section))

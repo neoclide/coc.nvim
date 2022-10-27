@@ -6,7 +6,7 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../../events'
-import Document from '../../model/document'
+import Document, { getUri } from '../../model/document'
 import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
 import { disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
@@ -25,7 +25,7 @@ async function setLines(doc: Document, lines: string[]): Promise<void> {
 }
 
 describe('LinesTextDocument', () => {
-  it('should apply edits', async () => {
+  it('should apply edits', () => {
     let textDocument = new LinesTextDocument('', '', 1, [
       'use std::io::Result;'
     ], 1, true)
@@ -43,20 +43,45 @@ describe('LinesTextDocument', () => {
     expect(res).toEqual(['use std::io::{Result, Error};'])
   })
 
-  it('should get length', async () => {
+  it('should throw for overlapping edits', () => {
+    let textDocument = new LinesTextDocument('', '', 1, [
+      'use std::io::Result;'
+    ], 1, true)
+    let edits = [
+      { range: { start: { line: 0, character: 1 }, end: { line: 0, character: 3 } }, newText: "foo" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 0, character: 5 } }, newText: "new" }
+    ]
+    expect(() => {
+      applyEdits(textDocument, edits)
+    }).toThrow()
+  })
+
+  it('should return undefined when not changed', () => {
+    let textDocument = new LinesTextDocument('', '', 1, [
+      'foo bar'
+    ], 1, true)
+    let edits = [
+      { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } }, newText: "f" },
+      { range: { start: { line: 0, character: 2 }, end: { line: 0, character: 3 } }, newText: "o" }
+    ]
+    let res = applyEdits(textDocument, edits)
+    expect(res).toBeUndefined()
+  })
+
+  it('should get length', () => {
     let doc = createTextDocument(['foo'])
     expect(doc.length).toBe(4)
     expect(doc.getText().length).toBe(4)
     expect(doc.length).toBe(4)
   })
 
-  it('should getText by range', async () => {
+  it('should getText by range', () => {
     let doc = createTextDocument(['foo', 'bar'])
     expect(doc.getText(Range.create(0, 0, 0, 1))).toBe('f')
     expect(doc.getText(Range.create(0, 0, 1, 0))).toBe('foo\n')
   })
 
-  it('should work when eol enabled', async () => {
+  it('should work when eol enabled', () => {
     let doc = createTextDocument(['foo', 'bar'])
     expect(doc.lineCount).toBe(3)
     let content = doc.getText()
@@ -78,7 +103,7 @@ describe('LinesTextDocument', () => {
     expect(doc.end).toEqual(Position.create(2, 0))
   })
 
-  it('should throw for invalid line', async () => {
+  it('should throw for invalid line', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let fn = () => {
       doc.lineAt(-1)
@@ -90,7 +115,7 @@ describe('LinesTextDocument', () => {
     expect(fn).toThrow(Error)
   })
 
-  it('should work when eol disabled', async () => {
+  it('should work when eol disabled', () => {
     let doc = new LinesTextDocument('file://a', 'txt', 1, ['foo'], 1, false)
     expect(doc.getText()).toBe('foo')
     expect(doc.lineCount).toBe(1)
@@ -99,14 +124,25 @@ describe('LinesTextDocument', () => {
 })
 
 describe('computeLinesOffsets()', () => {
-  it('should computeLinesOffsets', async () => {
+  it('should computeLinesOffsets', () => {
     expect(computeLinesOffsets(['foo'], true)).toEqual([0, 4])
     expect(computeLinesOffsets(['foo'], false)).toEqual([0])
   })
 })
 
+describe('getUri', () => {
+  it('should get uri for unknown buftype', () => {
+    let res = getUri('foo', 3, '', false)
+    expect(res).toBe('unknown:3')
+    res = getUri('foo', 3, 'terminal', false)
+    expect(res).toEqual('terminal:3')
+    res = getUri(__filename, 3, 'terminal', true)
+    expect(URI.parse(res).fsPath).toBe(__filename)
+  })
+})
+
 describe('TextLine', () => {
-  it('should work with line not last one', async () => {
+  it('should work with line not last one', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let textLine = doc.lineAt(0)
     expect(textLine.lineNumber).toBe(0)
@@ -116,7 +152,7 @@ describe('TextLine', () => {
     expect(textLine.isEmptyOrWhitespace).toBe(false)
   })
 
-  it('should work with last line', async () => {
+  it('should work with last line', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let textLine = doc.lineAt(2)
     let r = textLine.rangeIncludingLineBreak

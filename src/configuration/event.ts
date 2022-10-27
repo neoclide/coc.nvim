@@ -1,5 +1,5 @@
 'use strict'
-import { ConfigurationScope, ConfigurationTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationData } from '../types'
+import { ConfigurationResourceScope, ConfigurationTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationData } from '../types'
 import { equals } from '../util/object'
 import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
@@ -33,7 +33,7 @@ export class ConfigurationChangeEvent implements IConfigurationChangeEvent {
     return this._previousConfiguration
   }
 
-  public affectsConfiguration(section: string, scope?: ConfigurationScope): boolean {
+  public affectsConfiguration(section: string, scope?: ConfigurationResourceScope): boolean {
     let overrides = scope ? scopeToOverrides(scope) : undefined
     if (this.doesAffectedKeysTreeContains(this.affectedKeysTree, section)) {
       if (overrides) {

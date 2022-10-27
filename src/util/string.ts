@@ -10,6 +10,10 @@ export function toInteger(text: string): number | undefined {
   return isNaN(n) ? undefined : n
 }
 
+export function toText(text: string | null | undefined): string {
+  return text ?? ''
+}
+
 export function rangeParts(text: string, range: Range): [string, string] {
   let { start, end } = range
   let lines = text.split(/\r?\n/)
@@ -142,7 +146,7 @@ export function isAlphabet(code: number): boolean {
   return false
 }
 
-function doEqualsIgnoreCase(a: string, b: string, stopAt = a.length): boolean {
+export function doEqualsIgnoreCase(a: string, b: string, stopAt = a.length): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') {
     return false
   }
@@ -183,7 +187,7 @@ export function contentToLines(content: string, eol: boolean): string[] {
   return content.split('\n')
 }
 
-export function hasUpperCase(str: string): boolean {
+function hasUpperCase(str: string): boolean {
   for (let i = 0, l = str.length; i < l; i++) {
     let code = str.charCodeAt(i)
     if (code >= 65 && code <= 90) {
@@ -193,7 +197,7 @@ export function hasUpperCase(str: string): boolean {
   return false
 }
 
-export function smartMatch(a: string, b: string): boolean {
+function smartMatch(a: string, b: string): boolean {
   if (a === b) return true
   let c = b.charCodeAt(0)
   if (c >= 65 && c <= 90) {
@@ -224,4 +228,27 @@ export function smartcaseIndex(input: string, other: string): number {
     }
   }
   return -1
+}
+
+/**
+ * For faster convert sequence utf16 character index to byte index
+ */
+export default function bytes(text: string, max?: number): (characterIndex: number) => number {
+  max = max ?? text.length
+  let arr = new Uint8Array(max)
+  let ascii = true
+  for (let i = 0; i < max; i++) {
+    let l = utf8_code2len(text.charCodeAt(i))
+    if (l > 1) ascii = false
+    arr[i] = l
+  }
+  return characterIndex => {
+    if (characterIndex === 0) return 0
+    if (ascii) return Math.min(characterIndex, max)
+    let res = 0
+    for (let i = 0; i < Math.min(characterIndex, max); i++) {
+      res += arr[i]
+    }
+    return res
+  }
 }

@@ -26,6 +26,18 @@ export type Optional<T extends object, K extends keyof T = keyof T> = Omit<
 > &
   Partial<Pick<T, K>>
 
+/**
+ * An interface for a JavaScript object that
+ * acts a dictionary. The keys are strings.
+ */
+export type IStringDictionary<V> = Record<string, V>
+
+/**
+ * An interface for a JavaScript object that
+ * acts a dictionary. The keys are numbers.
+ */
+export type INumberDictionary<V> = Record<number, V>
+
 export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
   // eslint-disable-next-line @typescript-eslint/unified-signatures
@@ -821,13 +833,28 @@ export enum ConfigurationUpdateTarget {
   WorkspaceFolder = 3
 }
 
-export type ConfigurationScope = string | null | URI | TextDocument | WorkspaceFolder | { uri?: string; languageId?: string }
+export const enum ConfigurationScope {
+  /**
+   * Application specific configuration, which can be configured only in local user settings.
+   */
+  WINDOW = 1,
+  /**
+   * Resource specific configuration, which can be configured in the user, workspace or folder settings.
+   */
+  RESOURCE,
+  /**
+   * Resource specific configuration that can be configured in language specific settings
+   */
+  LANGUAGE_OVERRIDABLE,
+}
+
+export type ConfigurationResourceScope = string | null | URI | TextDocument | WorkspaceFolder | { uri?: string; languageId?: string }
 
 export interface IConfigurationChangeEvent {
   readonly source: ConfigurationTarget
   readonly affectedKeys: string[]
   readonly change?: IConfigurationChange
-  affectsConfiguration(configuration: string, scope?: ConfigurationScope): boolean
+  affectsConfiguration(configuration: string, scope?: ConfigurationResourceScope): boolean
 }
 
 export interface ConfigurationInspect<T> {

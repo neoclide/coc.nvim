@@ -3,16 +3,21 @@ import path from 'path'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../commands'
+import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import Watchman from '../core/watchman'
 import events from '../events'
 import Memos from '../model/memos'
-import { disposeAll, wait, watchFile } from '../util'
-import { splitArray } from '../util/array'
+import { disposeAll, wait } from '../util'
+import { splitArray, toArray } from '../util/array'
 import { createExtension, ExtensionExport } from '../util/factory'
-import { loadJson, remove } from '../util/fs'
+import { loadJson, remove, watchFile } from '../util/fs'
+import { isEmpty } from '../util/object'
+import { convertProperties, Registry } from '../util/registry'
+import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
+import { ConfigurationScope } from '../types'
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 const createLogger = require('../util/logger')
@@ -60,6 +65,8 @@ export interface ExtensionItem {
   readonly isLocal: boolean
 }
 
+const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
+
 /**
  * Manage loaded extensions
  */
@@ -67,6 +74,10 @@ export class ExtensionManager {
   private activated = false
   private memos: Memos
   private disposables: Disposable[] = []
+  /**
+   * Saved before active
+   */
+  private configurationNodes: IConfigurationNode[] = []
   private extensions: Map<string, ExtensionItem> = new Map()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
@@ -88,6 +99,8 @@ export class ExtensionManager {
 
   public activateExtensions(): Promise<PromiseSettledResult<void>[]> {
     this.activated = true
+    const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+    configurationRegistry.registerConfigurations(this.configurationNodes)
     this.attachEvents()
     let keys = Array.from(this.extensions.keys())
     return Promise.allSettled(keys.map(key => {
@@ -293,31 +306,19 @@ export class ExtensionManager {
     return await Promise.resolve(exports[method].apply(null, args))
   }
 
-  public getExtensionsInfo(): { name: string, directory: string, filepath?: string }[] {
-    let res: { name: string, directory: string, filepath?: string }[] = []
-    for (let [key, entry] of this.extensions.entries()) {
-      let { directory, filepath } = entry
-      res.push({
-        name: key,
-        filepath,
-        directory
-      })
-    }
-    return res
-  }
-
   public registContribution(id: string, packageJSON: any): void {
     let { contributes } = packageJSON
     if (contributes) {
       let { configuration, rootPatterns, commands } = contributes
-      if (configuration && configuration.properties) {
-        let { properties } = configuration
-        let props = {}
-        for (let key of Object.keys(properties)) {
-          let val = properties[key].default
-          if (val != null) props[key] = val
+      if (configuration && !isEmpty(configuration.properties)) {
+        let properties = convertProperties(configuration.properties, ConfigurationScope.RESOURCE)
+        let node: IConfigurationNode = { properties, extensionInfo: { id, displayName: packageJSON.displayName } }
+        this.configurationNodes.push(node)
+        if (this.activated) {
+          let toRemove = this.configurationNodes.find(o => o.extensionInfo!.id === id)
+          const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+          configurationRegistry.updateConfigurations({ add: [node], remove: toArray(toRemove) })
         }
-        workspace.configurations.extendsDefaults(props, id)
       }
       if (rootPatterns && rootPatterns.length) {
         for (let item of rootPatterns) {
@@ -452,9 +453,21 @@ export class ExtensionManager {
         }
       }
     })
+    extensionRegistry.registerExtension(id, { name: id, directory: root, filepath: filename })
     this.registContribution(id, packageJSON)
     this._onDidLoadExtension.fire(extension)
     if (this.activated) await this.autoActiavte(id, extension)
+  }
+
+  public unregistContribution(id: string): void {
+    let idx = this.configurationNodes.findIndex(o => o.extensionInfo!.id === id)
+    extensionRegistry.unregistExtension(id)
+    if (idx !== -1) {
+      let node = this.configurationNodes[idx]
+      this.configurationNodes.splice(idx, 1)
+      const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+      configurationRegistry.deregisterConfigurations([node])
+    }
   }
 
   public async registerInternalExtension(extension: Extension<API>, deactivate?: () => void): Promise<void> {
@@ -468,6 +481,7 @@ export class ExtensionManager {
       deactivate,
       isLocal: true
     })
+    extensionRegistry.registerExtension(id, { name: id, directory: __dirname })
     this.registContribution(id, packageJSON)
     this._onDidLoadExtension.fire(extension)
     await this.autoActiavte(id, extension)
@@ -496,6 +510,7 @@ export class ExtensionManager {
     if (state == 'activated') await this.deactivate(id)
     if (state != 'disabled') {
       this.states.setDisable(id, true)
+      this.unregistContribution(id)
       await this.unloadExtension(id)
     } else {
       this.states.setDisable(id, false)

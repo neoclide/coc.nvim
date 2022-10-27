@@ -1,12 +1,10 @@
 'use strict'
-import { IConfigurationModel, IOverrides } from '../types'
+import { IConfigurationModel, IOverrides, IStringDictionary } from '../types'
 import { distinct } from '../util/array'
 import { objectLiteral } from '../util/is'
 import { deepClone, deepFreeze, equals } from '../util/object'
 import { addToValueTree, getConfigurationValue, removeFromValueTree } from './util'
 const logger = require('../util/logger')('configuration-model')
-
-export type IStringDictionary<V> = Record<string, V>
 
 export class ConfigurationModel implements IConfigurationModel {
 

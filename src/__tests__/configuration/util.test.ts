@@ -1,25 +1,45 @@
 import * as assert from 'assert'
 import { ParseError } from 'jsonc-parser'
-import { getConfigurationValue, overrideIdentifiersFromKey, scopeToOverrides, mergeConfigProperties, convertTarget, removeFromValueTree, mergeChanges, toJSONObject, addToValueTree } from '../../configuration/util'
+import { addToValueTree, convertErrors, convertTarget, getConfigurationValue, getDefaultValue, mergeChanges, mergeConfigProperties, overrideIdentifiersFromKey, removeFromValueTree, scopeToOverrides, toJSONObject } from '../../configuration/util'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
 
 describe('Configuration utils', () => {
-  it('should convertTarget', async () => {
+  it('convert parse errors', () => {
+    let uri = 'file:///1'
+    let content = 'foo'
+    let errors: ParseError[] = []
+    errors.push({ error: 2, length: 10, offset: 1 })
+    let arr = convertErrors(uri, content, errors)
+    expect(arr.length).toBe(1)
+  })
+
+  it('get default value', () => {
+    expect(getDefaultValue(undefined)).toBeNull()
+    expect(getDefaultValue('string')).toBe('')
+    expect(getDefaultValue(['string'])).toBe('')
+    expect(getDefaultValue('boolean')).toBe(false)
+    expect(getDefaultValue('integer')).toBe(0)
+    expect(getDefaultValue('number')).toBe(0)
+    expect(getDefaultValue('array')).toEqual([])
+    expect(getDefaultValue('object')).toEqual({})
+  })
+
+  it('should convertTarget', () => {
     expect(convertTarget(ConfigurationUpdateTarget.Global)).toBe(ConfigurationTarget.User)
     expect(convertTarget(ConfigurationUpdateTarget.Workspace)).toBe(ConfigurationTarget.Workspace)
     expect(convertTarget(ConfigurationUpdateTarget.WorkspaceFolder)).toBe(ConfigurationTarget.WorkspaceFolder)
   })
 
-  it('should scopeToOverrides', async () => {
+  it('should scopeToOverrides', () => {
     expect(scopeToOverrides(null)).toBeUndefined()
   })
 
-  it('should get overrideIdentifiersFromKey', async () => {
+  it('should get overrideIdentifiersFromKey', () => {
     let res = overrideIdentifiersFromKey('[ ]')
     expect(res).toEqual([])
   })
 
-  it('should merge preperties', async () => {
+  it('should merge preperties', () => {
     let res = mergeConfigProperties({
       foo: 'bar',
       "x.y.a": "x",
@@ -31,24 +51,26 @@ describe('Configuration utils', () => {
     })
   })
 
-  it('should addToValueTree conflict #1', async () => {
+  it('should addToValueTree conflict #1', () => {
     let fn = jest.fn()
     let obj = { x: 66 }
     addToValueTree(obj, 'x.y', '3', () => {
       fn()
     })
+    addToValueTree(obj, 'x.y', '3', undefined)
     expect(fn).toBeCalled()
   })
 
-  it('should addToValueTree conflict #2', async () => {
+  it('should addToValueTree conflict #2', () => {
     let fn = jest.fn()
     addToValueTree(undefined, 'x', '3', () => {
       fn()
     })
+    addToValueTree(undefined, 'x', '3', undefined)
     expect(fn).toBeCalled()
   })
 
-  it('should addToValueTree conflict #3', async () => {
+  it('should addToValueTree conflict #3', () => {
     let obj = { x: true }
     let fn = jest.fn()
     addToValueTree(obj, 'x.y', ['foo'], () => {
@@ -174,7 +196,7 @@ describe('Configuration utils', () => {
     expect(res).toEqual({ to: 2 })
   })
 
-  it('should get json object', async () => {
+  it('should get json object', () => {
     let obj = [{ x: 1 }, { y: 2 }]
     expect(toJSONObject(obj)).toEqual(obj)
   })

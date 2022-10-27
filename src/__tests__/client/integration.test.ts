@@ -628,7 +628,7 @@ describe('Client integration', () => {
     }
     await expect(fn()).rejects.toThrow(Error)
     spy.mockRestore()
-    await helper.wait(100)
+    await helper.wait(10)
   })
 })
 

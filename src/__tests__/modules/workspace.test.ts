@@ -5,6 +5,7 @@ import path from 'path'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { Location, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { userSettingsSchemaId } from '../../configuration'
 import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
 import { disposeAll } from '../../util'
@@ -538,6 +539,10 @@ describe('workspace events', () => {
     await config.update('enable', false)
     expect(fn).toHaveBeenCalledTimes(1)
     await config.update('enable', undefined)
+  })
+
+  it('should resolve json schema', async () => {
+    expect(workspace.resolveJSONSchema(userSettingsSchemaId)).toBeDefined()
   })
 
   it('should get empty configuration for none exists section', () => {

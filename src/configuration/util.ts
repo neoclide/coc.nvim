@@ -1,11 +1,11 @@
 'use strict'
-import { ParseError } from 'jsonc-parser'
+import { ParseError, printParseErrorCode } from 'jsonc-parser'
 import { Location, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import { ConfigurationScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationOverrides } from '../types'
+import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationOverrides, IStringDictionary } from '../types'
 import { distinct } from '../util/array'
-import { equals } from '../util/object'
+import { deepClone, equals, toObject } from '../util/object'
 const logger = require('../util/logger')('configuration-util')
 
 export type ShowError = (errors: ErrorItem[]) => void
@@ -19,7 +19,7 @@ export interface IConfigurationCompareResult {
 
 const OVERRIDE_IDENTIFIER_PATTERN = `\\[([^\\]]+)\\]`
 const OVERRIDE_IDENTIFIER_REGEX = new RegExp(OVERRIDE_IDENTIFIER_PATTERN, 'g')
-const OVERRIDE_PROPERTY_PATTERN = `^(${OVERRIDE_IDENTIFIER_PATTERN})+$`
+export const OVERRIDE_PROPERTY_PATTERN = `^(${OVERRIDE_IDENTIFIER_PATTERN})+$`
 export const OVERRIDE_PROPERTY_REGEX = new RegExp(OVERRIDE_PROPERTY_PATTERN)
 
 export function convertTarget(updateTarget: ConfigurationUpdateTarget): ConfigurationTarget {
@@ -37,7 +37,7 @@ export function convertTarget(updateTarget: ConfigurationUpdateTarget): Configur
   return target
 }
 
-export function scopeToOverrides(scope: ConfigurationScope): IConfigurationOverrides {
+export function scopeToOverrides(scope: ConfigurationResourceScope): IConfigurationOverrides {
   let overrides: IConfigurationOverrides
   if (typeof scope === 'string') {
     overrides = { resource: scope }
@@ -124,63 +124,12 @@ export function convertErrors(uri: string, content: string, errors: ParseError[]
   let items: ErrorItem[] = []
   let document = TextDocument.create(uri, 'json', 0, content)
   for (let err of errors) {
-    let msg = 'parse error'
-    switch (err.error) {
-      case 2:
-        msg = 'invalid number'
-        break
-      case 8:
-        msg = 'close brace expected'
-        break
-      case 5:
-        msg = 'colon expected'
-        break
-      case 6:
-        msg = 'comma expected'
-        break
-      case 9:
-        msg = 'end of file expected'
-        break
-      case 16:
-        msg = 'invaliad character'
-        break
-      case 10:
-        msg = 'invalid comment token'
-        break
-      case 15:
-        msg = 'invalid escape character'
-        break
-      case 1:
-        msg = 'invalid symbol'
-        break
-      case 14:
-        msg = 'invalid unicode'
-        break
-      case 3:
-        msg = 'property name expected'
-        break
-      case 13:
-        msg = 'unexpected end of number'
-        break
-      case 12:
-        msg = 'unexpected end of string'
-        break
-      case 11:
-        msg = 'unexpected end of comment'
-        break
-      case 4:
-        msg = 'value expected'
-        break
-      default:
-        msg = 'Unknown error'
-        break
-    }
     let range: Range = {
       start: document.positionAt(err.offset),
       end: document.positionAt(err.offset + err.length),
     }
     let loc = Location.create(uri, range)
-    items.push({ location: loc, message: msg })
+    items.push({ location: loc, message: printParseErrorCode(err.error) })
   }
   return items
 }
@@ -193,7 +142,7 @@ export function toValuesTree(properties: { [qualifiedKey: string]: any }, confli
   return root
 }
 
-export function addToValueTree(settingsTreeRoot: any, key: string, value: any, conflictReporter: (message: string) => void): void {
+export function addToValueTree(settingsTreeRoot: any, key: string, value: any, conflictReporter: (message: string) => void | undefined): void {
   const segments = key.split('.')
   const last = segments.pop()!
 
@@ -208,7 +157,7 @@ export function addToValueTree(settingsTreeRoot: any, key: string, value: any, c
       case 'object':
         break
       default:
-        conflictReporter(`Ignoring ${key} as ${segments.slice(0, i + 1).join('.')} is ${JSON.stringify(obj)}`)
+        if (conflictReporter) conflictReporter(`Ignoring ${key} as ${segments.slice(0, i + 1).join('.')} is ${JSON.stringify(obj)}`)
         return
     }
     curr = obj
@@ -217,7 +166,7 @@ export function addToValueTree(settingsTreeRoot: any, key: string, value: any, c
   if (typeof curr === 'object' && curr !== null) {
     curr[last] = value
   } else {
-    conflictReporter(`Ignoring ${key} as ${segments.join('.')} is ${JSON.stringify(curr)}`)
+    if (conflictReporter) conflictReporter(`Ignoring ${key} as ${segments.join('.')} is ${JSON.stringify(curr)}`)
   }
 }
 
@@ -304,4 +253,24 @@ export function compareConfigurationContents(to: { keys: string[]; contents: any
     }
   }
   return { added, removed, updated }
+}
+
+export function getDefaultValue(type: string | string[] | undefined): any {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const t = Array.isArray(type) ? (<string[]>type)[0] : <string>type
+  switch (t) {
+    case 'boolean':
+      return false
+    case 'integer':
+    case 'number':
+      return 0
+    case 'string':
+      return ''
+    case 'array':
+      return []
+    case 'object':
+      return {}
+    default:
+      return null
+  }
 }

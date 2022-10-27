@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import workspace from '../../workspace'
-import Keymaps from '../../core/keymaps'
+import Keymaps, { getKeymapModifier } from '../../core/keymaps'
 import helper from '../helper'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../../util'
@@ -31,6 +31,13 @@ describe('doKeymap()', () => {
 })
 
 describe('registerKeymap()', () => {
+  it('should getKeymapModifier', async () => {
+    expect(getKeymapModifier('i')).toBe('<C-o>')
+    expect(getKeymapModifier('s')).toBe('<Esc>')
+    expect(getKeymapModifier('x')).toBe('<C-U>')
+    expect(getKeymapModifier('t' as any)).toBe('')
+  })
+
   it('should throw for invalid key', async () => {
     let err
     try {

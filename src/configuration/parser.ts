@@ -1,24 +1,9 @@
 import { ParseError, ParseErrorCode, visit } from 'jsonc-parser'
 import { Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { ErrorItem, IConfigurationModel, IOverrides } from '../types'
+import { ConfigurationScope, ErrorItem, IConfigurationModel, IOverrides } from '../types'
 import { ConfigurationModel } from './model'
 import { convertErrors, overrideIdentifiersFromKey, OVERRIDE_PROPERTY_REGEX, toValuesTree } from './util'
-
-export const enum ConfigurationScope {
-  /**
-   * Application specific configuration, which can be configured only in local user settings.
-   */
-  WINDOW = 1,
-  /**
-   * Resource specific configuration, which can be configured in the user, workspace or folder settings.
-   */
-  RESOURCE,
-  /**
-   * Resource specific configuration that can be configured in language specific settings
-   */
-  LANGUAGE_OVERRIDABLE,
-}
 
 export interface ConfigurationParseOptions {
   scopes: ConfigurationScope[] | undefined
@@ -126,8 +111,6 @@ export class ConfigurationModelParser {
   }
 
   protected doParseRaw(raw: any, _options?: ConfigurationParseOptions): IConfigurationModel & { restricted?: string[] } {
-    // TODO create global Registry
-    // const configurationProperties = Registry.as<IConfigurationRegistry>(Extensions.Configuration).getConfigurationProperties()
     const onError = (message: string) => {
       console.error(`Conflict in settings file ${this._name}: ${message}`)
     }
