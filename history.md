@@ -1,3 +1,8 @@
+# 2022-10-27
+
+- Use `workspace.rootPatterns` replace `coc.preferences.rootPatterns`, old
+  configuration still works when exists.
+
 # 2022-10-25
 
 - Add `--height` support to `CocList`.

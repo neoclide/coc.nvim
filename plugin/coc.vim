@@ -327,6 +327,16 @@ function! s:CheckHighlight() abort
   endif
 endfunction
 
+function! s:VimLeavePre() abort
+  let g:coc_vim_leaving = 1
+  if get(g:, 'coc_node_env', '') ==# 'test'
+    return
+  endif
+  if s:is_vim
+    call timer_start(1, { -> coc#client#kill('coc')})
+  endif
+endfunction
+
 function! s:Enable(initialize)
   if get(g:, 'coc_enabled', 0) == 1
     return
@@ -399,8 +409,8 @@ function! s:Enable(initialize)
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd FocusLost           * call s:Autocmd('FocusLost')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
-    autocmd VimLeavePre         * let g:coc_vim_leaving = 1
     autocmd VimLeavePre         * call s:Autocmd('VimLeavePre')
+    autocmd VimLeavePre         * call s:VimLeavePre()
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
     autocmd ColorScheme * call s:Highlight()

@@ -319,6 +319,19 @@ function! coc#client#stop(name) abort
   return 1
 endfunction
 
+function! coc#client#kill(name) abort
+  let client = get(s:clients, a:name, v:null)
+  if empty(client) | return 1 | endif
+  let running = coc#client#is_running(a:name)
+  if running
+    if s:is_vim
+      call job_stop(ch_getjob(client['channel']), 'kill')
+    else
+      call jobstop(client['chan_id'])
+    endif
+  endif
+endfunction
+
 function! coc#client#request(name, method, args)
   let client = get(s:clients, a:name, v:null)
   if !empty(client)
