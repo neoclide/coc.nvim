@@ -331,6 +331,7 @@ export class LanguageClient extends BaseLanguageClient {
             let sp = cp.fork(node.module, args || [], options)
             assertStdio(sp)
             this._serverProcess = sp
+            logger.info(`Language server "${this.id}" started with ${sp.pid}`)
             sp.stderr.on('data', logMessage)
             if (transport === TransportKind.ipc) {
               sp.stdout.on('data', logMessage)
@@ -342,6 +343,7 @@ export class LanguageClient extends BaseLanguageClient {
             return createClientPipeTransport(pipeName!).then(transport => {
               let sp = cp.fork(node.module, args || [], options)
               assertStdio(sp)
+              logger.info(`Language server "${this.id}" started with ${sp.pid}`)
               this._serverProcess = sp
               sp.stderr.on('data', logMessage)
               sp.stdout.on('data', logMessage)
@@ -354,6 +356,7 @@ export class LanguageClient extends BaseLanguageClient {
               let sp = cp.fork(node.module, args || [], options)
               assertStdio(sp)
               this._serverProcess = sp
+              logger.info(`Language server "${this.id}" started with ${sp.pid}`)
               sp.stderr.on('data', logMessage)
               sp.stdout.on('data', logMessage)
               void transport.onConnected().then(protocol => {
