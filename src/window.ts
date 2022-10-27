@@ -198,7 +198,6 @@ export class Window {
    * Shows a selection list.
    */
   public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options?: QuickPickOptions, token: CancellationToken = CancellationToken.None): Promise<Item | Item[] | undefined> {
-    this.checkDialog('showQuickPick')
     options = options || {}
     const items = await Promise.resolve(itemsOrItemsPromise)
     let isText = items.some(s => typeof s === 'string')
@@ -234,7 +233,6 @@ export class Window {
    * @return A new {@link QuickPick}.
    */
   public async createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T>): Promise<QuickPick<T>> {
-    this.checkDialog('createQuickPick')
     return await this.mutex.use(async () => {
       let quickpick = new QuickPick<T>(this.nvim, config)
       await quickpick.show(this.dialogPreference)
@@ -324,7 +322,6 @@ export class Window {
    * @returns Dialog or null when dialog can't work.
    */
   public async showDialog(config: DialogConfig): Promise<Dialog | null> {
-    this.checkDialog('showDialog')
     return await this.mutex.use(async () => {
       let dialog = new Dialog(this.nvim, config)
       await dialog.show(this.dialogPreference)
@@ -368,7 +365,6 @@ export class Window {
    * @return A new {@link InputBox}.
    */
   public async createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox> {
-    this.checkDialog('createInputBox')
     let input = new InputBox(this.nvim, defaultValue ?? '')
     await input.show(title, Object.assign(this.inputPreference, option))
     return input
@@ -499,7 +495,6 @@ export class Window {
   public async showPickerDialog(items: string[], title: string, token?: CancellationToken): Promise<string[] | undefined>
   public async showPickerDialog<T extends QuickPickItem>(items: T[], title: string, token?: CancellationToken): Promise<T[] | undefined>
   public async showPickerDialog(items: any, title: string, token?: CancellationToken): Promise<any | undefined> {
-    this.checkDialog('showPickerDialog')
     return await this.mutex.use(async () => {
       if (token && token.isCancellationRequested) {
         return undefined
@@ -585,7 +580,6 @@ export class Window {
   }
 
   public async showNotification(config: NotificationConfig): Promise<void> {
-    this.checkDialog('showNotification')
     let stack = Error().stack
     let notification = new Notification(this.nvim, config)
     await notification.show(this.getNotificationPreference(stack))
@@ -609,7 +603,6 @@ export class Window {
    * and while the promise it returned isn't resolved nor rejected.
    */
   public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
-    this.checkDialog('withProgress')
     let config = this.workspace.getConfiguration('notification')
     let stack = Error().stack
     if (config.get<boolean>('statusLineProgress', true)) {
@@ -842,11 +835,6 @@ export class Window {
       disabled,
       source,
     }
-  }
-
-  private checkDialog(name: string): void {
-    if (this.workspace.env.dialog) return
-    throw new Error(`API window.${name} requires vim >= 8.2.0750 or neovim >= 0.4.0, please upgrade your vim`)
   }
 
   private get enableMessageDialog(): boolean {

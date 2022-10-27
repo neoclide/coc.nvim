@@ -462,20 +462,6 @@ describe('window', () => {
       notification.dispose()
     })
 
-    it('should throw on showNotification when no dialog support', async () => {
-      Object.assign(workspace.env, { dialog: false })
-      disposables.push(Disposable.create(() => {
-        Object.assign(workspace.env, { dialog: true })
-      }))
-      let fn = async () => {
-        await window.showNotification({
-          content: 'my notification',
-          title: 'title',
-        })
-      }
-      await expect(fn()).rejects.toThrow(Error)
-    })
-
     it('should show notification without border', async () => {
       helper.updateConfiguration('notification.border', false)
       await window.showNotification({

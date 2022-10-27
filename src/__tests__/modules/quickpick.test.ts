@@ -4,7 +4,6 @@ import { QuickPickItem } from '../../types'
 import { disposeAll } from '../../util'
 import events from '../../events'
 import window from '../../window'
-import workspace from '../../workspace'
 import QuickPick from '../../model/quickpick'
 import helper from '../helper'
 export type Item = QuickPickItem | string
@@ -106,19 +105,6 @@ describe('showQuickPick', () => {
       expect(res).toEqual(res)
     }
   }
-
-  it('should throw when dialog not supported ', async () => {
-    Object.assign(workspace.env, { dialog: false })
-    disposables.push({
-      dispose: () => {
-        Object.assign(workspace.env, { dialog: true })
-      }
-    })
-    let fn = async () => {
-      await window.showQuickPick(['foo', 'bar'])
-    }
-    await expect(fn()).rejects.toThrow(Error)
-  })
 
   it('should resolve undefined when token cancelled', async () => {
     let tokenSource = new CancellationTokenSource()
