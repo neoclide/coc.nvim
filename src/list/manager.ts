@@ -74,9 +74,6 @@ export class ListManager implements Disposable {
         }, workspace.isVim ? 50 : 0)
       }
     }, null, this.disposables)
-    events.on('VimLeavePre', () => {
-      this.db.save()
-    }, null, this.disposables)
     this.disposables.push({
       dispose: () => {
         debounced.clear()

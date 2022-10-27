@@ -44,7 +44,7 @@ export default class ListSession {
     public readonly listOptions: ListOptions,
     private listArgs: string[] = [],
     private config: ListConfiguration,
-    db: DataBase
+    private db: DataBase
   ) {
     this.ui = new UI(nvim, list.name, listOptions, config)
     this.history = new InputHistory(prompt, list.name, db, workspace.cwd)
@@ -295,12 +295,13 @@ export default class ListSession {
 
   public async hide(notify = false): Promise<void> {
     if (this.hidden) return
-    let { nvim, timer, window } = this
+    let { nvim, timer, window, db } = this
     let { winid, tabnr } = this.ui
     if (timer) clearTimeout(timer)
     this.worker.stop()
     this.history.add()
     this.ui.reset()
+    db.save()
     this.hidden = true
     let { isVim } = workspace
     if (isVim) await nvim.call('feedkeys', ['\x1b', 'int'])
