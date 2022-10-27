@@ -47,7 +47,6 @@ let virtualTextSrcId: number | undefined
  */
 export class DiagnosticBuffer implements SyncItem {
   private diagnosticsMap: Map<string, ReadonlyArray<Diagnostic>> = new Map()
-  private versionsMap: Map<string, number> = new Map()
   private _disposed = false
   private _dirties: Set<string> = new Set()
   private _refreshing = false
@@ -226,9 +225,8 @@ export class DiagnosticBuffer implements SyncItem {
    * @param {Diagnostic[]} diagnostics
    */
   public async update(collection: string, diagnostics: ReadonlyArray<Diagnostic>): Promise<void> {
-    let { diagnosticsMap, versionsMap } = this
+    let { diagnosticsMap } = this
     let curr = diagnosticsMap.get(collection)
-    versionsMap.set(collection, this.doc.version)
     if (!this._dirties.has(collection) && isFalsyOrEmpty(diagnostics) && isFalsyOrEmpty(curr)) return
     diagnosticsMap.set(collection, diagnostics)
     void this.checkFloat()
@@ -261,7 +259,6 @@ export class DiagnosticBuffer implements SyncItem {
    */
   public async reset(diagnostics: { [collection: string]: Diagnostic[] }): Promise<void> {
     this.refreshHighlights.clear()
-    this.versionsMap.clear()
     let { diagnosticsMap } = this
     for (let key of diagnosticsMap.keys()) {
       // make sure clear collection when it's empty.
@@ -540,11 +537,6 @@ export class DiagnosticBuffer implements SyncItem {
       let map: Map<string, ReadonlyArray<Diagnostic>> = new Map()
       for (let [key, diagnostics] of this.diagnosticsMap.entries()) {
         if (!_dirties.has(key)) continue
-        // Ignore if exists and version too old.
-        let version = this.versionsMap.get(key)
-        if (diagnostics.length > 0 && version != null && this.doc.version > version) {
-          continue
-        }
         map.set(key, diagnostics)
       }
       this.refresh(map, info)
@@ -576,7 +568,6 @@ export class DiagnosticBuffer implements SyncItem {
     let { nvim } = this
     let collections = Array.from(this.diagnosticsMap.keys())
     this.refreshHighlights.clear()
-    this.versionsMap.clear()
     this._dirties.clear()
     if (this.displayByAle) {
       for (let collection of collections) {

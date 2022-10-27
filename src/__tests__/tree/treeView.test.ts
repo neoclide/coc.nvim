@@ -301,16 +301,16 @@ describe('TreeView', () => {
       })
       await nvim.command('exe 1')
       await nvim.input('<space>')
-      await helper.wait(30)
+      await helper.wait(10)
       await nvim.command('exe 2')
       await nvim.input('<space>')
       await helper.waitValue(() => {
-        return selection.length
+        return selection?.length
       }, 1)
       await nvim.command('exe 3')
       await nvim.input('<space>')
       await helper.waitValue(() => {
-        return selection.length
+        return selection?.length
       }, 2)
       await nvim.input('<space>')
       await helper.waitValue(() => {

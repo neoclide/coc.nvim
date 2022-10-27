@@ -102,24 +102,6 @@ describe('diagnostic buffer', () => {
       })
     })
 
-    it('should not refresh old highlights', async () => {
-      let doc = await workspace.document
-      await nvim.setLine('line')
-      await doc.synchronize()
-      let buf = new DiagnosticBuffer(nvim, doc)
-      let diagnostic = createDiagnostic('foo', Range.create(0, 0, 0, 4), DiagnosticSeverity.Error)
-      await buf.update('', [diagnostic])
-      let markers = await helper.getExtmarkers(buf.bufnr, ns)
-      expect(markers.length).toBe(1)
-      buf.clearHighlight('')
-      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
-      buf.onTextChange()
-      buf.refreshHighlights()
-      await helper.wait(50)
-      markers = await helper.getExtmarkers(buf.bufnr, ns)
-      expect(markers.length).toBe(0)
-    })
-
     it('should add highlight', async () => {
       let buf = await createDiagnosticBuffer()
       let doc = workspace.getDocument(buf.bufnr)
