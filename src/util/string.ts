@@ -229,3 +229,26 @@ export function smartcaseIndex(input: string, other: string): number {
   }
   return -1
 }
+
+/**
+ * For faster convert sequence utf16 character index to byte index
+ */
+export default function bytes(text: string, max?: number): (characterIndex: number) => number {
+  max = max ?? text.length
+  let arr = new Uint8Array(max)
+  let ascii = true
+  for (let i = 0; i < max; i++) {
+    let l = utf8_code2len(text.charCodeAt(i))
+    if (l > 1) ascii = false
+    arr[i] = l
+  }
+  return characterIndex => {
+    if (characterIndex === 0) return 0
+    if (ascii) return Math.min(characterIndex, max)
+    let res = 0
+    for (let i = 0; i < Math.min(characterIndex, max); i++) {
+      res += arr[i]
+    }
+    return res
+  }
+}

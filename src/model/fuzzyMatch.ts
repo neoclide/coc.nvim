@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { AnsiHighlight } from '../types'
-import bytes from '../util/bytes'
+import bytes from '../util/string'
 
 export interface FuzzyWasi {
   fuzzyMatch: (textPtr: number, patternPtr: number, resultPtr: number, matchSeq: 0 | 1) => number
