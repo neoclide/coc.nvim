@@ -844,13 +844,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/mkdirp@^1.0.1":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@types/mkdirp/-/mkdirp-1.0.2.tgz#8d0bad7aa793abe551860be1f7ae7f3198c16666"
-  integrity sha512-o0K1tSO0Dx5X6xlU5F1D6625FawhC3dU3iqr25lluNv/+/QIVH8RLNEiVokgIZo+mz+87w/3Mkg/VvQS+J51fQ==
-  dependencies:
-    "@types/node" "*"
-
 "@types/node-int64@*":
   version "0.4.29"
   resolved "https://registry.yarnpkg.com/@types/node-int64/-/node-int64-0.4.29.tgz#8c7c16a7c1195ae4f8beaa903b0018ac66291d16"
