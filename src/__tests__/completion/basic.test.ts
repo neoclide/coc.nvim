@@ -415,27 +415,6 @@ describe('completion', () => {
       await helper.waitPopup()
       expect(finished).toBe(false)
     })
-
-    it('should refresh on backspace', async () => {
-      await nvim.command('inoremap <silent><expr> <backspace> coc#pum#visible() ? "\\<bs>\\<c-r>=coc#start()\\<CR>" : "\\<bs>"')
-      disposables.push(Disposable.create(() => {
-        nvim.command(`iunmap <backspace>`, true)
-      }))
-      let source: ISource = {
-        name: 'fast',
-        enable: true,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          resolve({ items: [{ word: 'foo' }, { word: 'foot' }] })
-        })
-      }
-      disposables.push(sources.addSource(source))
-      await nvim.input('ifo')
-      await helper.waitPopup()
-      await nvim.input('<backspace>')
-      await helper.wait(50)
-      let visible = await helper.pumvisible()
-      expect(visible).toBe(true)
-    })
   })
 
   describe('resumeCompletion()', () => {

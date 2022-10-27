@@ -3,9 +3,17 @@ import { Neovim } from '@chemzqm/neovim'
 import { v1 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { KeymapOption } from '../types'
-import { getKeymapModifier, MapMode } from '../util'
 import Documents from './documents'
 const logger = require('../util/logger')('core-keymaps')
+
+export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
+
+export function getKeymapModifier(mode: MapMode): string {
+  if (mode == 'n' || mode == 'o' || mode == 'x' || mode == 'v') return '<C-U>'
+  if (mode == 'i') return '<C-o>'
+  if (mode == 's') return '<Esc>'
+  return ''
+}
 
 export default class Keymaps {
   private readonly keymaps: Map<string, [Function, boolean]> = new Map()

@@ -6,13 +6,15 @@ import { URI } from 'vscode-uri'
 import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, getUri, wait, waitNextTick } from '../util/index'
+import { disposeAll, wait, waitNextTick } from '../util/index'
+import path from 'path'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
+import { isUrl } from '../util/is'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -733,3 +735,12 @@ function fireDetach(bufnr: number): void {
 function fireLinesChanged(bufnr: number): void {
   void events.fire('LinesChanged', [bufnr])
 }
+
+export function getUri(fullpath: string, id: number, buftype: string, isCygwin: boolean): string {
+  if (!fullpath) return `untitled:${id}`
+  if (path.isAbsolute(fullpath)) return URI.file(isCygwin ? fullpath : path.normalize(fullpath)).toString()
+  if (isUrl(fullpath)) return URI.parse(fullpath).toString()
+  if (buftype != '') return `${buftype}:${id}`
+  return `unknown:${id}`
+}
+

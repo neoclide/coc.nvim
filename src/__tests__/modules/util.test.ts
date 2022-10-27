@@ -1,15 +1,13 @@
 import style from 'ansi-styles'
 import * as assert from 'assert'
 import { spawn } from 'child_process'
-import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import vm from 'vm'
 import { CancellationTokenSource, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
 import { ConfigurationScope } from '../../types'
-import { concurrent, delay, disposeAll, executable, getKeymapModifier, getUri, isRunning, runCommand, wait, waitNextTick, watchFile } from '../../util'
+import { concurrent, delay, disposeAll, wait } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
 import * as arrays from '../../util/array'
 import { filter } from '../../util/async'
@@ -29,12 +27,12 @@ import { Mutex } from '../../util/mutex'
 import * as objects from '../../util/object'
 import * as platform from '../../util/platform'
 import * as positions from '../../util/position'
-import { terminate } from '../../util/processes'
+import { executable, isRunning, runCommand, terminate } from '../../util/processes'
 import { convertProperties, Registry } from '../../util/registry'
 import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
-import helper, { createTmpFile } from '../helper'
+import helper from '../helper'
 const createLogger = require('../../util/logger')
 
 function createTextDocument(lines: string[]): LinesTextDocument {
@@ -142,13 +140,19 @@ describe('bytes()', () => {
 })
 
 describe('platform', () => {
+  it('should get platform', async () => {
+    expect(platform.getPlatform({ platform: 'win32' } as any)).toBe(platform.Platform.Windows)
+    expect(platform.getPlatform({ platform: 'darwin' } as any)).toBe(platform.Platform.Mac)
+    expect(platform.getPlatform({ platform: 'linux' } as any)).toBe(platform.Platform.Linux)
+    expect(platform.getPlatform({ platform: 'unknown' } as any)).toBe(platform.Platform.Unknown)
+  })
+
   it('should check platform', async () => {
     expect(platform.isWeb).toBeDefined()
     expect(platform.isLinux).toBeDefined()
     expect(platform.isNative).toBeDefined()
     expect(platform.isWindows).toBeDefined()
     expect(platform.isMacintosh).toBeDefined()
-    expect(platform.OS).toBeDefined()
   })
 })
 
@@ -676,6 +680,7 @@ describe('Arrays', () => {
 
   it('findIndex()', async () => {
     expect(arrays.findIndex([1, 2, 3, 4], 3, 1)).toBe(2)
+    expect(arrays.findIndex([1, 2, 3, 4], 3)).toBe(2)
   })
 
   it('group()', () => {
@@ -801,38 +806,8 @@ describe('utility', () => {
     await wait(-1)
   })
 
-  it('should waitNextTick', async () => {
-    let fn = jest.fn()
-    await waitNextTick(fn)
-    expect(fn).toBeCalled()
-  })
-
-  it('should get uri for unknown buftype', async () => {
-    let res = getUri('foo', 3, '', false)
-    expect(res).toBe('unknown:3')
-    res = getUri('foo', 3, 'terminal', false)
-    expect(res).toEqual('terminal:3')
-    res = getUri(__filename, 3, 'terminal', true)
-    expect(URI.parse(res).fsPath).toBe(__filename)
-  })
-
   it('should disposeAll', async () => {
     disposeAll([undefined, undefined])
-  })
-
-  it('should watch file', async () => {
-    let filepath = await createTmpFile('my file')
-    let called = false
-    let disposable = watchFile(filepath, () => {
-      called = true
-    }, true)
-    fs.writeFileSync(filepath, 'new file', 'utf8')
-    await helper.waitValue(() => {
-      return called
-    }, true)
-    disposable.dispose()
-    disposable = watchFile('file_not_exists', () => {}, true)
-    disposable.dispose()
   })
 
   it('should check executable', async () => {
@@ -842,6 +817,17 @@ describe('utility', () => {
 
   it('should check isRunning', async () => {
     expect(isRunning(process.pid)).toBe(true)
+    let spy = jest.spyOn(process, 'kill').mockImplementation(() => {
+      let e = new Error() as any
+      e.code = 'EPERM'
+      throw e
+    })
+    expect(isRunning(process.pid)).toBe(true)
+    spy.mockRestore()
+  })
+
+  it('should run command on windows', async () => {
+    await runCommand('echo 1', { cwd: __dirname }, 1, true)
   })
 
   it('should run command with timeout', async () => {
@@ -886,13 +872,6 @@ describe('utility', () => {
     let dt = Date.now() - ts
     expect(dt).toBeGreaterThanOrEqual(100)
     expect(res).toEqual([3, 4, 5, 6, 8])
-  })
-
-  it('should getKeymapModifier', async () => {
-    expect(getKeymapModifier('i')).toBe('<C-o>')
-    expect(getKeymapModifier('s')).toBe('<Esc>')
-    expect(getKeymapModifier('x')).toBe('<C-U>')
-    expect(getKeymapModifier('t' as any)).toBe('')
   })
 
   it('should delay function #1', async () => {
@@ -1145,12 +1124,23 @@ describe('Sequence', () => {
 describe('terminate', () => {
   it('should terminate process', async () => {
     let cwd = process.cwd()
-    let child = spawn('sleep', ['10'], { cwd, detached: true })
+    let child = spawn('sleep', ['3'], { cwd, detached: true })
     let res = terminate(child, cwd)
-    await helper.wait(60)
     expect(res).toBe(true)
-    expect(child.connected).toBe(false)
+    await helper.waitValue(() => {
+      return child.connected
+    }, false)
     terminate(child, cwd)
+  })
+
+  it('should terminate on other platform', () => {
+    let child = spawn('ls', [], { detached: true })
+    let res = terminate(child, process.cwd(), platform.Platform.Windows)
+    expect(res).toBe(false)
+    res = terminate(child, undefined, platform.Platform.Windows)
+    expect(res).toBe(false)
+    res = terminate(child, process.cwd(), platform.Platform.Unknown)
+    expect(res).toBe(true)
   })
 })
 

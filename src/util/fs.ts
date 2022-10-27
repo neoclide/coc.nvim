@@ -1,4 +1,5 @@
 'use strict'
+import debounce from 'debounce'
 import { exec } from 'child_process'
 import fs from 'fs'
 import glob from 'glob'
@@ -17,6 +18,30 @@ import * as platform from './platform'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
+
+export function watchFile(filepath: string, onChange: () => void, immediate = false): Disposable {
+  let callback = debounce(onChange, 100)
+  try {
+    let watcher = fs.watch(filepath, {
+      persistent: true,
+      recursive: false,
+      encoding: 'utf8'
+    }, () => {
+      callback()
+    })
+    if (immediate) {
+      setTimeout(onChange, 10)
+    }
+    return Disposable.create(() => {
+      callback.clear()
+      watcher.close()
+    })
+  } catch (e) {
+    return Disposable.create(() => {
+      callback.clear()
+    })
+  }
+}
 
 export function loadJson(filepath: string): object {
   try {
@@ -103,8 +128,8 @@ export async function isGitIgnored(fullpath: string | undefined): Promise<boolea
   return false
 }
 
-function isFolderIgnored(folder: string, ignored: string[] = []): boolean {
-  if (!ignored || !ignored.length) return false
+function isFolderIgnored(folder: string, ignored: string[] | undefined): boolean {
+  if (isFalsyOrEmpty(ignored)) return false
   return ignored.some(p => minimatch(folder, p, { dot: true }))
 }
 
@@ -157,9 +182,8 @@ export function checkFolder(dir: string, patterns: string[], token?: Cancellatio
       cwd: dir,
       nodir: true,
       absolute: false
-    }, err => {
+    }, _err => {
       if (disposable) disposable.dispose()
-      if (err) return reject(err)
       resolve(find)
     })
     gl.on('match', () => {
@@ -192,7 +216,10 @@ export function inDirectory(dir: string, subs: string[]): boolean {
   return false
 }
 
-function findMatch(dir: string, subs: string[]): string | undefined {
+/**
+ * Find a matched file inside directory.
+ */
+export function findMatch(dir: string, subs: string[]): string | undefined {
   try {
     let files = fs.readdirSync(dir)
     for (let pattern of subs) {
@@ -304,9 +331,11 @@ export async function lineToLocation(fsPath: string, match: string, text?: strin
     input: fs.createReadStream(fsPath, { encoding: 'utf8' }),
   })
   let n = 0
-  let line = await new Promise<string>(resolve => {
+  let line = await new Promise<string | undefined>(resolve => {
+    let find = false
     rl.on('line', line => {
       if (line.includes(match)) {
+        find = true
         rl.removeAllListeners()
         rl.close()
         resolve(line)
@@ -314,8 +343,8 @@ export async function lineToLocation(fsPath: string, match: string, text?: strin
       }
       n = n + 1
     })
-    rl.on('error', () => {
-      resolve(null)
+    rl.on('close', () => {
+      if (!find) resolve(undefined)
     })
   })
   if (line != null) {

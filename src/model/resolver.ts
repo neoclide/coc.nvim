@@ -1,9 +1,9 @@
 'use strict'
-import path from 'path'
 import fs from 'fs'
-import { executable, runCommand } from '../util'
-import { statAsync } from '../util/fs'
+import path from 'path'
 import stripAnsi from 'strip-ansi'
+import { statAsync } from '../util/fs'
+import { executable, runCommand } from '../util/processes'
 const logger = require('../util/logger')('model-resolver')
 
 export default class Resolver {
