@@ -2,6 +2,7 @@ import os from 'os'
 import { URL } from 'url'
 import { DependencySession } from '../../extension/dependency'
 import fetch from '../../model/fetch'
+import { waitImmediate } from '../../util'
 
 process.env.NO_PROXY = '*'
 
@@ -25,9 +26,10 @@ describe('Test dependencies ', () => {
     // optionalDependencies
     console.log(`total: ${names.length}`)
     let registry = new URL('https://registry.npmjs.org/')
-    let session = new DependencySession(registry, os.tmpdir())
 
     for (let name of names) {
+      await waitImmediate()
+      let session = new DependencySession(registry, os.tmpdir())
       console.log(`Checking module ${name}`)
       try {
         let dep = session.createInstaller(os.tmpdir(), () => {})
