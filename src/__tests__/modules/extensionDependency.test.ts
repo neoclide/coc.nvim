@@ -82,6 +82,9 @@ describe('utils', () => {
     expect(getModuleInfo(JSON.stringify(obj))).toBeDefined()
     obj = { name: 'name', 'dist-tags': { latest: '1.0.0' }, versions: {} }
     expect(getModuleInfo(JSON.stringify(obj))).toBeDefined()
+    obj = { name: 'name', 'dist-tags': { latest: '1.0.0' }, versions: { '0.0.9': {}, '0.0.8': {} } }
+    let res = getModuleInfo(JSON.stringify(obj))
+    expect(res.latest).toBe('0.0.9')
   })
 
   it('should check retry', () => {

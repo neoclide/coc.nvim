@@ -52,8 +52,8 @@ export interface DependencyItem {
 }
 
 const DEV_DEPENDENCIES = ['coc.nvim', 'webpack', 'esbuild']
-const INFO_TIMEOUT = 30000
-const DOWNLOAD_TIMEOUT = 3 * 60 * 1000
+const INFO_TIMEOUT = global.__TEST__ ? 100 : 20000
+const DOWNLOAD_TIMEOUT = global.__TEST__ ? 500 : 3 * 60 * 1000
 
 function toFilename(item: DependencyItem): string {
   return `${item.name}.${item.version}.tgz`
@@ -73,6 +73,9 @@ export function validVersionInfo(info: any): info is VersionInfo {
   return true
 }
 
+/**
+ * Get required info form json text.
+ */
 export function getModuleInfo(text: string): ModuleInfo {
   let obj
   try {
@@ -81,9 +84,12 @@ export function getModuleInfo(text: string): ModuleInfo {
     throw new Error(`Invalid JSON data, ${e}`)
   }
   if (typeof obj.name !== 'string' || !objectLiteral(obj.versions)) throw new Error(`Invalid JSON data, name or versions not found`)
+  let versions = Object.keys(obj.versions)
+  let latest = obj['dist-tags']?.latest
+  if (latest && versions[latest] == null) latest = semver.rsort(versions)[0]
   return {
     name: obj.name,
-    latest: obj['dist-tags']?.latest,
+    latest,
     versions: obj.versions
   } as ModuleInfo
 }
@@ -91,7 +97,8 @@ export function getModuleInfo(text: string): ModuleInfo {
 export function shouldRetry(error: any): boolean {
   let message = error.message
   if (typeof message !== 'string') return false
-  if (message.includes('Invalid JSON') ||
+  if (message.includes('timeout') ||
+    message.includes('Invalid JSON') ||
     message.includes('Bad shasum') ||
     message.includes('ECONNRESET')) return true
   return false
@@ -124,7 +131,6 @@ export function readDependencies(directory: string): { name: string, version: st
   for (let key of Object.keys(toObject(dependencies))) {
     if (DEV_DEPENDENCIES.includes(key) || key.startsWith('@types/')) delete dependencies[key]
   }
-  checkDeps(obj)
   return { name: obj.name, version: obj.version, dependencies }
 }
 
@@ -195,25 +201,6 @@ export class DependenciesInstaller {
 
   private get dest(): string {
     return path.join(this.modulesRoot, '.cache')
-  }
-
-  public async checkModule(name: string): Promise<void> {
-    let info = await this.loadInfo(this.registry, name, INFO_TIMEOUT)
-    let extensionInfo = info.versions[info.latest]
-    if (!extensionInfo) {
-      console.log(`Can not get latest version for ${name}`)
-      return
-    }
-    checkDeps(extensionInfo)
-    let dependencies = toObject(extensionInfo.dependencies) as Dependencies
-    for (let key of Object.keys(dependencies)) {
-      if (DEV_DEPENDENCIES.includes(key) || key.startsWith('@types/')) delete dependencies[key]
-    }
-    console.log('fetch infos')
-    await this.fetchInfos(name, info.latest, dependencies)
-    console.log('linking')
-    let items: DependencyItem[] = []
-    this.linkDependencies(dependencies, items)
   }
 
   public async installDependencies(): Promise<void> {
@@ -305,7 +292,6 @@ export class DependenciesInstaller {
     if (!dependencies) return
     for (let [name, requirement] of Object.entries(dependencies)) {
       let versionInfo = this.resolveVersion(name, requirement)
-      checkDeps(versionInfo)
       let item = items.find(o => o.name === name && o.version === versionInfo.version)
       if (item) {
         if (!item.satisfiedVersions.includes(requirement)) item.satisfiedVersions.push(requirement)
