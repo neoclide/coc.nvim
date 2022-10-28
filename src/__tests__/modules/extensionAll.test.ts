@@ -31,7 +31,7 @@ describe('Test dependencies ', () => {
       console.log(`Checking module ${name}`)
       try {
         let dep = session.createInstaller(os.tmpdir(), () => {})
-        await dep.checkModule(names[3])
+        await dep.checkModule(name)
       } catch (e) {
         console.error(`Error with ${name}`, e)
       }
