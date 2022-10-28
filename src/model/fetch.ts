@@ -244,7 +244,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
       }
     })
     req.on('timeout', () => {
-      req.destroy(new Error(`Request timeout after ${opts.timeout}ms`))
+      req.destroy(new Error(`Request ${url} timeout after ${opts.timeout}ms`))
     })
     if (data) req.write(getText(data))
     if (opts.timeout) req.setTimeout(opts.timeout)
