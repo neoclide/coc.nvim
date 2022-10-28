@@ -23,13 +23,12 @@ describe('Test dependencies ', () => {
         names.push(name)
       }
     }
-    // optionalDependencies
     console.log(`total: ${names.length}`)
-    let registry = new URL('https://registry.npmjs.org/')
+    let registry = new URL('https://registry.npmmirror.com/')
+    let session = new DependencySession(registry, os.tmpdir())
 
     for (let name of names) {
       await waitImmediate()
-      let session = new DependencySession(registry, os.tmpdir())
       console.log(`Checking module ${name}`)
       try {
         let dep = session.createInstaller(os.tmpdir(), () => {})

@@ -52,7 +52,7 @@ export interface DependencyItem {
 }
 
 const DEV_DEPENDENCIES = ['coc.nvim', 'webpack', 'esbuild']
-const INFO_TIMEOUT = 10000
+const INFO_TIMEOUT = 30000
 const DOWNLOAD_TIMEOUT = 3 * 60 * 1000
 
 function toFilename(item: DependencyItem): string {
@@ -117,7 +117,7 @@ function checkDeps(obj: any): void {
 /**
  * Production dependencies in directory
  */
-export function readDependencies(directory: string): Dependencies {
+export function readDependencies(directory: string): { name: string, version: string, dependencies: Dependencies } {
   let jsonfile = path.join(directory, 'package.json')
   let obj = loadJson(jsonfile) as any
   let dependencies = obj.dependencies as { [key: string]: string }
@@ -125,7 +125,7 @@ export function readDependencies(directory: string): Dependencies {
     if (DEV_DEPENDENCIES.includes(key) || key.startsWith('@types/')) delete dependencies[key]
   }
   checkDeps(obj)
-  return dependencies
+  return { name: obj.name, version: obj.version, dependencies }
 }
 
 export function getVersion(requirement: string, versions: string[], latest?: string): string | undefined {
@@ -179,6 +179,7 @@ const mutex = new Mutex()
 
 export class DependenciesInstaller {
   private tokenSource: CancellationTokenSource = new CancellationTokenSource()
+  private fetched: string[] = []
   constructor(
     private registry: URL,
     public readonly resolvedInfos: Map<string, ModuleInfo>,
@@ -208,14 +209,16 @@ export class DependenciesInstaller {
     for (let key of Object.keys(dependencies)) {
       if (DEV_DEPENDENCIES.includes(key) || key.startsWith('@types/')) delete dependencies[key]
     }
-    await this.fetchInfos(dependencies)
+    console.log('fetch infos')
+    await this.fetchInfos(name, info.latest, dependencies)
+    console.log('linking')
     let items: DependencyItem[] = []
     this.linkDependencies(dependencies, items)
   }
 
   public async installDependencies(): Promise<void> {
     let { directory, tokenSource } = this
-    let dependencies = readDependencies(directory)
+    let { dependencies, name, version } = readDependencies(directory)
     // no need to install
     if (!dependencies || Object.keys(dependencies).length == 0) {
       this.onMessage(`No dependencies`)
@@ -227,7 +230,7 @@ export class DependenciesInstaller {
     await mutex.use(async () => {
       if (token.isCancellationRequested) throw new CancellationError()
       this.onMessage('Resolving dependencies.')
-      await this.fetchInfos(dependencies)
+      await this.fetchInfos(name, version, dependencies)
       this.onMessage('Linking dependencies.')
       // create DependencyItems
       let items: DependencyItem[] = []
@@ -323,6 +326,7 @@ export class DependenciesInstaller {
   }
 
   public resolveVersion(name: string, requirement: string): VersionInfo {
+    if (!semver.validRange(requirement)) throw new Error(`Unsupported version range "${requirement}" of "${name}"`)
     let info = this.resolvedInfos.get(name)
     if (info) {
       let version = getVersion(requirement, Object.keys(info.versions), info.latest)
@@ -337,9 +341,12 @@ export class DependenciesInstaller {
   /**
    * Recursive fetch module info
    */
-  public async fetchInfos(dependencies: Dependencies | undefined): Promise<void> {
+  public async fetchInfos(name: string, version: string, dependencies: Dependencies | undefined): Promise<void> {
     let keys = Object.keys(dependencies ?? {})
     if (keys.length === 0) return
+    let id = `${name}-${version}`
+    if (this.fetched.includes(id)) return
+    this.fetched.push(id)
     await Promise.all(keys.map(key => {
       if (this.resolvedInfos.has(key)) return Promise.resolve()
       return this.loadInfo(this.registry, key, INFO_TIMEOUT).then(info => {
@@ -348,7 +355,7 @@ export class DependenciesInstaller {
     }))
     for (let key of keys) {
       let versionInfo = this.resolveVersion(key, dependencies[key])
-      await this.fetchInfos(versionInfo.dependencies)
+      await this.fetchInfos(versionInfo.name, versionInfo.version, versionInfo.dependencies)
     }
   }
 
@@ -388,13 +395,13 @@ export class DependenciesInstaller {
    * Fetch module info
    */
   public async loadInfo(registry: URL, name: string, timeout = 100): Promise<ModuleInfo> {
-    let buffer = await this.fetch(new URL(name, registry), { timeout, buffer: true }) as Buffer
+    let buffer = await this.fetch(new URL(name, registry), { timeout, buffer: true }, 3) as Buffer
     return getModuleInfo(buffer.toString())
   }
 
   public async fetch(url: string | URL, options: FetchOptions, retry = 1): Promise<any> {
-    if (this.tokenSource.token.isCancellationRequested) throw new CancellationError()
     for (let i = 0; i < retry; i++) {
+      if (this.tokenSource.token.isCancellationRequested) throw new CancellationError()
       try {
         return await fetch(url, options, this.tokenSource.token)
       } catch (e) {

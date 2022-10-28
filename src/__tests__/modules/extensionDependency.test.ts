@@ -96,8 +96,8 @@ describe('utils', () => {
     fs.mkdirSync(dir, { recursive: true })
     let filepath = path.join(dir, 'package.json')
     writeJson(filepath, { dependencies: { "coc.nvim": ">= 0.0.80", "is-number": "^1.0.0" } })
-    let res = readDependencies(dir)
-    expect(res).toEqual({ 'is-number': '^1.0.0' })
+    let { dependencies } = readDependencies(dir)
+    expect(dependencies).toEqual({ 'is-number': '^1.0.0' })
   })
 
   it('should getVersion', () => {
@@ -326,14 +326,14 @@ describe('DependenciesInstaller', () => {
   it('should fetchInfos', async () => {
     addJsonData()
     let install = create(undefined, '')
-    await install.fetchInfos({ a: '^0.0.1' })
+    await install.fetchInfos('x', '0.0.1', { a: '^0.0.1' })
     expect(install.resolvedInfos.size).toBe(4)
   })
 
   it('should linkDependencies', async () => {
     addJsonData()
     let install = create(undefined, '')
-    await install.fetchInfos({ a: '^0.0.1' })
+    await install.fetchInfos('x', '0.0.1', { a: '^0.0.1' })
     let items: DependencyItem[] = []
     install.linkDependencies(undefined, items)
     expect(items).toEqual([])
