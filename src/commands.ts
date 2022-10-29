@@ -177,7 +177,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
-        name = name ? name : await window.showQuickPick(workspace.channelNames) as string
+        name = name ? name : await window.showQuickPick(workspace.channelNames, { title: 'Choose output name' }) as string
         if (!name) return
         window.showOutputChannel(name)
       }

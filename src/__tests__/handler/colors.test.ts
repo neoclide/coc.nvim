@@ -10,6 +10,7 @@ import { disposeAll } from '../../util'
 import path from 'path'
 import helper from '../helper'
 import workspace from '../../workspace'
+import events from '../../events'
 
 let nvim: Neovim
 let state = 'normal'
@@ -79,7 +80,12 @@ describe('Colors', () => {
       let doc = await helper.createDocument()
       helper.updateConfiguration('colors.filetypes', [])
       let enabled = colors.isEnabled(doc.bufnr)
-      helper.updateConfiguration('colors.filetypes', ['*'])
+      expect(enabled).toBe(false)
+      helper.updateConfiguration('colors.enable', true)
+      enabled = colors.isEnabled(doc.bufnr)
+      expect(enabled).toBe(true)
+      helper.updateConfiguration('colors.enable', false)
+      enabled = colors.isEnabled(doc.bufnr)
       expect(enabled).toBe(false)
     })
   })
@@ -108,6 +114,23 @@ describe('Colors', () => {
       await p
       let line = await nvim.getLine()
       expect(line).toBe('red')
+    })
+
+    it('should register document.toggleColors command', async () => {
+      helper.updateConfiguration('colors.filetypes', [])
+      helper.updateConfiguration('colors.enable', true)
+      let doc = await workspace.document
+      await events.fire('BufUnload', [doc.bufnr])
+      await commands.executeCommand('document.toggleColors')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('not')
+      doc = await helper.createDocument()
+      await commands.executeCommand('document.toggleColors')
+      let enabled = colors.isEnabled(doc.bufnr)
+      expect(enabled).toBe(false)
+      await commands.executeCommand('document.toggleColors')
+      enabled = colors.isEnabled(doc.bufnr)
+      expect(enabled).toBe(true)
     })
   })
 
@@ -150,6 +173,15 @@ describe('Colors', () => {
       await colors.doHighlight(doc.bufnr)
       let res = colors.hasColor(doc.bufnr)
       expect(res).toBe(false)
+    })
+
+    it('should highlight after ColorScheme event', async () => {
+      let doc = await helper.createDocument()
+      await nvim.setLine('#ffffff #ff0000')
+      await doc.synchronize()
+      await colors.doHighlight(doc.bufnr)
+      await events.fire('ColorScheme', [])
+      expect(colors.hasColor(doc.bufnr)).toBe(true)
     })
 
     it('should not throw on error result', async () => {

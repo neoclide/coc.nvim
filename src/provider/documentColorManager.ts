@@ -36,7 +36,7 @@ export default class DocumentColorManager extends Manager<DocumentColorProvider>
         }
       })
     }))
-    this.handleResults(results, 'provideDefinition')
+    this.handleResults(results, 'provideDocumentColors')
     return colors
   }
 

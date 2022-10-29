@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
+import events from '../../events'
 import extensions from '../../extension'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
@@ -19,35 +20,64 @@ export default class Colors {
   private highlighters: BufferSync<ColorBuffer>
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
-    this.getConfiguration()
-    workspace.onDidChangeConfiguration(this.getConfiguration, this, this.disposables)
-    window.onDidChangeActiveTextEditor(() => {
-      this.getConfiguration()
-    }, null, this.disposables)
+    this.setConfiguration()
+    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     let usedColors: Set<string> = new Set()
     this.highlighters = workspace.registerBufferSync(doc => {
-      return new ColorBuffer(this.nvim, doc.bufnr, this.config, usedColors)
+      return new ColorBuffer(this.nvim, doc, this.config, usedColors)
     })
+    events.on('ColorScheme', () => {
+      usedColors.clear()
+      for (let item of this.highlighters.items) {
+        item.cancel()
+        void item.doHighlight()
+      }
+    }, null, this.disposables)
     extensions.onDidActiveExtension(() => {
       this.highlightAll()
     }, null, this.disposables)
-    this.disposables.push(commandManager.registerCommand('editor.action.pickColor', () => {
-      return this.pickColor()
-    }))
-    commandManager.titles.set('editor.action.pickColor', 'pick color from system color picker when possible.')
-    this.disposables.push(commandManager.registerCommand('editor.action.colorPresentation', () => {
-      return this.pickPresentation()
-    }))
-    commandManager.titles.set('editor.action.colorPresentation', 'change color presentation.')
+
+    commandManager.register({
+      id: 'editor.action.pickColor',
+      execute: async () => {
+        await this.pickColor()
+      }
+    }, false, 'pick color from system color picker when possible.')
+    commandManager.register({
+      id: 'editor.action.colorPresentation',
+      execute: async () => {
+        await this.pickPresentation()
+      }
+    }, false, 'change color presentation.')
+    commandManager.register({
+      id: 'document.toggleColors',
+      execute: async () => {
+        let bufnr = await nvim.call('bufnr', ['%']) as number
+        let item = this.highlighters.getItem(bufnr)
+        if (!item) return void window.showWarningMessage(`Current buffer not attached`)
+        if (item.enable) {
+          item.enable = false
+          item.clearHighlight()
+        } else {
+          item.enable = true
+          await item.doHighlight()
+        }
+      }
+    }, false, 'toggle colors for current buffer')
   }
 
-  private getConfiguration(e?: IConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('colors')) {
-      let c = workspace.getConfiguration('colors')
-      this.config = Object.assign(this.config || {}, {
+      let c = workspace.getConfiguration('colors', null)
+      this.config = Object.assign(this.config ?? {}, {
         filetypes: c.get<string[]>('filetypes', []),
         highlightPriority: c.get<number>('highlightPriority', 1000)
       })
+      if (e) {
+        for (let item of this.highlighters.items) {
+          item.updateDocumentConfig(true)
+        }
+      }
     }
   }
 
@@ -58,16 +88,15 @@ export default class Colors {
     if (!info) return void window.showWarningMessage('Color not found at current position')
     let tokenSource = new CancellationTokenSource()
     let presentations = await languages.provideColorPresentations(info, doc.textDocument, tokenSource.token)
-    if (!presentations?.length) return
-    let res = await window.showMenuPicker(presentations.map(o => o.label), 'choose color:')
+    if (!presentations?.length) return void window.showWarningMessage('No color presentations found')
+    let res = await window.showMenuPicker(presentations.map(o => o.label), 'Choose color:')
     if (res == -1) return
     let presentation = presentations[res]
     let { textEdit, additionalTextEdits, label } = presentation
     if (!textEdit) textEdit = { range: info.range, newText: label }
     await doc.applyEdits([textEdit])
-    if (additionalTextEdits) {
-      await doc.applyEdits(additionalTextEdits)
-    }
+    if (additionalTextEdits) await doc.applyEdits(additionalTextEdits)
+
   }
 
   public async pickColor(): Promise<void> {
