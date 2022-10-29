@@ -30,6 +30,7 @@ export interface CompleteConfig {
   removeDuplicateItems: boolean
   defaultSortMethod: string
   asciiCharactersOnly: boolean
+  enableFloat: boolean
   ignoreRegexps: ReadonlyArray<string>
 }
 

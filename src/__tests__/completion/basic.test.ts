@@ -1,4 +1,3 @@
-process.env.COC_NO_PLUGINS = '1'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
@@ -280,6 +279,27 @@ describe('completion', () => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), '\nfoo\nfoobar')])
       await create(['foo', 'foobar'], true)
+    })
+
+    it('should not not preview window when enableFloat is disabled', async () => {
+      helper.updateConfiguration('suggest.enableFloat', false)
+      let resolved = false
+      disposables.push(sources.createSource({
+        name: 'info',
+        doComplete: (): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo', info: 'detail' }] }),
+        onCompleteResolve: item => {
+          resolved = true
+        }
+      }))
+      await nvim.input('i')
+      triggerCompletion('info')
+      await helper.waitPopup()
+      let floatWin = await helper.getFloat('pumdetail')
+      expect(floatWin).toBeUndefined()
+      await helper.confirmCompletion(0)
+      await helper.waitValue(() => {
+        return resolved
+      }, true)
     })
   })
 

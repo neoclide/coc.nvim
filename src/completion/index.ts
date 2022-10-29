@@ -64,7 +64,7 @@ export class Completion implements Disposable {
       this.popupEvent = ev
       this.floating.cancel()
       let item = this.selectedItem
-      if (!item || (!ev.move && this.complete?.isCompleting)) return
+      if (!item || !this.config.enableFloat || (!ev.move && this.complete?.isCompleting)) return
       await this.floating.resolveItem(item, this.option)
     }, null, this.disposables)
   }
@@ -125,6 +125,7 @@ export class Completion implements Disposable {
     let suggest = workspace.getConfiguration('suggest', doc)
     this.config = {
       autoTrigger: suggest.get<string>('autoTrigger', 'always'),
+      enableFloat: suggest.get<boolean>('enableFloat', true),
       languageSourcePriority: suggest.get<number>('languageSourcePriority', 99),
       snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
       defaultSortMethod: suggest.get<string>('defaultSortMethod', 'length'),

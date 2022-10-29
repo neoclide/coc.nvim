@@ -1798,6 +1798,12 @@
       "deprecationMessage": "Use suggest.labelMaxLength instead.",
       "default": 100
     },
+    "suggest.enableFloat": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Enable float window with documentation aside with popupmenu.",
+      "default": true
+    },
     "suggest.enablePreselect": {
       "type": "boolean",
       "scope": "application",

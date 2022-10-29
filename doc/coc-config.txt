@@ -1154,6 +1154,12 @@ Suggest~
 
 	Scope: `application`, default: `"preview"`
 
+"suggest.enableFloat" 					*coc-config-suggest-enableFloat*
+
+	Enable float window with documentation aside with popupmenu.
+
+	Scope: `language-overridable`, default: `true"`
+
 "suggest.enablePreselect"				*coc-config-suggest-enablePreselect*
 
 	Enable preselect feature, works when |coc-config-suggest-noselect| is
@@ -1177,7 +1183,7 @@ Suggest~
 	popup menu).
 
 	Note: "maxWidth" not works for popup menu, use
-	|coc-config-suggest-detailMaxLength| instead.
+	|coc-config-suggest-labelMaxLength| instead.
 
 "suggest.formatItems"					*coc-config-suggest-formatItems*
 

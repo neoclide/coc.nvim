@@ -211,8 +211,9 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-f>')
-    let line = await nvim.call('line', '.')
-    expect(line).toBe(locations.length)
+    await helper.waitValue(async () => {
+      return await nvim.call('line', '.')
+    }, locations.length)
   })
 
   it('should execute normal keymap', async () => {

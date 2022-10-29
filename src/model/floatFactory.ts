@@ -161,7 +161,7 @@ export default class FloatFactoryImpl implements Disposable {
     this.unbind()
     let arr = await this.nvim.call('coc#dialog#create_cursor_float', [this.winid, this._bufnr, lines, config]) as [number, [number, number], number, number, number]
     this.nvim.redrawVim()
-    if (!isFalsyOrEmpty(arr) || this.closeTs > timestamp) {
+    if (isFalsyOrEmpty(arr) || this.closeTs > timestamp) {
       let winid = arr && arr.length > 0 ? arr[2] : this.winid
       if (winid) {
         this.winid = 0
