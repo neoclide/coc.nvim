@@ -237,7 +237,7 @@ describe('showHelp()', () => {
     let ui = manager.session.ui
     await ui.ready
     await manager.session.showHelp()
-    let lines = await nvim.call('getline', [1, '$'])
+    let lines = await nvim.call('getline', [1, '$']) as string[]
     expect(lines.indexOf('DESCRIPTION')).toBeGreaterThan(0)
     expect(lines.indexOf('ARGUMENTS')).toBeGreaterThan(0)
   })

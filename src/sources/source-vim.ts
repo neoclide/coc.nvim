@@ -72,7 +72,7 @@ export default class VimSource extends Source {
         })
       }
     }
-    let items: ExtendedCompleteItem[] = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt])
+    let items = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt]) as ExtendedCompleteItem[]
     if (!items || items.length == 0 || token.isCancellationRequested) return null
     if (this.firstMatch && input.length) {
       let ch = input[0]

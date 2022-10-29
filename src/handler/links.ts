@@ -79,7 +79,7 @@ export default class Links implements Disposable {
         }
       }
     }
-    let line = await this.nvim.call('getline', ['.'])
+    let line = await this.nvim.call('getline', ['.']) as string
     let regex = /\w+?:\/\/[^)\]'" ]+/g
     let arr
     let link: DocumentLink | undefined

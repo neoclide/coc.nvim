@@ -21,6 +21,14 @@ import LanguageSource from './source-language'
 import VimSource from './source-vim'
 const logger = require('../util/logger')('sources')
 
+interface InitialConfig {
+  filetypes?: string[]
+  firstMatch?: boolean
+  triggerCharacters?: string[]
+  priority?: number
+  shortcut?: string
+}
+
 /**
  * For static words, must be triggered by source option.
  * Used for completion of snippet choices.
@@ -122,7 +130,7 @@ export class Sources {
           return null
         }
       }
-      let props = await nvim.call(`coc#source#${name}#init`, [])
+      let props = await nvim.call(`coc#source#${name}#init`, []) as InitialConfig
       let packageJSON = {
         name: `coc-source-${name}`,
         engines: {

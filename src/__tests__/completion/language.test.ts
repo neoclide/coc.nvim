@@ -72,7 +72,7 @@ describe('language source', () => {
     async function getDetailContent(): Promise<string | undefined> {
       let winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail'])
       if (!winid) return
-      let bufnr = await nvim.call('winbufnr', [winid])
+      let bufnr = await nvim.call('winbufnr', [winid]) as number
       let lines = await (nvim.createBuffer(bufnr)).lines
       return lines.join('\n')
     }
@@ -227,7 +227,7 @@ describe('language source', () => {
       await nvim.call('coc#start', { source: 'edits' })
       let winid: number
       await helper.waitValue(async () => {
-        winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail'])
+        winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail']) as number
         return winid > 0
       }, true)
       let lines = await helper.getLines(winid)
@@ -312,7 +312,7 @@ describe('language source', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'bar func(do)')
-      let [, lnum, col] = await nvim.call('getcurpos')
+      let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
       expect(lnum).toBe(1)
       expect(col).toBe(12)
     })
@@ -338,7 +338,7 @@ describe('language source', () => {
       await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
       await helper.wait(50)
       expect(snippetManager.session).toBeDefined()
-      let [, lnum, col] = await nvim.call('getcurpos')
+      let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
       expect(lnum).toBe(1)
       expect(col).toBe(3)
     })

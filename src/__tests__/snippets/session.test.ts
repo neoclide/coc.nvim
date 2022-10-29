@@ -452,7 +452,7 @@ describe('SnippetSession', () => {
 
   describe('highlights()', () => {
     it('should add highlights', async () => {
-      let ns = await nvim.call('coc#highlight#create_namespace', ['snippets'])
+      let ns = await nvim.call('coc#highlight#create_namespace', ['snippets']) as number
       let session = await createSession(true)
       await session.start('${2:bar ${1:foo}} $2', defaultRange)
       let buf = nvim.createBuffer(workspace.bufnr)

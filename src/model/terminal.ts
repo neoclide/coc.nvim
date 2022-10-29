@@ -58,7 +58,7 @@ export default class TerminalModel {
   public async start(cwd?: string, env?: { [key: string]: string | null }): Promise<void> {
     let { nvim } = this
     let cmd = [this.cmd, ...this.args]
-    let [bufnr, pid] = await nvim.call('coc#terminal#start', [cmd, cwd, env || {}, !!this.strictEnv])
+    let [bufnr, pid] = await nvim.call('coc#terminal#start', [cmd, cwd, env || {}, !!this.strictEnv]) as [number, number]
     this.bufnr = bufnr
     this.pid = pid
   }

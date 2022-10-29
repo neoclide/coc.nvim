@@ -49,7 +49,7 @@ afterEach(async () => {
 async function getOutlineBuffer(): Promise<Buffer | undefined> {
   let winid = await nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
   if (winid == -1) return undefined
-  let bufnr = await nvim.call('winbufnr', [winid])
+  let bufnr = await nvim.call('winbufnr', [winid]) as number
   if (bufnr == -1) return undefined
   return nvim.createBuffer(bufnr)
 }
@@ -77,9 +77,9 @@ describe('symbols outline', () => {
   fun1() { }
   fun2() {}
 }`)
-      let curr = await nvim.call('bufnr', ['%'])
+      let curr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(0)
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await nvim.command('wincmd p')
       await nvim.command('exe 3')
       await events.fire('CursorHold', [curr, [3, 1]])
@@ -108,9 +108,9 @@ describe('symbols outline', () => {
     it('should not follow cursor', async () => {
       helper.updateConfiguration('outline.followCursor', false,)
       await createBuffer()
-      let curr = await nvim.call('bufnr', ['%'])
+      let curr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(0)
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await nvim.command('wincmd p')
       await nvim.command('exe 3')
       await events.fire('CursorHold', [curr])
@@ -366,7 +366,7 @@ fun1() {}
     it('should update symbols', async () => {
       await createBuffer()
       let doc = await workspace.document
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(1)
       await helper.wait(10)
       let buf = nvim.createBuffer(bufnr)
@@ -505,7 +505,7 @@ fun1() {}
         }
       }, undefined))
       await createBuffer()
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       let doc = workspace.getDocument(bufnr)
       uri = doc.uri
       await symbols.showOutline(0)
@@ -541,11 +541,12 @@ fun1() {}
   describe('dispose', () => {
     it('should dispose provider and views', async () => {
       await createBuffer('')
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(1)
       symbols.dispose()
-      await helper.wait(50)
-      expect(symbols.hasOutline(bufnr)).toBe(false)
+      await helper.waitValue(() => {
+        return symbols.hasOutline(bufnr)
+      }, false)
       let buf = await getOutlineBuffer()
       expect(buf).toBeUndefined()
     })

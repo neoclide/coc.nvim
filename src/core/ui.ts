@@ -95,7 +95,7 @@ export function showMessage(nvim: Neovim, msg: string, hl: 'MoreMsg' | 'Error' |
  */
 export async function getSelection(nvim: Neovim, mode: string): Promise<Range | null> {
   if (mode === 'currline') {
-    let line = await nvim.call('line', ['.'])
+    let line = await nvim.call('line', ['.']) as number
     return Range.create(line - 1, 0, line, 0)
   }
   if (mode === 'cursor') {

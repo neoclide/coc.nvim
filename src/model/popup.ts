@@ -2,6 +2,11 @@
 import { Neovim } from '@chemzqm/neovim'
 const isVim = process.env.VIM_NODE_RPC == '1'
 
+interface WindowInfo {
+  botline: number,
+  topline: number
+}
+
 /**
  * More methods for float window/popup
  */
@@ -46,7 +51,7 @@ export default class Popup {
     let total = await buf.length
     let botline: number
     if (!isVim) {
-      let infos = await nvim.call('getwininfo', [winid])
+      let infos = await nvim.call('getwininfo', [winid]) as WindowInfo[]
       if (!infos || !infos.length) return
       botline = infos[0].botline
     } else {
@@ -69,7 +74,7 @@ export default class Popup {
     let { nvim, winid } = this
     let topline: number
     if (!isVim) {
-      let infos = await nvim.call('getwininfo', [winid])
+      let infos = await nvim.call('getwininfo', [winid]) as WindowInfo[]
       if (!infos || !infos.length) return
       topline = infos[0].topline
     } else {

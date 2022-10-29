@@ -590,7 +590,7 @@ describe('getOriginalLine', () => {
       let fns: RecoverFunc[] = []
       await workspace.files.createFile(filepath, { overwrite: true }, fns)
       expect(fs.existsSync(filepath)).toBe(true)
-      let bufnr = await nvim.call('bufnr', [filepath])
+      let bufnr = await nvim.call('bufnr', [filepath]) as number
       expect(bufnr).toBeGreaterThan(0)
       let doc = workspace.getDocument(bufnr)
       expect(doc).toBeDefined()

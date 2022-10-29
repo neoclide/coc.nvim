@@ -164,7 +164,7 @@ describe('Menu', () => {
     expect(menu.buffer).toBeUndefined()
     await menu.onInputChar('session', 'j')
     await menu.show({ floatHighlight: 'CocFloating', floatBorderHighlight: 'CocFloating' })
-    let id = await nvim.call('GetFloatWin')
+    let id = await nvim.call('GetFloatWin') as number
     expect(id).toBeGreaterThan(0)
     let win = nvim.createWindow(id)
     await nvim.input('x')

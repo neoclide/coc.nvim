@@ -182,7 +182,7 @@ describe('list ui', () => {
       await nvim.call('cursor', [350, 1])
       await events.fire('CursorMoved', [ui.bufnr, [350, 1]])
       await helper.wait(100)
-      let res = await nvim.call('coc#highlight#get_highlights', [ui.bufnr, 'list'])
+      let res = await nvim.call('coc#highlight#get_highlights', [ui.bufnr, 'list']) as any
       expect(res.length).toBeGreaterThan(300)
     })
   })
@@ -202,7 +202,7 @@ describe('reversed list', () => {
     await helper.wait(50)
     lines = await buf.lines
     expect(lines).toEqual(['a'])
-    let res = await nvim.call('coc#highlight#get_highlights', [ui.bufnr, 'list'])
+    let res = await nvim.call('coc#highlight#get_highlights', [ui.bufnr, 'list']) as any
     expect(res.length).toBe(2)
     let win = nvim.createWindow(ui.winid)
     let height = await win.height

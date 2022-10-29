@@ -557,7 +557,7 @@ describe('diagnostic manager', () => {
       await nvim.call('cursor', [1, 2])
       await manager.echoCurrentMessage()
       let win = await helper.getFloat()
-      let bufnr = await nvim.call('winbufnr', [win.id])
+      let bufnr = await nvim.call('winbufnr', [win.id]) as number
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.lines
       expect(lines.join('\n')).toMatch('www.example.com')

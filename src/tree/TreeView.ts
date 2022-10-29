@@ -956,7 +956,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       this._keymapDefs.push({ mode, key, fn, notify })
     } else {
       this.disposables.push(workspace.registerLocalKeymap(mode, key, async () => {
-        let lnum = await this.nvim.call('line', ['.'])
+        let lnum = await this.nvim.call('line', ['.']) as number
         let element = this.getElementByLnum(lnum - 1)
         await Promise.resolve(fn(element))
       }, notify))
@@ -969,7 +969,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     const register = (mode: LocalMode, key: string | undefined, fn: (element: T | undefined) => Promise<void> | void, notify = true) => {
       if (!key) return
       workspace.registerLocalKeymap(mode, key, async () => {
-        let lnum = await this.nvim.call('line', ['.'])
+        let lnum = await this.nvim.call('line', ['.']) as number
         let element = this.getElementByLnum(lnum - 1)
         await Promise.resolve(fn(element))
       }, notify)

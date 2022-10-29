@@ -52,7 +52,7 @@ export default class InlayHintHandler {
       this.refresh(bufnr)
     }, null, this.disposables)
     events.on('WinScrolled', async winid => {
-      let bufnr = await nvim.call('winbufnr', [winid])
+      let bufnr = await nvim.call('winbufnr', [winid]) as number
       if (bufnr != -1) this.refresh(bufnr)
     }, null, this.disposables)
     this.disposables.push(commands.registerCommand('document.toggleInlayHint', (bufnr?: number) => {

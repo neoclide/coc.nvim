@@ -111,7 +111,7 @@ export default class Complete {
       this.nvim.call('coc#util#synname', []),
       this.nvim.call('coc#util#suggest_variables', [this.option.bufnr]),
       this.document.patchChange()
-    ])
+    ]) as [string, { disable: boolean, disabled_sources: string[], blacklist: string[] }, undefined]
     if (token.isCancellationRequested) return
     this.option.synname = res[0]
     let variables = res[1]

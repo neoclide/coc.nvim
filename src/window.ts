@@ -271,7 +271,7 @@ export class Window {
    * Open local config file
    */
   public async openLocalConfig(): Promise<void> {
-    let fsPath = await this.nvim.call('expand', ['%:p'])
+    let fsPath = await this.nvim.call('expand', ['%:p']) as string
     let filetype = await this.nvim.eval('&filetype') as string
     if (!fsPath || !path.isAbsolute(fsPath)) {
       void this.showWarningMessage(`Current buffer doesn't have valid file path.`)
@@ -594,7 +594,7 @@ export class Window {
     }
     let titles: string[] = typeof items[0] === 'string' ? items.slice() as string[] : items.map(o => (o as MessageItem).title)
     let choices = titles.map((s, i) => `${i + 1}${s}`)
-    let res = await this.nvim.callAsync('coc#util#with_callback', ['confirm', [message, choices.join('\n'), 0, kind]])
+    let res = await this.nvim.callAsync('coc#util#with_callback', ['confirm', [message, choices.join('\n'), 0, kind]]) as number
     return items[res - 1]
   }
 

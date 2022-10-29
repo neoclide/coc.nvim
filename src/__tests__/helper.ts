@@ -132,7 +132,7 @@ export class Helper extends EventEmitter {
   public async waitFloat(): Promise<number> {
     for (let i = 0; i < 50; i++) {
       await this.wait(20)
-      let winid = await this.nvim.call('GetFloatWin')
+      let winid = await this.nvim.call('GetFloatWin') as number
       if (winid) return winid
     }
     throw new Error('timeout after 2s')
@@ -228,7 +228,7 @@ export class Helper extends EventEmitter {
   public async getCmdline(): Promise<string> {
     let str = ''
     for (let i = 1, l = 70; i < l; i++) {
-      let ch = await this.nvim.call('screenchar', [79, i])
+      let ch = await this.nvim.call('screenchar', [79, i]) as number
       if (ch == -1) break
       str += String.fromCharCode(ch)
     }
@@ -265,7 +265,7 @@ export class Helper extends EventEmitter {
   public async screenLine(line: number): Promise<string> {
     let res = ''
     for (let i = 1; i <= 80; i++) {
-      let ch = await this.nvim.call('screenchar', [line, i])
+      let ch = await this.nvim.call('screenchar', [line, i]) as number
       res = res + String.fromCharCode(ch)
     }
     return res
@@ -277,10 +277,10 @@ export class Helper extends EventEmitter {
 
   public async getFloat(kind?: string): Promise<Window> {
     if (!kind) {
-      let ids = await this.nvim.call('coc#float#get_float_win_list')
+      let ids = await this.nvim.call('coc#float#get_float_win_list') as number[]
       return ids.length ? this.nvim.createWindow(ids[0]) : undefined
     } else {
-      let id = await this.nvim.call('coc#float#get_float_by_kind', [kind])
+      let id = await this.nvim.call('coc#float#get_float_by_kind', [kind]) as number
       return id ? this.nvim.createWindow(id) : undefined
     }
   }
@@ -291,7 +291,7 @@ export class Helper extends EventEmitter {
   }
 
   public async getFloats(): Promise<Window[]> {
-    let ids = await this.nvim.call('coc#float#get_float_win_list', [])
+    let ids = await this.nvim.call('coc#float#get_float_win_list', []) as number[]
     if (!ids) return []
     return ids.map(id => this.nvim.createWindow(id))
   }

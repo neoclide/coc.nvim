@@ -396,7 +396,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let { regions, highlights, config, lineCount, bufnr } = this
     if (!highlights) return
     let priority = config.highlightPriority
-    let spans: [number, number][] = await this.nvim.call('coc#window#visible_ranges', [bufnr])
+    let spans = await this.nvim.call('coc#window#visible_ranges', [bufnr]) as [number, number][]
     if (token.isCancellationRequested || spans.length === 0) return
     let height = workspace.env.lines
     spans.forEach(o => {

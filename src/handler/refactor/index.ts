@@ -92,7 +92,7 @@ export default class Refactor {
    */
   public async search(args: string[]): Promise<void> {
     let buf = await this.createRefactorBuffer()
-    let cwd = await this.nvim.call('getcwd', [])
+    let cwd = await this.nvim.call('getcwd', []) as string
     let search = new Search(this.nvim)
     await search.run(args, cwd, buf)
   }

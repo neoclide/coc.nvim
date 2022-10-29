@@ -6,6 +6,7 @@ import events, { BufEvents } from '../events'
 import { parseDocuments } from '../markdown'
 import { Documentation, FloatConfig } from '../types'
 import { disposeAll } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 const isVim = process.env.VIM_NODE_RPC == '1'
@@ -158,9 +159,9 @@ export default class FloatFactoryImpl implements Disposable {
     let autoHide = opts.autoHide === false ? false : true
     if (autoHide) config.autohide = 1
     this.unbind()
-    let arr = await this.nvim.call('coc#dialog#create_cursor_float', [this.winid, this._bufnr, lines, config])
+    let arr = await this.nvim.call('coc#dialog#create_cursor_float', [this.winid, this._bufnr, lines, config]) as [number, [number, number], number, number, number]
     this.nvim.redrawVim()
-    if (!arr || arr.length == 0 || this.closeTs > timestamp) {
+    if (!isFalsyOrEmpty(arr) || this.closeTs > timestamp) {
       let winid = arr && arr.length > 0 ? arr[2] : this.winid
       if (winid) {
         this.winid = 0
@@ -169,7 +170,7 @@ export default class FloatFactoryImpl implements Disposable {
       }
       return
     }
-    let [targetBufnr, cursor, winid, bufnr, alignTop] = arr as [number, [number, number], number, number, number]
+    let [targetBufnr, cursor, winid, bufnr, alignTop] = arr
     this.winid = winid
     this._bufnr = bufnr
     this.targetBufnr = targetBufnr

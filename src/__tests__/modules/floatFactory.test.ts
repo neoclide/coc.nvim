@@ -128,7 +128,7 @@ describe('FloatFactory', () => {
   describe('checkRetrigger', () => {
     it('should check retrigger', async () => {
       expect(floatFactory.checkRetrigger(99)).toBe(false)
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'

@@ -132,9 +132,10 @@ describe('Hover', () => {
       let res = await nvim.call('getmatches') as any[]
       expect(res.length).toBe(1)
       expect(res[0].group).toBe('CocHoverRange')
-      await helper.wait(600)
-      res = await nvim.call('getmatches')
-      expect(res.length).toBe(0)
+      await helper.waitValue(async () => {
+        let res = await nvim.call('getmatches') as any[]
+        return res.length
+      }, 0)
     })
   })
 

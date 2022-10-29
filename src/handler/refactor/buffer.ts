@@ -361,7 +361,7 @@ export default class RefactorBuffer implements BufferSyncItem {
       nvim.command('normal! zz', true)
       await nvim.resumeNotification(true)
       if (!valid) {
-        this.opts.fromWinid = await nvim.call('win_getid')
+        this.opts.fromWinid = await nvim.call('win_getid') as number
       }
     }
   }

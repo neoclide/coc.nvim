@@ -18,7 +18,7 @@ export default class FoldList extends BasicList {
     super(nvim)
 
     this.addAction('edit', async item => {
-      let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir'])
+      let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir']) as string
       let stat = await statAsync(newPath)
       if (!stat || !stat.isDirectory()) {
         void window.showErrorMessage(`invalid path: ${newPath}`)

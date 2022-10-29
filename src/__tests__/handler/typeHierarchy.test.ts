@@ -245,7 +245,7 @@ describe('TypeHierarchy', () => {
       expect(matches.length).toBe(1)
       await nvim.command(`b ${bufnr}`)
       await helper.wait(50)
-      matches = await nvim.call('getmatches')
+      matches = await nvim.call('getmatches') as any[]
       expect(matches.length).toBe(0)
       await nvim.command(`wincmd o`)
     })

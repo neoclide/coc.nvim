@@ -243,8 +243,8 @@ export default class ListUI {
   public async toggleSelection(): Promise<void> {
     let { nvim, reversed } = this
     await nvim.call('win_gotoid', [this.winid])
-    let lnum = await nvim.call('line', '.')
-    let mode = await nvim.call('mode')
+    let lnum = await nvim.call('line', '.') as number
+    let mode = await nvim.call('mode') as string
     if (mode == 'v' || mode == 'V') {
       let [start, end] = await this.getSelectedRange()
       let reverse = start > end
@@ -332,7 +332,7 @@ export default class ListUI {
     if (!this.window) {
       let height = this.getHeight(items.length, finished)
       let { position, numberSelect } = listOptions
-      let [bufnr, winid, tabnr] = await nvim.call('coc#list#create', [position, height, name, numberSelect])
+      let [bufnr, winid, tabnr] = await nvim.call('coc#list#create', [position, height, name, numberSelect]) as [number, number, number]
       this.tabnr = tabnr
       this.height = height
       this.buffer = nvim.createBuffer(bufnr)
@@ -503,8 +503,8 @@ export default class ListUI {
     let { nvim } = this
     await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.eval('feedkeys("\\<esc>", "in")')
-    let [, start] = await nvim.call('getpos', "'<")
-    let [, end] = await nvim.call('getpos', "'>")
+    let [, start] = await nvim.call('getpos', "'<") as [number, number]
+    let [, end] = await nvim.call('getpos', "'>") as [number, number]
     this.nvim.call('coc#prompt#start_prompt', ['list'], true)
     return [start, end]
   }

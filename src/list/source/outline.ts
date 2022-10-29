@@ -116,7 +116,7 @@ export default class Outline extends LocationList {
     let content = ''
     let tempname = await this.nvim.call('tempname')
     let filepath = `${tempname}.${extname}`
-    let escaped = await this.nvim.call('fnameescape', filepath)
+    let escaped = await this.nvim.call('fnameescape', filepath) as string
     await writeFile(escaped, document.getDocumentContent())
     try {
       content = await runCommand(`ctags -f - --excmd=number --language-force=${document.filetype} ${escaped}`)

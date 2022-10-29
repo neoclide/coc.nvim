@@ -28,7 +28,7 @@ afterEach(async () => {
 async function getTitleLine(): Promise<string> {
   let winids = await nvim.call('coc#float#get_float_win_list') as number[]
   let winid = Math.min(...winids)
-  let id = await nvim.call('coc#float#get_related', [winid, 'border'])
+  let id = await nvim.call('coc#float#get_related', [winid, 'border']) as number
   let win = nvim.createWindow(id)
   let buf = await win.buffer
   let lines = await buf.lines

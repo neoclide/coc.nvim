@@ -8,6 +8,7 @@ import { URI } from 'vscode-uri'
 import events from '../../events'
 import Document, { getUri } from '../../model/document'
 import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
+import { BufferOption } from '../../types'
 import { disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
 import workspace from '../../workspace'
@@ -661,7 +662,7 @@ describe('Document', () => {
       ]
       let res = await win.highlightRanges('Search', ranges)
       expect(res.length).toBe(2)
-      let matches = await nvim.call('getmatches', [win.id])
+      let matches = await nvim.call('getmatches', [win.id]) as any
       expect(matches.length).toBe(2)
       nvim.pauseNotification()
       win.clearMatchGroup('Search')
@@ -682,7 +683,7 @@ describe('Document', () => {
       nvim.pauseNotification()
       win.clearMatches(ids)
       await nvim.resumeNotification()
-      let matches = await nvim.call('getmatches', [win.id])
+      let matches = await nvim.call('getmatches', [win.id]) as any
       expect(matches.length).toBe(0)
     })
   })
@@ -691,7 +692,7 @@ describe('Document', () => {
     async function createVimDocument(): Promise<Document> {
       let doc = await workspace.document
       doc.detach()
-      let opts = await nvim.call('coc#util#get_bufoptions', [doc.bufnr, 2097152])
+      let opts = await nvim.call('coc#util#get_bufoptions', [doc.bufnr, 2097152]) as BufferOption
       let buf = nvim.createBuffer(doc.bufnr)
       let env = Object.assign({ isVim: true }, workspace.env)
       return new Document(buf, env, nvim, opts)

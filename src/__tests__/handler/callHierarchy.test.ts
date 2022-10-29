@@ -170,7 +170,7 @@ describe('CallHierarchy', () => {
     expect(matches.length).toBe(2)
     await nvim.command(`b ${bufnr}`)
     await helper.wait(50)
-    matches = await nvim.call('getmatches')
+    matches = await nvim.call('getmatches') as any[]
     expect(matches.length).toBe(0)
     await nvim.command(`wincmd o`)
   })
@@ -213,7 +213,7 @@ describe('CallHierarchy', () => {
     doc = await workspace.document
     expect(doc.uri).toBe(uri)
     await helper.waitValue(async () => {
-      let res = await nvim.call('getmatches', [win.id])
+      let res = await nvim.call('getmatches', [win.id]) as any[]
       return res.length
     }, 1)
   })

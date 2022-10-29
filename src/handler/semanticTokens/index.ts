@@ -111,7 +111,7 @@ export default class SemanticTokens {
       this.floatFactory.close()
       return
     }
-    let [_, line, col] = await this.nvim.call('getcurpos', [])
+    let [_, line, col] = await this.nvim.call('getcurpos', []) as [number, number, number]
     let highlights = item.highlights ?? []
     let highlight = highlights.find(o => {
       let column = col - 1

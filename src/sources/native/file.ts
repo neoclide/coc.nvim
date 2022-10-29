@@ -135,7 +135,7 @@ export class File extends Source {
     let { pathstr, part, startcol } = option
     let startPart = opt.col == startcol ? '' : byteSlice(opt.line, opt.col, startcol)
     let ext = path.extname(path.basename(filepath))
-    let cwd = await this.nvim.call('getcwd', [])
+    let cwd = await this.nvim.call('getcwd', []) as string
     let root = await this.getRoot(pathstr, part, filepath, cwd)
     if (!root || token.isCancellationRequested) return null
     let items = await getItemsFromRoot(pathstr, root, this.getConfig('ignoreHidden', true), this.getConfig('ignorePatterns', []))

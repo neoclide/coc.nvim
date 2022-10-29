@@ -59,7 +59,7 @@ export default class CallHierarchyHandler {
       if (item.sourceUri) {
         let doc = workspace.getDocument(item.sourceUri)
         if (!doc) return
-        let winid = await nvim.call('coc#compat#buf_win_id', [doc.bufnr])
+        let winid = await nvim.call('coc#compat#buf_win_id', [doc.bufnr]) as number
         if (winid == -1) return
         if (winid != win.id) {
           win = nvim.createWindow(winid)

@@ -41,7 +41,7 @@ describe('help tags', () => {
     await nvim.command('tabe tmp.js')
     let res = await helper.plugin.cocAction('ensureDocument')
     expect(res).toBe(true)
-    let bufnr = await nvim.call('bufnr', ['%'])
+    let bufnr = await nvim.call('bufnr', ['%']) as number
     let doc = workspace.getDocument(bufnr)
     expect(doc).toBeDefined()
   })

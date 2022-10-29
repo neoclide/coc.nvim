@@ -379,14 +379,14 @@ describe('window', () => {
 
     it('should echo lines', async () => {
       await window.echoLines(['a', 'b'])
-      let ch = await nvim.call('screenchar', [79, 1])
+      let ch = await nvim.call('screenchar', [79, 1]) as number
       let s = String.fromCharCode(ch)
       expect(s).toBe('a')
     })
 
     it('should echo multiple lines with truncate', async () => {
       await window.echoLines(['a', 'b', 'd', 'e'], true)
-      let ch = await nvim.call('screenchar', [79, 1])
+      let ch = await nvim.call('screenchar', [79, 1]) as number
       let s = String.fromCharCode(ch)
       expect(s).toBe('a')
     })
@@ -442,13 +442,13 @@ describe('window', () => {
         content: 'my notification',
         title: 'title',
       })
-      let ids = await nvim.call('coc#float#get_float_win_list')
+      let ids = await nvim.call('coc#float#get_float_win_list') as number[]
       expect(ids.length).toBe(1)
       let win = nvim.createWindow(ids[0])
       let kind = await win.getVar('kind')
       expect(kind).toBe('notification')
       let winid = await nvim.call('coc#float#get_related', [win.id, 'border'])
-      let bufnr = await nvim.call('winbufnr', [winid])
+      let bufnr = await nvim.call('winbufnr', [winid]) as number
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.lines
       expect(lines[0].includes('title')).toBe(true)
@@ -607,7 +607,7 @@ describe('window', () => {
     let priority = 99
     let ns_id: number
     beforeAll(async () => {
-      ns_id = await nvim.call('coc#highlight#create_namespace', [ns])
+      ns_id = await nvim.call('coc#highlight#create_namespace', [ns]) as number
     })
 
     async function createFile(content = 'foo\nbar'): Promise<Buffer> {

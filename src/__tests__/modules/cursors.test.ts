@@ -218,7 +218,7 @@ describe('cursors', () => {
 
     it('should select by operator char type', async () => {
       await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await nvim.call('setline', [1, ['"short"', '"long"']])
       await nvim.call('cursor', [1, 2])
       await nvim.input('xi"')
@@ -230,7 +230,7 @@ describe('cursors', () => {
 
     it('should select by operator line type', async () => {
       await nvim.command('nmap x  <Plug>(coc-cursors-operator)')
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       await nvim.call('setline', [1, ['"short"', '"long"']])
       await nvim.call('cursor', [1, 2])
       await nvim.input('xap')

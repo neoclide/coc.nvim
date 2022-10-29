@@ -274,11 +274,11 @@ describe('snippet provider', () => {
 
     it('should avoid python resolve when necessary', async () => {
       await nvim.command('startinsert')
-      let res = await snippetManager.insertSnippet('${1:foo} `!p snip.rv = t[1]`', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
+      let res = await snippetManager.insertSnippet('${1:foo} `!p snip.rv = t[1]`', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {}) as any
       expect(res).toBe(true)
       let snippet = await snippetManager.resolveSnippet('${1:x} `!p snip.rv= t[1]`', {})
       expect(snippet.toString()).toBe('x ')
-      res = await nvim.call('pyxeval', 't[1]')
+      res = await nvim.call('pyxeval', 't[1]') as any
       expect(res).toBe('foo')
     })
   })

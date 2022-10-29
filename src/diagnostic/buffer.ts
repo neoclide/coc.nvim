@@ -362,7 +362,7 @@ export class DiagnosticBuffer implements SyncItem {
       let disabledByInsert = events.insertMode && !refreshOnInsertMode
       if (disabledByInsert) return undefined
     }
-    return await nvim.call('coc#util#diagnostic_info', [bufnr, checkInsert])
+    return await nvim.call('coc#util#diagnostic_info', [bufnr, checkInsert]) as DiagnosticInfo | undefined
   }
 
   /**

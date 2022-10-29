@@ -460,7 +460,7 @@ describe('list', () => {
       await helper.waitFor('winnr', ['$'], 3)
       let previewWinnr = await nvim.call('coc#list#has_preview')
       expect(previewWinnr).toBe(2)
-      let bufnr = await nvim.call('winbufnr', previewWinnr)
+      let bufnr = await nvim.call('winbufnr', previewWinnr) as number
       let buf = nvim.createBuffer(bufnr)
       let name = await buf.name
       expect(name).toMatch('manager.test.ts')

@@ -60,7 +60,7 @@ describe('search', () => {
 
   it('should work with CocAction search', async () => {
     await helper.doAction('search', ['CocAction'])
-    let bufnr = await nvim.call('bufnr', ['%'])
+    let bufnr = await nvim.call('bufnr', ['%']) as number
     let buf = refactor.getBuffer(bufnr)
     expect(buf).toBeDefined()
   })
@@ -81,7 +81,7 @@ describe('search', () => {
 
   it('should show empty result when no result found', async () => {
     await helper.doAction('search', ['should found ' + ' no result'])
-    let bufnr = await nvim.call('bufnr', ['%'])
+    let bufnr = await nvim.call('bufnr', ['%']) as number
     let buf = refactor.getBuffer(bufnr)
     expect(buf).toBeDefined()
     let buffer = await nvim.buffer

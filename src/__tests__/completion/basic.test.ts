@@ -66,7 +66,7 @@ describe('completion', () => {
     it('should disable preselect feature', async () => {
       helper.updateConfiguration('suggest.enablePreselect', false)
       await create([{ word: 'foo' }, { word: 'bar' }, { word: 'foot', preselect: true }], true)
-      let info = await nvim.call('coc#pum#info')
+      let info = await nvim.call('coc#pum#info') as any
       expect(info.index).toBe(0)
     })
 
@@ -121,7 +121,7 @@ describe('completion', () => {
       await helper.confirmCompletion(1)
       await nvim.input('<CR>f')
       triggerCompletion(name)
-      let info = await nvim.call('coc#pum#info')
+      let info = await nvim.call('coc#pum#info') as any
       expect(info.index).toBe(1)
     })
 
@@ -136,7 +136,7 @@ describe('completion', () => {
       await helper.wait(10)
       await nvim.input('owo')
       await helper.visible('would')
-      let info = await nvim.call('coc#pum#info')
+      let info = await nvim.call('coc#pum#info') as any
       expect(info.word).toBe('would')
     })
 
@@ -348,7 +348,7 @@ describe('completion', () => {
       await nvim.input('i')
       await nvim.call('coc#start', {})
       await helper.waitPopup()
-      let info = await nvim.call('coc#pum#info')
+      let info = await nvim.call('coc#pum#info') as any
       expect(info.index).toBe(0)
     })
 
@@ -1128,7 +1128,7 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      let winid = await nvim.call('coc#float#get_float_by_kind', ['pum'])
+      let winid = await nvim.call('coc#float#get_float_by_kind', ['pum']) as number
       let win = nvim.createWindow(winid)
       let buf = await win.buffer
       let lines = await buf.lines
@@ -1161,7 +1161,7 @@ describe('completion', () => {
       await nvim.input('i')
       triggerCompletion('test')
       await helper.waitPopup()
-      let winid = await nvim.call('coc#float#get_float_by_kind', ['pum'])
+      let winid = await nvim.call('coc#float#get_float_by_kind', ['pum']) as number
       let win = nvim.createWindow(winid)
       let buf = await win.buffer
       let lines = await buf.lines
@@ -1246,7 +1246,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.selectedItem?.word
       }, 'foo')
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       completion.onCursorMovedI(bufnr, [1, 4], false)
       expect(completion.isActivated).toBe(true)
       await nvim.call('coc#pum#prev', [1])

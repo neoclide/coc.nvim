@@ -274,7 +274,7 @@ describe('BasicList', () => {
       await manager.doAction('preview')
       let res = await nvim.call('coc#list#has_preview') as number
       expect(res).toBeGreaterThan(0)
-      let winid = await nvim.call('win_getid', [res])
+      let winid = await nvim.call('win_getid', [res]) as number
       return winid
     }
 
@@ -297,7 +297,7 @@ describe('BasicList', () => {
         lines: ['foo', 'bar'],
         range: Range.create(0, 0, 0, 3)
       })
-      let res = await nvim.call('getmatches', [winid])
+      let res = await nvim.call('getmatches', [winid]) as any[]
       expect(res.length).toBeGreaterThan(0)
     })
   })
@@ -342,7 +342,7 @@ describe('list sources', () => {
       await nvim.command('wincmd k')
       let name = await nvim.eval('bufname("%")')
       expect(name).toMatch('sources.test.ts')
-      let res = await nvim.call('getmatches')
+      let res = await nvim.call('getmatches') as any[]
       expect(res.length).toBe(1)
     })
 
@@ -374,7 +374,7 @@ describe('list sources', () => {
       await events.fire('CursorMoved', [bufnr, [2, 1]])
       await helper.waitFor('winnr', ['$'], 3)
       await nvim.command('wincmd k')
-      let res = await nvim.call('getmatches')
+      let res = await nvim.call('getmatches') as any
       expect(res.length).toBe(1)
       expect(res[0]['pos1']).toEqual([3, 1, 6])
     })
@@ -387,7 +387,7 @@ describe('list sources', () => {
       await events.fire('CursorMoved', [bufnr, [2, 1]])
       await helper.waitFor('winnr', ['$'], 3)
       await nvim.command('wincmd k')
-      let res = await nvim.call('getmatches')
+      let res = await nvim.call('getmatches') as any
       expect(res.length).toBe(1)
       expect(res[0]['pos1']).toBeDefined()
       expect(res[0]['pos2']).toBeDefined()

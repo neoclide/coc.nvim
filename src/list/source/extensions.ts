@@ -118,7 +118,7 @@ export default class ExtensionList extends BasicList {
       } else if (stat.state == 'unknown') {
         prefix = '?'
       }
-      let root = await this.nvim.call('resolve', stat.root)
+      let root = await this.nvim.call('resolve', stat.root) as string
       let locked = stat.isLocked
       items.push({
         label: [`${prefix} ${stat.id}${locked ? ' ' : ''}`, ...(stat.isLocal ? ['[RTP]'] : []), stat.version, root.replace(os.homedir(), '~')],

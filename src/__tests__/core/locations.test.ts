@@ -77,7 +77,7 @@ describe('jumpTo()', () => {
     expect(name).toMatch('/foo')
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
     await workspace.jumpTo(uri, { line: 1, character: 1 })
-    let pos = await nvim.call('getcurpos')
+    let pos = await nvim.call('getcurpos') as number[]
     expect(pos.slice(1, 3)).toEqual([2, 2])
   })
 

@@ -142,8 +142,8 @@ export default class Files {
     let bufname = u.scheme === 'file' ? u.fsPath : uri
     let bufnr: number
     if (cmd) {
-      let winid = await this.nvim.call('win_getid')
-      bufnr = await this.nvim.call('coc#util#open_file', [cmd, bufname])
+      let winid = await this.nvim.call('win_getid') as number
+      bufnr = await this.nvim.call('coc#util#open_file', [cmd, bufname]) as number
       await this.nvim.call('win_gotoid', [winid])
     } else {
       let arr = await this.nvim.call('coc#ui#open_files', [[bufname]])
@@ -280,7 +280,7 @@ export default class Files {
     let file = { newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }
     if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers)
     if (loaded) {
-      let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null])
+      let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null]) as number
       await this.documents.onBufCreate(bufnr)
     } else {
       if (oldStat?.isDirectory()) {
@@ -288,7 +288,7 @@ export default class Files {
           let u = URI.parse(doc.uri)
           if (u.scheme === 'file' && isParentFolder(oldPath, u.fsPath, false)) {
             let filepath = u.fsPath.replace(oldPath, newPath)
-            let bufnr = await nvim.call('coc#ui#rename_file', [u.fsPath, filepath, false])
+            let bufnr = await nvim.call('coc#ui#rename_file', [u.fsPath, filepath, false]) as number
             await this.documents.onBufCreate(bufnr)
           }
         }
@@ -303,9 +303,9 @@ export default class Files {
 
   public async renameCurrent(): Promise<void> {
     let { nvim } = this
-    let oldPath = await nvim.call('expand', ['%:p'])
+    let oldPath = await nvim.call('expand', ['%:p']) as string
     // await nvim.callAsync()
-    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']])
+    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']]) as string
     newPath = newPath ? newPath.trim() : null
     if (newPath === oldPath || !newPath) return
     if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {

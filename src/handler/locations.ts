@@ -113,7 +113,7 @@ export default class LocationsHandler {
 
   public async getTagList(): Promise<TagDefinition[] | null> {
     let { doc, position } = await this.handler.getCurrentState()
-    let word = await this.nvim.call('expand', '<cword>')
+    let word = await this.nvim.call('expand', '<cword>') as string
     if (!word) return null
     if (!languages.hasProvider('definition', doc.textDocument)) return null
     let tokenSource = new CancellationTokenSource()

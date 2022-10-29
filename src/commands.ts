@@ -1,24 +1,24 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import os from 'os'
+import path from 'path'
+import { v4 as uuid } from 'uuid'
+import { writeHeapSnapshot } from 'v8'
 import * as language from 'vscode-languageserver-protocol'
 import { CodeAction, Disposable, InsertTextMode, Location, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import diagnosticManager from './diagnostic/manager'
+import events from './events'
 import Mru from './model/mru'
 import Plugin from './plugin'
 import snippetsManager from './snippets/manager'
 import { UltiSnippetOption } from './types'
 import { wait } from './util'
+import { Extensions as ExtensionsInfo, IExtensionRegistry } from './util/extensionRegistry'
+import { Registry } from './util/registry'
+import { toText } from './util/string'
 import window from './window'
 import workspace from './workspace'
-import events from './events'
-import path from 'path'
-import os from 'os'
-import { v4 as uuid } from 'uuid'
-import { writeHeapSnapshot } from 'v8'
-import { Registry } from './util/registry'
-import { IExtensionRegistry, Extensions as ExtensionsInfo } from './util/extensionRegistry'
-import { toText } from './util/string'
 
 const logger = require('./util/logger')('commands')
 
@@ -177,20 +177,9 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
-        if (name) {
-          window.showOutputChannel(name)
-        } else {
-          let names = workspace.channelNames
-          if (names.length == 0) return
-          if (names.length == 1) {
-            window.showOutputChannel(names[0])
-          } else {
-            let idx = await window.showQuickpick(names)
-            if (idx == -1) return
-            let name = names[idx]
-            window.showOutputChannel(name)
-          }
-        }
+        name = name ? name : await window.showQuickPick(workspace.channelNames) as string
+        if (!name) return
+        window.showOutputChannel(name)
       }
     }, false, 'open output buffer to show output from languageservers or extensions.')
     this.register({
@@ -208,18 +197,16 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'document.echoFiletype',
       execute: async () => {
-        let bufnr = await nvim.call('bufnr', '%')
-        let doc = workspace.getDocument(bufnr)
-        if (!doc) return
+        let bufnr = await nvim.call('bufnr', '%') as number
+        let doc = workspace.getAttachedDocument(bufnr)
         await window.echoLines([doc.filetype])
       }
     }, false, 'echo the mapped filetype of the current buffer')
     this.register({
       id: 'document.renameCurrentWord',
       execute: async () => {
-        let bufnr = await nvim.call('bufnr', '%')
-        let doc = workspace.getDocument(bufnr)
-        if (!doc) return
+        let bufnr = await nvim.call('bufnr', '%') as number
+        let doc = workspace.getAttachedDocument(bufnr)
         let edit = await plugin.cocAction('getWordEdit') as WorkspaceEdit
         if (!edit) {
           void window.showWarningMessage('Invalid position')

@@ -322,7 +322,7 @@ describe('refactor', () => {
       let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
       await doc.buffer.setLines([], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
-      let lines = await nvim.call('getline', [1, '$'])
+      let lines = await nvim.call('getline', [1, '$']) as string[]
       expect(lines.length).toBe(3)
       let items = buf.fileItems
       expect(items.length).toBe(0)
@@ -336,7 +336,7 @@ describe('refactor', () => {
       let buf = await refactor.fromLocations([{ uri: doc.uri, range: Range.create(4, 0, 4, 3) }])
       await doc.buffer.setLines(['def', 'def'], { start: 5, end: 6, strictIndexing: false })
       await doc.synchronize()
-      let lines = await nvim.call('getline', [1, '$'])
+      let lines = await nvim.call('getline', [1, '$']) as string[]
       expect(lines[lines.length - 2]).toBe('def')
       await assertSynchronized(buf)
     })
@@ -396,7 +396,7 @@ bar
 
   describe('createRefactorBuffer()', () => {
     it('should create refactor buffer', async () => {
-      let winid = await nvim.call('win_getid')
+      let winid = await nvim.call('win_getid') as number
       let buf = await refactor.createRefactorBuffer()
       let curr = await nvim.call('win_getid')
       expect(curr).toBeGreaterThan(winid)
@@ -651,11 +651,11 @@ bar
         }
       })
       await helper.createDocument(filepath)
-      let winid = await nvim.call('win_getid')
+      let winid = await nvim.call('win_getid') as number
       await refactor.doRefactor()
-      let currWin = await nvim.call('win_getid')
+      let currWin = await nvim.call('win_getid') as number
       expect(currWin - winid).toBeGreaterThan(0)
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       let b = refactor.getBuffer(bufnr)
       expect(b).toBeDefined()
     })

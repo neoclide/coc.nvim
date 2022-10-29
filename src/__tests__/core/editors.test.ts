@@ -35,7 +35,7 @@ describe('editors', () => {
   }
 
   it('should have active editor', async () => {
-    let winid = await nvim.call('win_getid')
+    let winid = await nvim.call('win_getid') as number
     let editor = window.activeTextEditor
     assertEditor(editor, 1, winid)
     let editors = window.visibleTextEditors

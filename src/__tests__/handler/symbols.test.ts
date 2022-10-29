@@ -64,7 +64,7 @@ describe('symbols handler', () => {
 
   describe('configuration', () => {
     it('should get configuration', async () => {
-      let bufnr = await nvim.call('bufnr', ['%'])
+      let bufnr = await nvim.call('bufnr', ['%']) as number
       let functionUpdate = symbols.autoUpdate(bufnr)
       expect(functionUpdate).toBe(false)
       helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)

@@ -133,7 +133,7 @@ export class Workspace implements IWorkspace {
     let promises: Promise<void>[] = []
     let env: Env
     promises.push(nvim.call('coc#util#vim_info').then(res => {
-      env = this._env = res
+      env = this._env = res as Env
     }))
     promises.push(initFuzzyWasm().then(api => {
       this.fuzzyExports = api
@@ -449,8 +449,8 @@ export class Workspace implements IWorkspace {
   }
 
   public async callAsync<T>(method: string, args: any[]): Promise<T> {
-    if (this.isNvim) return await this.nvim.call(method, args)
-    return await this.nvim.callAsync('coc#util#with_callback', [method, args])
+    if (this.isNvim) return await this.nvim.call(method, args) as T
+    return await this.nvim.callAsync('coc#util#with_callback', [method, args]) as T
   }
 
   public registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable {

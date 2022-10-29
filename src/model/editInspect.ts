@@ -61,7 +61,7 @@ export default class EditInspect {
     nvim.command('setl nobuflisted wrap undolevels=-1 filetype=cocedits noswapfile', true)
     await nvim.resumeNotification(true)
     let buffer = await nvim.buffer
-    let cwd = await nvim.call('getcwd')
+    let cwd = await nvim.call('getcwd') as string
     this.bufnr = buffer.id
     const relpath = (uri: string): string => {
       let fsPath = URI.parse(uri).fsPath

@@ -12,8 +12,8 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, IConfigurationChangeEvent, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent } from '../types'
 import { disposeAll } from '../util'
-import * as platform from '../util/platform'
 import { normalizeFilePath, readFile, readFileLine } from '../util/fs'
+import * as platform from '../util/platform'
 import { byteIndex } from '../util/string'
 import WorkspaceFolder from './workspaceFolder'
 const logger = require('../util/logger')('core-documents')
@@ -383,7 +383,7 @@ export default class Documents implements Disposable {
           resolve(undefined)
           return
         }
-        doc = this._createDocument(opts)
+        doc = this._createDocument(opts as BufferOption)
         resolve(doc)
       }, () => {
         this.creating.delete(bufnr)

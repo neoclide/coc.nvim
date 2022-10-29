@@ -111,7 +111,7 @@ export default class Dialog {
 
   public get winid(): Promise<number | null> {
     if (!this.bufnr) return Promise.resolve(null)
-    return this.nvim.call('bufwinid', [this.bufnr])
+    return this.nvim.call('bufwinid', [this.bufnr]) as Promise<number>
   }
 
   public dispose(): void {

@@ -96,7 +96,7 @@ let legend: SemanticTokensLegend = {
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  ns = await nvim.call('coc#highlight#create_namespace', ['semanticTokens'])
+  ns = await nvim.call('coc#highlight#create_namespace', ['semanticTokens']) as number
   highlighter = helper.plugin.getHandler().semanticHighlighter
 })
 
@@ -561,7 +561,7 @@ describe('semanticTokens', () => {
       await createRustBuffer()
       const doc = await workspace.document
       await nvim.call('CocAction', 'semanticHighlight')
-      const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens'])
+      const highlights = await nvim.call("coc#highlight#get_highlights", [doc.bufnr, 'semanticTokens']) as any[]
       expect(highlights.length).toBeGreaterThan(0)
       expect(highlights[0][0]).toBe('CocSemKeyword')
     })
