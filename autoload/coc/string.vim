@@ -10,13 +10,8 @@ function! coc#string#character_index(line, byteIdx) abort
     return 0
   endif
   let i = 0
-  let len = 0
-  for char in split(a:line, '\zs')
+  for char in split(strpart(a:line, 0, a:byteIdx), '\zs')
     let i += char2nr(char) > 65535 ? 2 : 1
-    let len += strlen(char)
-    if len >= a:byteIdx
-      break
-    endif
   endfor
   return i
 endfunction
