@@ -560,8 +560,8 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
       if empty(line)
         continue
       endif
-      let colStart = lnum == start['line'] + 1 ? strlen(strcharpart(line, 0, start['character'])) + 1 : 1
-      let colEnd = lnum == end['line'] + 1 ? strlen(strcharpart(line, 0, end['character'])) + 1 : strlen(line) + 1
+      let colStart = lnum == start['line'] + 1 ? coc#string#byte_index(line, start['character']) + 1 : 1
+      let colEnd = lnum == end['line'] + 1 ? coc#string#byte_index(line, end['character']) + 1 : strlen(line) + 1
       if colStart == colEnd
         continue
       endif

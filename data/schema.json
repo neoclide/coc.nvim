@@ -1,5 +1,4 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Configuration file for coc.nvim",
   "additionalProperties": false,
   "definitions": {
@@ -685,10 +684,17 @@
       "description": "Subseparator between codeLenses in virtual text",
       "default": " "
     },
+    "colors.enable": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Enable colors highlight feature, for termainal vim, 'termguicolors' option should be enabled and the termainal support gui colors.",
+      "default": false
+    },
     "colors.filetypes": {
       "type": "array",
       "default": [],
       "scope": "resource",
+      "deprecationMessage": "Use colors.enable as language override configuration instead, see :h coc-configuration-scope",
       "description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
       "items": {
         "type": "string"
@@ -696,7 +702,7 @@
     },
     "colors.highlightPriority": {
       "type": "number",
-      "scope": "resource",
+      "scope": "application",
       "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
       "default": 1000,
       "maximum": 4096
@@ -1797,6 +1803,12 @@
       "description": "Max length of detail that should be shown in popup menu.",
       "deprecationMessage": "Use suggest.labelMaxLength instead.",
       "default": 100
+    },
+    "suggest.enableFloat": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Enable float window with documentation aside with popupmenu.",
+      "default": true
     },
     "suggest.enablePreselect": {
       "type": "boolean",

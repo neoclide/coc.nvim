@@ -1,7 +1,17 @@
+# 2022-10-30
+
+- Add configuration `colors.enable`, mark `colors.filetypes` deprecated.
+- Add command `document.toggleColors` for toggle colors of current buffer.
+
+# 2022-10-39
+
+- Add configuration `suggest.enableFloat` back.
+
 # 2022-10-27
 
 - Use `workspace.rootPatterns` replace `coc.preferences.rootPatterns`, old
   configuration still works when exists.
+- Store configurations with configuration registry.
 
 # 2022-10-25
 
