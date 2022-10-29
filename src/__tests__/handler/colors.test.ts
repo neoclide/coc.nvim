@@ -140,7 +140,7 @@ describe('Colors', () => {
       expect(colors.length).toBe(3)
       let color = ColorInformation.create(Range.create(0, 0, 1, 0), getColor(0, 0, 0))
       let presentation = await languages.provideColorPresentations(color, doc.textDocument, CancellationToken.None)
-      expect(presentation).toBeNull()
+      expect(presentation).toEqual([])
     })
 
     it('should clearHighlight on empty result', async () => {
