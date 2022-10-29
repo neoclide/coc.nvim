@@ -413,7 +413,7 @@ function! s:Enable(initialize)
     autocmd VimLeavePre         * call s:VimLeavePre()
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])
-    autocmd ColorScheme * call s:Highlight()
+    autocmd ColorScheme * call s:Highlight() | call s:Autocmd('ColorScheme')
   augroup end
   if a:initialize == 0
      call coc#rpc#request('attach', [])
