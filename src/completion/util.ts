@@ -5,7 +5,7 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, ISource } from '../types'
 import { toArray } from '../util/array'
-import { byteLength, byteSlice } from '../util/string'
+import { byteIndex, byteSlice } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
@@ -13,6 +13,39 @@ type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
 export function getKindText(kind: string | CompletionItemKind, kindMap: Map<CompletionItemKind, string>, defaultKindText: string): string {
   return typeof kind === 'number' ? kindMap.get(kind) ?? defaultKindText : kind
 }
+
+const highlightsMap = {
+  [CompletionItemKind.Text]: 'CocSymbolText',
+  [CompletionItemKind.Method]: 'CocSymbolMethod',
+  [CompletionItemKind.Function]: 'CocSymbolFunction',
+  [CompletionItemKind.Constructor]: 'CocSymbolConstructor',
+  [CompletionItemKind.Field]: 'CocSymbolField',
+  [CompletionItemKind.Variable]: 'CocSymbolVariable',
+  [CompletionItemKind.Class]: 'CocSymbolClass',
+  [CompletionItemKind.Interface]: 'CocSymbolInterface',
+  [CompletionItemKind.Module]: 'CocSymbolModule',
+  [CompletionItemKind.Property]: 'CocSymbolProperty',
+  [CompletionItemKind.Unit]: 'CocSymbolUnit',
+  [CompletionItemKind.Value]: 'CocSymbolValue',
+  [CompletionItemKind.Enum]: 'CocSymbolEnum',
+  [CompletionItemKind.Keyword]: 'CocSymbolKeyword',
+  [CompletionItemKind.Snippet]: 'CocSymbolSnippet',
+  [CompletionItemKind.Color]: 'CocSymbolColor',
+  [CompletionItemKind.File]: 'CocSymbolFile',
+  [CompletionItemKind.Reference]: 'CocSymbolReference',
+  [CompletionItemKind.Folder]: 'CocSymbolFolder',
+  [CompletionItemKind.EnumMember]: 'CocSymbolEnumMember',
+  [CompletionItemKind.Constant]: 'CocSymbolConstant',
+  [CompletionItemKind.Struct]: 'CocSymbolStruct',
+  [CompletionItemKind.Event]: 'CocSymbolEvent',
+  [CompletionItemKind.Operator]: 'CocSymbolOperator',
+  [CompletionItemKind.TypeParameter]: 'CocSymbolTypeParameter',
+}
+
+export function getKindHighlight(kind: string | number): string {
+  return typeof kind === 'number' ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'
+}
+
 export function getResumeInput(option: PartialOption, pretext: string): string {
   let buf = Buffer.from(pretext, 'utf8')
   if (buf.length < option.colnr - 1) return null
@@ -153,6 +186,6 @@ export function highlightOffert(pre: number, item: ExtendedCompleteItem): number
   let { filterText, abbr } = item
   let idx = abbr.indexOf(filterText)
   if (idx == -1) return -1
-  let n = idx == 0 ? 0 : byteLength(abbr.slice(0, idx))
+  let n = idx == 0 ? 0 : byteIndex(abbr, idx)
   return pre + n
 }

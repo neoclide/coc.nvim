@@ -311,6 +311,15 @@ describe('completion', () => {
         return items.length
       }, 0)
     })
+
+    it('should change detailField', async () => {
+      helper.updateConfiguration('suggest.detailField', 'abbr')
+      helper.updateConfiguration('suggest.fixInsertedWord', false)
+      await create([{ word: 'this', detail: 'detail of this' }], true)
+      let floatWin = await helper.getFloat('pum')
+      let buf = await floatWin.buffer
+      expect(buf).toBeDefined()
+    })
   })
 
   describe('suggest variables', () => {

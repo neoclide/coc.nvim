@@ -10,12 +10,6 @@ export interface ChangedLines {
   replacement: string[]
 }
 
-interface Change {
-  start: number
-  end: number
-  newText: string
-}
-
 export function diffLines(oldLines: ReadonlyArray<string>, newLines: ReadonlyArray<string>, startLine: number): ChangedLines {
   let endOffset = 0
   let startOffset = 0

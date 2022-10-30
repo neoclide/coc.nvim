@@ -16,7 +16,7 @@ import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, LinesChange } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
-import { byteLength } from '../util/string'
+import { byteIndex } from '../util/string'
 import { getAnnotationKey, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
 import Documents from './documents'
@@ -96,7 +96,7 @@ export default class Files {
       nvim.command(`if &filetype ==# '' | filetype detect | endif`, true)
       if (position) {
         let line = doc.getline(position.line)
-        let col = byteLength(line.slice(0, position.character)) + 1
+        let col = byteIndex(line, position.character) + 1
         nvim.call('cursor', [position.line + 1, col], true)
       }
       await nvim.resumeNotification(true)

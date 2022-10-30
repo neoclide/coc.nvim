@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-protocol'
 import { FloatFactory, FloatConfig, FloatOptions, ScreenPosition, Documentation } from '../types'
-import { byteLength } from '../util/string'
+import { byteIndex, byteLength } from '../util/string'
 import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
 
 const isVim = process.env.VIM_NODE_RPC == '1'
@@ -110,7 +110,7 @@ export async function getSelection(nvim: Neovim, mode: string): Promise<Range | 
 export async function selectRange(nvim: Neovim, range: Range, redraw: boolean): Promise<void> {
   let { start, end } = range
   let [line, endLine] = await nvim.eval(`[getline(${start.line + 1}),getline(${end.line + 1})]`) as [string, string]
-  let col = line.length > 0 ? byteLength(line.slice(0, start.character)) : 0
+  let col = line.length > 0 ? byteIndex(line, start.character) : 0
   let endCol: number
   let endLnum: number
   let toEnd = end.character == 0
@@ -120,7 +120,7 @@ export async function selectRange(nvim: Neovim, range: Range, redraw: boolean): 
     endCol = byteLength(pre)
   } else {
     endLnum = end.line
-    endCol = endLine.length > 0 ? byteLength(endLine.slice(0, end.character)) : 0
+    endCol = endLine.length > 0 ? byteIndex(endLine, end.character) : 0
   }
   nvim.pauseNotification()
   nvim.command(`noa call cursor(${start.line + 1},${col + 1})`, true)

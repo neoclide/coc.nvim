@@ -3,14 +3,14 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
+import type { Sources } from '../sources'
 import { TextDocumentContentChange, UltiSnippetOption } from '../types'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange, getEnd, isSingleLine, positionInRange, rangeInRange } from '../util/position'
-import { byteLength } from '../util/string'
+import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import type { Sources } from '../sources'
 import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEndPosition, getParts, reduceTextEdit } from "./snippet"
@@ -169,7 +169,7 @@ export class SnippetSession {
     if (!document || !placeholder) return
     let { start, end } = placeholder.range
     const line = document.getline(start.line)
-    const col = byteLength(line.slice(0, start.character)) + 1
+    const col = byteIndex(line, start.character) + 1
     let marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
       let sources = require('../sources/index').default as Sources

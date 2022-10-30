@@ -1,5 +1,5 @@
 import { AnsiHighlight } from '../types'
-import { byteLength } from '../util/string'
+import { byteIndex, byteLength } from '../util/string'
 
 interface NestedHighlight {
   offset: number
@@ -31,8 +31,8 @@ export default class LineBuilder {
     }
     if (nested) {
       for (let item of nested) {
-        let s = start + byteLength(text.slice(0, item.offset))
-        let e = start + byteLength(text.slice(0, item.offset + item.length))
+        let s = start + byteIndex(text, item.offset)
+        let e = start + byteIndex(text, item.offset + item.length)
         this._highlights.push({
           hlGroup: item.hlGroup,
           span: [s, e]

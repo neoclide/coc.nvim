@@ -8,7 +8,7 @@ import { filter } from '../util/async'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
-import bytes, { smartcaseIndex } from '../util/string'
+import { bytes, smartcaseIndex } from '../util/string'
 import workspace from '../workspace'
 import Prompt from './prompt'
 const logger = require('../util/logger')('list-worker')

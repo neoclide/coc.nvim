@@ -82,20 +82,57 @@ export function getCharIndexes(input: string, character: string): number[] {
   return res
 }
 
-// nvim use utf8
-export function byteLength(str: string): number {
-  return Buffer.byteLength(str)
+function isHighSurrogate(codePoint) {
+  return codePoint >= 0xd800 && codePoint <= 0xdbff
 }
 
-export function upperFirst(str: string): string {
-  return str?.length > 0 ? str[0].toUpperCase() + str.slice(1) : ''
+function isLowSurrogate(codePoint) {
+  return codePoint >= 0xdc00 && codePoint <= 0xdfff
+}
+
+/**
+ * Get byte length from string, from code unit start index.
+ */
+export function byteLength(str: string, start = 0): number {
+  if (start === 0) return Buffer.byteLength(str, 'utf8')
+  let len = 0
+  let unitIndex = 0
+  for (let codePoint of str) {
+    let n = codePoint.codePointAt(0)
+    if (unitIndex >= start) {
+      len += utf8_code2len(n)
+    }
+    unitIndex += (n >= UTF8_4BYTES_START ? 2 : 1)
+  }
+  return len
 }
 
 /**
  * utf16 code unit to byte index.
  */
 export function byteIndex(content: string, index: number): number {
-  return Buffer.byteLength(content.slice(0, index), 'utf8')
+  let byteLength = 0
+  let codePoint: number | undefined
+  let prevCodePoint: number | undefined
+  let max = Math.min(index, content.length)
+  for (let i = 0; i < max; i++) {
+    codePoint = content.charCodeAt(i)
+    if (isLowSurrogate(codePoint)) {
+      if (prevCodePoint && isHighSurrogate(prevCodePoint)) {
+        byteLength += 1
+      } else {
+        byteLength += 3
+      }
+    } else {
+      byteLength += utf8_code2len(codePoint)
+    }
+    prevCodePoint = codePoint
+  }
+  return byteLength
+}
+
+export function upperFirst(str: string): string {
+  return str?.length > 0 ? str[0].toUpperCase() + str.slice(1) : ''
 }
 
 export function indexOf(str: string, ch: string, count = 1): number {
@@ -247,21 +284,33 @@ export function smartcaseIndex(input: string, other: string): number {
 /**
  * For faster convert sequence utf16 character index to byte index
  */
-export default function bytes(text: string, max?: number): (characterIndex: number) => number {
+export function bytes(text: string, max?: number): (characterIndex: number) => number {
   max = max ?? text.length
-  let arr = new Uint8Array(max)
+  let lens = new Uint8Array(max)
   let ascii = true
+  let prevCodePoint: number | undefined
   for (let i = 0; i < max; i++) {
-    let l = utf8_code2len(text.charCodeAt(i))
-    if (l > 1) ascii = false
-    arr[i] = l
+    let code = text.charCodeAt(i)
+    let len: number
+    if (isLowSurrogate(code)) {
+      if (prevCodePoint && isHighSurrogate(prevCodePoint)) {
+        len = 1
+      } else {
+        len = 3
+      }
+    } else {
+      len = utf8_code2len(code)
+    }
+    if (ascii && len > 1) ascii = false
+    lens[i] = len
+    prevCodePoint = code
   }
   return characterIndex => {
     if (characterIndex === 0) return 0
     if (ascii) return Math.min(characterIndex, max)
     let res = 0
     for (let i = 0; i < Math.min(characterIndex, max); i++) {
-      res += arr[i]
+      res += lens[i]
     }
     return res
   }

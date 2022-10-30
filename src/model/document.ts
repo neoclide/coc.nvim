@@ -15,6 +15,7 @@ import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeT
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 import { isUrl } from '../util/is'
+import { Buffer as NodeBuffer } from 'buffer'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -587,7 +588,7 @@ export default class Document {
     for (let line = start.line; line <= end.line; line++) {
       const text = this.getline(line, false)
       let colStart = line == start.line ? byteIndex(text, start.character) : 0
-      let colEnd = line == end.line ? byteIndex(text, end.character) : global.Buffer.byteLength(text)
+      let colEnd = line == end.line ? byteIndex(text, end.character) : NodeBuffer.byteLength(text)
       if (colStart >= colEnd) continue
       items.push(Object.assign({ hlGroup, lnum: line, colStart, colEnd }, opts))
     }
@@ -632,33 +633,6 @@ export default class Document {
     if (!line || col == 0) return { line: lnum - 1, character: 0 }
     let pre = byteSlice(line, 0, col - 1)
     return { line: lnum - 1, character: pre.length }
-  }
-
-  /**
-   * Get end offset from cursor position.
-   * For normal mode, use offset - 1 when possible
-   */
-  public getEndOffset(lnum: number, col: number, insert: boolean): number {
-    let total = 0
-    let len = this.lines.length
-    for (let i = lnum - 1; i < len; i++) {
-      let line = this.lines[i]
-      let l = line.length
-      if (i == lnum - 1 && l != 0) {
-        // current
-        let buf = global.Buffer.from(line, 'utf8')
-        let isEnd = buf.byteLength <= col - 1
-        if (!isEnd) {
-          total = total + buf.slice(col - 1, buf.length).toString('utf8').length
-          if (!insert) total = total - 1
-        }
-      } else {
-        total = total + l
-      }
-      if (!this.eol && i == len - 1) break
-      total = total + 1
-    }
-    return total
   }
 
   /**

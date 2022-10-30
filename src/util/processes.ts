@@ -2,7 +2,7 @@
 import { ChildProcess, exec, ExecOptions } from 'child_process'
 import { CancellationError } from './errors'
 import { platform, Platform } from './platform'
-import * as cp from 'child_process'
+import cp from 'child_process'
 import which from 'which'
 import { join, dirname, resolve } from 'path'
 

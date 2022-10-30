@@ -1,12 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CompletionItemKind } from 'vscode-languageserver-protocol'
-import { matchSpans } from '../model/fuzzyMatch'
+import { matchSpansReverse } from '../model/fuzzyMatch'
 import sources from '../sources'
 import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem } from '../types'
+import { isFalsyOrEmpty } from '../util/array'
 import { byteLength } from '../util/string'
-import MruLoader, { Selection } from './mru'
-import { getKindText, getValidWord, highlightOffert } from './util'
 import workspace from '../workspace'
+import { anyScore } from './filter'
+import MruLoader, { Selection } from './mru'
+import { getKindHighlight, getKindText, getValidWord, highlightOffert } from './util'
 const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
@@ -66,34 +68,6 @@ export interface PopupMenuConfig {
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
-}
-
-const highlightsMap = {
-  [CompletionItemKind.Text]: 'CocSymbolText',
-  [CompletionItemKind.Method]: 'CocSymbolMethod',
-  [CompletionItemKind.Function]: 'CocSymbolFunction',
-  [CompletionItemKind.Constructor]: 'CocSymbolConstructor',
-  [CompletionItemKind.Field]: 'CocSymbolField',
-  [CompletionItemKind.Variable]: 'CocSymbolVariable',
-  [CompletionItemKind.Class]: 'CocSymbolClass',
-  [CompletionItemKind.Interface]: 'CocSymbolInterface',
-  [CompletionItemKind.Module]: 'CocSymbolModule',
-  [CompletionItemKind.Property]: 'CocSymbolProperty',
-  [CompletionItemKind.Unit]: 'CocSymbolUnit',
-  [CompletionItemKind.Value]: 'CocSymbolValue',
-  [CompletionItemKind.Enum]: 'CocSymbolEnum',
-  [CompletionItemKind.Keyword]: 'CocSymbolKeyword',
-  [CompletionItemKind.Snippet]: 'CocSymbolSnippet',
-  [CompletionItemKind.Color]: 'CocSymbolColor',
-  [CompletionItemKind.File]: 'CocSymbolFile',
-  [CompletionItemKind.Reference]: 'CocSymbolReference',
-  [CompletionItemKind.Folder]: 'CocSymbolFolder',
-  [CompletionItemKind.EnumMember]: 'CocSymbolEnumMember',
-  [CompletionItemKind.Constant]: 'CocSymbolConstant',
-  [CompletionItemKind.Struct]: 'CocSymbolStruct',
-  [CompletionItemKind.Event]: 'CocSymbolEvent',
-  [CompletionItemKind.Operator]: 'CocSymbolOperator',
-  [CompletionItemKind.TypeParameter]: 'CocSymbolTypeParameter',
 }
 
 export default class PopupMenu {
@@ -199,8 +173,9 @@ export default class PopupMenu {
     let width = 0
     let buildConfig: BuildConfig = { border: !!pumConfig.border, menuWidth, abbrWidth, kindWidth, shortcutWidth }
     this.adjustAbbrWidth(buildConfig)
+    let lowInput = search.toLowerCase()
     for (let index = 0; index < items.length; index++) {
-      let [displayWidth, text] = this.buildItem(search, items[index], labels[index], highlights, index, buildConfig)
+      let [displayWidth, text] = this.buildItem(search, lowInput, items[index], labels[index], highlights, index, buildConfig)
       width = Math.max(width, displayWidth)
       lines.push(text)
     }
@@ -212,17 +187,15 @@ export default class PopupMenu {
   private getInsertWord(item: ExtendedCompleteItem, search: string, followPart: string): string {
     let { fixInsertedWord, invalidInsertCharacters } = this.config
     let word = item.isSnippet ? getValidWord(item.word, invalidInsertCharacters) : item.word
-    if (fixInsertedWord) return fixFollow(word, search, followPart)
-    return word
+    return fixInsertedWord ? fixFollow(word, search, followPart) : word
   }
 
   private getLabel(item: ExtendedCompleteItem): LabelWithDetail {
     let { labelDetails, detail } = item
     let { snippetIndicator, labelMaxLength, detailField, detailMaxLength } = this.config
-    let abbr = item.abbr ?? ''
-    let label = item.abbr ?? item.word
+    let label = item.abbr!
     let hls: HighlightRange[] = []
-    if (item.isSnippet && !abbr.endsWith(snippetIndicator)) {
+    if (item.isSnippet && !label.endsWith(snippetIndicator)) {
       label = label + snippetIndicator
     }
     if (detailField === 'abbr' && detail && !labelDetails && detail.length < detailMaxLength) {
@@ -263,7 +236,7 @@ export default class PopupMenu {
     }
   }
 
-  private buildItem(input: string, item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): [number, string] {
+  private buildItem(input: string, lowInput: string, item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): [number, string] {
     // abbr menu kind shortcut
     let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config
     let text = config.border ? '' : ' '
@@ -278,14 +251,13 @@ export default class PopupMenu {
     for (const name of formatItems) {
       switch (name) {
         case 'abbr': {
-          if (input.length > 0) {
+          if (!isFalsyOrEmpty(item.positions)) {
             let pre = highlightOffert(len, item)
             if (pre != -1) {
-              if (item.filterText === input) {
-                hls.push({ hlGroup: 'CocPumSearch', lnum: index, colStart: pre, colEnd: pre + byteLength(item.filterText) })
-              } else if (item.positions && item.positions.length > 0) {
-                positionHighlights(hls, item.abbr, item.positions, pre, index, labelMaxLength)
-              }
+              positionHighlights(hls, item.abbr, item.positions, pre, index, labelMaxLength)
+            } else {
+              let score = anyScore(input, lowInput, 0, item.abbr, item.abbr.toLowerCase(), 0)
+              if (score[0]) positionHighlights(hls, item.abbr, score, 0, index, labelMaxLength)
             }
           }
           let abbr = label.text
@@ -331,9 +303,8 @@ export default class PopupMenu {
             let colStart = len
             append(kindText ?? '', config.kindWidth + 1)
             if (kindText) {
-              let highlight = typeof kind === 'number' ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'
               hls.push({
-                hlGroup: highlight,
+                hlGroup: getKindHighlight(kind),
                 lnum: index,
                 colStart,
                 colEnd: colStart + byteLength(kindText)
@@ -361,9 +332,9 @@ export default class PopupMenu {
     return [displayWidth, text]
   }
 
-  private fillWidth(text: string, width: number): string {
+  public fillWidth(text: string, width: number): string {
     let n = width - this.stringWidth(text)
-    return n <= 0 ? text : text + ' '.repeat(n)
+    return text + ' '.repeat(Math.max(n, 0))
   }
 }
 
@@ -375,8 +346,11 @@ export function fixFollow(word: string, search: string, follow: string): string 
   return word
 }
 
-export function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number, max: number): void {
-  for (let span of matchSpans(label, positions, max)) {
+/**
+ * positions is FuzzyScore
+ */
+function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number, max: number): void {
+  for (let span of matchSpansReverse(label, positions, 2, max)) {
     hls.push({
       hlGroup: 'CocPumSearch',
       lnum: line,

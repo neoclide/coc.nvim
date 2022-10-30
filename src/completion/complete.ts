@@ -7,7 +7,7 @@ import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceTy
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { byteSlice, characterIndex } from '../util/string'
-import { fuzzyMatchScoreWithPositions, fuzzyMatchScoreWithPositionsGraceful, FuzzyScorerWithPositions } from './filter'
+import { FuzzyScorer, fuzzyScore, fuzzyScoreGracefulAggressive } from './filter'
 import { WordDistance } from './wordDistance'
 const logger = require('../util/logger')('completion-complete')
 const MAX_DISTANCE = 2 << 20
@@ -269,7 +269,7 @@ export default class Complete {
     let arr: ExtendedCompleteItem[] = []
     let words: Set<string> = new Set()
     const lowInput = input.toLowerCase()
-    const scoreFn: FuzzyScorerWithPositions = (!this.config.filterGraceful || this.totalLength > 2000) ? fuzzyMatchScoreWithPositions : fuzzyMatchScoreWithPositionsGraceful
+    const scoreFn: FuzzyScorer = (!this.config.filterGraceful || this.totalLength > 2000) ? fuzzyScore : fuzzyScoreGracefulAggressive
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue
@@ -281,10 +281,10 @@ export default class Complete {
         if (filterText.length < len) continue
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         if (!emptyInput) {
-          let res = scoreFn(filterText, filterText.toLowerCase(), input, lowInput)
+          let res = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0)
           if (res == null) continue
           item.score = res[0]
-          item.positions = res[1]
+          item.positions = res
           if (this.wordDistance) item.localBonus = MAX_DISTANCE - this.wordDistance.distance(anchor, item)
         }
         words.add(word)

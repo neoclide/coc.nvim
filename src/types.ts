@@ -728,10 +728,10 @@ export interface VimCompleteItem {
   dup?: number
   preselect?: boolean
   user_data?: string
+  detail?: string
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {
-  detail?: string
   labelDetails?: CompletionItemLabelDetails
   /**
    * labelDetail rendered after label

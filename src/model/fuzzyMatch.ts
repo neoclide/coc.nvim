@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { AnsiHighlight } from '../types'
-import bytes from '../util/string'
+import { bytes } from '../util/string'
 
 export interface FuzzyWasi {
   fuzzyMatch: (textPtr: number, patternPtr: number, resultPtr: number, matchSeq: 0 | 1) => number
@@ -27,6 +27,44 @@ export async function initFuzzyWasm(): Promise<FuzzyWasi> {
   const buffer = fs.readFileSync(filePath)
   const res = await global.WebAssembly.instantiate(buffer, { env: {} })
   return res.instance.exports as FuzzyWasi
+}
+
+/**
+ * Convert to spans from reversed list of utf16 code unit numbers
+ * Positions should be sorted numbers from big to small
+ */
+export function* matchSpansReverse(text: string, positions: ArrayLike<number>, endIndex = 0, max = Number.MAX_SAFE_INTEGER): Iterable<[number, number]> {
+  let len = positions.length
+  if (len <= endIndex) return
+  let byteIndex = bytes(text, positions[endIndex] + 1)
+  let start: number | undefined
+  let prev: number | undefined
+  for (let i = len - 1; i >= endIndex; i--) {
+    let curr = positions[i]
+    if (curr >= max) {
+      if (start != null) yield [byteIndex(start), byteIndex(prev + 1)]
+      break
+    }
+    if (prev != undefined) {
+      let d = curr - prev
+      if (d == 1) {
+        prev = curr
+      } else if (d > 1) {
+        yield [byteIndex(start), byteIndex(prev + 1)]
+        start = curr
+      } else {
+        // invalid number
+        yield [byteIndex(start), byteIndex(prev + 1)]
+        break
+      }
+    } else {
+      start = curr
+    }
+    prev = curr
+    if (i == endIndex) {
+      yield [byteIndex(start), byteIndex(prev + 1)]
+    }
+  }
 }
 
 export function* matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]> {

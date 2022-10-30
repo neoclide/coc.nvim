@@ -2,9 +2,9 @@ import { Neovim } from '@chemzqm/neovim'
 import * as assert from 'assert'
 import { CompletionItemKind, Disposable, CancellationToken, Position, Range } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import { checkIgnoreRegexps, indentChanged, createKindMap, getInput, getKindText, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
+import { checkIgnoreRegexps, indentChanged, createKindMap, getInput, getKindText, getKindHighlight, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
-import { isWhitespaceAtPos, fuzzyScore, isSeparatorAtPos, isPatternInWord, createMatches, FuzzyScorer, fuzzyScoreGraceful, fuzzyScoreGracefulAggressive, anyScore, fuzzyMatchScoreWithPositions, nextTypoPermutation } from '../../completion/filter'
+import { isWhitespaceAtPos, fuzzyScore, isSeparatorAtPos, isPatternInWord, createMatches, FuzzyScorer, fuzzyScoreGraceful, fuzzyScoreGracefulAggressive, anyScore, nextTypoPermutation } from '../../completion/filter'
 import languages from '../../languages'
 import { CompleteOption } from '../../types'
 import { disposeAll } from '../../util'
@@ -413,14 +413,6 @@ describe('filter functions', () => {
     assertMatches('ok', 'obobobf{ok}/user', '^obobobf{o^k}/user', fuzzyScore)
   })
 
-  test('fuzzyMatchScoreWithPositions', () => {
-    let pattern = 'abcd'
-    let word = 'xyz_ab_cdef'
-    let res = fuzzyMatchScoreWithPositions(word, word.toLowerCase(), pattern, pattern.toLowerCase())
-    expect(res).toBeDefined()
-    expect(res[1]).toEqual([4, 5, 7, 8])
-  })
-
   test('nextTypoPermutation', () => {
     expect(nextTypoPermutation('abc', 2)).toBeUndefined()
   })
@@ -460,6 +452,17 @@ describe('getKindText()', () => {
     m.set(CompletionItemKind.Class, 'C')
     expect(getKindText(CompletionItemKind.Class, m, 'D')).toBe('C')
     expect(getKindText(CompletionItemKind.Class, new Map(), 'D')).toBe('D')
+  })
+})
+
+describe('getKindHighlight()', () => {
+  it('should getKindHighlight', async () => {
+    const testHi = (kind: number | string, res: string) => {
+      expect(getKindHighlight(kind)).toBe(res)
+    }
+    testHi(CompletionItemKind.Class, 'CocSymbolClass')
+    testHi(999, 'CocSymbolDefault')
+    testHi('', 'CocSymbolDefault')
   })
 })
 
@@ -525,6 +528,8 @@ describe('shouldIndent()', () => {
     expect(res).toBe(false)
     res = shouldIndent('*=endif', 'endif')
     expect(res).toBe(false)
+    res = shouldIndent('0=foo', '  foo')
+    expect(res).toBe(true)
   })
 })
 

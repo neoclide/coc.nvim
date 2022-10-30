@@ -8,6 +8,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
 import { TextDocumentContentChange } from '../../types'
+import { remove } from '../../util/fs'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -233,11 +234,14 @@ describe('TextDocumentSynchronization', () => {
       let client = createClient([{ scheme: 'lsptest' }])
       await client.start()
       await client.sendNotification('registerDocumentSync')
-      await helper.wait(30)
       let fsPath = path.join(os.tmpdir(), `${uuidv4()}-foo.vim`)
       let uri = URI.file(fsPath)
       await workspace.openResource(uri.toString())
       let doc = await workspace.document
+      await helper.waitValue(() => {
+        let feature = client.getFeature(WillSaveTextDocumentNotification.method)
+        return feature.getProvider(doc.textDocument) != null
+      }, true)
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'x')])
       nvim.command('w', true)
       await helper.waitValue(() => {
@@ -245,9 +249,7 @@ describe('TextDocumentSynchronization', () => {
       }, 'abcx\n')
       await client.sendNotification('unregisterDocumentSync')
       await client.stop()
-      if (fs.existsSync(fsPath)) {
-        fs.unlinkSync(fsPath)
-      }
+      await remove(fsPath)
     })
 
     it('should not throw on response error', async () => {

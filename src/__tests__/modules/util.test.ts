@@ -4,6 +4,7 @@ import { spawn } from 'child_process'
 import os from 'os'
 import path from 'path'
 import vm from 'vm'
+import cp from 'child_process'
 import { CancellationTokenSource, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../../model/textdocument'
 import { ConfigurationScope } from '../../types'
@@ -29,7 +30,7 @@ import * as positions from '../../util/position'
 import { executable, isRunning, runCommand, terminate } from '../../util/processes'
 import { convertProperties, Registry } from '../../util/registry'
 import { Sequence } from '../../util/sequence'
-import bytes, * as strings from '../../util/string'
+import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
 import helper from '../helper'
 const createLogger = require('../../util/logger')
@@ -120,21 +121,6 @@ console.warn('warn')`, sandbox)
     let obj: any = {}
     fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, filename])
     expect(typeof obj.exports).toBe('function')
-  })
-})
-
-describe('bytes()', () => {
-  it('should get byte indexes', async () => {
-    let fn = bytes('abcde')
-    expect(fn(0)).toBe(0)
-    expect(fn(1)).toBe(1)
-    expect(fn(8)).toBe(5)
-    fn = bytes('你ab好')
-    expect(fn(0)).toBe(0)
-    expect(fn(1)).toBe(3)
-    expect(fn(2)).toBe(4)
-    fn = bytes('abcdefghi', 3)
-    expect(fn(5)).toBe(3)
   })
 })
 
@@ -432,7 +418,7 @@ describe('errors', () => {
     }).toThrowError()
   })
 
-  it('should check CancellationError', async () => {
+  it('should check CancellationError', () => {
     let err = new Error('Canceled')
     err.name = 'Canceled'
     expect(errors.isCancellationError(err)).toBe(true)
@@ -440,7 +426,47 @@ describe('errors', () => {
 })
 
 describe('strings', () => {
-  it('should get character index from byte index', async () => {
+  it('should get byte indexes', () => {
+    let bytes = strings.bytes
+    let fn = bytes('abcde')
+    expect(fn(0)).toBe(0)
+    expect(fn(1)).toBe(1)
+    expect(fn(8)).toBe(5)
+    fn = bytes('你ab好')
+    expect(fn(0)).toBe(0)
+    expect(fn(1)).toBe(3)
+    expect(fn(2)).toBe(4)
+    fn = bytes('abcdefghi', 3)
+    expect(fn(5)).toBe(3)
+    fn = bytes('😘😘')
+    expect(fn(2)).toBe(4)
+    expect(fn(4)).toBe(8)
+    fn = bytes(String.fromCharCode(0xdc02) + 'ab')
+    expect(fn(2)).toBe(4)
+  })
+
+  it('should get byte index from utf16 index', () => {
+    let testIndex = (text: string, index: number) => {
+      let res = Buffer.byteLength(text.slice(0, index))
+      expect(strings.byteIndex(text, index)).toBe(res)
+    }
+    testIndex('abc', 2)
+    testIndex('汉字abc', 2)
+    testIndex('汉字abc', 4)
+    testIndex('😘foo', 3)
+    testIndex('', 3)
+    testIndex(String.fromCharCode(0xdc02) + 'ab', 2)
+  })
+
+  it('should get byte length', () => {
+    expect(strings.byteLength('a')).toBe(1)
+    expect(strings.byteLength('你')).toBe(3)
+    expect(strings.byteLength('a😘b')).toBe(6)
+    expect(strings.byteLength('a😘b', 1)).toBe(5)
+    expect(strings.byteLength('a😘b', 3)).toBe(1)
+  })
+
+  it('should get character index from byte index', () => {
     expect(strings.characterIndex('ab', 0)).toBe(0)
     expect(strings.characterIndex('abc', 1)).toBe(1)
     expect(strings.characterIndex('ab', 99)).toBe(2)
@@ -507,6 +533,16 @@ describe('strings', () => {
   it('should convert to text', async () => {
     expect(strings.toText(undefined)).toBe('')
     expect(strings.toText(null)).toBe('')
+  })
+
+  it('should check isEmojiImprecise', async () => {
+    expect(strings.isEmojiImprecise(999)).toBe(false)
+    expect(strings.isEmojiImprecise(0x1F1E7)).toBe(true)
+    expect(strings.isEmojiImprecise(8987)).toBe(true)
+    expect(strings.isEmojiImprecise(128764)).toBe(true)
+    expect(strings.isEmojiImprecise(129008)).toBe(true)
+    expect(strings.isEmojiImprecise(129782)).toBe(true)
+    expect(strings.isEmojiImprecise(129535)).toBe(true)
   })
 
   it('should get parts', () => {
@@ -1163,6 +1199,7 @@ describe('terminate', () => {
       return child.connected
     }, false)
     terminate(child, cwd)
+    terminate({ killed: true } as any, cwd)
   })
 
   it('should terminate on other platform', () => {
@@ -1173,6 +1210,27 @@ describe('terminate', () => {
     expect(res).toBe(false)
     res = terminate(child, process.cwd(), platform.Platform.Unknown)
     expect(res).toBe(true)
+    let spy: any = jest.spyOn(cp, 'execFileSync').mockImplementation(() => {
+      return undefined
+    })
+    child = spawn('ls', [], { detached: true })
+    res = terminate(child, process.cwd(), platform.Platform.Windows)
+    expect(res).toBe(true)
+    spy.mockRestore()
+    spy = jest.spyOn(cp, 'spawnSync').mockImplementation(() => {
+      throw new Error('bad')
+    })
+    child = spawn('ls', [], { detached: true })
+    res = terminate(child, process.cwd(), platform.Platform.Linux)
+    expect(res).toBe(false)
+    spy.mockRestore()
+    spy = jest.spyOn(cp, 'spawnSync').mockImplementation(() => {
+      return { error: new Error('bad') } as any
+    })
+    child = spawn('ls', [], { detached: true })
+    res = terminate(child, process.cwd(), platform.Platform.Linux)
+    expect(res).toBe(false)
+    spy.mockRestore()
   })
 })
 

@@ -1,5 +1,5 @@
 import { matchScoreWithPositions } from '../../completion/match'
-import { FuzzyMatch, FuzzyWasi, initFuzzyWasm } from '../../model/fuzzyMatch'
+import { FuzzyMatch, matchSpansReverse, FuzzyWasi, initFuzzyWasm } from '../../model/fuzzyMatch'
 import { getCharCodes } from '../../util/fuzzy'
 
 describe('FuzzyMatch', () => {
@@ -8,7 +8,7 @@ describe('FuzzyMatch', () => {
     api = await initFuzzyWasm()
   })
 
-  it('should match spans', async () => {
+  it('should match spans', () => {
     let f = new FuzzyMatch(api)
     const verify = (input: string, positions: number[], results: [number, number][], max?: number) => {
       let arr = f.matchSpans(input, positions, max)
@@ -29,7 +29,26 @@ describe('FuzzyMatch', () => {
     verify('foobar', [5], [], 3)
   })
 
-  it('should throw when not set pattern', async () => {
+  it('should should matchSpansReverse', () => {
+    const verify = (input: string, positions: number[], results: [number, number][], endIndex?: number, max?: number) => {
+      let arr = matchSpansReverse(input, positions, endIndex, max)
+      let res: [number, number][] = []
+      for (let item of arr) {
+        res.push(item)
+      }
+      expect(res).toEqual(results)
+    }
+    verify('foobar', [3, 1, 0], [[0, 2], [3, 4]])
+    verify('foobar', [-1, 2, 3, 1, 0], [[0, 2], [3, 4]], 2)
+    verify('foobar', [0], [[0, 1]])
+    verify('你', [0], [[0, 3]])
+    verify(' 你', [1], [[1, 4]])
+    verify('foobar', [5, 4, 3, 2, 1], [[1, 6]])
+    verify('foobar', [5], [], 0, 2)
+    verify('foobar', [5, 1], [[1, 2]], 0, 2)
+  })
+
+  it('should throw when not set pattern', () => {
     let p = new FuzzyMatch(api)
     let fn = () => {
       p.match('text')
@@ -38,7 +57,7 @@ describe('FuzzyMatch', () => {
     p.free()
   })
 
-  it('should slice pattern when necessary', async () => {
+  it('should slice pattern when necessary', () => {
     let pat = 'a'.repeat(258)
     let p = new FuzzyMatch(api)
     p.setPattern(pat)
@@ -47,7 +66,7 @@ describe('FuzzyMatch', () => {
     expect(res.positions.length).toBe(256)
   })
 
-  it('should match empty pattern', async () => {
+  it('should match empty pattern', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('')
     let res = p.match('foo')
@@ -55,7 +74,7 @@ describe('FuzzyMatch', () => {
     expect(res.positions.length).toBe(0)
   })
 
-  it('should increase content size when necessary', async () => {
+  it('should increase content size when necessary', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('p')
     let res = p.match('b'.repeat(2100))
@@ -64,7 +83,7 @@ describe('FuzzyMatch', () => {
     p.free()
   })
 
-  it('should slice content when necessary', async () => {
+  it('should slice content when necessary', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('a')
     let res = p.match('b'.repeat(40960))
@@ -74,7 +93,7 @@ describe('FuzzyMatch', () => {
     p.free()
   })
 
-  it('should fuzzy match ascii', async () => {
+  it('should fuzzy match ascii', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('fb')
     let res = p.match('fooBar')
@@ -85,14 +104,14 @@ describe('FuzzyMatch', () => {
     expect(Array.from(res.positions)).toEqual([0, 4])
   })
 
-  it('should fuzzy match multi byte', async () => {
+  it('should fuzzy match multi byte', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('f你好')
     let res = p.match('foo你好Bar')
     expect(Array.from(res.positions)).toEqual([0, 3, 4])
   })
 
-  it('should match highlights', async () => {
+  it('should match highlights', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('fb')
     let res = p.matchHighlights('fooBar', 'Text')
@@ -111,7 +130,7 @@ describe('FuzzyMatch', () => {
     expect(res).toBeUndefined()
   })
 
-  it('should support matchSeq', async () => {
+  it('should support matchSeq', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('foob')
     let res = p.match('fooBar')
@@ -121,7 +140,7 @@ describe('FuzzyMatch', () => {
     expect(Array.from(res.positions)).toEqual([0, 3, 4])
   })
 
-  it('should better performance', async () => {
+  it('should better performance', () => {
     function makeid(length) {
       let result = ''
       let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'

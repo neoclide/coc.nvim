@@ -572,40 +572,6 @@ describe('Document', () => {
     })
   })
 
-  describe('getEndOffset', () => {
-    it('should getEndOffset #1', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['', ''])
-      let end = doc.getEndOffset(1, 1, false)
-      expect(end).toBe(2)
-      end = doc.getEndOffset(2, 1, false)
-      expect(end).toBe(1)
-    })
-
-    it('should getEndOffset #2', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['a', ''])
-      let end = doc.getEndOffset(1, 1, false)
-      expect(end).toBe(2)
-    })
-
-    it('should getEndOffset #3', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['a'])
-      let end = doc.getEndOffset(1, 2, false)
-      expect(end).toBe(1)
-    })
-
-    it('should getEndOffset #4', async () => {
-      let doc = await workspace.document
-      await setLines(doc, ['你好', ''])
-      let end = doc.getEndOffset(1, 1, false)
-      expect(end).toBe(3)
-      end = doc.getEndOffset(1, 1, true)
-      expect(end).toBe(4)
-    })
-  })
-
   describe('applyEdits', () => {
     it('should synchronize content added', async () => {
       let doc = await workspace.document

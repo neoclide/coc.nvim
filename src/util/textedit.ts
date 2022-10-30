@@ -4,7 +4,7 @@ import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
 import { toObject } from './object'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
-import { byteLength, contentToLines, toText } from './string'
+import { byteIndex, contentToLines, toText } from './string'
 
 export type TextChangeItem = [string[], number, number, number, number]
 
@@ -206,10 +206,10 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): stri
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {
   return edits.map(o => {
     let { start, end } = o.range
-    let sl = toText(lines[start.line])
-    let sc = byteLength(sl.slice(0, start.character))
-    let el = end.line == start.line ? sl : toText(lines[end.line])
-    let ec = byteLength(el.slice(0, end.character))
+    let sl = lines[start.line] ?? ''
+    let sc = byteIndex(sl, start.character)
+    let el = end.line == start.line ? sl : lines[end.line] ?? ''
+    let ec = byteIndex(el, end.character)
     let { newText } = o
     return [newText.length > 0 ? newText.split('\n') : [], start.line, sc, end.line, ec]
   })

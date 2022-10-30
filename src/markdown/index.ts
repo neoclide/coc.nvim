@@ -2,7 +2,7 @@
 import { marked } from 'marked'
 import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
-import { byteLength } from '../util/string'
+import { byteIndex, byteLength } from '../util/string'
 import stripAnsi from 'strip-ansi'
 import { HighlightItem, Documentation } from '../types'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
@@ -97,9 +97,9 @@ export function getHighlightItems(content: string, currline: number, active: [nu
     if (!inRange) {
       if (used + line.length > start) {
         inRange = true
-        let colStart = byteLength(line.slice(0, start - used))
+        let colStart = byteIndex(line, start - used)
         if (used + line.length > end) {
-          let colEnd = byteLength(line.slice(0, end - used))
+          let colEnd = byteIndex(line, end - used)
           inRange = false
           res.push({ colStart, colEnd, lnum: i + currline, hlGroup: ACTIVE_HL_GROUP })
           break
@@ -110,7 +110,7 @@ export function getHighlightItems(content: string, currline: number, active: [nu
       }
     } else {
       if (used + line.length > end) {
-        let colEnd = byteLength(line.slice(0, end - used))
+        let colEnd = byteIndex(line, end - used)
         res.push({ colStart: 0, colEnd, lnum: i + currline, hlGroup: ACTIVE_HL_GROUP })
         inRange = false
         break
