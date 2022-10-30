@@ -1,9 +1,9 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let s:utf = &encoding =~# '^utf'
-let s:error_icon = get(g:, 'coc_notify_error_icon', s:utf ? '' : 'E')
-let s:warning_icon = get(g:, 'coc_notify_warning_icon', s:utf ? '⚠' : 'W')
-let s:info_icon = get(g:, 'coc_notify_info_icon', s:utf ? '' : 'I')
+let s:utf = has('nvim') || &encoding =~# '^utf'
+let s:error_icon = get(g:, 'coc_notify_error_icon', s:utf ? "\uf057" : 'E')
+let s:warning_icon = get(g:, 'coc_notify_warning_icon', s:utf ? "\u26a0" : 'W')
+let s:info_icon = get(g:, 'coc_notify_info_icon', s:utf ? "\uf06a" : 'I')
 let s:interval = get(g:, 'coc_notify_interval', s:is_vim ? 50 : 20)
 let s:phl = 'CocNotificationProgress'
 let s:progress_char = '─'
