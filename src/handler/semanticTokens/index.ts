@@ -134,7 +134,7 @@ export default class SemanticTokens {
         content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${highlight.hlGroup || ''}`,
         highlights
       }]
-      await this.floatFactory.show(docs)
+      await this.floatFactory.show(docs, { winblend: 0 })
     } else {
       this.floatFactory.close()
     }
