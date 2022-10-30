@@ -101,7 +101,8 @@ endfunction
 function! s:insert_one_more() abort
   if coc#float#valid(s:pum_winid)
     let parts = getwinvar(s:pum_winid, 'parts', [])
-    let input = strpart(getline('.'), strchars(parts[0]), col('.') - 1)
+    let start = strlen(parts[0])
+    let input = strpart(getline('.'), start, col('.') - 1 - start)
     let words = getwinvar(s:pum_winid, 'words', [])
     let word = get(words, s:pum_index == -1 ? 0 : s:pum_index, '')
     if !empty(word) && strcharpart(word, 0, strchars(input)) ==# input
