@@ -137,44 +137,29 @@ describe('language source', () => {
       let cancelled = false
       let resolved = false
       let provider: CompletionItemProvider = {
-        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
-          label: 'this'
-        }, {
-          label: 'other',
-        }, {
-          label: 'third',
-        }],
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{ label: 'bar' }],
         resolveCompletionItem: (item, token) => {
-          if (item.label === 'this') {
+          if (count === 0) {
             count++
-            if (count == 1) {
-              return new Promise(resolve => {
-                token.onCancellationRequested(() => {
-                  cancelled = true
-                  clearTimeout(timer)
-                  resolve(undefined)
-                })
-                let timer = setTimeout(() => {
-                  resolve(item)
-                }, 1000)
+            return new Promise(resolve => {
+              token.onCancellationRequested(() => {
+                cancelled = true
+                resolve(undefined)
               })
-            } else {
-              resolved = true
-              item.documentation = 'doc of this'
-            }
+            })
           }
+          resolved = true
           return item
-        }
+        },
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       await nvim.input('i')
       await nvim.call('coc#start', { source: 'foo' })
       await helper.waitPopup()
-      await nvim.input('<C-n>')
       await helper.waitValue(() => {
         return cancelled
       }, true)
-      await nvim.input('<C-p>')
+      nvim.call('coc#pum#close', ['confirm'], true)
       await helper.waitValue(() => {
         return resolved
       }, true)

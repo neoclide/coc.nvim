@@ -6,9 +6,8 @@ import Document from '../model/document'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
-import { getCharCodes } from '../util/fuzzy'
 import { byteSlice, characterIndex } from '../util/string'
-import { matchScoreWithPositions } from './match'
+import { fuzzyMatchScoreWithPositions, fuzzyMatchScoreWithPositionsGraceful, FuzzyScorerWithPositions } from './filter'
 import { WordDistance } from './wordDistance'
 const logger = require('../util/logger')('completion-complete')
 const MAX_DISTANCE = 2 << 20
@@ -16,6 +15,7 @@ const MAX_DISTANCE = 2 << 20
 export interface CompleteConfig {
   asciiMatch: boolean
   autoTrigger: string
+  filterGraceful: boolean
   snippetsSupport: boolean
   languageSourcePriority: number
   triggerCompletionWait: number
@@ -65,6 +65,14 @@ export default class Complete {
     this.timer = setTimeout(() => {
       this._onDidRefresh.fire()
     }, waitTime)
+  }
+
+  private get totalLength(): number {
+    let len = 0
+    for (let result of this.results.values()) {
+      len += result.items.length
+    }
+    return len
   }
 
   private getPriority(source: ISource): number {
@@ -259,8 +267,9 @@ export default class Complete {
     let emptyInput = len == 0
     let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: ExtendedCompleteItem[] = []
-    let codes = getCharCodes(input)
     let words: Set<string> = new Set()
+    const lowInput = input.toLowerCase()
+    const scoreFn: FuzzyScorerWithPositions = (!this.config.filterGraceful || this.totalLength > 2000) ? fuzzyMatchScoreWithPositions : fuzzyMatchScoreWithPositionsGraceful
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue
@@ -272,14 +281,10 @@ export default class Complete {
         if (filterText.length < len) continue
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         if (!emptyInput) {
-          if (item.kind && filterText === input) {
-            item.score = 64
-          } else {
-            let res = matchScoreWithPositions(filterText, codes)
-            if (res == null || res[0] === 0) continue
-            item.score = res[0]
-            item.positions = res[1]
-          }
+          let res = scoreFn(filterText, filterText.toLowerCase(), input, lowInput)
+          if (res == null) continue
+          item.score = res[0]
+          item.positions = res[1]
           if (this.wordDistance) item.localBonus = MAX_DISTANCE - this.wordDistance.distance(anchor, item)
         }
         words.add(word)

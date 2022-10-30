@@ -1,22 +1,20 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 import { parseDocuments } from '../markdown'
 import sources from '../sources'
 import { CompleteOption, Documentation, ExtendedCompleteItem, FloatConfig } from '../types'
+import { isCancellationError } from '../util/errors'
 import workspace from '../workspace'
 const logger = require('../util/logger')('completion-floating')
 
 export default class Floating {
-  private tokenSource: CancellationTokenSource
   private excludeImages = true
   constructor(private nvim: Neovim, private config: { floatConfig: FloatConfig }) {
     this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
   }
 
-  public async resolveItem(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
-    let source = this.tokenSource = new CancellationTokenSource()
-    let { token } = source
+  public async resolveItem(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     await this.doCompleteResolve(item, opt, token)
     if (token.isCancellationRequested) return
     let docs = item.documentation ?? []
@@ -50,36 +48,13 @@ export default class Floating {
     }
   }
 
-  public doCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
+  public async doCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     let source = sources.getSource(item.source)
-    return new Promise<void>(resolve => {
-      if (source && typeof source.onCompleteResolve === 'function') {
-        let timer = setTimeout(() => {
-          if (!token.isCancellationRequested) {
-            this.cancel()
-            this.close()
-          }
-          logger.warn(`Resolve timeout after 500ms: ${source.name}`)
-          resolve()
-        }, global.__TEST__ ? 100 : 500)
-        Promise.resolve(source.onCompleteResolve(item, opt, token)).then(() => {
-          clearTimeout(timer)
-          resolve()
-        }, e => {
-          logger.error(`Error on complete resolve:`, e)
-          clearTimeout(timer)
-          resolve()
-        })
-      } else {
-        resolve()
-      }
-    })
-  }
-
-  public cancel(): void {
-    if (this.tokenSource) {
-      this.tokenSource.cancel()
-      this.tokenSource = undefined
+    if (!source || typeof source.onCompleteResolve !== 'function') return
+    try {
+      await Promise.resolve(source.onCompleteResolve(item, opt, token))
+    } catch (e) {
+      if (!isCancellationError(e)) logger.error(`Error on complete resolve of "${source.name}":`, e)
     }
   }
 

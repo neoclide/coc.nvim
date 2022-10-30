@@ -9,6 +9,7 @@ import { SnippetParser } from '../snippets/parser'
 import { CompleteOption, CompleteResult, Documentation, ExtendedCompleteItem, ISource, SourceType } from '../types'
 import { waitImmediate } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
+import { CancellationError } from '../util/errors'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { isCompletionList } from '../util/is'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
@@ -133,16 +134,16 @@ export default class LanguageSource implements ISource {
     promise = new Promise((resolve, reject) => {
       let disposable = token.onCancellationRequested(() => {
         this.resolving.delete(completeItem)
+        reject(new CancellationError())
       })
       Promise.resolve(this.provider.resolveCompletionItem(completeItem, token)).then(resolved => {
         disposable.dispose()
-        if (token.isCancellationRequested || !resolved) {
+        if (!resolved) {
           this.resolving.delete(completeItem)
-          resolve()
-          return
+        } else {
+          Object.assign(completeItem, resolved)
+          this.addDocumentation(item, completeItem, opt.filetype)
         }
-        Object.assign(completeItem, resolved)
-        this.addDocumentation(item, completeItem, opt.filetype)
         resolve()
       }, reject)
     })

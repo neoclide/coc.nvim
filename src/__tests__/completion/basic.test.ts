@@ -301,6 +301,16 @@ describe('completion', () => {
         return resolved
       }, true)
     })
+
+    it('should disable graceful filter', async () => {
+      helper.updateConfiguration('suggest.filterGraceful', false)
+      await create(['this'], true)
+      await nvim.input('tih')
+      await helper.waitValue(async () => {
+        let items = await helper.getItems()
+        return items.length
+      }, 0)
+    })
   })
 
   describe('suggest variables', () => {
@@ -687,9 +697,11 @@ describe('completion', () => {
     })
 
     it('should filter on none keyword input', async () => {
+      await nvim.setLine('foo')
+      await nvim.input('A')
       await create(['foo#abc'], true)
       await nvim.input('#')
-      await helper.wait(50)
+      await helper.wait(30)
       let items = await helper.getItems()
       expect(items[0].word).toBe('foo#abc')
     })

@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
@@ -17,6 +17,8 @@ import MruLoader from './mru'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
 const logger = require('../util/logger')('completion')
+const RESOLVE_TIMEOUT = global.__TEST__ ? 50 : 500
+const TRIGGER_TIMEOUT = global.__TEST__ ? 20 : 200
 
 export interface LastInsert {
   character: string
@@ -36,6 +38,7 @@ export class Completion implements Disposable {
   private floating: Floating
   private disposables: Disposable[] = []
   private complete: Complete | null = null
+  private resolveTokenSource: CancellationTokenSource | undefined
   public activeItems: ReadonlyArray<ExtendedCompleteItem> = []
 
   public init(): void {
@@ -62,10 +65,9 @@ export class Completion implements Disposable {
     events.on('MenuPopupChanged', async ev => {
       if (!this.option) return
       this.popupEvent = ev
-      this.floating.cancel()
       let item = this.selectedItem
       if (!item || !this.config.enableFloat || (!ev.move && this.complete?.isCompleting)) return
-      await this.floating.resolveItem(item, this.option)
+      await this.floating.resolveItem(item, this.option, this.createResolveToken())
     }, null, this.disposables)
   }
 
@@ -125,6 +127,7 @@ export class Completion implements Disposable {
     let suggest = workspace.getConfiguration('suggest', doc)
     this.config = {
       autoTrigger: suggest.get<string>('autoTrigger', 'always'),
+      filterGraceful: suggest.get<boolean>('filterGraceful', true),
       enableFloat: suggest.get<boolean>('enableFloat', true),
       languageSourcePriority: suggest.get<number>('languageSourcePriority', 99),
       snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
@@ -277,7 +280,7 @@ export class Completion implements Disposable {
       // triggering without results
       this.triggerTimer = setTimeout(async () => {
         await this.triggerCompletion(doc, info)
-      }, global.__TEST__ ? 20 : 200)
+      }, TRIGGER_TIMEOUT)
       return
     }
     await this.filterResults(info)
@@ -344,15 +347,31 @@ export class Completion implements Disposable {
   }
 
   private async confirmCompletion(item: ExtendedCompleteItem, option: CompleteOption): Promise<void> {
-    await this.floating.doCompleteResolve(item, option, CancellationToken.None)
+    let token = this.createResolveToken()
+    await this.floating.doCompleteResolve(item, option, token)
+    // clear the timeout
+    this.resolveTokenSource?.cancel()
     await this.doCompleteDone(item, option)
   }
 
   public async doCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     let source = sources.getSource(item.source)
-    if (source && typeof source.onCompleteDone === 'function') {
-      await Promise.resolve(source.onCompleteDone(item, opt, this.config.snippetsSupport))
-    }
+    if (typeof source?.onCompleteDone !== 'function') return
+    await Promise.resolve(source.onCompleteDone(item, opt, this.config.snippetsSupport))
+  }
+
+  private createResolveToken(): CancellationToken {
+    let tokenSource = this.resolveTokenSource = new CancellationTokenSource()
+    let timer = setTimeout(() => {
+      if (this.resolveTokenSource === tokenSource) {
+        tokenSource.cancel()
+        this.resolveTokenSource = undefined
+      }
+    }, RESOLVE_TIMEOUT)
+    tokenSource.token.onCancellationRequested(() => {
+      clearTimeout(timer)
+    })
+    return tokenSource.token
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
