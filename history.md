@@ -2,6 +2,8 @@
 
 - Add configuration `colors.enable`, mark `colors.filetypes` deprecated.
 - Add command `document.toggleColors` for toggle colors of current buffer.
+- Changed filter of completion to use code from VSCode.
+- Add configuration `suggest.filterGraceful`
 
 # 2022-10-39
 

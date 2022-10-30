@@ -1816,6 +1816,12 @@
       "description": "Enable preselect feature of LSP, works when suggest.noselect is false.",
       "default": true
     },
+    "suggest.filterGraceful": {
+      "type": "boolean",
+      "description": "Controls whether filtering and sorting suggestions accounts for small typos.",
+      "scope": "language-overridable",
+      "default": true
+    },
     "suggest.fixInsertedWord": {
       "type": "boolean",
       "description": "Make inserted word replace word characters after cursor position.",
