@@ -1,7 +1,7 @@
 import { CancellationToken, CompletionItemKind, Position, Range, SelectionRange } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
-import { CompleteOption, ExtendedCompleteItem } from '../types'
+import { CompleteOption, DurationCompleteItem } from '../types'
 import { binarySearch, isFalsyOrEmpty } from '../util/array'
 import { equals } from '../util/object'
 import { compareRangesUsingStarts, rangeInRange } from '../util/position'
@@ -44,7 +44,7 @@ export abstract class WordDistance {
     delete wordRanges[opt.word]
     return new class extends WordDistance {
       // Unlike VSCode, word insert position is used here
-      public distance(anchor: Position, item: ExtendedCompleteItem) {
+      public distance(anchor: Position, item: DurationCompleteItem) {
         if (!equals([events.cursor.lnum, events.cursor.col], cursor)) {
           return 0
         }
@@ -69,5 +69,5 @@ export abstract class WordDistance {
     }()
   }
 
-  public abstract distance(anchor: Position, item: ExtendedCompleteItem): number
+  public abstract distance(anchor: Position, item: DurationCompleteItem): number
 }

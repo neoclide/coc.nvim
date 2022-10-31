@@ -1,31 +1,19 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemLabelDetails, CompletionItemTag, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemLabelDetails, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
 import { getCursorPosition } from '../core/ui'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
-import { SnippetParser } from '../snippets/parser'
-import { CompleteOption, CompleteResult, Documentation, ExtendedCompleteItem, ISource, SourceType } from '../types'
+import { CompleteOption, CompleteResult, Documentation, DurationCompleteItem, ISource, ItemDefaults, SourceType } from '../types'
 import { waitImmediate } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { CancellationError } from '../util/errors'
-import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { isCompletionList } from '../util/is'
+import { isEmpty } from '../util/object'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-language')
-
-export interface ItemDefaults {
-  commitCharacters?: string[]
-  editRange?: Range | {
-    insert: Range
-    replace: Range
-  }
-  insertTextFormat?: InsertTextFormat
-  insertTextMode?: InsertTextMode
-  data?: any
-}
 
 interface TriggerContext {
   line: string
@@ -61,7 +49,7 @@ export default class LanguageSource implements ISource {
     this._enabled = !this._enabled
   }
 
-  public shouldCommit(item: ExtendedCompleteItem, character: string): boolean {
+  public shouldCommit(item: DurationCompleteItem, character: string): boolean {
     let completeItem = this.completeItems[item.index]
     if (!completeItem) return false
     if (this.allCommitCharacters.includes(character)) return true
@@ -69,27 +57,26 @@ export default class LanguageSource implements ISource {
     return commitCharacters.includes(character)
   }
 
-  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
-    let { triggerCharacter, input, bufnr, position } = opt
+  public async doComplete(option: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
+    let { triggerCharacter, input, bufnr, position } = option
     this.completeItems = []
-    let triggerKind: CompletionTriggerKind = this.getTriggerKind(opt)
-    this.triggerContext = { lnum: position.line, character: position.character, line: opt.line }
-    let context: any = { triggerKind, option: opt }
+    let triggerKind: CompletionTriggerKind = this.getTriggerKind(option)
+    this.triggerContext = { lnum: position.line, character: position.character, line: option.line }
+    let context: any = { triggerKind, option }
     if (triggerKind == CompletionTriggerKind.TriggerCharacter) context.triggerCharacter = triggerCharacter
-    let doc = workspace.getDocument(bufnr)
+    let textDocument = workspace.getDocument(bufnr).textDocument
     await waitImmediate()
-    let result = await Promise.resolve(this.provider.provideCompletionItems(doc.textDocument, position, token, context))
+    let result = await Promise.resolve(this.provider.provideCompletionItems(textDocument, position, token, context))
     if (!result || token.isCancellationRequested) return null
     let completeItems = Array.isArray(result) ? result : result.items
     if (!completeItems || completeItems.length == 0) return null
-    this.itemDefaults = isCompletionList(result) ? result.itemDefaults ?? {} : {}
+    let itemDefaults = this.itemDefaults = isCompletionList(result) ? result.itemDefaults ?? {} : {}
     this.completeItems = completeItems
-    let option: CompleteOption = Object.assign({}, opt)
-    let startcol = getStartColumn(opt.line, completeItems, this.itemDefaults)
+    let startcol = getStartColumn(option.line, completeItems, this.itemDefaults)
     // gopls returns bad start position, but it should includes start position
-    if (startcol > opt.col && input.length > 0) {
-      startcol = opt.col
-      let character = characterIndex(opt.line, startcol)
+    if (startcol > option.col && input.length > 0) {
+      startcol = option.col
+      let character = characterIndex(option.line, startcol)
       // fix range.start to include position
       completeItems.forEach(item => {
         let { textEdit } = item
@@ -101,26 +88,21 @@ export default class LanguageSource implements ISource {
         }
       })
     }
-    let prefix: string
+    let prefix: string | undefined
     let isIncomplete = isCompletionList(result) ? result.isIncomplete == true : false
-    if (startcol == null && input.length > 0 && this.triggerCharacters.includes(opt.triggerCharacter)) {
-      if (!completeItems.every(item => (item.insertText ?? item.label).startsWith(opt.input))) {
-        startcol = opt.col + byteLength(opt.input)
+    if (startcol == null && input.length > 0 && this.triggerCharacters.includes(option.triggerCharacter)) {
+      if (!completeItems.every(item => (item.insertText ?? item.label).startsWith(option.input))) {
+        startcol = option.col + byteLength(option.input)
       }
     }
     if (typeof startcol === 'number' && startcol < option.col) {
-      prefix = startcol < option.col ? byteSlice(opt.line, startcol, option.col) : ''
+      prefix = startcol < option.col ? byteSlice(option.line, startcol, option.col) : ''
       option.col = startcol
     }
-    let items: ExtendedCompleteItem[] = completeItems.map((o, index) => {
-      let item = this.convertVimCompleteItem(o, option, prefix)
-      item.index = index
-      return item
-    })
-    return { startcol, isIncomplete, items }
+    return { startcol, isIncomplete, items: completeItems, prefix, itemDefaults }
   }
 
-  public onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
+  public onCompleteResolve(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     let { index } = item
     let completeItem = this.completeItems[index]
     if (!completeItem) return Promise.resolve()
@@ -131,36 +113,37 @@ export default class LanguageSource implements ISource {
     }
     let promise = this.resolving.get(completeItem)
     if (promise) return promise
-    promise = new Promise((resolve, reject) => {
+    promise = new Promise(async (resolve, reject) => {
       let disposable = token.onCancellationRequested(() => {
         this.resolving.delete(completeItem)
         reject(new CancellationError())
       })
-      Promise.resolve(this.provider.resolveCompletionItem(completeItem, token)).then(resolved => {
+      try {
+        let resolved = await Promise.resolve(this.provider.resolveCompletionItem(completeItem, token))
         disposable.dispose()
-        if (!resolved) {
-          this.resolving.delete(completeItem)
-        } else {
-          Object.assign(completeItem, resolved)
-          this.addDocumentation(item, completeItem, opt.filetype)
+        if (!token.isCancellationRequested) {
+          if (!resolved) {
+            this.resolving.delete(completeItem)
+          } else {
+            Object.assign(completeItem, resolved)
+            this.addDocumentation(item, completeItem, opt.filetype)
+          }
         }
         resolve()
-      }, reject)
+      } catch (e) {
+        reject(e)
+      }
     })
     this.resolving.set(completeItem, promise)
     return promise
   }
 
-  private addDocumentation(item: ExtendedCompleteItem, completeItem: CompletionItem, filetype: string): void {
-    let { detailRendered } = item
-    let { documentation, detail, labelDetails } = completeItem
+  private addDocumentation(item: DurationCompleteItem, completeItem: CompletionItem, filetype: string): void {
+    let { documentation } = completeItem
     let docs: Documentation[] = []
-    if (!emptLabelDetails(labelDetails) && !detailRendered) {
-      let content = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
-      docs.push({ filetype: 'txt', content })
-    } else if (detail && !item.detailRendered && detail != item.abbr) {
-      let isText = /^[\w-\s.,\t\n]+$/.test(detail)
-      docs.push({ filetype: isText ? 'txt' : filetype, content: detail })
+    if (!item.detailRendered) {
+      let doc = getDetail(completeItem, filetype)
+      if (doc) docs.push(doc)
     }
     if (documentation) {
       if (typeof documentation == 'string') {
@@ -176,7 +159,7 @@ export default class LanguageSource implements ISource {
     item.documentation = docs
   }
 
-  public async onCompleteDone(vimItem: ExtendedCompleteItem, opt: CompleteOption, snippetSupport: boolean): Promise<void> {
+  public async onCompleteDone(vimItem: DurationCompleteItem, opt: CompleteOption, snippetSupport: boolean): Promise<void> {
     let item = this.completeItems[vimItem.index]
     if (!item) return
     let doc = workspace.getDocument(opt.bufnr)
@@ -208,7 +191,7 @@ export default class LanguageSource implements ISource {
   }
 
   private isSnippetItem(item: CompletionItem): boolean {
-    let insertTextFormat = item.insertTextFormat ?? this.itemDefaults.insertTextFormat
+    let insertTextFormat = item.insertTextFormat ?? this.itemDefaults?.insertTextFormat
     return insertTextFormat === InsertTextFormat.Snippet
   }
 
@@ -261,41 +244,6 @@ export default class LanguageSource implements ISource {
     }
     return triggerKind
   }
-
-  private convertVimCompleteItem(item: CompletionItem, opt: CompleteOption, prefix: string): ExtendedCompleteItem {
-    let label = typeof item.label === 'string' ? item.label.trim() : item.insertText ?? ''
-    let isSnippet = this.isSnippetItem(item)
-    if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
-    let obj: ExtendedCompleteItem = {
-      word: getWord(item, isSnippet, opt, this.itemDefaults),
-      abbr: label,
-      kind: item.kind,
-      detail: item.detail,
-      sortText: item.sortText,
-      filterText: item.filterText ?? label,
-      preselect: item.preselect === true,
-      deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
-      isSnippet,
-      dup: item.data?.dup == 0 ? 0 : 1
-    }
-    if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails
-    if (prefix) {
-      if (!obj.filterText.startsWith(prefix)) {
-        if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
-          obj.filterText = item.textEdit.newText.replace(/\r?\n/g, '')
-        }
-      }
-      if (!item.textEdit && !obj.word.startsWith(prefix)) {
-        // fix possible wrong word
-        obj.word = `${prefix}${obj.word}`
-      }
-    }
-    if (typeof item['score'] === 'number' && !obj.sortText) {
-      obj.sortText = String.fromCodePoint(2 << 20 - Math.round(item['score']))
-    }
-    if (item.data?.optional && !obj.abbr.endsWith('?')) obj.abbr = obj.abbr + '?'
-    return obj
-  }
 }
 
 export function getRange(item: CompletionItem | undefined, itemDefaults?: ItemDefaults): Range | undefined {
@@ -326,40 +274,6 @@ export function getStartColumn(line: string, items: CompletionItem[], itemDefaul
   return byteIndex(line, range.start.character)
 }
 
-export function getWord(item: CompletionItem, isSnippet: boolean, opt: CompleteOption, itemDefaults: ItemDefaults): string {
-  let { label, data, insertText, textEdit } = item
-  if (data && typeof data.word === 'string') return data.word
-  let newText: string = insertText ?? label
-  let range: Range | undefined
-  if (textEdit) {
-    range = InsertReplaceEdit.is(textEdit) ? textEdit.insert : textEdit.range
-    newText = textEdit.newText
-  } else if (itemDefaults.editRange) {
-    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.insert
-  }
-  if (range && range.start.line == range.end.line) {
-    let { line, col, position } = opt
-    let character = characterIndex(line, col)
-    if (range.start.character < character) {
-      let start = line.slice(range.start.character, character)
-      if (start.length && newText.startsWith(start)) {
-        newText = newText.slice(start.length)
-      }
-    } else if (range.start.character > character) {
-      newText = line.slice(character, range.start.character) + newText
-    }
-    character = position.character
-    if (range.end.character > character) {
-      let end = line.slice(character, range.end.character)
-      if (newText.endsWith(end)) {
-        newText = newText.slice(0, - end.length)
-      }
-    }
-  }
-  let word = isSnippet ? (new SnippetParser()).text(newText) : newText
-  return word.indexOf('\n') === -1 ? word : word.replace(/\n.*$/s, '')
-}
-
 export function fixIndent(line: string, currline: string, range: Range): number {
   let oldIndent = line.match(/^\s*/)[0]
   let newIndent = currline.match(/^\s*/)[0]
@@ -370,7 +284,15 @@ export function fixIndent(line: string, currline: string, range: Range): number 
   return d
 }
 
-export function emptLabelDetails(labelDetails: CompletionItemLabelDetails): boolean {
-  if (!labelDetails) return true
-  return !labelDetails.detail && !labelDetails.description
+export function getDetail(item: CompletionItem, filetype: string): { filetype: string, content: string } | undefined {
+  const { detail, labelDetails, label } = item
+  if (!isEmpty(labelDetails)) {
+    let content = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
+    return { filetype: 'txt', content }
+  }
+  if (detail && detail !== label) {
+    let isText = /^[\w-\s.,\t\n]+$/.test(detail)
+    return { filetype: isText ? 'txt' : filetype, content: detail }
+  }
+  return undefined
 }

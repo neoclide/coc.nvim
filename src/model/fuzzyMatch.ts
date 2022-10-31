@@ -36,7 +36,7 @@ export async function initFuzzyWasm(): Promise<FuzzyWasi> {
 export function* matchSpansReverse(text: string, positions: ArrayLike<number>, endIndex = 0, max = Number.MAX_SAFE_INTEGER): Iterable<[number, number]> {
   let len = positions.length
   if (len <= endIndex) return
-  let byteIndex = bytes(text, positions[endIndex] + 1)
+  let byteIndex = bytes(text, Math.min(positions[endIndex] + 1, max))
   let start: number | undefined
   let prev: number | undefined
   for (let i = len - 1; i >= endIndex; i--) {

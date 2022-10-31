@@ -8,7 +8,7 @@ import events from '../events'
 import extensions from '../extension'
 import BufferSync from '../model/bufferSync'
 import { CompletionItemProvider } from '../provider'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
+import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty } from '../util/array'
 import { statAsync } from '../util/fs'
@@ -250,7 +250,7 @@ export class Sources {
     return this.sourceMap.get(name) ?? null
   }
 
-  public shouldCommit(item: ExtendedCompleteItem, commitCharacter: string): boolean {
+  public shouldCommit(item: DurationCompleteItem, commitCharacter: string): boolean {
     if (!item || !item.source) return false
     let source = this.getSource(item.source)
     if (source && typeof source.shouldCommit === 'function') {
@@ -386,7 +386,7 @@ export class Sources {
   }
 
   public createSource(config: SourceConfig): Disposable {
-    if (!config.name || !config.doComplete) {
+    if (typeof config.name !== 'string' || typeof config.doComplete !== 'function') {
       logger.error(`Bad config for createSource:`, config)
       throw new Error(`name and doComplete required for createSource`)
     }

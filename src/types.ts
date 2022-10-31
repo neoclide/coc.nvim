@@ -1,7 +1,7 @@
 'use strict'
 // vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionKind, CompletionItemKind, CompletionItemLabelDetails, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 import type Configurations from './configuration'
@@ -701,6 +701,17 @@ export interface DidChangeTextDocumentParams {
 // }}
 
 // Completion {{
+export interface ItemDefaults {
+  commitCharacters?: string[]
+  editRange?: Range | {
+    insert: Range
+    replace: Range
+  }
+  insertTextFormat?: InsertTextFormat
+  insertTextMode?: InsertTextMode
+  data?: any
+}
+
 export interface Documentation {
   filetype: string
   content: string
@@ -718,6 +729,40 @@ export interface CompleteDoneItem {
   readonly user_data?: string
 }
 
+// For filter, render and resolve
+export interface DurationCompleteItem {
+  word: string
+  abbr: string
+  filterText: string
+  source: string
+  priority: number
+  isSnippet: boolean
+  // copied from CompleteItem
+  index?: number
+  menu?: string
+  kind?: string | CompletionItemKind
+  dup?: number
+  preselect?: boolean
+  sortText?: string
+  deprecated?: boolean
+  detail?: string
+  labelDetails?: CompletionItemLabelDetails
+  user_data?: string
+  /**
+   * Possible changed on resolve
+   */
+  documentation?: Documentation[]
+  info?: string
+  // Generated
+  localBonus?: number
+  score?: number
+  positions?: ReadonlyArray<number>
+  /**
+   * labelDetail rendered after label
+   */
+  detailRendered?: boolean
+}
+
 export interface VimCompleteItem {
   word: string
   abbr?: string
@@ -732,28 +777,20 @@ export interface VimCompleteItem {
 }
 
 export interface ExtendedCompleteItem extends VimCompleteItem {
+  deprecated?: boolean
   labelDetails?: CompletionItemLabelDetails
-  /**
-   * labelDetail rendered after label
-   */
-  detailRendered?: boolean
-  score?: number
   sortText?: string
   filterText?: string
   isSnippet?: boolean
-  source?: string
-  priority?: number
-  localBonus?: number
   index?: number
-  // used for preview
   documentation?: Documentation[]
-  deprecated?: boolean
-  positions?: ReadonlyArray<number>
 }
 
 export interface CompleteResult {
-  items: ExtendedCompleteItem[]
+  items: ReadonlyArray<ExtendedCompleteItem> | ReadonlyArray<CompletionItem>
   isIncomplete?: boolean
+  itemDefaults?: Readonly<ItemDefaults>
+  prefix?: string
   startcol?: number
 }
 
@@ -814,9 +851,9 @@ export interface ISource {
   onEnter?(bufnr: number): void
   shouldComplete?(opt: CompleteOption): Promise<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult | null>
-  onCompleteResolve?(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
-  onCompleteDone?(item: ExtendedCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
-  shouldCommit?(item: ExtendedCompleteItem, character: string): boolean
+  onCompleteResolve?(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
+  onCompleteDone?(item: DurationCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
+  shouldCommit?(item: DurationCompleteItem, character: string): boolean
   dispose?(): void
 }
 // }}

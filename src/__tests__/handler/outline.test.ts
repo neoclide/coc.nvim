@@ -294,11 +294,12 @@ fun1() {}
 
     it('should recreated when original window exists', async () => {
       await symbols.showOutline(1)
-      await helper.wait(50)
+      await helper.wait(20)
       await createBuffer()
-      await helper.wait(50)
-      let buf = await getOutlineBuffer()
-      expect(buf).toBeDefined()
+      await helper.waitValue(async () => {
+        let buf = await getOutlineBuffer()
+        return buf != null
+      }, true)
     })
 
     it('should keep old outline when new buffer not attached', async () => {
@@ -368,7 +369,7 @@ fun1() {}
       let doc = await workspace.document
       let bufnr = await nvim.call('bufnr', ['%']) as number
       await symbols.showOutline(1)
-      await helper.wait(10)
+      await helper.waitFor('getline', [1], 'class myClass {')
       let buf = nvim.createBuffer(bufnr)
       let code = 'class foo{}'
       await buf.setLines(code.split('\n'), {

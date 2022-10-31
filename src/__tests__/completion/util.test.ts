@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as assert from 'assert'
-import { CompletionItemKind, Disposable, CancellationToken, Position, Range } from 'vscode-languageserver-protocol'
+import { CompletionItemKind, Disposable, CancellationToken, Position, Range, CompletionItem, TextEdit, CompletionItemTag, InsertTextFormat } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import { checkIgnoreRegexps, indentChanged, createKindMap, getInput, getKindText, getKindHighlight, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
+import { checkIgnoreRegexps, convertCompletionItem, toCompleteDoneItem, getWord, emptLabelDetails, indentChanged, createKindMap, getInput, getKindText, getKindHighlight, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import { isWhitespaceAtPos, fuzzyScore, isSeparatorAtPos, isPatternInWord, createMatches, FuzzyScorer, fuzzyScoreGraceful, fuzzyScoreGracefulAggressive, anyScore, nextTypoPermutation } from '../../completion/filter'
 import languages from '../../languages'
@@ -422,30 +422,24 @@ describe('filter functions', () => {
   })
 })
 
-describe('caseScore()', () => {
+describe('util functions', () => {
   it('should get caseScore', () => {
     expect(typeof caseScore(10, 10, 2)).toBe('number')
   })
-})
 
-describe('indentChanged()', () => {
   it('should check indentChanged', () => {
     expect(indentChanged(undefined, [1, 1, ''], '')).toBe(false)
     expect(indentChanged({ word: 'foo' }, [1, 4, 'foo'], '  foo')).toBe(true)
     expect(indentChanged({ word: 'foo' }, [1, 4, 'bar'], '  foo')).toBe(false)
   })
-})
 
-describe('highlightOffert()', () => {
   it('should get highlight offset', () => {
-    let n = highlightOffert(3, { abbr: 'abc', word: '', filterText: 'def' })
+    let n = highlightOffert(3, { abbr: 'abc', filterText: 'def' })
     expect(n).toBe(-1)
-    expect(highlightOffert(3, { abbr: 'abc', word: '', filterText: 'abc' })).toBe(3)
-    expect(highlightOffert(3, { abbr: 'xy abc', word: '', filterText: 'abc' })).toBe(6)
+    expect(highlightOffert(3, { abbr: 'abc', filterText: 'abc' })).toBe(3)
+    expect(highlightOffert(3, { abbr: 'xy abc', filterText: 'abc' })).toBe(6)
   })
-})
 
-describe('getKindText()', () => {
   it('should getKindText', () => {
     expect(getKindText('t', new Map(), '')).toBe('t')
     let m = new Map()
@@ -453,9 +447,7 @@ describe('getKindText()', () => {
     expect(getKindText(CompletionItemKind.Class, m, 'D')).toBe('C')
     expect(getKindText(CompletionItemKind.Class, new Map(), 'D')).toBe('D')
   })
-})
 
-describe('getKindHighlight()', () => {
   it('should getKindHighlight', async () => {
     const testHi = (kind: number | string, res: string) => {
       expect(getKindHighlight(kind)).toBe(res)
@@ -464,41 +456,31 @@ describe('getKindHighlight()', () => {
     testHi(999, 'CocSymbolDefault')
     testHi('', 'CocSymbolDefault')
   })
-})
 
-describe('createKindMap()', () => {
   it('should createKindMap', () => {
     let map = createKindMap({ constructor: 'C' })
     expect(map.get(CompletionItemKind.Constructor)).toBe('C')
     map = createKindMap({ constructor: undefined })
     expect(map.get(CompletionItemKind.Constructor)).toBe('')
   })
-})
 
-describe('getValidWord()', () => {
   it('should getValidWord', () => {
     expect(getValidWord('label', [])).toBe('label')
   })
-})
 
-describe('checkIgnoreRegexps()', () => {
   it('should checkIgnoreRegexps', () => {
     expect(checkIgnoreRegexps([], '')).toBe(false)
     expect(checkIgnoreRegexps(['^^*^^'], 'input')).toBe(false)
     expect(checkIgnoreRegexps(['^inp', '^ind'], 'input')).toBe(true)
   })
-})
 
-describe('getResumeInput()', () => {
   it('should getResumeInput', () => {
     let opt = { line: 'foo', colnr: 4, col: 1 }
     expect(getResumeInput(opt, 'f')).toBeNull()
     expect(getResumeInput(opt, 'bar')).toBeNull()
     expect(getResumeInput(opt, 'foo f')).toBeNull()
   })
-})
 
-describe('shouldStop()', () => {
   function createOption(bufnr: number, linenr: number, line: string, colnr: number): Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'> {
     return { bufnr, linenr, line, colnr }
   }
@@ -512,9 +494,7 @@ describe('shouldStop()', () => {
     expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 2, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
     expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'barb' }, opt)).toBe(true)
   })
-})
 
-describe('shouldIndent()', () => {
   it('should check indent', () => {
     let res = shouldIndent('0{,0},0),0],!^F,o,O,e,=endif,=enddef,=endfu,=endfor', 'endfor')
     expect(res).toBe(true)
@@ -531,15 +511,128 @@ describe('shouldIndent()', () => {
     res = shouldIndent('0=foo', '  foo')
     expect(res).toBe(true)
   })
-})
 
-describe('getInput()', () => {
   it('should consider none word character as input', async () => {
     let doc = await helper.createDocument('t.vim')
     let res = getInput(doc, 'a#b#', false)
     expect(res).toBe('a#b#')
     res = getInput(doc, '你b#', true)
     expect(res).toBe('b#')
+  })
+
+  it('should toCompleteDoneItem', () => {
+    let res = toCompleteDoneItem({
+      abbr: '',
+      filterText: '',
+      isSnippet: false,
+      priority: 1,
+      source: '',
+      word: '',
+      user_data: 'data'
+    })
+    expect(res['user_data']).toBe('data')
+  })
+
+  it('should check emptLabelDetails', () => {
+    expect(emptLabelDetails(null)).toBe(true)
+    expect(emptLabelDetails({})).toBe(true)
+    expect(emptLabelDetails({ detail: '' })).toBe(true)
+    expect(emptLabelDetails({ detail: 'detail' })).toBe(false)
+    expect(emptLabelDetails({ description: 'detail' })).toBe(false)
+  })
+
+  it('should get word from newText #1', async () => {
+    let item: CompletionItem = {
+      label: 'foo',
+      textEdit: TextEdit.insert(Position.create(0, 0), '$foo\nbar')
+    }
+    let opt = {
+      line: '$',
+      col: 1,
+      position: Position.create(0, 1)
+    }
+    let word = getWord(item, false, opt, {})
+    expect(word).toBe('foo')
+    opt.line = '_'
+    word = getWord(item, false, opt, {})
+    expect(word).toBe('$foo')
+  })
+
+  it('should get word from newText #2', async () => {
+    let item: CompletionItem = {
+      label: 'foo',
+      textEdit: TextEdit.insert(Position.create(0, 1), 'foo')
+    }
+    let opt = {
+      line: '$',
+      col: 0,
+      position: Position.create(0, 1)
+    }
+    let word = getWord(item, false, opt, {})
+    expect(word).toBe('$foo')
+  })
+
+  it('should get word from newText #3', async () => {
+    let item: CompletionItem = {
+      label: 'foo',
+      textEdit: TextEdit.replace(Range.create(0, 0, 0, 2), 'foo')
+    }
+    let opt = {
+      line: 'oo',
+      col: 0,
+      position: Position.create(0, 0)
+    }
+    let word = getWord(item, false, opt, {})
+    expect(word).toBe('f')
+  })
+
+  it('should convert completion item', async () => {
+    let opt = {
+      line: '',
+      col: 0,
+      position: Position.create(0, 0)
+    }
+    let item: any = {
+      label: null,
+      insertText: 'f',
+      score: 3,
+      data: { optional: true, dup: 0 },
+      tags: [CompletionItemTag.Deprecated]
+    }
+    let res = convertCompletionItem(item, 0, 'source', 1, { itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
+    expect(res.abbr.endsWith('?')).toBe(true)
+    expect(typeof res.sortText).toBe('string')
+    expect(res.deprecated).toBe(true)
+    expect(res.dup).toBe(0)
+  })
+
+  it('should fix filter text when prefix exists', async () => {
+    let opt = {
+      line: 'ab',
+      col: 0,
+      position: Position.create(0, 2)
+    }
+    let item: any = {
+      label: 'f',
+      insertText: 'f',
+      textEdit: TextEdit.replace(Range.create(0, 0, 0, 2), 'abf')
+    }
+    let res = convertCompletionItem(item, 0, 'source', 1, { prefix: 'ab', itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
+    expect(res.filterText).toBe('abf')
+  })
+
+  it('should fix word when prefix exists', async () => {
+    let opt = {
+      line: 'ab',
+      col: 0,
+      position: Position.create(0, 2)
+    }
+    let item: any = {
+      label: 'f',
+      insertText: 'f',
+    }
+    let res = convertCompletionItem(item, 0, 'source', 1, { prefix: 'ab', itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
+    expect(res.word).toBe('abf')
   })
 })
 
@@ -693,13 +786,13 @@ describe('wordDistance', () => {
     let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
     let w = await WordDistance.create(true, opt, CancellationToken.None)
     expect(w.distance(Position.create(1, 0), {} as any)).toBeGreaterThan(0)
-    expect(w.distance(Position.create(0, 0), { word: '', kind: CompletionItemKind.Keyword })).toBeGreaterThan(0)
-    expect(w.distance(Position.create(0, 0), { word: 'not_exists' })).toBeGreaterThan(0)
-    expect(w.distance(Position.create(0, 0), { word: 'bar' })).toBe(0)
-    expect(w.distance(Position.create(0, 0), { word: 'def' })).toBeGreaterThan(0)
+    expect(w.distance(Position.create(0, 0), { word: '', kind: CompletionItemKind.Keyword } as any)).toBeGreaterThan(0)
+    expect(w.distance(Position.create(0, 0), { word: 'not_exists' } as any)).toBeGreaterThan(0)
+    expect(w.distance(Position.create(0, 0), { word: 'bar' } as any)).toBe(0)
+    expect(w.distance(Position.create(0, 0), { word: 'def' } as any)).toBeGreaterThan(0)
     await nvim.call('cursor', [1, 2])
     await events.fire('CursorMoved', [opt.bufnr, [1, 2]])
-    expect(w.distance(Position.create(0, 0), { word: 'bar' })).toBe(0)
+    expect(w.distance(Position.create(0, 0), { word: 'bar' } as any)).toBe(0)
   })
 
   it('should get same range', async () => {
@@ -720,7 +813,7 @@ describe('wordDistance', () => {
     opt.word = ''
     let w = await WordDistance.create(true, opt, CancellationToken.None)
     spy.mockRestore()
-    let res = w.distance(Position.create(0, 0), { word: 'foo' })
+    let res = w.distance(Position.create(0, 0), { word: 'foo' } as any)
     expect(res).toBe(0)
   })
 })

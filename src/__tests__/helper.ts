@@ -15,7 +15,7 @@ import events from '../events'
 import type Document from '../model/document'
 import type Plugin from '../plugin'
 import { ProviderResult } from '../provider'
-import { ExtendedCompleteItem, OutputChannel, VimCompleteItem } from '../types'
+import { DurationCompleteItem, OutputChannel, VimCompleteItem } from '../types'
 import { equals } from '../util/object'
 import { terminate } from '../util/processes'
 import { Workspace } from '../workspace'
@@ -194,7 +194,7 @@ export class Helper extends EventEmitter {
     return items.findIndex(o => o.word == word) == -1
   }
 
-  public async getItems(): Promise<ReadonlyArray<ExtendedCompleteItem>> {
+  public async getItems(): Promise<ReadonlyArray<DurationCompleteItem>> {
     let visible = await this.pumvisible()
     if (!visible) return []
     return this.completion.activeItems.slice()

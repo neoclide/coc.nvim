@@ -1,5 +1,5 @@
 'use strict'
-import { ExtendedCompleteItem } from '../types'
+import { DurationCompleteItem } from '../types'
 const logger = require('../util/logger')('completion-mru')
 
 export type Selection = 'first' | 'recentlyUsed' | 'recentlyUsedByPrefix'
@@ -11,7 +11,7 @@ export default class MruLoader {
   constructor() {
   }
 
-  public getScore(input: string, item: ExtendedCompleteItem, selection: Selection): number {
+  public getScore(input: string, item: DurationCompleteItem, selection: Selection): number {
     let key = toItemKey(item)
     if (input.length == 0) return this.itemsNoPrefex.get(key) ?? -1
     if (selection === 'recentlyUsedByPrefix') key = `${input}|${key}`
@@ -19,7 +19,7 @@ export default class MruLoader {
     return map.get(key) ?? -1
   }
 
-  public add(prefix: string, item: ExtendedCompleteItem): void {
+  public add(prefix: string, item: DurationCompleteItem): void {
     if (['around', 'buffer', 'word'].includes(item.source)) return
     let key = toItemKey(item)
     if (!item.word.toLowerCase().startsWith(prefix.toLowerCase())) {
@@ -32,7 +32,7 @@ export default class MruLoader {
   }
 }
 
-function toItemKey(item: ExtendedCompleteItem): string {
+function toItemKey(item: DurationCompleteItem): string {
   let label = item.filterText
   let source = item.source
   let kind = item.kind ?? ''

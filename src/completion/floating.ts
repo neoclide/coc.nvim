@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { parseDocuments } from '../markdown'
 import sources from '../sources'
-import { CompleteOption, Documentation, ExtendedCompleteItem, FloatConfig } from '../types'
+import { CompleteOption, Documentation, DurationCompleteItem, FloatConfig } from '../types'
 import { isCancellationError } from '../util/errors'
 import workspace from '../workspace'
 const logger = require('../util/logger')('completion-floating')
@@ -14,7 +14,7 @@ export default class Floating {
     this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
   }
 
-  public async resolveItem(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
+  public async resolveItem(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     await this.doCompleteResolve(item, opt, token)
     if (token.isCancellationRequested) return
     let docs = item.documentation ?? []
@@ -48,7 +48,7 @@ export default class Floating {
     }
   }
 
-  public async doCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
+  public async doCompleteResolve(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     let source = sources.getSource(item.source)
     if (!source || typeof source.onCompleteResolve !== 'function') return
     try {

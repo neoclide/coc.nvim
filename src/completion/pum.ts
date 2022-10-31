@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CompletionItemKind } from 'vscode-languageserver-protocol'
 import { matchSpansReverse } from '../model/fuzzyMatch'
 import sources from '../sources'
-import { CompleteOption, Env, ExtendedCompleteItem, FloatConfig, HighlightItem } from '../types'
+import { CompleteOption, DurationCompleteItem, Env, FloatConfig, HighlightItem } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
@@ -112,7 +112,7 @@ export default class PopupMenu {
     return workspace.getDisplayWidth(text, cache)
   }
 
-  public show(items: ExtendedCompleteItem[], search: string, option: CompleteOption): void {
+  public show(items: DurationCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
     let { noselect, enablePreselect, selection, virtualText, kindMap, defaultKindText } = this.config
     let followWord = option.followWord
@@ -184,13 +184,13 @@ export default class PopupMenu {
     this.nvim.redrawVim()
   }
 
-  private getInsertWord(item: ExtendedCompleteItem, search: string, followPart: string): string {
+  private getInsertWord(item: DurationCompleteItem, search: string, followPart: string): string {
     let { fixInsertedWord, invalidInsertCharacters } = this.config
     let word = item.isSnippet ? getValidWord(item.word, invalidInsertCharacters) : item.word
     return fixInsertedWord ? fixFollow(word, search, followPart) : word
   }
 
-  private getLabel(item: ExtendedCompleteItem): LabelWithDetail {
+  private getLabel(item: DurationCompleteItem): LabelWithDetail {
     let { labelDetails, detail } = item
     let { snippetIndicator, labelMaxLength, detailField, detailMaxLength } = this.config
     let label = item.abbr!
@@ -236,7 +236,7 @@ export default class PopupMenu {
     }
   }
 
-  private buildItem(input: string, lowInput: string, item: ExtendedCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): [number, string] {
+  private buildItem(input: string, lowInput: string, item: DurationCompleteItem, label: LabelWithDetail, hls: HighlightItem[], index: number, config: BuildConfig): [number, string] {
     // abbr menu kind shortcut
     let { labelMaxLength, formatItems, kindMap, defaultKindText } = this.config
     let text = config.border ? '' : ' '

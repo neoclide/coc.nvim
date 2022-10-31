@@ -1,13 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import unidecode from 'unidecode'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType } from '../types'
+import { CompleteOption, DurationCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { byteSlice, characterIndex } from '../util/string'
-import { FuzzyScorer, fuzzyScore, fuzzyScoreGracefulAggressive } from './filter'
+import { fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from './filter'
+import { ConvertOption, toDurationCompleteItem } from './util'
 import { WordDistance } from './wordDistance'
 const logger = require('../util/logger')('completion-complete')
 const MAX_DISTANCE = 2 << 20
@@ -34,11 +34,17 @@ export interface CompleteConfig {
   ignoreRegexps: ReadonlyArray<string>
 }
 
+export interface CompleteResultToFilter {
+  items: DurationCompleteItem[]
+  isIncomplete?: boolean
+  startcol?: number
+}
+
 export type Callback = () => void
 
 export default class Complete {
   // identify this complete
-  private results: Map<string, CompleteResult> = new Map()
+  private results: Map<string, CompleteResultToFilter> = new Map()
   private _input = ''
   private _completing = false
   private tokenSource: CancellationTokenSource
@@ -94,14 +100,7 @@ export default class Complete {
   }
 
   public get isEmpty(): boolean {
-    let empty = true
-    for (let res of this.results.values()) {
-      if (res.items.length > 0) {
-        empty = false
-        break
-      }
-    }
-    return empty
+    return this.results.size === 0
   }
 
   public getIncompleteSources(): string[] {
@@ -135,11 +134,9 @@ export default class Complete {
         return true
       }
     }
-    if (!isFalsyOrEmpty(variables.blacklist)) {
-      if (variables.blacklist.includes(this.option.input)) {
-        logger.warn('suggest cancelled by b:coc_suggest_blacklist')
-        return true
-      }
+    if (!isFalsyOrEmpty(variables.blacklist) && variables.blacklist.includes(this.option.input)) {
+      logger.warn('suggest cancelled by b:coc_suggest_blacklist')
+      return true
     }
     await wait(Math.min(this.config.triggerCompletionWait ?? 0, 50))
     if (token.isCancellationRequested) return
@@ -149,6 +146,7 @@ export default class Complete {
   private async completeSources(sources: ReadonlyArray<ISource>, isFilter: boolean): Promise<void> {
     let { timeout, localityBonus } = this.config
     let { results, tokenSource, } = this
+    timeout = timeout ?? 500
     let col = this.option.col
     let names = sources.map(s => s.name)
     let total = names.length
@@ -164,7 +162,7 @@ export default class Complete {
           this.nvim.setVar(`coc_timeout_sources`, names, true)
         }
         resolve()
-      }, typeof timeout === 'number' ? timeout : 500)
+      }, timeout)
     })
     const finished: string[] = []
     let promises = [
@@ -210,15 +208,9 @@ export default class Complete {
           let len = result ? result.items.length : 0
           logger.debug(`Source "${name}" finished with ${len} items ${Date.now() - start}ms`)
           if (len > 0) {
-            result.items.forEach(item => {
-              let filterText = item.filterText ?? item.word
-              item.word = item.word ?? ''
-              item.abbr = item.abbr ?? item.word
-              item.source = name
-              item.priority = priority
-              item.filterText = asciiMatch ? unidecode(filterText) : filterText
-            })
-            this.setResult(name, result)
+            const convertOption: ConvertOption = { asciiMatch, itemDefaults: result.itemDefaults, prefix: result.prefix }
+            const items = result.items.map((item, index: number) => toDurationCompleteItem(item, index, name, priority, convertOption, opt))
+            this.setResult(name, { items, isIncomplete: result.isIncomplete, startcol: result.startcol })
           } else {
             this.results.delete(name)
           }
@@ -233,7 +225,7 @@ export default class Complete {
     }
   }
 
-  public async completeInComplete(resumeInput: string, names: string[]): Promise<ExtendedCompleteItem[] | undefined> {
+  public async completeInComplete(resumeInput: string, names: string[]): Promise<DurationCompleteItem[] | undefined> {
     let { document } = this
     this.cancel()
     this.tokenSource = new CancellationTokenSource()
@@ -257,7 +249,7 @@ export default class Complete {
     return this.filterItems(resumeInput)
   }
 
-  public filterItems(input: string): ExtendedCompleteItem[] | undefined {
+  public filterItems(input: string): DurationCompleteItem[] | undefined {
     let { results, names, inputOffset, option } = this
     if (inputOffset > 0) input = byteSlice(input, inputOffset)
     this._input = input
@@ -266,7 +258,7 @@ export default class Complete {
     let anchor = Position.create(option.linenr - 1, characterIndex(option.line, option.col))
     let emptyInput = len == 0
     let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
-    let arr: ExtendedCompleteItem[] = []
+    let arr: DurationCompleteItem[] = []
     let words: Set<string> = new Set()
     const lowInput = input.toLowerCase()
     const scoreFn: FuzzyScorer = (!this.config.filterGraceful || this.totalLength > 2000) ? fuzzyScore : fuzzyScoreGracefulAggressive
@@ -294,7 +286,7 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (a.score !== b.score) return b.score - a.score
+      if (!emptyInput && a.score !== b.score) return b.score - a.score
       if (a.priority !== b.priority) return b.priority - a.priority
       if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1
       if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
@@ -313,7 +305,7 @@ export default class Complete {
     return this.limitCompleteItems(arr.slice(0, maxItemCount))
   }
 
-  public async filterResults(input: string): Promise<ExtendedCompleteItem[] | undefined> {
+  public async filterResults(input: string): Promise<DurationCompleteItem[] | undefined> {
     clearTimeout(this.timer)
     if (input !== this.option.input) {
       let names = this.getIncompleteSources()
@@ -324,7 +316,7 @@ export default class Complete {
     return this.filterItems(input)
   }
 
-  private limitCompleteItems(items: ExtendedCompleteItem[]): ExtendedCompleteItem[] {
+  private limitCompleteItems(items: DurationCompleteItem[]): DurationCompleteItem[] {
     let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config
     if (!highPrioritySourceLimit && !lowPrioritySourceLimit) return items
     let counts: Map<string, number> = new Map()
@@ -342,7 +334,7 @@ export default class Complete {
   }
 
   // handle startcol change
-  private setResult(name: string, result: CompleteResult): void {
+  private setResult(name: string, result: CompleteResultToFilter): void {
     let { results } = this
     let { line, colnr, col } = this.option
     if (typeof result.startcol === 'number' && result.startcol != col) {
@@ -367,7 +359,5 @@ export default class Complete {
   public dispose(): void {
     this.cancel()
     this._onDidRefresh.dispose()
-    this.sources = []
-    this.results.clear()
   }
 }

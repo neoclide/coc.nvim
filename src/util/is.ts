@@ -1,5 +1,5 @@
 'use strict'
-import { CompletionList, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
+import { CompletionItem, CompletionList, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
 import { URL } from 'url'
 
 /* eslint-disable id-blacklist */
@@ -19,6 +19,10 @@ export function isMarkdown(content: MarkupContent | string | undefined): boolean
     return true
   }
   return false
+}
+
+export function isCompletionItem(obj: any): obj is CompletionItem {
+  return obj && typeof obj.label === 'string'
 }
 
 export function isCompletionList(obj: any): obj is CompletionList {

@@ -148,6 +148,13 @@ export function indexOf(str: string, ch: string, count = 1): number {
   return -1
 }
 
+export function includeLineBreak(word: string): boolean {
+  for (let i = 0; i < word.length; i++) {
+    if (word.charCodeAt(i) === 10) return true
+  }
+  return false
+}
+
 export function characterIndex(content: string, byteIndex: number): number {
   if (byteIndex == 0) return 0
   let characterIndex = 0

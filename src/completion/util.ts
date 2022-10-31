@@ -1,14 +1,26 @@
 'use strict'
-import { CompletionItemKind } from 'vscode-languageserver-types'
+import unidecode from 'unidecode'
+import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-protocol'
 import { InsertChange } from '../events'
 import Document from '../model/document'
+import { SnippetParser } from '../snippets/parser'
 import sources from '../sources'
-import { CompleteDoneItem, CompleteOption, ExtendedCompleteItem, ISource } from '../types'
-import { toArray } from '../util/array'
-import { byteIndex, byteSlice } from '../util/string'
+import { CompleteDoneItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from '../types'
+import { isFalsyOrEmpty, toArray } from '../util/array'
+import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { isCompletionItem } from '../util/is'
+import { toObject } from '../util/object'
+import { byteIndex, byteSlice, characterIndex, includeLineBreak, toText } from '../util/string'
 const logger = require('../util/logger')('completion-util')
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
+type OptionForWord = Pick<Readonly<CompleteOption>, 'line' | 'col' | 'position'>
+
+export interface ConvertOption {
+  itemDefaults?: ItemDefaults
+  asciiMatch?: boolean
+  prefix?: string
+}
 
 export function getKindText(kind: string | CompletionItemKind, kindMap: Map<CompletionItemKind, string>, defaultKindText: string): string {
   return typeof kind === 'number' ? kindMap.get(kind) ?? defaultKindText : kind
@@ -106,7 +118,7 @@ export function indentChanged(event: { word: string } | undefined, cursor: [numb
   return false
 }
 
-export function toCompleteDoneItem(item: ExtendedCompleteItem | undefined): CompleteDoneItem | {} {
+export function toCompleteDoneItem(item: DurationCompleteItem | undefined): CompleteDoneItem | {} {
   if (!item) return {}
   return {
     word: item.word,
@@ -182,10 +194,115 @@ export function getValidWord(text: string, invalidChars: string[], start = 2): s
   return text
 }
 
-export function highlightOffert(pre: number, item: ExtendedCompleteItem): number {
+export function highlightOffert<T extends { filterText: string, abbr: string }>(pre: number, item: T): number {
   let { filterText, abbr } = item
   let idx = abbr.indexOf(filterText)
   if (idx == -1) return -1
   let n = idx == 0 ? 0 : byteIndex(abbr, idx)
   return pre + n
+}
+
+export function emptLabelDetails(labelDetails: CompletionItemLabelDetails): boolean {
+  if (!labelDetails) return true
+  return !labelDetails.detail && !labelDetails.description
+}
+
+export function getWord(item: CompletionItem, isSnippet: boolean, opt: OptionForWord, itemDefaults: ItemDefaults): string {
+  let { label, data, insertText, textEdit } = item
+  if (data && typeof data.word === 'string') return data.word
+  let newText: string = insertText ?? label
+  let range: Range | undefined
+  if (textEdit) {
+    range = InsertReplaceEdit.is(textEdit) ? textEdit.insert : textEdit.range
+    newText = textEdit.newText
+  } else if (itemDefaults.editRange) {
+    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.insert
+  }
+  if (range && range.start.line == range.end.line) {
+    let { line, col, position } = opt
+    let character = characterIndex(line, col)
+    if (range.start.character < character) {
+      let start = line.slice(range.start.character, character)
+      if (start.length && newText.startsWith(start)) {
+        newText = newText.slice(start.length)
+      }
+    } else if (range.start.character > character) {
+      newText = line.slice(character, range.start.character) + newText
+    }
+    character = position.character
+    if (range.end.character > character) {
+      let end = line.slice(character, range.end.character)
+      if (newText.endsWith(end)) {
+        newText = newText.slice(0, - end.length)
+      }
+    }
+  }
+  let word = isSnippet ? (new SnippetParser()).text(newText) : newText
+  return includeLineBreak(word) ? word.replace(/\n.*$/s, '') : word
+}
+
+export function convertCompletionItem(item: CompletionItem, index: number, source: string, priority: number, option: ConvertOption, opt: OptionForWord): DurationCompleteItem {
+  const label = typeof item.label === 'string' ? item.label.trim() : toText(item.insertText)
+  const itemDefaults = toObject(option.itemDefaults) as ItemDefaults
+  let isSnippet = (item.insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet
+  if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
+  let obj: DurationCompleteItem = {
+    word: getWord(item, isSnippet, opt, itemDefaults),
+    abbr: label,
+    kind: item.kind,
+    detail: item.detail,
+    sortText: item.sortText,
+    filterText: item.filterText ?? label,
+    preselect: item.preselect === true,
+    deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
+    isSnippet,
+    index,
+    source,
+    priority,
+    dup: item.data?.dup == 0 ? 0 : 1
+  }
+  if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails
+  let { prefix } = option
+  if (prefix) {
+    if (!obj.filterText.startsWith(prefix)) {
+      if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
+        obj.filterText = item.textEdit.newText.replace(/\r?\n/g, '')
+      }
+    }
+    if (!item.textEdit && !obj.word.startsWith(prefix)) {
+      // fix possible wrong word
+      obj.word = `${prefix}${obj.word}`
+    }
+  }
+  if (typeof item['score'] === 'number' && !obj.sortText) {
+    obj.sortText = String.fromCodePoint(2 << 20 - Math.round(item['score']))
+  }
+  if (item.data?.optional && !obj.abbr.endsWith('?')) obj.abbr = obj.abbr + '?'
+  // if (option.asciiMatch) obj.filterText = unidecode(obj.filterText)
+  return obj
+}
+
+export function toDurationCompleteItem(item: ExtendedCompleteItem | CompletionItem, index: number, source: string, priority: number, option: ConvertOption, opt: OptionForWord): DurationCompleteItem {
+  if (isCompletionItem(item)) return convertCompletionItem(item, index, source, priority, option, opt)
+  const word = toText(item.word)
+  const filterText = item.filterText ?? word
+  return {
+    word,
+    abbr: item.abbr ?? word,
+    filterText: option.asciiMatch ? unidecode(filterText) : filterText,
+    source,
+    priority,
+    dup: item.dup,
+    index,
+    menu: item.menu,
+    kind: item.kind,
+    info: item.info,
+    isSnippet: !!item.isSnippet,
+    preselect: item.preselect,
+    sortText: item.sortText,
+    documentation: item.documentation,
+    deprecated: item.deprecated,
+    detail: item.detail,
+    labelDetails: item.labelDetails
+  }
 }

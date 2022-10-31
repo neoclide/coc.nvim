@@ -5,7 +5,7 @@ import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteOption, ExtendedCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
+import { CompleteOption, DurationCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { byteLength, byteSlice, characterIndex } from '../util/string'
@@ -39,7 +39,8 @@ export class Completion implements Disposable {
   private disposables: Disposable[] = []
   private complete: Complete | null = null
   private resolveTokenSource: CancellationTokenSource | undefined
-  public activeItems: ReadonlyArray<ExtendedCompleteItem> = []
+  // Ordered items shown in the pum
+  public activeItems: ReadonlyArray<DurationCompleteItem> = []
 
   public init(): void {
     this.nvim = workspace.nvim
@@ -115,7 +116,7 @@ export class Completion implements Disposable {
     return workspace.getDocument(this.option.bufnr)
   }
 
-  public get selectedItem(): ExtendedCompleteItem | undefined {
+  public get selectedItem(): DurationCompleteItem | undefined {
     if (!this.popupEvent) return undefined
     return this.activeItems[this.popupEvent.index]
   }
@@ -346,7 +347,7 @@ export class Completion implements Disposable {
     }
   }
 
-  private async confirmCompletion(item: ExtendedCompleteItem, option: CompleteOption): Promise<void> {
+  private async confirmCompletion(item: DurationCompleteItem, option: CompleteOption): Promise<void> {
     let token = this.createResolveToken()
     await this.floating.doCompleteResolve(item, option, token)
     // clear the timeout
@@ -354,7 +355,7 @@ export class Completion implements Disposable {
     await this.doCompleteDone(item, option)
   }
 
-  public async doCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
+  public async doCompleteDone(item: DurationCompleteItem, opt: CompleteOption): Promise<void> {
     let source = sources.getSource(item.source)
     if (typeof source?.onCompleteDone !== 'function') return
     await Promise.resolve(source.onCompleteDone(item, opt, this.config.snippetsSupport))

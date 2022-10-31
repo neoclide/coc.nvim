@@ -5,7 +5,8 @@ import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
-import { getRange, emptLabelDetails, getStartColumn, ItemDefaults } from '../../sources/source-language'
+import { getRange, getDetail, getStartColumn } from '../../sources/source-language'
+import { ItemDefaults } from '../../types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -26,13 +27,18 @@ afterEach(async () => {
 })
 
 describe('LanguageSource util', () => {
-  describe('emptLabelDetails', () => {
-    it('should check emptLabelDetails', async () => {
-      expect(emptLabelDetails(null)).toBe(true)
-      expect(emptLabelDetails({})).toBe(true)
-      expect(emptLabelDetails({ detail: '' })).toBe(true)
-      expect(emptLabelDetails({ detail: 'detail' })).toBe(false)
-      expect(emptLabelDetails({ description: 'detail' })).toBe(false)
+  describe('getDetail()', () => {
+    it('should get detail doc', () => {
+      let item: CompletionItem = { label: '', detail: 'detail', labelDetails: {} }
+      expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
+      item = { label: '', detail: 'detail', labelDetails: { detail: 'detail', description: 'desc' } }
+      expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail desc' })
+      item = { label: '', detail: 'detail', labelDetails: { description: 'desc' } }
+      expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: ' desc' })
+      item = { label: '', detail: 'detail', labelDetails: { detail: 'detail' } }
+      expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
+      item = { label: '', detail: 'detail()' }
+      expect(getDetail(item, 'vim')).toEqual({ filetype: 'vim', content: 'detail()' })
     })
   })
 
