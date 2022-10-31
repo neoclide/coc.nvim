@@ -457,26 +457,34 @@
       "description": "Set to false to disable float/popup support for actions menu.",
       "default": true
     },
+    "coc.preferences.formatOnSave": {
+      "type": "boolean",
+      "description": "Set to true to enable formatting on save.",
+      "scope": "language-overridable",
+      "default": false
+    },
     "coc.preferences.formatOnSaveFiletypes": {
-      "type": "array",
+      "type": ["null", "array"],
       "scope": "resource",
-      "default": [],
+      "default": null,
       "description": "Filetypes that should run format on save.",
+      "deprecationMessage": "Use coc.preferences.formatOnSave as language override configuration instead, see :h coc-configuration-scope",
       "items": {
         "type": "string"
       }
     },
     "coc.preferences.formatOnType": {
       "type": "boolean",
+      "description": "Set to true to enable formatting on typing.",
       "scope": "language-overridable",
-      "description": "Set to true to enable formatting on typing",
       "default": false
     },
     "coc.preferences.formatOnTypeFiletypes": {
-      "type": "array",
-      "default": [],
+      "type": ["null", "array"],
+      "default": null,
       "scope": "resource",
-      "description": "Filetypes that should run format on typing. Only take effect when `coc.preferences.formatOnType` set `true`",
+      "description": "Filetypes that should run format on typing, only works when `coc.preferences.formatOnType` is `true`",
+      "deprecationMessage": "Use coc.preferences.formatOnType as language override configuration instead, see :h coc-configuration-scope",
       "items": {
         "type": "string"
       }
@@ -1158,7 +1166,7 @@
       "type": ["array", "null"],
       "scope": "application",
       "description": "Filetypes that enable inlayHint, all filetypes are enabled by default",
-      "deprecationMessage": "Use inlayHint.enable with language scope instead",
+      "deprecationMessage": "Use inlayHint.enable with language scope instead, see :h coc-configuration-scope",
       "default": null,
       "items": {
         "type": "string"
@@ -1630,7 +1638,7 @@
       "type": ["array", "null"],
       "scope": "resource",
       "description": "Filetypes that enable semantic tokens highlighting or [\"*\"] for any filetype",
-      "deprecationMessage": "Use semanticTokens.enable with language scope instead",
+      "deprecationMessage": "Use semanticTokens.enable configuration with language scope instead, see :h coc-configuration-scope",
       "default": null,
       "items": {
         "type": "string"

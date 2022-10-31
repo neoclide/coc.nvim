@@ -1535,24 +1535,17 @@ Preferences~
 
 	Scope: `application`, default: `true`
 
-"coc.preferences.formatOnSaveFiletypes"			*coc-preferences-formatOnSaveFiletypes*
+"coc.preferences.formatOnSave"			*coc-preferences-formatOnSave*
 
-	Filetypes that should run format on save.
+	Set to true to enable formatting on save.
 
-	Scope: `resource`, default: `[]`
+	Scope: `language-overridable`, default: `false`
 
 "coc.preferences.formatOnType"				*coc-preferences-formatOnType*
 
 	Set to true to enable formatting on typing
 
 	Scope: `language-overridable`, default: `false`
-
-"coc.preferences.formatOnTypeFiletypes"			*coc-preferences-formatOnTypeFiletypes*
-
-	Filetypes that should run format on typing. Only take effect when `coc.
-	preferences.formatOnType` set `true`
-
-	Scope: `resource`, default: `[]`
 
 "coc.preferences.jumpCommand"				*coc-preferences-jumpCommand*
 
