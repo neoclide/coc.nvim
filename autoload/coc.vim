@@ -6,8 +6,9 @@ let g:coc_selected_text = ''
 let g:coc_vim_commands = []
 let s:watched_keys = []
 let s:is_vim = !has('nvim')
-let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
-let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
+let s:utf = has('nvim') || &encoding =~# '^utf'
+let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') && s:utf ? "\u274c " : 'E ')
+let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') && s:utf ? "\u26a0\ufe0f " : 'W ')
 let s:select_api = exists('*nvim_select_popupmenu_item')
 let s:callbacks = {}
 let s:hide_pum = has('nvim-0.6.1') || has('patch-8.2.3389')
@@ -145,6 +146,6 @@ function! coc#refresh() abort
 endfunction
 
 function! coc#_select_confirm() abort
-  call timer_start(10, { -> coc#pum#select_confirm()})
+  call timer_start(1, { -> coc#pum#select_confirm()})
   return s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
 endfunction
