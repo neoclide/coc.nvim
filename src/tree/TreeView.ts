@@ -3,12 +3,13 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, MarkupKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import events from '../events'
+import { toSpans } from '../model/fuzzyMatch'
 import { IConfigurationChangeEvent, Documentation, FloatFactory, HighlightItem, LocalMode } from '../types'
 import { disposeAll } from '../util'
-import { groupPositions, hasMatch, positions, score } from '../util/fzy'
+import { fuzzyScoreGracefulAggressive } from '../util/filter'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
-import { byteLength, byteSlice } from '../util/string'
+import { byteLength, byteSlice, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Filter, { sessionKey } from './filter'
@@ -330,24 +331,31 @@ export default class BasicTreeView<T> implements TreeView<T> {
         await addNodes(nodes)
         this.itemsToFilter = itemsToFilter
       }
+      let lowInput = text.toLowerCase()
+      let emptyInput = text.length === 0
       for (let n of this.itemsToFilter) {
         let item = await this.getTreeItem(n)
         let label = TreeItemLabel.is(item.label) ? item.label.label : item.label
-        if (!text || hasMatch(text, label)) {
-          let idxs = text ? positions(text, label) : []
-          item.collapsibleState = TreeItemCollapsibleState.None
-          item.label = { label, highlights: text ? groupPositions(idxs) : [] }
-          let { line, highlights } = this.getRenderedLine(item, index, 0)
-          items.push({
-            level: 0,
-            node: n,
-            line,
-            index,
-            score: text ? score(text, label) : 0,
-            highlights
-          })
-          index += 1
+        let score = 0
+        if (!emptyInput) {
+          let res = fuzzyScoreGracefulAggressive(text, lowInput, 0, label, label.toLowerCase(), 0, { boostFullMatch: true, firstMatchCanBeWeak: true })
+          if (!res) continue
+          score = res[0]
+          item.label = { label, highlights: toSpans(label, res) }
+        } else {
+          item.label = { label, highlights: [] }
         }
+        item.collapsibleState = TreeItemCollapsibleState.None
+        let { line, highlights } = this.getRenderedLine(item, index, 0)
+        items.push({
+          level: 0,
+          node: n,
+          line,
+          index,
+          score,
+          highlights
+        })
+        index += 1
       }
       items.sort((a, b) => {
         if (a.score != b.score) return b.score - a.score
@@ -443,7 +451,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private async onDataChange(node: T | undefined | null | void): Promise<void> {
     if (this.filter?.activated) {
       this.itemsToFilter = undefined
-      await this.doFilter(this.filterText)
+      await this.doFilter(toText(this.filterText))
       return
     }
     this.clearSelection()

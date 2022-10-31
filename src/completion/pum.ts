@@ -6,7 +6,7 @@ import { CompleteOption, DurationCompleteItem, Env, FloatConfig, HighlightItem }
 import { isFalsyOrEmpty } from '../util/array'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
-import { anyScore } from './filter'
+import { anyScore } from '../util/filter'
 import MruLoader, { Selection } from './mru'
 import { getKindHighlight, getKindText, getValidWord, highlightOffert } from './util'
 const logger = require('../util/logger')('completion-pum')

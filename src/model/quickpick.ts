@@ -5,12 +5,13 @@ import events from '../events'
 import { HighlightItem, QuickPickItem } from '../types'
 import { disposeAll } from '../util'
 import { toArray } from '../util/array'
-import { hasMatch, positions } from '../util/fzy'
-import { byteIndex, byteLength } from '../util/string'
+import { anyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
+import { byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
-import { StrWidth } from './strwidth'
+import { toSpans } from './fuzzyMatch'
 import InputBox from './input'
 import Popup from './popup'
+import { StrWidth } from './strwidth'
 const logger = require('../util/logger')('model-quickpick')
 
 export interface QuickPickConfig<T extends QuickPickItem> {
@@ -19,6 +20,14 @@ export interface QuickPickConfig<T extends QuickPickItem> {
   value?: string
   canSelectMany?: boolean
   maxHeight?: number
+}
+
+interface FilteredLine {
+  line: string
+  score: number
+  index: number
+  spans: [number, number][]
+  descriptionSpan?: [number, number]
 }
 
 /**
@@ -60,6 +69,7 @@ export default class QuickPick<T extends QuickPickItem> {
       set: (list: T[]) => {
         this._changed = true
         this.filteredItems = list
+        this.selectedItems = list.filter(o => o.picked)
         this.showFilteredItems()
       },
       get: () => {
@@ -187,80 +197,77 @@ export default class QuickPick<T extends QuickPickItem> {
   }
 
   /**
-   * Filter items with input
+   * Filter items, does highlight only when loose is true
    */
-  public filterItems(input: string): void {
-    let { items, win, selectedItems } = this
-    if (!win) return
-    let { canSelectMany } = this.config
-    let lines: string[] = []
-    let highlights: HighlightItem[] = []
-    let idx = 0
+  private _filter(items: ReadonlyArray<T>, input: string, loose = false): void {
+    let { selectedItems } = this
     let filteredItems: T[] = []
-    for (let item of items) {
+    let { canSelectMany } = this.config
+    let filtered: FilteredLine[] = []
+    let emptyInput = input.length === 0
+    let lowInput = input.toLowerCase()
+    const scoreFn: FuzzyScorer = loose ? anyScore : fuzzyScoreGracefulAggressive
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index]
       let filterText = this.toFilterText(item)
-      if (input.length > 0 && !hasMatch(input, filterText)) continue
+      let spans: [number, number][] = []
+      let score = 0
+      let descriptionSpan: [number, number] | undefined
+      if (!emptyInput) {
+        let wordPos = canSelectMany ? 4 : 0
+        let res = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), wordPos, { boostFullMatch: false, firstMatchCanBeWeak: true })
+        if (!res && !loose) continue
+        // keep the order for loose match
+        score = loose ? 0 : res[0]
+        if (res) spans = toSpans(filterText, res)
+      }
       let picked = selectedItems.includes(item)
       let line = canSelectMany ? `[${picked ? 'x' : ' '}] ${item.label}` : item.label
       if (item.description) {
         let start = byteLength(line)
         line = line + ` ${item.description}`
-        highlights.push({ hlGroup: 'Comment', lnum: idx, colStart: start, colEnd: byteLength(line) })
+        descriptionSpan = [start, start + 1 + byteLength(item.description)]
       }
-      let arr = positions(input, filterText)
-      arr.forEach(n => {
-        let colStart = byteIndex(filterText, n)
-        highlights.push({
-          hlGroup: 'CocSearch',
-          colStart,
-          colEnd: colStart + 1,
-          lnum: idx
-        })
-      })
-      filteredItems.push(item)
-      lines.push(line)
-      idx += 1
+      let lineItem: FilteredLine = { line, descriptionSpan, index, score, spans }
+      filtered.push(lineItem)
     }
-    this.filteredItems = filteredItems
+    let lines: string[] = []
+    let highlights: HighlightItem[] = []
+    filtered.sort((a, b) => {
+      if (a.score != b.score) return b.score - a.score
+      return a.index - b.index
+    })
+    const toHighlight = (lnum: number, span: [number, number], hlGroup: string) => {
+      return { lnum, colStart: span[0], colEnd: span[1], hlGroup }
+    }
+    filtered.forEach((item, index) => {
+      lines.push(item.line)
+      item.spans.forEach(span => {
+        highlights.push(toHighlight(index, span, 'CocSearch'))
+      })
+      if (item.descriptionSpan) {
+        highlights.push(toHighlight(index, item.descriptionSpan, 'Comment'))
+      }
+      filteredItems.push(items[item.index])
+    })
     this.win.linecount = lines.length
     this.nvim.call('coc#dialog#update_list', [this.win.winid, this.win.bufnr, lines, highlights], true)
     this.setCursor(0)
+    this.filteredItems = filteredItems
+  }
+  /**
+   * Filter items with input
+   */
+  public filterItems(input: string): void {
+    let { items, win } = this
+    if (!win) return
+    this._filter(items, input)
   }
 
   public showFilteredItems(): void {
     let { win, input, filteredItems } = this
     if (!win) return
-    let { canSelectMany } = this.config
-    let lines: string[] = []
-    let highlights: HighlightItem[] = []
-    let idx = 0
-    let selectedItems: T[] = []
-    for (let item of filteredItems) {
-      let filterText = this.toFilterText(item)
-      let line = canSelectMany ? `[${item.picked ? 'x' : ' '}] ${item.label}` : item.label
-      if (item.picked) selectedItems.push(item)
-      if (item.description) {
-        let start = byteLength(line)
-        line = line + ` ${item.description}`
-        highlights.push({ hlGroup: 'Comment', lnum: idx, colStart: start, colEnd: byteLength(line) })
-      }
-      let arr = positions(input.value, filterText)
-      arr.forEach(n => {
-        let colStart = byteIndex(filterText, n)
-        highlights.push({
-          hlGroup: 'CocSearch',
-          colStart,
-          colEnd: colStart + 1,
-          lnum: idx
-        })
-      })
-      lines.push(line)
-      idx += 1
-    }
-    this.selectedItems = selectedItems
-    this.win.linecount = lines.length
-    this.nvim.call('coc#dialog#update_list', [this.win.winid, this.win.bufnr, lines, highlights], true)
-    this.setCursor(0)
+    this._filter(filteredItems, input.value, true)
   }
 
   private onFinish(input: string | undefined): void {

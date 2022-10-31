@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { AnsiHighlight } from '../types'
+import { FuzzyScore } from '../util/filter'
 import { bytes } from '../util/string'
 
 export interface FuzzyWasi {
@@ -27,6 +28,18 @@ export async function initFuzzyWasm(): Promise<FuzzyWasi> {
   const buffer = fs.readFileSync(filePath)
   const res = await global.WebAssembly.instantiate(buffer, { env: {} })
   return res.instance.exports as FuzzyWasi
+}
+
+
+/**
+ * Convert FuzzyScore to highlight byte spans.
+ */
+export function toSpans(label: string, score:FuzzyScore): [number, number][]  {
+  let res: [number, number][] = []
+  for (let span of matchSpansReverse(label, score, 2)) {
+    res.push(span)
+  }
+  return res
 }
 
 /**

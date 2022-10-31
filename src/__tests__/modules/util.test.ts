@@ -19,7 +19,6 @@ import * as errors from '../../util/errors'
 import * as extension from '../../util/extensionRegistry'
 import * as factory from '../../util/factory'
 import * as fuzzy from '../../util/fuzzy'
-import * as fzy from '../../util/fzy'
 import * as Is from '../../util/is'
 import { Extensions, IJSONContributionRegistry } from '../../util/jsonRegistry'
 import * as lodash from '../../util/lodash'
@@ -964,29 +963,6 @@ describe('utility', () => {
     delied(10)
     await helper.wait(50)
     expect(times).toBe(1)
-  })
-})
-
-describe('score test', () => {
-
-  it('fzy#score', async () => {
-    let a = fzy.score("amuser", "app/models/user.rb")
-    let b = fzy.score("amuser", "app/models/customer.rb")
-    expect(a).toBeGreaterThan(b)
-    expect(fzy.score('', '')).toBe(-Infinity)
-    expect(fzy.score('a', 'x'.repeat(2048))).toBe(-Infinity)
-  })
-
-  it('fzy#positions', async () => {
-    let arr = fzy.positions("amuser", "app/models/user.rb")
-    expect(arr).toEqual([0, 4, 11, 12, 13, 14])
-    arr = fzy.positions("amuser", 'x'.repeat(1025))
-    expect(arr).toEqual([])
-  })
-
-  it('fzy#groupPositions', async () => {
-    let arr = fzy.groupPositions([1, 2, 3, 6, 7, 10])
-    expect(arr).toEqual([[1, 4], [6, 8], [10, 11]])
   })
 })
 

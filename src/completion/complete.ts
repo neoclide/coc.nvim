@@ -6,7 +6,7 @@ import { CompleteOption, DurationCompleteItem, ISource, SourceType } from '../ty
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { byteSlice, characterIndex } from '../util/string'
-import { fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from './filter'
+import { fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
 import { ConvertOption, toDurationCompleteItem } from './util'
 import { WordDistance } from './wordDistance'
 const logger = require('../util/logger')('completion-complete')

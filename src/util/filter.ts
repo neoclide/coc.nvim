@@ -1,5 +1,5 @@
-import { CharCode } from '../util/charCode'
-import { isEmojiImprecise } from '../util/string'
+import { CharCode } from './charCode'
+import { isEmojiImprecise } from './string'
 
 /**
  * An array representing a fuzzy match.
@@ -57,16 +57,6 @@ const _maxWordMatchPos = initArr(2 * _maxLen) // max word position for a certain
 const _diag = initTable() // the length of a contiguous diagonal match
 const _table = initTable()
 const _arrows = initTable() as Arrow[][]
-
-// export function fuzzyMatchScoreWithPositionsGraceful(word: string, lowWord: string, pattern: string, lowPattern: string): [number, ReadonlyArray<number>] | undefined {
-//   let res = fuzzyScoreGracefulAggressive(pattern, lowPattern.toLowerCase(), 0, word, lowWord, 0)
-//   return res === undefined ? undefined : [res[0], res.slice(2).reverse()]
-// }
-//
-// export function fuzzyMatchScoreWithPositions(word: string, lowWord: string, pattern: string, lowPattern: string): [number, ReadonlyArray<number>] | undefined {
-//   let res = fuzzyScore(pattern, lowPattern.toLowerCase(), 0, word, lowWord, 0)
-//   return res === undefined ? undefined : [res[0], res.slice(2).reverse()]
-// }
 
 export function fuzzyScoreGracefulAggressive(pattern: string, lowPattern: string, patternPos: number, word: string, lowWord: string, wordPos: number, options?: FuzzyScoreOptions): FuzzyScore | undefined {
   return fuzzyScoreWithPermutations(pattern, lowPattern, patternPos, word, lowWord, wordPos, true, options)
@@ -261,10 +251,10 @@ export function fuzzyScore(pattern: string, patternLow: string, patternStart: nu
   return result
 }
 
-export function anyScore(pattern: string, lowPattern: string, patternPos: number, word: string, lowWord: string, wordPos: number): FuzzyScore {
+export function anyScore(pattern: string, lowPattern: string, patternPos: number, word: string, lowWord: string, wordPos: number, options: FuzzyScoreOptions): FuzzyScore {
   const max = Math.min(13, pattern.length)
   for (; patternPos < max; patternPos++) {
-    const result = fuzzyScore(pattern, lowPattern, patternPos, word, lowWord, wordPos, { firstMatchCanBeWeak: false, boostFullMatch: true })
+    const result = fuzzyScore(pattern, lowPattern, patternPos, word, lowWord, wordPos, options)
     if (result) {
       return result
     }

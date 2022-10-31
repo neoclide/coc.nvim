@@ -1037,15 +1037,11 @@ describe('TreeView', () => {
       updateData([
         ['ab'],
         ['e'],
-        ['fa']
+        ['fA']
       ])
-      await helper.wait(50)
-      await checkLines([
-        'test',
-        'a ',
-        '  ab',
-        '  fa',
-      ])
+      await helper.waitValue(async () => {
+        return await nvim.call('getline', [1, '$'])
+      }, ['test', 'a ', '  ab', '  fA',])
     })
 
     it('should change selected item by <up> and <down>', async () => {
@@ -1054,25 +1050,29 @@ describe('TreeView', () => {
       await helper.wait(50)
       updateData([
         ['ab'],
-        ['fa']
+        ['fA']
       ])
-      await helper.wait(50)
+      await helper.wait(10)
       await nvim.input('<down>')
-      await helper.wait(50)
-      let curr = treeView.selection[0]
-      expect(curr.label).toBe('fa')
+      await helper.waitValue(() => {
+        let curr = treeView.selection[0]
+        return curr.label
+      }, 'fA')
       await nvim.input('<down>')
-      await helper.wait(50)
-      curr = treeView.selection[0]
-      expect(curr.label).toBe('ab')
+      await helper.waitValue(() => {
+        let curr = treeView.selection[0]
+        return curr.label
+      }, 'ab')
       await nvim.input('<up>')
-      await helper.wait(50)
-      curr = treeView.selection[0]
-      expect(curr.label).toBe('fa')
+      await helper.waitValue(() => {
+        let curr = treeView.selection[0]
+        return curr.label
+      }, 'fA')
       await nvim.input('<up>')
-      await helper.wait(50)
-      curr = treeView.selection[0]
-      expect(curr.label).toBe('ab')
+      await helper.waitValue(() => {
+        let curr = treeView.selection[0]
+        return curr.label
+      }, 'ab')
     })
 
     it('should not throw with empty nodes', async () => {
