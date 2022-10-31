@@ -75,10 +75,9 @@ export default class Symbols {
 
   public async getDocumentSymbols(bufnr?: number): Promise<SymbolInfo[] | undefined> {
     if (!bufnr) {
-      let doc = await workspace.document
+      bufnr = await this.nvim.call('bufnr', ['%']) as number
+      let doc = workspace.getDocument(bufnr)
       if (!doc || !doc.attached) return undefined
-      await wait(1)
-      bufnr = doc.bufnr
     }
     let buf = this.buffers.getItem(bufnr)
     if (!buf) return
@@ -118,8 +117,7 @@ export default class Symbols {
   public async getCurrentFunctionSymbol(): Promise<string> {
     let bufnr = await this.nvim.call('bufnr', ['%']) as number
     let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return ''
-    if (!languages.hasProvider('documentSymbol', doc.textDocument)) return
+    if (!doc || !doc.attached || !languages.hasProvider('documentSymbol', doc.textDocument)) return
     let position = await window.getCursorPosition()
     return await this.getFunctionSymbol(bufnr, position)
   }

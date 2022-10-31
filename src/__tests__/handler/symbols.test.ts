@@ -151,6 +151,9 @@ describe('symbols handler', () => {
       expect(res.length).toBe(2)
       expect(res[0].text).toBe('root')
       expect(res[1].text).toBe('child')
+      await nvim.command('edit +setl\\ buftype=nofile b')
+      res = await symbols.getDocumentSymbols()
+      expect(res).toBeUndefined()
     })
   })
 
