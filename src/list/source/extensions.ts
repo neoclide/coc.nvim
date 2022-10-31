@@ -77,25 +77,6 @@ export default class ExtensionList extends BasicList {
       await extensions.manager.reloadExtension(id)
     }, { persist: true, reload: true })
 
-    this.addAction('fix', async item => {
-      let { root, isLocal } = item.data
-      let { npm } = extensions
-      if (isLocal) {
-        void window.showWarningMessage(`Can't fix for local extension.`)
-        return
-      }
-      if (!npm) return
-      let folder = path.join(root, 'node_modules')
-      fs.rmSync(folder, { recursive: true, force: true })
-      let terminal = await window.createTerminal({
-        cwd: root
-      })
-      let shown = await terminal.show(false)
-      if (!shown) return
-      workspace.nvim.command(`startinsert`, true)
-      terminal.sendText(`${npm} install --production --ignore-scripts --no-lockfile`, true)
-    })
-
     this.addMultipleAction('uninstall', async items => {
       let ids = []
       for (let item of items) {

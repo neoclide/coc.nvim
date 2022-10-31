@@ -7169,7 +7169,60 @@ declare module 'coc.nvim' {
     highlights: AnsiHighlight[]
   }
 
+  /**
+  * An array representing a fuzzy match.
+  *
+  * 0. the score
+  * 1. the offset at which matching started
+  * 2. `<match_pos_N>`
+  * 3. `<match_pos_1>`
+  * 4. `<match_pos_0>` etc
+  */
+  export type FuzzyScore = [score: number, wordStart: number, ...matches: number[]]
+
+  export interface FuzzyScoreOptions {
+    readonly boostFullMatch: boolean
+    /**
+     * Allows first match to be a weak match
+     */
+    readonly firstMatchCanBeWeak: boolean
+  }
+
+  /**
+   * Match kinds could be:
+   *
+   * - 'aggressive' with fixed match for permutations.
+   * - 'any' fast match with first 13 characters only.
+   * - 'normal' nothing special.
+   */
+  export type FuzzyKind = 'normal' | 'aggressive' | 'any'
+
+  export type ScoreFunction = (word: string, wordPos?: number) => FuzzyScore | undefined
+
   export interface FuzzyMatch {
+
+    /**
+     * Create 0 index byte spans from matched text and FuzzyScore.
+     * Mostly used for create {@link HighlightItem highlight items}.
+     *
+     * @param {string} text The matched text for count bytes.
+     * @param {FuzzyScore} score
+     * @returns {Iterable<[number, number]>}
+     */
+    matchScoreSpans(text: string, score: FuzzyScore): Iterable<[number, number]>
+
+    /**
+     *
+     * Create a score function
+     *
+     * @param {string} pattern The pattern to match.
+     * @param {number} patternPos Start character index of pattern.
+     * @param {FuzzyScoreOptions} options Optional option.
+     * @param {FuzzyKind} kind Use 'normal' when undefined.
+     * @returns {ScoreFunction}
+     */
+    createScoreFunction(pattern: string, patternPos: number, options?: FuzzyScoreOptions, kind?: FuzzyKind): ScoreFunction
+
     /**
      * Initialize match by set the match pattern and matchSeq.
      *

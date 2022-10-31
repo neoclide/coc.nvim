@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { AnsiHighlight } from '../types'
-import { FuzzyScore } from '../util/filter'
+import { anyScore, fuzzyScore, FuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScoreOptions, FuzzyScorer } from '../util/filter'
 import { bytes } from '../util/string'
 
 export interface FuzzyWasi {
@@ -12,6 +12,10 @@ export interface FuzzyWasi {
     buffer: ArrayBuffer
   }
 }
+
+export type FuzzyKind = 'normal' | 'aggressive' | 'any'
+
+export type ScoreFunction = (word: string, wordPos?: number) => FuzzyScore | undefined
 
 export interface MatchResult {
   score: number
@@ -30,11 +34,10 @@ export async function initFuzzyWasm(): Promise<FuzzyWasi> {
   return res.instance.exports as FuzzyWasi
 }
 
-
 /**
  * Convert FuzzyScore to highlight byte spans.
  */
-export function toSpans(label: string, score:FuzzyScore): [number, number][]  {
+export function toSpans(label: string, score: FuzzyScore): [number, number][] {
   let res: [number, number][] = []
   for (let span of matchSpansReverse(label, score, 2)) {
     res.push(span)
@@ -130,6 +133,31 @@ export class FuzzyMatch {
    */
   public matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]> {
     return matchSpans(text, positions, max)
+  }
+
+  /**
+   * Create 0 index byte spans from matched text and FuzzyScore for highlights
+   */
+  public matchScoreSpans(text: string, score: FuzzyScore): Iterable<[number, number]> {
+    return matchSpansReverse(text, score, 2)
+  }
+
+  /**
+   * Create a score function
+   */
+  public createScoreFunction(pattern: string, patternPos: number, options?: FuzzyScoreOptions, kind?: FuzzyKind): ScoreFunction {
+    let lowPattern = pattern.toLowerCase()
+    let fn: FuzzyScorer
+    if (kind === 'any') {
+      fn = anyScore
+    } else if (kind === 'aggressive') {
+      fn = fuzzyScoreGracefulAggressive
+    } else {
+      fn = fuzzyScore
+    }
+    return (word: string, wordPos = 0): FuzzyScore | undefined => {
+      return fn(pattern, lowPattern, patternPos, word, word.toLowerCase(), wordPos, options)
+    }
   }
 
   public getSizes(): number[] {

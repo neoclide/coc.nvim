@@ -46,6 +46,30 @@ describe('FuzzyMatch', () => {
     verify('foobar', [5, 4, 3, 2, 1], [[1, 6]])
     verify('foobar', [5], [], 0, 2)
     verify('foobar', [5, 1], [[1, 2]], 0, 2)
+    verify('f', [0, 1], [], 3)
+    verify('foo', [0, 1, 0, 0, 0], [[0, 1]])
+  })
+
+  it('should createScoreFunction', async () => {
+    let f = new FuzzyMatch(api)
+    let fn = f.createScoreFunction('a', 0)
+    expect(fn).toBeDefined()
+    fn = f.createScoreFunction('a', 0, undefined, 'normal')
+    expect(fn).toBeDefined()
+    fn = f.createScoreFunction('a', 0, undefined, 'aggressive')
+    expect(fn).toBeDefined()
+    fn = f.createScoreFunction('a', 0, undefined, 'any')
+    expect(fn).toBeDefined()
+    let res = fn('asdf')
+    expect(res).toBeDefined()
+    expect(res[2]).toBe(0)
+    let spans: [number, number][] = []
+    for (let span of f.matchScoreSpans('asdf', res)) {
+      spans.push(span)
+    }
+    expect(spans).toEqual([[0, 1]])
+    res = fn('asdf')
+    expect(res).toBeDefined()
   })
 
   it('should throw when not set pattern', () => {
