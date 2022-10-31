@@ -363,7 +363,7 @@ Features require enabled by configuration:~
 - Code lens, |coc-code-lens|
 - Linked editing, |coc-linked-editing.|
 - Format on type, enabled by |coc-preferences-formatOnType|
-- Format on save, enabled by |coc-preferences-formatOnSaveFiletypes|.
+- Format on save, enabled by |coc-preferences-formatOnSave|.
 
 Features requested by user:~
 
@@ -875,7 +875,7 @@ Setup visual mode and operator key-mappings: >
 							*coc-format-onsave*
 Format on save:~
 
-Use configuration |coc-preferences-formatOnSaveFiletypes|.
+Use configuration |coc-preferences-formatOnSave|.
 
 Or create |BufWritePre| autocmd like: >
 

@@ -1,6 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
@@ -39,9 +40,8 @@ export default class FormatHandler {
       this.setConfiguration()
     }))
     handler.addDisposable(workspace.onWillSaveTextDocument(event => {
-      let { languageId, uri } = event.document
-      let filetypes = workspace.getConfiguration('coc.preferences', uri).get<string[]>('formatOnSaveFiletypes', [])
-      if (filetypes.includes(languageId) || filetypes.includes('*')) {
+      // the document could be not current one.
+      if (this.shouldFormatOnSave(event.document)) {
         let willSaveWaitUntil = async (): Promise<TextEdit[] | undefined> => {
           if (!languages.hasFormatProvider(event.document)) {
             logger.warn(`Format provider not found for ${event.document.uri}`)
@@ -82,6 +82,16 @@ export default class FormatHandler {
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
   }
 
+  public shouldFormatOnSave(doc:TextDocument):boolean {
+    let { languageId, uri } = doc
+    // the document could be not current one.
+    let config = workspace.getConfiguration('coc.preferences', {uri, languageId})
+    let filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
+    let formatOnSave = config.get<boolean>('formatOnSave', false)
+    if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(languageId)
+    return formatOnSave
+  }
+
   private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('coc.preferences')) {
       let doc = window.activeTextEditor?.document
@@ -94,7 +104,7 @@ export default class FormatHandler {
     }
   }
 
-  private shouldFormatOnType(filetype: string):boolean {
+  public shouldFormatOnType(filetype: string):boolean {
     const filetypes = this.preferences.formatOnTypeFiletypes
     return isFalsyOrEmpty(filetype) || filetypes.includes(filetype) || filetypes.includes('*')
   }

@@ -87,6 +87,14 @@ describe('format handler', () => {
       await nvim.command('silent w')
     })
 
+    it('should enable format on save', async () => {
+      helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', null)
+      helper.updateConfiguration('coc.preferences.formatOnSave', true)
+      let doc = await workspace.document
+      let res = format.shouldFormatOnSave(doc.textDocument)
+      expect(res).toBe(true)
+    })
+
     it('should invoke format on save', async () => {
       helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'])
       disposables.push(languages.registerDocumentFormatProvider(['text'], {

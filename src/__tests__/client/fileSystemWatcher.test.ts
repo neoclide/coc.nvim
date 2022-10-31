@@ -109,8 +109,9 @@ describe('FileSystemWatcherFeature', () => {
     await client.start()
     let uri = URI.file(__filename)
     watcher.fireCreate(uri)
-    await helper.wait(100)
-    expect(received.length).toBe(1)
+    await helper.waitValue(() => {
+      return received?.length
+    }, 1)
     await client.stop()
   })
 
@@ -124,9 +125,10 @@ describe('FileSystemWatcherFeature', () => {
     let state = feature.getState()
     expect((state as any).registrations).toBe(true)
     await client.sendNotification('unwatch')
-    await helper.wait(50)
-    state = feature.getState()
-    expect((state as any).registrations).toBe(false)
+    await helper.waitValue(() => {
+      let state = feature.getState()
+      return (state as any)?.registrations
+    }, false)
     await client.stop()
   })
 })
