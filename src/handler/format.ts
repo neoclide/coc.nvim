@@ -7,6 +7,7 @@ import languages from '../languages'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
 import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { isFalsyOrEmpty } from '../util/array'
 import { isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -22,7 +23,7 @@ const pairs: Map<string, string> = new Map([
 
 interface FormatPreferences {
   formatOnType: boolean
-  formatOnTypeFiletypes: string[]
+  formatOnTypeFiletypes: string[] | null
   bracketEnterImprove: boolean
 }
 
@@ -32,10 +33,10 @@ export default class FormatHandler {
     private nvim: Neovim,
     private handler: HandlerDelegate
   ) {
-    this.getConfiguration()
-    handler.addDisposable(workspace.onDidChangeConfiguration(this.getConfiguration, this))
+    this.setConfiguration()
+    handler.addDisposable(workspace.onDidChangeConfiguration(this.setConfiguration, this))
     handler.addDisposable(window.onDidChangeActiveTextEditor(() => {
-      this.getConfiguration()
+      this.setConfiguration()
     }))
     handler.addDisposable(workspace.onWillSaveTextDocument(event => {
       let { languageId, uri } = event.document
@@ -81,28 +82,28 @@ export default class FormatHandler {
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
   }
 
-  private getConfiguration(e?: IConfigurationChangeEvent): void {
+  private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('coc.preferences')) {
       let doc = window.activeTextEditor?.document
       let config = workspace.getConfiguration('coc.preferences', doc)
       this.preferences = {
         formatOnType: config.get<boolean>('formatOnType', false),
-        formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', []),
+        formatOnTypeFiletypes: config.get('formatOnTypeFiletypes', null),
         bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       }
     }
+  }
+
+  private shouldFormatOnType(filetype: string):boolean {
+    const filetypes = this.preferences.formatOnTypeFiletypes
+    return isFalsyOrEmpty(filetype) || filetypes.includes(filetype) || filetypes.includes('*')
   }
 
   private async tryFormatOnType(ch: string, bufnr: number, newLine = false): Promise<void> {
     if (!ch || isWord(ch) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached) return
-    const filetypes = this.preferences.formatOnTypeFiletypes
-    if (filetypes.length > 0 && !filetypes.includes(doc.filetype) && !filetypes.includes('*')) {
-      // Only check formatOnTypeFiletypes when set, avoid breaking change
-      return
-    }
+    if (!doc || !doc.attached || !this.shouldFormatOnType(doc.filetype)) return
     if (!languages.hasProvider('formatOnType', doc.textDocument)) {
       logger.warn(`Format on type provider not found for buffer: ${doc.uri}`)
       return
@@ -117,7 +118,7 @@ export default class FormatHandler {
       await doc.synchronize()
       return await languages.provideDocumentOnTypeEdits(ch, doc.textDocument, position, token)
     })
-    if (!edits || !edits.length) return
+    if (isFalsyOrEmpty(edits)) return
     await doc.applyEdits(edits, false, true)
   }
 
