@@ -251,7 +251,7 @@ export function fuzzyScore(pattern: string, patternLow: string, patternStart: nu
   return result
 }
 
-export function anyScore(pattern: string, lowPattern: string, patternPos: number, word: string, lowWord: string, wordPos: number, options: FuzzyScoreOptions): FuzzyScore {
+export function anyScore(pattern: string, lowPattern: string, patternPos: number, word: string, lowWord: string, wordPos: number, options?: FuzzyScoreOptions): FuzzyScore {
   const max = Math.min(13, pattern.length)
   for (; patternPos < max; patternPos++) {
     const result = fuzzyScore(pattern, lowPattern, patternPos, word, lowWord, wordPos, options)
