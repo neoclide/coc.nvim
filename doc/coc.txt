@@ -845,10 +845,7 @@ to format current buffer.
 							*coc-format-ontype*
 Format on type:~
 
-Format on type is disabled by default, could be enabled by configurations:
-
-- |coc-preferences-formatOnType|
-- |coc-preferences-formatOnTypeFiletypes|
+Format on type could be enabled by |coc-preferences-formatOnType|.
 
 Use `:CocCommand document.checkBuffer` to check if `formatOnType` provider
 exists for current buffer.
@@ -875,7 +872,7 @@ Setup visual mode and operator key-mappings: >
 							*coc-format-onsave*
 Format on save:~
 
-Use configuration |coc-preferences-formatOnSave|.
+To enable format on save, use configuration |coc-preferences-formatOnSave|.
 
 Or create |BufWritePre| autocmd like: >
 
@@ -884,7 +881,8 @@ Or create |BufWritePre| autocmd like: >
 Note the operation have to synchronized, avoid use |CocActionAsync()|.
 Note to skip the autocmd, use `:noa w` to save the buffer.
 
-The operation on save will be timeout after 0.5s by default, configured by
+The operation on save will block your vim, to not block too long time, the
+operation will be canceled after 0.5s, configured by
 |coc-preferences-willSaveHandlerTimeout|
 
 ------------------------------------------------------------------------------
