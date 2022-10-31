@@ -207,6 +207,7 @@ export default class QuickPick<T extends QuickPickItem> {
     let emptyInput = input.length === 0
     let lowInput = input.toLowerCase()
     const scoreFn: FuzzyScorer = loose ? anyScore : fuzzyScoreGracefulAggressive
+    const wordPos = canSelectMany ? 4 : 0
     for (let index = 0; index < items.length; index++) {
       const item = items[index]
       let filterText = this.toFilterText(item)
@@ -214,7 +215,6 @@ export default class QuickPick<T extends QuickPickItem> {
       let score = 0
       let descriptionSpan: [number, number] | undefined
       if (!emptyInput) {
-        let wordPos = canSelectMany ? 4 : 0
         let res = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), wordPos, { boostFullMatch: false, firstMatchCanBeWeak: true })
         if (!res && !loose) continue
         // keep the order for loose match
@@ -237,16 +237,16 @@ export default class QuickPick<T extends QuickPickItem> {
       if (a.score != b.score) return b.score - a.score
       return a.index - b.index
     })
-    const toHighlight = (lnum: number, span: [number, number], hlGroup: string) => {
-      return { lnum, colStart: span[0], colEnd: span[1], hlGroup }
+    const toHighlight = (lnum: number, span: [number, number], hlGroup: string, pre: number) => {
+      return { lnum, colStart: span[0] + pre, colEnd: span[1] + pre, hlGroup }
     }
     filtered.forEach((item, index) => {
       lines.push(item.line)
       item.spans.forEach(span => {
-        highlights.push(toHighlight(index, span, 'CocSearch'))
+        highlights.push(toHighlight(index, span, 'CocSearch', wordPos))
       })
       if (item.descriptionSpan) {
-        highlights.push(toHighlight(index, item.descriptionSpan, 'Comment'))
+        highlights.push(toHighlight(index, item.descriptionSpan, 'Comment', 0))
       }
       filteredItems.push(items[item.index])
     })
