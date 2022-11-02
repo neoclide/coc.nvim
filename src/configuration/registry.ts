@@ -8,6 +8,8 @@ import { toObject } from '../util/object'
 import { Registry } from '../util/registry'
 import { getDefaultValue, OVERRIDE_PROPERTY_PATTERN, OVERRIDE_PROPERTY_REGEX } from './util'
 
+const EXCLUDE_KEYS = ['log-path', 'logPath']
+
 export const Extensions = {
   Configuration: 'base.contributions.configuration'
 }
@@ -276,9 +278,9 @@ class ConfigurationRegistry implements IConfigurationRegistry {
     resourceSettings.patternProperties[OVERRIDE_PROPERTY_PATTERN] = resourceLanguagePropertiesSchema
   }
 
-  private updatePropertyDefaultValue(_key: string, property: IRegisteredConfigurationPropertySchema): void {
+  private updatePropertyDefaultValue(key: string, property: IRegisteredConfigurationPropertySchema): void {
     let defaultValue = property.defaultDefaultValue
-    if (typeof defaultValue === 'undefined') {
+    if (typeof defaultValue === 'undefined' && !EXCLUDE_KEYS.some(k => key.includes(k))) {
       defaultValue = getDefaultValue(property.type)
     }
     property.default = defaultValue

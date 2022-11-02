@@ -24,5 +24,5 @@
     "plugins": []
   },
   "include": ["src"],
-  "exclude": ["typings", "build", "node_modules"]
+  "exclude": ["typings", "build", "node_modules", "**/node_modules/*"]
 }

@@ -89,9 +89,10 @@ describe('FileSystemWatcherFeature', () => {
     watcher.fireChange(uri)
     watcher.fireDelete(uri)
     expect(changes).toEqual([1, 2, 3])
-    await helper.wait(100)
+    await helper.waitValue(() => {
+      return received?.length
+    }, 1)
     await client.stop()
-    expect(received.length).toBe(1)
     expect(received[0]).toEqual({
       uri: uri.toString(),
       type: 3

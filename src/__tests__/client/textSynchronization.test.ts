@@ -151,21 +151,26 @@ describe('TextDocumentSynchronization', () => {
       let client = createClient([{ scheme: 'lsptest' }])
       await client.start()
       await client.sendNotification('registerDocumentSync')
-      await helper.wait(30)
+      await helper.waitValue(() => {
+        let feature = client.getFeature(DidChangeTextDocumentNotification.method)
+        return feature !== undefined
+      }, true)
       let feature = client.getFeature(DidChangeTextDocumentNotification.method)
-      let fn = jest.fn()
+      let called = false
       feature.onNotificationSent(() => {
-        fn()
+        called = true
       })
       await nvim.command(`edit ${uuidv4()}.vim`)
       let doc = await workspace.document
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
       await client.forceDocumentSync()
-      await helper.wait(50)
+      await helper.wait(10)
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
-      expect(fn).toBeCalled()
+      await helper.waitValue(() => {
+        return called
+      }, true)
       let res = await client.sendRequest('getLastChange') as any
       expect(res.uri).toBe(doc.uri)
       expect(res.text).toBe('foo\n')

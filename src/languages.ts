@@ -68,6 +68,12 @@ class Languages {
   private inlayHintManager = new InlayHintManger()
   private inlineValueManager = new InlineValueManager()
 
+  public registerReferenceProvider: (selector: DocumentSelector, provider: ReferenceProvider) => Disposable
+
+  constructor() {
+    this.registerReferenceProvider = this.registerReferencesProvider
+  }
+
   public hasFormatProvider(doc: TextDocument): boolean {
     if (this.formatManager.hasProvider(doc)) {
       return true
