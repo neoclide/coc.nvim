@@ -8,7 +8,7 @@ import { ParsedUrlQueryInput, stringify } from 'querystring'
 import { Readable } from 'stream'
 import { URL } from 'url'
 import { CancellationToken } from 'vscode-languageserver-protocol'
-import { CancellationError } from '../util/errors'
+import { CancellationError, isCancellationError } from '../util/errors'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-fetch')
@@ -244,7 +244,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
       }
     })
     req.on('timeout', () => {
-      req.destroy(new Error(`Request timeout after ${opts.timeout}ms`))
+      req.destroy(new Error(`Request ${url} timeout after ${opts.timeout}ms`))
     })
     if (data) req.write(getText(data))
     if (opts.timeout) req.setTimeout(opts.timeout)
@@ -267,7 +267,7 @@ export default function fetch(urlInput: string | URL, options: FetchOptions = {}
   let url = toURL(urlInput)
   let opts = resolveRequestOptions(url, options)
   return request(url, options.data, opts, token).catch(err => {
-    logger.error(`Fetch error for ${url}:`, opts, err)
+    if (!isCancellationError(err)) logger.error(`Fetch error for ${url}:`, opts, err)
     if (opts.agent && opts.agent.proxy) {
       let { proxy } = opts.agent
       throw new Error(`Request failed using proxy ${proxy.host}: ${err.message}`)

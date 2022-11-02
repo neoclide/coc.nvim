@@ -177,11 +177,8 @@ Use |:CocInstall| to install coc extensions from vim's command line.
 
 To make coc.nvim install extensions on startup, use |g:coc_global_extensions|.
 
-To use package manager other than npm (like `yarn` or `pnpm`), use
-|coc-config-npm-binPath|.
-
-To customize npm registry for coc.nvim add `coc.nvim:registry` in your
-`~/.npmrc`, like:
+To customize node modules registry for coc.nvim add `coc.nvim:registry` in
+your `~/.npmrc`, like:
 >
 	coc.nvim:registry=https://registry.mycompany.org/
 <
@@ -3645,7 +3642,6 @@ extensions						*coc-list-extensions*
 	- 'enable' enable extension.
 	- 'lock' lock/unlock extension to current version.
 	- 'doc' view extension's README doc.
-	- 'fix' fix dependencies in terminal buffer.
 	- 'reload' reload extension.
 	- 'uninstall' uninstall extension.
 

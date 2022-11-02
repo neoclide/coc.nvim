@@ -5261,7 +5261,7 @@ declare module 'coc.nvim' {
   /**
    * Concurrent run async functions with limit support.
    */
-  export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit?: number): Promise<void>
+  export function concurrent<T>(arr: T[], fn: (val: T) => Promise<void>, limit?: number, token?: CancellationToken): Promise<void>
 
   /**
    * Create promise resolved after ms milliseconds.

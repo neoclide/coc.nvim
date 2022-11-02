@@ -71,7 +71,6 @@
     "@types/jest": "^27.0.3",
     "@types/marked": "^4.0.1",
     "@types/minimatch": "^5.1.2",
-    "@types/mkdirp": "^1.0.1",
     "@types/node": "14.14",
     "@types/semver": "^7.3.4",
     "@types/tar": "^4.0.5",

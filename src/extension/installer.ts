@@ -1,19 +1,20 @@
 'use strict'
-import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import readline from 'readline'
 import semver from 'semver'
-import { v4 as uuid } from 'uuid'
 import { URL } from 'url'
+import { v4 as uuid } from 'uuid'
+import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
-import workspace from '../workspace'
+import { isFalsyOrEmpty } from '../util/array'
 import { loadJson } from '../util/fs'
+import { findBestHost } from '../util/ping'
+import workspace from '../workspace'
+import { DependencySession } from './dependency'
 const logger = require('../util/logger')('extension-installer')
-const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']
 
 export interface Info {
   'dist.tarball'?: string
@@ -32,11 +33,18 @@ export interface InstallResult {
   url?: string
 }
 
-export function registryUrl(home = os.homedir()): URL {
-  let res: URL
-  let filepath = path.join(home, '.npmrc')
-  if (fs.existsSync(filepath)) {
-    try {
+const TAOBAO_REGISTRY = new URL('https://registry.npmmirror.com')
+const NPM_REGISTRY = new URL('https://registry.npmjs.org')
+const YARN_REGISTRY = new URL('https://registry.yarnpkg.com')
+const PINGTIMEOUT = global.__TEST__ ? 50 : 500
+
+/**
+ * Find the user configured registry or the best one
+ */
+export async function registryUrl(home = os.homedir(), registries?: URL[], timeout = PINGTIMEOUT): Promise<URL> {
+  try {
+    let filepath = path.join(home, '.npmrc')
+    if (fs.existsSync(filepath)) {
       let content = fs.readFileSync(filepath, 'utf8')
       let uri: string
       for (let line of content.split(/\r?\n/)) {
@@ -46,27 +54,16 @@ export function registryUrl(home = os.homedir()): URL {
           uri = ms[2]
         }
       }
-      if (uri) res = new URL(uri)
-    } catch (e) {
-      logger.debug('Error on parse .npmrc:', e)
+      if (uri) return new URL(uri)
     }
+    registries = isFalsyOrEmpty(registries) ? [TAOBAO_REGISTRY, NPM_REGISTRY, YARN_REGISTRY] : registries
+    const hosts = registries.map(o => o.hostname)
+    let host = await findBestHost(hosts, timeout)
+    return host == null ? NPM_REGISTRY : registries[hosts.indexOf(host)]
+  } catch (e) {
+    logger.debug('Error on get registry', e)
+    return NPM_REGISTRY
   }
-  return res ?? new URL('https://registry.npmjs.org')
-}
-
-export function isNpmCommand(exePath: string): boolean {
-  let name = path.basename(exePath)
-  return name === 'npm' || name === 'npm.CMD'
-}
-
-export function isYarn(exePath: string) {
-  let name = path.basename(exePath)
-  return ['yarn', 'yarn.CMD', 'yarnpkg', 'yarnpkg.CMD'].includes(name)
-}
-
-function isPnpm(exePath: string) {
-  let name = path.basename(exePath)
-  return name === 'pnpm' || name === 'pnpm.CMD'
 }
 
 function isSymbolicLink(folder: string): boolean {
@@ -83,15 +80,16 @@ export interface IInstaller {
   on(event: 'message', cb: (msg: string, isProgress: boolean) => void): void
   install(): Promise<InstallResult>
   update(url?: string): Promise<string | undefined>
+  dispose(): void
 }
 
 export class Installer extends EventEmitter implements IInstaller {
   private name: string
   private url: string
   private version: string
+  private tokenSource = new CancellationTokenSource()
   constructor(
-    private root: string,
-    private npm: string,
+    private dependencySession: DependencySession,
     // could be url or name@version or name
     private def: string
   ) {
@@ -109,13 +107,17 @@ export class Installer extends EventEmitter implements IInstaller {
     }
   }
 
+  private get root(): string {
+    return this.dependencySession.modulesRoot
+  }
+
   public get info() {
     return { name: this.name, version: this.version }
   }
 
   public async getInfo(): Promise<Info> {
     if (this.url) return await this.getInfoFromUri()
-    let registry = registryUrl()
+    let registry = this.dependencySession.registry
     this.log(`Get info from ${registry}`)
     let buffer = await this.fetch(new URL(this.name, registry), { timeout: 10000, buffer: true })
     let res = JSON.parse(buffer.toString())
@@ -163,7 +165,7 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async install(): Promise<InstallResult> {
-    this.log(`Using npm from: ${this.npm}`)
+    this.emit('message', `fetch info of ${this.def}`, false)
     let info = await this.getInfo()
     logger.info(`Fetched info of ${this.def}`, info)
     let { name, version } = info
@@ -187,7 +189,6 @@ export class Installer extends EventEmitter implements IInstaller {
       let obj = loadJson(path.join(folder, 'package.json')) as any
       version = obj.version
     }
-    this.log(`Using npm from: ${this.npm}`)
     let info = await this.getInfo()
     if (version && info.version && semver.gte(version, info.version)) {
       this.log(`Current version ${version} is up to date.`)
@@ -204,58 +205,15 @@ export class Installer extends EventEmitter implements IInstaller {
     return path.dirname(jsonFile)
   }
 
-  public getInstallArguments(exePath: string, url: string | undefined): string[] {
-    let args = ['install', '--ignore-scripts', '--no-lockfile']
-    if (url && url.startsWith('https://github.com')) {
-      args = ['install']
-    }
-    if (isNpmCommand(exePath)) {
-      args.push('--omit=dev')
-      args.push('--legacy-peer-deps')
-      args.push('--no-global')
-    }
-    if (isYarn(exePath)) {
-      args.push('--production')
-      args.push('--ignore-engines')
-    }
-    if (isPnpm(exePath)) {
-      args.push('--production')
-      args.push('--config.strict-peer-dependencies=false')
-    }
-    return args
-  }
-
-  private readLines(key: string, stream: NodeJS.ReadableStream): void {
-    const rl = readline.createInterface({
-      input: stream
+  public async installDependencies(folder: string): Promise<void> {
+    let { dependencySession, tokenSource } = this
+    let installer = dependencySession.createInstaller(folder, msg => {
+      this.log(msg)
     })
-    rl.on('line', line => {
-      this.log(`${key} ${line}`, true)
+    tokenSource.token.onCancellationRequested(() => {
+      installer.cancel()
     })
-  }
-
-  public installDependencies(folder: string, dependencies: string[]): Promise<void> {
-    if (dependencies.length == 0) return Promise.resolve()
-    return new Promise<void>((resolve, reject) => {
-      let args = this.getInstallArguments(this.npm, this.url)
-      this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
-      const child = spawn(this.npm, args, {
-        cwd: folder,
-        env: Object.assign(process.env, { NODE_ENV: 'production' })
-      })
-      this.readLines('[npm stdout]', child.stdout)
-      this.readLines('[npm stderr]', child.stderr)
-      child.stderr.setEncoding('utf8')
-      child.stdout.setEncoding('utf8')
-      child.on('error', reject)
-      child.on('exit', code => {
-        if (code) {
-          reject(new Error(`${this.npm} install exited with ${code}`))
-          return
-        }
-        resolve()
-      })
-    })
+    await installer.installDependencies()
   }
 
   public async doInstall(info: Info): Promise<boolean> {
@@ -274,8 +232,7 @@ export class Installer extends EventEmitter implements IInstaller {
         onProgress: p => this.log(`Download progress ${p}%`, true),
       })
       this.log(`Extension download at ${downloadFolder}`)
-      let obj = loadJson(path.join(downloadFolder, 'package.json')) as any
-      await this.installDependencies(downloadFolder, getDependencies(obj))
+      await this.installDependencies(downloadFolder)
     } catch (e) {
       fs.rmSync(downloadFolder, { recursive: true, force: true })
       throw e
@@ -289,14 +246,14 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async download(url: string, options: DownloadOptions): Promise<any> {
-    return await download(url, options)
+    return await download(url, options, this.tokenSource.token)
   }
 
   public async fetch(url: string | URL, options: FetchOptions = {}): Promise<any> {
-    return await fetch(url, options)
+    return await fetch(url, options, this.tokenSource.token)
   }
-}
 
-export function getDependencies(obj: { dependencies?: { [key: string]: string } }): string[] {
-  return Object.keys(obj.dependencies ?? {}).filter(id => !local_dependencies.includes(id))
+  public dispose(): void {
+    this.tokenSource.cancel()
+  }
 }

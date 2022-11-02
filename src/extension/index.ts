@@ -1,18 +1,20 @@
 'use strict'
 import fs from 'fs'
 import path from 'path'
-import { Event } from 'vscode-languageserver-protocol'
-import which from 'which'
+import { URL } from 'url'
+import { CancellationTokenSource, Disposable, Event } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
+import events from '../events'
 import type { OutputChannel } from '../types'
-import { concurrent } from '../util'
+import { concurrent, disposeAll } from '../util'
 import { distinct } from '../util/array'
+import { isCancellationError } from '../util/errors'
 import '../util/extensions'
 import { isUrl } from '../util/is'
-import { executable } from '../util/processes'
 import window from '../window'
 import workspace from '../workspace'
-import { IInstaller, Installer } from './installer'
+import { DependencySession } from './dependency'
+import { IInstaller, Installer, registryUrl } from './installer'
 import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState } from './manager'
 import { checkExtensionRoot, ExtensionStat, loadExtensionJson } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
@@ -37,10 +39,18 @@ export class Extensions {
   public readonly manager: ExtensionManager
   public readonly states: ExtensionStat
   public readonly modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
+  private disposables: Disposable[] = []
   constructor() {
     checkExtensionRoot(EXTENSIONS_FOLDER)
     this.states = new ExtensionStat(EXTENSIONS_FOLDER)
     this.manager = new ExtensionManager(this.states, EXTENSIONS_FOLDER)
+    events.on('VimLeavePre', () => {
+      this.cancelInstallers()
+    })
+  }
+
+  public cancelInstallers() {
+    disposeAll(this.disposables)
   }
 
   public async init(): Promise<void> {
@@ -139,40 +149,52 @@ export class Extensions {
     return await this.manager.call(id, method, args)
   }
 
-  public get npm(): string {
-    let npm = workspace.getConfiguration('npm', null).get<string>('binPath', 'npm')
-    npm = workspace.expand(npm)
-    for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
-      if (executable(exe)) return which.sync(exe)
-    }
-    void window.showErrorMessage(`Can't find npm or yarn in your $PATH`)
-    return null
+  private createInstallerUI(isUpdate: boolean, silent: boolean, disposables: Disposable[]): InstallUI {
+    return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate, async () => {
+      if (disposables.length > 0) {
+        disposeAll(disposables)
+        void window.showWarningMessage(`Extension install process canceled`)
+      }
+    })
   }
 
-  private createInstallerUI(isUpdate: boolean, silent: boolean): InstallUI {
-    return silent ? new InstallChannel(isUpdate, this.outputChannel) : new InstallBuffer(isUpdate)
-  }
-
-  public creteInstaller(npm: string, def: string): IInstaller {
-    return new Installer(this.modulesFolder, npm, def)
+  public createInstaller(registry: URL, def: string): IInstaller {
+    return new Installer(new DependencySession(registry, this.modulesFolder), def)
   }
 
   /**
    * Install extensions, can be called without initialize.
    */
   public async installExtensions(list: string[]): Promise<void> {
-    let { npm } = this
-    if (!npm || list.length == 0) return
+    if (list.length == 0) return
+    this.cancelInstallers()
     list = distinct(list)
-    let installBuffer = this.createInstallerUI(false, false)
+    let disposables: Disposable[] = this.disposables = []
+    let installBuffer = this.createInstallerUI(false, false, disposables)
+    let tokenSource = new CancellationTokenSource()
+    let installers: Map<string, IInstaller> = new Map()
+    installBuffer.onDidCancel(key => {
+      let item = installers.get(key)
+      if (item) item.dispose()
+    })
+    disposables.push(Disposable.create(() => {
+      tokenSource.cancel()
+      for (let item of installers.values()) {
+        item.dispose()
+      }
+    }))
     await Promise.resolve(installBuffer.start(list))
+    let registry = await registryUrl()
     let fn = async (key: string): Promise<void> => {
+      let installer: IInstaller
       try {
         installBuffer.startProgress(key)
-        let installer = this.creteInstaller(npm, key)
+        installer = this.createInstaller(registry, key)
+        installers.set(key, installer)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(key, msg, isProgress)
         })
+        logger.debug('install:', key)
         let result = await installer.install()
         installBuffer.finishProgress(key, true)
         this.states.addExtension(result.name, result.url ? result.url : `>=${result.version}`)
@@ -180,21 +202,19 @@ export class Extensions {
         if (ms != null) this.states.setLocked(result.name, true)
         await this.manager.loadExtension(result.folder)
       } catch (err: any) {
-        installBuffer.addMessage(key, err.message)
-        installBuffer.finishProgress(key, false)
-        void window.showErrorMessage(`Error on install ${key}: ${err}`)
-        logger.error(`Error on install ${key}`, err)
+        this.onInstallError(key, installBuffer, err)
       }
     }
-    await concurrent(list, fn)
+    await concurrent(list, fn, 3, tokenSource.token)
+    let len = disposables.length
+    disposables.splice(0, len)
   }
 
   /**
    * Update global extensions
    */
   public async updateExtensions(silent = false): Promise<void> {
-    let { npm } = this
-    if (!npm) return
+    this.cancelInstallers()
     let stats = this.globalExtensionStats()
     stats = stats.filter(s => {
       if (s.isLocked || s.state === 'disabled') {
@@ -205,14 +225,30 @@ export class Extensions {
     })
     this.states.setLastUpdate()
     this.cleanModulesFolder()
-    let installBuffer = this.createInstallerUI(true, silent)
+    let registry = await registryUrl()
+    let disposables: Disposable[] = this.disposables = []
+    let installers: Map<string, IInstaller> = new Map()
+    let installBuffer = this.createInstallerUI(true, silent, disposables)
+    let tokenSource = new CancellationTokenSource()
+    disposables.push(Disposable.create(() => {
+      tokenSource.cancel()
+      for (let item of installers.values()) {
+        item.dispose()
+      }
+    }))
+    installBuffer.onDidCancel(key => {
+      let item = installers.get(key)
+      if (item) item.dispose()
+    })
     await Promise.resolve(installBuffer.start(stats.map(o => o.id)))
     let fn = async (stat: ExtensionInfo): Promise<void> => {
       let { id } = stat
+      let installer: IInstaller
       try {
         installBuffer.startProgress(id)
         let url = stat.exotic ? stat.uri : null
-        let installer = this.creteInstaller(npm, id)
+        installer = this.createInstaller(registry, id)
+        installers.set(id, installer)
         installer.on('message', (msg, isProgress) => {
           installBuffer.addMessage(id, msg, isProgress)
         })
@@ -220,13 +256,20 @@ export class Extensions {
         installBuffer.finishProgress(id, true)
         if (directory) await this.manager.loadExtension(directory)
       } catch (err: any) {
-        installBuffer.addMessage(id, err.message)
-        installBuffer.finishProgress(id, false)
-        void window.showErrorMessage(`Error on update ${id}: ${err}`)
-        logger.error(`Error on update ${id}`, err)
+        this.onInstallError(id, installBuffer, err)
       }
     }
-    await concurrent(stats, fn, silent ? 1 : 3)
+    await concurrent(stats, fn, silent ? 1 : 3, tokenSource.token)
+    disposables.splice(0, disposables.length)
+  }
+
+  private onInstallError(id: string, installBuffer: InstallUI, err: Error): void {
+    installBuffer.addMessage(id, err.message)
+    installBuffer.finishProgress(id, false)
+    if (!isCancellationError(err)) {
+      void window.showErrorMessage(`Error on install ${id}: ${err}`)
+      logger.error(`Error on update ${id}`, err)
+    }
   }
 
   /**
@@ -305,18 +348,14 @@ export class Extensions {
     if (!fs.existsSync(this.modulesFolder)) return
     let files = fs.readdirSync(this.modulesFolder)
     for (let file of files) {
-      if (folders.includes(file)) continue
+      if (folders.includes(file) || file === '.cache') continue
       let p = path.join(this.modulesFolder, file)
-      let stat = fs.lstatSync(p)
-      if (stat.isSymbolicLink()) {
-        fs.unlinkSync(p)
-      } else if (stat.isDirectory()) {
-        fs.rmSync(p, { recursive: true, force: true })
-      }
+      fs.rmSync(p, { recursive: true, force: true })
     }
   }
 
   public dispose(): void {
+    this.cancelInstallers()
     this.manager.dispose()
   }
 }

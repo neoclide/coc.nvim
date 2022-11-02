@@ -7,7 +7,7 @@ import path from 'path'
 import tar from 'tar'
 import unzip from 'unzip-stream'
 import { URL } from 'url'
-import { v1 as uuidv1 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { FetchOptions, getRequestModule, resolveRequestOptions, toURL } from './fetch'
 const logger = require('../util/logger')('model-download')
@@ -17,6 +17,10 @@ export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
    * Folder that contains downloaded file or extracted files by untar or unzip
    */
   dest: string
+  /**
+   * filename in dest, Could contains path separator, will be removed when exists.
+   */
+  filename?: string
   /**
    * algorithm for check etag.
    */
@@ -50,7 +54,7 @@ export function getEtag(headers: IncomingHttpHeaders): string | undefined {
 export default function download(urlInput: string | URL, options: DownloadOptions, token?: CancellationToken): Promise<string> {
   let url = toURL(urlInput)
   let { etagAlgorithm } = options
-  let { dest, onProgress, extract } = options
+  let { dest, onProgress, extract, filename } = options
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Expect absolute file path for dest option.`)
   }
@@ -60,6 +64,14 @@ export default function download(urlInput: string | URL, options: DownloadOption
     let stat = fs.statSync(dest)
     if (stat && !stat.isDirectory()) {
       throw new Error(`${dest} exists, but not directory!`)
+    }
+  }
+  if (filename) {
+    let fullpath = path.join(dest, filename)
+    if (fs.existsSync(fullpath)) {
+      fs.rmSync(fullpath, { force: true, recursive: true })
+    } else {
+      fs.mkdirSync(path.dirname(fullpath), { recursive: true })
     }
   }
   let mod = getRequestModule(url)
@@ -109,7 +121,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
           if (hash) hash.update(chunk)
           if (hasTotal) {
             let percent = (cur / total * 100).toFixed(1)
-            typeof onProgress === 'function' ? onProgress(percent) : logger.info(`Download ${url} progress ${percent}%`)
+            if (typeof onProgress === 'function') onProgress(percent)
           }
         })
         res.on('end', () => {
@@ -124,7 +136,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
         } else if (extract === 'unzip') {
           stream = res.pipe(unzip.Extract({ path: dest }))
         } else {
-          dest = path.join(dest, `${uuidv1()}${extname}`)
+          dest = path.join(dest, filename ?? `${uuidv4()}${extname}`)
           stream = res.pipe(fs.createWriteStream(dest))
         }
         stream.on('finish', () => {
@@ -138,7 +150,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
           logger.info(`Downloaded ${url} => ${dest}`)
           setTimeout(() => {
             resolve(dest)
-          }, 100)
+          }, global.__TEST__ ? 20 : 100)
         })
         stream.on('error', reject)
       } else {

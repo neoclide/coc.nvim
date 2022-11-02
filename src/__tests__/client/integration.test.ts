@@ -215,8 +215,9 @@ describe('Client events', () => {
     await client.sendNotification('showDocument', { uri: 'lsptest:///1', takeFocus: false })
     await client.sendNotification('showDocument', { uri: uri.toString() })
     await client.sendNotification('showDocument', { uri: uri.toString(), selection: Range.create(0, 0, 1, 0) })
-    await helper.wait(300)
-    expect(client.hasPendingResponse).toBe(false)
+    await helper.waitValue(() => {
+      return client.hasPendingResponse
+    }, false)
     await client.stop()
   })
 
@@ -629,7 +630,7 @@ describe('Client integration', () => {
     }
     await expect(fn()).rejects.toThrow(Error)
     spy.mockRestore()
-    await helper.wait(10)
+    await helper.wait(30)
   })
 })
 
@@ -650,9 +651,6 @@ describe('SettingMonitor', () => {
       return client.state
     }, lsclient.State.Stopped)
     helper.updateConfiguration('html.enabled', true)
-    await helper.waitValue(() => {
-      return client.state != lsclient.State.Stopped
-    }, true)
     await client.onReady()
     disposable.dispose()
   })

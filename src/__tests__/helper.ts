@@ -1,3 +1,4 @@
+import net from 'net'
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
@@ -362,6 +363,26 @@ export function makeLine(length) {
       charactersLength))
   }
   return result
+}
+
+export function getPort(): Promise<number> {
+  let port = 7080
+  let fn = cb => {
+    let server = net.createServer()
+    server.listen(port, () => {
+      server.once('close', () => {
+        cb(port)
+      })
+      server.close()
+    })
+    server.on('error', () => {
+      port++
+      fn(cb)
+    })
+  }
+  return new Promise(resolve => {
+    fn(resolve)
+  })
 }
 
 export default new Helper()

@@ -23,6 +23,7 @@ import BasicList from './list/basic'
 import { Mutex } from './util/mutex'
 import { URI } from 'vscode-uri'
 import {
+  CodeAction,
   CodeActionKind,
   CodeActionTriggerKind,
   Disposable,
