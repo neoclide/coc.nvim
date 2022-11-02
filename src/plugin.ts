@@ -135,7 +135,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('commands', () => commandManager.commandList)
     this.addAction('services', () => services.getServiceStats())
     this.addAction('toggleService', name => services.toggle(name))
-    this.addAction('codeAction', (mode, only) => this.handler.codeActions.doCodeAction(mode, only))
+    this.addAction('codeAction', (mode, only, noExclude) => this.handler.codeActions.doCodeAction(mode, only, noExclude))
     this.addAction('organizeImport', () => this.handler.codeActions.organizeImport())
     this.addAction('fixAll', () => this.handler.codeActions.doCodeAction(null, [CodeActionKind.SourceFixAll]))
     this.addAction('doCodeAction', codeAction => this.handler.codeActions.applyCodeAction(codeAction))

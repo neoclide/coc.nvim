@@ -2525,7 +2525,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	Start or stop a service.
 
-"codeAction" [{mode}] [{only}]				*CocAction('codeAction')*
+"codeAction" [{mode}] [{only}] [{include_disabled}]	*CocAction('codeAction')*
 
 	Prompt for a code action and do it.
 
@@ -2533,6 +2533,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	current buffer range is used when it's empty string.
 
 	{only} can be title of a codeAction or list of CodeActionKind.
+
+	{include_disabled} include disabled actions when is truth value.
 
 "codeActionRange" {start} {end} [{kind}]		*CocAction('codeActionRange')*
 

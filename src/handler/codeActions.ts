@@ -72,11 +72,11 @@ export default class CodeActions {
 
   private get floatActions(): boolean {
     if (!workspace.floatSupported) return false
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('coc.preferences', null)
     return config.get<boolean>('floatActions', true)
   }
 
-  public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string): Promise<void> {
+  public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string, noExclude = false): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
     let range: Range
     if (mode) range = await window.getSelectedRange(mode)
@@ -87,6 +87,7 @@ export default class CodeActions {
     } else if (Array.isArray(only)) {
       codeActions = codeActions.filter(o => only.some(k => o.kind && o.kind.startsWith(k)))
     }
+    if (!this.floatActions || !noExclude) codeActions = codeActions.filter(o => !o.disabled)
     if (!codeActions || codeActions.length == 0) {
       void window.showWarningMessage(`No${only ? ' ' + only : ''} code action available`)
       return
@@ -95,7 +96,6 @@ export default class CodeActions {
       await this.applyCodeAction(codeActions[0])
       return
     }
-    if (!this.floatActions) codeActions = codeActions.filter(o => !o.disabled)
     let idx = this.floatActions
       ? await window.showMenuPicker(
         codeActions.map(o => {
