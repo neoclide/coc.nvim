@@ -9,7 +9,6 @@ import { splitArray } from '../util/array'
 import { isParentFolder, sameFile } from '../util/fs'
 import Watchman, { FileChange } from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
-const logger = require('../util/logger')('filesystem-watcher')
 
 export interface RenameEvent {
   oldUri: URI
@@ -208,11 +207,11 @@ export class FileSystemWatcher implements Disposable {
         }
       }
     }
-    client.subscribe(pattern, onChange).then(disposable => {
+    void client.subscribe(pattern, onChange).then(disposable => {
       this.subscribe = disposable.subscribe
       if (this._disposed) return disposable.dispose()
       this.disposables.push(disposable)
-    }).logError()
+    })
   }
 
   public dispose(): void {

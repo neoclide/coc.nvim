@@ -7,7 +7,6 @@ import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
 import { CodeActionProvider } from './index'
 import Manager from './manager'
-const logger = require('../util/logger')('codeActionManager')
 
 interface ProviderMeta {
   kinds: CodeActionKind[] | undefined

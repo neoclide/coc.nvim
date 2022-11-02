@@ -9,7 +9,6 @@ import { disposeAll } from '../util'
 import * as platform from '../util/platform'
 import ContentProvider from './contentProvider'
 import Watchers from './watchers'
-const logger = require('../util/logger')('core-autocmds')
 
 interface PartialEnv {
   isCygwin: boolean
@@ -42,8 +41,6 @@ export default class Autocmds implements Disposable {
   public async doAutocmd(id: number, args: any[]): Promise<void> {
     let autocmd = this.autocmds.get(id)
     if (autocmd) {
-      let ev = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
-      logger.debug(`invoke ${autocmd.request ? 'request' : 'notify'} autocmd:`, ev)
       await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
     }
   }

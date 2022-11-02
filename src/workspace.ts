@@ -35,9 +35,10 @@ import { parseExtensionName } from './util/extensionRegistry'
 import { CONFIG_FILE_NAME } from './util/index'
 import { IJSONSchema } from './util/jsonSchema'
 import { runCommand } from './util/processes'
+import { createLogger } from './logger'
+const logger = createLogger('workspace')
 
 const APIVERSION = 32
-const logger = require('./util/logger')('workspace')
 const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',
   'menuPick', 'openLocalConfig', 'showPrompt', 'createStatusBarItem', 'createOutputChannel',

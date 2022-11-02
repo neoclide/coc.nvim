@@ -32,7 +32,6 @@ import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
 import helper from '../helper'
-const createLogger = require('../../util/logger')
 
 function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
@@ -137,18 +136,6 @@ describe('platform', () => {
     expect(platform.isNative).toBeDefined()
     expect(platform.isWindows).toBeDefined()
     expect(platform.isMacintosh).toBeDefined()
-  })
-})
-
-describe('logger', () => {
-  it('should get log file', async () => {
-    let val = process.env.NVIM_COC_LOG_FILE
-    process.env.NVIM_COC_LOG_FILE = ''
-    let logger = createLogger('')
-    expect(logger.getLogFile()).toBeDefined()
-    process.env.XDG_RUNTIME_DIR = ''
-    expect(logger.getLogFile()).toBeDefined()
-    process.env.NVIM_COC_LOG_FILE = val
   })
 })
 

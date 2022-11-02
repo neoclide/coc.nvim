@@ -4,7 +4,6 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import { disposeAll } from '../util'
 import events from '../events'
-const logger = require('../util/logger')('core-terminals')
 
 export default class Terminals {
   private _terminals: Map<number, TerminalModel> = new Map()
@@ -17,7 +16,6 @@ export default class Terminals {
   constructor() {
     events.on('BufUnload', bufnr => {
       if (this._terminals.has(bufnr)) {
-        logger.debug('terminal detach', bufnr)
         let terminal = this._terminals.get(bufnr)
         this._onDidCloseTerminal.fire(terminal)
         this._terminals.delete(bufnr)

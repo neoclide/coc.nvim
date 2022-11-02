@@ -3,7 +3,6 @@ import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Emitter, Event, Range } 
 import { URI } from 'vscode-uri'
 import workspace from '../workspace'
 import { intersect } from '../util/array'
-const logger = require('../util/logger')('diagnostic-collection')
 const HintTags = [DiagnosticTag.Deprecated, DiagnosticTag.Unnecessary]
 
 export default class DiagnosticCollection {

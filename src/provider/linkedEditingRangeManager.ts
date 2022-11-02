@@ -2,9 +2,10 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, LinkedEditingRanges, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { createLogger } from '../logger'
 import { LinkedEditingRangeProvider } from './index'
 import Manager from './manager'
-const logger = require('../util/logger')('linkedEditingManager')
+const logger = createLogger('linkedEditingManager')
 
 export default class LinkedEditingRangeManager extends Manager<LinkedEditingRangeProvider> {
   public register(selector: DocumentSelector, provider: LinkedEditingRangeProvider): Disposable {

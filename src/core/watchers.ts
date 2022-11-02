@@ -4,7 +4,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { Env } from '../types'
 import { disposeAll } from '../util'
-const logger = require('../util/logger')('core-watchers')
 
 export default class Watchers implements Disposable {
   private nvim: Neovim

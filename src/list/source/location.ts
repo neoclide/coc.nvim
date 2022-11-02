@@ -9,7 +9,6 @@ import { AnsiHighlight, ListContext, ListItem, LocationWithTarget, QuickfixItem 
 import { isParentFolder } from '../../util/fs'
 import { byteLength } from '../../util/string'
 import BasicList from '../basic'
-const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
   public defaultAction = 'open'

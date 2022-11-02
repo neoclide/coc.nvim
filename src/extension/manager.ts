@@ -17,9 +17,9 @@ import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
 import { ConfigurationScope } from '../types'
+import { createLogger } from '../logger'
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
-const createLogger = require('../util/logger')
 const logger = createLogger('extensions-manager')
 
 export enum ExtensionType {
@@ -398,7 +398,7 @@ export class ExtensionManager {
               workspaceState: this.memos.createMemento(`${id}|${workspace.rootPath}`),
               asAbsolutePath: relativePath => path.join(root, relativePath),
               storagePath: path.join(this.folder, `${id}-data`),
-              logger: createLogger(id)
+              logger: createLogger(`extension:${id}`)
             }
             let res = await Promise.resolve(ext.activate(context))
             isActive = true

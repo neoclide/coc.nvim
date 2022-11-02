@@ -6,7 +6,6 @@ import { binarySearch, isFalsyOrEmpty } from '../util/array'
 import { equals } from '../util/object'
 import { compareRangesUsingStarts, rangeInRange } from '../util/position'
 import workspace from '../workspace'
-const logger = require('../util/logger')('completion-wordDistance')
 
 export abstract class WordDistance {
 

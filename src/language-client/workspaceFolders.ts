@@ -5,7 +5,6 @@ import { sameFile } from '../util/fs'
 import workspace from '../workspace'
 import { DynamicFeature, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
-const logger = require('../util/logger')('language-client-workspaceFolder')
 
 function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | undefined {
   if (target === void 0) {

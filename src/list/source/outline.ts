@@ -13,7 +13,6 @@ import { getSymbolKind } from '../../util/convert'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { formatListItems, UnformattedListItem } from '../formatting'
 import { runCommand } from '../../util/processes'
-const logger = require('../../util/logger')('list-symbols')
 
 function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {
   return `${s.name}${kind ? ` ${kind}` : ''}`

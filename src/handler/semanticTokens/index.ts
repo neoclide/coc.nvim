@@ -13,7 +13,6 @@ import { upperFirst } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
 import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE } from './buffer'
-const logger = require('../../util/logger')('semanticTokens')
 const headGroup = 'Statement'
 
 export default class SemanticTokens {

@@ -2,7 +2,6 @@
 import { ClientCapabilities, WorkDoneProgressCreateParams, WorkDoneProgressCreateRequest } from 'vscode-languageserver-protocol'
 import { ProgressPart } from './progressPart'
 import { FeatureState, StaticFeature, ensure, FeatureClient } from './features'
-// const logger = require('../util/logger')('language-client-progress')
 
 export class ProgressFeature implements StaticFeature {
   private activeParts: Set<ProgressPart> = new Set()

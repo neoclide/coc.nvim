@@ -2,10 +2,11 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, InlayHint, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { createLogger } from '../logger'
 import { comparePosition, positionInRange } from '../util/position'
 import { InlayHintsProvider } from './index'
 import Manager from './manager'
-const logger = require('../util/logger')('inlayHintManger')
+const logger = createLogger('inlayHintManger')
 
 export interface InlayHintWithProvider extends InlayHint {
   providerId: string

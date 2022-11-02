@@ -23,12 +23,12 @@ import Documents from './documents'
 import type Keymaps from './keymaps'
 import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
+import { createLogger } from '../logger'
+const logger = createLogger('core-files')
 
 interface WaitUntilEvent {
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
-
-const logger = require('../util/logger')('core-files')
 
 export default class Files {
   private nvim: Neovim

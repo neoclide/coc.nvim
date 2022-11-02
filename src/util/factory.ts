@@ -3,9 +3,8 @@
 import fs from 'fs'
 import path from 'path'
 import * as vm from 'vm'
+import { createLogger } from '../logger'
 import { defaults } from './lodash'
-const createLogger = require('./logger')
-const logger = createLogger('util-factoroy')
 
 export interface ExtensionExport {
   activate: (context: unknown) => any

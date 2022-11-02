@@ -4,7 +4,8 @@ import semver from 'semver'
 import { promisify } from 'util'
 import { loadJson, writeJson } from '../util/fs'
 import { objectLiteral } from '../util/is'
-const logger = require('../util/logger')('extension-stat')
+import { createLogger } from '../logger'
+const logger = createLogger('extension-stat')
 
 interface DataBase {
   extension?: {

@@ -6,7 +6,6 @@ import { HandlerDelegate } from '../types'
 import { emptyRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-rename')
 
 export default class Rename {
   constructor(

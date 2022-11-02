@@ -4,7 +4,8 @@ import { v1 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { KeymapOption } from '../types'
 import Documents from './documents'
-const logger = require('../util/logger')('core-keymaps')
+import { createLogger } from '../logger'
+const logger = createLogger('core-keymaps')
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 

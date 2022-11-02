@@ -6,7 +6,6 @@ import WorkspaceFolderController from '../core/workspaceFolder'
 import { v4 as uuid } from 'uuid'
 import { URI } from 'vscode-uri'
 import { hasOwnProperty } from '../util/object'
-const logger = require('../util/logger')('snippets-variable')
 
 function padZero(n: number): string {
   return n < 10 ? '0' + n : n.toString()

@@ -11,7 +11,6 @@ import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
-const logger = require('../util/logger')('language-client-fileSystemWatcher')
 
 export interface DidChangeWatchedFileSignature {
   (this: void, event: FileEvent): void

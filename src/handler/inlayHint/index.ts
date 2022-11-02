@@ -10,7 +10,6 @@ import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
 import InlayHintBuffer from './buffer'
-const logger = require('../../util/logger')('inlayHint-index')
 
 export default class InlayHintHandler {
   private buffers: BufferSync<InlayHintBuffer> | undefined

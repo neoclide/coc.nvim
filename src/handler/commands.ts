@@ -3,7 +3,6 @@ import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../commands'
 import listManager from '../list/manager'
 import { Env } from '../types'
-const logger = require('../util/logger')('handler-commands')
 
 export default class Commands {
   constructor(private nvim: Neovim, env: Readonly<Env>) {

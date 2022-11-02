@@ -15,7 +15,6 @@ import { DataBase } from './db'
 import UI from './ui'
 import Worker from './worker'
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-const logger = require('../util/logger')('list-session')
 
 /**
  * Activated list session with UI and worker
@@ -543,7 +542,6 @@ export default class ListSession {
         this.nvim.command('redraw', true)
       }
     } catch (e) {
-      logger.error(`Error on action ${action.name}`, e)
       this.nvim.echoError(e)
     }
   }

@@ -1,10 +1,11 @@
 'use strict'
 import { Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { createLogger } from '../logger'
 import { LocationWithTarget } from '../types'
 import { equals } from '../util/object'
 import workspace from '../workspace'
-const logger = require('../util/logger')('provider-manager')
+const logger = createLogger('provider-manager')
 
 export type ProviderItem<T, P = object> = {
   id: string

@@ -7,7 +7,6 @@ import { disposeAll } from '../util'
 import { byteLength, isAlphabet } from '../util/string'
 import { DialogPreferences } from './dialog'
 import Popup from './popup'
-const logger = require('../util/logger')('model-menu')
 
 export interface MenuItem {
   text: string
@@ -253,11 +252,7 @@ export default class Menu {
   public async onInputChar(session: string, character: string): Promise<void> {
     if (session != 'menu' || !this.win) return
     let fn = this.keyMappings.get(character)
-    if (fn) {
-      await Promise.resolve(fn(character))
-    } else {
-      logger.warn(`Ignored key press: ${character}`)
-    }
+    if (fn) await Promise.resolve(fn(character))
   }
 
   private setCursor(index: number): void {

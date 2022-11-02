@@ -12,7 +12,6 @@ import { toHexString } from '../../util/color'
 import window from '../../window'
 import workspace from '../../workspace'
 import ColorBuffer, { ColorConfig } from './colorBuffer'
-const logger = require('../../util/logger')('colors-index')
 
 export default class Colors {
   private config: ColorConfig

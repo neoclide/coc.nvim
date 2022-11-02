@@ -6,7 +6,8 @@ import { CancellationError } from './util/errors'
 import { objectLiteral } from './util/is'
 import { equals, toReadonly } from './util/object'
 import { byteSlice } from './util/string'
-const logger = require('./util/logger')('events')
+import { createLogger } from './logger'
+const logger = createLogger('events')
 const SYNC_AUTOCMDS = ['BufWritePre']
 
 export type Result = void | Promise<void>

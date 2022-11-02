@@ -12,7 +12,6 @@ import { toSpans } from './fuzzyMatch'
 import InputBox from './input'
 import Popup from './popup'
 import { StrWidth } from './strwidth'
-const logger = require('../util/logger')('model-quickpick')
 
 export interface QuickPickConfig<T extends QuickPickItem> {
   title?: string

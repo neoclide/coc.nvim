@@ -1,6 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import type { Sources } from '../sources'
@@ -15,7 +16,7 @@ import { UltiSnippetContext } from './eval'
 import { Marker, Placeholder } from './parser'
 import { checkContentBefore, checkCursor, CocSnippet, CocSnippetPlaceholder, getEndPosition, getParts, reduceTextEdit } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
-const logger = require('../util/logger')('snippets-session')
+const logger = createLogger('snippets-session')
 const NAME_SPACE = 'snippets'
 
 interface DocumentChange {

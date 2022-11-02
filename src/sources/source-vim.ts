@@ -6,7 +6,6 @@ import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 import window from '../window'
 import Source from './source'
-const logger = require('../util/logger')('sources-source-vim')
 
 export default class VimSource extends Source {
 
@@ -47,11 +46,11 @@ export default class VimSource extends Source {
     if (!doc) return
     let { filetypes } = this
     if (filetypes && !filetypes.includes(doc.filetype)) return
-    this.callOptionalFunc('on_enter', [{
+    void this.callOptionalFunc('on_enter', [{
       bufnr,
       uri: doc.uri,
       languageId: doc.filetype
-    }]).logError()
+    }])
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {

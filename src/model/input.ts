@@ -4,7 +4,6 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { disposeAll } from '../util'
 import { omitUndefined } from '../util/object'
-const logger = require('../util/logger')('model-input')
 
 export interface InputPreference {
   position?: 'cursor' | 'center'

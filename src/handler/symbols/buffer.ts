@@ -7,6 +7,10 @@ import { DidChangeTextDocumentParams } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import { isDocumentSymbols } from './util'
+import { createLogger } from '../../logger'
+const logger = createLogger('symbols-buffer')
+
+const DEBEBOUNCE_INTERVAL = global.__TEST__ ? 10 : 500
 
 export default class SymbolsBuffer implements SyncItem {
   private disposables: Disposable[] = []
@@ -18,8 +22,10 @@ export default class SymbolsBuffer implements SyncItem {
   public readonly onDidUpdate: Event<DocumentSymbol[]> = this._onDidUpdate.event
   constructor(public readonly bufnr: number, private autoUpdateBufnrs: Set<number>) {
     this.fetchSymbols = debounce(() => {
-      this._fetchSymbols().logError()
-    }, global.__TEST__ ? 10 : 500)
+      this._fetchSymbols().catch(e => {
+        logger.error(e)
+      })
+    }, DEBEBOUNCE_INTERVAL)
   }
 
   /**

@@ -10,7 +10,6 @@ import { isFalsyOrEmpty } from '../util/array'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 const isVim = process.env.VIM_NODE_RPC == '1'
-const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
   width: number

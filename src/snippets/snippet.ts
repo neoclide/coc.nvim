@@ -8,7 +8,6 @@ import { getChangedPosition } from '../util/textedit'
 import { prepareMatchCode, preparePythonCodes, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
-const logger = require('../util/logger')('snippets-snipet')
 
 export interface CocSnippetPlaceholder {
   index: number | undefined

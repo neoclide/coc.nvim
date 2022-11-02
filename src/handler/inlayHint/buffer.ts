@@ -12,7 +12,6 @@ import { CancellationError } from '../../util/errors'
 import { positionInRange } from '../../util/position'
 import { byteIndex } from '../../util/string'
 import workspace from '../../workspace'
-const logger = require('../../util/logger')('inlayHint-buffer')
 
 export interface InlayHintConfig {
   enable: boolean

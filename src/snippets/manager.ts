@@ -12,7 +12,6 @@ import { UltiSnippetContext } from './eval'
 import { SnippetConfig, SnippetSession } from './session'
 import { normalizeSnippetString, shouldFormat } from './snippet'
 import { SnippetString } from './string'
-const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager {
   private sessionMap: Map<number, SnippetSession> = new Map()

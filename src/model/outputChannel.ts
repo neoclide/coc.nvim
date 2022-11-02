@@ -1,7 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { OutputChannel } from '../types'
-const logger = require('../util/logger')('outpubChannel')
 
 export default class BufferChannel implements OutputChannel {
   private lines: string[] = ['']
@@ -17,10 +16,7 @@ export default class BufferChannel implements OutputChannel {
 
   private _append(value: string): void {
     let { nvim } = this
-    if (!nvim) {
-      logger.info(`[${this.name} ${(new Date()).toLocaleTimeString()}] ${value}`)
-      return
-    }
+    if (!nvim) return
     let idx = this.lines.length - 1
     let newlines = value.split(/\r?\n/)
     let lastline = this.lines[idx] + newlines[0]

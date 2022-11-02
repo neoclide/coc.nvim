@@ -10,7 +10,8 @@ import { URL } from 'url'
 import { v1 as uuidv1 } from 'uuid'
 import { CancellationToken } from 'vscode-languageserver-protocol'
 import { FetchOptions, getRequestModule, resolveRequestOptions, toURL } from './fetch'
-const logger = require('../util/logger')('model-download')
+import { createLogger } from '../logger'
+const logger = createLogger('model-download')
 
 export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
   /**

@@ -8,7 +8,6 @@ import services from '../services'
 import { HandlerDelegate, LocationWithTarget, ProviderName } from '../types'
 import { hasOwnProperty } from '../util/object'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-hover')
 
 export interface TagDefinition {
   name: string

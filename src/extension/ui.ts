@@ -8,7 +8,6 @@ import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('extension-ui')
 
 export enum State {
   Waiting,

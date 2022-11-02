@@ -12,7 +12,6 @@ import { disposeAll } from '../util'
 import { isParentFolder } from '../util/fs'
 import { getAnnotationKey, getPositionFromEdits, mergeSortEdits } from '../util/textedit'
 import Highlighter from './highligher'
-const logger = require('../util/logger')('model-editInspect')
 
 export type RecoverFunc = () => Promise<any> | void
 

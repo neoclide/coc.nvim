@@ -4,7 +4,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { disposeAll } from '../util'
 import { DialogButton } from './dialog'
-const logger = require('../util/logger')('model-notification')
 
 export interface NotificationPreferences {
   disabled: boolean

@@ -6,7 +6,6 @@ import * as Is from '../util/is'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData, StaticFeature } from './features'
 import * as UUID from './utils/uuid'
-const logger = require('../util/logger')('languageclient-configuration')
 
 export interface ConfigurationMiddleware {
   configuration?: ConfigurationRequest.MiddlewareSignature

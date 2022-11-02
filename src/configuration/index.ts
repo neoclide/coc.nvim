@@ -20,7 +20,8 @@ import { convertProperties, Registry } from '../util/registry'
 import { Extensions, IConfigurationNode, allSettings, resourceSettings, IConfigurationRegistry } from './registry'
 import { IJSONSchema } from '../util/jsonSchema'
 import { IJSONContributionRegistry, Extensions as JSONExtensions } from '../util/jsonRegistry'
-const logger = require('../util/logger')('configurations')
+import { createLogger } from '../logger'
+const logger = createLogger('configurations')
 
 export const userSettingsSchemaId = 'vscode://schemas/settings/user'
 export const folderSettingsSchemaId = 'vscode://schemas/settings/folder'

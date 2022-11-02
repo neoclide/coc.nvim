@@ -4,8 +4,9 @@
  */
 import fs from 'fs'
 import path from 'path'
+import { createLogger } from '../logger'
 import { byteLength, byteSlice } from '../util/string'
-const logger = require('../util/logger')('list-db')
+const logger = createLogger('list-db')
 
 const DB_PATH = path.join(process.env.COC_DATA_HOME, 'list_history.dat')
 

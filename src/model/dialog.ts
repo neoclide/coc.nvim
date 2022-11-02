@@ -4,7 +4,6 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
-const logger = require('../util/logger')('model-dialog')
 
 export interface DialogButton {
   /**

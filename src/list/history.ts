@@ -1,10 +1,11 @@
 'use strict'
 import fs from 'fs'
 import path from 'path'
+import { createLogger } from '../logger'
 import { isFalsyOrEmpty } from '../util/array'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { DataBase } from './db'
-const logger = require('../util/logger')('list-history')
+const logger = createLogger('list-history')
 
 export default class InputHistory {
   private _index = -1

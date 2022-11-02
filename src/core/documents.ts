@@ -16,7 +16,8 @@ import { normalizeFilePath, readFile, readFileLine } from '../util/fs'
 import * as platform from '../util/platform'
 import { byteIndex } from '../util/string'
 import WorkspaceFolder from './workspaceFolder'
-const logger = require('../util/logger')('core-documents')
+import { createLogger } from '../logger'
+const logger = createLogger('core-documents')
 
 interface StateInfo {
   bufnr: number

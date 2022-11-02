@@ -8,7 +8,6 @@ import { disposeAll } from '../util'
 import { positionInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-links')
 
 const regex = /CocAction(Async)?\(["']openLink["']\)/
 export default class Links implements Disposable {

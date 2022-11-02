@@ -7,7 +7,6 @@ import window from '../window'
 import workspace from '../workspace'
 import CursorSession, { CursorsConfig } from './session'
 import { getVisualRanges, splitRange } from './util'
-const logger = require('../util/logger')('cursors')
 
 export type CursorPosition = [number, number, number, number]
 

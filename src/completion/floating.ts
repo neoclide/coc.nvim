@@ -1,12 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-languageserver-protocol'
+import { createLogger } from '../logger'
 import { parseDocuments } from '../markdown'
 import sources from '../sources'
 import { CompleteOption, Documentation, DurationCompleteItem, FloatConfig } from '../types'
 import { isCancellationError } from '../util/errors'
 import workspace from '../workspace'
-const logger = require('../util/logger')('completion-floating')
+const logger = createLogger('completion-floating')
 
 export default class Floating {
   private excludeImages = true

@@ -1,6 +1,7 @@
 'use strict'
 import { Logger } from 'vscode-languageserver-protocol'
-const logger = require('../../util/logger')('language-client')
+import { createLogger } from '../../logger'
+const logger = createLogger('language-client')
 
 export class ConsoleLogger implements Logger {
   public error(message: string): void {

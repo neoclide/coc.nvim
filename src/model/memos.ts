@@ -2,7 +2,6 @@
 import fs from 'fs'
 import { loadJson, writeJson } from '../util/fs'
 import { deepClone } from '../util/object'
-const logger = require('../util/logger')('model-memos')
 
 /**
  * A memento represents a storage utility. It can store and retrieve

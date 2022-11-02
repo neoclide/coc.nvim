@@ -10,7 +10,6 @@ import { isDark, toHexString } from '../../util/color'
 import { comparePosition, positionInRange } from '../../util/position'
 import window from '../../window'
 import workspace from '../../workspace'
-const logger = require('../../util/logger')('colors-buffer')
 const NAMESPACE = 'color'
 
 export interface ColorRanges {
@@ -36,7 +35,7 @@ export default class ColorBuffer implements SyncItem {
     private usedColors: Set<string>) {
     this.updateDocumentConfig()
     this.highlight = debounce(() => {
-      this.doHighlight().logError()
+      void this.doHighlight()
     }, global.__TEST__ ? 10 : 300)
     this.highlight()
   }

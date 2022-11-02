@@ -5,7 +5,8 @@ import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
 import { getCharIndexes } from '../util/string'
 import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode, prepareMatchCode, UltiSnippetContext } from './eval'
-const logger = require('../util/logger')('snippets-parser')
+import { createLogger } from '../logger'
+const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
 
 const knownRegexOptions = ['d', 'g', 'i', 'm', 's', 'u', 'y']

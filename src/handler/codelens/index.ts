@@ -6,7 +6,6 @@ import BufferSync from '../../model/bufferSync'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import CodeLensBuffer from './buffer'
-const logger = require('../../util/logger')('codelens')
 
 /**
  * Show codeLens of document, works on neovim only.

@@ -33,7 +33,8 @@ import { HandlerDelegate } from '../types'
 import { getSymbolKind } from '../util/convert'
 import LinkedEditingHandler from './linkedEditing'
 import InlayHintHandler from './inlayHint/index'
-const logger = require('../util/logger')('Handler')
+import { createLogger } from '../logger'
+const logger = createLogger('Handler')
 
 export interface CurrentState {
   doc: Document

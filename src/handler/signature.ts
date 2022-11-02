@@ -11,7 +11,6 @@ import { isMarkdown } from '../util/is'
 import { byteLength, byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-signature')
 
 interface SignatureConfig {
   wait: number

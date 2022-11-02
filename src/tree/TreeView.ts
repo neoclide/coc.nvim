@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event, MarkupContent, MarkupKind, Range } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import events from '../events'
+import { createLogger } from '../logger'
 import { toSpans } from '../model/fuzzyMatch'
 import { IConfigurationChangeEvent, Documentation, FloatFactory, HighlightItem, LocalMode } from '../types'
 import { disposeAll } from '../util'
@@ -15,7 +16,7 @@ import workspace from '../workspace'
 import Filter, { sessionKey } from './filter'
 import { LineState, TreeDataProvider, TreeItemData, TreeView, TreeViewExpansionEvent, TreeViewKeys, TreeViewOptions, TreeViewSelectionChangeEvent, TreeViewVisibilityChangeEvent } from './index'
 import { TreeItem, TreeItemCollapsibleState, TreeItemLabel } from './TreeItem'
-const logger = require('../util/logger')('BasicTreeView')
+const logger = createLogger('BasicTreeView')
 const highlightNamespace = 'tree'
 const signOffset = 3000
 let globalId = 1

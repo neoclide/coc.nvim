@@ -33,7 +33,6 @@ import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/ty
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import { ExtendedCodeAction, LocationWithTarget, ProviderName } from './types'
 import { disposeAll } from './util'
-const logger = require('./util/logger')('languages')
 
 class Languages {
   private readonly _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()

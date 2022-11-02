@@ -7,7 +7,6 @@ import { isParentFolder } from '../../util/fs'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
 import { ListManager } from '../manager'
 import LocationList from './location'
-const logger = require('../../util/logger')('list-symbols')
 
 export default class DiagnosticsList extends LocationList {
   public readonly defaultAction = 'open'

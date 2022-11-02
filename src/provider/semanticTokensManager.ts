@@ -4,7 +4,6 @@ import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, Semant
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentSemanticTokensProvider } from './index'
 import Manager from './manager'
-const logger = require('../util/logger')('semanticTokensManager')
 
 interface ProviderMeta {
   legend: SemanticTokensLegend

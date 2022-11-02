@@ -1,6 +1,5 @@
 'use strict'
 import { DurationCompleteItem } from '../types'
-const logger = require('../util/logger')('completion-mru')
 
 export type Selection = 'first' | 'recentlyUsed' | 'recentlyUsedByPrefix'
 

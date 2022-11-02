@@ -6,6 +6,7 @@ import util from 'util'
 import { Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extension'
+import { createLogger } from '../logger'
 import BufferSync from '../model/bufferSync'
 import { CompletionItemProvider } from '../provider'
 import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
@@ -19,7 +20,7 @@ import { KeywordsBuffer } from './keywords'
 import Source from './source'
 import LanguageSource from './source-language'
 import VimSource from './source-vim'
-const logger = require('../util/logger')('sources')
+const logger = createLogger('sources')
 
 interface InitialConfig {
   filetypes?: string[]
@@ -88,9 +89,15 @@ export class Sources {
 
   private createNativeSources(): void {
     this.sourceMap.set(this.wordsSource.name, this.wordsSource)
-    this.disposables.push((require('./native/around')).register(this.sourceMap, this.keywords))
-    this.disposables.push((require('./native/buffer')).register(this.sourceMap, this.keywords))
-    this.disposables.push((require('./native/file')).register(this.sourceMap))
+    void import('./native/around').then(module => {
+      module.register(this.sourceMap, this.keywords)
+    })
+    void import('./native/buffer').then(module => {
+      module.register(this.sourceMap, this.keywords)
+    })
+    void import('./native/file').then(module => {
+      module.register(this.sourceMap)
+    })
   }
 
   public createLanguageSource(

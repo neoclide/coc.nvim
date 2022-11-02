@@ -15,7 +15,8 @@ import { isFalsyOrEmpty, toArray } from './array'
 import { CancellationError } from './errors'
 import { toObject } from './object'
 import * as platform from './platform'
-const logger = require('./logger')('util-fs')
+import { createLogger } from '../logger'
+const logger = createLogger('util-fs')
 
 export type OnReadLine = (line: string) => void
 

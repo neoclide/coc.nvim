@@ -7,7 +7,6 @@ import languages from '../languages'
 import { InlayHintsProvider, ProviderResult } from '../provider'
 import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 import * as cv from './utils/converter'
-const logger = require('../util/logger')('language-client-inlayHint')
 
 export type ProvideInlayHintsSignature = (this: void, document: TextDocument, viewPort: Range, token: CancellationToken) => ProviderResult<InlayHint[]>
 export type ResolveInlayHintSignature = (this: void, item: InlayHint, token: CancellationToken) => ProviderResult<InlayHint>

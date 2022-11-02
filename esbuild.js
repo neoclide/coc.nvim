@@ -1,6 +1,4 @@
 const cp = require('child_process')
-const fs = require('fs')
-const path = require('path')
 let revision = 'master'
 if (process.env.NODE_ENV !== 'development') {
   try {
@@ -8,26 +6,6 @@ if (process.env.NODE_ENV !== 'development') {
     revision = res.replaceAll('"', '').replace(',', ' ')
   } catch (e) {
     // ignore
-  }
-}
-
-let envPlugin = {
-  name: 'env',
-  setup(build) {
-    build.onResolve({filter: /\/appenders$/}, args => {
-      let fullpath = path.join(args.resolveDir, args.path)
-      return {
-        path: path.relative(__dirname, fullpath).replace(/\\/g, '/'),
-        namespace: 'env-ns'
-      }
-    })
-    build.onLoad({filter: /^node_modules\/log4js\/lib\/appenders$/, namespace: 'env-ns'}, args => {
-      let content = fs.readFileSync(path.join(args.path, 'index.js'), 'utf8')
-      return {
-        contents: content.replace(/require\.main/g, '""'),
-        resolveDir: args.path
-      }
-    })
   }
 }
 
@@ -42,8 +20,7 @@ async function start(watch) {
     mainFields: ['module', 'main'],
     platform: 'node',
     target: 'node14.14',
-    outfile: 'build/index.js',
-    plugins: [envPlugin]
+    outfile: 'build/index.js'
   })
 }
 

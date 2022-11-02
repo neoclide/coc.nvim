@@ -3,7 +3,8 @@ import { Neovim } from '@chemzqm/neovim'
 import Notification, { NotificationPreferences } from './notification'
 import { CancellationToken, CancellationTokenSource, Event, Emitter } from 'vscode-languageserver-protocol'
 import events from '../events'
-const logger = require('../util/logger')('model-progress')
+import { createLogger } from '../logger'
+const logger = createLogger('model-progress')
 
 export interface Progress {
   report(value: { message?: string; increment?: number }): void

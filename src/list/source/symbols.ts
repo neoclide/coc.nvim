@@ -11,7 +11,6 @@ import { isParentFolder } from '../../util/fs'
 import { byteLength } from '../../util/string'
 import workspace from '../../workspace'
 import LocationList from './location'
-const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
   public readonly interactive = true

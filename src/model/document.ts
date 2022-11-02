@@ -16,7 +16,6 @@ import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
 import { isUrl } from '../util/is'
 import { Buffer as NodeBuffer } from 'buffer'
-const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
 

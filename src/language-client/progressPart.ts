@@ -2,7 +2,6 @@
 import { Disposable, NotificationHandler, ProgressToken, ProgressType, ProtocolNotificationType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressCancelNotification, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../util'
 import window from '../window'
-const logger = require('../util/logger')('language-client-progressPart')
 
 export interface Progress {
   report(value: { message?: string; increment?: number }): void

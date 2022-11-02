@@ -6,7 +6,6 @@ import { byteIndex, byteLength } from '../util/string'
 import stripAnsi from 'strip-ansi'
 import { HighlightItem, Documentation } from '../types'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
-const logger = require('../util/logger')('markdown-index')
 
 const ACTIVE_HL_GROUP = 'CocFloatActive'
 

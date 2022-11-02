@@ -5,7 +5,8 @@ import events from '../events'
 import Document from '../model/document'
 import Documents from './documents'
 import window from '../window'
-const logger = require('../util/logger')('core-editors')
+import { createLogger } from '../logger'
+const logger = createLogger('core-editors')
 
 interface EditorOption {
   bufnr: number

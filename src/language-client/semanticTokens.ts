@@ -8,7 +8,6 @@ import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, Pr
 import * as Is from '../util/is'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
-const logger = require('../util/logger')('languageclient-semanticTokens')
 
 export interface DocumentSemanticsTokensSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<SemanticTokens>

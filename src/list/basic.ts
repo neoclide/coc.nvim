@@ -10,7 +10,6 @@ import { comparePosition, emptyRange } from '../util/position'
 import workspace from '../workspace'
 import CommandTask, { CommandTaskOption } from './commandTask'
 import ListConfiguration from './configuration'
-const logger = require('../util/logger')('list-basic')
 
 interface ActionOptions {
   persist?: boolean

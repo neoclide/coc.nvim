@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, DurationCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
@@ -16,7 +17,7 @@ import Floating from './floating'
 import MruLoader from './mru'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
-const logger = require('../util/logger')('completion')
+const logger = createLogger('completion')
 const RESOLVE_TIMEOUT = global.__TEST__ ? 50 : 500
 const TRIGGER_TIMEOUT = global.__TEST__ ? 20 : 200
 

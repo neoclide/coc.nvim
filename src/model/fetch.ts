@@ -11,7 +11,8 @@ import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CancellationError } from '../util/errors'
 import { objectLiteral } from '../util/is'
 import workspace from '../workspace'
-const logger = require('../util/logger')('model-fetch')
+import { createLogger } from '../logger'
+const logger = createLogger('model-fetch')
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
 

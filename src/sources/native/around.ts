@@ -5,7 +5,6 @@ import { CompleteOption, CompleteResult, ISource } from '../../types'
 import { waitImmediate } from '../../util'
 import { KeywordsBuffer } from '../keywords'
 import Source from '../source'
-const logger = require('../../util/logger')('sources-around')
 
 export class Around extends Source {
   constructor(private keywords: BufferSync<KeywordsBuffer>) {

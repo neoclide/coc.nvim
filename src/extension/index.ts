@@ -16,8 +16,7 @@ import { IInstaller, Installer } from './installer'
 import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState } from './manager'
 import { checkExtensionRoot, ExtensionStat, loadExtensionJson } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
-
-const createLogger = require('../util/logger')
+import { createLogger } from '../logger'
 const logger = createLogger('extensions-index')
 
 export interface PropertyScheme {

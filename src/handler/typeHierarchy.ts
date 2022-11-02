@@ -14,7 +14,6 @@ import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('Handler-typeHierarchy')
 
 interface TypeHierarchyDataItem extends TypeHierarchyItem {
   children?: TypeHierarchyItem[]

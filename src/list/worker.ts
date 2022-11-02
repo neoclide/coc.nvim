@@ -1,6 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
+import { createLogger } from '../logger'
 import { FuzzyMatch } from '../model/fuzzyMatch'
 import { IList, ListContext, ListItem, ListItemsEvent, ListItemWithScore, ListOptions, ListTask } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
@@ -11,7 +12,7 @@ import { Mutex } from '../util/mutex'
 import { bytes, smartcaseIndex } from '../util/string'
 import workspace from '../workspace'
 import Prompt from './prompt'
-const logger = require('../util/logger')('list-worker')
+const logger = createLogger('list-worker')
 const controlCode = '\x1b'
 const WHITE_SPACE_CHARS = [32, 9]
 const SERCH_HL_GROUP = 'CocListSearch'

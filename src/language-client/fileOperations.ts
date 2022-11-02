@@ -7,7 +7,6 @@ import { getFileType } from '../util/fs'
 import workspace from '../workspace'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
-const logger = require('../util/logger')('language-client-fileOperations')
 
 function access<T, K extends keyof T>(target: T, key: K): T[K] {
   return target[key]

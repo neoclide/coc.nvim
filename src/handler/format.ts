@@ -5,6 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import commandManager from '../commands'
 import events from '../events'
 import languages from '../languages'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
 import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
@@ -12,7 +13,7 @@ import { isFalsyOrEmpty } from '../util/array'
 import { isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-format')
+const logger = createLogger('handler-format')
 
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -82,10 +83,10 @@ export default class FormatHandler {
     commandManager.titles.set('editor.action.formatDocument', 'Format Document')
   }
 
-  public shouldFormatOnSave(doc:TextDocument):boolean {
+  public shouldFormatOnSave(doc: TextDocument): boolean {
     let { languageId, uri } = doc
     // the document could be not current one.
-    let config = workspace.getConfiguration('coc.preferences', {uri, languageId})
+    let config = workspace.getConfiguration('coc.preferences', { uri, languageId })
     let filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
     let formatOnSave = config.get<boolean>('formatOnSave', false)
     if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(languageId)
@@ -104,7 +105,7 @@ export default class FormatHandler {
     }
   }
 
-  public shouldFormatOnType(filetype: string):boolean {
+  public shouldFormatOnType(filetype: string): boolean {
     const filetypes = this.preferences.formatOnTypeFiletypes
     return isFalsyOrEmpty(filetype) || filetypes.includes(filetype) || filetypes.includes('*')
   }

@@ -2,6 +2,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
+import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
@@ -12,7 +13,7 @@ import { wait, waitImmediate } from '../../util/index'
 import { byteIndex, upperFirst } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
-const logger = require('../../util/logger')('semanticTokens-buffer')
+const logger = createLogger('semanticTokens-buffer')
 const yieldEveryMilliseconds = 15
 
 export const HLGROUP_PREFIX = 'CocSem'

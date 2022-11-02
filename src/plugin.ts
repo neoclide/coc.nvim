@@ -17,7 +17,8 @@ import sources from './sources'
 import { disposeAll } from './util'
 import window from './window'
 import workspace, { Workspace } from './workspace'
-const logger = require('./util/logger')('plugin')
+import { createLogger } from './logger'
+const logger = createLogger('plugin')
 
 export default class Plugin extends EventEmitter {
   private _ready = false

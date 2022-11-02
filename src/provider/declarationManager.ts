@@ -5,7 +5,6 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LocationWithTarget } from '../types'
 import { DeclarationProvider } from './index'
 import Manager from './manager'
-const logger = require('../util/logger')('definitionManager')
 
 export default class DeclarationManager extends Manager<DeclarationProvider> {
 

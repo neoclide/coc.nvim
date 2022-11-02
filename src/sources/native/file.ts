@@ -10,7 +10,6 @@ import { isWindows } from '../../util/platform'
 import { byteSlice } from '../../util/string'
 import workspace from '../../workspace'
 import Source from '../source'
-const logger = require('../../util/logger')('sources-file')
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|[a-zA-Z]:|)(\/|\\+)(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-]+(\/|\\+))*(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-])*$/
 
 interface PathOption {

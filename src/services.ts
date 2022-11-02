@@ -7,12 +7,13 @@ import { CancellationToken, Disposable, DocumentSelector, Emitter, Event, Worksp
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
+import { createLogger } from './logger'
 import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import { toObject } from './util/object'
 import window from './window'
 import workspace from './workspace'
-const logger = require('./util/logger')('services')
+const logger = createLogger('services')
 
 interface ServiceInfo {
   id: string

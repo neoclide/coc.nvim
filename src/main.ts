@@ -6,7 +6,8 @@ Object.defineProperty(console, 'log', {
 })
 import './util/extensions'
 import attach from './attach'
-const logger = require('./util/logger')('server')
+import { createLogger } from './logger'
+const logger = createLogger('server')
 
 attach({ reader: process.stdin, writer: process.stdout })
 

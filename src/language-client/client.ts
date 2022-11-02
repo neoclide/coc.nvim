@@ -6,6 +6,7 @@ import { TextDocument } from "vscode-languageserver-textdocument"
 import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
+import { createLogger } from '../logger'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, MessageItem, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import { CancellationError } from '../util/errors'
@@ -54,7 +55,7 @@ import * as UUID from './utils/uuid'
 import { $WorkspaceOptions, WorkspaceFolderMiddleware, WorkspaceFoldersFeature } from './workspaceFolders'
 import { WorkspaceProviderFeature, WorkspaceSymbolFeature, WorkspaceSymbolMiddleware } from './workspaceSymbol'
 
-const logger = require('../util/logger')('language-client-client')
+const logger = createLogger('language-client-client')
 
 export { ErrorAction, CloseAction, NullLogger }
 

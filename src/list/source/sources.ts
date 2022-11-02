@@ -5,7 +5,6 @@ import { URI } from 'vscode-uri'
 import sources from '../../sources'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
-const logger = require('../../util/logger')('list-sources')
 
 export default class SourcesList extends BasicList {
   public readonly defaultAction = 'toggle'

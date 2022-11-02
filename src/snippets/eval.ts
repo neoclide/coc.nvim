@@ -4,7 +4,6 @@ import { Range } from '@chemzqm/neovim/lib/types'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 export type EvalKind = 'vim' | 'python' | 'shell'
-const logger = require('../util/logger')('snippets-eval')
 const isVim = process.env.VIM_NODE_RPC == '1'
 
 export interface UltiSnippetContext {

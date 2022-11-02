@@ -10,7 +10,7 @@ import window from '../window'
 import snippetManager from '../snippets/manager'
 import Highligher from '../model/highligher'
 import languages from '../languages'
-const logger = require('../util/logger')('handler-workspace')
+import { getLoggerFile } from '../logger'
 declare const REVISION
 
 export const PROVIDER_NAMES: ProviderName[] = [
@@ -57,7 +57,7 @@ export default class WorkspaceHandler {
   }
 
   public async openLog(): Promise<void> {
-    let file = logger.logfile
+    let file = getLoggerFile()
     await workspace.jumpTo(URI.file(file).toString())
   }
 
@@ -147,7 +147,7 @@ export default class WorkspaceHandler {
     lines.push('')
     lines.push('## Log of coc.nvim')
     lines.push('')
-    let file = logger.logfile
+    let file = getLoggerFile()
     if (fs.existsSync(file)) {
       let content = fs.readFileSync(file, { encoding: 'utf8' })
       lines.push(...content.split(/\r?\n/))

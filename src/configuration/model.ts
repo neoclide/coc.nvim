@@ -4,7 +4,6 @@ import { distinct } from '../util/array'
 import { objectLiteral } from '../util/is'
 import { deepClone, deepFreeze, equals } from '../util/object'
 import { addToValueTree, getConfigurationValue, removeFromValueTree } from './util'
-const logger = require('../util/logger')('configuration-model')
 
 export class ConfigurationModel implements IConfigurationModel {
 

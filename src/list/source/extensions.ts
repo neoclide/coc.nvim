@@ -8,10 +8,8 @@ import extensions from '../../extension'
 import { ListContext, ListItem } from '../../types'
 import { wait } from '../../util'
 import workspace from '../../workspace'
-import window from '../../window'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
-const logger = require('../../util/logger')('list-extensions')
 
 export default class ExtensionList extends BasicList {
   public defaultAction = 'toggle'

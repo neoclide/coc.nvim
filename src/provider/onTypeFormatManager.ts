@@ -5,7 +5,6 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import workspace from '../workspace'
 import { OnTypeFormattingEditProvider } from './index'
 import Manager from './manager'
-const logger = require('../util/logger')('onTypeFormatManager')
 
 export interface ProviderMeta {
   triggerCharacters: string[]

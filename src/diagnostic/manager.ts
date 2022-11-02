@@ -16,7 +16,6 @@ import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, severityLevel } from './util'
-const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticEventParams {
   bufnr: number

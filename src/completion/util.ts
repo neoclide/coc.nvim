@@ -11,7 +11,6 @@ import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { isCompletionItem } from '../util/is'
 import { toObject } from '../util/object'
 import { byteIndex, byteSlice, characterIndex, includeLineBreak, toText } from '../util/string'
-const logger = require('../util/logger')('completion-util')
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
 type OptionForWord = Pick<Readonly<CompleteOption>, 'line' | 'col' | 'position'>

@@ -4,7 +4,6 @@ import { ListMode } from '../types'
 import window from '../window'
 import ListConfiguration, { validKeys } from './configuration'
 import { ListManager } from './manager'
-const logger = require('../util/logger')('list-mappings')
 
 export default class Mappings {
   private insertMappings: Map<string, () => void | Promise<void>> = new Map()

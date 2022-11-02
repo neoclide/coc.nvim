@@ -9,7 +9,6 @@ import Document from '../../model/document'
 import { DidChangeTextDocumentParams } from '../../types'
 import window from '../../window'
 import workspace from '../../workspace'
-const logger = require('../../util/logger')('codelens-buffer')
 
 export interface CodeLensInfo {
   codeLenses: CodeLens[]

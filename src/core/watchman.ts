@@ -7,7 +7,8 @@ import { v1 as uuidv1 } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
 import { isParentFolder } from '../util/fs'
-const logger = require('../util/logger')('core-watchman')
+import { createLogger } from '../logger'
+const logger = createLogger('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
 export interface WatchResponse {
@@ -142,7 +143,6 @@ export default class Watchman {
     this._disposed = true
     if (this.client) {
       this.client.removeAllListeners()
-      this.client.end()
       this.client = undefined
     }
   }

@@ -8,7 +8,6 @@ import { disposeAll, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { caseMatch, fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import workspace from '../workspace'
-const logger = require('../util/logger')('sources-source')
 const WORD_PREFIXES = ['_', '$', '-']
 const WORD_PREFIXES_CODE = [95, 36, 45]
 const ASCII_END = 128

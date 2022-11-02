@@ -5,12 +5,13 @@ import { EventEmitter } from 'events'
 import path from 'path'
 import readline from 'readline'
 import { Range } from 'vscode-languageserver-types'
+import { createLogger } from '../../logger'
 import Highlighter from '../../model/highligher'
 import { ansiparse } from '../../util/ansiparse'
 import { Mutex } from '../../util/mutex'
 import window from '../../window'
 import RefactorBuffer, { FileItem, FileItemDef } from './buffer'
-const logger = require('../../util/logger')('handler-search')
+const logger = createLogger('handler-search')
 
 const defaultArgs = ['--color', 'ansi', '--colors', 'path:fg:black', '--colors', 'line:fg:green', '--colors', 'match:fg:red', '--no-messages', '--heading', '-n']
 const controlCode = '\x1b'

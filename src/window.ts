@@ -28,7 +28,6 @@ import { Mutex } from './util/mutex'
 import { equals } from './util/object'
 import { isWindows } from './util/platform'
 import { Workspace } from './workspace'
-const logger = require('./util/logger')('window')
 let tab_global_id = 3000
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 export type Item = QuickPickItem | string

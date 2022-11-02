@@ -9,7 +9,6 @@ import workspace from '../workspace'
 import { anyScore } from '../util/filter'
 import MruLoader, { Selection } from './mru'
 import { getKindHighlight, getKindText, getValidWord, highlightOffert } from './util'
-const logger = require('../util/logger')('completion-pum')
 
 export interface PumDimension {
   readonly height: number

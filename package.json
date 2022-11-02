@@ -104,7 +104,6 @@
     "http-proxy-agent": "^5.0.0",
     "https-proxy-agent": "^5.0.0",
     "jsonc-parser": "^3.0.0",
-    "log4js": "^6.4.0",
     "marked": "^4.0.12",
     "minimatch": "^5.1.0",
     "semver": "^7.3.2",

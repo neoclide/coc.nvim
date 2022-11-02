@@ -12,7 +12,6 @@ import { readFileLines } from '../util/fs'
 import { isMarkdown } from '../util/is'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-hover')
 
 export type HoverTarget = 'float' | 'preview' | 'echo'
 

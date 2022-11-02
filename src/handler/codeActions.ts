@@ -8,7 +8,6 @@ import Document from '../model/document'
 import { ExtendedCodeAction, HandlerDelegate } from '../types'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-codeActions')
 
 /**
  * Handle codeActions related methods.

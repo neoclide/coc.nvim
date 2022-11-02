@@ -12,7 +12,8 @@ import window from '../window'
 import workspace from '../workspace'
 import TextRange from './textRange'
 import { getBeforeCount, getChange, getDelta, SurrondChange, TextChange } from './util'
-const logger = require('../util/logger')('cursors-session')
+import { createLogger } from '../logger'
+const logger = createLogger('cursors-session')
 
 export interface CursorsConfig {
   cancelKey: string

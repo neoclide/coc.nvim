@@ -4,7 +4,8 @@ import { applyEdits, modify } from 'jsonc-parser'
 import path from 'path'
 import { WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-const logger = require('../util/logger')('configuration-shape')
+import { createLogger } from '../logger'
+const logger = createLogger('configuration-shape')
 
 interface IFolderController {
   root?: string

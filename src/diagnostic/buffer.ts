@@ -10,7 +10,6 @@ import { lineInRange, positionInRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
 import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, severityLevel, sortDiagnostics } from './util'
-const logger = require('../util/logger')('diagnostic-buffer')
 const signGroup = 'CocDiagnostic'
 const NAMESPACE = 'diagnostic'
 // higher priority first

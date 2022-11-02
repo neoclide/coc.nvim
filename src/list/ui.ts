@@ -8,7 +8,6 @@ import { disposeAll } from '../util'
 import { Sequence } from '../util/sequence'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
-const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
 

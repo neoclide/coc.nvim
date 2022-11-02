@@ -12,7 +12,8 @@ import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extens
 import { checkFolder, isParentFolder, resolveRoot } from '../util/fs'
 import { toObject } from '../util/object'
 import { Registry } from '../util/registry'
-const logger = require('../util/logger')('core-workspaceFolder')
+import { createLogger } from '../logger'
+const logger = createLogger('core-workspaceFolder')
 const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
 const checkPatternTimeout = global.__TEST__ ? 50 : 5000
 

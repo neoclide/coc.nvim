@@ -12,7 +12,6 @@ import { emptyRange, positionInRange, rangeAdjacent, rangeInRange, rangeIntersec
 import { characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('handler-linkedEditing')
 
 export default class LinkedEditingHandler {
   private changing = false
@@ -78,7 +77,6 @@ export default class LinkedEditingHandler {
         this.cancelEdit()
         return
       }
-      logger.debug('affected single range')
       // change textRange
       await this.applySingleEdit(affected[0], { range, newText: text })
     } else {

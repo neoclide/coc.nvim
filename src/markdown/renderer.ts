@@ -4,7 +4,6 @@
  */
 import Table from 'cli-table'
 import * as styles from './styles'
-const logger = require('../util/logger')('markdown-renderer')
 let TABLE_CELL_SPLIT = '^*||*^'
 let TABLE_ROW_WRAP = '*|*|*|*'
 let TABLE_ROW_WRAP_REGEXP = new RegExp(escapeRegExp(TABLE_ROW_WRAP), 'g')

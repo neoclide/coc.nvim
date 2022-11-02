@@ -13,7 +13,8 @@ import { isCompletionList } from '../util/is'
 import { isEmpty } from '../util/object'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
-const logger = require('../util/logger')('source-language')
+import { createLogger } from '../logger'
+const logger = createLogger('source-language')
 
 interface TriggerContext {
   line: string

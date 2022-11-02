@@ -8,7 +8,6 @@ import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
 import window from '../window'
 import workspace from '../workspace'
-const logger = require('../util/logger')('documentHighlight')
 
 interface HighlightConfig {
   priority: number

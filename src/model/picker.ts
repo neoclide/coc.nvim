@@ -7,7 +7,6 @@ import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
 import Popup from './popup'
-const logger = require('../util/logger')('model-dialog')
 const isVim = process.env.VIM_NODE_RPC == '1'
 
 interface PickerConfig {
@@ -204,11 +203,7 @@ export default class Picker {
   private async onInputChar(session: string, character: string): Promise<void> {
     if (session != 'picker' || !this.win) return
     let fn = this.keyMappings.get(character)
-    if (fn) {
-      await Promise.resolve(fn(character))
-    } else {
-      logger.warn(`Ignored key press: ${character}`)
-    }
+    if (fn) await Promise.resolve(fn(character))
   }
 
   private changeLine(index: number): void {

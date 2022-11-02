@@ -11,7 +11,6 @@ import { emptyWorkspaceEdit } from '../../util/textedit'
 import workspace from '../../workspace'
 import RefactorBuffer, { FileItemDef, FileRangeDef, RefactorConfig, SEPARATOR } from './buffer'
 import Search from './search'
-const logger = require('../../util/logger')('handler-refactor')
 
 const name = '__coc_refactor__'
 let refactorId = 0

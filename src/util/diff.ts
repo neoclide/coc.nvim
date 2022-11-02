@@ -2,7 +2,6 @@
 import fastDiff from 'fast-diff'
 import { Position, TextEdit, Range } from 'vscode-languageserver-types'
 import { byteLength } from './string'
-const logger = require('./logger')('util-diff')
 
 export interface ChangedLines {
   start: number

@@ -20,8 +20,6 @@ import { toText } from './util/string'
 import window from './window'
 import workspace from './workspace'
 
-const logger = require('./util/logger')('commands')
-
 // command center
 export interface Command {
   readonly id: string | string[]

@@ -4,7 +4,6 @@ import path from 'path'
 import stripAnsi from 'strip-ansi'
 import { statAsync } from '../util/fs'
 import { executable, runCommand } from '../util/processes'
-const logger = require('../util/logger')('model-resolver')
 
 export default class Resolver {
   private _npmFolder: string

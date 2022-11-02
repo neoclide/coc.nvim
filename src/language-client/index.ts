@@ -4,6 +4,7 @@ import cp from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
+import { createLogger } from '../logger'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { terminate } from '../util/processes'
@@ -11,7 +12,7 @@ import workspace from '../workspace'
 import { BaseLanguageClient, LanguageClientOptions, MessageTransports } from './client'
 import ChildProcess = cp.ChildProcess
 
-const logger = require('../util/logger')('language-client-index')
+const logger = createLogger('language-client-index')
 const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
 const debugEquals: string[] = ['--debug', '--debug-brk', '--inspect', '--inspect-brk']
 

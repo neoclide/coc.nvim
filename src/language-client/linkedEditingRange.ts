@@ -5,7 +5,6 @@ import languages from '../languages'
 import { LinkedEditingRangeProvider, ProviderResult } from '../provider'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
-const logger = require('../util/logger')('languageclient-linkedEditingRange')
 
 export interface ProvideLinkedEditingRangeSignature {
   (this: void, document: TextDocument, position: Position, token: CancellationToken): ProviderResult<LinkedEditingRanges>

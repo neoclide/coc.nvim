@@ -5,6 +5,7 @@ import path from 'path'
 import { Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
+import { createLogger } from '../../logger'
 import Document from '../../model/document'
 import Highlighter from '../../model/highligher'
 import { BufferSyncItem, DidChangeTextDocumentParams, Optional, TextDocumentContentChange } from '../../types'
@@ -19,7 +20,7 @@ import { getChangedLineCount, lineCountChange } from '../../util/textedit'
 import window from '../../window'
 import workspace from '../../workspace'
 import Changes, { LineInfo } from './changes'
-const logger = require('../../util/logger')('handler-refactorBuffer')
+const logger = createLogger('handler-refactorBuffer')
 
 export const SEPARATOR = '\u3000'
 

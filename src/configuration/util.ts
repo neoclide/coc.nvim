@@ -3,10 +3,11 @@ import { ParseError, printParseErrorCode } from 'jsonc-parser'
 import { Location, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationOverrides, IStringDictionary } from '../types'
+import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationOverrides } from '../types'
 import { distinct } from '../util/array'
-import { deepClone, equals, toObject } from '../util/object'
-const logger = require('../util/logger')('configuration-util')
+import { equals } from '../util/object'
+import { createLogger } from '../logger'
+const logger = createLogger('configuration-util')
 
 export type ShowError = (errors: ErrorItem[]) => void
 

@@ -3,10 +3,11 @@ import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
 import readline from 'readline'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { createLogger } from '../logger'
 import { ListItem, ListTask } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
-const logger = require('../util/logger')('list-commandTask')
+const logger = createLogger('list-commandTask')
 
 export interface CommandTaskOption {
   /**

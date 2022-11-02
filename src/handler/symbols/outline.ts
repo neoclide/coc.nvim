@@ -12,7 +12,6 @@ import { comparePosition, positionInRange } from '../../util/position'
 import window from '../../window'
 import workspace from '../../workspace'
 import SymbolsBuffer from './buffer'
-const logger = require('../../util/logger')('symbols-outline')
 
 // Support expand level.
 interface OutlineNode extends TreeNode {
@@ -41,11 +40,6 @@ interface OutlineConfig {
   previewHighlightGroup: string
   previewBorderHighlightGroup: string
   previewWinblend: number
-}
-
-interface PreviewInfo {
-  winid: number
-  bufnr: number
 }
 
 /**

@@ -4,7 +4,6 @@ import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams } from '../types'
 import { isGitIgnored } from '../util/fs'
-const logger = require('../util/logger')('sources-keywords')
 
 export class KeywordsBuffer implements SyncItem {
   private lineWords: ReadonlyArray<string>[] = []
