@@ -1658,7 +1658,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     SemanticTokensDeltaRequest.method
   ])
 
-  public handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: unknown, defaultValue: T): T {
+  public handleFailedRequest<T>(type: { method: string, [key: string]: any }, token: CancellationToken | undefined, error: unknown, defaultValue: T): T {
     if (token && token.isCancellationRequested) return defaultValue
     // If we get a request cancel or a content modified don't log anything.
     if (error instanceof ResponseError) {

@@ -10382,6 +10382,7 @@ declare module 'coc.nvim' {
      */
     workDoneToken?: ProgressToken
   }
+
   class RegistrationType<RO> {
     /**
      * Clients must not use this property. It is here to ensure correct typing.
@@ -10533,11 +10534,13 @@ declare module 'coc.nvim' {
     _$endMarker$_: number
   }
 
-  export class ProgressType<P> {
+  export class ProgressType<PR> {
     /**
-     * Clients must not use this property. It is here to ensure correct typing.
+     * Clients must not use these properties. They are here to ensure correct typing.
+     * in TypeScript
      */
-    readonly __?: [P, _EM]
+    readonly __?: [PR, _EM]
+    readonly _pr?: PR
     constructor()
   }
 
@@ -10545,6 +10548,52 @@ declare module 'coc.nvim' {
     Off = 0,
     Messages = 1,
     Verbose = 2
+  }
+
+  export class ProtocolRequestType0<R, PR, E, RO> extends RequestType0<R, E> implements ProgressType<PR>, RegistrationType<RO> {
+    /**
+     * Clients must not use these properties. They are here to ensure correct typing.
+     * in TypeScript
+     */
+    readonly ___: [PR, RO, _EM] | undefined
+    readonly ____: [RO, _EM] | undefined
+    readonly _pr: PR | undefined
+    constructor(method: string)
+  }
+
+  export class ProtocolRequestType<P, R, PR, E, RO> extends RequestType<P, R, E> implements ProgressType<PR>, RegistrationType<RO> {
+    /**
+     * Clients must not use this property. It is here to ensure correct typing.
+     */
+    readonly ___: [PR, RO, _EM] | undefined
+    readonly ____: [RO, _EM] | undefined
+    readonly _pr: PR | undefined
+    constructor(method: string)
+  }
+
+  export class ProtocolNotificationType0<RO> extends NotificationType0 implements RegistrationType<RO> {
+    /**
+     * Clients must not use this property. It is here to ensure correct typing.
+     */
+    readonly ___: [RO, _EM] | undefined
+    readonly ____: [RO, _EM] | undefined
+    constructor(method: string)
+  }
+  export class ProtocolNotificationType<P, RO> extends NotificationType<P> implements RegistrationType<RO> {
+    /**
+     * Clients must not use this property. It is here to ensure correct typing.
+     */
+    readonly ___: [RO, _EM] | undefined
+    readonly ____: [RO, _EM] | undefined
+    constructor(method: string)
+  }
+
+  export interface NotificationHandler0 {
+    (): void
+  }
+
+  export interface NotificationHandler<P> {
+    (params: P): void
   }
 
   /**
@@ -10562,6 +10611,9 @@ declare module 'coc.nvim' {
      * to services by `services.registerLanguageClient`
      */
     constructor(name: string, serverOptions: ServerOptions, clientOptions: LanguageClientOptions, forceDebug?: boolean)
+
+    sendRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, token?: CancellationToken): Promise<R>
+    sendRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, params: P, token?: CancellationToken): Promise<R>
     /**
      * R => result
      * E => Error result
@@ -10575,16 +10627,26 @@ declare module 'coc.nvim' {
     sendRequest<P, R, E>(type: RequestType<P, R, E>, params: P, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
     sendRequest<R>(method: string, param: any, token?: CancellationToken): Promise<R>
+
+    onRequest<R, PR, E, RO>(type: ProtocolRequestType0<R, PR, E, RO>, handler: RequestHandler0<R, E>): Disposable
+    onRequest<P, R, PR, E, RO>(type: ProtocolRequestType<P, R, PR, E, RO>, handler: RequestHandler<P, R, E>): Disposable
     onRequest<R, E>(type: RequestType0<R, E>, handler: RequestHandler0<R, E>): Disposable
     onRequest<P, R, E>(type: RequestType<P, R, E>, handler: RequestHandler<P, R, E>): Disposable
     onRequest<R, E>(method: string, handler: (...params: any[]) => HandlerResult<R, E>): Disposable
+
+    sendNotification<RO>(type: ProtocolNotificationType0<RO>): Promise<void>
+    sendNotification<P, RO>(type: ProtocolNotificationType<P, RO>, params?: P): Promise<void>
     sendNotification(type: NotificationType0): Promise<void>
     sendNotification<P>(type: NotificationType<P>, params?: P): Promise<void>
     sendNotification(method: string): Promise<void>
     sendNotification(method: string, params: any): Promise<void>
+
+    onNotification<RO>(type: ProtocolNotificationType0<RO>, handler: NotificationHandler0): Disposable
+    onNotification<P, RO>(type: ProtocolNotificationType<P, RO>, handler: NotificationHandler<P>): Disposable
     onNotification(type: NotificationType0, handler: () => void): Disposable
     onNotification<P>(type: NotificationType<P>, handler: (params: P) => void): Disposable
     onNotification(method: string, handler: (...params: any[]) => void): Disposable
+
     onProgress<P>(type: ProgressType<any>, token: string | number, handler: (params: P) => void): Disposable
     sendProgress<P>(type: ProgressType<P>, token: string | number, value: P): Promise<void>
 
@@ -10648,7 +10710,7 @@ declare module 'coc.nvim' {
     /**
      * Log failed request to outputChannel.
      */
-    handleFailedRequest<T>(type: MessageSignature, token: CancellationToken | undefined, error: any, defaultValue: T)
+    handleFailedRequest<T, P extends { kind: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T)
   }
 
   /**

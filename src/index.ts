@@ -54,6 +54,10 @@ import {
   UniquenessLevel,
   MonikerKind,
   DocumentDiagnosticReportKind,
+  ProtocolRequestType,
+  ProtocolRequestType0,
+  ProtocolNotificationType,
+  ProtocolNotificationType0
 } from 'vscode-languageserver-protocol'
 
 import { PatternType, SourceType, MessageLevel, ConfigurationUpdateTarget, ServiceStat, FileType, ProviderName } from './types'
@@ -89,6 +93,10 @@ module.exports = {
   RequestType0,
   NotificationType,
   NotificationType0,
+  ProtocolRequestType,
+  ProtocolRequestType0,
+  ProtocolNotificationType,
+  ProtocolNotificationType0,
   Highligher,
   Mru,
   Emitter,
