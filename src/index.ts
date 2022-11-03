@@ -56,7 +56,7 @@ import {
   DocumentDiagnosticReportKind,
 } from 'vscode-languageserver-protocol'
 
-import { PatternType, SourceType, MessageLevel, ConfigurationUpdateTarget, ServiceStat, FileType } from './types'
+import { PatternType, SourceType, MessageLevel, ConfigurationUpdateTarget, ServiceStat, FileType, ProviderName } from './types'
 import {
   State,
   NullLogger,
@@ -100,6 +100,7 @@ module.exports = {
   FloatFactory,
   RelativePattern,
   CancellationError,
+  ProviderName,
   DocumentDiagnosticReportKind,
   UniquenessLevel,
   MonikerKind,

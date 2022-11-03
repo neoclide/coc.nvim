@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import Format from '../../handler/format'
 import languages from '../../languages'
+import { ProviderName } from '../../types'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -146,7 +147,7 @@ describe('format handler', () => {
       let options = await workspace.getFormatOptions()
       let token = (new CancellationTokenSource()).token
       expect(await languages.provideDocumentRangeFormattingEdits(doc, range, options, token)).toBe(null)
-      expect(languages.hasProvider('onTypeEdit', doc)).toBe(false)
+      expect(languages.hasProvider(ProviderName.FormatOnType, doc)).toBe(false)
       let edits = await languages.provideDocumentFormattingEdits(doc, options, token)
       expect(edits).toBe(null)
     })
@@ -169,7 +170,7 @@ describe('format handler', () => {
       await nvim.command('normal! ggvG')
       await nvim.input('<esc>')
       expect(languages.hasFormatProvider(doc.textDocument)).toBe(true)
-      expect(languages.hasProvider('format', doc.textDocument)).toBe(true)
+      expect(languages.hasProvider(ProviderName.Format, doc.textDocument)).toBe(true)
       await helper.doAction('formatSelected', 'v')
       let buf = nvim.createBuffer(doc.bufnr)
       let lines = await buf.lines

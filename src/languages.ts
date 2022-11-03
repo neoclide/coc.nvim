@@ -449,61 +449,60 @@ class Languages {
 
   public hasProvider(id: ProviderName, document: TextDocument): boolean {
     switch (id) {
-      case 'formatOnType':
+      case ProviderName.OnTypeEdit:
+      case ProviderName.FormatOnType:
         return this.onTypeFormatManager.hasProvider(document)
-      case 'rename':
+      case ProviderName.Rename:
         return this.renameManager.hasProvider(document)
-      case 'onTypeEdit':
-        return this.onTypeFormatManager.hasProvider(document)
-      case 'documentLink':
+      case ProviderName.DocumentLink:
         return this.documentLinkManager.hasProvider(document)
-      case 'documentColor':
+      case ProviderName.DocumentColor:
         return this.documentColorManager.hasProvider(document)
-      case 'foldingRange':
+      case ProviderName.FoldingRange:
         return this.foldingRangeManager.hasProvider(document)
-      case 'format':
+      case ProviderName.Format:
         return this.formatManager.hasProvider(document) || this.formatRangeManager.hasProvider(document)
-      case 'codeAction':
+      case ProviderName.CodeAction:
         return this.codeActionManager.hasProvider(document)
-      case 'workspaceSymbols':
+      case ProviderName.WorkspaceSymbols:
         return this.workspaceSymbolsManager.hasProvider()
-      case 'formatRange':
+      case ProviderName.FormatRange:
         return this.formatRangeManager.hasProvider(document)
-      case 'hover':
+      case ProviderName.Hover:
         return this.hoverManager.hasProvider(document)
-      case 'signature':
+      case ProviderName.Signature:
         return this.signatureManager.hasProvider(document)
-      case 'documentSymbol':
+      case ProviderName.DocumentSymbol:
         return this.documentSymbolManager.hasProvider(document)
-      case 'documentHighlight':
+      case ProviderName.DocumentHighlight:
         return this.documentHighlightManager.hasProvider(document)
-      case 'definition':
+      case ProviderName.Definition:
         return this.definitionManager.hasProvider(document)
-      case 'declaration':
+      case ProviderName.Declaration:
         return this.declarationManager.hasProvider(document)
-      case 'typeDefinition':
+      case ProviderName.TypeDefinition:
         return this.typeDefinitionManager.hasProvider(document)
-      case 'reference':
+      case ProviderName.Reference:
         return this.referenceManager.hasProvider(document)
-      case 'implementation':
+      case ProviderName.Implementation:
         return this.implementationManager.hasProvider(document)
-      case 'codeLens':
+      case ProviderName.CodeLens:
         return this.codeLensManager.hasProvider(document)
-      case 'selectionRange':
+      case ProviderName.SelectionRange:
         return this.selectionRangeManager.hasProvider(document)
-      case 'callHierarchy':
+      case ProviderName.CallHierarchy:
         return this.callHierarchyManager.hasProvider(document)
-      case 'semanticTokens':
+      case ProviderName.SemanticTokens:
         return this.semanticTokensManager.hasProvider(document)
-      case 'semanticTokensRange':
+      case ProviderName.SemanticTokensRange:
         return this.semanticTokensRangeManager.hasProvider(document)
-      case 'linkedEditing':
+      case ProviderName.LinkedEditing:
         return this.linkedEditingManager.hasProvider(document)
-      case 'inlayHint':
+      case ProviderName.InlayHint:
         return this.inlayHintManager.hasProvider(document)
-      case 'inlineValue':
+      case ProviderName.InlineValue:
         return this.inlineValueManager.hasProvider(document)
-      case 'typeHierarchy':
+      case ProviderName.TypeHierarchy:
         return this.typeHierarchyManager.hasProvider(document)
       default:
         throw new Error(`Invalid provider name: ${String(id)}`)

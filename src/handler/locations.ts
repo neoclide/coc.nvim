@@ -23,7 +23,7 @@ export default class LocationsHandler {
 
   private async request<T>(method: ProviderName, fn: RequestFunc<T>): Promise<T | null> {
     let { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier(method, doc.textDocument)
+    this.handler.checkProvider(method, doc.textDocument)
     await doc.synchronize()
     return await this.handler.withRequestToken(method, token => {
       return fn(doc.textDocument, position, token)
@@ -32,7 +32,7 @@ export default class LocationsHandler {
 
   public async definitions(): Promise<Location[]> {
     const { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('definition', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Definition, doc.textDocument)
     await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getDefinition(doc.textDocument, position, tokenSource.token)
@@ -40,7 +40,7 @@ export default class LocationsHandler {
 
   public async declarations(): Promise<Location | Location[] | LocationLink[]> {
     const { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('declaration', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Declaration, doc.textDocument)
     await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getDeclaration(doc.textDocument, position, tokenSource.token)
@@ -48,7 +48,7 @@ export default class LocationsHandler {
 
   public async typeDefinitions(): Promise<Location[]> {
     const { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('typeDefinition', doc.textDocument)
+    this.handler.checkProvider(ProviderName.TypeDefinition, doc.textDocument)
     await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getTypeDefinition(doc.textDocument, position, tokenSource.token)
@@ -56,7 +56,7 @@ export default class LocationsHandler {
 
   public async implementations(): Promise<Location[]> {
     const { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('implementation', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Implementation, doc.textDocument)
     await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getImplementation(doc.textDocument, position, tokenSource.token)
@@ -64,14 +64,14 @@ export default class LocationsHandler {
 
   public async references(excludeDeclaration?: boolean): Promise<Location[]> {
     const { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('reference', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Reference, doc.textDocument)
     await doc.synchronize()
     const tokenSource = new CancellationTokenSource()
     return languages.getReferences(doc.textDocument, { includeDeclaration: !excludeDeclaration }, position, tokenSource.token)
   }
 
   public async gotoDefinition(openCommand?: string | false): Promise<boolean> {
-    let definition = await this.request('definition', (doc, position, token) => {
+    let definition = await this.request(ProviderName.Definition, (doc, position, token) => {
       return languages.getDefinition(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
@@ -79,7 +79,7 @@ export default class LocationsHandler {
   }
 
   public async gotoDeclaration(openCommand?: string | false): Promise<boolean> {
-    let definition = await this.request('declaration', (doc, position, token) => {
+    let definition = await this.request(ProviderName.Declaration, (doc, position, token) => {
       return languages.getDeclaration(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
@@ -87,7 +87,7 @@ export default class LocationsHandler {
   }
 
   public async gotoTypeDefinition(openCommand?: string | false): Promise<boolean> {
-    let definition = await this.request('typeDefinition', (doc, position, token) => {
+    let definition = await this.request(ProviderName.TypeDefinition, (doc, position, token) => {
       return languages.getTypeDefinition(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
@@ -95,7 +95,7 @@ export default class LocationsHandler {
   }
 
   public async gotoImplementation(openCommand?: string | false): Promise<boolean> {
-    let definition = await this.request('implementation', (doc, position, token) => {
+    let definition = await this.request(ProviderName.Implementation, (doc, position, token) => {
       return languages.getImplementation(doc, position, token)
     })
     await this.handleLocations(definition, openCommand)
@@ -103,7 +103,7 @@ export default class LocationsHandler {
   }
 
   public async gotoReferences(openCommand?: string | false, includeDeclaration = true): Promise<boolean> {
-    let definition = await this.request('reference', (doc, position, token) => {
+    let definition = await this.request(ProviderName.Reference, (doc, position, token) => {
       return languages.getReferences(doc, { includeDeclaration }, position, token)
     })
     await this.handleLocations(definition, openCommand)
@@ -114,7 +114,7 @@ export default class LocationsHandler {
     let { doc, position } = await this.handler.getCurrentState()
     let word = await this.nvim.call('expand', '<cword>') as string
     if (!word) return null
-    if (!languages.hasProvider('definition', doc.textDocument)) return null
+    if (!languages.hasProvider(ProviderName.Definition, doc.textDocument)) return null
     let tokenSource = new CancellationTokenSource()
     let definitions = await languages.getDefinition(doc.textDocument, position, tokenSource.token)
     if (!definitions || !definitions.length) return null

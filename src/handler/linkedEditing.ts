@@ -7,7 +7,7 @@ import { getBeforeCount, getChange, getDelta } from '../cursors/util'
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams, HandlerDelegate } from '../types'
+import { DidChangeTextDocumentParams, HandlerDelegate, ProviderName } from '../types'
 import { emptyRange, positionInRange, rangeAdjacent, rangeInRange, rangeIntersect } from '../util/position'
 import { characterIndex } from '../util/string'
 import window from '../window'
@@ -122,7 +122,7 @@ export default class LinkedEditingHandler {
     let doc = workspace.getDocument(bufnr)
     let config = workspace.getConfiguration('coc.preferences', doc)
     let enabled = config.get<boolean>('enableLinkedEditing', false)
-    if (!enabled || !languages.hasProvider('linkedEditing', doc.textDocument)) return
+    if (!enabled || !languages.hasProvider(ProviderName.LinkedEditing, doc.textDocument)) return
     let character = characterIndex(doc.getline(cursor[0] - 1), cursor[1] - 1)
     let position = Position.create(cursor[0] - 1, character)
     if (this.ranges) {

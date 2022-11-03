@@ -5,7 +5,7 @@ import { CancellationTokenSource, Disposable, MarkupContent, Position, Signature
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import { isMarkdown } from '../util/is'
 import { byteLength, byteSlice } from '../util/string'
@@ -99,7 +99,7 @@ export default class Signature {
 
   public async triggerSignatureHelp(): Promise<boolean> {
     let { doc, position } = await this.handler.getCurrentState()
-    if (!languages.hasProvider('signature', doc.textDocument)) return false
+    if (!languages.hasProvider(ProviderName.Signature, doc.textDocument)) return false
     return await this._triggerSignatureHelp(doc, position, true, 0)
   }
 

@@ -5,7 +5,7 @@ import { CancellationTokenSource, Color, ColorInformation, Position, Range } fro
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
-import { HighlightItem } from '../../types'
+import { HighlightItem, ProviderName } from '../../types'
 import { isDark, toHexString } from '../../util/color'
 import { comparePosition, positionInRange } from '../../util/position'
 import window from '../../window'
@@ -55,7 +55,7 @@ export default class ColorBuffer implements SyncItem {
   public get enabled(): boolean {
     let { filetypes } = this.config
     let { textDocument, filetype } = this.doc
-    if (!languages.hasProvider('documentColor', textDocument)) return false
+    if (!languages.hasProvider(ProviderName.DocumentColor, textDocument)) return false
     if (filetypes.includes('*') || this.enable) return true
     return filetypes.includes(filetype)
   }

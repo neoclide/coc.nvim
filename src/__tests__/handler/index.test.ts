@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Handler from '../../handler/index'
+import { ProviderName } from '../../types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -39,7 +40,7 @@ describe('Handler', () => {
       let doc = await helper.createDocument()
       let err
       try {
-        handler.checkProvier('definition', doc.textDocument)
+        handler.checkProvider(ProviderName.Definition, doc.textDocument)
       } catch (e) {
         err = e
       }

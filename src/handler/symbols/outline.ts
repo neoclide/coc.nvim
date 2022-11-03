@@ -6,7 +6,7 @@ import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import BasicTreeView from '../../tree/TreeView'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../../types'
+import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../../types'
 import { disposeAll } from '../../util'
 import { comparePosition, positionInRange } from '../../util/position'
 import window from '../../window'
@@ -177,7 +177,7 @@ export default class SymbolsOutline {
         let buf = this.buffers.getItem(bufnr)
         if (!buf) throw new Error('Document not attached')
         let doc = workspace.getDocument(bufnr)
-        if (!languages.hasProvider('documentSymbol', doc.textDocument)) {
+        if (!languages.hasProvider(ProviderName.DocumentSymbol, doc.textDocument)) {
           throw new Error('Document symbol provider not found')
         }
         let meta = languages.getDocumentSymbolMetadata(doc.textDocument)

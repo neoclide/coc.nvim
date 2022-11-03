@@ -7,6 +7,7 @@ import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
+import { ProviderName } from '../../types'
 import { delay } from '../../util'
 import { CancellationError } from '../../util/errors'
 import { positionInRange } from '../../util/position'
@@ -98,7 +99,7 @@ export default class InlayHintBuffer implements SyncItem {
   public get enabled(): boolean {
     if (!this.config.display) return false
     if (!this.configEnabled) return false
-    return languages.hasProvider('inlayHint', this.doc.textDocument)
+    return languages.hasProvider(ProviderName.InlayHint, this.doc.textDocument)
   }
 
   public get configEnabled(): boolean {
@@ -108,7 +109,7 @@ export default class InlayHintBuffer implements SyncItem {
   }
 
   public toggle(): void {
-    if (!languages.hasProvider('inlayHint', this.doc.textDocument)) throw new Error('Inlay hint provider not found for current document')
+    if (!languages.hasProvider(ProviderName.InlayHint, this.doc.textDocument)) throw new Error('Inlay hint provider not found for current document')
     if (!this.configEnabled) throw new Error(`Filetype "${this.doc.filetype}" not enabled by inlayHint configuration`)
     if (this.config.display) {
       this.config.display = false

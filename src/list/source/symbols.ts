@@ -5,7 +5,7 @@ import { CancellationToken, CancellationTokenSource, Location, Range, SymbolInfo
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
-import { AnsiHighlight, ListContext, ListItem, LocationWithTarget } from '../../types'
+import { AnsiHighlight, ListContext, ListItem, LocationWithTarget, ProviderName } from '../../types'
 import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
 import { byteLength } from '../../util/string'
@@ -31,7 +31,7 @@ export default class Symbols extends LocationList {
     if (!context.options.interactive) {
       throw new Error('Symbols only works on interactive mode')
     }
-    if (!languages.hasProvider('workspaceSymbols', TextDocument.create('file:///1', '', 1, ''))) {
+    if (!languages.hasProvider(ProviderName.WorkspaceSymbols, TextDocument.create('file:///1', '', 1, ''))) {
       throw new Error('No workspace symbols provider registered')
     }
     let symbols = await languages.getWorkspaceSymbols(input, token)

@@ -5,7 +5,7 @@ import { CancellationTokenSource, DefinitionLink, Disposable, Hover, MarkedStrin
 import { URI } from 'vscode-uri'
 import languages from '../languages'
 import { TextDocumentContentProvider } from '../provider'
-import { Documentation, FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { Documentation, FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { readFileLines } from '../util/fs'
@@ -79,7 +79,7 @@ export default class HoverHandler {
   public async onHover(hoverTarget?: HoverTarget): Promise<boolean> {
     let { doc, position, winid } = await this.handler.getCurrentState()
     if (hoverTarget == 'preview') this.registerProvider()
-    this.handler.checkProvier('hover', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Hover, doc.textDocument)
     await doc.synchronize()
     let hovers = await this.handler.withRequestToken('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
@@ -101,7 +101,7 @@ export default class HoverHandler {
   public async definitionHover(hoverTarget: HoverTarget): Promise<boolean> {
     const { doc, position, winid } = await this.handler.getCurrentState()
     if (hoverTarget == 'preview') this.registerProvider()
-    this.handler.checkProvier('hover', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Hover, doc.textDocument)
     await doc.synchronize()
     const hovers: (Hover | Documentation)[] = await this.handler.withRequestToken('hover', token => {
       return languages.getHover(doc.textDocument, position, token)
@@ -177,7 +177,7 @@ export default class HoverHandler {
   public async getHover(): Promise<string[]> {
     let result: string[] = []
     let { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('hover', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Hover, doc.textDocument)
     await doc.synchronize()
     let tokenSource = new CancellationTokenSource()
     let hovers = await languages.getHover(doc.textDocument, position, tokenSource.token)

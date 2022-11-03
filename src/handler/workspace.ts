@@ -11,37 +11,8 @@ import snippetManager from '../snippets/manager'
 import Highligher from '../model/highligher'
 import languages from '../languages'
 import { getLoggerFile } from '../logger'
+import stripAnsi from 'strip-ansi'
 declare const REVISION
-
-export const PROVIDER_NAMES: ProviderName[] = [
-  'formatOnType',
-  'rename',
-  'onTypeEdit',
-  'documentLink',
-  'documentColor',
-  'foldingRange',
-  'format',
-  'codeAction',
-  'formatRange',
-  'hover',
-  'signature',
-  'documentSymbol',
-  'documentHighlight',
-  'definition',
-  'declaration',
-  'typeDefinition',
-  'reference',
-  'implementation',
-  'codeLens',
-  'selectionRange',
-  'callHierarchy',
-  'semanticTokens',
-  'semanticTokensRange',
-  'linkedEditing',
-  'inlayHint',
-  'inlineValue',
-  'typeHierarchy',
-]
 
 interface RootPatterns {
   buffer: ReadonlyArray<string>
@@ -74,8 +45,9 @@ export default class WorkspaceHandler {
     let hi = new Highligher()
     hi.addLine('Provider state', 'Title')
     hi.addLine('')
-    for (let name of PROVIDER_NAMES) {
-      let exists = languages.hasProvider(name as ProviderName, doc.textDocument)
+    for (let name of Object.values(ProviderName)) {
+      if (name === ProviderName.OnTypeEdit) continue
+      let exists = languages.hasProvider(name, doc.textDocument)
       hi.addTexts([
         { text: '-', hlGroup: 'Comment' },
         { text: ' ' },
@@ -150,7 +122,7 @@ export default class WorkspaceHandler {
     let file = getLoggerFile()
     if (fs.existsSync(file)) {
       let content = fs.readFileSync(file, { encoding: 'utf8' })
-      lines.push(...content.split(/\r?\n/))
+      lines.push(...content.split(/\r?\n/).map(line => stripAnsi(line)))
     }
     await this.nvim.command('vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted')
     let buf = await this.nvim.buffer

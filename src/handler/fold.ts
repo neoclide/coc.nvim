@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FoldingRangeKind } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { HandlerDelegate } from '../types'
+import { HandlerDelegate, ProviderName } from '../types'
 
 export default class FoldHandler {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
@@ -10,7 +10,7 @@ export default class FoldHandler {
 
   public async fold(kind?: FoldingRangeKind): Promise<boolean> {
     let { doc, winid } = await this.handler.getCurrentState()
-    this.handler.checkProvier('foldingRange', doc.textDocument)
+    this.handler.checkProvider(ProviderName.FoldingRange, doc.textDocument)
     await doc.synchronize()
     let win = this.nvim.createWindow(winid)
     let foldlevel = await this.nvim.eval('&foldlevel') as number

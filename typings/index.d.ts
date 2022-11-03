@@ -3818,12 +3818,36 @@ declare module 'coc.nvim' {
   /**
    * Supported provider names.
    */
-  export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentColor'
-    | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange' | 'formatOnType'
-    | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
-    | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
-    | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
-    | 'inlayHint' | 'inlineValue' | 'typeHierarchy'
+  export enum ProviderName {
+    FormatOnType = 'formatOnType',
+    Rename = 'rename',
+    OnTypeEdit = 'onTypeEdit',
+    DocumentLink = 'documentLink',
+    DocumentColor = 'documentColor',
+    FoldingRange = 'foldingRange',
+    Format = 'format',
+    CodeAction = 'codeAction',
+    FormatRange = 'formatRange',
+    Hover = 'hover',
+    Signature = 'signature',
+    WorkspaceSymbols = 'workspaceSymbols',
+    DocumentSymbol = 'documentSymbol',
+    DocumentHighlight = 'documentHighlight',
+    Definition = 'definition',
+    Declaration = 'declaration',
+    TypeDefinition = 'typeDefinition',
+    Reference = 'reference',
+    Implementation = 'implementation',
+    CodeLens = 'codeLens',
+    SelectionRange = 'selectionRange',
+    CallHierarchy = 'callHierarchy',
+    SemanticTokens = 'semanticTokens',
+    SemanticTokensRange = 'semanticTokensRange',
+    LinkedEditing = 'linkedEditing',
+    InlayHint = 'inlayHint',
+    InlineValue = 'inlineValue',
+    TypeHierarchy = 'typeHierarchy'
+  }
 
   /**
    * The completion item provider interface defines the contract between extensions and

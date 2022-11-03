@@ -6,7 +6,7 @@ import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
-import { HighlightItem } from '../../types'
+import { HighlightItem, ProviderName } from '../../types'
 import { delay } from '../../util'
 import { CancellationError } from '../../util/errors'
 import { wait, waitImmediate } from '../../util/index'
@@ -132,7 +132,7 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public get hasProvider(): boolean {
     let { textDocument } = this.doc
-    return languages.hasProvider('semanticTokens', textDocument) || languages.hasProvider('semanticTokensRange', textDocument)
+    return languages.hasProvider(ProviderName.SemanticTokens, textDocument) || languages.hasProvider(ProviderName.SemanticTokensRange, textDocument)
   }
 
   private get hasLegend(): boolean {
@@ -142,12 +142,12 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public get rangeProviderOnly(): boolean {
     let { textDocument } = this.doc
-    return !languages.hasProvider('semanticTokens', textDocument) && languages.hasProvider('semanticTokensRange', textDocument)
+    return !languages.hasProvider(ProviderName.SemanticTokens, textDocument) && languages.hasProvider(ProviderName.SemanticTokensRange, textDocument)
   }
 
   public get shouldRangeHighlight(): boolean {
     let { textDocument } = this.doc
-    return languages.hasProvider('semanticTokensRange', textDocument) && this.previousResults == null
+    return languages.hasProvider(ProviderName.SemanticTokensRange, textDocument) && this.previousResults == null
   }
 
   private get lineCount(): number {

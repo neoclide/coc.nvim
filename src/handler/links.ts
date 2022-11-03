@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import languages from '../languages'
-import { IConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate } from '../types'
+import { IConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import { positionInRange } from '../util/position'
 import window from '../window'
@@ -52,7 +52,7 @@ export default class Links implements Disposable {
 
   public async getLinks(): Promise<DocumentLink[]> {
     let { doc } = await this.handler.getCurrentState()
-    if (!languages.hasProvider('documentLink', doc.textDocument)) return []
+    if (!languages.hasProvider(ProviderName.DocumentLink, doc.textDocument)) return []
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let links = await languages.getDocumentLinks(doc.textDocument, tokenSource.token)
     return tokenSource.token.isCancellationRequested ? [] : links

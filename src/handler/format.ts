@@ -8,7 +8,7 @@ import languages from '../languages'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { isWord } from '../util/string'
 import window from '../window'
@@ -115,7 +115,7 @@ export default class FormatHandler {
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached || !this.shouldFormatOnType(doc.filetype)) return
-    if (!languages.hasProvider('formatOnType', doc.textDocument)) {
+    if (!languages.hasProvider(ProviderName.FormatOnType, doc.textDocument)) {
       logger.warn(`Format on type provider not found for buffer: ${doc.uri}`)
       return
     }
@@ -196,7 +196,7 @@ export default class FormatHandler {
   }
 
   public async documentRangeFormat(doc: Document, mode?: string): Promise<number> {
-    this.handler.checkProvier('formatRange', doc.textDocument)
+    this.handler.checkProvider(ProviderName.FormatRange, doc.textDocument)
     await doc.synchronize()
     let range: Range
     if (mode) {

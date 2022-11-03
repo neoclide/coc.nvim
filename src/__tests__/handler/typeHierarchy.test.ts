@@ -7,6 +7,7 @@ import { addChildren } from '../../tree/LocationsDataProvider'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
+import { ProviderName } from '../../types'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -47,7 +48,7 @@ describe('TypeHierarchy', () => {
   describe('TypeHierarchyManager', () => {
     it('should return false when provider not exists', async () => {
       let doc = await workspace.document
-      let res = languages.hasProvider('typeHierarchy', doc.textDocument)
+      let res = languages.hasProvider(ProviderName.TypeHierarchy, doc.textDocument)
       expect(res).toBe(false)
     })
 

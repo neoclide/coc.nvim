@@ -6,7 +6,7 @@ import commandManager from '../../commands'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
-import { DidChangeTextDocumentParams } from '../../types'
+import { DidChangeTextDocumentParams, ProviderName } from '../../types'
 import window from '../../window'
 import workspace from '../../workspace'
 
@@ -79,7 +79,7 @@ export default class CodeLensBuffer implements SyncItem {
 
   private get enabled(): boolean {
     if (!this.document?.attached) return false
-    return this.config.enabled && languages.hasProvider('codeLens', this.document.textDocument)
+    return this.config.enabled && languages.hasProvider(ProviderName.CodeLens, this.document.textDocument)
   }
 
   public async forceFetch(): Promise<void> {

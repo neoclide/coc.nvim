@@ -73,12 +73,36 @@ export interface VirtualTextOption {
   text_wrap?: 'wrap' | 'truncate'
 }
 
-export type ProviderName = 'rename' | 'onTypeEdit' | 'documentLink' | 'documentColor'
-  | 'foldingRange' | 'format' | 'codeAction' | 'workspaceSymbols' | 'formatRange' | 'formatOnType'
-  | 'hover' | 'signature' | 'documentSymbol' | 'documentHighlight' | 'definition'
-  | 'declaration' | 'typeDefinition' | 'reference' | 'implementation'
-  | 'codeLens' | 'selectionRange' | 'callHierarchy' | 'semanticTokens' | 'linkedEditing'
-  | 'inlayHint' | 'inlineValue' | 'typeHierarchy' | 'semanticTokensRange'
+export enum ProviderName {
+  FormatOnType = 'formatOnType',
+  Rename = 'rename',
+  OnTypeEdit = 'onTypeEdit',
+  DocumentLink = 'documentLink',
+  DocumentColor = 'documentColor',
+  FoldingRange = 'foldingRange',
+  Format = 'format',
+  CodeAction = 'codeAction',
+  FormatRange = 'formatRange',
+  Hover = 'hover',
+  Signature = 'signature',
+  WorkspaceSymbols = 'workspaceSymbols',
+  DocumentSymbol = 'documentSymbol',
+  DocumentHighlight = 'documentHighlight',
+  Definition = 'definition',
+  Declaration = 'declaration',
+  TypeDefinition = 'typeDefinition',
+  Reference = 'reference',
+  Implementation = 'implementation',
+  CodeLens = 'codeLens',
+  SelectionRange = 'selectionRange',
+  CallHierarchy = 'callHierarchy',
+  SemanticTokens = 'semanticTokens',
+  SemanticTokensRange = 'semanticTokensRange',
+  LinkedEditing = 'linkedEditing',
+  InlayHint = 'inlayHint',
+  InlineValue = 'inlineValue',
+  TypeHierarchy = 'typeHierarchy'
+}
 
 export type LocalMode = 'n' | 'v' | 's' | 'x'
 
@@ -109,7 +133,7 @@ export interface BufferOption {
 
 export interface HandlerDelegate {
   uri: string | undefined
-  checkProvier: (id: ProviderName, document: TextDocument) => void
+  checkProvider: (id: ProviderName, document: TextDocument) => void
   withRequestToken: <T> (name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean) => Promise<T>
   getCurrentState: () => Promise<CurrentState>
   addDisposable: (disposable: Disposable) => void

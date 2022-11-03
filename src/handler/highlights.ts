@@ -4,7 +4,7 @@ import { CancellationTokenSource, Disposable, DocumentHighlight, DocumentHighlig
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import window from '../window'
 import workspace from '../workspace'
@@ -49,7 +49,7 @@ export default class Highlights {
   public isEnabled(bufnr: number, cursors: number): boolean {
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached || cursors) return false
-    if (!languages.hasProvider('documentHighlight', doc.textDocument)) return false
+    if (!languages.hasProvider(ProviderName.DocumentHighlight, doc.textDocument)) return false
     return true
   }
 
@@ -91,7 +91,7 @@ export default class Highlights {
 
   public async getSymbolsRanges(): Promise<Range[]> {
     let { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('documentHighlight', doc.textDocument)
+    this.handler.checkProvider(ProviderName.DocumentHighlight, doc.textDocument)
     let highlights = await this.getHighlights(doc, position)
     if (!highlights) return null
     return highlights.map(o => o.range)

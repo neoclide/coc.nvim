@@ -8,7 +8,7 @@ import languages from '../languages'
 import { TreeDataProvider } from '../tree/index'
 import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
@@ -104,7 +104,7 @@ export default class TypeHierarchyHandler {
   }
 
   private async prepare(doc: TextDocument, position: Position): Promise<TypeHierarchyItem[] | undefined> {
-    this.handler.checkProvier('typeHierarchy', doc)
+    this.handler.checkProvider(ProviderName.TypeHierarchy, doc)
     return await this.handler.withRequestToken('typeHierarchy', async token => {
       return await languages.prepareTypeHierarchy(doc, position, token)
     }, false)

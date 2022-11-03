@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, SelectionRange } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { HandlerDelegate } from '../types'
+import { HandlerDelegate, ProviderName } from '../types'
 import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
 import window from '../window'
@@ -14,7 +14,7 @@ export default class SelectionRangeHandler {
 
   public async getSelectionRanges(): Promise<SelectionRange[] | null> {
     let { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('selectionRange', doc.textDocument)
+    this.handler.checkProvider(ProviderName.SelectionRange, doc.textDocument)
     await doc.synchronize()
     let selectionRanges: SelectionRange[] = await this.handler.withRequestToken('selection ranges', token => {
       return languages.getSelectionRanges(doc.textDocument, [position], token)
@@ -25,7 +25,7 @@ export default class SelectionRangeHandler {
   public async selectRange(visualmode: string, forward: boolean): Promise<void> {
     let { nvim } = this
     let { doc } = await this.handler.getCurrentState()
-    this.handler.checkProvier('selectionRange', doc.textDocument)
+    this.handler.checkProvider(ProviderName.SelectionRange, doc.textDocument)
     let positions: Position[] = []
     if (!forward && (!this.selectionRange || !visualmode)) return
     if (visualmode) {

@@ -5,7 +5,7 @@ import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { HandlerDelegate } from '../../types'
+import { HandlerDelegate, ProviderName } from '../../types'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -31,7 +31,7 @@ export default class InlayHintHandler {
       for (let item of this.buffers.items) {
         if (workspace.match(e, item.doc.textDocument)) {
           item.clearCache()
-          if (languages.hasProvider('inlayHint', item.doc.textDocument)) {
+          if (languages.hasProvider(ProviderName.InlayHint, item.doc.textDocument)) {
             item.render()
           } else {
             item.clearVirtualText()

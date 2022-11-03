@@ -6,7 +6,7 @@ import events from '../../events'
 import extensions from '../../extension'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../../types'
+import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../../types'
 import { disposeAll } from '../../util'
 import { toHexString } from '../../util/color'
 import window from '../../window'
@@ -82,7 +82,7 @@ export default class Colors {
 
   public async pickPresentation(): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
-    this.handler.checkProvier('documentColor', doc.textDocument)
+    this.handler.checkProvider(ProviderName.DocumentColor, doc.textDocument)
     let info = await this.getColorInformation(doc.bufnr)
     if (!info) return void window.showWarningMessage('Color not found at current position')
     let tokenSource = new CancellationTokenSource()
@@ -100,7 +100,7 @@ export default class Colors {
 
   public async pickColor(): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
-    this.handler.checkProvier('documentColor', doc.textDocument)
+    this.handler.checkProvider(ProviderName.DocumentColor, doc.textDocument)
     let info = await this.getColorInformation(doc.bufnr)
     if (!info) return void window.showWarningMessage('Color not found at current position')
     let { color } = info

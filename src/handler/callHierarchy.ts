@@ -8,7 +8,7 @@ import languages from '../languages'
 import { TreeDataProvider } from '../tree/index'
 import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
@@ -121,7 +121,7 @@ export default class CallHierarchyHandler {
   }
 
   private async prepare(doc: TextDocument, position: Position, token: CancellationToken): Promise<CallHierarchyItem[] | undefined> {
-    this.handler.checkProvier('callHierarchy', doc)
+    this.handler.checkProvider(ProviderName.CallHierarchy, doc)
     const res = await languages.prepareCallHierarchy(doc, position, token)
     return isCallHierarchyItem(res) ? [res] : res
   }
@@ -152,7 +152,7 @@ export default class CallHierarchyHandler {
   public async showCallHierarchyTree(kind: 'incoming' | 'outgoing'): Promise<void> {
     const { doc, position, winid } = await this.handler.getCurrentState()
     await doc.synchronize()
-    if (!languages.hasProvider('callHierarchy', doc.textDocument)) {
+    if (!languages.hasProvider(ProviderName.CallHierarchy, doc.textDocument)) {
       void window.showErrorMessage(`CallHierarchy provider not found for current document, it's not supported by your languageserver`)
       return
     }

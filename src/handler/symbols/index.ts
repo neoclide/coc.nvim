@@ -4,7 +4,7 @@ import { CancellationTokenSource, Disposable, Position, Range, SymbolInformation
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { HandlerDelegate } from '../../types'
+import { HandlerDelegate, ProviderName } from '../../types'
 import { disposeAll } from '../../util/index'
 import { equals } from '../../util/object'
 import { positionInRange, rangeInRange } from '../../util/position'
@@ -62,7 +62,7 @@ export default class Symbols {
   }
 
   public async getWorkspaceSymbols(input: string): Promise<SymbolInformation[]> {
-    this.handler.checkProvier('workspaceSymbols', null)
+    this.handler.checkProvider(ProviderName.WorkspaceSymbols, null)
     let tokenSource = new CancellationTokenSource()
     return await languages.getWorkspaceSymbols(input, tokenSource.token)
   }
@@ -117,7 +117,7 @@ export default class Symbols {
   public async getCurrentFunctionSymbol(): Promise<string> {
     let bufnr = await this.nvim.call('bufnr', ['%']) as number
     let doc = workspace.getDocument(bufnr)
-    if (!doc || !doc.attached || !languages.hasProvider('documentSymbol', doc.textDocument)) return
+    if (!doc || !doc.attached || !languages.hasProvider(ProviderName.DocumentSymbol, doc.textDocument)) return
     let position = await window.getCursorPosition()
     return await this.getFunctionSymbol(bufnr, position)
   }
@@ -127,7 +127,7 @@ export default class Symbols {
    */
   public async selectSymbolRange(inner: boolean, visualmode: string, supportedSymbols: string[]): Promise<void> {
     let { doc } = await this.handler.getCurrentState()
-    this.handler.checkProvier('documentSymbol', doc.textDocument)
+    this.handler.checkProvider(ProviderName.DocumentSymbol, doc.textDocument)
     let range: Range
     if (visualmode) {
       range = await window.getSelectedRange(visualmode)

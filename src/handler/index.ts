@@ -143,7 +143,7 @@ export default class Handler implements HandlerDelegate {
   /**
    * Throw error when provider doesn't exist.
    */
-  public checkProvier(id: ProviderName, document: TextDocument): void {
+  public checkProvider(id: ProviderName, document: TextDocument): void {
     if (!languages.hasProvider(id, document)) {
       throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
     }

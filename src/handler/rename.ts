@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Range, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import { HandlerDelegate } from '../types'
+import { HandlerDelegate, ProviderName } from '../types'
 import { emptyRange } from '../util/position'
 import window from '../window'
 import workspace from '../workspace'
@@ -18,7 +18,7 @@ export default class Rename {
     let range = doc.getWordRangeAtPosition(position)
     if (!range || emptyRange(range)) return null
     let curname = doc.textDocument.getText(range)
-    if (languages.hasProvider('rename', doc.textDocument)) {
+    if (languages.hasProvider(ProviderName.Rename, doc.textDocument)) {
       await doc.synchronize()
       let requestTokenSource = new CancellationTokenSource()
       let res = await languages.prepareRename(doc.textDocument, position, requestTokenSource.token)
@@ -39,7 +39,7 @@ export default class Rename {
 
   public async rename(newName?: string): Promise<boolean> {
     let { doc, position } = await this.handler.getCurrentState()
-    this.handler.checkProvier('rename', doc.textDocument)
+    this.handler.checkProvider(ProviderName.Rename, doc.textDocument)
     await doc.synchronize()
     let token = (new CancellationTokenSource()).token
     let res = await languages.prepareRename(doc.textDocument, position, token)

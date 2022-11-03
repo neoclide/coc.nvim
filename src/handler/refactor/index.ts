@@ -4,7 +4,7 @@ import { Disposable, Emitter, Event, Location, Range, TextDocumentEdit, TextEdit
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import languages from '../../languages'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../../types'
+import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../../types'
 import { disposeAll } from '../../util'
 import { getFileLineCount } from '../../util/fs'
 import { emptyWorkspaceEdit } from '../../util/textedit'
@@ -68,7 +68,7 @@ export default class Refactor {
    */
   public async doRefactor(): Promise<void> {
     let { doc, position } = await this.handler.getCurrentState()
-    if (!languages.hasProvider('rename', doc.textDocument)) {
+    if (!languages.hasProvider(ProviderName.Rename, doc.textDocument)) {
       throw new Error(`Rename provider not found for current buffer`)
     }
     await doc.synchronize()

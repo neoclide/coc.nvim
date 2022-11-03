@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, InlineValueText, Range } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
+import { ProviderName } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -30,7 +31,7 @@ describe('InlineValue', () => {
   describe('InlineValueManager', () => {
     it('should return false when provider not exists', async () => {
       let doc = await workspace.document
-      let res = languages.hasProvider('inlineValue', doc.textDocument)
+      let res = languages.hasProvider(ProviderName.InlineValue, doc.textDocument)
       expect(res).toBe(false)
     })
 
