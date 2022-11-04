@@ -1,13 +1,12 @@
 'use strict'
 // vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, RenameFileOptions, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Buffer, Window } from '@chemzqm/neovim'
+import { CancellationToken, CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, Disposable, DocumentSelector, Event, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
-import type Configurations from './configuration'
 import type Document from './model/document'
 import type RelativePattern from './model/relativePattern'
-import type { ProviderResult, TextDocumentContentProvider } from './provider'
+import type { ProviderResult } from './provider'
 
 export type GlobPattern = string | RelativePattern
 
@@ -351,48 +350,10 @@ export interface UltiSnippetOption {
   line?: string
 }
 
-export interface IWorkspace {
-  readonly nvim: Neovim
-  readonly cwd: string
-  readonly root: string
-  readonly isVim: boolean
-  readonly isNvim: boolean
-  readonly filetypes: Set<string>
-  readonly languageIds: Set<string>
-  readonly pluginRoot: string
-  readonly channelNames: string[]
-  readonly documents: Document[]
-  readonly configurations: Configurations
-  textDocuments: TextDocument[]
-  onDidOpenTextDocument: Event<TextDocument & { bufnr: number }>
-  onDidCloseTextDocument: Event<TextDocument & { bufnr: number }>
-  onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
-  onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
-  onDidSaveTextDocument: Event<TextDocument>
-  onDidChangeConfiguration: Event<IConfigurationChangeEvent>
-  findUp(filename: string | string[]): Promise<string | null>
-  getDocument(uri: number | string): Document
-  getFormatOptions(uri?: string): Promise<FormattingOptions>
-  applyEdit(edit: WorkspaceEdit): Promise<boolean>
-  createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
-  getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
-  registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
-  getWorkspaceFolder(uri: string): WorkspaceFolder | undefined
-  getQuickfixItem(loc: Location, text?: string, type?: string): Promise<QuickfixItem>
-  getQuickfixList(locations: Location[]): Promise<ReadonlyArray<QuickfixItem>>
-  getLine(uri: string, line: number): Promise<string>
-  readFile(uri: string): Promise<string>
-  jumpTo(uri: string, position: Position): Promise<void>
-  createFile(filepath: string, opts?: CreateFileOptions): Promise<void>
-  renameFile(oldPath: string, newPath: string, opts?: RenameFileOptions): Promise<void>
-  deleteFile(filepath: string, opts?: DeleteFileOptions): Promise<void>
-  openResource(uri: string): Promise<void>
-  resolveModule(name: string): Promise<string>
-  match(selector: DocumentSelector, document: TextDocument): number
-  runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
-  dispose(): void
+export interface TextDocumentMatch {
+  readonly uri: string
+  readonly languageId: string
 }
-
 // window {{
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type HighlightItemResult = [string, number, number, number, number?]

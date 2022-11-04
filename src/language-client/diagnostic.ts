@@ -9,6 +9,7 @@ import { URI } from 'vscode-uri'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { DiagnosticProvider, ProviderResult, ResultReporter } from '../provider'
+import { TextDocumentMatch } from '../types'
 import { CancellationError } from '../util/errors'
 import window from '../window'
 import workspace from '../workspace'
@@ -66,7 +67,7 @@ export interface DiagnosticPullOptions {
    * @param document the document that changes or got save
    * @param mode the mode
    */
-  filter?(document: TextDocument, mode: DiagnosticPullMode): boolean
+  filter?(document: TextDocumentMatch, mode: DiagnosticPullMode): boolean
 }
 
 export interface $DiagnosticPullOptions {

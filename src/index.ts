@@ -24,6 +24,7 @@ import { Mutex } from './util/mutex'
 import { URI } from 'vscode-uri'
 import {
   DocumentUri,
+  Trace,
   WorkspaceFolder,
   AnnotatedTextEdit,
   WorkspaceSymbol,
@@ -169,6 +170,7 @@ module.exports = {
   CancellationError,
   WorkspaceChange,
   ResponseError,
+  Trace,
   DocumentUri,
   WorkspaceFolder,
   InlineValueText,

@@ -2,7 +2,7 @@
 import { Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { createLogger } from '../logger'
-import { LocationWithTarget } from '../types'
+import { LocationWithTarget, TextDocumentMatch } from '../types'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 const logger = createLogger('provider-manager')
@@ -17,7 +17,7 @@ export type ProviderItem<T, P = object> = {
 export default class Manager<T, P = object> {
   protected providers: Set<ProviderItem<T, P>> = new Set()
 
-  public hasProvider(document: TextDocument): boolean {
+  public hasProvider(document: TextDocumentMatch): boolean {
     return this.getProvider(document) != null
   }
 
@@ -36,7 +36,7 @@ export default class Manager<T, P = object> {
     })
   }
 
-  protected getProvider(document: TextDocument): ProviderItem<T, P> {
+  protected getProvider(document: TextDocumentMatch): ProviderItem<T, P> {
     let currScore = 0
     let providerItem: ProviderItem<T, P>
     for (let item of this.providers) {
@@ -58,7 +58,7 @@ export default class Manager<T, P = object> {
     return item ? item.provider : null
   }
 
-  protected getProviders(document: TextDocument): ProviderItem<T, P>[] {
+  protected getProviders(document: TextDocumentMatch): ProviderItem<T, P>[] {
     let items = Array.from(this.providers)
     items = items.filter(item => workspace.match(item.selector, document) > 0)
     return items.sort((a, b) => workspace.match(b.selector, document) - workspace.match(a.selector, document))

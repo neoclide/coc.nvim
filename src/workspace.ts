@@ -30,7 +30,7 @@ import { StrWidth } from './model/strwidth'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationResourceScope, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IConfigurationChangeEvent, IWorkspace, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationResourceScope, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentMatch, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { parseExtensionName } from './util/extensionRegistry'
 import { CONFIG_FILE_NAME } from './util/index'
 import { IJSONSchema } from './util/jsonSchema'
@@ -46,7 +46,7 @@ const methods = [
   'getOffset', 'getSelectedRange', 'selectRange', 'createTerminal',
 ]
 
-export class Workspace implements IWorkspace {
+export class Workspace {
   public readonly onDidChangeConfiguration: Event<IConfigurationChangeEvent>
   public readonly onDidOpenTextDocument: Event<LinesTextDocument>
   public readonly onDidCloseTextDocument: Event<LinesTextDocument>
@@ -311,7 +311,7 @@ export class Workspace implements IWorkspace {
   /**
    * Check if selector match document.
    */
-  public match(selector: DocumentSelector, document: { uri: string, languageId: string }): number {
+  public match(selector: DocumentSelector, document: TextDocumentMatch): number {
     return score(selector, document.uri, document.languageId)
   }
 

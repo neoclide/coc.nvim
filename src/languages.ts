@@ -31,7 +31,7 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import { ExtendedCodeAction, LocationWithTarget, ProviderName } from './types'
+import { ExtendedCodeAction, LocationWithTarget, ProviderName, TextDocumentMatch } from './types'
 import { disposeAll } from './util'
 
 class Languages {
@@ -73,7 +73,7 @@ class Languages {
     this.registerReferenceProvider = this.registerReferencesProvider
   }
 
-  public hasFormatProvider(doc: TextDocument): boolean {
+  public hasFormatProvider(doc: TextDocumentMatch): boolean {
     if (this.formatManager.hasProvider(doc)) {
       return true
     }
@@ -419,10 +419,6 @@ class Languages {
     return this.inlayHintManager.resolveInlayHint(hint, token)
   }
 
-  public hasLinkedEditing(document: TextDocument): boolean {
-    return this.linkedEditingManager.hasProvider(document)
-  }
-
   public async provideLinkedEdits(document: TextDocument, position: Position, token: CancellationToken): Promise<LinkedEditingRanges> {
     return this.linkedEditingManager.provideLinkedEditingRanges(document, position, token)
   }
@@ -447,7 +443,7 @@ class Languages {
     return diagnosticManager.create(owner)
   }
 
-  public hasProvider(id: ProviderName, document: TextDocument): boolean {
+  public hasProvider(id: ProviderName, document: TextDocumentMatch): boolean {
     switch (id) {
       case ProviderName.OnTypeEdit:
       case ProviderName.FormatOnType:

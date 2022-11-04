@@ -3629,73 +3629,6 @@ declare module 'coc.nvim' {
     (chunk: WorkspaceDiagnosticReportPartialResult | null): void
   }
 
-  /**
-   * A special text edit with an additional change annotation.
-   *
-   * @since 3.16.0.
-   */
-  export interface AnnotatedTextEdit extends TextEdit {
-    /**
-     * The actual identifier of the change annotation
-     */
-    annotationId: string
-  }
-
-  export namespace AnnotatedTextEdit {
-    /**
-     * Creates an annotated replace text edit.
-     *
-     * @param range The range of text to be replaced.
-     * @param newText The new text.
-     * @param annotation The annotation.
-     */
-    function replace(range: Range, newText: string, annotation: string): AnnotatedTextEdit
-    /**
-     * Creates an annotated insert text edit.
-     *
-     * @param position The position to insert the text at.
-     * @param newText The text to be inserted.
-     * @param annotation The annotation.
-     */
-    function insert(position: Position, newText: string, annotation: string): AnnotatedTextEdit
-    /**
-     * Creates an annotated delete text edit.
-     *
-     * @param range The range of text to be deleted.
-     * @param annotation The annotation.
-     */
-    function del(range: Range, annotation: string): AnnotatedTextEdit
-    function is(value: any): value is AnnotatedTextEdit
-  }
-
-  /**
-   * Additional information that describes document changes.
-   *
-   * @since 3.16.0
-   */
-  export interface ChangeAnnotation {
-    /**
-     * A human-readable string describing the actual change. The string
-     * is rendered prominent in the user interface.
-     */
-    label: string
-    /**
-     * A flag which indicates that user confirmation is needed
-     * before applying the change.
-     */
-    needsConfirmation?: boolean
-    /**
-     * A human-readable string which is rendered less prominent in
-     * the user interface.
-     */
-    description?: string
-  }
-
-  export namespace ChangeAnnotation {
-    function create(label: string, needsConfirmation?: boolean, description?: string): ChangeAnnotation
-    function is(value: any): value is ChangeAnnotation
-  }
-
   export type ErrorCodes = number
 
   /**
@@ -5357,17 +5290,6 @@ declare module 'coc.nvim' {
       position: Position,
       token: CancellationToken
     ): ProviderResult<Definition | DefinitionLink[]>
-  }
-
-  /**
-   * Value-object that contains additional information when
-   * requesting references.
-   */
-  export interface ReferenceContext {
-    /**
-     * Include the declaration of the current symbol.
-     */
-    includeDeclaration: boolean
   }
 
   /**
@@ -7165,6 +7087,11 @@ declare module 'coc.nvim' {
   }
 
   export namespace languages {
+
+    /**
+     * Check if specific provider exists for document.
+     */
+    export function hasProvider(id: ProviderName, document: TextDocumentMatch): boolean
     /**
      * Create a diagnostics collection.
      *
@@ -8693,6 +8620,11 @@ declare module 'coc.nvim' {
     matchHighlights(text: string, hlGroup: string): FuzzyMatchHighlights | undefined
   }
 
+  export interface TextDocumentMatch {
+    readonly uri: string
+    readonly languageId: string
+  }
+
   export namespace workspace {
     export const nvim: Neovim
     /**
@@ -8907,7 +8839,7 @@ declare module 'coc.nvim' {
     /**
      * Check if selector match document.
      */
-    export function match(selector: DocumentSelector, document: LinesTextDocument): number
+    export function match(selector: DocumentSelector, document: TextDocumentMatch): number
 
     /**
      * Findup from filename or filenames from current filepath or root.
@@ -10643,6 +10575,9 @@ declare module 'coc.nvim' {
   export interface UltiSnippetOption {
     regex?: string
     context?: string
+    noPython?: boolean
+    range?: Range
+    line?: string
   }
 
   /**
@@ -10741,7 +10676,7 @@ declare module 'coc.nvim' {
      * @param {Range} range Repalce range, insert to current cursor position when undefined.
      * @returns {Promise<boolean>} true when insert success.
      */
-    export function insertSnippet(snippet: string | SnippetString, select?: boolean, range?: Range, ultisnip?: boolean): Promise<boolean>
+    export function insertSnippet(snippet: string | SnippetString, select?: boolean, range?: Range, ultisnip?: UltiSnippetOption | boolean): Promise<boolean>
 
     /**
      * Jump to next placeholder, only works when snippet session activated.
