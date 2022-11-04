@@ -471,22 +471,23 @@ Hover key-mapping example:~
 ------------------------------------------------------------------------------
 COMPLETION						*coc-completion*
 
-The builtin completion of vim is no longer used, the default completion
-behavior works like VSCode:
+Vim's builtin completion is no longer used. The default completion
+now works like in VSCode:
 
 - Completion is automatically triggered by default.
 - Item selection is enabled by default, use |coc-config-suggest-noselect| to
   disable default selection.
-- When selection enabled and no preselect item exists, recent used item that
-  matched will be selected by default.
+- When selection is enabled and no preselect item exists, a recently used
+  item that matches will be selected.
 - Snippet and additional edits only work after confirm completion.
 - 'completeopt' is not used and APIs of builtin popupmenu not work.
 
 							*coc-completion-default*
 Default Key-mappings:~
 
-To make the completion work like builtin completion without configuration,
-following key-mappings are used when the {lhs} is not mapped:
+To make the new completion work like the builtin completion, without any
+additional configuration, the following key-mappings are used when
+the {lhs} is not mapped:
 
 Use <C-n>, <C-p>, <up> and <down> to navigate completion list: >
 
@@ -512,7 +513,7 @@ Related variables:~
 
 - Disable completion for buffer: |b:coc_suggest_disable|
 - Disable specific sources for buffer: |b:coc_disabled_sources|
-- Disable words for trigger completion: |b:coc_suggest_blacklist|
+- Disable words for completion: |b:coc_suggest_blacklist|
 - Add additional keyword characters: |b:coc_additional_keywords|
 
 							*coc-completion-functions*
@@ -521,14 +522,14 @@ Related functions:~
 - Trigger completion with options: |coc#start()|.
 - Trigger completion refresh: |coc#refresh()|.
 - Select and confirm completion: |coc#_select_confirm()|.
-- Check if customized popupmenu is visible: |coc#pum#visible()|.
-- Select next complete item: |coc#pum#next()|.
-- Select previous complete item: |coc#pum#prev()|.
+- Check if the custom popupmenu is visible: |coc#pum#visible()|.
+- Select the next completion item: |coc#pum#next()|.
+- Select the previous completion item: |coc#pum#prev()|.
 - Cancel completion and reset trigger text: |coc#pum#cancel()|.
 - Confirm completion: |coc#pum#confirm()|.
 - Close the popupmenu only: |coc#pum#stop()|.
-- Get information of the popupmenu: |coc#pum#info()|.
-- Select specific complete item: |coc#pum#select()|.
+- Get information about the popupmenu: |coc#pum#info()|.
+- Select specific completion item: |coc#pum#select()|.
 - Insert word of selected item and finish completion: |coc#pum#insert()|.
 - Insert one more character from current complete item: |coc#pum#one_more()|.
 - Scroll popupmenu: |coc#pum#scroll()|.
@@ -536,10 +537,10 @@ Related functions:~
 							*coc-completion-customize*
 Customize completion:~
 
-Use |coc-config-suggest| to change behavior of completion.
+Use |coc-config-suggest| to change the completion behavior.
 
-Use 'pumwidth' for configure minimal width of popupmenu and 'pumheight'
-for maximum height.
+Use 'pumwidth' for configure the minimal width of the popupmenu and 'pumheight'
+for its maximum height.
 
 Related Highlight groups:
 	|CocPum| 	for highlight groups of customized pum.
