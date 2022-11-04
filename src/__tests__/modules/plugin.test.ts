@@ -2,6 +2,8 @@ import helper from '../helper'
 import path from 'path'
 import workspace from '../../workspace'
 import { Neovim } from '@chemzqm/neovim'
+import * as exportObj from '../../index'
+import * as vsTypes from 'vscode-languageserver-types'
 
 let nvim: Neovim
 
@@ -16,6 +18,19 @@ afterAll(async () => {
 
 afterEach(async () => {
   await helper.reset()
+})
+
+describe('exports', () => {
+  it('should exports all types from vscode-languageserver-types', () => {
+    const excludes = ['EOL', 'URI', 'TextDocument']
+    let list: string[] = []
+    for (let key of Object.keys(vsTypes)) {
+      if (typeof exportObj[key] === 'undefined' && !excludes.includes(key)) {
+        list.push(key)
+      }
+    }
+    expect(list.length).toBe(0)
+  })
 })
 
 describe('help tags', () => {
