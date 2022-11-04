@@ -8435,6 +8435,15 @@ declare module 'coc.nvim' {
     workspaceFolderValue?: T
   }
 
+  export enum ConfigurationUpdateTarget {
+    Global = 1,
+    /**
+     * Not exists with coc.nvim yet.
+     */
+    Workspace = 2,
+    WorkspaceFolder = 3
+  }
+
   export interface WorkspaceConfiguration {
     /**
      * Return a value from this configuration.
@@ -8474,14 +8483,15 @@ declare module 'coc.nvim' {
      */
     inspect<T>(section: string): ConfigurationInspect<T> | undefined
     /**
-     * Update a configuration value. The updated configuration values are persisted.
-     *
+     * Update a configuration value.
+     * The updated configuration values are persisted to configuration file.
      *
      * @param section Configuration name, supports _dotted_ names.
      * @param value The new value.
-     * @param isUser if true, always update user configuration
+     * @param updateTarget Target of configuration, use global user configuration when is `true`,
+     *                     when `false` or undefined use workspace folder confirmation.
      */
-    update(section: string, value: any, isUser?: boolean): Thenable<void>
+    update(section: string, value: any, updateTarget?: ConfigurationUpdateTarget | boolean): Thenable<void>
 
     /**
      * Readable dictionary that backs this configuration.
