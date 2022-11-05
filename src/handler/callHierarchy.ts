@@ -5,6 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from '../commands'
 import events from '../events'
 import languages from '../languages'
+import { createLogger } from '../logger'
 import { TreeDataProvider } from '../tree/index'
 import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
@@ -14,8 +15,10 @@ import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
 import window from '../window'
 import workspace from '../workspace'
+let logger = createLogger('callHierarchy')
 
 interface CallHierarchyDataItem extends CallHierarchyItem {
+  parent?: CallHierarchyDataItem
   ranges?: Range[]
   sourceUri?: string
   children?: CallHierarchyItem[]
@@ -27,9 +30,21 @@ interface CallHierarchyConfig {
   enableTooltip: boolean
 }
 
+enum ShowHierarchyAction {
+  Incoming = 'Show Incoming Calls',
+  Outgoing = 'Show Outgoing Calls'
+}
+
 interface CallHierarchyProvider extends TreeDataProvider<CallHierarchyDataItem> {
   meta: 'incoming' | 'outgoing'
   dispose: () => void
+}
+
+/**
+ * Cleanup properties used by treeview
+ */
+function toCallHierarchyItem(item: CallHierarchyDataItem): CallHierarchyItem {
+  return omit(item, ['children', 'parent', 'ranges', 'sourceUri'])
 }
 
 function isCallHierarchyItem(item: any): item is CallHierarchyItem {
@@ -99,22 +114,24 @@ export default class CallHierarchyHandler {
       (el, meta, token) => this.getChildren(doc, el, meta, token)
     )
     for (let kind of ['incoming', 'outgoing']) {
-      provider.addAction(`Show ${kind[0].toUpperCase()}${kind.slice(1)} Calls`, (el: CallHierarchyDataItem) => {
+      let name = kind === 'incoming' ? ShowHierarchyAction.Incoming : ShowHierarchyAction.Outgoing
+      provider.addAction(name, (el: CallHierarchyDataItem) => {
         provider.meta = kind as 'incoming' | 'outgoing'
-        let rootItems = [omit(el, ['children', 'parent', 'ranges', 'sourceUri'])]
+        let rootItems = [toCallHierarchyItem(el)]
         provider.reset(rootItems)
       })
     }
     return provider
   }
 
-  private async getChildren(doc: TextDocument, item: CallHierarchyItem, kind: 'incoming' | 'outgoing', token: CancellationToken): Promise<CallHierarchyDataItem[]> {
+  private async getChildren(doc: TextDocument, item: CallHierarchyDataItem, kind: 'incoming' | 'outgoing', token: CancellationToken): Promise<CallHierarchyDataItem[]> {
     let items: CallHierarchyDataItem[] = []
+    let callHierarchyItem = toCallHierarchyItem(item)
     if (kind == 'incoming') {
-      let res = await languages.provideIncomingCalls(doc, item, token)
+      let res = await languages.provideIncomingCalls(doc, callHierarchyItem, token)
       if (res) items = res.map(o => Object.assign(o.from, { ranges: o.fromRanges }))
     } else {
-      let res = await languages.provideOutgoingCalls(doc, item, token)
+      let res = await languages.provideOutgoingCalls(doc, callHierarchyItem, token)
       if (res) items = res.map(o => Object.assign(o.to, { ranges: o.fromRanges, sourceUri: item.uri }))
     }
     return items
@@ -128,7 +145,7 @@ export default class CallHierarchyHandler {
 
   private async getCallHierarchyItems(item: CallHierarchyItem | undefined, kind: 'outgoing'): Promise<CallHierarchyOutgoingCall[]>
   private async getCallHierarchyItems(item: CallHierarchyItem | undefined, kind: 'incoming'): Promise<CallHierarchyIncomingCall[]>
-  private async getCallHierarchyItems(item: CallHierarchyItem | undefined, kind: 'incoming' | 'outgoing'): Promise<any> {
+  private async getCallHierarchyItems(item: CallHierarchyItem | undefined, kind: 'incoming' | 'outgoing'): Promise<(CallHierarchyIncomingCall | CallHierarchyOutgoingCall)[]> {
     const { doc, position } = await this.handler.getCurrentState()
     const source = new CancellationTokenSource()
     if (!item) {

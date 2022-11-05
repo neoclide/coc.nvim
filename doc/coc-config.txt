@@ -532,11 +532,11 @@ InlayHint~
 
 	Scope: `language-overridable`, default: `true`
 
-"inlayHint.display"					coc-config-inlayHint-display
+"inlayHint.display"					*coc-config-inlayHint-display*
 
 	Display inlay hints. Toggle with :CocCommand document.toggleInlayHint
 
-	Scope: `language-overridable`, default: true
+	Scope: `language-overridable`, default: `true`
 
 "inlayHint.parameterSeparator"				*coc-config-inlayHint-parameterSeparator*
 
