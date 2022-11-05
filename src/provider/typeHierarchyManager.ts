@@ -2,12 +2,15 @@
 import { v4 as uuid } from 'uuid'
 import { CancellationToken, Disposable, DocumentSelector, Position, TypeHierarchyItem } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { omit } from '../util/lodash'
 import { TypeHierarchyProvider } from './index'
 import Manager from './manager'
 
 export interface TypeHierarchyItemWithSource extends TypeHierarchyItem {
   source?: string
 }
+
+const excludeKeys = ['source']
 
 export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider> {
 
@@ -29,7 +32,8 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
     let hierarchyItems: TypeHierarchyItemWithSource[] = []
     let results = await Promise.allSettled(items.map(item => {
       let { provider, id } = item
-      return Promise.resolve(provider.prepareTypeHierarchy(document, position, token)).then(arr => {
+      return (async () => {
+        let arr = await Promise.resolve(provider.prepareTypeHierarchy(document, position, token))
         if (Array.isArray(arr)) {
           let noCheck = hierarchyItems.length === 0
           arr.forEach(item => {
@@ -38,7 +42,7 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
             }
           })
         }
-      })
+      })()
     }))
     this.handleResults(results, 'prepareTypeHierarchy')
     return hierarchyItems
@@ -48,7 +52,7 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
     let { source } = item
     const provider = this.getProviderById(source)
     if (!provider) return []
-    return await Promise.resolve(provider.provideTypeHierarchySupertypes(item, token)).then(arr => {
+    return await Promise.resolve(provider.provideTypeHierarchySupertypes(omit(item, excludeKeys), token)).then(arr => {
       if (Array.isArray(arr)) {
         return arr.map(item => {
           return Object.assign({ source }, item)
@@ -62,7 +66,7 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
     let { source } = item
     const provider = this.getProviderById(source)
     if (!provider) return []
-    return await Promise.resolve(provider.provideTypeHierarchySubtypes(item, token)).then(arr => {
+    return await Promise.resolve(provider.provideTypeHierarchySubtypes(omit(item, excludeKeys), token)).then(arr => {
       if (Array.isArray(arr)) {
         return arr.map(item => {
           return Object.assign({ source }, item)

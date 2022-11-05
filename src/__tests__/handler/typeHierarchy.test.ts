@@ -123,6 +123,23 @@ describe('TypeHierarchy', () => {
       expect(arr[0].source).toBeDefined()
     })
 
+    it('should not throw when prepareTypeHierarchy throws', async () => {
+      disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
+        prepareTypeHierarchy: () => {
+          throw new Error('my error')
+        },
+        provideTypeHierarchySubtypes: () => {
+          return undefined
+        },
+        provideTypeHierarchySupertypes: () => {
+          return undefined
+        }
+      }))
+      let doc = await workspace.document
+      let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
+      expect(res).toEqual([])
+    })
+
     it('should return empty supertypes and supertypes', async () => {
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy: () => {
