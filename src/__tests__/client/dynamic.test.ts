@@ -230,13 +230,14 @@ describe('DynamicFeature', () => {
       expect(res).toEqual({ success: true })
       expect(called).toBe(true)
       await client.sendNotification('unregister')
-      await helper.wait(30)
       await client.stop()
     })
 
     it('should register command without middleware', async () => {
       let client = await startServer({}, {})
-      await helper.wait(50)
+      await helper.waitValue(() => {
+        return commands.has('test_command')
+      }, true)
       let res = await commands.executeCommand('test_command')
       expect(res).toEqual({ success: true })
       await client.stop()

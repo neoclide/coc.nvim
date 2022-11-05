@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { Position, Range } from 'vscode-languageserver-protocol'
+import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { UltiSnippetContext } from '../../snippets/eval'
 import { SnippetConfig, SnippetSession } from '../../snippets/session'
 import window from '../../window'
@@ -335,6 +335,27 @@ describe('SnippetSession', () => {
       let lines = await buf.lines
       expect(lines).toEqual(['b', ' b', ''])
       expect(pos).toEqual(Position.create(2, 0))
+    })
+
+    it('should synchronize changes at the same time', async () => {
+      await nvim.input('i')
+      let doc = await workspace.document
+      let session = await createSession()
+      let res = await session.start('|$1 $1|', defaultRange)
+      expect(res).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('| |')
+      let p = new Promise(resolve => {
+        doc.onDocumentChange(e => {
+          resolve(undefined)
+        })
+      })
+      await nvim.input('xy')
+      await p
+      await doc.applyEdits([TextEdit.replace(Range.create(0, 1, 0, 3), '')])
+      await session.forceSynchronize()
+      line = await nvim.line
+      expect(line).toBe('| |')
     })
   })
 

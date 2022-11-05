@@ -401,7 +401,7 @@ export function getEndPosition(position: Position, oldTextDocument: LinesTextDoc
 }
 
 /*
- * r in range
+ * r in range, get text before and after
  */
 export function getParts(text: string, range: Range, r: Range): [string, string] {
   let before: string[] = []

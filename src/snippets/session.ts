@@ -50,7 +50,6 @@ export class SnippetSession {
     this.disposable = document.onDocumentChange(async e => {
       if (this._applying || !this._isActive) return
       let changes = e.contentChanges
-      if (changes.length === 0) return
       await this.synchronize({ version: e.textDocument.version, change: changes[0] })
     })
   }
@@ -320,7 +319,8 @@ export class SnippetSession {
     }
     let res = await this.snippet.updatePlaceholder(placeholder, cursor, newText, tokenSource.token)
     if (res == null || tokenSource.token.isCancellationRequested) return
-    if (document.hasChanged) {
+    // happens when applyEdits just after TextInsert
+    if (document.dirty || !equals(document.textDocument.lines, d.lines)) {
       tokenSource.cancel()
       tokenSource.dispose()
       return
