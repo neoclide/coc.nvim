@@ -16,6 +16,7 @@ import window from '../window'
 import workspace from '../workspace'
 
 interface TypeHierarchyDataItem extends TypeHierarchyItem {
+  parent?: TypeHierarchyDataItem
   children?: TypeHierarchyItem[]
 }
 
@@ -30,6 +31,13 @@ type TypeHierarchyKind = 'supertypes' | 'subtypes'
 interface TypeHierarchyProvider extends TreeDataProvider<TypeHierarchyDataItem> {
   meta: TypeHierarchyKind
   dispose: () => void
+}
+
+/**
+ * Cleanup properties used by treeview
+ */
+function toTypeHierarchyItem(item: TypeHierarchyDataItem): TypeHierarchyItem {
+  return omit(item, ['children', 'parent'])
 }
 
 export default class TypeHierarchyHandler {
@@ -93,12 +101,13 @@ export default class TypeHierarchyHandler {
     return provider
   }
 
-  private async getChildren(item: TypeHierarchyItem, kind: TypeHierarchyKind, token: CancellationToken): Promise<TypeHierarchyDataItem[]> {
+  private async getChildren(item: TypeHierarchyDataItem, kind: TypeHierarchyKind, token: CancellationToken): Promise<TypeHierarchyDataItem[]> {
     let res: TypeHierarchyDataItem[] = []
+    let typeHierarchyItem = toTypeHierarchyItem(item)
     if (kind == 'supertypes') {
-      res = await languages.provideTypeHierarchySupertypes(item, token)
+      res = await languages.provideTypeHierarchySupertypes(typeHierarchyItem, token)
     } else {
-      res = await languages.provideTypeHierarchySubtypes(item, token)
+      res = await languages.provideTypeHierarchySubtypes(typeHierarchyItem, token)
     }
     return res
   }

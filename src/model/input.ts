@@ -37,6 +37,7 @@ export default class InputBox implements Disposable {
   private _bufnr: number | undefined
   private _input: string
   private accepted = false
+  private _disposed = false
   public title: string
   public loading: boolean
   public borderhighlight: string
@@ -132,6 +133,8 @@ export default class InputBox implements Disposable {
   }
 
   public dispose(): void {
+    if (this._disposed) return
+    this._disposed = true
     this._onDidFinish.fire(this.accepted ? this._input : null)
     if (this._winid) {
       this.nvim.call('coc#float#close', [this._winid], true)

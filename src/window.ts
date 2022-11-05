@@ -23,6 +23,7 @@ import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
 import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { CONFIG_FILE_NAME } from './util'
+import { isFalsyOrEmpty } from './util/array'
 import { parseExtensionName } from './util/extensionRegistry'
 import { Mutex } from './util/mutex'
 import { equals } from './util/object'
@@ -197,7 +198,8 @@ export class Window {
    * Shows a selection list.
    */
   public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options?: QuickPickOptions, token: CancellationToken = CancellationToken.None): Promise<Item | Item[] | undefined> {
-    options = options || {}
+    if (isFalsyOrEmpty(itemsOrItemsPromise)) return undefined
+    options = options ?? {}
     const items = await Promise.resolve(itemsOrItemsPromise)
     let isText = items.some(s => typeof s === 'string')
     if (token.isCancellationRequested) return undefined
@@ -207,9 +209,9 @@ export class Window {
         let quickpick = new QuickPick<QuickPickItem>(this.nvim, {
           items: items.map(o => typeof o === 'string' ? { label: o } : o),
           title: options.title ?? '',
-          canSelectMany: options.canPickMany
+          canSelectMany: !!options.canPickMany,
+          matchOnDescription: !!options.matchOnDescription
         })
-        quickpick.matchOnDescription = options.matchOnDescription
         quickpick.onDidFinish(items => {
           if (items == null) return resolve(undefined)
           let arr = isText ? items.map(o => o.label) : items

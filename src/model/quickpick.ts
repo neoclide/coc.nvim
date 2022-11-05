@@ -2,6 +2,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
+import { createLogger } from '../logger'
 import { HighlightItem, QuickPickItem } from '../types'
 import { disposeAll } from '../util'
 import { toArray } from '../util/array'
@@ -12,13 +13,14 @@ import { toSpans } from './fuzzyMatch'
 import InputBox from './input'
 import Popup from './popup'
 import { StrWidth } from './strwidth'
+const logger = createLogger('quickpick')
 
 export interface QuickPickConfig<T extends QuickPickItem> {
   title?: string
   items: readonly T[]
   value?: string
-  canSelectMany?: boolean
-  maxHeight?: number
+  readonly canSelectMany?: boolean
+  readonly matchOnDescription?: boolean
 }
 
 interface FilteredLine {
@@ -35,7 +37,6 @@ interface FilteredLine {
 export default class QuickPick<T extends QuickPickItem> {
   public title: string
   public loading: boolean
-  public matchOnDescription: boolean
   public items: readonly T[]
   public activeItems: readonly T[]
   public selectedItems: T[]
@@ -109,15 +110,10 @@ export default class QuickPick<T extends QuickPickItem> {
   }
 
   public setCursor(index: number): void {
-    if (this.win) this.win.setCursor(index, true)
+    this.win?.setCursor(index, true)
   }
 
   private attachEvents(inputBufnr: number): void {
-    events.on('BufWinLeave', bufnr => {
-      if (bufnr == this.bufnr) {
-        this.dispose()
-      }
-    }, null, this.disposables)
     events.on('PromptKeyPress', async (bufnr, key) => {
       if (bufnr == inputBufnr) {
         if (key == 'C-f') {
@@ -179,10 +175,9 @@ export default class QuickPick<T extends QuickPickItem> {
     this.selectedItems = selectedItems
     let opts: any = { lines, rounded: !!preferences.rounded }
     opts.highlights = highlights
+    opts.maxHeight = preferences.maxHeight ?? 10
     if (preferences.floatHighlight) opts.highlight = preferences.floatHighlight
     if (preferences.floatBorderHighlight) opts.borderhighlight = preferences.floatBorderHighlight
-    let maxHeight = this.config.maxHeight || preferences.maxHeight
-    if (maxHeight) opts.maxHeight = maxHeight
     let res = await nvim.call('coc#dialog#create_list', [input.winid, input.dimension, opts])
     if (!res) throw new Error('Unable to open list window.')
     this.filteredItems = items
@@ -270,24 +265,15 @@ export default class QuickPick<T extends QuickPickItem> {
   }
 
   private onFinish(input: string | undefined): void {
-    if (input == null) {
-      this._onDidChangeSelection.fire([])
-      this._onDidFinish.fire(null)
-      return
-    }
-    let selected = this.getSelectedItems()
-    if (!this.config.canSelectMany) {
-      this._onDidChangeSelection.fire(selected)
-    }
-    this._onDidFinish.fire(selected)
+    let items = input == null ? null : this.getSelectedItems()
+    this._onDidFinish.fire(items)
+    this.dispose()
   }
 
   private getSelectedItems(): T[] {
-    let { win } = this
     let { canSelectMany } = this.config
     if (canSelectMany) return this.selectedItems
-    let item = this.filteredItems[win.currIndex]
-    return toArray(item)
+    return toArray(this.filteredItems[this.currIndex])
   }
 
   public toggePicked(index: number): void {
@@ -312,7 +298,7 @@ export default class QuickPick<T extends QuickPickItem> {
     let { label, description } = item
     let { canSelectMany } = this.config
     let line = `${canSelectMany ? '    ' : ''}${label.replace(/\r?\n/, '')}`
-    return this.matchOnDescription ? line + ' ' + (description ?? '') : line
+    return this.config.matchOnDescription ? line + ' ' + (description ?? '') : line
   }
 
   public dispose(): void {
