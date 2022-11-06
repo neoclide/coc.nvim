@@ -47,7 +47,7 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
   return equals(arr, curr.slice(0, 4))
 }
 
-class Window {
+export class Window {
   public mutex = new Mutex()
   private tabIds: number[] = []
   private statusLine: StatusLine | undefined

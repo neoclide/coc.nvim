@@ -13,7 +13,7 @@ import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { MessageLevel } from '../../types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import window from '../../window'
+import window, { Window } from '../../window'
 import helper, { createTmpFile } from '../helper'
 import { formatMessage } from '../../model/progress'
 import { toPickerItems } from '../../model/picker'
@@ -48,6 +48,7 @@ afterEach(async () => {
 describe('window', () => {
   describe('functions', () => {
     it('should get tab number', async () => {
+      expect(window instanceof Window).toBe(true)
       expect(window.getTabNumber(2 << 5)).toBeUndefined()
     })
 
