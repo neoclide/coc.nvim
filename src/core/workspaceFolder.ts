@@ -45,7 +45,16 @@ export default class WorkspaceFolderController {
   private _tokenSources: Set<CancellationTokenSource> = new Set()
   constructor(private configurations: Configurations) {
     events.on('VimLeavePre', this.cancelAll, this)
-    const allConfig = configurations.getConfiguration(undefined, null)
+    this.updateConfiguration(true)
+    configurations.onDidChange(e => {
+      if (e.affectsConfiguration('workspace') || e.affectsConfiguration('coc.preferences')) {
+        this.updateConfiguration(false)
+      }
+    })
+  }
+
+  private updateConfiguration(init: boolean): void {
+    const allConfig = this.configurations.getConfiguration(undefined, null)
     let config = allConfig.get<WorkspaceConfig>('workspace')
     let oldConfig = allConfig.get<string[] | null>('coc.preferences.rootPatterns')
     this.config = {
@@ -56,24 +65,9 @@ export default class WorkspaceFolderController {
       workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
       workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
     }
-    const lspConfig = allConfig.get<Record<string, unknown>>('languageserver', {})
-    this.addServerRootPatterns(lspConfig)
-    configurations.onDidChange(e => {
-      if (e.affectsConfiguration('workspace')) {
-        this.updateConfiguration()
-      }
-    })
-  }
-
-  private updateConfiguration(): void {
-    const config = this.configurations.getConfiguration('workspace', null)
-    this.config = {
-      ignoredFiletypes: toArray(config.ignoredFiletypes),
-      bottomUpFiletypes: toArray(config.bottomUpFiletypes),
-      ignoredFolders: toArray(config.ignoredFolders),
-      rootPatterns: toArray(config.rootPatterns),
-      workspaceFolderCheckCwd: !!config.workspaceFolderCheckCwd,
-      workspaceFolderFallbackCwd: !!config.workspaceFolderFallbackCwd
+    if (init) {
+      const lspConfig = allConfig.get<Record<string, unknown>>('languageserver', {})
+      this.addServerRootPatterns(lspConfig)
     }
   }
 
