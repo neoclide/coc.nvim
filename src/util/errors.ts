@@ -53,6 +53,10 @@ export function onUnexpectedError(e: any): void {
   throw e
 }
 
+export function notLoaded(uri: string): Error {
+  return new Error(`File ${uri} not loaded`)
+}
+
 export function illegalArgument(name?: string): Error {
   if (name) {
     return new Error(`Illegal argument: ${name}`)
@@ -77,6 +81,6 @@ export function shouldNotAsync(method: string) {
   return new Error(`${method} should not be called in an asynchronize manner`)
 }
 
-export function badScheme(scheme: string) {
-  return new Error(`Change of ${scheme} not supported`)
+export function badScheme(uri: string) {
+  return new Error(`Change of ${uri} not supported`)
 }

@@ -7,23 +7,23 @@ import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
-import { CancellationToken, CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import events from '../events'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, LinesChange } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
 import { byteIndex } from '../util/string'
-import { getAnnotationKey, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
+import { createFilteredChanges, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
 import Documents from './documents'
 import type Keymaps from './keymaps'
 import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
-import { createLogger } from '../logger'
 const logger = createLogger('core-files')
 
 interface WaitUntilEvent {
@@ -321,6 +321,24 @@ export default class Files {
   }
 
   /**
+   * Return denied annotations
+   */
+  private async promptAnotations(documentChanges: DocumentChange[], changeAnnotations: { [id: string]: ChangeAnnotation } | undefined): Promise<string[]> {
+    let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : []
+    let denied: string[] = []
+    for (let key of toConfirm) {
+      let annotation = changeAnnotations[key]
+      let res = await this.window.showMenuPicker(['Yes', 'No'], {
+        position: 'center',
+        title: 'Confirm edits',
+        content: annotation.label + (annotation.description ? ' ' + annotation.description : '')
+      })
+      if (res !== 0) denied.push(key)
+    }
+    return denied
+  }
+
+  /**
    * Apply WorkspaceEdit.
    */
   public async applyEdit(edit: WorkspaceEdit, nested?: boolean): Promise<boolean> {
@@ -328,23 +346,10 @@ export default class Files {
     let recovers: RecoverFunc[] = []
     let currentOnly = false
     try {
-      let { changeAnnotations } = edit
-      let { currentUri } = this
-      let toConfirm = changeAnnotations ? getConfirmAnnotations(documentChanges, changeAnnotations) : []
+      let denied = await this.promptAnotations(documentChanges, edit.changeAnnotations)
+      if (denied.length > 0) documentChanges = createFilteredChanges(documentChanges, denied)
       let changes: { [uri: string]: LinesChange } = {}
-      let denied: string[] = []
-      for (let key of toConfirm) {
-        let annotation = changeAnnotations[key]
-        annotation.needsConfirmation = false
-        let res = await this.window.showMenuPicker(['Yes', 'No'], {
-          position: 'center',
-          title: 'Confirm edits',
-          content: annotation.label + (annotation.description ? ' ' + annotation.description : '')
-        })
-        if (res !== 0) denied.push(key)
-      }
-      documentChanges = documentChanges.filter(c => !denied.includes(getAnnotationKey(c)))
-      if (!documentChanges.length) return true
+      let { currentUri } = this
       currentOnly = documentChanges.every(o => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri)
       this.validateChanges(documentChanges)
       for (const change of documentChanges) {
@@ -383,8 +388,8 @@ export default class Files {
       this.nvim.redrawVim()
     } catch (e) {
       logger.error('Error on applyEdits:', edit, e)
-      await this.undoChanges(recovers)
       if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
+      await this.undoChanges(recovers)
       return false
     }
     // avoid message when change current file only.
@@ -436,16 +441,16 @@ export default class Files {
         let { uri, version } = change.textDocument
         let doc = documents.getDocument(uri)
         if (typeof version === 'number' && version > 0) {
-          if (!doc) throw new Error(`File ${uri} not loaded`)
+          if (!doc) throw errors.notLoaded(uri)
           if (doc.version != version) throw new Error(`${uri} changed before apply edit`)
         } else if (!doc) {
           if (!isFile(uri)) throw errors.badScheme(URI.parse(uri).scheme)
         }
       } else if (CreateFile.is(change) || DeleteFile.is(change)) {
-        if (!isFile(change.uri)) throw errors.badScheme(URI.parse(change.uri).scheme)
+        if (!isFile(change.uri)) throw errors.badScheme(change.uri)
       } else if (RenameFile.is(change)) {
         if (!isFile(change.oldUri) || !isFile(change.newUri)) {
-          throw errors.badScheme(URI.parse(change.oldUri).scheme)
+          throw errors.badScheme(change.oldUri)
         }
       }
     }

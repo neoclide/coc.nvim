@@ -1083,8 +1083,8 @@ Use `:CocCommand workspace.workspaceFolders` to echo current workspaceFolders.
 							*coc-workspace-edits*
 Workspace edit~
 
-Workspace edit is used to apply changes for multiple buffers(and files), the
-edit could includes document edits and file operations (including file create,
+Workspace edit is used to apply changes for multiple buffers(and/or files), the
+edit could contains document edits and file operations (including file create,
 file/directory delete and file/directory rename).
 
 When the edit failed to apply, coc.nvim will revert the changes (including

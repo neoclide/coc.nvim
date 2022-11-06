@@ -5,9 +5,9 @@ import os from 'os'
 import path from 'path'
 import vm from 'vm'
 import cp from 'child_process'
-import { CancellationTokenSource, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { AnnotatedTextEdit, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../../model/textdocument'
-import { ConfigurationScope } from '../../types'
+import { ConfigurationScope, DocumentChange } from '../../types'
 import { concurrent, delay, disposeAll, wait } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
 import * as arrays from '../../util/array'
@@ -20,6 +20,7 @@ import * as extension from '../../util/extensionRegistry'
 import * as factory from '../../util/factory'
 import * as fuzzy from '../../util/fuzzy'
 import * as Is from '../../util/is'
+import { v4 as uuid } from 'uuid'
 import { Extensions, IJSONContributionRegistry } from '../../util/jsonRegistry'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
@@ -224,6 +225,88 @@ describe('textedit', () => {
     let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
     expect(textedits.emptyWorkspaceEdit(workspaceEdit)).toBe(false)
     expect(textedits.emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+  })
+
+  it('should get all annotation ids for confirm', async () => {
+    let doc = { uri: 'test:///1', version: null }
+    let changes: DocumentChange[] = []
+    let ids = [uuid(), uuid(), uuid()]
+    changes.push({
+      textDocument: doc,
+      edits: [
+        AnnotatedTextEdit.insert(Position.create(0, 0), 'foo', ids[0]),
+        AnnotatedTextEdit.insert(Position.create(1, 0), 'bar', ids[1]),
+      ]
+    })
+    changes.push({
+      kind: 'delete',
+      uri: 'test:///2',
+      annotationId: ids[2]
+    })
+    changes.push({
+      kind: 'delete',
+      uri: 'test:///3',
+    })
+    let annotations: { [id: string]: ChangeAnnotation } = {}
+    annotations[ids[0]] = { label: '0', needsConfirmation: true }
+    annotations[ids[1]] = { label: '1', needsConfirmation: true }
+    annotations[ids[2]] = { label: '2', needsConfirmation: true }
+    let res = textedits.getConfirmAnnotations(changes, annotations)
+    expect(res.length).toBe(3)
+  })
+
+  it('should create filtered changes', async () => {
+    let doc = { uri: 'test:///1', version: null }
+    let changes: DocumentChange[] = []
+    let ids = [uuid(), uuid(), uuid()]
+    changes.push({
+      textDocument: doc,
+      edits: [
+        AnnotatedTextEdit.insert(Position.create(0, 0), 'foo', ids[0]),
+        AnnotatedTextEdit.insert(Position.create(1, 0), 'bar', ids[1]),
+      ]
+    })
+    changes.push({
+      kind: 'delete',
+      uri: 'test:///2',
+      annotationId: ids[2]
+    })
+    changes.push({
+      kind: 'delete',
+      uri: 'test:///3',
+    })
+    let res = textedits.createFilteredChanges(changes, [ids[0], ids[2]])
+    expect(res.length).toBe(2)
+    expect(res).toEqual([{
+      textDocument: {
+        uri: "test:///1",
+        version: null
+      },
+      edits: [{
+        range: {
+          start: { line: 1, character: 0 },
+          end: { line: 1, character: 0 }
+        },
+        newText: "bar",
+        annotationId: ids[1]
+      }]
+    },
+    {
+      kind: "delete",
+      uri: "test:///3"
+    }])
+    res = textedits.createFilteredChanges(changes, ids)
+    expect(res.length).toBe(1)
+  })
+
+  it('should check edit is denied', async () => {
+    let ids = [uuid(), uuid()]
+    let edits = [
+      AnnotatedTextEdit.insert(Position.create(0, 0), 'foo', ids[0]),
+      AnnotatedTextEdit.insert(Position.create(1, 0), 'bar', ids[1]),
+    ]
+    expect(textedits.isDeniedEdit(edits[0], [ids[0]])).toBe(true)
+    expect(textedits.isDeniedEdit(edits[1], [ids[0]])).toBe(false)
   })
 
   it('should check empty TextEdit', async () => {

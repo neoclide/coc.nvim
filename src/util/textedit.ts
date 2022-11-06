@@ -2,7 +2,7 @@
 import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
-import { toObject } from './object'
+import { deepClone, toObject } from './object'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
 import { byteIndex, contentToLines, toText } from './string'
 
@@ -95,11 +95,44 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
 
 export function getConfirmAnnotations(changes: ReadonlyArray<DocumentChange>, changeAnnotations: { [id: string]: ChangeAnnotation }): ReadonlyArray<string> {
   let keys: string[] = []
-  for (let change of changes) {
-    let key = getAnnotationKey(change)
+  const add = (key: string) => {
     if (key && !keys.includes(key) && changeAnnotations[key]?.needsConfirmation) keys.push(key)
   }
+  for (let change of changes) {
+    if (TextDocumentEdit.is(change)) {
+      change.edits.forEach(edit => {
+        if (AnnotatedTextEdit.is(edit)) add(edit.annotationId)
+      })
+    } else {
+      add(change.annotationId)
+    }
+  }
   return keys
+}
+
+export function isDeniedEdit(edit: TextEdit | AnnotatedTextEdit, denied: string[]): boolean {
+  if (AnnotatedTextEdit.is(edit) && denied.includes(edit.annotationId)) return true
+  return false
+}
+
+/**
+ * Create new changes with denied filtered
+ */
+export function createFilteredChanges(documentChanges: DocumentChange[], denied: string[]): DocumentChange[] {
+  let changes: DocumentChange[] = []
+  documentChanges.forEach(change => {
+    if (TextDocumentEdit.is(change)) {
+      let edits = change.edits.filter(edit => {
+        return !isDeniedEdit(edit, denied)
+      })
+      if (edits.length > 0) {
+        changes.push({ textDocument: change.textDocument, edits })
+      }
+    } else if (!denied.includes(change.annotationId)) {
+      changes.push(change)
+    }
+  })
+  return changes
 }
 
 export function getAnnotationKey(change: DocumentChange): string | undefined {
