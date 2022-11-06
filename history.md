@@ -1,3 +1,8 @@
+# 2022-11-06
+
+- `window.createQuickPick()` API that show QuickPick by default, call `show()`
+- Fix change value property for QuickPick not works.
+
 # 2022-10-30
 
 - Add configuration `colors.enable`, mark `colors.filetypes` deprecated.

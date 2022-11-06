@@ -397,7 +397,8 @@ Dialog~
 
 "dialog.maxHeight"					*coc-config-dialog-maxHeight*
 
-	Maximum height of dialog window.
+	Maximum height of dialog window, for quickpick, it's content window's
+	height.
 
 	Scope: `application`, default: `30`
 
