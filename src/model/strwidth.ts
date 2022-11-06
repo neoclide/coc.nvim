@@ -11,9 +11,10 @@ export interface StrWidthWasi {
   }
 }
 
+const wasmPath = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/strwidth.wasm')
+
 export async function initStrWidthWasm(): Promise<StrWidthWasi> {
-  const filePath = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/strwidth.wasm')
-  const buffer = fs.readFileSync(filePath)
+  const buffer = fs.readFileSync(wasmPath)
   const res = await global.WebAssembly.instantiate(buffer, { env: {} })
   return res.instance.exports as StrWidthWasi
 }

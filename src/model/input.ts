@@ -95,11 +95,18 @@ export default class InputBox implements Disposable {
       }
     }, null, this.disposables)
     events.on('TextChangedI', (bufnr, info) => {
-      if (bufnr == this._bufnr) {
+      if (bufnr == this._bufnr && this._input !== info.line) {
         this._input = info.line
         this._onDidChange.fire(info.line)
       }
     }, null, this.disposables)
+  }
+
+  public updateInput(value: string): void {
+    if (value !== this._input) {
+      this._input = value
+      this._onDidChange.fire(value)
+    }
   }
 
   public get dimension(): Dimension | undefined {

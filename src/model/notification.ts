@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
+import { MessageItem } from '../types'
 import { disposeAll } from '../util'
 import { DialogButton } from './dialog'
 
@@ -37,6 +38,16 @@ export interface NotificationConfig {
    * index is -1 for window close without button click
    */
   callback?: (index: number) => void
+}
+
+export function toButtons(texts: string[]): DialogButton[] {
+  return texts.map((s, index) => {
+    return { text: s, index }
+  })
+}
+
+export function toTitles(items: (string | MessageItem)[]): string[] {
+  return items.map(item => typeof item === 'string' ? item : item.title)
 }
 
 export default class Notification {

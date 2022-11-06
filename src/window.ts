@@ -14,8 +14,8 @@ import Dialog, { DialogConfig, DialogPreferences } from './model/dialog'
 import { FloatWinConfig } from './model/floatFactory'
 import InputBox, { InputOptions, InputPreference } from './model/input'
 import Menu, { MenuItem } from './model/menu'
-import Notification, { NotificationConfig, NotificationKind, NotificationPreferences } from './model/notification'
-import Picker from './model/picker'
+import Notification, { NotificationConfig, NotificationKind, NotificationPreferences, toButtons, toTitles } from './model/notification'
+import Picker, { toPickerItems } from './model/picker'
 import ProgressNotification, { formatMessage, Progress } from './model/progress'
 import QuickPick, { QuickPickConfig } from './model/quickpick'
 import StatusLine, { StatusBarItem } from './model/status'
@@ -26,8 +26,9 @@ import { CONFIG_FILE_NAME } from './util'
 import { isFalsyOrEmpty } from './util/array'
 import { parseExtensionName } from './util/extensionRegistry'
 import { Mutex } from './util/mutex'
-import { equals } from './util/object'
+import { equals, toObject } from './util/object'
 import { isWindows } from './util/platform'
+import { toText } from './util/string'
 import { Workspace } from './workspace'
 let tab_global_id = 3000
 export type MessageKind = 'Error' | 'Warning' | 'Info'
@@ -46,7 +47,7 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
   return equals(arr, curr.slice(0, 4))
 }
 
-export class Window {
+class Window {
   public mutex = new Mutex()
   private tabIds: number[] = []
   private statusLine: StatusLine | undefined
@@ -177,8 +178,8 @@ export class Window {
    * @param opts Terminal option.
    * @returns number buffer number of terminal
    */
-  public async openTerminal(cmd: string, opts: OpenTerminalOption = {}): Promise<number> {
-    let bufnr = await this.nvim.call('coc#ui#open_terminal', { cmd, ...opts })
+  public async openTerminal(cmd: string, opts?: OpenTerminalOption): Promise<number> {
+    let bufnr = await this.nvim.call('coc#ui#open_terminal', { cmd, ...toObject(opts) })
     return bufnr as number
   }
 
@@ -202,23 +203,21 @@ export class Window {
     options = options ?? {}
     const items = await Promise.resolve(itemsOrItemsPromise)
     let isText = items.some(s => typeof s === 'string')
-    if (token.isCancellationRequested) return undefined
     return await this.mutex.use(() => {
       return new Promise<Item | Item[] | undefined>((resolve, reject) => {
         if (token.isCancellationRequested) return resolve(undefined)
-        let quickpick = new QuickPick<QuickPickItem>(this.nvim, {
-          items: items.map(o => typeof o === 'string' ? { label: o } : o),
-          title: options.title ?? '',
-          canSelectMany: !!options.canPickMany,
-          matchOnDescription: !!options.matchOnDescription
-        })
+        let quickpick = new QuickPick<QuickPickItem>(this.nvim, this.dialogPreference)
+        quickpick.items = items.map(o => typeof o === 'string' ? { label: o } : o)
+        quickpick.title = options.title ?? ''
+        quickpick.canSelectMany = options.canPickMany
+        quickpick.matchOnDescription = options.matchOnDescription
         quickpick.onDidFinish(items => {
           if (items == null) return resolve(undefined)
           let arr = isText ? items.map(o => o.label) : items
           if (options.canPickMany) return resolve(arr)
           resolve(arr[0])
         })
-        quickpick.show(this.dialogPreference).catch(reject)
+        quickpick.show().catch(reject)
       })
     })
   }
@@ -233,10 +232,10 @@ export class Window {
    *
    * @return A new {@link QuickPick}.
    */
-  public async createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T>): Promise<QuickPick<T>> {
+  public async createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T> = {}): Promise<QuickPick<T>> {
     return await this.mutex.use(async () => {
-      let quickpick = new QuickPick<T>(this.nvim, config)
-      await quickpick.show(this.dialogPreference)
+      let quickpick = new QuickPick<T>(this.nvim, this.dialogPreference)
+      Object.assign(quickpick, config)
       return quickpick
     })
   }
@@ -353,7 +352,7 @@ export class Window {
       })
     } else {
       return await this.mutex.use(async () => {
-        let res = await this.workspace.callAsync<string>('input', [title + ': ', defaultValue || ''])
+        let res = await this.workspace.callAsync<string>('input', [title + ': ', toText(defaultValue)])
         nvim.command('normal! :<C-u>', true)
         return res
       })
@@ -427,7 +426,7 @@ export class Window {
     })
     if (truncate && lines.length == cmdHeight) {
       let last = lines[lines.length - 1]
-      lines[cmdHeight - 1] = `${last.length == maxLen ? last.slice(0, -4) : last} ...`
+      lines[cmdHeight - 1] = `${last.length >= maxLen ? last.slice(0, -4) : last} ...`
     }
     await nvim.call('coc#ui#echo_lines', [lines])
   }
@@ -500,12 +499,9 @@ export class Window {
       if (token && token.isCancellationRequested) {
         return undefined
       }
-      let useString = typeof items[0] === 'string'
-      let picker = new Picker(this.nvim, {
+      const picker = new Picker(this.nvim, {
         title,
-        items: useString ? items.map(s => {
-          return { label: s }
-        }) : items,
+        items: toPickerItems(items),
       }, token)
       let promise = new Promise<number[]>(resolve => {
         picker.onDidClose(selected => {
@@ -514,8 +510,7 @@ export class Window {
       })
       await picker.show(this.dialogPreference)
       let picked = await promise
-      let res = picked == undefined ? undefined : items.filter((_, i) => picked.includes(i))
-      return res
+      return picked == undefined ? undefined : items.filter((_, i) => picked.includes(i))
     })
   }
 
@@ -593,7 +588,7 @@ export class Window {
       this.showMessage(message, msgType)
       return undefined
     }
-    let titles: string[] = typeof items[0] === 'string' ? items.slice() as string[] : items.map(o => (o as MessageItem).title)
+    let titles = toTitles(items)
     let choices = titles.map((s, i) => `${i + 1}${s}`)
     let res = await this.nvim.callAsync('coc#util#with_callback', ['confirm', [message, choices.join('\n'), 0, kind]]) as number
     return items[res - 1]
@@ -625,7 +620,7 @@ export class Window {
   private async createStatusLineProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
     let { title } = options
     let statusItem = this.createStatusBarItem(0, { progress: true })
-    statusItem.text = title ?? ''
+    statusItem.text = toText(title)
     statusItem.show()
     let total = 0
     let result = await task({
@@ -727,11 +722,9 @@ export class Window {
               }
               removeMarkers.push(...exists.slice(skip).map(o => o[4]))
               newItems.push(...added.slice(skip).map(o => convertHighlightItem(o)))
-            } else {
-              if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
-                linesToRemove.push(i)
-                newItems.push(...added.map(o => convertHighlightItem(o)))
-              }
+            } else if (added.length != exists.length || !(added.every((o, i) => isSame(o, exists[i])))) {
+              linesToRemove.push(i)
+              newItems.push(...added.map(o => convertHighlightItem(o)))
             }
           }
         }
@@ -777,14 +770,12 @@ export class Window {
     }
   }
 
-  private createNotification(kind: NotificationKind, message: string, items: string[], stack: string): Promise<number> {
+  public createNotification(kind: NotificationKind, message: string, items: string[], stack: string): Promise<number> {
     return new Promise((resolve, reject) => {
       let config: NotificationConfig = {
         kind,
         content: message,
-        buttons: items.map((s, index) => {
-          return { text: s, index }
-        }),
+        buttons: toButtons(items),
         callback: idx => {
           resolve(idx)
         }

@@ -9418,12 +9418,16 @@ declare module 'coc.nvim' {
      */
     canSelectMany?: boolean
     /**
-     * Max height of list window.
+     * If the filter text should also be matched against the description of the items. Defaults to false.
      */
-    maxHeight?: number
+    matchOnDescription: boolean
   }
 
   export interface QuickPick<T extends QuickPickItem> {
+    /**
+     * Set or get current input value.
+     */
+    value: string
     /**
      * An optional title.
      */
@@ -9448,9 +9452,18 @@ declare module 'coc.nvim' {
      */
     matchOnDescription: boolean
     /**
-     * Current input value
+      * If multiple items can be selected at the same time. Defaults to false.
+      */
+    canSelectMany: boolean
+    /**
+     * Max height of list, ``
      */
-    readonly value: string
+    maxHeight: number
+    /**
+     * Width of window, limited by `dialog.maxWidth` configuration and vim's 'columns'.
+     * Undefined by default, which means the width is dynamically calculated.
+     */
+    width: number | undefined
     /**
      * An event signaling when QuickPick closed, fired with selected items or null when canceled.
      */
@@ -9463,6 +9476,10 @@ declare module 'coc.nvim' {
      * An event signaling when the selected items have changed.
      */
     readonly onDidChangeSelection: Event<readonly T[]>
+    /**
+     * Makes the input UI visible in its current configuration.
+     */
+    show(): Promise<void>
   }
 
   export interface ScreenPosition {
@@ -9930,9 +9947,12 @@ declare module 'coc.nvim' {
      * is easier to use. {@link window.createQuickPick} should be used
      * when {@link window.showQuickPick} does not offer the required flexibility.
      *
+     * Note that unlike VSCode, promise is returned for wait other inputs finished.
+     *
+     * @param config @deprecated config of quickpick, use properties of QuickPick instance instead.
      * @return A new {@link QuickPick}.
      */
-    export function createQuickPick<T extends QuickPickItem>(config: QuickPickConfig<T>): Promise<QuickPick<T>>
+    export function createQuickPick<T extends QuickPickItem>(config?: QuickPickConfig<T>): Promise<QuickPick<T>>
 
     /**
      * Create statusbar item that would be included in `g:coc_status`.

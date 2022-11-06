@@ -3804,7 +3804,7 @@ on neovim, use |CocOpenFloatPrompt| with current buffer.
 A quickpick is a input dialog in the middle with a float window/popup contains
 filtered list items.
 
-A simple fuzzy filter is used by default.
+Fuzzy filter is used by default.
 
 See |coc-config-dialog| for available configurations.
 
@@ -3851,8 +3851,10 @@ k <s-tab> <up> <C-p> - move to previous item.
 <C-f>                - scroll forward.
 <C-b>                - scroll backward.
 
-Note when close button is clicked, the selection is canceled with undefined
+When close button is clicked, the selection is canceled with undefined
 result (same as <esc>).
+
+It's recommended to use |coc-dialog-quickpick| for filter support.
 
 ==============================================================================
 

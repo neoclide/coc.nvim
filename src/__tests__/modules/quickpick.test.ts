@@ -37,13 +37,16 @@ async function getTitleLine(): Promise<string> {
 
 describe('QuickPick', () => {
   it('should not thrown when window not shown', async () => {
-    let q = new QuickPick(nvim, { items: undefined })
+    let q = new QuickPick(nvim)
+    q.items = undefined
+    expect(q.winid).toBeUndefined()
     expect(q.activeItems).toEqual([])
     q.title = 'title'
-    expect(q.title).toBeUndefined()
+    expect(q.title).toBe('title')
     q.loading = true
-    expect(q.loading).toBe(false)
-    expect(q.value).toBe('')
+    expect(q.loading).toBe(true)
+    q.value = 'value'
+    expect(q.value).toBe('value')
     expect(q.buffer).toBeUndefined()
     expect(q.currIndex).toBe(0)
     q.setCursor(0)
@@ -54,19 +57,18 @@ describe('QuickPick', () => {
   })
 
   it('should show picker items on filter', async () => {
-    let q = new QuickPick(nvim, {
-      canSelectMany: true,
-      items: [{
-        label: 'foo',
-        picked: true
-      }, {
-        label: 'bar',
-        picked: true
-      }, {
-        label: 'foot',
-        picked: false
-      }]
-    })
+    let q = new QuickPick(nvim, {})
+    q.items = [{
+      label: 'foo',
+      picked: true
+    }, {
+      label: 'bar',
+      picked: true
+    }, {
+      label: 'asdf',
+      picked: false
+    }]
+    q.canSelectMany = true
     await q.show()
     await nvim.input('f')
     await helper.waitValue(() => {
@@ -88,9 +90,7 @@ describe('showQuickPick', () => {
     let p = window.showQuickPick(items, { canPickMany })
     await helper.waitFloat()
     await nvim.input('b')
-    if (canPickMany) {
-      await nvim.input('<C-space>')
-    }
+    await nvim.input('<C-space>')
     await helper.wait(50)
     if (cancel) {
       await nvim.input('<esc>')
@@ -149,7 +149,7 @@ describe('showQuickPick', () => {
     let p = window.showQuickPick(items, { matchOnDescription: true })
     await helper.waitFloat()
     await nvim.input('d')
-    await helper.wait(30)
+    await helper.wait(10)
     await nvim.input('<cr>')
     let res = await p
     expect(res).toBeDefined()
@@ -167,9 +167,10 @@ describe('createQuickPick', () => {
       nvim.call = fn
     }))
     let fun = async () => {
-      await window.createQuickPick({
+      let quickpick = await window.createQuickPick({
         items: [{ label: 'foo' }, { label: 'bar' }],
       })
+      await quickpick.show()
     }
     await expect(fun()).rejects.toThrow(/Unable to open/)
   })
@@ -184,18 +185,19 @@ describe('createQuickPick', () => {
       nvim.call = fn
     }))
     let fun = async () => {
-      await window.createQuickPick({
+      let quickpick = await window.createQuickPick({
         items: [{ label: 'foo' }, { label: 'bar' }],
       })
+      await quickpick.show()
     }
     await expect(fun()).rejects.toThrow(/Unable to open/)
   })
 
   it('should respect initial value', async () => {
-    await window.createQuickPick({
-      items: [{ label: 'foo' }, { label: 'bar' }],
-      value: 'value'
-    })
+    let q = await window.createQuickPick()
+    q.items = [{ label: 'foo' }, { label: 'bar' }]
+    q.value = 'value'
+    await q.show()
     let winids = await nvim.call('coc#float#get_float_win_list') as number[]
     let winid = Math.min(...winids)
     let buf = await (nvim.createWindow(winid)).buffer
@@ -204,66 +206,81 @@ describe('createQuickPick', () => {
     await nvim.input('<esc>')
   })
 
+  it('should respect width of quickpick', async () => {
+    helper.updateConfiguration('dialog.maxWidth', null)
+    let q = await window.createQuickPick()
+    q.items = [{ label: 'foo' }, { label: 'bar' }]
+    q.width = 50
+    q.value = ''
+    await q.show()
+    let win = nvim.createWindow(q.winid)
+    let width = await win.width
+    expect(width).toBe(50)
+  })
+
   it('should scroll by <C-f> and <C-b>', async () => {
     helper.updateConfiguration('dialog.maxHeight', 2)
-    let quickpick = await window.createQuickPick({
-      items: [{ label: 'one' }, { label: 'two' }, { label: 'three' }],
-      value: 'value'
-    })
+    let quickpick = await window.createQuickPick()
+    quickpick.value = ''
+    quickpick.items = [{ label: 'one' }, { label: 'two' }, { label: 'three' }]
+    await quickpick.show()
     disposables.push(quickpick)
-    let winids = await nvim.call('coc#float#get_float_win_list') as number[]
-    let winid = Math.max(...winids)
+    let winid = quickpick.winid
     await nvim.input('<C-f>')
-    await helper.wait(30)
+    await helper.wait(1)
     await nvim.input('<C-f>')
-    await helper.wait(30)
-    let info = await nvim.call('getwininfo', [winid])
-    expect(info[0].topline).toBe(2)
+    await helper.waitValue(async () => {
+      let info = await nvim.call('getwininfo', [winid])
+      return info[0].topline
+    }, 2)
     await nvim.input('<C-b>')
-    await helper.wait(30)
+    await nvim.input('<C-x>')
+    await helper.wait(1)
     await nvim.input('<C-b>')
-    await helper.wait(30)
-    info = await nvim.call('getwininfo', [winid])
-    expect(info[0].topline).toBe(1)
+    await helper.waitValue(async () => {
+      let info = await nvim.call('getwininfo', [winid])
+      return info[0].topline
+    }, 1)
   })
 
   it('should change current line by <C-j> and <C-k>', async () => {
-    let quickpick = await window.createQuickPick({
-      items: [{ label: 'one' }, { label: 'two' }, { label: 'three' }],
-      value: 'value'
-    })
+    let quickpick = await window.createQuickPick()
+    quickpick.items = [{ label: 'one' }, { label: 'two' }, { label: 'three' }]
+    await quickpick.show()
     disposables.push(quickpick)
     await nvim.input('<C-j>')
-    await helper.wait(30)
+    await helper.wait(1)
     await nvim.input('<C-j>')
-    await helper.wait(30)
-    expect(quickpick.currIndex).toBe(2)
+    await helper.waitValue(() => {
+      return quickpick.currIndex
+    }, 2)
     await nvim.input('<C-k>')
-    await helper.wait(30)
+    await helper.wait(1)
     await nvim.input('<C-k>')
-    await helper.wait(30)
-    expect(quickpick.currIndex).toBe(0)
+    await helper.waitValue(() => {
+      return quickpick.currIndex
+    }, 0)
   })
 
   it('should toggle selected item by <C-space>', async () => {
-    let quickpick = await window.createQuickPick({
-      items: [{ label: 'one' }, { label: 'two' }, { label: 'three' }],
-      value: 'value'
-    })
+    let quickpick = await window.createQuickPick()
+    quickpick.items = [{ label: 'one' }, { label: 'two' }, { label: 'three' }]
     disposables.push(quickpick)
     await nvim.input('<C-sapce>')
-    await helper.wait(30)
+    await helper.wait(10)
     await nvim.input('<C-k>')
-    await helper.wait(30)
+    await helper.wait(10)
     await nvim.input('<C-sapce>')
-    await helper.wait(30)
-    expect(quickpick.selectedItems.length).toBe(0)
+    await helper.waitValue(() => {
+      return quickpick.selectedItems.length
+    }, 0)
   })
 
   it('should not handle events from other buffer', async () => {
     let quickpick = await window.createQuickPick({
       items: [{ label: 'one' }, { label: 'two' }, { label: 'three' }],
     })
+    await quickpick.show()
     disposables.push(quickpick)
     await events.fire('BufWinLeave', [quickpick.buffer.id + 1])
     await events.fire('PromptKeyPress', [quickpick.buffer.id + 1, 'C-f'])
@@ -276,10 +293,9 @@ describe('createQuickPick', () => {
     helper.updateConfiguration('dialog.floatHighlight', 'Normal')
     helper.updateConfiguration('dialog.floatBorderHighlight', 'Normal')
     helper.updateConfiguration('dialog.maxHeight', 2)
-    await window.createQuickPick({
-      items: [{ label: 'one' }, { label: 'two' }, { label: 'three' }],
-      value: 'value'
-    })
+    let quickpick = await window.createQuickPick()
+    quickpick.items = [{ label: 'one' }, { label: 'two' }, { label: 'three' }]
+    await quickpick.show()
     let winids = await nvim.call('coc#float#get_float_win_list') as number[]
     let winid = Math.max(...winids)
     let win = nvim.createWindow(winid)
@@ -289,23 +305,22 @@ describe('createQuickPick', () => {
   })
 
   it('should change title', async () => {
-    let quickpick = await window.createQuickPick({
-      items: [{ label: 'one' }, { label: 'two' }],
-      title: 'from'
-    })
+    let quickpick = await window.createQuickPick()
+    quickpick.items = [{ label: 'one' }, { label: 'two' }]
+    quickpick.title = 'from'
     disposables.push(quickpick)
     quickpick.title = 'to'
-    await helper.wait(30)
     expect(quickpick.title).toBe('to')
+    await quickpick.show()
     let line = await getTitleLine()
     expect(line).toMatch(/to/)
   })
 
   it('should change loading', async () => {
-    let quickpick = await window.createQuickPick({
-      items: [{ label: 'one' }, { label: 'two' }]
-    })
+    let quickpick = await window.createQuickPick()
+    quickpick.items = [{ label: 'one' }, { label: 'two' }]
     disposables.push(quickpick)
+    await quickpick.show()
     quickpick.loading = true
     expect(quickpick.loading).toBe(true)
     quickpick.loading = false
@@ -313,9 +328,9 @@ describe('createQuickPick', () => {
   })
 
   it('should change items', async () => {
-    let quickpick = await window.createQuickPick({
-      items: [{ label: 'one' }, { label: 'two' }]
-    })
+    let quickpick = await window.createQuickPick()
+    quickpick.items = [{ label: 'one' }, { label: 'two' }]
+    await quickpick.show()
     disposables.push(quickpick)
     quickpick.onDidChangeValue(val => {
       if (val == '>') {
@@ -330,19 +345,19 @@ describe('createQuickPick', () => {
   })
 
   it('should change activeItems', async () => {
-    let quickpick = await window.createQuickPick<QuickPickItem>({
-      items: [{ label: 'one' }]
-    })
+    let quickpick = await window.createQuickPick<QuickPickItem>()
+    quickpick.items = [{ label: 'one' }]
     disposables.push(quickpick)
+    await quickpick.show()
     quickpick.onDidChangeValue(val => {
       if (val == 'f') {
-        quickpick.activeItems = [{ label: 'foo', description: 'description' }, { label: 'foot' }]
+        quickpick.activeItems = [{ label: 'foo', description: 'description' }, { label: 'foot' }, { label: 'bar' }]
       }
     })
     await nvim.input('f')
     await helper.waitValue(async () => {
       let lines = await quickpick.buffer.lines
       return lines
-    }, ['foo description', 'foot'])
+    }, ['foo description', 'foot', 'bar'])
   })
 })

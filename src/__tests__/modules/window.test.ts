@@ -8,7 +8,7 @@ import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
-import Notification from '../../model/notification'
+import Notification, { toButtons, toTitles } from '../../model/notification'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { MessageLevel } from '../../types'
 import { disposeAll } from '../../util'
@@ -16,6 +16,7 @@ import workspace from '../../workspace'
 import window from '../../window'
 import helper, { createTmpFile } from '../helper'
 import { formatMessage } from '../../model/progress'
+import { toPickerItems } from '../../model/picker'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -230,12 +231,16 @@ describe('window', () => {
 
     it('should show menu', async () => {
       let p = window.showMenuPicker(['a', 'b', 'c'], 'choose item')
-      await helper.wait(50)
-      let exists = await nvim.call('coc#float#has_float', [])
-      expect(exists).toBe(1)
+      await helper.waitValue(async () => {
+        return await nvim.call('coc#float#has_float', [])
+      }, 1)
       await nvim.input('2')
       let res = await p
       expect(res).toBe(1)
+    })
+
+    it('should convert picker items', () => {
+      expect(toPickerItems([{ label: 'foo' }])).toEqual([{ label: 'foo' }])
     })
 
     it('should return select items for picker', async () => {
@@ -275,14 +280,16 @@ describe('window', () => {
     it('should open local config', async () => {
       let dir = path.join(os.tmpdir(), '.vim')
       fs.rmSync(dir, { recursive: true, force: true })
-      if (!fs.existsSync(path.join(os.tmpdir(), '.git'))) {
-        fs.mkdirSync(path.join(os.tmpdir(), '.git'))
-      }
+      fs.mkdirSync(path.join(os.tmpdir(), '.git'), { recursive: true })
       await helper.edit(path.join(os.tmpdir(), 't'))
       let root = workspace.root
       expect(root).toBe(os.tmpdir())
       let p = window.openLocalConfig()
-      await helper.wait(50)
+      await helper.wait(10)
+      await nvim.input('n')
+      await p
+      p = window.openLocalConfig()
+      await helper.wait(10)
       await nvim.input('y')
       await p
       let bufname = await nvim.call('bufname', ['%'])
@@ -385,7 +392,7 @@ describe('window', () => {
     })
 
     it('should echo multiple lines with truncate', async () => {
-      await window.echoLines(['a', 'b', 'd', 'e'], true)
+      await window.echoLines(['a', 'b'.repeat(99), 'd', 'e'], true)
       let ch = await nvim.call('screenchar', [79, 1]) as number
       let s = String.fromCharCode(ch)
       expect(s).toBe('a')
@@ -437,6 +444,15 @@ describe('window', () => {
   })
 
   describe('window notifications', () => {
+    it('should toButtons', () => {
+      expect(toButtons(['foo', 'bar']).length).toBe(2)
+    })
+
+    it('should toTitles', () => {
+      expect(toTitles(['foo', 'bar']).length).toBe(2)
+      expect(toTitles([{ title: 'foo' }]).length).toBe(1)
+    })
+
     it('should show notification with options', async () => {
       await window.showNotification({
         content: 'my notification',

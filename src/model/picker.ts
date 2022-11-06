@@ -14,6 +14,10 @@ interface PickerConfig {
   items: QuickPickItem[]
 }
 
+export function toPickerItems(items: (QuickPickItem | string)[]): QuickPickItem[] {
+  return items.map(item => typeof item === 'string' ? { label: item } : item)
+}
+
 /**
  * Pick multiple items from dialog
  */
