@@ -1,3 +1,7 @@
+# 2022-11-07
+
+- Add API `CocAction('snippetInsert')` for snippet insert from vim plugin.
+
 # 2022-11-06
 
 - `window.createQuickPick()` API that show QuickPick by default, call `show()`

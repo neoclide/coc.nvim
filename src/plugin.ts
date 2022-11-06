@@ -1,7 +1,7 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
-import { CodeActionKind, Disposable } from 'vscode-languageserver-protocol'
+import { CodeActionKind, Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
 import commandManager from './commands'
 import completion, { Completion } from './completion'
 import channels from './core/channels'
@@ -11,13 +11,14 @@ import events from './events'
 import extensions from './extension'
 import Handler from './handler'
 import listManager from './list/manager'
+import { createLogger } from './logger'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
+import { UltiSnippetOption } from './types'
 import { disposeAll } from './util'
 import window from './window'
 import workspace, { Workspace } from './workspace'
-import { createLogger } from './logger'
 const logger = createLogger('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -61,6 +62,7 @@ export default class Plugin extends EventEmitter {
     this.addAction('doKeymap', async (key, defaultReturn, pressed) => this.handler.workspace.doKeymap(key, defaultReturn, pressed))
     this.addAction('registerExtensions', (...folders: string[]) => extensions.manager.loadExtension(folders), 'registExtensions')
     this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => this.handler.workspace.snippetCheck(checkExpand, checkJump))
+    this.addAction('snippetInsert', (range: Range, newText: string, mode?: InsertTextMode, ultisnip?: UltiSnippetOption) => snippetManager.insertSnippet(newText, true, range, mode, ultisnip))
     this.addAction('snippetNext', () => snippetManager.nextPlaceholder())
     this.addAction('snippetPrev', () => snippetManager.previousPlaceholder())
     this.addAction('snippetCancel', () => snippetManager.cancel())

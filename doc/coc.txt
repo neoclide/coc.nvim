@@ -2513,6 +2513,18 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	When {mode} is omitted, it should be called using |formatexpr|.
 
+"snippetInsert" {range} {snippet} [{mode}]		*CocAction('snippetInsert')*
+
+	Insert {snippet} text as specific {range} of current buffer.
+
+	{range} should be valid LSP range like:
+>
+	// all 0 based utf16 unit code index.
+	{"start": {"line": 0, "character": 1}, "end": {"line": 0, "character": 3}}
+<
+	{snippet} is the textmate format snippet text used by VSCode.
+
+	{mode} could be 1 or 2, use 1 to disable format of snippet.
 
 "selectionRanges"					*CocAction('selectionRanges')*
 

@@ -75,6 +75,12 @@ describe('snippet provider', () => {
       expect(snippetManager.getSession(doc.bufnr)).toBeUndefined()
     })
 
+    it('should insert snippet by action', async () => {
+      await nvim.input('i')
+      let res = await helper.plugin.cocAction('snippetInsert', Range.create(0, 0, 0, 0), '${1:foo}')
+      expect(res).toBe(true)
+    })
+
     it('should start new session if session exists', async () => {
       await nvim.setLine('bar')
       await snippetManager.insertSnippet('${1:foo} ')
