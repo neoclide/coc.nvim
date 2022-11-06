@@ -1,7 +1,6 @@
 'use strict'
-// vim: set sw=2 ts=2 sts=2 et foldmarker={{,}} foldmethod=marker foldlevel=0 nofen:
 import { Buffer, Window } from '@chemzqm/neovim'
-import { AnnotatedTextEdit, CancellationToken, CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, Disposable, DocumentSelector, Event, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, Disposable, DocumentSelector, Event, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 import type Document from './model/document'
@@ -722,8 +721,9 @@ export interface DurationCompleteItem {
   source: string
   priority: number
   isSnippet: boolean
+  insertText?: string
   // copied from CompleteItem
-  index?: number
+  index: number
   menu?: string
   kind?: string | CompletionItemKind
   dup?: number
@@ -766,6 +766,8 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   labelDetails?: CompletionItemLabelDetails
   sortText?: string
   filterText?: string
+  // could be snippet
+  insertText?: string
   isSnippet?: boolean
   index?: number
   documentation?: Documentation[]

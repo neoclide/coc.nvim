@@ -11,7 +11,7 @@ import BufferSync from '../model/bufferSync'
 import { CompletionItemProvider } from '../provider'
 import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from '../types'
 import { disposeAll } from '../util'
-import { intersect, isFalsyOrEmpty } from '../util/array'
+import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
 import window from '../window'
@@ -34,7 +34,7 @@ interface InitialConfig {
  * For static words, must be triggered by source option.
  * Used for completion of snippet choices.
  */
-export class WordsSource {
+class WordsSource {
   public readonly name = '$words'
   public readonly shortcut = ''
   public readonly triggerOnly = true
@@ -65,7 +65,7 @@ export class Sources {
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
     workspace.onDidRuntimePathChange(newPaths => {
       for (let p of newPaths) {
-        void this.createVimSources(p)
+        this.createVimSources(p).catch(onError)
       }
     }, null, this.disposables)
   }
@@ -114,10 +114,10 @@ export class Sources {
       shortcut,
       provider,
       selector,
-      triggerCharacters || [],
-      allCommitCharacters || [],
+      toArray(triggerCharacters),
+      toArray(allCommitCharacters),
       priority)
-    logger.debug('created service source', name)
+    logger.trace('created service source', name)
     this.sourceMap.set(name, source)
     return {
       dispose: () => {
@@ -221,7 +221,7 @@ export class Sources {
     let { runtimepath } = workspace.env
     let paths = runtimepath.split(',')
     for (let path of paths) {
-      void this.createVimSources(path)
+      this.createVimSources(path).catch(onError)
     }
   }
 
@@ -229,15 +229,11 @@ export class Sources {
     if (this.remoteSourcePaths.includes(pluginPath) || !pluginPath) return
     this.remoteSourcePaths.push(pluginPath)
     let folder = path.join(pluginPath, 'autoload/coc/source')
-    try {
-      let stat = await statAsync(folder)
-      if (stat && stat.isDirectory()) {
-        let arr = await util.promisify(fs.readdir)(folder)
-        let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
-        await Promise.all(files.map(p => this.createVimSourceExtension(this.nvim, p)))
-      }
-    } catch (e) {
-      logger.error(`Error on create vim source from ${pluginPath}`, e)
+    let stat = await statAsync(folder)
+    if (stat && stat.isDirectory()) {
+      let arr = await util.promisify(fs.readdir)(folder)
+      let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
+      await Promise.allSettled(files.map(p => this.createVimSourceExtension(this.nvim, p)))
     }
   }
 
@@ -404,6 +400,10 @@ export class Sources {
   public dispose(): void {
     disposeAll(this.disposables)
   }
+}
+
+function onError(err: any): void {
+  logger.error('Error on source create', err)
 }
 
 export default new Sources()

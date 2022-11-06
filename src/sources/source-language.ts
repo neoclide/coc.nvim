@@ -1,7 +1,8 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionItemLabelDetails, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
-import { getCursorPosition } from '../core/ui'
+import { getLineAndPosition } from '../core/ui'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
@@ -13,7 +14,6 @@ import { isCompletionList } from '../util/is'
 import { isEmpty } from '../util/object'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
-import { createLogger } from '../logger'
 const logger = createLogger('source-language')
 
 interface TriggerContext {
@@ -199,7 +199,7 @@ export default class LanguageSource implements ISource {
   private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption): Promise<boolean> {
     let { linenr, col } = option
     let { character, line } = this.triggerContext
-    let pos = await getCursorPosition(workspace.nvim)
+    let pos = await getLineAndPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
     let range: Range | undefined
     let { textEdit, insertText, label } = item
@@ -216,10 +216,9 @@ export default class LanguageSource implements ISource {
     if (!range) return false
     // attempt to fix range from textEdit, range should include trigger position
     if (range.end.character < character) range.end.character = character
-    let currline = doc.getline(linenr - 1, false)
     let newText = textEdit ? textEdit.newText : insertText ?? label
     // adjust range by indent
-    let indentCount = fixIndent(line, currline, range)
+    let indentCount = fixIndent(line, pos.text, range)
     // cursor moved count
     let delta = pos.character - character - indentCount
     // fix range by count cursor moved to replace insert word on complete done.

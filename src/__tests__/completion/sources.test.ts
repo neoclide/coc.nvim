@@ -6,10 +6,11 @@ import Source, { firstMatchFuzzy } from '../../sources/source'
 import { resolveEnvVariables, File, getFileItem, getDirectory, getItemsFromRoot, filterFiles } from '../../sources/native/file'
 import { Around } from '../../sources/native/around'
 import { Buffer } from '../../sources/native/buffer'
+import VimSource from '../../sources/source-vim'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-import { CompleteOption, SourceConfig } from '../../types'
+import { CompleteOption, DurationCompleteItem, SourceConfig, SourceType } from '../../types'
 import { disposeAll } from '../../util'
 
 let nvim: Neovim
@@ -78,6 +79,10 @@ describe('Source', () => {
     }
     return result
   }
+
+  it('should get source shortcut', () => {
+    expect(sources.getShortcut('not_exists')).toBe('')
+  })
 
   it('should check trigger only source', async () => {
     let name = 'foo'
@@ -168,6 +173,55 @@ describe('Source', () => {
     items = new Set()
     res = await s.getResults([['你好']], 'ni', '', items, CancellationToken.None)
     expect(items.size).toBe(1)
+  })
+})
+
+describe('vim source', () => {
+  it('should not insert snippet when on_complete exists', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let source = new VimSource({
+      name: 'vim',
+      sourceType: SourceType.Remote,
+      optionalFns: ['on_complete']
+    })
+    let item: DurationCompleteItem = {
+      word: 'word',
+      abbr: 'word',
+      filterText: 'word',
+      source: '',
+      priority: 0,
+      index: 0,
+      isSnippet: true,
+      insertText: 'word($1)'
+    }
+    let spy = jest.spyOn(nvim, 'call').mockImplementation(() => {
+      return undefined
+    })
+    await source.onCompleteDone(item, opt)
+    spy.mockRestore()
+    let line = await nvim.line
+    expect(line).toBe('')
+  })
+
+  it('should insert snippet', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let source = new VimSource({
+      name: 'vim',
+      sourceType: SourceType.Remote
+    })
+    let item: DurationCompleteItem = {
+      word: 'word',
+      abbr: 'word',
+      filterText: 'word',
+      source: '',
+      priority: 0,
+      index: 0,
+      isSnippet: true,
+      insertText: 'word($1)'
+    }
+    await source.onCompleteDone(item, opt)
+    let line = await nvim.line
+    expect(line).toBe('word()')
   })
 })
 

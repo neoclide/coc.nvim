@@ -1,11 +1,12 @@
 'use strict'
-import { CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken, Range } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, DurationCompleteItem, ExtendedCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
-import { byteSlice } from '../util/string'
+import { byteSlice, characterIndex } from '../util/string'
+import snippetManager from '../snippets/manager'
 import workspace from '../workspace'
-import window from '../window'
 import Source from './source'
+import { getLineAndPosition } from '../core/ui'
 
 export default class VimSource extends Source {
 
@@ -13,14 +14,7 @@ export default class VimSource extends Source {
     let exists = this.optionalFns.includes(fname)
     if (!exists) return null
     let name = `coc#source#${this.name}#${fname}`
-    let res
-    try {
-      res = await this.nvim.call(name, args)
-    } catch (e) {
-      void window.showErrorMessage(`Vim error from source ${this.name}: ${e}`)
-      return null
-    }
-    return res
+    return await this.nvim.call(name, args)
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
@@ -35,9 +29,22 @@ export default class VimSource extends Source {
     await this.callOptionalFunc('refresh', [])
   }
 
-  public async onCompleteDone(item: DurationCompleteItem, _opt: CompleteOption): Promise<void> {
-    if (!this.optionalFns.includes('on_complete')) return
-    await this.callOptionalFunc('on_complete', [item])
+  public async insertSnippet(insertText: string, opt: CompleteOption): Promise<void> {
+    let pos = await getLineAndPosition(this.nvim)
+    let { line, col } = opt
+    let oldIndent = line.match(/^\s*/)[0]
+    let newIndent = pos.text.match(/^\s*/)[0]
+    // current insert range
+    let range = Range.create(pos.line, characterIndex(line, col) + newIndent.length - oldIndent.length, pos.line, pos.character)
+    await snippetManager.insertSnippet(insertText, true, range)
+  }
+
+  public async onCompleteDone(item: DurationCompleteItem, opt: CompleteOption): Promise<void> {
+    if (this.optionalFns.includes('on_complete')) {
+      await this.callOptionalFunc('on_complete', [item])
+    } else if (item.isSnippet && item.insertText) {
+      await this.insertSnippet(item.insertText, opt)
+    }
   }
 
   public onEnter(bufnr: number): void {
@@ -86,7 +93,7 @@ export default class VimSource extends Source {
       }
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
-      item.isSnippet = this.isSnippet
+      item.isSnippet = typeof item.isSnippet === 'boolean' ? item.isSnippet : this.isSnippet
       return item
     })
     let res: CompleteResult = { items }

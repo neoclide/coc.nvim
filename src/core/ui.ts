@@ -14,6 +14,11 @@ export async function getCursorPosition(nvim: Neovim): Promise<Position> {
   return Position.create(line, content.length)
 }
 
+export async function getLineAndPosition(nvim: Neovim): Promise<{ text: string, line: number, character: number }> {
+  let [text, lnum, content] = await nvim.eval(`[getline('.'), line('.'), strpart(getline('.'), 0, col('.') - 1)]`) as [string, number, string]
+  return { text, line: lnum - 1, character: content.length }
+}
+
 export function createFloatFactory(nvim: Neovim, conf: FloatWinConfig, defaults: FloatConfig): FloatFactory {
   let opts = Object.assign({}, defaults, conf)
   let factory = new FloatFactoryImpl(nvim)

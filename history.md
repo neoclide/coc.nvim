@@ -1,6 +1,9 @@
 # 2022-11-07
 
 - Add API `CocAction('snippetInsert')` for snippet insert from vim plugin.
+- Snippet support for vim source, snippet item should have `isSnippet` to be
+  `true` and `insertText` to be snippet text, when `on_complete` function exists,
+  the snippet expand should be handled completion source.
 
 # 2022-11-06
 

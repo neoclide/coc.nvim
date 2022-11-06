@@ -297,6 +297,7 @@ export function toDurationCompleteItem(item: ExtendedCompleteItem | CompletionIt
     kind: item.kind,
     info: item.info,
     isSnippet: !!item.isSnippet,
+    insertText: item.insertText,
     preselect: item.preselect,
     sortText: item.sortText,
     documentation: item.documentation,

@@ -126,6 +126,7 @@ describe('util functions', () => {
 
   it('should toCompleteDoneItem', () => {
     let res = toCompleteDoneItem({
+      index: 0,
       abbr: '',
       filterText: '',
       isSnippet: false,
