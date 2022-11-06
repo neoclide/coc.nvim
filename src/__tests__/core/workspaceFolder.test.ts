@@ -32,6 +32,7 @@ beforeAll(async () => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
+  workspaceFolder.init()
 })
 
 afterEach(async () => {

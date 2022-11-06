@@ -3,12 +3,14 @@ import minimatch from 'minimatch'
 import path from 'path'
 import { Disposable, Emitter, WorkspaceFolder, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { createLogger } from '../logger'
 import { GlobPattern, OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import { isParentFolder, sameFile } from '../util/fs'
 import Watchman, { FileChange } from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
+const logger = createLogger('fileSystemWatcher')
 
 export interface RenameEvent {
   oldUri: URI
@@ -132,6 +134,8 @@ export class FileSystemWatcher implements Disposable {
   public readonly onDidChange: Event<URI> = this._onDidChange.event
   public readonly onDidDelete: Event<URI> = this._onDidDelete.event
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
+  private readonly _onDidListen = new Emitter<void>()
+  public readonly onDidListen: Event<void> = this._onDidListen.event
 
   constructor(
     private globPattern: GlobPattern,
@@ -207,10 +211,14 @@ export class FileSystemWatcher implements Disposable {
         }
       }
     }
-    void client.subscribe(pattern, onChange).then(disposable => {
+    client.subscribe(pattern, onChange).then(disposable => {
+      if (!disposable) return
+      this._onDidListen.fire()
       this.subscribe = disposable.subscribe
       if (this._disposed) return disposable.dispose()
       this.disposables.push(disposable)
+    }, e => {
+      logger.error(`Error on subscribe ${pattern}`, e)
     })
   }
 

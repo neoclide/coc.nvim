@@ -126,7 +126,7 @@ export function toCompleteDoneItem(item: DurationCompleteItem | undefined): Comp
     source: item.source,
     isSnippet: item.isSnippet === true,
     menu: item.menu ?? `[${item.source}]`,
-    user_data: typeof item.index === 'number' ? `${item.source}:${item.index}` : item.user_data
+    user_data: typeof item.user_data === 'string' ? item.user_data : `${item.source}:${item.index}`
   }
 }
 

@@ -91,7 +91,7 @@ export default class Watchman {
     })
   }
 
-  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable & { subscribe: string }> {
+  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable & { subscribe: string } | undefined> {
     let { watch, relative_path } = this
     if (!watch) throw new Error('watchman not watching')
     let { clock } = await this.command(['clock', watch])
@@ -106,6 +106,7 @@ export default class Watchman {
       sub.relative_root = relative_path
       root = path.join(watch, relative_path)
     }
+    if (!this.client) return
     let { subscribe } = await this.command(['subscribe', watch, uid, sub])
     this.appendOutput(`subscribing "${globPattern}" in ${root}`)
     this.client.on('subscription', resp => {
@@ -142,7 +143,7 @@ export default class Watchman {
     if (this._disposed) return
     this._disposed = true
     if (this.client) {
-      this.client.removeAllListeners()
+      this.client.end()
       this.client = undefined
     }
   }

@@ -70,9 +70,8 @@ export default class Configurations {
     configuration.onDidUpdateConfiguration(e => {
       if (e.properties.length === 0) return
       // update default configuration with new value
-      let defaults = this._configuration.defaults
-      let model = defaults.isFrozen ? defaults.clone() : defaults
       let dict = configuration.getConfigurationProperties()
+      let model = this._configuration.defaults.clone()
       for (let key of e.properties) {
         let def = dict[key]
         if (def) {

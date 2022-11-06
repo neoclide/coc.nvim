@@ -295,7 +295,7 @@ describe('window', () => {
       await p
       let bufname = await nvim.call('bufname', ['%'])
       expect(bufname).toMatch('coc-settings.json')
-    })
+    }, 10000)
 
     it('should get messageLevel', () => {
       helper.updateConfiguration('coc.preferences.messageLevel', 'error')

@@ -44,9 +44,12 @@ export default class WorkspaceFolderController {
   private _workspaceFolders: WorkspaceFolder[] = []
   private _tokenSources: Set<CancellationTokenSource> = new Set()
   constructor(private configurations: Configurations) {
+  }
+
+  public init(): void {
     events.on('VimLeavePre', this.cancelAll, this)
     this.updateConfiguration(true)
-    configurations.onDidChange(e => {
+    this.configurations.onDidChange(e => {
       if (e.affectsConfiguration('workspace') || e.affectsConfiguration('coc.preferences')) {
         this.updateConfiguration(false)
       }
