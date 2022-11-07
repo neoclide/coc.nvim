@@ -1,15 +1,12 @@
 'use strict'
 import { ParseError, printParseErrorCode } from 'jsonc-parser'
-import { Location, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationOverrides } from '../types'
+import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationOverrides } from '../types'
 import { distinct } from '../util/array'
 import { equals } from '../util/object'
-import { createLogger } from '../logger'
-const logger = createLogger('configuration-util')
-
-export type ShowError = (errors: ErrorItem[]) => void
+const documentUri = 'file:///1'
 
 export interface IConfigurationCompareResult {
   added: string[]
@@ -121,16 +118,12 @@ export function mergeConfigProperties(obj: any): any {
   return res
 }
 
-export function convertErrors(uri: string, content: string, errors: ParseError[]): ErrorItem[] {
-  let items: ErrorItem[] = []
-  let document = TextDocument.create(uri, 'json', 0, content)
+export function convertErrors(content: string, errors: ParseError[]): Diagnostic[] {
+  let items: Diagnostic[] = []
+  let document = TextDocument.create(documentUri, 'json', 0, content)
   for (let err of errors) {
-    let range: Range = {
-      start: document.positionAt(err.offset),
-      end: document.positionAt(err.offset + err.length),
-    }
-    let loc = Location.create(uri, range)
-    items.push({ location: loc, message: printParseErrorCode(err.error) })
+    const range = Range.create(document.positionAt(err.offset), document.positionAt(err.offset + err.length))
+    items.push(Diagnostic.create(range, printParseErrorCode(err.error), DiagnosticSeverity.Error))
   }
   return items
 }

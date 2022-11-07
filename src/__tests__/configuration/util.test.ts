@@ -5,11 +5,10 @@ import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
 
 describe('Configuration utils', () => {
   it('convert parse errors', () => {
-    let uri = 'file:///1'
     let content = 'foo'
     let errors: ParseError[] = []
     errors.push({ error: 2, length: 10, offset: 1 })
-    let arr = convertErrors(uri, content, errors)
+    let arr = convertErrors(content, errors)
     expect(arr.length).toBe(1)
   })
 

@@ -2,25 +2,26 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { ConfigurationInspect, ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, ErrorItem, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from '../types'
+import defaultSchema from '../../data/schema.json'
+import { createLogger } from '../logger'
+import { ConfigurationInspect, ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from '../types'
 import { CONFIG_FILE_NAME, disposeAll } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
 import { findUp, normalizeFilePath, sameFile, watchFile } from '../util/fs'
 import { objectLiteral } from '../util/is'
+import { Extensions as JSONExtensions, IJSONContributionRegistry } from '../util/jsonRegistry'
+import { IJSONSchema } from '../util/jsonSchema'
 import { deepFreeze, hasOwnProperty, mixin } from '../util/object'
+import { convertProperties, Registry } from '../util/registry'
 import { Configuration } from './configuration'
 import { ConfigurationChangeEvent } from './event'
 import { ConfigurationModel } from './model'
 import { ConfigurationModelParser } from './parser'
+import { allSettings, Extensions, IConfigurationNode, IConfigurationRegistry, resourceSettings } from './registry'
 import { IConfigurationShape } from './shape'
 import { addToValueTree, convertTarget, scopeToOverrides } from './util'
-import defaultSchema from '../../data/schema.json'
-import { convertProperties, Registry } from '../util/registry'
-import { Extensions, IConfigurationNode, allSettings, resourceSettings, IConfigurationRegistry } from './registry'
-import { IJSONSchema } from '../util/jsonSchema'
-import { IJSONContributionRegistry, Extensions as JSONExtensions } from '../util/jsonRegistry'
-import { createLogger } from '../logger'
 const logger = createLogger('configurations')
 
 export const userSettingsSchemaId = 'vscode://schemas/settings/user'
@@ -28,16 +29,21 @@ export const folderSettingsSchemaId = 'vscode://schemas/settings/folder'
 
 const jsonRegistry = Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONContribution)
 
+interface ConfigurationErrorEvent {
+  uri: string,
+  diagnostics: Diagnostic[]
+}
+
 export default class Configurations {
   private _watchedFiles: Set<string> = new Set()
   private builtinKeys: string[] = []
   private _configuration: Configuration
-  private _errorItems: ErrorItem[] = []
-  private _onError = new Emitter<ErrorItem[]>()
+  private _errors: Map<string, Diagnostic[]> = new Map()
+  private _onError = new Emitter<ConfigurationErrorEvent>()
   private _onChange = new Emitter<IConfigurationChangeEvent>()
   private disposables: Disposable[] = []
 
-  public readonly onError: Event<ErrorItem[]> = this._onError.event
+  public readonly onError: Event<ConfigurationErrorEvent> = this._onError.event
   public readonly onDidChange: Event<IConfigurationChangeEvent> = this._onChange.event
 
   constructor(
@@ -54,8 +60,8 @@ export default class Configurations {
     if (filepath) this.addFolderFile(filepath, true)
   }
 
-  public get errorItems(): ErrorItem[] {
-    return this._errorItems
+  public get errors(): Map<string, Diagnostic[]> {
+    return this._errors
   }
 
   public get configuration(): Configuration {
@@ -122,13 +128,18 @@ export default class Configurations {
     return undefined
   }
 
-  public parseConfigurationModel(filepath: string): ConfigurationModel {
+  public parseConfigurationModel(filepath: string | undefined): ConfigurationModel {
+    if (!filepath) return new ConfigurationModel()
     let parser = new ConfigurationModelParser(filepath)
-    let content = filepath && fs.existsSync(filepath) ? fs.readFileSync(filepath, 'utf8') : ''
+    let content = fs.existsSync(filepath) ? fs.readFileSync(filepath, 'utf8') : ''
+    let uri = URI.file(filepath).toString()
     parser.parse(content)
-    if (parser.errors.length) {
-      this._errorItems = parser.errors
-      this._onError.fire(this._errorItems)
+    if (!isFalsyOrEmpty(parser.errors)) {
+      this._errors.set(uri, parser.errors)
+      this._onError.fire({ uri, diagnostics: parser.errors })
+    } else {
+      this._errors.delete(uri)
+      this._onError.fire({ uri, diagnostics: [] })
     }
     return parser.configurationModel
   }
@@ -346,7 +357,7 @@ export default class Configurations {
    * Reset configurations for test
    */
   public reset(): void {
-    this._errorItems = []
+    this._errors.clear()
     let model = new ConfigurationModel()
     this.changeConfiguration(ConfigurationTarget.Memory, model, undefined)
   }

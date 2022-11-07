@@ -966,11 +966,6 @@ export interface WorkspaceConfiguration {
    */
   readonly [key: string]: any
 }
-
-export interface ErrorItem {
-  location: Location
-  message: string
-}
 // }}
 
 // File operation {{

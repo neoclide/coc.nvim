@@ -495,7 +495,7 @@ describe('workspace utility', () => {
   it('should check nvim version', async () => {
     expect(workspace.has('patch-7.4.248')).toBe(false)
     expect(workspace.has('nvim-0.5.0')).toBe(true)
-    expect(workspace.has('nvim-0.9.0')).toBe(false)
+    expect(workspace.has('nvim-9.0.0')).toBe(false)
   })
 })
 

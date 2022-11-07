@@ -258,8 +258,8 @@ describe('Configurations', () => {
       fs.writeFileSync(tmpFile, '{"x":', 'utf8')
       let conf = new Configurations(tmpFile)
       disposables.push(conf)
-      let errors = conf.errorItems
-      expect(errors.length > 1).toBe(true)
+      let errors = conf.errors
+      expect(errors.size).toBeGreaterThan(0)
     })
 
     it('should get nested property', () => {

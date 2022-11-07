@@ -125,10 +125,10 @@ function toConfigurationModel(content: any): ConfigurationModel {
   return parser.configurationModel
 }
 describe('ConfigurationModelParser', () => {
-  test('parser error with empty text', async () => {
+  test('parser no error with empty text', async () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(' ')
-    expect(parser.errors.length).toBe(1)
+    expect(parser.errors.length).toBe(0)
   })
 
   test('parse invalid value', async () => {

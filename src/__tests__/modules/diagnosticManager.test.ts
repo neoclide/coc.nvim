@@ -258,33 +258,16 @@ describe('diagnostic manager', () => {
   })
 
   describe('setConfigurationErrors()', () => {
-    it('should set configuration errors', async () => {
-      let doc = await workspace.document
-      let errors = [{
-        location: Location.create(doc.uri, Range.create(0, 0, 1, 0)),
-        message: 'foo',
-      }, {
-        location: Location.create(doc.uri, Range.create(1, 0, 2, 0)),
-        message: 'bar',
-      }]
-      manager.setConfigurationErrors(errors)
-      await helper.wait(50)
-      let buf = manager.getItem(doc.bufnr)
-      let res = manager.getDiagnostics(buf)
-      expect(res.config.length).toBe(2)
-      manager.setConfigurationErrors()
-      await helper.wait(50)
-      res = manager.getDiagnostics(buf)
-      expect(res.config).toBeUndefined()
-    })
-
     it('should set configuration errors on refresh', async () => {
       let file = path.join(os.tmpdir(), '69075963-48d6-4427-92db-287a09d5e976')
       fs.writeFileSync(file, ']', 'utf8')
       workspace.configurations.parseConfigurationModel(file)
+      let errors = workspace.configurations.errors
+      expect(errors.size).toBeGreaterThan(0)
       let list = await manager.getDiagnosticList()
       expect(list.length).toBe(1)
       expect(list[0].file).toBe(file)
+      manager.checkConfigurationErrors()
       fs.unlinkSync(file)
     })
   })

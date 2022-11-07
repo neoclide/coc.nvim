@@ -1,7 +1,6 @@
 import { ParseError, ParseErrorCode, visit } from 'jsonc-parser'
-import { Location, Range } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
-import { ConfigurationScope, ErrorItem, IConfigurationModel, IOverrides } from '../types'
+import { Diagnostic, Range } from 'vscode-languageserver-protocol'
+import { ConfigurationScope, IConfigurationModel, IOverrides } from '../types'
 import { ConfigurationModel } from './model'
 import { convertErrors, overrideIdentifiersFromKey, OVERRIDE_PROPERTY_REGEX, toValuesTree } from './util'
 
@@ -20,7 +19,7 @@ export interface ConfigurationParseError {
 export class ConfigurationModelParser {
   private _raw: any = null
   private _configurationModel: ConfigurationModel | null = null
-  private _parseErrors: ErrorItem[] = []
+  private _parseErrors: Diagnostic[] = []
 
   constructor(protected readonly _name: string) {}
 
@@ -28,7 +27,7 @@ export class ConfigurationModelParser {
     return this._configurationModel || new ConfigurationModel()
   }
 
-  public get errors(): ErrorItem[] {
+  public get errors(): Diagnostic[] {
     return this._parseErrors
   }
 
@@ -41,7 +40,7 @@ export class ConfigurationModelParser {
 
   public parseRaw(raw: any, options?: ConfigurationParseOptions): void {
     this._raw = raw
-    const { contents, keys, overrides, restricted } = this.doParseRaw(raw, options)
+    const { contents, keys, overrides } = this.doParseRaw(raw, options)
     this._configurationModel = new ConfigurationModel(contents, keys, overrides)
     // this._restrictedConfigurations = restricted || []
   }
@@ -92,21 +91,18 @@ export class ConfigurationModelParser {
     }
     if (content) {
       try {
-        visit(content, visitor)
+        visit(content, visitor, { allowTrailingComma: true, allowEmptyContent: true })
         raw = currentParent[0] ?? {}
-        const uri = URI.file(this._name).toString()
         if (_errors.length > 0) {
-          this._parseErrors = convertErrors(uri, content, _errors)
+          this._parseErrors = convertErrors(content, _errors)
         }
       } catch (e) {
-        const uri = URI.file(this._name).toString()
         this._parseErrors = [{
-          location: Location.create(uri, Range.create(0, 0, 0, 0)),
-          message: `Error while parsing settings file ${this._name}: ${e}`
+          range: Range.create(0, 0, 0, 0),
+          message: `Error on parse configuration file ${this._name}: ${e}`
         }]
       }
     }
-
     return raw
   }
 

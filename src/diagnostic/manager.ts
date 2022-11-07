@@ -5,7 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
-import { ErrorItem, FloatFactory } from '../types'
+import { FloatFactory } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { readFileLines } from '../util/fs'
@@ -119,12 +119,22 @@ class DiagnosticManager implements Disposable {
       if (buf) buf.refreshHighlights()
     }, null, this.disposables)
 
-    let errorItems = workspace.configurations.errorItems
-    this.setConfigurationErrors(errorItems)
-    workspace.configurations.onError(items => {
-      this.setConfigurationErrors(items)
+    this.checkConfigurationErrors()
+    workspace.configurations.onError(ev => {
+      const collection = this.create('config')
+      collection.set(ev.uri, ev.diagnostics)
     }, null, this.disposables)
     this.defineSigns(config as DiagnosticSignConfig)
+  }
+
+  public checkConfigurationErrors(): void {
+    const collection = this.create('config')
+    let errors = workspace.configurations.errors
+    for (let [uri, diagnostics] of errors.entries()) {
+      let fsPath = URI.parse(uri).fsPath
+      void window.showErrorMessage(`Error detected for config file ${fsPath}, please check diagnostics list.`)
+      collection.set(uri, diagnostics)
+    }
   }
 
   public defineSigns(config: DiagnosticSignConfig): void {
@@ -159,24 +169,6 @@ class DiagnosticManager implements Disposable {
     let curr = await this.nvim.call('getloclist', [0, { title: 1 }]) as { title?: string }
     let action = curr.title && curr.title.indexOf('Diagnostics of coc') != -1 ? 'r' : ' '
     await this.nvim.call('setloclist', [0, [], action, { title: 'Diagnostics of coc', items }])
-  }
-
-  public setConfigurationErrors(errorItems?: ErrorItem[]): void {
-    let collection = this.create('config')
-    if (errorItems?.length) {
-      let fsPath = URI.parse(errorItems[0].location.uri).fsPath
-      void window.showErrorMessage(`Error detected for config file ${fsPath}, please check diagnostics list.`)
-      let entries: Map<string, Diagnostic[]> = new Map()
-      for (let item of errorItems) {
-        let { uri } = item.location
-        let diagnostics: Diagnostic[] = entries.get(uri) || []
-        diagnostics.push(Diagnostic.create(item.location.range, item.message, DiagnosticSeverity.Error))
-        entries.set(uri, diagnostics)
-      }
-      collection.set(Array.from(entries))
-    } else {
-      collection.clear()
-    }
   }
 
   /**
