@@ -12,7 +12,7 @@ export default class ServicesList extends BasicList {
   public name = 'services'
 
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
 
     this.addAction('toggle', async item => {
       let { id } = item.data

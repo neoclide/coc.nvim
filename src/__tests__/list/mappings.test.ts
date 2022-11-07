@@ -411,7 +411,7 @@ describe('Default normal mappings', () => {
   })
 
   it('should stop task by <C-c>', async () => {
-    disposables.push(manager.registerList(new TestList(nvim)))
+    disposables.push(manager.registerList(new TestList()))
     let p = manager.start(['--normal', 'test'])
     await helper.wait(50)
     await nvim.input('<C-c>')
@@ -430,7 +430,7 @@ describe('Default normal mappings', () => {
   })
 
   it('should reload list by <C-l>', async () => {
-    let list = new TestList(nvim)
+    let list = new TestList()
     list.timeout = 0
     disposables.push(manager.registerList(list))
     await manager.start(['--normal', 'test'])

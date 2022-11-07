@@ -3,7 +3,6 @@ import workspace from '../workspace'
 import window from '../window'
 import { WorkspaceConfiguration } from '../types'
 import { EventEmitter } from 'events'
-import { Disposable } from 'vscode-languageserver-protocol'
 
 export const validKeys = [
   '<esc>',
@@ -80,18 +79,24 @@ export const validKeys = [
   '<A-z>',
 ]
 
+let configuration: WorkspaceConfiguration
+
 export default class ListConfiguration extends EventEmitter {
-  private configuration: WorkspaceConfiguration
-  private disposable: Disposable
   constructor() {
     super()
-    this.configuration = workspace.getConfiguration('list')
-    this.disposable = workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('list')) {
-        this.configuration = workspace.getConfiguration('list')
-        this.emit('change')
-      }
-    })
+    if (!configuration) {
+      configuration = workspace.getConfiguration('list')
+      workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('list')) {
+          configuration = workspace.getConfiguration('list')
+          this.emit('change')
+        }
+      })
+    }
+  }
+
+  public get floatPreview(): boolean {
+    return this.get<boolean>('floatPreview', false)
   }
 
   public get smartcase(): boolean {
@@ -99,20 +104,15 @@ export default class ListConfiguration extends EventEmitter {
   }
 
   public get<T>(key: string, defaultValue?: T): T {
-    return this.configuration.get<T>(key, defaultValue)
+    return configuration.get<T>(key, defaultValue)
   }
 
   public get previousKey(): string {
-    return this.fixKey(this.configuration.get<string>('previousKeymap', '<C-j>'))
+    return this.fixKey(configuration.get<string>('previousKeymap', '<C-j>'))
   }
 
   public get nextKey(): string {
-    return this.fixKey(this.configuration.get<string>('nextKeymap', '<C-k>'))
-  }
-
-  public dispose(): void {
-    this.disposable.dispose()
-    this.removeAllListeners()
+    return this.fixKey(configuration.get<string>('nextKeymap', '<C-k>'))
   }
 
   public fixKey(key: string): string {

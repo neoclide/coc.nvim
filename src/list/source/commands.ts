@@ -18,7 +18,7 @@ export default class CommandsList extends BasicList {
   private mru: Mru
 
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
     this.mru = workspace.createMru('commands')
     this.addAction('run', async item => {
       await commandManager.fireCommand(item.data.cmd)

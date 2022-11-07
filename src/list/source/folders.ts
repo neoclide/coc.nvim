@@ -15,7 +15,7 @@ export default class FoldList extends BasicList {
   public name = 'folders'
 
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
 
     this.addAction('edit', async item => {
       let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir']) as string

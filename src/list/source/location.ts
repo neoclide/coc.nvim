@@ -16,7 +16,7 @@ export default class LocationList extends BasicList {
   public name = 'location'
 
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
     this.createAction({
       name: 'refactor',
       multiple: true,

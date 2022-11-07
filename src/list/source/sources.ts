@@ -12,7 +12,7 @@ export default class SourcesList extends BasicList {
   public readonly name = 'sources'
 
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
 
     this.addAction('toggle', async item => {
       let { name } = item.data

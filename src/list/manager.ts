@@ -516,9 +516,6 @@ export class ListManager implements Disposable {
       session.dispose()
     }
     this.sessionsMap.clear()
-    if (this.config) {
-      this.config.dispose()
-    }
     this.lastSession = undefined
     disposeAll(this.disposables)
   }

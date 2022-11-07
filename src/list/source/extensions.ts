@@ -17,7 +17,7 @@ export default class ExtensionList extends BasicList {
   public name = 'extensions'
 
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
     this.addAction('toggle', async item => {
       let { id, state } = item.data
       if (state == 'disabled') return

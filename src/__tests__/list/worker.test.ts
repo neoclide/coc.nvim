@@ -151,7 +151,7 @@ describe('parseInput', () => {
 describe('list worker', () => {
 
   it('should work with long running task', async () => {
-    disposables.push(manager.registerList(new IntervalTaskList(nvim)))
+    disposables.push(manager.registerList(new IntervalTaskList()))
     await manager.start(['task'])
     await manager.session.ui.ready
     await helper.waitValue(() => {
@@ -168,7 +168,7 @@ describe('list worker', () => {
       label: 'ade',
       sortText: 'a'
     }]
-    disposables.push(manager.registerList(new DataList(nvim)))
+    disposables.push(manager.registerList(new DataList()))
     await manager.start(['data'])
     await manager.session.ui.ready
     await nvim.input('a')
@@ -177,7 +177,7 @@ describe('list worker', () => {
   })
 
   it('should show empty line for empty task', async () => {
-    disposables.push(manager.registerList(new EmptyList(nvim)))
+    disposables.push(manager.registerList(new EmptyList()))
     await manager.start(['empty'])
     await manager.session.ui.ready
     let line = await nvim.call('getline', [1])
@@ -185,7 +185,7 @@ describe('list worker', () => {
   })
 
   it('should cancel task by use CancellationToken', async () => {
-    disposables.push(manager.registerList(new IntervalTaskList(nvim)))
+    disposables.push(manager.registerList(new IntervalTaskList()))
     await manager.start(['task'])
     expect(manager.session?.worker.isLoading).toBe(true)
     manager.session?.stop()
@@ -193,14 +193,14 @@ describe('list worker', () => {
   })
 
   it('should render slow interactive list', async () => {
-    disposables.push(manager.registerList(new DelayTask(nvim)))
+    disposables.push(manager.registerList(new DelayTask()))
     await manager.start(['delay'])
     await nvim.input('a')
     await helper.waitFor('getline', [2], 'abort')
   })
 
   it('should work with interactive list', async () => {
-    disposables.push(manager.registerList(new InteractiveList(nvim)))
+    disposables.push(manager.registerList(new InteractiveList()))
     await manager.start(['-I', 'test'])
     await manager.session?.ui.ready
     expect(manager.isActivated).toBe(true)
@@ -213,13 +213,13 @@ describe('list worker', () => {
   })
 
   it('should not activate on load error', async () => {
-    disposables.push(manager.registerList(new ErrorList(nvim)))
+    disposables.push(manager.registerList(new ErrorList()))
     await manager.start(['test'])
     expect(manager.isActivated).toBe(false)
   })
 
   it('should deactivate on task error', async () => {
-    disposables.push(manager.registerList(new ErrorTaskList(nvim)))
+    disposables.push(manager.registerList(new ErrorTaskList()))
     await manager.start(['task'])
     await helper.waitValue(() => {
       return manager.isActivated

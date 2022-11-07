@@ -12,7 +12,7 @@ export default class ListsList extends BasicList {
   private mru: Mru = new Mru('lists')
 
   constructor(nvim: Neovim, private readonly listMap: Map<string, IList>) {
-    super(nvim)
+    super()
 
     this.addAction('open', async item => {
       let { name } = item.data

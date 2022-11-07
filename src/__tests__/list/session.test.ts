@@ -19,7 +19,7 @@ class SimpleList extends BasicList {
     description: 'foo'
   }]
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
     this.addAction('open', item => {
       lastItem = item.label
     })

@@ -24,6 +24,7 @@ interface ArgumentItem {
 }
 
 interface PreviewConfig {
+  bufnr?: number
   winid: number
   position: string
   hlGroup: string
@@ -54,10 +55,12 @@ export default abstract class BasicList implements IList, Disposable {
   public readonly actions: ListAction[] = []
   public options: ListArgument[] = []
   protected disposables: Disposable[] = []
+  protected nvim: Neovim
   private optionMap: Map<string, ArgumentItem>
   public config: ListConfiguration
 
-  constructor(protected nvim: Neovim) {
+  constructor() {
+    this.nvim = workspace.nvim
     this.config = new ListConfiguration()
   }
 
@@ -207,6 +210,7 @@ export default abstract class BasicList implements IList, Disposable {
     let u = URI.parse(uri)
     let lines = await workspace.documentsManager.getLines(uri)
     let config: PreviewConfig = {
+      bufnr: doc ? doc.bufnr : undefined,
       winid: context.window.id,
       range: emptyRange(range) ? null : range,
       lnum: range.start.line + 1,

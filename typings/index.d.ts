@@ -6392,10 +6392,12 @@ declare module 'coc.nvim' {
   export abstract class BasicList implements IList {
     /**
      * Unique name, must be provided by implementation class.
+     * @requires
      */
     name: string
     /**
      * Default action name invoked by <cr> by default, must be provided by implementation class.
+     * @requires
      */
     defaultAction: string
     /**
@@ -6409,7 +6411,7 @@ declare module 'coc.nvim' {
     protected nvim: Neovim
     protected disposables: Disposable[]
     protected config: ListConfiguration
-    constructor(nvim: Neovim)
+    constructor()
     /**
      * Should align columns when true.
      */
@@ -6445,20 +6447,14 @@ declare module 'coc.nvim' {
     protected convertLocation(location: Location | LocationWithLine | string): Promise<Location>
     /**
      * Jump to location
-     *
-     * @method
      */
     protected jumpTo(location: Location | LocationWithLine | string, command?: string): Promise<void>
     /**
      * Preview location.
-     *
-     * @method
      */
     protected previewLocation(location: Location, context: ListContext): Promise<void>
     /**
      * Preview lines.
-     *
-     * @method
      */
     protected preview(options: PreviewOptions, context: ListContext): Promise<void>
     /**

@@ -25,8 +25,8 @@ class OptionList extends BasicList {
     hasValue: true,
     description: 'input'
   }]
-  constructor(nvim) {
-    super(nvim)
+  constructor() {
+    super()
     this.addLocationActions()
   }
   public loadItems(_context: ListContext, _token: CancellationToken): Promise<ListItem[]> {
@@ -38,8 +38,8 @@ let previewOptions: PreviewOptions
 class SimpleList extends BasicList {
   public name = 'simple'
   public defaultAction: 'preview'
-  constructor(nvim: Neovim) {
-    super(nvim)
+  constructor() {
+    super()
     this.addAction('preview', async (_item, context) => {
       await this.preview(previewOptions, context)
     })
@@ -121,7 +121,7 @@ describe('formatting', () => {
 
 describe('configuration', () => {
   beforeEach(() => {
-    let list = new OptionList(nvim)
+    let list = new OptionList()
     manager.registerList(list)
   })
 
@@ -164,19 +164,19 @@ describe('BasicList', () => {
 
   describe('parse arguments', () => {
     it('should parse args #1', () => {
-      let list = new OptionList(nvim)
+      let list = new OptionList()
       let res = list.parseArguments(['-w'])
       expect(res).toEqual({ word: true })
     })
 
     it('should parse args #2', () => {
-      let list = new OptionList(nvim)
+      let list = new OptionList()
       let res = list.parseArguments(['-word'])
       expect(res).toEqual({ word: true })
     })
 
     it('should parse args #3', () => {
-      let list = new OptionList(nvim)
+      let list = new OptionList()
       let res = list.parseArguments(['-input', 'foo'])
       expect(res).toEqual({ input: 'foo' })
     })
@@ -185,7 +185,7 @@ describe('BasicList', () => {
   describe('jumpTo()', () => {
     let list: OptionList
     beforeAll(() => {
-      list = new OptionList(nvim)
+      list = new OptionList()
     })
     it('should jump to uri', async () => {
       let uri = URI.file(__filename).toString()
@@ -214,7 +214,7 @@ describe('BasicList', () => {
   describe('convertLocation()', () => {
     let list: OptionList
     beforeAll(() => {
-      list = new OptionList(nvim)
+      list = new OptionList()
     })
     it('should convert uri', async () => {
       let uri = URI.file(__filename).toString()
@@ -240,7 +240,7 @@ describe('BasicList', () => {
   describe('createAction()', () => {
     it('should overwrite action', async () => {
       let idx: number
-      let list = new OptionList(nvim)
+      let list = new OptionList()
       listItems.push({
         label: 'foo',
         location: Location.create('untitled:///1', Range.create(0, 0, 0, 0))
@@ -263,7 +263,7 @@ describe('BasicList', () => {
 
   describe('preview()', () => {
     beforeEach(() => {
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       disposables.push(manager.registerList(list))
     })
 
@@ -308,7 +308,7 @@ describe('BasicList', () => {
       await nvim.setLine('foo')
       let doc = await workspace.document
       expect(doc.uri).toMatch('untitled')
-      let list = new OptionList(nvim)
+      let list = new OptionList()
       listItems.push({
         label: 'foo',
         location: Location.create(doc.uri, Range.create(0, 0, 0, 0))

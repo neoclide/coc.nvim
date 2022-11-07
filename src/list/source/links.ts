@@ -16,7 +16,7 @@ export default class LinksList extends BasicList {
   public name = 'links'
 
   constructor(nvim: Neovim) {
-    super(nvim)
+    super()
 
     this.addAction('open', async item => {
       let { target } = item.data

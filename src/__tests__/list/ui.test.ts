@@ -13,8 +13,8 @@ let lastItem: string
 
 class SimpleList extends BasicList {
   public name = 'simple'
-  constructor(nvim: Neovim) {
-    super(nvim)
+  constructor() {
+    super()
     this.addAction('open', item => {
       lastItem = item.label
     })
@@ -73,7 +73,7 @@ describe('list ui', () => {
   describe('selectLines()', () => {
     it('should select lines', async () => {
       labels = ['foo', 'bar']
-      disposables.push(manager.registerList(new SimpleList(nvim)))
+      disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
       let ui = manager.session.ui
       await ui.ready
@@ -109,7 +109,7 @@ describe('list ui', () => {
   describe('resume()', () => {
     it('should resume with selected lines', async () => {
       labels = ['foo', 'bar']
-      disposables.push(manager.registerList(new SimpleList(nvim)))
+      disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
       let ui = manager.session.ui
       await ui.ready
@@ -133,7 +133,7 @@ describe('list ui', () => {
 
     it('should fire action on double click', async () => {
       labels = ['foo', 'bar']
-      disposables.push(manager.registerList(new SimpleList(nvim)))
+      disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
       let ui = manager.session.ui
       await ui.ready
@@ -145,7 +145,7 @@ describe('list ui', () => {
 
     it('should select clicked line', async () => {
       labels = ['foo', 'bar']
-      disposables.push(manager.registerList(new SimpleList(nvim)))
+      disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
       let ui = manager.session.ui
       await ui.ready
@@ -162,7 +162,7 @@ describe('list ui', () => {
     it('should jump to original window on click', async () => {
       labels = ['foo', 'bar']
       let win = await nvim.window
-      disposables.push(manager.registerList(new SimpleList(nvim)))
+      disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
       let ui = manager.session.ui
       await ui.ready
@@ -175,7 +175,7 @@ describe('list ui', () => {
 
     it('should highlights items on CursorMoved', async () => {
       labels = (new Array(400)).fill('a')
-      disposables.push(manager.registerList(new SimpleList(nvim)))
+      disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['--normal', 'simple'])
       let ui = manager.session.ui
       await ui.ready
@@ -191,7 +191,7 @@ describe('list ui', () => {
 describe('reversed list', () => {
   it('should render and add highlights', async () => {
     labels = ['a', 'b', 'c', 'd']
-    disposables.push(manager.registerList(new SimpleList(nvim)))
+    disposables.push(manager.registerList(new SimpleList()))
     await manager.start(['--reverse', 'simple'])
     let ui = manager.session.ui
     await ui.ready
@@ -211,7 +211,7 @@ describe('reversed list', () => {
 
   it('should moveUp and moveDown', async () => {
     labels = ['a', 'b', 'c', 'd']
-    disposables.push(manager.registerList(new SimpleList(nvim)))
+    disposables.push(manager.registerList(new SimpleList()))
     await manager.start(['--reverse', 'simple'])
     let ui = manager.session.ui
     await ui.ready
@@ -223,7 +223,7 @@ describe('reversed list', () => {
 
   it('should toggle selection', async () => {
     labels = ['a', 'b', 'c', 'd']
-    disposables.push(manager.registerList(new SimpleList(nvim)))
+    disposables.push(manager.registerList(new SimpleList()))
     await manager.start(['--reverse', '--normal', 'simple'])
     let ui = manager.session.ui
     await ui.ready

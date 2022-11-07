@@ -92,24 +92,15 @@ afterEach(async () => {
 
 describe('Command task', () => {
   it('should not show stderr', async () => {
-    disposables.push(manager.registerList(new StderrList(nvim)))
+    disposables.push(manager.registerList(new StderrList()))
     await manager.start(['stderr'])
     await manager.session.ui.ready
     let lines = await nvim.call('getline', [1, '$']) as string[]
     expect(lines).toEqual(['stdout'])
   })
 
-  it('should show error for bad key', async () => {
-    let list = new DataList(nvim)
-    list.config.fixKey('<X-a>')
-    await helper.wait(200)
-    await nvim.command('redraw')
-    let msg = await helper.getCmdline()
-    expect(msg).toMatch('not supported')
-  })
-
   it('should not show error', async () => {
-    disposables.push(manager.registerList(new ErrorTask(nvim)))
+    disposables.push(manager.registerList(new ErrorTask()))
     await manager.start(['error'])
     await helper.wait(300)
     await nvim.command('redraw')
@@ -118,7 +109,7 @@ describe('Command task', () => {
   })
 
   it('should create command task', async () => {
-    let list = new DataList(nvim)
+    let list = new DataList()
     disposables.push(manager.registerList(list))
     await manager.start(['data'])
     await manager.session.ui.ready
@@ -128,7 +119,7 @@ describe('Command task', () => {
   })
 
   it('should stop command task', async () => {
-    let list = new SleepList(nvim)
+    let list = new SleepList()
     disposables.push(manager.registerList(list))
     await manager.start(['sleep'])
     manager.session.stop()
