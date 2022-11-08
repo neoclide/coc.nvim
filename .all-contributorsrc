@@ -1963,6 +1963,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "3ximus",
+      "name": "Fabio",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9083012?v=4",
+      "profile": "http://3ximus.github.io/cv",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
