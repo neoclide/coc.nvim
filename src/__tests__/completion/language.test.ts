@@ -270,6 +270,7 @@ describe('language source', () => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'if',
+          filterText: 'if',
           insertTextFormat: InsertTextFormat.Snippet,
           textEdit: { range: Range.create(0, 0, 0, 2), newText: 'do$0' },
           additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],
@@ -292,6 +293,7 @@ describe('language source', () => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'if',
+          filterText: 'if',
           insertTextFormat: InsertTextFormat.Snippet,
           insertText: 'do$0',
           additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'bar ')],

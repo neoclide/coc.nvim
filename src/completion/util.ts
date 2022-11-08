@@ -7,7 +7,6 @@ import { SnippetParser } from '../snippets/parser'
 import sources from '../sources'
 import { CompleteDoneItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from '../types'
 import { isFalsyOrEmpty, toArray } from '../util/array'
-import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { isCompletionItem } from '../util/is'
 import { toObject } from '../util/object'
 import { byteIndex, byteSlice, characterIndex, includeLineBreak, toText } from '../util/string'
@@ -245,13 +244,14 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
   const itemDefaults = toObject(option.itemDefaults) as ItemDefaults
   let isSnippet = (item.insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet
   if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
+  let word = getWord(item, isSnippet, opt, itemDefaults)
   let obj: DurationCompleteItem = {
-    word: getWord(item, isSnippet, opt, itemDefaults),
+    word,
     abbr: label,
     kind: item.kind,
     detail: item.detail,
     sortText: item.sortText,
-    filterText: item.filterText ?? label,
+    filterText: item.filterText ?? word,
     preselect: item.preselect === true,
     deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
     isSnippet,
@@ -263,10 +263,9 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
   if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails
   let { prefix } = option
   if (prefix) {
-    if (!obj.filterText.startsWith(prefix)) {
-      if (item.textEdit && fuzzyMatch(getCharCodes(prefix), item.textEdit.newText)) {
-        obj.filterText = item.textEdit.newText.replace(/\r?\n/g, '')
-      }
+    // fix only when filterText exists
+    if (item.filterText && !item.filterText.startsWith(prefix)) {
+      obj.filterText = prefix + item.filterText
     }
     if (!item.textEdit && !obj.word.startsWith(prefix)) {
       // fix possible wrong word

@@ -224,6 +224,14 @@ describe('util functions', () => {
     }
     let res = convertCompletionItem(item, 0, 'source', 1, { prefix: 'ab', itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
     expect(res.filterText).toBe('abf')
+    item = {
+      label: 'f',
+      insertText: 'f',
+      filterText: 'f',
+      textEdit: TextEdit.replace(Range.create(0, 0, 0, 2), 'abf')
+    }
+    res = convertCompletionItem(item, 0, 'source', 1, { prefix: 'ab', itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
+    expect(res.filterText).toBe('abf')
   })
 
   it('should fix word when prefix exists', async () => {

@@ -51,7 +51,6 @@ export default class Complete {
   private tokenSource: CancellationTokenSource
   private timer: NodeJS.Timer
   private names: string[] = []
-  private inputOffset = 0
   private readonly _onDidRefresh = new Emitter<void>()
   private wordDistance: WordDistance | undefined
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
@@ -192,7 +191,7 @@ export default class Complete {
     // new option for each source
     let opt = Object.assign({}, this.option)
     let { asciiMatch } = this
-    let { name } = source
+    const sourceName = source.name
     try {
       if (typeof source.shouldComplete === 'function') {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
@@ -207,13 +206,18 @@ export default class Complete {
             return
           }
           let len = result ? result.items.length : 0
-          logger.debug(`Source "${name}" finished with ${len} items ${Date.now() - start}ms`)
+          logger.debug(`Source "${sourceName}" finished with ${len} items ${Date.now() - start}ms`)
           if (len > 0) {
             const convertOption: ConvertOption = { asciiMatch, itemDefaults: result.itemDefaults, prefix: result.prefix }
-            const items = result.items.map((item, index: number) => toDurationCompleteItem(item, index, name, priority, convertOption, opt))
-            this.setResult(name, { items, isIncomplete: result.isIncomplete, startcol: result.startcol })
+            const items = result.items.map((item, index: number) => toDurationCompleteItem(item, index, sourceName, priority, convertOption, opt))
+            // avoid col change when no match exists
+            if (result.prefix && !items.some(o => o.filterText.includes(result.prefix))) {
+              this.results.delete(sourceName)
+              return
+            }
+            this.setResult(sourceName, { items, isIncomplete: result.isIncomplete, startcol: result.startcol })
           } else {
-            this.results.delete(name)
+            this.results.delete(sourceName)
           }
           resolve()
         }, err => {
@@ -251,8 +255,7 @@ export default class Complete {
   }
 
   public filterItems(input: string): DurationCompleteItem[] | undefined {
-    let { results, names, inputOffset, option } = this
-    if (inputOffset > 0) input = byteSlice(input, inputOffset)
+    let { results, names, option } = this
     this._input = input
     if (results.size == 0) return []
     let len = input.length
@@ -340,7 +343,7 @@ export default class Complete {
     let { line, colnr, col } = this.option
     if (typeof result.startcol === 'number' && result.startcol != col) {
       let { startcol } = result
-      if (startcol < col) this.inputOffset = col - startcol
+      logger.warn(`startcol changed to ${startcol} by source ${name}`)
       this.option.col = startcol
       this.option.input = byteSlice(line, startcol, colnr - 1)
       results.clear()
