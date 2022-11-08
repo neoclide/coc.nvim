@@ -8,20 +8,13 @@ import languages from '../languages'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
+import { pariedCharacters } from '../util/index'
 import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { isWord } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 const logger = createLogger('handler-format')
-
-const pairs: Map<string, string> = new Map([
-  ['<', '>'],
-  ['>', '<'],
-  ['{', '}'],
-  ['[', ']'],
-  ['(', ')'],
-])
 
 interface FormatPreferences {
   formatOnType: boolean
@@ -171,9 +164,9 @@ export default class FormatHandler {
       let pre = doc.getline(line - 1)
       let curr = doc.getline(line)
       let prevChar = pre[pre.length - 1]
-      if (prevChar && pairs.has(prevChar)) {
+      if (prevChar && pariedCharacters.has(prevChar)) {
         let nextChar = curr.trim()[0]
-        if (nextChar && pairs.get(prevChar) == nextChar) {
+        if (nextChar && pariedCharacters.get(prevChar) == nextChar) {
           let edits: TextEdit[] = []
           let opts = await workspace.getFormatOptions(doc.uri)
           let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'

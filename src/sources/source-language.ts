@@ -7,7 +7,7 @@ import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { CompleteOption, CompleteResult, Documentation, DurationCompleteItem, ISource, ItemDefaults, SourceType } from '../types'
-import { waitImmediate } from '../util'
+import { waitImmediate, pariedCharacters } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { CancellationError } from '../util/errors'
 import { isCompletionList } from '../util/is'
@@ -223,6 +223,10 @@ export default class LanguageSource implements ISource {
     let delta = pos.character - character - indentCount
     // fix range by count cursor moved to replace insert word on complete done.
     if (delta !== 0) range.end.character += delta
+    let next = pos.text[range.end.character]
+    if (next && pariedCharacters.get(newText[0]) === next) {
+      range.end.character += 1
+    }
     let isSnippet = this.isSnippetItem(item)
     if (isSnippet) {
       let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip

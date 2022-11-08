@@ -98,7 +98,7 @@ describe('language source', () => {
       if (mode.mode !== 'i') {
         await nvim.input('i')
       }
-      nvim.call('coc#start', { source: 'foo' }, true)
+      nvim.call('coc#start', [{ source: 'foo' }], true)
       await helper.waitPopup()
       await helper.waitValue(async () => {
         let content = await getDetailContent()
@@ -500,6 +500,24 @@ describe('language source', () => {
   })
 
   describe('textEdit', () => {
+    it('should fix replace range for paired characters', async () => {
+      // LS may failed to replace paired character at the end
+      await nvim.setLine('<>')
+      await nvim.input('i<right>')
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: '<foo>',
+          filterText: '<foo>',
+          textEdit: { range: Range.create(0, 0, 0, 1), newText: '<foo>' },
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
+      nvim.call('coc#start', [{ source: 'edits' }], true)
+      await helper.waitPopup()
+      await helper.confirmCompletion(0)
+      await helper.waitFor('getline', ['.'], '<foo>')
+    })
+
     it('should fix bad range', async () => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{

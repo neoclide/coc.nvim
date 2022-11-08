@@ -5,6 +5,14 @@ interface Disposable {
 
 export const CONFIG_FILE_NAME = 'coc-settings.json'
 
+export const pariedCharacters: Map<string, string> = new Map([
+  ['<', '>'],
+  ['>', '<'],
+  ['{', '}'],
+  ['[', ']'],
+  ['(', ')'],
+])
+
 export function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve(undefined)
   return new Promise(resolve => {

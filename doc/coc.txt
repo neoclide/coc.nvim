@@ -361,7 +361,7 @@ Features require enabled by configuration:~
 - Semantic highlights |coc-semantic-highlights|.
 - Document color highlights |coc-document-colors|.
 - Code lens, |coc-code-lens|
-- Linked editing, |coc-linked-editing.|
+- Linked editing, |coc-linked-editing|.
 - Format on type, enabled by |coc-preferences-formatOnType|
 - Format on save, enabled by |coc-preferences-formatOnSave|.
 
