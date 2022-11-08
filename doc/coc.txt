@@ -361,7 +361,7 @@ Features require enabled by configuration:~
 - Semantic highlights |coc-semantic-highlights|.
 - Document color highlights |coc-document-colors|.
 - Code lens, |coc-code-lens|
-- Linked editing, |coc-linked-editing.|
+- Linked editing, |coc-linked-editing|.
 - Format on type, enabled by |coc-preferences-formatOnType|
 - Format on save, enabled by |coc-preferences-formatOnSave|.
 
@@ -3950,23 +3950,27 @@ Error and warning display should work in vim-airline out of box.
 Disable vim-airline integration:
 >
 	let g:airline#extensions#coc#enabled = 0
+
+Enable/disable coc status display >
+
+	let g:airline#extensions#coc#show_coc_status = 1
 <
 Change error symbol:
 >
-	let airline#extensions#coc#error_symbol = 'Error:'
+	let airline#extensions#coc#error_symbol = 'E:'
 <
 Change warning symbol:
 >
-	let airline#extensions#coc#warning_symbol = 'Warning:'
+	let airline#extensions#coc#warning_symbol = 'W:'
 <
-Change error format:
+Change error format (%C - error count, %L - line number):
 >
-	let airline#extensions#coc#stl_format_err = '%E{[%e(#%fe)]}'
+	let airline#extensions#coc#stl_format_err = '%C(L%L)'
 <
-Change warning format:
+Change warning format (%C - warning count, %L - line number):
 >
-	let airline#extensions#coc#stl_format_warn = '%W{[%w(#%fw)]}'
-<
+	let airline#extensions#coc#stl_format_warn = '%C(L%L)'
+
 ------------------------------------------------------------------------------
 							*coc-status-lightline*
 
