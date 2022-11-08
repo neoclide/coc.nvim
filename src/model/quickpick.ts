@@ -96,6 +96,17 @@ export default class QuickPick<T extends QuickPickItem> {
       },
       get: () => input.loading
     })
+    input.onDidChange(value => {
+      this._changed = false
+      this._onDidChangeValue.fire(value)
+      // List already update by change items or activeItems
+      if (this._changed) {
+        this._changed = false
+        return
+      }
+      this.filterItems(value)
+    }, this)
+    input.onDidFinish(this.onFinish, this)
   }
 
   public get maxWidth(): number {
@@ -145,16 +156,6 @@ export default class QuickPick<T extends QuickPickItem> {
   public async show(): Promise<void> {
     let { nvim, items, input, width, preferences, maxHeight } = this
     let { lines, highlights } = this.buildList(items, input.value)
-    input.onDidChange(value => {
-      this._onDidChangeValue.fire(value)
-      // List already update by change items or activeItems
-      if (this._changed) {
-        this._changed = false
-        return
-      }
-      this.filterItems(value)
-    }, this)
-    input.onDidFinish(this.onFinish, this)
     let minWidth: number
     if (typeof width === 'number') {
       minWidth = Math.min(width, this.maxWidth)
@@ -270,8 +271,12 @@ export default class QuickPick<T extends QuickPickItem> {
     if (!this.canSelectMany && input !== undefined && !isFalsyOrEmpty(items)) {
       this._onDidChangeSelection.fire(items)
     }
-    this._onDidFinish.fire(items)
-    this.dispose()
+    this.nvim.call('coc#float#close', [this.winid], true)
+    // needed to make sure window closed
+    setTimeout(() => {
+      this._onDidFinish.fire(items)
+      this.dispose()
+    }, 30)
   }
 
   private getSelectedItems(): T[] {

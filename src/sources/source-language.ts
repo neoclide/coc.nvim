@@ -224,7 +224,7 @@ export default class LanguageSource implements ISource {
     // fix range by count cursor moved to replace insert word on complete done.
     if (delta !== 0) range.end.character += delta
     let next = pos.text[range.end.character]
-    if (next && pariedCharacters.get(newText[0]) === next) {
+    if (next && newText.endsWith(next) && pariedCharacters.get(newText[0]) === next) {
       range.end.character += 1
     }
     let isSnippet = this.isSnippetItem(item)
