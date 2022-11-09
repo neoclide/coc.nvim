@@ -346,7 +346,9 @@ export class Window {
         await input.show(title, Object.assign(this.inputPreference, option ?? {}))
         return await new Promise<string>(resolve => {
           input.onDidFinish(text => {
-            resolve(text)
+            setTimeout(() => {
+              resolve(text)
+            }, 20)
           })
         })
       })

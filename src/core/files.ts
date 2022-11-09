@@ -315,11 +315,6 @@ export default class Files {
     await this.renameFile(oldPath, newPath, { overwrite: true })
   }
 
-  private get currentUri(): string {
-    let document = this.documents.getDocument(this.documents.bufnr)
-    return document ? document.uri : null
-  }
-
   /**
    * Return denied annotations
    */
@@ -349,8 +344,12 @@ export default class Files {
       let denied = await this.promptAnotations(documentChanges, edit.changeAnnotations)
       if (denied.length > 0) documentChanges = createFilteredChanges(documentChanges, denied)
       let changes: { [uri: string]: LinesChange } = {}
-      let { currentUri } = this
+      let doc = await this.documents.document
+      let currentUri = doc ? doc.uri : undefined
+      logger.debug('documentChanges:', JSON.stringify(documentChanges, null, 2))
+      logger.debug(currentUri)
       currentOnly = documentChanges.every(o => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri)
+      logger.debug('currentOnly:', currentOnly)
       this.validateChanges(documentChanges)
       for (const change of documentChanges) {
         if (TextDocumentEdit.is(change)) {
