@@ -346,10 +346,7 @@ export default class Files {
       let changes: { [uri: string]: LinesChange } = {}
       let doc = await this.documents.document
       let currentUri = doc ? doc.uri : undefined
-      logger.debug('documentChanges:', JSON.stringify(documentChanges, null, 2))
-      logger.debug(currentUri)
       currentOnly = documentChanges.every(o => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri)
-      logger.debug('currentOnly:', currentOnly)
       this.validateChanges(documentChanges)
       for (const change of documentChanges) {
         if (TextDocumentEdit.is(change)) {

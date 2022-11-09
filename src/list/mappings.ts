@@ -122,6 +122,9 @@ export default class Mappings {
     this.addAction('feedkeys', async expr => {
       await manager.feedkeys(expr)
     })
+    this.addAction('feedkeys!', async expr => {
+      await manager.feedkeys(expr, false)
+    })
     this.addAction('normal', async expr => {
       await manager.normal(expr, false)
     })

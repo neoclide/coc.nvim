@@ -623,9 +623,10 @@ describe('diagnostic manager', () => {
       let file = await createTmpFile(content)
       await nvim.command(`source ${file}`)
       await createDocument()
-      let items = await nvim.getVar('items') as any[]
-      expect(Array.isArray(items)).toBe(true)
-      expect(items.length).toBeGreaterThan(0)
+      await helper.waitValue(async () => {
+        let items = await nvim.getVar('items') as any
+        return Array.isArray(items)
+      }, true)
       await nvim.command('bd!')
       await helper.waitFor('eval', ['get(g:,"items",[])'], [])
     })

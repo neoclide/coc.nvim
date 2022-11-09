@@ -207,13 +207,13 @@ describe('User mappings', () => {
   it('should execute feedkeys keymap', async () => {
     helper.updateConfiguration('list.insertMappings', {
       '<C-f>': 'feedkeys:\\<C-f>',
+      '<C-b>': 'feedkeys!:\\<C-b>',
     })
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-f>')
-    await helper.waitValue(async () => {
-      return await nvim.call('line', '.')
-    }, locations.length)
+    await helper.waitFor('line', ['.'], locations.length)
+    await helper.listInput('<C-b>')
   })
 
   it('should execute normal keymap', async () => {

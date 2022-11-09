@@ -1,3 +1,8 @@
+# 2022-11-10
+
+- Not reset 'Search' highlight on float window as it could be used.
+- Add new action `feedkeys!` to list.
+
 # 2022-11-07
 
 - Add API `CocAction('snippetInsert')` for snippet insert from vim plugin.

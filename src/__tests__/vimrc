@@ -3,7 +3,6 @@ set nocompatible
 set hidden
 set noswapfile
 set nobackup
-set completeopt=menuone,noinsert,noselect
 set tabstop=2
 set cmdheight=2
 set shiftwidth=2
