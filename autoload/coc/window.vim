@@ -53,6 +53,15 @@ function! coc#window#visible(winid) abort
   return coc#window#tabnr(a:winid) == tabpagenr()
 endfunction
 
+" winid is popup and shown
+function! s:visible_popup(winid) abort
+  let popups = popup_list()
+  if index(popups, a:winid) != -1
+    return get(popup_getpos(a:winid), 'visible', 0) == 1
+  endif
+  return 0
+endfunction
+
 " Return v:null when name or window doesn't exist,
 " 'getwinvar' only works on window of current tab
 function! coc#window#get_var(winid, name, ...) abort
@@ -108,6 +117,18 @@ function! coc#window#is_float(winid) abort
     let config = nvim_win_get_config(a:winid)
     return !empty(config) && !empty(get(config, 'relative', ''))
   endif
+endfunction
+
+" Reset current lnum & topline of window
+function! coc#window#restview(winid, lnum, topline) abort
+  if empty(getwininfo(a:winid))
+    return
+  endif
+  if s:is_vim && s:visible_popup(a:winid)
+    call popup_setoptions(a:winid, {'firstline': a:topline})
+    return
+  endif
+  call coc#compat#execute(a:winid, ['noa call winrestview({"lnum":'.a:lnum.',"topline":'.a:topline.'})'])
 endfunction
 
 function! coc#window#set_height(winid, height) abort
@@ -166,6 +187,10 @@ endfunction
 " Avoid errors
 function! coc#window#close(winid) abort
   if empty(a:winid) || a:winid == -1
+    return
+  endif
+  if coc#float#valid(a:winid)
+    call coc#float#close(a:winid)
     return
   endif
   if exists('*nvim_win_is_valid') && exists('*nvim_win_close')

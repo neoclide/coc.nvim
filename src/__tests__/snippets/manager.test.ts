@@ -221,8 +221,7 @@ describe('snippet provider', () => {
       let line = await nvim.line
       expect(line).toBe('    ')
       await nvim.input('f')
-      await nvim.eval(`feedkeys("\\<C-n>",'in')`)
-      await helper.waitFor('pumvisible', [], 1)
+      await helper.waitFor('coc#pum#visible', [], 1)
       await nvim.input('<C-e>')
       let s = snippetManager.getSession(doc.bufnr)
       expect(s).toBeDefined()

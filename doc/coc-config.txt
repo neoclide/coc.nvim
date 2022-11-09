@@ -588,6 +588,12 @@ List~
 
 	Scope: `application`, default: `true`
 
+"list.floatPreview" 					*coc-config-list-floatPreview*
+
+	Enable preview with float window/popup, default: `false`.
+
+	Scope: `application`, default: `false`
+
 "list.height"						*coc-config-list-height*
 
 	Height of split list window.

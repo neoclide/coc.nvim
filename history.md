@@ -1,7 +1,9 @@
 # 2022-11-10
 
 - Not reset 'Search' highlight on float window as it could be used.
+- Note remap `<esc>` on float preview window.
 - Add new action `feedkeys!` to list.
+- Add new configuration `list.floatPreview`.
 
 # 2022-11-07
 

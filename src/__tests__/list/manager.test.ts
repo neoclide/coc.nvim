@@ -238,19 +238,23 @@ describe('list', () => {
     })
 
     it('should toggle preview', async () => {
+      helper.updateConfiguration('list.floatPreview', true)
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
       await helper.waitValue(async () => {
-        return await nvim.eval('len(getwininfo())')
-      }, 3)
+        let wins = await helper.getFloats()
+        return wins.length > 0
+      }, true)
       await manager.togglePreview()
       await helper.waitValue(async () => {
-        return await nvim.eval('len(getwininfo())')
-      }, 2)
+        let wins = await helper.getFloats()
+        return wins.length > 0
+      }, false)
       await manager.togglePreview()
       await helper.waitValue(async () => {
-        return await nvim.eval('len(getwininfo())')
-      }, 3)
+        let wins = await helper.getFloats()
+        return wins.length > 0
+      }, true)
     })
 
     it('should show help of current list', async () => {

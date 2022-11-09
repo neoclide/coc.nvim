@@ -68,6 +68,10 @@ export default abstract class BasicList implements IList, Disposable {
     return this.config.get('alignColumns', false)
   }
 
+  protected get floatPreview(): boolean {
+    return this.config.get('floatPreview', false)
+  }
+
   protected get hlGroup(): string {
     return this.config.get('previewHighlightGroup', 'Search')
   }
@@ -204,7 +208,6 @@ export default abstract class BasicList implements IList, Disposable {
   }
 
   protected async previewLocation(location: LocationWithTarget, context: ListContext): Promise<void> {
-    let { nvim } = this
     let { uri, range } = location
     let doc = workspace.getDocument(location.uri)
     let u = URI.parse(uri)
@@ -225,11 +228,10 @@ export default abstract class BasicList implements IList, Disposable {
       toplineOffset: this.toplineOffset,
       targetRange: location.targetRange
     }
-    await nvim.call('coc#list#preview', [lines, config])
+    await this.openPreview(lines, config)
   }
 
   public async preview(options: PreviewOptions, context: ListContext): Promise<void> {
-    let { nvim } = this
     let { bufname, filetype, range, lines, lnum } = options
     let config: PreviewConfig = {
       winid: context.window.id,
@@ -244,7 +246,16 @@ export default abstract class BasicList implements IList, Disposable {
     }
     if (bufname) config.name = bufname
     if (range) config.range = range
-    await nvim.call('coc#list#preview', [lines, config])
+    await this.openPreview(lines, config)
+  }
+
+  private async openPreview(lines: ReadonlyArray<string>, config: PreviewConfig): Promise<void> {
+    let { nvim } = this
+    if (this.floatPreview && config.position !== 'tab') {
+      await nvim.call('coc#list#float_preview', [lines, config])
+    } else {
+      await nvim.call('coc#list#preview', [lines, config])
+    }
     nvim.command('redraw', true)
   }
 

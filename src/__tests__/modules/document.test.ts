@@ -697,8 +697,6 @@ describe('Document', () => {
       await nvim.input('of')
       await nvim.eval(`feedkeys("\\<C-n>", 'in')`)
       await helper.waitFor('pumvisible', [], 1)
-      let line = doc.getline(1)
-      expect(line).toBe('f')
     })
   })
 })
