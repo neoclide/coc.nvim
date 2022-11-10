@@ -1,15 +1,16 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Emitter, Event, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { CompleteOption, DurationCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
-import { byteSlice, characterIndex } from '../util/string'
 import { fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
+import { characterIndex } from '../util/string'
 import { ConvertOption, toDurationCompleteItem } from './util'
 import { WordDistance } from './wordDistance'
-import { createLogger } from '../logger'
+import * as Is from '../util/is'
 const logger = createLogger('completion-complete')
 const MAX_DISTANCE = 2 << 20
 
@@ -38,7 +39,6 @@ export interface CompleteConfig {
 export interface CompleteResultToFilter {
   items: DurationCompleteItem[]
   isIncomplete?: boolean
-  startcol?: number
 }
 
 export type Callback = () => void
@@ -145,11 +145,15 @@ export default class Complete {
 
   private async completeSources(sources: ReadonlyArray<ISource>, isFilter: boolean): Promise<void> {
     let { timeout, localityBonus } = this.config
-    let { results, tokenSource, } = this
+    let { results, tokenSource, option } = this
     timeout = timeout ?? 500
-    let col = this.option.col
     let names = sources.map(s => s.name)
     let total = names.length
+    let character = characterIndex(option.line, option.col)
+    let line = option.linenr - 1
+    let end = option.position.character + option.followWord.length
+    // default replace range
+    let range = Range.create(line, character, line, end)
     this._completing = true
     let token = tokenSource.token
     let timer: NodeJS.Timer
@@ -170,12 +174,10 @@ export default class Complete {
         if (token.isCancellationRequested) return
         this.wordDistance = instance
       }),
-      ...sources.map(s => this.completeSource(s, token).then(() => {
+      ...sources.map(s => this.completeSource(s, character, range, token).then(() => {
         finished.push(s.name)
         if (token.isCancellationRequested || isFilter) return
-        let colChanged = this.option.col !== col
-        if (colChanged) this.cancel()
-        if (colChanged || finished.length === total) {
+        if (finished.length === total) {
           this.fireRefresh(0)
         } else if (results.has(s.name)) {
           this.fireRefresh(16)
@@ -187,7 +189,7 @@ export default class Complete {
     this._completing = false
   }
 
-  private async completeSource(source: ISource, token: CancellationToken): Promise<void> {
+  private async completeSource(source: ISource, character: number, range: Range, token: CancellationToken): Promise<void> {
     // new option for each source
     let opt = Object.assign({}, this.option)
     let { asciiMatch } = this
@@ -208,14 +210,13 @@ export default class Complete {
           let len = result ? result.items.length : 0
           logger.debug(`Source "${sourceName}" finished with ${len} items ${Date.now() - start}ms`)
           if (len > 0) {
-            const convertOption: ConvertOption = { asciiMatch, itemDefaults: result.itemDefaults, prefix: result.prefix }
-            const items = result.items.map((item, index: number) => toDurationCompleteItem(item, index, sourceName, priority, convertOption, opt))
-            // avoid col change when no match exists
-            if (result.prefix && !items.some(o => o.filterText.includes(result.prefix))) {
-              this.results.delete(sourceName)
-              return
+            if (Is.number(result.startcol)) {
+              let line = opt.linenr - 1
+              range = Range.create(line, characterIndex(opt.line, result.startcol), line, range.end.character)
             }
-            this.setResult(sourceName, { items, isIncomplete: result.isIncomplete, startcol: result.startcol })
+            const convertOption: ConvertOption = { asciiMatch, itemDefaults: result.itemDefaults, character, range }
+            const items = result.items.map((item, index: number) => toDurationCompleteItem(item, index, sourceName, priority, convertOption, opt))
+            this.results.set(sourceName, { items, isIncomplete: result.isIncomplete })
           } else {
             this.results.delete(sourceName)
           }
@@ -335,22 +336,6 @@ export default class Complete {
       counts.set(source, curr + 1)
       return true
     })
-  }
-
-  // handle startcol change
-  private setResult(name: string, result: CompleteResultToFilter): void {
-    let { results } = this
-    let { line, colnr, col } = this.option
-    if (typeof result.startcol === 'number' && result.startcol != col) {
-      let { startcol } = result
-      logger.warn(`startcol changed to ${startcol} by source ${name}`)
-      this.option.col = startcol
-      this.option.input = byteSlice(line, startcol, colnr - 1)
-      results.clear()
-      results.set(name, result)
-    } else {
-      results.set(name, result)
-    }
   }
 
   public cancel(): void {

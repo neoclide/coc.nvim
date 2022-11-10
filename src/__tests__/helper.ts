@@ -320,7 +320,7 @@ export class Helper extends EventEmitter {
 
   public async waitValue<T>(fn: () => ProviderResult<T>, value: T): Promise<void> {
     let find = false
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 100; i++) {
       await this.wait(20)
       let res = await Promise.resolve(fn())
       if (equals(res, value)) {

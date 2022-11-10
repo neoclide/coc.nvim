@@ -272,6 +272,7 @@ describe('SnippetSession', () => {
       await nvim.call('cursor', [1, 5])
       await nvim.input('i')
       await nvim.input('<backspace>')
+      await helper.wait(1)
       await session.forceSynchronize()
       expect(session.isActive).toBe(true)
       await session.nextPlaceholder()

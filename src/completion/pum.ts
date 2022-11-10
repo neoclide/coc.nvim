@@ -4,11 +4,12 @@ import { matchSpansReverse } from '../model/fuzzyMatch'
 import sources from '../sources'
 import { CompleteOption, DurationCompleteItem, Env, FloatConfig, HighlightItem } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
-import { byteLength } from '../util/string'
+import { byteIndex, byteLength, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import { anyScore } from '../util/filter'
+import * as Is from '../util/is'
 import MruLoader, { Selection } from './mru'
-import { getKindHighlight, getKindText, getValidWord, highlightOffert } from './util'
+import { getKindHighlight, getKindText, highlightOffert } from './util'
 
 export interface PumDimension {
   readonly height: number
@@ -56,7 +57,6 @@ export interface PopupMenuConfig {
   noselect: boolean
   selection: Selection
   enablePreselect: boolean
-  fixInsertedWord: boolean
   floatConfig: FloatConfig
   pumFloatConfig?: FloatConfig
   formatItems: ReadonlyArray<string>
@@ -94,8 +94,8 @@ export default class PopupMenu {
     let { floatConfig, pumFloatConfig, reversePumAboveCursor } = this.config
     if (!pumFloatConfig) pumFloatConfig = floatConfig
     let obj: PumConfig = {}
-    if (typeof pumFloatConfig.highlight === 'string') obj.highlight = pumFloatConfig.highlight
-    if (typeof pumFloatConfig.winblend === 'number') obj.winblend = pumFloatConfig.winblend
+    if (Is.string(pumFloatConfig.highlight)) obj.highlight = pumFloatConfig.highlight
+    if (Is.number(pumFloatConfig.winblend)) obj.winblend = pumFloatConfig.winblend
     if (pumFloatConfig.shadow) obj.shadow = pumFloatConfig.shadow
     if (pumFloatConfig.border) {
       obj.border = [1, 1, 1, 1]
@@ -113,8 +113,8 @@ export default class PopupMenu {
 
   public show(items: DurationCompleteItem[], search: string, option: CompleteOption): void {
     this._search = search
-    let { noselect, enablePreselect, selection, virtualText, kindMap, defaultKindText } = this.config
-    let followWord = option.followWord
+    let { noselect, enablePreselect, invalidInsertCharacters, selection, virtualText, kindMap, defaultKindText } = this.config
+    const invalidInsertCodes = invalidInsertCharacters.map(ch => ch.charCodeAt(0))
     let selectedIndex = enablePreselect ? items.findIndex(o => o.preselect) : -1
     let maxMru = -1
     let abbrWidth = 0
@@ -123,6 +123,8 @@ export default class PopupMenu {
     let shortcutWidth = 0
     let checkMru = selectedIndex == -1 && !noselect && selection != 'first'
     let labels: LabelWithDetail[] = []
+    let baseCharacter = characterIndex(option.line, option.col)
+    let minCharacter = baseCharacter
     // abbr kind, menu
     for (let i = 0; i < items.length; i++) {
       let item = items[i]
@@ -132,6 +134,9 @@ export default class PopupMenu {
           maxMru = n
           selectedIndex = i
         }
+      }
+      if (Is.number(item.character) && item.character < minCharacter) {
+        minCharacter = item.character
       }
       let shortcut = sources.getShortcut(item.source)
       let label = this.getLabel(item)
@@ -161,9 +166,17 @@ export default class PopupMenu {
       index: selectedIndex,
       bufnr: option.bufnr,
       line: option.linenr,
+      // col for pum
       col: option.col,
+      // col for word insert
+      startcol: byteIndex(option.line, minCharacter),
       virtualText,
-      words: items.map(o => this.getInsertWord(o, search, followWord))
+      words: items.map(o => {
+        let character = o.character
+        let start = Math.max(1, option.position.character - character + 1)
+        let word = getInsertWord(o.word, invalidInsertCodes, start)
+        return prefixWord(word, character, option.line, minCharacter)
+      })
     }
     let pumConfig = this.pumConfig
     let lines: string[] = []
@@ -181,12 +194,6 @@ export default class PopupMenu {
     let config: PumConfig = Object.assign({ width, highlights }, pumConfig)
     this.nvim.call('coc#pum#create', [lines, opt, config], true)
     this.nvim.redrawVim()
-  }
-
-  private getInsertWord(item: DurationCompleteItem, search: string, followPart: string): string {
-    let { fixInsertedWord, invalidInsertCharacters } = this.config
-    let word = item.isSnippet ? getValidWord(item.word, invalidInsertCharacters) : item.word
-    return fixInsertedWord ? fixFollow(word, search, followPart) : word
   }
 
   private getLabel(item: DurationCompleteItem): LabelWithDetail {
@@ -357,4 +364,21 @@ function positionHighlights(hls: HighlightItem[], label: string, positions: Arra
       colEnd: pre + span[1],
     })
   }
+}
+
+export function getInsertWord(word: string, codes: number[], start: number): string {
+  if (codes.length === 0) return word
+  for (let i = start; i < word.length; i++) {
+    if (codes.includes(word.charCodeAt(i))) {
+      return word.slice(0, i)
+    }
+  }
+  return word
+}
+
+/**
+ * Append previous text to word when necessary
+ */
+export function prefixWord(word: string, character: number, line: string, minCharacter: number): string {
+  return minCharacter < character ? line.slice(minCharacter, character) + word : word
 }

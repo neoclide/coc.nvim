@@ -7,12 +7,12 @@ import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
 import { CompleteOption, CompleteResult, Documentation, DurationCompleteItem, ISource, ItemDefaults, SourceType } from '../types'
-import { waitImmediate, pariedCharacters } from '../util'
+import { pariedCharacters, waitImmediate } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { CancellationError } from '../util/errors'
 import { isCompletionList } from '../util/is'
-import { isEmpty } from '../util/object'
-import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
+import { isEmpty, toObject } from '../util/object'
+import { characterIndex } from '../util/string'
 import workspace from '../workspace'
 const logger = createLogger('source-language')
 
@@ -59,7 +59,7 @@ export default class LanguageSource implements ISource {
   }
 
   public async doComplete(option: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
-    let { triggerCharacter, input, bufnr, position } = option
+    let { triggerCharacter, bufnr, position } = option
     this.completeItems = []
     let triggerKind: CompletionTriggerKind = this.getTriggerKind(option)
     this.triggerContext = { lnum: position.line, character: position.character, line: option.line }
@@ -71,36 +71,10 @@ export default class LanguageSource implements ISource {
     if (!result || token.isCancellationRequested) return null
     let completeItems = Array.isArray(result) ? result : result.items
     if (!completeItems || completeItems.length == 0) return null
-    let itemDefaults = this.itemDefaults = isCompletionList(result) ? result.itemDefaults ?? {} : {}
+    let itemDefaults = this.itemDefaults = toObject(result['itemDefaults'])
     this.completeItems = completeItems
-    let startcol = getStartColumn(option.line, completeItems, this.itemDefaults)
-    // gopls returns bad start position, but it should includes start position
-    if (startcol > option.col && input.length > 0) {
-      startcol = option.col
-      let character = characterIndex(option.line, startcol)
-      // fix range.start to include position
-      completeItems.forEach(item => {
-        let { textEdit } = item
-        if (TextEdit.is(textEdit)) {
-          textEdit.range.start.character = character
-        } else if (InsertReplaceEdit.is(textEdit)) {
-          textEdit.replace.start.character = character
-          textEdit.insert.start.character = character
-        }
-      })
-    }
-    let prefix: string | undefined
-    let isIncomplete = isCompletionList(result) ? result.isIncomplete == true : false
-    if (startcol == null && input.length > 0 && this.triggerCharacters.includes(option.triggerCharacter)) {
-      if (!completeItems.every(item => (item.insertText ?? item.label).startsWith(option.input))) {
-        startcol = option.col + byteLength(option.input)
-      }
-    }
-    if (typeof startcol === 'number' && startcol < option.col) {
-      prefix = startcol < option.col ? byteSlice(option.line, startcol, option.col) : ''
-      option.col = startcol
-    }
-    return { startcol, isIncomplete, items: completeItems, prefix, itemDefaults }
+    let isIncomplete = isCompletionList(result) ? result.isIncomplete === true : false
+    return { isIncomplete, items: completeItems, itemDefaults }
   }
 
   public onCompleteResolve(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
@@ -248,34 +222,6 @@ export default class LanguageSource implements ISource {
     }
     return triggerKind
   }
-}
-
-export function getRange(item: CompletionItem | undefined, itemDefaults?: ItemDefaults): Range | undefined {
-  if (!item) return undefined
-  if (item.textEdit) {
-    let range = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
-    if (range) return range
-  }
-  let editRange = itemDefaults?.editRange
-  if (!editRange) return undefined
-  return Range.is(editRange) ? editRange : editRange.replace
-}
-
-/*
- * Check new startcol by check start characters.
- */
-export function getStartColumn(line: string, items: CompletionItem[], itemDefaults?: ItemDefaults): number | undefined {
-  let first = items[0]
-  let range = getRange(first, itemDefaults)
-  if (range === undefined) return undefined
-  let { character } = range.start
-  for (let i = 1; i < Math.min(10, items.length); i++) {
-    let o = items[i]
-    if (!o.textEdit) return undefined
-    let r = getRange(o, itemDefaults)
-    if (!r || r.start.character !== character) return undefined
-  }
-  return byteIndex(line, range.start.character)
 }
 
 export function fixIndent(line: string, currline: string, range: Range): number {

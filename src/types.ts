@@ -721,6 +721,8 @@ export interface DurationCompleteItem {
   source: string
   priority: number
   isSnippet: boolean
+  // start character for word insert, consider same as complete option when not exists
+  character: number
   insertText?: string
   // copied from CompleteItem
   index: number
@@ -777,7 +779,6 @@ export interface CompleteResult {
   items: ReadonlyArray<ExtendedCompleteItem> | ReadonlyArray<CompletionItem>
   isIncomplete?: boolean
   itemDefaults?: Readonly<ItemDefaults>
-  prefix?: string
   startcol?: number
 }
 

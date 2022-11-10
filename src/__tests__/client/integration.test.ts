@@ -1,20 +1,26 @@
 import * as assert from 'assert'
 import cp from 'child_process'
 import path from 'path'
-import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, Disposable, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
 import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
 import { CloseAction, ErrorAction, HandleDiagnosticsSignature } from '../../language-client'
 import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
+import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
+let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
+})
+
+afterEach(() => {
+  disposeAll(disposables)
 })
 
 afterAll(async () => {
@@ -60,8 +66,8 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.ipc
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    disposables.push(client)
     await client.start()
-    await client.stop()
   })
 
   it('should register events before server start', async () => {
@@ -87,13 +93,13 @@ describe('Client events', () => {
       n++
       dis.dispose()
     })
+    disposables.push(client)
     await client.start()
     await client.sendNotification('send')
     await helper.waitValue(() => {
       return n
     }, 3)
     //   let client = await testEventServer({ initEvent: true })
-    await client.stop()
   })
 
   it('should register events after server start', async () => {
@@ -107,6 +113,7 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.stdio
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    disposables.push(client)
     await client.start()
     let n = 0
     let disposable = client.onRequest('customRequest', () => {
@@ -127,8 +134,6 @@ describe('Client events', () => {
     await helper.waitValue(() => {
       return n
     }, 3)
-    //   let client = await testEventServer({ initEvent: true })
-    await client.stop()
   })
 
   it('should send progress', async () => {
@@ -179,12 +184,12 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.stdio
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    disposables.push(client)
     await client.sendRequest('doExit')
     await client.start()
     await helper.waitValue(() => {
       return called
     }, true)
-    await client.stop()
   })
 
   it('should handle message events', async () => {
@@ -197,6 +202,7 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.stdio
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    disposables.push(client)
     await client.start()
     await client.sendNotification('logMessage')
     await client.sendNotification('showMessage')
@@ -217,7 +223,6 @@ describe('Client events', () => {
     await client.sendNotification('showDocument', { uri: uri.toString(), selection: Range.create(0, 0, 1, 0) })
     await helper.wait(300)
     expect(client.hasPendingResponse).toBe(false)
-    await client.stop()
   })
 
   it('should invoke showDocument middleware', async () => {
@@ -551,9 +556,9 @@ describe('Client integration', () => {
     })
     await client.start()
     await client.sendNotification('edits')
-    await helper.wait(50)
-    expect(res).toBeDefined()
-    expect(res).toEqual({ applied: false })
+    await helper.waitValue(() => {
+      return res
+    }, { applied: false })
     await client.stop()
   })
 
@@ -649,6 +654,7 @@ describe('SettingMonitor', () => {
     await helper.waitValue(() => {
       return client.state
     }, lsclient.State.Stopped)
+    await helper.wait(20)
     helper.updateConfiguration('html.enabled', true)
     await helper.waitValue(() => {
       return client.state != lsclient.State.Stopped

@@ -13,6 +13,7 @@ const SYNC_AUTOCMDS = ['BufWritePre']
 export type Result = void | Promise<void>
 
 export interface PopupChangeEvent {
+  readonly startcol: number
   readonly index: number
   readonly word: string
   readonly height: number

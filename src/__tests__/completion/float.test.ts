@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import Floating from '../../completion/floating'
-import { fixFollow } from '../../completion/pum'
+import { fixFollow, prefixWord } from '../../completion/pum'
 import sources from '../../sources'
 import { CompleteResult, FloatConfig, ISource, SourceType } from '../../types'
 import helper from '../helper'
@@ -40,6 +40,11 @@ afterEach(async () => {
 })
 
 describe('completion float', () => {
+  it('should prefix word', async () => {
+    expect(prefixWord('foo', 0, '', 0)).toBe('foo')
+    expect(prefixWord('foo', 1, '$foo', 0)).toBe('$foo')
+  })
+
   it('should fix word by check follow', async () => {
     expect(fixFollow('foo', '', '')).toBe('foo')
     expect(fixFollow('foobar', '', 'oobar')).toBe('f')

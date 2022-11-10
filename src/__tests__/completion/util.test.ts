@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CompletionItemKind, Disposable, CancellationToken, Position, Range, CompletionItem, TextEdit, CompletionItemTag, InsertTextFormat } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import { checkIgnoreRegexps, convertCompletionItem, toCompleteDoneItem, getWord, emptLabelDetails, indentChanged, createKindMap, getInput, getKindText, getKindHighlight, getResumeInput, getValidWord, highlightOffert, shouldIndent, shouldStop } from '../../completion/util'
+import { checkIgnoreRegexps, getReplacedCharacters, convertCompletionItem, toCompleteDoneItem, getWord, emptLabelDetails, indentChanged, createKindMap, getInput, getKindText, getKindHighlight, getResumeInput, highlightOffert, shouldIndent, shouldStop, getReplaceRange } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import languages from '../../languages'
 import { CompleteOption } from '../../types'
@@ -12,6 +12,7 @@ import events from '../../events'
 import helper, { createTmpFile } from '../helper'
 let disposables: Disposable[] = []
 
+const emptyRange = Range.create(0, 0, 0, 0)
 let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
@@ -66,10 +67,6 @@ describe('util functions', () => {
     expect(map.get(CompletionItemKind.Constructor)).toBe('C')
     map = createKindMap({ constructor: undefined })
     expect(map.get(CompletionItemKind.Constructor)).toBe('')
-  })
-
-  it('should getValidWord', () => {
-    expect(getValidWord('label', [])).toBe('label')
   })
 
   it('should checkIgnoreRegexps', () => {
@@ -128,6 +125,7 @@ describe('util functions', () => {
     let res = toCompleteDoneItem({
       index: 0,
       abbr: '',
+      character: 0,
       filterText: '',
       isSnippet: false,
       priority: 1,
@@ -146,49 +144,69 @@ describe('util functions', () => {
     expect(emptLabelDetails({ description: 'detail' })).toBe(false)
   })
 
-  it('should get word from newText #1', async () => {
-    let item: CompletionItem = {
-      label: 'foo',
-      textEdit: TextEdit.insert(Position.create(0, 0), '$foo\nbar')
-    }
-    let opt = {
-      line: '$',
-      col: 1,
-      position: Position.create(0, 1)
-    }
-    let word = getWord(item, false, opt, {})
+  it('should get word from complete item', () => {
+    let item: CompletionItem = { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), '$foo\nbar') }
+    let word = getWord(item, {})
+    expect(word).toBe('$foo')
+    item = { label: 'foo', data: { word: '$foo' } }
+    word = getWord(item, {})
+    expect(word).toBe('$foo')
+    item = { label: 'foo', insertText: 'foo($1)' }
+    word = getWord(item, { insertTextFormat: InsertTextFormat.Snippet })
+    expect(word).toBe('foo()')
+    word = getWord(item, { insertTextFormat: InsertTextFormat.PlainText })
+    expect(word).toBe('foo($1)')
+    item = { label: 'foo' }
+    word = getWord(item, {})
     expect(word).toBe('foo')
-    opt.line = '_'
-    word = getWord(item, false, opt, {})
-    expect(word).toBe('$foo')
+    item = { label: 'foo', insertText: 'foo' }
+    word = getWord(item, { insertTextFormat: InsertTextFormat.Snippet })
+    expect(word).toBe('foo')
+    item = { label: 'foo', insertText: 'foo($1)', kind: CompletionItemKind.Function }
+    word = getWord(item, { insertTextFormat: InsertTextFormat.Snippet })
+    expect(word).toBe('foo')
   })
 
-  it('should get word from newText #2', async () => {
-    let item: CompletionItem = {
-      label: 'foo',
-      textEdit: TextEdit.insert(Position.create(0, 1), 'foo')
-    }
+  it('should get characters to replace', () => {
     let opt = {
-      line: '$',
+      line: 'foo',
       col: 0,
       position: Position.create(0, 1)
     }
-    let word = getWord(item, false, opt, {})
-    expect(word).toBe('$foo')
+    let r = (sl, sc, el, ec): Range => {
+      return Range.create(sl, sc, el, ec)
+    }
+    expect(getReplacedCharacters(opt, r(0, 0, 1, 0))).toBeUndefined()
+    expect(getReplacedCharacters(opt, r(0, 0, 0, 0))).toBeUndefined()
+    expect(getReplacedCharacters(opt, r(0, 0, 0, 3))).toBe('oo')
   })
 
-  it('should get word from newText #3', async () => {
-    let item: CompletionItem = {
-      label: 'foo',
-      textEdit: TextEdit.replace(Range.create(0, 0, 0, 2), 'foo')
+  it('should get replace range', () => {
+    let item: CompletionItem = { label: 'foo' }
+    expect(getReplaceRange(item, {}, 0)).toBeUndefined()
+    expect(getReplaceRange(item, {
+      editRange: Range.create(0, 0, 0, 3)
+    }, 0)).toEqual(Range.create(0, 0, 0, 3))
+    expect(getReplaceRange(item, {
+      editRange: {
+        insert: Range.create(0, 0, 0, 0),
+        replace: Range.create(0, 0, 0, 3),
+      }
+    }, 0)).toEqual(Range.create(0, 0, 0, 3))
+    item.textEdit = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
+    expect(getReplaceRange(item, {}, 0)).toEqual(Range.create(0, 0, 0, 3))
+    item.textEdit = {
+      newText: 'foo',
+      insert: Range.create(0, 0, 0, 0),
+      replace: Range.create(0, 0, 0, 3),
     }
-    let opt = {
-      line: 'oo',
-      col: 0,
-      position: Position.create(0, 0)
+    expect(getReplaceRange(item, {}, 0)).toEqual(Range.create(0, 0, 0, 3))
+    item.textEdit = {
+      newText: 'foo',
+      insert: Range.create(0, 1, 0, 0),
+      replace: Range.create(0, 1, 0, 3),
     }
-    let word = getWord(item, false, opt, {})
-    expect(word).toBe('f')
+    expect(getReplaceRange(item, {}, 0)).toEqual(Range.create(0, 0, 0, 3))
   })
 
   it('should convert completion item', async () => {
@@ -204,48 +222,42 @@ describe('util functions', () => {
       data: { optional: true, dup: 0 },
       tags: [CompletionItemTag.Deprecated]
     }
-    let res = convertCompletionItem(item, 0, 'source', 1, { itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
+    let res = convertCompletionItem(item, 0, 'source', 1, {
+      character: 0,
+      itemDefaults: { insertTextFormat: InsertTextFormat.Snippet },
+      range: emptyRange
+    }, opt)
     expect(res.abbr.endsWith('?')).toBe(true)
     expect(typeof res.sortText).toBe('string')
     expect(res.deprecated).toBe(true)
     expect(res.dup).toBe(0)
   })
 
-  it('should fix filter text when prefix exists', async () => {
+  it('should replace word after cursor', async () => {
     let opt = {
-      line: 'ab',
-      col: 0,
-      position: Position.create(0, 2)
+      line: '$foo',
+      col: 1,
+      position: Position.create(0, 1)
     }
-    let item: any = {
-      label: 'f',
-      insertText: 'f',
-      textEdit: TextEdit.replace(Range.create(0, 0, 0, 2), 'abf')
+    let item: CompletionItem = {
+      label: null,
+      insertText: 'foo',
+      textEdit: TextEdit.replace(Range.create(0, 0, 0, 4), 'foo'),
     }
-    let res = convertCompletionItem(item, 0, 'source', 1, { prefix: 'ab', itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
-    expect(res.filterText).toBe('abf')
-    item = {
-      label: 'f',
-      insertText: 'f',
-      filterText: 'f',
-      textEdit: TextEdit.replace(Range.create(0, 0, 0, 2), 'abf')
-    }
-    res = convertCompletionItem(item, 0, 'source', 1, { prefix: 'ab', itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
-    expect(res.filterText).toBe('abf')
-  })
-
-  it('should fix word when prefix exists', async () => {
-    let opt = {
-      line: 'ab',
-      col: 0,
-      position: Position.create(0, 2)
-    }
-    let item: any = {
-      label: 'f',
-      insertText: 'f',
-    }
-    let res = convertCompletionItem(item, 0, 'source', 1, { prefix: 'ab', itemDefaults: { insertTextFormat: InsertTextFormat.Snippet } }, opt)
-    expect(res.word).toBe('abf')
+    let res = convertCompletionItem(item, 0, 'source', 1, {
+      character: 1,
+      itemDefaults: {},
+      range: emptyRange
+    }, opt)
+    expect(res.character).toBe(0)
+    expect(res.word).toBe('')
+    item.textEdit = TextEdit.replace(Range.create(0, 1, 0, 4), 'foo')
+    res = convertCompletionItem(item, 0, 'source', 1, {
+      character: 1,
+      itemDefaults: {},
+      range: emptyRange
+    }, opt)
+    expect(res.character).toBe(1)
   })
 })
 

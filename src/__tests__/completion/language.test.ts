@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { CompletionItem, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionList, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
-import { getRange, getDetail, getStartColumn } from '../../sources/source-language'
+import { getDetail } from '../../sources/source-language'
 import { ItemDefaults } from '../../types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
@@ -39,36 +39,6 @@ describe('LanguageSource util', () => {
       expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
       item = { label: '', detail: 'detail()' }
       expect(getDetail(item, 'vim')).toEqual({ filetype: 'vim', content: 'detail()' })
-    })
-  })
-
-  describe('getStartColumn()', () => {
-    it('should get start col', async () => {
-      expect(getStartColumn('', [{ label: 'foo' }])).toBe(undefined)
-      expect(getStartColumn('', [{ label: 'foo' }], { editRange: Range.create(0, 0, 0, 3) })).toBe(0)
-      expect(getStartColumn('', [
-        { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), 'a') },
-        { label: 'bar' }])).toBe(undefined)
-      expect(getStartColumn('foo', [
-        { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 0), 'a') },
-        { label: 'bar', textEdit: TextEdit.insert(Position.create(0, 1), 'b') }])).toBe(undefined)
-      expect(getStartColumn('foo', [
-        { label: 'foo', textEdit: TextEdit.insert(Position.create(0, 2), 'a') },
-        { label: 'bar', textEdit: TextEdit.insert(Position.create(0, 2), 'b') }])).toBe(2)
-    })
-  })
-
-  describe('getRange()', () => {
-    it('should use range from textEdit', async () => {
-      let item = { label: 'foo', textEdit: TextEdit.replace(Range.create(0, 1, 0, 3), 'foo') }
-      let res = getRange(item, { editRange: Range.create(0, 0, 0, 0) })
-      expect(res).toEqual(Range.create(0, 1, 0, 3))
-    })
-
-    it('should use range from itemDefaults', async () => {
-      let item = { label: 'foo' }
-      expect(getRange(item, { editRange: Range.create(0, 0, 0, 1) })).toEqual(Range.create(0, 0, 0, 1))
-      expect(getRange(item, { editRange: InsertReplaceEdit.create('', Range.create(0, 0, 0, 0), Range.create(0, 0, 0, 1)) })).toEqual(Range.create(0, 0, 0, 1))
     })
   })
 })
@@ -373,7 +343,7 @@ describe('language source', () => {
       await nvim.input('if')
       await helper.waitPopup()
       await nvim.call('coc#pum#select', [0, 1, 0])
-      await helper.waitFor('getline', ['.'], 'foo')
+      await helper.waitFor('getline', ['.'], 'foo()')
     })
 
     it('should fix filterText of complete item', async () => {

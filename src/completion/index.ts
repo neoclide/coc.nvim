@@ -168,7 +168,6 @@ export class Completion implements Disposable {
       reversePumAboveCursor: !!suggest.reversePumAboveCursor,
       snippetIndicator: suggest.snippetIndicator ?? '~',
       noselect: !!suggest.noselect,
-      fixInsertedWord: !!suggest.fixInsertedWord,
       enablePreselect: !!suggest.enablePreselect,
       virtualText: !!suggest.virtualText,
       selection: suggest.selection
@@ -224,7 +223,8 @@ export class Completion implements Disposable {
       if (!info.insertChar) {
         let pre = byteSlice(option.line, 0, option.col)
         if (this.selectedItem) {
-          if (pre + this.popupEvent.word == info.pre) {
+          let { word, startcol } = this.popupEvent
+          if (byteSlice(option.line, 0, startcol) + word == info.pre) {
             this.pretext = info.pre
             return
           }

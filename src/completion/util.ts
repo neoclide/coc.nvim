@@ -2,26 +2,30 @@
 import unidecode from 'unidecode'
 import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-protocol'
 import { InsertChange } from '../events'
-import Document from '../model/document'
 import { SnippetParser } from '../snippets/parser'
+import Document from '../model/document'
 import sources from '../sources'
 import { CompleteDoneItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from '../types'
 import { isFalsyOrEmpty, toArray } from '../util/array'
-import { isCompletionItem } from '../util/is'
+import { CharCode } from '../util/charCode'
+import * as Is from '../util/is'
 import { toObject } from '../util/object'
-import { byteIndex, byteSlice, characterIndex, includeLineBreak, toText } from '../util/string'
+import { byteIndex, byteSlice, toText } from '../util/string'
 
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line'>
 type OptionForWord = Pick<Readonly<CompleteOption>, 'line' | 'col' | 'position'>
 
+const INVALID_WORD_CHARS = [CharCode.LineFeed, CharCode.CarriageReturn]
+
 export interface ConvertOption {
-  itemDefaults?: ItemDefaults
-  asciiMatch?: boolean
-  prefix?: string
+  readonly range: Range
+  readonly character: number
+  readonly itemDefaults?: ItemDefaults
+  readonly asciiMatch?: boolean
 }
 
 export function getKindText(kind: string | CompletionItemKind, kindMap: Map<CompletionItemKind, string>, defaultKindText: string): string {
-  return typeof kind === 'number' ? kindMap.get(kind) ?? defaultKindText : kind
+  return Is.number(kind) ? kindMap.get(kind) ?? defaultKindText : kind
 }
 
 const highlightsMap = {
@@ -53,7 +57,7 @@ const highlightsMap = {
 }
 
 export function getKindHighlight(kind: string | number): string {
-  return typeof kind === 'number' ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'
+  return Is.number(kind) ? highlightsMap[kind] ?? 'CocSymbolDefault' : 'CocSymbolDefault'
 }
 
 export function getResumeInput(option: PartialOption, pretext: string): string {
@@ -125,7 +129,7 @@ export function toCompleteDoneItem(item: DurationCompleteItem | undefined): Comp
     source: item.source,
     isSnippet: item.isSnippet === true,
     menu: item.menu ?? `[${item.source}]`,
-    user_data: typeof item.user_data === 'string' ? item.user_data : `${item.source}:${item.index}`
+    user_data: Is.string(item.user_data) ? item.user_data : `${item.source}:${item.index}`
   }
 }
 
@@ -181,17 +185,6 @@ export function shouldIndent(indentkeys: string, pretext: string): boolean {
   return false
 }
 
-export function getValidWord(text: string, invalidChars: string[], start = 2): string | undefined {
-  if (invalidChars.length === 0) return text
-  for (let i = start; i < text.length; i++) {
-    let c = text[i]
-    if (invalidChars.includes(c)) {
-      return text.slice(0, i)
-    }
-  }
-  return text
-}
-
 export function highlightOffert<T extends { filterText: string, abbr: string }>(pre: number, item: T): number {
   let { filterText, abbr } = item
   let idx = abbr.indexOf(filterText)
@@ -205,49 +198,78 @@ export function emptLabelDetails(labelDetails: CompletionItemLabelDetails): bool
   return !labelDetails.detail && !labelDetails.description
 }
 
-export function getWord(item: CompletionItem, isSnippet: boolean, opt: OptionForWord, itemDefaults: ItemDefaults): string {
-  let { label, data, insertText, textEdit } = item
-  if (data && typeof data.word === 'string') return data.word
-  let newText: string = insertText ?? label
+export function toValidWord(snippet: string, excludes: number[]): string {
+  for (let i = 0; i < snippet.length; i++) {
+    let code = snippet.charCodeAt(i)
+    if (excludes.includes(code)) {
+      return snippet.slice(0, i)
+    }
+  }
+  return snippet
+}
+
+export function snippetToWord(text: string, kind: CompletionItemKind | undefined): string {
+  if (kind === CompletionItemKind.Function || kind === CompletionItemKind.Method) {
+    text = text.replace(/\(.+/, '')
+  }
+  if (!text.includes('$')) return text
+  return toValidWord((new SnippetParser()).text(text), INVALID_WORD_CHARS)
+}
+
+export function getWord(item: CompletionItem, itemDefaults: ItemDefaults): string {
+  let { label, data, insertText, textEdit, kind } = item
+  if (data && Is.string(data.word)) return data.word
+  let insertTextFormat = item.insertTextFormat ?? itemDefaults.insertTextFormat
+  let textToInsert = textEdit ? textEdit.newText : insertText
+  if (!Is.string(textToInsert)) return label
+  return insertTextFormat === InsertTextFormat.Snippet ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS)
+}
+
+export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults, character: number): Range | undefined {
   let range: Range | undefined
-  if (textEdit) {
-    range = InsertReplaceEdit.is(textEdit) ? textEdit.insert : textEdit.range
-    newText = textEdit.newText
+  if (item.textEdit) {
+    range = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
   } else if (itemDefaults.editRange) {
-    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.insert
+    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.replace
   }
-  if (range && range.start.line == range.end.line) {
-    let { line, col, position } = opt
-    let character = characterIndex(line, col)
-    if (range.start.character < character) {
-      let start = line.slice(range.start.character, character)
-      if (start.length && newText.startsWith(start)) {
-        newText = newText.slice(start.length)
-      }
-    } else if (range.start.character > character) {
-      newText = line.slice(character, range.start.character) + newText
-    }
-    character = position.character
-    if (range.end.character > character) {
-      let end = line.slice(character, range.end.character)
-      if (newText.endsWith(end)) {
-        newText = newText.slice(0, - end.length)
-      }
-    }
+  // start character must contains character for completion
+  if (range && range.start.character > character) range.start.character = character
+  return range
+}
+
+export function getReplacedCharacters(opt: OptionForWord, range: Range): string | undefined {
+  let end = range.end
+  let { position } = opt
+  if (end.line !== position.line) return undefined
+  // fix bad range
+  if (end.character < position.character) end.character = position.character
+  if (end.character > position.character) {
+    return opt.line.slice(position.character, end.character)
   }
-  let word = isSnippet ? (new SnippetParser()).text(newText) : newText
-  return includeLineBreak(word) ? word.replace(/\n.*$/s, '') : word
+  return undefined
+}
+
+function fixFollow(word: string, opt: OptionForWord, range: Range): string {
+  let toReplace = getReplacedCharacters(opt, range)
+  // check replace characters after cursor, remove from end of insert text when the same
+  if (toReplace && word.endsWith(toReplace)) {
+    word = word.slice(0, - toReplace.length)
+  }
+  return word
 }
 
 export function convertCompletionItem(item: CompletionItem, index: number, source: string, priority: number, option: ConvertOption, opt: OptionForWord): DurationCompleteItem {
-  const label = typeof item.label === 'string' ? item.label.trim() : toText(item.insertText)
+  const label = Is.string(item.label) ? item.label.trim() : toText(item.insertText)
   const itemDefaults = toObject(option.itemDefaults) as ItemDefaults
   let isSnippet = (item.insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet
   if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
-  let word = getWord(item, isSnippet, opt, itemDefaults)
+  let word = getWord(item, itemDefaults)
+  let range = getReplaceRange(item, itemDefaults, option.character) ?? option.range
   let obj: DurationCompleteItem = {
-    word,
+    // the word to be insert from it's own character.
+    word: fixFollow(word, opt, range),
     abbr: label,
+    character: range.start.character,
     kind: item.kind,
     detail: item.detail,
     sortText: item.sortText,
@@ -261,33 +283,23 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
     dup: item.data?.dup == 0 ? 0 : 1
   }
   if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails
-  let { prefix } = option
-  if (prefix) {
-    // fix only when filterText exists
-    if (item.filterText && !item.filterText.startsWith(prefix)) {
-      obj.filterText = prefix + item.filterText
-    }
-    if (!item.textEdit && !obj.word.startsWith(prefix)) {
-      // fix possible wrong word
-      obj.word = `${prefix}${obj.word}`
-    }
-  }
-  if (typeof item['score'] === 'number' && !obj.sortText) {
+  if (Is.number(item['score']) && !obj.sortText) {
     obj.sortText = String.fromCodePoint(2 << 20 - Math.round(item['score']))
   }
   if (item.data?.optional && !obj.abbr.endsWith('?')) obj.abbr = obj.abbr + '?'
-  // if (option.asciiMatch) obj.filterText = unidecode(obj.filterText)
   return obj
 }
 
 export function toDurationCompleteItem(item: ExtendedCompleteItem | CompletionItem, index: number, source: string, priority: number, option: ConvertOption, opt: OptionForWord): DurationCompleteItem {
-  if (isCompletionItem(item)) return convertCompletionItem(item, index, source, priority, option, opt)
+  if (Is.isCompletionItem(item)) return convertCompletionItem(item, index, source, priority, option, opt)
   const word = toText(item.word)
   const filterText = item.filterText ?? word
+  const { range, asciiMatch } = option
   return {
-    word,
+    word: fixFollow(word, opt, range),
     abbr: item.abbr ?? word,
-    filterText: option.asciiMatch ? unidecode(filterText) : filterText,
+    filterText: asciiMatch ? unidecode(filterText) : filterText,
+    character: range.start.character,
     source,
     priority,
     dup: item.dup,

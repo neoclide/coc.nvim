@@ -1174,12 +1174,6 @@ Suggest~
 
 	Scope: `application`, default: `true`
 
-"suggest.fixInsertedWord"				*coc-config-suggest-fixInsertedWord*
-
-	Make inserted word replace word characters after cursor position.
-
-	Scope: `application`, default: `true`
-
 "suggest.floatConfig"					*coc-config-suggest-floatConfig*
 
 	Configure style of popup menu and documentation window for completion,
@@ -1215,7 +1209,7 @@ Suggest~
 	Invalid character for strip valid word when inserting text of complete
 	item.
 
-	Scope: `application`, default: `[" ","(","<","{","[","\r","\n"]`
+	Scope: `application`, default: `["\r","\n"]`
 
 "suggest.labelMaxLength"				*coc-config-suggest-labelMaxLength*
 

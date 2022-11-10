@@ -1,3 +1,10 @@
+# 2022-11-11
+
+- Remove configuration `suggest.fixInsertedWord`, insert word would always
+  be fixed.
+- Configuration `suggest.invalidInsertCharacters` default to line break
+  characters.
+
 # 2022-11-10
 
 - Not reset 'Search' highlight on float window as it could be used.

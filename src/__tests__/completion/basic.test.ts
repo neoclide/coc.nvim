@@ -314,7 +314,6 @@ describe('completion', () => {
 
     it('should change detailField', async () => {
       helper.updateConfiguration('suggest.detailField', 'abbr')
-      helper.updateConfiguration('suggest.fixInsertedWord', false)
       await create([{ word: 'this', detail: 'detail of this' }], true)
       let floatWin = await helper.getFloat('pum')
       let buf = await floatWin.buffer
@@ -442,16 +441,20 @@ describe('completion', () => {
       let slowSource: ISource = {
         name: 'slow',
         enable: true,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          setTimeout(() => {
+        doComplete: (_opt: CompleteOption, token): Promise<CompleteResult> => new Promise(resolve => {
+          token.onCancellationRequested(() => {
+            clearTimeout(timer)
+            resolve(undefined)
+          })
+          let timer = setTimeout(() => {
             finished = true
             resolve({ items: [{ word: 'world' }] })
-          }, 100)
+          }, 300)
         })
       }
       disposables.push(sources.addSource(slowSource))
       await nvim.input('if')
-      await helper.waitPopup()
+      await events.race(['MenuPopupChanged'], 200)
       expect(finished).toBe(false)
     })
   })

@@ -1836,12 +1836,6 @@
       "scope": "language-overridable",
       "default": true
     },
-    "suggest.fixInsertedWord": {
-      "type": "boolean",
-      "description": "Make inserted word replace word characters after cursor position.",
-      "scope": "application",
-      "default": true
-    },
     "suggest.floatConfig": {
       "type": "object",
       "scope": "application",
@@ -1894,7 +1888,7 @@
       },
       "scope": "application",
       "description": "Invalid character for strip valid word when inserting text of complete item.",
-      "default": [" ", "(", "<", "{", "[", "\r", "\n"]
+      "default": ["\r", "\n"]
     },
     "suggest.labelMaxLength": {
       "type": "number",
