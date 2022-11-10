@@ -154,7 +154,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let config = s:convert_config_nvim(a:config, 0)
       let hlgroup = get(a:config, 'highlight', 'CocFloating')
       let current = getwinvar(a:winid, '&winhl', '')
-      let winhl = coc#util#merge_winhl(current, [['Normal', hlgroup], ['FoldColumn', hlgroup], ['Search', '']])
+      let winhl = coc#util#merge_winhl(current, [['Normal', hlgroup], ['FoldColumn', hlgroup]])
       if winhl !=# current
         call setwinvar(a:winid, '&winhl', winhl)
       endif
@@ -280,11 +280,11 @@ function! coc#float#nvim_border_win(config, borderchars, winid, border, title, h
   endif
   if winid
     call nvim_win_set_config(winid, opt)
-    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup.',Search:')
+    call setwinvar(winid, '&winhl', 'Normal:'.a:hlgroup)
   else
     noa let winid = nvim_open_win(bufnr, 0, opt)
     call setwinvar(winid, 'delta', -1)
-    let winhl = 'Normal:'.a:hlgroup.',Search:'
+    let winhl = 'Normal:'.a:hlgroup
     call s:nvim_add_related(winid, a:winid, 'border', winhl, a:related)
   endif
 endfunction
@@ -309,7 +309,7 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
   else
     let bufnr = coc#float#create_buf(0, ['X'])
     noa let winid = nvim_open_win(bufnr, 0, config)
-    let winhl = 'Normal:'.a:hlgroup.',Search:'
+    let winhl = 'Normal:'.a:hlgroup
     call s:nvim_add_related(winid, a:winid, 'close', winhl, a:related)
   endif
 endfunction
@@ -1321,7 +1321,7 @@ endfunction
 function! s:set_float_defaults(winid, config) abort
   if !s:is_vim
     let hlgroup = get(a:config, 'highlight', 'CocFloating')
-    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',FoldColumn:'.hlgroup.',Search:')
+    call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',FoldColumn:'.hlgroup)
     call setwinvar(a:winid, 'border', get(a:config, 'border', []))
     call setwinvar(a:winid, 'scrollinside', get(a:config, 'scrollinside', 0))
     call setwinvar(a:winid, '&foldcolumn', s:nvim_get_foldcolumn(a:config))

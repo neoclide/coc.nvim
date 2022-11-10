@@ -1,3 +1,17 @@
+# 2022-11-11
+
+- Remove configuration `suggest.fixInsertedWord`, insert word would always
+  be fixed.
+- Configuration `suggest.invalidInsertCharacters` default to line break
+  characters.
+
+# 2022-11-10
+
+- Not reset 'Search' highlight on float window as it could be used.
+- Note remap `<esc>` on float preview window.
+- Add new action `feedkeys!` to list.
+- Add new configuration `list.floatPreview`.
+
 # 2022-11-07
 
 - Add API `CocAction('snippetInsert')` for snippet insert from vim plugin.

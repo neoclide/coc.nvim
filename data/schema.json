@@ -1202,6 +1202,12 @@
       "description": "Show tooltip of link under cursor on CursorHold, neovim only",
       "default": false
     },
+    "list.floatPreview": {
+      "type": "boolean",
+      "default": false,
+      "scope": "application",
+      "description": "Enable preview with float window/popup, default: `false`"
+    },
     "list.alignColumns": {
       "type": "boolean",
       "default": false,
@@ -1830,12 +1836,6 @@
       "scope": "language-overridable",
       "default": true
     },
-    "suggest.fixInsertedWord": {
-      "type": "boolean",
-      "description": "Make inserted word replace word characters after cursor position.",
-      "scope": "application",
-      "default": true
-    },
     "suggest.floatConfig": {
       "type": "object",
       "scope": "application",
@@ -1888,7 +1888,7 @@
       },
       "scope": "application",
       "description": "Invalid character for strip valid word when inserting text of complete item.",
-      "default": [" ", "(", "<", "{", "[", "\r", "\n"]
+      "default": ["\r", "\n"]
     },
     "suggest.labelMaxLength": {
       "type": "number",

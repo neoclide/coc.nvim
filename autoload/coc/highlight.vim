@@ -250,7 +250,7 @@ function! coc#highlight#del_markers(bufnr, key, ids) abort
   endfor
 endfunction
 
-" highlight LSP range,
+" highlight LSP range, opts contains 'combine' 'priority' 'start_incl' 'end_incl'
 function! coc#highlight#ranges(bufnr, key, hlGroup, ranges, ...) abort
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr) || !exists('*getbufline')

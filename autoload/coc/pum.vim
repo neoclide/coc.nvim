@@ -15,6 +15,7 @@ let s:saved_indenetkeys = []
 let s:prop_id = 0
 let s:reversed = 0
 let s:check_hl_group = 0
+let s:start_col = -1
 
 if s:is_vim && s:virtual_text_support
   if empty(prop_type_get('CocPumVirtualText'))
@@ -57,6 +58,7 @@ function! coc#pum#close(...) abort
       if s:pum_index >= 0
         let word = get(words, s:pum_index, '')
         call s:insert_word(word)
+        " have to restore here, so that TextChangedI can trigger indent.
         call s:restore_indentkeys()
       endif
       doautocmd <nomodeline> TextChangedI
@@ -195,40 +197,38 @@ function! coc#pum#info() abort
   let words = getwinvar(s:pum_winid, 'words', [])
   let word = s:pum_index < 0 ? '' : get(words, s:pum_index, '')
   let pretext = strpart(getline('.'), 0, col('.') - 1)
+  let base = {
+        \ 'word': word,
+        \ 'index': s:pum_index,
+        \ 'size': s:pum_size,
+        \ 'startcol': s:start_col,
+        \ 'inserted': s:inserted ? v:true : v:false,
+        \ 'reversed': s:reversed ? v:true : v:false,
+        \ }
   if s:is_vim
     let pos = popup_getpos(s:pum_winid)
     let border = has_key(popup_getoptions(s:pum_winid), 'border')
     let add = pos['scrollbar'] && border ? 1 : 0
-    return {
-          \ 'word': word,
-          \ 'index': s:pum_index,
+    return extend(base, {
           \ 'scrollbar': pos['scrollbar'],
           \ 'row': pos['line'] - 1,
           \ 'col': pos['col'] - 1,
           \ 'width': pos['width'] + add,
           \ 'height': pos['height'],
-          \ 'size': s:pum_size,
           \ 'border': border,
-          \ 'inserted': s:inserted ? v:true : v:false,
-          \ 'reversed': s:reversed ? v:true : v:false,
-          \ }
+          \ })
   else
     let scrollbar = coc#float#get_related(s:pum_winid, 'scrollbar')
     let winid = coc#float#get_related(s:pum_winid, 'border', s:pum_winid)
     let pos = nvim_win_get_position(winid)
-    return {
-          \ 'word': word,
-          \ 'index': s:pum_index,
+    return extend(base, {
           \ 'scrollbar': scrollbar && nvim_win_is_valid(scrollbar) ? 1 : 0,
           \ 'row': pos[0],
           \ 'col': pos[1],
           \ 'width': nvim_win_get_width(winid),
           \ 'height': nvim_win_get_height(winid),
-          \ 'size': s:pum_size,
           \ 'border': winid != s:pum_winid,
-          \ 'inserted': s:inserted ? v:true : v:false,
-          \ 'reversed': s:reversed ? v:true : v:false,
-          \ }
+          \ })
   endif
 endfunction
 
@@ -328,14 +328,13 @@ function! s:get_index(next) abort
 endfunction
 
 function! s:insert_word(word) abort
-  let parts = getwinvar(s:pum_winid, 'parts', [])
-  if !empty(parts) && mode() ==# 'i'
+  if s:start_col != -1 && mode() ==# 'i'
     let curr = getline('.')
     let saved_completeopt = &completeopt
     if saved_completeopt =~ 'menuone'
       noa set completeopt=menu
     endif
-    noa call complete(strlen(parts[0]) + 1, [{ 'empty': v:true, 'word': a:word }])
+    noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
     " exit complete state
     if s:hide_pum
       call feedkeys("\<C-x>\<C-z>", 'in')
@@ -394,6 +393,7 @@ function! coc#pum#create(lines, opt, config) abort
   let s:inserted = 0
   let s:pum_winid = result[0]
   let s:pum_bufnr = result[1]
+  let s:start_col = a:opt['startcol']
   call setwinvar(s:pum_winid, 'above', config['row'] < 0)
   let firstline = s:get_firstline(lnum, s:pum_size, config['height'])
   if s:is_vim
@@ -404,7 +404,8 @@ function! coc#pum#create(lines, opt, config) abort
   call coc#dialog#place_sign(s:pum_bufnr, s:pum_index == -1 ? 0 : lnum)
   " content before col and content after cursor
   let linetext = getline('.')
-  let parts = [strpart(linetext, 0, a:opt['col']), strpart(linetext, col('.') - 1)]
+  let parts = [strpart(linetext, 0, s:start_col), strpart(linetext, col('.') - 1)]
+  let input = strpart(getline('.'), s:start_col, col('.') - 1 - s:start_col)
   call setwinvar(s:pum_winid, 'input', input)
   call setwinvar(s:pum_winid, 'parts', parts)
   call setwinvar(s:pum_winid, 'words', a:opt['words'])
@@ -546,10 +547,8 @@ function! s:insert_virtual_text() abort
     let line = line('.') - 1
     let words = getwinvar(s:pum_winid, 'words', [])
     let word = get(words, s:pum_index, '')
-    let parts = getwinvar(s:pum_winid, 'parts', [])
-    let start = strlen(parts[0])
-    let input = strpart(getline('.'), start, col('.') - 1 - start)
-    if strchars(word) > strchars(input) && strcharpart(word, 0, strchars(input)) ==# input
+    let input = strpart(getline('.'), s:start_col, col('.') - 1 - s:start_col)
+    if strlen(word) > strlen(input) && strcharpart(word, 0, strchars(input)) ==# input
       let insert = strcharpart(word, strchars(input))
     endif
     if s:is_vim
