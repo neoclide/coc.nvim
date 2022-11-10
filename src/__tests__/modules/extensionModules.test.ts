@@ -302,7 +302,7 @@ describe('ExtensionStat', () => {
 
   it('should filterGlobalExtensions', async () => {
     let [stat, jsonFile] = create()
-    expect(stat.filterGlobalExtensions(['foo', 'bar'])).toEqual(['foo', 'bar'])
+    expect(stat.filterGlobalExtensions(['foo', 'bar', undefined, 3] as any)).toEqual(['foo', 'bar'])
     stat.addExtension('foo', '')
     expect(stat.filterGlobalExtensions(['foo', 'bar'])).toEqual(['bar'])
     stat.setDisable('bar', true)

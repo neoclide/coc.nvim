@@ -5,6 +5,7 @@ import { promisify } from 'util'
 import { loadJson, writeJson } from '../util/fs'
 import { objectLiteral } from '../util/is'
 import { createLogger } from '../logger'
+import { toArray } from '../util/array'
 const logger = createLogger('extension-stat')
 
 interface DataBase {
@@ -185,11 +186,12 @@ export class ExtensionStat {
   /**
    * Filter out global extensions that needs install
    */
-  public filterGlobalExtensions(names: string[]): string[] {
+  public filterGlobalExtensions(names: string[] | undefined): string[] {
     let disabledExtensions = this.disabledExtensions
     let dependencies = this.dependencies
     let map: Map<string, string> = new Map()
-    names.forEach(def => {
+    toArray(names).forEach(def => {
+      if (!def || typeof def !== 'string') return
       let name = getExtensionName(def)
       map.set(name, def)
     })
