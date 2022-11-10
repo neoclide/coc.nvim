@@ -1,13 +1,13 @@
 import * as assert from 'assert'
 import path from 'path'
-import { URI } from 'vscode-uri'
-import { LanguageClient, ServerOptions, TransportKind, Middleware, LanguageClientOptions, State } from '../../language-client/index'
-import { CancellationTokenSource, Color, DocumentSelector, Position, Range, DefinitionRequest, Location, HoverRequest, Hover, CompletionRequest, CompletionTriggerKind, CompletionItem, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, ParameterInformation, ReferencesRequest, DocumentHighlightRequest, DocumentHighlight, DocumentHighlightKind, CodeActionRequest, CodeAction, WorkDoneProgressBegin, WorkDoneProgressReport, WorkDoneProgressEnd, ProgressToken, DocumentFormattingRequest, TextEdit, DocumentRangeFormattingRequest, DocumentOnTypeFormattingRequest, RenameRequest, WorkspaceEdit, DocumentLinkRequest, DocumentLink, DocumentColorRequest, ColorInformation, ColorPresentation, DeclarationRequest, FoldingRangeRequest, FoldingRange, ImplementationRequest, SelectionRangeRequest, SelectionRange, TypeDefinitionRequest, ProtocolRequestType, CallHierarchyPrepareRequest, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, SemanticTokensRegistrationType, LinkedEditingRangeRequest, WillCreateFilesRequest, DidCreateFilesNotification, WillRenameFilesRequest, DidRenameFilesNotification, WillDeleteFilesRequest, DidDeleteFilesNotification, TextDocumentEdit, InlayHintRequest, InlayHintLabelPart, InlayHintKind, WorkspaceSymbolRequest, TypeHierarchyPrepareRequest, InlineValueRequest, InlineValueText, InlineValueVariableLookup, InlineValueEvaluatableExpression, DocumentDiagnosticRequest, DocumentDiagnosticReport, FullDocumentDiagnosticReport, DocumentDiagnosticReportKind, CancellationToken, TextDocumentSyncKind, Disposable, NotificationType0, DidChangeTextDocumentNotification, WillSaveTextDocumentNotification, DidOpenTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, DidSaveTextDocumentNotification, DidCloseTextDocumentNotification, CodeLensRequest, DocumentSymbolRequest, DidChangeConfigurationNotification, ConfigurationRequest, WorkDoneProgressCreateRequest, DidChangeWatchedFilesNotification } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CallHierarchyPrepareRequest, CancellationToken, CancellationTokenSource, CodeAction, CodeActionRequest, CodeLensRequest, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionRequest, CompletionTriggerKind, ConfigurationRequest, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightKind, DocumentHighlightRequest, DocumentLink, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, FoldingRange, FoldingRangeRequest, FullDocumentDiagnosticReport, Hover, HoverRequest, ImplementationRequest, InlayHintKind, InlayHintLabelPart, InlayHintRequest, InlineValueEvaluatableExpression, InlineValueRequest, InlineValueText, InlineValueVariableLookup, LinkedEditingRangeRequest, Location, NotificationType0, ParameterInformation, Position, ProgressToken, ProtocolRequestType, Range, ReferencesRequest, RenameRequest, SelectionRange, SelectionRangeRequest, SemanticTokensRegistrationType, SignatureHelpRequest, SignatureHelpTriggerKind, SignatureInformation, TextDocumentEdit, TextDocumentSyncKind, TextEdit, TypeDefinitionRequest, TypeHierarchyPrepareRequest, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import helper from '../helper'
-import workspace from '../../workspace'
-import languages from '../../languages'
+import { URI } from 'vscode-uri'
 import commands from '../../commands'
+import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, State, TransportKind } from '../../language-client/index'
+import languages from '../../languages'
+import workspace from '../../workspace'
+import helper from '../helper'
 
 beforeAll(async () => {
   await helper.setup()
@@ -16,6 +16,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await helper.shutdown()
 })
+
 describe('Client integration', () => {
   let client!: LanguageClient
   let middleware: Middleware
@@ -1409,9 +1410,10 @@ describe('sever tests', () => {
     await client.stop()
     assert.strictEqual(client.needsStart(), true)
     assert.strictEqual(client.needsStop(), false)
+    await helper.wait(20)
   })
 
-  test('Stop fails if server shutdown request times out', async () => {
+  test('Stop not throw if server shutdown request times out', async () => {
     const serverOptions: ServerOptions = {
       module: path.join(__dirname, './server/timeoutOnShutdownServer.js'),
       transport: TransportKind.ipc,
@@ -1419,10 +1421,7 @@ describe('sever tests', () => {
     const clientOptions: LanguageClientOptions = {}
     const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
     await client._start()
-
-    await assert.rejects(async () => {
-      await client.stop(100)
-    }, /Stopping the server timed out/)
+    await client.stop(10)
   })
 
   test('Server can not be stopped right after start', async () => {

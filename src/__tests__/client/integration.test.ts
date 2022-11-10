@@ -629,7 +629,7 @@ describe('Client integration', () => {
     }
     await expect(fn()).rejects.toThrow(Error)
     spy.mockRestore()
-    await helper.wait(10)
+    await helper.wait(20)
   })
 })
 
@@ -654,6 +654,7 @@ describe('SettingMonitor', () => {
       return client.state != lsclient.State.Stopped
     }, true)
     await client.onReady()
+    await client.stop()
     disposable.dispose()
   })
 })

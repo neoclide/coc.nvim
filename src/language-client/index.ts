@@ -15,6 +15,7 @@ import ChildProcess = cp.ChildProcess
 const logger = createLogger('language-client-index')
 const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
 const debugEquals: string[] = ['--debug', '--debug-brk', '--inspect', '--inspect-brk']
+const STOP_TIMEOUT = global.__TEST__ ? 100 : 2000
 
 export * from './client'
 
@@ -188,7 +189,7 @@ export class LanguageClient extends BaseLanguageClient {
     this._isInDebugMode = !!forceDebug
   }
 
-  public stop(timeout = 2000): Promise<void> {
+  public stop(timeout = STOP_TIMEOUT): Promise<void> {
     return super.stop(timeout).then(() => {
       if (this._serverProcess) {
         let toCheck = this._serverProcess
@@ -198,6 +199,13 @@ export class LanguageClient extends BaseLanguageClient {
         }
         this._isDetached = undefined
       }
+    }, err => {
+      if (err.message.includes('timed out')) {
+        this._serverProcess.kill('SIGKILL')
+        this._serverProcess = undefined
+        return
+      }
+      throw err
     })
   }
 
@@ -215,7 +223,7 @@ export class LanguageClient extends BaseLanguageClient {
       } catch (error) {
         // All is fine.
       }
-    }, global.__TEST__ ? 20 : 2000)
+    }, STOP_TIMEOUT)
   }
 
   protected handleConnectionClosed(): void {
