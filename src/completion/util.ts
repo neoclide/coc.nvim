@@ -251,7 +251,7 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
     kind: item.kind,
     detail: item.detail,
     sortText: item.sortText,
-    filterText: item.filterText ?? word,
+    filterText: item.filterText ?? label,
     preselect: item.preselect === true,
     deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
     isSnippet,
