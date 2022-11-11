@@ -19,7 +19,6 @@ const INVALID_WORD_CHARS = [CharCode.LineFeed, CharCode.CarriageReturn]
 
 export interface ConvertOption {
   readonly range: Range
-  readonly character: number
   readonly itemDefaults?: ItemDefaults
   readonly asciiMatch?: boolean
 }
@@ -222,11 +221,15 @@ export function isSnippetItem(item: CompletionItem, itemDefaults: ItemDefaults):
 }
 
 export function getWord(item: CompletionItem, itemDefaults: ItemDefaults): string {
-  let { label, data, insertText, textEdit, kind } = item
+  let { label, data, kind } = item
   if (data && Is.string(data.word)) return data.word
-  let textToInsert = textEdit ? textEdit.newText : insertText
+  let textToInsert = getInsertText(item)
   if (!Is.string(textToInsert)) return label
   return isSnippetItem(item, itemDefaults) ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS)
+}
+
+export function getInsertText(item: CompletionItem): string | undefined {
+  return item.textEdit ? item.textEdit.newText : item.insertText
 }
 
 export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults, character?: number): Range | undefined {
@@ -268,7 +271,7 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
   let isSnippet = (item.insertTextFormat ?? itemDefaults.insertTextFormat) === InsertTextFormat.Snippet
   if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
   let word = getWord(item, itemDefaults)
-  let range = getReplaceRange(item, itemDefaults, option.character) ?? option.range
+  let range = getReplaceRange(item, itemDefaults, option.range.start.character) ?? option.range
   let obj: DurationCompleteItem = {
     // the word to be insert from it's own character.
     word: fixFollow(word, opt, range),

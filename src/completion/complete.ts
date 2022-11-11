@@ -1,17 +1,17 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { CompleteOption, DurationCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
-import { fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
+import { anyScore, fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
+import * as Is from '../util/is'
+import { clamp } from '../util/numbers'
 import { characterIndex } from '../util/string'
 import { ConvertOption, toDurationCompleteItem } from './util'
 import { WordDistance } from './wordDistance'
-import * as Is from '../util/is'
-import { clamp } from '../util/numbers'
 const logger = createLogger('completion-complete')
 const MAX_DISTANCE = 2 << 20
 const MIN_TIMEOUT = 50
@@ -51,26 +51,29 @@ export default class Complete {
   private results: Map<string, CompleteResultToFilter> = new Map()
   private _input = ''
   private _completing = false
-  private tokenSource: CancellationTokenSource
   private timer: NodeJS.Timer
   private names: string[] = []
+  private tokenSources: Set<CancellationTokenSource> = new Set()
   private readonly _onDidRefresh = new Emitter<void>()
   private wordDistance: WordDistance | undefined
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   private asciiMatch: boolean
+  private timeout: number
+  private cid = 0
+  private minCharacter = Number.MAX_SAFE_INTEGER
   constructor(public option: CompleteOption,
     private document: Document,
     private config: CompleteConfig,
     private sources: ISource[],
     private nvim: Neovim) {
-    this.tokenSource = new CancellationTokenSource()
+    this.timeout = clamp(this.config.timeout, MIN_TIMEOUT, MAX_TIMEOUT)
     sources.sort((a, b) => (b.priority ?? 99) - (a.priority ?? 99))
     this.names = sources.map(o => o.name)
     this.asciiMatch = config.asciiMatch && option.input.length > 0 && option.input.charCodeAt(0) < 128
   }
 
   private fireRefresh(waitTime: number): void {
-    if (this.timer) clearTimeout(this.timer)
+    clearTimeout(this.timer)
     this.timer = setTimeout(() => {
       this._onDidRefresh.fire()
     }, waitTime)
@@ -106,18 +109,23 @@ export default class Complete {
     return this.results.size === 0
   }
 
-  public getIncompleteSources(): string[] {
-    let names: string[] = []
-    for (let [name, result] of this.results.entries()) {
-      if (result.isIncomplete) {
-        names.push(name)
-      }
+  private get hasInComplete(): boolean {
+    for (let result of this.results.values()) {
+      if (result.isIncomplete) return true
     }
-    return names
+    return false
+  }
+
+  public getIncompleteSources(): ISource[] {
+    return this.sources.filter(s => {
+      let res = this.results.get(s.name)
+      return res && res.isIncomplete === true
+    })
   }
 
   public async doComplete(): Promise<boolean> {
-    let token = this.tokenSource.token
+    let tokenSource = this.createTokenSource()
+    let token = tokenSource.token
     let res = await Promise.all([
       this.nvim.call('coc#util#synname', []),
       this.nvim.call('coc#util#suggest_variables', [this.option.bufnr]),
@@ -141,62 +149,68 @@ export default class Complete {
       logger.warn('suggest cancelled by b:coc_suggest_blacklist')
       return true
     }
-    await wait(Math.min(this.config.triggerCompletionWait ?? 0, 50))
+    WordDistance.create(this.config.localityBonus, this.option, token).then(instance => {
+      this.wordDistance = instance
+    }).logError()
+    await wait(clamp(this.config.triggerCompletionWait, 0, 50))
     if (token.isCancellationRequested) return
-    await this.completeSources(this.sources, false)
+    await this.completeSources(this.sources, tokenSource, this.cid)
   }
 
-  private async completeSources(sources: ReadonlyArray<ISource>, isFilter: boolean): Promise<void> {
-    let { timeout, localityBonus } = this.config
-    let { results, tokenSource, option } = this
-    timeout = clamp(timeout, MIN_TIMEOUT, MAX_TIMEOUT)
-    let names = sources.map(s => s.name)
-    let total = names.length
-    let character = characterIndex(option.line, option.col)
-    let line = option.linenr - 1
-    let end = option.position.character + option.followWord.length
-    // default replace range
-    let range = Range.create(line, character, line, end)
-    this._completing = true
-    let token = tokenSource.token
-    let timer: NodeJS.Timer
-    let tp = new Promise<void>(resolve => {
-      timer = setTimeout(() => {
-        if (!token.isCancellationRequested) {
-          names = names.filter(n => !finished.includes(n))
-          tokenSource.cancel()
-          logger.warn(`Completion timeout after ${timeout}ms`, names)
-          this.nvim.setVar(`coc_timeout_sources`, names, true)
-        }
-        resolve()
-      }, timeout)
+  private createTokenSource(): CancellationTokenSource {
+    let tokenSource = new CancellationTokenSource()
+    this.tokenSources.add(tokenSource)
+    tokenSource.token.onCancellationRequested(() => {
+      this.tokenSources.delete(tokenSource)
     })
-    const finished: string[] = []
-    let promises = [
-      isFilter ? Promise.resolve() : WordDistance.create(localityBonus, this.option, token).then(instance => {
-        if (token.isCancellationRequested) return
-        this.wordDistance = instance
-      }),
-      ...sources.map(s => this.completeSource(s, character, range, token).then(() => {
-        finished.push(s.name)
-        if (token.isCancellationRequested || isFilter) return
-        if (finished.length === total) {
-          this.fireRefresh(0)
-        } else if (results.has(s.name)) {
-          this.fireRefresh(16)
-        }
-      }))
-    ]
-    await Promise.race([tp, Promise.all(promises)])
-    clearTimeout(timer)
-    this._completing = false
+    return tokenSource
   }
 
-  private async completeSource(source: ISource, character: number, range: Range, token: CancellationToken): Promise<void> {
+  private async completeSources(sources: ReadonlyArray<ISource>, tokenSource: CancellationTokenSource, cid: number): Promise<void> {
+    const token = tokenSource.token
+    this._completing = true
+    const remains: Set<string> = new Set()
+    sources.forEach(s => remains.add(s.name))
+    let timer: NodeJS.Timer
+    let disposable: Disposable
+    let tp = new Promise<void>(resolve => {
+      disposable = token.onCancellationRequested(() => {
+        clearTimeout(timer)
+        resolve()
+      })
+      timer = setTimeout(() => {
+        let names = Array.from(remains)
+        disposable.dispose()
+        tokenSource.cancel()
+        logger.warn(`Completion timeout after ${this.timeout}ms`, names)
+        this.nvim.setVar(`coc_timeout_sources`, names, true)
+        resolve()
+      }, this.timeout)
+    })
+    // default replace range
+    const range = getDefaultRange(this.option, true)
+    let promises = sources.map(s => this.completeSource(s, range, token).then(added => {
+      remains.delete(s.name)
+      if (token.isCancellationRequested || cid != 0 || (this.cid > 0 && this._completing)) return
+      if (remains.size === 0) {
+        this.fireRefresh(0)
+      } else if (added) {
+        this.fireRefresh(16)
+      }
+    }))
+    await Promise.race([tp, Promise.allSettled(promises)])
+    this.tokenSources.delete(tokenSource)
+    disposable.dispose()
+    clearTimeout(timer)
+    if (cid === this.cid) this._completing = false
+  }
+
+  private async completeSource(source: ISource, range: Range, token: CancellationToken): Promise<boolean> {
     // new option for each source
     let opt = Object.assign({}, this.option)
     let { asciiMatch } = this
     const sourceName = source.name
+    let added = false
     try {
       if (typeof source.shouldComplete === 'function') {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
@@ -217,9 +231,13 @@ export default class Complete {
               let line = opt.linenr - 1
               range = Range.create(line, characterIndex(opt.line, result.startcol), line, range.end.character)
             }
-            const convertOption: ConvertOption = { asciiMatch, itemDefaults: result.itemDefaults, character, range }
+            const convertOption: ConvertOption = { asciiMatch, itemDefaults: result.itemDefaults, range }
             const items = result.items.map((item, index: number) => toDurationCompleteItem(item, index, sourceName, priority, convertOption, opt))
+            if (this.minCharacter === undefined || items[0].character < this.minCharacter) {
+              this.minCharacter = items[0].character
+            }
             this.results.set(sourceName, { items, isIncomplete: result.isIncomplete })
+            added = true
           } else {
             this.results.delete(sourceName)
           }
@@ -232,19 +250,18 @@ export default class Complete {
       // this.nvim.echoError(err)
       logger.error('Complete error:', source.name, err)
     }
+    return added
   }
 
-  public async completeInComplete(resumeInput: string, names: string[]): Promise<DurationCompleteItem[] | undefined> {
+  public async completeInComplete(resumeInput: string): Promise<DurationCompleteItem[] | undefined> {
     let { document } = this
-    this.cancel()
-    this.tokenSource = new CancellationTokenSource()
-    let token = this.tokenSource.token
+    let tokenSource = this.createTokenSource()
+    let token = tokenSource.token
     await document.patchChange(true)
     if (token.isCancellationRequested) return undefined
     let { input, colnr, linenr, followWord, position } = this.option
-    let word = resumeInput + followWord
     Object.assign(this.option, {
-      word,
+      word: resumeInput + followWord,
       input: resumeInput,
       line: document.getline(linenr - 1),
       position: { line: position.line, character: position.character + resumeInput.length - input.length },
@@ -252,8 +269,9 @@ export default class Complete {
       triggerCharacter: undefined,
       triggerForInComplete: true
     })
-    let sources = this.sources.filter(s => names.includes(s.name))
-    await this.completeSources(sources, true)
+    this.cid++
+    const sources = this.getIncompleteSources()
+    await this.completeSources(sources, tokenSource, this.cid)
     if (token.isCancellationRequested) return undefined
     return this.filterItems(resumeInput)
   }
@@ -261,17 +279,18 @@ export default class Complete {
   public filterItems(input: string): DurationCompleteItem[] | undefined {
     let { results, names, option } = this
     this._input = input
-    if (results.size == 0) return []
     let len = input.length
     let anchor = Position.create(option.linenr - 1, characterIndex(option.line, option.col))
-    let emptyInput = len == 0
     let { maxItemCount, defaultSortMethod, removeDuplicateItems } = this.config
     let arr: DurationCompleteItem[] = []
     let words: Set<string> = new Set()
+    const emptyInput = len == 0
     const lowInput = input.toLowerCase()
     const scoreFn: FuzzyScorer = (!this.config.filterGraceful || this.totalLength > 2000) ? fuzzyScore : fuzzyScoreGracefulAggressive
     const scoreOption = { boostFullMatch: true, firstMatchCanBeWeak: false }
     const character = characterIndex(option.line, option.col)
+    const prefix = emptyInput && this.minCharacter < anchor.character ? option.line.slice(this.minCharacter, anchor.character) : ''
+    const lowPrefix = prefix.toLowerCase()
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue
@@ -289,40 +308,24 @@ export default class Complete {
           item.score = res[0]
           item.positions = res
           if (this.wordDistance) item.localBonus = MAX_DISTANCE - this.wordDistance.distance(anchor, item)
+        } else if (prefix) {
+          let part = option.line.slice(this.minCharacter, item.character)
+          let text = part + item.filterText
+          let res = anyScore(prefix, lowPrefix, 0, text, text.toLowerCase(), 0, scoreOption)
+          item.score = res[0]
         }
         words.add(word)
         arr.push(item)
       }
     }
-    arr.sort((a, b) => {
-      let sa = a.sortText
-      let sb = b.sortText
-      if (!emptyInput && a.score !== b.score) return b.score - a.score
-      if (a.priority !== b.priority) return b.priority - a.priority
-      if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1
-      if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
-      // not sort with empty input, the item that replace trigger have higher priority
-      if (input.length === 0) return b.character - a.character
-      switch (defaultSortMethod) {
-        case 'none':
-          return 0
-        case 'alphabetical':
-          return a.filterText.localeCompare(b.filterText)
-        case 'length':
-        default: // Fallback on length
-          return a.filterText.length - b.filterText.length
-      }
-    })
+    arr.sort(sortItems.bind(null, emptyInput, defaultSortMethod))
     return this.limitCompleteItems(arr.slice(0, maxItemCount))
   }
 
   public async filterResults(input: string): Promise<DurationCompleteItem[] | undefined> {
     clearTimeout(this.timer)
-    if (input !== this.option.input) {
-      let names = this.getIncompleteSources()
-      if (names.length) {
-        return await this.completeInComplete(input, names)
-      }
+    if (input !== this.option.input && this.hasInComplete) {
+      return await this.completeInComplete(input)
     }
     return this.filterItems(input)
   }
@@ -345,14 +348,44 @@ export default class Complete {
   }
 
   public cancel(): void {
-    let { tokenSource, timer } = this
+    let { tokenSources, timer } = this
     if (timer) clearTimeout(timer)
-    tokenSource.cancel()
+    for (let tokenSource of Array.from(tokenSources)) {
+      tokenSource.cancel()
+    }
+    tokenSources.clear()
     this._completing = false
   }
 
   public dispose(): void {
     this.cancel()
     this._onDidRefresh.dispose()
+  }
+}
+
+function getDefaultRange(option: CompleteOption, replace: boolean): Range {
+  let character = characterIndex(option.line, option.col)
+  let line = option.linenr - 1
+  let end = option.position.character + (replace ? option.followWord.length : 0)
+  return Range.create(line, character, line, end)
+}
+
+export function sortItems(emptyInput: boolean, defaultSortMethod: string, a: DurationCompleteItem, b: DurationCompleteItem): number {
+  let sa = a.sortText
+  let sb = b.sortText
+  if (a.score !== b.score) return b.score - a.score
+  if (a.priority !== b.priority) return b.priority - a.priority
+  if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1
+  if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
+  // not sort with empty input, the item that replace trigger have higher priority
+  if (emptyInput) return b.character - a.character
+  switch (defaultSortMethod) {
+    case 'none':
+      return 0
+    case 'alphabetical':
+      return a.filterText.localeCompare(b.filterText)
+    case 'length':
+    default: // Fallback on length
+      return a.filterText.length - b.filterText.length
   }
 }

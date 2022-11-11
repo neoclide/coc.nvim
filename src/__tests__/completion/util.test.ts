@@ -224,7 +224,6 @@ describe('util functions', () => {
       tags: [CompletionItemTag.Deprecated]
     }
     let res = convertCompletionItem(item, 0, 'source', 1, {
-      character: 0,
       itemDefaults: { insertTextFormat: InsertTextFormat.Snippet },
       range: emptyRange
     }, opt)
@@ -246,17 +245,15 @@ describe('util functions', () => {
       textEdit: TextEdit.replace(Range.create(0, 0, 0, 4), 'foo'),
     }
     let res = convertCompletionItem(item, 0, 'source', 1, {
-      character: 1,
       itemDefaults: {},
-      range: emptyRange
+      range: Range.create(0, 1, 0, 1)
     }, opt)
     expect(res.character).toBe(0)
     expect(res.word).toBe('')
     item.textEdit = TextEdit.replace(Range.create(0, 1, 0, 4), 'foo')
     res = convertCompletionItem(item, 0, 'source', 1, {
-      character: 1,
       itemDefaults: {},
-      range: emptyRange
+      range: Range.create(0, 1, 0, 1)
     }, opt)
     expect(res.character).toBe(1)
   })

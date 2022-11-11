@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
+import { sortItems } from '../../completion/complete'
 import events from '../../events'
 import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType, VimCompleteItem } from '../../types'
@@ -445,6 +446,40 @@ describe('completion', () => {
   })
 
   describe('resumeCompletion()', () => {
+    it('should not cancel when trigger for inComplete', async () => {
+      let name = Math.random().toString(16).slice(-6)
+      let _resolve
+      let fireResolve = () => {
+        _resolve({ items: [{ word: 'foo' }, { word: 'foot' }] })
+      }
+      disposables.push(sources.createSource({
+        name,
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          _resolve = resolve
+        })
+      }))
+      disposables.push(sources.createSource({
+        name: 'inComplete',
+        doComplete: (opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+          if (opt.input.length == 1) {
+            resolve({ items: [{ word: 'fa' }], isIncomplete: true })
+          } else {
+            resolve({ items: [{ word: 'footman' }, { word: 'football' }, { word: 'fa' }], isIncomplete: false })
+          }
+        })
+      }))
+      await nvim.input('if')
+      await helper.waitPopup()
+      let items = completion.activeItems
+      expect(items.length).toBe(1)
+      await nvim.input('o')
+      await helper.wait(3)
+      fireResolve()
+      await helper.waitValue(() => {
+        return completion.activeItems.length
+      }, 4)
+    })
+
     it('should stop if no filtered items', async () => {
       await create(['foo', 'bar'], true)
       expect(completion.isActivated).toBe(true)
@@ -514,7 +549,9 @@ describe('completion', () => {
       let items = await helper.items()
       expect(items[0].word).toBe('foo bar')
       await nvim.input(' ')
-      await helper.waitFor('pumvisible', [], 0)
+      await helper.waitValue(async () => {
+        return await helper.pumvisible()
+      }, false)
     })
 
     it('should use resume input to filter', async () => {
@@ -875,9 +912,9 @@ describe('completion', () => {
       await create(['foo', 'bar'], false)
       await nvim.input('<esc>')
       await nvim.input('A')
-      await helper.wait(10)
-      let visible = await nvim.call('pumvisible')
-      expect(visible).toBe(0)
+      await helper.wait(1)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
     })
 
     it('should filter on fast input', async () => {
@@ -1020,15 +1057,7 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.input('i')
-      await helper.wait(10)
-      await nvim.input('.')
-      await helper.wait(30)
-      let pumvisible = await nvim.call('pumvisible')
-      expect(pumvisible).toBe(0)
-      await nvim.input('a')
-      await helper.wait(30)
-      await nvim.input('.')
+      await nvim.input('ia.')
       await helper.waitPopup()
       let res = await helper.visible('foo', 'pattern')
       expect(res).toBe(true)
@@ -1066,12 +1095,11 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.setLine('.a')
       await nvim.input('A')
-      await nvim.eval('feedkeys("\\<bs>")')
+      await nvim.input('<bs>')
+      await nvim.input('<left>')
       await helper.wait(10)
-      await nvim.eval('feedkeys("\\<left>")')
-      await helper.wait(20)
-      let visible = await nvim.call('pumvisible')
-      expect(visible).toBe(0)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
     })
 
     it('should trigger when completion is not completed', async () => {
@@ -1118,6 +1146,12 @@ describe('completion', () => {
     it('should limit results for low priority source', async () => {
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
       await create(['filename', 'filepath', 'find', 'filter', 'findIndex'], true)
+      let items = await helper.getItems()
+      expect(items.length).toBe(2)
+    })
+
+    it('should contains duplicated items when dup is 1', async () => {
+      await create([{ word: 'foo', dup: 1 }, { word: 'foo', dup: 1 }], true)
       let items = await helper.getItems()
       expect(items.length).toBe(2)
     })
@@ -1264,6 +1298,28 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.option?.col
       }, 0)
+    })
+  })
+
+  describe('sortItems', () => {
+    it('should sort items', () => {
+      let emptyInput = false
+      let defaultSortMethod = 'none'
+      let a: any = {
+        abbr: 'a', character: 0, filterText: 'a', index: 0, source: '', word: 'a'
+      }
+      let b: any = {
+        abbr: 'b', character: 0, filterText: 'b', index: 0, source: '', word: 'b'
+      }
+      const check = (ap: any, bp: any, res: number) => {
+        let val = sortItems(emptyInput, defaultSortMethod, Object.assign(ap, a), Object.assign(bp, b))
+        expect(val).toBe(res)
+      }
+      check({ score: 1 }, { score: 2 }, 1)
+      check({ priority: 1 }, { priority: 2 }, 1)
+      check({ sortText: 'b' }, { sortText: 'a' }, 1)
+      check({ sortText: 'a' }, { sortText: 'b' }, -1)
+      check({ localBonus: 1 }, { localBonus: 2 }, 1)
     })
   })
 

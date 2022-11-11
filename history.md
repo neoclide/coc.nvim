@@ -1,5 +1,10 @@
+# 2022-11-12
+
+- Not cancel completion when request for in complete sources.
+
 # 2022-11-11
 
+- Support filter and display completion items with different start positions.
 - Remove configuration `suggest.fixInsertedWord`, insert word would always
   be fixed.
 - Configuration `suggest.invalidInsertCharacters` default to line break
