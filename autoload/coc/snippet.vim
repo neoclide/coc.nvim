@@ -78,10 +78,17 @@ function! coc#snippet#next() abort
 endfunction
 
 function! coc#snippet#jump(direction, complete) abort
-  if a:direction == 1 && a:complete && pumvisible()
-    let pre = exists('*complete_info') && complete_info()['selected'] == -1 ? "\<C-n>" : ''
-    call feedkeys(pre."\<C-y>", 'in')
-    return ''
+  if a:direction == 1 && a:complete
+    if pumvisible()
+      let pre = exists('*complete_info') && complete_info()['selected'] == -1 ? "\<C-n>" : ''
+      call feedkeys(pre."\<C-y>", 'in')
+      return ''
+    endif
+    if coc#pum#visible()
+      " Discard the return value, otherwise weird characters will be inserted
+      call coc#pum#confirm()
+      return ''
+    endif
   endif
   call coc#rpc#request(a:direction == 1 ? 'snippetNext' : 'snippetPrev', [])
   return ''
