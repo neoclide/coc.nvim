@@ -265,6 +265,7 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
   if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
   let word = getWord(item, itemDefaults)
   let range = getReplaceRange(item, itemDefaults, option.character) ?? option.range
+  let prefix = range.start.character < option.character ? opt.line.slice(range.start.character, option.character) : ''
   let obj: DurationCompleteItem = {
     // the word to be insert from it's own character.
     word: fixFollow(word, opt, range),
@@ -282,6 +283,7 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
     priority,
     dup: item.data?.dup == 0 ? 0 : 1
   }
+  if (prefix && obj.filterText.startsWith(prefix)) obj.filterText = obj.filterText.slice(prefix.length)
   if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails
   if (Is.number(item['score']) && !obj.sortText) {
     obj.sortText = String.fromCodePoint(2 << 20 - Math.round(item['score']))
