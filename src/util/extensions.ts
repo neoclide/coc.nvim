@@ -8,6 +8,8 @@ declare interface Promise<T> {
 
 /**
  * Explicitly tells that promise should be run asynchronously.
+ *
+ * @deprecated
  */
 Promise.prototype.logError = function <T>(this: Promise<T>): void {
   this.catch(e => {

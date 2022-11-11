@@ -149,10 +149,8 @@ export function fuzzyScore(pattern: string, patternLow: string, patternStart: nu
       }
 
       let diagScore = 0
-      if (score !== Number.MAX_SAFE_INTEGER) {
-        canComeDiag = true
-        diagScore = score + _table[row - 1][column - 1]
-      }
+      canComeDiag = true
+      diagScore = score + _table[row - 1][column - 1]
 
       const canComeLeft = wordPos > minWordMatchPos
       const leftScore = canComeLeft ? _table[row][column - 1] + (_diag[row][column - 1] > 0 ? -5 : 0) : 0 // penalty for a gap start

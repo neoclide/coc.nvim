@@ -124,21 +124,6 @@ describe('completion', () => {
       expect(info.index).toBe(1)
     })
 
-    it('should select recent item by prefix', async () => {
-      helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix')
-      await create(['world', 'would'], false)
-      await nvim.input('wo')
-      await helper.visible('would')
-      let idx = completion.activeItems.findIndex(o => o.word === 'would')
-      await helper.confirmCompletion(idx)
-      await nvim.input('<esc>')
-      await helper.wait(10)
-      await nvim.input('owo')
-      await helper.visible('would')
-      let info = await nvim.call('coc#pum#info') as any
-      expect(info.word).toBe('would')
-    })
-
     it('should not resolve timeout sources', async () => {
       helper.updateConfiguration('suggest.timeout', 30)
       disposables.push(sources.createSource({

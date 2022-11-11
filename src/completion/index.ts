@@ -8,8 +8,10 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, DurationCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
 import { disposeAll } from '../util'
-import { isFalsyOrEmpty } from '../util/array'
-import { byteLength, byteSlice, characterIndex } from '../util/string'
+import { isFalsyOrEmpty, toArray } from '../util/array'
+import { toNumber } from '../util/numbers'
+import { toObject } from '../util/object'
+import { byteLength, byteSlice, characterIndex, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
@@ -32,7 +34,7 @@ export class Completion implements Disposable {
   private _activated = false
   private nvim: Neovim
   private pum: PopupMenu
-  private mru: MruLoader
+  private _mru: MruLoader
   private pretext: string | undefined
   private triggerTimer: NodeJS.Timer
   private popupEvent: PopupChangeEvent
@@ -50,8 +52,8 @@ export class Completion implements Disposable {
     window.onDidChangeActiveTextEditor(e => {
       this.loadLocallConfig(e.document)
     }, null, this.disposables)
-    this.mru = new MruLoader()
-    this.pum = new PopupMenu(this.nvim, this.staticConfig, workspace.env, this.mru)
+    this._mru = new MruLoader()
+    this.pum = new PopupMenu(this.nvim, this.staticConfig, workspace.env, this._mru)
     this.floating = new Floating(workspace.nvim, this.staticConfig)
     workspace.nvim.call('coc#ui#check_pum_keymappings', [this.config.autoTrigger], true)
     events.on('CursorMovedI', this.onCursorMovedI, this, this.disposables)
@@ -71,6 +73,10 @@ export class Completion implements Disposable {
       if (!item || !this.config.enableFloat || (!ev.move && this.complete?.isCompleting)) return
       await this.floating.resolveItem(item, this.option, this.createResolveToken())
     }, null, this.disposables)
+  }
+
+  public get mru(): MruLoader {
+    return this._mru
   }
 
   public onCursorMovedI(bufnr: number, cursor: [number, number], hasInsert: boolean): void {
@@ -157,16 +163,16 @@ export class Completion implements Disposable {
     let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
     this.staticConfig = Object.assign(this.staticConfig ?? {}, {
       kindMap: createKindMap(labels),
-      defaultKindText: labels['default'] ?? '',
+      defaultKindText: toText(labels['default']),
       detailField: suggest.detailField,
-      detailMaxLength: suggest.detailMaxLength ?? 100,
-      invalidInsertCharacters: suggest.invalidInsertCharacters ?? [],
+      detailMaxLength: toNumber(suggest.detailMaxLength, 100),
+      invalidInsertCharacters: toArray(suggest.invalidInsertCharacters),
       formatItems: suggest.formatItems,
-      floatConfig: suggest.floatConfig ?? {},
+      floatConfig: toObject(suggest.floatConfig),
       pumFloatConfig: suggest.pumFloatConfig,
       labelMaxLength: suggest.labelMaxLength,
       reversePumAboveCursor: !!suggest.reversePumAboveCursor,
-      snippetIndicator: suggest.snippetIndicator ?? '~',
+      snippetIndicator: toText(suggest.snippetIndicator),
       noselect: !!suggest.noselect,
       enablePreselect: !!suggest.enablePreselect,
       virtualText: !!suggest.virtualText,
@@ -340,7 +346,7 @@ export class Completion implements Disposable {
     events.completing = false
     this.cancel()
     void events.fire('CompleteDone', [toCompleteDoneItem(item)])
-    if (item && inserted) this.mru.add(input, item)
+    if (item && inserted) this._mru.add(input, item)
     if (close) this.nvim.call('coc#pum#_close', [], true)
     doc._forceSync()
     if (kind == 'confirm' && item) {

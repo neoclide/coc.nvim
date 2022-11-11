@@ -11,8 +11,11 @@ import { characterIndex } from '../util/string'
 import { ConvertOption, toDurationCompleteItem } from './util'
 import { WordDistance } from './wordDistance'
 import * as Is from '../util/is'
+import { clamp } from '../util/numbers'
 const logger = createLogger('completion-complete')
 const MAX_DISTANCE = 2 << 20
+const MIN_TIMEOUT = 50
+const MAX_TIMEOUT = 5000
 
 export interface CompleteConfig {
   asciiMatch: boolean
@@ -146,7 +149,7 @@ export default class Complete {
   private async completeSources(sources: ReadonlyArray<ISource>, isFilter: boolean): Promise<void> {
     let { timeout, localityBonus } = this.config
     let { results, tokenSource, option } = this
-    timeout = timeout ?? 500
+    timeout = clamp(timeout, MIN_TIMEOUT, MAX_TIMEOUT)
     let names = sources.map(s => s.name)
     let total = names.length
     let character = characterIndex(option.line, option.col)

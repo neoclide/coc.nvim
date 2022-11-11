@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
-import { CompletionItem, CompletionList, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionItemKind, CompletionList, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import completion from '../../completion'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
@@ -80,6 +80,39 @@ describe('LanguageSource util', () => {
     expect(range).toEqual(Range.create(0, 0, 0, 3))
     expect(fixIndent(currline, line, range)).toBe(2)
     expect(range).toEqual(Range.create(0, 2, 0, 5))
+  })
+
+  it('should select recent item by prefix', async () => {
+    helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix')
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+        label: 'fa'
+      }, {
+        label: 'fb'
+      }, {
+        label: 'foo',
+        kind: CompletionItemKind.Class
+      }]
+    }
+    disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+    completion.mru.clear()
+    completion.mru.add('f', {
+      word: 'foo',
+      abbr: 'foo',
+      kind: CompletionItemKind.Class,
+      filterText: 'foo',
+      source: 'foo',
+      priority: 0,
+      index: 0,
+      character: 0
+    })
+    await nvim.setLine('f')
+    await nvim.input('A')
+    await nvim.call('coc#start', { source: 'foo' })
+    await helper.waitPopup()
+    let info = await nvim.call('coc#pum#info') as any
+    expect(info).toBeDefined()
+    expect(info.word).toBe('foo')
   })
 })
 

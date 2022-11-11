@@ -4,12 +4,13 @@ import { matchSpansReverse } from '../model/fuzzyMatch'
 import sources from '../sources'
 import { CompleteOption, DurationCompleteItem, Env, FloatConfig, HighlightItem } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
-import { byteIndex, byteLength, characterIndex } from '../util/string'
+import { byteIndex, byteLength, characterIndex, toText } from '../util/string'
 import workspace from '../workspace'
 import { anyScore } from '../util/filter'
 import * as Is from '../util/is'
 import MruLoader, { Selection } from './mru'
 import { getKindHighlight, getKindText, highlightOffert } from './util'
+import { toNumber } from '../util/numbers'
 
 export interface PumDimension {
   readonly height: number
@@ -67,6 +68,21 @@ export interface PopupMenuConfig {
   detailMaxLength: number
   detailField: string
   invalidInsertCharacters: string[]
+}
+
+export enum HighlightGroups {
+  PumDetail = 'CocPumDetail',
+  PumDeprecated = 'CocPumDeprecated',
+  PumMenu = 'CocPumMenu',
+  PumShortcut = 'CocPumShortcut',
+  PumSearch = 'CocPumSearch',
+}
+
+export enum PumItems {
+  Abbr = 'abbr',
+  Menu = 'menu',
+  Kind = 'kind',
+  Shortcut = 'shortcut'
 }
 
 export default class PopupMenu {
@@ -211,7 +227,7 @@ export default class PopupMenu {
       let added = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
       if (label.length + added.length <= labelMaxLength) {
         let start = byteLength(label)
-        hls.push({ start, end: start + byteLength(added), hlGroup: 'CocPumDetail' })
+        hls.push({ start, end: start + byteLength(added), hlGroup: HighlightGroups.PumDetail })
         label = label + added
         item.detailRendered = true
       }
@@ -224,16 +240,16 @@ export default class PopupMenu {
 
   private adjustAbbrWidth(config: BuildConfig): void {
     let { formatItems } = this.config
-    let pumwidth = this.env.pumwidth || 15
+    let pumwidth = toNumber(this.env.pumwidth, 15)
     let len = 0
     for (const item of formatItems) {
-      if (item == 'abbr') {
+      if (item == PumItems.Abbr) {
         len += config.abbrWidth + 1
-      } else if (item == 'menu' && config.menuWidth) {
+      } else if (item == PumItems.Menu && config.menuWidth) {
         len += config.menuWidth + 1
-      } else if (item == 'kind' && config.kindWidth) {
+      } else if (item == PumItems.Kind && config.kindWidth) {
         len += config.kindWidth + 1
-      } else if (item == 'shortcut' && config.shortcutWidth) {
+      } else if (item == PumItems.Shortcut && config.shortcutWidth) {
         len += config.shortcutWidth + 1
       }
     }
@@ -263,7 +279,7 @@ export default class PopupMenu {
               positionHighlights(hls, item.abbr, item.positions, pre, index, labelMaxLength)
             } else {
               let score = anyScore(input, lowInput, 0, item.abbr, item.abbr.toLowerCase(), 0)
-              if (score[0]) positionHighlights(hls, item.abbr, score, 0, index, labelMaxLength)
+              positionHighlights(hls, item.abbr, score, 0, index, labelMaxLength)
             }
           }
           let abbr = label.text
@@ -279,7 +295,7 @@ export default class PopupMenu {
           })
           if (item.deprecated) {
             hls.push({
-              hlGroup: 'CocPumDeprecated',
+              hlGroup: HighlightGroups.PumDeprecated,
               lnum: index,
               colStart: start,
               colEnd: len - 1,
@@ -290,10 +306,10 @@ export default class PopupMenu {
         case 'menu': {
           if (config.menuWidth > 0) {
             let colStart = len
-            append(item.menu ?? '', config.menuWidth + 1)
+            append(toText(item.menu), config.menuWidth + 1)
             if (item.menu) {
               hls.push({
-                hlGroup: 'CocPumMenu',
+                hlGroup: HighlightGroups.PumMenu,
                 lnum: index,
                 colStart,
                 colEnd: colStart + byteLength(item.menu)
@@ -307,7 +323,7 @@ export default class PopupMenu {
             let { kind } = item
             let kindText = getKindText(kind, kindMap, defaultKindText)
             let colStart = len
-            append(kindText ?? '', config.kindWidth + 1)
+            append(toText(kindText), config.kindWidth + 1)
             if (kindText) {
               hls.push({
                 hlGroup: getKindHighlight(kind),
@@ -325,7 +341,7 @@ export default class PopupMenu {
             append(shortcut ? `[${shortcut}]` : '', config.shortcutWidth + 1)
             if (shortcut) {
               hls.push({
-                hlGroup: 'CocPumShortcut',
+                hlGroup: HighlightGroups.PumShortcut,
                 lnum: index,
                 colStart,
                 colEnd: colStart + byteLength(shortcut) + 2
@@ -344,21 +360,13 @@ export default class PopupMenu {
   }
 }
 
-export function fixFollow(word: string, search: string, follow: string): string {
-  if (follow.length === 0) return word
-  if (search.length + follow.length <= word.length && word.endsWith(follow)) {
-    return word.slice(0, word.length - follow.length)
-  }
-  return word
-}
-
 /**
  * positions is FuzzyScore
  */
 function positionHighlights(hls: HighlightItem[], label: string, positions: ArrayLike<number>, pre: number, line: number, max: number): void {
   for (let span of matchSpansReverse(label, positions, 2, max)) {
     hls.push({
-      hlGroup: 'CocPumSearch',
+      hlGroup: HighlightGroups.PumSearch,
       lnum: line,
       colStart: pre + span[0],
       colEnd: pre + span[1],
@@ -366,6 +374,9 @@ function positionHighlights(hls: HighlightItem[], label: string, positions: Arra
   }
 }
 
+/**
+ * Exclude part with invalid characters.
+ */
 export function getInsertWord(word: string, codes: number[], start: number): string {
   if (codes.length === 0) return word
   for (let i = start; i < word.length; i++) {

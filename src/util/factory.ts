@@ -155,7 +155,7 @@ export function createSandbox(filename: string, logger: ILogger): ISandbox {
 }
 
 // inspiration drawn from Module
-export function createExtension(id: string, filename: string, isEmpty = false): ExtensionExport {
+export function createExtension(id: string, filename: string, isEmpty: boolean): ExtensionExport {
   if (isEmpty || !fs.existsSync(filename)) return {
     activate: () => {},
     deactivate: null

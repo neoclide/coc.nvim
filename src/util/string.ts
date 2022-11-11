@@ -28,6 +28,9 @@ export function isEmojiImprecise(x: number): boolean {
   )
 }
 
+/**
+ * Get previous and after part of range
+ */
 export function rangeParts(text: string, range: Range): [string, string] {
   let { start, end } = range
   let lines = text.split(/\r?\n/)
@@ -146,13 +149,6 @@ export function indexOf(str: string, ch: string, count = 1): number {
     }
   }
   return -1
-}
-
-export function includeLineBreak(word: string): boolean {
-  for (let i = 0; i < word.length; i++) {
-    if (word.charCodeAt(i) === 10) return true
-  }
-  return false
 }
 
 export function characterIndex(content: string, byteIndex: number): number {

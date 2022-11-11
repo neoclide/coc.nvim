@@ -23,8 +23,8 @@ export function assert(condition: boolean): void {
  * Only catch this error to recover gracefully from bugs.
  */
 class BugIndicatingError extends Error {
-  constructor(message?: string) {
-    super(message || 'An unexpected bug occurred.')
+  constructor(message: string) {
+    super(message)
     Object.setPrototypeOf(this, BugIndicatingError.prototype)
 
     // Because we know for sure only buggy code throws this,

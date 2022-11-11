@@ -2,7 +2,7 @@
 import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
-import { deepClone, toObject } from './object'
+import { toObject } from './object'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
 import { byteIndex, contentToLines, toText } from './string'
 
@@ -95,13 +95,13 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
 
 export function getConfirmAnnotations(changes: ReadonlyArray<DocumentChange>, changeAnnotations: { [id: string]: ChangeAnnotation }): ReadonlyArray<string> {
   let keys: string[] = []
-  const add = (key: string) => {
+  const add = (key: string | undefined) => {
     if (key && !keys.includes(key) && changeAnnotations[key]?.needsConfirmation) keys.push(key)
   }
   for (let change of changes) {
     if (TextDocumentEdit.is(change)) {
       change.edits.forEach(edit => {
-        if (AnnotatedTextEdit.is(edit)) add(edit.annotationId)
+        add(edit['annotationId'])
       })
     } else {
       add(change.annotationId)
@@ -239,9 +239,9 @@ export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): stri
 export function toTextChanges(lines: ReadonlyArray<string>, edits: TextEdit[]): TextChangeItem[] {
   return edits.map(o => {
     let { start, end } = o.range
-    let sl = lines[start.line] ?? ''
+    let sl = toText(lines[start.line])
     let sc = byteIndex(sl, start.character)
-    let el = end.line == start.line ? sl : lines[end.line] ?? ''
+    let el = end.line == start.line ? sl : toText(lines[end.line])
     let ec = byteIndex(el, end.character)
     let { newText } = o
     return [newText.length > 0 ? newText.split('\n') : [], start.line, sc, end.line, ec]

@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import Floating from '../../completion/floating'
-import { fixFollow, prefixWord } from '../../completion/pum'
+import { getInsertWord, prefixWord } from '../../completion/pum'
 import sources from '../../sources'
 import { CompleteResult, FloatConfig, ISource, SourceType } from '../../types'
 import helper from '../helper'
@@ -40,16 +40,14 @@ afterEach(async () => {
 })
 
 describe('completion float', () => {
-  it('should prefix word', async () => {
+  it('should prefix word', () => {
     expect(prefixWord('foo', 0, '', 0)).toBe('foo')
     expect(prefixWord('foo', 1, '$foo', 0)).toBe('$foo')
   })
 
-  it('should fix word by check follow', async () => {
-    expect(fixFollow('foo', '', '')).toBe('foo')
-    expect(fixFollow('foobar', '', 'oobar')).toBe('f')
-    expect(fixFollow('foobar', 'f', 'oobar')).toBe('f')
-    expect(fixFollow('foobar', 'foo', 'oobar')).toBe('foobar')
+  it('should get insert word', () => {
+    expect(getInsertWord('word', [], 0)).toBe('word')
+    expect(getInsertWord('word\nbar', [10], 2)).toBe('word')
   })
 
   it('should cancel float window', async () => {

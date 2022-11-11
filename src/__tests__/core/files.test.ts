@@ -118,6 +118,20 @@ describe('applyEdits()', () => {
     await workspace.files.redoWorkspaceEdit()
   })
 
+  it('should show error when document with version not loaded', async () => {
+    let uri = 'lsptest:///file'
+    let versioned = VersionedTextDocumentIdentifier.create(uri, 1)
+    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
+    let change = TextDocumentEdit.create(versioned, [edit])
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [change]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(false)
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Error')
+  })
+
   it('should apply TextEdit of documentChanges', async () => {
     let doc = await helper.createDocument()
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, doc.version)

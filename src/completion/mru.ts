@@ -1,5 +1,6 @@
 'use strict'
 import { DurationCompleteItem } from '../types'
+import * as Is from '../util/is'
 
 export type Selection = 'first' | 'recentlyUsed' | 'recentlyUsedByPrefix'
 
@@ -19,7 +20,7 @@ export default class MruLoader {
   }
 
   public add(prefix: string, item: DurationCompleteItem): void {
-    if (['around', 'buffer', 'word'].includes(item.source)) return
+    if (!Is.number(item.kind)) return
     let key = toItemKey(item)
     if (!item.word.toLowerCase().startsWith(prefix.toLowerCase())) {
       prefix = ''
@@ -28,6 +29,11 @@ export default class MruLoader {
     this.items.set(line, this.max)
     this.itemsNoPrefex.set(key, this.max)
     this.max += 1
+  }
+
+  public clear(): void {
+    this.items.clear()
+    this.itemsNoPrefex.clear()
   }
 }
 

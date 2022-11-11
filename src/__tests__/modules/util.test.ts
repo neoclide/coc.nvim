@@ -31,6 +31,7 @@ import { executable, isRunning, runCommand, terminate } from '../../util/process
 import { convertProperties, Registry } from '../../util/registry'
 import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
+import * as numbers from '../../util/numbers'
 import * as textedits from '../../util/textedit'
 import helper from '../helper'
 
@@ -494,6 +495,17 @@ describe('errors', () => {
   })
 })
 
+describe('numbers', () => {
+  it('should work with numbers', () => {
+    expect(numbers.toNumber(undefined, 5)).toBe(5)
+    expect(numbers.toNumber(undefined)).toBe(0)
+    expect(numbers.toNumber(1, 5)).toBe(1)
+    expect(numbers.clamp(1, 1, 3)).toBe(1)
+    expect(numbers.clamp(5, 1, 3)).toBe(3)
+    expect(numbers.rot(6, 5)).toBe(1)
+  })
+})
+
 describe('strings', () => {
   it('should get byte indexes', () => {
     let bytes = strings.bytes
@@ -614,6 +626,10 @@ describe('strings', () => {
     expect(strings.isEmojiImprecise(129535)).toBe(true)
   })
 
+  it('should catch promise error', async () => {
+    Promise.reject(new Error('my error')).logError()
+  })
+
   it('should get parts', () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
     expect(res).toEqual(['', 'bar'])
@@ -623,6 +639,8 @@ describe('strings', () => {
     expect(res).toEqual(['x', '\ny'])
     res = strings.rangeParts('foo\nbar\nx', Range.create(1, 0, 1, 1))
     expect(res).toEqual(['foo\n', 'ar\nx'])
+    res = strings.rangeParts('x\nfoo\nbar\ny', Range.create(0, 1, 1, 0))
+    expect(res).toEqual(['x', 'foo\nbar\ny'])
   })
 
   it('should equalsIgnoreCase', () => {
@@ -698,6 +716,8 @@ describe('lodash', () => {
   it('should set defaults', async () => {
     let res = lodash.defaults({ a: 1 }, { b: 2 }, { a: 3 }, null)
     expect(res).toEqual({ a: 1, b: 2 })
+    res = lodash.defaults({}, { constructor: 'fn' })
+    expect(res.constructor).toBe('fn')
   })
 })
 
