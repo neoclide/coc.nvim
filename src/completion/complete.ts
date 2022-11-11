@@ -295,8 +295,8 @@ export default class Complete {
       if (a.priority !== b.priority) return b.priority - a.priority
       if (a.source === b.source && sa !== sb) return sa < sb ? -1 : 1
       if (a.localBonus !== b.localBonus) return b.localBonus - a.localBonus
-      // not sort with empty input
-      if (input.length === 0) return 0
+      // not sort with empty input, the item that replace trigger have higher priority
+      if (input.length === 0) return b.character - a.character
       switch (defaultSortMethod) {
         case 'none':
           return 0
