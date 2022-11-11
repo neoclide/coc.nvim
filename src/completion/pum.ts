@@ -174,6 +174,8 @@ export default class PopupMenu {
       if (selectedIndex > 0) {
         let [item] = items.splice(selectedIndex, 1)
         items.unshift(item)
+        let [label] = labels.splice(selectedIndex, 1)
+        labels.unshift(label)
       }
       selectedIndex = -1
     }
