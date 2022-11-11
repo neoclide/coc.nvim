@@ -233,7 +233,12 @@ export class Sources {
     if (stat && stat.isDirectory()) {
       let arr = await util.promisify(fs.readdir)(folder)
       let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
-      await Promise.allSettled(files.map(p => this.createVimSourceExtension(this.nvim, p)))
+      let results = await Promise.allSettled(files.map(p => this.createVimSourceExtension(this.nvim, p)))
+      results.forEach(res => {
+        if (res.status === 'rejected') {
+          onError(res.reason)
+        }
+      })
     }
   }
 
@@ -348,8 +353,7 @@ export class Sources {
 
   public toggleSource(name: string): void {
     let source = this.getSource(name)
-    if (!source) return
-    if (typeof source.toggle === 'function') {
+    if (source && typeof source.toggle === 'function') {
       source.toggle()
     }
   }

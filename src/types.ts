@@ -720,12 +720,12 @@ export interface DurationCompleteItem {
   filterText: string
   source: string
   priority: number
-  isSnippet: boolean
+  index: number
   // start character for word insert, consider same as complete option when not exists
   character: number
+  isSnippet?: boolean
   insertText?: string
   // copied from CompleteItem
-  index: number
   menu?: string
   kind?: string | CompletionItemKind
   dup?: number

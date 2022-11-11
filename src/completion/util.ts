@@ -2,8 +2,8 @@
 import unidecode from 'unidecode'
 import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-protocol'
 import { InsertChange } from '../events'
-import { SnippetParser } from '../snippets/parser'
 import Document from '../model/document'
+import { SnippetParser } from '../snippets/parser'
 import sources from '../sources'
 import { CompleteDoneItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from '../types'
 import { isFalsyOrEmpty, toArray } from '../util/array'
@@ -216,16 +216,20 @@ export function snippetToWord(text: string, kind: CompletionItemKind | undefined
   return toValidWord((new SnippetParser()).text(text), INVALID_WORD_CHARS)
 }
 
+export function isSnippetItem(item: CompletionItem, itemDefaults: ItemDefaults): boolean {
+  let insertTextFormat = item.insertTextFormat ?? itemDefaults.insertTextFormat
+  return insertTextFormat === InsertTextFormat.Snippet
+}
+
 export function getWord(item: CompletionItem, itemDefaults: ItemDefaults): string {
   let { label, data, insertText, textEdit, kind } = item
   if (data && Is.string(data.word)) return data.word
-  let insertTextFormat = item.insertTextFormat ?? itemDefaults.insertTextFormat
   let textToInsert = textEdit ? textEdit.newText : insertText
   if (!Is.string(textToInsert)) return label
-  return insertTextFormat === InsertTextFormat.Snippet ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS)
+  return isSnippetItem(item, itemDefaults) ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS)
 }
 
-export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults, character: number): Range | undefined {
+export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults, character?: number): Range | undefined {
   let range: Range | undefined
   if (item.textEdit) {
     range = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
@@ -233,7 +237,7 @@ export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults
     range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.replace
   }
   // start character must contains character for completion
-  if (range && range.start.character > character) range.start.character = character
+  if (range && Is.number(character) && range.start.character > character) range.start.character = character
   return range
 }
 
@@ -265,7 +269,6 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
   if (!isSnippet && !isFalsyOrEmpty(item.additionalTextEdits)) isSnippet = true
   let word = getWord(item, itemDefaults)
   let range = getReplaceRange(item, itemDefaults, option.character) ?? option.range
-  let prefix = range.start.character < option.character ? opt.line.slice(range.start.character, option.character) : ''
   let obj: DurationCompleteItem = {
     // the word to be insert from it's own character.
     word: fixFollow(word, opt, range),
@@ -283,7 +286,6 @@ export function convertCompletionItem(item: CompletionItem, index: number, sourc
     priority,
     dup: item.data?.dup == 0 ? 0 : 1
   }
-  if (prefix && obj.filterText.startsWith(prefix)) obj.filterText = obj.filterText.slice(prefix.length)
   if (!emptLabelDetails(item.labelDetails)) obj.labelDetails = item.labelDetails
   if (Is.number(item['score']) && !obj.sortText) {
     obj.sortText = String.fromCodePoint(2 << 20 - Math.round(item['score']))

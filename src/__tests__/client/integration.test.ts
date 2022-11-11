@@ -222,7 +222,9 @@ describe('Client events', () => {
     await client.sendNotification('showDocument', { uri: uri.toString() })
     await client.sendNotification('showDocument', { uri: uri.toString(), selection: Range.create(0, 0, 1, 0) })
     await helper.wait(300)
-    expect(client.hasPendingResponse).toBe(false)
+    await helper.waitValue(() => {
+      return client.hasPendingResponse
+    }, false)
   })
 
   it('should invoke showDocument middleware', async () => {

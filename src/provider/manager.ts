@@ -1,6 +1,5 @@
 'use strict'
 import { Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 import { createLogger } from '../logger'
 import { LocationWithTarget, TextDocumentMatch } from '../types'
 import { equals } from '../util/object'

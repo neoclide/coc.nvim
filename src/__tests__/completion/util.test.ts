@@ -183,6 +183,7 @@ describe('util functions', () => {
 
   it('should get replace range', () => {
     let item: CompletionItem = { label: 'foo' }
+    expect(getReplaceRange(item, {})).toBeUndefined()
     expect(getReplaceRange(item, {}, 0)).toBeUndefined()
     expect(getReplaceRange(item, {
       editRange: Range.create(0, 0, 0, 3)
@@ -231,23 +232,6 @@ describe('util functions', () => {
     expect(typeof res.sortText).toBe('string')
     expect(res.deprecated).toBe(true)
     expect(res.dup).toBe(0)
-  })
-
-  it('should fix filter text', async () => {
-    let opt = {
-      line: '@',
-      col: 1,
-      position: Position.create(0, 1)
-    }
-    let item: CompletionItem = {
-      label: '@foo',
-      textEdit: TextEdit.replace(Range.create(0, 0, 0, 1), '@foo'),
-    }
-    let res = convertCompletionItem(item, 0, 'source', 1, {
-      character: 1,
-      range: Range.create(0, 1, 0, 1)
-    }, opt)
-    expect(res.filterText).toBe('foo')
   })
 
   it('should replace word after cursor', async () => {

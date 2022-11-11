@@ -267,6 +267,8 @@ export default class Complete {
     let words: Set<string> = new Set()
     const lowInput = input.toLowerCase()
     const scoreFn: FuzzyScorer = (!this.config.filterGraceful || this.totalLength > 2000) ? fuzzyScore : fuzzyScoreGracefulAggressive
+    const scoreOption = { boostFullMatch: true, firstMatchCanBeWeak: false }
+    const character = characterIndex(option.line, option.col)
     for (let name of names) {
       let result = results.get(name)
       if (!result) continue
@@ -278,7 +280,8 @@ export default class Complete {
         if (filterText.length < len) continue
         if (removeDuplicateItems && item.isSnippet !== true && words.has(word)) continue
         if (!emptyInput) {
-          let res = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0)
+          scoreOption.firstMatchCanBeWeak = item.character !== character
+          let res = scoreFn(input, lowInput, 0, filterText, filterText.toLowerCase(), 0, scoreOption)
           if (res == null) continue
           item.score = res[0]
           item.positions = res

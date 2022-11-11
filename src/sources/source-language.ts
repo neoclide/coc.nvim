@@ -1,14 +1,15 @@
 'use strict'
-import { CancellationToken, CompletionItem, CompletionTriggerKind, DocumentSelector, InsertReplaceEdit, InsertTextFormat, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionTriggerKind, DocumentSelector, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../commands'
+import { getReplaceRange, isSnippetItem } from '../completion/util'
 import { getLineAndPosition } from '../core/ui'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { CompletionItemProvider } from '../provider'
 import snippetManager from '../snippets/manager'
-import { CompleteOption, CompleteResult, Documentation, DurationCompleteItem, ISource, ItemDefaults, SourceType } from '../types'
+import { CompleteOption, CompleteResult, Documentation, DurationCompleteItem, ISource, ItemDefaults, SourceType, UltiSnippetOption } from '../types'
 import { pariedCharacters, waitImmediate } from '../util'
-import { isFalsyOrEmpty } from '../util/array'
+import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError } from '../util/errors'
 import { isCompletionList } from '../util/is'
 import { isEmpty, toObject } from '../util/object'
@@ -54,7 +55,7 @@ export default class LanguageSource implements ISource {
     let completeItem = this.completeItems[item.index]
     if (!completeItem) return false
     if (this.allCommitCharacters.includes(character)) return true
-    let commitCharacters = completeItem.commitCharacters ?? (this.itemDefaults.commitCharacters ?? [])
+    let commitCharacters = toArray(completeItem.commitCharacters ?? this.itemDefaults.commitCharacters)
     return commitCharacters.includes(character)
   }
 
@@ -83,11 +84,12 @@ export default class LanguageSource implements ISource {
     if (!completeItem) return Promise.resolve()
     let hasResolve = typeof this.provider.resolveCompletionItem === 'function'
     if (!hasResolve) {
-      this.addDocumentation(item, completeItem, opt.filetype)
+      addDocumentation(item, completeItem, opt.filetype)
       return Promise.resolve()
     }
     let promise = this.resolving.get(completeItem)
     if (promise) return promise
+    let invalid = false
     promise = new Promise(async (resolve, reject) => {
       let disposable = token.onCancellationRequested(() => {
         this.resolving.delete(completeItem)
@@ -98,40 +100,22 @@ export default class LanguageSource implements ISource {
         disposable.dispose()
         if (!token.isCancellationRequested) {
           if (!resolved) {
+            invalid = true
             this.resolving.delete(completeItem)
           } else {
             Object.assign(completeItem, resolved)
-            this.addDocumentation(item, completeItem, opt.filetype)
+            addDocumentation(item, completeItem, opt.filetype)
           }
         }
         resolve()
       } catch (e) {
+        invalid = true
+        this.resolving.delete(completeItem)
         reject(e)
       }
     })
-    this.resolving.set(completeItem, promise)
+    if (!invalid) this.resolving.set(completeItem, promise)
     return promise
-  }
-
-  private addDocumentation(item: DurationCompleteItem, completeItem: CompletionItem, filetype: string): void {
-    let { documentation } = completeItem
-    let docs: Documentation[] = []
-    if (!item.detailRendered) {
-      let doc = getDetail(completeItem, filetype)
-      if (doc) docs.push(doc)
-    }
-    if (documentation) {
-      if (typeof documentation == 'string') {
-        docs.push({ filetype: 'txt', content: documentation })
-      } else if (documentation.value) {
-        docs.push({
-          filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
-          content: documentation.value
-        })
-      }
-    }
-    if (docs.length == 0) return
-    item.documentation = docs
   }
 
   public async onCompleteDone(vimItem: DurationCompleteItem, opt: CompleteOption, snippetSupport: boolean): Promise<void> {
@@ -145,12 +129,7 @@ export default class LanguageSource implements ISource {
       if (shouldCancel) snippetManager.cancel()
     }
     let version = doc.version
-    let isSnippet = false
-    if (!snippetSupport) {
-      logger.info('Snippets support is disabled, no textEdit applied.')
-    } else {
-      isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt)
-    }
+    let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt, snippetSupport)
     if (additionalEdits) {
       // move cursor after edit
       await doc.applyEdits(item.additionalTextEdits, doc.version != version, !isSnippet)
@@ -165,31 +144,20 @@ export default class LanguageSource implements ISource {
     }
   }
 
-  private isSnippetItem(item: CompletionItem): boolean {
-    let insertTextFormat = item.insertTextFormat ?? this.itemDefaults?.insertTextFormat
-    return insertTextFormat === InsertTextFormat.Snippet
-  }
-
-  private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption): Promise<boolean> {
+  private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption, snippetSupport: boolean): Promise<boolean> {
     let { linenr, col } = option
     let { character, line } = this.triggerContext
     let pos = await getLineAndPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
-    let range: Range | undefined
     let { textEdit, insertText, label } = item
-    if (textEdit) {
-      range = InsertReplaceEdit.is(textEdit) ? textEdit.replace : textEdit.range
-    } else {
-      let editRange = this.itemDefaults.editRange
-      if (editRange) {
-        range = Range.is(editRange) ? editRange : editRange.replace
-      } else if (item.insertText) {
-        range = Range.create(pos.line, characterIndex(line, col), pos.line, character)
-      }
+    let range = getReplaceRange(item, this.itemDefaults)
+    if (!range) {
+      // create default replace range
+      let end = character + option.followWord.length
+      range = Range.create(pos.line, characterIndex(line, col), pos.line, end)
     }
-    if (!range) return false
-    // attempt to fix range from textEdit, range should include trigger position
-    if (range.end.character < character) range.end.character = character
+    // already fixed on convert.
+    // if (range.end.character < character) range.end.character = character
     let newText = textEdit ? textEdit.newText : insertText ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, pos.text, range)
@@ -201,11 +169,10 @@ export default class LanguageSource implements ISource {
     if (next && newText.endsWith(next) && pariedCharacters.get(newText[0]) === next) {
       range.end.character += 1
     }
-    let isSnippet = this.isSnippetItem(item)
-    if (isSnippet) {
-      let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip
+    if (snippetSupport !== false && isSnippetItem(item, this.itemDefaults)) {
+      let opts = getUltisnipOption(item)
       let insertTextMode = item.insertTextMode ?? this.itemDefaults.insertTextMode
-      return await snippetManager.insertSnippet(newText, !additionalEdits, range, insertTextMode, opts ? opts : undefined)
+      return await snippetManager.insertSnippet(newText, !additionalEdits, range, insertTextMode, opts)
     }
     await doc.applyEdits([TextEdit.replace(range, newText)], false, pos)
     return false
@@ -222,6 +189,32 @@ export default class LanguageSource implements ISource {
     }
     return triggerKind
   }
+}
+
+export function getUltisnipOption(item: CompletionItem): UltiSnippetOption | undefined {
+  let opts = item.data?.ultisnip === true ? {} : item.data?.ultisnip
+  return opts ? opts : undefined
+}
+
+export function addDocumentation(item: DurationCompleteItem, completeItem: CompletionItem, filetype: string): void {
+  let { documentation } = completeItem
+  let docs: Documentation[] = []
+  if (!item.detailRendered) {
+    let doc = getDetail(completeItem, filetype)
+    if (doc) docs.push(doc)
+  }
+  if (documentation) {
+    if (typeof documentation == 'string') {
+      docs.push({ filetype: 'txt', content: documentation })
+    } else if (documentation.value) {
+      docs.push({
+        filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
+        content: documentation.value
+      })
+    }
+  }
+  if (docs.length == 0) return
+  item.documentation = docs
 }
 
 export function fixIndent(line: string, currline: string, range: Range): number {
