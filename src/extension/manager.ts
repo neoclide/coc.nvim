@@ -358,7 +358,9 @@ export class ExtensionManager {
     for (const attr of ['activationEvents', 'contributes']) {
       packageJSON[attr] = obj[attr]
     }
-    await this.unloadExtension(name)
+    if (this.extensions.has(name)) {
+      await this.unloadExtension(name)
+    }
     await this.registerExtension(root, packageJSON, ExtensionType.SingleFile)
   }
 

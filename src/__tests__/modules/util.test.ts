@@ -564,6 +564,7 @@ describe('strings', () => {
     expect(strings.byteSlice('你', 0, 1)).toBe('你')
     expect(strings.byteSlice('你', 0, 3)).toBe('你')
     expect(strings.byteSlice('abc你', 3, 6)).toBe('你')
+    expect(strings.byteSlice('foo', 1)).toBe('oo')
   })
 
   it('should get case', async () => {

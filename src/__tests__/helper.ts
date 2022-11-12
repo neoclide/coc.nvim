@@ -15,7 +15,7 @@ import events from '../events'
 import type Document from '../model/document'
 import type Plugin from '../plugin'
 import { ProviderResult } from '../provider'
-import { DurationCompleteItem, OutputChannel, VimCompleteItem } from '../types'
+import { DurationCompleteItem, OutputChannel } from '../types'
 import { equals } from '../util/object'
 import { terminate } from '../util/processes'
 import { Workspace } from '../workspace'
@@ -88,7 +88,10 @@ export class Helper extends EventEmitter {
       }
     })
     return new Promise(resolve => {
-      plugin.once('ready', resolve)
+      let disposable = events.on('ready', () => {
+        disposable.dispose()
+        resolve()
+      })
     })
   }
 
@@ -258,7 +261,7 @@ export class Helper extends EventEmitter {
     await this.nvim.exec(content)
   }
 
-  public async items(): Promise<VimCompleteItem[]> {
+  public async items(): Promise<DurationCompleteItem[]> {
     return this.completion?.activeItems.slice()
   }
 

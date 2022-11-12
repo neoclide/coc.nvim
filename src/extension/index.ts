@@ -4,6 +4,7 @@ import path from 'path'
 import { Event } from 'vscode-languageserver-protocol'
 import which from 'which'
 import commandManager from '../commands'
+import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
 import { distinct } from '../util/array'
@@ -16,7 +17,6 @@ import { IInstaller, Installer } from './installer'
 import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState } from './manager'
 import { checkExtensionRoot, ExtensionStat, loadExtensionJson } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
-import { createLogger } from '../logger'
 const logger = createLogger('extensions-index')
 
 export interface PropertyScheme {
@@ -40,16 +40,6 @@ export class Extensions {
     checkExtensionRoot(EXTENSIONS_FOLDER)
     this.states = new ExtensionStat(EXTENSIONS_FOLDER)
     this.manager = new ExtensionManager(this.states, EXTENSIONS_FOLDER)
-  }
-
-  public async init(): Promise<void> {
-    if (process.env.COC_NO_PLUGINS) return
-    let stats = this.globalExtensionStats()
-    let runtimepath = await workspace.nvim.eval('join(globpath(&runtimepath, "", 0, 1), ",")') as string
-    let localStats = this.runtimeExtensionStats(runtimepath)
-    stats = stats.concat(localStats)
-    this.manager.registerExtensions(stats)
-    await this.manager.loadFileExtensions()
     commandManager.register({
       id: 'extensions.forceUpdateAll',
       execute: async () => {
@@ -60,9 +50,19 @@ export class Extensions {
     }, false, 'remove all global extensions and install them')
   }
 
-  public activateExtensions(): void {
+  public async init(): Promise<void> {
     if (process.env.COC_NO_PLUGINS) return
-    void this.manager.activateExtensions()
+    let stats = this.globalExtensionStats()
+    let runtimepath = await workspace.nvim.eval('join(globpath(&runtimepath, "", 0, 1), ",")') as string
+    let localStats = this.runtimeExtensionStats(runtimepath)
+    stats = stats.concat(localStats)
+    this.manager.registerExtensions(stats)
+    void this.manager.loadFileExtensions()
+  }
+
+  public async activateExtensions(): Promise<void> {
+    if (process.env.COC_NO_PLUGINS) return
+    await this.manager.activateExtensions()
     let names = this.states.filterGlobalExtensions(workspace.env.globalExtensions)
     void this.installExtensions(names)
     // check extensions need watch & install

@@ -89,7 +89,7 @@ describe('extensions', () => {
     let s = jest.spyOn(extensions, 'updateExtensions').mockImplementation(() => {
       return Promise.reject(new Error('error on update'))
     })
-    extensions.activateExtensions()
+    await extensions.activateExtensions()
     spy.mockRestore()
     s.mockRestore()
   })

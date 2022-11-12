@@ -1,6 +1,5 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { EventEmitter } from 'events'
 import { CodeActionKind, Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
 import commandManager from './commands'
 import completion, { Completion } from './completion'
@@ -21,7 +20,7 @@ import window from './window'
 import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
 
-export default class Plugin extends EventEmitter {
+export default class Plugin {
   private _ready = false
   private handler: Handler | undefined
   private cursors: Cursors
@@ -29,7 +28,6 @@ export default class Plugin extends EventEmitter {
   private disposables: Disposable[] = []
 
   constructor(public nvim: Neovim) {
-    super()
     this.disposables.push(workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim)))
     Object.defineProperty(window, 'workspace', {
       get: () => workspace
@@ -208,17 +206,16 @@ export default class Plugin extends EventEmitter {
       sources.init()
       this.handler = new Handler(nvim)
       services.init()
-      extensions.activateExtensions()
+      await extensions.activateExtensions()
       workspace.autocmds.setupDynamicAutocmd(true)
       nvim.pauseNotification()
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       nvim.resumeNotification(false, true)
+      logger.info(`coc.nvim initialized with node: ${process.version} after ${Date.now() - s}ms`)
       this._ready = true
       await events.fire('ready', [])
-      logger.info(`coc.nvim initialized with node: ${process.version} after ${Date.now() - s}ms`)
-      this.emit('ready')
     } catch (e) {
       nvim.echoError(e)
     }
@@ -228,22 +225,13 @@ export default class Plugin extends EventEmitter {
     return this._ready
   }
 
-  public get ready(): Promise<void> {
-    if (this._ready) return Promise.resolve()
-    return new Promise<void>(resolve => {
-      this.once('ready', () => {
-        resolve()
-      })
-    })
-  }
-
   public hasAction(method: string): boolean {
     return this.actions.has(method)
   }
 
   public async cocAction(method: string, ...args: any[]): Promise<any> {
     let fn = this.actions.get(method)
-    if (!fn) throw new Error(`Action "${method}" doesn't exist`)
+    if (!fn) throw new Error(`Action "${method}" not exist`)
     let ts = Date.now()
     let res = await Promise.resolve(fn.apply(null, args))
     let dt = Date.now() - ts
@@ -256,7 +244,6 @@ export default class Plugin extends EventEmitter {
   }
 
   public dispose(): void {
-    this.removeAllListeners()
     disposeAll(this.disposables)
     extensions.dispose()
     listManager.dispose()
