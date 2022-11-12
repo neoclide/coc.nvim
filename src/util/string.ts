@@ -4,6 +4,7 @@ import { Range } from 'vscode-languageserver-protocol'
 const UTF8_2BYTES_START = 0x80
 const UTF8_3BYTES_START = 0x800
 const UTF8_4BYTES_START = 65536
+const encoding = 'utf8'
 
 export function toInteger(text: string): number | undefined {
   let n = parseInt(text, 10)
@@ -97,7 +98,7 @@ function isLowSurrogate(codePoint) {
  * Get byte length from string, from code unit start index.
  */
 export function byteLength(str: string, start = 0): number {
-  if (start === 0) return Buffer.byteLength(str, 'utf8')
+  if (start === 0) return Buffer.byteLength(str, encoding)
   let len = 0
   let unitIndex = 0
   for (let codePoint of str) {
@@ -181,7 +182,7 @@ export function utf8_code2len(code: number): number {
  */
 export function byteSlice(content: string, start: number, end?: number): string {
   let si = characterIndex(content, start)
-  let ei = characterIndex(content, end)
+  let ei = end === undefined ? undefined : characterIndex(content, end)
   return content.slice(si, ei)
 }
 

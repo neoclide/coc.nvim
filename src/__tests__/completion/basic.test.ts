@@ -1,7 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
 import { sortItems } from '../../completion/complete'
+import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import sources from '../../sources'
 import { CompleteOption, CompleteResult, ISource, SourceType, VimCompleteItem } from '../../types'
@@ -56,9 +57,9 @@ async function create(items: string[] | VimCompleteItem[], trigger = true): Prom
 
 describe('completion', () => {
   describe('suggest configurations', () => {
-    it('should sort items by preselect', async () => {
+    it('should select item by preselect', async () => {
       helper.updateConfiguration('suggest.noselect', true)
-      await create([{ word: 'foo' }, { word: 'bar', preselect: true }], true)
+      await create([{ word: 'foo' }, { word: 'foo' }, { word: 'bar', preselect: true }], true)
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'bar')
     })
@@ -129,10 +130,13 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.timeout', 30)
       disposables.push(sources.createSource({
         name: 'timeout',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
-          setTimeout(() => {
+        doComplete: (_opt: CompleteOption, token): Promise<CompleteResult> => new Promise(resolve => {
+          let timer = setTimeout(() => {
             resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
           }, 100)
+          token.onCancellationRequested(() => {
+            clearTimeout(timer)
+          })
         })
       }))
       await nvim.input('if')
@@ -442,6 +446,20 @@ describe('completion', () => {
       await nvim.input('if')
       await events.race(['MenuPopupChanged'], 200)
       expect(finished).toBe(false)
+    })
+
+    it('should show items when wordDistance is slow', async () => {
+      let _resolve
+      let spy = jest.spyOn(WordDistance, 'create').mockImplementation(() => {
+        return new Promise(resolve => {
+          _resolve = resolve
+        })
+      })
+      await create(['foo', 'foot'], false)
+      await nvim.input('f')
+      await helper.waitPopup()
+      _resolve(undefined)
+      spy.mockRestore()
     })
   })
 
@@ -1380,11 +1398,9 @@ describe('completion', () => {
          noa call setline('.', 'foobar')
          noa call cursor(1, 7)
          `)
-      await helper.wait(30)
+      await helper.wait(10)
       let res = await helper.pumvisible()
       expect(res).toBe(false)
-      line = await nvim.line
-      expect(line).toBe('foobar')
     })
   })
 })

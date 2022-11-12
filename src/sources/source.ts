@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import unidecode from 'unidecode'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceType } from '../types'
 import { disposeAll, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { caseMatch, fuzzyMatch, getCharCodes } from '../util/fuzzy'
@@ -145,7 +145,7 @@ export default class Source implements ISource {
     if (typeof fn === 'function') await Promise.resolve(fn.call(this))
   }
 
-  public async onCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
+  public async onCompleteDone(item: DurationCompleteItem, opt: CompleteOption): Promise<void> {
     let fn = this.defaults['onCompleteDone']
     if (typeof fn === 'function') await Promise.resolve(fn.call(this, item, opt))
   }

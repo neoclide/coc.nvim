@@ -16,9 +16,8 @@ import window from '../window'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
-import MruLoader from './mru'
 import PopupMenu, { PopupMenuConfig } from './pum'
-import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
+import { MruLoader, checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
 const RESOLVE_TIMEOUT = global.__TEST__ ? 50 : 500
 const TRIGGER_TIMEOUT = global.__TEST__ ? 20 : 200
@@ -211,8 +210,7 @@ export class Completion implements Disposable {
     if (shouldStop) this.stop(false)
   }
 
-  private async onTextChangedP(bufnr: number, info: InsertChange): Promise<void> {
-    if (bufnr !== this.option?.bufnr) return
+  private async onTextChangedP(_bufnr: number, info: InsertChange): Promise<void> {
     // navigate item or finish completion
     if (!info.insertChar && this.complete) {
       this.complete.cancel()
@@ -339,16 +337,18 @@ export class Completion implements Disposable {
     if (!this._activated) return
     let inserted = kind === 'confirm' || (this.popupEvent?.inserted && kind != 'cancel')
     this._activated = false
-    let doc = this.document
-    let input = this.complete.input
     let option = this.complete.option
     let item = this.selectedItem
+    let input = this.complete.input
+    let line = option.line
+    let inputStart = characterIndex(line, option.col)
     events.completing = false
     this.cancel()
     void events.fire('CompleteDone', [toCompleteDoneItem(item)])
-    if (item && inserted) this._mru.add(input, item)
+    if (item && inserted) {
+      this._mru.add(line.slice(item.character, inputStart) + input, item)
+    }
     if (close) this.nvim.call('coc#pum#_close', [], true)
-    doc._forceSync()
     if (kind == 'confirm' && item) {
       void this.confirmCompletion(item, option)
     }
@@ -364,7 +364,7 @@ export class Completion implements Disposable {
 
   public async doCompleteDone(item: DurationCompleteItem, opt: CompleteOption): Promise<void> {
     let source = sources.getSource(item.source)
-    if (typeof source?.onCompleteDone !== 'function') return
+    if (typeof source.onCompleteDone !== 'function') return
     await Promise.resolve(source.onCompleteDone(item, opt, this.config.snippetsSupport))
   }
 

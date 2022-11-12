@@ -728,7 +728,9 @@ export interface DurationCompleteItem {
   // copied from CompleteItem
   menu?: string
   kind?: string | CompletionItemKind
-  dup?: number
+  dup?: boolean
+  // start character for filter text
+  delta: number
   preselect?: boolean
   sortText?: string
   deprecated?: boolean

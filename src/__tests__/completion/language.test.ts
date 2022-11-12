@@ -29,7 +29,7 @@ afterEach(async () => {
 })
 
 function createDurationitem(word: string, index: number): DurationCompleteItem {
-  return { abbr: word, character: 0, filterText: word, index, priority: 0, source: '', word }
+  return { abbr: word, character: 0, filterText: word, index, priority: 0, source: '', word, delta: 0 }
 }
 
 describe('LanguageSource util', () => {
@@ -97,14 +97,9 @@ describe('LanguageSource util', () => {
     disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
     completion.mru.clear()
     completion.mru.add('f', {
-      word: 'foo',
-      abbr: 'foo',
       kind: CompletionItemKind.Class,
       filterText: 'foo',
       source: 'foo',
-      priority: 0,
-      index: 0,
-      character: 0
     })
     await nvim.setLine('f')
     await nvim.input('A')

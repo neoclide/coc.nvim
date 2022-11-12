@@ -185,6 +185,7 @@ describe('vim source', () => {
       optionalFns: ['on_complete']
     })
     let item: DurationCompleteItem = {
+      delta: 0,
       word: 'word',
       abbr: 'word',
       filterText: 'word',
@@ -211,6 +212,7 @@ describe('vim source', () => {
       sourceType: SourceType.Remote
     })
     let item: DurationCompleteItem = {
+      delta: 0,
       word: 'word',
       abbr: 'word',
       filterText: 'word',

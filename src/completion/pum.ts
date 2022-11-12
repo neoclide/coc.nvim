@@ -8,8 +8,7 @@ import { byteIndex, byteLength, characterIndex, toText } from '../util/string'
 import workspace from '../workspace'
 import { anyScore } from '../util/filter'
 import * as Is from '../util/is'
-import MruLoader, { Selection } from './mru'
-import { getKindHighlight, getKindText, highlightOffert } from './util'
+import { MruLoader, getKindHighlight, getKindText, highlightOffert, Selection } from './util'
 import { toNumber } from '../util/numbers'
 
 export interface PumDimension {
@@ -137,7 +136,7 @@ export default class PopupMenu {
     let menuWidth = 0
     let kindWidth = 0
     let shortcutWidth = 0
-    let checkMru = selectedIndex == -1 && !noselect && selection != 'first'
+    let checkMru = selectedIndex == -1 && !noselect && selection !== Selection.First
     let labels: LabelWithDetail[] = []
     let baseCharacter = characterIndex(option.line, option.col)
     let minCharacter = baseCharacter

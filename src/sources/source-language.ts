@@ -156,8 +156,8 @@ export default class LanguageSource implements ISource {
       let end = character + option.followWord.length
       range = Range.create(pos.line, characterIndex(line, col), pos.line, end)
     }
-    // already fixed on convert.
-    // if (range.end.character < character) range.end.character = character
+    // replace range must contains cursor position.
+    if (range.end.character < character) range.end.character = character
     let newText = textEdit ? textEdit.newText : insertText ?? label
     // adjust range by indent
     let indentCount = fixIndent(line, pos.text, range)
