@@ -1,3 +1,7 @@
+# 2022-11-13
+
+- Plugin emit ready after extensions activated.
+
 # 2022-11-12
 
 - Not cancel completion when request for in complete sources.

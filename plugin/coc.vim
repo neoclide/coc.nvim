@@ -337,6 +337,15 @@ function! s:VimLeavePre() abort
   endif
 endfunction
 
+function! s:VimEnter() abort
+  if coc#rpc#started()
+    call coc#rpc#notify('VimEnter', [])
+  elseif get(g:, 'coc_start_at_startup', 1)
+    call coc#rpc#start_server()
+  endif
+  call timer_start(0, { -> s:CheckHighlight()})
+endfunction
+
 function! s:Enable(initialize)
   if get(g:, 'coc_enabled', 0) == 1
     return
@@ -346,15 +355,10 @@ function! s:Enable(initialize)
   augroup coc_nvim
     autocmd!
 
-    if coc#rpc#started()
-      autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
-    elseif get(g:, 'coc_start_at_startup', 1)
-      autocmd VimEnter            * call coc#rpc#start_server()
-    endif
     if v:vim_did_enter
       call s:CheckHighlight()
     else
-      autocmd VimEnter            * call timer_start(0, { -> s:CheckHighlight()})
+      autocmd VimEnter            * call s:VimEnter()
     endif
     if s:is_vim
       if exists('##DirChanged')

@@ -46,13 +46,16 @@ export class ListManager implements Disposable {
   private disposables: Disposable[] = []
   private listMap: Map<string, IList> = new Map()
 
+  constructor() {
+    History.migrate(process.env.COC_DATA_HOME)
+    this.db = new DataBase()
+  }
+
   public init(nvim: Neovim): void {
     this.nvim = nvim
     this.config = new ListConfiguration()
     this.prompt = new Prompt(nvim, this.config)
     this.mappings = new Mappings(this, nvim, this.config)
-    this.db = new DataBase()
-    History.migrate(process.env.COC_DATA_HOME)
     let signText = this.config.get<string>('selectedSignText', '*')
     nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true)
     events.on('InputChar', this.onInputChar, this, this.disposables)

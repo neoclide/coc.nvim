@@ -37,6 +37,9 @@ function! coc#rpc#ready()
 endfunction
 
 function! coc#rpc#set_channel(chan_id) abort
+  if s:is_vim || get(g:, 'coc_node_env', '') !=# 'test'
+    return
+  endif
   let g:coc_node_channel_id = a:chan_id
   if a:chan_id != 0
     let s:client['running'] = 1

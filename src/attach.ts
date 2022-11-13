@@ -7,6 +7,8 @@ import events from './events'
 import { createLogger } from './logger'
 import Plugin from './plugin'
 import { objectLiteral } from './util/is'
+import { toObject } from './util/object'
+import { createTiming } from './util/timing'
 const logger = createLogger('attach')
 
 /**
@@ -14,55 +16,59 @@ const logger = createLogger('attach')
  */
 const ACTIONS_NO_WAIT = ['installExtensions', 'updateExtensions']
 
-export async function pathReplace(nvim: NeovimClient, check = true): Promise<void> {
-  if (check) {
-    let prefixes = await nvim.call('coc#util#path_replace_patterns')
-    if (objectLiteral(prefixes)) {
-      const old_uri = URI.file
-      URI.file = (path): URI => {
-        path = path.replace(/\\/g, '/')
-        Object.keys(prefixes).forEach(k => path = path.replace(new RegExp('^' + k), prefixes[k]))
-        return old_uri(path)
-      }
+export function pathReplace(patterns: object | undefined): void {
+  if (objectLiteral(patterns)) {
+    const old_uri = URI.file
+    URI.file = (path): URI => {
+      path = path.replace(/\\/g, '/')
+      Object.keys(patterns).forEach(k => path = path.replace(new RegExp('^' + k), patterns[k]))
+      return old_uri(path)
     }
   }
 }
 
+export function toText(error: any): string {
+  return error instanceof Error ? error.message : error.toString()
+}
+
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, createLogger('node-client'), requestApi)
-  void pathReplace(nvim, !global.__TEST__)
   nvim.setVar('coc_process_pid', process.pid, true)
   const plugin = new Plugin(nvim)
   let clientReady = false
   let initialized = false
-  const doInitialize = async () => {
+  const doInitialize = () => {
     if (!initialized && clientReady) {
       initialized = true
-      await plugin.init()
+      void plugin.init()
     }
   }
   const doAction = async (method: string, args: any[]) => {
     try {
-      logger.info('receive notification:', method, args, plugin.isReady)
+      logger.info('receive notification:', method, args)
       await plugin.cocAction(method, ...args)
     } catch (e) {
-      console.error(`Error on notification "${method}": ${(e instanceof Error ? e.message : e)}`)
+      console.error(`Error on notification "${method}": ${toText(e)}`)
       logger.error(`Error on notification ${method}`, e)
     }
   }
 
   const pendingNotifications: Map<string, any[]> = new Map()
-  let disposable = events.on('ready', () => {
-    disposable.dispose()
+  events.on('ready', () => {
     for (let [method, args] of pendingNotifications.entries()) {
       void doAction(method, args)
     }
+    pendingNotifications.clear()
   })
 
   nvim.on('notification', async (method, args) => {
     switch (method) {
       case 'VimEnter': {
-        await doInitialize()
+        doInitialize()
+        break
+      }
+      case 'Initialize': {
+        pathReplace(toObject(args[0])['replacePatterns'])
         break
       }
       case 'Log': {
@@ -99,10 +105,9 @@ export default (opts: Attach, requestApi = true): Plugin => {
     }
   })
 
+  let timing = createTiming('Request', 3000)
   nvim.on('request', async (method: string, args, resp) => {
-    let timer = setTimeout(() => {
-      logger.error('Request cost more than 3s', method, args)
-    }, 3000)
+    timing.start(method)
     try {
       events.requesting = true
       if (method == 'CocAutocmd') {
@@ -113,30 +118,29 @@ export default (opts: Attach, requestApi = true): Plugin => {
         if (!plugin.isReady && !ACTIONS_NO_WAIT.includes(method)) {
           logger.warn(`Plugin not ready on request "${method}"`, args)
           resp.send('Plugin not ready', true)
-          return
+        } else {
+          logger.info('Request action:', method, args)
+          let res = await plugin.cocAction(method, ...args)
+          resp.send(res)
         }
-        logger.info('Request action:', method, args)
-        let res = await plugin.cocAction(method, ...args)
-        resp.send(res)
       }
-      clearTimeout(timer)
       events.requesting = false
     } catch (e) {
       events.requesting = false
-      clearTimeout(timer)
-      resp.send(e instanceof Error ? e.message : e.toString(), true)
+      resp.send(toText(e), true)
       logger.error(`Request error:`, method, args, e)
     }
+    timing.stop()
   })
 
   void nvim.channelId.then(async channelId => {
     clientReady = true
     // Used for test client on vim side
-    if (global.__TEST__) nvim.call('coc#rpc#set_channel', [channelId], true)
+    nvim.call('coc#rpc#set_channel', [channelId], true)
     let { major, minor, patch } = semver.parse(VERSION)
     nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
-    let entered = await nvim.getVvar('vim_did_enter')
-    if (entered) await doInitialize()
+    // vim should already entered
+    doInitialize()
   })
   return plugin
 }

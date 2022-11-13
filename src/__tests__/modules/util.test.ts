@@ -33,6 +33,7 @@ import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
 import * as numbers from '../../util/numbers'
 import * as textedits from '../../util/textedit'
+import { createTiming } from '../../util/timing'
 import helper from '../helper'
 
 function createTextDocument(lines: string[]): LinesTextDocument {
@@ -1470,6 +1471,24 @@ describe('diff', () => {
       }, (_, done) => {
         expect(done).toBeFalsy()
       }, token)
+    })
+  })
+
+  describe('timing', () => {
+    it('should trace', async () => {
+      let t = createTiming('name', 1, true)
+      t.start()
+      t.start('label')
+      await helper.wait(10)
+      t.stop()
+      t.start()
+      t.stop()
+    })
+
+    it('should no timeout', async () => {
+      let t = createTiming('name')
+      t.start()
+      t.stop()
     })
   })
 })

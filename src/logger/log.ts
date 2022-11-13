@@ -142,37 +142,37 @@ export class FileLogger extends AbstractLogger {
       },
       trace: (...args: any[]) => {
         if (this.getLevel() <= LogLevel.Trace) {
-          this._log(LogLevel.Trace, scope, fmt(args))
+          this._log(LogLevel.Trace, scope, fmt(args), this.getCurrentTimestamp())
         }
       },
       debug: (...args: any[]) => {
         if (this.getLevel() <= LogLevel.Debug) {
-          this._log(LogLevel.Debug, scope, fmt(args))
+          this._log(LogLevel.Debug, scope, fmt(args), this.getCurrentTimestamp())
         }
       },
       log: (...args: any[]) => {
         if (this.getLevel() <= LogLevel.Info) {
-          this._log(LogLevel.Info, scope, fmt(args))
+          this._log(LogLevel.Info, scope, fmt(args), this.getCurrentTimestamp())
         }
       },
       info: (...args: any[]) => {
         if (this.getLevel() <= LogLevel.Info) {
-          this._log(LogLevel.Info, scope, fmt(args))
+          this._log(LogLevel.Info, scope, fmt(args), this.getCurrentTimestamp())
         }
       },
       warn: (...args: any[]) => {
         if (this.getLevel() <= LogLevel.Warning) {
-          this._log(LogLevel.Warning, scope, fmt(args))
+          this._log(LogLevel.Warning, scope, fmt(args), this.getCurrentTimestamp())
         }
       },
       error: (...args: any[]) => {
         if (this.getLevel() <= LogLevel.Error) {
-          this._log(LogLevel.Error, scope, fmt(args))
+          this._log(LogLevel.Error, scope, fmt(args), this.getCurrentTimestamp())
         }
       },
       fatal: (...args: any[]) => {
         if (this.getLevel() <= LogLevel.Error) {
-          this._log(LogLevel.Error, scope, fmt(args))
+          this._log(LogLevel.Error, scope, fmt(args), this.getCurrentTimestamp())
         }
       },
       /**
@@ -194,12 +194,12 @@ export class FileLogger extends AbstractLogger {
     return size > MAX_FILE_SIZE
   }
 
-  private _log(level: LogLevel, scope: string, message: string): void {
+  private _log(level: LogLevel, scope: string, message: string, time: string): void {
     this.promise = this.promise.then(() => {
       let fn = async () => {
         let text: string
         if (this.config.userFormatters !== false) {
-          let parts = [this.getCurrentTimestamp(), this.stringifyLogLevel(level), `(pid:${process.pid})`, `[${scope}]`]
+          let parts = [time, this.stringifyLogLevel(level), `(pid:${process.pid})`, `[${scope}]`]
           text = `${parts.join(' ')} - ${message}\n`
         } else {
           text = message

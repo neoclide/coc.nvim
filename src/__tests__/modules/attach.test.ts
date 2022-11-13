@@ -1,14 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import helper from '../helper'
+import { pathReplace, toText } from '../../attach'
+import { URI } from 'vscode-uri'
 
-function wait(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve()
-    }, ms)
-  })
-}
 let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
@@ -19,35 +14,123 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-afterEach(async () => {
-  await helper.reset()
+describe('notifications', () => {
+  it('should do Log', () => {
+    nvim.emit('notification', 'Log', [])
+    nvim.emit('notification', 'redraw', [])
+  })
+
+  it('should do notifications', async () => {
+    nvim.emit('notification', 'listNames', [])
+    let called = false
+    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+      called = true
+    })
+    nvim.emit('notification', 'name_not_exists', [])
+    nvim.emit('notification', 'MenuInput', [])
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    spy.mockRestore()
+  })
+
+  it('should catch error', async () => {
+
+  })
+
+  it('should do pending notifications', async () => {
+    let plugin = helper.plugin
+    let called = false
+    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+      called = true
+    })
+    Object.assign(plugin, { ready: false })
+    nvim.emit('notification', 'name_not_exists', [])
+    Object.assign(plugin, { ready: true })
+    await events.fire('ready', [])
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    spy.mockRestore()
+  })
+})
+
+describe('request', () => {
+  it('should get results', async () => {
+    let result
+    nvim.emit('request', 'listNames', [], {
+      send: res => {
+        result = res
+      }
+    })
+    await helper.waitValue(() => {
+      return Array.isArray(result)
+    }, true)
+  })
+
+  it('should return error when plugin not ready', async () => {
+    let plugin = helper.plugin
+    Object.assign(plugin, { ready: false })
+    let isErr
+    nvim.emit('request', 'listNames', [], {
+      send: (_res, isError) => {
+        isErr = isError
+      }
+    })
+    await helper.waitValue(() => {
+      return isErr
+    }, true)
+    Object.assign(plugin, { ready: true })
+  })
+
+  it('should not throw when plugin method not found', async () => {
+    let err
+    nvim.emit('request', 'NotExists', [], {
+      send: res => {
+        err = res
+      }
+    })
+    await helper.waitValue(() => {
+      return typeof err === 'string'
+    }, true)
+  })
 })
 
 describe('attach', () => {
+  it('should to text', async () => {
+    expect(toText('text')).toBe('text')
+  })
+
+  it('should do path replace', () => {
+    pathReplace(undefined)
+    pathReplace({})
+    nvim.emit('notification', 'Initialize', [{
+      replacePatterns: {
+        '/foo': '/foo/bar'
+      }
+    }])
+    let filepath = URI.file('/foo/home').fsPath
+    expect(filepath).toBe('/foo/bar/home')
+    pathReplace({ '/foo': '/foo' })
+  })
 
   it('should listen CocInstalled', async () => {
     nvim.emit('notification', 'VimEnter')
-    await helper.wait(100)
+    await helper.wait(10)
   })
 
   it('should not throw on event handler error', async () => {
     events.on('CursorHold', async () => {
       throw new Error('error')
     })
-    let fn = jest.fn()
+    let called = false
     nvim.emit('request', 'CocAutocmd', ['CursorHold'], {
-      send: fn
+      send: () => {
+        called = true
+      }
     })
-    await wait(100)
-    expect(fn).toBeCalled()
-  })
-
-  it('should not throw when plugin method not found', async () => {
-    let fn = jest.fn()
-    nvim.emit('request', 'NotExists', [], {
-      send: fn
-    })
-    await wait(100)
-    expect(fn).toBeCalled()
+    await helper.waitValue(() => {
+      return called
+    }, true)
   })
 })

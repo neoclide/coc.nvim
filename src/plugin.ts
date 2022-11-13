@@ -21,7 +21,7 @@ import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
 
 export default class Plugin {
-  private _ready = false
+  private ready = false
   private handler: Handler | undefined
   private cursors: Cursors
   private actions: Map<string, Function> = new Map()
@@ -214,7 +214,7 @@ export default class Plugin {
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       nvim.resumeNotification(false, true)
       logger.info(`coc.nvim initialized with node: ${process.version} after ${Date.now() - s}ms`)
-      this._ready = true
+      this.ready = true
       await events.fire('ready', [])
     } catch (e) {
       nvim.echoError(e)
@@ -222,7 +222,7 @@ export default class Plugin {
   }
 
   public get isReady(): boolean {
-    return this._ready
+    return this.ready
   }
 
   public hasAction(method: string): boolean {
