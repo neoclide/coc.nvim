@@ -20,6 +20,11 @@ async function start(watch) {
     mainFields: ['module', 'main'],
     platform: 'node',
     target: 'node14.14',
+    charset: 'utf8',
+    drop: process.env.NODE_ENV === 'production' ? ['debugger'] : [],
+    banner: {
+      js: `global.__starttime = Date.now();`
+    },
     outfile: 'build/index.js'
   })
 }
