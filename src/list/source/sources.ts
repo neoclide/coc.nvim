@@ -57,7 +57,7 @@ export default class SourcesList extends BasicList {
     nvim.command('syntax match CocSourcesPrefix /\\v^./ contained containedin=CocSourcesLine', true)
     nvim.command('syntax match CocSourcesName /\\v%3c\\S+/ contained containedin=CocSourcesLine', true)
     nvim.command('syntax match CocSourcesType /\\v%25v.*%36v/ contained containedin=CocSourcesLine', true)
-    nvim.command('syntax match CocSourcesPriority /\\v%46v.*%50v/ contained containedin=CocSourcesLine', true)
+    nvim.command('syntax match CocSourcesPriority /\\v%46v.*%52v/ contained containedin=CocSourcesLine', true)
     nvim.command('syntax match CocSourcesFileTypes /\\v\\S+$/ contained containedin=CocSourcesLine', true)
     nvim.command('highlight default link CocSourcesPrefix Special', true)
     nvim.command('highlight default link CocSourcesName Type', true)
