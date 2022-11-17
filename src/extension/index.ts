@@ -250,7 +250,7 @@ export class Extensions {
       return loadGlobalJsonAsync(root, VERSION).then(json => {
         if (json) res.push({ root, isLocal: false, packageJSON: json })
       }, err => {
-        logger.error(`Error on load ${key}`, err)
+        logger.error(`Error on load package.json of ${key}`, err)
       })
     }))
     return res

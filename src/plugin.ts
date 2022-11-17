@@ -15,14 +15,13 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { UltiSnippetOption } from './types'
-import { defaultValue, disposeAll } from './util'
+import { disposeAll, getConditionValue } from './util'
 import type { Disposable } from './util/protocol'
 import window from './window'
 import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
 
 const pendingNotifications: Map<string, any[]> = new Map()
-let starttime = defaultValue(global.__starttime, Date.now())
 
 export default class Plugin {
   private ready = false
@@ -200,7 +199,6 @@ export default class Plugin {
     this.initialized = true
     let { nvim } = this
     try {
-      logger.debug('init')
       await extensions.init(rtp)
       await workspace.init(window)
       nvim.setVar('coc_workspace_initialized', true, true)
@@ -211,16 +209,16 @@ export default class Plugin {
       this.handler = new Handler(nvim)
       await listManager.registerLists()
       await extensions.activateExtensions()
-      workspace.autocmds.setupDynamicAutocmd(true)
       workspace.configurations.flushConfigurations()
       nvim.pauseNotification()
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       nvim.resumeNotification(false, true)
-      logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - starttime)
+      logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, 0))
       this.ready = true
       await events.fire('ready', [])
       this.invokePendingNotifications()
+      workspace.autocmds.setupDynamicAutocmd(true)
     } catch (e) {
       nvim.echoError(e)
     }

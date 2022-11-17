@@ -37,11 +37,9 @@ export default class Source implements ISource {
   protected noMatchWords: Set<string> = new Set()
   private config: SourceConfiguration
   private disposables: Disposable[] = []
-  protected readonly nvim: Neovim
   private _disabled = false
   private defaults: unknown
   constructor(option: SourceConfig) {
-    this.nvim = workspace.nvim
     // readonly properties
     this.name = option.name
     this.filepath = option.filepath || ''
@@ -58,6 +56,10 @@ export default class Source implements ISource {
     events.on('CompleteDone', () => {
       this.noMatchWords.clear()
     }, null, this.disposables)
+  }
+
+  protected get nvim(): Neovim {
+    return workspace.nvim
   }
 
   /**

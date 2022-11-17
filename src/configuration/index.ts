@@ -126,6 +126,7 @@ export default class Configurations {
       if (!this._initialized) {
         // no change event fired
         this._configuration.updateDefaultConfiguration(model)
+        this._initialConfiguration = this.getConfiguration(undefined, null)
       } else {
         let properties = e.properties.filter(key => !key.startsWith('list.source'))
         this.changeConfiguration(ConfigurationTarget.Default, model, undefined, properties)
