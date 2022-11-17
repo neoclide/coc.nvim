@@ -9,10 +9,11 @@ import { ConfigurationModel } from '../../configuration/model'
 import ConfigurationProxy from '../../configuration/shape'
 import { FolderConfigutions } from '../../configuration/configuration'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
-import { CONFIG_FILE_NAME, disposeAll, wait } from '../../util'
+import { disposeAll, wait } from '../../util'
 import { remove } from '../../util/fs'
 import helper from '../helper'
 import { resourceLanguageSettingsSchemaId } from '../../configuration/registry'
+import { CONFIG_FILE_NAME } from '../../util/constants'
 
 const workspaceConfigFile = path.resolve(__dirname, `../sample/.vim/${CONFIG_FILE_NAME}`)
 

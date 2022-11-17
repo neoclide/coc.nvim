@@ -1,12 +1,12 @@
 'use strict'
-import debounce from 'debounce'
-import {
-  ClientCapabilities, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, Disposable, DocumentSelector, FileChangeType, FileEvent, RegistrationType,
-  RelativePattern,
-  ServerCapabilities, WatchKind
+import { debounce } from '../util/node'
+import type {
+  ClientCapabilities, DidChangeWatchedFilesRegistrationOptions, Disposable, DocumentSelector, FileEvent, RegistrationType,
+  ServerCapabilities
 } from 'vscode-languageserver-protocol'
 import { FileSystemWatcher, GlobPattern } from '../types'
 import * as Is from '../util/is'
+import { DidChangeWatchedFilesNotification, FileChangeType, RelativePattern, WatchKind } from '../util/protocol'
 import workspace from '../workspace'
 import { DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as cv from './utils/converter'
@@ -29,6 +29,7 @@ interface $FileEventOptions {
     fileEvents?: FileSystemWatcher | FileSystemWatcher[]
   }
 }
+const debounceTime = global.__TEST__ ? 20 : 200
 
 export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatchedFilesRegistrationOptions> {
   private _watchers: Map<string, Disposable[]> = new Map<string, Disposable[]>()
@@ -38,7 +39,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
   constructor(private _client: FeatureClient<_FileSystemWatcherMiddleware, $FileEventOptions>) {
     this.debouncedFileNotify = debounce(() => {
       void this._notifyFileEvent()
-    }, global.__TEST__ ? 20 : 200)
+    }, debounceTime)
   }
 
   public async _notifyFileEvent(): Promise<void> {

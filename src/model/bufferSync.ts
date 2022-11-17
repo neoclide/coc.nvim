@@ -1,5 +1,5 @@
 'use strict'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable } from '../util/protocol'
 import type Documents from '../core/documents'
 import events from '../events'
 import { DidChangeTextDocumentParams } from '../types'
@@ -19,7 +19,7 @@ export default class BufferSync<T extends SyncItem> {
   private itemsMap: Map<number, { uri: string, item: T }> = new Map()
   constructor(private _create: (doc: Document) => T | undefined, documents: Documents) {
     let { disposables } = this
-    for (let doc of documents.documents) {
+    for (let doc of documents.attached()) {
       this.create(doc)
     }
     documents.onDidOpenTextDocument(e => {

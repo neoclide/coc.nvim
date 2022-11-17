@@ -1,24 +1,23 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
 import { URI } from 'vscode-uri'
-import fs from 'fs'
 import { ListContext, ListItem } from '../../types'
 import { statAsync } from '../../util/fs'
-import workspace from '../../workspace'
+import { fs, path } from '../../util/node'
 import window from '../../window'
+import workspace from '../../workspace'
 import BasicList from '../basic'
+import { ListManager } from '../manager'
 
 export default class FoldList extends BasicList {
   public defaultAction = 'edit'
   public description = 'list of current workspace folders'
   public name = 'folders'
 
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
 
     this.addAction('edit', async item => {
-      let newPath = await nvim.call('input', ['Folder: ', item.label, 'dir']) as string
+      let newPath = await this.nvim.call('input', ['Folder: ', item.label, 'dir']) as string
       let stat = await statAsync(newPath)
       if (!stat || !stat.isDirectory()) {
         void window.showErrorMessage(`invalid path: ${newPath}`)
@@ -47,4 +46,8 @@ export default class FoldList extends BasicList {
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     return workspace.folderPaths.map(p => ({ label: p }))
   }
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new FoldList(), true)
 }

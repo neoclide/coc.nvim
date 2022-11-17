@@ -65,7 +65,7 @@ function convertScope(scope: string, defaultScope = ConfigurationScope.WINDOW): 
 export function convertProperties(properties: object | null | undefined, defaultScope = ConfigurationScope.WINDOW): IStringDictionary<IConfigurationPropertySchema> {
   let obj: IStringDictionary<IConfigurationPropertySchema> = {}
   for (let [key, def] of Object.entries(toObject(properties))) {
-    let data = deepClone(def)
+    let data = Object.assign({}, def)
     data.scope = convertScope(def.scope, defaultScope)
     obj[key] = data
   }

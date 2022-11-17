@@ -1,5 +1,5 @@
 'use strict'
-import { DiagnosticSeverity, Diagnostic, Range, DiagnosticTag, TextEdit } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range, TextEdit } from 'vscode-languageserver-types'
 import { FloatConfig, LocationListItem, VirtualTextOption } from '../types'
 import { comparePosition, rangeOverlap } from '../util/position'
 import { byteIndex } from '../util/string'

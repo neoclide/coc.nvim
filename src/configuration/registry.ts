@@ -1,10 +1,9 @@
-import { Emitter, Event } from 'vscode-languageserver-protocol'
-import { parseMarkdown } from '../markdown'
 import { ConfigurationScope, IStringDictionary } from '../types'
 import { distinct } from '../util/array'
 import { Extensions as JSONExtensions, IJSONContributionRegistry } from '../util/jsonRegistry'
 import { IJSONSchema } from '../util/jsonSchema'
 import { toObject } from '../util/object'
+import { Emitter, Event } from '../util/protocol'
 import { Registry } from '../util/registry'
 import { getDefaultValue, OVERRIDE_PROPERTY_PATTERN, OVERRIDE_PROPERTY_REGEX } from './util'
 
@@ -201,9 +200,6 @@ class ConfigurationRegistry implements IConfigurationRegistry {
       this.updatePropertyDefaultValue(key, property)
       // update scope
       property.scope = property.scope == null ? scope : property.scope
-      if (property.markdownDescription && !property.description) {
-        property.description = parseMarkdown(property.markdownDescription, { excludeImages: true }).lines.join('\n')
-      }
       if (extensionInfo) property.description = (property.description ? `${property.description}\n` : '') + `From ${extensionInfo.id}`
 
       // Add to properties maps

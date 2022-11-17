@@ -1,11 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Position, Range } from 'vscode-languageserver-protocol'
-import { FloatFactory, FloatConfig, FloatOptions, ScreenPosition, Documentation } from '../types'
-import { byteIndex, byteLength } from '../util/string'
+import { Position, Range } from 'vscode-languageserver-types'
 import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
+import { Documentation, FloatConfig, FloatFactory, FloatOptions, ScreenPosition } from '../types'
+import { isVim } from '../util/constants'
+import { byteIndex, byteLength } from '../util/string'
 
-const isVim = process.env.VIM_NODE_RPC == '1'
 const operateModes = ['char', 'line', 'block']
 
 export async function getCursorPosition(nvim: Neovim): Promise<Position> {

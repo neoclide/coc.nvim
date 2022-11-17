@@ -1,9 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
 import { emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
+import { CancellationToken } from '../util/protocol'
 import { getChangedPosition } from '../util/textedit'
 import { prepareMatchCode, preparePythonCodes, UltiSnippetContext } from './eval'
 import * as Snippets from "./parser"

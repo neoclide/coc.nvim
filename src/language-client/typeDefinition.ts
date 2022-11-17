@@ -1,10 +1,11 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Definition, DefinitionLink, Disposable, DocumentSelector, Position, ServerCapabilities, TypeDefinitionOptions, TypeDefinitionRegistrationOptions, TypeDefinitionRequest } from 'vscode-languageserver-protocol'
+import type { ClientCapabilities, Definition, DefinitionLink, Disposable, DocumentSelector, Position, ServerCapabilities, TypeDefinitionOptions, TypeDefinitionRegistrationOptions } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ProviderResult, TypeDefinitionProvider } from '../provider'
+import { CancellationToken, TypeDefinitionRequest } from '../util/protocol'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 
 export interface ProvideTypeDefinitionSignature {
   (

@@ -1,28 +1,28 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import languages from '../../languages'
-import workspace from '../../workspace'
-import path from 'path'
-import { ListContext, ListItem } from '../../types'
-import BasicList from '../basic'
 import { DocumentLink, Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import languages from '../../languages'
+import { ListContext, ListItem } from '../../types'
 import { isParentFolder } from '../../util/fs'
-import { CancellationToken } from 'vscode-languageserver-protocol'
+import { path } from '../../util/node'
+import type { CancellationToken } from '../../util/protocol'
+import workspace from '../../workspace'
+import BasicList from '../basic'
+import type { ListManager } from '../manager'
 
 export default class LinksList extends BasicList {
   public defaultAction = 'open'
   public description = 'links of current buffer'
   public name = 'links'
 
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
 
     this.addAction('open', async item => {
       let { target } = item.data
       let uri = URI.parse(target)
       if (uri.scheme.startsWith('http')) {
-        await nvim.call('coc#ui#open_url', target)
+        await workspace.nvim.call('coc#ui#open_url', target)
       } else {
         await workspace.jumpTo(target)
       }
@@ -74,4 +74,8 @@ function formatUri(uri: string): string {
   if (!uri.startsWith('file:')) return uri
   let filepath = URI.parse(uri).fsPath
   return isParentFolder(workspace.cwd, filepath) ? path.relative(workspace.cwd, filepath) : filepath
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new LinksList(), true)
 }

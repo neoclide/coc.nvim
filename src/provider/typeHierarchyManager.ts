@@ -1,8 +1,9 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, Position, TypeHierarchyItem } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, TypeHierarchyItem } from 'vscode-languageserver-types'
 import { omit } from '../util/lodash'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { TypeHierarchyProvider } from './index'
 import Manager from './manager'
 

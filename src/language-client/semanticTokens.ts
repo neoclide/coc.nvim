@@ -1,11 +1,13 @@
 'use strict'
-import {
-  CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, Range, SemanticTokenModifiers, SemanticTokens, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensDeltaRequest, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationOptions, SemanticTokensRegistrationType, SemanticTokensRequest, SemanticTokenTypes, ServerCapabilities, TokenFormat
+import type {
+  CancellationToken, ClientCapabilities, SemanticTokensDelta, SemanticTokensDeltaParams, SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRegistrationOptions, ServerCapabilities
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Range, SemanticTokenModifiers, SemanticTokens, SemanticTokenTypes } from 'vscode-languageserver-types'
 import languages from '../languages'
 import { DocumentRangeSemanticTokensProvider, DocumentSemanticTokensProvider, ProviderResult } from '../provider'
 import * as Is from '../util/is'
+import { Disposable, DocumentSelector, Emitter, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRefreshRequest, SemanticTokensRegistrationType, SemanticTokensRequest, TokenFormat } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 

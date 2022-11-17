@@ -1,7 +1,8 @@
 'use strict'
-import { ClientCapabilities, WorkDoneProgressCreateParams, WorkDoneProgressCreateRequest } from 'vscode-languageserver-protocol'
+import type { ClientCapabilities, WorkDoneProgressCreateParams } from 'vscode-languageserver-protocol'
+import { WorkDoneProgressCreateRequest } from '../util/protocol'
+import { ensure, FeatureClient, FeatureState, StaticFeature } from './features'
 import { ProgressPart } from './progressPart'
-import { FeatureState, StaticFeature, ensure, FeatureClient } from './features'
 
 export class ProgressFeature implements StaticFeature {
   private activeParts: Set<ProgressPart> = new Set()

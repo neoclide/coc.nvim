@@ -1,12 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Location, Range } from 'vscode-languageserver-protocol'
+import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { ProviderResult } from '../provider'
 import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, LocationWithTarget, MultipleListAction, SingleListAction, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
 import { lineToLocation } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
+import { CancellationToken, Disposable } from '../util/protocol'
 import workspace from '../workspace'
 import CommandTask, { CommandTaskOption } from './commandTask'
 import ListConfiguration from './configuration'
@@ -55,13 +56,15 @@ export default abstract class BasicList implements IList, Disposable {
   public readonly actions: ListAction[] = []
   public options: ListArgument[] = []
   protected disposables: Disposable[] = []
-  protected nvim: Neovim
   private optionMap: Map<string, ArgumentItem>
   public config: ListConfiguration
 
   constructor() {
-    this.nvim = workspace.nvim
     this.config = new ListConfiguration()
+  }
+
+  protected get nvim(): Neovim {
+    return workspace.nvim
   }
 
   public get alignColumns(): boolean {

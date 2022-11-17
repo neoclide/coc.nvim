@@ -1,8 +1,7 @@
 'use strict'
 import { FileLogger, textToLogLevel, ILogger } from './log'
-import path from 'path'
-import os from 'os'
-import fs from 'fs'
+import { fs, path, os } from '../util/node'
+import { getConditionValue } from '../util'
 
 export function resolveLogFilepath(): string {
   let file = process.env.NVIM_COC_LOG_FILE
@@ -36,7 +35,7 @@ export function emptyFile(filepath: string): void {
 const logfile = resolveLogFilepath()
 emptyFile(logfile)
 
-const level = global.__TEST__ ? 'off' : process.env.NVIM_COC_LOG_LEVEL || 'info'
+const level = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || 'info', 'off')
 const logger = new FileLogger(logfile, textToLogLevel(level), {
   color: !global.REVISION && process.platform !== 'win32',
   userFormatters: true

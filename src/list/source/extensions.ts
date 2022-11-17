@@ -1,22 +1,20 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
 import { URI } from 'vscode-uri'
 import extensions from '../../extension'
 import { ListContext, ListItem } from '../../types'
 import { wait } from '../../util'
+import { fs, os, path } from '../../util/node'
 import workspace from '../../workspace'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
+import { ListManager } from '../manager'
 
 export default class ExtensionList extends BasicList {
   public defaultAction = 'toggle'
   public description = 'manage coc extensions'
   public name = 'extensions'
 
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
     this.addAction('toggle', async item => {
       let { id, state } = item.data
@@ -42,9 +40,9 @@ export default class ExtensionList extends BasicList {
     this.addAction('open', async item => {
       let { root } = item.data
       if (workspace.env.isiTerm) {
-        nvim.call('coc#ui#iterm_open', [root], true)
+        workspace.nvim.call('coc#ui#iterm_open', [root], true)
       } else {
-        nvim.call('coc#ui#open_url', [root], true)
+        workspace.nvim.call('coc#ui#open_url', [root], true)
       }
     })
 
@@ -150,4 +148,8 @@ function getPriority(stat: string): number {
     default:
       return 0
   }
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new ExtensionList(), true)
 }

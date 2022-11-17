@@ -1,9 +1,10 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, SelectionRange, SelectionRangeClientCapabilities, SelectionRangeOptions, SelectionRangeParams, SelectionRangeRegistrationOptions, SelectionRangeRequest, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, SelectionRange, SelectionRangeClientCapabilities, SelectionRangeOptions, SelectionRangeParams, SelectionRangeRegistrationOptions, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ProviderResult, SelectionRangeProvider } from '../provider'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
+import { SelectionRangeRequest } from '../util/protocol'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 
 export interface ProvideSelectionRangeSignature {
   (this: void, document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>

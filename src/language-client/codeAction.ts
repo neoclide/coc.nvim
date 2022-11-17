@@ -1,9 +1,11 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionOptions, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeActionResolveRequest, Command, Disposable, DocumentSelector, ExecuteCommandParams, ExecuteCommandRequest, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionOptions, CodeActionParams, CodeActionRegistrationOptions, Disposable, DocumentSelector, ExecuteCommandParams, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
+import { CodeActionKind, Command } from 'vscode-languageserver-types'
 import commands from '../commands'
 import languages from '../languages'
 import { CodeActionProvider, ProviderResult } from '../provider'
+import { CodeActionRequest, CodeActionResolveRequest, ExecuteCommandRequest } from '../util/protocol'
 import { ExecuteCommandMiddleware, ExecuteCommandSignature } from './executeCommand'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as UUID from './utils/uuid'

@@ -1,9 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Range, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { Range, WorkspaceEdit } from 'vscode-languageserver-types'
 import languages from '../languages'
 import { HandlerDelegate, ProviderName } from '../types'
 import { emptyRange } from '../util/position'
+import { CancellationTokenSource } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 

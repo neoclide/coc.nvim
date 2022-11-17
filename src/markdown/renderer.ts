@@ -2,7 +2,6 @@
 /**
  * Renderer for convert markdown to terminal string
  */
-import Table from 'cli-table'
 import * as styles from './styles'
 let TABLE_CELL_SPLIT = '^*||*^'
 let TABLE_ROW_WRAP = '*|*|*|*'
@@ -265,6 +264,7 @@ class Renderer {
   }
 
   public table(header, body): string {
+    const Table = require('cli-table')
     let table = new Table(
       Object.assign(
         {},

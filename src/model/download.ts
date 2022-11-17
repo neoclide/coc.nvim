@@ -1,16 +1,11 @@
 'use strict'
-import contentDisposition from 'content-disposition'
-import crypto from 'crypto'
-import fs from 'fs'
 import http, { IncomingHttpHeaders, IncomingMessage } from 'http'
-import path from 'path'
-import tar from 'tar'
-import unzip from 'unzip-stream'
 import { URL } from 'url'
 import { v1 as uuidv1 } from 'uuid'
-import { CancellationToken } from 'vscode-languageserver-protocol'
-import { FetchOptions, getRequestModule, resolveRequestOptions, toURL } from './fetch'
+import { CancellationToken } from '../util/protocol'
 import { createLogger } from '../logger'
+import { crypto, fs, path } from '../util/node'
+import { FetchOptions, getRequestModule, resolveRequestOptions, toURL } from './fetch'
 const logger = createLogger('model-download')
 
 export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
@@ -83,6 +78,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
         let etag = getEtag(headers)
         let checkEtag = etag && typeof etagAlgorithm === 'string'
         if (!extname && dispositionHeader) {
+          const contentDisposition = require('content-disposition')
           let disposition = contentDisposition.parse(dispositionHeader)
           if (disposition.parameters?.filename) {
             extname = path.extname(disposition.parameters.filename)
@@ -121,8 +117,10 @@ export default function download(urlInput: string | URL, options: DownloadOption
         })
         let stream: any
         if (extract === 'untar') {
+          const tar = require('tar')
           stream = res.pipe(tar.x({ strip: options.strip ?? 1, C: dest }))
         } else if (extract === 'unzip') {
+          const unzip = require('unzip-stream')
           stream = res.pipe(unzip.Extract({ path: dest }))
         } else {
           dest = path.join(dest, `${uuidv1()}${extname}`)

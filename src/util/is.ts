@@ -1,6 +1,6 @@
 'use strict'
-import { CompletionItem, CompletionList, MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
 import { URL } from 'url'
+import type { CompletionItem, CompletionList, MarkupContent } from 'vscode-languageserver-types'
 
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
@@ -15,7 +15,7 @@ export function isUrl(url: any): boolean {
 }
 
 export function isMarkdown(content: MarkupContent | string | undefined): boolean {
-  if (MarkupContent.is(content) && content.kind == MarkupKind.Markdown) {
+  if (content != null && content['kind'] == 'markdown') {
     return true
   }
   return false

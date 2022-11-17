@@ -33,26 +33,6 @@ describe('notifications', () => {
     }, true)
     spy.mockRestore()
   })
-
-  it('should catch error', async () => {
-
-  })
-
-  it('should do pending notifications', async () => {
-    let plugin = helper.plugin
-    let called = false
-    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
-      called = true
-    })
-    Object.assign(plugin, { ready: false })
-    nvim.emit('notification', 'name_not_exists', [])
-    Object.assign(plugin, { ready: true })
-    await events.fire('ready', [])
-    await helper.waitValue(() => {
-      return called
-    }, true)
-    spy.mockRestore()
-  })
 })
 
 describe('request', () => {
@@ -97,30 +77,23 @@ describe('request', () => {
 })
 
 describe('attach', () => {
-  it('should to text', async () => {
+  it('should to text', () => {
     expect(toText('text')).toBe('text')
   })
 
   it('should do path replace', () => {
     pathReplace(undefined)
     pathReplace({})
-    nvim.emit('notification', 'Initialize', [{
-      replacePatterns: {
-        '/foo': '/foo/bar'
-      }
+    nvim.emit('notification', 'VimEnter', [{
+      '/foo': '/foo/bar'
     }])
     let filepath = URI.file('/foo/home').fsPath
     expect(filepath).toBe('/foo/bar/home')
     pathReplace({ '/foo': '/foo' })
   })
 
-  it('should listen CocInstalled', async () => {
-    nvim.emit('notification', 'VimEnter')
-    await helper.wait(10)
-  })
-
   it('should not throw on event handler error', async () => {
-    events.on('CursorHold', async () => {
+    events.on('CursorHold', () => {
       throw new Error('error')
     })
     let called = false

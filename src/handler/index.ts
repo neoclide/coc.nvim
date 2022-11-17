@@ -1,15 +1,19 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeActionKind, Disposable, Position, Range, SymbolKind } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CodeActionKind, Position, Range, SymbolKind } from 'vscode-languageserver-types'
 import events from '../events'
 import languages from '../languages'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { StatusBarItem } from '../model/status'
-import { ExtendedCodeAction, ProviderName } from '../types'
+import { ExtendedCodeAction, HandlerDelegate, ProviderName } from '../types'
 import { disposeAll } from '../util'
+import { getSymbolKind } from '../util/convert'
+import { CancellationToken, CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
+import CallHierarchy from './callHierarchy'
 import CodeActions from './codeActions'
 import CodeLens from './codelens/index'
 import Colors from './colors/index'
@@ -18,22 +22,18 @@ import Fold from './fold'
 import Format from './format'
 import Highlights from './highlights'
 import HoverHandler from './hover'
+import InlayHintHandler from './inlayHint/index'
+import LinkedEditingHandler from './linkedEditing'
 import Links from './links'
 import Locations from './locations'
 import Refactor from './refactor/index'
 import Rename from './rename'
-import WorkspaceHandler from './workspace'
 import SelectionRange from './selectionRange'
-import CallHierarchy from './callHierarchy'
-import TypeHierarchy from './typeHierarchy'
 import SemanticTokens from './semanticTokens/index'
 import Signature from './signature'
 import Symbols from './symbols/index'
-import { HandlerDelegate } from '../types'
-import { getSymbolKind } from '../util/convert'
-import LinkedEditingHandler from './linkedEditing'
-import InlayHintHandler from './inlayHint/index'
-import { createLogger } from '../logger'
+import TypeHierarchy from './typeHierarchy'
+import WorkspaceHandler from './workspace'
 const logger = createLogger('Handler')
 
 export interface CurrentState {
@@ -66,21 +66,18 @@ export default class Handler implements HandlerDelegate {
   public readonly workspace: WorkspaceHandler
   public readonly linkedEditingHandler: LinkedEditingHandler
   public readonly inlayHintHandler: InlayHintHandler
-  private labels: { [key: string]: string }
-  private requestStatusItem: StatusBarItem
+  private _requestStatusItem: StatusBarItem
   private requestTokenSource: CancellationTokenSource | undefined
   private requestTimer: NodeJS.Timer
   private disposables: Disposable[] = []
 
   constructor(private nvim: Neovim) {
-    this.requestStatusItem = window.createStatusBarItem(0, { progress: true })
     events.on(['CursorMoved', 'CursorMovedI', 'InsertEnter', 'InsertSnippet', 'InsertLeave'], () => {
       if (this.requestTokenSource) {
         this.requestTokenSource.cancel()
         this.requestTokenSource = null
       }
     }, null, this.disposables)
-    this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
     this.fold = new Fold(nvim, this)
     this.links = new Links(nvim, this)
     this.codeLens = new CodeLens(nvim)
@@ -94,7 +91,7 @@ export default class Handler implements HandlerDelegate {
     this.rename = new Rename(nvim, this)
     this.workspace = new WorkspaceHandler(nvim, this)
     this.codeActions = new CodeActions(nvim, this)
-    this.commands = new Commands(nvim, workspace.env)
+    this.commands = new Commands(nvim)
     this.callHierarchy = new CallHierarchy(nvim, this)
     this.typeHierarchy = new TypeHierarchy(nvim, this)
     this.documentHighlighter = new Highlights(nvim, this)
@@ -117,7 +114,17 @@ export default class Handler implements HandlerDelegate {
         this.semanticHighlighter.dispose()
       }
     })
-    void this.refactor.init()
+  }
+
+  private get requestStatusItem(): StatusBarItem {
+    if (this._requestStatusItem) return this._requestStatusItem
+    this._requestStatusItem = window.createStatusBarItem(0, { progress: true })
+    return this._requestStatusItem
+  }
+
+  private get labels(): { [key: string]: string } {
+    let configuration = workspace.initialConfiguration
+    return configuration.get('suggest.completionItemKindLabels', {})
   }
 
   public get uri(): string | undefined {

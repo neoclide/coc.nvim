@@ -1,11 +1,12 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, DocumentHighlight, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-protocol'
+import { DocumentHighlight, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-types'
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { disposeAll } from '../util'
+import { CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 

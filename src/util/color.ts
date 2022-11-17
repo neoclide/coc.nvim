@@ -1,5 +1,5 @@
 'use strict'
-import { Color } from 'vscode-languageserver-protocol'
+import { Color } from 'vscode-languageserver-types'
 
 function pad(str: string): string {
   return str.length == 1 ? `0${str}` : str

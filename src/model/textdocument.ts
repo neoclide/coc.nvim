@@ -1,6 +1,6 @@
 'use strict'
-import { Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, Range } from 'vscode-languageserver-types'
 import { TextLine } from './textline'
 
 export function computeLinesOffsets(lines: ReadonlyArray<string>, eol: boolean): number[] {

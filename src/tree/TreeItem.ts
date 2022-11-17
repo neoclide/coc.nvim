@@ -1,7 +1,7 @@
 'use strict'
-import { Command, MarkupContent } from 'vscode-languageserver-protocol'
+import { Command, MarkupContent } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import path from 'path'
+import { path } from '../util/node'
 
 export interface TreeItemLabel {
   label: string

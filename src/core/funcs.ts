@@ -1,16 +1,12 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import minimatch from 'minimatch'
-import os from 'os'
-import path from 'path'
-import semver from 'semver'
-import { DocumentFilter, DocumentSelector, TextDocumentFilter } from 'vscode-languageserver-protocol'
+import type { Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
-import which from 'which'
 import Configurations from '../configuration'
 import Resolver from '../model/resolver'
 import * as fs from '../util/fs'
+import { minimatch, os, path, semver, which } from '../util/node'
 import * as platform from '../util/platform'
+import { DocumentFilter, DocumentSelector, TextDocumentFilter } from '../util/protocol'
 let NAME_SPACE = 2000
 const resolver = new Resolver()
 

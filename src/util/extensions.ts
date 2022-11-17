@@ -1,4 +1,5 @@
 'use strict'
+
 declare interface Promise<T> {
   /**
    * Catches task error and ignores them.
@@ -6,13 +7,8 @@ declare interface Promise<T> {
   logError(): void
 }
 
-/**
- * Explicitly tells that promise should be run asynchronously.
- *
- * @deprecated
- */
 Promise.prototype.logError = function <T>(this: Promise<T>): void {
-  this.catch(e => {
+  this.catch(_e => {
     // noop
   })
 }

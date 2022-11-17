@@ -1,17 +1,17 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import unidecode from 'unidecode'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceType } from '../types'
-import { disposeAll, waitImmediate } from '../util'
+import { defaultValue, disposeAll, getConditionValue, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { caseMatch, fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { unidecode } from '../util/node'
+import { CancellationToken, Disposable } from '../util/protocol'
 import workspace from '../workspace'
 const WORD_PREFIXES = ['_', '$', '-']
 const WORD_PREFIXES_CODE = [95, 36, 45]
 const ASCII_END = 128
-const MAX_DURATION = global.__TEST__ ? 20 : 80
+const MAX_DURATION = getConditionValue(80, 20)
 const MAX_COUNT = 50
 
 export interface SourceConfiguration {
@@ -48,11 +48,11 @@ export default class Source implements ISource {
     this.sourceType = option.sourceType || SourceType.Native
     this.isSnippet = !!option.isSnippet
     this.defaults = option
-    let key = `coc.source.${option.name}`
-    this.config = workspace.getConfiguration(key) as SourceConfiguration
+    const key = `coc.source.${option.name}`
+    this.config = defaultValue(workspace.initialConfiguration.get(key) as SourceConfiguration, {})
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration(key)) {
-        this.config = workspace.getConfiguration(key) as SourceConfiguration
+        this.config = defaultValue(workspace.initialConfiguration.get(key) as SourceConfiguration, {})
       }
     }, null, this.disposables)
     events.on('CompleteDone', () => {

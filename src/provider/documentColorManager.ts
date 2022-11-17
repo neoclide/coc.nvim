@@ -1,8 +1,9 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, ColorInformation, ColorPresentation, Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { ColorInformation, ColorPresentation } from 'vscode-languageserver-types'
 import { equals } from '../util/object'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { DocumentColorProvider } from './index'
 import Manager from './manager'
 

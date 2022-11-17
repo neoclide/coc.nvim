@@ -97,9 +97,9 @@ export class ConfigurationModel implements IConfigurationModel {
   }
 
   public merge(...others: ConfigurationModel[]): ConfigurationModel {
-    const contents = deepClone(this.contents)
-    const overrides = deepClone(this.overrides)
-    const keys = [...this.keys]
+    const contents = deepClone(this._contents)
+    const overrides = deepClone(this._overrides)
+    const keys = [...this._keys]
 
     for (const other of others) {
       if (other.isEmpty()) {

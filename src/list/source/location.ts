@@ -1,21 +1,21 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
-import { CancellationToken } from 'vscode-languageserver-protocol'
+import type { CancellationToken } from '../../util/protocol'
 import { Location, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import { AnsiHighlight, ListContext, ListItem, LocationWithTarget, QuickfixItem } from '../../types'
 import { isParentFolder } from '../../util/fs'
+import { path } from '../../util/node'
 import { byteLength } from '../../util/string'
 import BasicList from '../basic'
+import type { ListManager } from '../manager'
 
 export default class LocationList extends BasicList {
   public defaultAction = 'open'
   public description = 'show locations saved by g:coc_jump_locations variable'
   public name = 'location'
 
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
     this.createAction({
       name: 'refactor',
@@ -88,4 +88,8 @@ function createItem(filename: string, loc: QuickfixItem): ListItem {
     filterText,
     ansiHighlights,
   }
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new LocationList(), true)
 }

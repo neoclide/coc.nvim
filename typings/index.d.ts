@@ -3347,7 +3347,7 @@ declare module 'coc.nvim' {
      * 'eol' option of related buffer. When enabled additional `\n` will be
      * added to the end of document content
      */
-    readonly rol: boolean
+    readonly eol: boolean
     /**
      * Lines of TextDocument.
      */

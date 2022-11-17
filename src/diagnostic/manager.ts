@@ -1,15 +1,16 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Disposable, Emitter, Event, Location, Position, Range } from 'vscode-languageserver-protocol'
+import type { Neovim } from '@chemzqm/neovim'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
-import { FloatFactory } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
+import { isVim } from '../util/constants'
 import { readFileLines } from '../util/fs'
 import { comparePosition, rangeIntersect } from '../util/position'
+import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -24,6 +25,7 @@ export interface DiagnosticEventParams {
 }
 
 interface DiagnosticSignConfig {
+  messageDelay?: number
   errorSign?: string
   warningSign?: string
   infoSing?: string
@@ -56,17 +58,15 @@ class DiagnosticManager implements Disposable {
   private readonly _onDidRefresh = new Emitter<DiagnosticEventParams>()
   public readonly onDidRefresh: Event<DiagnosticEventParams> = this._onDidRefresh.event
   private enabled = true
-  private buffers: BufferSync<DiagnosticBuffer>
-  private floatFactory: FloatFactory
+  private buffers: BufferSync<DiagnosticBuffer> | undefined
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private messageTimer: NodeJS.Timeout
 
   public init(): void {
-    let config = workspace.getConfiguration('diagnostic')
-    this.floatFactory = window.createFloatFactory({ modes: ['n'], autoHide: true })
+    this.defineSigns(workspace.initialConfiguration.get<DiagnosticSignConfig>('diagnostic'))
     this.buffers = workspace.registerBufferSync(doc => {
-      let buf = new DiagnosticBuffer(this.nvim, doc, this.floatFactory)
+      let buf = new DiagnosticBuffer(this.nvim, doc)
       buf.onDidRefresh(diagnostics => {
         this._onDidRefresh.fire({ diagnostics, uri: buf.uri, bufnr: buf.bufnr })
       })
@@ -78,36 +78,27 @@ class DiagnosticManager implements Disposable {
       return buf
     })
     workspace.onDidChangeConfiguration(e => {
-      for (let item of this.buffers.items) {
-        if (e.affectsConfiguration('diagnostic', item.doc)) {
+      if (this.buffers && e.affectsConfiguration('diagnostic')) {
+        for (let item of this.buffers.items) {
           item.loadConfiguration()
         }
       }
     }, null, this.disposables)
-    workspace.onDidCloseTextDocument(e => {
-      for (let collection of this.collections) {
-        collection.delete(e.uri)
-      }
-    }, null, this.disposables)
-
+    let config = workspace.initialConfiguration.get<any>('diagnostic')
     events.on('CursorMoved', (bufnr, cursor) => {
       if (this.messageTimer) clearTimeout(this.messageTimer)
       this.messageTimer = setTimeout(() => {
         let buf = this.buffers.getItem(bufnr)
         if (buf == null || buf.dirty) return
-        let echoMessage = async () => {
-          if (buf.config.enableMessage !== 'always') return
-          let pos = buf.doc.getPosition(cursor[0], cursor[1])
-          await buf.echoMessage(true, pos)
-        }
-        void Promise.all([echoMessage(), buf.showVirtualTextCurrentLine(cursor[0])])
-      }, global.__TEST__ ? 10 : config.messageDelay)
+        void Promise.allSettled([
+          buf.onCursorHold(cursor[0], cursor[1]),
+          buf.showVirtualTextCurrentLine(cursor[0])])
+      }, config.messageDelay)
     }, null, this.disposables)
-
     events.on(['InsertEnter', 'BufEnter'], () => {
-      if (this.messageTimer) clearTimeout(this.messageTimer)
+      clearTimeout(this.messageTimer)
     }, null, this.disposables)
-    events.on('InsertLeave', async bufnr => {
+    events.on('InsertLeave', bufnr => {
       let buf = this.buffers.getItem(bufnr)
       if (!buf || buf.config.refreshOnInsertMode) return
       for (let buf of this.buffers.items) {
@@ -118,22 +109,22 @@ class DiagnosticManager implements Disposable {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.refreshHighlights()
     }, null, this.disposables)
-
     this.checkConfigurationErrors()
     workspace.configurations.onError(ev => {
       const collection = this.create('config')
       collection.set(ev.uri, ev.diagnostics)
     }, null, this.disposables)
-    this.defineSigns(config as DiagnosticSignConfig)
   }
 
   public checkConfigurationErrors(): void {
-    const collection = this.create('config')
-    let errors = workspace.configurations.errors
-    for (let [uri, diagnostics] of errors.entries()) {
-      let fsPath = URI.parse(uri).fsPath
-      void window.showErrorMessage(`Error detected for config file ${fsPath}, please check diagnostics list.`)
-      collection.set(uri, diagnostics)
+    const errors = workspace.configurations.errors
+    if (!isFalsyOrEmpty(errors)) {
+      const collection = this.create('config')
+      for (let [uri, diagnostics] of errors.entries()) {
+        let fsPath = URI.parse(uri).fsPath
+        void window.showErrorMessage(`Error detected for config file ${fsPath}, please check diagnostics list.`)
+        collection.set(uri, diagnostics)
+      }
     }
   }
 
@@ -144,7 +135,7 @@ class DiagnosticManager implements Disposable {
       let cmd = `sign define Coc${kind} linehl=Coc${kind}Line`
       let signText = config[kind.toLowerCase() + 'Sign']
       if (signText) cmd += ` texthl=Coc${kind}Sign text=${signText}`
-      if (workspace.isNvim && config.enableHighlightLineNumber) cmd += ` numhl=Coc${kind}Sign`
+      if (!isVim && config.enableHighlightLineNumber) cmd += ` numhl=Coc${kind}Sign`
       nvim.command(cmd, true)
     }
     nvim.resumeNotification(false, true)
@@ -183,7 +174,7 @@ class DiagnosticManager implements Disposable {
     })
     this.collections.push(collection)
     collection.onDidDiagnosticsChange(uri => {
-      let buf = this.buffers.getItem(uri)
+      let buf = this.buffers?.getItem(uri)
       if (buf && buf.config.autoRefresh) void buf.update(name, this.getDiagnosticsByCollection(buf, collection))
     })
     return collection
@@ -452,9 +443,7 @@ class DiagnosticManager implements Disposable {
   }
 
   public reset(): void {
-    if (this.messageTimer) {
-      clearTimeout(this.messageTimer)
-    }
+    clearTimeout(this.messageTimer)
     this.buffers.reset()
     for (let collection of this.collections) {
       collection.dispose()
@@ -463,14 +452,11 @@ class DiagnosticManager implements Disposable {
   }
 
   public dispose(): void {
-    if (this.messageTimer) {
-      clearTimeout(this.messageTimer)
-    }
+    clearTimeout(this.messageTimer)
     this.buffers.dispose()
     for (let collection of this.collections) {
       collection.dispose()
     }
-    this.floatFactory.dispose()
     this.collections = []
     disposeAll(this.disposables)
   }

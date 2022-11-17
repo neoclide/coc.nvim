@@ -1,9 +1,12 @@
 'use strict'
+
 interface Disposable {
   dispose(): void
 }
 
-export const CONFIG_FILE_NAME = 'coc-settings.json'
+export function getConditionValue<T>(value: T, testValue: T): T {
+  return global.__TEST__ ? testValue : value
+}
 
 export const pariedCharacters: Map<string, string> = new Map([
   ['<', '>'],
@@ -12,6 +15,10 @@ export const pariedCharacters: Map<string, string> = new Map([
   ['[', ']'],
   ['(', ')'],
 ])
+
+export function defaultValue<T>(val: T | undefined | null, defaultValue: T): T {
+  return val == null ? defaultValue : val
+}
 
 export function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve(undefined)

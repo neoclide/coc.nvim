@@ -17,8 +17,7 @@ import type Plugin from '../plugin'
 import { ProviderResult } from '../provider'
 import { DurationCompleteItem, OutputChannel } from '../types'
 import { equals } from '../util/object'
-import { terminate } from '../util/processes'
-import { Workspace } from '../workspace'
+import type { Workspace } from '../workspace'
 
 export interface CursorPosition {
   bufnum: number
@@ -62,16 +61,16 @@ export class Helper extends EventEmitter {
     return this.plugin.completion
   }
 
-  public setup(): Promise<void> {
+  public async setup(): Promise<void> {
     const vimrc = path.resolve(__dirname, 'vimrc')
     let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
-    this.nvim.uiAttach(160, 80, {}).catch(e => {
-      console.error(e)
-    })
+    await this.nvim.uiAttach(160, 80, {})
+    let channelId = await this.nvim.channelId
+    this.nvim.call('coc#rpc#set_channel', [channelId], true)
     this.nvim.on('notification', (method, args) => {
       if (method == 'redraw') {
         for (let arg of args) {
@@ -87,12 +86,7 @@ export class Helper extends EventEmitter {
         }
       }
     })
-    return new Promise(resolve => {
-      let disposable = events.on('ready', () => {
-        disposable.dispose()
-        resolve()
-      })
-    })
+    await plugin.init('')
   }
 
   public async shutdown(): Promise<void> {
@@ -100,11 +94,11 @@ export class Helper extends EventEmitter {
     await this.nvim.quit()
     this.nvim = null
     if (this.proc) {
+      this.proc.kill('SIGKILL')
       this.proc.unref()
-      terminate(this.proc)
       this.proc = null
     }
-    await this.wait(60)
+    await this.wait(50)
   }
 
   public async waitPopup(): Promise<void> {

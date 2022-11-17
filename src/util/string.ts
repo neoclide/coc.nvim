@@ -1,5 +1,5 @@
 'use strict'
-import { Range } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-types'
 
 const UTF8_2BYTES_START = 0x80
 const UTF8_3BYTES_START = 0x800

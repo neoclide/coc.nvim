@@ -1,15 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CompletionItemKind } from 'vscode-languageserver-protocol'
+import { CompletionItemKind } from 'vscode-languageserver-types'
 import { matchSpansReverse } from '../model/fuzzyMatch'
 import sources from '../sources'
-import { CompleteOption, DurationCompleteItem, Env, FloatConfig, HighlightItem } from '../types'
+import { CompleteOption, DurationCompleteItem, FloatConfig, HighlightItem } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
-import { byteIndex, byteLength, characterIndex, toText } from '../util/string'
-import workspace from '../workspace'
 import { anyScore } from '../util/filter'
 import * as Is from '../util/is'
-import { MruLoader, getKindHighlight, getKindText, highlightOffert, Selection } from './util'
 import { toNumber } from '../util/numbers'
+import { byteIndex, byteLength, characterIndex, toText } from '../util/string'
+import workspace from '../workspace'
+import { getKindHighlight, getKindText, highlightOffert, MruLoader, Selection } from './util'
 
 export interface PumDimension {
   readonly height: number
@@ -88,11 +88,13 @@ export default class PopupMenu {
   private _search = ''
   private _pumConfig: PumConfig
   constructor(
-    private nvim: Neovim,
     private config: PopupMenuConfig,
-    private env: Env,
     private mruLoader: MruLoader
   ) {
+  }
+
+  private get nvim(): Neovim {
+    return workspace.nvim
   }
 
   public get search(): string {
@@ -241,7 +243,7 @@ export default class PopupMenu {
 
   private adjustAbbrWidth(config: BuildConfig): void {
     let { formatItems } = this.config
-    let pumwidth = toNumber(this.env.pumwidth, 15)
+    let pumwidth = toNumber(workspace.env.pumwidth, 15)
     let len = 0
     for (const item of formatItems) {
       if (item == PumItems.Abbr) {

@@ -1,11 +1,8 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import os from 'os'
-import path from 'path'
-import { CancellationToken, CreateFileOptions, DeleteFileOptions, Disposable, DocumentSelector, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CreateFileOptions, DeleteFileOptions, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { version as VERSION } from '../package.json'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import Autocmds from './core/autocmds'
@@ -21,6 +18,7 @@ import * as ui from './core/ui'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
+import { createLogger } from './logger'
 import BufferSync, { SyncItem } from './model/bufferSync'
 import DB from './model/db'
 import type Document from './model/document'
@@ -31,14 +29,15 @@ import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationResourceScope, DidChangeTextDocumentParams, EditerState, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocalMode, LocationWithTarget, QuickfixItem, TextDocumentMatch, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { APIVERSION, pluginRoot, userConfigFile, VERSION, watchmanCommand } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
-import { CONFIG_FILE_NAME } from './util/index'
 import { IJSONSchema } from './util/jsonSchema'
+import { path } from './util/node'
+import { toObject } from './util/object'
 import { runCommand } from './util/processes'
-import { createLogger } from './logger'
+import { CancellationToken, Disposable, DocumentSelector, Event, WorkspaceFoldersChangeEvent } from './util/protocol'
 const logger = createLogger('workspace')
 
-const APIVERSION = 32
 const methods = [
   'showMessage', 'runTerminalCommand', 'openTerminal', 'showQuickpick',
   'menuPick', 'openLocalConfig', 'showPrompt', 'createStatusBarItem', 'createOutputChannel',
@@ -62,7 +61,6 @@ export class Workspace {
   public readonly onWillRenameFiles: Event<FileWillRenameEvent>
   public readonly onWillDeleteFiles: Event<FileWillDeleteEvent>
   public readonly nvim: Neovim
-  public readonly version: string
   public readonly configurations: Configurations
   public readonly workspaceFolderControl: WorkspaceFolderController
   public readonly documentsManager: Documents
@@ -75,14 +73,19 @@ export class Workspace {
   public readonly editors: Editors
   private fuzzyExports: FuzzyWasi
   private strWdith: StrWidth
-
   private _env: Env
 
   constructor() {
-    this.version = VERSION
-    let home = path.normalize(process.env.COC_VIMCONFIG) ?? path.join(os.homedir(), '.vim')
-    let userConfigFile = path.join(home, CONFIG_FILE_NAME)
-    this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
+    void initFuzzyWasm().then(api => {
+      this.fuzzyExports = api
+    })
+    void StrWidth.create().then(strWdith => {
+      this.strWdith = strWdith
+    })
+    events.on('VimResized', (columns, lines) => {
+      Object.assign(toObject(this.env), { columns, lines })
+    })
+    let configurations = this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
     this.workspaceFolderControl = new WorkspaceFolderController(this.configurations)
     let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl)
     this.contentProvider = new ContentProvider(documents)
@@ -105,8 +108,13 @@ export class Workspace {
     this.onWillCreateFiles = this.files.onWillCreateFiles
     this.onWillRenameFiles = this.files.onWillRenameFiles
     this.onWillDeleteFiles = this.files.onWillDeleteFiles
-    let watchmanPath = global.__TEST__ ? null : this.getWatchmanPath()
+    const preferences = configurations.initialConfiguration.get('coc.preferences') as any
+    const watchmanPath = preferences.watchmanPath ?? watchmanCommand
     this.fileSystemWatchers = new FileSystemWatcherManager(this.workspaceFolderControl, watchmanPath)
+  }
+
+  public get initialConfiguration(): WorkspaceConfiguration {
+    return this.configurations.initialConfiguration
   }
 
   public async init(window: any): Promise<void> {
@@ -131,33 +139,24 @@ export class Workspace {
         }
       })
     }
-    let promises: Promise<void>[] = []
-    let env: Env
-    promises.push(nvim.call('coc#util#vim_info').then(res => {
-      env = this._env = res as Env
-    }))
-    promises.push(initFuzzyWasm().then(api => {
-      this.fuzzyExports = api
-    }))
-    promises.push(StrWidth.create().then(strWdith => {
-      this.strWdith = strWdith
-    }))
-    await Promise.all(promises)
-    this.strWdith.setAmbw(!env.ambiguousIsNarrow)
+    let env = this._env = await nvim.call('coc#util#vim_info') as Env
     window.init(env)
     this.checkVersion(APIVERSION)
     this.configurations.updateMemoryConfig(this._env.config)
-    this.workspaceFolderControl.init()
     this.workspaceFolderControl.setWorkspaceFolders(this._env.workspaceFolders)
+    this.workspaceFolderControl.onDidChangeWorkspaceFolders(() => {
+      nvim.setVar('WorkspaceFolders', this.folderPaths, true)
+    })
     this.files.attach(nvim, env, window)
     this.contentProvider.attach(nvim)
     this.keymaps.attach(nvim)
     this.autocmds.attach(nvim, env)
     this.watchers.attach(nvim, env)
-    await this.attach()
+    await this.documentsManager.attach(this.nvim, this._env)
     await this.editors.attach(nvim)
     let channel = channels.create('watchman', nvim)
     this.fileSystemWatchers.attach(channel)
+    if (this.strWdith) this.strWdith.setAmbw(!env.ambiguousIsNarrow)
   }
 
   public checkVersion(version: number) {
@@ -168,6 +167,10 @@ export class Workspace {
 
   public getDisplayWidth(text: string, cache = false): number {
     return this.strWdith.getWidth(text, cache)
+  }
+
+  public get version(): string {
+    return VERSION
   }
 
   public get cwd(): string {
@@ -247,7 +250,7 @@ export class Workspace {
   }
 
   public get pluginRoot(): string {
-    return path.dirname(__dirname)
+    return pluginRoot
   }
 
   public get isVim(): boolean {
@@ -482,8 +485,7 @@ export class Workspace {
    * Create DB instance at extension root.
    */
   public createDatabase(name: string): DB {
-    let filepath = path.join(process.env.COC_DATA_HOME, name + '.json')
-    return new DB(filepath)
+    return new DB(path.join(process.env.COC_DATA_HOME, name + '.json'))
   }
 
   public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T | undefined): BufferSync<T> {

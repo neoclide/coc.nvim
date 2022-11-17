@@ -2,9 +2,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Range } from '@chemzqm/neovim/lib/types'
 import { exec } from 'child_process'
-import { promisify } from 'util'
+import { isVim } from '../util/constants'
+import { promisify } from '../util/node'
 export type EvalKind = 'vim' | 'python' | 'shell'
-const isVim = process.env.VIM_NODE_RPC == '1'
 
 export interface UltiSnippetContext {
   /**

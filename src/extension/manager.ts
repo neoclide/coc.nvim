@@ -1,23 +1,23 @@
-import fs from 'fs'
-import path from 'path'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import Watchman from '../core/watchman'
 import events from '../events'
+import { createLogger } from '../logger'
 import Memos from '../model/memos'
+import { ConfigurationScope } from '../types'
 import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
-import { createExtension, ExtensionExport } from '../util/factory'
-import { loadJson, remove, watchFile } from '../util/fs'
-import { isEmpty } from '../util/object'
-import { convertProperties, Registry } from '../util/registry'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
+import { createExtension, ExtensionExport } from '../util/factory'
+import { loadJson, remove, statAsync, watchFile } from '../util/fs'
+import { path } from '../util/node'
+import { isEmpty } from '../util/object'
+import { Disposable, Emitter, Event } from '../util/protocol'
+import { convertProperties, Registry } from '../util/registry'
+import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
-import { ConfigurationScope } from '../types'
-import { createLogger } from '../logger'
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 const logger = createLogger('extensions-manager')
@@ -42,6 +42,8 @@ export interface ExtensionInfo {
   packageJSON: Readonly<ExtensionJson>
 }
 
+export type ExtensionToLoad = Pick<Readonly<ExtensionInfo>, 'root' | 'packageJSON' | 'isLocal'>
+
 export interface Extension<T> {
   readonly id: string
   readonly extensionPath: string
@@ -65,47 +67,48 @@ export interface ExtensionItem {
 }
 
 const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
+const memos = new Memos(path.resolve(process.env.COC_DATA_HOME, 'memos.json'))
+memos.merge(path.resolve(process.env.COC_DATA_HOME, '../memos.json'))
+
+const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
 
 /**
  * Manage loaded extensions
  */
 export class ExtensionManager {
   private activated = false
-  private memos: Memos
   private disposables: Disposable[] = []
-  /**
-   * Saved before active
-   */
   private configurationNodes: IConfigurationNode[] = []
   private extensions: Map<string, ExtensionItem> = new Map()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
   private singleExtensionsRoot = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
+  private modulesFolder: string
 
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
   constructor(public readonly states: ExtensionStat, private folder: string) {
-    let memos = this.memos = new Memos(path.resolve(process.env.COC_DATA_HOME, 'memos.json'))
-    let oldPath = path.resolve(process.env.COC_DATA_HOME, '../memos.json')
-    memos.merge(oldPath)
-  }
-
-  private get modulesFolder(): string {
-    return path.join(this.folder, 'node_modules')
+    this.modulesFolder = path.join(this.folder, 'node_modules')
   }
 
   public activateExtensions(): Promise<PromiseSettledResult<void>[]> {
     this.activated = true
-    const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
     configurationRegistry.registerConfigurations(this.configurationNodes)
     this.attachEvents()
-    let keys = Array.from(this.extensions.keys())
-    return Promise.allSettled(keys.map(key => {
-      let { extension } = this.extensions.get(key)
-      return this.autoActiavte(key, extension)
-    }))
+    let promises: Promise<void>[] = []
+    for (let key of this.extensions.keys()) {
+      // wait extensions that always activated only
+      const { extension } = this.extensions.get(key)
+      const activationEvents = extension.packageJSON.activationEvents
+      if (!activationEvents || activationEvents.includes('*')) {
+        promises.push(this.autoActiavte(key, extension))
+      } else {
+        void this.autoActiavte(key, extension)
+      }
+    }
+    return Promise.allSettled(promises)
   }
 
   public async loadFileExtensions(): Promise<void> {
@@ -313,9 +316,13 @@ export class ExtensionManager {
       let node: IConfigurationNode = { properties, extensionInfo: { id, displayName: packageJSON.displayName } }
       this.configurationNodes.push(node)
       if (this.activated) {
-        let toRemove = this.configurationNodes.find(o => o.extensionInfo!.id === id)
-        const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
-        configurationRegistry.updateConfigurations({ add: [node], remove: toArray(toRemove) })
+        let toRemove = []
+        let idx = this.configurationNodes.findIndex(o => o.extensionInfo!.id === id)
+        if (idx !== -1) {
+          toRemove.push(this.configurationNodes[idx])
+          this.configurationNodes.splice(idx, 1)
+        }
+        workspace.configurations.updateConfigurations([node], toRemove)
       }
     }
     extensionRegistry.registerExtension(id, {
@@ -347,7 +354,8 @@ export class ExtensionManager {
   }
 
   public async loadExtensionFile(filepath: string): Promise<void> {
-    if (!fs.existsSync(filepath)) return
+    let stat = await statAsync(filepath)
+    if (!stat || !stat.isFile()) return
     let filename = path.basename(filepath)
     let basename = path.basename(filepath, '.js')
     let name = 'single-' + basename
@@ -358,13 +366,11 @@ export class ExtensionManager {
     for (const attr of ['activationEvents', 'contributes']) {
       packageJSON[attr] = obj[attr]
     }
-    if (this.extensions.has(name)) {
-      await this.unloadExtension(name)
-    }
+    await this.unloadExtension(name)
     await this.registerExtension(root, packageJSON, ExtensionType.SingleFile)
   }
 
-  public registerExtensions(stats: ExtensionInfo[]): void {
+  public registerExtensions(stats: ExtensionToLoad[]): void {
     for (let stat of stats) {
       try {
         let extensionType = stat.isLocal ? ExtensionType.Local : ExtensionType.Global
@@ -385,19 +391,20 @@ export class ExtensionManager {
     let exports: any
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
+    const timing = createTiming(`activate ${id}`)
     let extension: Extension<API> = {
       activate: (): Promise<API> => {
         if (result) return result
         result = new Promise(async (resolve, reject) => {
-          logger.debug(`activating extension ${id}`)
+          timing.start()
           try {
             let isEmpty = typeof packageJSON.engines.coc === 'undefined'
             ext = createExtension(id, filename, isEmpty)
             let context = {
               subscriptions,
               extensionPath,
-              globalState: this.memos.createMemento(`${id}|global`),
-              workspaceState: this.memos.createMemento(`${id}|${workspace.rootPath}`),
+              globalState: memos.createMemento(`${id}|global`),
+              workspaceState: memos.createMemento(`${id}|${workspace.rootPath}`),
               asAbsolutePath: relativePath => path.join(root, relativePath),
               storagePath: path.join(this.folder, `${id}-data`),
               logger: createLogger(`extension:${id}`)
@@ -406,6 +413,7 @@ export class ExtensionManager {
             isActive = true
             exports = res
             this._onDidActiveExtension.fire(extension)
+            timing.stop()
             resolve(res)
           } catch (e) {
             logger.error(`Error on active extension ${id}:`, e)
@@ -461,7 +469,6 @@ export class ExtensionManager {
     if (idx !== -1) {
       let node = this.configurationNodes[idx]
       this.configurationNodes.splice(idx, 1)
-      const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
       configurationRegistry.deregisterConfigurations([node])
     }
   }

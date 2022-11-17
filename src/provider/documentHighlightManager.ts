@@ -1,7 +1,8 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentHighlight, DocumentSelector, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { DocumentHighlight, Position } from 'vscode-languageserver-types'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { DocumentHighlightProvider } from './index'
 import Manager from './manager'
 

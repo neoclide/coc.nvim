@@ -415,7 +415,8 @@ describe('list', () => {
   })
 
   describe('registerList()', () => {
-    it('should recreat list', async () => {
+    it('should recreate list', async () => {
+      let fn = jest.fn()
       let list: IList = {
         name: 'test',
         actions: [{
@@ -424,16 +425,16 @@ describe('list', () => {
           }
         }],
         defaultAction: 'open',
-        loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'bar' }])
+        loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'bar' }]),
+        dispose: () => {
+          fn()
+        }
       }
       manager.registerList(list, true)
       helper.updateConfiguration('list.source.test.defaultAction', 'open')
       let disposable = manager.registerList(list, true)
       disposable.dispose()
-      await helper.waitValue(async () => {
-        let msg = await helper.getCmdline()
-        return msg.includes('recreated')
-      }, true)
+      expect(fn).toBeCalled()
     })
   })
 

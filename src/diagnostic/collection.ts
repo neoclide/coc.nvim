@@ -1,8 +1,9 @@
 'use strict'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import workspace from '../workspace'
 import { intersect } from '../util/array'
+import { Emitter, Event } from '../util/protocol'
+import workspace from '../workspace'
 const HintTags = [DiagnosticTag.Deprecated, DiagnosticTag.Unnecessary]
 
 export default class DiagnosticCollection {

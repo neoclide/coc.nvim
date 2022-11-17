@@ -1,8 +1,9 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, ColorPresentationRequest, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentColorRequest, DocumentSelector, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Color, ColorInformation, ColorPresentation, Disposable, DocumentColorOptions, DocumentColorRegistrationOptions, DocumentSelector, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DocumentColorProvider, ProviderResult } from '../provider'
+import { ColorPresentationRequest, DocumentColorRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 
 export type ProvideDocumentColorsSignature = (document: TextDocument, token: CancellationToken) => ProviderResult<ColorInformation[]>

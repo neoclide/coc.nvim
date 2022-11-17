@@ -1,6 +1,6 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CodeActionKind, Disposable, InsertTextMode, Range } from 'vscode-languageserver-protocol'
+import { CodeActionKind, InsertTextMode, Range } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion, { Completion } from './completion'
 import channels from './core/channels'
@@ -15,37 +15,40 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { UltiSnippetOption } from './types'
-import { disposeAll } from './util'
+import { defaultValue, disposeAll } from './util'
+import type { Disposable } from './util/protocol'
 import window from './window'
 import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
 
+const pendingNotifications: Map<string, any[]> = new Map()
+let starttime = defaultValue(global.__starttime, Date.now())
+
 export default class Plugin {
   private ready = false
+  private initialized = false
   private handler: Handler | undefined
   private cursors: Cursors
   private actions: Map<string, Function> = new Map()
   private disposables: Disposable[] = []
 
   constructor(public nvim: Neovim) {
-    this.disposables.push(workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim)))
+    workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     Object.defineProperty(window, 'workspace', {
       get: () => workspace
     })
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
+    Object.defineProperty(window, 'nvim', {
+      get: () => this.nvim
+    })
     Object.defineProperty(window, 'cursors', {
       get: () => this.cursors
     })
-    workspace.onDidChangeWorkspaceFolders(() => {
-      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
-    }, null, this.disposables)
-    events.on('VimResized', (columns, lines) => {
-      if (workspace.env) Object.assign(workspace.env, { columns, lines })
-    }, null, this.disposables)
     this.cursors = new Cursors(nvim)
     commandManager.init(nvim, this)
+    listManager.init(nvim)
     this.addAction('checkJsonExtension', () => {
       if (extensions.has('coc-json')) return
       void window.showInformationMessage(`Run :CocInstall coc-json for json intellisense`)
@@ -192,33 +195,45 @@ export default class Plugin {
     if (alias) this.actions.set(alias, fn)
   }
 
-  public async init(): Promise<void> {
+  public async init(rtp: string): Promise<void> {
+    if (this.initialized) return
+    this.initialized = true
     let { nvim } = this
-    let s = Date.now()
     try {
-      await extensions.init()
+      logger.debug('init')
+      await extensions.init(rtp)
       await workspace.init(window)
       nvim.setVar('coc_workspace_initialized', true, true)
-      snippetManager.init()
+      services.init()
+      sources.init()
       completion.init()
       diagnosticManager.init()
-      listManager.init(nvim)
-      sources.init()
       this.handler = new Handler(nvim)
-      services.init()
+      await listManager.registerLists()
       await extensions.activateExtensions()
       workspace.autocmds.setupDynamicAutocmd(true)
+      workspace.configurations.flushConfigurations()
       nvim.pauseNotification()
-      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       nvim.resumeNotification(false, true)
-      logger.info(`coc.nvim initialized with node: ${process.version} after ${Date.now() - s}ms`)
+      logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - starttime)
       this.ready = true
       await events.fire('ready', [])
+      this.invokePendingNotifications()
     } catch (e) {
       nvim.echoError(e)
     }
+  }
+
+  private invokePendingNotifications(): void {
+    for (let [method, args] of pendingNotifications.entries()) {
+      this.cocAction(method, ...args).catch(e => {
+        console.error(`Error on notification "${method}": ${e}`)
+        logger.error(`Error on notification ${method}`, e)
+      })
+    }
+    pendingNotifications.clear()
   }
 
   public get isReady(): boolean {
@@ -230,13 +245,13 @@ export default class Plugin {
   }
 
   public async cocAction(method: string, ...args: any[]): Promise<any> {
+    if (!this.ready) {
+      pendingNotifications.set(method, args)
+      return
+    }
     let fn = this.actions.get(method)
     if (!fn) throw new Error(`Action "${method}" not exist`)
-    let ts = Date.now()
-    let res = await Promise.resolve(fn.apply(null, args))
-    let dt = Date.now() - ts
-    if (dt > 500) logger.warn(`Slow action "${method}" cost ${dt}ms`)
-    return res
+    return await Promise.resolve(fn.apply(null, args))
   }
 
   public getHandler(): Handler {

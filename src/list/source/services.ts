@@ -1,17 +1,17 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
 import services from '../../services'
 import { ListContext, ListItem } from '../../types'
-import BasicList from '../basic'
 import { wait } from '../../util'
+import BasicList from '../basic'
 import { formatListItems } from '../formatting'
+import { ListManager } from '../manager'
 
 export default class ServicesList extends BasicList {
   public defaultAction = 'toggle'
   public description = 'registered services of coc.nvim'
   public name = 'services'
 
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
 
     this.addAction('toggle', async item => {
@@ -46,4 +46,8 @@ export default class ServicesList extends BasicList {
     nvim.command('highlight default link CocServicesLanguages Comment', true)
     nvim.resumeNotification(false, true)
   }
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new ServicesList(), true)
 }

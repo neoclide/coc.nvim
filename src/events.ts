@@ -1,12 +1,12 @@
 'use strict'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import { createLogger } from './logger'
 import { CompleteDoneItem } from './types'
 import { disposeAll } from './util'
 import { CancellationError } from './util/errors'
-import { objectLiteral } from './util/is'
+import * as Is from './util/is'
 import { equals, toReadonly } from './util/object'
+import { CancellationToken, Disposable } from './util/protocol'
 import { byteSlice } from './util/string'
-import { createLogger } from './logger'
 const logger = createLogger('events')
 const SYNC_AUTOCMDS = ['BufWritePre']
 
@@ -36,6 +36,23 @@ export interface InsertChange {
    * Insert character that cause change of this time.
    */
   insertChar?: string
+}
+
+export enum EventName {
+  Ready = 'ready',
+  InsertEnter = 'InsertEnter',
+  InsertLeave = 'InsertLeave',
+  CursorHoldI = 'CursorHoldI',
+  CursorMovedI = 'CursorMovedI',
+  CursorHold = 'CursorHold',
+  CursorMoved = 'CursorMoved',
+  MenuPopupChanged = 'MenuPopupChanged',
+  InsertCharPre = 'InsertCharPre',
+  TextChanged = 'TextChanged',
+  BufEnter = 'BufEnter',
+  TextChangedI = 'TextChangedI',
+  TextChangedP = 'TextChangedP',
+  TextInsert = 'TextInsert',
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter'
@@ -91,6 +108,7 @@ class Events {
   private _pumVisible = false
   private _completing = false
   private _requesting = false
+  private _ready = false
   public timeout = 1000
   // public completing = false
 
@@ -100,6 +118,10 @@ class Events {
 
   public get requesting(): boolean {
     return this._requesting
+  }
+
+  public get ready(): boolean {
+    return this._ready
   }
 
   public set completing(completing: boolean) {
@@ -141,7 +163,7 @@ class Events {
   public race(events: AllEvents[], token?: number | CancellationToken): Promise<{ name: AllEvents, args: unknown[] } | undefined> {
     let disposables: Disposable[] = []
     return new Promise(resolve => {
-      if (typeof token === 'number') {
+      if (Is.number(token)) {
         let timer = setTimeout(() => {
           disposeAll(disposables)
           resolve(undefined)
@@ -166,34 +188,36 @@ class Events {
 
   public async fire(event: string, args: any[]): Promise<void> {
     let cbs = this.handlers.get(event)
-    if (event == 'InsertEnter') {
+    if (event === EventName.Ready) {
+      this._ready = true
+    } else if (event == EventName.InsertEnter) {
       this._insertMode = true
-    } else if (event == 'InsertLeave') {
+    } else if (event == EventName.InsertLeave) {
       this._insertMode = false
       this._pumVisible = false
       this._recentInserts = []
-    } else if (event == 'CursorHoldI' || event == 'CursorMovedI') {
+    } else if (event == EventName.CursorHoldI || event == EventName.CursorMovedI) {
       this._bufnr = args[0]
       if (!this._insertMode) {
         this._insertMode = true
-        void this.fire('InsertEnter', [args[0]])
+        void this.fire(EventName.InsertEnter, [args[0]])
       }
-    } else if (event == 'CursorHold' || event == 'CursorMoved') {
+    } else if (event == EventName.CursorHold || event == EventName.CursorMoved) {
       this._bufnr = args[0]
       if (this._insertMode) {
         this._insertMode = false
-        void this.fire('InsertLeave', [args[0]])
+        void this.fire(EventName.InsertLeave, [args[0]])
       }
-    } else if (event == 'MenuPopupChanged') {
+    } else if (event == EventName.MenuPopupChanged) {
       this._pumVisible = true
       this._pumAlignTop = args[1] > args[0].row
-    } else if (event == 'InsertCharPre') {
+    } else if (event == EventName.InsertCharPre) {
       this._recentInserts.push([args[1], args[0]])
-    } else if (event == 'TextChanged') {
+    } else if (event == EventName.TextChanged) {
       this._lastChange = Date.now()
-    } else if (event == 'BufEnter') {
+    } else if (event == EventName.BufEnter) {
       this._bufnr = args[0]
-    } else if (event == 'TextChangedI' || event == 'TextChangedP') {
+    } else if (event == EventName.TextChangedI || event == EventName.TextChangedP) {
       let arr = this._recentInserts.filter(o => o[0] == args[0])
       this._bufnr = args[0]
       this._recentInserts = []
@@ -214,18 +238,18 @@ class Events {
           info.insertChar = character
           // make it fires after TextChangedI & TextChangedP
           process.nextTick(() => {
-            void this.fire('TextInsert', [...args, character])
+            void this.fire(EventName.TextInsert, [...args, character])
           })
         }
       }
     }
-    if (event == 'CursorMoved' || event == 'CursorMovedI') {
+    if (event == EventName.CursorMoved || event == EventName.CursorMovedI) {
       args.push(this._recentInserts.length > 0)
       let cursor = {
         bufnr: args[0],
         lnum: args[1][0],
         col: args[1][1],
-        insert: event == 'CursorMovedI'
+        insert: event == EventName.CursorMovedI
       }
       // Avoid CursorMoved event when it's not moved at all
       if (this._cursor && equals(this._cursor, cursor)) return
@@ -235,7 +259,7 @@ class Events {
       let fns = cbs.slice()
       let traceSlow = SYNC_AUTOCMDS.includes(event)
       args.forEach(arg => {
-        if (objectLiteral(arg)) toReadonly(arg)
+        if (Is.objectLiteral(arg)) toReadonly(arg)
       })
       await Promise.allSettled(fns.map(fn => {
         let promiseFn = async () => {

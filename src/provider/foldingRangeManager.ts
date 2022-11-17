@@ -1,7 +1,8 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, FoldingRange } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { FoldingRange } from 'vscode-languageserver-types'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { FoldingContext, FoldingRangeProvider } from './index'
 import Manager from './manager'
 

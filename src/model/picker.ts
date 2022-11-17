@@ -1,13 +1,13 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event } from '../util/protocol'
 import events from '../events'
 import { HighlightItem, QuickPickItem } from '../types'
 import { disposeAll } from '../util'
 import { byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
 import Popup from './popup'
-const isVim = process.env.VIM_NODE_RPC == '1'
+import { isVim } from '../util/constants'
 
 interface PickerConfig {
   title: string

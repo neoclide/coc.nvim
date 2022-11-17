@@ -1,9 +1,10 @@
 'use strict'
-import {
-  CallHierarchyClientCapabilities, CallHierarchyIncomingCall, CallHierarchyIncomingCallsRequest, CallHierarchyItem, CallHierarchyOptions, CallHierarchyOutgoingCall, CallHierarchyOutgoingCallsRequest, CallHierarchyPrepareRequest, CallHierarchyRegistrationOptions, CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities
+import type {
+  CallHierarchyClientCapabilities, CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOptions, CallHierarchyOutgoingCall, CallHierarchyRegistrationOptions, CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
+import { CallHierarchyPrepareRequest, CallHierarchyIncomingCallsRequest, CallHierarchyOutgoingCallsRequest } from '../util/protocol'
 import { CallHierarchyProvider, ProviderResult } from '../provider'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import { asTextDocumentPositionParams } from './utils/converter'

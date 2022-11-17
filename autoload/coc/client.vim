@@ -125,10 +125,6 @@ function! s:start() dict
     let self['chan_id'] = chan_id
     let self['running'] = 1
   endif
-  " Note that this message not send on test environment.
-  call self['notify']('Initialize', [{
-        \ 'replacePatterns': coc#util#path_replace_patterns()
-        \ }])
 endfunction
 
 function! s:on_stderr(name, msgs)

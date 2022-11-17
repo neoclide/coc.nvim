@@ -1,12 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Location, LocationLink, Position } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Location, LocationLink, Position } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import languages from '../languages'
 import services from '../services'
 import { HandlerDelegate, LocationWithTarget, ProviderName } from '../types'
 import { hasOwnProperty } from '../util/object'
+import { CancellationToken, CancellationTokenSource } from '../util/protocol'
 import workspace from '../workspace'
 
 export interface TagDefinition {

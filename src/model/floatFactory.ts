@@ -1,7 +1,6 @@
 'use strict'
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { debounce } from '../util/node'
 import events, { BufEvents } from '../events'
 import { parseDocuments } from '../markdown'
 import { Documentation, FloatConfig } from '../types'
@@ -9,7 +8,8 @@ import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
-const isVim = process.env.VIM_NODE_RPC == '1'
+import { Disposable } from '../util/protocol'
+import { isVim } from '../util/constants'
 
 export interface WindowConfig {
   width: number

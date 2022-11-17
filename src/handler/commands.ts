@@ -2,11 +2,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../commands'
 import listManager from '../list/manager'
-import { Env } from '../types'
+import workspace from '../workspace'
 
 export default class Commands {
-  constructor(private nvim: Neovim, env: Readonly<Env>) {
-    for (let item of env.vimCommands) {
+  constructor(private nvim: Neovim) {
+    for (let item of workspace.env.vimCommands) {
       this.addVimCommand(item)
     }
   }

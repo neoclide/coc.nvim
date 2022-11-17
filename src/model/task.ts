@@ -1,8 +1,8 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { disposeAll } from '../util'
+import { Disposable, Emitter, Event } from '../util/protocol'
 
 export interface TaskOptions {
   cmd: string

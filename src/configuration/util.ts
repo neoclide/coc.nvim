@@ -1,11 +1,11 @@
 'use strict'
 import { ParseError, printParseErrorCode } from 'jsonc-parser'
-import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationOverrides } from '../types'
 import { distinct } from '../util/array'
-import { equals } from '../util/object'
+import { equals, hasOwnProperty } from '../util/object'
 const documentUri = 'file:///1'
 
 export interface IConfigurationCompareResult {
@@ -267,4 +267,17 @@ export function getDefaultValue(type: string | string[] | undefined): any {
     default:
       return null
   }
+}
+
+export function lookUp(tree: any, key: string): any {
+  if (key) {
+    if (tree && hasOwnProperty(tree, key)) return tree[key]
+    const parts = key.split('.')
+    let node = tree
+    for (let i = 0; node && i < parts.length; i++) {
+      node = node[parts[i]]
+    }
+    return node
+  }
+  return tree
 }

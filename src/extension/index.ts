@@ -1,21 +1,19 @@
 'use strict'
-import fs from 'fs'
-import path from 'path'
-import { Event } from 'vscode-languageserver-protocol'
-import which from 'which'
 import commandManager from '../commands'
 import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
 import { distinct } from '../util/array'
-import '../util/extensions'
+import { VERSION } from '../util/constants'
 import { isUrl } from '../util/is'
+import { fs, path, which } from '../util/node'
 import { executable } from '../util/processes'
+import { Event } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { IInstaller, Installer } from './installer'
-import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState } from './manager'
-import { checkExtensionRoot, ExtensionStat, loadExtensionJson } from './stat'
+import { API, Extension, ExtensionInfo, ExtensionItem, ExtensionManager, ExtensionState, ExtensionToLoad } from './manager'
+import { checkExtensionRoot, ExtensionStat, loadExtensionJson, loadGlobalJsonAsync } from './stat'
 import { InstallBuffer, InstallChannel, InstallUI } from './ui'
 const logger = createLogger('extensions-index')
 
@@ -36,6 +34,7 @@ export class Extensions {
   public readonly manager: ExtensionManager
   public readonly states: ExtensionStat
   public readonly modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
+  private globalPromise: Promise<ExtensionToLoad[]>
   constructor() {
     checkExtensionRoot(EXTENSIONS_FOLDER)
     this.states = new ExtensionStat(EXTENSIONS_FOLDER)
@@ -48,15 +47,15 @@ export class Extensions {
         await this.installExtensions(arr)
       }
     }, false, 'remove all global extensions and install them')
+    this.globalPromise = this.globalExtensions()
   }
 
-  public async init(): Promise<void> {
+  public async init(runtimepath: string): Promise<void> {
     if (process.env.COC_NO_PLUGINS) return
-    let stats = this.globalExtensionStats()
-    let runtimepath = await workspace.nvim.eval('join(globpath(&runtimepath, "", 0, 1), ",")') as string
-    let localStats = this.runtimeExtensionStats(runtimepath)
-    stats = stats.concat(localStats)
+    let stats = await this.globalPromise
     this.manager.registerExtensions(stats)
+    let localStats = this.runtimeExtensionStats(runtimepath)
+    this.manager.registerExtensions(localStats)
     void this.manager.loadFileExtensions()
   }
 
@@ -66,9 +65,9 @@ export class Extensions {
     let names = this.states.filterGlobalExtensions(workspace.env.globalExtensions)
     void this.installExtensions(names)
     // check extensions need watch & install
-    let config = workspace.getConfiguration('coc.preferences', null)
-    let interval = config.get<string>('extensionUpdateCheck', 'never')
-    let silent = config.get<boolean>('silentAutoupdate', true)
+    let config = workspace.initialConfiguration.get('coc.preferences') as any
+    let interval = config.extensionUpdateCheck
+    let silent = config.silentAutoupdate
     if (this.states.shouldUpdate(interval)) {
       this.outputChannel.appendLine('Start auto update...')
       this.updateExtensions(silent).catch(e => {
@@ -160,8 +159,9 @@ export class Extensions {
    * Install extensions, can be called without initialize.
    */
   public async installExtensions(list: string[]): Promise<void> {
+    if (list.length == 0) return
     let { npm } = this
-    if (!npm || list.length == 0) return
+    if (!npm) return
     list = distinct(list)
     let installBuffer = this.createInstallerUI(false, false)
     await Promise.resolve(installBuffer.start(list))
@@ -238,6 +238,24 @@ export class Extensions {
     return localStats.concat(globalStats)
   }
 
+  public async globalExtensions(): Promise<ExtensionToLoad[]> {
+    if (process.env.COC_NO_PLUGINS) return []
+    let dependencies = this.states.dependencies
+    let res: ExtensionToLoad[] = []
+    let keys = Object.keys(dependencies)
+    let disabled = this.states.disabledExtensions
+    await Promise.all(keys.map(key => {
+      if (disabled.includes(key)) return Promise.resolve()
+      let root = path.join(this.modulesFolder, key)
+      return loadGlobalJsonAsync(root, VERSION).then(json => {
+        if (json) res.push({ root, isLocal: false, packageJSON: json })
+      }, err => {
+        logger.error(`Error on load ${key}`, err)
+      })
+    }))
+    return res
+  }
+
   public globalExtensionStats(): ExtensionInfo[] {
     let dependencies = this.states.dependencies
     let lockedExtensions = this.states.lockedExtensions
@@ -245,7 +263,7 @@ export class Extensions {
     Object.entries(dependencies).map(([key, val]) => {
       let root = path.join(this.modulesFolder, key)
       let errors: string[] = []
-      let obj = loadExtensionJson(root, workspace.version, errors)
+      let obj = loadExtensionJson(root, VERSION, errors)
       if (errors.length > 0) {
         this.outputChannel.appendLine(`Error on load ${key} at ${root}: ${errors.join('\n')}`)
         return
@@ -253,17 +271,18 @@ export class Extensions {
       obj.name = key
       infos.push({
         id: key,
+        root,
         isLocal: false,
         version: obj.version,
         description: obj.description ?? '',
         isLocked: lockedExtensions.includes(key),
         exotic: /^https?:/.test(val),
         uri: toUrl(val),
-        root: fs.realpathSync(root),
         state: this.getExtensionState(key),
-        packageJSON: Object.freeze(obj)
+        packageJSON: obj
       })
     })
+    logger.debug('globalExtensionStats:', infos.length)
     return infos
   }
 

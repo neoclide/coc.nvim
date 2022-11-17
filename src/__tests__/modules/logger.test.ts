@@ -88,13 +88,8 @@ describe('FileLogger', () => {
   it('should change level', () => {
     filepath = path.join(os.tmpdir(), uuid())
     let fileLogger = new FileLogger(filepath, LogLevel.Off, {})
-    let fn = jest.fn()
-    fileLogger.onDidChangeLogLevel(() => {
-      fn()
-    })
     fileLogger.setLevel(LogLevel.Debug)
     fileLogger.setLevel(LogLevel.Debug)
-    expect(fn).toBeCalledTimes(1)
   })
 
   it('should work with off level', async () => {

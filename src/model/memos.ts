@@ -1,6 +1,6 @@
 'use strict'
-import fs from 'fs'
 import { loadJson, writeJson } from '../util/fs'
+import { fs } from '../util/node'
 import { deepClone } from '../util/object'
 
 /**

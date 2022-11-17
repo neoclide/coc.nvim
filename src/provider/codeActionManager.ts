@@ -1,10 +1,11 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CodeAction, CodeActionContext, CodeActionKind, Command, Range } from 'vscode-languageserver-types'
 import { ExtendedCodeAction } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { CodeActionProvider } from './index'
 import Manager from './manager'
 

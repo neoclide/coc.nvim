@@ -1,11 +1,8 @@
-import fs from 'fs'
-import path from 'path'
-import semver from 'semver'
-import { promisify } from 'util'
-import { loadJson, writeJson } from '../util/fs'
-import { objectLiteral } from '../util/is'
 import { createLogger } from '../logger'
 import { toArray } from '../util/array'
+import { readFile, writeJson } from '../util/fs'
+import { objectLiteral } from '../util/is'
+import { fs, path, semver, promisify } from '../util/node'
 const logger = createLogger('extension-stat')
 
 interface DataBase {
@@ -238,6 +235,24 @@ export function validExtensionFolder(folder: string, version: string): boolean {
   return res != null && errors.length == 0
 }
 
+export async function loadGlobalJsonAsync(folder: string, version: string): Promise<ExtensionJson> {
+  let jsonFile = path.join(folder, 'package.json')
+  let content = await readFile(jsonFile, 'utf8')
+  let packageJSON = JSON.parse(content) as ExtensionJson
+  let { engines, main } = packageJSON
+  main = main ?? 'index.js'
+  if (!main.endsWith('.js')) main = main + '.js'
+  if (!engines || !objectLiteral(engines)) throw new Error('Invalid engines field')
+  if (engines) {
+    let keys = Object.keys(engines)
+    if (!keys.includes('coc') && !keys.includes('vscode')) throw new Error('Invalid engines field')
+    if (keys.includes('coc') && !semver.satisfies(version, engines['coc'].replace(/^\^/, '>='))) {
+      throw new Error(`coc.nvim version not match, required ${engines['coc']}`)
+    }
+  }
+  return packageJSON
+}
+
 export function loadExtensionJson(folder: string, version: string, errors: string[]): ExtensionJson | undefined {
   let jsonFile = path.join(folder, 'package.json')
   if (!fs.existsSync(jsonFile)) {
@@ -257,7 +272,7 @@ export function loadExtensionJson(folder: string, version: string, errors: strin
   if (engines && !engines.vscode && !fs.existsSync(path.join(folder, main))) {
     errors.push(`main file ${main} not found, you may need to build the project.`)
   }
-  if (objectLiteral(engines)) {
+  if (engines) {
     let keys = Object.keys(engines)
     if (!keys.includes('coc') && !keys.includes('vscode')) {
       errors.push(`Engines in package.json doesn't have coc or vscode`)
@@ -307,4 +322,15 @@ export async function getJsFiles(folder: string): Promise<string[]> {
   if (!fs.existsSync(folder)) return []
   let files = await promisify(fs.readdir)(folder)
   return files.filter(f => f.endsWith('.js'))
+}
+
+export function loadJson(filepath: string): object {
+  try {
+    let text = fs.readFileSync(filepath, 'utf8')
+    let data = JSON.parse(text)
+    return data ?? {}
+  } catch (e) {
+    logger.error(`Error on parse json file ${filepath}`, e)
+    return {}
+  }
 }

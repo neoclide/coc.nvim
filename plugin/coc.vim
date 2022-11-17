@@ -339,7 +339,7 @@ endfunction
 
 function! s:VimEnter() abort
   if coc#rpc#started()
-    call coc#rpc#notify('VimEnter', [])
+    call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
   elseif get(g:, 'coc_start_at_startup', 1)
     call coc#rpc#start_server()
   endif

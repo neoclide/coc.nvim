@@ -1,13 +1,13 @@
 'use strict'
 import { attach, Attach, NeovimClient } from '@chemzqm/neovim'
-import semver from 'semver'
 import { URI } from 'vscode-uri'
-import { version as VERSION } from '../package.json'
 import events from './events'
 import { createLogger } from './logger'
-import Plugin from './plugin'
+import type Plugin from './plugin'
+import { VERSION } from './util/constants'
+import './util/extensions'
 import { objectLiteral } from './util/is'
-import { toObject } from './util/object'
+import { semver } from './util/node'
 import { createTiming } from './util/timing'
 const logger = createLogger('attach')
 
@@ -15,6 +15,7 @@ const logger = createLogger('attach')
  * Request actions that not need plugin ready
  */
 const ACTIONS_NO_WAIT = ['installExtensions', 'updateExtensions']
+const semVer = semver.parse(VERSION)
 
 export function pathReplace(patterns: object | undefined): void {
   if (objectLiteral(patterns)) {
@@ -34,41 +35,15 @@ export function toText(error: any): string {
 export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, createLogger('node-client'), requestApi)
   nvim.setVar('coc_process_pid', process.pid, true)
-  const plugin = new Plugin(nvim)
-  let clientReady = false
-  let initialized = false
-  const doInitialize = () => {
-    if (!initialized && clientReady) {
-      initialized = true
-      void plugin.init()
-    }
-  }
-  const doAction = async (method: string, args: any[]) => {
-    try {
-      logger.info('receive notification:', method, args)
-      await plugin.cocAction(method, ...args)
-    } catch (e) {
-      console.error(`Error on notification "${method}": ${toText(e)}`)
-      logger.error(`Error on notification ${method}`, e)
-    }
-  }
-
-  const pendingNotifications: Map<string, any[]> = new Map()
-  events.on('ready', () => {
-    for (let [method, args] of pendingNotifications.entries()) {
-      void doAction(method, args)
-    }
-    pendingNotifications.clear()
-  })
+  nvim.setClientInfo('coc', { major: semVer.major, minor: semVer.minor, patch: semVer.patch }, 'remote', {}, {})
+  let Clz = require('./plugin').default
+  const plugin = new Clz(nvim)
 
   nvim.on('notification', async (method, args) => {
     switch (method) {
       case 'VimEnter': {
-        doInitialize()
-        break
-      }
-      case 'Initialize': {
-        pathReplace(toObject(args[0])['replacePatterns'])
+        pathReplace(args[0])
+        await plugin.init(args[1])
         break
       }
       case 'Log': {
@@ -96,11 +71,13 @@ export default (opts: Attach, requestApi = true): Plugin => {
       case 'redraw':
         break
       default: {
-        if (!plugin.isReady) {
-          pendingNotifications.set(method, args)
-          return
+        try {
+          logger.info('receive notification:', method, args)
+          await plugin.cocAction(method, ...args)
+        } catch (e) {
+          console.error(`Error on notification "${method}": ${toText(e)}`)
+          logger.error(`Error on notification ${method}`, e)
         }
-        void doAction(method, args)
       }
     }
   })
@@ -131,16 +108,6 @@ export default (opts: Attach, requestApi = true): Plugin => {
       logger.error(`Request error:`, method, args, e)
     }
     timing.stop()
-  })
-
-  void nvim.channelId.then(async channelId => {
-    clientReady = true
-    // Used for test client on vim side
-    nvim.call('coc#rpc#set_channel', [channelId], true)
-    let { major, minor, patch } = semver.parse(VERSION)
-    nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
-    // vim should already entered
-    doInitialize()
   })
   return plugin
 }

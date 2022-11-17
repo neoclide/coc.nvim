@@ -116,7 +116,7 @@ describe('float config', () => {
   })
 
   async function createFloat(config: Partial<FloatConfig>, docs = [{ filetype: 'txt', content: 'doc' }]): Promise<Floating> {
-    let floating = new Floating(nvim, {
+    let floating = new Floating({
       floatConfig: {
         border: true,
         ...config

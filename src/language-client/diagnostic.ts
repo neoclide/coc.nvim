@@ -1,8 +1,8 @@
 'use strict'
-import minimatch from 'minimatch'
+import { minimatch } from '../util/node'
 import { v4 as uuid } from 'uuid'
-import {
-  CancellationToken, CancellationTokenSource, ClientCapabilities, Diagnostic, DiagnosticOptions, DiagnosticRefreshRequest, DiagnosticRegistrationOptions, DiagnosticServerCancellationData, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, DocumentSelector, Emitter, LinkedMap, PreviousResultId, RAL, ServerCapabilities, Touch, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceDiagnosticRequest
+import type {
+  CancellationToken, ClientCapabilities, Diagnostic, DiagnosticOptions, DiagnosticRegistrationOptions, DocumentDiagnosticParams, DocumentDiagnosticReport, DocumentSelector, PreviousResultId, ServerCapabilities, WorkspaceDiagnosticParams, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -11,6 +11,8 @@ import languages from '../languages'
 import { DiagnosticProvider, ProviderResult, ResultReporter } from '../provider'
 import { TextDocumentMatch } from '../types'
 import { CancellationError } from '../util/errors'
+import { LinkedMap, Touch } from '../util/map'
+import { CancellationTokenSource, DiagnosticRefreshRequest, DiagnosticServerCancellationData, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidSaveTextDocumentNotification, Disposable, DocumentDiagnosticReportKind, DocumentDiagnosticRequest, Emitter, RAL, WorkspaceDiagnosticRequest } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { BaseFeature, ensure, FeatureClient, LSPCancellationError, TextDocumentLanguageFeature } from './features'
@@ -465,7 +467,7 @@ export class BackgroundScheduler implements Disposable {
   public add(document: TextDocument): void {
     const key = document.uri
     if (this.documents.has(key)) return
-    this.documents.set(key, document, Touch.Last)
+    this.documents.set(key, document, Touch.AsNew)
     this.trigger()
   }
 
@@ -498,7 +500,7 @@ export class BackgroundScheduler implements Disposable {
       if (document !== undefined) {
         const key = document.uri
         this.diagnosticRequestor.pull(document)
-        this.documents.set(key, document, Touch.Last)
+        this.documents.set(key, document, Touch.AsNew)
         if (document === this.endDocument) {
           this.stop()
         }

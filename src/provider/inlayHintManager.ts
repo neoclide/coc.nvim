@@ -1,9 +1,10 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, InlayHint, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { InlayHint, Position, Range } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import { comparePosition, positionInRange } from '../util/position'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { InlayHintsProvider } from './index'
 import Manager from './manager'
 const logger = createLogger('inlayHintManger')

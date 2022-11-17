@@ -1,5 +1,5 @@
 'use strict'
-import { InitializeError, Message, ResponseError } from 'vscode-languageserver-protocol'
+import type { InitializeError, Message, ResponseError } from 'vscode-languageserver-protocol'
 import window from '../../window'
 
 /**

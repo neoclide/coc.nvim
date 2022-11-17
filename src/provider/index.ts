@@ -1,7 +1,7 @@
 'use strict'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit, InlayHint } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
-import { URI } from 'vscode-uri'
+import type { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import type { TextDocument } from 'vscode-languageserver-textdocument'
+import type { URI } from 'vscode-uri'
 
 /**
  * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),

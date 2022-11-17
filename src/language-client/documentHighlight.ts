@@ -1,7 +1,8 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentHighlight, DocumentHighlightOptions, DocumentHighlightRegistrationOptions, DocumentHighlightRequest, DocumentSelector, Position, ServerCapabilities, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentHighlight, DocumentHighlightOptions, DocumentHighlightRegistrationOptions, DocumentSelector, Position, ServerCapabilities, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
+import { DocumentHighlightRequest } from '../util/protocol'
 import { DocumentHighlightProvider, ProviderResult } from '../provider'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'

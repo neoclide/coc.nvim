@@ -1,6 +1,5 @@
 'use strict'
-import fs from 'fs'
-import path from 'path'
+import { fs, path } from '../util/node'
 import { createLogger } from '../logger'
 import { isFalsyOrEmpty } from '../util/array'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'

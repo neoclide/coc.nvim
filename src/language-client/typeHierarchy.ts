@@ -1,8 +1,9 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, TypeHierarchyItem, TypeHierarchyOptions, TypeHierarchyPrepareRequest, TypeHierarchyRegistrationOptions, TypeHierarchySubtypesRequest, TypeHierarchySupertypesRequest } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, TypeHierarchyItem, TypeHierarchyOptions, TypeHierarchyRegistrationOptions } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { ProviderResult, TypeHierarchyProvider } from '../provider'
+import { TypeHierarchyPrepareRequest, TypeHierarchySubtypesRequest, TypeHierarchySupertypesRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 

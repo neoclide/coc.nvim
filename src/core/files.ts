@@ -1,13 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import crypto from 'crypto'
-import fs from 'fs'
-import glob from 'glob'
-import minimatch from 'minimatch'
-import os from 'os'
-import path from 'path'
-import { promisify } from 'util'
-import { CancellationToken, CancellationTokenSource, ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Emitter, Event, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import events from '../events'
@@ -17,6 +10,8 @@ import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, LinesChange } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
+import { crypto, fs, glob, minimatch, os, path, promisify } from '../util/node'
+import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import { createFilteredChanges, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
@@ -284,9 +279,9 @@ export default class Files {
       await this.documents.onBufCreate(bufnr)
     } else {
       if (oldStat?.isDirectory()) {
-        for (let doc of this.documents.documents) {
+        for (let doc of this.documents.attached('file')) {
           let u = URI.parse(doc.uri)
-          if (u.scheme === 'file' && isParentFolder(oldPath, u.fsPath, false)) {
+          if (isParentFolder(oldPath, u.fsPath, false)) {
             let filepath = u.fsPath.replace(oldPath, newPath)
             let bufnr = await nvim.call('coc#ui#rename_file', [u.fsPath, filepath, false]) as number
             await this.documents.onBufCreate(bufnr)

@@ -1,6 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from '../util/protocol'
+import { Range } from 'vscode-languageserver-types'
 import events from '../events'
 import Document from '../model/document'
 import Documents from './documents'

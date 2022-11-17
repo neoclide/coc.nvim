@@ -1,17 +1,15 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
-import fs from 'fs'
-import path from 'path'
 import extensions from '../extension'
-import { HandlerDelegate, PatternType, ProviderName, WorkspaceConfiguration } from '../types'
-import workspace from '../workspace'
-import window from '../window'
-import snippetManager from '../snippets/manager'
-import Highligher from '../model/highligher'
 import languages from '../languages'
 import { getLoggerFile } from '../logger'
-import stripAnsi from 'strip-ansi'
+import Highligher from '../model/highligher'
+import snippetManager from '../snippets/manager'
+import { HandlerDelegate, PatternType, ProviderName, WorkspaceConfiguration } from '../types'
+import { fs, path } from '../util/node'
+import window from '../window'
+import workspace from '../workspace'
 declare const REVISION
 
 interface RootPatterns {
@@ -120,6 +118,7 @@ export default class WorkspaceHandler {
     lines.push('## Log of coc.nvim')
     lines.push('')
     let file = getLoggerFile()
+    const stripAnsi = require('strip-ansi')
     if (fs.existsSync(file)) {
       let content = fs.readFileSync(file, { encoding: 'utf8' })
       lines.push(...content.split(/\r?\n/).map(line => stripAnsi(line)))

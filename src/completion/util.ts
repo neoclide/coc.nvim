@@ -1,6 +1,5 @@
 'use strict'
-import unidecode from 'unidecode'
-import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-protocol'
+import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-types'
 import { InsertChange } from '../events'
 import Document from '../model/document'
 import { SnippetParser } from '../snippets/parser'
@@ -9,8 +8,9 @@ import { CompleteDoneItem, CompleteOption, DurationCompleteItem, ExtendedComplet
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CharCode } from '../util/charCode'
 import * as Is from '../util/is'
-import { toObject } from '../util/object'
 import { LRUCache } from '../util/map'
+import { unidecode } from '../util/node'
+import { toObject } from '../util/object'
 import { byteIndex, byteSlice, toText } from '../util/string'
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
@@ -425,8 +425,6 @@ export class MruLoader {
   private max = 0
   private items: LRUCache<string, number> = new LRUCache(MAX_MRU_ITEMS)
   private itemsNoPrefex: LRUCache<string, number> = new LRUCache(MAX_MRU_ITEMS)
-  constructor() {
-  }
 
   public getScore(input: string, item: MruItem, selection: Selection): number {
     let key = toItemKey(item)

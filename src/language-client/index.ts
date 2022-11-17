@@ -1,16 +1,14 @@
 'use strict'
 /* eslint-disable no-redeclare */
-import cp from 'child_process'
-import fs from 'fs'
-import path from 'path'
-import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
+import { ChildProcess, ChildProcessWithoutNullStreams, ForkOptions as CForkOptions } from 'child_process'
 import { createLogger } from '../logger'
 import { disposeAll } from '../util'
 import * as Is from '../util/is'
+import { child_process, fs, path } from '../util/node'
 import { terminate } from '../util/processes'
+import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from '../util/protocol'
 import workspace from '../workspace'
 import { BaseLanguageClient, LanguageClientOptions, MessageTransports } from './client'
-import ChildProcess = cp.ChildProcess
 
 const logger = createLogger('language-client-index')
 const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
@@ -263,7 +261,7 @@ export class LanguageClient extends BaseLanguageClient {
       return result
     }
 
-    function assertStdio(process: cp.ChildProcess): asserts process is cp.ChildProcessWithoutNullStreams {
+    function assertStdio(process: ChildProcess): asserts process is ChildProcessWithoutNullStreams {
       if (process.stdin === null || process.stdout === null || process.stderr === null) {
         throw new Error('Process created without stdio streams')
       }
@@ -330,14 +328,14 @@ export class LanguageClient extends BaseLanguageClient {
             args.push(`--socket=${transport.port}`)
           }
           args.push(`--clientProcessId=${process.pid}`)
-          let options: cp.ForkOptions = node.options || Object.create(null)
+          let options: CForkOptions = node.options || Object.create(null)
           options.env = getEnvironment(options.env, true)
           options.execArgv = options.execArgv || []
           options.cwd = serverWorkingDir
           options.silent = true
           if (runtime) options.execPath = runtime
           if (transport === TransportKind.ipc || transport === TransportKind.stdio) {
-            let sp = cp.fork(node.module, args || [], options)
+            let sp = child_process.fork(node.module, args || [], options)
             assertStdio(sp)
             this._serverProcess = sp
             logger.info(`Language server "${this.id}" started with ${sp.pid}`)
@@ -350,7 +348,7 @@ export class LanguageClient extends BaseLanguageClient {
             }
           } else if (transport === TransportKind.pipe) {
             return createClientPipeTransport(pipeName!).then(transport => {
-              let sp = cp.fork(node.module, args || [], options)
+              let sp = child_process.fork(node.module, args || [], options)
               assertStdio(sp)
               logger.info(`Language server "${this.id}" started with ${sp.pid}`)
               this._serverProcess = sp
@@ -362,7 +360,7 @@ export class LanguageClient extends BaseLanguageClient {
             })
           } else if (Transport.isSocket(transport)) {
             return createClientSocketTransport(transport.port).then(transport => {
-              let sp = cp.fork(node.module, args || [], options)
+              let sp = child_process.fork(node.module, args || [], options)
               assertStdio(sp)
               this._serverProcess = sp
               logger.info(`Language server "${this.id}" started with ${sp.pid}`)
@@ -381,7 +379,7 @@ export class LanguageClient extends BaseLanguageClient {
         options.env = options.env ? Object.assign({}, process.env, options.env) : process.env
         options.cwd = options.cwd || serverWorkingDir
         let cmd = workspace.expand(json.command)
-        let serverProcess = cp.spawn(cmd, args, options)
+        let serverProcess = child_process.spawn(cmd, args, options)
         serverProcess.on('error', e => {
           this.error(e.message, e)
         })

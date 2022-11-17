@@ -1,11 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CancellationTokenSource, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, Position, Range } from 'vscode-languageserver-types'
 import commands from '../commands'
 import events from '../events'
 import languages from '../languages'
-import { createLogger } from '../logger'
 import { TreeDataProvider } from '../tree/index'
 import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
@@ -13,9 +12,9 @@ import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../typ
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
+import { CancellationToken, CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-let logger = createLogger('callHierarchy')
 
 interface CallHierarchyDataItem extends CallHierarchyItem {
   parent?: CallHierarchyDataItem

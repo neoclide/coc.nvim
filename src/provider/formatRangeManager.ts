@@ -1,7 +1,8 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, FormattingOptions, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { FormattingOptions, Range, TextEdit } from 'vscode-languageserver-types'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { DocumentRangeFormattingEditProvider } from './index'
 import Manager from './manager'
 

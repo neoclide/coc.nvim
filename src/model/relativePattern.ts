@@ -1,7 +1,7 @@
 'use strict'
 import { URI } from 'vscode-uri'
 import { illegalArgument } from '../util/errors'
-import { WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { WorkspaceFolder } from 'vscode-languageserver-types'
 
 export default class RelativePattern {
   public pattern: string

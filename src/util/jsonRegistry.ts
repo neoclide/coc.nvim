@@ -1,5 +1,5 @@
 'use strict'
-import { Emitter, Event } from 'vscode-languageserver-protocol'
+import { Emitter, Event } from '../util/protocol'
 import type { IJSONSchema } from './jsonSchema'
 import { Registry } from './registry'
 

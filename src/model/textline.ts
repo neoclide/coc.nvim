@@ -1,5 +1,5 @@
 'use strict'
-import { Range } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-types'
 
 /**
  * Represents a line of text, such as a line of source code.

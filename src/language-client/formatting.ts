@@ -1,8 +1,11 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentFormattingOptions, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlightRegistrationOptions, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentRangeFormattingRequest, DocumentSelector, FormattingOptions, Position, Range, ServerCapabilities, TextDocumentRegistrationOptions, TextEdit } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentFormattingOptions, DocumentFormattingParams, DocumentHighlightRegistrationOptions, DocumentOnTypeFormattingOptions, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentRangeFormattingOptions, DocumentRangeFormattingParams, DocumentRangeFormattingRegistrationOptions, DocumentSelector, FormattingOptions, Position, Range, ServerCapabilities, TextDocumentRegistrationOptions, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, OnTypeFormattingEditProvider, ProviderResult } from '../provider'
+import {
+  DocumentFormattingRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest
+} from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'

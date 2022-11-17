@@ -1,22 +1,20 @@
 'use strict'
-import debounce from 'debounce'
-import { exec } from 'child_process'
-import fs from 'fs'
-import glob from 'glob'
+import { child_process, minimatch, glob, readline } from './node'
+import { debounce } from './node'
+import type { Stats } from 'fs'
 import { parse, ParseError } from 'jsonc-parser'
-import minimatch from 'minimatch'
-import path from 'path'
-import readline from 'readline'
-import { promisify } from 'util'
-import { CancellationToken, Disposable, Location, Position, Range } from 'vscode-languageserver-protocol'
+import { Location, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { createLogger } from '../logger'
 import { FileType } from '../types'
+import { fs, path, promisify } from '../util/node'
+import { CancellationToken, Disposable } from '../util/protocol'
 import { isFalsyOrEmpty, toArray } from './array'
 import { CancellationError } from './errors'
 import { toObject } from './object'
 import * as platform from './platform'
-import { createLogger } from '../logger'
 const logger = createLogger('util-fs')
+const exec = child_process.exec
 
 export type OnReadLine = (line: string) => void
 
@@ -67,7 +65,7 @@ export function writeJson(filepath: string, obj: any): void {
   fs.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), 'utf8')
 }
 
-export async function statAsync(filepath: string): Promise<fs.Stats | null> {
+export async function statAsync(filepath: string): Promise<Stats | null> {
   let stat = null
   try {
     stat = await promisify(fs.stat)(filepath)

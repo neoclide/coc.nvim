@@ -1,9 +1,5 @@
 'use strict'
-import { Emitter, Event } from 'vscode-languageserver-protocol'
-import style from 'ansi-styles'
-import { inspect, promisify } from 'util'
-import fs from 'fs'
-import path from 'path'
+import { fs, path, inspect, promisify } from '../util/node'
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 export enum LogLevel {
@@ -14,6 +10,9 @@ export enum LogLevel {
   Error,
   Off
 }
+
+const yellowOpen = '\x1B[33m'
+const yellowClose = '\x1B[39m'
 
 export const DEFAULT_LOG_LEVEL: LogLevel = LogLevel.Info
 
@@ -71,7 +70,7 @@ export function format(args: any, depth = 2, color = false, hidden = false): str
       } catch (e) {}
     }
     if (color && (typeof a === 'boolean' || typeof a === 'number')) {
-      a = `${style.yellow.open}${a}${style.yellow.close}`
+      a = `${yellowOpen}${a}${yellowClose}`
     }
     result += (i > 0 ? ' ' : '') + a
   }
@@ -80,15 +79,11 @@ export function format(args: any, depth = 2, color = false, hidden = false): str
 }
 
 abstract class AbstractLogger {
-
   private level: LogLevel = DEFAULT_LOG_LEVEL
-  private readonly _onDidChangeLogLevel: Emitter<LogLevel> = new Emitter<LogLevel>()
-  public readonly onDidChangeLogLevel: Event<LogLevel> = this._onDidChangeLogLevel.event
 
   public setLevel(level: LogLevel): void {
     if (this.level !== level) {
       this.level = level
-      this._onDidChangeLogLevel.fire(this.level)
     }
   }
 

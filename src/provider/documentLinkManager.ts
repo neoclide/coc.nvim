@@ -1,9 +1,10 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentLink, DocumentSelector } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { DocumentLink } from 'vscode-languageserver-types'
 import { omit } from '../util/lodash'
 import { equals } from '../util/object'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { DocumentLinkProvider } from './index'
 import Manager from './manager'
 

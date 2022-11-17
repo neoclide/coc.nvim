@@ -1,11 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import os from 'os'
-import path from 'path'
+import { os, path } from './util/node'
 import { v4 as uuid } from 'uuid'
 import { writeHeapSnapshot } from 'v8'
-import * as language from 'vscode-languageserver-protocol'
-import { CodeAction, Disposable, InsertTextMode, Location, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CodeAction, InsertTextMode, Command as VCommand, Location, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import { Disposable } from './util/protocol'
 import { URI } from 'vscode-uri'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
@@ -335,7 +334,7 @@ export class CommandManager implements Disposable {
     this.commands.clear()
   }
 
-  public execute(command: language.Command): Promise<any> {
+  public execute(command: VCommand): Promise<any> {
     return this.executeCommand(command.command, ...(command.arguments ?? []))
   }
 

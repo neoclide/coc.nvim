@@ -1,14 +1,14 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import stripAnsi from 'strip-ansi'
-import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import events from '../events'
 import { createLogger } from '../logger'
 import { ConfigurationScope, IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
+import { isVim } from '../util/constants'
 import { parseExtensionName } from '../util/extensionRegistry'
+import { debounce, stripAnsi } from '../util/node'
+import { CancellationTokenSource, Disposable } from '../util/protocol'
 import { Registry } from '../util/registry'
 import { toInteger } from '../util/string'
 import window from '../window'
@@ -19,27 +19,16 @@ import History from './history'
 import Mappings from './mappings'
 import Prompt from './prompt'
 import ListSession from './session'
-import CommandsList from './source/commands'
-import DiagnosticsList from './source/diagnostics'
-import ExtensionList from './source/extensions'
-import FolderList from './source/folders'
-import LinksList from './source/links'
-import ListsList from './source/lists'
-import LocationList from './source/location'
-import OutlineList from './source/outline'
-import ServicesList from './source/services'
-import SourcesList from './source/sources'
-import SymbolsList from './source/symbols'
 const logger = createLogger('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
+const winleaveDalay = isVim ? 50 : 0
 
 export class ListManager implements Disposable {
   public prompt: Prompt
   public config: ListConfiguration
   public mappings: Mappings
   public db: DataBase
-  private nvim: Neovim
   private plugTs = 0
   private sessionsMap: Map<string, ListSession> = new Map()
   private lastSession: ListSession | undefined
@@ -51,8 +40,11 @@ export class ListManager implements Disposable {
     this.db = new DataBase()
   }
 
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
   public init(nvim: Neovim): void {
-    this.nvim = nvim
     this.config = new ListConfiguration()
     this.prompt = new Prompt(nvim, this.config)
     this.mappings = new Mappings(this, nvim, this.config)
@@ -75,7 +67,7 @@ export class ListManager implements Disposable {
       if (session) {
         setTimeout(() => {
           this.prompt.cancel()
-        }, workspace.isVim ? 50 : 0)
+        }, winleaveDalay)
       }
     }, null, this.disposables)
     this.disposables.push({
@@ -86,17 +78,22 @@ export class ListManager implements Disposable {
     this.prompt.onDidChangeInput(() => {
       this.session?.onInputChange()
     })
-    this.registerList(new LinksList(nvim), true)
-    this.registerList(new LocationList(nvim), true)
-    this.registerList(new SymbolsList(nvim), true)
-    this.registerList(new OutlineList(nvim), true)
-    this.registerList(new CommandsList(nvim), true)
-    this.registerList(new ExtensionList(nvim), true)
-    this.registerList(new DiagnosticsList(nvim, this), true)
-    this.registerList(new SourcesList(nvim), true)
-    this.registerList(new ServicesList(nvim), true)
-    this.registerList(new ListsList(nvim, this.listMap), true)
-    this.registerList(new FolderList(nvim), true)
+  }
+
+  public async registerLists(): Promise<void> {
+    await Promise.all([
+      import('./source/lists').then(module => { module.register(this, this.listMap) }),
+      import('./source/folders').then(module => { module.register(this) }),
+      import('./source/links').then(module => { module.register(this) }),
+      import('./source/services').then(module => { module.register(this) }),
+      import('./source/sources').then(module => { module.register(this) }),
+      import('./source/location').then(module => { module.register(this) }),
+      import('./source/symbols').then(module => { module.register(this) }),
+      import('./source/outline').then(module => { module.register(this) }),
+      import('./source/commands').then(module => { module.register(this) }),
+      import('./source/extensions').then(module => { module.register(this) }),
+      import('./source/diagnostics').then(module => { module.register(this) }),
+    ])
   }
 
   public async start(args: string[]): Promise<void> {
@@ -416,32 +413,29 @@ export class ListManager implements Disposable {
 
   public registerList(list: IList, internal = false): Disposable {
     let { name, interactive } = list
-    let exists = this.listMap.get(name)
     let id: string | undefined
-    if (!internal && !global.__TEST__) id = parseExtensionName(Error().stack)
-    const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
-    let toRemove: IConfigurationNode[] = []
-    if (this.listMap.has(name)) {
-      if (exists) {
-        let configNode = createConfigurationNode(name, interactive, id)
-        toRemove.push(configNode)
-        if (typeof exists.dispose == 'function') {
-          exists.dispose()
-        }
-        this.listMap.delete(name)
-      }
-      void window.showWarningMessage(`list "${name}" recreated.`)
-    }
+    if (!internal) id = getConditionValue(parseExtensionName(Error().stack), undefined)
+    let removed = this.deregisterList(name)
     this.listMap.set(name, list)
-    let configNode = createConfigurationNode(name, interactive, id)
-    configurationRegistry.updateConfigurations({ add: [configNode], remove: toRemove })
+    const configNode = createConfigurationNode(name, interactive, id)
+    if (!removed) workspace.configurations.updateConfigurations([configNode])
     return Disposable.create(() => {
-      if (typeof list.dispose == 'function') {
-        list.dispose()
-      }
+      this.deregisterList(name)
+      const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
       configurationRegistry.deregisterConfigurations([configNode])
-      this.listMap.delete(name)
     })
+  }
+
+  private deregisterList(name: string): boolean {
+    let exists = this.listMap.get(name)
+    if (exists) {
+      if (typeof exists.dispose == 'function') {
+        exists.dispose()
+      }
+      this.listMap.delete(name)
+      return true
+    }
+    return false
   }
 
   public get names(): string[] {

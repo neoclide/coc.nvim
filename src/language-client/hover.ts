@@ -1,12 +1,12 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Hover, HoverOptions, HoverRegistrationOptions, HoverRequest, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Hover, HoverOptions, HoverRegistrationOptions, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import languages from '../languages'
 import { HoverProvider, ProviderResult } from '../provider'
-import { ensure, FeatureClient } from './features'
+import { HoverRequest } from '../util/protocol'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
-import { TextDocumentLanguageFeature } from './features'
 
 export interface ProvideHoverSignature {
   (

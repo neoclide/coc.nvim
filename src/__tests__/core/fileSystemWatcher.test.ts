@@ -67,8 +67,8 @@ beforeAll(done => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
-  workspaceFolder.init()
-  watcherManager = new FileSystemWatcherManager(workspaceFolder, '')
+  watcherManager = new FileSystemWatcherManager(workspaceFolder, 'watchman')
+  Object.assign(watcherManager, { disabled: false })
   watcherManager.attach(helper.createNullChannel())
   // create a mock sever for watchman
   server = net.createServer(c => {
@@ -104,6 +104,7 @@ beforeAll(done => {
   server.listen(sockPath, () => {
     done()
   })
+  server.unref()
 })
 
 afterEach(async () => {
@@ -440,10 +441,20 @@ describe('create FileSystemWatcherManager', () => {
     let workspaceFolder = new WorkspaceFolderController(configurations)
     workspaceFolder.addWorkspaceFolder(cwd, false)
     let watcherManager = new FileSystemWatcherManager(workspaceFolder, '')
+    Object.assign(watcherManager, { disabled: false })
     watcherManager.attach(helper.createNullChannel())
     await watcherManager.createClient(os.tmpdir())
     await watcherManager.createClient(cwd)
     await watcherManager.waitClient(cwd)
     watcherManager.dispose()
+  })
+
+  it('should get watchman path', async () => {
+    let watcherManager = new FileSystemWatcherManager(workspaceFolder, 'invalid_command')
+    process.env.WATCHMAN_SOCK = ''
+    await expect(async () => {
+      await watcherManager.getWatchmanPath()
+    }).rejects.toThrow(Error)
+    process.env.WATCHMAN_SOCK = sockPath
   })
 })

@@ -1,9 +1,11 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, PrepareRenameRequest, PrepareSupportDefaultBehavior, Range, RenameOptions, RenameParams, RenameRegistrationOptions, RenameRequest, ServerCapabilities, TextDocumentPositionParams, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, RenameOptions, RenameParams, RenameRegistrationOptions, ServerCapabilities, TextDocumentPositionParams, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
+import { Position, Range } from 'vscode-languageserver-types'
 import languages from '../languages'
 import { ProviderResult, RenameProvider } from '../provider'
 import * as Is from '../util/is'
+import { PrepareRenameRequest, PrepareSupportDefaultBehavior, RenameRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'

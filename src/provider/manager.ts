@@ -1,8 +1,9 @@
 'use strict'
-import { Disposable, DocumentSelector, Location, LocationLink } from 'vscode-languageserver-protocol'
+import { Location, LocationLink } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import { LocationWithTarget, TextDocumentMatch } from '../types'
 import { equals } from '../util/object'
+import { Disposable, DocumentSelector } from '../util/protocol'
 import workspace from '../workspace'
 const logger = createLogger('provider-manager')
 

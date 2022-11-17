@@ -1,8 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import path from 'path'
-import { CancellationToken, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
+import { Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import channels from './core/channels'
 import { TextEditor } from './core/editors'
@@ -22,12 +20,15 @@ import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
 import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
-import { CONFIG_FILE_NAME } from './util'
+import { defaultValue } from './util'
 import { isFalsyOrEmpty } from './util/array'
+import { CONFIG_FILE_NAME } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
 import { Mutex } from './util/mutex'
+import { fs, path } from './util/node'
 import { equals, toObject } from './util/object'
 import { isWindows } from './util/platform'
+import { CancellationToken, Emitter, Event } from './util/protocol'
 import { toText } from './util/string'
 import { Workspace } from './workspace'
 let tab_global_id = 3000
@@ -49,6 +50,7 @@ function isSame(item: HighlightItem, curr: HighlightItemResult): boolean {
 
 export class Window {
   public mutex = new Mutex()
+  private nvim: Neovim
   private tabIds: number[] = []
   private statusLine: StatusLine | undefined
   private terminalManager: Terminals = new Terminals()
@@ -78,10 +80,6 @@ export class Window {
 
   public getTabId(nr: number): number | undefined {
     return this.tabIds[nr - 1]
-  }
-
-  public get nvim(): Neovim {
-    return this.workspace.nvim
   }
 
   public dispose(): void {
@@ -128,10 +126,10 @@ export class Window {
    * @returns {FloatFactory}
    */
   public createFloatFactory(conf: FloatWinConfig): FloatFactory {
-    let preferences = this.workspace.getConfiguration('coc.preferences')
-    let excludeImages = preferences.get<boolean>('excludeImageLinksInMarkdownDocument', true)
-    let c = this.workspace.getConfiguration('floatFactory')
-    let defaults = c.get<FloatConfig>('floatConfig', {})
+    let configuration = this.workspace.initialConfiguration
+    let preferences = configuration.get('coc.preferences') as any
+    let excludeImages = defaultValue(preferences.excludeImageLinksInMarkdownDocument, true)
+    let defaults = toObject(configuration.get('floatFactory.floatConfig')) as FloatConfig
     return ui.createFloatFactory(this.workspace.nvim, Object.assign({ excludeImages, maxWidth: 80 }, conf), defaults)
   }
 

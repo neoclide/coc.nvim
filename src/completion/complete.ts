@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event, Position, Range } from 'vscode-languageserver-protocol'
+import { Position, Range } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { CompleteOption, DurationCompleteItem, ISource, SourceType } from '../types'
@@ -9,6 +9,7 @@ import { isFalsyOrEmpty } from '../util/array'
 import { anyScore, FuzzyScore, fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
 import * as Is from '../util/is'
 import { clamp } from '../util/numbers'
+import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { characterIndex } from '../util/string'
 import { Converter, ConvertOption } from './util'
 import { WordDistance } from './wordDistance'
@@ -152,9 +153,9 @@ export default class Complete {
       logger.warn('suggest cancelled by b:coc_suggest_blacklist')
       return true
     }
-    WordDistance.create(this.config.localityBonus, this.option, token).then(instance => {
+    void WordDistance.create(this.config.localityBonus, this.option, token).then(instance => {
       this.wordDistance = instance
-    }).logError()
+    })
     await wait(clamp(this.config.triggerCompletionWait, 0, 50))
     await this.completeSources(this.sources, tokenSource, this.cid)
   }

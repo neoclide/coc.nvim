@@ -1,18 +1,19 @@
 'use strict'
-import path from 'path'
-import { CancellationToken, CancellationTokenSource, Emitter, Event, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
+import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import events from '../events'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { PatternType } from '../types'
 import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
 import { checkFolder, isParentFolder, resolveRoot } from '../util/fs'
+import { path } from '../util/node'
 import { toObject } from '../util/object'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, WorkspaceFoldersChangeEvent } from '../util/protocol'
 import { Registry } from '../util/registry'
-import { createLogger } from '../logger'
 const logger = createLogger('core-workspaceFolder')
 const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
 const checkPatternTimeout = global.__TEST__ ? 50 : 5000
@@ -44,9 +45,6 @@ export default class WorkspaceFolderController {
   private _workspaceFolders: WorkspaceFolder[] = []
   private _tokenSources: Set<CancellationTokenSource> = new Set()
   constructor(private configurations: Configurations) {
-  }
-
-  public init(): void {
     events.on('VimLeavePre', this.cancelAll, this)
     this.updateConfiguration(true)
     this.configurations.onDidChange(e => {
@@ -57,7 +55,7 @@ export default class WorkspaceFolderController {
   }
 
   private updateConfiguration(init: boolean): void {
-    const allConfig = this.configurations.getConfiguration(undefined, null)
+    const allConfig = this.configurations.initialConfiguration
     let config = allConfig.get<WorkspaceConfig>('workspace')
     let oldConfig = allConfig.get<string[] | null>('coc.preferences.rootPatterns')
     this.config = {

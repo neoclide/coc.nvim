@@ -4,13 +4,8 @@ Object.defineProperty(console, 'log', {
     if (logger) logger.info(...arguments)
   }
 })
-import './util/extensions'
-import attach from './attach'
-import { createLogger } from './logger'
+const { createLogger } = require('./logger/index')
 const logger = createLogger('server')
-
-attach({ reader: process.stdin, writer: process.stdout })
-
 process.on('uncaughtException', function(err) {
   let msg = 'Uncaught exception: ' + err.message
   console.error(msg)
@@ -25,3 +20,6 @@ process.on('unhandledRejection', function(reason, p) {
   }
   logger.error('unhandledRejection ', p, reason)
 })
+
+const attach = require('./attach').default
+attach({ reader: process.stdin, writer: process.stdout })

@@ -1,13 +1,13 @@
 'use strict'
-import minimatch from 'minimatch'
-import path from 'path'
-import { Disposable, Emitter, WorkspaceFolder, Event } from 'vscode-languageserver-protocol'
+import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
 import { GlobPattern, OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import { isParentFolder, sameFile } from '../util/fs'
+import { minimatch, path, which } from '../util/node'
+import { Disposable, Emitter, Event } from '../util/protocol'
 import Watchman, { FileChange } from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
 const logger = createLogger('fileSystemWatcher')
@@ -24,6 +24,7 @@ export class FileSystemWatcherManager {
   private creating: Set<string> = new Set()
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
+  private disabled = global.__TEST__
   public readonly onDidCreateClient: Event<string> = this._onDidCreateClient.event
   constructor(
     private workspaceFolder: WorkspaceFolderControl,
@@ -68,10 +69,11 @@ export class FileSystemWatcherManager {
   }
 
   public async createClient(root: string): Promise<void> {
-    if (this.watchmanPath == null || this.has(root)) return
+    if (this.watchmanPath == null || this.has(root) || this.disabled) return
     try {
+      let watchmanPath = await this.getWatchmanPath()
       this.creating.add(root)
-      let client = await Watchman.createClient(this.watchmanPath, root, this.channel)
+      let client = await Watchman.createClient(watchmanPath, root, this.channel)
       this.creating.delete(root)
       this.clientsMap.set(root, client)
       for (let watcher of FileSystemWatcherManager.watchers) {
@@ -80,8 +82,16 @@ export class FileSystemWatcherManager {
       this._onDidCreateClient.fire(root)
     } catch (e) {
       this.creating.delete(root)
-      if (this.channel) this.channel.appendLine(`Error on create watchman client:` + (e instanceof Error ? e.message : e))
+      if (this.channel) this.channel.appendLine(`Error on create watchman client: ${e}`)
     }
+  }
+
+  public async getWatchmanPath(): Promise<string> {
+    let watchmanPath = this.watchmanPath
+    if (!process.env.WATCHMAN_SOCK) {
+      watchmanPath = await which(this.watchmanPath, { all: false })
+    }
+    return watchmanPath
   }
 
   private has(root: string): boolean {
@@ -218,6 +228,7 @@ export class FileSystemWatcher implements Disposable {
       if (this._disposed) return disposable.dispose()
       this.disposables.push(disposable)
     }, e => {
+      if (e instanceof Error && e.message.includes('client was ended')) return
       logger.error(`Error on subscribe ${pattern}`, e)
     })
   }

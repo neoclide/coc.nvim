@@ -1,9 +1,13 @@
 'use strict'
-import * as minimatch from 'minimatch'
-import { CancellationToken, ClientCapabilities, CreateFilesParams, DeleteFilesParams, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternKind, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import type { IMinimatch, IOptions } from 'minimatch'
+import { minimatch } from '../util/node'
+import type { ClientCapabilities, CreateFilesParams, DeleteFilesParams, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileType, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
 import { getFileType } from '../util/fs'
+import {
+  CancellationToken, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, FileOperationPatternKind, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest
+} from '../util/protocol'
 import workspace from '../workspace'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
@@ -61,7 +65,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     string,
     Array<{
       scheme?: string
-      matcher: minimatch.IMinimatch
+      matcher: IMinimatch
       kind?: FileOperationPatternKind
     }>
   >()
@@ -193,7 +197,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
     return { ...event, files }
   }
 
-  public static asMinimatchOptions(options: FileOperationPatternOptions | undefined): minimatch.IOptions | undefined {
+  public static asMinimatchOptions(options: FileOperationPatternOptions | undefined): IOptions | undefined {
     if (options === undefined) {
       return undefined
     }

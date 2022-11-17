@@ -1,23 +1,24 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, Position } from 'vscode-languageserver-protocol'
+import { Position } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import { createLogger } from '../logger'
-import Document from '../model/document'
+import type Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, DurationCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
-import { disposeAll } from '../util'
+import { defaultValue, disposeAll } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { toNumber } from '../util/numbers'
 import { toObject } from '../util/object'
+import { CancellationToken, CancellationTokenSource, Disposable } from '../util/protocol'
 import { byteLength, byteSlice, characterIndex, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import Complete, { CompleteConfig } from './complete'
 import Floating from './floating'
 import PopupMenu, { PopupMenuConfig } from './pum'
-import { MruLoader, checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, shouldStop, toCompleteDoneItem } from './util'
+import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, MruLoader, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
 const RESOLVE_TIMEOUT = global.__TEST__ ? 50 : 500
 const TRIGGER_TIMEOUT = global.__TEST__ ? 20 : 200
@@ -31,7 +32,6 @@ export class Completion implements Disposable {
   public config: CompleteConfig
   private staticConfig: PopupMenuConfig
   private _activated = false
-  private nvim: Neovim
   private pum: PopupMenu
   private _mru: MruLoader
   private pretext: string | undefined
@@ -44,17 +44,19 @@ export class Completion implements Disposable {
   // Ordered items shown in the pum
   public activeItems: ReadonlyArray<DurationCompleteItem> = []
 
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
   public init(): void {
-    this.nvim = workspace.nvim
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     window.onDidChangeActiveTextEditor(e => {
-      this.loadLocallConfig(e.document)
+      this.loadLocalConfig(e.document)
     }, null, this.disposables)
     this._mru = new MruLoader()
-    this.pum = new PopupMenu(this.nvim, this.staticConfig, workspace.env, this._mru)
-    this.floating = new Floating(workspace.nvim, this.staticConfig)
-    workspace.nvim.call('coc#ui#check_pum_keymappings', [this.config.autoTrigger], true)
+    this.pum = new PopupMenu(this.staticConfig, this._mru)
+    this.floating = new Floating(this.staticConfig)
     events.on('CursorMovedI', this.onCursorMovedI, this, this.disposables)
     events.on('InsertLeave', () => {
       this.stop(true)
@@ -72,6 +74,7 @@ export class Completion implements Disposable {
       if (!item || !this.config.enableFloat || (!ev.move && this.complete?.isCompleting)) return
       await this.floating.resolveItem(item, this.option, this.createResolveToken())
     }, null, this.disposables)
+    this.nvim.call('coc#ui#check_pum_keymappings', [this.config.autoTrigger], true)
   }
 
   public get mru(): MruLoader {
@@ -130,7 +133,7 @@ export class Completion implements Disposable {
   /**
    * Configuration for current document
    */
-  private loadLocallConfig(doc?: Document): void {
+  private loadLocalConfig(doc?: Document): void {
     let suggest = workspace.getConfiguration('suggest', doc)
     this.config = {
       autoTrigger: suggest.get<string>('autoTrigger', 'always'),
@@ -158,8 +161,8 @@ export class Completion implements Disposable {
   private loadConfiguration(e?: IConfigurationChangeEvent): CompleteConfig {
     if (e && !e.affectsConfiguration('suggest')) return
     if (e) this.pum.reset()
-    let suggest = workspace.getConfiguration('suggest', null)
-    let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
+    let suggest = workspace.initialConfiguration.get('suggest') as any
+    let labels = defaultValue(suggest.completionItemKindLabels, {})
     this.staticConfig = Object.assign(this.staticConfig ?? {}, {
       kindMap: createKindMap(labels),
       defaultKindText: toText(labels['default']),
@@ -178,7 +181,7 @@ export class Completion implements Disposable {
       selection: suggest.selection
     })
     let doc = workspace.getDocument(workspace.bufnr)
-    this.loadLocallConfig(doc)
+    this.loadLocalConfig(doc)
   }
 
   public async startCompletion(option: CompleteOption, sourceList?: ISource[]): Promise<void> {

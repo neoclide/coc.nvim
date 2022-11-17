@@ -1,10 +1,9 @@
 'use strict'
-import fs from 'fs'
 import { applyEdits, modify } from 'jsonc-parser'
-import path from 'path'
-import { WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
+import { fs, path } from '../util/node'
 const logger = createLogger('configuration-shape')
 
 interface IFolderController {

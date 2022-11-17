@@ -1,9 +1,9 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import Notification, { NotificationPreferences } from './notification'
-import { CancellationToken, CancellationTokenSource, Event, Emitter } from 'vscode-languageserver-protocol'
 import events from '../events'
 import { createLogger } from '../logger'
+import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
+import Notification, { NotificationPreferences } from './notification'
 const logger = createLogger('model-progress')
 
 export interface Progress {

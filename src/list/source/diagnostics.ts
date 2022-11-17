@@ -1,9 +1,8 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
 import diagnosticManager from '../../diagnostic/manager'
 import { ListContext, ListItem } from '../../types'
 import { isParentFolder } from '../../util/fs'
+import { path } from '../../util/node'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
 import { ListManager } from '../manager'
 import LocationList from './location'
@@ -12,8 +11,8 @@ export default class DiagnosticsList extends LocationList {
   public readonly defaultAction = 'open'
   public readonly description = 'diagnostics of current workspace'
   public name = 'diagnostics'
-  public constructor(nvim: Neovim, manager: ListManager) {
-    super(nvim)
+  public constructor(manager: ListManager) {
+    super()
     diagnosticManager.onDidRefresh(async () => {
       let session = manager.getSession('diagnostics')
       if (session) await session.reloadItems()
@@ -56,3 +55,6 @@ export default class DiagnosticsList extends LocationList {
   }
 }
 
+export function register(manager: ListManager) {
+  manager.registerList(new DiagnosticsList(manager), true)
+}

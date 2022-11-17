@@ -1,5 +1,5 @@
 'use strict'
-import { Disposable } from 'vscode-languageserver-protocol'
+import type { Disposable } from '../util/protocol'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { v1 as uuidv1 } from 'uuid'
 
@@ -27,6 +27,7 @@ export default class StatusLine implements Disposable {
     this.interval = setInterval(() => {
       this.setStatusText()
     }, 100)
+    this.interval.unref()
   }
 
   public dispose(): void {

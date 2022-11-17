@@ -1,11 +1,12 @@
 'use strict'
-import { Buffer, Window } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, Disposable, DocumentSelector, Event, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import type { Buffer, Window } from '@chemzqm/neovim'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
+import { CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import type Document from './model/document'
 import type RelativePattern from './model/relativePattern'
 import type { ProviderResult } from './provider'
+import type { CancellationToken, Disposable, DocumentSelector, Event, TextDocumentSaveReason } from './util/protocol'
 
 export type GlobPattern = string | RelativePattern
 
@@ -13,6 +14,7 @@ declare global {
   namespace NodeJS {
     interface Global {
       __TEST__?: boolean
+      __starttime?: number
       REVISION?: string
       WebAssembly: any
     }

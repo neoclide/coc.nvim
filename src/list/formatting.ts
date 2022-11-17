@@ -1,6 +1,6 @@
 'use strict'
 import { ListItem } from '../types'
-import path from 'path'
+import { path } from '../util/node'
 
 export type PathFormatting = "full" | "short" | "filename" | "hidden"
 

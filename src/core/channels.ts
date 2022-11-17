@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable } from '../util/protocol'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import BufferChannel from '../model/outputChannel'

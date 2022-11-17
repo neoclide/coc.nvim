@@ -1,8 +1,9 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-types'
 import Document from '../model/document'
 import { IConfigurationChangeEvent } from '../types'
+import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import CursorSession, { CursorsConfig } from './session'
@@ -27,13 +28,8 @@ export default class Cursors {
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('cursors')) {
-      let config = workspace.getConfiguration('cursors', null)
-      this.config = Object.assign(this.config ?? {}, {
-        nextKey: config.get('nextKey', '<C-n>'),
-        previousKey: config.get('previousKey', '<C-p>'),
-        cancelKey: config.get('cancelKey', '<esc>'),
-        wrapscan: config.get('wrapscan', true),
-      })
+      let config = workspace.initialConfiguration
+      this.config = config.get<CursorsConfig>('cursors')
     }
   }
 

@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable } from '../util/protocol'
 import events from '../events'
 import { MessageItem } from '../types'
 import { disposeAll } from '../util'

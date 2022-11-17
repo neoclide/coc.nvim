@@ -1,9 +1,5 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import path from 'path'
-import util from 'util'
-import { Disposable, DocumentSelector } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extension'
 import { createLogger } from '../logger'
@@ -13,6 +9,8 @@ import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceCo
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { statAsync } from '../util/fs'
+import { fs, path, promisify } from '../util/node'
+import { Disposable, DocumentSelector } from '../util/protocol'
 import { byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -89,15 +87,11 @@ export class Sources {
 
   private createNativeSources(): void {
     this.sourceMap.set(this.wordsSource.name, this.wordsSource)
-    void import('./native/around').then(module => {
-      module.register(this.sourceMap, this.keywords)
-    })
-    void import('./native/buffer').then(module => {
-      module.register(this.sourceMap, this.keywords)
-    })
-    void import('./native/file').then(module => {
-      module.register(this.sourceMap)
-    })
+    void Promise.all([
+      import('./native/around').then(module => { module.register(this.sourceMap, this.keywords) }),
+      import('./native/buffer').then(module => { module.register(this.sourceMap, this.keywords) }),
+      import('./native/file').then(module => { module.register(this.sourceMap) })
+    ])
   }
 
   public createLanguageSource(
@@ -231,7 +225,7 @@ export class Sources {
     let folder = path.join(pluginPath, 'autoload/coc/source')
     let stat = await statAsync(folder)
     if (stat && stat.isDirectory()) {
-      let arr = await util.promisify(fs.readdir)(folder)
+      let arr = await promisify(fs.readdir)(folder)
       let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
       let results = await Promise.allSettled(files.map(p => this.createVimSourceExtension(this.nvim, p)))
       results.forEach(res => {

@@ -12,7 +12,7 @@ interface Timing {
  */
 export function createTiming(name: string, timeout?: number, trace = !global.__TEST__): Timing {
   let start: number
-  let timer
+  let timer: NodeJS.Timer
   let _label: string
   return {
     start(label?: string) {
@@ -23,6 +23,7 @@ export function createTiming(name: string, timeout?: number, trace = !global.__T
         timer = setTimeout(() => {
           logger.error(`${name} timeout after ${timeout}ms`)
         }, timeout)
+        timer.unref()
       }
     },
     stop() {

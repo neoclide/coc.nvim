@@ -1,19 +1,19 @@
 'use strict'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import { Diagnostic, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { Diagnostic } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import defaultSchema from '../../data/schema.json'
 import { createLogger } from '../logger'
 import { ConfigurationInspect, ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from '../types'
-import { CONFIG_FILE_NAME, disposeAll } from '../util'
+import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
+import { CONFIG_FILE_NAME } from '../util/constants'
 import { findUp, normalizeFilePath, sameFile, watchFile } from '../util/fs'
 import { objectLiteral } from '../util/is'
 import { Extensions as JSONExtensions, IJSONContributionRegistry } from '../util/jsonRegistry'
 import { IJSONSchema } from '../util/jsonSchema'
+import { fs, os, path } from '../util/node'
 import { deepFreeze, hasOwnProperty, mixin } from '../util/object'
+import { Disposable, Emitter, Event } from '../util/protocol'
 import { convertProperties, Registry } from '../util/registry'
 import { Configuration } from './configuration'
 import { ConfigurationChangeEvent } from './event'
@@ -21,13 +21,14 @@ import { ConfigurationModel } from './model'
 import { ConfigurationModelParser } from './parser'
 import { allSettings, Extensions, IConfigurationNode, IConfigurationRegistry, resourceSettings } from './registry'
 import { IConfigurationShape } from './shape'
-import { addToValueTree, convertTarget, scopeToOverrides } from './util'
+import { addToValueTree, convertTarget, lookUp, scopeToOverrides } from './util'
 const logger = createLogger('configurations')
 
 export const userSettingsSchemaId = 'vscode://schemas/settings/user'
 export const folderSettingsSchemaId = 'vscode://schemas/settings/folder'
 
 const jsonRegistry = Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONContribution)
+const configuration = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
 
 interface ConfigurationErrorEvent {
   uri: string,
@@ -42,6 +43,9 @@ export default class Configurations {
   private _onError = new Emitter<ConfigurationErrorEvent>()
   private _onChange = new Emitter<IConfigurationChangeEvent>()
   private disposables: Disposable[] = []
+  private _initialized = false
+  private cached: IConfigurationNode[] = []
+  private _initialConfiguration: WorkspaceConfiguration
 
   public readonly onError: Event<ConfigurationErrorEvent> = this._onError.event
   public readonly onDidChange: Event<IConfigurationChangeEvent> = this._onChange.event
@@ -58,6 +62,14 @@ export default class Configurations {
     this.watchFile(this.userConfigFile, ConfigurationTarget.User)
     let filepath = this.folderToConfigfile(cwd)
     if (filepath) this.addFolderFile(filepath, true)
+    this._initialConfiguration = this.getConfiguration(undefined, null)
+  }
+
+  /**
+   * Contains default and user configuration only
+   */
+  public get initialConfiguration(): WorkspaceConfiguration {
+    return this._initialConfiguration
   }
 
   public get errors(): Map<string, Diagnostic[]> {
@@ -68,25 +80,56 @@ export default class Configurations {
     return this._configuration
   }
 
+  public flushConfigurations(): void {
+    this._initialized = true
+    configuration.registerConfigurations(this.cached)
+    this.cached = []
+  }
+
+  public updateConfigurations(add: IConfigurationNode[], remove?: IConfigurationNode[]): void {
+    if (this._initialized) {
+      if (!isFalsyOrEmpty(remove)) {
+        configuration.updateConfigurations({ add, remove })
+      } else {
+        configuration.registerConfigurations(add)
+      }
+    } else {
+      this.cached.push(...add)
+    }
+  }
+
   private loadDefaultConfigurations(): ConfigurationModel {
     // register properties and listen events
-    let configuration = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
     let node: IConfigurationNode = { properties: convertProperties(defaultSchema.properties) }
     configuration.registerConfiguration(node)
     configuration.onDidUpdateConfiguration(e => {
       if (e.properties.length === 0) return
       // update default configuration with new value
-      let dict = configuration.getConfigurationProperties()
-      let model = this._configuration.defaults.clone()
+      const dict = configuration.getConfigurationProperties()
+      const toRemove: string[] = []
+      const root = Object.create(null)
+      const keys: string[] = []
       for (let key of e.properties) {
         let def = dict[key]
         if (def) {
-          model.setValue(key, def.default)
+          keys.push(key)
+          let val = def.default
+          addToValueTree(root, key, val, msg => {
+            logger.error(`Conflict configuration: ${msg}`)
+          })
         } else {
-          model.removeValue(key)
+          toRemove.push(key)
         }
       }
-      this.changeConfiguration(ConfigurationTarget.Default, model, undefined, e.properties)
+      const model = this._configuration.defaults.merge(new ConfigurationModel(root, keys))
+      toRemove.forEach(key => { model.removeValue(key) })
+      if (!this._initialized) {
+        // no change event fired
+        this._configuration.updateDefaultConfiguration(model)
+      } else {
+        let properties = e.properties.filter(key => !key.startsWith('list.source'))
+        this.changeConfiguration(ConfigurationTarget.Default, model, undefined, properties)
+      }
     }, null, this.disposables)
     let properties = configuration.getConfigurationProperties()
     let config = {}
@@ -219,6 +262,9 @@ export default class Configurations {
     if (!change || change.keys.length == 0) return
     let ev = new ConfigurationChangeEvent(change, previous, configuration)
     ev.source = target
+    if (target !== ConfigurationTarget.WorkspaceFolder) {
+      this._initialConfiguration = this.getConfiguration(undefined, null)
+    }
     this._onChange.fire(ev)
   }
 
@@ -367,17 +413,4 @@ export default class Configurations {
     this._onChange.dispose()
     disposeAll(this.disposables)
   }
-}
-
-function lookUp(tree: any, key: string): any {
-  if (key) {
-    if (tree && hasOwnProperty(tree, key)) return tree[key]
-    const parts = key.split('.')
-    let node = tree
-    for (let i = 0; node && i < parts.length; i++) {
-      node = node[parts[i]]
-    }
-    return node
-  }
-  return tree
 }

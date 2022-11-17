@@ -1,18 +1,18 @@
 'use strict'
-import path from 'path'
 import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import which from 'which'
 import languages from '../../languages'
 import Document from '../../model/document'
-import { ListContext, ListItem, ListArgument } from '../../types'
-import { writeFile } from '../../util/fs'
-import workspace from '../../workspace'
-import LocationList from './location'
+import { ListArgument, ListContext, ListItem } from '../../types'
 import { getSymbolKind } from '../../util/convert'
-import { CancellationToken } from 'vscode-languageserver-protocol'
-import { formatListItems, UnformattedListItem } from '../formatting'
+import { writeFile } from '../../util/fs'
+import { path, which } from '../../util/node'
 import { runCommand } from '../../util/processes'
+import type { CancellationToken } from '../../util/protocol'
+import workspace from '../../workspace'
+import { formatListItems, UnformattedListItem } from '../formatting'
+import { ListManager } from '../manager'
+import LocationList from './location'
 
 function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {
   return `${s.name}${kind ? ` ${kind}` : ''}`
@@ -157,4 +157,8 @@ function sortSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
     return ra.start.line - rb.start.line
   }
   return ra.start.character - rb.start.character
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new Outline(), true)
 }

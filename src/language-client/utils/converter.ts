@@ -1,11 +1,11 @@
 'use strict'
-import { CancellationToken, CodeLensParams, CompletionContext, CompletionItem, CompletionList, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, InsertReplaceEdit, Position, Range, ReferenceParams, RelativePattern, SignatureHelpContext, SignatureHelpParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
+import type { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSymbolParams, ReferenceParams, RelativePattern, SignatureHelpContext, SignatureHelpParams, TextDocumentPositionParams, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, TextDocumentIdentifier, TextDocumentItem, VersionedTextDocumentIdentifier } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { DidChangeTextDocumentParams as TextDocumentChangeEvent, TextDocumentWillSaveEvent } from '../../types'
-import { waitImmediate } from '../../util'
-import { omit } from '../../util/lodash'
 import RelativePatternImpl from '../../model/relativePattern'
+import { DidChangeTextDocumentParams as TextDocumentChangeEvent, TextDocumentWillSaveEvent } from '../../types'
+import { omit } from '../../util/lodash'
 
 export function convertToTextDocumentItem(document: TextDocument): TextDocumentItem {
   return {

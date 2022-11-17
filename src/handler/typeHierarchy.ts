@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Position, TypeHierarchyItem } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, TypeHierarchyItem } from 'vscode-languageserver-types'
 import commands from '../commands'
 import events from '../events'
 import languages from '../languages'
@@ -12,6 +12,7 @@ import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../typ
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
+import { CancellationToken, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 

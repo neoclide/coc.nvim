@@ -1,6 +1,7 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, MarkupContent, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event } from '../util/protocol'
+import { MarkupContent } from 'vscode-languageserver-types'
 import commandsManager from '../commands'
 import { ProviderResult } from '../provider'
 import { disposeAll } from '../util'

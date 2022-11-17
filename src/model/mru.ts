@@ -1,7 +1,5 @@
 'use strict'
-import path from 'path'
-import fs from 'fs'
-import { promisify } from 'util'
+import { fs, path, promisify } from '../util/node'
 import { readFileLines, writeFile } from '../util/fs'
 import { distinct } from '../util/array'
 

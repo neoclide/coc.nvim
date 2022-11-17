@@ -23,6 +23,9 @@ function! coc#rpc#start_server()
   if !coc#client#is_running('coc')
     call s:client['start']()
   endif
+  if s:client['running'] && v:vim_did_enter
+    call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
+  endif
 endfunction
 
 function! coc#rpc#started() abort

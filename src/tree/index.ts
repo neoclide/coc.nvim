@@ -1,6 +1,6 @@
 'use strict'
-import { Disposable, Event, CancellationToken } from 'vscode-languageserver-protocol'
-import { ProviderResult } from '../provider'
+import type { Disposable, Event, CancellationToken } from '../util/protocol'
+import type { ProviderResult } from '../provider'
 import { TreeItem, TreeItemCollapsibleState } from './TreeItem'
 
 export { TreeItem, TreeItemCollapsibleState }

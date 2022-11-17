@@ -1,21 +1,21 @@
 'use strict'
 import { Buffer, Neovim, VimValue } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import { Disposable, Emitter, Event, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { Buffer as NodeBuffer } from 'buffer'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
 import { disposeAll, wait, waitNextTick } from '../util/index'
-import path from 'path'
+import { isUrl } from '../util/is'
+import { debounce, path } from '../util/node'
 import { equals } from '../util/object'
 import { comparePosition, emptyRange } from '../util/position'
+import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex, byteLength, byteSlice, characterIndex } from '../util/string'
 import { applyEdits, filterSortEdits, getPositionFromEdits, getStartLine, mergeTextEdits, TextChangeItem, toTextChanges } from '../util/textedit'
 import { Chars } from './chars'
 import { LinesTextDocument } from './textdocument'
-import { isUrl } from '../util/is'
-import { Buffer as NodeBuffer } from 'buffer'
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
 
@@ -314,8 +314,7 @@ export default class Document {
     let original = lines.slice(changed.start, changed.end)
     let changes: TextChangeItem[] = []
     // avoid out of range and lines replacement.
-    if (this.nvim.hasFunction('nvim_buf_set_text')
-      && edits.length < 200
+    if (edits.length < 200
       && changed.start !== changed.end
       && edits[edits.length - 1].range.end.line < lines.length + (this.eol ? 0 : 1)
     ) {

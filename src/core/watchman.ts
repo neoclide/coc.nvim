@@ -1,13 +1,11 @@
 'use strict'
-import watchman, { Client } from 'fb-watchman'
-import minimatch from 'minimatch'
-import os from 'os'
-import path from 'path'
+import type { Client } from 'fb-watchman'
 import { v1 as uuidv1 } from 'uuid'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
 import { isParentFolder } from '../util/fs'
-import { createLogger } from '../logger'
+import { minimatch, os, path } from '../util/node'
+import { Disposable } from '../util/protocol'
 const logger = createLogger('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
@@ -47,6 +45,7 @@ export default class Watchman {
   private _disposed = false
 
   constructor(binaryPath: string, private channel?: OutputChannel) {
+    const watchman = require('fb-watchman')
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })

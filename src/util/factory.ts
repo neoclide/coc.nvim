@@ -1,8 +1,6 @@
 'use strict'
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import fs from 'fs'
-import path from 'path'
-import * as vm from 'vm'
+import { fs, path, vm } from '../util/node'
 import { createLogger } from '../logger'
 import { defaults } from './lodash'
 

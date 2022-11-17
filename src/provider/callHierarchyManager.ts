@@ -1,6 +1,7 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, Disposable, DocumentSelector, Position } from 'vscode-languageserver-protocol'
+import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, Position } from 'vscode-languageserver-types'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyProvider } from './index'
 import Manager from './manager'

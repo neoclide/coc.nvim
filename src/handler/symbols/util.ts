@@ -1,5 +1,5 @@
 'use strict'
-import { DocumentSymbol, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-protocol'
+import { DocumentSymbol, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-types'
 import { getSymbolKind } from '../../util/convert'
 import { comparePosition } from '../../util/position'
 

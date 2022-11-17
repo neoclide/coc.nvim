@@ -1,9 +1,9 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import BufferSync from '../../model/bufferSync'
 import { disposeAll } from '../../util'
+import type { Disposable } from '../../util/protocol'
 import workspace from '../../workspace'
 import CodeLensBuffer from './buffer'
 
@@ -15,8 +15,8 @@ export default class CodeLensManager {
   public buffers: BufferSync<CodeLensBuffer>
   constructor(private nvim: Neovim) {
     workspace.onDidChangeConfiguration(e => {
-      for (let item of this.buffers.items) {
-        if (e.affectsConfiguration('codeLens', item.document)) {
+      if (e.affectsConfiguration('codeLens')) {
+        for (let item of this.buffers.items) {
           item.loadConfiguration()
         }
       }

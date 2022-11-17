@@ -1,11 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import unidecode from 'unidecode'
+import { createLogger } from '../logger'
 import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
+import { unidecode } from '../util/node'
 import { getCharIndexes } from '../util/string'
 import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode, prepareMatchCode, UltiSnippetContext } from './eval'
-import { createLogger } from '../logger'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
 

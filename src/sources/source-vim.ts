@@ -1,12 +1,13 @@
 'use strict'
-import { CancellationToken, Range } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-types'
+import { getLineAndPosition } from '../core/ui'
+import snippetManager from '../snippets/manager'
 import { CompleteOption, CompleteResult, DurationCompleteItem, ExtendedCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
+import { CancellationToken } from '../util/protocol'
 import { byteSlice, characterIndex } from '../util/string'
-import snippetManager from '../snippets/manager'
 import workspace from '../workspace'
 import Source from './source'
-import { getLineAndPosition } from '../core/ui'
 
 export default class VimSource extends Source {
 

@@ -1,9 +1,10 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, InlineValue, InlineValueContext, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { InlineValue, InlineValueContext, Range } from 'vscode-languageserver-types'
 import { InlineValuesProvider } from '.'
 import { equals } from '../util/object'
+import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import Manager from './manager'
 
 export default class InlineValueManager extends Manager<InlineValuesProvider> {

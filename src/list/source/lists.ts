@@ -1,9 +1,12 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import { IList, ListContext, ListItem } from '../../types'
-import BasicList from '../basic'
 import Mru from '../../model/mru'
+import { IList, ListContext, ListItem } from '../../types'
+import { isVim } from '../../util/constants'
+import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
+import { ListManager } from '../manager'
+
+const delay = isVim ? 50 : 0
 
 export default class ListsList extends BasicList {
   public readonly name = 'lists'
@@ -11,15 +14,15 @@ export default class ListsList extends BasicList {
   public readonly description = 'registered lists of coc.nvim'
   private mru: Mru = new Mru('lists')
 
-  constructor(nvim: Neovim, private readonly listMap: Map<string, IList>) {
+  constructor(private readonly listMap: Map<string, IList>) {
     super()
 
     this.addAction('open', async item => {
       let { name } = item.data
       await this.mru.add(name)
       setTimeout(() => {
-        nvim.command(`CocList ${name}`, true)
-      }, nvim.isVim ? 50 : 0)
+        this.nvim.command(`CocList ${name}`, true)
+      }, delay)
     })
   }
 
@@ -53,4 +56,8 @@ export default class ListsList extends BasicList {
 function score(list: string[], key: string): number {
   let idx = list.indexOf(key)
   return idx == -1 ? -1 : list.length - idx
+}
+
+export function register(manager: ListManager, listMap: Map<string, IList>) {
+  manager.registerList(new ListsList(listMap), true)
 }

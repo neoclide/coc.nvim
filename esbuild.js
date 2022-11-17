@@ -19,9 +19,9 @@ async function start(watch) {
     define: {REVISION: '"' + revision + '"', ESBUILD: 'true', 'global.__TEST__': false},
     mainFields: ['module', 'main'],
     platform: 'node',
+    treeShaking: true,
     target: 'node14.14',
     charset: 'utf8',
-    drop: process.env.NODE_ENV === 'production' ? ['debugger'] : [],
     banner: {
       js: `global.__starttime = Date.now();`
     },

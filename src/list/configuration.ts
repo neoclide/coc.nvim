@@ -1,8 +1,8 @@
 'use strict'
 import workspace from '../workspace'
 import window from '../window'
-import { WorkspaceConfiguration } from '../types'
 import { EventEmitter } from 'events'
+import { ConfigurationTarget } from '../types'
 
 export const validKeys = [
   '<esc>',
@@ -79,20 +79,14 @@ export const validKeys = [
   '<A-z>',
 ]
 
-let configuration: WorkspaceConfiguration
-
 export default class ListConfiguration extends EventEmitter {
   constructor() {
     super()
-    if (!configuration) {
-      configuration = workspace.getConfiguration('list')
-      workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('list')) {
-          configuration = workspace.getConfiguration('list')
-          this.emit('change')
-        }
-      })
-    }
+    workspace.onDidChangeConfiguration(e => {
+      if (e.source !== ConfigurationTarget.Default && e.affectsConfiguration('list')) {
+        this.emit('change')
+      }
+    })
   }
 
   public get floatPreview(): boolean {
@@ -104,15 +98,16 @@ export default class ListConfiguration extends EventEmitter {
   }
 
   public get<T>(key: string, defaultValue?: T): T {
-    return configuration.get<T>(key, defaultValue)
+    let configuration = workspace.initialConfiguration
+    return configuration.get<T>('list.' + key, defaultValue)
   }
 
   public get previousKey(): string {
-    return this.fixKey(configuration.get<string>('previousKeymap', '<C-j>'))
+    return this.fixKey(this.get<string>('previousKeymap', '<C-j>'))
   }
 
   public get nextKey(): string {
-    return this.fixKey(configuration.get<string>('nextKeymap', '<C-k>'))
+    return this.fixKey(this.get<string>('nextKeymap', '<C-k>'))
   }
 
   public fixKey(key: string): string {

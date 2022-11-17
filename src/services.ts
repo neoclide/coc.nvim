@@ -1,18 +1,18 @@
 'use strict'
 import { SpawnOptions } from 'child_process'
-import fs from 'fs'
-import net from 'net'
-import path from 'path'
-import { CancellationToken, Disposable, DocumentSelector, Emitter, Event, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import type { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { createLogger } from './logger'
 import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
+import { fs, net, path } from './util/node'
 import { toObject } from './util/object'
-import window from './window'
+import { CancellationToken, Disposable, DocumentSelector, Emitter, Event } from './util/protocol'
 import workspace from './workspace'
+import window from './window'
+import events from './events'
 const logger = createLogger('services')
 
 interface ServiceInfo {
@@ -61,7 +61,7 @@ export interface IServiceProvider {
   selector: DocumentSelector
   // current state
   state: ServiceStat
-  start(): Promise<void>
+  start(): Promise<void> | void
   dispose(): void
   stop(): Promise<void> | void
   restart(): Promise<void> | void
@@ -78,6 +78,10 @@ class ServiceManager implements Disposable {
   private disposables: Disposable[] = []
   private pendingNotifications: Map<string, NotificationItem[]> = new Map()
 
+  constructor() {
+    this.registLanguageClient = this.registerLanguageClient
+  }
+
   public init(): void {
     workspace.onDidOpenTextDocument(document => {
       void this.start(document)
@@ -90,18 +94,24 @@ class ServiceManager implements Disposable {
     workspace.onDidChangeWorkspaceFolders(e => {
       iterate(e.added)
     }, null, this.disposables)
+    // `languageserver.${name}`
     // Global configured languageserver
-    let lspConfig = workspace.getConfiguration(undefined, null).get<{ key: LanguageServerConfig }>('languageserver', {} as any)
+    let lspConfig = workspace.initialConfiguration.get<{ key: LanguageServerConfig }>('languageserver', {} as any)
     this.registerClientsByConfig(lspConfig)
     iterate(workspace.workspaceFolders)
-    this.registLanguageClient = this.registerLanguageClient
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('languageserver')) {
+        let lspConfig = workspace.getConfiguration('languageserver', null)
+        this.registerClientsByConfig(lspConfig)
+      }
+    }, null, this.disposables)
   }
 
   private registerClientsFromFolder(workspaceFolder: WorkspaceFolder): void {
     let uri = URI.parse(workspaceFolder.uri)
     let lspConfig = workspace.getConfiguration(undefined, uri)
     let config = lspConfig.inspect('languageserver').workspaceFolderValue
-    if (config) this.registerClientsByConfig(config as { [key: string]: LanguageServerConfig }, uri)
+    this.registerClientsByConfig(config as { [key: string]: LanguageServerConfig }, uri)
   }
 
   public regist(service: IServiceProvider): Disposable {
@@ -112,10 +122,7 @@ class ServiceManager implements Disposable {
     let { id } = service
     if (this.registered.get(id)) return
     this.registered.set(id, service)
-    if (this.shouldStart(service)) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      service.start()
-    }
+    this.tryStartService(service)
     service.onServiceReady(() => {
       logger.info(`service ${id} started`)
     }, null, this.disposables)
@@ -124,6 +131,19 @@ class ServiceManager implements Disposable {
       service.dispose()
       this.registered.delete(id)
     })
+  }
+
+  public tryStartService(service: IServiceProvider): void {
+    if (!events.ready) {
+      let disposable = events.on('ready', () => {
+        disposable.dispose()
+        if (this.shouldStart(service)) {
+          void service.start()
+        }
+      })
+    } else if (this.shouldStart(service)) {
+      void service.start()
+    }
   }
 
   public getService(id: string): IServiceProvider {
@@ -440,7 +460,7 @@ export function isValidServerConfig(key: string, config: Partial<LanguageServerC
     errors.push(`"additionalSchemes" field of languageserver ${key} should be array of string`)
   }
   if (errors.length) {
-    void window.showErrorMessage(errors.join('\n'))
+    logger.error(`Invalid language server configuration for ${key}`, errors.join('\n'))
     return false
   }
   return true

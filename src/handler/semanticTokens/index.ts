@@ -1,6 +1,5 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import type { Neovim } from '@chemzqm/neovim'
 import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
@@ -9,6 +8,7 @@ import Highlighter from '../../model/highligher'
 import { Documentation, FloatFactory } from '../../types'
 import { disposeAll } from '../../util'
 import { distinct } from '../../util/array'
+import type { Disposable } from '../../util/protocol'
 import { upperFirst } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -30,8 +30,8 @@ export default class SemanticTokens {
       border: [1, 1, 1, 1]
     })
     workspace.onDidChangeConfiguration(e => {
-      for (let item of this.highlighters.items) {
-        if (e.affectsConfiguration('semanticTokens'), item.doc) {
+      if (e.affectsConfiguration('semanticTokens')) {
+        for (let item of this.highlighters.items) {
           item.loadConfiguration()
         }
       }

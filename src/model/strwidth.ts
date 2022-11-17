@@ -1,5 +1,4 @@
-import path from 'path'
-import fs from 'fs'
+import { fs, path, promisify } from '../util/node'
 
 export interface StrWidthWasi {
   strWidth: (textPtr: number) => number
@@ -14,7 +13,7 @@ export interface StrWidthWasi {
 const wasmPath = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/strwidth.wasm')
 
 export async function initStrWidthWasm(): Promise<StrWidthWasi> {
-  const buffer = fs.readFileSync(wasmPath)
+  const buffer = await promisify(fs.readFile)(wasmPath)
   const res = await global.WebAssembly.instantiate(buffer, { env: {} })
   return res.instance.exports as StrWidthWasi
 }

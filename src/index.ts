@@ -1,145 +1,63 @@
 'use strict'
+import {
+  AnnotatedTextEdit, ChangeAnnotation, ChangeAnnotationIdentifier, CodeAction, CodeActionContext, CodeActionKind,
+  CodeActionTriggerKind, CodeDescription, CodeLens, Color,
+  ColorInformation,
+  ColorPresentation, Command, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag,
+  CompletionList, CreateFile, DeleteFile, Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DiagnosticTag, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, DocumentUri, FoldingRange, FoldingRangeKind, FormattingOptions, Hover, InlayHint, InlayHintKind,
+  InlayHintLabelPart, InlineValueContext, InlineValueEvaluatableExpression, InlineValueText,
+  InlineValueVariableLookup, InsertReplaceEdit, InsertTextFormat, InsertTextMode, integer, Location,
+  LocationLink, MarkedString, MarkupContent, MarkupKind, OptionalVersionedTextDocumentIdentifier, ParameterInformation, Position,
+  Range, RenameFile, SelectionRange, SemanticTokenModifiers,
+  SemanticTokens, SemanticTokenTypes, SignatureInformation,
+  SymbolInformation, SymbolKind, SymbolTag, TextDocumentEdit, TextDocumentIdentifier, TextDocumentItem, TextEdit, uinteger, VersionedTextDocumentIdentifier, WorkspaceChange, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbol
+} from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
 import commands from './commands'
+import diagnosticManager from './diagnostic/manager'
 import events from './events'
+import extensions from './extension'
 import languages from './languages'
-import Mru from './model/mru'
-import FloatFactory from './model/floatFactory'
-import fetch from './model/fetch'
+import BasicList from './list/basic'
+import listManager from './list/manager'
 import download from './model/download'
+import fetch from './model/fetch'
+import FloatFactory from './model/floatFactory'
 import Highligher from './model/highligher'
+import Mru from './model/mru'
 import RelativePattern from './model/relativePattern'
 import services from './services'
-import sources from './sources/index'
-import workspace from './workspace'
-import window from './window'
-import extensions from './extension'
-import listManager from './list/manager'
 import snippetManager from './snippets/manager'
 import { SnippetString } from './snippets/string'
-import diagnosticManager from './diagnostic/manager'
+import sources from './sources/index'
 import { ansiparse } from './util/ansiparse'
 import { CancellationError } from './util/errors'
-import BasicList from './list/basic'
 import { Mutex } from './util/mutex'
-import { URI } from 'vscode-uri'
 import {
-  DocumentUri,
-  Trace,
-  WorkspaceFolder,
-  AnnotatedTextEdit,
-  WorkspaceSymbol,
-  CodeActionKind,
-  CodeActionTriggerKind,
-  Disposable,
-  Position,
-  Range,
-  TextEdit,
-  TextDocumentEdit,
-  RequestType,
-  RequestType0,
-  NotificationType,
-  NotificationType0,
-  Event,
   CancellationToken,
-  CancellationTokenSource,
-  Emitter,
-  Diagnostic,
-  DiagnosticSeverity,
-  CompletionItemKind,
-  InsertTextFormat,
-  Location,
-  LocationLink,
-  MarkupKind,
-  FileChangeType,
-  SignatureHelpTriggerKind,
-  SymbolKind,
-  DocumentHighlightKind,
-  CompletionTriggerKind,
-  DiagnosticTag,
-  ProgressType,
-  UniquenessLevel,
-  SymbolTag,
-  ErrorCodes,
-  ResponseError,
-  Color,
-  ColorInformation,
-  ColorPresentation,
-  ChangeAnnotation,
-  CodeDescription,
-  Command,
-  CompletionItemTag,
-  CompletionList,
-  DocumentHighlight,
-  CodeAction,
-  CodeLens,
-  DiagnosticRelatedInformation,
-  DocumentLink,
-  MonikerKind,
-  DocumentDiagnosticReportKind,
-  ProtocolRequestType,
-  ProtocolRequestType0,
-  ProtocolNotificationType,
-  ProtocolNotificationType0,
-  TextDocumentIdentifier,
-  CreateFile,
-  RenameFile,
-  WorkspaceEdit,
-  WorkspaceChange,
-  VersionedTextDocumentIdentifier,
-  TextDocumentItem,
-  MarkupContent,
-  InsertReplaceEdit,
-  InsertTextMode,
-  CompletionItem,
-  Hover,
-  ParameterInformation,
-  SignatureInformation,
-  SymbolInformation,
-  DocumentSymbol,
-  CodeActionContext,
-  FormattingOptions,
-  SelectionRange,
-  SemanticTokenTypes,
-  SemanticTokenModifiers,
-  SemanticTokens,
-  InlineValueText,
-  InlineValueVariableLookup,
-  InlineValueEvaluatableExpression,
-  InlineValueContext,
-  InlayHintKind,
-  InlayHintLabelPart,
-  InlayHint,
-  OptionalVersionedTextDocumentIdentifier,
-  integer,
-  uinteger,
-  FoldingRangeKind,
-  FoldingRange,
-  ChangeAnnotationIdentifier,
-  DeleteFile,
-  CompletionItemLabelDetails,
-  MarkedString,
-} from 'vscode-languageserver-protocol'
+  CancellationTokenSource, CompletionTriggerKind, Disposable, DocumentDiagnosticReportKind, Emitter, ErrorCodes, Event, FileChangeType, MonikerKind, NotificationType,
+  NotificationType0, ProgressType, ProtocolNotificationType,
+  ProtocolNotificationType0, ProtocolRequestType,
+  ProtocolRequestType0, RequestType,
+  RequestType0, ResponseError, SignatureHelpTriggerKind, Trace, UniquenessLevel
+} from './util/protocol'
+import window from './window'
+import workspace from './workspace'
 
-import { PatternType, SourceType, MessageLevel, ConfigurationUpdateTarget, ServiceStat, FileType, ProviderName } from './types'
 import {
-  State,
-  NullLogger,
   ClientState,
   CloseAction,
-  ErrorAction,
-  TransportKind,
-  SettingMonitor,
-  LanguageClient,
-  MessageTransports,
-  RevealOutputChannelOn,
+  ErrorAction, LanguageClient,
+  MessageTransports, NullLogger, RevealOutputChannelOn, SettingMonitor, State, TransportKind
 } from './language-client'
+import { ConfigurationUpdateTarget, FileType, MessageLevel, PatternType, ProviderName, ServiceStat, SourceType } from './types'
 
-import { disposeAll, concurrent, wait } from './util'
-import { isRunning, terminate, executable, runCommand } from './util/processes'
-import { watchFile } from './util/fs'
-import { TreeItem, TreeItemCollapsibleState } from './tree/index'
-import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
 import LineBuilder from './model/line'
+import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
+import { TreeItem, TreeItemCollapsibleState } from './tree/index'
+import { concurrent, disposeAll, wait } from './util'
+import { watchFile } from './util/fs'
+import { executable, isRunning, runCommand, terminate } from './util/processes'
 
 module.exports = {
   Uri: URI,

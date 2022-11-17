@@ -1,8 +1,9 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, Position, SignatureHelp, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Position, SignatureHelp } from 'vscode-languageserver-types'
 import { isFalsyOrEmpty } from '../util/array'
+import type { CancellationToken, Disposable, DocumentSelector, SignatureHelpContext } from '../util/protocol'
 import { SignatureHelpProvider } from './index'
 import Manager from './manager'
 

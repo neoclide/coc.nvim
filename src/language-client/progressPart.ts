@@ -1,6 +1,7 @@
 'use strict'
-import { Disposable, NotificationHandler, ProgressToken, ProgressType, ProtocolNotificationType, WorkDoneProgress, WorkDoneProgressBegin, WorkDoneProgressCancelNotification, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
+import type { Disposable, NotificationHandler, ProgressToken, ProgressType, ProtocolNotificationType, WorkDoneProgressBegin, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../util'
+import { WorkDoneProgress, WorkDoneProgressCancelNotification } from '../util/protocol'
 import window from '../window'
 
 export interface Progress {

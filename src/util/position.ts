@@ -1,5 +1,5 @@
 'use strict'
-import { Position, Range } from 'vscode-languageserver-protocol'
+import { Position, Range } from 'vscode-languageserver-types'
 
 export function rangeInRange(r: Range, range: Range): boolean {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0

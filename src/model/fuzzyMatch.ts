@@ -1,7 +1,6 @@
-import fs from 'fs'
-import path from 'path'
 import { AnsiHighlight } from '../types'
 import { anyScore, fuzzyScore, FuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScoreOptions, FuzzyScorer } from '../util/filter'
+import { fs, path, promisify } from '../util/node'
 import { bytes } from '../util/string'
 
 export interface FuzzyWasi {
@@ -27,9 +26,10 @@ export interface MatchHighlights {
   highlights: AnsiHighlight[]
 }
 
+const wasmFile = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/fuzzy.wasm')
+
 export async function initFuzzyWasm(): Promise<FuzzyWasi> {
-  const filePath = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/fuzzy.wasm')
-  const buffer = fs.readFileSync(filePath)
+  const buffer = await promisify(fs.readFile)(wasmFile)
   const res = await global.WebAssembly.instantiate(buffer, { env: {} })
   return res.instance.exports as FuzzyWasi
 }

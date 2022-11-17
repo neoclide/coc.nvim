@@ -1,9 +1,9 @@
 'use strict'
-import TerminalModel, { TerminalOptions } from '../model/terminal'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
-import { disposeAll } from '../util'
 import events from '../events'
+import TerminalModel, { TerminalOptions } from '../model/terminal'
+import { disposeAll } from '../util'
+import { Disposable, Emitter, Event } from '../util/protocol'
 
 export default class Terminals {
   private _terminals: Map<number, TerminalModel> = new Map()

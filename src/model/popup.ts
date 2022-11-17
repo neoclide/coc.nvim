@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-const isVim = process.env.VIM_NODE_RPC == '1'
+import { isVim } from '../util/constants'
 
 interface WindowInfo {
   botline: number,

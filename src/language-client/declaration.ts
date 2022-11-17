@@ -1,8 +1,9 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Declaration, DeclarationLink, DeclarationOptions, DeclarationRegistrationOptions, DeclarationRequest, Disposable, DocumentSelector, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Declaration, DeclarationLink, DeclarationOptions, DeclarationRegistrationOptions, Disposable, DocumentSelector, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { DeclarationProvider, ProviderResult } from '../provider'
+import { DeclarationRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import { asTextDocumentPositionParams } from './utils/converter'
 

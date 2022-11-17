@@ -1,5 +1,5 @@
 'use strict'
-import path from 'path'
+import { path } from '../util/node'
 import { isFalsyOrEmpty, toArray } from './array'
 import { isParentFolder, sameFile } from './fs'
 import { Registry } from './registry'

@@ -3,7 +3,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { Range, DiagnosticSeverity, Diagnostic, DiagnosticTag, Position, TextEdit } from 'vscode-languageserver-types'
 import workspace from '../../workspace'
-import window from '../../window'
 
 let nvim: Neovim
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
@@ -45,8 +44,7 @@ describe('diagnostic buffer', () => {
 
     it('should not show float in insert mode', async () => {
       let doc = await workspace.document
-      let floatFactory = window.createFloatFactory({ autoHide: true })
-      let buf = new DiagnosticBuffer(nvim, doc, floatFactory)
+      let buf = new DiagnosticBuffer(nvim, doc)
       await nvim.input('i')
       let mode = await nvim.mode
       expect(mode.mode).toBe('i')

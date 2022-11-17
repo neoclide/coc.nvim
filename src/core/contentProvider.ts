@@ -1,10 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import { TextDocumentContentProvider } from '../provider'
 import { disposeAll } from '../util'
+import { CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import Documents from './documents'
 
 export default class ContentProvider implements Disposable {

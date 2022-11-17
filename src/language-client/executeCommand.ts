@@ -1,5 +1,6 @@
 'use strict'
-import { Disposable, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ClientCapabilities, ServerCapabilities, RegistrationType, ExecuteCommandParams, CancellationToken } from 'vscode-languageserver-protocol'
+import type { Disposable, ExecuteCommandRegistrationOptions, ClientCapabilities, ServerCapabilities, RegistrationType, ExecuteCommandParams } from 'vscode-languageserver-protocol'
+import { ExecuteCommandRequest, CancellationToken } from '../util/protocol'
 import { ProviderResult } from '../provider'
 import { ensure, RegistrationData, DynamicFeature, FeatureClient, FeatureState, BaseFeature } from './features'
 import commands from '../commands'

@@ -1,5 +1,5 @@
 'use strict'
-import { Disposable, RAL } from 'vscode-languageserver-protocol'
+import { Disposable, RAL } from '../../util/protocol'
 
 export interface ITask<T> {
   (): T

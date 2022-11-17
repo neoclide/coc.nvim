@@ -1,6 +1,5 @@
 'use strict'
-import fs from 'fs'
-import path from 'path'
+import { fs, path } from '../util/node'
 
 export default class DB {
   constructor(public readonly filepath: string) {

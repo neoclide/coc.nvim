@@ -1,18 +1,16 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken } from 'vscode-languageserver-protocol'
 import { createLogger } from '../logger'
 import { parseDocuments } from '../markdown'
 import sources from '../sources'
 import { CompleteOption, Documentation, DurationCompleteItem, FloatConfig } from '../types'
+import { defaultValue } from '../util'
 import { isCancellationError } from '../util/errors'
+import { CancellationToken } from '../util/protocol'
 import workspace from '../workspace'
 const logger = createLogger('completion-floating')
 
 export default class Floating {
-  private excludeImages = true
-  constructor(private nvim: Neovim, private config: { floatConfig: FloatConfig }) {
-    this.excludeImages = workspace.getConfiguration('coc.preferences').get<boolean>('excludeImageLinksInMarkdownDocument')
+  constructor(private config: { floatConfig: FloatConfig }) {
   }
 
   public async resolveItem(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
@@ -31,7 +29,8 @@ export default class Floating {
     if (docs.length === 0) {
       this.close()
     } else {
-      let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: this.excludeImages })
+      const excludeImages = defaultValue<boolean>(workspace.initialConfiguration.get('coc.preferences.excludeImageLinksInMarkdownDocument'), true)
+      let { lines, codes, highlights } = parseDocuments(docs, { excludeImages })
       let opts: any = {
         codes,
         highlights,
@@ -44,8 +43,9 @@ export default class Floating {
       if (config.border) opts.border = [1, 1, 1, 1]
       if (config.borderhighlight) opts.borderhighlight = config.borderhighlight
       if (typeof config.winblend === 'number') opts.winblend = config.winblend
-      this.nvim.call('coc#dialog#create_pum_float', [lines, opts], true)
-      this.nvim.redrawVim()
+      let { nvim } = workspace
+      nvim.call('coc#dialog#create_pum_float', [lines, opts], true)
+      nvim.redrawVim()
     }
   }
 
@@ -60,6 +60,6 @@ export default class Floating {
   }
 
   public close(): void {
-    this.nvim.call('coc#pum#close_detail', [], true)
+    workspace.nvim.call('coc#pum#close_detail', [], true)
   }
 }

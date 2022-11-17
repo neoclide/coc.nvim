@@ -1,18 +1,13 @@
 'use strict'
-import { spawn } from 'child_process'
 import { EventEmitter } from 'events'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import readline from 'readline'
-import semver from 'semver'
-import { v4 as uuid } from 'uuid'
 import { URL } from 'url'
+import { v4 as uuid } from 'uuid'
+import { createLogger } from '../logger'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
-import workspace from '../workspace'
 import { loadJson } from '../util/fs'
-import { createLogger } from '../logger'
+import { child_process, fs, os, path, readline, semver } from '../util/node'
+import workspace from '../workspace'
 const logger = createLogger('extension-installer')
 const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']
 
@@ -240,7 +235,7 @@ export class Installer extends EventEmitter implements IInstaller {
     return new Promise<void>((resolve, reject) => {
       let args = this.getInstallArguments(this.npm, this.url)
       this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
-      const child = spawn(this.npm, args, {
+      const child = child_process.spawn(this.npm, args, {
         cwd: folder,
         env: Object.assign(process.env, { NODE_ENV: 'production' })
       })

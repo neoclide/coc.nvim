@@ -1,7 +1,8 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, RegistrationType, ServerCapabilities, SymbolInformation, WorkspaceSymbolRegistrationOptions, WorkspaceSymbolRequest, WorkspaceSymbolResolveRequest } from "vscode-languageserver-protocol"
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, RegistrationType, ServerCapabilities, SymbolInformation, WorkspaceSymbolRegistrationOptions } from "vscode-languageserver-protocol"
 import languages from "../languages"
 import { ProviderResult, WorkspaceSymbolProvider } from "../provider"
+import { WorkspaceSymbolRequest, WorkspaceSymbolResolveRequest } from '../util/protocol'
 import { SupportedSymbolKinds, SupportedSymbolTags } from './documentSymbol'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, RegistrationData } from './features'
 import * as UUID from './utils/uuid'

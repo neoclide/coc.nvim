@@ -3,7 +3,7 @@ import { marked } from 'marked'
 import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteIndex, byteLength } from '../util/string'
-import stripAnsi from 'strip-ansi'
+import { stripAnsi } from '../util/node'
 import { HighlightItem, Documentation } from '../types'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 

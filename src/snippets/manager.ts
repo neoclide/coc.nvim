@@ -1,11 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import events from '../events'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
+import { defaultValue } from '../util'
 import { deepClone } from '../util/object'
 import { emptyRange, rangeInRange, rangeOverlap } from '../util/position'
+import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { UltiSnippetContext } from './eval'
@@ -16,27 +18,14 @@ import { SnippetString } from './string'
 export class SnippetManager {
   private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
-  private statusItem: StatusBarItem
+  private _statusItem: StatusBarItem
 
-  private get nvim(): Neovim {
-    return workspace.nvim
-  }
-
-  public init(): void {
+  constructor() {
     events.on('InsertCharPre', (_, bufnr: number) => {
       // avoid update session when pumvisible
       // Update may cause completion unexpected terminated.
       let session = this.getSession(bufnr)
       if (session) session.cancel()
-    }, null, this.disposables)
-    window.onDidChangeActiveTextEditor(e => {
-      if (!this.statusItem) return
-      let session = this.getSession(e.document.bufnr)
-      if (session) {
-        this.statusItem.show()
-      } else {
-        this.statusItem.hide()
-      }
     }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
       let session = this.getSession(bufnr)
@@ -46,9 +35,27 @@ export class SnippetManager {
       let session = this.getSession(e.bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
-    if (!this.statusItem) this.statusItem = window.createStatusBarItem(0)
-    const snippetConfig = workspace.getConfiguration('snippet')
-    this.statusItem.text = snippetConfig.get<string>('statusText', '')
+  }
+
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
+  private get statusItem(): StatusBarItem {
+    if (this._statusItem) return this._statusItem
+    let statusItem = this._statusItem = window.createStatusBarItem(0)
+    const snippetConfig = workspace.initialConfiguration.get('snippet') as any
+    statusItem.text = defaultValue(snippetConfig.statusText, '')
+    window.onDidChangeActiveTextEditor(e => {
+      if (!this.statusItem) return
+      let session = this.getSession(e.document.bufnr)
+      if (session) {
+        statusItem.show()
+      } else {
+        statusItem.hide()
+      }
+    }, null, this.disposables)
+    return this._statusItem
   }
 
   private getSnippetConfig(resource: string): SnippetConfig {

@@ -1,6 +1,6 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, Position, ReferenceContext } from 'vscode-languageserver-protocol'
+import type { CancellationToken, Disposable, DocumentSelector, Position, ReferenceContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LocationWithTarget } from '../types'
 import { ReferenceProvider } from './index'

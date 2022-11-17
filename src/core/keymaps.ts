@@ -1,10 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { v1 as uuid } from 'uuid'
-import { Disposable } from 'vscode-languageserver-protocol'
-import { KeymapOption } from '../types'
-import Documents from './documents'
 import { createLogger } from '../logger'
+import { KeymapOption } from '../types'
+import { Disposable } from '../util/protocol'
+import Documents from './documents'
 const logger = createLogger('core-keymaps')
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
@@ -90,7 +90,7 @@ export default class Keymaps {
     let modify = getKeymapModifier(mode)
     // neoivm's bug '<' can't be used.
     let escaped = key.startsWith('<') && key.endsWith('>') ? `{${key.slice(1, -1)}}` : key
-    if (this.nvim.hasFunction('nvim_buf_set_keymap') && !global.__TEST__) {
+    if (!this.nvim.isVim) {
       nvim.call('nvim_buf_set_keymap', [0, mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}', '', '${escaped}'])<CR>`, {
         silent: true,
         nowait: true

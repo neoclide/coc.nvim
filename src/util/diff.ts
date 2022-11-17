@@ -1,6 +1,6 @@
 'use strict'
-import fastDiff from 'fast-diff'
-import { Position, TextEdit, Range } from 'vscode-languageserver-types'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { fastDiff } from './node'
 import { byteLength } from './string'
 
 export interface ChangedLines {

@@ -1,13 +1,12 @@
 'use strict'
-import {
-  ClientCapabilities, CancellationToken, CodeLens, ServerCapabilities, DocumentSelector, CodeLensOptions, CodeLensRegistrationOptions, CodeLensRequest, CodeLensRefreshRequest, CodeLensResolveRequest, Emitter, Disposable
-} from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, CodeLens, CodeLensOptions, CodeLensRegistrationOptions, Disposable, DocumentSelector, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import * as UUID from './utils/uuid'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
-import { CodeLensProvider, ProviderResult } from '../provider'
-import * as cv from './utils/converter'
 import languages from '../languages'
+import { CodeLensProvider, ProviderResult } from '../provider'
+import { CodeLensRefreshRequest, Emitter, CodeLensRequest, CodeLensResolveRequest } from '../util/protocol'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
+import * as cv from './utils/converter'
+import * as UUID from './utils/uuid'
 
 export interface ProvideCodeLensesSignature {
   (this: void, document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>

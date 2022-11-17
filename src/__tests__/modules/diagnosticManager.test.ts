@@ -59,7 +59,7 @@ async function createDocument(name?: string): Promise<Document> {
 
 describe('diagnostic manager', () => {
   describe('defineSigns', () => {
-    it('should defineSigns', async () => {
+    it('should defineSigns', () => {
       manager.defineSigns({
         enableHighlightLineNumber: false
       })

@@ -1,18 +1,19 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fastDiff from 'fast-diff'
-import { Disposable, Emitter, Event, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { Range, TextEdit } from 'vscode-languageserver-types'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, HighlightItem } from '../types'
 import { disposeAll } from '../util'
+import { fastDiff } from '../util/node'
 import { comparePosition, emptyRange, rangeAdjacent, rangeInRange, rangeIntersect, rangeOverlap } from '../util/position'
+import { Disposable, Emitter, Event } from '../util/protocol'
 import { lineCountChange } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import TextRange from './textRange'
 import { getBeforeCount, getChange, getDelta, SurrondChange, TextChange } from './util'
-import { createLogger } from '../logger'
 const logger = createLogger('cursors-session')
 
 export interface CursorsConfig {

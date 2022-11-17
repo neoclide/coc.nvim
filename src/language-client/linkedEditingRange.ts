@@ -1,8 +1,9 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, LinkedEditingRangeOptions, LinkedEditingRangeRegistrationOptions, LinkedEditingRangeRequest, LinkedEditingRanges, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, LinkedEditingRangeOptions, LinkedEditingRangeRegistrationOptions, LinkedEditingRanges, Position, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { LinkedEditingRangeProvider, ProviderResult } from '../provider'
+import { LinkedEditingRangeRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 

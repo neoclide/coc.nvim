@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { createLogger } from '../logger'
 import { FuzzyMatch } from '../model/fuzzyMatch'
 import { IList, ListContext, ListItem, ListItemsEvent, ListItemWithScore, ListOptions, ListTask } from '../types'

@@ -1,11 +1,12 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
+import { DocumentLink, Range } from 'vscode-languageserver-types'
 import events from '../events'
 import languages from '../languages'
-import { IConfigurationChangeEvent, Documentation, FloatFactory, HandlerDelegate, ProviderName } from '../types'
+import { Documentation, FloatFactory, HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
 import { disposeAll } from '../util'
 import { positionInRange } from '../util/position'
+import { CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 
@@ -20,7 +21,7 @@ export default class Links implements Disposable {
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
     this.floatFactory = window.createFloatFactory({})
     events.on('CursorHold', async () => {
-      if (!this._tooltip || !nvim.hasFunction('nvim_get_keymap')) return
+      if (!this._tooltip || nvim.isVim) return
       await this.showTooltip()
     }, null, this.disposables)
     events.on(['CursorMoved', 'InsertEnter'], () => {

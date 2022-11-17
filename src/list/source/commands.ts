@@ -1,5 +1,4 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../../commands'
 import Mru from '../../model/mru'
 import { ListContext, ListItem } from '../../types'
@@ -8,6 +7,7 @@ import { Registry } from '../../util/registry'
 import workspace from '../../workspace'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
+import { ListManager } from '../manager'
 
 const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
 
@@ -17,7 +17,7 @@ export default class CommandsList extends BasicList {
   public readonly name = 'commands'
   private mru: Mru
 
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
     this.mru = workspace.createMru('commands')
     this.addAction('run', async item => {
@@ -25,7 +25,7 @@ export default class CommandsList extends BasicList {
     })
     this.addAction('append', async item => {
       let { cmd } = item.data
-      await nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false)
+      await workspace.nvim.feedKeys(`:CocCommand ${cmd} `, 'n', false)
     })
   }
 
@@ -62,4 +62,8 @@ export default class CommandsList extends BasicList {
 function score(list: string[], key: string): number {
   let idx = list.indexOf(key)
   return idx == -1 ? -1 : list.length - idx
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new CommandsList(), true)
 }

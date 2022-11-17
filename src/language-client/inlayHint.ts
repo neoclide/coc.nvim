@@ -1,11 +1,12 @@
 'use strict'
-import {
-  CancellationToken, ClientCapabilities, InlayHint, Disposable, DocumentSelector, Emitter, InlayHintOptions, InlayHintParams, InlayHintRefreshRequest, InlayHintRegistrationOptions, InlayHintRequest, InlayHintResolveRequest, Range, ServerCapabilities
+import type {
+  CancellationToken, ClientCapabilities, Disposable, DocumentSelector, InlayHint, InlayHintOptions, InlayHintParams, InlayHintRegistrationOptions, Range, ServerCapabilities
 } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { InlayHintsProvider, ProviderResult } from '../provider'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
+import { Emitter, InlayHintRefreshRequest, InlayHintRequest, InlayHintResolveRequest } from '../util/protocol'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 
 export type ProvideInlayHintsSignature = (this: void, document: TextDocument, viewPort: Range, token: CancellationToken) => ProviderResult<InlayHint[]>

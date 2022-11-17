@@ -1,12 +1,10 @@
 'use strict'
-import { ChildProcess, exec, ExecOptions } from 'child_process'
+import type { ChildProcess, ExecOptions } from 'child_process'
 import { CancellationError } from './errors'
+import { child_process, path, which } from './node'
 import { platform, Platform } from './platform'
-import cp from 'child_process'
-import which from 'which'
-import { join, dirname, resolve } from 'path'
 
-const pluginRoot = global.__TEST__ ? resolve(__dirname, '../..') : dirname(__dirname)
+const pluginRoot = global.__TEST__ ? path.resolve(__dirname, '../..') : path.dirname(__dirname)
 
 export function isRunning(pid: number): boolean {
   try {
@@ -41,7 +39,7 @@ export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number
         reject(new CancellationError())
       }, timeout * 1000)
     }
-    cp = exec(cmd, opts, (err, stdout, stderr) => {
+    cp = child_process.exec(cmd, opts, (err, stdout, stderr) => {
       if (timer) clearTimeout(timer)
       if (err) {
         reject(new Error(`exited with ${err.code}\n${err}\n${stderr}`))
@@ -64,7 +62,7 @@ export function terminate(process: ChildProcess, cwd?: string, pt = platform): b
       }
       if (cwd) options.cwd = cwd
 
-      cp.execFileSync(
+      child_process.execFileSync(
         'taskkill',
         ['/T', '/F', '/PID', process.pid.toString()],
         options
@@ -75,8 +73,8 @@ export function terminate(process: ChildProcess, cwd?: string, pt = platform): b
     }
   } else if (pt === Platform.Linux || pt === Platform.Mac) {
     try {
-      let filepath = join(pluginRoot, 'bin/terminateProcess.sh')
-      let result = cp.spawnSync(filepath, [process.pid.toString()])
+      let filepath = path.join(pluginRoot, 'bin/terminateProcess.sh')
+      let result = child_process.spawnSync(filepath, [process.pid.toString()])
       return result.error ? false : true
     } catch (err) {
       return false

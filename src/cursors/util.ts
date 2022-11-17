@@ -1,5 +1,5 @@
 'use strict'
-import { Range } from 'vscode-languageserver-protocol'
+import { Range } from 'vscode-languageserver-types'
 import Document from '../model/document'
 import { equals } from '../util/object'
 import { getWellformedRange } from '../util/textedit'

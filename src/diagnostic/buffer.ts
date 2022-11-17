@@ -1,12 +1,13 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Emitter, Event, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Position, TextEdit } from 'vscode-languageserver-types'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem, LocationListItem, VirtualTextOption } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { lineInRange, positionInRange } from '../util/position'
+import { Emitter, Event } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 import { adjustDiagnostics, DiagnosticConfig, formatDiagnostic, getHighlightGroup, getLocationListItem, getNameFromSeverity, getSeverityType, severityLevel, sortDiagnostics } from './util'
@@ -35,6 +36,8 @@ const delay = global.__TEST__ ? 10 : 500
 const aleMethod = global.__TEST__ ? 'MockAleResults' : 'ale#other_source#ShowResults'
 let virtualTextSrcId: number | undefined
 
+let floatFactory: FloatFactory
+
 /**
  * Manage diagnostics of buffer, including:
  *
@@ -55,8 +58,7 @@ export class DiagnosticBuffer implements SyncItem {
   public readonly onDidRefresh: Event<ReadonlyArray<Diagnostic>> = this._onDidRefresh.event
   constructor(
     private readonly nvim: Neovim,
-    public readonly doc: Document,
-    private floatFactory?: FloatFactory
+    public readonly doc: Document
   ) {
     this.loadConfiguration()
     let timer: NodeJS.Timer
@@ -245,11 +247,11 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   private async checkFloat(): Promise<void> {
-    if (workspace.bufnr != this.bufnr) return
+    if (workspace.bufnr != this.bufnr || !floatFactory) return
     let pos = await window.getCursorPosition()
     let diagnostics = this.getDiagnosticsAtPosition(pos)
-    if (diagnostics.length == 0 && this.floatFactory) {
-      this.floatFactory.close()
+    if (diagnostics.length == 0) {
+      floatFactory.close()
     }
   }
 
@@ -268,6 +270,12 @@ export class DiagnosticBuffer implements SyncItem {
     }
     this._dirties = new Set(diagnosticsMap.keys())
     await this._refresh(false)
+  }
+
+  public async onCursorHold(lnum: number, col: number): Promise<void> {
+    if (this.config.enableMessage !== 'always') return
+    let pos = this.doc.getPosition(lnum, col)
+    await this.echoMessage(true, pos)
   }
 
   /**
@@ -308,9 +316,10 @@ export class DiagnosticBuffer implements SyncItem {
   }
 
   public async showFloat(diagnostics: Diagnostic[]): Promise<boolean> {
-    if (this.config.messageTarget !== 'float' || !this.floatFactory) return false
+    if (this.config.messageTarget !== 'float') return false
+    if (!floatFactory) floatFactory = window.createFloatFactory({ modes: ['n'], autoHide: true })
     if (diagnostics.length == 0) {
-      this.floatFactory.close()
+      floatFactory.close()
       return false
     }
     if (events.insertMode) return false
@@ -344,7 +353,7 @@ export class DiagnosticBuffer implements SyncItem {
         docs.push({ filetype: 'txt', content: diagnostic.codeDescription.href })
       }
     })
-    await this.floatFactory.show(docs, this.config.floatConfig)
+    await floatFactory.show(docs, this.config.floatConfig)
     return true
   }
 

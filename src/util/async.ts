@@ -1,4 +1,4 @@
-import { CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken } from '../util/protocol'
 
 const defaultYieldTimeout = 15
 

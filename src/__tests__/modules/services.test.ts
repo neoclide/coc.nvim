@@ -12,6 +12,7 @@ import services, { convertState, documentSelectorToLanguageIds, getDocumentSelec
 import { ServiceStat } from '../../types'
 import { disposeAll } from '../../util'
 import { Workspace } from '../../workspace'
+import events from '../../events'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -188,6 +189,30 @@ describe('services', () => {
   })
 
   describe('start()', () => {
+    it('should delay start when not plugin not ready', async () => {
+      Object.assign(events, { _ready: false })
+      let called = false
+      services.tryStartService({
+        id: 'test',
+        start: () => {
+          called = true
+        }
+      } as any)
+      let started = false
+      services.tryStartService({
+        id: 'test',
+        state: ServiceStat.Initial,
+        selector: [{ language: '*' }],
+        start: () => {
+          started = true
+        }
+      } as any)
+
+      await events.fire('ready', [])
+      expect(called).toBe(false)
+      expect(started).toBe(true)
+    })
+
     it('should start language client on by document', async () => {
       const serverOptions: ServerOptions = {
         module: serverModule,

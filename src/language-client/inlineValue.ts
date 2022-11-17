@@ -1,10 +1,11 @@
 'use strict'
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Emitter, InlineValue, InlineValueContext, InlineValueOptions, InlineValueParams, InlineValueRefreshRequest, InlineValueRegistrationOptions, InlineValueRequest, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, InlineValue, InlineValueContext, InlineValueOptions, InlineValueParams, InlineValueRegistrationOptions, Range, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import languages from '../languages'
 import { InlineValuesProvider, ProviderResult } from '../provider'
+import { Emitter, InlineValueRefreshRequest, InlineValueRequest } from '../util/protocol'
+import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
-import { TextDocumentLanguageFeature, FeatureClient, ensure } from './features'
 
 export type ProvideInlineValuesSignature = (this: void, document: TextDocument, viewPort: Range, context: InlineValueContext, token: CancellationToken) => ProviderResult<InlineValue[]>
 

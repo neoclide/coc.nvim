@@ -1,13 +1,15 @@
 'use strict'
-import debounce from 'debounce'
-import { CancellationTokenSource, Disposable, DocumentSymbol, Emitter, Event, SymbolTag, TextDocument } from 'vscode-languageserver-protocol'
+import { debounce } from '../../util/node'
+import { DocumentSymbol, SymbolTag } from 'vscode-languageserver-types'
 import languages from '../../languages'
+import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
+import type { LinesTextDocument } from '../../model/textdocument'
 import { DidChangeTextDocumentParams } from '../../types'
 import { disposeAll } from '../../util'
+import { CancellationTokenSource, Disposable, Emitter, Event } from '../../util/protocol'
 import workspace from '../../workspace'
 import { isDocumentSymbols } from './util'
-import { createLogger } from '../../logger'
 const logger = createLogger('symbols-buffer')
 
 const DEBEBOUNCE_INTERVAL = global.__TEST__ ? 10 : 500
@@ -51,7 +53,7 @@ export default class SymbolsBuffer implements SyncItem {
     }
   }
 
-  private get textDocument(): TextDocument | undefined {
+  private get textDocument(): LinesTextDocument | undefined {
     return workspace.getDocument(this.bufnr)?.textDocument
   }
 

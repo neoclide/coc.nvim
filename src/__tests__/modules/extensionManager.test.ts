@@ -563,13 +563,8 @@ describe('ExtensionManager', () => {
         throw new Error('my error')
       })
       manager.registerExtensions([{
-        id: 'id',
-        version: '0.0.1',
         root: __filename,
-        exotic: false,
-        state: 'unknown',
         isLocal: false,
-        isLocked: false,
         packageJSON: {} as any
       }])
       spy.mockRestore()

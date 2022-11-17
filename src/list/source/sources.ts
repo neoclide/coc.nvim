@@ -1,19 +1,18 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import sources from '../../sources'
-import { ListContext, ListItem } from '../../types'
+import { ListItem } from '../../types'
 import BasicList from '../basic'
+import { ListManager } from '../manager'
 
 export default class SourcesList extends BasicList {
   public readonly defaultAction = 'toggle'
   public readonly description = 'registered completion sources'
   public readonly name = 'sources'
 
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
-
     this.addAction('toggle', async item => {
       let { name } = item.data
       sources.toggleSource(name)
@@ -30,8 +29,7 @@ export default class SourcesList extends BasicList {
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
+  public async loadItems(): Promise<ListItem[]> {
     let stats = sources.sourceStats()
     stats.sort((a, b) => {
       if (a.type != b.type) return a.type < b.type ? 1 : -1
@@ -73,4 +71,8 @@ function fixWidth(str: string, width: number): string {
     return str.slice(0, width - 1) + '.'
   }
   return str + ' '.repeat(width - str.length)
+}
+
+export function register(manager: ListManager) {
+  manager.registerList(new SourcesList(), true)
 }

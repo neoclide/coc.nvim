@@ -2,8 +2,7 @@
  * First byte tables length,
  * 4 * table_length each table byte length.
  */
-import fs from 'fs'
-import path from 'path'
+import { fs, path } from '../util/node'
 import { createLogger } from '../logger'
 import { byteLength, byteSlice } from '../util/string'
 const logger = createLogger('list-db')

@@ -1,12 +1,13 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
-import { CancellationTokenSource, CodeLens, Command } from 'vscode-languageserver-protocol'
+import type { Neovim } from '@chemzqm/neovim'
+import { CodeLens, Command } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import { DidChangeTextDocumentParams, ProviderName } from '../../types'
+import { debounce } from '../../util/node'
+import { CancellationTokenSource } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
 
@@ -51,7 +52,7 @@ export default class CodeLensBuffer implements SyncItem {
 
   public loadConfiguration(): void {
     let config = workspace.getConfiguration('codeLens', this.document)
-    let enable = this.nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', false)
+    let enable = workspace.isNvim && config.get<boolean>('enable', false)
     this.config = {
       enabled: enable,
       position: config.get<'top' | 'eol'>('position', 'top'),
@@ -90,6 +91,7 @@ export default class CodeLensBuffer implements SyncItem {
   }
 
   private async fetchCodeLenses(): Promise<void> {
+    if (!this.config) this.loadConfiguration()
     if (!this.enabled) return
     let noFetch = this.codeLenses?.version == this.document.version
     if (!noFetch) {

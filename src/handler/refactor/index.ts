@@ -1,6 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event, Location, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { Location, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import { Disposable, Emitter, Event } from '../../util/protocol'
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import languages from '../../languages'
@@ -14,9 +15,9 @@ import Search from './search'
 
 const name = '__coc_refactor__'
 let refactorId = 0
+let srcId: number
 
 export default class Refactor {
-  private srcId: number
   private buffers: Map<number, RefactorBuffer> = new Map()
   public config: RefactorConfig
   private disposables: Disposable[] = []
@@ -39,12 +40,6 @@ export default class Refactor {
       let buf = this.buffers.get(e.bufnr)
       if (buf) buf.onChange(e)
     }, null, this.disposables)
-  }
-
-  public async init(): Promise<void> {
-    if (workspace.isNvim && this.nvim.hasFunction('nvim_create_namespace')) {
-      this.srcId = await this.nvim.createNamespace('coc-refactor')
-    }
   }
 
   public has(bufnr: number): boolean {
@@ -112,6 +107,7 @@ export default class Refactor {
     let { nvim } = this
     let [fromWinid, cwd] = await nvim.eval('[win_getid(),getcwd()]') as [number, string]
     let { openCommand } = this.config
+    if (!nvim.isVim && !srcId) srcId = await this.nvim.createNamespace('coc-refactor')
     nvim.pauseNotification()
     nvim.command(`${openCommand} ${name}${refactorId++}`, true)
     nvim.command(`setl buftype=acwrite nobuflisted bufhidden=wipe nofen wrap conceallevel=2 concealcursor=n`, true)
@@ -128,7 +124,7 @@ export default class Refactor {
     let [bufnr, win] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
     let opts = { fromWinid, winid: win, cwd }
     await workspace.document
-    let buf = new RefactorBuffer(bufnr, conceal ? undefined : this.srcId, this.nvim, this.config, opts)
+    let buf = new RefactorBuffer(bufnr, conceal ? undefined : srcId, this.nvim, this.config, opts)
     this.buffers.set(bufnr, buf)
     return buf
   }

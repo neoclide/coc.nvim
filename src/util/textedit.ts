@@ -1,5 +1,5 @@
 'use strict'
-import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
 import { toObject } from './object'

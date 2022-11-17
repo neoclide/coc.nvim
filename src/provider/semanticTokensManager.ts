@@ -1,7 +1,8 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { SemanticTokens, SemanticTokensDelta, SemanticTokensLegend } from 'vscode-languageserver-types'
+import type { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
 import { DocumentSemanticTokensProvider } from './index'
 import Manager from './manager'
 

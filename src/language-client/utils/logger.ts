@@ -1,5 +1,5 @@
 'use strict'
-import { Logger } from 'vscode-languageserver-protocol'
+import type { Logger } from 'vscode-languageserver-protocol'
 import { createLogger } from '../../logger'
 const logger = createLogger('language-client')
 

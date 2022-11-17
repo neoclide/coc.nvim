@@ -1,12 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import { Disposable } from 'vscode-languageserver-protocol'
 import { Autocmd } from '../types'
 import { disposeAll } from '../util'
+import { fs, os, path } from '../util/node'
 import * as platform from '../util/platform'
+import { Disposable } from '../util/protocol'
 import ContentProvider from './contentProvider'
 import Watchers from './watchers'
 
@@ -81,7 +79,7 @@ augroup coc_dynamic_autocmd
   autocmd!
   ${cmds.join('\n  ')}
 augroup end`
-    if (this.nvim.hasFunction('nvim_exec')) {
+    if (!this.nvim.isVim) {
       void this.nvim.exec(content, false)
     } else {
       let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)

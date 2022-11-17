@@ -1,17 +1,17 @@
 'use strict'
 import decompressResponse from 'decompress-response'
 import { http, https } from 'follow-redirects'
-import fs from 'fs'
 import createHttpProxyAgent, { HttpProxyAgent } from 'http-proxy-agent'
 import createHttpsProxyAgent, { HttpsProxyAgent } from 'https-proxy-agent'
 import { ParsedUrlQueryInput, stringify } from 'querystring'
 import { Readable } from 'stream'
 import { URL } from 'url'
-import { CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken } from '../util/protocol'
+import { createLogger } from '../logger'
 import { CancellationError } from '../util/errors'
 import { objectLiteral } from '../util/is'
+import { fs } from '../util/node'
 import workspace from '../workspace'
-import { createLogger } from '../logger'
 const logger = createLogger('model-fetch')
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
