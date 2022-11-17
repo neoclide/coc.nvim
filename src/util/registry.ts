@@ -52,10 +52,21 @@ class RegistryImpl implements IRegistry {
 
 export const Registry: IRegistry = new RegistryImpl()
 
-function convertScope(scope: string, defaultScope = ConfigurationScope.WINDOW): ConfigurationScope {
-  if (scope === 'application' || scope === 'window') return ConfigurationScope.WINDOW
-  if (scope === 'resource' || scope === 'machine-overridable') return ConfigurationScope.RESOURCE
-  if (scope === 'language-overridable') return ConfigurationScope.LANGUAGE_OVERRIDABLE
+const sourcePrefixes = ['coc.source.', 'list.source.']
+
+enum ScopeNames {
+  Application = 'application',
+  Window = 'window',
+  Resource = 'resource',
+  MachineOverridable = 'machine-overridable',
+  LanguageOverridable = 'language-overridable',
+}
+
+function convertScope(key: string, scope: string, defaultScope = ConfigurationScope.WINDOW): ConfigurationScope {
+  if (sourcePrefixes.some(p => key.startsWith(p))) return ConfigurationScope.WINDOW
+  if (scope === ScopeNames.Application || scope === ScopeNames.Window) return ConfigurationScope.WINDOW
+  if (scope === ScopeNames.Resource || scope === ScopeNames.MachineOverridable) return ConfigurationScope.RESOURCE
+  if (scope === ScopeNames.LanguageOverridable) return ConfigurationScope.LANGUAGE_OVERRIDABLE
   return defaultScope
 }
 
@@ -65,8 +76,8 @@ function convertScope(scope: string, defaultScope = ConfigurationScope.WINDOW): 
 export function convertProperties(properties: object | null | undefined, defaultScope = ConfigurationScope.WINDOW): IStringDictionary<IConfigurationPropertySchema> {
   let obj: IStringDictionary<IConfigurationPropertySchema> = {}
   for (let [key, def] of Object.entries(toObject(properties))) {
-    let data = Object.assign({}, def)
-    data.scope = convertScope(def.scope, defaultScope)
+    let data = deepClone(def)
+    data.scope = convertScope(key, def.scope, defaultScope)
     obj[key] = data
   }
   return obj
