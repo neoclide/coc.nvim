@@ -56,15 +56,13 @@ export default abstract class BasicList implements IList, Disposable {
   public readonly actions: ListAction[] = []
   public options: ListArgument[] = []
   protected disposables: Disposable[] = []
+  protected nvim: Neovim
   private optionMap: Map<string, ArgumentItem>
   public config: ListConfiguration
 
   constructor() {
+    this.nvim = workspace.nvim
     this.config = new ListConfiguration()
-  }
-
-  protected get nvim(): Neovim {
-    return workspace.nvim
   }
 
   public get alignColumns(): boolean {

@@ -1398,9 +1398,9 @@ describe('completion', () => {
          noa call setline('.', 'foobar')
          noa call cursor(1, 7)
          `)
-      await helper.wait(10)
-      let res = await helper.pumvisible()
-      expect(res).toBe(false)
+      await helper.waitValue(async () => {
+        return await helper.pumvisible()
+      }, false)
     })
   })
 })
