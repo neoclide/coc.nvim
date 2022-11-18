@@ -319,14 +319,6 @@ function! s:SyncAutocmd(...)
   call coc#rpc#request('CocAutocmd', a:000)
 endfunction
 
-function! s:CheckHighlight() abort
-  let fgId = synIDtrans(hlID('CocSelectedText'))
-  let guifg = synIDattr(fgId, 'fg', 'gui')
-  if empty(guifg)
-    call s:Highlight()
-  endif
-endfunction
-
 function! s:VimLeavePre() abort
   let g:coc_vim_leaving = 1
   if get(g:, 'coc_node_env', '') ==# 'test'
@@ -343,7 +335,7 @@ function! s:VimEnter() abort
   elseif get(g:, 'coc_start_at_startup', 1)
     call coc#rpc#start_server()
   endif
-  call timer_start(0, { -> s:CheckHighlight()})
+  call timer_start(0, { -> s:Highlight()})
 endfunction
 
 function! s:Enable(initialize)
@@ -355,9 +347,7 @@ function! s:Enable(initialize)
   augroup coc_nvim
     autocmd!
 
-    if v:vim_did_enter
-      call s:CheckHighlight()
-    else
+    if !v:vim_did_enter
       autocmd VimEnter            * call s:VimEnter()
     endif
     if s:is_vim
@@ -689,7 +679,6 @@ command! -nargs=0 CocUpdate       :call coc#util#update_extensions(1)
 command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
-call s:Highlight()
 call s:Enable(1)
 
 " Default key-mappings for completion

@@ -1,3 +1,7 @@
+# 2022-11-19
+
+- Create highlights after VimEnter.
+
 # 2022-11-18
 
 - Throw error when rpc request error, instead of echo message.
