@@ -98,7 +98,9 @@ export class Helper extends EventEmitter {
       this.proc.unref()
       this.proc = null
     }
-    await this.wait(50)
+    if (typeof global.gc === 'function') {
+      global.gc()
+    }
   }
 
   public async waitPopup(): Promise<void> {
