@@ -145,6 +145,7 @@ endfunction
 
 function! s:funcs.get_api_info()
   let names = coc#api#func_names()
+  " Not valid on vim, the channel used on vim can't be serialized.
   return [1, {'functions': map(names, '{"name": "nvim_".v:val}')}]
 endfunction
 

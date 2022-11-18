@@ -1,3 +1,15 @@
+# 2022-11-19
+
+- Create highlights after VimEnter.
+
+# 2022-11-18
+
+- Throw error when rpc request error, instead of echo message.
+
+# 2022-11-13
+
+- Plugin emit ready after extensions activated.
+
 # 2022-11-12
 
 - Not cancel completion when request for in complete sources.

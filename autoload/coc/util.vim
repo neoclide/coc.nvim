@@ -307,7 +307,7 @@ function! coc#util#vim_info()
         \ 'ambiguousIsNarrow': &ambiwidth ==# 'single' ? v:true : v:false,
         \ 'textprop': has('textprop') ? v:true : v:false,
         \ 'virtualText': has('nvim-0.5.0') || has('patch-9.0.0067') ? v:true : v:false,
-        \ 'dialog': has('nvim-0.4.0') || has('popupwin') ? v:true : v:false,
+        \ 'dialog': 1,
         \ 'semanticHighlights': coc#util#semantic_hlgroups()
         \}
 endfunction
@@ -406,17 +406,10 @@ function! coc#util#get_format_opts(bufnr) abort
 endfunction
 
 function! coc#util#get_editoroption(winid) abort
-  if !coc#compat#win_is_valid(a:winid)
+  let info = get(getwininfo(a:winid), 0, v:null)
+  if empty(info) || coc#float#valid(a:winid)
     return v:null
   endif
-  if has('nvim') && exists('*nvim_win_get_config')
-    " avoid float window
-    let config = nvim_win_get_config(a:winid)
-    if !empty(get(config, 'relative', ''))
-      return v:null
-    endif
-  endif
-  let info = getwininfo(a:winid)[0]
   let bufnr = info['bufnr']
   let buftype = getbufvar(bufnr, '&buftype')
   " avoid window for other purpose.

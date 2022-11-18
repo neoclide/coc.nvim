@@ -204,7 +204,7 @@ function! s:request(method, args) dict
       endif
       let [l:errmsg, res] =  res
       if !empty(l:errmsg)
-        throw l:errmsg
+        throw 'Error on "'.a:method.'" request: '.l:errmsg
       else
         return res
       endif
@@ -221,7 +221,11 @@ function! s:request(method, args) dict
     elseif v:exception =~# 'E12'
       " neovim's bug, ignore it
     else
-      echohl Error | echo 'Error on request ('.a:method.'): '.v:exception | echohl None
+      if s:is_vim
+        throw v:exception
+      else
+        throw 'Error on request: '.v:exception
+      endif
     endif
   endtry
 endfunction

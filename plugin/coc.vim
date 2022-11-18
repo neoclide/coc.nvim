@@ -319,14 +319,6 @@ function! s:SyncAutocmd(...)
   call coc#rpc#request('CocAutocmd', a:000)
 endfunction
 
-function! s:CheckHighlight() abort
-  let fgId = synIDtrans(hlID('CocSelectedText'))
-  let guifg = synIDattr(fgId, 'fg', 'gui')
-  if empty(guifg)
-    call s:Highlight()
-  endif
-endfunction
-
 function! s:VimLeavePre() abort
   let g:coc_vim_leaving = 1
   if get(g:, 'coc_node_env', '') ==# 'test'
@@ -335,6 +327,15 @@ function! s:VimLeavePre() abort
   if s:is_vim
     call timer_start(1, { -> coc#client#kill('coc')})
   endif
+endfunction
+
+function! s:VimEnter() abort
+  if coc#rpc#started()
+    call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
+  elseif get(g:, 'coc_start_at_startup', 1)
+    call coc#rpc#start_server()
+  endif
+  call timer_start(0, { -> s:Highlight()})
 endfunction
 
 function! s:Enable(initialize)
@@ -346,15 +347,8 @@ function! s:Enable(initialize)
   augroup coc_nvim
     autocmd!
 
-    if coc#rpc#started()
-      autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
-    elseif get(g:, 'coc_start_at_startup', 1)
-      autocmd VimEnter            * call coc#rpc#start_server()
-    endif
-    if v:vim_did_enter
-      call s:CheckHighlight()
-    else
-      autocmd VimEnter            * call timer_start(0, { -> s:CheckHighlight()})
+    if !v:vim_did_enter
+      autocmd VimEnter            * call s:VimEnter()
     endif
     if s:is_vim
       if exists('##DirChanged')
@@ -685,7 +679,6 @@ command! -nargs=0 CocUpdate       :call coc#util#update_extensions(1)
 command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
-call s:Highlight()
 call s:Enable(1)
 
 " Default key-mappings for completion
