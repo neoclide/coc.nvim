@@ -7,7 +7,6 @@ import { Registry } from '../../util/registry'
 import workspace from '../../workspace'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
-import { ListManager } from '../manager'
 
 const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
 
@@ -62,8 +61,4 @@ export default class CommandsList extends BasicList {
 function score(list: string[], key: string): number {
   let idx = list.indexOf(key)
   return idx == -1 ? -1 : list.length - idx
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new CommandsList(), true)
 }

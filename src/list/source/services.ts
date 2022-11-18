@@ -4,7 +4,6 @@ import { ListContext, ListItem } from '../../types'
 import { wait } from '../../util'
 import BasicList from '../basic'
 import { formatListItems } from '../formatting'
-import { ListManager } from '../manager'
 
 export default class ServicesList extends BasicList {
   public defaultAction = 'toggle'
@@ -46,8 +45,4 @@ export default class ServicesList extends BasicList {
     nvim.command('highlight default link CocServicesLanguages Comment', true)
     nvim.resumeNotification(false, true)
   }
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new ServicesList(), true)
 }

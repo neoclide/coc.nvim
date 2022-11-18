@@ -11,7 +11,6 @@ import { runCommand } from '../../util/processes'
 import type { CancellationToken } from '../../util/protocol'
 import workspace from '../../workspace'
 import { formatListItems, UnformattedListItem } from '../formatting'
-import { ListManager } from '../manager'
 import LocationList from './location'
 
 function getFilterText(s: DocumentSymbol | SymbolInformation, kind: string | null): string {
@@ -157,8 +156,4 @@ function sortSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
     return ra.start.line - rb.start.line
   }
   return ra.start.character - rb.start.character
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new Outline(), true)
 }

@@ -47,7 +47,3 @@ export default class FoldList extends BasicList {
     return workspace.folderPaths.map(p => ({ label: p }))
   }
 }
-
-export function register(manager: ListManager) {
-  manager.registerList(new FoldList(), true)
-}

@@ -10,7 +10,6 @@ import { minimatch, path } from '../../util/node'
 import { CancellationToken, CancellationTokenSource } from '../../util/protocol'
 import { byteLength } from '../../util/string'
 import workspace from '../../workspace'
-import { ListManager } from '../manager'
 import LocationList from './location'
 
 export default class Symbols extends LocationList {
@@ -126,8 +125,4 @@ function toTargetLocation(location: Location): LocationWithTarget {
   let loc: LocationWithTarget = Location.create(location.uri, Range.create(location.range.start, location.range.start))
   loc.targetRange = location.range
   return loc
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new Symbols(), true)
 }

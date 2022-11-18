@@ -54,7 +54,3 @@ export default class DiagnosticsList extends LocationList {
     nvim.resumeNotification(false, true)
   }
 }
-
-export function register(manager: ListManager) {
-  manager.registerList(new DiagnosticsList(manager), true)
-}

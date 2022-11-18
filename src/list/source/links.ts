@@ -8,7 +8,6 @@ import { path } from '../../util/node'
 import type { CancellationToken } from '../../util/protocol'
 import workspace from '../../workspace'
 import BasicList from '../basic'
-import type { ListManager } from '../manager'
 
 export default class LinksList extends BasicList {
   public defaultAction = 'open'
@@ -74,8 +73,4 @@ function formatUri(uri: string): string {
   if (!uri.startsWith('file:')) return uri
   let filepath = URI.parse(uri).fsPath
   return isParentFolder(workspace.cwd, filepath) ? path.relative(workspace.cwd, filepath) : filepath
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new LinksList(), true)
 }

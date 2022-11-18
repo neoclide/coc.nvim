@@ -4,7 +4,6 @@ import { IList, ListContext, ListItem } from '../../types'
 import { isVim } from '../../util/constants'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
-import { ListManager } from '../manager'
 
 const delay = isVim ? 50 : 0
 
@@ -56,8 +55,4 @@ export default class ListsList extends BasicList {
 function score(list: string[], key: string): number {
   let idx = list.indexOf(key)
   return idx == -1 ? -1 : list.length - idx
-}
-
-export function register(manager: ListManager, listMap: Map<string, IList>) {
-  manager.registerList(new ListsList(listMap), true)
 }

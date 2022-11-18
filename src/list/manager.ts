@@ -19,6 +19,17 @@ import History from './history'
 import Mappings from './mappings'
 import Prompt from './prompt'
 import ListSession from './session'
+import CommandsList from './source/commands'
+import DiagnosticsList from './source/diagnostics'
+import ExtensionList from './source/extensions'
+import FolderList from './source/folders'
+import LinksList from './source/links'
+import ListsList from './source/lists'
+import LocationList from './source/location'
+import OutlineList from './source/outline'
+import ServicesList from './source/services'
+import SourcesList from './source/sources'
+import SymbolsList from './source/symbols'
 const logger = createLogger('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -80,20 +91,18 @@ export class ListManager implements Disposable {
     })
   }
 
-  public async registerLists(): Promise<void> {
-    await Promise.all([
-      import('./source/lists').then(module => { module.register(this, this.listMap) }),
-      import('./source/folders').then(module => { module.register(this) }),
-      import('./source/links').then(module => { module.register(this) }),
-      import('./source/services').then(module => { module.register(this) }),
-      import('./source/sources').then(module => { module.register(this) }),
-      import('./source/location').then(module => { module.register(this) }),
-      import('./source/symbols').then(module => { module.register(this) }),
-      import('./source/outline').then(module => { module.register(this) }),
-      import('./source/commands').then(module => { module.register(this) }),
-      import('./source/extensions').then(module => { module.register(this) }),
-      import('./source/diagnostics').then(module => { module.register(this) }),
-    ])
+  public registerLists(): void {
+    this.registerList(new LinksList(), true)
+    this.registerList(new LocationList(), true)
+    this.registerList(new SymbolsList(), true)
+    this.registerList(new OutlineList(), true)
+    this.registerList(new CommandsList(), true)
+    this.registerList(new ExtensionList(), true)
+    this.registerList(new DiagnosticsList(this), true)
+    this.registerList(new SourcesList(), true)
+    this.registerList(new ServicesList(), true)
+    this.registerList(new ListsList(this.listMap), true)
+    this.registerList(new FolderList(), true)
   }
 
   public async start(args: string[]): Promise<void> {

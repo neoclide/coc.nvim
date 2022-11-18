@@ -4,7 +4,6 @@ import { URI } from 'vscode-uri'
 import sources from '../../sources'
 import { ListItem } from '../../types'
 import BasicList from '../basic'
-import { ListManager } from '../manager'
 
 export default class SourcesList extends BasicList {
   public readonly defaultAction = 'toggle'
@@ -71,8 +70,4 @@ function fixWidth(str: string, width: number): string {
     return str.slice(0, width - 1) + '.'
   }
   return str + ' '.repeat(width - str.length)
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new SourcesList(), true)
 }

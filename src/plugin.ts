@@ -207,7 +207,7 @@ export default class Plugin {
       completion.init()
       diagnosticManager.init()
       this.handler = new Handler(nvim)
-      await listManager.registerLists()
+      listManager.registerLists()
       await extensions.activateExtensions()
       workspace.configurations.flushConfigurations()
       nvim.pauseNotification()

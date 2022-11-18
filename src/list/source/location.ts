@@ -8,7 +8,6 @@ import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
 import { byteLength } from '../../util/string'
 import BasicList from '../basic'
-import type { ListManager } from '../manager'
 
 export default class LocationList extends BasicList {
   public defaultAction = 'open'
@@ -88,8 +87,4 @@ function createItem(filename: string, loc: QuickfixItem): ListItem {
     filterText,
     ansiHighlights,
   }
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new LocationList(), true)
 }

@@ -7,7 +7,6 @@ import { fs, os, path } from '../../util/node'
 import workspace from '../../workspace'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
-import { ListManager } from '../manager'
 
 export default class ExtensionList extends BasicList {
   public defaultAction = 'toggle'
@@ -148,8 +147,4 @@ function getPriority(stat: string): number {
     default:
       return 0
   }
-}
-
-export function register(manager: ListManager) {
-  manager.registerList(new ExtensionList(), true)
 }
