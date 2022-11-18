@@ -1,3 +1,7 @@
+# 2022-11-18
+
+- Throw error when rpc request error, instead of echo message.
+
 # 2022-11-13
 
 - Plugin emit ready after extensions activated.
