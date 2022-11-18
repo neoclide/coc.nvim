@@ -23,9 +23,7 @@ function! coc#rpc#start_server()
   if !coc#client#is_running('coc')
     call s:client['start']()
   endif
-  if s:client['running'] && v:vim_did_enter
-    call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
-  endif
+  call s:check_vim_enter()
 endfunction
 
 function! coc#rpc#started() abort
@@ -91,6 +89,7 @@ function! coc#rpc#restart()
     sleep 100m
     let s:client['command'] = coc#util#job_command()
     call coc#client#restart(s:name)
+    call s:check_vim_enter()
     echohl MoreMsg | echom 'starting coc.nvim service' | echohl None
   endif
 endfunction
@@ -134,4 +133,10 @@ function! coc#rpc#async_request(id, method, args)
   catch /.*/
     call coc#rpc#notify('nvim_async_response_event', [a:id, v:exception, v:null])
   endtry
+endfunction
+
+function! s:check_vim_enter() abort
+  if s:client['running'] && v:vim_did_enter
+    call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
+  endif
 endfunction

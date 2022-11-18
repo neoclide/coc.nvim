@@ -65,6 +65,17 @@ export default class Documents implements Disposable {
     this._cwd = cwd
     this.getConfiguration()
     this.configurations.onDidChange(this.getConfiguration, this, this.disposables)
+  }
+
+  public async attach(nvim: Neovim, env: Env): Promise<void> {
+    if (this._attached) return
+    this.nvim = nvim
+    this._env = env
+    this._attached = true
+    let { bufnrs, bufnr, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
+    this.winids = new Set(winids)
+    this._bufnr = bufnr
+    await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
     events.on('BufDetach', this.onBufDetach, this, this.disposables)
     events.on('VimLeavePre', () => {
       this.resolveCurrent(undefined)
@@ -99,17 +110,6 @@ export default class Documents implements Disposable {
     events.on('BufEnter', (bufnr: number) => {
       void this.createDocument(bufnr)
     }, null, this.disposables)
-  }
-
-  public async attach(nvim: Neovim, env: Env): Promise<void> {
-    if (this._attached) return
-    this.nvim = nvim
-    this._env = env
-    this._attached = true
-    let { bufnrs, bufnr, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
-    this.winids = new Set(winids)
-    this._bufnr = bufnr
-    await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
     if (this._env.isVim) {
       ['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
         events.on(event as any, (bufnr: number, info?: InsertChange) => {
