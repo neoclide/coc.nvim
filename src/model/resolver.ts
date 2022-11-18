@@ -2,6 +2,7 @@
 import { fs, path } from '../util/node'
 import { statAsync } from '../util/fs'
 import { executable, runCommand } from '../util/processes'
+import stripAnsi from 'strip-ansi'
 
 export default class Resolver {
   private _npmFolder: string
@@ -10,7 +11,6 @@ export default class Resolver {
   public get nodeFolder(): Promise<string> {
     if (!executable('npm')) return Promise.resolve('')
     if (this._npmFolder) return Promise.resolve(this._npmFolder)
-    const stripAnsi = require('strip-ansi')
     return runCommand('npm --loglevel silent root -g', {}, 3000).then(root => {
       this._npmFolder = stripAnsi(root).trim()
       return this._npmFolder
@@ -20,7 +20,6 @@ export default class Resolver {
   public get yarnFolder(): Promise<string> {
     if (!executable('yarnpkg')) return Promise.resolve('')
     if (this._yarnFolder) return Promise.resolve(this._yarnFolder)
-    const stripAnsi = require('strip-ansi')
     return runCommand('yarnpkg global dir', {}, 3000).then(root => {
       let folder = path.join(stripAnsi(root).trim(), 'node_modules')
       let exists = fs.existsSync(folder)

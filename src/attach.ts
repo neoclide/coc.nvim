@@ -3,7 +3,7 @@ import { attach, Attach, NeovimClient } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
 import events from './events'
 import { createLogger } from './logger'
-import type Plugin from './plugin'
+import Plugin from './plugin'
 import { VERSION } from './util/constants'
 import './util/extensions'
 import { objectLiteral } from './util/is'
@@ -36,8 +36,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
   const nvim: NeovimClient = attach(opts, createLogger('node-client'), requestApi)
   nvim.setVar('coc_process_pid', process.pid, true)
   nvim.setClientInfo('coc', { major: semVer.major, minor: semVer.minor, patch: semVer.patch }, 'remote', {}, {})
-  let Clz = require('./plugin').default
-  const plugin = new Clz(nvim)
+  const plugin = new Plugin(nvim)
 
   nvim.on('notification', async (method, args) => {
     switch (method) {
