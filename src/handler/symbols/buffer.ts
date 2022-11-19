@@ -6,13 +6,13 @@ import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
 import type { LinesTextDocument } from '../../model/textdocument'
 import { DidChangeTextDocumentParams } from '../../types'
-import { disposeAll } from '../../util'
+import { disposeAll, getConditionValue } from '../../util'
 import { CancellationTokenSource, Disposable, Emitter, Event } from '../../util/protocol'
 import workspace from '../../workspace'
 import { isDocumentSymbols } from './util'
 const logger = createLogger('symbols-buffer')
 
-const DEBEBOUNCE_INTERVAL = global.__TEST__ ? 10 : 500
+const DEBEBOUNCE_INTERVAL = getConditionValue(500, 10)
 
 export default class SymbolsBuffer implements SyncItem {
   private disposables: Disposable[] = []

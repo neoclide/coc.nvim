@@ -442,8 +442,7 @@ export class Workspace {
    * Run nodejs command
    */
   public async runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string> {
-    cwd = cwd || this.cwd
-    return runCommand(cmd, { cwd }, timeout)
+    return runCommand(cmd, { cwd: cwd ?? this.cwd }, timeout)
   }
 
   /**

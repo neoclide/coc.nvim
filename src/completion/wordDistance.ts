@@ -32,12 +32,14 @@ export abstract class WordDistance {
     }
     iterate(selectionRanges[0])
 
+    let timer
     const tp = new Promise(resolve => {
-      setTimeout(() => {
+      timer = setTimeout(() => {
         resolve(undefined)
-      }, global.__TEST__ ? 10 : 100)
+      }, 100)
     })
     let wordRanges = await Promise.race([tp, workspace.computeWordRanges(opt.bufnr, ranges[0], token)])
+    clearTimeout(timer)
     if (!wordRanges) return WordDistance.None
 
     // remove current word

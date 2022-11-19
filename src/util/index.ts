@@ -23,9 +23,10 @@ export function defaultValue<T>(val: T | undefined | null, defaultValue: T): T {
 export function wait(ms: number): Promise<void> {
   if (ms <= 0) return Promise.resolve(undefined)
   return new Promise(resolve => {
-    setTimeout(() => {
+    let timer = setTimeout(() => {
       resolve(undefined)
     }, ms)
+    timer.unref()
   })
 }
 
@@ -52,6 +53,7 @@ export function delay(func: () => void, defaultDelay: number): ((ms?: number) =>
     timer = setTimeout(() => {
       func()
     }, ms ?? defaultDelay)
+    timer.unref()
   }
   Object.defineProperty(fn, 'clear', {
     get: () => {

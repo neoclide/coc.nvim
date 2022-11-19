@@ -1,10 +1,9 @@
 'use strict'
 import type { ChildProcess, ExecOptions } from 'child_process'
+import { pluginRoot } from './constants'
 import { CancellationError } from './errors'
 import { child_process, path, which } from './node'
 import { platform, Platform } from './platform'
-
-const pluginRoot = global.__TEST__ ? path.resolve(__dirname, '../..') : path.dirname(__dirname)
 
 export function isRunning(pid: number): boolean {
   try {

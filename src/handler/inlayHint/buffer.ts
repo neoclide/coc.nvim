@@ -8,7 +8,7 @@ import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
 import { ProviderName } from '../../types'
-import { delay } from '../../util'
+import { delay, getConditionValue } from '../../util'
 import { CancellationError } from '../../util/errors'
 import { positionInRange } from '../../util/position'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../../util/protocol'
@@ -27,7 +27,9 @@ export interface InlayHintConfig {
 }
 
 let srcId: number | undefined
-const debounceInterval = global.__TEST__ ? 10 : 100
+const debounceInterval = getConditionValue(100, 10)
+const requestDelay = getConditionValue(500, 10)
+
 function getHighlightGroup(kind: InlayHintKind): string {
   switch (kind) {
     case InlayHintKind.Parameter:
@@ -152,7 +154,7 @@ export default class InlayHintBuffer implements SyncItem {
     } catch (e) {
       if (!token.isCancellationRequested && e instanceof CancellationError) {
         // wait for more time
-        this.render(global.__TEST__ ? 10 : 500)
+        this.render(requestDelay)
       }
     }
   }

@@ -7,7 +7,7 @@ import { createLogger } from '../logger'
 import type Document from '../model/document'
 import sources from '../sources'
 import { CompleteOption, DurationCompleteItem, IConfigurationChangeEvent, ISource } from '../types'
-import { defaultValue, disposeAll } from '../util'
+import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { toNumber } from '../util/numbers'
 import { toObject } from '../util/object'
@@ -20,8 +20,8 @@ import Floating from './floating'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, MruLoader, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
-const RESOLVE_TIMEOUT = global.__TEST__ ? 50 : 500
-const TRIGGER_TIMEOUT = global.__TEST__ ? 20 : 200
+const RESOLVE_TIMEOUT = getConditionValue(500, 50)
+const TRIGGER_TIMEOUT = getConditionValue(200, 20)
 
 export interface LastInsert {
   character: string

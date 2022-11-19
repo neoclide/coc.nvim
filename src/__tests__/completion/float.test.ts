@@ -52,11 +52,10 @@ describe('completion float', () => {
 
   it('should cancel float window', async () => {
     await helper.edit()
-    await nvim.input('if')
-    await helper.visible('foo', 'float')
-    let items = await helper.getItems()
-    expect(items[0].word).toBe('foo')
-    expect(items[0].info.length > 0).toBeTruthy()
+    await nvim.setLine('f')
+    await nvim.input('A')
+    nvim.call('coc#start', { source: 'float' }, true)
+    await helper.waitPopup()
     await helper.confirmCompletion(0)
     let hasFloat = await nvim.call('coc#float#has_float')
     expect(hasFloat).toBe(0)

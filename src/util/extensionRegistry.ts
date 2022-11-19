@@ -1,11 +1,9 @@
 'use strict'
-import { path } from '../util/node'
 import { isFalsyOrEmpty, toArray } from './array'
+import { pluginRoot } from './constants'
 import { isParentFolder, sameFile } from './fs'
 import { Registry } from './registry'
 import { toText } from './string'
-
-const PLUGIN_ROOT = global.__TEST__ ? path.resolve(__dirname, '../..') : path.dirname(__dirname)
 
 /**
  * Contains static extension infos
@@ -161,5 +159,5 @@ export function parseExtensionName(stack: string, level = 2): string | undefined
   if (find) return find.name
   find = arr.find(o => isParentFolder(o.directory, filepath))
   if (find) return find.name
-  if (isParentFolder(PLUGIN_ROOT, filepath)) return 'coc.nvim'
+  if (isParentFolder(pluginRoot, filepath)) return 'coc.nvim'
 }

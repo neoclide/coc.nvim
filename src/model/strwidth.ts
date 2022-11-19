@@ -1,3 +1,4 @@
+import { pluginRoot } from '../util/constants'
 import { fs, path, promisify } from '../util/node'
 
 export interface StrWidthWasi {
@@ -10,7 +11,7 @@ export interface StrWidthWasi {
   }
 }
 
-const wasmPath = path.resolve(__dirname, global.__TEST__ ? '../..' : '..', 'bin/strwidth.wasm')
+const wasmPath = path.join(pluginRoot, 'bin/strwidth.wasm')
 
 export async function initStrWidthWasm(): Promise<StrWidthWasi> {
   const buffer = await promisify(fs.readFile)(wasmPath)

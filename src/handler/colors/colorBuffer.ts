@@ -11,6 +11,7 @@ import { comparePosition, positionInRange } from '../../util/position'
 import { CancellationTokenSource } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
+import { getConditionValue } from '../../util'
 const NAMESPACE = 'color'
 
 export interface ColorRanges {
@@ -22,6 +23,8 @@ export interface ColorConfig {
   filetypes: string[]
   highlightPriority: number
 }
+
+const debounceTime = getConditionValue(300, 10)
 
 export default class ColorBuffer implements SyncItem {
   private _colors: ColorInformation[] = []
@@ -37,7 +40,7 @@ export default class ColorBuffer implements SyncItem {
     this.updateDocumentConfig()
     this.highlight = debounce(() => {
       void this.doHighlight()
-    }, global.__TEST__ ? 10 : 300)
+    }, debounceTime)
     this.highlight()
   }
 

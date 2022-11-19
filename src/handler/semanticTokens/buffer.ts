@@ -7,7 +7,7 @@ import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { HighlightItem, ProviderName } from '../../types'
-import { delay } from '../../util'
+import { delay, getConditionValue } from '../../util'
 import { CancellationError } from '../../util/errors'
 import { wait, waitImmediate } from '../../util/index'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../../util/protocol'
@@ -57,7 +57,8 @@ interface RangeHighlights {
 }
 
 // should be higher than document debounce
-const debounceInterval = global.__TEST__ ? 10 : 100
+const debounceInterval = getConditionValue(100, 10)
+const requestDelay = getConditionValue(500, 10)
 
 export default class SemanticTokensBuffer implements SyncItem {
   private _highlights: [number, SemanticTokenRange[]]
@@ -350,7 +351,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     } catch (e) {
       if (!token.isCancellationRequested) {
         if (e instanceof CancellationError) {
-          this.highlight(global.__TEST__ ? 10 : 500)
+          this.highlight(requestDelay)
         } else {
           logger.error('Error on request semanticTokens: ', e)
         }
@@ -421,7 +422,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     if (!this.enabled || this.doc.dirty) return
     let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
     let token = rangeTokenSource.token
-    await wait(global.__TEST__ ? 10 : 100)
+    await wait(debounceInterval)
     if (token.isCancellationRequested) return
     if (this.shouldRangeHighlight) {
       await this.doRangeHighlight(token)

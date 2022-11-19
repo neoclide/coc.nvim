@@ -6,6 +6,7 @@ import languages from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import { DidChangeTextDocumentParams, ProviderName } from '../../types'
+import { getConditionValue } from '../../util'
 import { debounce } from '../../util/node'
 import { CancellationTokenSource } from '../../util/protocol'
 import window from '../../window'
@@ -24,7 +25,7 @@ export interface CodeLensConfig {
 }
 
 let srcId: number | undefined
-const debounceTme = global.__TEST__ ? 20 : 200
+const debounceTme = getConditionValue(200, 20)
 
 /**
  * CodeLens buffer

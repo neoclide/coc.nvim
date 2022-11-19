@@ -5,6 +5,7 @@ import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem, LocationListItem, VirtualTextOption } from '../types'
+import { getConditionValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { lineInRange, positionInRange } from '../util/position'
 import { Emitter, Event } from '../util/protocol'
@@ -32,8 +33,8 @@ interface SignItem {
   priority?: number
 }
 
-const delay = global.__TEST__ ? 10 : 500
-const aleMethod = global.__TEST__ ? 'MockAleResults' : 'ale#other_source#ShowResults'
+const delay = getConditionValue(50, 10)
+const aleMethod = getConditionValue('ale#other_source#ShowResults', 'MockAleResults')
 let virtualTextSrcId: number | undefined
 
 let floatFactory: FloatFactory

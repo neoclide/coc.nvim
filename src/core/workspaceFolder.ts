@@ -6,6 +6,7 @@ import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { PatternType } from '../types'
+import { getConditionValue } from '../util'
 import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
@@ -16,7 +17,7 @@ import { CancellationToken, CancellationTokenSource, Emitter, Event, WorkspaceFo
 import { Registry } from '../util/registry'
 const logger = createLogger('core-workspaceFolder')
 const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
-const checkPatternTimeout = global.__TEST__ ? 50 : 5000
+const checkPatternTimeout = getConditionValue(5000, 50)
 
 function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
   if (!fsPath || !path.isAbsolute(fsPath)) return undefined

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
 import { sortItems } from '../../completion/complete'
 import { WordDistance } from '../../completion/wordDistance'

@@ -2,7 +2,7 @@
 /* eslint-disable no-redeclare */
 import { ChildProcess, ChildProcessWithoutNullStreams, ForkOptions as CForkOptions } from 'child_process'
 import { createLogger } from '../logger'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
 import * as Is from '../util/is'
 import { child_process, fs, path } from '../util/node'
 import { terminate } from '../util/processes'
@@ -13,7 +13,7 @@ import { BaseLanguageClient, LanguageClientOptions, MessageTransports } from './
 const logger = createLogger('language-client-index')
 const debugStartWith: string[] = ['--debug=', '--debug-brk=', '--inspect=', '--inspect-brk=']
 const debugEquals: string[] = ['--debug', '--debug-brk', '--inspect', '--inspect-brk']
-const STOP_TIMEOUT = global.__TEST__ ? 100 : 2000
+const STOP_TIMEOUT = getConditionValue(2000, 100)
 
 export * from './client'
 

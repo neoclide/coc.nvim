@@ -16,6 +16,7 @@ import { CancellationTokenSource, DiagnosticRefreshRequest, DiagnosticServerCanc
 import window from '../window'
 import workspace from '../workspace'
 import { BaseFeature, ensure, FeatureClient, LSPCancellationError, TextDocumentLanguageFeature } from './features'
+import { getConditionValue } from '../util'
 
 interface HandleDiagnosticsSignature {
   (this: void, uri: string, diagnostics: Diagnostic[]): void
@@ -109,6 +110,8 @@ export enum PullState {
 interface Requestor {
   pull: (document: TextDocument, cb?: () => void) => void
 }
+
+const pullDebounce = getConditionValue(3000, 10)
 
 export class DocumentPullStateTracker {
   private readonly documentPullStates: Map<string, DocumentPullState>
@@ -334,7 +337,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
     this.pullWorkspaceAsync().then(() => {
       this.workspaceTimeout = RAL().timer.setTimeout(() => {
         this.pullWorkspace()
-      }, global.__TEST__ ? 10 : 3000)
+      }, pullDebounce)
     }, error => {
       if (!(error instanceof LSPCancellationError) && !DiagnosticServerCancellationData.is(error.data)) {
         this.client.error(`Workspace diagnostic pull failed.`, error)
@@ -343,7 +346,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
       if (this.workspaceErrorCounter <= 5) {
         this.workspaceTimeout = RAL().timer.setTimeout(() => {
           this.pullWorkspace()
-        }, global.__TEST__ ? 10 : 3000)
+        }, pullDebounce)
       }
     })
   }
@@ -505,7 +508,7 @@ export class BackgroundScheduler implements Disposable {
           this.stop()
         }
       }
-    }, global.__TEST__ ? 10 : 200)
+    }, 200)
   }
 
   public dispose(): void {

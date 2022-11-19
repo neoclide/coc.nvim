@@ -3,7 +3,7 @@ import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import { debounce } from '../util/node'
 import events from '../events'
 import { HighlightItem, ListItem, ListItemsEvent, ListOptions } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { Sequence } from '../util/sequence'
 import workspace from '../workspace'
@@ -23,6 +23,8 @@ export interface HighlightGroup {
   priority: number
   pos: [number, number, number]
 }
+
+const debounceTime = getConditionValue(100, 20)
 
 export default class ListUI {
   private window: Window
@@ -79,7 +81,7 @@ export default class ListUI {
       this.doHighlight(s, e)
       nvim.command('redraw', true)
       nvim.resumeNotification(false, true)
-    }, global.__TEST__ ? 20 : 100)
+    }, debounceTime)
     this.disposables.push({
       dispose: () => {
         debounced.clear()

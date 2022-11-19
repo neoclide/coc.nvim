@@ -7,7 +7,7 @@ import BufferSync from '../../model/bufferSync'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import BasicTreeView from '../../tree/TreeView'
 import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../../types'
-import { disposeAll } from '../../util'
+import { disposeAll, getConditionValue } from '../../util'
 import { comparePosition, positionInRange } from '../../util/position'
 import type { Disposable } from '../../util/protocol'
 import window from '../../window'
@@ -42,6 +42,8 @@ interface OutlineConfig {
   previewBorderHighlightGroup: string
   previewWinblend: number
 }
+
+const hoverTimeout = getConditionValue(300, 10)
 
 /**
  * Manage TreeViews and Providers of outline.
@@ -210,7 +212,7 @@ export default class SymbolsOutline {
         setTimeout(() => {
           buf.clearNamespace('outline-hover')
           nvim.command('redraw', true)
-        }, global.__TEST__ ? 10 : 300)
+        }, hoverTimeout)
       },
       resolveActions: async (_, element) => {
         let winnr = await nvim.call('bufwinnr', [bufnr])

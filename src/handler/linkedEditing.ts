@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim, Window } from '@chemzqm/neovim'
-import { debounce } from '../util/node'
 import { Position, TextEdit } from 'vscode-languageserver-types'
 import TextRange from '../cursors/textRange'
 import { getBeforeCount, getChange, getDelta } from '../cursors/util'
@@ -8,11 +7,15 @@ import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, HandlerDelegate, ProviderName } from '../types'
+import { getConditionValue } from '../util'
+import { debounce } from '../util/node'
 import { emptyRange, positionInRange, rangeAdjacent, rangeInRange, rangeIntersect } from '../util/position'
 import { CancellationTokenSource } from '../util/protocol'
 import { characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
+
+const debounceTime = getConditionValue(200, 10)
 
 export default class LinkedEditingHandler {
   private changing = false
@@ -23,7 +26,7 @@ export default class LinkedEditingHandler {
   private tokenSource: CancellationTokenSource | undefined
   public checkPosition: ((bufnr: number, cursor: [number, number]) => void) & { clear(): void }
   constructor(private nvim: Neovim, handler: HandlerDelegate) {
-    this.checkPosition = debounce(this._checkPosition, global.__TEST__ ? 10 : 100)
+    this.checkPosition = debounce(this._checkPosition, debounceTime)
     handler.addDisposable(events.on('CursorMoved', (bufnr, cursor) => {
       this.cancel()
       this.checkPosition(bufnr, [cursor[0], cursor[1]])

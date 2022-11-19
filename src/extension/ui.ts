@@ -2,7 +2,7 @@
 import events from '../events'
 import { frames } from '../model/status'
 import { HighlightItem, OutputChannel } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
 import { debounce } from '../util/node'
 import { Disposable } from '../util/protocol'
 import { byteLength } from '../util/string'
@@ -50,6 +50,8 @@ export class InstallChannel implements InstallUI {
   }
 }
 
+const debounceTime = getConditionValue(500, 10)
+
 export class InstallBuffer implements InstallUI {
   private statMap: Map<string, State> = new Map()
   private updated: Set<string> = new Set()
@@ -68,7 +70,7 @@ export class InstallBuffer implements InstallUI {
         let docs = msgs.length > 0 ? [{ content: msgs.join('\n'), filetype: 'txt' }] : []
         await floatFactory.show(docs)
       }
-    }, global.__TEST__ ? 10 : 500)
+    }, debounceTime)
     this.disposables.push(Disposable.create(() => {
       fn.clear()
     }))

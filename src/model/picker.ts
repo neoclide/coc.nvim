@@ -84,14 +84,7 @@ export default class Picker {
     this.addKeys('<LeftRelease>', async () => {
       // not work on vim
       if (isVim || !this.win) return
-      let [winid, lnum, col] = await nvim.eval('[v:mouse_winid,v:mouse_lnum,v:mouse_col]') as [number, number, number]
-      // can't simulate vvar.
-      if (global.__TEST__) {
-        let res = await nvim.getVar('mouse_position')
-        winid = res[0]
-        lnum = res[1]
-        col = res[2]
-      }
+      let [winid, lnum, col] = await nvim.call('coc#ui#get_mouse') as [number, number, number]
       nvim.pauseNotification()
       if (winid == this.win.winid) {
         if (col <= 3) {

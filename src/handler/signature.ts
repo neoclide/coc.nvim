@@ -1,13 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { debounce } from '../util/node'
 import { MarkupContent, Position, SignatureHelp } from 'vscode-languageserver-types'
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
 import { FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
 import { isMarkdown } from '../util/is'
+import { debounce } from '../util/node'
 import { CancellationTokenSource, Disposable, SignatureHelpTriggerKind } from '../util/protocol'
 import { byteLength, byteSlice } from '../util/string'
 import window from '../window'
@@ -33,6 +33,8 @@ interface SignaturePart {
   type: 'Label' | 'MoreMsg' | 'Normal'
 }
 
+const debounceTime = getConditionValue(100, 10)
+
 export default class Signature {
   private timer: NodeJS.Timer
   private config: SignatureConfig
@@ -49,7 +51,7 @@ export default class Signature {
     }, this.config.floatConfig))
     this.disposables.push(this.signatureFactory)
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
-    events.on('CursorMovedI', debounce(this.checkCurosr.bind(this), global.__TEST__ ? 10 : 100), null, this.disposables)
+    events.on('CursorMovedI', debounce(this.checkCurosr.bind(this), debounceTime), null, this.disposables)
     events.on(['InsertLeave', 'BufEnter'], () => {
       this.tokenSource?.cancel()
     }, null, this.disposables)

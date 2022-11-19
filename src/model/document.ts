@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import events, { InsertChange } from '../events'
 import { BufferOption, DidChangeTextDocumentParams, HighlightItem, HighlightItemOption, TextDocumentContentChange } from '../types'
 import { diffLines, getTextEdit } from '../util/diff'
-import { disposeAll, wait, waitNextTick } from '../util/index'
+import { disposeAll, getConditionValue, wait, waitNextTick } from '../util/index'
 import { isUrl } from '../util/is'
 import { debounce, path } from '../util/node'
 import { equals } from '../util/object'
@@ -31,6 +31,8 @@ export interface ChangeInfo {
   line: string
   changedtick: number
 }
+
+const debounceTime = getConditionValue(150, 15)
 
 // getText, positionAt, offsetAt
 export default class Document {
@@ -65,7 +67,7 @@ export default class Document {
   ) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
-    }, global.__TEST__ ? 20 : 150)
+    }, debounceTime)
     this.fetchContent = debounce(() => {
       void this._fetchContent()
     }, 100)

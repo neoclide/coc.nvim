@@ -5,7 +5,7 @@ import { URI } from 'vscode-uri'
 import languages from '../languages'
 import { TextDocumentContentProvider } from '../provider'
 import { Documentation, FloatConfig, FloatFactory, HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { readFileLines } from '../util/fs'
 import { isMarkdown } from '../util/is'
@@ -22,6 +22,8 @@ interface HoverConfig {
   previewMaxHeight: number
   autoHide: boolean
 }
+
+const highlightDelay = getConditionValue(500, 10)
 
 export default class HoverHandler {
   private hoverFactory: FloatFactory
@@ -119,7 +121,7 @@ export default class HoverHandler {
       this.timer = setTimeout(() => {
         win.clearMatchGroup('CocHoverRange')
         this.nvim.redrawVim()
-      }, global.__TEST__ ? 10 : 500)
+      }, highlightDelay)
     }
     await this.previewHover(hovers, hoverTarget)
     return true

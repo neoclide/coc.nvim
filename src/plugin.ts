@@ -32,7 +32,6 @@ export default class Plugin {
   private disposables: Disposable[] = []
 
   constructor(public nvim: Neovim) {
-    workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     Object.defineProperty(window, 'workspace', {
       get: () => workspace
     })
@@ -45,6 +44,7 @@ export default class Plugin {
     Object.defineProperty(window, 'cursors', {
       get: () => this.cursors
     })
+    workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     this.cursors = new Cursors(nvim)
     commandManager.init(nvim, this)
     listManager.init(nvim)
