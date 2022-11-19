@@ -912,9 +912,9 @@ Except for |<Plug>(coc-fix-current)| which invoke code action directly,
 
 To invoke organize import action, use command like:
 >
-	command! -nargs=0 OR :CocCommand editor.action.organizeImport
+	command! -nargs=0 OR :call CocAction('organizeImport')
 
-Error would be shown when organize import code action not found.
+The function return `false` when organize import code action not found.
 
 Related APIs~
 
@@ -2677,8 +2677,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 "organizeImport" 					*CocAction('organizeImport')*
 
-	Run organize import codeAction for current buffer.
-	Show warning when codeAction not found.
+	Run organize import code action for current buffer.
+	Return `false` when the code action not exists.
 
 "fixAll" 						*CocAction('fixAll')*
 

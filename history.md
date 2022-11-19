@@ -1,6 +1,8 @@
 # 2022-11-19
 
 - Create highlights after VimEnter.
+- Action 'organizeImport' return false instead of throw error when import code
+  action not found.
 
 # 2022-11-18
 

@@ -471,3 +471,10 @@ function! coc#ui#outline_close_preview() abort
     call coc#float#close(winid)
   endif
 endfunction
+
+function! coc#ui#get_mouse() abort
+  if get(g:, 'coc_node_env', '') ==# 'test'
+    return get(g:, 'mouse_position', [win_getid(), line('.'), col('.')])
+  endif
+  return [v:mouse_winid,v:mouse_lnum,v:mouse_col]
+endfunction
