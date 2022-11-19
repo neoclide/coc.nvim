@@ -148,11 +148,10 @@ function! coc#list#get_preview(...) abort
 endfunction
 
 function! coc#list#scroll_preview(dir) abort
-  let winnr = coc#list#has_preview()
-  if !winnr
+  let winid = coc#list#get_preview()
+  if winid == -1
     return
   endif
-  let winid = win_getid(winnr)
   if exists('*win_execute')
     call win_execute(winid, "normal! ".(a:dir ==# 'up' ? "\<C-u>" : "\<C-d>"))
   else
