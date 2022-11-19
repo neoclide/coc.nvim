@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, Command, CodeActionContext, CodeActionKind, TextEdit, Disposable, Range, Position } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from '../../commands'
 import ActionsHandler from '../../handler/codeActions'
@@ -47,16 +47,11 @@ afterEach(async () => {
 
 describe('handler codeActions', () => {
   describe('organizeImport', () => {
-    it('should throw error when organize import action not found', async () => {
+    it('should return false when organize import action not found', async () => {
       currActions = []
       await helper.createDocument()
-      let err
-      try {
-        await codeActions.organizeImport()
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      let res = await codeActions.organizeImport()
+      expect(res).toBe(false)
     })
 
     it('should perform organize import action', async () => {
@@ -289,15 +284,15 @@ describe('handler codeActions', () => {
       expect(lines.length).toBe(2)
       expect(lines[1]).toMatch(/code refactor/)
       await nvim.input('2')
-      await helper.wait(50)
+      await helper.wait(1)
       await nvim.input('j')
       await nvim.input('<cr>')
-      await helper.wait(50)
-      let valid = await win.valid
-      expect(valid).toBe(true)
-      let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/invalid position/)
+      await helper.waitValue(async () => {
+        let cmdline = await helper.getCmdline()
+        return cmdline.includes('invalid position')
+      }, true)
       await nvim.input('<esc>')
+      await p
     })
 
     it('should action dialog to choose action', async () => {
@@ -308,7 +303,7 @@ describe('handler codeActions', () => {
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action, CodeAction.create('foo')]
       let promise = codeActions.doCodeAction(null)
-      await helper.wait(50)
+      await helper.waitFloat()
       let ids = await nvim.call('coc#float#get_float_win_list') as number[]
       expect(ids.length).toBeGreaterThan(0)
       await nvim.input('<CR>')

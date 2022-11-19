@@ -6,6 +6,7 @@ import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
 import Document from '../model/document'
 import { ExtendedCodeAction, HandlerDelegate } from '../types'
+import { boolToNumber } from '../util/numbers'
 import window from '../window'
 import workspace from '../workspace'
 
@@ -17,10 +18,11 @@ export default class CodeActions {
     private nvim: Neovim,
     private handler: HandlerDelegate
   ) {
-    handler.addDisposable(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
-      await this.organizeImport(bufnr)
+    handler.addDisposable(commandManager.registerCommand('editor.action.organizeImport', async () => {
+      let succeed = await this.organizeImport()
+      if (!succeed) void window.showWarningMessage(`Organize import action not found`)
     }))
-    commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
+    commandManager.titles.set('editor.action.organizeImport', 'Run organize import code action, show warning when not exists')
   }
 
   public async codeActionRange(start: number, end: number, only?: string): Promise<void> {
@@ -39,20 +41,19 @@ export default class CodeActions {
     if (action) await this.applyCodeAction(action)
   }
 
-  public async organizeImport(bufnr?: number): Promise<void> {
+  public async organizeImport(): Promise<boolean> {
     let { doc } = await this.handler.getCurrentState()
-    if (bufnr && doc.bufnr != bufnr) return
     await doc.synchronize()
     let actions = await this.getCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports])
     if (actions && actions.length) {
       await this.applyCodeAction(actions[0])
-      return
+      return true
     }
-    throw new Error('Organize import action not found.')
+    return false
   }
 
   public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
-    range = range || Range.create(0, 0, doc.lineCount, 0)
+    range = range ?? Range.create(0, 0, doc.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
     let context: CodeActionContext = { diagnostics }
     if (only && Array.isArray(only)) context.only = only
@@ -61,8 +62,7 @@ export default class CodeActions {
     })
     if (!codeActions || codeActions.length == 0) return []
     codeActions.sort((a, b) => {
-      if (a.isPreferred && !b.isPreferred) return -1
-      if (b.isPreferred && !a.isPreferred) return 1
+      if (a.isPreferred != b.isPreferred) return boolToNumber(b.isPreferred) - boolToNumber(a.isPreferred)
       if (a.disabled && !b.disabled) return 1
       if (b.disabled && !a.disabled) return -1
       return 0
