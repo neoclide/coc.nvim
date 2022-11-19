@@ -1289,7 +1289,8 @@ Selection range function:~
 CODE LENS 						*coc-code-lens*
 
 Code lens feature shows additional information above or after specific lines.
-Only works on neovim by now.
+Works best on nvim >= 0.6.0 and vim >= 9.0.0438, on older vim, some
+configurations may not work or not work at all.
 
 Check if current buffer have code lens provider by
 `:echo CocAction('hasProvider', 'codeLens')`

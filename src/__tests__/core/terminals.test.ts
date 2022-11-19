@@ -32,7 +32,7 @@ describe('create terminal', () => {
       shellPath: which.sync('bash'),
       strictEnv: true
     })
-    await helper.wait(50)
+    await helper.wait(10)
     terminal.sendText(`echo $NODE_ENV`, true)
     await helper.wait(50)
     let buf = nvim.createBuffer(terminal.bufnr)

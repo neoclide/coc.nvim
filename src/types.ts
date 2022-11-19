@@ -66,7 +66,7 @@ export interface VirtualTextOption {
   /**
    * vim9 only
    */
-  text_align?: 'after' | 'right' | 'below'
+  text_align?: 'after' | 'right' | 'below' | 'above'
   /**
    * vim9 only
    */

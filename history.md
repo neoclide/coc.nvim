@@ -1,3 +1,7 @@
+# 2022-11-20
+
+- Support code lens feature on vim9.
+
 # 2022-11-19
 
 - Create highlights after VimEnter.

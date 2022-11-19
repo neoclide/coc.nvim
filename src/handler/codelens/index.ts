@@ -8,7 +8,7 @@ import workspace from '../../workspace'
 import CodeLensBuffer from './buffer'
 
 /**
- * Show codeLens of document, works on neovim only.
+ * Show codeLens of document
  */
 export default class CodeLensManager {
   private disposables: Disposable[] = []
@@ -26,10 +26,6 @@ export default class CodeLensManager {
       return new CodeLensBuffer(nvim, doc)
     })
     this.disposables.push(this.buffers)
-    this.listen()
-  }
-
-  private listen(): void {
     events.on('CursorMoved', bufnr => {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.resolveCodeLens()
@@ -53,7 +49,7 @@ export default class CodeLensManager {
   public async doAction(): Promise<void> {
     let [bufnr, line] = await this.nvim.eval(`[bufnr("%"),line(".")-1]`) as [number, number]
     let buf = this.buffers.getItem(bufnr)
-    await buf?.doAction(line)
+    if (buf) await buf.doAction(line)
   }
 
   public dispose(): void {

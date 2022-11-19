@@ -23,6 +23,7 @@ export interface CodeLensConfig {
   separator: string
   subseparator: string
 }
+type TextAlign = 'after' | 'right' | 'below' | 'above'
 
 let srcId: number | undefined
 const debounceTme = getConditionValue(200, 20)
@@ -53,11 +54,10 @@ export default class CodeLensBuffer implements SyncItem {
 
   public loadConfiguration(): void {
     let config = workspace.getConfiguration('codeLens', this.document)
-    let enable = workspace.isNvim && config.get<boolean>('enable', false)
     this.config = {
-      enabled: enable,
-      position: config.get<'top' | 'eol'>('position', 'top'),
-      separator: config.get<string>('separator', '‣'),
+      enabled: config.get<boolean>('enable', false),
+      position: config.get<'top' | 'eol' | 'right_align'>('position', 'top'),
+      separator: config.get<string>('separator', ''),
       subseparator: config.get<string>('subseparator', ' ')
     }
   }
@@ -153,7 +153,6 @@ export default class CodeLensBuffer implements SyncItem {
     let { document } = this
     if (!srcId || !document || !codeLenses.length) return
     let list: Map<number, CodeLens[]> = new Map()
-    let { position } = this.config
     for (let codeLens of codeLenses) {
       let { range, command } = codeLens
       if (!command) continue
@@ -180,26 +179,10 @@ export default class CodeLensBuffer implements SyncItem {
       if (this.config.separator) {
         chunks.unshift([`${this.config.separator} `, 'CocCodeLens'])
       }
-      if (workspace.has('nvim-0.6.0')) {
-        let buf = this.document.buffer
-        let line = document.getline(lnum)
-        if (position == 'top') {
-          let indent = line.match(/^\s*/)[0]
-          if (indent.length > 0) chunks.unshift([indent, 'Normal'])
-          buf.setExtMark(srcId, lnum, 0, {
-            virt_lines: [chunks],
-            virt_lines_above: true
-          })
-        } else {
-          buf.setExtMark(srcId, lnum, 0, {
-            hl_mode: 'combine',
-            virt_text: chunks,
-            virt_text_pos: position
-          })
-        }
-      } else {
-        this.nvim.call('nvim_buf_set_virtual_text', [this.bufnr, srcId, lnum, chunks, {}], true)
-      }
+      document.buffer.setVirtualText(srcId, lnum, chunks, {
+        text_align: getTextAlign(this.config.position),
+        indent: true
+      })
     }
   }
 
@@ -238,6 +221,13 @@ export default class CodeLensBuffer implements SyncItem {
     this.cancel()
     this.codeLenses = undefined
   }
+}
+
+export function getTextAlign(position: 'top' | 'eol' | 'right_align'): TextAlign {
+  if (position == 'top') return 'above'
+  if (position == 'eol') return 'after'
+  if (position === 'right_align') return 'right'
+  return 'above'
 }
 
 export function getCommands(line: number, codeLenses: CodeLens[] | undefined): Command[] {
