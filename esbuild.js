@@ -23,7 +23,7 @@ async function start(watch) {
     target: 'node14.14',
     charset: 'utf8',
     banner: {
-      js: `global.__starttime = Date.now();`
+      js: `"use strict";\nglobal.__starttime = Date.now();`
     },
     outfile: 'build/index.js'
   })
