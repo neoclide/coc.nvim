@@ -6,10 +6,13 @@ import { fs, os, path } from '../util/node'
 import * as platform from '../util/platform'
 import { Disposable } from '../util/protocol'
 import ContentProvider from './contentProvider'
+import { has } from './funcs'
 import Watchers from './watchers'
 
 interface PartialEnv {
   isCygwin: boolean
+  isVim: boolean
+  version: string
 }
 
 export default class Autocmds implements Disposable {
@@ -79,7 +82,7 @@ augroup coc_dynamic_autocmd
   autocmd!
   ${cmds.join('\n  ')}
 augroup end`
-    if (!this.nvim.isVim) {
+    if (this.env && has(this.env, 'nvim-0.5.0')) {
       void this.nvim.exec(content, false)
     } else {
       let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)
