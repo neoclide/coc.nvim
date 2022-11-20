@@ -1,6 +1,6 @@
 'use strict'
 import type { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CodeActionContext, CodeActionKind, Range } from 'vscode-languageserver-types'
+import { CodeActionContext, CodeActionKind, CodeActionTriggerKind, Range } from 'vscode-languageserver-types'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
@@ -55,16 +55,16 @@ export default class CodeActions {
   public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
     range = range ?? Range.create(0, 0, doc.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
-    let context: CodeActionContext = { diagnostics }
+    let context: CodeActionContext = { diagnostics, triggerKind: CodeActionTriggerKind.Invoked }
     if (only && Array.isArray(only)) context.only = only
     let codeActions = await this.handler.withRequestToken('code action', token => {
       return languages.getCodeActions(doc.textDocument, range, context, token)
     })
     if (!codeActions || codeActions.length == 0) return []
     codeActions.sort((a, b) => {
-      if (a.isPreferred != b.isPreferred) return boolToNumber(b.isPreferred) - boolToNumber(a.isPreferred)
       if (a.disabled && !b.disabled) return 1
       if (b.disabled && !a.disabled) return -1
+      if (a.isPreferred != b.isPreferred) return boolToNumber(b.isPreferred) - boolToNumber(a.isPreferred)
       return 0
     })
     return codeActions
