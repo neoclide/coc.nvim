@@ -1,7 +1,7 @@
 'use strict'
 import type { ClientCapabilities, DidChangeConfigurationRegistrationOptions, Disposable, RegistrationType, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { mergeConfigProperties, toJSONObject } from '../configuration/util'
-import { FileSystemWatcher, IConfigurationChangeEvent, WorkspaceConfiguration } from '../types'
+import { IFileSystemWatcher, IConfigurationChangeEvent, WorkspaceConfiguration } from '../types'
 import * as Is from '../util/is'
 import {
   ConfigurationRequest,
@@ -36,7 +36,7 @@ export interface SynchronizeOptions {
    * operate on workspace folders. The LSP client doesn't support watching
    * files outside a workspace folder.
    */
-  fileEvents?: FileSystemWatcher | FileSystemWatcher[]
+  fileEvents?: IFileSystemWatcher | IFileSystemWatcher[]
 }
 
 export interface $ConfigurationOptions {

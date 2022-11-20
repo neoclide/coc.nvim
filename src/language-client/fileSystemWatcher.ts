@@ -3,7 +3,7 @@ import type {
   ClientCapabilities, DidChangeWatchedFilesRegistrationOptions, Disposable, DocumentSelector, FileEvent, RegistrationType,
   ServerCapabilities
 } from 'vscode-languageserver-protocol'
-import { FileSystemWatcher, GlobPattern } from '../types'
+import { IFileSystemWatcher, GlobPattern } from '../types'
 import { getConditionValue } from '../util'
 import * as Is from '../util/is'
 import { debounce } from '../util/node'
@@ -27,7 +27,7 @@ interface _FileSystemWatcherMiddleware {
 
 interface $FileEventOptions {
   synchronize?: {
-    fileEvents?: FileSystemWatcher | FileSystemWatcher[]
+    fileEvents?: IFileSystemWatcher | IFileSystemWatcher[]
   }
 }
 const debounceTime = getConditionValue(200, 20)
@@ -84,7 +84,7 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
   public initialize(_capabilities: ServerCapabilities, _documentSelector: DocumentSelector): void {
     let fileEvents = this._client.clientOptions.synchronize?.fileEvents
     if (!fileEvents) return
-    let watchers: FileSystemWatcher[] = Array.isArray(fileEvents) ? fileEvents : [fileEvents]
+    let watchers: IFileSystemWatcher[] = Array.isArray(fileEvents) ? fileEvents : [fileEvents]
     let disposables: Disposable[] = []
     for (let fileSystemWatcher of watchers) {
       disposables.push(fileSystemWatcher)
@@ -139,12 +139,13 @@ export class FileSystemWatcherFeature implements DynamicFeature<DidChangeWatched
   }
 
   private hookListeners(
-    fileSystemWatcher: FileSystemWatcher,
+    fileSystemWatcher: IFileSystemWatcher,
     watchCreate: boolean,
     watchChange: boolean,
     watchDelete: boolean,
     listeners: Disposable[]
   ): void {
+    // TODO rename support
     if (watchCreate) {
       fileSystemWatcher.onDidCreate(
         resource =>

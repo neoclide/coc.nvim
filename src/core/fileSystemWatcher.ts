@@ -2,7 +2,7 @@
 import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
-import { GlobPattern, OutputChannel } from '../types'
+import { GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import { splitArray } from '../util/array'
 import { isParentFolder, sameFile } from '../util/fs'
@@ -132,7 +132,7 @@ export class FileSystemWatcherManager {
 /*
  * FileSystemWatcher for watch workspace folders.
  */
-export class FileSystemWatcher implements Disposable {
+export class FileSystemWatcher implements IFileSystemWatcher {
   private _onDidCreate = new Emitter<URI>()
   private _onDidChange = new Emitter<URI>()
   private _onDidDelete = new Emitter<URI>()

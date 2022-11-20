@@ -53,26 +53,6 @@ export interface LocationWithTarget extends Location {
   targetRange?: Range
 }
 
-export interface VirtualTextOption {
-  col?: number
-  /**
-   * highlight mode
-   */
-  hl_mode?: 'combine' | 'replace' | 'blend'
-  /**
-   * neovim only
-   */
-  virt_text_win_col?: number
-  /**
-   * vim9 only
-   */
-  text_align?: 'after' | 'right' | 'below' | 'above'
-  /**
-   * vim9 only
-   */
-  text_wrap?: 'wrap' | 'truncate'
-}
-
 export enum ProviderName {
   FormatOnType = 'formatOnType',
   Rename = 'rename',
@@ -149,7 +129,7 @@ export interface ExtendedCodeAction extends CodeAction {
   providerId: string
 }
 
-export interface FileSystemWatcher extends Disposable {
+export interface IFileSystemWatcher extends Disposable {
   ignoreCreateEvents: boolean
   ignoreChangeEvents: boolean
   ignoreDeleteEvents: boolean

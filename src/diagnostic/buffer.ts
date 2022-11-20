@@ -1,10 +1,10 @@
 'use strict'
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import type { Buffer, Neovim, VirtualTextOption } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, Position, TextEdit } from 'vscode-languageserver-types'
 import events from '../events'
 import { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem, LocationListItem, VirtualTextOption } from '../types'
+import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem, LocationListItem } from '../types'
 import { getConditionValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { lineInRange, positionInRange } from '../util/position'
@@ -104,7 +104,7 @@ export class DiagnosticBuffer implements SyncItem {
       enableMessage: config.get<string>('enableMessage', 'always'),
       virtualText: config.get<boolean>('virtualText', false),
       virtualTextAlign: config.get<VirtualTextOption['text_align']>('virtualTextAlign', 'after'),
-      virtualTextWinCol: workspace.has('nvim-0.5.1') ? config.get<number | null>('virtualTextWinCol', null) : null,
+      virtualTextWinCol: config.get<number | null>('virtualTextWinCol', null),
       virtualTextCurrentLineOnly: config.get<boolean>('virtualTextCurrentLineOnly'),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
       virtualTextFormat: config.get<string>('virtualTextFormat', "%message"),
@@ -496,10 +496,9 @@ export class DiagnosticBuffer implements SyncItem {
     diagnostics.sort(sortDiagnostics)
     buffer.clearNamespace(virtualTextSrcId)
     let map: Map<number, [string, string][]> = new Map()
-    let opts: VirtualTextOption = {}
-    opts.text_align = config.virtualTextAlign
-    if (typeof config.virtualTextWinCol === 'number') {
-      opts.virt_text_win_col = config.virtualTextWinCol
+    let opts: VirtualTextOption = {
+      text_align: config.virtualTextAlign,
+      virt_text_win_col: config.virtualTextWinCol
     }
     for (let i = diagnostics.length - 1; i >= 0; i--) {
       let diagnostic = diagnostics[i]

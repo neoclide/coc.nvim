@@ -2,10 +2,10 @@ import path from 'path'
 import { DidChangeWatchedFilesNotification, DocumentSelector, Emitter, Event, FileChangeType } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
-import { FileSystemWatcher } from '../../types'
+import { IFileSystemWatcher } from '../../types'
 import helper from '../helper'
 
-function createClient(fileEvents: FileSystemWatcher | FileSystemWatcher[] | undefined, middleware: Middleware = {}): LanguageClient {
+function createClient(fileEvents: IFileSystemWatcher | IFileSystemWatcher[] | undefined, middleware: Middleware = {}): LanguageClient {
   const serverModule = path.join(__dirname, './server/fileWatchServer.js')
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.ipc },
@@ -25,7 +25,7 @@ function createClient(fileEvents: FileSystemWatcher | FileSystemWatcher[] | unde
   return result
 }
 
-class CustomWatcher implements FileSystemWatcher {
+class CustomWatcher implements IFileSystemWatcher {
   public ignoreCreateEvents = false
   public ignoreChangeEvents = false
   public ignoreDeleteEvents = false
@@ -120,13 +120,19 @@ describe('FileSystemWatcherFeature', () => {
     let client: LanguageClient
     client = createClient(undefined)
     await client.start()
-    await helper.wait(50)
-    let feature = client.getFeature(DidChangeWatchedFilesNotification.method)
-    await (feature as any)._notifyFileEvent()
-    let state = feature.getState()
-    expect((state as any).registrations).toBe(true)
+    await helper.waitValue(async () => {
+      let feature = client.getFeature(DidChangeWatchedFilesNotification.method)
+      if (feature) await (feature as any)._notifyFileEvent()
+      return feature != undefined
+    }, true)
+    await helper.waitValue(async () => {
+      let feature = client.getFeature(DidChangeWatchedFilesNotification.method)
+      let state = feature.getState()
+      return (state as any).registrations
+    }, true)
     await client.sendNotification('unwatch')
     await helper.waitValue(() => {
+      let feature = client.getFeature(DidChangeWatchedFilesNotification.method)
       let state = feature.getState()
       return (state as any)?.registrations
     }, false)
