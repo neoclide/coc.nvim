@@ -444,6 +444,12 @@
       "scope": "application",
       "default": true
     },
+    "coc.preferences.enableGFMBreaksInMarkdownDocument": {
+      "type": "boolean",
+      "description": "Exclude GFM breaks in markdown document.",
+      "scope": "application",
+      "default": true
+    },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "scope": "application",
@@ -690,7 +696,7 @@
       "type": "string",
       "scope": "resource",
       "description": "Subseparator between codeLenses in virtual text",
-      "default": " "
+      "default": " | "
     },
     "colors.enable": {
       "type": "boolean",

@@ -1,6 +1,7 @@
 # 2022-11-20
 
 - Support code lens feature on vim9.
+- `codeLens.subseparator` default changed to `|`, like VSCode.
 
 # 2022-11-19
 
