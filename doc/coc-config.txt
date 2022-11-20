@@ -82,7 +82,7 @@ CodeLens~
 
 	Subseparator between codeLenses in virtual text.
 
-	Scope: `resource`, default: `" "`
+	Scope: `resource`, default: `" | "`
 
 ------------------------------------------------------------------------------
 Colors~
@@ -1520,6 +1520,12 @@ Preferences~
 "coc.preferences.excludeImageLinksInMarkdownDocument"	*coc-preferences-excludeImageLinksInMarkdownDocument*
 
 	Exclude image links from markdown text in float window.
+
+	Scope: `application`, default: `true`
+
+"coc.preferences.enableGFMBreaksInMarkdownDocument"	*coc-preferences-enableGFMBreaksInmakrdownDocument*
+
+	Exclude GFM breaks in markdown document.
 
 	Scope: `application`, default: `true`
 
