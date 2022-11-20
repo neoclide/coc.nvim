@@ -31,6 +31,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
       let hl = a:blocks[0][1]
       let text = join(map(copy(a:blocks), "v:val[0]"), '')
       let blocks = [[text, hl]]
+      let column = 0
     endif
     let first = 1
     let base = s:get_option_vim(align, column, get(a:opts, 'text_wrap', 'truncate'))

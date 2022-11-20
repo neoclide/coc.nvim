@@ -906,6 +906,10 @@ Key-mappings for code actions:~
 - |<Plug>(coc-codeaction-line)| Choose code actions at current line.
 - |<Plug>(coc-codeaction)| Choose code actions of current file.
 - |<Plug>(coc-codeaction-selected)| Choose code actions from selected range.
+- |<Plug>(coc-codeaction-refactor)| Choose refactor code action at cursor
+  position.
+- |<Plug>(coc-codeaction-refactor-selected)| Choose refactor code action with
+  selected code.
 
 Except for |<Plug>(coc-fix-current)| which invoke code action directly,
 |coc-dialog-menu| would be shown for pick specific code action.
@@ -914,7 +918,7 @@ To invoke organize import action, use command like:
 >
 	command! -nargs=0 OR :call CocAction('organizeImport')
 
-The function return `false` when organize import code action not found.
+See |CocAction('organizeImport')| for details.
 
 Related APIs~
 
@@ -1406,7 +1410,14 @@ invoke |CocAction('refactor')|
 at current cursor.
 
 *<Plug>(coc-codeaction-selected)* Get and run code action(s) with the selected
-region.  Works on both |visual-mode| and |normal-mode|.
+code.  Works on both |visual-mode| and |normal-mode|.
+
+*<Plug>(coc-codeaction-refactor)* Get and run refactor code action(s) at
+current cursor, the same as refactor context menu in VSCode, disabled actions
+are not excluded.
+
+*<Plug>(coc-codeaction-refactor-selected)* Get and run refactor code action(s)
+with selected code. Works on both |visual-mode| and |normal-mode|.
 
 *<Plug>(coc-openlink)* Open link under cursor by use |CocAction('openlink')|.
 
