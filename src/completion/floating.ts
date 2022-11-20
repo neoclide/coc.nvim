@@ -30,7 +30,8 @@ export default class Floating {
       this.close()
     } else {
       const excludeImages = defaultValue<boolean>(workspace.initialConfiguration.get('coc.preferences.excludeImageLinksInMarkdownDocument'), true)
-      let { lines, codes, highlights } = parseDocuments(docs, { excludeImages })
+      const breakTrue = defaultValue<boolean>(workspace.initialConfiguration.get('coc.preferences.breakLinesOnLinebreakInMarkdownDocument'), true)
+      let { lines, codes, highlights } = parseDocuments(docs, { excludeImages, breakTrue })
       let opts: any = {
         codes,
         highlights,

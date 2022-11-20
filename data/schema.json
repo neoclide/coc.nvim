@@ -444,6 +444,12 @@
       "scope": "application",
       "default": true
     },
+    "coc.preferences.breakLinesOnLinebreakInMarkdownDocument": {
+      "type": "boolean",
+      "description": "Break lines when encountering linebreaks from markdown text in float window.",
+      "scope": "application",
+      "default": true
+    },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "scope": "application",

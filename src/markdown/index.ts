@@ -10,7 +10,8 @@ export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const ACTIVE_HL_GROUP = 'CocFloatActive'
 
 export interface MarkdownParseOptions {
-  excludeImages?: boolean
+  excludeImages?: boolean,
+  breakTrue?: boolean,
 }
 
 export interface CodeBlock {
@@ -130,7 +131,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   marked.setOptions({
     renderer: new Renderer(),
     gfm: true,
-    breaks: true
+    breaks: opts.breakTrue,
   })
   let lines: string[] = []
   let highlights: HighlightItem[] = []
