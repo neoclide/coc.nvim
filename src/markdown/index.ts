@@ -1,14 +1,11 @@
 'use strict'
 import { marked } from 'marked'
-import Renderer from './renderer'
+import { Documentation, HighlightItem } from '../types'
 import { parseAnsiHighlights } from '../util/ansiparse'
-import { byteIndex, byteLength } from '../util/string'
-import { stripAnsi } from '../util/node'
-import { HighlightItem, Documentation } from '../types'
 import * as Is from '../util/is'
-export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
-
-const ACTIVE_HL_GROUP = 'CocFloatActive'
+import { stripAnsi } from '../util/node'
+import { byteIndex, byteLength } from '../util/string'
+import Renderer from './renderer'
 
 export interface MarkdownParseOptions {
   breaks?: boolean
@@ -31,6 +28,33 @@ export interface DocumentInfo {
   codes: CodeBlock[]
 }
 
+enum FiletypeHighlights {
+  Error = 'CocErrorFloat',
+  Warning = 'CocWarningFloat',
+  Info = 'CocInfoFloat',
+  Hint = 'CocHintFloat',
+}
+
+const filetyepsMap = {
+  js: 'javascript',
+  ts: 'typescript',
+  bash: 'sh'
+}
+const ACTIVE_HL_GROUP = 'CocFloatActive'
+const HEADER_PREFIX = '\x1b[35m'
+const DIVIDING_LINE_HI_GROUP = 'CocFloatDividingLine'
+const MARKDOWN = 'markdown'
+const DOTS = '```'
+const TXT = 'txt'
+const DIVIDE_CHARACTER = '─'
+const DIVIDE_LINE = '───'
+
+export function toFiletype(match: null | undefined | string): string {
+  if (!match) return TXT
+  let mapped = filetyepsMap[match]
+  return Is.string(mapped) ? mapped : match
+}
+
 export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions = {}): DocumentInfo {
   let lines: string[] = []
   let highlights: HighlightItem[] = []
@@ -40,7 +64,7 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
     let currline = lines.length
     let { content, filetype } = doc
     let hls = doc.highlights
-    if (filetype == 'markdown') {
+    if (filetype == MARKDOWN) {
       let info = parseMarkdown(content, opts)
       codes.push(...info.codes.map(o => {
         o.startLine = o.startLine + currline
@@ -54,8 +78,9 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
       lines.push(...info.lines)
     } else {
       let parts = content.trim().split(/\r?\n/)
-      if (diagnosticFiletypes.includes(doc.filetype)) {
-        codes.push({ hlGroup: `Coc${filetype}Float`, startLine: currline, endLine: currline + parts.length })
+      let hlGroup = FiletypeHighlights[doc.filetype]
+      if (Is.string(hlGroup)) {
+        codes.push({ hlGroup, startLine: currline, endLine: currline + parts.length })
       } else {
         codes.push({ filetype: doc.filetype, startLine: currline, endLine: currline + parts.length })
       }
@@ -73,11 +98,11 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
     if (idx != docs.length - 1) {
       highlights.push({
         lnum: lines.length,
-        hlGroup: 'CocFloatDividingLine',
+        hlGroup: DIVIDING_LINE_HI_GROUP,
         colStart: 0,
         colEnd: -1
       })
-      lines.push('─') // dividing line
+      lines.push(DIVIDE_CHARACTER) // dividing line
     }
     idx = idx + 1
   }
@@ -152,17 +177,21 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
     let line = parsedLines[i]
     if (!line.length) {
       let pre = lines[lines.length - 1]
-      if (pre) {
-        lines.push(line)
-        currline++
-      }
+      // Skip current line when previous line is empty
+      if (!pre) continue
+      let next = parsedLines[i + 1]
+      // Skip empty line when next is code block or hr or header
+      if (!next || next.startsWith(DOTS) || next.startsWith(DIVIDE_CHARACTER) || next.startsWith(HEADER_PREFIX)) continue
+      lines.push(line)
+      currline++
       continue
     }
     if (opts.excludeImages && line.indexOf('![') !== -1) {
       line = line.replace(/\s*!\[.*?\]\(.*?\)/g, '')
       if (!stripAnsi(line).trim().length) continue
     }
-    if (/\s*```\s*([A-Za-z0-9_,]+)?$/.test(line)) {
+    let ms = line.match(/^\s*```\s*(\S+)?/)
+    if (ms) {
       if (!inCodeBlock) {
         let pre = parsedLines[i - 1]
         if (pre && /^\s*```\s*/.test(pre)) {
@@ -170,10 +199,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
           currline++
         }
         inCodeBlock = true
-        filetype = line.replace(/^\s*```\s*/, '')
-        if (filetype == 'js') filetype = 'javascript'
-        if (filetype == 'ts') filetype = 'typescript'
-        if (filetype == 'bash') filetype = 'sh'
+        filetype = toFiletype(ms[1])
         startLnum = currline
       } else {
         inCodeBlock = false
@@ -192,9 +218,9 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
       continue
     }
     let res = parseAnsiHighlights(line, true)
-    if (line === '───') {
+    if (line === DIVIDE_LINE) {
       highlights.push({
-        hlGroup: 'CocFloatDividingLine',
+        hlGroup: DIVIDING_LINE_HI_GROUP,
         lnum: currline,
         colStart: 0,
         colEnd: -1
