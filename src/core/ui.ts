@@ -104,8 +104,8 @@ export async function getSelection(nvim: Neovim, mode: string): Promise<Range | 
     return Range.create(line - 1, 0, line, 0)
   }
   if (mode === 'cursor') {
-    let [line, character] = await nvim.eval("coc#cursor#position()") as [number, number]
-    return Range.create(line, character, line, character)
+    let position = await getCursorPosition(nvim)
+    return Range.create(position, position)
   }
   let res = await nvim.call('coc#cursor#get_selection', [operateModes.includes(mode) ? 1 : 0])
   if (!res || res[0] == -1) return null

@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from '../../commands'
-import ActionsHandler from '../../handler/codeActions'
+import ActionsHandler, { shouldAutoApply } from '../../handler/codeActions'
 import languages from '../../languages'
 import { ProviderResult } from '../../provider'
 import { disposeAll } from '../../util'
@@ -46,6 +46,14 @@ afterEach(async () => {
 })
 
 describe('handler codeActions', () => {
+  describe('autoApply', () => {
+    it('should check auto apply', async () => {
+      expect(shouldAutoApply(undefined)).toBe(false)
+      expect(shouldAutoApply([])).toBe(false)
+      expect(shouldAutoApply([CodeActionKind.Refactor])).toBe(false)
+    })
+  })
+
   describe('organizeImport', () => {
     it('should return false when organize import action not found', async () => {
       currActions = []
@@ -255,7 +263,7 @@ describe('handler codeActions', () => {
       expect(lines).toEqual(['bar'])
     })
 
-    it('should apply single code action when only is codeAction array', async () => {
+    it('should apply single code action when only is QuickFix', async () => {
       let doc = await helper.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))

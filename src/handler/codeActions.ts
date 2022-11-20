@@ -92,7 +92,7 @@ export default class CodeActions {
       void window.showWarningMessage(`No${only ? ' ' + only : ''} code action available`)
       return
     }
-    if (only && codeActions.length == 1 && !codeActions[0].disabled) {
+    if (codeActions.length == 1 && !codeActions[0].disabled && shouldAutoApply(only)) {
       await this.applyCodeAction(codeActions[0])
       return
     }
@@ -146,4 +146,10 @@ export default class CodeActions {
     if (edit) await workspace.applyEdit(edit)
     if (command) await commandManager.execute(command)
   }
+}
+
+export function shouldAutoApply(only: CodeActionKind[] | string | undefined): boolean {
+  if (!only) return false
+  if (typeof only === 'string' || only[0] === CodeActionKind.QuickFix) return true
+  return false
 }

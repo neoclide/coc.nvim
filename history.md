@@ -3,6 +3,7 @@
 - Support code lens feature on vim9.
 - `codeLens.subseparator` default changed to `|`, like VSCode.
 - Add configuration `coc.preferences.enableGFMBreaksInMarkdownDocument`, default to `true`
+- Add key-mappings `<Plug>(coc-codeaction-selected)` and `<Plug>(coc-codeaction-refactor-selected)`.
 
 # 2022-11-19
 
