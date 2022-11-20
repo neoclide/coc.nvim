@@ -35,6 +35,11 @@ interface ConfigurationErrorEvent {
   diagnostics: Diagnostic[]
 }
 
+interface MarkdownPreference {
+  excludeImages: boolean
+  breaks: boolean
+}
+
 export default class Configurations {
   private _watchedFiles: Set<string> = new Set()
   private builtinKeys: string[] = []
@@ -70,6 +75,14 @@ export default class Configurations {
    */
   public get initialConfiguration(): WorkspaceConfiguration {
     return this._initialConfiguration
+  }
+
+  public get markdownPreference(): MarkdownPreference {
+    let configuration = this._initialConfiguration.get('coc.preferences') as any
+    return {
+      excludeImages: configuration.excludeImageLinksInMarkdownDocument,
+      breaks: configuration.enableGFMBreaksInMarkdownDocument
+    }
   }
 
   public get errors(): Map<string, Diagnostic[]> {

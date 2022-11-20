@@ -26,6 +26,7 @@ export interface WindowConfig {
 }
 
 export interface FloatWinConfig extends FloatConfig {
+  breaks?: boolean
   preferTop?: boolean
   autoHide?: boolean
   offsetX?: number
@@ -127,7 +128,7 @@ export default class FloatFactoryImpl implements Disposable {
 
   private async createPopup(docs: Documentation[], opts: FloatWinConfig, timestamp: number): Promise<void> {
     docs = docs.filter(o => o.content.trim().length > 0)
-    let { lines, codes, highlights } = parseDocuments(docs)
+    let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: opts.excludeImages, breaks: opts.breaks })
     let config: any = {
       codes,
       highlights,

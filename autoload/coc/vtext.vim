@@ -57,7 +57,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
         if align ==# 'right'
           let opts['virt_text_pos'] = 'right_align'
         else
-          if has_key(a:opts, 'virt_text_win_col')
+          if type(get(a:opts, 'virt_text_win_col', v:null)) == 0
             let opts['virt_text_win_col'] = a:opts['virt_text_win_col']
             let opts['virt_text_pos'] = 'overlay'
           else
@@ -67,7 +67,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
         endif
       endif
     else
-      if has('nvim-0.5.1') && has_key(a:opts, 'virt_text_win_col')
+      if has('nvim-0.5.1') && type(get(a:opts, 'virt_text_win_col', v:null)) == 0
         let opts['virt_text_win_col'] = a:opts['virt_text_win_col']
         let opts['virt_text_pos'] = 'overlay'
       endif

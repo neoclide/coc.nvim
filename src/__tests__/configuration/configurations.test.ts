@@ -50,6 +50,17 @@ describe('FolderConfigutions', () => {
 })
 
 describe('Configurations', () => {
+  describe('markdownPreference', () => {
+    it('should get markdown preferences', async () => {
+      let configurations = createConfigurations()
+      let preferences = configurations.markdownPreference
+      expect(preferences).toEqual({
+        excludeImages: true,
+        breaks: true
+      })
+    })
+  })
+
   describe('ConfigurationProxy', () => {
     it('should create file and parent folder when necessary', async () => {
       let folder = generateTmpDir()
@@ -101,7 +112,7 @@ describe('Configurations', () => {
         let c = conf.getConfiguration('foo')
         return c.get('bar')
       }, false)
-      if (fs.existsSync(userConfigFile)) fs.unlinkSync(userConfigFile)
+      fs.rmSync(userConfigFile, { recursive: true })
     })
 
     it('should watch folder config file', async () => {
@@ -167,6 +178,7 @@ describe('Configurations', () => {
       expect(res.key).toBe('coc.preferences.rootPath')
       expect(res.workspaceFolderValue).toBe('./src')
       expect(c.get('rootPath')).toBe('./src')
+      expect(fired).toBe(false)
     })
 
     it('should not add invalid folders', async () => {

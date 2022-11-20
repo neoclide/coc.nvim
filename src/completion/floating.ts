@@ -3,7 +3,6 @@ import { createLogger } from '../logger'
 import { parseDocuments } from '../markdown'
 import sources from '../sources'
 import { CompleteOption, Documentation, DurationCompleteItem, FloatConfig } from '../types'
-import { defaultValue } from '../util'
 import { isCancellationError } from '../util/errors'
 import { CancellationToken } from '../util/protocol'
 import workspace from '../workspace'
@@ -29,8 +28,8 @@ export default class Floating {
     if (docs.length === 0) {
       this.close()
     } else {
-      const excludeImages = defaultValue<boolean>(workspace.initialConfiguration.get('coc.preferences.excludeImageLinksInMarkdownDocument'), true)
-      let { lines, codes, highlights } = parseDocuments(docs, { excludeImages })
+      const markdownPreference = workspace.configurations.markdownPreference
+      let { lines, codes, highlights } = parseDocuments(docs, markdownPreference)
       let opts: any = {
         codes,
         highlights,

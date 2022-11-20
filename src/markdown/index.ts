@@ -5,11 +5,13 @@ import { parseAnsiHighlights } from '../util/ansiparse'
 import { byteIndex, byteLength } from '../util/string'
 import { stripAnsi } from '../util/node'
 import { HighlightItem, Documentation } from '../types'
+import * as Is from '../util/is'
 export const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 
 const ACTIVE_HL_GROUP = 'CocFloatActive'
 
 export interface MarkdownParseOptions {
+  breaks?: boolean
   excludeImages?: boolean
 }
 
@@ -130,7 +132,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   marked.setOptions({
     renderer: new Renderer(),
     gfm: true,
-    breaks: true
+    breaks: Is.boolean(opts.breaks) ? opts.breaks : true
   })
   let lines: string[] = []
   let highlights: HighlightItem[] = []
@@ -141,7 +143,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   let startLnum = 0
   let parsed = marked(content)
   let links = Renderer.getLinks()
-  parsed = parsed.replace(/\n\n/g, '\n').replace(/\s*$/, '')
+  parsed = parsed.replace(/\s*$/, '')
   if (links.length) {
     parsed = parsed + '\n\n' + links.join('\n')
   }

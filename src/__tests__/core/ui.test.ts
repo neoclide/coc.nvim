@@ -49,7 +49,7 @@ describe('getCursorScreenPosition()', () => {
 
 describe('createFloatFactory()', () => {
   it('should create FloatFactory', async () => {
-    let f = ui.createFloatFactory(nvim, { border: true, autoHide: false }, { close: true })
+    let f = ui.createFloatFactory(nvim, { border: true, autoHide: false, breaks: false }, { close: true })
     await f.show([{ content: 'shown', filetype: 'txt' }])
     let activated = await f.activated()
     expect(activated).toBe(true)

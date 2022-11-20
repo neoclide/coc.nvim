@@ -20,7 +20,6 @@ import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
 import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
-import { defaultValue } from './util'
 import { isFalsyOrEmpty } from './util/array'
 import { CONFIG_FILE_NAME } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
@@ -127,10 +126,9 @@ export class Window {
    */
   public createFloatFactory(conf: FloatWinConfig): FloatFactory {
     let configuration = this.workspace.initialConfiguration
-    let preferences = configuration.get('coc.preferences') as any
-    let excludeImages = defaultValue(preferences.excludeImageLinksInMarkdownDocument, true)
     let defaults = toObject(configuration.get('floatFactory.floatConfig')) as FloatConfig
-    return ui.createFloatFactory(this.workspace.nvim, Object.assign({ excludeImages, maxWidth: 80 }, conf), defaults)
+    let markdownPreference = this.workspace.configurations.markdownPreference
+    return ui.createFloatFactory(this.workspace.nvim, Object.assign({ ...markdownPreference, maxWidth: 80 }, conf), defaults)
   }
 
   /**
