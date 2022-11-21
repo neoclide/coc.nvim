@@ -1,6 +1,6 @@
 'use strict'
 import { URI } from 'vscode-uri'
-import { ListContext, ListItem } from '../../types'
+import { ListContext, ListItem } from '../types'
 import { statAsync } from '../../util/fs'
 import { fs, path } from '../../util/node'
 import window from '../../window'

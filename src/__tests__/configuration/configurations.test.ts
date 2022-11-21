@@ -8,7 +8,7 @@ import Configurations, { folderSettingsSchemaId, userSettingsSchemaId } from '..
 import { ConfigurationModel } from '../../configuration/model'
 import ConfigurationProxy from '../../configuration/shape'
 import { FolderConfigutions } from '../../configuration/configuration'
-import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
+import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../configuration/types'
 import { disposeAll, wait } from '../../util'
 import { remove } from '../../util/fs'
 import helper from '../helper'

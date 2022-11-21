@@ -1,12 +1,14 @@
 'use strict'
-import type { Buffer, Window } from '@chemzqm/neovim'
+import type { Window } from '@chemzqm/neovim'
+import type { CancellationToken, Disposable, DocumentSelector, Event } from 'vscode-languageserver-protocol'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
-import type { CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'
+import type { CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import type Document from './model/document'
 import type RelativePattern from './model/relativePattern'
 import type { ProviderResult } from './provider'
-import type { CancellationToken, Disposable, DocumentSelector, Event, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
+
+export { IConfigurationChangeEvent } from './configuration/types'
 
 export type GlobPattern = string | RelativePattern
 
@@ -26,31 +28,10 @@ export type Optional<T extends object, K extends keyof T = keyof T> = Omit<
 > &
   Partial<Pick<T, K>>
 
-/**
- * An interface for a JavaScript object that
- * acts a dictionary. The keys are strings.
- */
-export type IStringDictionary<V> = Record<string, V>
-
-/**
- * An interface for a JavaScript object that
- * acts a dictionary. The keys are numbers.
- */
-export type INumberDictionary<V> = Record<number, V>
-
 export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
   // eslint-disable-next-line @typescript-eslint/unified-signatures
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
-}
-
-export interface LocationWithTarget extends Location {
-  /**
-   * The full target range of this link. If the target for example is a symbol then target range is the
-   * range enclosing this symbol not including leading/trailing whitespace but everything else
-   * like comments. This information is typically used to highlight the range in the editor.
-   */
-  targetRange?: Range
 }
 
 export enum ProviderName {
@@ -84,7 +65,19 @@ export enum ProviderName {
   TypeHierarchy = 'typeHierarchy'
 }
 
-export type LocalMode = 'n' | 'v' | 's' | 'x'
+export interface AnsiHighlight {
+  span: [number, number]
+  hlGroup: string
+}
+
+export interface LocationWithTarget extends Location {
+  /**
+   * The full target range of this link. If the target for example is a symbol then target range is the
+   * range enclosing this symbol not including leading/trailing whitespace but everything else
+   * like comments. This information is typically used to highlight the range in the editor.
+   */
+  targetRange?: Range
+}
 
 export interface CurrentState {
   doc: Document
@@ -534,14 +527,6 @@ export enum MessageLevel {
   Error
 }
 
-export enum ConfigurationTarget {
-  Default,
-  User,
-  Workspace,
-  WorkspaceFolder,
-  Memory,
-}
-
 export enum ServiceStat {
   Initial,
   Starting,
@@ -572,46 +557,7 @@ export enum FileType {
 // }}
 
 // TextDocument {{
-/**
- * An event that is fired when a [document](#TextDocument) will be saved.
- *
- * To make modifications to the document before it is being saved, call the
- * [`waitUntil`](#TextDocumentWillSaveEvent.waitUntil)-function with a thenable
- * that resolves to an array of [text edits](#TextEdit).
- */
-export interface TextDocumentWillSaveEvent {
-
-  /**
-   * The document that will be saved.
-   */
-  document: TextDocument
-
-  /**
-   * The reason why save was triggered.
-   */
-  reason: TextDocumentSaveReason
-
-  /**
-   * Allows to pause the event loop and to apply [pre-save-edits](#TextEdit).
-   * Edits of subsequent calls to this function will be applied in order. The
-   * edits will be *ignored* if concurrent modifications of the document happened.
-   *
-   * *Note:* This function can only be called during event dispatch and not
-   * in an asynchronous manner:
-   *
-   * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
-   */
-  waitUntil(thenable: Thenable<TextEdit[] | any>): void
-}
-
 export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile
-
-export interface LinesChange {
-  uri: string
-  lnum: number
-  oldLines: ReadonlyArray<string>
-  newLines: ReadonlyArray<string>
-}
 
 /**
  * An event describing a change to a text document.
@@ -826,424 +772,6 @@ export interface ISource {
   onCompleteResolve?(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
   onCompleteDone?(item: DurationCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
   shouldCommit?(item: DurationCompleteItem, character: string): boolean
-  dispose?(): void
-}
-// }}
-
-// Configuration {{
-export interface IConfigurationChange {
-  keys: string[]
-  overrides: [string, string[]][]
-}
-
-export enum ConfigurationUpdateTarget {
-  Global = 1,
-  Workspace = 2,
-  WorkspaceFolder = 3
-}
-
-export const enum ConfigurationScope {
-  /**
-   * Application specific configuration, which can be configured only in local user settings.
-   */
-  WINDOW = 1,
-  /**
-   * Resource specific configuration, which can be configured in the user, workspace or folder settings.
-   */
-  RESOURCE,
-  /**
-   * Resource specific configuration that can be configured in language specific settings
-   */
-  LANGUAGE_OVERRIDABLE,
-}
-
-export type ConfigurationResourceScope = string | null | URI | TextDocument | WorkspaceFolder | { uri?: string; languageId?: string }
-
-export interface IConfigurationChangeEvent {
-  readonly source: ConfigurationTarget
-  readonly affectedKeys: string[]
-  readonly change?: IConfigurationChange
-  affectsConfiguration(configuration: string, scope?: ConfigurationResourceScope): boolean
-}
-
-export interface ConfigurationInspect<T> {
-  key: string
-  defaultValue?: T
-  globalValue?: T
-  workspaceValue?: T
-  workspaceFolderValue?: T
-}
-
-export interface IConfigurationOverrides {
-  overrideIdentifier?: string | null
-  resource?: string | null
-}
-
-export interface IOverrides {
-  contents: any
-  keys: string[]
-  identifiers: string[]
-}
-
-export interface IConfigurationModel {
-  contents: any
-  keys: string[]
-  overrides: IOverrides[]
-}
-
-export interface IConfigurationData {
-  defaults: IConfigurationModel
-  user: IConfigurationModel
-  workspace: IConfigurationModel
-  folders: [string, IConfigurationModel][]
-}
-
-export interface WorkspaceConfiguration {
-  /**
-   * Return a value from this configuration.
-   *
-   * @param section Configuration name, supports _dotted_ names.
-   * @return The value `section` denotes or `undefined`.
-   */
-  get<T>(section: string): T | undefined
-
-  /**
-   * Return a value from this configuration.
-   *
-   * @param section Configuration name, supports _dotted_ names.
-   * @param defaultValue A value should be returned when no value could be found, is `undefined`.
-   * @return The value `section` denotes or the default.
-   */
-  get<T>(section: string, defaultValue: T): T
-
-  /**
-   * Check if this configuration has a certain value.
-   *
-   * @param section Configuration name, supports _dotted_ names.
-   * @return `true` if the section doesn't resolve to `undefined`.
-   */
-  has(section: string): boolean
-
-  /**
-   * Retrieve all information about a configuration setting. A configuration value
-   * often consists of a *default* value, a global or installation-wide value,
-   * a workspace-specific value
-   *
-   * *Note:* The configuration name must denote a leaf in the configuration tree
-   * (`editor.fontSize` vs `editor`) otherwise no result is returned.
-   *
-   * @param section Configuration name, supports _dotted_ names.
-   * @return Information about a configuration setting or `undefined`.
-   */
-  inspect<T>(section: string): ConfigurationInspect<T> | undefined
-  /**
-   * Update a configuration value. The updated configuration values are persisted.
-   *
-   *
-   * @param section Configuration name, supports _dotted_ names.
-   * @param value The new value.
-   * @param isUser if true, always update user configuration
-   */
-  update(section: string, value: any, isUser?: ConfigurationUpdateTarget | boolean): Thenable<void>
-
-  /**
-   * Readable dictionary that backs this configuration.
-   */
-  readonly [key: string]: any
-}
-// }}
-
-// File operation {{
-/**
- * An event that is fired when files are going to be renamed.
- *
- * To make modifications to the workspace before the files are renamed,
- * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
- * thenable that resolves to a [workspace edit](#WorkspaceEdit).
- */
-export interface FileWillRenameEvent {
-
-  /**
-   * The files that are going to be renamed.
-   */
-  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
-
-  /**
-   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
-   *
-   * *Note:* This function can only be called during event dispatch and not
-   * in an asynchronous manner:
-   *
-   * ```ts
-   * workspace.onWillCreateFiles(event => {
-   * 	// async, will *throw* an error
-   * 	setTimeout(() => event.waitUntil(promise));
-   *
-   * 	// sync, OK
-   * 	event.waitUntil(promise);
-   * })
-   * ```
-   *
-   * @param thenable A thenable that delays saving.
-   */
-  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
-}
-
-/**
- * An event that is fired after files are renamed.
- */
-export interface FileRenameEvent {
-
-  /**
-   * The files that got renamed.
-   */
-  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
-}
-
-/**
- * An event that is fired when files are going to be created.
- *
- * To make modifications to the workspace before the files are created,
- * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
- * thenable that resolves to a [workspace edit](#WorkspaceEdit).
- */
-export interface FileWillCreateEvent {
-
-  /**
-   * A cancellation token.
-   */
-  readonly token: CancellationToken
-
-  /**
-   * The files that are going to be created.
-   */
-  readonly files: ReadonlyArray<URI>
-
-  /**
-   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
-   *
-   * *Note:* This function can only be called during event dispatch and not
-   * in an asynchronous manner:
-   *
-   * ```ts
-   * workspace.onWillCreateFiles(event => {
-   *     // async, will *throw* an error
-   *     setTimeout(() => event.waitUntil(promise));
-   *
-   *     // sync, OK
-   *     event.waitUntil(promise);
-   * })
-   * ```
-   *
-   * @param thenable A thenable that delays saving.
-   */
-  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
-}
-
-/**
- * An event that is fired after files are created.
- */
-export interface FileCreateEvent {
-
-  /**
-   * The files that got created.
-   */
-  readonly files: ReadonlyArray<URI>
-}
-
-/**
- * An event that is fired when files are going to be deleted.
- *
- * To make modifications to the workspace before the files are deleted,
- * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
- * thenable that resolves to a [workspace edit](#WorkspaceEdit).
- */
-export interface FileWillDeleteEvent {
-
-  /**
-   * The files that are going to be deleted.
-   */
-  readonly files: ReadonlyArray<URI>
-
-  /**
-   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
-   *
-   * *Note:* This function can only be called during event dispatch and not
-   * in an asynchronous manner:
-   *
-   * ```ts
-   * workspace.onWillCreateFiles(event => {
-   *     // async, will *throw* an error
-   *     setTimeout(() => event.waitUntil(promise));
-   *
-   *     // sync, OK
-   *     event.waitUntil(promise);
-   * })
-   * ```
-   *
-   * @param thenable A thenable that delays saving.
-   */
-  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
-}
-
-/**
- * An event that is fired after files are deleted.
- */
-export interface FileDeleteEvent {
-
-  /**
-   * The files that got deleted.
-   */
-  readonly files: ReadonlyArray<URI>
-}
-// }}
-
-// List {{
-export interface LocationWithLine {
-  uri: string
-  line: string
-  text?: string
-}
-
-export interface ListItem {
-  label: string
-  filterText?: string
-  preselect?: boolean
-  location?: LocationWithTarget | LocationWithLine | string
-  data?: any
-  ansiHighlights?: AnsiHighlight[]
-  resolved?: boolean
-  /**
-   * A string that should be used when comparing this item
-   * with other items, only used for fuzzy filter.
-   */
-  sortText?: string
-  converted?: boolean
-}
-
-export interface ListItemWithScore extends ListItem {
-  score?: number
-}
-
-export interface AnsiHighlight {
-  span: [number, number]
-  hlGroup: string
-}
-
-export interface ListItemsEvent {
-  items: ListItemWithScore[]
-  finished: boolean
-  sorted: boolean
-  append?: boolean
-  reload?: boolean
-}
-
-export type ListMode = 'normal' | 'insert'
-
-export type Matcher = 'strict' | 'fuzzy' | 'regex'
-
-export interface ListOptions {
-  position: string
-  reverse: boolean
-  input: string
-  ignorecase: boolean
-  smartcase: boolean
-  interactive: boolean
-  sort: boolean
-  mode: ListMode
-  matcher: Matcher
-  autoPreview: boolean
-  numberSelect: boolean
-  noQuit: boolean
-  first: boolean
-  height?: number
-}
-
-export interface ListContext {
-  args: string[]
-  input: string
-  cwd: string
-  options: ListOptions
-  window: Window
-  buffer: Buffer
-  listWindow: Window
-}
-
-export interface ListAction {
-  name: string
-  persist?: boolean
-  reload?: boolean
-  parallel?: boolean
-  multiple?: boolean
-  tabPersist?: boolean
-  execute: Function
-}
-
-export interface SingleListAction extends ListAction {
-  multiple?: false
-  execute: (item: ListItem, context: ListContext) => ProviderResult<void>
-}
-
-export interface MultipleListAction extends ListAction {
-  multiple: boolean
-  execute: (item: ListItem[], context: ListContext) => ProviderResult<void>
-}
-
-export interface ListTask {
-  on(event: 'data', callback: (item: ListItem) => void): void
-  on(event: 'end', callback: () => void): void
-  on(event: 'error', callback: (msg: string | Error) => void): void
-  dispose(): void
-}
-
-export interface ListArgument {
-  key?: string
-  hasValue?: boolean
-  name: string
-  description: string
-}
-
-export interface IList {
-  /**
-   * Unique name of list.
-   */
-  name: string
-  /**
-   * Action list.
-   */
-  actions: ListAction[]
-  /**
-   * Default action name.
-   */
-  defaultAction: string
-  /**
-   * Load list items.
-   */
-  loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
-  /**
-   * Resolve list item.
-   */
-  resolveItem?(item: ListItem): Promise<ListItem | null>
-  /**
-   * Should be true when interactive is supported.
-   */
-  interactive?: boolean
-  /**
-   * Description of list.
-   */
-  description?: string
-  /**
-   * Detail description, shown in help.
-   */
-  detail?: string
-  /**
-   * Options supported by list.
-   */
-  options?: ListArgument[]
-  /**
-   * Highlight buffer by vim's syntax commands.
-   */
-  doHighlight?(): void
   dispose?(): void
 }
 // }}

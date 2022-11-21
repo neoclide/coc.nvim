@@ -3,7 +3,7 @@ import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-langu
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import Document from '../../model/document'
-import { ListArgument, ListContext, ListItem } from '../../types'
+import { ListArgument, ListContext, ListItem } from '../types'
 import { getSymbolKind } from '../../util/convert'
 import { writeFile } from '../../util/fs'
 import { path, which } from '../../util/node'

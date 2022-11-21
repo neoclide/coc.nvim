@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { ListMode } from '../types'
+import { ListMode } from './types'
 import window from '../window'
 import ListConfiguration, { validKeys } from './configuration'
 import { ListManager } from './manager'

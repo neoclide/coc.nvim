@@ -1,6 +1,6 @@
 'use strict'
 import { URI } from 'vscode-uri'
-import { ConfigurationTarget, IConfigurationChange, IConfigurationData, IConfigurationModel, IConfigurationOverrides } from '../types'
+import { ConfigurationTarget, IConfigurationChange, IConfigurationData, IConfigurationModel, IConfigurationOverrides } from './types'
 import { distinct } from '../util/array'
 import { isParentFolder, normalizeFilePath, sameFile } from '../util/fs'
 import { equals } from '../util/object'

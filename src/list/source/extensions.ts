@@ -1,7 +1,7 @@
 'use strict'
 import { URI } from 'vscode-uri'
 import extensions from '../../extension'
-import { ListContext, ListItem } from '../../types'
+import { ListContext, ListItem } from '../types'
 import { wait } from '../../util'
 import { fs, os, path } from '../../util/node'
 import workspace from '../../workspace'

@@ -1,6 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { ListMode, ListOptions, Matcher } from '../types'
+import { ListMode, ListOptions, Matcher } from './types'
 import { Emitter, Event } from '../util/protocol'
 import ListConfiguration from './configuration'
 

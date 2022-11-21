@@ -2,7 +2,7 @@
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import sources from '../../sources'
-import { ListItem } from '../../types'
+import { ListItem } from '../types'
 import BasicList from '../basic'
 
 export default class SourcesList extends BasicList {

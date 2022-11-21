@@ -1,7 +1,7 @@
 'use strict'
 import commandManager from '../../commands'
 import Mru from '../../model/mru'
-import { ListContext, ListItem } from '../../types'
+import { ListContext, ListItem } from '../types'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../../util/extensionRegistry'
 import { Registry } from '../../util/registry'
 import workspace from '../../workspace'

@@ -1,10 +1,10 @@
-import { ConfigurationScope, IStringDictionary } from '../types'
 import { distinct } from '../util/array'
 import { Extensions as JSONExtensions, IJSONContributionRegistry } from '../util/jsonRegistry'
 import { IJSONSchema } from '../util/jsonSchema'
 import { toObject } from '../util/object'
 import { Emitter, Event } from '../util/protocol'
 import { Registry } from '../util/registry'
+import { ConfigurationScope, IStringDictionary } from './types'
 import { getDefaultValue, OVERRIDE_PROPERTY_PATTERN, OVERRIDE_PROPERTY_REGEX } from './util'
 
 const EXCLUDE_KEYS = ['log-path', 'logPath']

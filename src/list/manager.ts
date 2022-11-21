@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import events from '../events'
 import { createLogger } from '../logger'
-import { ConfigurationScope, IList, ListItem, ListOptions, ListTask, Matcher } from '../types'
+import { IList, ListItem, ListOptions, ListTask, Matcher } from './types'
 import { disposeAll, getConditionValue } from '../util'
 import { isVim } from '../util/constants'
 import { parseExtensionName } from '../util/extensionRegistry'
@@ -30,6 +30,7 @@ import OutlineList from './source/outline'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
+import { ConfigurationScope } from '../configuration/types'
 const logger = createLogger('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']

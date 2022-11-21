@@ -1,6 +1,6 @@
 'use strict'
 import Mru from '../../model/mru'
-import { IList, ListContext, ListItem } from '../../types'
+import { IList, ListContext, ListItem } from '../types'
 import { isVim } from '../../util/constants'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'

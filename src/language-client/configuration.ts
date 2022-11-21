@@ -1,7 +1,8 @@
 'use strict'
 import type { ClientCapabilities, DidChangeConfigurationRegistrationOptions, Disposable, RegistrationType, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { IConfigurationChangeEvent, WorkspaceConfiguration } from '../configuration/types'
 import { mergeConfigProperties, toJSONObject } from '../configuration/util'
-import { IFileSystemWatcher, IConfigurationChangeEvent, WorkspaceConfiguration } from '../types'
+import { IFileSystemWatcher } from '../types'
 import * as Is from '../util/is'
 import {
   ConfigurationRequest,

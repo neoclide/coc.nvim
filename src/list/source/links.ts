@@ -2,7 +2,7 @@
 import { DocumentLink, Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import languages from '../../languages'
-import { ListContext, ListItem } from '../../types'
+import { ListContext, ListItem } from '../types'
 import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
 import type { CancellationToken } from '../../util/protocol'

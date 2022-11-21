@@ -1,17 +1,18 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Position, RenameFile, RenameFileOptions, TextDocumentEdit, WorkspaceEdit } from 'vscode-languageserver-types'
+import type { TextDocument } from 'vscode-languageserver-textdocument'
+import { ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Position, RenameFile, RenameFileOptions, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
-import { DocumentChange, Env, FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, GlobPattern, LinesChange } from '../types'
+import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
 import { crypto, fs, glob, minimatch, os, path, promisify } from '../util/node'
-import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import { createFilteredChanges, getConfirmAnnotations, toDocumentChanges } from '../util/textedit'
 import type { Window } from '../window'
@@ -20,6 +21,188 @@ import type Keymaps from './keymaps'
 import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
 const logger = createLogger('core-files')
+
+export interface LinesChange {
+  uri: string
+  lnum: number
+  oldLines: ReadonlyArray<string>
+  newLines: ReadonlyArray<string>
+}
+
+/**
+ * An event that is fired when a [document](#TextDocument) will be saved.
+ *
+ * To make modifications to the document before it is being saved, call the
+ * [`waitUntil`](#TextDocumentWillSaveEvent.waitUntil)-function with a thenable
+ * that resolves to an array of [text edits](#TextEdit).
+ */
+export interface TextDocumentWillSaveEvent {
+
+  /**
+   * The document that will be saved.
+   */
+  document: TextDocument
+
+  /**
+   * The reason why save was triggered.
+   */
+  reason: TextDocumentSaveReason
+
+  /**
+   * Allows to pause the event loop and to apply [pre-save-edits](#TextEdit).
+   * Edits of subsequent calls to this function will be applied in order. The
+   * edits will be *ignored* if concurrent modifications of the document happened.
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
+   */
+  waitUntil(thenable: Thenable<TextEdit[] | any>): void
+}
+
+/**
+ * An event that is fired when files are going to be renamed.
+ *
+ * To make modifications to the workspace before the files are renamed,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillRenameEvent {
+
+  /**
+   * The files that are going to be renamed.
+   */
+  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   * 	// async, will *throw* an error
+   * 	setTimeout(() => event.waitUntil(promise));
+   *
+   * 	// sync, OK
+   * 	event.waitUntil(promise);
+   * })
+   * ```
+   *
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+}
+
+/**
+ * An event that is fired after files are renamed.
+ */
+export interface FileRenameEvent {
+
+  /**
+   * The files that got renamed.
+   */
+  readonly files: ReadonlyArray<{ oldUri: URI, newUri: URI }>
+}
+
+/**
+ * An event that is fired when files are going to be created.
+ *
+ * To make modifications to the workspace before the files are created,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillCreateEvent {
+
+  /**
+   * A cancellation token.
+   */
+  readonly token: CancellationToken
+
+  /**
+   * The files that are going to be created.
+   */
+  readonly files: ReadonlyArray<URI>
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   *     // async, will *throw* an error
+   *     setTimeout(() => event.waitUntil(promise));
+   *
+   *     // sync, OK
+   *     event.waitUntil(promise);
+   * })
+   * ```
+   *
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+}
+
+/**
+ * An event that is fired after files are created.
+ */
+export interface FileCreateEvent {
+
+  /**
+   * The files that got created.
+   */
+  readonly files: ReadonlyArray<URI>
+}
+
+/**
+ * An event that is fired when files are going to be deleted.
+ *
+ * To make modifications to the workspace before the files are deleted,
+ * call the [`waitUntil](#FileWillCreateEvent.waitUntil)-function with a
+ * thenable that resolves to a [workspace edit](#WorkspaceEdit).
+ */
+export interface FileWillDeleteEvent {
+
+  /**
+   * The files that are going to be deleted.
+   */
+  readonly files: ReadonlyArray<URI>
+
+  /**
+   * Allows to pause the event and to apply a [workspace edit](#WorkspaceEdit).
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillCreateFiles(event => {
+   *     // async, will *throw* an error
+   *     setTimeout(() => event.waitUntil(promise));
+   *
+   *     // sync, OK
+   *     event.waitUntil(promise);
+   * })
+   * ```
+   *
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
+}
+
+/**
+ * An event that is fired after files are deleted.
+ */
+export interface FileDeleteEvent {
+
+  /**
+   * The files that got deleted.
+   */
+  readonly files: ReadonlyArray<URI>
+}
 
 interface WaitUntilEvent {
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void

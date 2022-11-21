@@ -50,7 +50,7 @@ import {
   ErrorAction, LanguageClient,
   MessageTransports, NullLogger, RevealOutputChannelOn, SettingMonitor, State, TransportKind
 } from './language-client'
-import { ConfigurationUpdateTarget, FileType, MessageLevel, PatternType, ProviderName, ServiceStat, SourceType } from './types'
+import { FileType, MessageLevel, PatternType, ProviderName, ServiceStat, SourceType } from './types'
 
 import LineBuilder from './model/line'
 import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
@@ -58,6 +58,7 @@ import { TreeItem, TreeItemCollapsibleState } from './tree/index'
 import { concurrent, disposeAll, wait } from './util'
 import { watchFile } from './util/fs'
 import { executable, isRunning, runCommand, terminate } from './util/processes'
+import { ConfigurationUpdateTarget } from './configuration/types'
 
 module.exports = {
   Uri: URI,

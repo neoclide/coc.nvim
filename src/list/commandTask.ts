@@ -1,7 +1,7 @@
 'use strict'
 import { EventEmitter } from 'events'
 import { createLogger } from '../logger'
-import { ListItem, ListTask } from '../types'
+import { ListItem, ListTask } from './types'
 import { disposeAll } from '../util'
 import { child_process, readline } from '../util/node'
 import type { Disposable } from '../util/protocol'

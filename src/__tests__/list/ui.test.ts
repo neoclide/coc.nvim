@@ -4,7 +4,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import events from '../../events'
 import manager from '../../list/manager'
-import { ListItem, IList, ListTask } from '../../types'
+import { ListItem, IList, ListTask } from '../../list/types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 

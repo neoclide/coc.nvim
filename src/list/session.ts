@@ -2,7 +2,7 @@
 import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import extensions from '../extension'
 import Highlighter from '../model/highligher'
-import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from '../types'
+import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from './types'
 import { disposeAll, wait } from '../util'
 import { debounce } from '../util/node'
 import { Disposable } from '../util/protocol'

@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { ListContext, ListTask } from '../../types'
+import { ListContext, ListTask } from '../../list/types'
 import manager from '../../list/manager'
 import helper, { createTmpFile } from '../helper'
 import BasicList from '../../list/basic'

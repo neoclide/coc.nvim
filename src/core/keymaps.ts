@@ -9,6 +9,8 @@ const logger = createLogger('core-keymaps')
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
 
+export type LocalMode = 'n' | 'v' | 's' | 'x'
+
 export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'n' || mode == 'o' || mode == 'x' || mode == 'v') return '<C-U>'
   if (mode == 'i') return '<C-o>'
@@ -81,7 +83,7 @@ export default class Keymaps {
     })
   }
 
-  public registerLocalKeymap(mode: 'n' | 'v' | 's' | 'x', key: string, fn: Function, notify = false): Disposable {
+  public registerLocalKeymap(mode: LocalMode, key: string, fn: Function, notify = false): Disposable {
     let id = uuid()
     let { nvim } = this
     let bufnr = this.documents.bufnr

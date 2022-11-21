@@ -1,7 +1,7 @@
 import { ParseError, ParseErrorCode, visit } from 'jsonc-parser'
 import { Diagnostic, Range } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
-import { ConfigurationScope, IConfigurationModel, IOverrides } from '../types'
+import { ConfigurationScope, IConfigurationModel, IOverrides } from './types'
 import { ConfigurationModel } from './model'
 import { convertErrors, overrideIdentifiersFromKey, OVERRIDE_PROPERTY_REGEX, toValuesTree } from './util'
 const logger = createLogger('parser')

@@ -7,7 +7,7 @@ import vm from 'vm'
 import cp from 'child_process'
 import { AnnotatedTextEdit, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { LinesTextDocument } from '../../model/textdocument'
-import { ConfigurationScope, DocumentChange } from '../../types'
+import { DocumentChange } from '../../types'
 import { concurrent, delay, disposeAll, wait } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
 import * as arrays from '../../util/array'
@@ -35,6 +35,7 @@ import * as numbers from '../../util/numbers'
 import * as textedits from '../../util/textedit'
 import { createTiming } from '../../util/timing'
 import helper from '../helper'
+import { ConfigurationScope } from '../../configuration/types'
 
 function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)

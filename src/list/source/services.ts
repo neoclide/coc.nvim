@@ -1,6 +1,6 @@
 'use strict'
 import services from '../../services'
-import { ListContext, ListItem } from '../../types'
+import { ListContext, ListItem } from '../types'
 import { wait } from '../../util'
 import BasicList from '../basic'
 import { formatListItems } from '../formatting'

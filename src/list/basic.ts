@@ -2,8 +2,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { WorkspaceConfiguration } from '../configuration/types'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, LocationWithTarget, MultipleListAction, SingleListAction, WorkspaceConfiguration } from '../types'
+import { LocationWithTarget } from '../types'
 import { disposeAll } from '../util'
 import { lineToLocation } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
@@ -11,6 +12,7 @@ import { CancellationToken, Disposable } from '../util/protocol'
 import workspace from '../workspace'
 import CommandTask, { CommandTaskOption } from './commandTask'
 import ListConfiguration from './configuration'
+import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, MultipleListAction, SingleListAction } from './types'
 
 interface ActionOptions {
   persist?: boolean

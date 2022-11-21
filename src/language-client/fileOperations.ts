@@ -3,7 +3,7 @@ import type { IMinimatch, IOptions } from 'minimatch'
 import { minimatch } from '../util/node'
 import type { ClientCapabilities, CreateFilesParams, DeleteFilesParams, Disposable, Event, FileOperationClientCapabilities, FileOperationOptions, FileOperationPatternOptions, FileOperationRegistrationOptions, ProtocolNotificationType, ProtocolRequestType, RegistrationType, RenameFilesParams, ServerCapabilities, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileType, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../types'
+import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent } from '../core/files'
 import { getFileType } from '../util/fs'
 import {
   CancellationToken, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, FileOperationPatternKind, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest
@@ -11,6 +11,7 @@ import {
 import workspace from '../workspace'
 import { BaseFeature, DynamicFeature, ensure, FeatureClient, FeatureState, NextSignature, RegistrationData } from './features'
 import * as UUID from './utils/uuid'
+import { FileType } from '../types'
 
 function access<T, K extends keyof T>(target: T, key: K): T[K] {
   return target[key]

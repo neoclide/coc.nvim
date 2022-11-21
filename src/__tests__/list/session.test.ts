@@ -3,7 +3,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
 import ListSession from '../../list/session'
-import { ListItem, IList } from '../../types'
+import { ListItem, IList } from '../../list/types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 

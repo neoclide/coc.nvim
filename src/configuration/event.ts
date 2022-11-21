@@ -1,5 +1,5 @@
 'use strict'
-import { ConfigurationResourceScope, ConfigurationTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationData } from '../types'
+import type { ConfigurationResourceScope, ConfigurationTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationData } from './types'
 import { equals } from '../util/object'
 import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'

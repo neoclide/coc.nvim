@@ -2,7 +2,7 @@
 import workspace from '../workspace'
 import window from '../window'
 import { EventEmitter } from 'events'
-import { ConfigurationTarget } from '../types'
+import { ConfigurationTarget } from '../configuration/types'
 
 export const validKeys = [
   '<esc>',

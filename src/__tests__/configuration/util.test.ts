@@ -1,7 +1,7 @@
 import * as assert from 'assert'
 import { ParseError } from 'jsonc-parser'
 import { addToValueTree, convertErrors, convertTarget, getConfigurationValue, getDefaultValue, mergeChanges, mergeConfigProperties, overrideIdentifiersFromKey, removeFromValueTree, scopeToOverrides, toJSONObject } from '../../configuration/util'
-import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../types'
+import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../configuration/types'
 
 describe('Configuration utils', () => {
   it('convert parse errors', () => {

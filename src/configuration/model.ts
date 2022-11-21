@@ -1,5 +1,5 @@
 'use strict'
-import { IConfigurationModel, IOverrides, IStringDictionary } from '../types'
+import { IConfigurationModel, IOverrides, IStringDictionary } from './types'
 import { distinct } from '../util/array'
 import { objectLiteral } from '../util/is'
 import { deepClone, deepFreeze, equals } from '../util/object'

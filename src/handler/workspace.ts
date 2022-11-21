@@ -6,13 +6,14 @@ import languages from '../languages'
 import { getLoggerFile } from '../logger'
 import Highligher from '../model/highligher'
 import snippetManager from '../snippets/manager'
-import { HandlerDelegate, PatternType, ProviderName, WorkspaceConfiguration } from '../types'
+import { HandlerDelegate, PatternType, ProviderName } from '../types'
 import { fs, path } from '../util/node'
 import window from '../window'
 import workspace from '../workspace'
 import * as Is from '../util/is'
 import { isDirectory } from '../util/fs'
 import { directoryNotExists } from '../util/errors'
+import type { WorkspaceConfiguration } from '../configuration/types'
 
 declare const REVISION
 

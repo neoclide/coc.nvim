@@ -1,6 +1,6 @@
 'use strict'
 import diagnosticManager from '../../diagnostic/manager'
-import { ListContext, ListItem } from '../../types'
+import { ListContext, ListItem } from '../types'
 import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'

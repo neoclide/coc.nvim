@@ -3,8 +3,9 @@ import type { CodeLensParams, CompletionContext, CompletionParams, DidChangeText
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, TextDocumentIdentifier, TextDocumentItem, VersionedTextDocumentIdentifier } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { TextDocumentWillSaveEvent } from '../../core/files'
 import RelativePatternImpl from '../../model/relativePattern'
-import { DidChangeTextDocumentParams as TextDocumentChangeEvent, TextDocumentWillSaveEvent } from '../../types'
+import { DidChangeTextDocumentParams as TextDocumentChangeEvent } from '../../types'
 import { omit } from '../../util/lodash'
 
 export function convertToTextDocumentItem(document: TextDocument): TextDocumentItem {
