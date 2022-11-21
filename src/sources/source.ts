@@ -4,13 +4,14 @@ import events from '../events'
 import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceType } from '../types'
 import { defaultValue, disposeAll, getConditionValue, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
+import { ASCII_END } from '../util/constants'
 import { caseMatch, fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { unidecode } from '../util/node'
 import { CancellationToken, Disposable } from '../util/protocol'
+import { isAlphabet } from '../util/string'
 import workspace from '../workspace'
 const WORD_PREFIXES = ['_', '$', '-']
 const WORD_PREFIXES_CODE = [95, 36, 45]
-const ASCII_END = 128
 const MAX_DURATION = getConditionValue(80, 20)
 const MAX_COUNT = 50
 
@@ -170,7 +171,7 @@ export default class Source implements ISource {
     let len = input.length
     let firstCode = input.charCodeAt(0)
     let codes = getCharCodes(input)
-    let ascii = firstCode < ASCII_END
+    let ascii = isAlphabet(firstCode)
     let i = 0
     for (let iterable of iterables) {
       for (let w of iterable) {

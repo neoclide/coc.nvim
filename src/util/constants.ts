@@ -2,6 +2,7 @@ import { version } from '../../package.json'
 import { getConditionValue } from './index'
 import { path } from './node'
 
+export const ASCII_END = 128
 export const VERSION = version
 export const isVim = process.env.VIM_NODE_RPC == '1'
 export const APIVERSION = 32

@@ -12,7 +12,7 @@ import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../typ
 import { isFalsyOrEmpty } from '../util/array'
 import { pariedCharacters } from '../util/index'
 import { CancellationTokenSource } from '../util/protocol'
-import { isWord } from '../util/string'
+import { isAlphabet } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 const logger = createLogger('handler-format')
@@ -105,7 +105,7 @@ export default class FormatHandler {
   }
 
   private async tryFormatOnType(ch: string, bufnr: number, newLine = false): Promise<void> {
-    if (!ch || isWord(ch) || !this.preferences.formatOnType) return
+    if (!ch || isAlphabet(ch.charCodeAt(0)) || !this.preferences.formatOnType) return
     if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached || !this.shouldFormatOnType(doc.filetype)) return
@@ -206,7 +206,7 @@ export default class FormatHandler {
     let textEdits = await this.handler.withRequestToken('Format range', token => {
       return languages.provideDocumentRangeFormattingEdits(doc.textDocument, range, options, token)
     })
-    if (textEdits && textEdits.length > 0) {
+    if (!isFalsyOrEmpty(textEdits)) {
       await doc.applyEdits(textEdits, false, true)
       return 0
     }

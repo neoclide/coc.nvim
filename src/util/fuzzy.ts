@@ -1,5 +1,5 @@
 'use strict'
-const ASCII_END = 128
+import { ASCII_END } from './constants'
 
 export function getCharCodes(str: string): Uint16Array {
   let len = str.length

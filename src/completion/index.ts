@@ -15,7 +15,7 @@ import { CancellationToken, CancellationTokenSource, Disposable } from '../util/
 import { byteLength, byteSlice, characterIndex, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import Complete, { CompleteConfig } from './complete'
+import Complete, { CompleteConfig, SortMethod } from './complete'
 import Floating from './floating'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, MruLoader, shouldStop, toCompleteDoneItem } from './util'
@@ -141,7 +141,7 @@ export class Completion implements Disposable {
       enableFloat: suggest.get<boolean>('enableFloat', true),
       languageSourcePriority: suggest.get<number>('languageSourcePriority', 99),
       snippetsSupport: suggest.get<boolean>('snippetsSupport', true),
-      defaultSortMethod: suggest.get<string>('defaultSortMethod', 'length'),
+      defaultSortMethod: suggest.get<SortMethod>('defaultSortMethod', SortMethod.Length),
       removeDuplicateItems: suggest.get<boolean>('removeDuplicateItems', false),
       acceptSuggestionOnCommitCharacter: suggest.get<boolean>('acceptSuggestionOnCommitCharacter', false),
       triggerCompletionWait: suggest.get<number>('triggerCompletionWait', 0),

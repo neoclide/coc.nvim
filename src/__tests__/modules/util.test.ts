@@ -666,11 +666,6 @@ describe('strings', () => {
     expect(strings.equalsIgnoreCase('ÖL', 'Öl')).toBe(true)
   })
 
-  it('should check isWord', () => {
-    expect(strings.isWord('_')).toBe(true)
-    expect(strings.isWord('0')).toBe(true)
-  })
-
   it('should doEqualsIgnoreCase', () => {
     expect(strings.doEqualsIgnoreCase('a', undefined)).toBe(false)
     expect(strings.doEqualsIgnoreCase('a', 'b')).toBe(false)

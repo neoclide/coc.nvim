@@ -6,6 +6,7 @@ import Document from '../model/document'
 import { CompleteOption, DurationCompleteItem, ISource, SourceType } from '../types'
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
+import { ASCII_END } from '../util/constants'
 import { anyScore, FuzzyScore, fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
 import * as Is from '../util/is'
 import { clamp } from '../util/numbers'
@@ -34,7 +35,7 @@ export interface CompleteConfig {
   highPrioritySourceLimit: number
   lowPrioritySourceLimit: number
   removeDuplicateItems: boolean
-  defaultSortMethod: string
+  defaultSortMethod: SortMethod
   asciiCharactersOnly: boolean
   enableFloat: boolean
   ignoreRegexps: ReadonlyArray<string>
@@ -46,6 +47,16 @@ export interface CompleteResultToFilter {
 }
 
 export type Callback = () => void
+
+export enum SortMethod {
+  None = 'none',
+  Alphabetical = 'alphabetical',
+  Length = 'length'
+}
+
+function useAscii(input: string): boolean {
+  return input.length > 0 && input.charCodeAt(0) < ASCII_END
+}
 
 export default class Complete {
   // identify this complete
@@ -73,7 +84,7 @@ export default class Complete {
     this.timeout = clamp(this.config.timeout, MIN_TIMEOUT, MAX_TIMEOUT)
     sources.sort((a, b) => (b.priority ?? 99) - (a.priority ?? 99))
     this.names = sources.map(o => o.name)
-    this.asciiMatch = config.asciiMatch && option.input.length > 0 && option.input.charCodeAt(0) < 128
+    this.asciiMatch = config.asciiMatch && useAscii(option.input)
   }
 
   private fireRefresh(waitTime: number): void {
@@ -92,7 +103,7 @@ export default class Complete {
   }
 
   private getPriority(source: ISource): number {
-    if (typeof source.priority === 'number') {
+    if (Is.number(source.priority)) {
       return source.priority
     }
     if (source.sourceType === SourceType.Service) {
@@ -207,7 +218,7 @@ export default class Complete {
     const sourceName = source.name
     let added = false
     try {
-      if (typeof source.shouldComplete === 'function') {
+      if (Is.func(source.shouldComplete)) {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
         if (!shouldRun || token.isCancellationRequested) return
       }
@@ -388,7 +399,7 @@ function getDefaultRange(option: CompleteOption, inputStart: number, replace: bo
   return Range.create(line, inputStart, line, end)
 }
 
-export function sortItems(emptyInput: boolean, defaultSortMethod: string, a: DurationCompleteItem, b: DurationCompleteItem): number {
+export function sortItems(emptyInput: boolean, defaultSortMethod: SortMethod, a: DurationCompleteItem, b: DurationCompleteItem): number {
   let sa = a.sortText
   let sb = b.sortText
   if (a.score !== b.score) return b.score - a.score
@@ -398,11 +409,11 @@ export function sortItems(emptyInput: boolean, defaultSortMethod: string, a: Dur
   // not sort with empty input, the item not replace trigger have higher priority
   if (emptyInput) return b.character - a.character
   switch (defaultSortMethod) {
-    case 'none':
+    case SortMethod.None:
       return 0
-    case 'alphabetical':
+    case SortMethod.Alphabetical:
       return a.filterText.localeCompare(b.filterText)
-    case 'length':
+    case SortMethod.Length:
     default: // Fallback on length
       return a.filterText.length - b.filterText.length
   }
