@@ -1,18 +1,19 @@
 'use strict'
 import { SpawnOptions } from 'child_process'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import type { DocumentSelector } from 'vscode-languageserver-protocol'
+import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import events from './events'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { createLogger } from './logger'
 import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import { fs, net, path } from './util/node'
 import { toObject } from './util/object'
-import { CancellationToken, Disposable, DocumentSelector, Emitter, Event } from './util/protocol'
-import workspace from './workspace'
+import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
 import window from './window'
-import events from './events'
+import workspace from './workspace'
 const logger = createLogger('services')
 
 interface ServiceInfo {

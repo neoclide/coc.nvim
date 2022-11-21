@@ -2,8 +2,8 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { FormattingOptions, TextEdit } from 'vscode-languageserver-types'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { DocumentFormattingEditProvider } from './index'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentFormattingEditProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 export default class FormatManager extends Manager<DocumentFormattingEditProvider> {

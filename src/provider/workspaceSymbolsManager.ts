@@ -1,7 +1,7 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
 import { SymbolInformation } from 'vscode-languageserver-types'
-import { CancellationToken, Disposable } from '../util/protocol'
+import type { CancellationToken, Disposable } from '../util/protocol'
 import { WorkspaceSymbolProvider } from './index'
 import Manager from './manager'
 

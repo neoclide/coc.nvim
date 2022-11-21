@@ -4,8 +4,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentLink } from 'vscode-languageserver-types'
 import { omit } from '../util/lodash'
 import { equals } from '../util/object'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { DocumentLinkProvider } from './index'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentLinkProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 interface DocumentLinkWithSource extends DocumentLink {

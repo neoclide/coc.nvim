@@ -3,8 +3,8 @@ import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { ColorInformation, ColorPresentation } from 'vscode-languageserver-types'
 import { equals } from '../util/object'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { DocumentColorProvider } from './index'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentColorProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 interface ColorWithSource extends ColorInformation {

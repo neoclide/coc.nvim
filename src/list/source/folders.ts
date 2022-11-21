@@ -6,7 +6,6 @@ import { fs, path } from '../../util/node'
 import window from '../../window'
 import workspace from '../../workspace'
 import BasicList from '../basic'
-import { ListManager } from '../manager'
 
 export default class FoldList extends BasicList {
   public defaultAction = 'edit'

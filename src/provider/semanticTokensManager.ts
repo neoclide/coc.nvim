@@ -2,8 +2,8 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { SemanticTokens, SemanticTokensDelta, SemanticTokensLegend } from 'vscode-languageserver-types'
-import type { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { DocumentSemanticTokensProvider } from './index'
+import type { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentSemanticTokensProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 interface ProviderMeta {

@@ -2,8 +2,8 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, Range, WorkspaceEdit } from 'vscode-languageserver-types'
-import type { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { RenameProvider } from './index'
+import type { CancellationToken, Disposable } from '../util/protocol'
+import { RenameProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 export default class RenameManager extends Manager<RenameProvider> {

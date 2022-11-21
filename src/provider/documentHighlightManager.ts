@@ -2,8 +2,8 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { DocumentHighlight, Position } from 'vscode-languageserver-types'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { DocumentHighlightProvider } from './index'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentHighlightProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 export default class DocumentHighlightManager extends Manager<DocumentHighlightProvider> {

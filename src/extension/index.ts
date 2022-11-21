@@ -2,7 +2,7 @@
 import commandManager from '../commands'
 import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
-import { concurrent } from '../util'
+import { concurrent, wait } from '../util'
 import { distinct } from '../util/array'
 import { VERSION } from '../util/constants'
 import { isUrl } from '../util/is'
@@ -138,7 +138,7 @@ export class Extensions {
   }
 
   public get npm(): string {
-    let npm = workspace.getConfiguration('npm', null).get<string>('binPath', 'npm')
+    let npm = workspace.initialConfiguration.get<string>('npm.binPath')
     npm = workspace.expand(npm)
     for (let exe of [npm, 'yarnpkg', 'yarn', 'npm']) {
       if (executable(exe)) return which.sync(exe)

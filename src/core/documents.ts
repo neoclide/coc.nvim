@@ -12,7 +12,7 @@ import { defaultValue, disposeAll } from '../util'
 import { normalizeFilePath, readFile, readFileLine } from '../util/fs'
 import { fs, os, path } from '../util/node'
 import * as platform from '../util/platform'
-import { Disposable, Emitter, Event } from '../util/protocol'
+import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import WorkspaceFolder from './workspaceFolder'
 const logger = createLogger('core-documents')
@@ -476,7 +476,7 @@ export default class Documents implements Disposable {
     let thenables: Thenable<TextEdit[] | any>[] = []
     let event: TextDocumentWillSaveEvent = {
       document: doc.textDocument,
-      reason: 1,
+      reason: TextDocumentSaveReason.Manual,
       waitUntil: (thenable: Thenable<any>) => {
         if (!firing) {
           this.nvim.echoError(`waitUntil can't be used in async manner, check log for details`)

@@ -3,7 +3,7 @@ import { v4 as uuid } from 'uuid'
 import type { CancellationToken, Disposable, DocumentSelector, Position, ReferenceContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { LocationWithTarget } from '../types'
-import { ReferenceProvider } from './index'
+import type { ReferenceProvider } from './index'
 import Manager from './manager'
 
 export default class ReferenceManager extends Manager<ReferenceProvider>  {

@@ -2,9 +2,9 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, TextEdit } from 'vscode-languageserver-types'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
+import { CancellationToken, Disposable } from '../util/protocol'
 import workspace from '../workspace'
-import { OnTypeFormattingEditProvider } from './index'
+import type { OnTypeFormattingEditProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 export interface ProviderMeta {

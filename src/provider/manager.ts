@@ -3,7 +3,8 @@ import { Location, LocationLink } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import { LocationWithTarget, TextDocumentMatch } from '../types'
 import { equals } from '../util/object'
-import { Disposable, DocumentSelector } from '../util/protocol'
+import { Disposable } from '../util/protocol'
+import { DocumentSelector } from './index'
 import workspace from '../workspace'
 const logger = createLogger('provider-manager')
 

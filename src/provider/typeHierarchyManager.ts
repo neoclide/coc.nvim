@@ -3,8 +3,8 @@ import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, TypeHierarchyItem } from 'vscode-languageserver-types'
 import { omit } from '../util/lodash'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { TypeHierarchyProvider } from './index'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { TypeHierarchyProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 export interface TypeHierarchyItemWithSource extends TypeHierarchyItem {

@@ -5,8 +5,8 @@ import { CodeAction, CodeActionContext, CodeActionKind, Command, Range } from 'v
 import { ExtendedCodeAction } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { CodeActionProvider } from './index'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { CodeActionProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 interface ProviderMeta {

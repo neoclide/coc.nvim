@@ -1,10 +1,10 @@
 'use strict'
-import type { ClientCapabilities, DocumentSymbolOptions, DocumentSymbolRegistrationOptions, ServerCapabilities } from 'vscode-languageserver-protocol'
+import type { ClientCapabilities, DocumentSymbolOptions, DocumentSelector, DocumentSymbolRegistrationOptions, ServerCapabilities } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { DocumentSymbol, SymbolInformation, SymbolKind, SymbolTag } from 'vscode-languageserver-types'
 import languages from '../languages'
 import { DocumentSymbolProvider, ProviderResult } from '../provider'
-import { CancellationToken, Disposable, DocumentSelector, DocumentSymbolRequest } from '../util/protocol'
+import { CancellationToken, Disposable, DocumentSymbolRequest } from '../util/protocol'
 import { ensure, FeatureClient, TextDocumentLanguageFeature } from './features'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'

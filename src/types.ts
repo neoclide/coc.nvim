@@ -1,12 +1,12 @@
 'use strict'
 import type { Buffer, Window } from '@chemzqm/neovim'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
-import { CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'
+import type { CodeAction, CodeActionKind, CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CreateFile, DeleteFile, InsertTextFormat, InsertTextMode, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import type Document from './model/document'
 import type RelativePattern from './model/relativePattern'
 import type { ProviderResult } from './provider'
-import type { CancellationToken, Disposable, DocumentSelector, Event, TextDocumentSaveReason } from './util/protocol'
+import type { CancellationToken, Disposable, DocumentSelector, Event, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
 
 export type GlobPattern = string | RelativePattern
 

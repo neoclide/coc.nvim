@@ -1,3 +1,4 @@
+
 export {
   createClientPipeTransport,
   createClientSocketTransport,
@@ -16,7 +17,6 @@ export {
   UnregistrationRequest,
   ApplyWorkspaceEditRequest,
   InitializedNotification,
-  PublishDiagnosticsParams,
   TraceFormat,
   ResourceOperationKind,
   FailureHandlingKind,
@@ -27,12 +27,8 @@ export {
   Disposable,
   Event,
   CancellationToken,
-  DocumentFilter,
-  DocumentSelector,
   TextDocumentFilter,
   SignatureHelpTriggerKind,
-  SignatureHelpContext,
-  WorkspaceFoldersChangeEvent,
   DocumentDiagnosticReportKind,
   DiagnosticServerCancellationData,
   RAL,
@@ -66,7 +62,6 @@ export {
   FoldingRangeKind,
   PrepareSupportDefaultBehavior,
   TokenFormat,
-  LinkedEditingRanges,
   TextDocumentSyncKind,
   TextDocumentRegistrationOptions,
   StaticRegistrationOptions,

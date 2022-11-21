@@ -6,7 +6,8 @@ import Resolver from '../model/resolver'
 import * as fs from '../util/fs'
 import { minimatch, os, path, semver, which } from '../util/node'
 import * as platform from '../util/platform'
-import { DocumentFilter, DocumentSelector, TextDocumentFilter } from '../util/protocol'
+import { TextDocumentFilter } from '../util/protocol'
+import type { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
 let NAME_SPACE = 2000
 const resolver = new Resolver()
 

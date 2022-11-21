@@ -72,6 +72,12 @@ export async function statAsync(filepath: string): Promise<Stats | null> {
   return stat
 }
 
+export function isDirectory(filepath: string | undefined): boolean {
+  if (!filepath || !path.isAbsolute(filepath) || !fs.existsSync(filepath)) return false
+  let stat = fs.statSync(filepath)
+  return stat.isDirectory()
+}
+
 export function renameAsync(oldPath: string, newPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     fs.rename(oldPath, newPath, err => {

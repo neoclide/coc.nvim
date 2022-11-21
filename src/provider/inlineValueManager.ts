@@ -2,9 +2,9 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlineValue, InlineValueContext, Range } from 'vscode-languageserver-types'
-import { InlineValuesProvider } from '.'
 import { equals } from '../util/object'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
+import { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentSelector, InlineValuesProvider } from './index'
 import Manager from './manager'
 
 export default class InlineValueManager extends Manager<InlineValuesProvider> {

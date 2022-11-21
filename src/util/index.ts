@@ -1,6 +1,6 @@
 'use strict'
 
-interface Disposable {
+export interface Disposable {
   dispose(): void
 }
 

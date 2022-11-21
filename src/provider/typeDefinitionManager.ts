@@ -3,8 +3,8 @@ import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position } from 'vscode-languageserver-types'
 import { LocationWithTarget } from '../types'
-import type { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { TypeDefinitionProvider } from './index'
+import type { CancellationToken, Disposable } from '../util/protocol'
+import { TypeDefinitionProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 export default class TypeDefinitionManager extends Manager<TypeDefinitionProvider> {

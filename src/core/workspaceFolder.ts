@@ -1,4 +1,5 @@
 'use strict'
+import type { WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
@@ -13,7 +14,7 @@ import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extens
 import { checkFolder, isParentFolder, resolveRoot } from '../util/fs'
 import { path } from '../util/node'
 import { toObject } from '../util/object'
-import { CancellationToken, CancellationTokenSource, Emitter, Event, WorkspaceFoldersChangeEvent } from '../util/protocol'
+import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { Registry } from '../util/registry'
 const logger = createLogger('core-workspaceFolder')
 const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
@@ -26,6 +27,7 @@ function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
     uri: URI.file(fsPath).toString()
   }
 }
+
 const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
 
 interface WorkspaceConfig {

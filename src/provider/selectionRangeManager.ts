@@ -4,8 +4,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, SelectionRange } from 'vscode-languageserver-types'
 import { equals } from '../util/object'
 import { rangeInRange } from '../util/position'
-import type { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
-import { SelectionRangeProvider } from './index'
+import type { CancellationToken, Disposable } from '../util/protocol'
+import { DocumentSelector, SelectionRangeProvider } from './index'
 import Manager from './manager'
 
 export default class SelectionRangeManager extends Manager<SelectionRangeProvider>  {

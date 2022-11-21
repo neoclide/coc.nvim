@@ -1,7 +1,7 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
 import type { CancellationToken, Disposable, DocumentSelector, LinkedEditingRanges } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { Position } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import { LinkedEditingRangeProvider } from './index'
@@ -25,13 +25,8 @@ export default class LinkedEditingRangeManager extends Manager<LinkedEditingRang
   public async provideLinkedEditingRanges(document: TextDocument, position: Position, token: CancellationToken): Promise<LinkedEditingRanges> {
     let items = this.getProviders(document)
     for (let item of items) {
-      let res: LinkedEditingRanges | undefined
-      try {
-        res = await Promise.resolve(item.provider.provideLinkedEditingRanges(document, position, token))
-        if (res != null) return res
-      } catch (e) {
-        logger.error(`Error on provideLinkedEditingRanges: `, e)
-      }
+      let res = await Promise.resolve(item.provider.provideLinkedEditingRanges(document, position, token))
+      if (res != null) return res
     }
     return null
   }

@@ -1,10 +1,10 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
-import { CancellationToken, Disposable, DocumentSelector } from '../util/protocol'
+import { CancellationToken, Disposable } from '../util/protocol'
 import type { CodeLens } from 'vscode-languageserver-types'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { omit } from '../util/lodash'
-import { CodeLensProvider } from './index'
+import { CodeLensProvider, DocumentSelector } from './index'
 import Manager from './manager'
 
 interface CodeLensWithSource extends CodeLens {
