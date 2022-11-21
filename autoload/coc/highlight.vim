@@ -436,13 +436,17 @@ function! coc#highlight#compose(fg, bg) abort
   return cmd
 endfunction
 
+function! coc#highlight#valid(hlGroup) abort
+  return hlexists(a:hlGroup) && execute('hi '.a:hlGroup, 'silent!') !~# ' cleared$'
+endfunction
+
 " Compose hlGroups with foreground and background colors.
 function! coc#highlight#compose_hlgroup(fgGroup, bgGroup) abort
   let hlGroup = 'Fg'.a:fgGroup.'Bg'.a:bgGroup
   if a:fgGroup ==# a:bgGroup
     return a:fgGroup
   endif
-  if hlexists(hlGroup) && match(execute('hi '.hlGroup, 'silent!'), 'cleared') == -1
+  if coc#highlight#valid(hlGroup)
     return hlGroup
   endif
   let cmd = coc#highlight#compose(a:fgGroup, a:bgGroup)
