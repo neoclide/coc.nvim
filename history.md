@@ -1,3 +1,7 @@
+# 2022-11-21
+
+- Add `CocAction('addWorkspaceFolder')`.
+
 # 2022-11-20
 
 - Support code lens feature on vim9.
