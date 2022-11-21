@@ -1,5 +1,5 @@
 'use strict'
-import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { CodeActionKind, InsertTextMode, Range } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion, { Completion } from './completion'
@@ -51,6 +51,7 @@ export default class Plugin {
     })
     this.addAction('rootPatterns', (bufnr: number) => this.handler.workspace.getRootPatterns(bufnr))
     this.addAction('ensureDocument', () => this.handler.workspace.ensureDocument())
+    this.addAction('addWorkspaceFolder', (folder: string) => this.handler.workspace.addWorkspaceFolder(folder))
     this.addAction('getConfig', async (key: string) => this.handler.workspace.getConfiguration(key))
     this.addAction('doAutocmd', async (id: number, ...args: []) => this.handler.workspace.doAutocmd(id, args))
     this.addAction('openLog', async () => this.handler.workspace.openLog())

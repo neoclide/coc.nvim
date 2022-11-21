@@ -1,4 +1,4 @@
-import { findUp, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync } from '../../util/fs'
+import { findUp, isDirectory, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync } from '../../util/fs'
 import { FileType } from '../../types'
 import { v4 as uuid } from 'uuid'
 import path from 'path'
@@ -22,6 +22,13 @@ describe('fs', () => {
       res = normalizeFilePath('/a/b/')
       expect(res).toBe('/a/b')
     })
+  })
+
+  it('should check directory', () => {
+    expect(isDirectory(null)).toBe(false)
+    expect(isDirectory('')).toBe(false)
+    expect(isDirectory(__filename)).toBe(false)
+    expect(isDirectory(process.cwd())).toBe(true)
   })
 
   it('should watch file', async () => {

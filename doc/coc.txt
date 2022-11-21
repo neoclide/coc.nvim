@@ -2324,6 +2324,11 @@ Available Actions ~
 
 Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
+"addWorkspaceFolder" {folder}				*CocAction('addWorkspaceFolder')*
+
+	Add {folder} to workspace folders, {folder} should be exists directory
+	on file system.
+
 "ensureDocument" 					*CocAction('ensureDocument')*
 
 	Ensure current document is attached to coc.nvim

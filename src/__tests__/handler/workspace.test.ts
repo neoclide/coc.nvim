@@ -6,6 +6,7 @@ import workspace from '../../workspace'
 import extensions from '../../extension'
 import events from '../../events'
 import helper from '../helper'
+import { URI } from 'vscode-uri'
 
 let nvim: Neovim
 let handler: WorkspaceHandler
@@ -35,6 +36,20 @@ describe('Workspace handler', () => {
   }
 
   describe('methods', () => {
+    it('should add workspace folder', async () => {
+      expect(() => {
+        handler.addWorkspaceFolder(undefined)
+      }).toThrow(TypeError)
+      expect(() => {
+        handler.addWorkspaceFolder(__filename)
+      }).toThrow(Error)
+      await helper.plugin.cocAction('addWorkspaceFolder', __dirname)
+      let folders = workspace.workspaceFolderControl.workspaceFolders
+      let uri = URI.file(__dirname).toString()
+      let find = folders.find(o => o.uri === uri)
+      expect(find).toBeDefined()
+    })
+
     it('should check env on vim resized', async () => {
       await events.fire('VimResized', [80, 80])
       expect(workspace.env.columns).toBe(80)

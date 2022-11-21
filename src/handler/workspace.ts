@@ -10,6 +10,10 @@ import { HandlerDelegate, PatternType, ProviderName, WorkspaceConfiguration } fr
 import { fs, path } from '../util/node'
 import window from '../window'
 import workspace from '../workspace'
+import * as Is from '../util/is'
+import { isDirectory } from '../util/fs'
+import { directoryNotExists } from '../util/errors'
+
 declare const REVISION
 
 interface RootPatterns {
@@ -28,6 +32,13 @@ export default class WorkspaceHandler {
   public async openLog(): Promise<void> {
     let file = getLoggerFile()
     await workspace.jumpTo(URI.file(file).toString())
+  }
+
+  public addWorkspaceFolder(folder: string): void {
+    if (!Is.string(folder)) throw TypeError(`folder should be string`)
+    folder = workspace.expand(folder)
+    if (!isDirectory(folder)) throw directoryNotExists(folder)
+    workspace.workspaceFolderControl.addWorkspaceFolder(folder, true)
   }
 
   public async bufferCheck(): Promise<void> {

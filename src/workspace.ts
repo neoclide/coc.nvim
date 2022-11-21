@@ -15,7 +15,6 @@ import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWa
 import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps, { MapMode } from './core/keymaps'
 import * as ui from './core/ui'
-import * as Is from './util/is'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
 import events from './events'
@@ -38,8 +37,6 @@ import { toObject } from './util/object'
 import { runCommand } from './util/processes'
 import { CancellationToken, Disposable, Event } from './util/protocol'
 import type { WorkspaceFoldersChangeEvent, DocumentSelector } from 'vscode-languageserver-protocol'
-import { isDirectory } from './util/fs'
-import { directoryNotExists } from './util/errors'
 const logger = createLogger('workspace')
 
 const methods = [
@@ -239,13 +236,6 @@ export class Workspace {
 
   public get workspaceFolders(): ReadonlyArray<WorkspaceFolder> {
     return this.workspaceFolderControl.workspaceFolders
-  }
-
-  public addWorkspaceFolder(folder: string): void {
-    if (!Is.string(folder)) throw TypeError(`folder should be string`)
-    folder = this.expand(folder)
-    if (!isDirectory(folder)) throw directoryNotExists(folder)
-    this.workspaceFolderControl.addWorkspaceFolder(folder, true)
   }
 
   public checkPatterns(patterns: string[], folders?: WorkspaceFolder[]): Promise<boolean> {
