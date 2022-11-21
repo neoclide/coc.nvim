@@ -641,6 +641,23 @@ function! s:ShowInfo()
   endif
 endfunction
 
+function! s:CursorRangeFromSelected(type, ...) abort
+  " add range by operator
+  call coc#rpc#request('cursorsSelect', [bufnr('%'), 'operator', a:type])
+endfunction
+
+function! s:FormatFromSelected(type)
+  call CocActionAsync('formatSelected', a:type)
+endfunction
+
+function! s:CodeActionFromSelected(type)
+  call CocActionAsync('codeAction', a:type)
+endfunction
+
+function! s:CodeActionRefactorFromSelected(type)
+  call CocActionAsync('codeAction', a:type, ['refactor'] ,v:true)
+endfunction
+
 command! -nargs=0 CocOutline      :call coc#rpc#notify('showOutline', [])
 command! -nargs=? CocDiagnostics  :call s:OpenDiagnostics(<f-args>)
 command! -nargs=0 CocInfo         :call s:ShowInfo()
@@ -701,14 +718,14 @@ nnoremap <Plug>(coc-codelens-action)                :<C-u>call       CocActionAs
 vnoremap <silent> <Plug>(coc-format-selected)       :<C-u>call       CocActionAsync('formatSelected', visualmode())<CR>
 vnoremap <silent> <Plug>(coc-codeaction-selected)   :<C-u>call       CocActionAsync('codeAction', visualmode())<CR>
 vnoremap <Plug>(coc-codeaction-refactor-selected)   :<C-u>call       CocActionAsync('codeAction', visualmode(), ['refactor'], v:true)<CR>
-nnoremap <Plug>(coc-codeaction-selected)            :<C-u>set        operatorfunc={t\ ->\ CocActionAsync('codeAction',t)}<CR>g@
-nnoremap <Plug>(coc-codeaction-refactor-selected)   :<C-u>set        operatorfunc={t\ ->\ CocActionAsync('codeAction',t,['refactor'],v:true)}<CR>g@
+nnoremap <Plug>(coc-codeaction-selected)            :<C-u>set        operatorfunc=<SID>CodeActionFromSelected<CR>g@
+nnoremap <Plug>(coc-codeaction-refactor-selected)   :<C-u>set        operatorfunc=<SID>CodeActionRefactorFromSelected<CR>g@
 nnoremap <Plug>(coc-codeaction)                     :<C-u>call       CocActionAsync('codeAction', '')<CR>
 nnoremap <Plug>(coc-codeaction-line)                :<C-u>call       CocActionAsync('codeAction', 'currline')<CR>
 nnoremap <Plug>(coc-codeaction-cursor)              :<C-u>call       CocActionAsync('codeAction', 'cursor')<CR>
 nnoremap <Plug>(coc-codeaction-refactor)            :<C-u>call       CocActionAsync('codeAction', 'cursor', ['refactor'], v:true)<CR>
 nnoremap <silent> <Plug>(coc-rename)                :<C-u>call       CocActionAsync('rename')<CR>
-nnoremap <silent> <Plug>(coc-format-selected)       :<C-u>set        operatorfunc={t\ ->\ CocActionAsync('formatSelected',t)}<CR>g@
+nnoremap <silent> <Plug>(coc-format-selected)       :<C-u>set        operatorfunc=<SID>FormatFromSelected<CR>g@
 nnoremap <silent> <Plug>(coc-format)                :<C-u>call       CocActionAsync('format')<CR>
 nnoremap <silent> <Plug>(coc-diagnostic-info)       :<C-u>call       CocActionAsync('diagnosticInfo')<CR>
 nnoremap <silent> <Plug>(coc-diagnostic-next)       :<C-u>call       CocActionAsync('diagnosticNext')<CR>
@@ -728,8 +745,7 @@ nnoremap <silent> <Plug>(coc-float-jump)            :<c-u>call       coc#float#j
 nnoremap <silent> <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCommand')<CR>
 nnoremap <silent> <Plug>(coc-refactor)              :<C-u>call       CocActionAsync('refactor')<CR>
 
-" Not async for repeat support.
-nnoremap <silent> <Plug>(coc-cursors-operator) :<C-u>set operatorfunc={t\ ->\ CocAction('cursorsSelect',bufnr('%'),'operator',t)}<CR>g@
+nnoremap <silent> <Plug>(coc-cursors-operator) :<C-u>set operatorfunc=<SID>CursorRangeFromSelected<CR>g@
 vnoremap <silent> <Plug>(coc-cursors-range)    :<C-u>call CocAction('cursorsSelect', bufnr('%'), 'range', visualmode())<CR>
 nnoremap <silent> <Plug>(coc-cursors-word)     :<C-u>call CocAction('cursorsSelect', bufnr('%'), 'word', 'n')<CR>
 nnoremap <silent> <Plug>(coc-cursors-position) :<C-u>call CocAction('cursorsSelect', bufnr('%'), 'position', 'n')<CR>
