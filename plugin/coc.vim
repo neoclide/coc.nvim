@@ -48,7 +48,6 @@ call s:checkVersion()
 
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
-let s:is_win = has('win32') || has('win64')
 let s:root = expand('<sfile>:h:h')
 let s:is_vim = !has('nvim')
 let s:is_gvim = s:is_vim && has("gui_running")
@@ -65,6 +64,7 @@ function! CocTagFunc(pattern, flags, info) abort
   return coc#rpc#request('getTagList', [])
 endfunction
 
+" Used by popup prompt on vim
 function! CocPopupCallback(bufnr, arglist) abort
   if len(a:arglist) == 2
     if a:arglist[0] == 'confirm'

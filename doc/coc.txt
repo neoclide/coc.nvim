@@ -338,12 +338,13 @@ All features (except for telemetry) of LSP 3.16 are supported, checkout
 the specification at
 https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/
 
-LSP features only works with attached document, see |coc-document-attached|.
+LSP features only works with attached documents, see |coc-document-attached|.
 
 To check exists providers of current buffer, use command
 `:CocCommand document.checkBuffer` or |CocHasProvider()|.
 
-For historic reason, some features just works, but some are not.
+For historic reason, some features automatically works by default, but some
+are not.
 
 Features automatically work by default:~
 
@@ -475,11 +476,11 @@ Vim's builtin completion is no longer used. The default completion
 now works like in VSCode:
 
 - Completion is automatically triggered by default.
-- Item selection is enabled by default, use |coc-config-suggest-noselect| to
+- Selection is enabled by default, use |coc-config-suggest-noselect| to
   disable default selection.
-- When selection is enabled and no preselect item exists, a recently used
-  item that matches will be selected.
-- Snippet and additional edits only work after confirm completion.
+- When selection is enabled and no preselect item exists, the first complete
+  item will be selected (depends on |coc-config-suggest-selection|).
+- Snippet expand and additional edits only work after confirm completion.
 - 'completeopt' is not used and APIs of builtin popupmenu not work.
 
 							*coc-completion-default*
@@ -1601,7 +1602,7 @@ g:coc_disable_uncaught_error 				*g:coc_disable_uncaught_error*
 g:coc_text_prop_offset 					*g:coc_text_prop_offset*
 
 	Start |textprop| id offset of highlight namespaces on vim, change to
-	other value to avoid conflict.
+	other value to avoid conflict with other vim plugin.
 
 	Default: 1000
 
@@ -1653,8 +1654,8 @@ g:coc_enable_locationlist				*g:coc_enable_locationlist*
 
 	If you want use vim's quickfix list instead, add
 	`"coc.preferences.useQuickfixForLocations": true` in your
-	configuration file, this configuration would be ignored and no autocmd
-	triggered.
+	configuration file, this configuration would be ignored and no
+	|CocLocationsChange| triggered.
 
 	Default: 1
 
@@ -1692,7 +1693,8 @@ g:coc_filetype_map					*g:coc_filetype_map*
 
 g:coc_selectmode_mapping				*g:coc_selectmode_mapping*
 
-	Add key mappings for making snippet select mode easier. >
+	Add key mappings for making snippet select mode easier. The same as
+	|Ultisnip| does. >
 
 	snoremap <silent> <BS> <c-g>c
 	snoremap <silent> <DEL> <c-g>c
@@ -1713,9 +1715,9 @@ g:coc_node_path						*g:coc_node_path*
 
 g:coc_node_args						*g:coc_node_args*
 
-	Arguments passed to node when starting coc service from source code.
+	Arguments passed to node when starting coc.nvim service.
 
-	Useful for starting coc in debug mode, example: >
+	Useful for start coc.nvim in debug mode, example: >
 >
 	let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
@@ -1772,7 +1774,8 @@ g:coc_terminal_height					*g:coc_terminal_height*
 g:coc_markdown_disabled_languages  			*g:coc_markdown_disabled_languages*
 
 	Filetype list that should be disabled for highlight in markdown block,
-	Example: >
+	useful to disable filetypes that could be slow with syntax
+	highlighting, example: >
 
 	let g:coc_markdown_disabled_languages = ['html']
 
@@ -2144,7 +2147,7 @@ coc#pum#one_more() 					*coc#pum#one_more()*
 coc#pum#scroll({forward}) 				*coc#pum#scroll()*
 
 	Scroll the popupmenu forward or backward by page.
-	Timer is used to make it works as rhs of key-mappings.
+	Timer is used to make it works as {rhs} of key-mappings.
 	Return empty string.
 
 	Parameters:~
@@ -2285,10 +2288,12 @@ CocAction({action}, [...{args}])			*CocAction()*
 
 CocActionAsync({action}, [...{args}, [{callback}]])
 
-	Call CocAction by send notification to server of coc.nvim.
+	Call CocAction by send notification to NodeJS process of coc.nvim.
 
-	Optional callback is called with `error` as the first argument and
-	`response` as the second argument.
+	When callback function exists as the last argument, the callback
+	function is called with `error` string as the first argument and
+	`resutl` as the second argument.  When no callback exists, error
+	message would be echoed.
 
 	Checkout |coc-actions| for available actions.
 
@@ -2887,7 +2892,10 @@ COMMANDS						*coc-commands*
 
 :CocDiagnostics	[height] 				*:CocDiagnostics*
 
-	Open vim's |location-list| with diagnostics of current buffer.
+	Open vim's |location-list| with diagnostics of current buffer. The
+	location list is automatically updated by default.  When multiple
+	location list are opened for one buffer, only first one would be
+	automatically updated.
 
 :CocSearch 						*:CocSearch*
 
@@ -3011,7 +3019,7 @@ AUTOCMD							*coc-autocmds*
 :autocmd User CocOpenFloatPrompt {command}
 
 	Triggered when a floating prompt window is opened (triggered after
-	CocOpenFloat).
+	|CocOpenFloat|).
 
 							*CocTerminalOpen*
 :autocmd User CocTerminalOpen {command}
@@ -3090,6 +3098,7 @@ cursor position.
 *CocHighlightWrite* for `Write` kind of document symbol.
 
 Float window/popup related~
+							*coc-highlights-float*
 
 *CocFloating* default highlight group of floating windows/popups.
 Default links to |NormalFloat| on neovim and |Pmenu| on vim.
@@ -3099,6 +3108,14 @@ Default links to |NormalFloat| on neovim and |Pmenu| on vim.
 *CocFloatActive* for activated text, links to |CocSearch| by default.
 *CocErrorFloat* for error text in floating windows/popups.
 *CocHintFloat* for hint text in floating windows/popups.
+
+Inlay hint related~
+							*coc-highlights-inlayHint*
+
+*CocInlayHint* for highlight inlay hint virtual text block, default uses
+foreground from |CocHintSign| and background from |SignColumn|
+*CocInlayHintParameter* for parameter kind of inlay hint.
+*CocInlayHintType* for type kind of inlay hint.
 
 Notification window/popup related~
 
@@ -3111,8 +3128,9 @@ CocNotification 					*CocNotification*
 *CocNotificationInfo* for highlight border of info notification.
 
 List related~
-							*coc-highlights-list*
+							*CocList*
 
+*CocSearch* for matched characters.
 *CocListLine* for current cursor line.
 *CocListSearch* for matched characters.
 *CocListMode* for mode text in the statusline.
@@ -3221,7 +3239,6 @@ The modifier highlight groups have higher priority.
 
 Others~
 
-*CocSearch* highlight group for matched characters in list.
 *CocDisabled* highlight for disabled items, eg: menu item.
 *CocCodeLens* for virtual text of codeLens.
 *CocCursorRange* for highlight of activated cursors ranges.
@@ -3231,8 +3248,6 @@ Others~
 background color).
 *CocSelectedRange* for highlight ranges of outgoing calls.
 *CocSnippetVisual* for highlight snippet placeholders.
-*CocInlayHint* for highlight inlay hint virtual text block, default uses
-foreground from |CocHintSign| and background from |SignColumn|
 
 ==============================================================================
 TREE SUPPORT 						*coc-tree*
