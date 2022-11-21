@@ -198,7 +198,7 @@ function! s:OpenConfig()
       call mkdir(home, 'p')
     end
   endif
-  execute 'edit '.home.'/coc-settings.json'
+  execute 'edit '.fnameescape(home.'/coc-settings.json')
   call coc#rpc#notify('checkJsonExtension', [])
 endfunction
 
