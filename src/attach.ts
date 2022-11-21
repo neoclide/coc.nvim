@@ -16,6 +16,7 @@ const logger = createLogger('attach')
  */
 const ACTIONS_NO_WAIT = ['installExtensions', 'updateExtensions']
 const semVer = semver.parse(VERSION)
+const pendingNotifications: Map<string, any[]> = new Map()
 
 export function pathReplace(patterns: object | undefined): void {
   if (objectLiteral(patterns)) {
@@ -37,6 +38,16 @@ export default (opts: Attach, requestApi = true): Plugin => {
   nvim.setVar('coc_process_pid', process.pid, true)
   nvim.setClientInfo('coc', { major: semVer.major, minor: semVer.minor, patch: semVer.patch }, 'remote', {}, {})
   const plugin = new Plugin(nvim)
+  let disposable = events.on('ready', () => {
+    disposable.dispose()
+    for (let [method, args] of pendingNotifications.entries()) {
+      plugin.cocAction(method, ...args).catch(e => {
+        console.error(`Error on notification "${method}": ${e}`)
+        logger.error(`Error on notification ${method}`, e)
+      })
+    }
+    pendingNotifications.clear()
+  })
 
   nvim.on('notification', async (method, args) => {
     switch (method) {
@@ -72,6 +83,10 @@ export default (opts: Attach, requestApi = true): Plugin => {
       default: {
         try {
           logger.info('receive notification:', method, args)
+          if (!plugin.isReady) {
+            pendingNotifications.set(method, args)
+            return
+          }
           await plugin.cocAction(method, ...args)
         } catch (e) {
           console.error(`Error on notification "${method}": ${toText(e)}`)

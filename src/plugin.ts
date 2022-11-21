@@ -15,13 +15,10 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { UltiSnippetOption } from './types'
-import { disposeAll, getConditionValue } from './util'
-import type { Disposable } from './util/protocol'
+import { Disposable, disposeAll, getConditionValue } from './util'
 import window from './window'
 import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
-
-const pendingNotifications: Map<string, any[]> = new Map()
 
 export default class Plugin {
   private ready = false
@@ -217,21 +214,10 @@ export default class Plugin {
       logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, 0))
       this.ready = true
       await events.fire('ready', [])
-      this.invokePendingNotifications()
       workspace.autocmds.setupDynamicAutocmd(true)
     } catch (e) {
       nvim.echoError(e)
     }
-  }
-
-  private invokePendingNotifications(): void {
-    for (let [method, args] of pendingNotifications.entries()) {
-      this.cocAction(method, ...args).catch(e => {
-        console.error(`Error on notification "${method}": ${e}`)
-        logger.error(`Error on notification ${method}`, e)
-      })
-    }
-    pendingNotifications.clear()
   }
 
   public get isReady(): boolean {
@@ -243,10 +229,6 @@ export default class Plugin {
   }
 
   public async cocAction(method: string, ...args: any[]): Promise<any> {
-    if (!this.ready) {
-      pendingNotifications.set(method, args)
-      return
-    }
     let fn = this.actions.get(method)
     if (!fn) throw new Error(`Action "${method}" not exist`)
     return await Promise.resolve(fn.apply(null, args))
