@@ -280,7 +280,7 @@ export class Window {
       let w = this.workspace.getConfiguration('workspace')
       let ignored = w.get<string[]>('ignoredFiletypes', [])
       let msg: string
-      if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for this.workspace folder resolve.`
+      if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for workspace folder resolve.`
       if (!msg) msg = `Can't resolve this.workspace folder for file '${fsPath}, consider create one of ${patterns.join(', ')} in your project root.'.`
       void this.showWarningMessage(msg)
       return

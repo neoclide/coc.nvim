@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
-import { sortItems } from '../../completion/complete'
+import { sortItems, SortMethod } from '../../completion/complete'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import sources from '../../sources'
@@ -1322,7 +1322,7 @@ describe('completion', () => {
   describe('sortItems', () => {
     it('should sort items', () => {
       let emptyInput = false
-      let defaultSortMethod = 'none'
+      let defaultSortMethod: SortMethod = SortMethod.None
       let a: any = {
         abbr: 'a', character: 0, filterText: 'a', index: 0, source: '', word: 'a'
       }

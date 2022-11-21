@@ -49,7 +49,7 @@ endfunction
 
 function! coc#util#semantic_hlgroups() abort
   let res = split(execute('hi'), "\n")
-  let filtered = filter(res, "v:val =~# '^CocSem'")
+  let filtered = filter(res, "v:val =~# '^CocSem' && v:val !~# ' cleared$'")
   return map(filtered, "matchstr(v:val,'\\v^CocSem\\w+')")
 endfunction
 

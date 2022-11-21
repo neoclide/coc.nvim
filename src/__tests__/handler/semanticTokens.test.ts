@@ -608,10 +608,14 @@ describe('semanticTokens', () => {
       // @ts-ignore
       workspace._env.updateHighlight = true
       expect(enabled).toBe(false)
-      doc.detach()
-      toThrow(() => {
+      highlighter.staticConfig.highlightGroups = []
+      expect(() => {
         item.checkState()
-      })
+      }).toThrow('Unable to find highlight groups')
+      highlighter.staticConfig.highlightGroups = ['CocSemKeyword']
+      expect(() => {
+        item.checkState()
+      }).toThrow('provider not found')
     })
   })
 

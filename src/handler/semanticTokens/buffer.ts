@@ -24,7 +24,6 @@ export type TokenRange = [number, number, number] // line, startCol, endCol
 
 export interface SemanticTokensConfig {
   enable: boolean
-  filetypes: string[]
   highlightPriority: number
   incrementTypes: string[]
   combinedModifiers: string[]
@@ -60,6 +59,11 @@ interface RangeHighlights {
 const debounceInterval = getConditionValue(100, 10)
 const requestDelay = getConditionValue(500, 10)
 
+export interface StaticConfig {
+  filetypes: string[] | null
+  highlightGroups: ReadonlyArray<string>
+}
+
 export default class SemanticTokensBuffer implements SyncItem {
   private _highlights: [number, SemanticTokenRange[]]
   private _dirty = false
@@ -72,7 +76,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   private readonly _onDidRefresh = new Emitter<void>()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public highlight: ((ms?: number) => void) & { clear: () => void }
-  constructor(private nvim: Neovim, public readonly doc: Document, private highlightGroups: ReadonlyArray<string>) {
+  constructor(private nvim: Neovim, public readonly doc: Document, private staticConfig: StaticConfig) {
     this.loadConfiguration()
     this.highlight = delay(() => {
       void this.doHighlight()
@@ -85,7 +89,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     let changed = this.config != null && this.config.enable != config.enable
     this.config = {
       enable: config.get<boolean>('enable'),
-      filetypes: config.get<string[]>('filetypes'),
       highlightPriority: config.get<number>('highlightPriority'),
       incrementTypes: config.get<string[]>('incrementTypes'),
       combinedModifiers: config.get<string[]>('combinedModifiers')
@@ -100,7 +103,9 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public get configEnabled(): boolean {
-    let { enable, filetypes } = this.config
+    let { enable } = this.config
+    let { filetypes } = this.staticConfig
+    // should be null when not specified
     if (Array.isArray(filetypes)) return filetypes.includes('*') || filetypes.includes(this.doc.filetype)
     return enable
   }
@@ -177,7 +182,8 @@ export default class SemanticTokensBuffer implements SyncItem {
   public checkState(): void {
     if (!workspace.env.updateHighlight) throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`)
     if (!this.configEnabled) throw new Error(`Semantic tokens highlight not enabled for current filetype: ${this.doc.filetype}`)
-    if (!this.hasProvider) throw new Error(`SemanticTokens provider not found for ${this.doc.uri}`)
+    if (this.staticConfig.highlightGroups.length === 0) throw new Error(`Unable to find highlight groups starts with CocSem`)
+    if (!this.hasProvider || !this.hasLegend) throw new Error(`SemanticTokens provider not found for ${this.doc.uri}`)
   }
 
   private async getTokenRanges(
@@ -215,7 +221,7 @@ export default class SemanticTokensBuffer implements SyncItem {
    */
   private addHighlightItems(highlights: SemanticTokenRange[], lnum: number, startCharacter: number, endCharacter: number, tokenType: string, tokenModifiers?: string[]): void {
     let { combinedModifiers } = this.config
-    let { highlightGroups } = this
+    let { highlightGroups } = this.staticConfig
     tokenModifiers = tokenModifiers || []
     let highlightGroup: string
     let combine = false
