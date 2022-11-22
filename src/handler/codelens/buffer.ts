@@ -35,7 +35,7 @@ export enum TextAlign {
 }
 
 let srcId: number | undefined
-const debounceTme = getConditionValue(200, 50)
+const debounceTime = getConditionValue(200, 50)
 const CODELENS_HL = 'CocCodeLens'
 const NORMAL_HL = 'Normal'
 
@@ -58,13 +58,13 @@ export default class CodeLensBuffer implements SyncItem {
       this._resolveCodeLenses().catch(e => {
         logger.error(`Error on resolve codeLens`, e)
       })
-    }, debounceTme)
+    }, debounceTime)
     this.debounceFetch = debounce(() => {
       this.fetchCodeLenses().catch(e => {
         logger.error(`Error on fetch codeLens`, e)
       })
-    }, debounceTme)
-    this.debounceFetch()
+    }, debounceTime)
+    if (this.hasProvider) this.debounceFetch()
   }
 
   public get config(): CodeLensConfig {
@@ -136,13 +136,13 @@ export default class CodeLensBuffer implements SyncItem {
       let empty = this.codeLenses == null
       let { textDocument } = this.document
       let version = textDocument.version
+      this.cancelFetch()
       let tokenSource = this.tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
       if (token.isCancellationRequested) return
       if (!srcId) srcId = await this.nvim.createNamespace('coc-codelens')
       let codeLenses = await languages.getCodeLens(textDocument, token)
       codeLenses = Array.isArray(codeLenses) ? codeLenses.filter(o => o != null) : []
-      this.tokenSource = undefined
       if (token.isCancellationRequested || codeLenses.length == 0) return
       this.codeLenses = { version, codeLenses }
       if (empty) this.setVirtualText(codeLenses)
@@ -250,17 +250,21 @@ export default class CodeLensBuffer implements SyncItem {
     }
   }
 
-  private cancel(): void {
-    this.resolveCodeLens.clear()
+  private cancelFetch(): void {
     this.debounceFetch.clear()
-    if (this.resolveTokenSource) {
-      this.resolveTokenSource.cancel()
-      this.resolveTokenSource = null
-    }
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource = null
     }
+  }
+
+  private cancel(): void {
+    this.resolveCodeLens.clear()
+    if (this.resolveTokenSource) {
+      this.resolveTokenSource.cancel()
+      this.resolveTokenSource = null
+    }
+    this.cancelFetch()
   }
 
   public abandonResult(): void {

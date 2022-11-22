@@ -32,6 +32,10 @@ export default class CodeLensManager {
       return new CodeLensBuffer(nvim, doc)
     })
     this.disposables.push(this.buffers)
+    events.on('CursorHold', async (bufnr: number) => {
+      let item = this.buffers.getItem(bufnr)
+      if (item && item.config.enabled && !item.currentCodeLens) await item.forceFetch()
+    }, null, this.disposables)
     events.on('CursorMoved', bufnr => {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.resolveCodeLens()

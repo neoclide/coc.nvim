@@ -150,14 +150,15 @@ describe('codeLenes featrue', () => {
       }
     }))
     let doc = await helper.createDocument('example.js')
-    await helper.wait(100)
-    let markers = await helper.getMarkers(doc.bufnr, srcId)
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     await events.fire('CursorHold', [doc.bufnr])
-    await helper.wait(200)
-    markers = await helper.getMarkers(doc.bufnr, srcId)
-    expect(markers.length).toBe(3)
+    await helper.waitValue(async () => {
+      let markers = await helper.getMarkers(doc.bufnr, srcId)
+      return markers.length
+    }, 3)
+    helper.updateConfiguration('codeLens.enable', false)
+    await events.fire('CursorHold', [doc.bufnr])
   })
 
   it('should cancel codeLenes request on document change', async () => {
