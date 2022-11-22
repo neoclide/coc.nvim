@@ -74,6 +74,22 @@ describe('codeLenes featrue', () => {
     await helper.doAction('codeLensAction')
   })
 
+  it('should toggle codeLens display', async () => {
+    await codeLens.toggle(999)
+    let line = await helper.getCmdline()
+    expect(line).toMatch('not created')
+    await createBufferWithCodeLens()
+    await commands.executeCommand('document.toggleCodeLens')
+    let doc = await workspace.document
+    let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
+    expect(res.length).toBe(0)
+    await commands.executeCommand('document.toggleCodeLens')
+    await helper.waitValue(async () => {
+      let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
+      return res.length > 0
+    }, true)
+  })
+
   it('should return codeLenes when resolve not exists', async () => {
     let codeLens = CodeLens.create(Range.create(0, 0, 1, 1))
     let resolved = await languages.resolveCodeLens(codeLens, CancellationToken.None)

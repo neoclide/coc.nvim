@@ -1300,6 +1300,9 @@ configurations may not work or not work at all.
 Check if current buffer have code lens provider by
 `:echo CocAction('hasProvider', 'codeLens')`
 
+To temporarily toggle codeLens of current buffer, use command
+`:CocCommand document.toggleCodeLens`
+
 Code lens are not shown by default, use |coc-config-codeLens-enable| to enable,
 you may also need enable code lens by configure extension or configured
 languageserver.

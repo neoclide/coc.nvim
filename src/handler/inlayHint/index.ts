@@ -54,9 +54,12 @@ export default class InlayHintHandler {
       let bufnr = await nvim.call('winbufnr', [winid]) as number
       if (bufnr != -1) this.refresh(bufnr)
     }, null, this.disposables)
-    this.disposables.push(commands.registerCommand('document.toggleInlayHint', (bufnr?: number) => {
-      this.toggle(bufnr ?? workspace.bufnr)
-    }))
+    commands.register({
+      id: 'document.toggleInlayHint',
+      execute: (bufnr?: number) => {
+        return this.toggle(bufnr ?? workspace.bufnr)
+      },
+    }, false, 'toggle codeLens display of current buffer')
     handler.addDisposable(Disposable.create(() => {
       disposeAll(this.disposables)
     }))
@@ -65,7 +68,6 @@ export default class InlayHintHandler {
   public toggle(bufnr: number): void {
     let item = this.getItem(bufnr)
     try {
-      if (!workspace.env.virtualText) throw new Error(`virtual text requires nvim >= 0.5.0 or vim >= 9.0.0067, please upgrade your vim.`)
       workspace.getAttachedDocument(bufnr)
       item.toggle()
     } catch (e) {

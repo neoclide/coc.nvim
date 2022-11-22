@@ -2,11 +2,13 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import type { DocumentSelector } from 'vscode-languageserver-protocol'
 import { debounce } from '../..//util/node'
+import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import { disposeAll, getConditionValue } from '../../util'
 import { Disposable } from '../../util/protocol'
+import window from '../../window'
 import workspace from '../../workspace'
 import CodeLensBuffer from './buffer'
 
@@ -45,8 +47,23 @@ export default class CodeLensManager {
       debounced.clear()
     }))
     languages.onDidCodeLensRefresh(debounced, null, this.disposables)
+    commands.register({
+      id: 'document.toggleCodeLens',
+      execute: () => {
+        return this.toggle(workspace.bufnr)
+      },
+    }, false, 'toggle codeLens display of current buffer')
   }
 
+  public async toggle(bufnr: number): Promise<void> {
+    let item = this.buffers.getItem(bufnr)
+    try {
+      workspace.getAttachedDocument(bufnr)
+      await item.toggleDisplay()
+    } catch (e) {
+      void window.showErrorMessage((e as Error).message)
+    }
+  }
   /**
    * Check provider for buf that not fetched
    */
