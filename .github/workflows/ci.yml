@@ -45,7 +45,7 @@ jobs:
       - name: Setup python3
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.9"
       - run: pip install pynvim
 
       - name: Install Dependencies
@@ -55,10 +55,11 @@ jobs:
 
       - name: Setup nvim ${{ matrix.nvim }}
         run: |
-          sudo apt-get install -y xclip ripgrep ctags
+          sudo apt-get install -y xclip ripgrep exuberant-ctags
           xclip -version
           rg --version
           ctags --version
+
           curl -LO https://github.com/neovim/neovim/releases/download/v${{ matrix.nvim }}/nvim-linux64.tar.gz
           tar xzf nvim-linux64.tar.gz
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
