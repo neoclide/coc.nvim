@@ -346,6 +346,7 @@ export class Completion implements Disposable {
     let input = this.complete.input
     let line = option.line
     let inputStart = characterIndex(line, option.col)
+    this.document?._forceSync()
     events.completing = false
     this.cancel()
     void events.fire('CompleteDone', [toCompleteDoneItem(item)])
