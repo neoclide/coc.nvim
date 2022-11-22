@@ -121,10 +121,11 @@ describe('Colors', () => {
       helper.updateConfiguration('colors.enable', true)
       let doc = await workspace.document
       await events.fire('BufUnload', [doc.bufnr])
-      await commands.executeCommand('document.toggleColors')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('not')
+      await expect(async () => {
+        await commands.executeCommand('document.toggleColors')
+      }).rejects.toThrow(Error)
       doc = await helper.createDocument()
+      expect(colors.isEnabled(doc.bufnr)).toBe(true)
       await commands.executeCommand('document.toggleColors')
       let enabled = colors.isEnabled(doc.bufnr)
       expect(enabled).toBe(false)

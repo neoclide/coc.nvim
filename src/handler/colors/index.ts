@@ -3,11 +3,10 @@ import { Neovim } from '@chemzqm/neovim'
 import { ColorInformation, Position } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import events from '../../events'
-import extensions from '../../extension'
 import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import { HandlerDelegate, IConfigurationChangeEvent, ProviderName } from '../../types'
-import { disposeAll } from '../../util'
+import { defaultValue, disposeAll } from '../../util'
 import { toHexString } from '../../util/color'
 import { CancellationTokenSource, Disposable } from '../../util/protocol'
 import window from '../../window'
@@ -20,8 +19,8 @@ export default class Colors {
   private highlighters: BufferSync<ColorBuffer>
 
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
-    this.setConfiguration()
-    workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
+    this.loadConfiguration()
+    workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     let usedColors: Set<string> = new Set()
     this.highlighters = workspace.registerBufferSync(doc => {
       return new ColorBuffer(this.nvim, doc, this.config, usedColors)
@@ -33,10 +32,13 @@ export default class Colors {
         void item.doHighlight()
       }
     }, null, this.disposables)
-    extensions.onDidActiveExtension(() => {
-      this.highlightAll()
-    }, null, this.disposables)
-
+    languages.onDidColorsRefresh(selector => {
+      for (let item of this.highlighters.items) {
+        if (workspace.match(selector, item.doc)) {
+          item.highlight()
+        }
+      }
+    })
     commandManager.register({
       id: 'editor.action.pickColor',
       execute: async () => {
@@ -54,28 +56,22 @@ export default class Colors {
       execute: async () => {
         let bufnr = await nvim.call('bufnr', ['%']) as number
         let item = this.highlighters.getItem(bufnr)
-        if (!item) return void window.showWarningMessage(`Current buffer not attached`)
-        if (item.enable) {
-          item.enable = false
-          item.clearHighlight()
-        } else {
-          item.enable = true
-          await item.doHighlight()
-        }
+        workspace.getAttachedDocument(bufnr)
+        item.toggle()
       }
     }, false, 'toggle colors for current buffer')
   }
 
-  private setConfiguration(e?: IConfigurationChangeEvent): void {
+  private loadConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('colors')) {
-      let c = workspace.getConfiguration('colors', null)
+      let c = workspace.initialConfiguration.get('colors') as any
       this.config = Object.assign(this.config ?? {}, {
-        filetypes: c.get<string[]>('filetypes', []),
-        highlightPriority: c.get<number>('highlightPriority', 1000)
+        filetypes: c.filetypes,
+        highlightPriority: defaultValue(c.highlightPriority, 1000)
       })
       if (e) {
         for (let item of this.highlighters.items) {
-          item.updateDocumentConfig(true)
+          item.updateDocumentConfig()
         }
       }
     }

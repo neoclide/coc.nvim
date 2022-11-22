@@ -52,9 +52,11 @@ class Languages {
   private readonly _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidInlayHintRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidCodeLensRefresh = new Emitter<DocumentSelector>()
+  private readonly _onDidColorsRefresh = new Emitter<DocumentSelector>()
   public readonly onDidSemanticTokensRefresh: Event<DocumentSelector> = this._onDidSemanticTokensRefresh.event
   public readonly onDidInlayHintRefresh: Event<DocumentSelector> = this._onDidInlayHintRefresh.event
   public readonly onDidCodeLensRefresh: Event<DocumentSelector> = this._onDidCodeLensRefresh.event
+  public readonly onDidColorsRefresh: Event<DocumentSelector> = this._onDidColorsRefresh.event
   private onTypeFormatManager = new OnTypeFormatManager()
   private documentLinkManager = new DocumentLinkManager()
   private documentColorManager = new DocumentColorManager()
@@ -159,7 +161,12 @@ class Languages {
   }
 
   public registerDocumentColorProvider(selector: DocumentSelector, provider: DocumentColorProvider): Disposable {
-    return this.documentColorManager.register(selector, provider)
+    this._onDidColorsRefresh.fire(selector)
+    let disposable = this.documentColorManager.register(selector, provider)
+    return Disposable.create(() => {
+      disposable.dispose()
+      this._onDidColorsRefresh.fire(selector)
+    })
   }
 
   public registerDefinitionProvider(selector: DocumentSelector, provider: DefinitionProvider): Disposable {
