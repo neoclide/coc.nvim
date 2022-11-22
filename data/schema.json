@@ -705,8 +705,8 @@
       "default": false
     },
     "colors.filetypes": {
-      "type": "array",
-      "default": [],
+      "type": ["array", "null"],
+      "default": null,
       "scope": "resource",
       "deprecationMessage": "Use colors.enable as language override configuration instead, see :h coc-configuration-scope",
       "description": "Filetypes that should be enabled for colors highlight feature, use \"*\" for all filetypes.",
