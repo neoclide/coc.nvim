@@ -1,3 +1,7 @@
+# 2022-11-22
+
+- Add command `document.toggleCodeLens`.
+
 # 2022-11-21
 
 - Add `CocAction('addWorkspaceFolder')`.
