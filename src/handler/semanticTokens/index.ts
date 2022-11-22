@@ -12,17 +12,17 @@ import type { Disposable } from '../../util/protocol'
 import { upperFirst } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
-import SemanticTokensBuffer, { StaticConfig, HLGROUP_PREFIX, NAMESPACE } from './buffer'
+import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, StaticConfig } from './buffer'
 const headGroup = 'Statement'
 
 function getFiletypes(): string[] {
   return workspace.initialConfiguration.get<string[] | null>('semanticTokens.filetypes', null)
 }
+let floatFactory: FloatFactory | undefined
 
 export default class SemanticTokens {
   private disposables: Disposable[] = []
   private highlighters: BufferSync<SemanticTokensBuffer>
-  private floatFactory: FloatFactory
   public staticConfig: StaticConfig
 
   constructor(private nvim: Neovim) {
@@ -30,12 +30,6 @@ export default class SemanticTokens {
       filetypes: getFiletypes(),
       highlightGroups: []
     }
-    this.floatFactory = window.createFloatFactory({
-      title: 'Semantic token info',
-      highlight: 'Normal',
-      borderhighlight: 'MoreMsg',
-      border: [1, 1, 1, 1]
-    })
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('semanticTokens')) {
         this.staticConfig.filetypes = getFiletypes()
@@ -116,7 +110,7 @@ export default class SemanticTokens {
           void window.showErrorMessage((e as Error).message)
         }
       }
-      this.floatFactory.close()
+      floatFactory?.close()
       return
     }
     let [_, line, col] = await this.nvim.call('getcurpos', []) as [number, number, number]
@@ -142,9 +136,17 @@ export default class SemanticTokens {
         content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${highlight.hlGroup || ''}`,
         highlights
       }]
-      await this.floatFactory.show(docs, { winblend: 0 })
+      if (!floatFactory) {
+        floatFactory = window.createFloatFactory({
+          title: 'Semantic token info',
+          highlight: 'Normal',
+          borderhighlight: 'MoreMsg',
+          border: [1, 1, 1, 1]
+        })
+      }
+      await floatFactory.show(docs, { winblend: 0 })
     } else {
-      this.floatFactory.close()
+      floatFactory?.close()
     }
   }
 
@@ -238,7 +240,6 @@ export default class SemanticTokens {
   }
 
   public dispose(): void {
-    this.floatFactory.dispose()
     this.highlighters.dispose()
     disposeAll(this.disposables)
   }

@@ -33,7 +33,7 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import { ExtendedCodeAction, LocationWithTarget, ProviderName, TextDocumentMatch } from './types'
+import { ExtendedCodeAction, LocationWithTarget, TextDocumentMatch } from './types'
 import { disposeAll, getConditionValue } from './util'
 import * as Is from './util/is'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
@@ -46,6 +46,37 @@ type withKey<K extends string> = {
 
 interface Mannger<P, A> {
   register: (selector: DocumentSelector, provider: P, extra?: A) => Disposable
+}
+
+export enum ProviderName {
+  FormatOnType = 'formatOnType',
+  Rename = 'rename',
+  OnTypeEdit = 'onTypeEdit',
+  DocumentLink = 'documentLink',
+  DocumentColor = 'documentColor',
+  FoldingRange = 'foldingRange',
+  Format = 'format',
+  CodeAction = 'codeAction',
+  FormatRange = 'formatRange',
+  Hover = 'hover',
+  Signature = 'signature',
+  WorkspaceSymbols = 'workspaceSymbols',
+  DocumentSymbol = 'documentSymbol',
+  DocumentHighlight = 'documentHighlight',
+  Definition = 'definition',
+  Declaration = 'declaration',
+  TypeDefinition = 'typeDefinition',
+  Reference = 'reference',
+  Implementation = 'implementation',
+  CodeLens = 'codeLens',
+  SelectionRange = 'selectionRange',
+  CallHierarchy = 'callHierarchy',
+  SemanticTokens = 'semanticTokens',
+  SemanticTokensRange = 'semanticTokensRange',
+  LinkedEditing = 'linkedEditing',
+  InlayHint = 'inlayHint',
+  InlineValue = 'inlineValue',
+  TypeHierarchy = 'typeHierarchy'
 }
 
 class Languages {

@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, InlineValueText, Range } from 'vscode-languageserver-protocol'
-import languages from '../../languages'
-import { ProviderName } from '../../types'
+import languages, { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'

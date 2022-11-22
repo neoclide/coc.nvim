@@ -1,8 +1,8 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import type { FoldingRangeKind } from 'vscode-languageserver-types'
-import languages from '../languages'
-import { HandlerDelegate, ProviderName } from '../types'
+import languages, { ProviderName } from '../languages'
+import { HandlerDelegate } from '../types'
 
 export default class FoldHandler {
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {

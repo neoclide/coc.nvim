@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Handler from '../../handler/index'
-import { ProviderName } from '../../types'
+import { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 

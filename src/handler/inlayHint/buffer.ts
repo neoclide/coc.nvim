@@ -2,12 +2,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import { InlayHintKind, Range } from 'vscode-languageserver-types'
 import events from '../../events'
-import languages from '../../languages'
+import languages, { ProviderName } from '../../languages'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
 import { getLabel, InlayHintWithProvider } from '../../provider/inlayHintManager'
-import { ProviderName } from '../../types'
 import { delay, getConditionValue } from '../../util'
 import { CancellationError } from '../../util/errors'
 import { positionInRange } from '../../util/position'
@@ -44,7 +43,7 @@ function getHighlightGroup(kind: InlayHintKind): string {
 export default class InlayHintBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private regions = new Regions()
-  private _config: InlayHintConfig
+  private _config: InlayHintConfig | undefined
   // Saved for resolve and TextEdits in the future.
   private currentHints: InlayHintWithProvider[] = []
   private readonly _onDidRefresh = new Emitter<void>()
@@ -57,7 +56,7 @@ export default class InlayHintBuffer implements SyncItem {
     this.render = delay(() => {
       void this.renderRange()
     }, debounceInterval)
-    this.render()
+    if (this.hasProvider) this.render()
   }
 
   public get config(): InlayHintConfig {
@@ -105,9 +104,12 @@ export default class InlayHintBuffer implements SyncItem {
   }
 
   public get enabled(): boolean {
-    if (!this.config.display) return false
-    if (!this.configEnabled) return false
-    return languages.hasProvider(ProviderName.InlayHint, this.doc.textDocument)
+    if (!this.config.display || !this.configEnabled) return false
+    return this.hasProvider
+  }
+
+  private get hasProvider(): boolean {
+    return languages.hasProvider(ProviderName.InlayHint, this.doc)
   }
 
   public get configEnabled(): boolean {

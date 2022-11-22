@@ -19,7 +19,7 @@ import QuickPick, { QuickPickConfig } from './model/quickpick'
 import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
-import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MessageLevel, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
+import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
 import { isFalsyOrEmpty } from './util/array'
 import { CONFIG_FILE_NAME } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
@@ -33,6 +33,12 @@ import { Workspace } from './workspace'
 let tab_global_id = 3000
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 export type Item = QuickPickItem | string
+
+export enum MessageLevel {
+  More,
+  Warning,
+  Error
+}
 
 function generateTabId(): number {
   return tab_global_id++

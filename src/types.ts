@@ -4,6 +4,7 @@ import type { CancellationToken, Disposable, Event } from 'vscode-languageserver
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { CodeAction, CodeActionKind, CreateFile, DeleteFile, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
+import type { ProviderName } from './languages'
 import type Document from './model/document'
 import type RelativePattern from './model/relativePattern'
 
@@ -31,44 +32,6 @@ export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
   // eslint-disable-next-line @typescript-eslint/unified-signatures
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
-}
-
-export interface Documentation {
-  filetype: string
-  content: string
-  highlights?: HighlightItem[]
-  active?: [number, number]
-}
-
-export enum ProviderName {
-  FormatOnType = 'formatOnType',
-  Rename = 'rename',
-  OnTypeEdit = 'onTypeEdit',
-  DocumentLink = 'documentLink',
-  DocumentColor = 'documentColor',
-  FoldingRange = 'foldingRange',
-  Format = 'format',
-  CodeAction = 'codeAction',
-  FormatRange = 'formatRange',
-  Hover = 'hover',
-  Signature = 'signature',
-  WorkspaceSymbols = 'workspaceSymbols',
-  DocumentSymbol = 'documentSymbol',
-  DocumentHighlight = 'documentHighlight',
-  Definition = 'definition',
-  Declaration = 'declaration',
-  TypeDefinition = 'typeDefinition',
-  Reference = 'reference',
-  Implementation = 'implementation',
-  CodeLens = 'codeLens',
-  SelectionRange = 'selectionRange',
-  CallHierarchy = 'callHierarchy',
-  SemanticTokens = 'semanticTokens',
-  SemanticTokensRange = 'semanticTokensRange',
-  LinkedEditing = 'linkedEditing',
-  InlayHint = 'inlayHint',
-  InlineValue = 'inlineValue',
-  TypeHierarchy = 'typeHierarchy'
 }
 
 export interface AnsiHighlight {
@@ -135,6 +98,13 @@ export interface IFileSystemWatcher extends Disposable {
   onDidCreate: Event<URI>
   onDidChange: Event<URI>
   onDidDelete: Event<URI>
+}
+
+export interface Documentation {
+  filetype: string
+  content: string
+  highlights?: HighlightItem[]
+  active?: [number, number]
 }
 
 export interface FloatFactory {
@@ -511,48 +481,6 @@ export interface QuickPickItem {
    * Optional flag indicating if this item is picked initially.
    */
   picked?: boolean
-}
-// }}
-
-// Enums{{
-export enum PatternType {
-  Buffer,
-  LanguageServer,
-  Global,
-}
-
-export enum MessageLevel {
-  More,
-  Warning,
-  Error
-}
-
-export enum ServiceStat {
-  Initial,
-  Starting,
-  StartFailed,
-  Running,
-  Stopping,
-  Stopped,
-}
-
-export enum FileType {
-  /**
-   * The file type is unknown.
-   */
-  Unknown = 0,
-  /**
-   * A regular file.
-   */
-  File = 1,
-  /**
-   * A directory.
-   */
-  Directory = 2,
-  /**
-   * A symbolic link to a file.
-   */
-  SymbolicLink = 64
 }
 // }}
 

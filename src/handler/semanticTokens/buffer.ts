@@ -1,12 +1,12 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Range, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, uinteger } from 'vscode-languageserver-types'
-import languages from '../../languages'
+import languages, { ProviderName } from '../../languages'
 import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import Regions from '../../model/regions'
-import { HighlightItem, ProviderName } from '../../types'
+import { HighlightItem } from '../../types'
 import { delay, getConditionValue } from '../../util'
 import { CancellationError } from '../../util/errors'
 import { wait, waitImmediate } from '../../util/index'
@@ -80,7 +80,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.highlight = delay(() => {
       void this.doHighlight()
     }, debounceInterval)
-    this.highlight()
+    if (this.hasProvider) this.highlight()
   }
 
   public get config(): SemanticTokensConfig {

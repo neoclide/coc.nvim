@@ -6,7 +6,6 @@ import Configurations from '../configuration'
 import events from '../events'
 import { createLogger } from '../logger'
 import Document from '../model/document'
-import { PatternType } from '../types'
 import { getConditionValue } from '../util'
 import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
@@ -16,6 +15,13 @@ import { path } from '../util/node'
 import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { Registry } from '../util/registry'
+
+export enum PatternType {
+  Buffer,
+  LanguageServer,
+  Global,
+}
+
 const logger = createLogger('core-workspaceFolder')
 const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
 const checkPatternTimeout = getConditionValue(5000, 50)

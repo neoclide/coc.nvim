@@ -1,13 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, TypeHierarchyItem, Disposable, Range, SymbolKind, Position, SymbolTag } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import languages from '../../languages'
+import languages, { ProviderName } from '../../languages'
 import TypeHierarchyHandler from '../../handler/typeHierarchy'
 import { addChildren } from '../../tree/LocationsDataProvider'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
-import { ProviderName } from '../../types'
 
 let nvim: Neovim
 let disposables: Disposable[] = []

@@ -7,7 +7,6 @@ import { URI } from 'vscode-uri'
 import events from './events'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { createLogger } from './logger'
-import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import { fs, net, path } from './util/node'
 import { toObject } from './util/object'
@@ -15,6 +14,15 @@ import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
 import window from './window'
 import workspace from './workspace'
 const logger = createLogger('services')
+
+export enum ServiceStat {
+  Initial,
+  Starting,
+  StartFailed,
+  Running,
+  Stopping,
+  Stopped,
+}
 
 interface ServiceInfo {
   id: string

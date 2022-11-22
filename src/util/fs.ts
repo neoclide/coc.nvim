@@ -4,7 +4,6 @@ import { parse, ParseError } from 'jsonc-parser'
 import { Location, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
-import { FileType } from '../types'
 import { fs, path, promisify } from '../util/node'
 import { CancellationToken, Disposable } from '../util/protocol'
 import { isFalsyOrEmpty, toArray } from './array'
@@ -14,6 +13,25 @@ import { toObject } from './object'
 import * as platform from './platform'
 const logger = createLogger('util-fs')
 const exec = child_process.exec
+
+export enum FileType {
+  /**
+   * The file type is unknown.
+   */
+  Unknown = 0,
+  /**
+   * A regular file.
+   */
+  File = 1,
+  /**
+   * A directory.
+   */
+  Directory = 2,
+  /**
+   * A symbolic link to a file.
+   */
+  SymbolicLink = 64
+}
 
 export type OnReadLine = (line: string) => void
 

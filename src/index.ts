@@ -17,7 +17,7 @@ import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import extensions from './extension'
-import languages from './languages'
+import languages, { ProviderName } from './languages'
 import BasicList from './list/basic'
 import listManager from './list/manager'
 import download from './model/download'
@@ -26,7 +26,7 @@ import FloatFactory from './model/floatFactory'
 import Highligher from './model/highligher'
 import Mru from './model/mru'
 import RelativePattern from './model/relativePattern'
-import services from './services'
+import services, { ServiceStat } from './services'
 import snippetManager from './snippets/manager'
 import { SnippetString } from './snippets/string'
 import sources from './completion/sources'
@@ -50,16 +50,16 @@ import {
   ErrorAction, LanguageClient,
   MessageTransports, NullLogger, RevealOutputChannelOn, SettingMonitor, State, TransportKind
 } from './language-client'
-import { FileType, MessageLevel, PatternType, ProviderName, ServiceStat } from './types'
 
 import LineBuilder from './model/line'
 import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
 import { TreeItem, TreeItemCollapsibleState } from './tree/index'
 import { concurrent, disposeAll, wait } from './util'
-import { watchFile } from './util/fs'
+import { FileType, watchFile } from './util/fs'
 import { executable, isRunning, runCommand, terminate } from './util/processes'
 import { ConfigurationUpdateTarget } from './configuration/types'
 import { SourceType } from './completion/types'
+import { PatternType } from './core/workspaceFolder'
 
 module.exports = {
   Uri: URI,
@@ -154,7 +154,6 @@ module.exports = {
   MonikerKind,
   PatternType,
   SourceType,
-  MessageLevel,
   ConfigurationTarget: ConfigurationUpdateTarget,
   ServiceStat,
   FileType,

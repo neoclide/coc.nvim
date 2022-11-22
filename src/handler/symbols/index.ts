@@ -2,9 +2,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, SymbolInformation } from 'vscode-languageserver-types'
 import events from '../../events'
-import languages from '../../languages'
+import languages, { ProviderName } from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { HandlerDelegate, ProviderName } from '../../types'
+import { HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util/index'
 import { equals } from '../../util/object'
 import { positionInRange, rangeInRange } from '../../util/position'
@@ -27,7 +27,6 @@ export default class Symbols {
     private handler: HandlerDelegate
   ) {
     this.buffers = workspace.registerBufferSync(doc => {
-      if (doc.buftype != '') return undefined
       let buf = new SymbolsBuffer(doc.bufnr, this.autoUpdateBufnrs)
       buf.onDidUpdate(symbols => {
         if (!this.outline) return
