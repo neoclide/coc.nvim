@@ -1,7 +1,7 @@
 'use strict'
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import sources from '../../sources'
+import sources from '../../completion/sources'
 import { ListItem } from '../types'
 import BasicList from '../basic'
 

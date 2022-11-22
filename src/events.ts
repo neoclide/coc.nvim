@@ -1,6 +1,6 @@
 'use strict'
+import type { CompleteDoneItem } from './completion/types'
 import { createLogger } from './logger'
-import { CompleteDoneItem } from './types'
 import { disposeAll } from './util'
 import { CancellationError } from './util/errors'
 import * as Is from './util/is'

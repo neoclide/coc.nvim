@@ -32,7 +32,7 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import type { Sources } from './sources'
+import type { Sources } from './completion/sources'
 import { ExtendedCodeAction, LocationWithTarget, ProviderName, TextDocumentMatch } from './types'
 import { disposeAll } from './util'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
@@ -104,7 +104,7 @@ class Languages {
     allCommitCharacters?: string[]
   ): Disposable {
     selector = typeof selector == 'string' ? [{ language: selector }] : selector
-    let sources = require('./sources/index').default as Sources
+    let sources = require('./completion/sources').default as Sources
     sources.removeSource(name)
     return sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters)
   }

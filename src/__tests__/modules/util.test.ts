@@ -54,7 +54,7 @@ describe('factory', () => {
     warn: () => {}
   }
 
-  it('should create logger', async () => {
+  it('should create logger', () => {
     let file = path.join(__dirname, 'sandbox/log.js')
     let fn = jest.fn()
     const sandbox = factory.createSandbox(file, {
@@ -83,14 +83,14 @@ console.warn('warn')`, sandbox)
     expect(fn).toBeCalledTimes(5)
   })
 
-  it('should not throw process.chdir', async () => {
+  it('should not throw process.chdir', () => {
     let file = path.join(__dirname, 'sandbox/log.js')
     const sandbox = factory.createSandbox(file, emptyLogger)
     let res = vm.runInContext(`process.chdir()`, sandbox)
     expect(res).toBeUndefined()
   })
 
-  it('should throw with umask', async () => {
+  it('should throw with umask', () => {
     let file = path.join(__dirname, 'sandbox/log.js')
     const sandbox = factory.createSandbox(file, emptyLogger)
     let res = vm.runInContext(`process.umask()`, sandbox)
@@ -104,7 +104,7 @@ console.warn('warn')`, sandbox)
     expect(err).toBeDefined()
   })
 
-  it('should throw with process.exit', async () => {
+  it('should throw with process.exit', () => {
     let file = path.join(__dirname, 'sandbox/log.js')
     const sandbox = factory.createSandbox(file, emptyLogger)
     let err
@@ -116,7 +116,7 @@ console.warn('warn')`, sandbox)
     expect(err).toBeDefined()
   })
 
-  it('should hook require', async () => {
+  it('should hook require', () => {
     let filename = path.join(__dirname, 'sandbox/log.js')
     const sandbox = factory.createSandbox(filename, emptyLogger)
     let fn = factory.compileInSandbox(sandbox)
@@ -127,14 +127,14 @@ console.warn('warn')`, sandbox)
 })
 
 describe('platform', () => {
-  it('should get platform', async () => {
+  it('should get platform', () => {
     expect(platform.getPlatform({ platform: 'win32' } as any)).toBe(platform.Platform.Windows)
     expect(platform.getPlatform({ platform: 'darwin' } as any)).toBe(platform.Platform.Mac)
     expect(platform.getPlatform({ platform: 'linux' } as any)).toBe(platform.Platform.Linux)
     expect(platform.getPlatform({ platform: 'unknown' } as any)).toBe(platform.Platform.Unknown)
   })
 
-  it('should check platform', async () => {
+  it('should check platform', () => {
     expect(platform.isWeb).toBeDefined()
     expect(platform.isLinux).toBeDefined()
     expect(platform.isNative).toBeDefined()
@@ -208,7 +208,7 @@ describe('textedit', () => {
     assertLine(0, 0, 0, 0, 'abc', 0)
   })
 
-  test('getPositionFromEdits()', async () => {
+  test('getPositionFromEdits()', () => {
     const assertEdits = (pos, edits, exp: [number, number]) => {
       let res = textedits.getPositionFromEdits(pos, edits)
       expect(res).toEqual(Position.create(exp[0], exp[1]))
@@ -224,13 +224,13 @@ describe('textedit', () => {
     assertEdits(pos, edits, [1, 10])
   })
 
-  it('should check empty workspaceEdit', async () => {
+  it('should check empty workspaceEdit', () => {
     let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
     expect(textedits.emptyWorkspaceEdit(workspaceEdit)).toBe(false)
     expect(textedits.emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
   })
 
-  it('should get all annotation ids for confirm', async () => {
+  it('should get all annotation ids for confirm', () => {
     let doc = { uri: 'test:///1', version: null }
     let changes: DocumentChange[] = []
     let ids = [uuid(), uuid(), uuid()]
@@ -258,7 +258,7 @@ describe('textedit', () => {
     expect(res.length).toBe(3)
   })
 
-  it('should create filtered changes', async () => {
+  it('should create filtered changes', () => {
     let doc = { uri: 'test:///1', version: null }
     let changes: DocumentChange[] = []
     let ids = [uuid(), uuid(), uuid()]
@@ -302,7 +302,7 @@ describe('textedit', () => {
     expect(res.length).toBe(1)
   })
 
-  it('should check edit is denied', async () => {
+  it('should check edit is denied', () => {
     let ids = [uuid(), uuid()]
     let edits = [
       AnnotatedTextEdit.insert(Position.create(0, 0), 'foo', ids[0]),
@@ -312,12 +312,12 @@ describe('textedit', () => {
     expect(textedits.isDeniedEdit(edits[1], [ids[0]])).toBe(false)
   })
 
-  it('should check empty TextEdit', async () => {
+  it('should check empty TextEdit', () => {
     expect(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), ''))).toBe(true)
     expect(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), 'a'))).toBe(false)
   })
 
-  it('should get well formed edit', async () => {
+  it('should get well formed edit', () => {
     let r = Range.create(1, 0, 0, 0)
     let edit: TextEdit = { range: r, newText: 'foo' }
     let res = textedits.getWellformedEdit(edit)
@@ -328,7 +328,7 @@ describe('textedit', () => {
     expect(res.range).toBe(r)
   })
 
-  it('should check line count change', async () => {
+  it('should check line count change', () => {
     let r = Range.create(0, 0, 0, 5)
     let edit: TextEdit = { range: r, newText: 'foo' }
     expect(textedits.lineCountChange(edit)).toBe(0)
@@ -336,7 +336,7 @@ describe('textedit', () => {
     expect(textedits.lineCountChange(edit)).toBe(-1)
   })
 
-  it('should filter and sort textedits', async () => {
+  it('should filter and sort textedits', () => {
     let doc = createTextDocument(['foo'])
     expect(textedits.filterSortEdits(doc, [TextEdit.insert(Position.create(0, 0), 'a\r\nb')])).toEqual([
       TextEdit.insert(Position.create(0, 0), 'a\nb')
@@ -351,28 +351,28 @@ describe('textedit', () => {
     ])
   })
 
-  it('should fix edit range', async () => {
+  it('should fix edit range', () => {
     let doc = createTextDocument(['foo'])
     let range = Range.create(0, 0, 0, 5)
     let res = textedits.filterSortEdits(doc, [TextEdit.replace(range, 'bar')])
     expect(res[0].range).toEqual(Range.create(0, 0, 0, 3))
   })
 
-  it('should merge textedits #1', async () => {
+  it('should merge textedits #1', () => {
     let edits = [toEdit(0, 0, 0, 0, 'foo'), toEdit(0, 1, 0, 1, 'bar')]
     let lines = ['ab']
     let res = textedits.mergeTextEdits(edits, lines, ['fooabarb'])
     expect(res).toEqual(toEdit(0, 0, 0, 1, 'fooabar'))
   })
 
-  it('should merge textedits #2', async () => {
+  it('should merge textedits #2', () => {
     let edits = [toEdit(0, 0, 1, 0, 'foo\n')]
     let lines = ['bar']
     let res = textedits.mergeTextEdits(edits, lines, ['foo'])
     expect(res).toEqual(toEdit(0, 0, 1, 0, 'foo\n'))
   })
 
-  it('should merge textedits #3', async () => {
+  it('should merge textedits #3', () => {
     let edits = [toEdit(0, 0, 0, 1, 'd'), toEdit(1, 0, 1, 1, 'e'), toEdit(2, 0, 3, 0, 'f\n')]
     let lines = ['a', 'b', 'c']
     let res = textedits.mergeTextEdits(edits, lines, ['d', 'e', 'f'])
@@ -381,14 +381,14 @@ describe('textedit', () => {
 })
 
 describe('Registry', () => {
-  it('should add to registry', async () => {
+  it('should add to registry', () => {
     Registry.add('key', {})
     expect(Registry.knows('key')).toBe(true)
     expect(Registry.as('key')).toEqual({})
     expect(Registry.as('not_exists')).toBeNull()
   })
 
-  it('should get jsonRegistry', async () => {
+  it('should get jsonRegistry', () => {
     let r = Registry.as<IJSONContributionRegistry>(Extensions.JSONContribution)
     expect(r).toBeDefined()
     r.registerSchema('uri', {} as any)
@@ -396,7 +396,7 @@ describe('Registry', () => {
     expect(res.schemas.uri).toBeDefined()
   })
 
-  it('should convertProperties', async () => {
+  it('should convertProperties', () => {
     expect(convertProperties(undefined)).toEqual({})
     expect(convertProperties({ key: { type: 'number' } }, ConfigurationScope.RESOURCE)).toEqual({
       key: { scope: ConfigurationScope.RESOURCE, type: 'number' }
@@ -434,7 +434,7 @@ describe('Registry', () => {
     expect(res['list.source.name'].scope).toBe(ConfigurationScope.WINDOW)
   })
 
-  it('should parse extension name', async () => {
+  it('should parse extension name', () => {
     let parseSource = extension.parseExtensionName
     expect(parseSource(``)).toBeUndefined()
     expect(parseSource(`a)`, 0)).toBeUndefined()
@@ -448,12 +448,12 @@ describe('Registry', () => {
     registry.unregistExtension('single')
   })
 
-  it('should check rootPattern and commands', async () => {
+  it('should check rootPattern and commands', () => {
     expect(extension.validRootPattern({} as any)).toBe(false)
     expect(extension.validCommandContribution({} as any)).toBe(false)
   })
 
-  it('should get onCommands and commands', async () => {
+  it('should get onCommands and commands', () => {
     let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
     registry.registerExtension('single', {
       name: 'single',
@@ -468,7 +468,7 @@ describe('Registry', () => {
     registry.unregistExtension('single')
   })
 
-  it('should get rootPatterns by fieltype', async () => {
+  it('should get rootPatterns by fieltype', () => {
     let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
     registry.registerExtension('single', {
       name: 'single',
@@ -572,20 +572,20 @@ describe('strings', () => {
     expect(strings.utf8_code2len(65537)).toBe(4)
   })
 
-  it('should slice content by bytes', async () => {
+  it('should slice content by bytes', () => {
     expect(strings.byteSlice('你', 0, 1)).toBe('你')
     expect(strings.byteSlice('你', 0, 3)).toBe('你')
     expect(strings.byteSlice('abc你', 3, 6)).toBe('你')
     expect(strings.byteSlice('foo', 1)).toBe('oo')
   })
 
-  it('should get case', async () => {
+  it('should get case', () => {
     expect(strings.getCase('a'.charCodeAt(0))).toBe(1)
     expect(strings.getCase('A'.charCodeAt(0))).toBe(2)
     expect(strings.getCase('#'.charCodeAt(0))).toBe(0)
   })
 
-  it('should get next word code', async () => {
+  it('should get next word code', () => {
     function assertNext(text: string, index: number, res: [number, string] | undefined): void {
       let arr = res === undefined ? undefined : [res[0], res[1].charCodeAt(0)]
       let result = strings.getNextWord(fuzzy.getCharCodes(text), index)
@@ -596,17 +596,17 @@ describe('strings', () => {
     assertNext('abC', 1, [2, 'C'])
   })
 
-  it('should get character indexes', async () => {
+  it('should get character indexes', () => {
     expect(strings.getCharIndexes('abaca', 'a')).toEqual([0, 2, 4])
     expect(strings.getCharIndexes('abd', 'f')).toEqual([])
   })
 
-  it('should convert to lines', async () => {
+  it('should convert to lines', () => {
     expect(strings.contentToLines('foo', false)).toEqual(['foo'])
     expect(strings.contentToLines('foo\n', true)).toEqual(['foo'])
   })
 
-  it('should get smartcaseIndex', async () => {
+  it('should get smartcaseIndex', () => {
     expect(strings.smartcaseIndex('a', 'A')).toBe(0)
     expect(strings.smartcaseIndex('a', 'a')).toBe(0)
     expect(strings.smartcaseIndex('ab', 'a')).toBe(-1)
@@ -624,12 +624,12 @@ describe('strings', () => {
     expect(strings.toInteger('1')).toBe(1)
   })
 
-  it('should convert to text', async () => {
+  it('should convert to text', () => {
     expect(strings.toText(undefined)).toBe('')
     expect(strings.toText(null)).toBe('')
   })
 
-  it('should check isEmojiImprecise', async () => {
+  it('should check isEmojiImprecise', () => {
     expect(strings.isEmojiImprecise(999)).toBe(false)
     expect(strings.isEmojiImprecise(0x1F1E7)).toBe(true)
     expect(strings.isEmojiImprecise(8987)).toBe(true)
@@ -639,7 +639,7 @@ describe('strings', () => {
     expect(strings.isEmojiImprecise(129535)).toBe(true)
   })
 
-  it('should catch promise error', async () => {
+  it('should catch promise error', () => {
     Promise.reject(new Error('my error')).logError()
   })
 
@@ -695,23 +695,30 @@ describe('getSymbolKind()', () => {
 })
 
 describe('Is', () => {
-  it('should url', async () => {
+  it('should url', () => {
     expect(Is.isUrl('')).toBe(false)
     expect(Is.isUrl(undefined)).toBe(false)
     expect(Is.isUrl('file:1')).toBe(true)
   })
 
-  it('should check array', async () => {
+  it('should check command', () => {
+    expect(Is.isCommand(undefined)).toBe(false)
+    expect(Is.isCommand({})).toBe(false)
+    expect(Is.isCommand({ title: '', command: '' })).toBe(false)
+    expect(Is.isCommand({ title: 'title', command: 'cmd' })).toBe(true)
+  })
+
+  it('should check array', () => {
     expect(Is.array(false)).toBe(false)
   })
 
-  it('should check empty object', async () => {
+  it('should check empty object', () => {
     expect(Is.emptyObject(false)).toBe(false)
     expect(Is.emptyObject({})).toBe(true)
     expect(Is.emptyObject({ x: 1 })).toBe(false)
   })
 
-  it('should check typed array', async () => {
+  it('should check typed array', () => {
     let arr = new Array(10)
     arr.fill(1)
     expect(Is.typedArray<Uint32Array>(arr, v => {
@@ -721,7 +728,7 @@ describe('Is', () => {
 })
 
 describe('lodash', () => {
-  it('should set defaults', async () => {
+  it('should set defaults', () => {
     let res = lodash.defaults({ a: 1 }, { b: 2 }, { a: 3 }, null)
     expect(res).toEqual({ a: 1, b: 2 })
     res = lodash.defaults({}, { constructor: 'fn' })
@@ -730,7 +737,7 @@ describe('lodash', () => {
 })
 
 describe('color', () => {
-  it('should check dark color', async () => {
+  it('should check dark color', () => {
     expect(color.isDark(Color.create(0.03, 0.01, 0.01, 0))).toBe(true)
   })
 })
@@ -744,7 +751,7 @@ describe('parseAnsiHighlights', () => {
     expect(o).toBeDefined()
   }
 
-  it('should parse foreground color', async () => {
+  it('should parse foreground color', () => {
     testColorHighlight('yellow', 'CocMarkdownCode')
     testColorHighlight('blue', 'CocMarkdownLink')
     testColorHighlight('magenta', 'CocMarkdownHeader')
@@ -752,7 +759,7 @@ describe('parseAnsiHighlights', () => {
     testColorHighlight('green', 'CocListFgGreen', false)
   })
 
-  it('should parse background color', async () => {
+  it('should parse background color', () => {
     let text = `${style.bgRed.open}text${style.bgRed.close}`
     let res = parseAnsiHighlights(text, false)
     expect(res.highlights.length).toBeGreaterThan(0)
@@ -762,14 +769,14 @@ describe('parseAnsiHighlights', () => {
     expect(res.highlights.length).toBe(0)
   })
 
-  it('should parse foreground and background', async () => {
+  it('should parse foreground and background', () => {
     let text = `${style.bgRed.open}${style.blue.open}text${style.blue.close}${style.bgRed.close}`
     let res = parseAnsiHighlights(text, true)
     expect(res.highlights.length).toBeGreaterThan(0)
     expect(res.highlights[0].hlGroup).toBe('CocListBlueRed')
   })
 
-  it('should erase char', async () => {
+  it('should erase char', () => {
     let text = `foo\u0008bar`
     let res = parseAnsiHighlights(text, true)
     expect(res.line).toBe('fobar')
@@ -781,7 +788,7 @@ describe('parseAnsiHighlights', () => {
     expect(res.line).toBe('bar')
   })
 
-  it('should not throw for bad control character', async () => {
+  it('should not throw for bad control character', () => {
     let text = '\x1bafoo'
     let res = parseAnsiHighlights(text)
     expect(res.line).toBeDefined()
@@ -813,20 +820,20 @@ describe('Arrays', () => {
     assert.ok(!arrays.intersect([1, 2, 3], [4, 5]))
   })
 
-  it('isFalsyOrEmpty()', async () => {
+  it('isFalsyOrEmpty()', () => {
     assert.ok(arrays.isFalsyOrEmpty([]))
     assert.ok(arrays.isFalsyOrEmpty(false))
     assert.ok(!arrays.isFalsyOrEmpty([1]))
   })
 
-  it('should check intable', async () => {
+  it('should check intable', () => {
     assert.ok(arrays.intable(1, [[0, 1], [2, 3], [4, 5]]))
     assert.ok(arrays.intable(2, [[0, 1], [4, 6], [8, 9]]) === false)
     assert.ok(arrays.intable(5, [[0, 1], [2, 3], [4, 5]]))
     assert.ok(arrays.intable(6, [[0, 1], [2, 3], [4, 5]]) === false)
   })
 
-  it('binarySearch()', async () => {
+  it('binarySearch()', () => {
     let comparator = (a, b) => a - b
     assert.ok(typeof arrays.binarySearch2 === 'function')
     assert.ok(arrays.binarySearch([1, 2, 3], 2, comparator) == 1)
@@ -836,14 +843,14 @@ describe('Arrays', () => {
     assert.ok(arrays.binarySearch([1, 2, 3, 5], 6, comparator) == -5)
   })
 
-  it('toArray()', async () => {
+  it('toArray()', () => {
     assert.deepStrictEqual(arrays.toArray(1), [1])
     assert.deepStrictEqual(arrays.toArray(null), [])
     assert.deepStrictEqual(arrays.toArray(undefined), [])
     assert.deepStrictEqual(arrays.toArray([1, 2]), [1, 2])
   })
 
-  it('findIndex()', async () => {
+  it('findIndex()', () => {
     expect(arrays.findIndex([1, 2, 3, 4], 3, 1)).toBe(2)
     expect(arrays.findIndex([1, 2, 3, 4], 3)).toBe(2)
   })
@@ -971,16 +978,16 @@ describe('utility', () => {
     await wait(-1)
   })
 
-  it('should disposeAll', async () => {
+  it('should disposeAll', () => {
     disposeAll([undefined, undefined])
   })
 
-  it('should check executable', async () => {
+  it('should check executable', () => {
     let res = executable('command_not_exists')
     expect(res).toBe(false)
   })
 
-  it('should check isRunning', async () => {
+  it('should check isRunning', () => {
     expect(isRunning(process.pid)).toBe(true)
     let spy = jest.spyOn(process, 'kill').mockImplementation(() => {
       let e = new Error() as any
@@ -1039,7 +1046,7 @@ describe('utility', () => {
     expect(res).toEqual([3, 4, 5, 6, 8])
   })
 
-  it('should delay function #1', async () => {
+  it('should delay function #1', () => {
     let times = 0
     let fn = () => {
       times++
@@ -1113,12 +1120,12 @@ describe('object test', () => {
     expect(res).toEqual({ x: 3, y: 4 })
   })
 
-  it('should deep clone', async () => {
+  it('should deep clone', () => {
     let re = new RegExp('a', 'g')
     expect(objects.deepClone(re)).toBe(re)
   })
 
-  it('should change to readonly', async () => {
+  it('should change to readonly', () => {
     let obj = { x: 1 }
     let res = objects.toReadonly(obj)
     let fn = () => {
@@ -1127,18 +1134,18 @@ describe('object test', () => {
     expect(fn).toThrow()
   })
 
-  it('should not deep freeze', async () => {
+  it('should not deep freeze', () => {
     objects.deepFreeze(false)
     objects.deepFreeze(true)
   })
 
-  it('should check equals', async () => {
+  it('should check equals', () => {
     expect(objects.equals(false, 1)).toBe(false)
     expect(objects.equals([1], {})).toBe(false)
     expect(objects.equals([1, 2], [1, 3])).toBe(false)
   })
 
-  it('should check empty object', async () => {
+  it('should check empty object', () => {
     expect(objects.isEmpty({})).toBe(true)
     expect(objects.isEmpty([])).toBe(true)
     expect(objects.isEmpty(null)).toBe(true)
@@ -1340,7 +1347,7 @@ describe('diff', () => {
       expect(res).toEqual(toEdit(2, 0, 2, 0, '\n\n'))
     })
 
-    it('should get textedit for single line change', async () => {
+    it('should get textedit for single line change', () => {
       let res = diff.getTextEdit(['foo', 'c'], ['', 'c'], Position.create(0, 0), false)
       expect(res).toEqual(toEdit(0, 0, 0, 3, ''))
       res = diff.getTextEdit([''], ['foo'], Position.create(0, 0), false)
@@ -1400,7 +1407,7 @@ describe('diff', () => {
       })
     })
 
-    it('should reduce changed lines', async () => {
+    it('should reduce changed lines', () => {
       let res = diff.diffLines(['a', 'b', 'c'], ['a', 'b', 'c', 'd'], 0)
       expect(res).toEqual({
         start: 3,
@@ -1435,7 +1442,7 @@ describe('diff', () => {
   }
 
   describe('async', () => {
-    it('should do async filter', async () => {
+    it('should do filter', async () => {
       await filter([], () => true, () => {})
       await filter([{ label: 'a' }, { label: 'b' }, { label: 'c' }], v => {
         return { code: v.label.charCodeAt(0) }
@@ -1491,7 +1498,7 @@ describe('diff', () => {
       t.stop()
     })
 
-    it('should no timeout', async () => {
+    it('should no timeout', () => {
       let t = createTiming('name')
       t.start()
       t.stop()

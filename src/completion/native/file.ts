@@ -1,6 +1,6 @@
 'use strict'
 import { CompletionItemKind } from 'vscode-languageserver-types'
-import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../../types'
+import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../types'
 import { statAsync } from '../../util/fs'
 import { fs, path, promisify, minimatch } from '../../util/node'
 import { isWindows } from '../../util/platform'

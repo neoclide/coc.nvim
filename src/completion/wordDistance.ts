@@ -1,7 +1,7 @@
 import { CompletionItemKind, Position, Range, SelectionRange } from 'vscode-languageserver-types'
 import events from '../events'
 import languages from '../languages'
-import { CompleteOption, DurationCompleteItem } from '../types'
+import { CompleteOption, DurationCompleteItem } from './types'
 import { binarySearch, isFalsyOrEmpty } from '../util/array'
 import { equals } from '../util/object'
 import { compareRangesUsingStarts, rangeInRange } from '../util/position'

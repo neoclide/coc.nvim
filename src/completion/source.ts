@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
-import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceType } from '../types'
+import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceType } from './types'
 import { defaultValue, disposeAll, getConditionValue, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { ASCII_END } from '../util/constants'

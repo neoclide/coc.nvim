@@ -2,7 +2,7 @@
 import { Range } from 'vscode-languageserver-types'
 import { getLineAndPosition } from '../core/ui'
 import snippetManager from '../snippets/manager'
-import { CompleteOption, CompleteResult, DurationCompleteItem, ExtendedCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, DurationCompleteItem, ExtendedCompleteItem } from './types'
 import { fuzzyChar } from '../util/fuzzy'
 import { CancellationToken } from '../util/protocol'
 import { byteSlice, characterIndex } from '../util/string'

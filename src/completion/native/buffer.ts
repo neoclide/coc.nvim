@@ -1,25 +1,32 @@
 'use strict'
 import { CancellationToken, Disposable } from '../../util/protocol'
 import BufferSync from '../../model/bufferSync'
-import { CompleteOption, CompleteResult, ISource } from '../../types'
+import { CompleteOption, CompleteResult, ISource } from '../types'
 import { waitImmediate } from '../../util'
 import { KeywordsBuffer } from '../keywords'
 import Source from '../source'
 
-export class Around extends Source {
+export class Buffer extends Source {
   constructor(private keywords: BufferSync<KeywordsBuffer>) {
-    super({ name: 'around', filepath: __filename })
+    super({ name: 'buffer', filepath: __filename })
+  }
+
+  public get ignoreGitignore(): boolean {
+    return this.getConfig('ignoreGitignore', true)
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
-    let { bufnr, input, word, linenr, triggerForInComplete } = opt
-    let buf = this.keywords.getItem(bufnr)
+    let { bufnr, input, word, triggerForInComplete } = opt
     await waitImmediate()
     if (!triggerForInComplete) this.noMatchWords = new Set()
-    if (input.length === 0 || !buf || token.isCancellationRequested) return null
-    let iterable = buf.matchWords(linenr - 1)
+    if (input.length === 0 || token.isCancellationRequested) return null
+    let iterables: Iterable<string>[] = []
+    for (let buf of this.keywords.items) {
+      if (buf.bufnr === bufnr || (this.ignoreGitignore && buf.gitIgnored)) continue
+      iterables.push(buf.matchWords(0))
+    }
     let items: Set<string> = new Set()
-    let isIncomplete = await this.getResults([iterable], input, word, items, token)
+    let isIncomplete = await this.getResults(iterables, input, word, items, token)
     return {
       isIncomplete, items: Array.from(items).map(s => {
         return { word: s }
@@ -29,10 +36,10 @@ export class Around extends Source {
 }
 
 export function register(sourceMap: Map<string, ISource>, keywords: BufferSync<KeywordsBuffer>): Disposable {
-  let source = new Around(keywords)
-  sourceMap.set('around', source)
+  let source = new Buffer(keywords)
+  sourceMap.set('buffer', source)
   return Disposable.create(() => {
-    sourceMap.delete('around')
     source.dispose()
+    sourceMap.delete('buffer')
   })
 }

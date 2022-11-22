@@ -4,7 +4,7 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
-import type { Sources } from '../sources'
+import type { Sources } from '../completion/sources'
 import { TextDocumentContentChange, UltiSnippetOption } from '../types'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
@@ -173,7 +173,7 @@ export class SnippetSession {
     const col = byteIndex(line, start.character) + 1
     let marker = this.current = placeholder.marker
     if (marker instanceof Placeholder && marker.choice && marker.choice.options.length) {
-      let sources = require('../sources/index').default as Sources
+      let sources = (await import('../completion/sources')).default
       sources.setWords(marker.choice.options.map(o => o.value))
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value])
       if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)

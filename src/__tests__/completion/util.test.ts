@@ -4,12 +4,12 @@ import { caseScore, matchScore, matchScoreWithPositions } from '../../completion
 import { checkIgnoreRegexps, MruLoader, hasAction, Converter, toCompleteDoneItem, getWord, emptLabelDetails, indentChanged, createKindMap, getInput, getKindText, getKindHighlight, getResumeInput, highlightOffert, shouldIndent, shouldStop, getReplaceRange, ConvertOption, OptionForWord, Selection } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import languages from '../../languages'
-import { CompleteOption } from '../../types'
 import { disposeAll } from '../../util'
 import { getCharCodes } from '../../util/fuzzy'
 import workspace from '../../workspace'
 import events from '../../events'
 import helper, { createTmpFile } from '../helper'
+import { CompleteOption } from '../../completion/types'
 let disposables: Disposable[] = []
 
 let nvim: Neovim

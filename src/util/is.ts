@@ -1,6 +1,6 @@
 'use strict'
 import { URL } from 'url'
-import type { CompletionItem, CompletionList, MarkupContent } from 'vscode-languageserver-types'
+import type { CompletionItem, Command, CompletionList, MarkupContent } from 'vscode-languageserver-types'
 
 /* eslint-disable id-blacklist */
 const hasOwnProperty = Object.prototype.hasOwnProperty
@@ -12,6 +12,11 @@ export function isUrl(url: any): boolean {
   } catch (e) {
     return false
   }
+}
+
+export function isCommand(obj: any): obj is Command {
+  if (!obj || !string(obj.title) || !string(obj.command) || obj.command.length == 0) return false
+  return true
 }
 
 export function isMarkdown(content: MarkupContent | string | undefined): boolean {

@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import Floating from '../../completion/floating'
 import { getInsertWord, prefixWord } from '../../completion/pum'
-import sources from '../../sources'
-import { CompleteResult, FloatConfig, ISource, SourceType } from '../../types'
+import sources from '../../completion/sources'
+import { CompleteResult, ISource, SourceType } from '../../completion/types'
+import { FloatConfig } from '../../types'
 import helper from '../helper'
 
 let nvim: Neovim

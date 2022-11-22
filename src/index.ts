@@ -29,7 +29,7 @@ import RelativePattern from './model/relativePattern'
 import services from './services'
 import snippetManager from './snippets/manager'
 import { SnippetString } from './snippets/string'
-import sources from './sources/index'
+import sources from './completion/sources'
 import { ansiparse } from './util/ansiparse'
 import { CancellationError } from './util/errors'
 import { Mutex } from './util/mutex'
@@ -50,7 +50,7 @@ import {
   ErrorAction, LanguageClient,
   MessageTransports, NullLogger, RevealOutputChannelOn, SettingMonitor, State, TransportKind
 } from './language-client'
-import { FileType, MessageLevel, PatternType, ProviderName, ServiceStat, SourceType } from './types'
+import { FileType, MessageLevel, PatternType, ProviderName, ServiceStat } from './types'
 
 import LineBuilder from './model/line'
 import { SemanticTokensBuilder } from './model/semanticTokensBuilder'
@@ -59,6 +59,7 @@ import { concurrent, disposeAll, wait } from './util'
 import { watchFile } from './util/fs'
 import { executable, isRunning, runCommand, terminate } from './util/processes'
 import { ConfigurationUpdateTarget } from './configuration/types'
+import { SourceType } from './completion/types'
 
 module.exports = {
   Uri: URI,

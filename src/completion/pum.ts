@@ -1,14 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CompletionItemKind } from 'vscode-languageserver-types'
 import { matchSpansReverse } from '../model/fuzzyMatch'
-import sources from '../sources'
-import { CompleteOption, DurationCompleteItem, FloatConfig, HighlightItem } from '../types'
+import { FloatConfig, HighlightItem } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { anyScore } from '../util/filter'
 import * as Is from '../util/is'
 import { toNumber } from '../util/numbers'
 import { byteIndex, byteLength, characterIndex, toText } from '../util/string'
 import workspace from '../workspace'
+import sources from './sources'
+import { CompleteOption, DurationCompleteItem } from './types'
 import { getKindHighlight, getKindText, highlightOffert, MruLoader, Selection } from './util'
 
 export interface PumDimension {
