@@ -113,7 +113,7 @@ describe('codeLenes featrue', () => {
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     let markers = await helper.getMarkers(doc.bufnr, srcId)
-    expect(markers.length).toBe(1)
+    expect(markers.length).toBeGreaterThan(0)
   })
 
   it('should work with empty codeLens', async () => {
