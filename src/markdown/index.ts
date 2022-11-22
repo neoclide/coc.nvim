@@ -1,4 +1,5 @@
 'use strict'
+import { createLogger } from '../logger'
 import { marked } from 'marked'
 import Renderer from './renderer'
 import { parseAnsiHighlights } from '../util/ansiparse'
@@ -11,7 +12,7 @@ const ACTIVE_HL_GROUP = 'CocFloatActive'
 
 export interface MarkdownParseOptions {
   excludeImages?: boolean,
-  breakTrue?: boolean,
+  deleteSoftBreaks?: boolean,
 }
 
 export interface CodeBlock {
@@ -128,10 +129,12 @@ export function getHighlightItems(content: string, currline: number, active: [nu
  * Parse markdown for lines, highlights & codes
  */
 export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
+  let logger = createLogger('markdown')
+  logger.info(opts)
   marked.setOptions({
-    renderer: new Renderer(),
+    renderer: new Renderer({ deleteSoftBreaks: opts.deleteSoftBreaks }),
     gfm: true,
-    breaks: opts.breakTrue,
+    breaks: !opts.deleteSoftBreaks,
   })
   let lines: string[] = []
   let highlights: HighlightItem[] = []
@@ -141,6 +144,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   let filetype: string
   let startLnum = 0
   let parsed = marked(content)
+
   let links = Renderer.getLinks()
   parsed = parsed.replace(/\n\n/g, '\n').replace(/\s*$/, '')
   if (links.length) {

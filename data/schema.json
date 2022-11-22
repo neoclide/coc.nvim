@@ -444,11 +444,11 @@
       "scope": "application",
       "default": true
     },
-    "coc.preferences.breakLinesOnLinebreakInMarkdownDocument": {
+    "coc.preferences.enableGFMDeleteSoftLineBreaksInMarkdownDocument": {
       "type": "boolean",
-      "description": "Break lines when encountering linebreaks from markdown text in float window.",
+      "description": "Don't break lines when encountering soft line breaks from markdown text in float window.",
       "scope": "application",
-      "default": true
+      "default": false
     },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",

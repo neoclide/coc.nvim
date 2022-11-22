@@ -129,8 +129,9 @@ export class Window {
     let configuration = this.workspace.initialConfiguration
     let preferences = configuration.get('coc.preferences') as any
     let excludeImages = defaultValue(preferences.excludeImageLinksInMarkdownDocument, true)
+    let deleteSoftBreaks = defaultValue(preferences.enableGFMDeleteSoftLineBreaksInMarkdownDocument, true)
     let defaults = toObject(configuration.get('floatFactory.floatConfig')) as FloatConfig
-    return ui.createFloatFactory(this.workspace.nvim, Object.assign({ excludeImages, maxWidth: 80 }, conf), defaults)
+    return ui.createFloatFactory(this.workspace.nvim, Object.assign({ excludeImages, deleteSoftBreaks, maxWidth: 80 }, conf), defaults)
   }
 
   /**

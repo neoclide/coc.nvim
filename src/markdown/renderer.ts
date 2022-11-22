@@ -46,7 +46,7 @@ let defaultOptions = {
   width: 80,
   showSectionPrefix: false,
   tab: 2,
-  tableOptions: {}
+  tableOptions: {},
 }
 
 function fixHardReturn(text, reflow) {
@@ -184,6 +184,7 @@ const links: Map<string, string> = new Map()
 
 export interface RendererOptions {
   sanitize?: boolean
+  deleteSoftBreaks?: boolean
 }
 
 class Renderer {
@@ -204,6 +205,10 @@ class Renderer {
   }
 
   public text(t: string): string {
+    if (this.o.deleteSoftBreaks) {
+      t = t.replace(/\n/g, ' ')
+    }
+
     return this.o.text(t)
   }
 
@@ -260,6 +265,11 @@ class Renderer {
   public paragraph(text: string): string {
     let transform = this.compose(this.o.paragraph, this.transform)
     text = transform(text)
+
+    if (this.o.deleteSoftBreaks) {
+      text = text.replace(/\n/g, ' ')
+    }
+
     return section(text)
   }
 

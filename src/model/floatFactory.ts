@@ -32,6 +32,7 @@ export interface FloatWinConfig extends FloatConfig {
   cursorline?: boolean
   modes?: string[]
   excludeImages?: boolean
+  deleteSoftBreaks?: boolean
 }
 
 /**
@@ -127,7 +128,7 @@ export default class FloatFactoryImpl implements Disposable {
 
   private async createPopup(docs: Documentation[], opts: FloatWinConfig, timestamp: number): Promise<void> {
     docs = docs.filter(o => o.content.trim().length > 0)
-    let { lines, codes, highlights } = parseDocuments(docs)
+    let { lines, codes, highlights } = parseDocuments(docs, { deleteSoftBreaks: opts.deleteSoftBreaks })
     let config: any = {
       codes,
       highlights,

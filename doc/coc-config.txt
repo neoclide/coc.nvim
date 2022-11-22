@@ -1498,6 +1498,12 @@ Preferences~
 
 	Scope: `language-overridable`, default: `false`
 
+"coc.preferences.enableGFMDeleteSoftLineBreaksInMarkdownDocument"     *coc-preferences-enableGFMDeleteSoftLineBreaksInMarkdownDocument*
+
+	Delete soft line breaks and replace them with spaces.
+
+	Scope: `application`, default: `false`
+
 "coc.preferences.enableLinkedEditing"			*coc-preferences-enableLinkedEditing*
 
 	Enable linked editing support.
