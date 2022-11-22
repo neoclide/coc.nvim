@@ -2,6 +2,7 @@
 import type { LinkedEditingRanges, SignatureHelpContext } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, DefinitionLink, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InlineValue, InlineValueContext, Position, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SemanticTokensLegend, SignatureHelp, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceEdit } from 'vscode-languageserver-types'
+import type { Sources } from './completion/sources'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
 import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSelector, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineValuesProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
@@ -32,16 +33,28 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import TypeHierarchyManager, { TypeHierarchyItemWithSource } from './provider/typeHierarchyManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import type { Sources } from './completion/sources'
 import { ExtendedCodeAction, LocationWithTarget, ProviderName, TextDocumentMatch } from './types'
-import { disposeAll } from './util'
+import { disposeAll, getConditionValue } from './util'
+import * as Is from './util/is'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
+
+const eventDebounce = getConditionValue(500, 10)
+
+type withKey<K extends string> = {
+  [k in K]?: Event<void>
+}
+
+interface Mannger<P, A> {
+  register: (selector: DocumentSelector, provider: P, extra?: A) => Disposable
+}
 
 class Languages {
   private readonly _onDidSemanticTokensRefresh = new Emitter<DocumentSelector>()
   private readonly _onDidInlayHintRefresh = new Emitter<DocumentSelector>()
+  private readonly _onDidCodeLensRefresh = new Emitter<DocumentSelector>()
   public readonly onDidSemanticTokensRefresh: Event<DocumentSelector> = this._onDidSemanticTokensRefresh.event
   public readonly onDidInlayHintRefresh: Event<DocumentSelector> = this._onDidInlayHintRefresh.event
+  public readonly onDidCodeLensRefresh: Event<DocumentSelector> = this._onDidCodeLensRefresh.event
   private onTypeFormatManager = new OnTypeFormatManager()
   private documentLinkManager = new DocumentLinkManager()
   private documentColorManager = new DocumentColorManager()
@@ -103,7 +116,7 @@ class Languages {
     priority?: number,
     allCommitCharacters?: string[]
   ): Disposable {
-    selector = typeof selector == 'string' ? [{ language: selector }] : selector
+    selector = Is.string(selector) ? [{ language: selector }] : selector
     let sources = require('./completion/sources').default as Sources
     sources.removeSource(name)
     return sources.createLanguageSource(name, shortcut, selector, provider, triggerCharacters, priority, allCommitCharacters)
@@ -139,10 +152,6 @@ class Languages {
 
   public registerDocumentHighlightProvider(selector: DocumentSelector, provider: DocumentHighlightProvider): Disposable {
     return this.documentHighlightManager.register(selector, provider)
-  }
-
-  public registerCodeLensProvider(selector: DocumentSelector, provider: CodeLensProvider): Disposable {
-    return this.codeLensManager.register(selector, provider)
   }
 
   public registerDocumentLinkProvider(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable {
@@ -182,7 +191,7 @@ class Languages {
   }
 
   public registerWorkspaceSymbolProvider(provider: WorkspaceSymbolProvider): Disposable {
-    if (arguments.length > 1 && typeof arguments[1].provideWorkspaceSymbols === 'function') {
+    if (arguments.length > 1 && Is.func(arguments[1].provideWorkspaceSymbols)) {
       provider = arguments[1]
     }
     return this.workspaceSymbolsManager.register(provider)
@@ -200,23 +209,12 @@ class Languages {
     return this.callHierarchyManager.register(selector, provider)
   }
 
+  public registerCodeLensProvider(selector: DocumentSelector, provider: CodeLensProvider): Disposable {
+    return this.registerProviderWithEvent(selector, provider, 'onDidChangeCodeLenses', this.codeLensManager, this._onDidCodeLensRefresh)
+  }
+
   public registerDocumentSemanticTokensProvider(selector: DocumentSelector, provider: DocumentSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    let disposables: Disposable[] = []
-    // Language server may send refresh short time after initialized.
-    let timer = setTimeout(() => {
-      this._onDidSemanticTokensRefresh.fire(selector)
-    }, 500)
-    disposables.push(Disposable.create(() => {
-      clearTimeout(timer)
-    }))
-    provider.onDidChangeSemanticTokens && provider.onDidChangeSemanticTokens(() => {
-      clearTimeout(timer)
-      this._onDidSemanticTokensRefresh.fire(selector)
-    }, null, disposables)
-    disposables.push(this.semanticTokensManager.register(selector, provider, legend))
-    return Disposable.create(() => {
-      disposeAll(disposables)
-    })
+    return this.registerProviderWithEvent(selector, provider, 'onDidChangeSemanticTokens', this.semanticTokensManager, this._onDidSemanticTokensRefresh, legend)
   }
 
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
@@ -225,18 +223,7 @@ class Languages {
   }
 
   public registerInlayHintsProvider(selector: DocumentSelector, provider: InlayHintsProvider): Disposable {
-    let disposables: Disposable[] = []
-    disposables.push(this.inlayHintManager.register(selector, provider))
-    this._onDidInlayHintRefresh.fire(selector)
-    if (typeof provider.onDidChangeInlayHints === 'function') {
-      provider.onDidChangeInlayHints(() => {
-        this._onDidInlayHintRefresh.fire(selector)
-      }, null, disposables)
-    }
-    return Disposable.create(() => {
-      disposeAll(disposables)
-      this._onDidInlayHintRefresh.fire(selector)
-    })
+    return this.registerProviderWithEvent(selector, provider, 'onDidChangeInlayHints', this.inlayHintManager, this._onDidInlayHintRefresh)
   }
 
   public registerInlineValuesProvider(selector: DocumentSelector, provider: InlineValuesProvider): Disposable {
@@ -444,6 +431,32 @@ class Languages {
 
   public createDiagnosticCollection(owner: string): DiagnosticCollection {
     return diagnosticManager.create(owner)
+  }
+
+  public registerProviderWithEvent<K extends string, P extends withKey<K>, A>(
+    selector: DocumentSelector,
+    provider: P,
+    key: K,
+    manager: Mannger<P, A>,
+    emitter: Emitter<DocumentSelector>,
+    extra?: A): Disposable {
+    let disposables: Disposable[] = []
+    // Wait the server finish initialize
+    let timer = setTimeout(() => {
+      emitter.fire(selector)
+    }, eventDebounce)
+    disposables.push(Disposable.create(() => {
+      clearTimeout(timer)
+    }))
+    Is.func(provider[key]) && disposables.push(provider[key](() => {
+      clearTimeout(timer)
+      emitter.fire(selector)
+    }))
+    disposables.push(manager.register(selector, provider, extra))
+    return Disposable.create(() => {
+      disposeAll(disposables)
+      emitter.fire(selector)
+    })
   }
 
   public hasProvider(id: ProviderName, document: TextDocumentMatch): boolean {

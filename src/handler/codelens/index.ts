@@ -1,12 +1,16 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import type { DocumentSelector } from 'vscode-languageserver-protocol'
+import { debounce } from '../..//util/node'
 import events from '../../events'
+import languages from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { disposeAll } from '../../util'
-import type { Disposable } from '../../util/protocol'
+import { disposeAll, getConditionValue } from '../../util'
+import { Disposable } from '../../util/protocol'
 import workspace from '../../workspace'
 import CodeLensBuffer from './buffer'
 
+const debounceTime = getConditionValue(200, 0)
 /**
  * Show codeLens of document
  */
@@ -30,11 +34,17 @@ export default class CodeLensManager {
       let buf = this.buffers.getItem(bufnr)
       if (buf) buf.resolveCodeLens()
     }, null, this.disposables)
-    // Refresh on CursorHold
-    events.on('CursorHold', async bufnr => {
-      let buf = this.buffers.getItem(bufnr)
-      if (buf) await buf.forceFetch()
-    }, this, this.disposables)
+    let debounced = debounce(async (selector: DocumentSelector) => {
+      for (let item of this.buffers.items) {
+        if (!workspace.match(selector, item.document)) continue
+        item.abandonResult()
+        await item.forceFetch()
+      }
+    }, debounceTime)
+    this.disposables.push(Disposable.create(() => {
+      debounced.clear()
+    }))
+    languages.onDidCodeLensRefresh(debounced, null, this.disposables)
   }
 
   /**

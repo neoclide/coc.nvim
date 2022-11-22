@@ -3,14 +3,17 @@ import type { Neovim } from '@chemzqm/neovim'
 import { CodeLens, Command } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import languages from '../../languages'
+import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import { DidChangeTextDocumentParams, ProviderName } from '../../types'
 import { getConditionValue } from '../../util'
+import { isCommand } from '../../util/is'
 import { debounce } from '../../util/node'
 import { CancellationTokenSource } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
+const logger = createLogger('codelens-buffer')
 
 export interface CodeLensInfo {
   codeLenses: CodeLens[]
@@ -23,38 +26,53 @@ export interface CodeLensConfig {
   separator: string
   subseparator: string
 }
-type TextAlign = 'after' | 'right' | 'below' | 'above'
+
+export enum TextAlign {
+  After = 'after',
+  Right = 'right',
+  Below = 'below',
+  Above = 'above',
+}
 
 let srcId: number | undefined
-const debounceTme = getConditionValue(200, 20)
+const debounceTme = getConditionValue(200, 50)
 
 /**
  * CodeLens buffer
  */
 export default class CodeLensBuffer implements SyncItem {
-  private codeLenses: CodeLensInfo
+  private codeLenses: CodeLensInfo | undefined
   private tokenSource: CancellationTokenSource
   private resolveTokenSource: CancellationTokenSource
-  private config: CodeLensConfig
+  private _config: CodeLensConfig | undefined
   public resolveCodeLens: (() => void) & { clear(): void }
-  private debounceFetch: (() => void) & { clear(): void }
+  public debounceFetch: (() => void) & { clear(): void }
   constructor(
     private nvim: Neovim,
     public readonly document: Document
   ) {
-    this.loadConfiguration()
     this.resolveCodeLens = debounce(() => {
-      void this._resolveCodeLenses()
+      this._resolveCodeLenses().catch(e => {
+        logger.error(`Error on resolve codeLens`, e)
+      })
     }, debounceTme)
     this.debounceFetch = debounce(() => {
-      void this.fetchCodeLenses()
+      this.fetchCodeLenses().catch(e => {
+        logger.error(`Error on fetch codeLens`, e)
+      })
     }, debounceTme)
     this.debounceFetch()
   }
 
+  public get config(): CodeLensConfig {
+    if (this._config) return this._config
+    this.loadConfiguration()
+    return this._config
+  }
+
   public loadConfiguration(): void {
     let config = workspace.getConfiguration('codeLens', this.document)
-    this.config = {
+    this._config = {
       enabled: config.get<boolean>('enable', false),
       position: config.get<'top' | 'eol' | 'right_align'>('position', 'top'),
       separator: config.get<string>('separator', ''),
@@ -62,13 +80,16 @@ export default class CodeLensBuffer implements SyncItem {
     }
   }
 
-  private get bufnr(): number {
+  public get bufnr(): number {
     return this.document.bufnr
   }
 
   public onChange(e: DidChangeTextDocumentParams): void {
     if (e.contentChanges.length === 0 && this.codeLenses != null) {
-      void this._resolveCodeLenses()
+      this.resolveCodeLens.clear()
+      this._resolveCodeLenses().catch(e => {
+        logger.error(`Error on resolve codeLens`, e)
+      })
     } else {
       this.cancel()
       this.debounceFetch()
@@ -79,21 +100,23 @@ export default class CodeLensBuffer implements SyncItem {
     return this.codeLenses?.codeLenses
   }
 
-  private get enabled(): boolean {
-    if (!this.document?.attached) return false
-    return this.config.enabled && languages.hasProvider(ProviderName.CodeLens, this.document.textDocument)
+  public get version(): number | undefined {
+    return this.codeLenses?.version
+  }
+
+  private get hasProvider(): boolean {
+    return languages.hasProvider(ProviderName.CodeLens, this.document)
   }
 
   public async forceFetch(): Promise<void> {
-    if (!this.enabled) return
+    if (!this.config.enabled || !this.hasProvider) return
     await this.document.synchronize()
     this.cancel()
     await this.fetchCodeLenses()
   }
 
   private async fetchCodeLenses(): Promise<void> {
-    if (!this.config) this.loadConfiguration()
-    if (!this.enabled) return
+    if (!this.hasProvider || !this.config.enabled) return
     let noFetch = this.codeLenses?.version == this.document.version
     if (!noFetch) {
       let { textDocument } = this.document
@@ -107,6 +130,7 @@ export default class CodeLensBuffer implements SyncItem {
       if (token.isCancellationRequested || codeLenses.length == 0) return
       this.codeLenses = { version, codeLenses }
     }
+    this.resolveCodeLens.clear()
     await this._resolveCodeLenses()
   }
 
@@ -114,7 +138,7 @@ export default class CodeLensBuffer implements SyncItem {
    * Resolve visible codeLens
    */
   private async _resolveCodeLenses(): Promise<void> {
-    if (!this.enabled || !this.codeLenses || this.isChanged) return
+    if (!this.codeLenses || this.isChanged) return
     let { codeLenses } = this.codeLenses
     let [bufnr, start, end, total] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$'),line('$')]`) as [number, number, number, number]
     if (!srcId) srcId = await this.nvim.createNamespace('coc-codelens')
@@ -128,7 +152,10 @@ export default class CodeLensBuffer implements SyncItem {
     if (codeLenses.length) {
       let tokenSource = this.resolveTokenSource = new CancellationTokenSource()
       let token = tokenSource.token
-      await Promise.all(codeLenses.map(codeLens => languages.resolveCodeLens(codeLens, token)))
+      await Promise.all(codeLenses.map(codeLens => {
+        if (isCommand(codeLens.command)) return Promise.resolve()
+        return languages.resolveCodeLens(codeLens, token)
+      }))
       this.resolveTokenSource = undefined
       if (token.isCancellationRequested || this.isChanged) return
     }
@@ -137,7 +164,7 @@ export default class CodeLensBuffer implements SyncItem {
     this.nvim.pauseNotification()
     this.clear(start - 1, end)
     this.setVirtualText(codeLenses)
-    this.nvim.resumeNotification(false, true)
+    this.nvim.resumeNotification(true, true)
   }
 
   private get isChanged(): boolean {
@@ -171,7 +198,7 @@ export default class CodeLensBuffer implements SyncItem {
       let n_commands = commands.length
       for (let i = 0; i < n_commands; i++) {
         let c = commands[i]
-        chunks.push([c.title.replace(/(\r\n|\r|\n|\s)+/g, " "), 'CocCodeLens'] as [string, string])
+        chunks.push([c.title.replace(/\s+/g, " "), 'CocCodeLens'] as [string, string])
         if (i != n_commands - 1) {
           chunks.push([this.config.subseparator, 'CocCodeLens'] as [string, string])
         }
@@ -207,14 +234,16 @@ export default class CodeLensBuffer implements SyncItem {
     this.debounceFetch.clear()
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
-      this.resolveTokenSource.dispose()
       this.resolveTokenSource = null
     }
     if (this.tokenSource) {
       this.tokenSource.cancel()
-      this.tokenSource.dispose()
       this.tokenSource = null
     }
+  }
+
+  public abandonResult(): void {
+    this.codeLenses = undefined
   }
 
   public dispose(): void {
@@ -224,10 +253,10 @@ export default class CodeLensBuffer implements SyncItem {
 }
 
 export function getTextAlign(position: 'top' | 'eol' | 'right_align'): TextAlign {
-  if (position == 'top') return 'above'
-  if (position == 'eol') return 'after'
-  if (position === 'right_align') return 'right'
-  return 'above'
+  if (position == 'top') return TextAlign.Above
+  if (position == 'eol') return TextAlign.After
+  if (position === 'right_align') return TextAlign.Right
+  return TextAlign.Above
 }
 
 export function getCommands(line: number, codeLenses: CodeLens[] | undefined): Command[] {
@@ -235,7 +264,7 @@ export function getCommands(line: number, codeLenses: CodeLens[] | undefined): C
   let commands: Command[] = []
   for (let codeLens of codeLenses) {
     let { range, command } = codeLens
-    if (!command) continue
+    if (!isCommand(command)) continue
     if (line == range.start.line) {
       commands.push(command)
     }

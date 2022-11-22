@@ -62,7 +62,19 @@ describe('codeLenes featrue', () => {
     expect(getTextAlign('right_align')).toBe('right')
   })
 
-  it('should return codeLenes when not resolve exists', async () => {
+  it('should invoke codeLenes action', async () => {
+    let fn = jest.fn()
+    disposables.push(commands.registerCommand('__save', (...args) => {
+      fn(...args)
+    }))
+    await createBufferWithCodeLens()
+    await helper.doAction('codeLensAction')
+    expect(fn).toBeCalledWith(1, 2, 3)
+    await nvim.command('normal! G')
+    await helper.doAction('codeLensAction')
+  })
+
+  it('should return codeLenes when resolve not exists', async () => {
     let codeLens = CodeLens.create(Range.create(0, 0, 1, 1))
     let resolved = await languages.resolveCodeLens(codeLens, CancellationToken.None)
     expect(resolved).toBeDefined()
@@ -71,9 +83,10 @@ describe('codeLenes featrue', () => {
   it('should do codeLenes request and resolve codeLenes', async () => {
     let buf = await createBufferWithCodeLens()
     let doc = await workspace.document
-    let codelens = buf.currentCodeLens
-    expect(codelens).toBeDefined()
-    expect(codelens[0].command).toBeDefined()
+    await helper.waitValue(async () => {
+      let codelens = buf.currentCodeLens
+      return Array.isArray(codelens) && codelens[0].command != null
+    }, true)
     let markers = await helper.getMarkers(doc.bufnr, srcId)
     expect(markers.length).toBe(1)
   })
@@ -100,29 +113,10 @@ describe('codeLenes featrue', () => {
   })
 
   it('should change codeLenes position', async () => {
-    let fn = jest.fn()
     helper.updateConfiguration('codeLens.position', 'eol')
-    disposables.push(commands.registerCommand('__save', (...args) => {
-      fn(...args)
-    }))
-    disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
-      provideCodeLenses: () => {
-        return [{
-          range: Range.create(0, 0, 0, 1)
-        }]
-      },
-      resolveCodeLens: codeLens => {
-        codeLens.command = Command.create('save', '__save', 1, 2, 3)
-        return codeLens
-      }
-    }))
-    let doc = await helper.createDocument('example.js')
-    await nvim.call('setline', [1, ['a', 'b', 'c']])
-    await codeLens.checkProvider()
-    let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
-    expect(res.length).toBeGreaterThan(0)
-    let arr = res[0][3]['virt_text']
-    expect(arr[0][0]).toBe('save')
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    let item = codeLens.buffers.getItem(bufnr)
+    expect(item.config.position).toBe('eol')
   })
 
   it('should refresh codeLens on CursorHold', async () => {
@@ -215,20 +209,9 @@ describe('codeLenes featrue', () => {
     expect(codelens[1].command).toBeDefined()
   })
 
-  it('should invoke codeLenes action', async () => {
-    let fn = jest.fn()
-    disposables.push(commands.registerCommand('__save', (...args) => {
-      fn(...args)
-    }))
-    await createBufferWithCodeLens()
-    await helper.doAction('codeLensAction')
-    expect(fn).toBeCalledWith(1, 2, 3)
-    await nvim.command('normal! G')
-    await helper.doAction('codeLensAction')
-  })
-
   it('should use picker for multiple codeLenses', async () => {
     let fn = jest.fn()
+    let resolved = false
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
@@ -237,6 +220,7 @@ describe('codeLenes featrue', () => {
     }))
     disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
       provideCodeLenses: () => {
+        resolved = true
         return [{
           range: Range.create(0, 0, 0, 1),
           command: Command.create('save', '__save', 1, 2, 3)
@@ -250,6 +234,9 @@ describe('codeLenes featrue', () => {
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     await codeLens.checkProvider()
+    await helper.waitValue(() => {
+      return resolved
+    }, true)
     let p = helper.doAction('codeLensAction')
     await helper.waitPrompt()
     await nvim.input('<cr>')

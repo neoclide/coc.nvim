@@ -102,6 +102,7 @@ export class Helper extends EventEmitter {
     if (typeof global.gc === 'function') {
       global.gc()
     }
+    await this.wait(30)
   }
 
   public async waitPopup(): Promise<void> {
