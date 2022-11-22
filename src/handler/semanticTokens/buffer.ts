@@ -56,8 +56,8 @@ interface RangeHighlights {
 }
 
 // should be higher than document debounce
-const debounceInterval = getConditionValue(100, 10)
-const requestDelay = getConditionValue(500, 10)
+const debounceInterval = getConditionValue(100, 20)
+const requestDelay = getConditionValue(500, 20)
 
 export interface StaticConfig {
   filetypes: string[] | null
@@ -72,29 +72,34 @@ export default class SemanticTokensBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private rangeTokenSource: CancellationTokenSource
   private previousResults: SemanticTokensPreviousResult | undefined
-  private config: SemanticTokensConfig
+  private _config: SemanticTokensConfig
   private readonly _onDidRefresh = new Emitter<void>()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public highlight: ((ms?: number) => void) & { clear: () => void }
   constructor(private nvim: Neovim, public readonly doc: Document, private staticConfig: StaticConfig) {
-    this.loadConfiguration()
     this.highlight = delay(() => {
       void this.doHighlight()
     }, debounceInterval)
     this.highlight()
   }
 
+  public get config(): SemanticTokensConfig {
+    if (this._config) return this._config
+    this.loadConfiguration()
+    return this._config
+  }
+
   public loadConfiguration(): void {
     let config = workspace.getConfiguration('semanticTokens', this.doc)
-    let changed = this.config != null && this.config.enable != config.enable
-    this.config = {
+    let changed = this._config != null && this._config.enable != config.enable
+    this._config = {
       enable: config.get<boolean>('enable'),
       highlightPriority: config.get<number>('highlightPriority'),
       incrementTypes: config.get<string[]>('incrementTypes'),
       combinedModifiers: config.get<string[]>('combinedModifiers')
     }
     if (changed) {
-      if (this.config.enable) {
+      if (this._config.enable) {
         this.highlight()
       } else {
         this.clearHighlight()

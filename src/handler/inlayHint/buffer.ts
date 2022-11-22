@@ -44,7 +44,7 @@ function getHighlightGroup(kind: InlayHintKind): string {
 export default class InlayHintBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource
   private regions = new Regions()
-  private config: InlayHintConfig
+  private _config: InlayHintConfig
   // Saved for resolve and TextEdits in the future.
   private currentHints: InlayHintWithProvider[] = []
   private readonly _onDidRefresh = new Emitter<void>()
@@ -54,17 +54,22 @@ export default class InlayHintBuffer implements SyncItem {
     private readonly nvim: Neovim,
     public readonly doc: Document
   ) {
-    this.loadConfiguration()
     this.render = delay(() => {
       void this.renderRange()
     }, debounceInterval)
     this.render()
   }
 
+  public get config(): InlayHintConfig {
+    if (this._config) return this._config
+    this.loadConfiguration()
+    return this._config
+  }
+
   public loadConfiguration(): void {
     let config = workspace.getConfiguration('inlayHint', this.doc)
-    let changed = this.config && this.config.enable != config.enable
-    this.config = {
+    let changed = this._config && this._config.enable != config.enable
+    this._config = {
       enable: config.get<boolean>('enable'),
       display: config.get<boolean>('display', true),
       filetypes: config.get<string[]>('filetypes'),
@@ -75,7 +80,7 @@ export default class InlayHintBuffer implements SyncItem {
       subSeparator: config.get<string>('subSeparator', ' ')
     }
     if (changed) {
-      let { enable, display } = this.config
+      let { enable, display } = this._config
       if (enable) {
         this.clearCache()
         this.clearVirtualText()

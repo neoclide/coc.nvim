@@ -409,9 +409,8 @@ describe('semanticTokens', () => {
         called = true
       }
       await nvim.command(`b ${buf.id}`)
-      await helper.waitValue(() => {
-        return called
-      }, true)
+      await helper.wait(20)
+      expect(called).toBe(false)
     })
   })
 
