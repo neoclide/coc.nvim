@@ -3,15 +3,16 @@ import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, Complet
 import { InsertChange } from '../events'
 import Document from '../model/document'
 import { SnippetParser } from '../snippets/parser'
-import sources from './sources'
-import { CompleteDoneItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from './types'
+import { Documentation } from '../types'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CharCode } from '../util/charCode'
 import * as Is from '../util/is'
 import { LRUCache } from '../util/map'
 import { unidecode } from '../util/node'
-import { toObject } from '../util/object'
+import { isEmpty, toObject } from '../util/object'
 import { byteIndex, byteSlice, toText } from '../util/string'
+import sources from './sources'
+import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from './types'
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line' | 'position'>
@@ -72,6 +73,56 @@ export function getKindText(kind: string | CompletionItemKind, kindMap: Map<Comp
 
 export function getKindHighlight(kind: string | number): string {
   return Is.number(kind) ? highlightsMap[kind] ?? DEFAULT_HL_GROUP : DEFAULT_HL_GROUP
+}
+
+export function getDetail(item: CompletionItem, filetype: string): { filetype: string, content: string } | undefined {
+  const { detail, labelDetails, label } = item
+  if (!isEmpty(labelDetails)) {
+    let content = (labelDetails.detail ?? '') + (labelDetails.description ? ` ${labelDetails.description}` : '')
+    return { filetype: 'txt', content }
+  }
+  if (detail && detail !== label) {
+    let isText = /^[\w-\s.,\t\n]+$/.test(detail)
+    return { filetype: isText ? 'txt' : filetype, content: detail }
+  }
+  return undefined
+}
+
+export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, item: CompleteItem | undefined): CompleteDoneItem | {} {
+  if (!item || !selected) return {}
+  return Object.assign({
+    word: selected.word,
+    source: selected.source,
+    user_data: `${selected.source}:${selected.index}`
+  }, item)
+}
+
+export function getDocumentaions(completeItem: CompleteItem, filetype: string, detailRendered = false): Documentation[] {
+  let docs: Documentation[] = []
+  if (Is.isCompletionItem(completeItem)) {
+    let { documentation } = completeItem
+    if (!detailRendered) {
+      let doc = getDetail(completeItem, filetype)
+      if (doc) docs.push(doc)
+    }
+    if (documentation) {
+      if (typeof documentation == 'string') {
+        docs.push({ filetype: 'txt', content: documentation })
+      } else if (documentation.value) {
+        docs.push({
+          filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
+          content: documentation.value
+        })
+      }
+    }
+  } else {
+    if (completeItem.documentation) {
+      docs = completeItem.documentation
+    } else if (completeItem.info) {
+      docs.push({ content: completeItem.info, filetype: 'txt' })
+    }
+  }
+  return docs
 }
 
 export function getResumeInput(option: PartialOption, pretext: string): string {
@@ -143,19 +194,6 @@ export function indentChanged(event: { word: string } | undefined, cursor: [numb
   return false
 }
 
-export function toCompleteDoneItem(item: DurationCompleteItem | undefined): CompleteDoneItem | {} {
-  if (!item) return {}
-  return {
-    word: item.word,
-    abbr: item.abbr,
-    kind: item.kind,
-    source: item.source,
-    isSnippet: item.isSnippet === true,
-    menu: item.menu ?? `[${item.source}]`,
-    user_data: Is.string(item.user_data) ? item.user_data : `${item.source}:${item.index}`
-  }
-}
-
 export function shouldStop(bufnr: number, pretext: string, info: InsertChange, option: Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'>): boolean {
   let { pre } = info
   if (pre.length === 0 || pre[pre.length - 1] === ' ' || pre.length < pretext.length) return true
@@ -179,7 +217,7 @@ export function getInput(document: Document, pre: string, asciiCharactersOnly: b
   return len == 0 ? '' : pre.slice(-len)
 }
 
-export function getSources(option: CompleteOption): ISource[] {
+export function getSources(option: CompleteOption): ISource<CompleteItem>[] {
   let { source } = option
   if (source) return toArray(sources.getSource(source))
   return sources.getCompleteSources(option)
@@ -336,7 +374,7 @@ export class Converter {
     return 0
   }
 
-  public convertToDurationItem(item: ExtendedCompleteItem | CompletionItem, index: number): DurationCompleteItem {
+  public convertToDurationItem(item: CompleteItem, index: number): DurationCompleteItem {
     if (Is.isCompletionItem(item)) {
       return this.convertLspCompleteItem(item, index)
     }
@@ -364,16 +402,13 @@ export class Converter {
       dup: item.dup === 1,
       menu: item.menu,
       kind: item.kind,
-      info: item.info,
       isSnippet: !!item.isSnippet,
       insertText: item.insertText,
       preselect: item.preselect,
       sortText: item.sortText,
-      documentation: item.documentation,
       deprecated: item.deprecated,
       detail: item.detail,
       labelDetails: item.labelDetails,
-      user_data: item.user_data
     }
   }
 

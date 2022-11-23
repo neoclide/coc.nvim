@@ -3,12 +3,12 @@ import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { CompletionItem, CompletionItemKind, CompletionList, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commandManager from '../../commands'
 import completion from '../../completion'
+import { fixIndent, getUltisnipOption } from '../../completion/source-language'
+import sources from '../../completion/sources'
+import { CompleteOption, ItemDefaults } from '../../completion/types'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
-import sources from '../../completion/sources'
-import { addDocumentation, fixIndent, getDetail, getUltisnipOption } from '../../completion/source-language'
-import { CompleteOption, DurationCompleteItem, ItemDefaults } from '../../completion/types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -28,39 +28,11 @@ afterEach(async () => {
   await helper.reset()
 })
 
-function createDurationitem(word: string, index: number): DurationCompleteItem {
-  return { abbr: word, character: 0, filterText: word, index, priority: 0, source: '', word, delta: 0 }
+function createCompletionItem(word: string): CompletionItem {
+  return { label: word, filterText: word }
 }
 
 describe('LanguageSource util', () => {
-  it('should get detail doc', () => {
-    let item: CompletionItem = { label: '', detail: 'detail', labelDetails: {} }
-    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
-    item = { label: '', detail: 'detail', labelDetails: { detail: 'detail', description: 'desc' } }
-    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail desc' })
-    item = { label: '', detail: 'detail', labelDetails: { description: 'desc' } }
-    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: ' desc' })
-    item = { label: '', detail: 'detail', labelDetails: { detail: 'detail' } }
-    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
-    item = { label: '', detail: 'detail()' }
-    expect(getDetail(item, 'vim')).toEqual({ filetype: 'vim', content: 'detail()' })
-  })
-
-  it('should add documentation', () => {
-    let item = createDurationitem('word', 0)
-    item.detailRendered = true
-    addDocumentation(item, { label: 'word', detail: 'detail' }, '')
-    expect(item.documentation).toBeUndefined()
-    item = createDurationitem('word', 0)
-    addDocumentation(item, { label: 'word', documentation: { kind: 'plaintext', value: '' } }, '')
-    expect(item.documentation).toBeUndefined()
-    item = createDurationitem('word', 0)
-    addDocumentation(item, { label: 'word', documentation: { kind: 'markdown', value: 'markdown' } }, '')
-    expect(item.documentation).toEqual([
-      { filetype: 'markdown', content: 'markdown' }
-    ])
-  })
-
   it('should get ultisnip option', async () => {
     let item: CompletionItem = { label: 'label' }
     expect(getUltisnipOption(item)).toBeUndefined()
@@ -146,15 +118,9 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider, [], 3, ['.']))
       let source = sources.getSource('foo')
-      let item = createDurationitem('f', 2)
+      let item = createCompletionItem('foo')
       let res = source.shouldCommit(item, '.')
-      expect(res).toBe(false)
-      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
-      await source.doComplete(opt, CancellationToken.None)
-      item.index = 0
-      res = source.shouldCommit(item, '.')
       expect(res).toBe(true)
-      await source.onCompleteResolve(item, opt, CancellationToken.None)
     })
 
     it('should return null when canceled or no items returned', async () => {
@@ -277,44 +243,34 @@ describe('language source', () => {
       let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
       let source = sources.getSource('foo')
       await source.doComplete(opt, CancellationToken.None)
-      let item = createDurationitem('foo', 3)
+      let item = createCompletionItem('this')
       await source.onCompleteResolve(item, opt, CancellationToken.None)
       res = new Error('resolve error')
-      item = createDurationitem('foo', 0)
+      item = createCompletionItem('this')
       await expect(async () => {
         await source.onCompleteResolve(item, opt, CancellationToken.None)
       }).rejects.toThrow(Error)
-      res = undefined
-      await source.onCompleteResolve(item, opt, CancellationToken.None)
-      res = { label: 'this', detail: 'this detail' }
-      await source.onCompleteResolve(item, opt, CancellationToken.None)
-      expect(item.documentation.length).toBe(2)
-      res = { label: 'this', detail: 'this detail not work' }
-      await source.onCompleteResolve(item, opt, CancellationToken.None)
-      expect(item.documentation.length).toBe(2)
     })
   })
 
   describe('command', () => {
     it('should invoke command', async () => {
       let id = 'test.command'
+      let item: CompletionItem = {
+        label: 'this',
+        command: {
+          command: id,
+          title: id,
+          arguments: []
+        }
+      }
       let provider: CompletionItemProvider = {
-        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
-          label: 'this',
-          command: {
-            command: id,
-            title: id,
-            arguments: []
-          }
-        }]
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [item]
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
       let source = sources.getSource('foo')
       await source.doComplete(opt, CancellationToken.None)
-      let item = createDurationitem('this', 2)
-      await source.onCompleteDone(item, opt)
-      item.index = 0
       await source.onCompleteDone(item, opt)
       let called = false
       commandManager.registerCommand(id, () => {
@@ -643,7 +599,7 @@ describe('language source', () => {
       expect(source).toBeDefined()
       let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
       await source.doComplete(opt, CancellationToken.None)
-      let item = createDurationitem('foo', 0)
+      let item = createCompletionItem('foo')
       await nvim.call('append', [0, ['', '']])
       await nvim.command('normal! G')
       await source.onCompleteDone(item, opt)

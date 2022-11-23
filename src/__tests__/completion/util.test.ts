@@ -1,15 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CompletionItemKind, Disposable, CancellationToken, Position, Range, CompletionItem, TextEdit, CompletionItemTag, InsertTextFormat } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import { checkIgnoreRegexps, MruLoader, hasAction, Converter, toCompleteDoneItem, getWord, emptLabelDetails, indentChanged, createKindMap, getInput, getKindText, getKindHighlight, getResumeInput, highlightOffert, shouldIndent, shouldStop, getReplaceRange, ConvertOption, OptionForWord, Selection } from '../../completion/util'
+import { CompleteOption, DurationCompleteItem } from '../../completion/types'
+import { checkIgnoreRegexps, toCompleteDoneItem, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffert, indentChanged, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
+import events from '../../events'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import { getCharCodes } from '../../util/fuzzy'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper, { createTmpFile } from '../helper'
-import { CompleteOption } from '../../completion/types'
 let disposables: Disposable[] = []
 
 let nvim: Neovim
@@ -27,6 +27,40 @@ afterEach(() => {
 })
 
 describe('util functions', () => {
+  it('should toCompleteDoneItem', async () => {
+    expect(toCompleteDoneItem(undefined, undefined)).toEqual({})
+  })
+
+  it('should add documentation', () => {
+    let docs = getDocumentaions({ label: 'word', detail: 'detail' }, '')
+    expect(docs).toEqual([{ filetype: 'txt', content: 'detail' }])
+    docs = getDocumentaions({ label: 'word', documentation: { kind: 'plaintext', value: '' } }, '')
+    expect(docs).toEqual([])
+    docs = getDocumentaions({ label: 'word', detail: 'detail' }, '', true)
+    expect(docs).toEqual([])
+    docs = getDocumentaions({ label: 'word', detail: 'detail', documentation: { kind: 'markdown', value: 'markdown' } }, 'vim')
+    expect(docs.length).toBe(2)
+    docs = getDocumentaions({ word: '' }, '', true)
+    expect(docs).toEqual([])
+    docs = getDocumentaions({ word: '', documentation: [{ content: 'content', filetype: 'vim' }] }, '', true)
+    expect(docs).toEqual([{ content: 'content', filetype: 'vim' }])
+    docs = getDocumentaions({ word: '', info: 'info' }, '', true)
+    expect(docs).toEqual([{ content: 'info', filetype: 'txt' }])
+  })
+
+  it('should get detail doc', () => {
+    let item: CompletionItem = { label: '', detail: 'detail', labelDetails: {} }
+    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
+    item = { label: '', detail: 'detail', labelDetails: { detail: 'detail', description: 'desc' } }
+    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail desc' })
+    item = { label: '', detail: 'detail', labelDetails: { description: 'desc' } }
+    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: ' desc' })
+    item = { label: '', detail: 'detail', labelDetails: { detail: 'detail' } }
+    expect(getDetail(item, '')).toEqual({ filetype: 'txt', content: 'detail' })
+    item = { label: '', detail: 'detail()' }
+    expect(getDetail(item, 'vim')).toEqual({ filetype: 'vim', content: 'detail()' })
+  })
+
   it('should get caseScore', () => {
     expect(typeof caseScore(10, 10, 2)).toBe('number')
   })
@@ -124,22 +158,6 @@ describe('util functions', () => {
     expect(res).toBe('a#b#')
     res = getInput(doc, '你b#', true)
     expect(res).toBe('b#')
-  })
-
-  it('should toCompleteDoneItem', () => {
-    let res = toCompleteDoneItem({
-      index: 0,
-      delta: 0,
-      abbr: '',
-      character: 0,
-      filterText: '',
-      isSnippet: false,
-      priority: 1,
-      source: '',
-      word: '',
-      user_data: 'data'
-    })
-    expect(res['user_data']).toBe('data')
   })
 
   it('should check emptLabelDetails', () => {

@@ -2,12 +2,13 @@
 import { Range } from 'vscode-languageserver-types'
 import { getLineAndPosition } from '../core/ui'
 import snippetManager from '../snippets/manager'
-import { CompleteOption, CompleteResult, DurationCompleteItem, ExtendedCompleteItem } from './types'
 import { fuzzyChar } from '../util/fuzzy'
 import { CancellationToken } from '../util/protocol'
 import { byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import Source from './source'
+import * as Is from '../util/is'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem } from './types'
 
 export default class VimSource extends Source {
 
@@ -40,7 +41,7 @@ export default class VimSource extends Source {
     await snippetManager.insertSnippet(insertText, true, range)
   }
 
-  public async onCompleteDone(item: DurationCompleteItem, opt: CompleteOption): Promise<void> {
+  public async onCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     if (this.optionalFns.includes('on_complete')) {
       await this.callOptionalFunc('on_complete', [item])
     } else if (item.isSnippet && item.insertText) {
@@ -61,11 +62,11 @@ export default class VimSource extends Source {
     }])
   }
 
-  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem> | null> {
     let { col, input, line, colnr } = opt
     let startcol: number | null = await this.callOptionalFunc('get_startcol', [opt])
     if (token.isCancellationRequested) return
-    if (startcol) {
+    if (Is.number(startcol)) {
       if (startcol < 0) return null
       startcol = Number(startcol)
       // invalid startcol
@@ -97,8 +98,6 @@ export default class VimSource extends Source {
       item.isSnippet = typeof item.isSnippet === 'boolean' ? item.isSnippet : this.isSnippet
       return item
     })
-    let res: CompleteResult = { items }
-    if (startcol) res.startcol = startcol
-    return res
+    return {items, startcol: Is.number(startcol) ? startcol : undefined}
   }
 }

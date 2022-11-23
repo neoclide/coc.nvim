@@ -1,13 +1,7 @@
 import type { CancellationToken, DocumentSelector } from 'vscode-languageserver-protocol'
 import type { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, InsertTextFormat, InsertTextMode, Position, Range } from 'vscode-languageserver-types'
-import { ProviderResult } from '../provider'
+import type { ProviderResult } from '../provider'
 import type { Documentation } from '../types'
-
-export enum SourceType {
-  Native,
-  Remote,
-  Service,
-}
 
 export interface ItemDefaults {
   commitCharacters?: string[]
@@ -20,14 +14,27 @@ export interface ItemDefaults {
   data?: any
 }
 
-export interface CompleteDoneItem {
+// option on complete & should_complete
+// what need change? line, col, input, colnr, changedtick
+// word = '', triggerForInComplete = false
+export interface CompleteOption {
+  readonly position: Position
+  readonly bufnr: number
+  readonly line: string
+  col: number
+  input: string
+  filetype: string
+  readonly filepath: string
   readonly word: string
-  readonly abbr?: string
-  readonly source: string
-  readonly isSnippet: boolean
-  readonly kind?: string
-  readonly menu?: string
-  readonly user_data?: string
+  readonly followWord: string
+  // cursor position
+  colnr: number
+  synname?: string
+  readonly linenr: number
+  readonly source?: string
+  readonly changedtick: number
+  readonly triggerCharacter?: string
+  triggerForInComplete?: boolean
 }
 
 // For filter, render and resolve
@@ -53,12 +60,6 @@ export interface DurationCompleteItem {
   deprecated?: boolean
   detail?: string
   labelDetails?: CompletionItemLabelDetails
-  user_data?: string
-  /**
-   * Possible changed on resolve
-   */
-  documentation?: Documentation[]
-  info?: string
   // Generated
   localBonus?: number
   score?: number
@@ -90,38 +91,37 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   // could be snippet
   insertText?: string
   isSnippet?: boolean
-  index?: number
   documentation?: Documentation[]
 }
 
-export interface CompleteResult {
-  items: ReadonlyArray<ExtendedCompleteItem> | ReadonlyArray<CompletionItem>
+/**
+ * Item returned from source
+ */
+export type CompleteItem = ExtendedCompleteItem | CompletionItem
+
+export interface CompleteResult<T extends CompleteItem> {
+  items: T[]
   isIncomplete?: boolean
   itemDefaults?: Readonly<ItemDefaults>
   startcol?: number
 }
 
-// option on complete & should_complete
-// what need change? line, col, input, colnr, changedtick
-// word = '', triggerForInComplete = false
-export interface CompleteOption {
-  readonly position: Position
-  readonly bufnr: number
-  readonly line: string
-  col: number
-  input: string
-  filetype: string
-  readonly filepath: string
+export enum CompleteFinishKind {
+  Normal = '',
+  Confirm = 'confirm',
+  Cancel = 'cancel',
+}
+
+export type CompleteDoneItem = CompleteItem & {
   readonly word: string
-  readonly followWord: string
-  // cursor position
-  colnr: number
-  synname?: string
-  readonly linenr: number
-  readonly source?: string
-  readonly changedtick: number
-  readonly triggerCharacter?: string
-  triggerForInComplete?: boolean
+  readonly source: string
+  readonly user_data: string
+}
+
+export enum SourceType {
+  Native,
+  Remote,
+  Service,
 }
 
 export interface SourceStat {
@@ -135,9 +135,9 @@ export interface SourceStat {
   filetypes: string[]
 }
 
-export type SourceConfig = Omit<Partial<ISource>, 'shortcut' | 'priority' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
+export type SourceConfig = Omit<Partial<ISource<ExtendedCompleteItem>>, 'shortcut' | 'priority' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
 
-export interface ISource {
+export interface ISource<T extends CompleteItem = CompleteItem> {
   name: string
   enable?: boolean
   shortcut?: string
@@ -157,9 +157,9 @@ export interface ISource {
   toggle?(): void
   onEnter?(bufnr: number): void
   shouldComplete?(opt: CompleteOption): Promise<boolean>
-  doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult | null>
-  onCompleteResolve?(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void> | void
-  onCompleteDone?(item: DurationCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
-  shouldCommit?(item: DurationCompleteItem, character: string): boolean
+  doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult<T>>
+  onCompleteResolve?(item: T, opt: CompleteOption, token: CancellationToken): ProviderResult<void>
+  onCompleteDone?(item: T, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
+  shouldCommit?(item: T, character: string): boolean
   dispose?(): void
 }

@@ -1,7 +1,7 @@
 'use strict'
 import { CancellationToken, Disposable } from '../../util/protocol'
 import BufferSync from '../../model/bufferSync'
-import { CompleteOption, CompleteResult, ISource } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
 import { waitImmediate } from '../../util'
 import { KeywordsBuffer } from '../keywords'
 import Source from '../source'
@@ -15,7 +15,7 @@ export class Buffer extends Source {
     return this.getConfig('ignoreGitignore', true)
   }
 
-  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem>> {
     let { bufnr, input, word, triggerForInComplete } = opt
     await waitImmediate()
     if (!triggerForInComplete) this.noMatchWords = new Set()

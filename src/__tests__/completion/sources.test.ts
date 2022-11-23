@@ -1,17 +1,17 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import path from 'path'
-import sources from '../../completion/sources'
-import Source, { firstMatchFuzzy } from '../../completion/source'
-import { resolveEnvVariables, File, getFileItem, getDirectory, getItemsFromRoot, filterFiles } from '../../completion/native/file'
+import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
+import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { Around } from '../../completion/native/around'
 import { Buffer } from '../../completion/native/buffer'
+import { File, filterFiles, getDirectory, getFileItem, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
+import Source, { firstMatchFuzzy } from '../../completion/source'
 import VimSource from '../../completion/source-vim'
+import sources from '../../completion/sources'
+import { CompleteOption, ExtendedCompleteItem, SourceConfig, SourceType } from '../../completion/types'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
-import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-import { CompleteOption, DurationCompleteItem, SourceConfig, SourceType } from '../../completion/types'
-import { disposeAll } from '../../util'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -184,15 +184,10 @@ describe('vim source', () => {
       sourceType: SourceType.Remote,
       optionalFns: ['on_complete']
     })
-    let item: DurationCompleteItem = {
-      delta: 0,
+    let item: ExtendedCompleteItem = {
       word: 'word',
       abbr: 'word',
       filterText: 'word',
-      character: 0,
-      source: '',
-      priority: 0,
-      index: 0,
       isSnippet: true,
       insertText: 'word($1)'
     }
@@ -211,15 +206,10 @@ describe('vim source', () => {
       name: 'vim',
       sourceType: SourceType.Remote
     })
-    let item: DurationCompleteItem = {
-      delta: 0,
+    let item: ExtendedCompleteItem = {
       word: 'word',
       abbr: 'word',
       filterText: 'word',
-      character: 0,
-      source: '',
-      priority: 0,
-      index: 0,
       isSnippet: true,
       insertText: 'word($1)'
     }

@@ -3216,7 +3216,7 @@ declare module 'coc.nvim' {
      */
     triggerCharacter?: string
 
-    option?: CompleteOption
+    option: CompleteOption
   }
 
   /**
@@ -5022,6 +5022,9 @@ declare module 'coc.nvim' {
     word: string
     abbr?: string
     menu?: string
+    /**
+     * @deprecated use documentation property.
+     */
     info?: string
     kind?: string
     icase?: number
@@ -5029,6 +5032,39 @@ declare module 'coc.nvim' {
     dup?: number
     empty?: number
     user_data?: string
+    /**
+     * The same as deprecated tag.
+     */
+    deprecated?: boolean
+    /**
+     * Additional details for a completion item label.
+     */
+    labelDetails?: CompletionItemLabelDetails
+    /**
+     * A string that should be used when comparing this item
+     * with other items. When `falsy` the [word](#VimCompleteItem.word)
+     * is used.
+     */
+    sortText?: string
+    /**
+     * A string that should be used when filtering a set of
+     * completion items. When `falsy` the [word](#VimCompleteItem.word)
+     * is used.
+     */
+    filterText?: string
+    /**
+     * Text to insert, could be snippet text.
+     */
+    insertText?: string
+    /**
+     * When `true` and onCompleteDone handler not exits on source, the snippet
+     * would be expanded after confirm completion.
+     */
+    isSnippet?: boolean
+    /**
+     * Docs to shown in detail window.
+     */
+    documentation?: Documentation[]
   }
 
   export interface CompleteDoneItem {
@@ -7551,11 +7587,9 @@ declare module 'coc.nvim' {
   }
 
   export interface CompleteResult {
-    items: VimCompleteItem[]
+    items: ReadonlyArray<VimCompleteItem>
     isIncomplete?: boolean
     startcol?: number
-    source?: string
-    priority?: number
   }
 
   // option on complete & should_complete
@@ -7583,19 +7617,19 @@ declare module 'coc.nvim' {
      */
     readonly word: string
     /**
-     * Trigger character, could be empty string.
+     * Trigger character, could be undefined.
      */
-    readonly triggerCharacter: string
+    readonly triggerCharacter?: string
     /**
      * Col of cursor, 1 based.
      */
     readonly colnr: number
     readonly linenr: number
-    readonly synname: string
     /**
-     * Black list words specified by user.
+     * Position of cursor when trigger completion
      */
-    readonly blacklist: string[]
+    readonly position: Position
+    readonly synname: string
     /**
      * Buffer changetick
      */
@@ -7655,7 +7689,7 @@ declare module 'coc.nvim' {
     shouldComplete?(opt: CompleteOption): Promise<boolean>
 
     /**
-     * Run completion
+     * Invoke completion
      *
      * @public
      * @param {CompleteOption} opt

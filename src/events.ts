@@ -1,10 +1,10 @@
 'use strict'
-import type { CompleteDoneItem } from './completion/types'
+import type { CompleteDoneItem, CompleteFinishKind } from './completion/types'
 import { createLogger } from './logger'
 import { disposeAll } from './util'
 import { CancellationError } from './util/errors'
 import * as Is from './util/is'
-import { equals, toReadonly } from './util/object'
+import { equals } from './util/object'
 import { CancellationToken, Disposable } from './util/protocol'
 import { byteSlice } from './util/string'
 const logger = createLogger('events')
@@ -258,9 +258,6 @@ class Events {
     if (cbs?.length) {
       let fns = cbs.slice()
       let traceSlow = SYNC_AUTOCMDS.includes(event)
-      args.forEach(arg => {
-        if (Is.objectLiteral(arg)) toReadonly(arg)
-      })
       await Promise.allSettled(fns.map(fn => {
         let promiseFn = async () => {
           let timer: NodeJS.Timer
@@ -300,8 +297,8 @@ class Events {
   public on(event: 'VimResized', handler: (columns: number, lines: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteDone', handler: (item: CompleteDoneItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteStop', handler: (kind: 'confirm' | 'cancel' | '') => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteDone', handler: (item: CompleteDoneItem | {}) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteStop', handler: (kind: CompleteFinishKind) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

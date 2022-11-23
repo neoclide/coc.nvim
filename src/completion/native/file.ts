@@ -1,6 +1,6 @@
 'use strict'
 import { CompletionItemKind } from 'vscode-languageserver-types'
-import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, VimCompleteItem } from '../types'
 import { statAsync } from '../../util/fs'
 import { fs, path, promisify, minimatch } from '../../util/node'
 import { isWindows } from '../../util/platform'
@@ -125,7 +125,7 @@ export class File extends Source {
     return root
   }
 
-  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem>> {
     let { filepath } = opt
     let option = this.getPathOption(opt)
     if (!option || option.startcol < opt.col) return null

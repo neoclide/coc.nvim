@@ -1,26 +1,38 @@
 'use strict'
 import { createLogger } from '../logger'
 import { parseDocuments } from '../markdown'
-import sources from './sources'
 import { Documentation, FloatConfig } from '../types'
-import { CompleteOption, DurationCompleteItem } from './types'
-import { isCancellationError } from '../util/errors'
-import { CancellationToken } from '../util/protocol'
+import { getConditionValue } from '../util'
+import { CancellationError, isCancellationError } from '../util/errors'
+import * as Is from '../util/is'
+import { CancellationToken, CancellationTokenSource } from '../util/protocol'
 import workspace from '../workspace'
+import { CompleteItem, CompleteOption, ISource } from './types'
+import { getDocumentaions } from './util'
 const logger = createLogger('completion-floating')
+const RESOLVE_TIMEOUT = getConditionValue(500, 50)
 
 export default class Floating {
+  private resolveTokenSource: CancellationTokenSource | undefined
   constructor(private config: { floatConfig: FloatConfig }) {
   }
 
-  public async resolveItem(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
-    await this.doCompleteResolve(item, opt, token)
-    if (token.isCancellationRequested) return
-    let docs = item.documentation ?? []
-    if (docs.length === 0 && typeof item.info === 'string') {
-      docs = [{ filetype: 'txt', content: item.info }]
+  public async resolveItem(source: ISource, item: CompleteItem, opt: CompleteOption, showDocs: boolean, detailRendered = false): Promise<void> {
+    this.cancel()
+    if (Is.func(source.onCompleteResolve)) {
+      try {
+        await this.requestWithToken(token => {
+          return Promise.resolve(source.onCompleteResolve(item, opt, token))
+        })
+      } catch (e) {
+        if (isCancellationError(e)) return
+        logger.error(`Error on resolve complete item from ${source.name}:`, item, e)
+        return
+      }
     }
-    this.show(docs)
+    if (showDocs) {
+      this.show(getDocumentaions(item, opt.filetype, detailRendered))
+    }
   }
 
   public show(docs: Documentation[]): void {
@@ -49,17 +61,46 @@ export default class Floating {
     }
   }
 
-  public async doCompleteResolve(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
-    let source = sources.getSource(item.source)
-    if (!source || typeof source.onCompleteResolve !== 'function') return
-    try {
-      await Promise.resolve(source.onCompleteResolve(item, opt, token))
-    } catch (e) {
-      if (!isCancellationError(e)) logger.error(`Error on complete resolve of "${source.name}":`, e)
+  public close(): void {
+    workspace.nvim.call('coc#pum#close_detail', [], true)
+  }
+
+  private cancel(): void {
+    if (this.resolveTokenSource) {
+      this.resolveTokenSource.cancel()
+      this.resolveTokenSource = undefined
     }
   }
 
-  public close(): void {
-    workspace.nvim.call('coc#pum#close_detail', [], true)
+  private requestWithToken(fn: (token: CancellationToken) => Promise<void>): Promise<void> {
+    let tokenSource = this.resolveTokenSource = new CancellationTokenSource()
+    return new Promise<void>((resolve, reject) => {
+      let called = false
+      let onFinish = (err?: Error) => {
+        if (called) return
+        called = true
+        disposable.dispose()
+        clearTimeout(timer)
+        if (this.resolveTokenSource === tokenSource) {
+          this.resolveTokenSource = undefined
+        }
+        if (err) {
+          reject(err)
+        } else {
+          resolve()
+        }
+      }
+      let timer = setTimeout(() => {
+        tokenSource.cancel()
+      }, RESOLVE_TIMEOUT)
+      let disposable = tokenSource.token.onCancellationRequested(() => {
+        onFinish(new CancellationError())
+      })
+      fn(tokenSource.token).then(() => {
+        onFinish()
+      }, e => {
+        onFinish(e)
+      })
+    })
   }
 }

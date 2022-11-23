@@ -3,7 +3,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import Document from '../model/document'
-import { CompleteOption, DurationCompleteItem, ISource, SourceType } from './types'
 import { wait } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { ASCII_END } from '../util/constants'
@@ -12,6 +11,7 @@ import * as Is from '../util/is'
 import { clamp } from '../util/numbers'
 import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { characterIndex } from '../util/string'
+import { CompleteItem, CompleteOption, DurationCompleteItem, ISource, SourceType } from './types'
 import { Converter, ConvertOption } from './util'
 import { WordDistance } from './wordDistance'
 const logger = createLogger('completion-complete')
@@ -44,6 +44,7 @@ export interface CompleteConfig {
 export interface CompleteResultToFilter {
   items: DurationCompleteItem[]
   isIncomplete?: boolean
+  completeItems: ReadonlyArray<CompleteItem>
 }
 
 export type Callback = () => void
@@ -78,7 +79,7 @@ export default class Complete {
   constructor(public option: CompleteOption,
     private document: Document,
     private config: CompleteConfig,
-    private sources: ISource[],
+    private sources: ISource<CompleteItem>[],
     private nvim: Neovim) {
     this.inputStart = characterIndex(option.line, option.col)
     this.timeout = clamp(this.config.timeout, MIN_TIMEOUT, MAX_TIMEOUT)
@@ -100,6 +101,15 @@ export default class Complete {
       len += result.items.length
     }
     return len
+  }
+
+  public resolveItem(item: DurationCompleteItem | undefined): { source: ISource, item: CompleteItem } | undefined {
+    if (!item) return undefined
+    let name = item.source
+    let source = this.sources.find(s => name === s.name)
+    let result = this.results.get(name)
+    if (!source || !result) return undefined
+    return { source, item: result.completeItems[item.index] }
   }
 
   private getPriority(source: ISource): number {
@@ -241,7 +251,7 @@ export default class Complete {
             const converter = new Converter(this.inputStart, option, opt)
             const items = result.items.map((item, index: number) => converter.convertToDurationItem(item, index))
             this.minCharacter = Math.min(this.minCharacter, converter.minCharacter)
-            this.results.set(sourceName, { items, isIncomplete: result.isIncomplete })
+            this.results.set(sourceName, { items, isIncomplete: result.isIncomplete === true, completeItems: result.items })
             added = true
           } else {
             this.results.delete(sourceName)
@@ -389,6 +399,8 @@ export default class Complete {
 
   public dispose(): void {
     this.cancel()
+    this.results.clear()
+    this.sources = []
     this._onDidRefresh.dispose()
   }
 }

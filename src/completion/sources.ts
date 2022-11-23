@@ -1,12 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import type { DocumentSelector } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extension'
 import { createLogger } from '../logger'
 import BufferSync from '../model/bufferSync'
-import { CompletionItemProvider } from '../provider'
-import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from './types'
+import type { CompletionItemProvider, DocumentSelector } from '../provider'
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { statAsync } from '../util/fs'
@@ -19,6 +17,7 @@ import { KeywordsBuffer } from './keywords'
 import Source from './source'
 import LanguageSource from './source-language'
 import VimSource from './source-vim'
+import { CompleteItem, CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from './types'
 const logger = createLogger('sources')
 
 interface InitialConfig {
@@ -33,13 +32,13 @@ interface InitialConfig {
  * For static words, must be triggered by source option.
  * Used for completion of snippet choices.
  */
-class WordsSource {
+class WordsSource implements ISource<ExtendedCompleteItem> {
   public readonly name = '$words'
   public readonly shortcut = ''
   public readonly triggerOnly = true
   public words: string[] = []
 
-  public doComplete(opt: CompleteOption): CompleteResult {
+  public doComplete(opt: CompleteOption) {
     return {
       items: this.words.map(s => {
         return { word: s, filterText: opt.input }
@@ -122,8 +121,8 @@ export class Sources {
   }
 
   private async createVimSourceExtension(nvim: Neovim, filepath: string): Promise<void> {
-    let name = path.basename(filepath, '.vim')
     try {
+      let name = path.basename(filepath, '.vim')
       await nvim.command(`source ${filepath}`)
       let fns = await nvim.call('coc#util#remote_fns', name) as string[]
       for (let fn of ['init', 'complete']) {
@@ -208,13 +207,12 @@ export class Sources {
         this.removeSource(name)
       })
     } catch (e) {
-      void window.showErrorMessage(`Error on create vim source ${name}: ${e}`)
+      void window.showErrorMessage(`Error on create vim source from ${filepath}: ${e}`)
     }
   }
 
   private createRemoteSources(): void {
-    let { runtimepath } = workspace.env
-    let paths = runtimepath.split(',')
+    let paths = workspace.env.runtimepath.split(',')
     for (let path of paths) {
       this.createVimSources(path).catch(onError)
     }
@@ -228,12 +226,7 @@ export class Sources {
     if (stat && stat.isDirectory()) {
       let arr = await promisify(fs.readdir)(folder)
       let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
-      let results = await Promise.allSettled(files.map(p => this.createVimSourceExtension(this.nvim, p)))
-      results.forEach(res => {
-        if (res.status === 'rejected') {
-          onError(res.reason)
-        }
-      })
+      await Promise.allSettled(files.map(p => this.createVimSourceExtension(this.nvim, p)))
     }
   }
 
@@ -253,9 +246,8 @@ export class Sources {
     return this.sourceMap.get(name) ?? null
   }
 
-  public shouldCommit(item: DurationCompleteItem, commitCharacter: string): boolean {
-    if (!item || !item.source) return false
-    let source = this.getSource(item.source)
+  public shouldCommit(source: ISource, item: CompleteItem | undefined, commitCharacter: string): boolean {
+    if (!item || source == null) return false
     if (source && typeof source.shouldCommit === 'function') {
       return source.shouldCommit(item, commitCharacter)
     }

@@ -2,10 +2,10 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
 import completion from '../../completion'
 import { sortItems, SortMethod } from '../../completion/complete'
+import sources from '../../completion/sources'
+import { CompleteFinishKind, CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType, VimCompleteItem } from '../../completion/types'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
-import sources from '../../completion/sources'
-import { CompleteOption, CompleteResult, ISource, SourceType, VimCompleteItem } from '../../completion/types'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -34,7 +34,7 @@ async function create(items: string[] | VimCompleteItem[], trigger = true): Prom
   let name = Math.random().toString(16).slice(-6)
   disposables.push(sources.createSource({
     name,
-    doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+    doComplete: (_opt: CompleteOption): Promise<CompleteResult<ExtendedCompleteItem>> => new Promise(resolve => {
       if (items.length == 0 || typeof items[0] === 'string') {
         resolve({
           items: items.map(s => { return { word: s } })
@@ -130,7 +130,7 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.timeout', 30)
       disposables.push(sources.createSource({
         name: 'timeout',
-        doComplete: (_opt: CompleteOption, token): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption, token) => new Promise(resolve => {
           let timer = setTimeout(() => {
             resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
           }, 100)
@@ -227,7 +227,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Service,
         triggerCharacters: ['-'],
-        doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        doComplete: async (opt: CompleteOption) => {
           if (opt.triggerCharacter == '-') return { items: [{ word: '-foo' }] }
           return { items: [{ word: 'foo' }, { word: 'bar' }] }
         }
@@ -251,7 +251,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           fn()
           resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
         })
@@ -276,7 +276,7 @@ describe('completion', () => {
       let resolved = false
       disposables.push(sources.createSource({
         name: 'info',
-        doComplete: (): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo', info: 'detail' }] }),
+        doComplete: () => Promise.resolve({ items: [{ word: 'foo', info: 'detail' }] }),
         onCompleteResolve: item => {
           resolved = true
         }
@@ -315,7 +315,7 @@ describe('completion', () => {
     beforeEach(() => {
       disposables.push(sources.createSource({
         name: 'foo',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] })
+        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }] })
       }))
     })
 
@@ -355,7 +355,7 @@ describe('completion', () => {
         name: 'menu',
         shortcut: '',
         sourceType: SourceType.Service,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           resolve({
             items: [{ word: 'foo', deprecated: true, menu: 'm', kind: 'k' }]
           })
@@ -367,7 +367,7 @@ describe('completion', () => {
         name: 'other',
         shortcut: 's',
         sourceType: SourceType.Service,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           resolve({
             items: [{ word: 'bar', menu: '' }]
           })
@@ -387,7 +387,7 @@ describe('completion', () => {
         name: 'slow',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           setTimeout(() => {
             resolve({ items: [{ word: 'foo', kind: 'w' }, { word: 'bar' }] })
           }, 50)
@@ -408,7 +408,7 @@ describe('completion', () => {
     it('should catch error', async () => {
       disposables.push(sources.createSource({
         name: 'error',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise((resolve, reject) => {
+        doComplete: (_opt: CompleteOption) => new Promise((resolve, reject) => {
           reject(new Error('custom error'))
         })
       }))
@@ -422,7 +422,7 @@ describe('completion', () => {
       let source: ISource = {
         name: 'fast',
         enable: true,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
         })
       }
@@ -431,7 +431,7 @@ describe('completion', () => {
       let slowSource: ISource = {
         name: 'slow',
         enable: true,
-        doComplete: (_opt: CompleteOption, token): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption, token) => new Promise(resolve => {
           token.onCancellationRequested(() => {
             clearTimeout(timer)
             resolve(undefined)
@@ -472,13 +472,13 @@ describe('completion', () => {
       }
       disposables.push(sources.createSource({
         name,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           _resolve = resolve
         })
       }))
       disposables.push(sources.createSource({
         name: 'inComplete',
-        doComplete: (opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (opt: CompleteOption) => new Promise(resolve => {
           if (opt.input.length == 1) {
             resolve({ items: [{ word: 'fa' }], isIncomplete: true })
           } else {
@@ -556,7 +556,7 @@ describe('completion', () => {
         name: 'empty',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           resolve({ items: [{ word: 'foo bar' }] })
         })
       }
@@ -579,7 +579,7 @@ describe('completion', () => {
         name: 'source',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: (): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: () => new Promise(resolve => {
           setTimeout(() => {
             resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
           }, 60)
@@ -603,7 +603,7 @@ describe('completion', () => {
         shortcut: 's',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           resolve({ items: [{ word: 'xyz', menu: '' }] })
         })
       }))
@@ -613,7 +613,7 @@ describe('completion', () => {
         name: 'slow',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: (): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: () => new Promise(resolve => {
           setTimeout(() => {
             resolve({ items: [{ word: 'foo' }, { word: 'bar' }] })
           }, 100)
@@ -637,7 +637,7 @@ describe('completion', () => {
         name: 'inComplete',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        doComplete: async (opt: CompleteOption) => {
           if (opt.input.length <= 1) {
             return { isIncomplete: true, items: [{ word: 'foo' }, { word: opt.input }] }
           }
@@ -662,7 +662,7 @@ describe('completion', () => {
         name: 'inComplete',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        doComplete: async (opt: CompleteOption) => {
           lastOption = opt
           await helper.wait(30)
           if (opt.input.length <= 1) {
@@ -690,7 +690,7 @@ describe('completion', () => {
         enable: true,
         name: 'filter',
         sourceType: SourceType.Service,
-        doComplete: (opt): Promise<CompleteResult> => {
+        doComplete: opt => {
           input = opt.input
           if (input == 'f') return Promise.resolve({ items: [{ word: 'fo' }] })
           if (input == 'foo') return Promise.resolve({ items: [{ word: 'foobar' }, { word: 'foot' }] })
@@ -719,7 +719,7 @@ describe('completion', () => {
         name: 'commit',
         sourceType: SourceType.Service,
         triggerCharacters: ['.'],
-        doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
+        doComplete: (opt: CompleteOption) => {
           if (opt.triggerCharacter == '.') {
             return Promise.resolve({ items: [{ word: 'bar' }] })
           }
@@ -766,7 +766,7 @@ describe('completion', () => {
         enable: true,
         name: 'temp',
         sourceType: SourceType.Service,
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo#abc' }] }),
+        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo#abc' }] }),
       }
       disposables.push(sources.addSource(source))
       await nvim.input('if')
@@ -788,7 +788,7 @@ describe('completion', () => {
       let resolved = false
       disposables.push(sources.createSource({
         name: 'resolve',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
+        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }] }),
         onCompleteResolve: item => {
           resolved = true
           item.info = 'detail'
@@ -805,7 +805,7 @@ describe('completion', () => {
       let called = false
       disposables.push(sources.createSource({
         name: 'resolve',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
+        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }] }),
         onCompleteResolve: async item => {
           called = true
           await helper.wait(100)
@@ -825,7 +825,7 @@ describe('completion', () => {
       let called = false
       disposables.push(sources.createSource({
         name: 'resolve',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
+        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }] }),
         onCompleteResolve: async item => {
           called = true
           throw new Error('custom error')
@@ -842,7 +842,7 @@ describe('completion', () => {
       let called = false
       disposables.push(sources.createSource({
         name: 'resolve',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => Promise.resolve({ items: [{ word: 'foo' }] }),
+        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }] }),
         onCompleteResolve: async item => {
           called = true
           await helper.wait(200)
@@ -889,7 +889,7 @@ describe('completion', () => {
         name: 'temp',
         triggerPatterns: [/EM/],
         sourceType: SourceType.Service,
-        doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
+        doComplete: (opt: CompleteOption) => {
           if (!opt.input.startsWith('EM')) return null
           return Promise.resolve({
             items: [
@@ -953,11 +953,8 @@ describe('completion', () => {
         firstMatch: false,
         sourceType: SourceType.Native,
         triggerCharacters: [],
-        doComplete: async (): Promise<CompleteResult> => {
-          let result: CompleteResult = {
-            items: [{ word: 'if(' }]
-          }
-          return Promise.resolve(result)
+        doComplete: async () => {
+          return Promise.resolve({ items: [{ word: 'if(' }] })
         }
       }
       disposables.push(sources.addSource(source))
@@ -975,7 +972,7 @@ describe('completion', () => {
         name: 'trigger',
         enable: true,
         triggerCharacters: ['.'],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [{ word: 'foo' }]
         })
       }
@@ -984,7 +981,7 @@ describe('completion', () => {
         name: 'trigger1',
         enable: true,
         triggerCharacters: ['.'],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [{ word: 'bar' }]
         })
       }
@@ -1003,12 +1000,8 @@ describe('completion', () => {
         firstMatch: false,
         sourceType: SourceType.Native,
         triggerCharacters: [],
-        doComplete: async (): Promise<CompleteResult> => {
-          let result: CompleteResult = {
-            startcol: 0,
-            items: [{ word: 'foo.bar' }]
-          }
-          return Promise.resolve(result)
+        doComplete: async () => {
+          return Promise.resolve({ startcol: 0, items: [{ word: 'foo.bar' }] })
         }
       }
       let disposable = sources.addSource(source)
@@ -1027,7 +1020,7 @@ describe('completion', () => {
         name: 'trigger',
         priority: 10,
         sourceType: SourceType.Native,
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [{ word: 'foo' }, { word: 'bar' }]
         })
       }
@@ -1047,7 +1040,7 @@ describe('completion', () => {
         priority: 10,
         enable: true,
         sourceType: SourceType.Native,
-        doComplete: (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: () => Promise.resolve({
           items: [{ word: 'foo', info: 'bar' }]
         })
       }
@@ -1070,7 +1063,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerPatterns: [/\w+\.$/],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [{ word: 'foo' }]
         })
       }
@@ -1089,7 +1082,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerPatterns: [/^From:\s*/],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [{ word: 'foo' }]
         })
       }
@@ -1106,7 +1099,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerCharacters: ['.'],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [{ word: 'foo' }]
         })
       }
@@ -1129,11 +1122,11 @@ describe('completion', () => {
           enable: true,
           sourceType: SourceType.Native,
           triggerCharacters: ['.'],
-          doComplete: async (opt, cancellationToken): Promise<CompleteResult> => {
+          doComplete: async (opt, cancellationToken) => {
             if (opt.triggerCharacter != '.') {
               token = cancellationToken
               resolve(undefined)
-              return new Promise<CompleteResult>((resolve, reject) => {
+              return new Promise<CompleteResult<ExtendedCompleteItem>>((resolve, reject) => {
                 let timer = setTimeout(() => {
                   resolve({ items: [{ word: 'foo' }] })
                 }, 200)
@@ -1182,7 +1175,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerCharacters: ['.'],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: ['filename', 'filepath', 'filter', 'file'].map(key => ({ word: key }))
         })
       }
@@ -1202,7 +1195,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerCharacters: ['.'],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: ['a', 'b', 'c', 'd'].map(key => ({ word: key.repeat(20) }))
         })
       }
@@ -1221,7 +1214,7 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.labelMaxLength', 10)
       disposables.push(sources.createSource({
         name: 'test',
-        doComplete: (_opt: CompleteOption): Promise<CompleteResult> => new Promise(resolve => {
+        doComplete: (_opt: CompleteOption) => new Promise(resolve => {
           resolve({
             items: [{
               word: 'x',
@@ -1257,7 +1250,7 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerCharacters: ['.'],
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [{ word: 'foo', dup: 1 }]
         })
       }
@@ -1267,11 +1260,10 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerCharacters: ['.'],
-        doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
-          let result: CompleteResult = opt.input == 'foo' ? null : {
+        doComplete: async (opt: CompleteOption) => {
+          return opt.input == 'foo' ? null : {
             items: [{ word: 'foo', dup: 1 }], isIncomplete: true
           }
-          return Promise.resolve(result)
         }
       }
       disposables.push(sources.addSource(source1))
@@ -1299,7 +1291,7 @@ describe('completion', () => {
         priority: 90,
         enable: true,
         sourceType: SourceType.Native,
-        doComplete: async (): Promise<CompleteResult> => Promise.resolve({
+        doComplete: async () => Promise.resolve({
           items: [
             { word: 'endif' },
             { word: 'endfunction' }
@@ -1356,7 +1348,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.selectedItem
       }, undefined)
-      completion.stop(true, '')
+      completion.stop(true, CompleteFinishKind.Normal)
       await events.fire('MenuPopupChanged', [{}])
       expect(completion.document).toBeNull()
     })
@@ -1369,10 +1361,10 @@ describe('completion', () => {
         firstMatch: false,
         sourceType: SourceType.Native,
         triggerCharacters: ['.'],
-        doComplete: async (opt): Promise<CompleteResult> => {
+        doComplete: async opt => {
           if (opt.word === 'f') return { items: [{ word: 'foo' }] }
           if (!opt.triggerCharacter) return { items: [] }
-          let result: CompleteResult = {
+          let result = {
             items: [{ word: 'one' }, { word: 'two' }]
           }
           return Promise.resolve(result)

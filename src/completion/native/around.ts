@@ -1,7 +1,7 @@
 'use strict'
 import { CancellationToken, Disposable } from '../../util/protocol'
 import BufferSync from '../../model/bufferSync'
-import { CompleteOption, CompleteResult, ISource } from '../types'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
 import { waitImmediate } from '../../util'
 import { KeywordsBuffer } from '../keywords'
 import Source from '../source'
@@ -11,7 +11,7 @@ export class Around extends Source {
     super({ name: 'around', filepath: __filename })
   }
 
-  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem>> {
     let { bufnr, input, word, linenr, triggerForInComplete } = opt
     let buf = this.keywords.getItem(bufnr)
     await waitImmediate()

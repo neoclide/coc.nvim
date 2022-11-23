@@ -1,7 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
-import { CompleteOption, CompleteResult, DurationCompleteItem, ISource, SourceConfig, SourceType } from './types'
 import { defaultValue, disposeAll, getConditionValue, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { ASCII_END } from '../util/constants'
@@ -10,6 +9,7 @@ import { unidecode } from '../util/node'
 import { CancellationToken, Disposable } from '../util/protocol'
 import { isAlphabet } from '../util/string'
 import workspace from '../workspace'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType } from './types'
 const WORD_PREFIXES = ['_', '$', '-']
 const WORD_PREFIXES_CODE = [95, 36, 45]
 const MAX_DURATION = getConditionValue(80, 20)
@@ -26,7 +26,7 @@ export interface SourceConfiguration {
   readonly disableSyntaxes?: string[]
 }
 
-export default class Source implements ISource {
+export default class Source implements ISource<ExtendedCompleteItem> {
   public readonly name: string
   public readonly filepath: string
   public readonly sourceType: SourceType
@@ -148,18 +148,18 @@ export default class Source implements ISource {
     if (typeof fn === 'function') await Promise.resolve(fn.call(this))
   }
 
-  public async onCompleteDone(item: DurationCompleteItem, opt: CompleteOption): Promise<void> {
+  public async onCompleteDone(item: ExtendedCompleteItem, opt: CompleteOption): Promise<void> {
     let fn = this.defaults['onCompleteDone']
     if (typeof fn === 'function') await Promise.resolve(fn.call(this, item, opt))
   }
 
-  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult<ExtendedCompleteItem> | null> {
     let fn = this.defaults['doComplete']
     if (typeof fn === 'function') return await Promise.resolve(fn.call(this, opt, token))
     return null
   }
 
-  public async onCompleteResolve(item: DurationCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
+  public async onCompleteResolve(item: ExtendedCompleteItem, opt: CompleteOption, token: CancellationToken): Promise<void> {
     let fn = this.defaults['onCompleteResolve']
     if (typeof fn === 'function') await Promise.resolve(fn.call(this, item, opt, token))
   }
