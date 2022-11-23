@@ -518,7 +518,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public sendNotification<P>(type: NotificationType<P>, params?: P): Promise<void>
   public sendNotification(method: string, params?: any): Promise<void>
   public async sendNotification<P>(type: string | MessageSignature, params?: P): Promise<void> {
-    this.checkState()
+    if (this.$state === ClientState.StartFailed || this.$state === ClientState.Stopping || this.$state === ClientState.Stopped) {
+      // not throw for notification
+      return
+    }
     try {
       const connection = await this.$start()
       return await connection.sendNotification(type, params)

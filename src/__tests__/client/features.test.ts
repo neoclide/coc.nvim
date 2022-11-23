@@ -1568,15 +1568,13 @@ describe('Server activation', () => {
     await client.stop()
   })
 
-  test('Start server fails on notification when stopped once', async () => {
+  test('Not fails on notification when stopped once', async () => {
     const client = createClient()
     assert.strictEqual(client.state, State.Stopped)
     await client.sendNotification('notification')
     assert.strictEqual(client.state, State.Running)
     await client.stop()
-    await assert.rejects(async () => {
-      await client.sendNotification('notification')
-    }, /Client is not running/)
+    await client.sendNotification('notification')
   })
 
   test('Add pending request handler', async () => {
