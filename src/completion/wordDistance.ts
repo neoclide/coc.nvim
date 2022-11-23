@@ -38,7 +38,7 @@ export abstract class WordDistance {
         resolve(undefined)
       }, 100)
     })
-    let wordRanges = await Promise.race([tp, workspace.computeWordRanges(opt.bufnr, ranges[0], token)])
+    let wordRanges = ranges.length > 0 ? await Promise.race([tp, workspace.computeWordRanges(opt.bufnr, ranges[0], token)]) : undefined
     clearTimeout(timer)
     if (!wordRanges) return WordDistance.None
 
