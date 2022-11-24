@@ -981,6 +981,10 @@ Check if current buffer have documentLink provider by
 
 Use |coc-list-links| to manage list of links in current document.
 
+Document link key-mappings:~
+
+|<Plug>(coc-openlink)|
+
 Document link functions:~
 
 - |CocAction('openLink')| Open link under cursor.
@@ -992,7 +996,7 @@ SNIPPETS SUPPORT 					*coc-snippets*
 Snippets engine of coc.nvim support both VSCode snippets and ultisnips
 snippets format.
 
-The complete item with snippet format has label ends with
+The completion item with snippet format has label ends with
 |coc-config-suggest-snippetIndicator| (`~` by default).
 
 Select the complete item and confirm the completion by |coc#pum#confirm()| or
@@ -3256,6 +3260,7 @@ Others~
 background color).
 *CocSelectedRange* for highlight ranges of outgoing calls.
 *CocSnippetVisual* for highlight snippet placeholders.
+*CocLink* for highlight document links.
 
 ==============================================================================
 TREE SUPPORT 						*coc-tree*

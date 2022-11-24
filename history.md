@@ -1,3 +1,7 @@
+# 2022-11-25
+
+- Add configurations `links.enable` and `links.highlight`.
+
 # 2022-11-22
 
 - Add command `document.toggleCodeLens`.

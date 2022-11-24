@@ -566,9 +566,21 @@ InlayHint~
 ------------------------------------------------------------------------------
 Links~
 							*coc-config-links*
+"links.enable" 						*coc-config-links-enable*
+
+	Enable document links.
+
+	Scope: `language-overridable`, default: `true`
+
+"links.highlight"					*coc-config-links-highlight*
+
+	Use CocLink highlight group to highlight links.
+
+	Scope: `application`, default: `false`
+
 "links.tooltip"						*coc-config-links-tooltip*
 
-	Show tooltip of link under cursor on CursorHold, neovim only.
+	Show tooltip of link under cursor on CursorHold.
 
 	Scope: `application`, default: `false`
 
