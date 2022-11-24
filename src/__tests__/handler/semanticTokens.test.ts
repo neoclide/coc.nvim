@@ -307,11 +307,11 @@ describe('semanticTokens', () => {
     it('should reuse exists tokens when version not changed', async () => {
       let doc = await helper.createDocument('t.vim')
       await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'let' }])
-      let fn = jest.fn()
+      let times = 0
       helper.updateConfiguration('semanticTokens.filetypes', ['vim'])
       disposables.push(languages.registerDocumentSemanticTokensProvider([{ language: 'vim' }], {
         provideDocumentSemanticTokens: () => {
-          fn()
+          times++
           return new Promise(resolve => {
             resolve({
               resultId: '1',
@@ -321,10 +321,12 @@ describe('semanticTokens', () => {
         }
       }, legend))
       let item = await highlighter.getCurrentItem()
-      item.cancel()
+      await helper.waitValue(() => {
+        return times
+      }, 1)
       await item.doHighlight()
       await item.doHighlight()
-      expect(fn).toBeCalledTimes(1)
+      expect(times).toBe(1)
     })
 
     it('should only highlight limited range on update', async () => {

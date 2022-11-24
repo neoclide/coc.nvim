@@ -1,7 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../../events'
-import LinksHandler from '../../handler/links'
+import LinksHandler, { sameLinks, toArray } from '../../handler/links'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
@@ -26,6 +27,13 @@ afterEach(async () => {
 })
 
 describe('Links', () => {
+  it('should check sameLinks', () => {
+    expect(toArray(undefined)).toEqual([])
+    expect(sameLinks([], [])).toBe(true)
+    expect(sameLinks([{ range: Range.create(0, 0, 0, 1) }], [])).toBe(false)
+    expect(sameLinks([{ range: Range.create(0, 0, 0, 1) }], [{ range: Range.create(0, 0, 1, 0) }])).toBe(false)
+  })
+
   it('should get document links', async () => {
     disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
       provideDocumentLinks: (_doc, _token) => {
@@ -101,6 +109,38 @@ describe('Links', () => {
     expect(link).toBeDefined()
   })
 
+  it('should cancel resolve on InsertEnter', async () => {
+    helper.updateConfiguration('links.tooltip', true)
+    let doc = await workspace.document
+    let called = false
+    let cancelled = false
+    disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
+      provideDocumentLinks(_doc, _token) {
+        return [DocumentLink.create(Range.create(0, 0, 0, 5))]
+      },
+      resolveDocumentLink(link, token) {
+        called = true
+        return new Promise(resolve => {
+          token.onCancellationRequested(() => {
+            cancelled = true
+            clearTimeout(timer)
+            resolve(undefined)
+          })
+          let timer = setTimeout(() => {
+            resolve(link)
+          }, 500)
+        })
+      }
+    }))
+    let p = links.showTooltip()
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    await events.fire('InsertEnter', [doc.bufnr])
+    await p
+    expect(cancelled).toBe(true)
+  })
+
   it('should open link at current position', async () => {
     await nvim.setLine('foo')
     await nvim.command('normal! 0')
@@ -144,6 +184,7 @@ describe('Links', () => {
   it('should show tooltip', async () => {
     await nvim.setLine('foo')
     await nvim.call('cursor', [1, 1])
+    let resolve = false
     disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
       provideDocumentLinks(_doc, _token) {
         let link = DocumentLink.create(Range.create(0, 0, 0, 5))
@@ -151,12 +192,21 @@ describe('Links', () => {
         return [link]
       },
       resolveDocumentLink(link) {
+        if (!resolve) return
         link.target = 'http://example.com'
         return link
       }
     }))
     await links.showTooltip()
     let win = await helper.getFloat()
+    expect(win).toBeUndefined()
+    helper.updateConfiguration('links.tooltip', true)
+    await links.showTooltip()
+    win = await helper.getFloat()
+    expect(win).toBeUndefined()
+    resolve = true
+    await links.showTooltip()
+    win = await helper.getFloat()
     let buf = await win.buffer
     let lines = await buf.lines
     expect(lines[0]).toMatch('test')
@@ -173,6 +223,72 @@ describe('Links', () => {
     let win = await helper.getFloat()
     let buf = await win.buffer
     let lines = await buf.lines
-    expect(lines[0]).toMatch('Press')
+    expect(lines[0]).toMatch('baidu')
+  })
+})
+
+describe('LinkBuffer', () => {
+  it('should getLinks', async () => {
+    let doc = await workspace.document
+    let buf = links.getBuffer(doc.bufnr)
+    await buf.getLinks()
+    expect(buf.links).toEqual([])
+    let timeout = 100
+    disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
+      provideDocumentLinks: (_doc, token) => {
+        return new Promise(resolve => {
+          token.onCancellationRequested(() => {
+            clearTimeout(timer)
+            resolve(undefined)
+          })
+          let timer = setTimeout(() => {
+            resolve([
+              DocumentLink.create(Range.create(0, 0, 0, 5), 'test:///foo'),
+              DocumentLink.create(Range.create(1, 0, 1, 5), 'test:///bar')
+            ])
+          }, timeout)
+        })
+      }
+    }))
+    let p = buf.getLinks()
+    p = buf.getLinks()
+    buf.cancel()
+    await p
+    expect(buf.links).toEqual([])
+  })
+
+  it('should do highlight', async () => {
+    let empty = false
+    disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
+      provideDocumentLinks: (doc: TextDocument) => {
+        if (empty) return []
+        let links: DocumentLink[] = []
+        for (let i = 0; i < doc.lineCount - 1; i++) {
+          links.push(DocumentLink.create(Range.create(i, 0, i, 1), 'test:///bar'))
+        }
+        return links
+      }
+    }))
+    helper.updateConfiguration('links.highlight', true)
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo')
+    await doc.synchronize()
+    let buf = links.getBuffer(doc.bufnr)
+    await helper.waitValue(() => {
+      return buf.links?.length
+    }, 1)
+    await nvim.call('append', [0, ['foo']])
+    doc._forceSync()
+    await helper.waitValue(() => {
+      return buf.links?.length
+    }, 2)
+    await nvim.setLine('foo')
+    doc._forceSync()
+    let hls = await buf.buffer.getHighlights('links')
+    expect(hls.length).toBe(2)
+    empty = true
+    await buf.getLinks()
+    hls = await buf.buffer.getHighlights('links')
+    expect(hls.length).toBe(0)
   })
 })

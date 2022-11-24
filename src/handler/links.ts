@@ -1,68 +1,86 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { DocumentLink, Range } from 'vscode-languageserver-types'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
-import { Documentation, FloatFactory, HandlerDelegate } from '../types'
-import { disposeAll } from '../util'
+import BufferSync, { SyncItem } from '../model/bufferSync'
+import Document from '../model/document'
+import { DidChangeTextDocumentParams, Documentation, FloatFactory, HandlerDelegate, HighlightItem } from '../types'
+import { disposeAll, getConditionValue } from '../util'
+import { isFalsyOrEmpty } from '../util/array'
+import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
 
-const regex = /CocAction(Async)?\(["']openLink["']\)/
+// const regex = /CocAction(Async)?\(["']openLink["']\)/
+let floatFactory: FloatFactory | undefined
+const debounceTime = getConditionValue(200, 10)
+const NAMESPACE = 'links'
+const highlightGroup = 'CocLink'
+
+interface LinkConfig {
+  enable: boolean
+  highlight: boolean
+}
+
 export default class Links implements Disposable {
-  private floatFactory: FloatFactory | undefined
   private disposables: Disposable[] = []
-  private _tooltip: boolean
+  private tooltip: boolean
   private tokenSource: CancellationTokenSource
+  private buffers: BufferSync<LinkBuffer>
   constructor(private nvim: Neovim, private handler: HandlerDelegate) {
     this.setConfiguration()
     workspace.onDidChangeConfiguration(this.setConfiguration, this, this.disposables)
-    this.floatFactory = window.createFloatFactory({})
     events.on('CursorHold', async () => {
-      if (!this._tooltip || nvim.isVim) return
       await this.showTooltip()
     }, null, this.disposables)
     events.on(['CursorMoved', 'InsertEnter'], () => {
       this.cancel()
     }, null, this.disposables)
+    this.buffers = workspace.registerBufferSync(doc => {
+      return new LinkBuffer(doc)
+    })
+    this.disposables.push(this.buffers)
+    languages.onDidLinksRefresh(selector => {
+      for (let item of this.buffers.items) {
+        if (workspace.match(selector, item.doc)) {
+          item.fetchLinks()
+        }
+      }
+    }, null, this.disposables)
   }
 
   private setConfiguration(e?: IConfigurationChangeEvent): void {
     if (!e || e.affectsConfiguration('links')) {
-      let config = workspace.getConfiguration('links', null)
-      this._tooltip = config.get<boolean>('tooltip', false)
+      this.tooltip = workspace.initialConfiguration.get<boolean>('links.tooltip', false)
+      if (e) {
+        for (let item of this.buffers.items) {
+          item.updateDocumentConfig()
+        }
+      }
     }
   }
 
   public async showTooltip(): Promise<void> {
-    let { nvim, floatFactory } = this
-    let obj = await nvim.getKeymap('n') as any[]
-    let find = obj.find(o => regex.test(o.rhs))
-    let key = find ? find.lhs : undefined
+    if (!this.tooltip) return
     let link = await this.getCurrentLink()
     if (!link || !link.target) return
-    let text = ''
-    if (link.tooltip) text = link.tooltip + ' '
-    if (key) text += `Press "${key}" to open link`
-    if (!text.length) return
+    let text = link.target
+    if (link.tooltip) text += ' ' + link.tooltip
     let doc: Documentation = { content: text, filetype: 'txt' }
+    if (!floatFactory) floatFactory = window.createFloatFactory({})
     await floatFactory.show([doc])
   }
 
-  public async getLinks(): Promise<DocumentLink[]> {
+  public async getLinks(): Promise<ReadonlyArray<DocumentLink>> {
     let { doc } = await this.handler.getCurrentState()
-    if (!languages.hasProvider(ProviderName.DocumentLink, doc.textDocument)) return []
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
-    let links = await languages.getDocumentLinks(doc.textDocument, tokenSource.token)
-    return tokenSource.token.isCancellationRequested ? [] : links
-  }
-
-  public async openLink(link: DocumentLink): Promise<void> {
-    if (!link.target) throw new Error(`Failed to resolve link target`)
-    await workspace.openResource(link.target)
+    let buf = this.buffers.getItem(doc.bufnr)
+    await buf.getLinks()
+    return toArray(buf.links)
   }
 
   public async getCurrentLink(): Promise<DocumentLink | undefined> {
@@ -74,6 +92,7 @@ export default class Links implements Disposable {
           if (!link.target) {
             let tokenSource = this.tokenSource = this.tokenSource || new CancellationTokenSource()
             link = await languages.resolveDocumentLink(link, this.tokenSource.token)
+            this.tokenSource = undefined
             if (!link.target || tokenSource.token.isCancellationRequested) continue
           }
           return link
@@ -103,6 +122,15 @@ export default class Links implements Disposable {
     return false
   }
 
+  public async openLink(link: DocumentLink): Promise<void> {
+    if (!link.target) throw new Error(`Failed to resolve link target`)
+    await workspace.openResource(link.target)
+  }
+
+  public getBuffer(bufnr: number): LinkBuffer | undefined {
+    return this.buffers.getItem(bufnr)
+  }
+
   private cancel(): void {
     if (this.tokenSource) {
       this.tokenSource.cancel()
@@ -111,7 +139,107 @@ export default class Links implements Disposable {
   }
 
   public dispose(): void {
-    this.floatFactory?.dispose()
     disposeAll(this.disposables)
   }
+}
+
+class LinkBuffer implements SyncItem {
+  private tokenSource: CancellationTokenSource | undefined
+  private _config: LinkConfig | undefined
+  public links: ReadonlyArray<DocumentLink> = []
+  public fetchLinks: Function & { clear(): void }
+  // last highlight version
+  constructor(public readonly doc: Document) {
+    this.fetchLinks = debounce(() => {
+      void this.getLinks()
+    }, debounceTime)
+    if (this.hasProvider) this.fetchLinks()
+  }
+
+  public get config(): LinkConfig {
+    if (this._config) return this._config
+    this.updateDocumentConfig()
+    return this._config
+  }
+
+  private get hasProvider(): boolean {
+    return languages.hasProvider(ProviderName.DocumentLink, this.doc)
+  }
+
+  public updateDocumentConfig(): void {
+    let configuration = workspace.getConfiguration('links', this.doc)
+    this._config = {
+      enable: configuration.get('enable', true),
+      highlight: configuration.get('highlight', false),
+    }
+  }
+
+  public onChange(e: DidChangeTextDocumentParams): void {
+    if (e.contentChanges.length == 0) {
+      this.highlight()
+    } else {
+      this.cancel()
+      this.fetchLinks()
+    }
+  }
+
+  public highlight(): void {
+    if (!this.config.highlight || !this.links) return
+    let { links, doc } = this
+    if (isFalsyOrEmpty(links)) {
+      this.clearHighlight()
+    } else {
+      let highlights: HighlightItem[] = []
+      links.forEach(link => {
+        doc.addHighlights(highlights, highlightGroup, link.range)
+      })
+      this.doc.buffer.updateHighlights(NAMESPACE, highlights, { priority: 2048 })
+    }
+  }
+
+  public clearHighlight(): void {
+    this.buffer.clearNamespace(NAMESPACE)
+  }
+
+  public get buffer(): Buffer {
+    return this.doc.buffer
+  }
+
+  public cancel(): void {
+    this.fetchLinks.clear()
+    if (this.tokenSource) {
+      this.tokenSource.cancel()
+      this.tokenSource = null
+    }
+  }
+
+  public async getLinks(): Promise<void> {
+    if (!this.hasProvider || !this.config.enable) return
+    this.cancel()
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
+    let links = await languages.getDocumentLinks(this.doc.textDocument, token)
+    this.tokenSource = undefined
+    if (token.isCancellationRequested || sameLinks(toArray(this.links), toArray(links))) return
+    this.links = toArray(links)
+    this.highlight()
+  }
+
+  public dispose(): void {
+    this.cancel()
+  }
+}
+
+export function toArray(links: ReadonlyArray<DocumentLink> | undefined): ReadonlyArray<DocumentLink> {
+  return links ?? []
+}
+
+export function sameLinks(links: ReadonlyArray<DocumentLink>, other: ReadonlyArray<DocumentLink>): boolean {
+  if (links.length != other.length) return false
+  for (let i = 0; i < links.length; i++) {
+    if (!equals(links[i].range, other[i].range)) {
+      return false
+    }
+  }
+  return true
 }

@@ -1202,10 +1202,22 @@
       "default": "",
       "description": "Separator for type inlay hint, neovim only."
     },
+    "links.enable": {
+      "type": "boolean",
+      "scope": "language-overridable",
+      "description": "Enable document links",
+      "default": true
+    },
     "links.tooltip": {
       "type": "boolean",
       "scope": "application",
-      "description": "Show tooltip of link under cursor on CursorHold, neovim only",
+      "description": "Show tooltip of link under cursor on CursorHold.",
+      "default": false
+    },
+    "links.highlight": {
+      "type": "boolean",
+      "scope": "application",
+      "description": "Use CocLink highlight group to highlight links",
       "default": false
     },
     "list.floatPreview": {
