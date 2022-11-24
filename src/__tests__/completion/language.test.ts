@@ -71,7 +71,7 @@ describe('LanguageSource util', () => {
     completion.mru.add('f', {
       kind: CompletionItemKind.Class,
       filterText: 'foo',
-      source: 'foo',
+      source: sources.getSource('foo'),
     })
     await nvim.setLine('f')
     await nvim.input('A')
@@ -84,15 +84,7 @@ describe('LanguageSource util', () => {
 })
 
 describe('language source', () => {
-  describe('resolveCompletionItem()', () => {
-    async function getDetailContent(): Promise<string | undefined> {
-      let winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail'])
-      if (!winid) return
-      let bufnr = await nvim.call('winbufnr', [winid]) as number
-      let lines = await (nvim.createBuffer(bufnr)).lines
-      return lines.join('\n')
-    }
-
+  describe('toggle()', () => {
     it('should toggle source', () => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
@@ -108,7 +100,9 @@ describe('language source', () => {
       source.toggle()
       expect(source.enable).toBe(true)
     })
+  })
 
+  describe('shouldCommit()', () => {
     it('should check commit characters', async () => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
@@ -122,6 +116,17 @@ describe('language source', () => {
       let res = source.shouldCommit(item, '.')
       expect(res).toBe(true)
     })
+
+  })
+
+  describe('resolveCompletionItem()', () => {
+    async function getDetailContent(): Promise<string | undefined> {
+      let winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail'])
+      if (!winid) return
+      let bufnr = await nvim.call('winbufnr', [winid]) as number
+      let lines = await (nvim.createBuffer(bufnr)).lines
+      return lines.join('\n')
+    }
 
     it('should return null when canceled or no items returned', async () => {
       let provider: CompletionItemProvider = {
@@ -226,6 +231,7 @@ describe('language source', () => {
 
     it('should resolve CompletionItem', async () => {
       let res: CompletionItem | Error | undefined
+      let n = 0
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'this',
@@ -235,6 +241,7 @@ describe('language source', () => {
           if (res instanceof Error) {
             throw res
           } else {
+            n++
             return res
           }
         }
@@ -245,6 +252,11 @@ describe('language source', () => {
       await source.doComplete(opt, CancellationToken.None)
       let item = createCompletionItem('this')
       await source.onCompleteResolve(item, opt, CancellationToken.None)
+      res = { label: 'this' }
+      let p = n
+      await source.onCompleteResolve(item, opt, CancellationToken.None)
+      await source.onCompleteResolve(item, opt, CancellationToken.None)
+      expect(n - p).toBe(1)
       res = new Error('resolve error')
       item = createCompletionItem('this')
       await expect(async () => {
@@ -345,7 +357,7 @@ describe('language source', () => {
       await nvim.input('ii')
       await helper.waitPopup()
       let res = await helper.getItems()
-      let idx = res.findIndex(o => o.source == 'edits')
+      let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('col', ['.'], 8)
     })
@@ -365,7 +377,7 @@ describe('language source', () => {
       await nvim.input('iif')
       await helper.waitPopup()
       let items = await helper.getItems()
-      let idx = items.findIndex(o => o.word == 'do' && o.source == 'edits')
+      let idx = items.findIndex(o => o.word == 'do' && o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'bar do')
       await helper.waitFor('col', ['.'], 7)
@@ -410,7 +422,7 @@ describe('language source', () => {
       await nvim.input('A.')
       await helper.waitPopup()
       let res = await helper.getItems()
-      let idx = res.findIndex(o => o.source == 'edits')
+      let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
       await helper.wait(50)
@@ -436,7 +448,7 @@ describe('language source', () => {
       await nvim.input('b')
       await helper.waitPopup()
       let res = await helper.getItems()
-      let idx = res.findIndex(o => o.source == 'edits')
+      let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('col', ['.'], 6)
       await helper.waitFor('getline', ['.'], '(bar(), )')
@@ -615,7 +627,8 @@ describe('language source', () => {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: '<foo>',
           filterText: '<foo>',
-          textEdit: { range: Range.create(0, 0, 0, 1), newText: '<foo>' },
+          // bad range
+          textEdit: { range: Range.create(0, 0, 0, 0), newText: '<foo>' },
         }]
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))

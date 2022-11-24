@@ -4,14 +4,13 @@ import { InsertChange } from '../events'
 import Document from '../model/document'
 import { SnippetParser } from '../snippets/parser'
 import { Documentation } from '../types'
-import { isFalsyOrEmpty, toArray } from '../util/array'
+import { isFalsyOrEmpty } from '../util/array'
 import { CharCode } from '../util/charCode'
 import * as Is from '../util/is'
 import { LRUCache } from '../util/map'
 import { unidecode } from '../util/node'
 import { isEmpty, toObject } from '../util/object'
 import { byteIndex, byteSlice, toText } from '../util/string'
-import sources from './sources'
 import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from './types'
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
@@ -32,7 +31,7 @@ const MAX_MRU_ITEMS = 100
 const DEFAULT_HL_GROUP = 'CocSymbolDefault'
 
 export interface ConvertOption {
-  readonly source: string
+  readonly source: ISource
   readonly priority: number
   readonly range: Range
   readonly itemDefaults?: ItemDefaults
@@ -75,6 +74,13 @@ export function getKindHighlight(kind: string | number): string {
   return Is.number(kind) ? highlightsMap[kind] ?? DEFAULT_HL_GROUP : DEFAULT_HL_GROUP
 }
 
+export function getPriority(source: ISource, defaultValue: number): number {
+  if (Is.number(source.priority)) {
+    return source.priority
+  }
+  return defaultValue
+}
+
 export function getDetail(item: CompletionItem, filetype: string): { filetype: string, content: string } | undefined {
   const { detail, labelDetails, label } = item
   if (!isEmpty(labelDetails)) {
@@ -92,8 +98,8 @@ export function toCompleteDoneItem(selected: DurationCompleteItem | undefined, i
   if (!item || !selected) return {}
   return Object.assign({
     word: selected.word,
-    source: selected.source,
-    user_data: `${selected.source}:${selected.index}`
+    source: selected.source.name,
+    user_data: `${selected.source.name}:0`
   }, item)
 }
 
@@ -215,12 +221,6 @@ export function getInput(document: Document, pre: string, asciiCharactersOnly: b
     }
   }
   return len == 0 ? '' : pre.slice(-len)
-}
-
-export function getSources(option: CompleteOption): ISource<CompleteItem>[] {
-  let { source } = option
-  if (source) return toArray(sources.getSource(source))
-  return sources.getCompleteSources(option)
 }
 
 export function shouldIndent(indentkeys: string, pretext: string): boolean {
@@ -374,16 +374,16 @@ export class Converter {
     return 0
   }
 
-  public convertToDurationItem(item: CompleteItem, index: number): DurationCompleteItem {
+  public convertToDurationItem(item: CompleteItem): DurationCompleteItem {
     if (Is.isCompletionItem(item)) {
-      return this.convertLspCompleteItem(item, index)
+      return this.convertLspCompleteItem(item)
     }
-    return this.convertVimCompleteItem(item, index)
+    return this.convertVimCompleteItem(item)
   }
 
-  private convertVimCompleteItem(item: ExtendedCompleteItem, index: number): DurationCompleteItem {
+  private convertVimCompleteItem(item: ExtendedCompleteItem): DurationCompleteItem {
     const { option } = this
-    const { range, asciiMatch, source, priority } = option
+    const { range, asciiMatch } = option
     const word = toText(item.word)
     const character = range.start.character
     this.minCharacter = Math.min(this.minCharacter, character)
@@ -396,9 +396,6 @@ export class Converter {
       filterText,
       delta,
       character,
-      source,
-      priority,
-      index,
       dup: item.dup === 1,
       menu: item.menu,
       kind: item.kind,
@@ -409,12 +406,20 @@ export class Converter {
       deprecated: item.deprecated,
       detail: item.detail,
       labelDetails: item.labelDetails,
+      get source() {
+        return option.source
+      },
+      get priority() {
+        return option.source.priority ?? 99
+      },
+      get shortcut() {
+        return toText(option.source.shortcut)
+      }
     }
   }
 
-  private convertLspCompleteItem(item: CompletionItem, index: number): DurationCompleteItem {
+  private convertLspCompleteItem(item: CompletionItem): DurationCompleteItem {
     const { option, inputStart } = this
-    const { source, priority } = option
     const label = item.label.trim()
     const itemDefaults = toObject(option.itemDefaults) as ItemDefaults
     const word = getWord(item, itemDefaults)
@@ -436,9 +441,15 @@ export class Converter {
       preselect: item.preselect === true,
       deprecated: item.deprecated === true || item.tags?.includes(CompletionItemTag.Deprecated),
       isSnippet: hasAction(item, itemDefaults),
-      index,
-      source,
-      priority,
+      get source() {
+        return option.source
+      },
+      get priority() {
+        return option.priority
+      },
+      get shortcut() {
+        return toText(option.source.shortcut)
+      },
       dup: data.dup !== 0
     }
     this.minCharacter = Math.min(this.minCharacter, character)
@@ -451,7 +462,7 @@ export class Converter {
 
 function toItemKey(item: MruItem): string {
   let label = item.filterText
-  let source = item.source
+  let source = item.source.name
   let kind = item.kind ?? ''
   return `${label}|${source}|${kind}`
 }

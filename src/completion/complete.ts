@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import Document from '../model/document'
-import { wait } from '../util'
+import { waitWithToken } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { ASCII_END } from '../util/constants'
 import { anyScore, FuzzyScore, fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
@@ -11,48 +11,18 @@ import * as Is from '../util/is'
 import { clamp } from '../util/numbers'
 import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { characterIndex } from '../util/string'
-import { CompleteItem, CompleteOption, DurationCompleteItem, ISource, SourceType } from './types'
-import { Converter, ConvertOption } from './util'
+import { CompleteConfig, CompleteItem, CompleteOption, DurationCompleteItem, ISource, SortMethod } from './types'
+import { Converter, ConvertOption, getPriority } from './util'
 import { WordDistance } from './wordDistance'
 const logger = createLogger('completion-complete')
 const MAX_DISTANCE = 2 << 20
 const MIN_TIMEOUT = 50
 const MAX_TIMEOUT = 5000
-
-export interface CompleteConfig {
-  asciiMatch: boolean
-  autoTrigger: string
-  filterGraceful: boolean
-  snippetsSupport: boolean
-  languageSourcePriority: number
-  triggerCompletionWait: number
-  minTriggerInputLength: number
-  triggerAfterInsertEnter: boolean
-  acceptSuggestionOnCommitCharacter: boolean
-  maxItemCount: number
-  timeout: number
-  localityBonus: boolean
-  highPrioritySourceLimit: number
-  lowPrioritySourceLimit: number
-  removeDuplicateItems: boolean
-  defaultSortMethod: SortMethod
-  asciiCharactersOnly: boolean
-  enableFloat: boolean
-  ignoreRegexps: ReadonlyArray<string>
-}
+const MAX_TRIGGER_WAIT = 200
 
 export interface CompleteResultToFilter {
   items: DurationCompleteItem[]
   isIncomplete?: boolean
-  completeItems: ReadonlyArray<CompleteItem>
-}
-
-export type Callback = () => void
-
-export enum SortMethod {
-  None = 'none',
-  Alphabetical = 'alphabetical',
-  Length = 'length'
 }
 
 function useAscii(input: string): boolean {
@@ -62,12 +32,10 @@ function useAscii(input: string): boolean {
 export default class Complete {
   // identify this complete
   private results: Map<string, CompleteResultToFilter> = new Map()
-  private tokensInfo: WeakMap<CancellationTokenSource, boolean> = new WeakMap()
   private _input = ''
   private _completing = false
   private timer: NodeJS.Timer
   private names: string[] = []
-  private tokenSources: Set<CancellationTokenSource> = new Set()
   private asciiMatch: boolean
   private timeout: number
   private cid = 0
@@ -75,6 +43,9 @@ export default class Complete {
   private inputStart: number
   private readonly _onDidRefresh = new Emitter<void>()
   private wordDistance: WordDistance | undefined
+  private tokenSources: Set<CancellationTokenSource> = new Set()
+  private tokensInfo: WeakMap<CancellationTokenSource, boolean> = new WeakMap()
+  private itemsMap: WeakMap<DurationCompleteItem, CompleteItem> = new WeakMap()
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   constructor(public option: CompleteOption,
     private document: Document,
@@ -90,9 +61,13 @@ export default class Complete {
 
   private fireRefresh(waitTime: number): void {
     clearTimeout(this.timer)
-    this.timer = setTimeout(() => {
+    if (!waitTime) {
       this._onDidRefresh.fire()
-    }, waitTime)
+    } else {
+      this.timer = setTimeout(() => {
+        this._onDidRefresh.fire()
+      }, waitTime)
+    }
   }
 
   private get totalLength(): number {
@@ -105,21 +80,7 @@ export default class Complete {
 
   public resolveItem(item: DurationCompleteItem | undefined): { source: ISource, item: CompleteItem } | undefined {
     if (!item) return undefined
-    let name = item.source
-    let source = this.sources.find(s => name === s.name)
-    let result = this.results.get(name)
-    if (!source || !result) return undefined
-    return { source, item: result.completeItems[item.index] }
-  }
-
-  private getPriority(source: ISource): number {
-    if (Is.number(source.priority)) {
-      return source.priority
-    }
-    if (source.sourceType === SourceType.Service) {
-      return this.config.languageSourcePriority
-    }
-    return 0
+    return { source: item.source, item: this.itemsMap.get(item) }
   }
 
   public get isCompleting(): boolean {
@@ -177,7 +138,7 @@ export default class Complete {
     void WordDistance.create(this.config.localityBonus, this.option, token).then(instance => {
       this.wordDistance = instance
     })
-    await wait(clamp(this.config.triggerCompletionWait, 0, 50))
+    await waitWithToken(clamp(this.config.triggerCompletionWait, 0, MAX_TRIGGER_WAIT), tokenSource.token)
     await this.completeSources(this.sources, tokenSource, this.cid)
   }
 
@@ -233,6 +194,7 @@ export default class Complete {
         if (!shouldRun || token.isCancellationRequested) return
       }
       const start = Date.now()
+      const map = this.itemsMap
       await new Promise<void>((resolve, reject) => {
         Promise.resolve(source.doComplete(opt, token)).then(result => {
           if (token.isCancellationRequested) {
@@ -246,12 +208,16 @@ export default class Complete {
               let line = opt.linenr - 1
               range = Range.create(line, characterIndex(opt.line, result.startcol), line, range.end.character)
             }
-            const priority = this.getPriority(source)
-            const option: ConvertOption = { source: sourceName, priority, asciiMatch, itemDefaults: result.itemDefaults, range }
+            const priority = getPriority(source, this.config.languageSourcePriority)
+            const option: ConvertOption = { source, priority, asciiMatch, itemDefaults: result.itemDefaults, range }
             const converter = new Converter(this.inputStart, option, opt)
-            const items = result.items.map((item, index: number) => converter.convertToDurationItem(item, index))
+            const items = result.items.map(item => {
+              let completeItem = converter.convertToDurationItem(item)
+              map.set(completeItem, item)
+              return completeItem
+            })
             this.minCharacter = Math.min(this.minCharacter, converter.minCharacter)
-            this.results.set(sourceName, { items, isIncomplete: result.isIncomplete === true, completeItems: result.items })
+            this.results.set(sourceName, { items, isIncomplete: result.isIncomplete === true })
             added = true
           } else {
             this.results.delete(sourceName)
@@ -354,7 +320,7 @@ export default class Complete {
   private limitCompleteItems(items: DurationCompleteItem[]): DurationCompleteItem[] {
     let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config
     if (!highPrioritySourceLimit && !lowPrioritySourceLimit) return items
-    let counts: Map<string, number> = new Map()
+    let counts: Map<ISource, number> = new Map()
     return items.filter(item => {
       let { priority, source } = item
       let isLow = priority < 90
@@ -389,7 +355,7 @@ export default class Complete {
 
   public cancel(): void {
     let { tokenSources, timer } = this
-    if (timer) clearTimeout(timer)
+    clearTimeout(timer)
     for (let tokenSource of Array.from(tokenSources)) {
       tokenSource.cancel()
     }
@@ -400,7 +366,6 @@ export default class Complete {
   public dispose(): void {
     this.cancel()
     this.results.clear()
-    this.sources = []
     this._onDidRefresh.dispose()
   }
 }

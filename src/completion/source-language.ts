@@ -75,9 +75,9 @@ export default class LanguageSource implements ISource<CompletionItem> {
     return { isIncomplete, items: completeItems, itemDefaults }
   }
 
-  public onCompleteResolve(item: CompletionItem, opt: CompleteOption | undefined, token: CancellationToken): Promise<void> {
+  public onCompleteResolve(item: CompletionItem, _opt: CompleteOption | undefined, token: CancellationToken): Promise<void> | void {
     let hasResolve = Is.func(this.provider.resolveCompletionItem)
-    if (!hasResolve) return Promise.resolve()
+    if (!hasResolve) return
     let promise = this.resolving.get(item)
     if (promise) return promise
     let invalid = false
@@ -105,7 +105,9 @@ export default class LanguageSource implements ISource<CompletionItem> {
         reject(e)
       }
     })
-    if (!invalid) this.resolving.set(item, promise)
+    if (!invalid) {
+      this.resolving.set(item, promise)
+    }
     return promise
   }
 

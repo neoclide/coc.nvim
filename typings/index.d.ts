@@ -7567,7 +7567,23 @@ declare module 'coc.nvim' {
   /**
    * Source options to create source that could respect configuration from `coc.source.{name}`
    */
-  export type SourceConfig = Omit<ISource, 'shortcut' | 'priority' | 'triggerOnly' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
+  export interface SourceConfig {
+    name: string
+    triggerOnly?: boolean
+    isSnippet?: boolean
+    sourceType?: SourceType
+    filepath?: string
+    documentSelector?: DocumentSelector
+    firstMatch?: boolean
+    refresh?(): Promise<void>
+    toggle?(): void
+    onEnter?(bufnr: number): void
+    shouldComplete?(opt: CompleteOption): ProviderResult<boolean>
+    doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult>
+    onCompleteResolve?(item: VimCompleteItem, opt: CompleteOption, token: CancellationToken): ProviderResult<void>
+    onCompleteDone?(item: VimCompleteItem, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
+    shouldCommit?(item: VimCompleteItem, character: string): boolean
+  }
 
   export interface SourceStat {
     name: string
@@ -7686,7 +7702,7 @@ declare module 'coc.nvim' {
      * @param {CompleteOption} opt
      * @returns {Promise<boolean> }
      */
-    shouldComplete?(opt: CompleteOption): Promise<boolean>
+    shouldComplete?(opt: CompleteOption): ProviderResult<boolean>
 
     /**
      * Invoke completion

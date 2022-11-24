@@ -42,9 +42,9 @@ export interface DurationCompleteItem {
   word: string
   abbr: string
   filterText: string
-  source: string
-  priority: number
-  index: number
+  readonly source: ISource
+  readonly priority: number
+  readonly shortcut?: string
   // start character for word insert, consider same as complete option when not exists
   character: number
   isSnippet?: boolean
@@ -94,6 +94,34 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   documentation?: Documentation[]
 }
 
+export interface CompleteConfig {
+  asciiMatch: boolean
+  autoTrigger: string
+  filterGraceful: boolean
+  snippetsSupport: boolean
+  languageSourcePriority: number
+  triggerCompletionWait: number
+  minTriggerInputLength: number
+  triggerAfterInsertEnter: boolean
+  acceptSuggestionOnCommitCharacter: boolean
+  maxItemCount: number
+  timeout: number
+  localityBonus: boolean
+  highPrioritySourceLimit: number
+  lowPrioritySourceLimit: number
+  removeDuplicateItems: boolean
+  defaultSortMethod: SortMethod
+  asciiCharactersOnly: boolean
+  enableFloat: boolean
+  ignoreRegexps: ReadonlyArray<string>
+}
+
+export enum SortMethod {
+  None = 'none',
+  Alphabetical = 'alphabetical',
+  Length = 'length'
+}
+
 /**
  * Item returned from source
  */
@@ -135,7 +163,24 @@ export interface SourceStat {
   filetypes: string[]
 }
 
-export type SourceConfig = Omit<Partial<ISource<ExtendedCompleteItem>>, 'shortcut' | 'priority' | 'triggerCharacters' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes'>
+export interface SourceConfig<T extends ExtendedCompleteItem = ExtendedCompleteItem> {
+  name: string
+  triggerOnly?: boolean
+  isSnippet?: boolean
+  sourceType?: SourceType
+  filepath?: string
+  documentSelector?: DocumentSelector
+  firstMatch?: boolean
+  optionalFns?: string[]
+  refresh?(): Promise<void>
+  toggle?(): void
+  onEnter?(bufnr: number): void
+  shouldComplete?(opt: CompleteOption): ProviderResult<boolean>
+  doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult<T>>
+  onCompleteResolve?(item: T, opt: CompleteOption, token: CancellationToken): ProviderResult<void>
+  onCompleteDone?(item: T, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
+  shouldCommit?(item: T, character: string): boolean
+}
 
 export interface ISource<T extends CompleteItem = CompleteItem> {
   name: string
@@ -156,7 +201,7 @@ export interface ISource<T extends CompleteItem = CompleteItem> {
   refresh?(): Promise<void>
   toggle?(): void
   onEnter?(bufnr: number): void
-  shouldComplete?(opt: CompleteOption): Promise<boolean>
+  shouldComplete?(opt: CompleteOption): ProviderResult<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult<T>>
   onCompleteResolve?(item: T, opt: CompleteOption, token: CancellationToken): ProviderResult<void>
   onCompleteDone?(item: T, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>

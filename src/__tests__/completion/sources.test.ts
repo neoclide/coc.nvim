@@ -1,5 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
+import os from 'os'
+import fs from 'fs'
 import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { Around } from '../../completion/native/around'
@@ -7,14 +9,16 @@ import { Buffer } from '../../completion/native/buffer'
 import { File, filterFiles, getDirectory, getFileItem, getItemsFromRoot, resolveEnvVariables } from '../../completion/native/file'
 import Source, { firstMatchFuzzy } from '../../completion/source'
 import VimSource from '../../completion/source-vim'
-import sources from '../../completion/sources'
+import sources, { Sources, logError, getSourceType } from '../../completion/sources'
 import { CompleteOption, ExtendedCompleteItem, SourceConfig, SourceType } from '../../completion/types'
 import { disposeAll } from '../../util'
+import extensions from '../../extension'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
+const emptyFn = () => Promise.resolve(null)
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -80,38 +84,45 @@ describe('Source', () => {
     return result
   }
 
-  it('should get source shortcut', () => {
-    expect(sources.getShortcut('not_exists')).toBe('')
-  })
-
   it('should check trigger only source', async () => {
+    expect(typeof Sources).toBe('function')
+    logError('')
     let name = 'foo'
-    let s = createSource({ name, triggerOnly: true })
+    let s = createSource({ name, triggerOnly: true, doComplete: emptyFn })
     expect(s.triggerOnly).toBe(true)
     expect(s.triggerPatterns).toBeNull()
-    s = createSource({ name })
+    s = createSource({ name, doComplete: emptyFn })
     helper.updateConfiguration(`coc.source.${name}.triggerPatterns`, [null, 'foo'])
     expect(s.triggerOnly).toBe(true)
   })
 
-  it('should check shouldComplete', async () => {
+  it('should get source type', async () => {
+    for (let t of [SourceType.Native, SourceType.Remote, SourceType.Service]) {
+      expect(getSourceType(t)).toBeDefined()
+    }
+  })
+
+  it('should check complete', async () => {
     let name = 'foo'
-    let s = createSource({ name })
+    let s = createSource({ name, doComplete: emptyFn })
     helper.updateConfiguration(`coc.source.${name}.disableSyntaxes`, ['comment'])
     await nvim.input('i')
     let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
     opt.synname = 'Comment'
-    expect(await s.shouldComplete(opt)).toBe(false)
+    expect(await s.checkComplete(opt)).toBe(false)
+    let result = await s.doComplete(opt, CancellationToken.None)
+    expect(result).toBeNull()
     opt.synname = 'String'
-    expect(await s.shouldComplete(opt)).toBe(true)
+    expect(await s.checkComplete(opt)).toBe(true)
     opt.synname = ''
-    expect(await s.shouldComplete(opt)).toBe(true)
+    expect(await s.checkComplete(opt)).toBe(true)
     s = createSource({
       name, shouldComplete: () => {
         return Promise.resolve(false)
-      }
+      },
+      doComplete: emptyFn
     })
-    expect(await s.shouldComplete(opt)).toBe(false)
+    expect(await s.checkComplete(opt)).toBe(false)
   })
 
   it('should call optional functions', async () => {
@@ -121,6 +132,7 @@ describe('Source', () => {
     let n = 0
     let s = createSource({
       name,
+      doComplete: emptyFn,
       refresh: () => {
         n++
         return Promise.resolve()
@@ -144,7 +156,7 @@ describe('Source', () => {
 
   it('should get results', async () => {
     let name = 'foo'
-    let s = createSource({ name })
+    let s = createSource({ name, doComplete: emptyFn })
     let words = []
     for (let i = 0; i < 80000; i++) {
       words.push(makeid(10))
@@ -177,6 +189,109 @@ describe('Source', () => {
 })
 
 describe('vim source', () => {
+  function createSourceFile(name: string, content: string): string {
+    let dir = path.join(os.tmpdir(), `coc/source`)
+    fs.mkdirSync(dir, { recursive: true })
+    let filepath = path.join(dir, `${name}.vim`)
+    fs.writeFileSync(filepath, content, 'utf8')
+    return filepath
+  }
+
+  it('should not throw when pluginPath already used', async () => {
+    await sources.createVimSources(process.cwd())
+    await sources.createVimSources(process.cwd())
+  })
+
+  it('should show error for bad source file', async () => {
+    let filepath = createSourceFile('tmp', '')
+    await sources.createVimSourceExtension(filepath)
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Error')
+  })
+
+  it('should register filetypes extension for vim source', async () => {
+    let content = `
+function! coc#source#foo#init()
+  return {'filetypes': ['vim'], 'firstMatch': v:true}
+endfunction
+function! coc#source#foo#complete(opt, cb) abort
+  call a:cb([])
+endfunction `
+    let filepath = createSourceFile('foo', content)
+    await sources.createVimSourceExtension(filepath)
+    let ext = extensions.getExtension('coc-vim-source-foo')
+    expect(ext).toBeDefined()
+    await Promise.resolve(ext.deactivate())
+  })
+
+  it('should not run by check complete', async () => {
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let source = new VimSource({
+      name: 'vim',
+      sourceType: SourceType.Remote,
+      optionalFns: ['on_complete', 'on_enter']
+    })
+    helper.updateConfiguration('coc.source.vim.disableSyntaxes', ['comment'])
+    helper.updateConfiguration('coc.source.vim.filetypes', ['vim'])
+    opt.synname = 'VimComment'
+    opt.filetype = 'vim'
+    let res = await source.checkComplete(opt)
+    expect(res).toBe(false)
+    let result = await source.doComplete(opt, CancellationToken.None)
+    expect(result).toBe(null)
+    opt.synname = ''
+    res = await source.checkComplete(opt)
+    expect(res).toBe(true)
+    result = await source.doComplete(opt, CancellationToken.Cancelled)
+    expect(result).toBe(null)
+    source.onEnter(999)
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    source.onEnter(bufnr)
+  })
+
+  it('should register extension for vim source', async () => {
+    let content = `
+function! coc#source#foo#init()
+  return {'firstMatch': v:true, 'isSnippet': v:true}
+endfunction
+
+function! coc#source#foo#on_enter(...)
+  let g:coc_entered = 1
+endfunction
+
+function! coc#source#foo#get_startcol(opt)
+  if a:opt['col'] == 1
+    return 0
+  endif
+  return a:opt['col']
+endfunction
+
+function! coc#source#foo#complete(opt, cb) abort
+  if a:opt['col'] == 0
+    call a:cb([{'word': '.f'}])
+    return
+  endif
+  call a:cb([])
+endfunction `
+    let filepath = createSourceFile('foo', content)
+    await sources.createVimSourceExtension(filepath)
+    let source = sources.getSource('foo')
+    expect(source).toBeDefined()
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    source.onEnter(bufnr)
+    let val = await nvim.getVar('coc_entered')
+    expect(val).toBe(1)
+    await nvim.setLine('.')
+    await nvim.input('A')
+    let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+    let res = await source.doComplete(opt, CancellationToken.None)
+    expect(res.startcol).toBe(0)
+    expect(res.items).toEqual([{ word: '.f', isSnippet: true }])
+    opt.col = 2
+    res = await source.doComplete(opt, CancellationToken.None)
+    expect(res).toBe(null)
+  })
+
   it('should not insert snippet when on_complete exists', async () => {
     let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
     let source = new VimSource({
@@ -194,6 +309,7 @@ describe('vim source', () => {
     let spy = jest.spyOn(nvim, 'call').mockImplementation(() => {
       return undefined
     })
+    await source.refresh()
     await source.onCompleteDone(item, opt)
     spy.mockRestore()
     let line = await nvim.line

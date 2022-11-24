@@ -8,7 +8,6 @@ import * as Is from '../util/is'
 import { toNumber } from '../util/numbers'
 import { byteIndex, byteLength, characterIndex, toText } from '../util/string'
 import workspace from '../workspace'
-import sources from './sources'
 import { CompleteOption, DurationCompleteItem } from './types'
 import { getKindHighlight, getKindText, highlightOffert, MruLoader, Selection } from './util'
 
@@ -156,13 +155,12 @@ export default class PopupMenu {
       if (Is.number(item.character) && item.character < minCharacter) {
         minCharacter = item.character
       }
-      let shortcut = sources.getShortcut(item.source)
       let label = this.getLabel(item)
       labels.push(label)
       abbrWidth = Math.max(this.stringWidth(label.text, true), abbrWidth)
       if (item.kind) kindWidth = Math.max(this.stringWidth(getKindText(item.kind, kindMap, defaultKindText), true), kindWidth)
       if (item.menu) menuWidth = Math.max(this.stringWidth(item.menu, true), menuWidth)
-      if (shortcut) shortcutWidth = Math.max(this.stringWidth(shortcut, true) + 2, shortcutWidth)
+      if (item.shortcut) shortcutWidth = Math.max(this.stringWidth(item.shortcut, true) + 2, shortcutWidth)
     }
     if (selectedIndex !== -1 && search.length > 0) {
       let item = items[selectedIndex]
@@ -341,7 +339,7 @@ export default class PopupMenu {
         case 'shortcut':
           if (config.shortcutWidth > 0) {
             let colStart = len
-            let shortcut = sources.getShortcut(item.source)
+            let shortcut = item.shortcut
             append(shortcut ? `[${shortcut}]` : '', config.shortcutWidth + 1)
             if (shortcut) {
               hls.push({

@@ -186,7 +186,7 @@ export class Helper extends EventEmitter {
     if (!items) return false
     let item = items.find(o => o.word == word)
     if (!item) return false
-    if (source && item.source != source) return false
+    if (source && item.source.name != source) return false
     return true
   }
 

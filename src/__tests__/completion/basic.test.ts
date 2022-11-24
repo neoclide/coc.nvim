@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, TextEdit } from 'vscode-languageserver-protocol'
-import completion from '../../completion'
-import { sortItems, SortMethod } from '../../completion/complete'
+import completion, { Completion } from '../../completion'
+import { sortItems } from '../../completion/complete'
 import sources from '../../completion/sources'
-import { CompleteFinishKind, CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceType, VimCompleteItem } from '../../completion/types'
+import { CompleteFinishKind, CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SortMethod, SourceType, VimCompleteItem } from '../../completion/types'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
-import { disposeAll } from '../../util'
+import { disposeAll, waitWithToken } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -59,6 +59,7 @@ describe('completion', () => {
   describe('suggest configurations', () => {
     it('should select item by preselect', async () => {
       helper.updateConfiguration('suggest.noselect', true)
+      expect(typeof Completion).toBe('function')
       await create([{ word: 'foo' }, { word: 'foo' }, { word: 'bar', preselect: true }], true)
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'bar')
@@ -309,6 +310,24 @@ describe('completion', () => {
       let buf = await floatWin.buffer
       expect(buf).toBeDefined()
     })
+
+    it('should change triggerCompletionWait', async () => {
+      let doc = await workspace.document
+      helper.updateConfiguration('suggest.triggerCompletionWait', 200)
+      let name = await create([{ word: 'foo' }, { word: 'bar' }], false)
+      triggerCompletion(name)
+      let spy
+      let p = new Promise<void>(resolve => {
+        spy = jest.spyOn(doc, 'patchChange').mockImplementation(() => {
+          resolve()
+          return Promise.resolve()
+        })
+      })
+      await p
+      await helper.wait(20)
+      completion.stop(true)
+      spy.mockRestore()
+    })
   })
 
   describe('suggest variables', () => {
@@ -342,6 +361,38 @@ describe('completion', () => {
       await doc.buffer.setVar('coc_suggest_blacklist', ['end'])
       await nvim.setLine('en')
       await nvim.input('Ad')
+      await helper.wait(10)
+      let visible = await helper.pumvisible()
+      expect(visible).toBe(false)
+    })
+  })
+
+  describe('shouldComplete()', () => {
+    it('should not complete when shouldComplete return false', async () => {
+      let name = Math.random().toString(16).slice(-6)
+      let called = false
+      let shouldRun = false
+      disposables.push(sources.addSource({
+        name,
+        shouldComplete: () => {
+          return shouldRun
+        },
+        doComplete: (_opt: CompleteOption): Promise<CompleteResult<ExtendedCompleteItem>> => new Promise(resolve => {
+          called = true
+          resolve({ items: [{ word: 'foo' }] })
+        })
+      }))
+      await nvim.input('i')
+      triggerCompletion(name)
+      await helper.wait(20)
+      expect(called).toBe(false)
+      shouldRun = true
+      triggerCompletion(name)
+      await helper.waitPopup()
+    })
+
+    it('should not complete with empty sources', async () => {
+      nvim.call('coc#start', { source: 'not_exists' }, true)
       await helper.wait(10)
       let visible = await helper.pumvisible()
       expect(visible).toBe(false)
@@ -802,21 +853,27 @@ describe('completion', () => {
     })
 
     it('should cancel resolve request', async () => {
+      let cancelled = false
       let called = false
       disposables.push(sources.createSource({
         name: 'resolve',
-        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }] }),
-        onCompleteResolve: async item => {
+        doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }, { word: 'bar' }] }),
+        onCompleteResolve: async (item, _opt, token) => {
           called = true
-          await helper.wait(100)
+          let res = await waitWithToken(100, token)
+          cancelled = res
           item.info = 'info'
         }
       }))
       await nvim.input('i.')
-      await helper.waitPopup()
+      await helper.waitValue(() => {
+        return called
+      }, true)
+      await nvim.call('coc#pum#next', [0])
+      await helper.waitValue(() => {
+        return cancelled
+      }, true)
       nvim.call('coc#pum#cancel', [], true)
-      await helper.wait(30)
-      expect(called).toBe(true)
       let floatWin = await helper.getFloat('pumdetail')
       expect(floatWin).toBeUndefined()
     })

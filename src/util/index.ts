@@ -1,4 +1,5 @@
 'use strict'
+import type { CancellationToken } from 'vscode-languageserver-protocol'
 
 export interface Disposable {
   dispose(): void
@@ -25,6 +26,20 @@ export function wait(ms: number): Promise<void> {
   return new Promise(resolve => {
     let timer = setTimeout(() => {
       resolve(undefined)
+    }, ms)
+    timer.unref()
+  })
+}
+
+export function waitWithToken(ms: number, token: CancellationToken): Promise<boolean> {
+  return new Promise<boolean>(resolve => {
+    let disposable = token.onCancellationRequested(() => {
+      clearTimeout(timer)
+      resolve(true)
+    })
+    let timer = setTimeout(() => {
+      disposable.dispose()
+      resolve(false)
     }, ms)
     timer.unref()
   })

@@ -20,10 +20,55 @@ afterAll(async () => {
 
 afterEach(async () => {
   disposeAll(disposables)
-  await helper.reset()
 })
 
 describe('sources', () => {
+  it('should check commit', () => {
+    expect(sources.shouldCommit(undefined, undefined, '')).toBe(false)
+    let source = sources.getSource('$words')
+    expect(sources.shouldCommit(source, { word: '' }, '.')).toBe(false)
+  })
+
+  it('should get normal sources', () => {
+    sources.createSource({
+      name: 'name',
+      documentSelector: [{ language: 'vim' }],
+      doComplete: () => null
+    })
+    let arr = sources.getNormalSources('', 'test:///1')
+    let res = arr.find(o => o.name === 'name')
+    expect(res).toBeUndefined()
+    sources.createSource({
+      name: 'name',
+      documentSelector: [{ language: '*' }],
+      doComplete: () => null
+    })
+    arr = sources.getNormalSources('x', 'test:///1')
+    res = arr.find(o => o.name === 'name')
+    expect(res).toBeDefined()
+  })
+
+  it('should get trigger sources', () => {
+    let res = sources.getTriggerSources('', 'vim', 'test:///1')
+    expect(res).toEqual([])
+    let arr = ['around', 'buffer', 'file']
+    res = sources.getTriggerSources('', 'vim', 'test:///1', arr)
+    let find = res.find(o => arr.includes(o.name))
+    expect(find).toBeUndefined()
+    sources.createSource({
+      name: 'name',
+      documentSelector: [{ language: 'vim' }],
+      doComplete: () => null
+    })
+    helper.updateConfiguration('coc.source.name.triggerCharacters', ['.'])
+    res = sources.getTriggerSources('.', 'vim', 'test:///1', arr)
+    find = res.find(o => o.name === 'name')
+    expect(find).toBeDefined()
+    res = sources.getTriggerSources('.', 'txt', 'test:///1', arr)
+    find = res.find(o => o.name === 'name')
+    expect(find).toBeUndefined()
+  })
+
   it('should do document enter', async () => {
     let fn = jest.fn()
     let source: ISource = {
@@ -124,7 +169,7 @@ describe('sources#createSource', () => {
             word: 'custom'
           }]
         })
-      })
+      } as any)
     }).toThrow()
   })
 

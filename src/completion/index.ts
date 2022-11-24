@@ -15,19 +15,18 @@ import type { Disposable } from '../util/protocol'
 import { byteLength, byteSlice, characterIndex, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import Complete, { CompleteConfig, SortMethod } from './complete'
+import Complete from './complete'
 import Floating from './floating'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import sources from './sources'
-import { CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, ISource } from './types'
-import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, getSources, MruLoader, shouldStop, toCompleteDoneItem } from './util'
+import { CompleteConfig, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, ISource, SortMethod } from './types'
+import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
 const TRIGGER_TIMEOUT = getConditionValue(200, 20)
 
 export class Completion implements Disposable {
   public config: CompleteConfig
   private staticConfig: PopupMenuConfig
-  private _activated = false
   private pum: PopupMenu
   private _mru: MruLoader
   private pretext: string | undefined
@@ -66,9 +65,10 @@ export class Completion implements Disposable {
       if (!this.option) return
       this.popupEvent = ev
       let resolved = this.complete.resolveItem(this.selectedItem)
-      if (!resolved || !this.config.enableFloat || (!ev.move && this.complete?.isCompleting)) return
+      if (!resolved || (!ev.move && this.complete.isCompleting)) return
       let detailRendered = this.selectedItem.detailRendered
-      await this.floating.resolveItem(resolved.source, resolved.item, this.option, true, detailRendered)
+      let showDocs = this.config.enableFloat
+      await this.floating.resolveItem(resolved.source, resolved.item, this.option, showDocs, detailRendered)
     }, null, this.disposables)
     this.nvim.call('coc#ui#check_pum_keymappings', [this.config.autoTrigger], true)
   }
@@ -80,9 +80,9 @@ export class Completion implements Disposable {
   public onCursorMovedI(bufnr: number, cursor: [number, number], hasInsert: boolean): void {
     clearTimeout(this.triggerTimer)
     if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
-    let { linenr, colnr, col } = this.option
+    let { linenr, colnr, col, input } = this.option
     if (linenr === cursor[0]) {
-      if (cursor[1] == colnr && cursor[1] === byteLength(this.pretext ?? '') + 1) {
+      if (cursor[1] == colnr && cursor[1] === byteLength(toText(this.pretext)) + 1) {
         return
       }
       let line = this.document.getline(cursor[0] - 1)
@@ -93,9 +93,7 @@ export class Completion implements Disposable {
       let start = characterIndex(line, col)
       if (start < curr) {
         let text = line.substring(start, curr)
-        if ((this.selectedItem && text === this.selectedItem.word)
-          || (!this.inserted && text == this.complete?.input)
-        ) {
+        if ((text === this.selectedItem?.word) || (!this.inserted && text == input)) {
           return
         }
       }
@@ -109,7 +107,7 @@ export class Completion implements Disposable {
   }
 
   public get isActivated(): boolean {
-    return this._activated
+    return this.complete != null
   }
 
   public get inserted(): boolean {
@@ -186,7 +184,7 @@ export class Completion implements Disposable {
     logger.debug('trigger completion with', option)
     this.stop(true)
     this.pretext = byteSlice(option.line, 0, option.colnr - 1)
-    sourceList = sourceList ?? getSources(option)
+    sourceList = sourceList ?? sources.getSources(option)
     if (isFalsyOrEmpty(sourceList)) return
     let complete = this.complete = new Complete(
       option,
@@ -194,7 +192,6 @@ export class Completion implements Disposable {
       this.config,
       sourceList,
       this.nvim)
-    this._activated = true
     events.completing = true
     complete.onDidRefresh(async () => {
       clearTimeout(this.triggerTimer)
@@ -322,7 +319,7 @@ export class Completion implements Disposable {
       changedtick: info.changedtick,
       synname: '',
       filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',
-      triggerCharacter: pre.length ? pre.slice(-1) : undefined
+      triggerCharacter: toText(pre[pre.length - 1])
     }
     if (sources == null && input.length < minTriggerInputLength) {
       logger.trace(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
@@ -334,19 +331,20 @@ export class Completion implements Disposable {
   }
 
   public stop(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): void {
-    if (!this._activated) return
+    let { complete } = this
+    if (complete == null) return
     let inserted = kind === CompleteFinishKind.Confirm || (this.popupEvent?.inserted && kind != CompleteFinishKind.Cancel)
-    this._activated = false
     let item = this.selectedItem
     let character = item?.character
-    let resolved = this.complete.resolveItem(item)
-    let option = this.complete.option
-    let input = this.complete.input
+    let resolved = complete.resolveItem(item)
+    let option = complete.option
+    let input = complete.input
+    let doc = workspace.getDocument(option.bufnr)
     let line = option.line
     let inputStart = characterIndex(line, option.col)
-    this.document?._forceSync()
     events.completing = false
     this.cancel()
+    doc._forceSync()
     void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item)])
     if (close) this.nvim.call('coc#pum#_close', [], true)
     if (resolved && inserted) {

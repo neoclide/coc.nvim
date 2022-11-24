@@ -2,11 +2,13 @@ import { CompletionItemKind, Position, Range, SelectionRange } from 'vscode-lang
 import events from '../events'
 import languages from '../languages'
 import { CompleteOption, DurationCompleteItem } from './types'
-import { binarySearch, isFalsyOrEmpty } from '../util/array'
-import { equals } from '../util/object'
+import { binarySearch, isFalsyOrEmpty, toArray } from '../util/array'
+import { equals, toObject } from '../util/object'
+import * as Is from '../util/is'
 import { compareRangesUsingStarts, rangeInRange } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import workspace from '../workspace'
+import { waitWithToken } from '../util'
 
 export abstract class WordDistance {
 
@@ -21,7 +23,7 @@ export abstract class WordDistance {
 
     let doc = workspace.getDocument(opt.bufnr)
     const selectionRanges = await languages.getSelectionRanges(doc.textDocument, [position], token)
-    if (isFalsyOrEmpty(selectionRanges)) return WordDistance.None
+    if (!selectionRanges || token.isCancellationRequested) return WordDistance.None
 
     let ranges: Range[] = []
     const iterate = (r?: SelectionRange) => {
@@ -30,17 +32,10 @@ export abstract class WordDistance {
         iterate(r.parent)
       }
     }
-    iterate(selectionRanges[0])
+    iterate(toArray(selectionRanges)[0])
 
-    let timer
-    const tp = new Promise(resolve => {
-      timer = setTimeout(() => {
-        resolve(undefined)
-      }, 100)
-    })
-    let wordRanges = ranges.length > 0 ? await Promise.race([tp, workspace.computeWordRanges(opt.bufnr, ranges[0], token)]) : undefined
-    clearTimeout(timer)
-    if (!wordRanges) return WordDistance.None
+    let wordRanges = ranges.length > 0 ? await Promise.race([waitWithToken(100, token), workspace.computeWordRanges(opt.bufnr, ranges[0], token)]) : undefined
+    if (!Is.objectLiteral(wordRanges)) return WordDistance.None
 
     // remove current word
     delete wordRanges[opt.word]
@@ -50,7 +45,7 @@ export abstract class WordDistance {
         if (!equals([events.cursor.lnum, events.cursor.col], cursor)) {
           return 0
         }
-        if (item.kind === CompletionItemKind.Keyword || item.source === 'snippets') {
+        if (item.kind === CompletionItemKind.Keyword || toObject(item.source)['name'] === 'snippets') {
           return 2 << 20
         }
         const wordLines = wordRanges[item.word]

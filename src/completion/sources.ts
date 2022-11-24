@@ -8,9 +8,10 @@ import type { CompletionItemProvider, DocumentSelector } from '../provider'
 import { disposeAll } from '../util'
 import { intersect, isFalsyOrEmpty, toArray } from '../util/array'
 import { statAsync } from '../util/fs'
+import * as Is from '../util/is'
 import { fs, path, promisify } from '../util/node'
 import { Disposable } from '../util/protocol'
-import { byteSlice } from '../util/string'
+import { toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { KeywordsBuffer } from './keywords'
@@ -18,10 +19,12 @@ import Source from './source'
 import LanguageSource from './source-language'
 import VimSource from './source-vim'
 import { CompleteItem, CompleteOption, ExtendedCompleteItem, ISource, SourceConfig, SourceStat, SourceType } from './types'
+import { getPriority } from './util'
 const logger = createLogger('sources')
 
-interface InitialConfig {
+interface VimSourceConfig {
   filetypes?: string[]
+  isSnippet?: boolean
   firstMatch?: boolean
   triggerCharacters?: string[]
   priority?: number
@@ -63,14 +66,9 @@ export class Sources {
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
     workspace.onDidRuntimePathChange(newPaths => {
       for (let p of newPaths) {
-        this.createVimSources(p).catch(onError)
+        this.createVimSources(p).catch(logError)
       }
     }, null, this.disposables)
-  }
-
-  public getShortcut(name: string): string {
-    let source = this.sourceMap.get(name)
-    return source ? source.shortcut : ''
   }
 
   private get nvim(): Neovim {
@@ -120,20 +118,20 @@ export class Sources {
     }
   }
 
-  private async createVimSourceExtension(nvim: Neovim, filepath: string): Promise<void> {
+  public async createVimSourceExtension(filepath: string): Promise<void> {
+    let { nvim } = this
     try {
       let name = path.basename(filepath, '.vim')
       await nvim.command(`source ${filepath}`)
       let fns = await nvim.call('coc#util#remote_fns', name) as string[]
       for (let fn of ['init', 'complete']) {
         if (!fns.includes(fn)) {
-          void window.showErrorMessage(`${fn} not found for source ${name}`)
-          return null
+          throw new Error(`function "coc#source#${name}#${fn}" not found`)
         }
       }
-      let props = await nvim.call(`coc#source#${name}#init`, []) as InitialConfig
+      let props = await nvim.call(`coc#source#${name}#init`, []) as VimSourceConfig
       let packageJSON = {
-        name: `coc-source-${name}`,
+        name: `coc-vim-source-${name}`,
         engines: {
           coc: ">= 0.0.1"
         },
@@ -192,6 +190,7 @@ export class Sources {
           let source = new VimSource({
             name,
             filepath,
+            isSnippet: props.isSnippet,
             sourceType: SourceType.Remote,
             optionalFns: fns.filter(n => !['init', 'complete'].includes(n))
           })
@@ -202,7 +201,7 @@ export class Sources {
       Object.defineProperty(extension, 'isActive', {
         get: () => isActive
       })
-      void extensions.manager.registerInternalExtension(extension, () => {
+      await extensions.manager.registerInternalExtension(extension, () => {
         isActive = false
         this.removeSource(name)
       })
@@ -214,11 +213,11 @@ export class Sources {
   private createRemoteSources(): void {
     let paths = workspace.env.runtimepath.split(',')
     for (let path of paths) {
-      this.createVimSources(path).catch(onError)
+      this.createVimSources(path).catch(logError)
     }
   }
 
-  private async createVimSources(pluginPath: string): Promise<void> {
+  public async createVimSources(pluginPath: string): Promise<void> {
     if (this.remoteSourcePaths.includes(pluginPath) || !pluginPath) return
     this.remoteSourcePaths.push(pluginPath)
     let folder = path.join(pluginPath, 'autoload/coc/source')
@@ -226,7 +225,7 @@ export class Sources {
     if (stat && stat.isDirectory()) {
       let arr = await promisify(fs.readdir)(folder)
       let files = arr.filter(s => s.endsWith('.vim')).map(s => path.join(folder, s))
-      await Promise.allSettled(files.map(p => this.createVimSourceExtension(this.nvim, p)))
+      await Promise.allSettled(files.map(p => this.createVimSourceExtension(p)))
     }
   }
 
@@ -246,20 +245,18 @@ export class Sources {
     return this.sourceMap.get(name) ?? null
   }
 
-  public shouldCommit(source: ISource, item: CompleteItem | undefined, commitCharacter: string): boolean {
+  public shouldCommit(source: ISource | undefined, item: CompleteItem | undefined, commitCharacter: string): boolean {
     if (!item || source == null) return false
-    if (source && typeof source.shouldCommit === 'function') {
+    if (Is.func(source.shouldCommit)) {
       return source.shouldCommit(item, commitCharacter)
     }
     return false
   }
 
-  public getCompleteSources(opt: CompleteOption): ISource[] {
-    let { filetype } = opt
-    let pre = byteSlice(opt.line, 0, opt.colnr - 1)
-    let isTriggered = opt.input == '' && !!opt.triggerCharacter
+  public getSources(opt: CompleteOption): ISource[] {
+    let { source } = opt
+    if (source) return toArray(this.getSource(source))
     let uri = workspace.getUri(opt.bufnr)
-    if (isTriggered) return this.getTriggerSources(pre, filetype, uri)
     return this.getNormalSources(opt.filetype, uri)
   }
 
@@ -346,34 +343,28 @@ export class Sources {
   }
 
   public sourceStats(): SourceStat[] {
-    let res: SourceStat[] = []
-    let items = this.sources
-    let doc = workspace.getDocument(workspace.bufnr)
-    let suggest = workspace.getConfiguration('suggest', doc)
-    let languageSourcePriority = suggest.get<number>('languageSourcePriority', 99)
-    for (let item of items) {
+    let stats: SourceStat[] = []
+    let languageSourcePriority = workspace.initialConfiguration.get<number>('suggest.languageSourcePriority')
+    for (let item of this.sourceMap.values()) {
       if (item.name === '$words') continue
-      let priority = typeof item.priority === 'number' ? item.priority : item.sourceType == SourceType.Service ? languageSourcePriority : 0
-      res.push({
+      stats.push({
         name: item.name,
-        priority,
-        triggerCharacters: item.triggerCharacters || [],
-        shortcut: item.shortcut ?? '',
-        filetypes: item.filetypes || [],
-        filepath: item.filepath || '',
-        type: item.sourceType == SourceType.Native
-          ? 'native' : item.sourceType == SourceType.Remote
-            ? 'remote' : 'service',
+        priority: getPriority(item, languageSourcePriority),
+        triggerCharacters: toArray(item.triggerCharacters),
+        shortcut: toText(item.shortcut),
+        filetypes: toArray(item.filetypes),
+        filepath: toText(item.filepath),
+        type: getSourceType(item.sourceType),
         disabled: !item.enable
       })
     }
-    return res
+    return stats
   }
 
   private onDocumentEnter(bufnr: number): void {
     let { sources } = this
     for (let s of sources) {
-      if (s.enable && typeof s.onEnter == 'function') {
+      if (s.enable && Is.func(s.onEnter)) {
         s.onEnter(bufnr)
       }
     }
@@ -382,7 +373,7 @@ export class Sources {
   public createSource(config: SourceConfig): Disposable {
     if (typeof config.name !== 'string' || typeof config.doComplete !== 'function') {
       logger.error(`Bad config for createSource:`, config)
-      throw new Error(`name and doComplete required for createSource`)
+      throw new TypeError(`name and doComplete required for createSource`)
     }
     let source = new Source(Object.assign({ sourceType: SourceType.Service } as any, config))
     return this.addSource(source)
@@ -393,8 +384,14 @@ export class Sources {
   }
 }
 
-function onError(err: any): void {
+export function logError(err: any): void {
   logger.error('Error on source create', err)
+}
+
+export function getSourceType(sourceType: SourceType): string {
+  if (sourceType === SourceType.Native) return 'native'
+  if (sourceType === SourceType.Remote) return 'remote'
+  return 'service'
 }
 
 export default new Sources()

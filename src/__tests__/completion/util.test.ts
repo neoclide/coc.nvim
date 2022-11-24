@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
-import { CompleteOption, DurationCompleteItem } from '../../completion/types'
-import { checkIgnoreRegexps, toCompleteDoneItem, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffert, indentChanged, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop } from '../../completion/util'
+import sources from '../../completion/sources'
+import { CompleteOption, ISource } from '../../completion/types'
+import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffert, indentChanged, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import languages from '../../languages'
@@ -26,9 +27,17 @@ afterEach(() => {
   disposeAll(disposables)
 })
 
+function getSource(): ISource {
+  return sources.getSource('$words')
+}
+
 describe('util functions', () => {
   it('should toCompleteDoneItem', async () => {
     expect(toCompleteDoneItem(undefined, undefined)).toEqual({})
+  })
+
+  it('should getPriority', async () => {
+    expect(getPriority(getSource(), 5)).toBe(5)
   })
 
   it('should add documentation', () => {
@@ -234,7 +243,7 @@ describe('util functions', () => {
       let option: ConvertOption = {
         priority: 0,
         range: Range.create(0, 1, 0, 4),
-        source: '',
+        source: getSource(),
       }
       let c = create(1, option, opt)
       expect(c.getPrevious(0)).toBe('$')
@@ -252,7 +261,7 @@ describe('util functions', () => {
       let option: ConvertOption = {
         range: Range.create(0, 0, 0, 0),
         priority: 0,
-        source: '',
+        source: getSource(),
       }
       let item: any = {
         label: 'f',
@@ -262,7 +271,7 @@ describe('util functions', () => {
         tags: [CompletionItemTag.Deprecated]
       }
       let c = create(0, option, opt)
-      let res = c.convertToDurationItem(item, 0)
+      let res = c.convertToDurationItem(item)
       expect(res.abbr.endsWith('?')).toBe(true)
       expect(typeof res.sortText).toBe('string')
       expect(res.deprecated).toBe(true)
@@ -277,7 +286,7 @@ describe('util functions', () => {
       let option: ConvertOption = {
         range: Range.create(0, 1, 0, 1),
         priority: 0,
-        source: '',
+        source: getSource(),
       }
       let item: CompletionItem = {
         label: 'afoo',
@@ -285,12 +294,12 @@ describe('util functions', () => {
         textEdit: TextEdit.replace(Range.create(0, 0, 0, 4), 'afoo'),
       }
       let c = create(1, option, opt)
-      let res = c.convertToDurationItem(item, 0)
+      let res = c.convertToDurationItem(item)
       expect(res.character).toBe(0)
       expect(res.word).toBe('a')
       item.textEdit = TextEdit.replace(Range.create(0, 1, 0, 4), 'foo')
       item.labelDetails = { description: 'description' }
-      res = c.convertToDurationItem(item, 1)
+      res = c.convertToDurationItem(item)
       expect(res.character).toBe(1)
       expect(res.labelDetails).toBeDefined()
     })
@@ -304,14 +313,14 @@ describe('util functions', () => {
         range: Range.create(0, 0, 0, 1),
         priority: 0,
         asciiMatch: false,
-        source: '',
+        source: getSource(),
       }
       let item: any = {
         word: '@foo',
         abbr: 'foo'
       }
       let c = create(1, option, opt)
-      let res = c.convertToDurationItem(item, 0)
+      let res = c.convertToDurationItem(item)
       expect(res.filterText).toBe('@foo')
       expect(res.delta).toBe(1)
     })
@@ -502,8 +511,8 @@ describe('util functions', () => {
   describe('MruLoader', () => {
     it('should add item without prefix', () => {
       let loader = new MruLoader()
-      loader.add('foo', { kind: '', source: '', filterText: 'foo' })
-      let item = { kind: CompletionItemKind.Class, source: '', filterText: '$foo' }
+      loader.add('foo', { kind: '', source: getSource(), filterText: 'foo' })
+      let item = { kind: CompletionItemKind.Class, source: getSource(), filterText: '$foo' }
       loader.add('foo', item)
       let score = loader.getScore('', item, Selection.RecentlyUsed)
       expect(score).toBeGreaterThan(-1)

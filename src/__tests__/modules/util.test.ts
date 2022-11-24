@@ -1,14 +1,15 @@
 import style from 'ansi-styles'
 import * as assert from 'assert'
-import { spawn } from 'child_process'
+import cp, { spawn } from 'child_process'
 import os from 'os'
 import path from 'path'
+import { v4 as uuid } from 'uuid'
 import vm from 'vm'
-import cp from 'child_process'
-import { AnnotatedTextEdit, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { AnnotatedTextEdit, CancellationToken, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { ConfigurationScope } from '../../configuration/types'
 import { LinesTextDocument } from '../../model/textdocument'
 import { DocumentChange } from '../../types'
-import { concurrent, delay, disposeAll, wait } from '../../util'
+import { concurrent, delay, disposeAll, wait, waitWithToken } from '../../util'
 import { ansiparse, parseAnsiHighlights } from '../../util/ansiparse'
 import * as arrays from '../../util/array'
 import { filter } from '../../util/async'
@@ -20,10 +21,10 @@ import * as extension from '../../util/extensionRegistry'
 import * as factory from '../../util/factory'
 import * as fuzzy from '../../util/fuzzy'
 import * as Is from '../../util/is'
-import { v4 as uuid } from 'uuid'
 import { Extensions, IJSONContributionRegistry } from '../../util/jsonRegistry'
 import * as lodash from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
+import * as numbers from '../../util/numbers'
 import * as objects from '../../util/object'
 import * as platform from '../../util/platform'
 import * as positions from '../../util/position'
@@ -31,11 +32,9 @@ import { executable, isRunning, runCommand, terminate } from '../../util/process
 import { convertProperties, Registry } from '../../util/registry'
 import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
-import * as numbers from '../../util/numbers'
 import * as textedits from '../../util/textedit'
 import { createTiming } from '../../util/timing'
 import helper from '../helper'
-import { ConfigurationScope } from '../../configuration/types'
 
 function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
@@ -980,6 +979,18 @@ describe('utility', () => {
 
   it('should disposeAll', () => {
     disposeAll([undefined, undefined])
+  })
+
+  it('should wait with token', async () => {
+    let res = await waitWithToken(1, CancellationToken.None)
+    expect(res).toBe(false)
+    let tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
+    let p = waitWithToken(200, token)
+    await wait(1)
+    tokenSource.cancel()
+    res = await p
+    expect(res).toBe(true)
   })
 
   it('should check executable', () => {
