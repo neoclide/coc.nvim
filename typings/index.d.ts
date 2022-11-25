@@ -8481,7 +8481,7 @@ declare module 'coc.nvim' {
     workspaceFolderValue?: T
   }
 
-  export enum ConfigurationUpdateTarget {
+  export enum ConfigurationTarget {
     Global = 1,
     /**
      * Not exists with coc.nvim yet.
@@ -8537,7 +8537,7 @@ declare module 'coc.nvim' {
      * @param updateTarget Target of configuration, use global user configuration when is `true`,
      *                     when `false` or undefined use workspace folder confirmation.
      */
-    update(section: string, value: any, updateTarget?: ConfigurationUpdateTarget | boolean): Thenable<void>
+    update(section: string, value: any, updateTarget?: ConfigurationTarget | boolean): Thenable<void>
 
     /**
      * Readable dictionary that backs this configuration.
