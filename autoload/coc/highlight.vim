@@ -494,6 +494,7 @@ function! coc#highlight#create_bg_command(group, amount) abort
   let normal = coc#highlight#get_hex_color(synIDtrans(hlID('Normal')), 'bg', &background ==# 'dark' ? '#282828' : '#fefefe')
   let bg = coc#highlight#get_hex_color(id, 'bg', normal)
   let hex = a:amount > 0 ? coc#color#darken(bg, a:amount) : coc#color#lighten(bg, -a:amount)
+
   let ctermbg = coc#color#rgb2term(strpart(hex, 1))
   if s:term && !s:check_ctermbg(id, ctermbg) && abs(a:amount) < 20.0
     return coc#highlight#create_bg_command(a:group, a:amount * 2)

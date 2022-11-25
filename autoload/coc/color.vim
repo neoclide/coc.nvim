@@ -472,47 +472,31 @@ function! coc#color#hexToRgb(color)
     end
     let r = str2nr(matches[1], 16) * factor
     let g = str2nr(matches[2], 16) * factor
-  let b = str2nr(matches[3], 16) * factor
+    let b = str2nr(matches[3], 16) * factor
   return [r, g, b]
 endfunction
 
-" @params String                 color      The color
-" @params {Number|String|Float} [amount=5]  The percentage of light
 function! coc#color#lighten(color, ...)
   let amount = a:0 ?
         \(type(a:1) < 2 ?
         \str2float(a:1) : a:1 )
-        \: 5.0
-  if(amount < 1.0)
-    let amount = 1.0 + amount
-  else
-    let amount = 1.0 + (amount / 100.0)
-  end
+        \: 5
   let rgb = coc#color#hexToRgb(a:color)
-  let rgb = map(rgb, 'v:val * amount')
+  let rgb = map(rgb, 'v:val + amount*(255 - v:val)/255')
   let rgb = map(rgb, 'v:val > 255.0 ? 255.0 : v:val')
   let rgb = map(rgb, 'float2nr(v:val)')
   let hex = coc#color#rgbToHex(rgb)
   return hex
 endfunction
 
-" @params String                 color      The color
-" @params {Number|String|Float} [amount=5]  The percentage of darkness
 function! coc#color#darken(color, ...)
   let amount = a:0 ?
         \(type(a:1) < 2 ?
         \str2float(a:1) : a:1 )
         \: 5.0
-  if(amount < 1.0)
-    let amount = 1.0 - amount
-  else
-    let amount = 1.0 - (amount / 100.0)
-  end
-  if(amount < 0.0)
-    let amount = 0.0 | end
   let rgb = coc#color#hexToRgb(a:color)
-  let rgb = map(rgb, 'v:val * amount')
-  let rgb = map(rgb, 'v:val > 255.0 ? 255.0 : v:val')
+  let rgb = map(rgb, 'v:val - amount*v:val/255')
+  let rgb = map(rgb, 'v:val < 0.0 ? 0.0 : v:val')
   let rgb = map(rgb, 'float2nr(v:val)')
   let hex = coc#color#rgbToHex(rgb)
   return hex
