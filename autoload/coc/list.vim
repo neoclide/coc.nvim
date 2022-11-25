@@ -64,8 +64,12 @@ function! coc#list#create(position, height, name, numberSelect)
   if a:position ==# 'tab'
     execute 'silent tabe list:///'.a:name
   else
+    let g:coc_list_saved_view = winsaveview()
+    let winid = win_getid()
     execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
     execute 'resize '.a:height
+    call coc#compat#execute(winid, 'call winrestview(g:coc_list_saved_view)')
+    unlet g:coc_list_saved_view
   endif
   if a:numberSelect
     setl norelativenumber
@@ -93,6 +97,12 @@ function! coc#list#setup(source)
   setl norelativenumber bufhidden=wipe nocursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn undolevels=-1
   setl signcolumn=auto
+  if s:is_vim
+    setl nocursorline
+  else
+    setl cursorline
+    setl winhighlight=CursorLine:CocListLine
+  endif
   if has('nvim-0.5.0') || has('patch-8.1.0864')
     setl scrolloff=0
   endif
@@ -107,8 +117,19 @@ function! coc#list#setup(source)
   endif
 endfunction
 
+function! coc#list#close(winid, position, target_win) abort
+  if a:position ==# 'tab'
+    call coc#window#close(a:winid)
+  else
+    call coc#compat#execute(a:target_win, 'let g:coc_list_saved_view = winsaveview()')
+    call coc#window#close(a:winid)
+    call coc#compat#execute(a:target_win, 'call winrestview(g:coc_list_saved_view)')
+    unlet g:coc_list_saved_view
+  endif
+endfunction
+
 function! coc#list#select(bufnr, line) abort
-  if !empty(a:bufnr) && bufloaded(a:bufnr)
+  if s:is_vim && !empty(a:bufnr) && bufloaded(a:bufnr)
     call sign_unplace(s:sign_group, { 'buffer': a:bufnr })
     if a:line > 0
       call sign_place(6, s:sign_group, s:current_line_hl, a:bufnr, {'lnum': a:line})

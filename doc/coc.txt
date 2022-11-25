@@ -960,12 +960,13 @@ Document colors added color highlights to vim buffers.  To enable document
 color highlights, use |coc-config-colors-enable|.
 
 Note: the highlights define gui colors only, make use you have 'termguicolors'
-enabled (and your terminal support gui colors) if you're not using gvim.
+enabled (and your terminal support gui colors) if you're using vim in
+terminal.
 
 To pick a color from system color picker, use |CocAction('pickColor')| or
 choose `editor.action.pickColor` from |:CocCommand|.
 
-Note: may not work on your system.
+Note: pick color may not work on your system.
 
 To change color presentation, use |CocAction('colorPresentation')| or choose
 `editor.action.colorPresentation` from |:CocCommand|.
@@ -3693,6 +3694,13 @@ location						*coc-list-location*
 extensions						*coc-list-extensions*
 
 	Manage coc.nvim extensions.
+	First column in the list window represent the state of extension:
+
+	- "*" means the extension is activated.
+	- "+" means the extension package json is loaded, but not activated by
+	  load the javascript file.
+	- "-" means the extension is disabled by 'disable' action.
+	- "?" means the extension is not recognized by coc.nvim.
 
 	Actions:
 

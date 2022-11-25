@@ -352,6 +352,7 @@ function! s:Enable(initialize)
       if exists('##TerminalOpen')
         autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
       endif
+      autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
@@ -360,7 +361,6 @@ function! s:Enable(initialize)
     if exists('##CompleteChanged')
       autocmd CompleteChanged   * call coc#pum#stop()
     endif
-    autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
     autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')
       autocmd WinClosed         * call s:HandleWinClosed(+expand('<amatch>'))
@@ -424,19 +424,25 @@ function! s:Highlight() abort
   hi default CocSearch        ctermfg=Blue    guifg=#15aabf guibg=NONE
   hi default CocLink          term=underline cterm=underline gui=underline guisp=#15aabf
   if coc#highlight#get_contrast('Normal', has('nvim') ? 'NormalFloat' : 'Pmenu') > 2.0
-    exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -0.4 : 0.1)
-    exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -0.2 : 0.05)
-    exe 'hi default CocFloatThumb '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -0.3 : 0.2)
-    exe 'hi default CocFloatSbar '.coc#highlight#create_bg_command('CocFloatThumb', &background ==# 'dark' ? -0.5 : 0.3)
+    exe 'hi default CocFloating '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -30 : 30)
+    exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -20 : 20)
+    exe 'hi default CocFloatThumb '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -40 : 40)
+    hi default link CocFloatSbar CocFloating
   else
     exe 'hi default link CocFloating '.(has('nvim') ? 'NormalFloat' : 'Pmenu')
     if coc#highlight#get_contrast('CocFloating', 'PmenuSel') > 2.0
-      exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -0.2 : 0.05)
+      exe 'hi default CocMenuSel '.coc#highlight#create_bg_command('CocFloating', &background ==# 'dark' ? -30 : 30)
     else
       exe 'hi default CocMenuSel '.coc#highlight#get_hl_command(synIDtrans(hlID('PmenuSel')), 'bg', '237', '#13354A')
     endif
     hi default link CocFloatThumb        PmenuThumb
     hi default link CocFloatSbar         PmenuSbar
+  endif
+  if coc#highlight#get_contrast('Normal', 'CursorLine') < 1.3
+    " Avoid color too close
+    exe 'hi default CocListLine '.coc#highlight#create_bg_command('Normal', &background ==# 'dark' ? -20 : 20)
+  else
+    hi default link CocListLine            CursorLine
   endif
   hi default link CocFloatActive         CocSearch
   hi default link CocFadeOut             Conceal
@@ -444,7 +450,6 @@ function! s:Highlight() abort
   hi default link CocMarkdownHeader      markdownH1
   hi default link CocDeprecatedHighlight CocStrikeThrough
   hi default link CocUnusedHighlight     CocFadeOut
-  hi default link CocListLine            CursorLine
   hi default link CocListSearch          CocSearch
   hi default link CocListMode            ModeMsg
   hi default link CocListPath            Comment
