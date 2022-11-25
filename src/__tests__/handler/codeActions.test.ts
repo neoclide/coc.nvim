@@ -368,7 +368,7 @@ describe('handler codeActions', () => {
       }, undefined))
       let doc = await workspace.document
       let res = await languages.getCodeActions(doc.textDocument, Range.create(0, 0, 1, 1), { only: [CodeActionKind.QuickFix], diagnostics: [] }, CancellationToken.None)
-      expect(res.length).toBe(2)
+      expect(res.length).toBe(1)
       let resolved = await languages.resolveCodeAction(res[0], CancellationToken.None)
       expect(resolved).toBeDefined()
     })

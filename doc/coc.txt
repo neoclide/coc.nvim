@@ -906,6 +906,7 @@ Key-mappings for code actions:~
 - |<Plug>(coc-codeaction-cursor)| Choose code actions at cursor position.
 - |<Plug>(coc-codeaction-line)| Choose code actions at current line.
 - |<Plug>(coc-codeaction)| Choose code actions of current file.
+- |<Plug>(coc-codeaction-source)| Choose source code action of current file.
 - |<Plug>(coc-codeaction-selected)| Choose code actions from selected range.
 - |<Plug>(coc-codeaction-refactor)| Choose refactor code action at cursor
   position.
@@ -1412,6 +1413,9 @@ invoke |CocAction('refactor')|
 
 *<Plug>(coc-codeaction)* Get and run code action(s) for current file, use
 |coc-codeaction-cursor| for same behavior as VSCode.
+
+*<Plug>(coc-codeaction-source)* Get and run source code action(s) for current
+file.  The same as 'Source action...' in context menu of VSCode.
 
 *<Plug>(coc-codeaction-line)* Get and run code action(s) for current line.
 
