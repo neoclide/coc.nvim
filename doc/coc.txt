@@ -3694,6 +3694,13 @@ location						*coc-list-location*
 extensions						*coc-list-extensions*
 
 	Manage coc.nvim extensions.
+	First column in the list window represent the state of extension:
+
+	- "*" means the extension is activated.
+	- "+" means the extension package json is loaded, but not activated by
+	  load the javascript file.
+	- "-" means the extension is disabled by 'disable' action.
+	- "?" means the extension is not recognized by coc.nvim.
 
 	Actions:
 

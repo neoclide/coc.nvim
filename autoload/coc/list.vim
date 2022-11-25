@@ -97,6 +97,12 @@ function! coc#list#setup(source)
   setl norelativenumber bufhidden=wipe nocursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn undolevels=-1
   setl signcolumn=auto
+  if s:is_vim
+    setl nocursorline
+  else
+    setl cursorline
+    setl winhighlight=CursorLine:CocListLine
+  endif
   if has('nvim-0.5.0') || has('patch-8.1.0864')
     setl scrolloff=0
   endif
@@ -123,7 +129,7 @@ function! coc#list#close(winid, position, target_win) abort
 endfunction
 
 function! coc#list#select(bufnr, line) abort
-  if !empty(a:bufnr) && bufloaded(a:bufnr)
+  if s:is_vim && !empty(a:bufnr) && bufloaded(a:bufnr)
     call sign_unplace(s:sign_group, { 'buffer': a:bufnr })
     if a:line > 0
       call sign_place(6, s:sign_group, s:current_line_hl, a:bufnr, {'lnum': a:line})
