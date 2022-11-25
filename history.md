@@ -1,5 +1,6 @@
 # 2022-11-25
 
+- Avoid view change on list create.
 - Add configurations `links.enable` and `links.highlight`.
 
 # 2022-11-22

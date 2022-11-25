@@ -294,7 +294,7 @@ export default class ListSession {
 
   public async hide(notify = false): Promise<void> {
     if (this.hidden) return
-    let { nvim, timer, window, db } = this
+    let { nvim, timer, window, db, context } = this
     let { winid, tabnr } = this.ui
     if (timer) clearTimeout(timer)
     this.worker.stop()
@@ -308,7 +308,7 @@ export default class ListSession {
     if (!isVim) nvim.call('coc#prompt#stop_prompt', ['list'], true)
     if (tabnr) nvim.call('coc#list#close_preview', [tabnr], true)
     if (window) nvim.call('win_gotoid', [window.id], true)
-    if (winid) nvim.call('coc#window#close', [winid], true)
+    if (winid) nvim.call('coc#list#close', [winid, context.options.position, context.window.id], true)
     if (window && this.savedHeight && this.listOptions.position !== 'tab') {
       nvim.call('coc#window#set_height', [window.id, this.savedHeight], true)
     }

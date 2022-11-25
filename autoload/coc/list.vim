@@ -64,8 +64,12 @@ function! coc#list#create(position, height, name, numberSelect)
   if a:position ==# 'tab'
     execute 'silent tabe list:///'.a:name
   else
+    let g:coc_list_saved_view = winsaveview()
+    let winid = win_getid()
     execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
     execute 'resize '.a:height
+    call coc#compat#execute(winid, 'call winrestview(g:coc_list_saved_view)')
+    unlet g:coc_list_saved_view
   endif
   if a:numberSelect
     setl norelativenumber
@@ -104,6 +108,17 @@ function! coc#list#setup(source)
   if !s:is_vim
     " Repeat press <C-f> and <C-b> would invoke <esc> on vim
     nnoremap <silent><nowait><buffer> <esc> <C-w>c
+  endif
+endfunction
+
+function! coc#list#close(winid, position, target_win) abort
+  if a:position ==# 'tab'
+    call coc#window#close(a:winid)
+  else
+    call coc#compat#execute(a:target_win, 'let g:coc_list_saved_view = winsaveview()')
+    call coc#window#close(a:winid)
+    call coc#compat#execute(a:target_win, 'call winrestview(g:coc_list_saved_view)')
+    unlet g:coc_list_saved_view
   endif
 endfunction
 
