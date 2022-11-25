@@ -478,11 +478,11 @@ export default class ListUI {
   public setCursor(lnum: number, col = 0, index?: number): void {
     let { items } = this
     let max = items.length == 0 ? 1 : items.length
-    if (lnum > max || !this.window) return
+    if (lnum > max) return
     // change index since CursorMoved event not fired (seems bug of neovim)!
     index = index == null ? this.lnumToIndex(lnum) : index
     this.onLineChange(index)
-    this.window.setCursor([lnum, col], true)
+    this.window?.setCursor([lnum, col], true)
     this.nvim.call('coc#list#select', [this.bufnr, lnum], true)
   }
 

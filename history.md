@@ -2,6 +2,8 @@
 
 - Avoid view change on list create.
 - Add configurations `links.enable` and `links.highlight`.
+- Use cursorline for list on neovim (to have correct highlight).
+- Fix highlight not work on neovim 0.5.0 by use `luaeval`.
 
 # 2022-11-22
 

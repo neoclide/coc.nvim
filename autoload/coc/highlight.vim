@@ -1,6 +1,8 @@
 scriptencoding utf-8
 let s:is_vim = !has('nvim')
-let s:clear_match_by_window = has('nvim-0.6.0') || has('patch-8.1.1084')
+let s:nvim_50 = has('nvim-0.5.0')
+let s:nvim_60 = has('nvim-0.6.0')
+let s:clear_match_by_window = s:nvim_60 || has('patch-8.1.1084')
 let s:set_extmark = has('nvim') && exists('*nvim_buf_set_extmark')
 let s:namespace_map = {}
 let s:ns_id = 1
@@ -151,8 +153,13 @@ function! coc#highlight#get_highlights(bufnr, key, ...) abort
   endif
   let start = get(a:, 1, 0)
   let end = get(a:, 2, -1)
-  if has('nvim-0.5.0')
+  if s:nvim_60
     return v:lua.require('coc.highlight').getHighlights(a:bufnr, a:key, start, end)
+  elseif s:nvim_50
+    return luaeval(
+          \ 'require("coc.highlight").getHighlights(_A[1],_A[2],_A[3],_A[4])',
+          \ [a:bufnr, a:key, start, end]
+          \ )
   endif
   let res = []
   let ns = s:namespace_map[a:key]
@@ -204,8 +211,14 @@ function! coc#highlight#set(bufnr, key, highlights, priority) abort
     return
   endif
   let ns = coc#highlight#create_namespace(a:key)
-  if has('nvim-0.5.0')
+  let g:c = 1
+  if s:nvim_60
     call v:lua.require('coc.highlight').set(a:bufnr, ns, a:highlights, a:priority)
+  elseif s:nvim_50
+    call luaeval(
+          \ 'require("coc.highlight").set(_A[1],_A[2],_A[3],_A[4])',
+          \ [a:bufnr, ns, a:highlights, a:priority]
+          \ )
   else
     if len(a:highlights) > g:coc_highlight_maximum_count
       call s:add_highlights_timer(a:bufnr, ns, a:highlights, a:priority)
