@@ -16,7 +16,7 @@ const logger = createLogger('attach')
  */
 const ACTIONS_NO_WAIT = ['installExtensions', 'updateExtensions']
 const semVer = semver.parse(VERSION)
-const pendingNotifications: Map<string, any[]> = new Map()
+let pendingNotifications: [string, any[]][] = []
 
 export function pathReplace(patterns: object | undefined): void {
   if (objectLiteral(patterns)) {
@@ -40,13 +40,13 @@ export default (opts: Attach, requestApi = true): Plugin => {
   const plugin = new Plugin(nvim)
   let disposable = events.on('ready', () => {
     disposable.dispose()
-    for (let [method, args] of pendingNotifications.entries()) {
+    for (let [method, args] of pendingNotifications) {
       plugin.cocAction(method, ...args).catch(e => {
         console.error(`Error on notification "${method}": ${e}`)
         logger.error(`Error on notification ${method}`, e)
       })
     }
-    pendingNotifications.clear()
+    pendingNotifications = []
   })
 
   nvim.on('notification', async (method, args) => {
@@ -84,7 +84,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
         try {
           logger.info('receive notification:', method, args)
           if (!plugin.isReady) {
-            pendingNotifications.set(method, args)
+            pendingNotifications.push([method, args])
             return
           }
           await plugin.cocAction(method, ...args)
