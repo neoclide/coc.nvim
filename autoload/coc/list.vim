@@ -64,12 +64,10 @@ function! coc#list#create(position, height, name, numberSelect)
   if a:position ==# 'tab'
     execute 'silent tabe list:///'.a:name
   else
-    let g:coc_list_saved_view = winsaveview()
-    let winid = win_getid()
+    call s:save_views(-1)
     execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
     execute 'resize '.a:height
-    call coc#compat#execute(winid, 'call winrestview(g:coc_list_saved_view)')
-    unlet g:coc_list_saved_view
+    call s:restore_views()
   endif
   if a:numberSelect
     setl norelativenumber
@@ -117,14 +115,27 @@ function! coc#list#setup(source)
   endif
 endfunction
 
-function! coc#list#close(winid, position, target_win) abort
+function! coc#list#close(winid, position, target_win, saved_height) abort
+  let tabnr = coc#window#tabnr(a:winid)
   if a:position ==# 'tab'
+    if tabnr != -1
+      call coc#list#close_preview(tabnr, 0)
+    endif
     call coc#window#close(a:winid)
   else
-    call coc#compat#execute(a:target_win, 'let g:coc_list_saved_view = winsaveview()')
+    call s:save_views(a:winid)
+    if tabnr != -1
+      call coc#list#close_preview(tabnr, 0)
+    endif
+    if type(a:target_win) == v:t_number
+      call win_gotoid(a:target_win)
+    endif
     call coc#window#close(a:winid)
-    call coc#compat#execute(a:target_win, 'call winrestview(g:coc_list_saved_view)')
-    unlet g:coc_list_saved_view
+    call s:restore_views()
+    if type(a:saved_height) == v:t_number
+      call coc#window#set_height(a:target_win, a:saved_height)
+    endif
+    " call coc#rpc#notify('Log', ["close", a:target_win, v])
   endif
 endfunction
 
@@ -183,10 +194,18 @@ function! coc#list#scroll_preview(dir) abort
   endif
 endfunction
 
-function! coc#list#close_preview(tabnr) abort
-  let winid = coc#list#get_preview(a:tabnr)
+function! coc#list#close_preview(...) abort
+  let tabnr = get(a:, 1, tabpagenr())
+  let winid = coc#list#get_preview(tabnr)
   if winid != -1
+    let keep = get(a:, 2, 1) && tabnr == tabpagenr() && !coc#window#is_float(winid)
+    if keep
+      call s:save_views(winid)
+    endif
     call coc#window#close(winid)
+    if keep
+      call s:restore_views()
+    endif
   endif
 endfunction
 
@@ -292,7 +311,9 @@ function! coc#list#preview(lines, config) abort
     else
       let mod = position == 'top' ? 'below' : 'above'
       let height = s:get_preview_height(lines, a:config)
+      call s:save_views(-1)
       execute 'noa '.mod.' sb +resize\ '.height.' '.bufnr
+      call s:restore_views()
       let winid = win_getid()
     endif
     call setbufvar(bufnr, '&synmaxcol', 500)
@@ -308,7 +329,9 @@ function! coc#list#preview(lines, config) abort
         execute 'silent! noa resize '.height
         noa call win_gotoid(curr)
       else
+        call s:save_views(winid)
         call nvim_win_set_height(winid, height)
+        call s:restore_views()
       endif
     endif
     call coc#window#restview(winid, lnum, s:get_topline(a:config, lnum, height))
@@ -397,4 +420,28 @@ function! s:set_preview_options(winid) abort
   call setwinvar(a:winid, '&cursorline', 0)
   call setwinvar(a:winid, '&relativenumber', 0)
   call setwinvar(a:winid, 'previewwindow', 1)
+endfunction
+
+" save views on current tabpage
+function! s:save_views(exclude) abort
+  " Not work as expected when cursor becomes hidden
+  if s:is_vim
+    return
+  endif
+  for nr in range(1, winnr('$'))
+    let winid = win_getid(nr)
+    if winid != a:exclude && getwinvar(nr, 'previewwindow', 0) == 0 && !coc#window#is_float(winid)
+      call coc#compat#execute(winid, 'let w:coc_list_saved_view = winsaveview()')
+    endif
+  endfor
+endfunction
+
+function! s:restore_views() abort
+  for nr in range(1, winnr('$'))
+    let saved = getwinvar(nr, 'coc_list_saved_view', v:null)
+    if !empty(saved)
+      let winid = win_getid(nr)
+      call coc#compat#execute(winid, 'call winrestview(w:coc_list_saved_view) | unlet w:coc_list_saved_view')
+    endif
+  endfor
 endfunction

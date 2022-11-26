@@ -220,7 +220,7 @@ export class ListManager implements Disposable {
     let { nvim } = this
     let winid = await nvim.call('coc#list#get_preview', [0])
     if (winid != -1) {
-      await nvim.call('coc#window#close', [winid])
+      await nvim.call('coc#list#close_preview', [])
       await nvim.command('redraw')
     } else {
       await this.doAction('preview')
