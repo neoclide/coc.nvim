@@ -16,14 +16,11 @@ let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
 let g:coc_node_env = 'test'
 
-let g:coc_vim_commands = [{
-  \ "id": "config",
-  \ "cmd": "edit coc-settings.json"
-  \ }]
-
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
 
 execute 'set runtimepath+='.s:root
+
+call coc#add_command('config', 'let g:coc_config_init = 1')
 
 " Float window id on current tab.
 function! GetFloatWin() abort

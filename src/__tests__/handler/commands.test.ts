@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import CommandsHandler from '../../handler/commands'
 import commandManager from '../../commands'
+import CommandsHandler from '../../handler/commands'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -11,7 +11,7 @@ let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  commands = (helper.plugin as any).handler.commands
+  commands = helper.plugin.handler.commands
 })
 
 afterAll(async () => {
@@ -31,18 +31,20 @@ describe('Commands', () => {
   describe('addVimCommand', () => {
     it('should register global vim commands', async () => {
       await commandManager.executeCommand('vim.config')
-      await helper.wait(50)
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch('coc-settings.json')
+      let val = await nvim.getVar('coc_config_init')
+      expect(val).toBe(1)
       let list = commands.getCommandList()
       expect(list.includes('vim.config')).toBe(true)
     })
 
     it('should add vim command with title', async () => {
+      await helper.plugin.cocAction('addCommand', { id: 'bad', cmd: '', title: '' })
       commands.addVimCommand({ id: 'list', cmd: 'CocList', title: 'list of coc.nvim' })
       let res = commandManager.titles.get('vim.list')
       expect(res).toBe('list of coc.nvim')
       commandManager.unregister('vim.list')
+      let list = commands.getCommandList()
+      expect(list.includes('bad')).toBe(false)
     })
   })
 

@@ -3,6 +3,11 @@ import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../commands'
 import listManager from '../list/manager'
 import workspace from '../workspace'
+import * as Is from '../util/is'
+
+function validCommand(command: any): boolean {
+  return command && Is.string(command.id) && Is.string(command.cmd) && command.id.length > 0 && command.cmd.length > 0
+}
 
 export default class Commands {
   constructor(private nvim: Neovim) {
@@ -12,6 +17,7 @@ export default class Commands {
   }
 
   public addVimCommand(cmd: { id: string; cmd: string; title?: string }): void {
+    if (!validCommand(cmd)) return
     let id = `vim.${cmd.id}`
     commandManager.registerCommand(id, () => {
       this.nvim.command(cmd.cmd, true)

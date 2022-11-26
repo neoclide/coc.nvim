@@ -23,7 +23,7 @@ const logger = createLogger('plugin')
 export default class Plugin {
   private ready = false
   private initialized = false
-  private handler: Handler | undefined
+  public handler: Handler | undefined
   private cursors: Cursors
   private actions: Map<string, Function> = new Map()
   private disposables: Disposable[] = []
