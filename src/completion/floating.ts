@@ -62,7 +62,7 @@ export default class Floating {
   }
 
   public close(): void {
-    workspace.nvim.call('coc#pum#close_detail', [], true)
+    workspace.nvim.call('coc#pum#close_detail', [1], true)
   }
 
   private cancel(): void {

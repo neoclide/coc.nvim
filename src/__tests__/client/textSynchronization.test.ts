@@ -160,12 +160,10 @@ describe('TextDocumentSynchronization', () => {
       feature.onNotificationSent(() => {
         called = true
       })
-      await nvim.command(`edit ${uuidv4()}.vim`)
-      let doc = await workspace.document
+      let doc = await helper.createDocument(`${uuidv4()}.vim`)
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
       await client.forceDocumentSync()
-      await helper.wait(10)
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
       await helper.waitValue(() => {

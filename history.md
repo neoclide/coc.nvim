@@ -1,3 +1,15 @@
+# 2022-11-26
+
+- Use CTRL-R expression instead of timer for pum related functions:
+
+  - `coc#pum#insert()`
+  - `coc#pum#one_more()`
+  - `coc#pum#next()`
+  - `coc#pum#prev()`
+  - `coc#pum#stop()`
+  - `coc#pum#cancel()`
+  - `coc#pum#confirm()`
+
 # 2022-11-25
 
 - Avoid view change on list create.

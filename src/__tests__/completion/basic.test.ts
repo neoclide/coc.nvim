@@ -562,7 +562,7 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.noselect', true)
       await create(['foo'], true)
       expect(completion.isActivated).toBe(true)
-      await nvim.call('coc#pum#next', [1])
+      await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitFor('getline', ['.'], 'foo')
       await nvim.input('(')
       await helper.waitValue(() => {
@@ -1132,6 +1132,7 @@ describe('completion', () => {
     })
 
     it('should not trigger triggerOnly source', async () => {
+      let fn = jest.fn()
       let source: ISource = {
         name: 'pattern',
         triggerOnly: true,
@@ -1139,14 +1140,15 @@ describe('completion', () => {
         enable: true,
         sourceType: SourceType.Native,
         triggerPatterns: [/^From:\s*/],
-        doComplete: async () => Promise.resolve({
-          items: [{ word: 'foo' }]
-        })
+        doComplete: () => {
+          fn()
+          return { items: [{ word: 'foo' }] }
+        }
       }
       disposables.push(sources.addSource(source))
       await nvim.input('if')
-      await helper.wait(30)
-      expect(completion.isActivated).toBe(false)
+      await helper.wait(20)
+      expect(fn).toBeCalledTimes(0)
     })
 
     it('should not trigger when cursor moved', async () => {
@@ -1394,14 +1396,14 @@ describe('completion', () => {
     it('should navigate completion list', async () => {
       helper.updateConfiguration('suggest.noselect', true)
       await create(['foo', 'foot'], true)
-      await nvim.call('coc#pum#next', [1])
+      await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitValue(() => {
         return completion.selectedItem?.word
       }, 'foo')
       let bufnr = await nvim.call('bufnr', ['%']) as number
       completion.onCursorMovedI(bufnr, [1, 4], false)
       expect(completion.isActivated).toBe(true)
-      await nvim.call('coc#pum#prev', [1])
+      await nvim.call('coc#pum#_navigate', [0, 1])
       await helper.waitValue(() => {
         return completion.selectedItem
       }, undefined)

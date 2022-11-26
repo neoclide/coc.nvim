@@ -359,7 +359,7 @@ function! s:Enable(initialize)
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
     endif
     if exists('##CompleteChanged')
-      autocmd CompleteChanged   * call coc#pum#stop()
+      autocmd CompleteChanged   * call timer_start(1, { -> coc#pum#close()})
     endif
     autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')

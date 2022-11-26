@@ -319,7 +319,7 @@ describe('language source', () => {
       }, true)
       let lines = await helper.getLines(winid)
       expect(lines[0]).toMatch('foo')
-      await nvim.call('coc#pum#next', [1])
+      await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitValue(async () => {
         lines = await helper.getLines(winid)
         return lines.join(' ').includes('bar')

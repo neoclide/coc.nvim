@@ -2,7 +2,6 @@
 
 Version: 0.0.82
 Author: Qiming Zhao <chemzqm at gmail.com>
-License: Anti 996 license
 
 CONTENTS					*coc-contents*
 
@@ -75,7 +74,7 @@ INTRODUCTION						*coc-introduction*
 
 Coc.nvim enhances your (Neo)Vim to match the user experience provided by
 VSCode through a rich extension ecosystem and implemented features specified
-by Language Server Protocol (3.16 for now).
+by Language Server Protocol (3.17 for now).
 
 Some features (like completion) automatically works by default, all of them
 can be disabled by |coc-configuration|.
@@ -334,9 +333,14 @@ For customize notification windows, use |coc-config-notification|.
 ==============================================================================
 LSP FEATURES 						*coc-lsp*
 
-All features (except for telemetry) of LSP 3.16 are supported, checkout
-the specification at
-https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/
+Most features of LSP 3.17 are supported, checkout the specification at
+https://microsoft.github.io/language-server-protocol/specifications/specification-3-17/
+
+Features not supported:
+
+- Telemetry.
+- Inline values for debugger.
+- Notebook document.
 
 LSP features only works with attached documents, see |coc-document-attached|.
 
@@ -1956,7 +1960,7 @@ coc#refresh()						*coc#refresh()*
 coc#_select_confirm()					*coc#_select_confirm()*
 
 	Select first completion item if no completion item is selected, then
-	confirm the completion.
+	confirm the completion like |coc#pum#confirm()|.  Return <Ignore>
 
 coc#config({section}, {value})				*coc#config()*
 
@@ -2086,32 +2090,50 @@ coc#snippet#prev() 					*coc#snippet#prev()*
 							*coc#pum*
 coc#pum#visible() 					*coc#pum#visible()*
 
-	Check if customized popupmenu is visible.
+	Check if customized popupmenu is visible like |pumvisible()| does.
+	Return 1 when popup menu is visible.
 
 coc#pum#next({insert}) 					*coc#pum#next()*
 
 	Select next item of customized popupmenu, insert word when {insert} is
-	truth value.
+	1.
+
+	Note: this function should only be used in <expr> key-mappings.
 
 coc#pum#prev({insert}) 					*coc#pum#prev()*
 
 	Select previous item of customized popupmenu, insert word when {insert}
 	is truth value.
 
+	Note: this function should only be used in <expr> key-mappings.
+
 coc#pum#stop() 						*coc#pum#stop()*
 
 	Close the customized popupmenu, works like <C-x><C-z> of vim.
-	Return <Ignore>
+
+	Note: this function should only be used in <expr> key-mappings.
 
 coc#pum#cancel() 					*coc#pum#cancel()*
 
 	Cancel the customized popupmenu and revert trigger input, like <C-e>
-	of vim. Return empty string.
+	of vim.  When no completion item selected, close the popup menu only.
+
+	Note: this function should only be used in <expr> key-mappings.
+
+coc#pum#insert() 					*coc#pum#insert()*
+
+	Insert word of current selected item and finish completion.  Unlike
+	|coc#pum#confirm()|, no text edit would be applied and snippet would
+	not be expanded.
+
+	Note: this function should only be used in <expr> key-mappings.
 
 coc#pum#confirm() 					*coc#pum#confirm()*
 
-	Confirm completion and close the customized pum, like <C-y> of vim.
-	Return empty string.
+	Confirm completion of current selected item and close the customized
+	popup menu, like <C-y> of vim.
+
+	Note: this function should only be used in <expr> key-mappings.
 
 coc#pum#info() 						*coc#pum#info()*
 
@@ -2142,11 +2164,6 @@ coc#pum#select({index}, {insert}, {confirm}) 		*coc#pum#select()*
 		{confirm} 	Confirm the completion and dismiss the
 				popupmenu, implies `insert`.
 
-coc#pum#insert() 					*coc#pum#insert()*
-
-	Insert word of current selected item and finish completion.
-	Timer is used to make it works as rhs of key-mappings.
-
 coc#pum#one_more() 					*coc#pum#one_more()*
 
 	Insert one more character from current complete item (first complete
@@ -2156,11 +2173,13 @@ coc#pum#one_more() 					*coc#pum#one_more()*
 
 	Nothing happens when failed.
 
+	Note: this function should only be used in <expr> key-mappings.
+
 coc#pum#scroll({forward}) 				*coc#pum#scroll()*
 
 	Scroll the popupmenu forward or backward by page.
 	Timer is used to make it works as {rhs} of key-mappings.
-	Return empty string.
+	Return <Ignore>.
 
 	Parameters:~
 		{forward} 	Scroll forward when none zero.
