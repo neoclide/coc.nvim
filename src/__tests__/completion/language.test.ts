@@ -634,7 +634,9 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       nvim.call('coc#start', [{ source: 'edits' }], true)
       await helper.waitPopup()
-      await helper.confirmCompletion(0)
+      let idx = completion.activeItems.findIndex(o => o.word == '<foo>')
+      expect(idx).toBeGreaterThan(-1)
+      await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], '<foo>')
     })
 

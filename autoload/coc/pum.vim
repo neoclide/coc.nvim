@@ -51,14 +51,14 @@ function! coc#pum#close(...) abort
     if kind ==# 'cancel'
       let input = getwinvar(s:pum_winid, 'input', '')
       let s:pum_index = -1
-      call s:insert_word(input)
+      call s:insert_word(input, 1)
       call s:on_pum_change(0)
       doautocmd <nomodeline> TextChangedI
     elseif kind ==# 'confirm'
       let words = getwinvar(s:pum_winid, 'words', [])
       if s:pum_index >= 0
         let word = get(words, s:pum_index, '')
-        call s:insert_word(word)
+        call s:insert_word(word, 1)
         " have to restore here, so that TextChangedI can trigger indent.
         call s:restore_indentkeys()
       endif
@@ -114,7 +114,7 @@ function! coc#pum#_insert() abort
     if s:pum_index >= 0
       let words = getwinvar(s:pum_winid, 'words', [])
       let word = get(words, s:pum_index, '')
-      call s:insert_word(word)
+      call s:insert_word(word, 1)
       call s:restore_indentkeys()
     endif
     doautocmd <nomodeline> TextChangedI
@@ -175,13 +175,12 @@ function! coc#pum#info() abort
   let bufnr = winbufnr(s:pum_winid)
   let words = getwinvar(s:pum_winid, 'words', [])
   let word = s:pum_index < 0 ? '' : get(words, s:pum_index, '')
-  let pretext = strpart(getline('.'), 0, col('.') - 1)
   let base = {
         \ 'word': word,
         \ 'index': s:pum_index,
         \ 'size': s:pum_size,
         \ 'startcol': s:start_col,
-        \ 'inserted': s:inserted ? v:true : v:false,
+        \ 'inserted': s:pum_index >=0 && s:inserted ? v:true : v:false,
         \ 'reversed': s:reversed ? v:true : v:false,
         \ }
   if s:is_vim
@@ -286,14 +285,17 @@ function! s:select_by_index(index, insert) abort
     let s:inserted = 1
     if a:index < 0
       let input = getwinvar(s:pum_winid, 'input', '')
-      call s:insert_word(input)
+      call s:insert_word(input, 0)
       call coc#pum#close_detail()
     else
       let words = getwinvar(s:pum_winid, 'words', [])
       let word = get(words, a:index, '')
-      call s:insert_word(word)
+      call s:insert_word(word, 0)
     endif
-    doautocmd <nomodeline> TextChangedP
+    " The current line is wrong when use feedkeys.
+    if !s:is_vim
+      doautocmd <nomodeline> TextChangedP
+    endif
   endif
   call s:on_pum_change(1)
 endfunction
@@ -307,22 +309,35 @@ function! s:get_index(next) abort
   return index
 endfunction
 
-function! s:insert_word(word) abort
+function! s:insert_word(word, finish) abort
   if s:start_col != -1 && mode() ==# 'i'
-    let curr = getline('.')
-    let saved_completeopt = &completeopt
-    if saved_completeopt =~ 'menuone'
-      noa set completeopt=menu
-    endif
-    noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
-    " exit complete state
-    if s:hide_pum
-      call feedkeys("\<C-x>\<C-z>", 'in')
+    " should not be used on finish to have correct line.
+    if s:is_vim && !a:finish
+      let curr = getline('.')
+      let n = coc#string#get_char_count(curr, s:start_col + 1, col('.'))
+      let previous =strpart(curr, 0, s:start_col)
+      let text = repeat("\<bs>", n).a:word
+      if len(text) > 0
+        call coc#rpc#notify('PumInsert', [previous.a:word])
+        let g:coc_feeding_keys = 1
+        call feedkeys(text, 'int')
+      endif
     else
-      let g:coc_disable_space_report = 1
-      call feedkeys("\<space>\<bs>", 'in')
+      let curr = getline('.')
+      let saved_completeopt = &completeopt
+      if saved_completeopt =~ 'menuone'
+        noa set completeopt=menu
+      endif
+      noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
+      " exit complete state
+      if s:hide_pum
+        call feedkeys("\<C-x>\<C-z>", 'in')
+      else
+        let g:coc_disable_space_report = 1
+        call feedkeys("\<space>\<bs>", 'in')
+      endif
+      execute 'noa set completeopt='.saved_completeopt
     endif
-    execute 'noa set completeopt='.saved_completeopt
   endif
 endfunction
 
@@ -418,7 +433,11 @@ endfunction
 
 function! s:on_pum_change(move) abort
   if s:virtual_text
-    call s:insert_virtual_text()
+    if s:inserted
+      call s:clear_virtual_text()
+    else
+      call s:insert_virtual_text()
+    endif
   endif
   let ev = extend(coc#pum#info(), {'move': a:move ? v:true : v:false})
   call coc#rpc#notify('CocAutocmd', ['MenuPopupChanged', ev, win_screenpos(winnr())[0] + winline() - 2])

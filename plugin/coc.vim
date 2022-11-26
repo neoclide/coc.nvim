@@ -285,6 +285,9 @@ function! s:Autocmd(...) abort
 endfunction
 
 function! s:HandleCharInsert(char, bufnr) abort
+  if get(g:, 'coc_feeding_keys', 0)
+    return
+  endif
   if get(g:, 'coc_disable_space_report', 0)
     let g:coc_disable_space_report = 0
     if a:char ==# ' '
@@ -292,6 +295,13 @@ function! s:HandleCharInsert(char, bufnr) abort
     endif
   endif
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
+endfunction
+
+function! s:HandleTextChangedI(bufnr) abort
+  if get(g:, 'coc_feeding_keys', 0)
+    unlet g:coc_feeding_keys
+  endif
+  call s:Autocmd('TextChangedI', a:bufnr, coc#util#change_info())
 endfunction
 
 function! s:HandleWinScrolled(winid) abort
@@ -381,7 +391,7 @@ function! s:Enable(initialize)
     if exists('##TextChangedP')
       autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
     endif
-    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), coc#util#change_info())
+    autocmd TextChangedI        * call s:HandleTextChangedI(+expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))

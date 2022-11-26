@@ -40,6 +40,7 @@ export interface InsertChange {
 
 export enum EventName {
   Ready = 'ready',
+  PumInsert = 'PumInsert',
   InsertEnter = 'InsertEnter',
   InsertLeave = 'InsertLeave',
   CursorHoldI = 'CursorHoldI',
@@ -109,6 +110,7 @@ class Events {
   private _completing = false
   private _requesting = false
   private _ready = false
+  private _last_pum_insert: string | undefined
   public timeout = 1000
   // public completing = false
 
@@ -187,7 +189,6 @@ class Events {
   }
 
   public async fire(event: string, args: any[]): Promise<void> {
-    let cbs = this.handlers.get(event)
     if (event === EventName.Ready) {
       this._ready = true
     } else if (event == EventName.InsertEnter) {
@@ -218,12 +219,20 @@ class Events {
     } else if (event == EventName.BufEnter) {
       this._bufnr = args[0]
     } else if (event == EventName.TextChangedI || event == EventName.TextChangedP) {
-      let arr = this._recentInserts.filter(o => o[0] == args[0])
+      let info: InsertChange = args[1]
+      let pre = byteSlice(info.line ?? '', 0, info.col - 1)
+      let arr: [number, string][]
+      // use TextChangedP and disable insert
+      if (this._last_pum_insert != null && this._last_pum_insert == pre) {
+        arr = []
+        event = EventName.TextChangedP
+      } else {
+        arr = this._recentInserts.filter(o => o[0] == args[0])
+      }
+      this._last_pum_insert = undefined
       this._bufnr = args[0]
       this._recentInserts = []
       this._lastChange = Date.now()
-      let info: InsertChange = args[1]
-      let pre = byteSlice(info.line ?? '', 0, info.col - 1)
       info.pre = pre
       // fix cursor since vim not send CursorMovedI event
       this._cursor = Object.freeze({
@@ -242,6 +251,9 @@ class Events {
           })
         }
       }
+    } else if (event == EventName.PumInsert) {
+      this._last_pum_insert = args[0]
+      return
     }
     if (event == EventName.CursorMoved || event == EventName.CursorMovedI) {
       args.push(this._recentInserts.length > 0)
@@ -255,6 +267,7 @@ class Events {
       if (this._cursor && equals(this._cursor, cursor)) return
       this._cursor = Object.freeze(cursor)
     }
+    let cbs = this.handlers.get(event)
     if (cbs?.length) {
       let fns = cbs.slice()
       let traceSlow = SYNC_AUTOCMDS.includes(event)

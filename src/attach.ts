@@ -71,6 +71,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       case 'PromptKeyPress':
       case 'FloatBtnClick':
       case 'CompleteStop':
+      case 'PumInsert':
         logger.trace('Event: ', method, ...args)
         await events.fire(method, args)
         break

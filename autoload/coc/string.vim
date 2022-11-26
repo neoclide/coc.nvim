@@ -34,6 +34,11 @@ function! coc#string#byte_index(line, character) abort
   return len
 endfunction
 
+" Get character count from start col and end col, 1 based
+function! coc#string#get_char_count(text, start_col, end_col) abort
+  return strchars(strpart(a:text, a:start_col - 1, a:end_col - a:start_col))
+endfunction
+
 function! coc#string#character_length(text) abort
   let i = 0
   for char in split(a:text, '\zs')

@@ -9,6 +9,7 @@ import type Document from '../model/document'
 import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import * as Is from '../util/is'
+import { debounce } from '../util/node'
 import { toNumber } from '../util/numbers'
 import { toObject } from '../util/object'
 import type { Disposable } from '../util/protocol'
@@ -23,6 +24,7 @@ import { CompleteConfig, CompleteFinishKind, CompleteItem, CompleteOption, Durat
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
 const TRIGGER_TIMEOUT = getConditionValue(200, 20)
+const CURSORMOVE_DEBOUNCE = getConditionValue(10, 0)
 
 export class Completion implements Disposable {
   public config: CompleteConfig
@@ -35,6 +37,7 @@ export class Completion implements Disposable {
   private floating: Floating
   private disposables: Disposable[] = []
   private complete: Complete | null = null
+  private _debounced: ((bufnr: number, cursor: [number, number], hasInsert: boolean) => void) & { clear(): void }
   // Ordered items shown in the pum
   public activeItems: ReadonlyArray<DurationCompleteItem> = []
 
@@ -51,7 +54,11 @@ export class Completion implements Disposable {
     this._mru = new MruLoader()
     this.pum = new PopupMenu(this.staticConfig, this._mru)
     this.floating = new Floating(this.staticConfig)
-    events.on('CursorMovedI', this.onCursorMovedI, this, this.disposables)
+    this._debounced = debounce(this.onCursorMovedI.bind(this), CURSORMOVE_DEBOUNCE)
+    events.on('CursorMovedI', this._debounced, this, this.disposables)
+    events.on('CursorMovedI', () => {
+      clearTimeout(this.triggerTimer)
+    }, this, this.disposables)
     events.on('InsertLeave', () => {
       this.stop(true)
     }, null, this.disposables)
@@ -78,9 +85,8 @@ export class Completion implements Disposable {
   }
 
   public onCursorMovedI(bufnr: number, cursor: [number, number], hasInsert: boolean): void {
-    clearTimeout(this.triggerTimer)
     if (hasInsert || !this.option || bufnr !== this.option.bufnr) return
-    let { linenr, colnr, col, input } = this.option
+    let { linenr, colnr, col } = this.option
     if (linenr === cursor[0]) {
       if (cursor[1] == colnr && cursor[1] === byteLength(toText(this.pretext)) + 1) {
         return
@@ -93,7 +99,7 @@ export class Completion implements Disposable {
       let start = characterIndex(line, col)
       if (start < curr) {
         let text = line.substring(start, curr)
-        if ((text === this.selectedItem?.word) || (!this.inserted && text == input)) {
+        if ((text === this.selectedItem?.word) || (!this.inserted && text === this.pum.search)) {
           return
         }
       }
@@ -179,6 +185,7 @@ export class Completion implements Disposable {
   }
 
   public async startCompletion(option: CompleteOption, sourceList?: ISource[]): Promise<void> {
+    this._debounced.clear()
     let doc = workspace.getAttachedDocument(option.bufnr)
     option.filetype = doc.filetype
     logger.debug('trigger completion with', option)

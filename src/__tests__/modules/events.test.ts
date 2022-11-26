@@ -21,6 +21,21 @@ describe('register handler', () => {
     expect(fn).toBeCalledTimes(2)
   })
 
+  it('should not add insertChar with TextChangedI after PumInsert', async () => {
+    await events.fire('PumInsert', ['foo'])
+    let pre: string
+    events.on('TextChangedP', (_bufnr, info) => {
+      pre = info.pre
+    })
+    await events.fire('TextChangedI', [1, {
+      lnum: 1,
+      col: 4,
+      line: 'foo',
+      changedtick: 1,
+    }])
+    expect(pre).toBe('foo')
+  })
+
   it('should track slow handler', async () => {
     let fn = jest.fn()
     let spy = jest.spyOn(console, 'error').mockImplementation(() => {

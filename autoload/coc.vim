@@ -41,13 +41,8 @@ endfunction
 function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
-    if pumvisible()
-      if s:hide_pum
-        let prefix = "\<C-x>\<C-z>"
-      else
-        let g:coc_disable_space_report = 1
-        let prefix = "\<space>\<bs>"
-      endif
+    if pumvisible() && s:hide_pum
+      let prefix = "\<C-x>\<C-z>"
     endif
   endif
   return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"

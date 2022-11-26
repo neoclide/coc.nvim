@@ -825,8 +825,9 @@ describe('completion', () => {
       void events.fire('CompleteDone', [{}])
       await helper.wait(10)
       await events.fire('CursorMovedI', [buf.id, [2, 1, '']])
-      expect(completion.isActivated).toBe(false)
-      await nvim.input('<esc>')
+      await helper.waitValue(() => {
+        return completion.isActivated
+      }, false)
     })
   })
 
