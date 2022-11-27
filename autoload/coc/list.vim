@@ -344,7 +344,7 @@ function! s:preview_highlights(winid, bufnr, config, float) abort
   let newname = s:prefix.' '.name
   if newname !=# bufname(a:bufnr)
     if s:is_vim
-      " call win_execute(a:winid, 'noa file '.fnameescape(newname), 'silent!')
+      call win_execute(a:winid, 'noa file '.fnameescape(newname), 'silent!')
     else
       silent! noa call nvim_buf_set_name(a:bufnr, newname)
     endif

@@ -1137,11 +1137,8 @@ function! s:close_win(winid, noautocmd) abort
     call popup_close(a:winid)
   else
     if nvim_win_is_valid(a:winid)
-      if a:noautocmd
-        noa call nvim_win_close(a:winid, 1)
-      else
-        call nvim_win_close(a:winid, 1)
-      endif
+      let prefix = a:noautocmd ? 'noa ': ''
+      exe prefix.'call nvim_win_close('.a:winid.', 1)'
     endif
   endif
 endfunction

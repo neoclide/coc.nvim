@@ -3,23 +3,14 @@ let s:is_vim = !has('nvim')
 
 " Get tabpagenr of winid, return -1 if window doesn't exist
 function! coc#window#tabnr(winid) abort
-  if exists('*nvim_win_get_tabpage')
-    try
-      return nvim_win_get_tabpage(a:winid)
-    catch /Invalid window id/
-      return -1
-    endtry
-  endif
+  " getwininfo not work with popup on vim
   if exists('*win_execute')
     let ref = {}
     call win_execute(a:winid, 'let ref["out"] = tabpagenr()')
     return get(ref, 'out', -1)
-  elseif !s:is_vim
-    let info = getwininfo(a:winid)
-    return empty(info) ? -1 : info[0]['tabnr']
-  else
-    throw 'win_execute() does not exist, please upgrade your vim.'
   endif
+  let info = getwininfo(a:winid)
+  return empty(info) ? -1 : info[0]['tabnr']
 endfunction
 
 " (1, 0) based line, column

@@ -87,9 +87,7 @@ function! CocPopupCallback(bufnr, arglist) abort
         call coc#rpc#notify('CocAutocmd', ['TextChangedI', a:bufnr, info])
       endif
     elseif a:arglist[0] == 'send'
-      let key = a:arglist[1]
-      let escaped = strcharpart(key, 1, strchars(key) - 2)
-      call coc#rpc#notify('PromptKeyPress', [a:bufnr, escaped])
+      call coc#rpc#notify('PromptKeyPress', [a:bufnr, a:arglist[1]])
     endif
   endif
 endfunction
@@ -285,6 +283,9 @@ function! s:Autocmd(...) abort
 endfunction
 
 function! s:HandleCharInsert(char, bufnr) abort
+  if get(g:, 'coc_feeding_keys', 0)
+    return
+  endif
   if get(g:, 'coc_disable_space_report', 0)
     let g:coc_disable_space_report = 0
     if a:char ==# ' '
@@ -292,6 +293,13 @@ function! s:HandleCharInsert(char, bufnr) abort
     endif
   endif
   call s:Autocmd('InsertCharPre', a:char, a:bufnr)
+endfunction
+
+function! s:HandleTextChangedI(bufnr) abort
+  if get(g:, 'coc_feeding_keys', 0)
+    unlet g:coc_feeding_keys
+  endif
+  call s:Autocmd('TextChangedI', a:bufnr, coc#util#change_info())
 endfunction
 
 function! s:HandleWinScrolled(winid) abort
@@ -359,7 +367,7 @@ function! s:Enable(initialize)
       autocmd WinEnter          * call coc#float#nvim_win_enter(win_getid())
     endif
     if exists('##CompleteChanged')
-      autocmd CompleteChanged   * call coc#pum#stop()
+      autocmd CompleteChanged   * call timer_start(1, { -> coc#pum#close()})
     endif
     autocmd CursorHold          * call coc#float#check_related()
     if exists('##WinClosed')
@@ -381,7 +389,7 @@ function! s:Enable(initialize)
     if exists('##TextChangedP')
       autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
     endif
-    autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'), coc#util#change_info())
+    autocmd TextChangedI        * call s:HandleTextChangedI(+expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
@@ -481,8 +489,10 @@ function! s:Highlight() abort
   hi default link CocPumMenu             CocFloating
   hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough
-  hi default CocPumVirtualText        ctermfg=12 guifg=#504945
-  hi default CocFloatDividingLine     ctermfg=12 guifg=#504945
+  hi default CocVirtualText             ctermfg=12 guifg=#504945
+  hi default link CocPumVirtualText        CocVirtualText
+  hi default link CocInputBoxVirtualText   CocVirtualText
+  hi default link CocFloatDividingLine     CocVirtualText
 
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel
