@@ -30,10 +30,6 @@ beforeAll(async () => {
   nvim = helper.nvim
 })
 
-beforeEach(() => {
-  helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
-})
-
 afterAll(async () => {
   await helper.shutdown()
 })
@@ -294,7 +290,7 @@ describe('window', () => {
       await p
       let bufname = await nvim.call('bufname', ['%'])
       expect(bufname).toMatch('coc-settings.json')
-    }, 10000)
+    })
 
     it('should get messageLevel', () => {
       helper.updateConfiguration('coc.preferences.messageLevel', 'error')
@@ -306,79 +302,11 @@ describe('window', () => {
     })
   })
 
-  describe('window input', () => {
-    it('should request input', async () => {
-      let winid = await nvim.call('win_getid')
-      let p = window.requestInput('Name')
-      await helper.waitFloat()
-      await nvim.input('bar<enter>')
-      let res = await p
-      let curr = await nvim.call('win_getid')
-      expect(curr).toBe(winid)
-      expect(res).toBe('bar')
-    })
-
-    it('should use input method of vim', async () => {
-      helper.updateConfiguration('coc.preferences.promptInput', false)
-      let defaultValue = 'default'
-      let p = window.requestInput('Name', defaultValue)
-      await helper.wait(50)
-      await nvim.input('<enter>')
-      let res = await p
-      expect(res).toBe(defaultValue)
-    })
-
-    it('should return empty string when input empty', async () => {
-      let p = window.requestInput('Name')
-      await helper.wait(30)
-      await nvim.input('<enter>')
-      let res = await p
-      expect(res).toBe('')
-    })
-
-    it('should emit change event', async () => {
-      let input = await window.createInputBox('', '', {})
-      disposables.push(input)
-      let curr: string
-      input.onDidChange(text => {
-        curr = text
-      })
-      await nvim.input('abc')
-      await helper.waitValue((() => {
-        return curr
-      }), 'abc')
-      input.title = 'foo'
-      expect(input.title).toBe('foo')
-      input.loading = true
-      expect(input.loading).toBe(true)
-      input.borderhighlight = 'WarningMsg'
-      expect(input.borderhighlight).toBe('WarningMsg')
-    })
-
-    it('should not check bufnr for events', async () => {
-      let input = await window.createInputBox('', undefined, {})
-      disposables.push(input)
-      let bufnr = input.bufnr
-      let called = false
-      input.onDidChange(() => {
-        called = true
-      })
-      await events.fire('BufWinLeave', [bufnr + 1])
-      await events.fire('PromptInsert', ['', bufnr + 1])
-      await events.fire('TextChangedI', [bufnr + 1, {
-        lnum: 1,
-        col: 1,
-        line: '',
-        changedtick: 0,
-        pre: ''
-      }])
-      expect(called).toBe(false)
-      expect(input.bufnr).toBeDefined()
-      expect(input.dimension).toBeDefined()
-    })
-  })
-
   describe('window showMessage', () => {
+    beforeEach(() => {
+      helper.updateConfiguration('coc.preferences.enableMessageDialog', true)
+    })
+
     async function ensureNotification(idx: number): Promise<void> {
       await helper.waitFloat()
       await nvim.input(`${idx + 1}`)

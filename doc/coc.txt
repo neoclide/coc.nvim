@@ -3285,6 +3285,7 @@ background color).
 *CocSelectedRange* for highlight ranges of outgoing calls.
 *CocSnippetVisual* for highlight snippet placeholders.
 *CocLink* for highlight document links.
+*CocInputBoxVirtualText* for highlight placeholder of input box.
 
 ==============================================================================
 TREE SUPPORT 						*coc-tree*

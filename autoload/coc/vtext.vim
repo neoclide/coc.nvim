@@ -21,7 +21,7 @@ function! coc#vtext#add(bufnr, src_id, line, blocks, opts) abort
   endif
   if s:is_vim
     let column = get(a:opts, 'col', 0)
-    if !column && align ==# 'after'
+    if !has_key(a:opts, 'col') && align ==# 'after'
       " add a whitespace, same as neovim.
       let indent = ' '
     endif

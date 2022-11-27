@@ -1,3 +1,7 @@
+# 2022-11-28
+
+- Placeholder and update value support for `InputBox` and `QuickPick`.
+
 # 2022-11-26
 
 - Use CTRL-R expression instead of timer for pum related functions:

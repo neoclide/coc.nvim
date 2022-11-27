@@ -87,9 +87,7 @@ function! CocPopupCallback(bufnr, arglist) abort
         call coc#rpc#notify('CocAutocmd', ['TextChangedI', a:bufnr, info])
       endif
     elseif a:arglist[0] == 'send'
-      let key = a:arglist[1]
-      let escaped = strcharpart(key, 1, strchars(key) - 2)
-      call coc#rpc#notify('PromptKeyPress', [a:bufnr, escaped])
+      call coc#rpc#notify('PromptKeyPress', [a:bufnr, a:arglist[1]])
     endif
   endif
 endfunction
@@ -491,8 +489,10 @@ function! s:Highlight() abort
   hi default link CocPumMenu             CocFloating
   hi default link CocPumShortcut         Comment
   hi default link CocPumDeprecated       CocStrikeThrough
-  hi default CocPumVirtualText        ctermfg=12 guifg=#504945
-  hi default CocFloatDividingLine     ctermfg=12 guifg=#504945
+  hi default CocVirtualText             ctermfg=12 guifg=#504945
+  hi default link CocPumVirtualText        CocVirtualText
+  hi default link CocInputBoxVirtualText   CocVirtualText
+  hi default link CocFloatDividingLine     CocVirtualText
 
   if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
     sign define CocCurrentLine linehl=CocMenuSel

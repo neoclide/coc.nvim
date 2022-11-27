@@ -4,8 +4,10 @@ import { Disposable, Emitter, Event } from '../util/protocol'
 import events from '../events'
 import { disposeAll } from '../util'
 import { omitUndefined } from '../util/object'
+import { toText } from '../util/string'
 
 export interface InputPreference {
+  placeHolder?: string
   position?: 'cursor' | 'center'
   marginTop?: number
   border?: [0 | 1, 0 | 1, 0 | 1, 0 | 1]
@@ -27,7 +29,7 @@ export interface Dimension {
   col: number
 }
 
-export type InputOptions = Pick<InputPreference, 'borderhighlight' | 'position' | 'marginTop'>
+export type InputOptions = Pick<InputPreference, 'borderhighlight' | 'position' | 'marginTop' | 'placeHolder'>
 
 type RequestResult = [number, number, [number, number, number, number]]
 
@@ -40,11 +42,13 @@ export default class InputBox implements Disposable {
   private _disposed = false
   public title: string
   public loading: boolean
+  public value: string
   public borderhighlight: string
   // width, height, row, col
   private _dimension: [number, number, number, number] = [0, 0, 0, 0]
   private readonly _onDidFinish = new Emitter<string>()
   private readonly _onDidChange = new Emitter<string>()
+  private clear = false
   public readonly onDidFinish: Event<string | null> = this._onDidFinish.event
   public readonly onDidChange: Event<string> = this._onDidChange.event
   constructor(private nvim: Neovim, defaultValue: string) {
@@ -81,6 +85,20 @@ export default class InputBox implements Disposable {
         return _borderhighlight
       }
     })
+    Object.defineProperty(this, 'value', {
+      set: (value: string) => {
+        value = toText(value)
+        if (value !== this._input) {
+          this.clearVirtualText()
+          this._input = value
+          this.nvim.call('coc#dialog#change_input_value', [this.winid, this.bufnr, value], true)
+          this._onDidChange.fire(value)
+        }
+      },
+      get: () => {
+        return this._input
+      }
+    })
     events.on('BufWinLeave', bufnr => {
       if (bufnr == this._bufnr) {
         this._winid = undefined
@@ -96,16 +114,18 @@ export default class InputBox implements Disposable {
     }, null, this.disposables)
     events.on('TextChangedI', (bufnr, info) => {
       if (bufnr == this._bufnr && this._input !== info.line) {
+        this.clearVirtualText()
         this._input = info.line
         this._onDidChange.fire(info.line)
       }
     }, null, this.disposables)
   }
 
-  public updateInput(value: string): void {
-    if (value !== this._input) {
-      this._input = value
-      this._onDidChange.fire(value)
+  private clearVirtualText(): void {
+    if (this.clear && this.bufnr) {
+      this.clear = false
+      let buf = this.nvim.createBuffer(this.bufnr)
+      buf.clearNamespace('input-box')
     }
   }
 
@@ -122,14 +142,13 @@ export default class InputBox implements Disposable {
     return this._winid
   }
 
-  public get value(): string {
-    return this._input
-  }
-
   public async show(title: string, preferences: InputPreference): Promise<boolean> {
     this.title = title
     this.borderhighlight = preferences.borderhighlight ?? 'CocFloating'
     this.loading = false
+    if (preferences.placeHolder && !this._input && !this.nvim.isVim) {
+      this.clear = true
+    }
     let config = omitUndefined(preferences)
     let res = await this.nvim.call('coc#dialog#create_prompt_win', [title, this._input, config]) as RequestResult
     if (!res) throw new Error('Unable to open input window')
@@ -142,10 +161,8 @@ export default class InputBox implements Disposable {
   public dispose(): void {
     if (this._disposed) return
     this._disposed = true
+    this.nvim.call('coc#float#close', [this._winid ?? -1], true)
     this._onDidFinish.fire(this.accepted ? this._input : null)
-    if (this._winid) {
-      this.nvim.call('coc#float#close', [this._winid], true)
-    }
     this._winid = undefined
     this._bufnr = undefined
     disposeAll(this.disposables)

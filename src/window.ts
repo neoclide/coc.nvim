@@ -214,6 +214,7 @@ export class Window {
         let quickpick = new QuickPick<QuickPickItem>(this.nvim, this.dialogPreference)
         quickpick.items = items.map(o => typeof o === 'string' ? { label: o } : o)
         quickpick.title = toText(options.title)
+        quickpick.placeHolder = options.placeholder
         quickpick.canSelectMany = !!options.canPickMany
         quickpick.matchOnDescription = options.matchOnDescription
         quickpick.onDidFinish(items => {
@@ -368,9 +369,9 @@ export class Window {
    *
    * @return A new {@link InputBox}.
    */
-  public async createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox> {
-    let input = new InputBox(this.nvim, toText(defaultValue))
-    await input.show(title, Object.assign(this.inputPreference, option))
+  public async createInputBox(title: string, value: string | undefined, option?: InputPreference): Promise<InputBox> {
+    let input = new InputBox(this.nvim, toText(value))
+    await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})))
     return input
   }
 

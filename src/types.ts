@@ -447,6 +447,7 @@ export interface QuickfixItem {
  */
 export interface QuickPickOptions {
 
+  placeholder?: string
   /**
    * An optional string that represents the title of the quick pick.
    */

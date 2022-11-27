@@ -5,16 +5,23 @@ const readline = require("readline")
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
+  terminal: true,
   escapeCodeTimeout: 0,
   prompt: ''
 })
-rl.setPrompt('')
+
 let value = process.argv[2]
+let placeholder = process.argv[3]
+let clear = false
 if (value) {
   rl.write(value)
+} else if (placeholder) {
+  clear = true
+  rl.write('\x1B[90m' + placeholder + '\x1B[39m')
+  rl.write('', {ctrl: true, name: 'a'})
 }
 rl.on('line', input => {
-  send(['confirm', input])
+  send(['confirm', clear ? '' : input])
   process.exit()
 })
 
@@ -25,6 +32,11 @@ rl._ttyWrite = function (code, key) {
     return ''
   }
   original_ttyWrite.apply(rl, arguments)
+  if (clear && rl.line.includes('\x1B')) {
+    clear = false
+    rl.write('', {ctrl: true, name: 'k'})
+    return
+  }
   send(['change', rl.line])
 }
 
@@ -45,7 +57,6 @@ process.stdin.on('keypress', (e, key) => {
     if (k == '<esc>') {
       send(['exit', ''])
       process.exit()
-      return
     }
     if (k) {
       send(['send', k])

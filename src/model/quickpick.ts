@@ -16,6 +16,7 @@ import { StrWidth } from './strwidth'
 const logger = createLogger('quickpick')
 
 export interface QuickPickConfig<T extends QuickPickItem> {
+  placeholder?: string
   title?: string
   items?: readonly T[]
   value?: string
@@ -45,6 +46,7 @@ export default class QuickPick<T extends QuickPickItem> {
   public matchOnDescription = false
   public maxHeight = 10
   public width: number | undefined
+  public placeHolder: string | undefined
   private bufnr: number
   private win: Popup
   private filteredItems: readonly T[] = []
@@ -80,7 +82,7 @@ export default class QuickPick<T extends QuickPickItem> {
     })
     Object.defineProperty(this, 'value', {
       set: (value: string) => {
-        this.input.updateInput(toText(value))
+        this.input.value = value
       },
       get: () => this.input.value
     })
@@ -138,15 +140,15 @@ export default class QuickPick<T extends QuickPickItem> {
     }, null, this.disposables)
     events.on('PromptKeyPress', async (bufnr, key) => {
       if (bufnr == inputBufnr) {
-        if (key == 'C-f') {
+        if (key == '<C-f>') {
           await this.win.scrollForward()
-        } else if (key == 'C-b') {
+        } else if (key == '<C-b>') {
           await this.win.scrollBackward()
-        } else if (['C-j', 'C-n', 'down'].includes(key)) {
+        } else if (['<C-j>', '<C-n>', '<down>'].includes(key)) {
           this.setCursor(this.currIndex + 1)
-        } else if (['C-k', 'C-p', 'up'].includes(key)) {
+        } else if (['<C-k>', '<C-p>', '<up>'].includes(key)) {
           this.setCursor(this.currIndex - 1)
-        } else if (this.canSelectMany && key == 'C-@') {
+        } else if (this.canSelectMany && key == '<C-@>') {
           this.toggePicked(this.currIndex)
         }
       }
@@ -166,6 +168,7 @@ export default class QuickPick<T extends QuickPickItem> {
     let rounded = !!preferences.rounded
     await input.show(this.title, {
       position: 'center',
+      placeHolder: this.placeHolder,
       marginTop: 10,
       border: [1, 1, 0, 1],
       list: true,

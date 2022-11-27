@@ -323,7 +323,6 @@ function! s:insert_word(word, finish) abort
         call feedkeys(text, 'int')
       endif
     else
-      let curr = getline('.')
       let saved_completeopt = &completeopt
       if saved_completeopt =~ 'menuone'
         noa set completeopt=menu

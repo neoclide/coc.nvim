@@ -9410,17 +9410,18 @@ declare module 'coc.nvim' {
    * Options to configure the behavior of the quick pick UI.
    */
   export interface QuickPickOptions {
-
     /**
      * An optional string that represents the title of the quick pick.
      */
     title?: string
-
+    /**
+     * Placeholder text that shown when input value is empty.
+     */
+    placeholder?: string
     /**
      * An optional flag to include the description when filtering the picks.
      */
     matchOnDescription?: boolean
-
     /**
      * An optional flag to make the picker accept multiple selections, if true the result is an array of picks.
      */
@@ -9451,6 +9452,10 @@ declare module 'coc.nvim' {
      * An optional title.
      */
     title?: string
+    /**
+     * Placeholder text that shown when input value is empty.
+     */
+    placeholder?: string
     /**
      * Items to pick from.
      */
@@ -9658,6 +9663,10 @@ declare module 'coc.nvim' {
 
   export interface InputOptions {
     /**
+     * Placeholder text that shown when input value is empty.
+     */
+    placeholder?: string
+    /**
      * Position to show input, default to 'cursor'
      */
     position?: 'cursor' | 'center'
@@ -9708,6 +9717,10 @@ declare module 'coc.nvim' {
   }
 
   export interface InputBox {
+    /**
+     * Current input text, could be changed.
+     */
+    value: string
     /**
      * Change or get title of input box.
      */
@@ -9890,12 +9903,12 @@ declare module 'coc.nvim' {
      * @param items Label list.
      * @param placeholder Prompt text, default to 'choose by number'.
      * @returns Index of selected item, or -1 when canceled.
+     * @deprecated use `window.showQuickPick()` instead.
      */
     export function showQuickpick(items: string[], placeholder?: string): Promise<number>
 
     /**
      * Shows a selection list allowing multiple selections.
-     * Throw error when 'workspace.env.dialog' is not true.
      *
      * @param items An array of strings, or a promise that resolves to an array of strings.
      * @param options Configures the behavior of the selection list.
@@ -9906,7 +9919,6 @@ declare module 'coc.nvim' {
 
     /**
      * Shows a selection list.
-     * Throw error when 'workspace.env.dialog' is not true.
      *
      * @param items An array of strings, or a promise that resolves to an array of strings.
      * @param options Configures the behavior of the selection list.
@@ -9917,7 +9929,6 @@ declare module 'coc.nvim' {
 
     /**
      * Shows a selection list allowing multiple selections.
-     * Throw error when 'workspace.env.dialog' is not true.
      *
      * @param items An array of items, or a promise that resolves to an array of items.
      * @param options Configures the behavior of the selection list.
@@ -9928,7 +9939,6 @@ declare module 'coc.nvim' {
 
     /**
      * Shows a selection list.
-     * Throw error when `workspace.env.dialog` not true.
      *
      * @param items An array of items, or a promise that resolves to an array of items.
      * @param options Configures the behavior of the selection list.
@@ -9939,7 +9949,6 @@ declare module 'coc.nvim' {
 
     /**
      * Show menu picker at current cursor position, |inputlist()| is used as fallback.
-     * Throw error when `workspace.env.dialog` not true.
      *
      * @param items Array of texts or menu items.
      * @param title Optional title of float/popup window.
@@ -9960,7 +9969,6 @@ declare module 'coc.nvim' {
     /**
      * Show dialog window at the center of screen.
      * Note that the dialog would always be closed after button click.
-     * Throw error when `workspace.env.dialog` not true.
      *
      * @param config Dialog configuration.
      * @returns Dialog or null when dialog can't work.
@@ -9978,16 +9986,14 @@ declare module 'coc.nvim' {
 
     /**
      * Creates and show a {@link InputBox} to let the user enter some text input.
-     * Throw error when `workspace.env.dialog` not true.
      *
      * @return A new {@link InputBox}.
      */
-    export function createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox>
+    export function createInputBox(title: string, defaultValue?: string, option?: InputPreference): Promise<InputBox>
 
     /**
      * Creates and show a {@link QuickPick} to let the user pick an item or items from a
      * list of items of type T.
-     * Throw error when `workspace.env.dialog` not true.
      *
      * Note that in many cases the more convenient {@link window.showQuickPick}
      * is easier to use. {@link window.createQuickPick} should be used
@@ -10079,7 +10085,6 @@ declare module 'coc.nvim' {
 
     /**
      * Show multiple picker at center of screen.
-     * Use `workspace.env.dialog` to check if dialog could work.
      *
      * @param items A set of items that will be rendered as actions in the message.
      * @param title Title of picker dialog.
@@ -10090,7 +10095,6 @@ declare module 'coc.nvim' {
 
     /**
      * Show multiple picker at center of screen.
-     * Use `workspace.env.dialog` to check if dialog could work.
      *
      * @param items A set of items that will be rendered as actions in the message.
      * @param title Title of picker dialog.
