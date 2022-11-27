@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import type { WorkspaceConfiguration } from './configuration/types'
 import channels from './core/channels'
 import { TextEditor } from './core/editors'
 import Terminals from './core/terminals'
@@ -20,11 +21,13 @@ import StatusLine, { StatusBarItem } from './model/status'
 import TerminalModel, { TerminalOptions } from './model/terminal'
 import { TreeView, TreeViewOptions } from './tree'
 import { Env, FloatConfig, FloatFactory, HighlightDiff, HighlightItem, HighlightItemDef, HighlightItemResult, MenuOption, MessageItem, MsgTypes, OpenTerminalOption, OutputChannel, ProgressOptions, QuickPickItem, QuickPickOptions, ScreenPosition, StatusItemOption, TerminalResult } from './types'
+import { defaultValue } from './util'
 import { isFalsyOrEmpty } from './util/array'
-import { CONFIG_FILE_NAME } from './util/constants'
+import { CONFIG_FILE_NAME, floatHighlightGroup, isVim } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
 import { Mutex } from './util/mutex'
 import { fs, path } from './util/node'
+import { toNumber } from './util/numbers'
 import { equals, toObject } from './util/object'
 import { isWindows } from './util/platform'
 import { CancellationToken, Emitter, Event } from './util/protocol'
@@ -202,7 +205,7 @@ export class Window {
    */
   public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options?: QuickPickOptions, token: CancellationToken = CancellationToken.None): Promise<Item | Item[] | undefined> {
     if (isFalsyOrEmpty(itemsOrItemsPromise)) return undefined
-    options = options ?? {}
+    options = defaultValue(options, {})
     const items = await Promise.resolve(itemsOrItemsPromise)
     let isText = items.some(s => typeof s === 'string')
     return await this.mutex.use(() => {
@@ -210,8 +213,8 @@ export class Window {
         if (token.isCancellationRequested) return resolve(undefined)
         let quickpick = new QuickPick<QuickPickItem>(this.nvim, this.dialogPreference)
         quickpick.items = items.map(o => typeof o === 'string' ? { label: o } : o)
-        quickpick.title = options.title ?? ''
-        quickpick.canSelectMany = options.canPickMany
+        quickpick.title = toText(options.title)
+        quickpick.canSelectMany = !!options.canPickMany
         quickpick.matchOnDescription = options.matchOnDescription
         quickpick.onDidFinish(items => {
           if (items == null) return resolve(undefined)
@@ -244,7 +247,6 @@ export class Window {
 
   /**
    * Show menu picker at current cursor position, |inputlist()| is used as fallback.
-   * Use `this.workspace.env.dialog` to check if the picker window/popup could work.
    *
    * @param items Array of texts.
    * @param option Options for menu.
@@ -281,10 +283,9 @@ export class Window {
     }
     let folder = this.workspace.getWorkspaceFolder(URI.file(fsPath).toString())
     if (!folder) {
-      let c = this.workspace.getConfiguration('workspace')
-      let patterns = c.get<string[]>('rootPatterns', [])
-      let w = this.workspace.getConfiguration('workspace')
-      let ignored = w.get<string[]>('ignoredFiletypes', [])
+      let c = this.configuration.get<any>('workspace')
+      let patterns = defaultValue(c.rootPatterns, []) as string[]
+      let ignored = defaultValue(c.ignoredFiletypes, []) as string[]
       let msg: string
       if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for workspace folder resolve.`
       if (!msg) msg = `Can't resolve this.workspace folder for file '${fsPath}, consider create one of ${patterns.join(', ')} in your project root.'.`
@@ -318,7 +319,6 @@ export class Window {
   /**
    * Show dialog window at the center of screen.
    * Note that the dialog would always be closed after button click.
-   * Use `this.workspace.env.dialog` to check if dialog could work.
    *
    * @param config Dialog configuration.
    * @returns Dialog or null when dialog can't work.
@@ -335,17 +335,17 @@ export class Window {
    * Request input from user
    *
    * @param title Title text of prompt window.
-   * @param defaultValue Default value of input, empty text by default.
+   * @param value Default value of input, empty text by default.
    * @param {InputOptions} option for input window
    * @returns {Promise<string>}
    */
-  public async requestInput(title: string, defaultValue?: string, option?: InputOptions): Promise<string | undefined> {
+  public async requestInput(title: string, value?: string, option?: InputOptions): Promise<string | undefined> {
     let { nvim } = this
-    const preferences = this.workspace.getConfiguration('coc.preferences')
-    if (this.workspace.env.dialog && preferences.get<boolean>('promptInput', true) && !isWindows) {
+    const promptInput = this.configuration.get('coc.preferences.promptInput')
+    if (promptInput && this.inputSupported) {
       return await this.mutex.use(async () => {
-        let input = new InputBox(nvim, defaultValue ?? '')
-        await input.show(title, Object.assign(this.inputPreference, option ?? {}))
+        let input = new InputBox(nvim, toText(value))
+        await input.show(title, Object.assign(this.inputPreference, defaultValue(option, {})))
         return await new Promise<string>(resolve => {
           input.onDidFinish(text => {
             setTimeout(() => {
@@ -356,7 +356,7 @@ export class Window {
       })
     } else {
       return await this.mutex.use(async () => {
-        let res = await this.workspace.callAsync<string>('input', [title + ': ', toText(defaultValue)])
+        let res = await this.workspace.callAsync<string>('input', [title + ': ', toText(value)])
         nvim.command('normal! :<C-u>', true)
         return res
       })
@@ -369,7 +369,7 @@ export class Window {
    * @return A new {@link InputBox}.
    */
   public async createInputBox(title: string, defaultValue: string | undefined, option: InputPreference): Promise<InputBox> {
-    let input = new InputBox(this.nvim, defaultValue ?? '')
+    let input = new InputBox(this.nvim, toText(defaultValue))
     await input.show(title, Object.assign(this.inputPreference, option))
     return input
   }
@@ -405,8 +405,7 @@ export class Window {
    * @param preserveFocus Preserve window focus when true.
    */
   public showOutputChannel(name: string, preserveFocus?: boolean): void {
-    let config = this.workspace.getConfiguration('workspace')
-    let command = config.get<string>('openOutputCommand', 'vs')
+    let command = this.configuration.get<string>('workspace.openOutputCommand', 'vs')
     channels.show(name, command, preserveFocus)
   }
 
@@ -603,9 +602,10 @@ export class Window {
    * and while the promise it returned isn't resolved nor rejected.
    */
   public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {
-    let config = this.workspace.getConfiguration('notification')
+    let config = this.configuration.get<any>('notification')
+
     let stack = Error().stack
-    if (config.get<boolean>('statusLineProgress', true)) {
+    if (config.statusLineProgress) {
       return await this.createStatusLineProgress(options, task)
     }
     let progress = new ProgressNotification(this.nvim, {
@@ -613,7 +613,7 @@ export class Window {
       title: options.title,
       cancellable: options.cancellable
     })
-    let minWidth = config.get<number>('minProgressWidth', 30)
+    let minWidth = toNumber(config.minProgressWidth, 30)
     let promise = new Promise<R>(resolve => {
       progress.onDidFinish(resolve)
     })
@@ -689,7 +689,7 @@ export class Window {
     if (curr.length > 0) {
       let start = Array.isArray(region) ? region[0] : 0
       for (let i = start; i <= maxLnum; i++) {
-        let exists = map.get(i) ?? []
+        let exists = defaultValue(map.get(i), [])
         let added: HighlightItem[] = []
         for (let j = itemIndex; j <= maxIndex; j++) {
           let o = items[j]
@@ -790,57 +790,65 @@ export class Window {
   }
 
   private get dialogPreference(): DialogPreferences {
-    let config = this.workspace.getConfiguration('dialog')
+    let config = this.configuration.get<any>('dialog')
     return {
-      rounded: config.get<boolean>('rounded', true),
-      maxWidth: config.get<number>('maxWidth'),
-      maxHeight: config.get<number>('maxHeight'),
-      floatHighlight: config.get<string>('floatHighlight'),
-      floatBorderHighlight: config.get<string>('floatBorderHighlight'),
-      pickerButtons: config.get<boolean>('pickerButtons'),
-      pickerButtonShortcut: config.get<boolean>('pickerButtonShortcut'),
-      confirmKey: config.get<string>('confirmKey'),
-      shortcutHighlight: config.get<string>('shortcutHighlight')
+      rounded: !!config.rounded,
+      maxWidth: toNumber(config.maxWidth, 80),
+      maxHeight: config.maxHeight,
+      floatHighlight: defaultValue(config.floatHighlight, floatHighlightGroup),
+      floatBorderHighlight: defaultValue(config.floatBorderHighlight, floatHighlightGroup),
+      pickerButtons: config.pickerButtons,
+      pickerButtonShortcut: config.pickerButtonShortcut,
+      confirmKey: toText(config.confirmKey),
+      shortcutHighlight: toText(config.shortcutHighlight)
     }
   }
 
+  public get inputSupported(): boolean {
+    // TODO support vim9 on windows
+    return !isVim || (this.workspace.has('patch-8.2.750') && !isWindows)
+  }
+
   private get inputPreference(): InputPreference {
-    let config = this.workspace.getConfiguration('dialog')
+    let config = this.configuration.get<any>('dialog')
     return {
-      rounded: config.get<boolean>('rounded', true),
-      maxWidth: config.get<number>('maxWidth', 80),
-      highlight: config.get<string>('floatHighlight'),
-      borderhighlight: config.get<string>('floatBorderHighlight')
+      rounded: !!config.rounded,
+      maxWidth: toNumber(config.maxWidth, 80),
+      highlight: defaultValue(config.floatHighlight, floatHighlightGroup),
+      borderhighlight: defaultValue(config.floatBorderHighlight, floatHighlightGroup)
     }
   }
 
   private getNotificationPreference(stack: string, source?: string): NotificationPreferences {
     if (!source) source = parseExtensionName(stack)
-    let config = this.workspace.getConfiguration('notification')
-    let disabledList = config.get<string[]>('disabledProgressSources', [])
+    let config = this.configuration.get<any>('notification')
+
+    let disabledList = defaultValue(config.disabledProgressSources, []) as string[]
     let disabled = Array.isArray(disabledList) && (disabledList.includes('*') || disabledList.includes(source))
     return {
-      border: config.get<boolean>('border', true),
-      focusable: config.get<boolean>('focusable', true),
-      marginRight: config.get<number>('marginRight', 10),
-      timeout: config.get<number>('timeout', 10),
-      maxWidth: config.get<number>('maxWidth'),
-      maxHeight: config.get<number>('maxHeight'),
-      highlight: config.get<string>('highlightGroup'),
-      winblend: config.get<number>('winblend'),
+      border: config.border,
+      focusable: config.focusable,
+      marginRight: toNumber(config.marginRight, 10),
+      timeout: toNumber(config.timeout, 10000),
+      maxWidth: toNumber(config.maxWidth, 60),
+      maxHeight: toNumber(config.maxHeight, 10),
+      highlight: config.highlightGroup,
+      winblend: toNumber(config.winblend, 30),
       disabled,
       source,
     }
   }
 
+  private get configuration(): WorkspaceConfiguration {
+    return this.workspace.initialConfiguration
+  }
+
   private get enableMessageDialog(): boolean {
-    let config = this.workspace.getConfiguration('coc.preferences')
-    return config.get<boolean>('enableMessageDialog', false)
+    return this.configuration.get<boolean>('coc.preferences.enableMessageDialog', false)
   }
 
   public get messageLevel(): MessageLevel {
-    let config = this.workspace.getConfiguration('coc.preferences')
-    let level = config.get<string>('messageLevel', 'more')
+    let level = this.configuration.get<string>('coc.preferences.messageLevel', 'more')
     switch (level) {
       case 'error':
         return MessageLevel.Error
