@@ -4,7 +4,7 @@ import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../confi
 import events from '../events'
 import { createLogger } from '../logger'
 import { IList, ListItem, ListOptions, ListTask, Matcher } from './types'
-import { disposeAll, getConditionValue } from '../util'
+import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { isVim } from '../util/constants'
 import { parseExtensionName } from '../util/extensionRegistry'
 import { debounce, stripAnsi } from '../util/node'
@@ -261,9 +261,9 @@ export class ListManager implements Disposable {
       }
     }
     name = name || 'lists'
-    let config = workspace.getConfiguration(`list.source.${name}`)
-    if (!listOptions.length && !listArgs.length) listOptions = config.get<string[]>('defaultOptions', [])
-    if (!listArgs.length) listArgs = config.get<string[]>('defaultArgs', [])
+    let config = workspace.initialConfiguration.get<any | undefined>(`list.source.${name}`)
+    if (!listOptions.length && !listArgs.length) listOptions = defaultValue(config?.defaultOptions, [])
+    if (!listArgs.length) listArgs = defaultValue(config?.defaultArgs, [])
     for (let opt of listOptions) {
       if (opt.startsWith('--input=')) {
         input = opt.slice(8)

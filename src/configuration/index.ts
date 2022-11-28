@@ -141,8 +141,7 @@ export default class Configurations {
         this._configuration.updateDefaultConfiguration(model)
         this._initialConfiguration = this.getConfiguration(undefined, null)
       } else {
-        let properties = e.properties.filter(key => !key.startsWith('list.source'))
-        this.changeConfiguration(ConfigurationTarget.Default, model, undefined, properties)
+        this.changeConfiguration(ConfigurationTarget.Default, model, undefined, e.properties)
       }
     }, null, this.disposables)
     let properties = configuration.getConfigurationProperties()
@@ -259,8 +258,9 @@ export default class Configurations {
    * Update ConfigurationModel and fire event.
    */
   public changeConfiguration(target: ConfigurationTarget, model: ConfigurationModel, folder: string | undefined, keys?: string[]): void {
+    const listOnly = target === ConfigurationTarget.Default && keys && keys.every(key => key.startsWith('list.source'))
     let configuration = this._configuration
-    let previous = configuration.toData()
+    let previous = listOnly ? undefined : configuration.toData()
     let change: IConfigurationChange
     if (target === ConfigurationTarget.Default) {
       change = configuration.compareAndUpdateDefaultConfiguration(model, keys)
@@ -274,11 +274,12 @@ export default class Configurations {
       change = configuration.compareAndUpdateMemoryConfiguration(model)
     }
     if (!change || change.keys.length == 0) return
-    let ev = new ConfigurationChangeEvent(change, previous, configuration)
-    ev.source = target
     if (target !== ConfigurationTarget.WorkspaceFolder) {
       this._initialConfiguration = this.getConfiguration(undefined, null)
     }
+    if (listOnly) return
+    let ev = new ConfigurationChangeEvent(change, previous, configuration)
+    ev.source = target
     this._onChange.fire(ev)
   }
 
