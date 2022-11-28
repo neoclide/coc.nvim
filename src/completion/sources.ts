@@ -29,6 +29,7 @@ interface VimSourceConfig {
   triggerCharacters?: string[]
   priority?: number
   shortcut?: string
+  triggerOnly?: boolean
 }
 
 /**
@@ -192,6 +193,7 @@ export class Sources {
             filepath,
             isSnippet: props.isSnippet,
             sourceType: SourceType.Remote,
+            triggerOnly: !!props.triggerOnly,
             optionalFns: fns.filter(n => !['init', 'complete'].includes(n))
           })
           this.addSource(source)
@@ -352,7 +354,7 @@ export class Sources {
         priority: getPriority(item, languageSourcePriority),
         triggerCharacters: toArray(item.triggerCharacters),
         shortcut: toText(item.shortcut),
-        filetypes: toArray(item.filetypes),
+        filetypes: toArray(item.filetypes ?? item.documentSelector?.map(o => Is.string(o) ? o : o.language)),
         filepath: toText(item.filepath),
         type: getSourceType(item.sourceType),
         disabled: !item.enable

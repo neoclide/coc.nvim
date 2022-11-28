@@ -1,6 +1,7 @@
 # 2022-11-28
 
 - Placeholder and update value support for `InputBox` and `QuickPick`.
+- `triggerOnly` option property for vim completion source.
 
 # 2022-11-26
 
