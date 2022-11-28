@@ -10392,10 +10392,6 @@ declare module 'coc.nvim' {
     logger: Logger
   }
 
-  export type ExtensionApi = {
-    [index: string]: any
-  } | void | null | undefined
-
   export interface PropertyScheme {
     type: string
     default: any
@@ -10409,12 +10405,12 @@ declare module 'coc.nvim' {
     /**
      * Fired on extension loaded, extension not activated yet.
      */
-    export const onDidLoadExtension: Event<Extension<ExtensionApi>>
+    export const onDidLoadExtension: Event<Extension<any>>
 
     /**
      * Fired on extension activated.
      */
-    export const onDidActiveExtension: Event<Extension<ExtensionApi>>
+    export const onDidActiveExtension: Event<Extension<any>>
 
     /**
      * Fired with extension id on extension unload.
@@ -10424,7 +10420,15 @@ declare module 'coc.nvim' {
     /**
      * Get all loaded extensions, without disabled extensions, extension may not activated.
      */
-    export const all: ReadonlyArray<Extension<ExtensionApi>>
+    export const all: ReadonlyArray<Extension<any>>
+
+    /**
+      * Get an extension by its full identifier in the form of: `publisher.name`.
+      *
+      * @param extensionId An extension identifier.
+      * @return An extension or `undefined`.
+      */
+    export function getExtensionById<T = any>(extensionId: string): Extension<T> | undefined
 
     /**
      * Get state of specific extension.

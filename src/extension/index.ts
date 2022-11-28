@@ -2,7 +2,7 @@
 import commandManager from '../commands'
 import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
-import { concurrent, wait } from '../util'
+import { concurrent } from '../util'
 import { distinct } from '../util/array'
 import { VERSION } from '../util/constants'
 import { isUrl } from '../util/is'
@@ -105,6 +105,11 @@ export class Extensions {
 
   public getExtension(id: string): ExtensionItem | undefined {
     return this.manager.getExtension(id)
+  }
+
+  public getExtensionById(extensionId: string): Extension<API> | undefined {
+    let item = this.manager.getExtension(extensionId)
+    return item ? item.extension : undefined
   }
 
   /**

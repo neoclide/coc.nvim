@@ -213,6 +213,7 @@ describe('extensions', () => {
   })
 
   it('should install global extension', async () => {
+    expect(extensions.getExtensionById('coc-omni')).toBeUndefined()
     let folder = path.join(extensions.modulesFolder, 'coc-omni')
     let spy = jest.spyOn(extensions, 'creteInstaller').mockImplementation(() => {
       return {
@@ -229,6 +230,7 @@ describe('extensions', () => {
     await extensions.installExtensions(['coc-omni'])
     let item = extensions.getExtension('coc-omni')
     expect(item).toBeDefined()
+    expect(extensions.getExtensionById('coc-omni')).toBeDefined()
     expect(item.extension.isActive).toBe(true)
     expect(extensions.isActivated('coc-omni')).toBe(true)
     let globals = extensions.globalExtensionStats()
