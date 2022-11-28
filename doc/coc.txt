@@ -66,6 +66,7 @@ Statusline integration				|coc-status|
   Manual					|coc-status-manual|
   Airline					|coc-status-airline|
   Lightline					|coc-status-lightline|
+Create plugins 					|coc-plugins|
 FAQ						|coc-faq|
 Changelog					|coc-changelog|
 
@@ -153,9 +154,13 @@ To provide LSP features of different filetypes, the user have to config
 Extensions are more powerful since they could contribute json schemes,
 commands, and use middleware methods of languageserver to provide better
 results.  It's also possible to provide features that beyond LSP.
-
+							*coc-extensions-folder*
 Extensions are loaded from `"extensions"` folder inside
 |coc#util#get_data_home()| and folders in 'runtimepath' when detected.
+
+Use `let $COC_NO_PLUGINS = '1'` in vimrc to disable the load of extensions.
+
+See |coc-api-extension| for the guide to create coc.nvim extension.
 
 Install extensions from git (not recommended):~
 
@@ -166,8 +171,8 @@ Install extensions from git (not recommended):~
 
 Plugin manager like [vim-plug] can be used as well.
 
-Note: use coc extensions from source code requires install dependencies, which
-may take huge disk usage.
+Note: use coc.nvim extensions from source code requires install dependencies,
+which may take huge disk usage.
 
 							*coc-extensions-npm*
 Install global extensions from npm (recommended):~
@@ -200,18 +205,6 @@ Manage extensions list:~
 
 Use |coc-list-extensions| or |CocAction('extensionStats')| to get list of extensions.
 
-Single file extensions:~
-
-All Javascript files that ends with `.js` inside the folder
-|g:coc_config_home| + '/coc-extensions' are considered as coc extensions, for
-example:
->
-  const {window} = require('coc.nvim')
-
-  exports.activate = context => {
-    window.showInformationMessage("message from extension")
-  }
-<
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
@@ -2882,11 +2875,14 @@ COMMANDS						*coc-commands*
 	:CocInstall coc-omni@1.0.0
 	" Install snippet extension from github
 	:CocInstall https://github.com/dsznajder/vscode-es7-javascript-react-snippets
->
+<
 :CocUninstall {name}					*:CocUninstall*
 
 	Uninstall an extension, use <tab> to complete the extension
 	name.
+
+	Note: the data create by extension is not cleaned up, you may have to
+	manually remove them.
 
 :CocUpdate						*:CocUpdate*
 
@@ -4018,31 +4014,7 @@ Add `%{StatusDiagnostic()}` to your 'statusline' option.
 
 With vim-airline: https://github.com/vim-airline/vim-airline
 
-Error and warning display should work in vim-airline out of box.
-
-Disable vim-airline integration:
->
-	let g:airline#extensions#coc#enabled = 0
-
-Enable/disable coc status display >
-
-	let g:airline#extensions#coc#show_coc_status = 1
-<
-Change error symbol:
->
-	let airline#extensions#coc#error_symbol = 'E:'
-<
-Change warning symbol:
->
-	let airline#extensions#coc#warning_symbol = 'W:'
-<
-Change error format (%C - error count, %L - line number):
->
-	let airline#extensions#coc#stl_format_err = '%C(L%L)'
-<
-Change warning format (%C - warning count, %L - line number):
->
-	let airline#extensions#coc#stl_format_warn = '%C(L%L)'
+See |airline-coc|
 
 ------------------------------------------------------------------------------
 							*coc-status-lightline*
@@ -4066,11 +4038,14 @@ Use configuration like: >
   autocmd User CocStatusChange,CocDiagnosticChange call lightline#update()
 <
 ==============================================================================
-CUSTOM SOURCE						*coc-custom-source*
+CREATE PLUGINS						*coc-plugins*
 
-Creating a custom source in VimL is supported.
+There're different ways to extend coc.nvim:
 
-Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
+- Create vim completion sources |coc-api-vim-source|.
+- Create extensions |coc-api-extension|.
+- Create single file extensions |coc-api-single-file|.
+- Debug coc.nvim extension |coc-api-debug|.
 
 ==============================================================================
 FAQ							*coc-faq*

@@ -1,6 +1,12 @@
+# 2022-11-29
+
+- Add documentations for develop of coc.nvim extensions.
+
 # 2022-11-28
 
 - Placeholder and update value support for `InputBox` and `QuickPick`.
+- `triggerOnly` option property for vim completion source.
+- Export `getExtensionById` from `extensions` module.
 
 # 2022-11-26
 
