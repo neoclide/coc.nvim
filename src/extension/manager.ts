@@ -29,6 +29,13 @@ export enum ExtensionType {
   Internal
 }
 
+export enum ActivateEvents {
+  OnLanguage = 'onLanguage',
+  OnFileSystem = 'onFileSystem',
+  OnCommand = 'onCommand',
+  WorkspaceContains = 'workspaceContains',
+}
+
 export interface ExtensionInfo {
   id: string
   version?: string
@@ -130,16 +137,16 @@ export class ExtensionManager {
     }, null, this.disposables)
     workspace.onDidOpenTextDocument(document => {
       let doc = workspace.getDocument(document.bufnr)
-      this.tryActivateExtensions('onLanguage', events => {
+      this.tryActivateExtensions(ActivateEvents.OnLanguage, events => {
         return checkLanguageId(doc, events)
       })
-      this.tryActivateExtensions('onFileSystem', events => {
+      this.tryActivateExtensions(ActivateEvents.OnFileSystem, events => {
         return checkFileSystem(doc.uri, events)
       })
     }, null, this.disposables)
     events.on('Command', async command => {
       let fired = false
-      this.tryActivateExtensions('onCommand', events => {
+      this.tryActivateExtensions(ActivateEvents.OnCommand, events => {
         let result = checkCommand(command, events)
         if (result) fired = true
         return result
@@ -148,7 +155,7 @@ export class ExtensionManager {
     }, null, this.disposables)
     workspace.onDidChangeWorkspaceFolders(e => {
       if (e.added.length > 0) {
-        this.tryActivateExtensions('workspaceContains', events => {
+        this.tryActivateExtensions(ActivateEvents.WorkspaceContains, events => {
           let patterns = toWorkspaceContinsPatterns(events)
           return workspace.checkPatterns(patterns, e.added)
         })
@@ -187,13 +194,13 @@ export class ExtensionManager {
     for (let eventName of activationEvents as string[]) {
       let parts = eventName.split(':')
       let ev = parts[0]
-      if (ev === 'onLanguage') {
+      if (ev === ActivateEvents.OnLanguage) {
         if (workspace.languageIds.has(parts[1]) || workspace.filetypes.has(parts[1])) {
           return true
         }
-      } else if (ev === 'workspaceContains' && parts[1]) {
+      } else if (ev === ActivateEvents.WorkspaceContains && parts[1]) {
         patterns.push(parts[1])
-      } else if (ev === 'onFileSystem') {
+      } else if (ev === ActivateEvents.OnFileSystem) {
         for (let doc of workspace.documents) {
           let u = URI.parse(doc.uri)
           if (u.scheme == parts[1]) {
@@ -571,7 +578,7 @@ export function getOnCommandList(activationEvents: string[] | undefined): string
   let res: string[] = []
   for (let ev of toArray(activationEvents)) {
     let [name, command] = ev.split(':', 2)
-    if (name === 'onCommand' && command) res.push(command)
+    if (name === ActivateEvents.OnCommand && command) res.push(command)
   }
   return res
 }
@@ -580,7 +587,7 @@ export function checkLanguageId(document: { languageId: string, filetype: string
   for (let eventName of activationEvents as string[]) {
     let parts = eventName.split(':')
     let ev = parts[0]
-    if (ev == 'onLanguage' && (document.languageId == parts[1] || document.filetype == parts[1])) {
+    if (ev == ActivateEvents.OnLanguage && (document.languageId == parts[1] || document.filetype == parts[1])) {
       return true
     }
   }
@@ -591,7 +598,7 @@ export function checkCommand(command: string, activationEvents: string[]): boole
   for (let eventName of activationEvents as string[]) {
     let parts = eventName.split(':')
     let ev = parts[0]
-    if (ev == 'onCommand' && command == parts[1]) {
+    if (ev == ActivateEvents.OnCommand && command == parts[1]) {
       return true
     }
   }
@@ -603,7 +610,7 @@ export function checkFileSystem(uri: string, activationEvents: string[]): boolea
   for (let eventName of activationEvents as string[]) {
     let parts = eventName.split(':')
     let ev = parts[0]
-    if (ev == 'onFileSystem' && scheme == parts[1]) {
+    if (ev == ActivateEvents.OnFileSystem && scheme == parts[1]) {
       return true
     }
   }
@@ -621,7 +628,7 @@ export function toWorkspaceContinsPatterns(activationEvents: string[]): string[]
   let patterns: string[] = []
   for (let eventName of activationEvents) {
     let parts = eventName.split(':')
-    if (parts[0] == 'workspaceContains' && parts[1]) {
+    if (parts[0] == ActivateEvents.WorkspaceContains && parts[1]) {
       patterns.push(parts[1])
     }
   }
