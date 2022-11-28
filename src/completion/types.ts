@@ -45,7 +45,7 @@ export interface DurationCompleteItem {
   readonly source: ISource
   readonly priority: number
   readonly shortcut?: string
-  // start character for word insert, consider same as complete option when not exists
+  // start character for word insert
   character: number
   isSnippet?: boolean
   insertText?: string

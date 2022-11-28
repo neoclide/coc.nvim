@@ -16,6 +16,21 @@ function! coc#string#character_index(line, byteIdx) abort
   return i
 endfunction
 
+function! coc#string#common_start(text, other) abort
+  let arr = split(a:text, '\zs')
+  let other = split(a:other, '\zs')
+  let total = min([len(arr), len(other)])
+  if total == 0
+    return 0
+  endif
+  for i in range(0, total - 1)
+    if arr[i] !=# other[i]
+      return i
+    endif
+  endfor
+  return total
+endfunction
+
 " Convert utf16 character index to byte index
 function! coc#string#byte_index(line, character) abort
   if a:character <= 0

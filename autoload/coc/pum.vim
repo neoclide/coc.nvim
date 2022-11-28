@@ -313,15 +313,7 @@ function! s:insert_word(word, finish) abort
   if s:start_col != -1 && mode() ==# 'i'
     " should not be used on finish to have correct line.
     if s:is_vim && !a:finish
-      let curr = getline('.')
-      let n = coc#string#get_char_count(curr, s:start_col + 1, col('.'))
-      let previous =strpart(curr, 0, s:start_col)
-      let text = repeat("\<bs>", n).a:word
-      if len(text) > 0
-        call coc#rpc#notify('PumInsert', [previous.a:word])
-        let g:coc_feeding_keys = 1
-        call feedkeys(text, 'int')
-      endif
+      call coc#pum#repalce(s:start_col + 1, a:word, 1)
     else
       let saved_completeopt = &completeopt
       if saved_completeopt =~ 'menuone'
@@ -337,6 +329,33 @@ function! s:insert_word(word, finish) abort
       endif
       execute 'noa set completeopt='.saved_completeopt
     endif
+  endif
+endfunction
+
+" Replace from col to cursor col with new characters
+function! coc#pum#repalce(col, insert, ...) abort
+  let insert = a:insert
+  let curr = getline('.')
+  let removed = strpart(curr, a:col - 1, col('.') - a:col)
+  let n = strchars(removed)
+  let start = coc#string#common_start(insert, removed)
+  let event = get(a:, 1, 0)
+  if start > 0
+    let n = n - start
+    let insert = strcharpart(a:insert, start)
+    if empty(insert) && n == 0 && !event
+      let n = 1
+      let insert = coc#string#last_character(a:insert)
+    endif
+  endif
+  let keys = repeat("\<bs>", n).insert
+  if len(keys)
+    if event
+      let previous =strpart(curr, 0, a:col - 1)
+      call coc#rpc#notify('PumInsert', [previous.a:insert])
+      let g:coc_feeding_keys = 1
+    endif
+    call feedkeys(keys, 'int')
   endif
 endfunction
 
