@@ -50,7 +50,7 @@ jobs:
         uses: rhysd/action-setup-vim@v1.2.13
         id: vim
         with:
-          version: v9.0.815
+          version: v9.0.0815
 
       - name: Setup neovim
         id: nvim
