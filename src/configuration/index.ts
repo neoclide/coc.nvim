@@ -42,7 +42,6 @@ interface MarkdownPreference {
 
 export default class Configurations {
   private _watchedFiles: Set<string> = new Set()
-  private builtinKeys: string[] = []
   private _configuration: Configuration
   private _errors: Map<string, Diagnostic[]> = new Map()
   private _onError = new Emitter<ConfigurationErrorEvent>()
@@ -78,10 +77,10 @@ export default class Configurations {
   }
 
   public get markdownPreference(): MarkdownPreference {
-    let configuration = this._initialConfiguration.get('coc.preferences') as any
+    let preferences = this._initialConfiguration.get('coc.preferences') as any
     return {
-      excludeImages: configuration.excludeImageLinksInMarkdownDocument,
-      breaks: configuration.enableGFMBreaksInMarkdownDocument
+      excludeImages: preferences.excludeImageLinksInMarkdownDocument,
+      breaks: preferences.enableGFMBreaksInMarkdownDocument
     }
   }
 
@@ -152,7 +151,6 @@ export default class Configurations {
       keys.push(key)
       addToValueTree(config, key, value, undefined)
     })
-    this.builtinKeys = keys.slice()
     let model = new ConfigurationModel(config, keys)
     return model
   }
@@ -211,13 +209,13 @@ export default class Configurations {
   public updateMemoryConfig(props: { [key: string]: any }): void {
     let keys = Object.keys(props)
     if (!props || keys.length == 0) return
-    let { builtinKeys } = this
     let memoryModel = this._configuration.memory.clone()
+    let properties = configuration.getConfigurationProperties()
     keys.forEach(key => {
       let val = props[key]
       if (val === undefined) {
         memoryModel.removeValue(key)
-      } else if (builtinKeys.includes(key)) {
+      } else if (properties[key] != null) {
         memoryModel.setValue(key, val)
       } else if (objectLiteral(val)) {
         for (let k of Object.keys(val)) {
