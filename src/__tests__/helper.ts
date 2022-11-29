@@ -16,6 +16,7 @@ import type Plugin from '../plugin'
 import type { ProviderResult } from '../provider'
 import { OutputChannel } from '../types'
 import { equals } from '../util/object'
+import attach from '../attach'
 import type { Workspace } from '../workspace'
 const vimrc = path.resolve(__dirname, 'vimrc')
 
@@ -66,7 +67,6 @@ export class Helper extends EventEmitter {
     let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
-    const attach = require('../attach').default
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
     await this.nvim.uiAttach(160, 80, {})
@@ -94,7 +94,6 @@ export class Helper extends EventEmitter {
     if (process.env.VIM_NODE_RPC != '1') {
       throw new Error(`VIM_NODE_RPC should be 1`)
     }
-    const attach = require('../attach').default
     let server
     let promise = new Promise<void>(resolve => {
       server = net.createServer(socket => {

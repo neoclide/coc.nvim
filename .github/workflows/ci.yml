@@ -60,11 +60,16 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          yarn global add bytes
           yarn install --frozen-lockfile
           sudo apt-get install -y xclip ripgrep exuberant-ctags
           xclip -version
           rg --version
           ctags --version
+          vim --version
+          nvim --version
+          echo $VIM_COMMAND
+          echo $NVIM_COMMAND
 
       - name: Run jest
         env:
@@ -72,10 +77,6 @@ jobs:
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
         run: |
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
-          vim --version
-          nvim --version
-          echo $VIM_COMMAND
-          echo $NVIM_COMMAND
           node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --coverage --forceExit
 
       - name: Codecov

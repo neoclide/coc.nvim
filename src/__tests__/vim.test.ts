@@ -1,6 +1,8 @@
 process.env.VIM_NODE_RPC = '1'
 import type { Neovim } from '@chemzqm/neovim'
-import helper from './helper'
+import type { Helper } from './helper'
+// make sure VIM_NODE_RPC take effect first
+const helper = require('./helper').default as Helper
 
 let nvim: Neovim
 beforeAll(async () => {
