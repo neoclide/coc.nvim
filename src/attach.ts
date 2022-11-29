@@ -29,7 +29,7 @@ export function pathReplace(patterns: object | undefined): void {
   }
 }
 
-export function toText(error: any): string {
+export function toErrorText(error: any): string {
   return error instanceof Error ? error.message : error.toString()
 }
 
@@ -90,7 +90,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
           }
           await plugin.cocAction(method, ...args)
         } catch (e) {
-          console.error(`Error on notification "${method}": ${toText(e)}`)
+          console.error(`Error on notification "${method}": ${toErrorText(e)}`)
           logger.error(`Error on notification ${method}`, e)
         }
       }
@@ -119,7 +119,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       events.requesting = false
     } catch (e) {
       events.requesting = false
-      resp.send(toText(e), true)
+      resp.send(toErrorText(e), true)
       logger.error(`Request error:`, method, args, e)
     }
     timing.stop()

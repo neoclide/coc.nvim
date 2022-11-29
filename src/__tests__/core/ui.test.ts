@@ -68,10 +68,19 @@ describe('createFloatFactory()', () => {
 
 describe('showMessage()', () => {
   it('should showMessage on vim', async () => {
-    ui.showMessage(nvim, 'my message', 'MoreMsg', true)
-    await helper.wait(100)
+    ui.echoMessages(nvim, 'my message', 'more', 'more')
+    await helper.wait(50)
     let cmdline = await helper.getCmdline()
     expect(cmdline).toMatch(/my message/)
+  })
+
+  it('should get messageLevel', () => {
+    let level = ui.toMessageLevel('error')
+    expect(level).toBe(ui.MessageLevel.Error)
+    level = ui.toMessageLevel('warning')
+    expect(level).toBe(ui.MessageLevel.Warning)
+    level = ui.toMessageLevel('more')
+    expect(level).toBe(ui.MessageLevel.More)
   })
 })
 

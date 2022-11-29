@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import helper from '../helper'
-import TerminalModel from '../../model/terminal'
+import { TerminalModel } from '../../model/terminal'
 
 let nvim: Neovim
 let terminal: TerminalModel

@@ -4,7 +4,7 @@ import path from 'path'
 import which from 'which'
 import Terminals from '../../core/terminals'
 import window from '../../window'
-import TerminalModel from '../../model/terminal'
+import { TerminalModel } from '../../model/terminal'
 import helper from '../helper'
 import { v4 as uuid } from 'uuid'
 

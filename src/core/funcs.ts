@@ -1,19 +1,20 @@
 'use strict'
 import type { Neovim } from '@chemzqm/neovim'
+import type { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import Configurations from '../configuration'
 import Resolver from '../model/resolver'
+import { isVim } from '../util/constants'
 import * as fs from '../util/fs'
 import { minimatch, os, path, semver, which } from '../util/node'
 import * as platform from '../util/platform'
 import { TextDocumentFilter } from '../util/protocol'
-import type { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
 let NAME_SPACE = 2000
 const resolver = new Resolver()
 
 const namespaceMap: Map<string, number> = new Map()
 
-interface PartialEnv {
+export interface PartialEnv {
   isVim: boolean
   version: string
 }
@@ -42,6 +43,11 @@ export function has(env: PartialEnv, feature: string): boolean {
     return semver.gte(version, feature.slice(6))
   }
   return semver.gte(env.version, feature.slice(5))
+}
+
+export async function callAsync<T>(nvim: Neovim, method: string, args: any[]): Promise<T> {
+  if (!isVim) return await nvim.call(method, args) as T
+  return await nvim.callAsync('coc#util#with_callback', [method, args]) as T
 }
 
 /*

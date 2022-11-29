@@ -29,8 +29,6 @@ export interface Dimension {
   col: number
 }
 
-export type InputOptions = Pick<InputPreference, 'borderhighlight' | 'position' | 'marginTop' | 'placeHolder'>
-
 type RequestResult = [number, number, [number, number, number, number]]
 
 export default class InputBox implements Disposable {

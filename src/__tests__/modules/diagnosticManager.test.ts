@@ -7,6 +7,7 @@ import manager from '../../diagnostic/manager'
 import { getNameFromSeverity, severityLevel } from '../../diagnostic/util'
 import Document from '../../model/document'
 import window from '../../window'
+import commands from '../../commands'
 import workspace from '../../workspace'
 import fs from 'fs'
 import helper, { createTmpFile } from '../helper'
@@ -405,7 +406,7 @@ describe('diagnostic manager', () => {
     it('should does nothing when no diagnostic exists', async () => {
       let doc = await workspace.document
       await nvim.call('cursor', [1, 1])
-      await manager.jumpRelated()
+      await commands.executeCommand('workspace.diagnosticRelated')
       let bufnr = await nvim.eval('bufnr("%")')
       expect(bufnr).toBe(doc.bufnr)
     })

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import Dialog, { DialogButton } from '../../model/dialog'
+import {Dialog, DialogButton } from '../../model/dialog'
 import helper from '../helper'
 
 let nvim: Neovim

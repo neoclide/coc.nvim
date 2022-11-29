@@ -64,7 +64,7 @@ export default class Plugin {
     this.addAction('snippetNext', () => snippetManager.nextPlaceholder())
     this.addAction('snippetPrev', () => snippetManager.previousPlaceholder())
     this.addAction('snippetCancel', () => snippetManager.cancel())
-    this.addAction('openLocalConfig', () => window.openLocalConfig())
+    this.addAction('openLocalConfig', () => this.handler.workspace.openLocalConfig())
     this.addAction('bufferCheck', () => this.handler.workspace.bufferCheck())
     this.addAction('showInfo', () => this.handler.workspace.showInfo())
     this.addAction('hasProvider', id => this.handler.hasProvider(id))

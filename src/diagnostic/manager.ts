@@ -14,6 +14,7 @@ import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
+import commands from '../commands'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, severityLevel } from './util'
@@ -64,6 +65,10 @@ class DiagnosticManager implements Disposable {
   private messageTimer: NodeJS.Timeout
 
   public init(): void {
+    commands.register({
+      id: 'workspace.diagnosticRelated',
+      execute: () => this.jumpRelated()
+    }, false, 'jump to related locations of current diagnostic.')
     this.defineSigns(workspace.initialConfiguration.get<DiagnosticSignConfig>('diagnostic'))
     this.buffers = workspace.registerBufferSync(doc => {
       let buf = new DiagnosticBuffer(this.nvim, doc)

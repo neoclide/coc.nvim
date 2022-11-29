@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import helper from '../helper'
-import { pathReplace, toText } from '../../attach'
+import { pathReplace, toErrorText } from '../../attach'
 import { URI } from 'vscode-uri'
 
 let nvim: Neovim
@@ -78,7 +78,7 @@ describe('request', () => {
 
 describe('attach', () => {
   it('should to text', () => {
-    expect(toText('text')).toBe('text')
+    expect(toErrorText('text')).toBe('text')
   })
 
   it('should do path replace', () => {

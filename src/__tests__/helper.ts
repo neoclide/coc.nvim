@@ -43,7 +43,6 @@ process.on('uncaughtException', err => {
 })
 
 export class Helper extends EventEmitter {
-  public nvim: Neovim
   public proc: cp.ChildProcess
   private server: Server
   public plugin: Plugin
@@ -63,12 +62,15 @@ export class Helper extends EventEmitter {
     return this.plugin.completion
   }
 
+  public get nvim(): Neovim {
+    return this.plugin.nvim
+  }
+
   public async setup(): Promise<void> {
     let proc = this.proc = cp.spawn(process.env.NVIM_COMMAND ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
     let plugin = this.plugin = attach({ proc })
-    this.nvim = plugin.nvim
     await this.nvim.uiAttach(160, 80, {})
     let channelId = await this.nvim.channelId
     this.nvim.call('coc#rpc#set_channel', [channelId], true)
@@ -96,7 +98,7 @@ export class Helper extends EventEmitter {
     }
     let server
     let promise = new Promise<void>(resolve => {
-      server = net.createServer(socket => {
+      server = this.server = net.createServer(socket => {
         this.plugin = attach({ reader: socket, writer: socket })
         resolve()
       })
@@ -130,7 +132,7 @@ export class Helper extends EventEmitter {
         })
         server.on('error', reject)
       }, reject)
-      //   // not work on CI?
+      //   // not work on old version vim.
       //   let socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
       //   server.listen(socket, () => {
       //     resolve(`unix:${socket}`)
@@ -157,14 +159,10 @@ export class Helper extends EventEmitter {
 
   public async shutdown(): Promise<void> {
     if (this.plugin) this.plugin.dispose()
-    if (this.nvim) {
-      await this.nvim.quit()
-    }
+    if (this.nvim) await this.nvim.quit()
     if (this.server) this.server.close()
-    this.nvim = null
     if (this.proc) {
       this.proc.kill('SIGKILL')
-      this.proc.unref()
       this.proc = null
     }
     if (typeof global.gc === 'function') {
@@ -249,10 +247,10 @@ export class Helper extends EventEmitter {
     await events.fire('InputChar', ['list', input, 0])
   }
 
-  public async getCmdline(): Promise<string> {
+  public async getCmdline(lnum?: number): Promise<string> {
     let str = ''
     for (let i = 1, l = 70; i < l; i++) {
-      let ch = await this.nvim.call('screenchar', [79, i]) as number
+      let ch = await this.nvim.call('screenchar', [lnum ?? 79, i]) as number
       if (ch == -1) break
       str += String.fromCharCode(ch)
     }

@@ -4,7 +4,6 @@ import { Delayer } from '../../language-client/utils/async'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
 import { wait } from '../../util/index'
 import { CloseAction, DefaultErrorHandler, ErrorAction } from '../../language-client/utils/errorHandler'
-import helper from '../helper'
 
 test('Logger', async () => {
   const logger = new ConsoleLogger()
@@ -20,17 +19,21 @@ test('Logger', async () => {
 })
 
 test('DefaultErrorHandler', async () => {
+  let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+    // ignore
+  })
   const handler = new DefaultErrorHandler('test', 2)
   expect(handler.error(new Error('test'), { jsonrpc: '' }, 1)).toBe(ErrorAction.Continue)
   expect(handler.error(new Error('test'), { jsonrpc: '' }, 5)).toBe(ErrorAction.Shutdown)
   handler.closed()
   handler.milliseconds = 1
-  await helper.wait(10)
+  await wait(10)
   let res = handler.closed()
   expect(res).toBe(CloseAction.Restart)
   handler.milliseconds = 10 * 1000
   res = handler.closed()
   expect(res).toBe(CloseAction.DoNotRestart)
+  spy.mockRestore()
 })
 
 test('Delayer', () => {

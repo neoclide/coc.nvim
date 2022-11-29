@@ -2,9 +2,34 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from '../util/protocol'
 import events from '../events'
-import { MessageItem } from '../types'
 import { disposeAll } from '../util'
 import { DialogButton } from './dialog'
+
+/**
+ * Represents an action that is shown with an information, warning, or
+ * error message.
+ *
+ * @see [showInformationMessage](#window.showInformationMessage)
+ * @see [showWarningMessage](#window.showWarningMessage)
+ * @see [showErrorMessage](#window.showErrorMessage)
+ */
+export interface MessageItem {
+
+  /**
+   * A short title like 'Retry', 'Open Log' etc.
+   */
+  title: string
+
+  /**
+   * A hint for modal dialogs that the item should be triggered
+   * when the user cancels the dialog (e.g. by pressing the ESC
+   * key).
+   *
+   * Note: this option is ignored for non-modal messages.
+   * Note: not used by coc.nvim for now.
+   */
+  isCloseAffordance?: boolean
+}
 
 export interface NotificationPreferences {
   disabled: boolean

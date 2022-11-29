@@ -15,15 +15,6 @@ import Popup from './popup'
 import { StrWidth } from './strwidth'
 const logger = createLogger('quickpick')
 
-export interface QuickPickConfig<T extends QuickPickItem> {
-  placeholder?: string
-  title?: string
-  items?: readonly T[]
-  value?: string
-  canSelectMany?: boolean
-  matchOnDescription?: boolean
-}
-
 interface FilteredLine {
   line: string
   score: number

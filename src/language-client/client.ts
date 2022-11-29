@@ -7,8 +7,9 @@ import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent,
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
 import { createLogger } from '../logger'
+import type { MessageItem } from '../model/notification'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
-import { MessageItem, OutputChannel, Thenable } from '../types'
+import { OutputChannel, Thenable } from '../types'
 import { CancellationError } from '../util/errors'
 import { resolveRoot, sameFile } from '../util/fs'
 import * as Is from '../util/is'
@@ -1270,7 +1271,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       // Disposing a connection could fail if error cases.
     }
     let action = CloseAction.DoNotRestart
-    if (this.$state !== ClientState.Stopping) {
+    if (this.$state !== ClientState.Stopping && this._clientOptions.errorHandler) {
       try {
         action = this._clientOptions.errorHandler!.closed()
       } catch (error) {

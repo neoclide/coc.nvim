@@ -1,6 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import commands from '../commands'
 import events from '../events'
 import { StatusBarItem } from '../model/status'
 import { UltiSnippetOption } from '../types'
@@ -35,6 +36,13 @@ export class SnippetManager {
       let session = this.getSession(e.bufnr)
       if (session) session.deactivate()
     }, null, this.disposables)
+    commands.register({
+      id: 'editor.action.insertSnippet',
+      execute: async (edit: TextEdit, ultisnip?: UltiSnippetOption | true) => {
+        const opts = ultisnip === true ? {} : ultisnip
+        return await this.insertSnippet(edit.newText, true, edit.range, InsertTextMode.adjustIndentation, opts ? opts : undefined)
+      }
+    }, true)
   }
 
   private get nvim(): Neovim {

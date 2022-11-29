@@ -23,17 +23,22 @@ export default class StatusLine implements Disposable {
   private shownIds: Set<string> = new Set()
   private _text = ''
   private interval: NodeJS.Timer
-  constructor(private nvim: Neovim | undefined) {
+  public nvim: Neovim
+  constructor() {
     this.interval = setInterval(() => {
       this.setStatusText()
-    }, 100)
-    this.interval.unref()
+    }, 100).unref()
   }
 
   public dispose(): void {
     this.items.clear()
     this.shownIds.clear()
     clearInterval(this.interval)
+  }
+
+  public reset(): void {
+    this.items.clear()
+    this.shownIds.clear()
   }
 
   public createStatusBarItem(priority: number, isProgress = false): StatusBarItem {
@@ -86,7 +91,7 @@ export default class StatusLine implements Disposable {
   private setStatusText(): void {
     let text = this.getText()
     let { nvim } = this
-    if (text != this._text) {
+    if (text != this._text && nvim) {
       this._text = text
       nvim.pauseNotification()
       this.nvim.setVar('coc_status', text, true)

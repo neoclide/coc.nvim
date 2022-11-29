@@ -10,6 +10,7 @@ import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
 import { disposeAll } from '../../util'
+import window from '../../window'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -384,7 +385,9 @@ describe('language source', () => {
     })
 
     it('should fix cursor position with nested snippet on additionalTextEdits', async () => {
-      let res = await snippetManager.insertSnippet('func($1)$0')
+      let pos = await window.getCursorPosition()
+      let range = Range.create(pos, pos)
+      let res = await commandManager.executeCommand('editor.action.insertSnippet', TextEdit.replace(range, 'func($1)$0'))
       expect(res).toBe(true)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
@@ -435,7 +438,9 @@ describe('language source', () => {
     it('should cancel current snippet session when additionalTextEdits inside snippet', async () => {
       await nvim.input('i')
       snippetManager.cancel()
-      await snippetManager.insertSnippet('foo($1, $2)$0', true)
+      let pos = await window.getCursorPosition()
+      let range = Range.create(pos, pos)
+      await commandManager.executeCommand('editor.action.insertSnippet', TextEdit.replace(range, 'foo($1, $2)$0'), true)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'bar',

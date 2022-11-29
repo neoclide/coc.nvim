@@ -1,21 +1,18 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
 import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import events from '../../events'
 import languages from '../../languages'
 import Notification, { toButtons, toTitles } from '../../model/notification'
+import { toPickerItems } from '../../model/picker'
+import { formatMessage } from '../../model/progress'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { disposeAll } from '../../util'
+import window, { Window } from '../../window'
 import workspace from '../../workspace'
-import window, { MessageLevel, Window } from '../../window'
 import helper, { createTmpFile } from '../helper'
-import { formatMessage } from '../../model/progress'
-import { toPickerItems } from '../../model/picker'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -256,49 +253,6 @@ describe('window', () => {
       let token = CancellationToken.Cancelled
       let res = await window.showPickerDialog(['foo', 'bar'], 'select', token)
       expect(res).toBeUndefined()
-    })
-
-    it('should not throw when workspace folder does not exist', async () => {
-      helper.updateConfiguration('workspace.rootPatterns', [])
-      helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'])
-      await nvim.command('enew')
-      await window.openLocalConfig()
-      await nvim.command(`e ${path.join(os.tmpdir(), 'a')}`)
-      await window.openLocalConfig()
-      await nvim.command(`e t.md`)
-      await nvim.command('setf markdown')
-      await window.openLocalConfig()
-      await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
-      await nvim.command('setf vim')
-      await window.openLocalConfig()
-    })
-
-    it('should open local config', async () => {
-      let dir = path.join(os.tmpdir(), '.vim')
-      fs.rmSync(dir, { recursive: true, force: true })
-      fs.mkdirSync(path.join(os.tmpdir(), '.git'), { recursive: true })
-      await helper.edit(path.join(os.tmpdir(), 't'))
-      let root = workspace.root
-      expect(root).toBe(os.tmpdir())
-      let p = window.openLocalConfig()
-      await helper.wait(10)
-      await nvim.input('n')
-      await p
-      p = window.openLocalConfig()
-      await helper.wait(10)
-      await nvim.input('y')
-      await p
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch('coc-settings.json')
-    })
-
-    it('should get messageLevel', () => {
-      helper.updateConfiguration('coc.preferences.messageLevel', 'error')
-      let level = window.messageLevel
-      expect(level).toBe(MessageLevel.Error)
-      helper.updateConfiguration('coc.preferences.messageLevel', 'warning')
-      level = window.messageLevel
-      expect(level).toBe(MessageLevel.Warning)
     })
   })
 
@@ -710,14 +664,10 @@ describe('window', () => {
     })
 
     it('should not use extmarks on neovim < 0.5.1', async () => {
-      let fn = workspace.has
-      workspace.has = feature => {
-        if (feature == 'nvim-0.5.1') return false
-        return fn.apply(workspace, [feature])
-      }
+      window.highlights.checkMarkers = false
       disposables.push({
         dispose: () => {
-          workspace.has = fn
+          window.highlights.checkMarkers = true
         }
       })
       let buf = await createFile('foo\nbar\nbza\ndef\n')

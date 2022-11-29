@@ -27,6 +27,33 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
+describe('SettingMonitor', () => {
+  it('should setup SettingMonitor', async () => {
+    let clientOptions: lsclient.LanguageClientOptions = {}
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      module: serverModule,
+      transport: lsclient.TransportKind.ipc
+    }
+    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    await client.start()
+    let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
+    let disposable = monitor.start()
+    helper.updateConfiguration('html.enabled', false)
+    await helper.waitValue(() => {
+      return client.state
+    }, lsclient.State.Stopped)
+    await helper.wait(20)
+    helper.updateConfiguration('html.enabled', true)
+    await helper.waitValue(() => {
+      return client.state != lsclient.State.Stopped
+    }, true)
+    await client.onReady()
+    await client.stop()
+    disposable.dispose()
+  })
+})
+
 describe('global functions', () => {
   it('should get working directory', async () => {
     let cwd = await lsclient.getServerWorkingDir()
@@ -613,56 +640,31 @@ describe('Client integration', () => {
       })
     }
     await expect(fn()).rejects.toThrow(Error)
+    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+      // noop
+    })
+    const noRestart = () => false
     await helper.waitValue(() => {
       return n
     }, 5)
     fn = async () => {
-      await startServer(undefined, 'normalThrow')
+      await startServer(noRestart, 'normalThrow')
     }
     await expect(fn()).rejects.toThrow(Error)
     fn = async () => {
-      await startServer(undefined, 'utf8')
+      await startServer(noRestart, 'utf8')
     }
     await expect(fn()).rejects.toThrow(Error)
     fn = async () => {
       await client.stop()
     }
     await expect(fn()).rejects.toThrow(Error)
-    let spy = jest.spyOn(window, 'showErrorMessage').mockImplementation(() => {
-      return undefined
-    })
     fn = async () => {
-      await startServer(undefined)
+      await startServer(noRestart)
     }
     await expect(fn()).rejects.toThrow(Error)
+    await helper.wait(500)
+    client.clientOptions.errorHandler = undefined
     spy.mockRestore()
-    await helper.wait(20)
-  })
-})
-
-describe('SettingMonitor', () => {
-  it('should setup SettingMonitor', async () => {
-    let clientOptions: lsclient.LanguageClientOptions = {}
-    let serverModule = path.join(__dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.ipc
-    }
-    let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-    await client.start()
-    let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
-    let disposable = monitor.start()
-    helper.updateConfiguration('html.enabled', false)
-    await helper.waitValue(() => {
-      return client.state
-    }, lsclient.State.Stopped)
-    await helper.wait(20)
-    helper.updateConfiguration('html.enabled', true)
-    await helper.waitValue(() => {
-      return client.state != lsclient.State.Stopped
-    }, true)
-    await client.onReady()
-    await client.stop()
-    disposable.dispose()
   })
 })

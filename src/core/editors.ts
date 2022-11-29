@@ -5,7 +5,7 @@ import { Range } from 'vscode-languageserver-types'
 import events from '../events'
 import Document from '../model/document'
 import Documents from './documents'
-import window from '../window'
+import type { Tabs } from './tabs'
 import { createLogger } from '../logger'
 const logger = createLogger('core-editors')
 
@@ -44,7 +44,7 @@ export default class Editors {
   private readonly _onDidChangeVisibleTextEditors = new Emitter<ReadonlyArray<TextEditor>>()
   public readonly onDidChangeActiveTextEditor: Event<TextEditor | undefined> = this._onDidChangeActiveTextEditor.event
   public readonly onDidChangeVisibleTextEditors: Event<ReadonlyArray<TextEditor>> = this._onDidChangeVisibleTextEditors.event
-  constructor(private documents: Documents) {
+  constructor(private documents: Documents, private readonly tabs: Tabs) {
   }
 
   public get activeTextEditor(): TextEditor | undefined {
@@ -126,10 +126,11 @@ export default class Editors {
 
   private fromOptions(opts: EditorOption, document: Document): TextEditor {
     let { visibleRanges } = opts
-    let tid = window.getTabId(opts.tabpagenr)
+    let { tabs } = this
+    let tid = tabs.getTabId(opts.tabpagenr)
     return {
       get tabpagenr() {
-        return window.getTabNumber(tid)
+        return tabs.getTabNumber(tid)
       },
       winid: opts.winid,
       winnr: opts.winnr,

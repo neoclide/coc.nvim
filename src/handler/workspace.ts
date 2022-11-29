@@ -15,6 +15,8 @@ import { isDirectory } from '../util/fs'
 import { directoryNotExists } from '../util/errors'
 import type { WorkspaceConfiguration } from '../configuration/types'
 import { PatternType } from '../core/workspaceFolder'
+import { defaultValue } from '../util'
+import { CONFIG_FILE_NAME } from '../util/constants'
 
 declare const REVISION
 
@@ -29,11 +31,47 @@ export default class WorkspaceHandler {
     private nvim: Neovim,
     private handler: HandlerDelegate
   ) {
+    // exported by window.
+    Object.defineProperty(window, 'openLocalConfig', {
+      get: () => this.openLocalConfig.bind(this)
+    })
   }
 
   public async openLog(): Promise<void> {
     let file = getLoggerFile()
     await workspace.jumpTo(URI.file(file).toString())
+  }
+
+  /**
+   * Open local config file
+   */
+  public async openLocalConfig(): Promise<void> {
+    let fsPath = await this.nvim.call('expand', ['%:p']) as string
+    let filetype = await this.nvim.eval('&filetype') as string
+    if (!fsPath || !path.isAbsolute(fsPath)) {
+      void window.showWarningMessage(`Current buffer doesn't have valid file path.`)
+      return
+    }
+    let folder = workspace.getWorkspaceFolder(URI.file(fsPath).toString())
+    if (!folder) {
+      let c = workspace.initialConfiguration.get<any>('workspace')
+      let patterns = defaultValue(c.rootPatterns, []) as string[]
+      let ignored = defaultValue(c.ignoredFiletypes, []) as string[]
+      let msg: string
+      if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for workspace folder resolve.`
+      if (!msg) msg = `Can't resolve workspace folder for file '${fsPath}, consider create one of ${patterns.join(', ')} in your project root.'.`
+      void window.showWarningMessage(msg)
+      return
+    }
+    let root = URI.parse(folder.uri).fsPath
+    let dir = path.join(root, '.vim')
+    if (!fs.existsSync(dir)) {
+      let res = await window.showPrompt(`Would you like to create folder'${root}/.vim'?`)
+      if (!res) return
+      fs.mkdirSync(dir)
+    }
+    let filepath = path.join(dir, CONFIG_FILE_NAME)
+    await this.nvim.call('coc#util#open_file', ['edit', filepath])
   }
 
   public addWorkspaceFolder(folder: string): void {

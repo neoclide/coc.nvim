@@ -1,10 +1,12 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import type { DocumentSelector, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CreateFileOptions, DeleteFileOptions, FormattingOptions, Location, LocationLink, Position, Range, RenameFileOptions, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
+import type { ConfigurationResourceScope, WorkspaceConfiguration } from './configuration/types'
 import Autocmds from './core/autocmds'
 import channels from './core/channels'
 import ContentProvider from './core/contentProvider'
@@ -12,8 +14,9 @@ import Documents from './core/documents'
 import Editors from './core/editors'
 import Files, { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from './core/files'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
-import { createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
+import { callAsync, createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps, { LocalMode, MapMode } from './core/keymaps'
+import { Tabs } from './core/tabs'
 import * as ui from './core/ui'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
@@ -24,6 +27,7 @@ import DB from './model/db'
 import type Document from './model/document'
 import { FuzzyMatch, FuzzyWasi, initFuzzyWasm } from './model/fuzzyMatch'
 import Mru from './model/mru'
+import StatusLine from './model/status'
 import { StrWidth } from './model/strwidth'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
@@ -36,8 +40,6 @@ import { path } from './util/node'
 import { toObject } from './util/object'
 import { runCommand } from './util/processes'
 import { CancellationToken, Disposable, Event } from './util/protocol'
-import type { WorkspaceFoldersChangeEvent, DocumentSelector } from 'vscode-languageserver-protocol'
-import type { ConfigurationResourceScope, WorkspaceConfiguration } from './configuration/types'
 const logger = createLogger('workspace')
 
 const methods = [
@@ -73,6 +75,8 @@ export class Workspace {
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
+  public tabs: Tabs = new Tabs()
+  public statusLine = new StatusLine()
   private fuzzyExports: FuzzyWasi
   private strWdith: StrWidth
   private _env: Env
@@ -87,6 +91,9 @@ export class Workspace {
     events.on('VimResized', (columns, lines) => {
       Object.assign(toObject(this.env), { columns, lines })
     })
+    Object.defineProperty(this.statusLine, 'nvim', {
+      get: () => this.nvim
+    })
     let configurations = this.configurations = new Configurations(userConfigFile, new ConfigurationShape(this))
     this.workspaceFolderControl = new WorkspaceFolderController(this.configurations)
     let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl)
@@ -95,7 +102,7 @@ export class Workspace {
     this.autocmds = new Autocmds(this.contentProvider, this.watchers)
     this.keymaps = new Keymaps(documents)
     this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
-    this.editors = new Editors(documents)
+    this.editors = new Editors(documents, this.tabs)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
     this.onDidChangeConfiguration = this.configurations.onDidChange
@@ -142,6 +149,7 @@ export class Workspace {
       })
     }
     let env = this._env = await nvim.call('coc#util#vim_info') as Env
+    this.tabs.init(env.tabCount)
     window.init(env)
     this.checkVersion(APIVERSION)
     this.configurations.updateMemoryConfig(this._env.config)
@@ -455,8 +463,7 @@ export class Workspace {
   }
 
   public async callAsync<T>(method: string, args: any[]): Promise<T> {
-    if (this.isNvim) return await this.nvim.call(method, args) as T
-    return await this.nvim.callAsync('coc#util#with_callback', [method, args]) as T
+    return await callAsync(this.nvim, method, args)
   }
 
   public registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable {
@@ -584,12 +591,15 @@ export class Workspace {
   }
 
   public reset(): void {
+    this.statusLine.reset()
     this.configurations.reset()
     this.workspaceFolderControl.reset()
     this.documentsManager.reset()
   }
 
   public dispose(): void {
+    this.tabs.dispose()
+    this.statusLine.dispose()
     this.watchers.dispose()
     this.autocmds.dispose()
     this.contentProvider.dispose()

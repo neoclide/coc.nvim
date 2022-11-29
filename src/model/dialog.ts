@@ -61,7 +61,7 @@ export interface DialogConfig {
   callback?: (index: number) => void
 }
 
-export default class Dialog {
+export class Dialog {
   private disposables: Disposable[] = []
   private bufnr: number
   private readonly _onDidClose = new Emitter<void>()

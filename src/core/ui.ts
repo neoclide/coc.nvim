@@ -2,11 +2,23 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
-import { Documentation, FloatConfig, FloatFactory, FloatOptions, ScreenPosition } from '../types'
+import { Documentation, Env, FloatConfig, FloatFactory, FloatOptions } from '../types'
 import { isVim } from '../util/constants'
 import { byteIndex, byteLength } from '../util/string'
 
+export interface ScreenPosition {
+  row: number
+  col: number
+}
+
 const operateModes = ['char', 'line', 'block']
+export type MsgTypes = 'error' | 'warning' | 'more'
+
+export enum MessageLevel {
+  More,
+  Warning,
+  Error
+}
 
 export async function getCursorPosition(nvim: Neovim): Promise<Position> {
   // vim can't count utf16
@@ -87,12 +99,55 @@ export async function getCursorScreenPosition(nvim: Neovim): Promise<ScreenPosit
   return { row, col }
 }
 
+export async function echoLines(nvim: Neovim, env: Env, lines: string[], truncate = false): Promise<void> {
+  let cmdHeight = env.cmdheight
+  if (lines.length > cmdHeight && truncate) {
+    lines = lines.slice(0, cmdHeight)
+  }
+  let maxLen = env.columns - 12
+  lines = lines.map(line => {
+    line = line.replace(/\n/g, ' ')
+    if (truncate) line = line.slice(0, maxLen)
+    return line
+  })
+  if (truncate && lines.length == cmdHeight) {
+    let last = lines[lines.length - 1]
+    lines[cmdHeight - 1] = `${last.length >= maxLen ? last.slice(0, -4) : last} ...`
+  }
+  await nvim.call('coc#ui#echo_lines', [lines])
+}
+
 /**
  * Reveal message with highlight.
  */
-export function showMessage(nvim: Neovim, msg: string, hl: 'MoreMsg' | 'Error' | 'ErrorMsg' | 'WarningMsg' = 'MoreMsg', forceTimer = false): void {
-  let method = forceTimer || isVim ? 'callTimer' : 'call'
-  nvim[method]('coc#ui#echo_messages', [hl, ('[coc.nvim] ' + msg).split('\n')], true)
+export function echoMessages(nvim: Neovim, msg: string, messageType: MsgTypes, messageLevel: string): void {
+  let hl: 'Error' | 'MoreMsg' | 'WarningMsg' = 'Error'
+  let level = MessageLevel.Error
+  switch (messageType) {
+    case 'more':
+      level = MessageLevel.More
+      hl = 'MoreMsg'
+      break
+    case 'warning':
+      level = MessageLevel.Warning
+      hl = 'WarningMsg'
+      break
+  }
+  if (level >= toMessageLevel(messageLevel)) {
+    let method = isVim ? 'callTimer' : 'call'
+    nvim[method]('coc#ui#echo_messages', [hl, ('[coc.nvim] ' + msg).split('\n')], true)
+  }
+}
+
+export function toMessageLevel(level: string): MessageLevel {
+  switch (level) {
+    case 'error':
+      return MessageLevel.Error
+    case 'warning':
+      return MessageLevel.Warning
+    default:
+      return MessageLevel.More
+  }
 }
 
 /**

@@ -41,7 +41,7 @@ export interface TerminalExitStatus {
   code: number | undefined
 }
 
-export default class TerminalModel {
+export class TerminalModel {
   public bufnr: number
   private pid = 0
   public exitStatus: TerminalExitStatus | undefined

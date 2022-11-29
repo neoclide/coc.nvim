@@ -220,12 +220,11 @@ describe('showQuickPick', () => {
     tokenSource.cancel()
     let res = await window.showQuickPick(['foo', 'bar'], undefined, token)
     expect(res).toBeUndefined()
-    let release = await window.mutex.acquire()
+    await helper.wait(20)
     tokenSource = new CancellationTokenSource()
     token = tokenSource.token
     let p = window.showQuickPick(['foo', 'bar'], undefined, token)
     tokenSource.cancel()
-    release()
     res = await p
     expect(res).toBeUndefined()
   })

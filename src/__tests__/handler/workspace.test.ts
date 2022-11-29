@@ -1,12 +1,16 @@
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import events from '../../events'
+import extensions from '../../extension'
 import WorkspaceHandler from '../../handler/workspace'
 import { disposeAll } from '../../util'
+import window from '../../window'
 import workspace from '../../workspace'
-import extensions from '../../extension'
-import events from '../../events'
 import helper from '../helper'
-import { URI } from 'vscode-uri'
 
 let nvim: Neovim
 let handler: WorkspaceHandler
@@ -36,6 +40,40 @@ describe('Workspace handler', () => {
   }
 
   describe('methods', () => {
+    it('should not throw when workspace folder does not exist', async () => {
+      helper.updateConfiguration('workspace.rootPatterns', [])
+      helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'])
+      await nvim.command('enew')
+      await (window as any).openLocalConfig()
+      await nvim.command(`e ${path.join(os.tmpdir(), 'a')}`)
+      await handler.openLocalConfig()
+      await nvim.command(`e t.md`)
+      await nvim.command('setf markdown')
+      await handler.openLocalConfig()
+      await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
+      await nvim.command('setf vim')
+      await handler.openLocalConfig()
+    })
+
+    it('should open local config', async () => {
+      let dir = path.join(os.tmpdir(), '.vim')
+      fs.rmSync(dir, { recursive: true, force: true })
+      fs.mkdirSync(path.join(os.tmpdir(), '.git'), { recursive: true })
+      await helper.edit(path.join(os.tmpdir(), 't'))
+      let root = workspace.root
+      expect(root).toBe(os.tmpdir())
+      let p = handler.openLocalConfig()
+      await helper.wait(10)
+      await nvim.input('n')
+      await p
+      p = handler.openLocalConfig()
+      await helper.wait(10)
+      await nvim.input('y')
+      await p
+      let bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toMatch('coc-settings.json')
+    })
+
     it('should add workspace folder', async () => {
       expect(() => {
         handler.addWorkspaceFolder(undefined)
