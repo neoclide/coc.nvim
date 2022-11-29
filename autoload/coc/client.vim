@@ -58,7 +58,6 @@ function! s:start() dict
           \ 'env': {
             \ 'NODE_NO_WARNINGS': '1',
             \ 'VIM_NODE_RPC': '1',
-            \ 'COC_NVIM': '1',
             \ 'TMPDIR': tmpdir,
           \ }
           \}
@@ -84,7 +83,6 @@ function! s:start() dict
     if has('nvim-0.5.0')
       " could use env option
       let opts['env'] = {
-          \ 'COC_NVIM': '1',
           \ 'NODE_NO_WARNINGS': '1',
           \ 'TMPDIR': tmpdir
           \ }
@@ -93,7 +91,6 @@ function! s:start() dict
             \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
             \ 'TMPDIR': getenv('TMPDIR'),
             \ }
-      call setenv('COC_NVIM', '1')
       call setenv('NODE_NO_WARNINGS', '1')
       call setenv('TMPDIR', tmpdir)
     endif

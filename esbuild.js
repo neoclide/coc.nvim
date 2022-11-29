@@ -26,27 +26,28 @@ if (!global.__TESTER__) {
       if (logger) logger.info(...arguments)
     }
   })
+  const { createLogger } = require('./src/logger/index')
+  const logger = createLogger('server')
+
+  process.on('uncaughtException', function(err) {
+    let msg = 'Uncaught exception: ' + err.message
+    console.error(msg)
+    logger.error('uncaughtException', err.stack)
+  })
+
+  process.on('unhandledRejection', function(reason, p) {
+    if (reason instanceof Error) {
+      console.error('UnhandledRejection: ' + reason.message + '\\n' + reason.stack)
+    } else {
+      console.error('UnhandledRejection: ' + reason)
+    }
+    logger.error('unhandledRejection ', p, reason)
+  })
 }
-const { createLogger } = require('./src/logger/index')
-const logger = createLogger('server')
-
-process.on('uncaughtException', function(err) {
-  let msg = 'Uncaught exception: ' + err.message
-  console.error(msg)
-  logger.error('uncaughtException', err.stack)
-})
-
-process.on('unhandledRejection', function(reason, p) {
-  if (reason instanceof Error) {
-    console.error('UnhandledRejection: ' + reason.message + '\\n' + reason.stack)
-  } else {
-    console.error('UnhandledRejection: ' + reason)
-  }
-  logger.error('unhandledRejection ', p, reason)
-})
-
 const attach = require('./src/attach').default
-attach({ reader: process.stdin, writer: process.stdout })`
+if (!global.__TESTER__) attach({ reader: process.stdin, writer: process.stdout })
+module.exports = {attach, exports: require('./src/index')}
+`
       return {
         contents,
         resolveDir: __dirname
@@ -62,7 +63,12 @@ async function start(watch) {
     watch,
     minify: process.env.NODE_ENV === 'production',
     sourcemap: process.env.NODE_ENV === 'development',
-    define: {REVISION: '"' + revision + '"', ESBUILD: 'true', 'global.__TEST__': false},
+    define: {
+      REVISION: '"' + revision + '"',
+      ESBUILD: 'true',
+      'process.env.COC_NVIM': '"1"',
+      'global.__TEST__': false
+    },
     mainFields: ['module', 'main'],
     platform: 'node',
     treeShaking: true,
