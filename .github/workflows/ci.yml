@@ -50,7 +50,7 @@ jobs:
         uses: rhysd/action-setup-vim@v1.2.13
         id: vim
         with:
-          version: v8.2.0750
+          version: v9.0.815
 
       - name: Setup neovim
         id: nvim
@@ -68,15 +68,12 @@ jobs:
           ctags --version
           vim --version
           nvim --version
-          echo $VIM_COMMAND
-          echo $NVIM_COMMAND
 
       - name: Run jest
         env:
           VIM_COMMAND: ${{ steps.vim.outputs.executable }}
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
         run: |
-          export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
           node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --coverage --forceExit
 
       - name: Codecov

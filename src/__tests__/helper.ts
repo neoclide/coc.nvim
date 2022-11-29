@@ -64,7 +64,7 @@ export class Helper extends EventEmitter {
   }
 
   public async setup(): Promise<void> {
-    let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
+    let proc = this.proc = cp.spawn(process.env.NVIM_COMMAND ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
     let plugin = this.plugin = attach({ proc })
@@ -102,8 +102,9 @@ export class Helper extends EventEmitter {
       })
     })
     let address = await this.listenOnVim(server)
-    let proc = this.proc = cp.spawn('vim', ['--clean', '--not-a-term', '-u', vimrc], {
+    let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
+      shell: true,
       cwd: __dirname,
       env: {
         COC_VIM_CHANNEL_ADDRESS: address,
@@ -114,31 +115,27 @@ export class Helper extends EventEmitter {
       console.error(err)
     })
     proc.on('exit', code => {
-      if (code) console.log('vim exit with code ' + code)
+      if (code) console.error('vim exit with code ' + code)
     })
     await promise
     await this.plugin.init('')
   }
 
   private async listenOnVim(server: Server): Promise<string> {
-    let isWindows = process.platform == 'win32'
     return new Promise((resolve, reject) => {
-      if (isWindows) {
-        getPort().then(port => {
-          let localhost = '127.0.0.1'
-          server.listen(port, localhost, () => {
-            resolve(`${localhost}:${port}`)
-          })
-          server.on('error', reject)
-        }, reject)
-      } else {
-        // use unix socket
-        let socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
-        server.listen(socket, () => {
-          resolve(`unix:${socket}`)
+      getPort().then(port => {
+        let localhost = '127.0.0.1'
+        server.listen(port, localhost, () => {
+          resolve(`${localhost}:${port}`)
         })
         server.on('error', reject)
-      }
+      }, reject)
+      //   // not work on CI?
+      //   let socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
+      //   server.listen(socket, () => {
+      //     resolve(`unix:${socket}`)
+      //   })
+      //   server.on('error', reject)
       server.unref()
     })
   }
@@ -213,8 +210,8 @@ export class Helper extends EventEmitter {
   public async waitPopup(): Promise<void> {
     let visible = await this.nvim.call('coc#pum#visible')
     if (visible) return
-    let res = await events.race(['MenuPopupChanged'], 3000)
-    if (!res) throw new Error('wait pum timeout after 3s')
+    let res = await events.race(['MenuPopupChanged'], 5000)
+    if (!res) throw new Error('wait pum timeout after 5s')
   }
 
   public async confirmCompletion(idx: number): Promise<void> {
