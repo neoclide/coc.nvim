@@ -9,9 +9,55 @@ if (process.env.NODE_ENV !== 'development') {
   }
 }
 
+let entryPlugin = {
+  name: 'entry',
+  setup(build) {
+    build.onResolve({filter: /^index\.js$/}, args => {
+      return {
+        path: args.path,
+        namespace: 'entry-ns'
+      }
+    })
+    build.onLoad({filter: /.*/, namespace: 'entry-ns'}, () => {
+      let contents = `'use strict'
+if (!global.__TESTER__) {
+  Object.defineProperty(console, 'log', {
+    value() {
+      if (logger) logger.info(...arguments)
+    }
+  })
+}
+const { createLogger } = require('./src/logger/index')
+const logger = createLogger('server')
+
+process.on('uncaughtException', function(err) {
+  let msg = 'Uncaught exception: ' + err.message
+  console.error(msg)
+  logger.error('uncaughtException', err.stack)
+})
+
+process.on('unhandledRejection', function(reason, p) {
+  if (reason instanceof Error) {
+    console.error('UnhandledRejection: ' + reason.message + '\\n' + reason.stack)
+  } else {
+    console.error('UnhandledRejection: ' + reason)
+  }
+  logger.error('unhandledRejection ', p, reason)
+})
+
+const attach = require('./src/attach').default
+attach({ reader: process.stdin, writer: process.stdout })`
+      return {
+        contents,
+        resolveDir: __dirname
+      }
+    })
+  }
+}
+
 async function start(watch) {
   await require('esbuild').build({
-    entryPoints: ['src/main.ts'],
+    entryPoints: ['index.js'],
     bundle: true,
     watch,
     minify: process.env.NODE_ENV === 'production',
@@ -21,9 +67,9 @@ async function start(watch) {
     platform: 'node',
     treeShaking: true,
     target: 'node14.14',
-    charset: 'utf8',
+    plugins: [entryPlugin],
     banner: {
-      js: `"use strict";\nglobal.__starttime = Date.now();`
+      js: `"use strict";\nglobal.__starttime = Date.now();\nglobal.__TESTER__ = process.env.COC_TESTER == '1';`
     },
     outfile: 'build/index.js'
   })
