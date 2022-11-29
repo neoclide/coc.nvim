@@ -103,7 +103,7 @@ describe('codeLenes featrue', () => {
       let codelens = buf.currentCodeLens
       return Array.isArray(codelens) && codelens[0].command != null
     }, true)
-    let markers = await helper.getMarkers(doc.bufnr, srcId)
+    let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
     expect(markers.length).toBe(1)
   })
 
@@ -112,7 +112,7 @@ describe('codeLenes featrue', () => {
     let doc = await workspace.document
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
-    let markers = await helper.getMarkers(doc.bufnr, srcId)
+    let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
     expect(markers.length).toBeGreaterThan(0)
   })
 
@@ -154,7 +154,7 @@ describe('codeLenes featrue', () => {
     await doc.synchronize()
     await events.fire('CursorHold', [doc.bufnr])
     await helper.waitValue(async () => {
-      let markers = await helper.getMarkers(doc.bufnr, srcId)
+      let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
       return markers.length
     }, 3)
     helper.updateConfiguration('codeLens.enable', false)
@@ -294,7 +294,7 @@ describe('codeLenes featrue', () => {
     await helper.wait(50)
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await codeLens.checkProvider()
-    let markers = await helper.getMarkers(doc.buffer.id, srcId)
+    let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
     expect(markers.length).toBeGreaterThan(0)
     let codeLensBuffer = codeLens.buffers.getItem(doc.buffer.id)
     await codeLensBuffer.forceFetch()

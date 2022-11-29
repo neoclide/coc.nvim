@@ -1,24 +1,23 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
+import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import * as cp from 'child_process'
 import { EventEmitter } from 'events'
 import fs from 'fs'
+import net, { Server } from 'net'
 import os from 'os'
 import path from 'path'
 import util from 'util'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
-import attach from '../attach'
 import type { Completion } from '../completion'
 import { DurationCompleteItem } from '../completion/types'
 import events from '../events'
 import type Document from '../model/document'
 import type Plugin from '../plugin'
-import { ProviderResult } from '../provider'
+import type { ProviderResult } from '../provider'
 import { OutputChannel } from '../types'
 import { equals } from '../util/object'
 import type { Workspace } from '../workspace'
+const vimrc = path.resolve(__dirname, 'vimrc')
 
 export interface CursorPosition {
   bufnum: number
@@ -45,6 +44,7 @@ process.on('uncaughtException', err => {
 export class Helper extends EventEmitter {
   public nvim: Neovim
   public proc: cp.ChildProcess
+  private server: Server
   public plugin: Plugin
 
   constructor() {
@@ -63,10 +63,10 @@ export class Helper extends EventEmitter {
   }
 
   public async setup(): Promise<void> {
-    const vimrc = path.resolve(__dirname, 'vimrc')
     let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
+    const attach = require('../attach').default
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
     await this.nvim.uiAttach(160, 80, {})
@@ -90,9 +90,81 @@ export class Helper extends EventEmitter {
     await plugin.init('')
   }
 
+  public async setupVim(): Promise<void> {
+    if (process.env.VIM_NODE_RPC != '1') {
+      throw new Error(`VIM_NODE_RPC should be 1`)
+    }
+    const attach = require('../attach').default
+    let server
+    let promise = new Promise<void>(resolve => {
+      server = net.createServer(socket => {
+        this.plugin = attach({ reader: socket, writer: socket })
+        resolve()
+      })
+    })
+    let address = await this.listenOnVim(server)
+    let proc = this.proc = cp.spawn('vim', ['--clean', '--not-a-term', '-u', vimrc], {
+      stdio: 'pipe',
+      cwd: __dirname,
+      env: {
+        COC_VIM_CHANNEL_ADDRESS: address,
+        ...process.env
+      }
+    })
+    proc.on('error', err => {
+      console.error(err)
+    })
+    proc.on('exit', code => {
+      if (code) console.log('vim exit with code ' + code)
+    })
+    await promise
+    await this.plugin.init('')
+  }
+
+  private async listenOnVim(server: Server): Promise<string> {
+    let isWindows = process.platform == 'win32'
+    return new Promise((resolve, reject) => {
+      if (isWindows) {
+        getPort().then(port => {
+          let localhost = '127.0.0.1'
+          server.listen(port, localhost, () => {
+            resolve(`${localhost}:${port}`)
+          })
+          server.on('error', reject)
+        }, reject)
+      } else {
+        // use unix socket
+        let socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
+        server.listen(socket, () => {
+          resolve(`unix:${socket}`)
+        })
+        server.on('error', reject)
+      }
+      server.unref()
+    })
+  }
+
+  public async reset(): Promise<void> {
+    let mode = await this.nvim.mode
+    if (mode.blocking && mode.mode == 'r') {
+      await this.nvim.input('<cr>')
+    } else if (mode.mode != 'n' || mode.blocking) {
+      await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
+    }
+    this.completion.stop(true)
+    this.workspace.reset()
+    await this.nvim.command('silent! %bwipeout!')
+    await this.nvim.command('setl nopreviewwindow')
+    await this.wait(30)
+    await this.workspace.document
+  }
+
   public async shutdown(): Promise<void> {
     if (this.plugin) this.plugin.dispose()
-    await this.nvim.quit()
+    if (this.nvim) {
+      await this.nvim.quit()
+    }
+    if (this.server) this.server.close()
     this.nvim = null
     if (this.proc) {
       this.proc.kill('SIGKILL')
@@ -105,20 +177,12 @@ export class Helper extends EventEmitter {
     await this.wait(30)
   }
 
-  public async waitPopup(): Promise<void> {
-    let visible = await this.nvim.call('coc#pum#visible')
-    if (visible) return
-    let res = await events.race(['MenuPopupChanged'], 3000)
-    if (!res) throw new Error('wait pum timeout after 3s')
-  }
-
-  public async waitPreviewWindow(): Promise<void> {
-    for (let i = 0; i < 40; i++) {
-      await this.wait(50)
-      let has = await this.nvim.call('coc#list#has_preview')
-      if (has > 0) return
-    }
-    throw new Error('timeout after 2s')
+  public wait(ms = 30): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve()
+      }, ms)
+    })
   }
 
   public async waitPrompt(): Promise<void> {
@@ -139,45 +203,23 @@ export class Helper extends EventEmitter {
     throw new Error('timeout after 2s')
   }
 
-  public async confirmCompletion(idx: number): Promise<void> {
-    await this.nvim.call('coc#pum#select', [idx, 1, 1])
-  }
-
   public async doAction(method: string, ...args: any[]): Promise<any> {
     return await this.plugin.cocAction(method, ...args)
   }
 
-  public async synchronize(): Promise<void> {
-    let doc = await this.workspace.document
-    doc.forceSync()
+  public async items(): Promise<DurationCompleteItem[]> {
+    return this.completion?.activeItems.slice()
   }
 
-  public async reset(): Promise<void> {
-    let mode = await this.nvim.mode
-    if (mode.blocking && mode.mode == 'r') {
-      await this.nvim.input('<cr>')
-    } else if (mode.mode != 'n' || mode.blocking) {
-      await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
-    }
-    this.completion.stop(true)
-    this.workspace.reset()
-    await this.nvim.command('silent! %bwipeout!')
-    await this.nvim.command('setl nopreviewwindow')
-    await this.wait(30)
-    await this.workspace.document
+  public async waitPopup(): Promise<void> {
+    let visible = await this.nvim.call('coc#pum#visible')
+    if (visible) return
+    let res = await events.race(['MenuPopupChanged'], 3000)
+    if (!res) throw new Error('wait pum timeout after 3s')
   }
 
-  public async pumvisible(): Promise<boolean> {
-    let res = await this.nvim.call('coc#pum#visible', []) as number
-    return res == 1
-  }
-
-  public wait(ms = 30): Promise<void> {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve()
-      }, ms)
-    })
+  public async confirmCompletion(idx: number): Promise<void> {
+    await this.nvim.call('coc#pum#select', [idx, 1, 1])
   }
 
   public async visible(word: string, source?: string): Promise<boolean> {
@@ -188,17 +230,6 @@ export class Helper extends EventEmitter {
     if (!item) return false
     if (source && item.source.name != source) return false
     return true
-  }
-
-  public async notVisible(word: string): Promise<boolean> {
-    let items = await this.getItems()
-    return items.findIndex(o => o.word == word) == -1
-  }
-
-  public async getItems(): Promise<ReadonlyArray<DurationCompleteItem>> {
-    let visible = await this.pumvisible()
-    if (!visible) return []
-    return this.completion.activeItems.slice()
   }
 
   public async edit(file?: string): Promise<Buffer> {
@@ -222,10 +253,6 @@ export class Helper extends EventEmitter {
     await events.fire('InputChar', ['list', input, 0])
   }
 
-  public async getMarkers(bufnr: number, ns: number): Promise<[number, number, number][]> {
-    return await this.nvim.call('nvim_buf_get_extmarks', [bufnr, ns, 0, -1, {}]) as [number, number, number][]
-  }
-
   public async getCmdline(): Promise<string> {
     let str = ''
     for (let i = 1, l = 70; i < l; i++) {
@@ -234,12 +261,6 @@ export class Helper extends EventEmitter {
       str += String.fromCharCode(ch)
     }
     return str.trim()
-  }
-
-  // row, startCol, endCol, highlight
-  public async getExtMarks(buf: Buffer, ns_id: number): Promise<[number, number, number, string][]> {
-    let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
-    return markers.map(o => [o[1], o[2], o[3].end_col, o[3].hl_group])
   }
 
   public updateConfiguration(key: string, value: any): () => void {
@@ -259,23 +280,6 @@ export class Helper extends EventEmitter {
     await this.nvim.exec(content)
   }
 
-  public async items(): Promise<DurationCompleteItem[]> {
-    return this.completion?.activeItems.slice()
-  }
-
-  public async screenLine(line: number): Promise<string> {
-    let res = ''
-    for (let i = 1; i <= 80; i++) {
-      let ch = await this.nvim.call('screenchar', [line, i]) as number
-      res = res + String.fromCharCode(ch)
-    }
-    return res
-  }
-
-  public async getWinLines(winid: number): Promise<string[]> {
-    return await this.nvim.eval(`getbufline(winbufnr(${winid}), 1, '$')`) as string[]
-  }
-
   public async getFloat(kind?: string): Promise<Window> {
     if (!kind) {
       let ids = await this.nvim.call('coc#float#get_float_win_list') as number[]
@@ -286,22 +290,8 @@ export class Helper extends EventEmitter {
     }
   }
 
-  public async getLines(winid: number): Promise<string[]> {
-    let buf = await (this.nvim.createWindow(winid)).buffer
-    return await buf.lines
-  }
-
-  public async getFloats(): Promise<Window[]> {
-    let ids = await this.nvim.call('coc#float#get_float_win_list', []) as number[]
-    if (!ids) return []
-    return ids.map(id => this.nvim.createWindow(id))
-  }
-
-  public async getExtmarkers(bufnr: number, ns: number): Promise<[number, number, number, number, string][]> {
-    let res = await this.nvim.call('nvim_buf_get_extmarks', [bufnr, ns, 0, -1, { details: true }]) as any
-    return res.map(o => {
-      return [o[1], o[2], o[3].end_row, o[3].end_col, o[3].hl_group]
-    })
+  public async getWinLines(winid: number): Promise<string[]> {
+    return await this.nvim.eval(`getbufline(winbufnr(${winid}), 1, '$')`) as string[]
   }
 
   public async waitFor<T>(method: string, args: any[], value: T): Promise<void> {
@@ -363,6 +353,28 @@ export function makeLine(length) {
       charactersLength))
   }
   return result
+}
+
+let currPort = 5000
+export function getPort(): Promise<number> {
+  let port = currPort
+  let fn = cb => {
+    let server = net.createServer()
+    server.listen(port, () => {
+      server.once('close', () => {
+        currPort = port + 1
+        cb(port)
+      })
+      server.close()
+    })
+    server.on('error', () => {
+      port += 1
+      fn(cb)
+    })
+  }
+  return new Promise(resolve => {
+    fn(resolve)
+  })
 }
 
 export default new Helper()

@@ -212,7 +212,7 @@ export default class Plugin {
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
       nvim.resumeNotification(false, true)
-      logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, 0))
+      logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()))
       this.ready = true
       await events.fire('ready', [])
       workspace.autocmds.setupDynamicAutocmd(true)

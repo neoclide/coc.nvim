@@ -45,9 +45,15 @@ if (!global.__TESTER__) {
   })
 }
 const attach = require('./src/attach').default
-if (!global.__TESTER__) attach({ reader: process.stdin, writer: process.stdout })
-module.exports = {attach, exports: require('./src/index')}
-`
+if (!global.__TESTER__) {
+  attach({ reader: process.stdin, writer: process.stdout })
+} else {
+  const exports = require('./src/index')
+  const manager = exports.extensions.manager
+  module.exports = {attach, exports, loadExtension: (folder) => {
+    return manager.loadExtension(folder)
+  }}
+}`
       return {
         contents,
         resolveDir: __dirname
@@ -75,7 +81,10 @@ async function start(watch) {
     target: 'node14.14',
     plugins: [entryPlugin],
     banner: {
-      js: `"use strict";\nglobal.__starttime = Date.now();\nglobal.__TESTER__ = process.env.COC_TESTER == '1';`
+      js: `"use strict";
+global.__starttime = Date.now();
+global.__TESTER__ = process.env.COC_TESTER == '1';
+if (global.__TESTER__) process.env.COC_NO_PLUGINS = '1';`
     },
     outfile: 'build/index.js'
   })

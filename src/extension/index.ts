@@ -4,7 +4,7 @@ import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
 import { distinct } from '../util/array'
-import { VERSION } from '../util/constants'
+import { noPlugin, VERSION } from '../util/constants'
 import { isUrl } from '../util/is'
 import { fs, path, which } from '../util/node'
 import { executable } from '../util/processes'
@@ -51,7 +51,7 @@ export class Extensions {
   }
 
   public async init(runtimepath: string): Promise<void> {
-    if (process.env.COC_NO_PLUGINS) return
+    if (noPlugin) return
     let stats = await this.globalPromise
     this.manager.registerExtensions(stats)
     let localStats = this.runtimeExtensionStats(runtimepath)
@@ -60,7 +60,7 @@ export class Extensions {
   }
 
   public async activateExtensions(): Promise<void> {
-    if (process.env.COC_NO_PLUGINS) return
+    if (noPlugin) return
     await this.manager.activateExtensions()
     let names = this.states.filterGlobalExtensions(workspace.env.globalExtensions)
     void this.installExtensions(names)
@@ -244,7 +244,7 @@ export class Extensions {
   }
 
   public async globalExtensions(): Promise<ExtensionToLoad[]> {
-    if (process.env.COC_NO_PLUGINS) return []
+    if (noPlugin) return []
     let dependencies = this.states.dependencies
     let res: ExtensionToLoad[] = []
     let keys = Object.keys(dependencies)

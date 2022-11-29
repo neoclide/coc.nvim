@@ -29,6 +29,10 @@ afterEach(async () => {
 function triggerCompletion(source: string): void {
   nvim.call('coc#start', { source }, true)
 }
+async function pumvisible(): Promise<boolean> {
+  let res = await nvim.call('coc#pum#visible', []) as number
+  return res == 1
+}
 
 async function create(items: string[] | VimCompleteItem[], trigger = true): Promise<string> {
   let name = Math.random().toString(16).slice(-6)
@@ -92,7 +96,7 @@ describe('completion', () => {
       await create(['\xc1\xc7\xc8', 'foo'], false)
       await nvim.input('a')
       await helper.wait(50)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
       await nvim.input('<cr>')
       await nvim.input('f')
@@ -104,7 +108,7 @@ describe('completion', () => {
       await create(['你好'], false)
       await nvim.input('你')
       await helper.wait(10)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
 
@@ -113,7 +117,7 @@ describe('completion', () => {
       await create(['1234', '1984'], false)
       await nvim.input('1')
       await helper.wait(50)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
 
@@ -298,7 +302,7 @@ describe('completion', () => {
       await create(['this'], true)
       await nvim.input('tih')
       await helper.waitValue(async () => {
-        let items = await helper.getItems()
+        let items = await helper.items()
         return items.length
       }, 0)
     })
@@ -343,7 +347,7 @@ describe('completion', () => {
       await doc.buffer.setVar('coc_suggest_disable', 1)
       await nvim.input('if')
       await helper.wait(30)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
 
@@ -352,7 +356,7 @@ describe('completion', () => {
       await doc.buffer.setVar('coc_disabled_sources', ['foo'])
       await nvim.input('if')
       await helper.wait(30)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
 
@@ -362,7 +366,7 @@ describe('completion', () => {
       await nvim.setLine('en')
       await nvim.input('Ad')
       await helper.wait(10)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
   })
@@ -394,7 +398,7 @@ describe('completion', () => {
     it('should not complete with empty sources', async () => {
       nvim.call('coc#start', { source: 'not_exists' }, true)
       await helper.wait(10)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
   })
@@ -587,7 +591,7 @@ describe('completion', () => {
       await nvim.setLine('f a')
       await nvim.call('cursor', [2, 4])
       await helper.wait(30)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
 
@@ -619,7 +623,7 @@ describe('completion', () => {
       expect(items[0].word).toBe('foo bar')
       await nvim.input(' ')
       await helper.waitValue(async () => {
-        return await helper.pumvisible()
+        return await pumvisible()
       }, false)
     })
 
@@ -805,7 +809,7 @@ describe('completion', () => {
       await create(['foo#abc'], true)
       await nvim.input('#')
       await helper.wait(30)
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items[0].word).toBe('foo#abc')
     })
 
@@ -961,7 +965,7 @@ describe('completion', () => {
       await nvim.input('i')
       await nvim.input('EM')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.length).toBe(2)
     })
 
@@ -979,7 +983,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('oa')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.findIndex(o => o.word == 'fallback')).toBe(-1)
     })
 
@@ -989,7 +993,7 @@ describe('completion', () => {
       await nvim.input('<esc>')
       await nvim.input('A')
       await helper.wait(1)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
 
@@ -997,7 +1001,7 @@ describe('completion', () => {
       await create(['foo', 'bar'], false)
       await nvim.input('br')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       let item = items.find(o => o.word == 'foo')
       expect(item).toBeFalsy()
       expect(items[0].word).toBe('bar')
@@ -1021,7 +1025,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('(')
       await helper.wait(50)
-      let res = await helper.pumvisible()
+      let res = await pumvisible()
       expect(res).toBe(true)
     })
 
@@ -1046,7 +1050,7 @@ describe('completion', () => {
       disposables.push(sources.addSource(source1))
       await nvim.input('i.')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.length).toBe(2)
     })
 
@@ -1088,7 +1092,7 @@ describe('completion', () => {
       await helper.wait(30)
       await nvim.input('<c-space>')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.length).toBeGreaterThan(1)
     })
 
@@ -1169,7 +1173,7 @@ describe('completion', () => {
       await nvim.input('<bs>')
       await nvim.input('<left>')
       await helper.wait(10)
-      let visible = await helper.pumvisible()
+      let visible = await pumvisible()
       expect(visible).toBe(false)
     })
 
@@ -1217,13 +1221,13 @@ describe('completion', () => {
     it('should limit results for low priority source', async () => {
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
       await create(['filename', 'filepath', 'find', 'filter', 'findIndex'], true)
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.length).toBe(2)
     })
 
     it('should contains duplicated items when dup is 1', async () => {
       await create([{ word: 'foo', dup: 1 }, { word: 'foo', dup: 1 }], true)
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.length).toBe(2)
     })
 
@@ -1242,7 +1246,7 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.length).toBeGreaterThan(1)
     })
 
@@ -1331,13 +1335,13 @@ describe('completion', () => {
       await nvim.input('i')
       await nvim.input('.f')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       expect(items.length).toEqual(2)
       await nvim.input('oo')
       await helper.waitValue(() => {
         return completion.activeItems?.length
       }, 1)
-      items = await helper.getItems()
+      items = await helper.items()
       expect(items.length).toEqual(1)
       expect(items[0].word).toBe('foo')
     })
@@ -1451,7 +1455,7 @@ describe('completion', () => {
          noa call cursor(1, 7)
          `)
       await helper.waitValue(async () => {
-        return await helper.pumvisible()
+        return await pumvisible()
       }, false)
     })
   })

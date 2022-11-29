@@ -7,6 +7,7 @@ import { createLogger } from '../logger'
 import Memos from '../model/memos'
 import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
+import { noPlugin } from '../util/constants'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
 import { createExtension, ExtensionExport } from '../util/factory'
 import { loadJson, remove, statAsync, watchFile } from '../util/fs'
@@ -83,7 +84,7 @@ const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Con
  * Manage loaded extensions
  */
 export class ExtensionManager {
-  private activated = false
+  private activated = noPlugin ? true : false
   private disposables: Disposable[] = []
   private configurationNodes: IConfigurationNode[] = []
   private extensions: Map<string, ExtensionItem> = new Map()

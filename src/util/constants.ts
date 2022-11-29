@@ -5,6 +5,7 @@ import { path } from './node'
 export const ASCII_END = 128
 export const VERSION = version
 export const isVim = process.env.VIM_NODE_RPC == '1'
+export const noPlugin = process.env.COC_NO_PLUGINS == '1'
 export const APIVERSION = 34
 export const floatHighlightGroup = 'CocFloating'
 export const CONFIG_FILE_NAME = 'coc-settings.json'

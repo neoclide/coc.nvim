@@ -32,7 +32,7 @@ afterEach(async () => {
 
 async function rangeCount(): Promise<number> {
   let buf = await nvim.buffer
-  let markers = await helper.getMarkers(buf.id, ns)
+  let markers = await buf.getExtMarks(ns, 0, -1)
   return markers.length
 }
 

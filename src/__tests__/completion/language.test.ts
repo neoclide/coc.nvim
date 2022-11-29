@@ -317,11 +317,11 @@ describe('language source', () => {
         winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail']) as number
         return winid > 0
       }, true)
-      let lines = await helper.getLines(winid)
+      let lines = await helper.getWinLines(winid)
       expect(lines[0]).toMatch('foo')
       await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitValue(async () => {
-        lines = await helper.getLines(winid)
+        lines = await helper.getWinLines(winid)
         return lines.join(' ').includes('bar')
       }, true)
     })
@@ -356,7 +356,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('ii')
       await helper.waitPopup()
-      let res = await helper.getItems()
+      let res = await helper.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('col', ['.'], 8)
@@ -376,7 +376,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('iif')
       await helper.waitPopup()
-      let items = await helper.getItems()
+      let items = await helper.items()
       let idx = items.findIndex(o => o.word == 'do' && o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'bar do')
@@ -421,7 +421,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
       await nvim.input('A.')
       await helper.waitPopup()
-      let res = await helper.getItems()
+      let res = await helper.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
@@ -447,7 +447,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
       await nvim.input('b')
       await helper.waitPopup()
-      let res = await helper.getItems()
+      let res = await helper.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
       await helper.confirmCompletion(idx)
       await helper.waitFor('col', ['.'], 6)
@@ -539,7 +539,7 @@ describe('language source', () => {
       await helper.waitPopup()
       await nvim.input('fo')
       await helper.waitValue(async () => {
-        let items = await helper.getItems()
+        let items = await helper.items()
         return items.length
       }, 1)
     })

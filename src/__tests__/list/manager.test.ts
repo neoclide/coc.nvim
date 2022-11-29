@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim, Window } from '@chemzqm/neovim'
 import path from 'path'
 import events from '../../events'
 import manager, { createConfigurationNode } from '../../list/manager'
@@ -26,6 +26,12 @@ const locations: ReadonlyArray<QuickfixItem> = [{
   lnum: 3,
   text: 'option'
 }]
+
+async function getFloats(): Promise<Window[]> {
+  let ids = await nvim.call('coc#float#get_float_win_list', []) as number[]
+  if (!ids) return []
+  return ids.map(id => nvim.createWindow(id))
+}
 
 beforeAll(async () => {
   await helper.setup()
@@ -243,17 +249,17 @@ describe('list', () => {
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
       await helper.waitValue(async () => {
-        let wins = await helper.getFloats()
+        let wins = await getFloats()
         return wins.length > 0
       }, true)
       await manager.togglePreview()
       await helper.waitValue(async () => {
-        let wins = await helper.getFloats()
+        let wins = await getFloats()
         return wins.length > 0
       }, false)
       await manager.togglePreview()
       await helper.waitValue(async () => {
-        let wins = await helper.getFloats()
+        let wins = await getFloats()
         return wins.length > 0
       }, true)
     })

@@ -48,6 +48,15 @@ const locations: ReadonlyArray<QuickfixItem> = [{
   text: 'option'
 }]
 
+async function waitPreviewWindow(): Promise<void> {
+  for (let i = 0; i < 40; i++) {
+    await helper.wait(50)
+    let has = await nvim.call('coc#list#has_preview')
+    if (has > 0) return
+  }
+  throw new Error('timeout after 2s')
+}
+
 const lineList: IList = {
   name: 'lines',
   actions: [{
@@ -372,7 +381,7 @@ describe('Default normal mappings', () => {
     await helper.createDocument()
     await manager.start(['--auto-preview', '--normal', 'location'])
     await manager.session.ui.ready
-    await helper.waitPreviewWindow()
+    await waitPreviewWindow()
     let winnr = await nvim.call('coc#list#has_preview') as number
     let winid = await nvim.call('win_getid', [winnr])
     await helper.listInput('<C-e>')

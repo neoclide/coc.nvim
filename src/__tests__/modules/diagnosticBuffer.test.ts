@@ -15,6 +15,13 @@ function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSever
   return Object.assign(Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error, 999, 'test'), { collection: 'test', tags })
 }
 
+async function getExtmarkers(bufnr: number, ns: number): Promise<[number, number, number, number, string][]> {
+  let res = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, 0, -1, { details: true }]) as any
+  return res.map(o => {
+    return [o[1], o[2], o[3].end_row, o[3].end_col, o[3].hl_group]
+  })
+}
+
 let ns: number
 let virtualTextSrcId: number
 beforeAll(async () => {
@@ -111,7 +118,7 @@ describe('diagnostic buffer', () => {
         createDiagnostic('bar', Range.create(0, 0, 0, 1), DiagnosticSeverity.Warning)
       ])
       await nvim.resumeNotification()
-      let markers = await helper.getExtmarkers(buf.bufnr, ns)
+      let markers = await getExtmarkers(buf.bufnr, ns)
       expect(markers).toEqual([
         [0, 0, 0, 1, 'CocWarningHighlight'],
         [0, 0, 0, 1, 'CocErrorHighlight']

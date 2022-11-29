@@ -638,10 +638,6 @@ describe('strings', () => {
     expect(strings.isEmojiImprecise(129535)).toBe(true)
   })
 
-  it('should catch promise error', () => {
-    Promise.reject(new Error('my error')).logError()
-  })
-
   it('should get parts', () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
     expect(res).toEqual(['', 'bar'])

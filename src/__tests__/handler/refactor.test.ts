@@ -249,7 +249,7 @@ describe('refactor', () => {
       await nvim.call('setline', [4, line])
       doc._forceSync()
       let srcId = await nvim.createNamespace('coc-refactor')
-      let markers = await helper.getMarkers(doc.bufnr, srcId)
+      let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
       expect(markers.length).toBe(2)
     })
 

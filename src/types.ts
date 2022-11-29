@@ -189,7 +189,6 @@ export interface Env {
   readonly ambiguousIsNarrow: boolean
   readonly floating: boolean
   readonly sign: boolean
-  readonly extensionRoot: string
   readonly globalExtensions: string[]
   readonly workspaceFolders: string[]
   readonly config: any

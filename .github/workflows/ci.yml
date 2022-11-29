@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     if: github.event.pull_request.draft == false
-    timeout-minutes: 20
+    timeout-minutes: 60
     runs-on: ubuntu-latest
 
     strategy:
@@ -20,8 +20,6 @@ jobs:
         node:
           - "16"
           - "14"
-        nvim:
-          - "0.7.2"
         include:
           # only enable coverage on the fastest job
           - node: "16"
@@ -48,22 +46,36 @@ jobs:
           python-version: "3.9"
       - run: pip install pynvim
 
+      - name: Setup vim
+        uses: rhysd/action-setup-vim@v1.2.13
+        id: vim
+        with:
+          version: v8.2.0750
+
+      - name: Setup neovim
+        id: nvim
+        uses: rhysd/action-setup-vim@v1.2.13
+        with:
+          neovim: true
+
       - name: Install Dependencies
         run: |
-          yarn global add typescript
           yarn install --frozen-lockfile
-
-      - name: Setup nvim ${{ matrix.nvim }}
-        run: |
           sudo apt-get install -y xclip ripgrep exuberant-ctags
           xclip -version
           rg --version
           ctags --version
 
-          curl -LO https://github.com/neovim/neovim/releases/download/v${{ matrix.nvim }}/nvim-linux64.tar.gz
-          tar xzf nvim-linux64.tar.gz
+      - name: Run jest
+        env:
+          VIM_COMMAND: ${{ steps.vim.outputs.executable }}
+          NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
+        run: |
           export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
+          vim --version
           nvim --version
+          echo $VIM_COMMAND
+          echo $NVIM_COMMAND
           node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --coverage --forceExit
 
       - name: Codecov

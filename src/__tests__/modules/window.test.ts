@@ -750,8 +750,10 @@ describe('window', () => {
         removeMarkers: []
       })
       await window.applyDiffHighlights(buf.id, ns, priority, res, true)
-      let markers = await helper.getExtMarks(buf, ns_id)
-      expect(markers).toEqual([
+      // let markers = await helper.getExtMarks(buf, ns_id)
+      let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
+      let arr = markers.map(o => [o[1], o[2], o[3].end_col, o[3].hl_group])
+      expect(arr).toEqual([
         [0, 0, 3, 'Search'],
         [2, 0, 3, 'Search']
       ])
