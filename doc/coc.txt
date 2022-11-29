@@ -2843,9 +2843,13 @@ COMMANDS						*coc-commands*
 
 	Use this command when you want coc to start all over again.
 
+:CocPrintErrors						*:CocPrintErrors*
+
+	Show stderr messages from the NodeJS process in a split window.
+
 :CocDisable						*:CocDisable*
 
-	Disable handling vim events.
+	Disable handling vim events, useful for debug performance issues.
 
 :CocEnable						*:CocEnable*
 

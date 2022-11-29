@@ -58,8 +58,16 @@ function! coc#rpc#kill()
   endif
 endfunction
 
-function! coc#rpc#get_errors()
-  return split(execute('messages'), "\n")
+function! coc#rpc#show_errors()
+  let client = coc#client#get_client('coc')
+  if !empty(client)
+    let lines = get(client, 'stderr', [])
+    keepalt new +setlocal\ buftype=nofile [Stderr of coc.nvim]
+    setl noswapfile wrap bufhidden=wipe nobuflisted nospell
+    call append(0, lines)
+    exe "normal! z" . len(lines) . "\<cr>"
+    exe "normal! gg"
+  endif
 endfunction
 
 function! coc#rpc#stop()

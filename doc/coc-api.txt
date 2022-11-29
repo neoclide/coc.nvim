@@ -21,6 +21,10 @@ During initialization, coc.nvim searches vim's |runtimepath| for file pattern
 `autoload/coc/source/${name}.vim`, matched files would be loaded as vim
 completion sources.
 
+Note: LSP completion features like `TextEdit`, `additionalTextEdits`,
+`command` are not supported by vim sources, use the NodeJS API
+`languages.registerCompletionItemProvider` for LSP completion.
+
 For example, create a file `autoload/coc/source/email.vim` inside your plugin
 folder.  With code:
 >
@@ -43,7 +47,7 @@ will be shown when not exists.
 
 Source option:~
 
-  Default source option object is returned by `coc#source#{name}#init`
+  The source option object is returned by `coc#source#{name}#init`
   function, available properties:
 
   • shortcut: The shortcut characters shown in popup menu, first three
@@ -66,7 +70,7 @@ Source option:~
 
 Source configurations:~
 
-  Vim sources register |coc-configuration| to allow the user to customize the
+  Vim sources register |coc-configuration| for allow the user to customize the
   source behavior.
 
   • `coc.source.${name}.enable` Enable the source, default to `true`.
@@ -129,7 +133,7 @@ Optional functions:~
   by coc.nvim:
 
   • `coc#source#{name}#get_startcol(option)` Used to alter the start col of
-    completion, the returned col must <= curosr col.
+    completion, the returned col must <= current curosr col.
   • `coc#source#{name}#on_complete(item)` Called with selected complete item
     when user confirm the completion by |coc#pum#confirm()| or
     |coc#_select_confirm()|. Normally used for apply nesessary edits to the
@@ -187,14 +191,17 @@ and NodeJS process, use the methods related to `process.stdin` and
 `process.stdout` may cause unexpected behavior.  However, some methods of
 `console` are provided for debugging purpose.
 
-Messages from `console` would be redirected to the log file |:CocOpenLog|.
-Available methods:
+Messages from `console` of extension would be redirected to the log file
+|:CocOpenLog|. Available methods:
 
   • `debug(...args: any[])` Write debug message to the log file.
   • `log(...args: any[])` Write info message to the log file.
   • `info(...args: any[])` Write info message to the log file.
   • `error(...args: any[])` Write error message to the log file.
   • `warn(...args: any[])` Write warning message to the log file.
+
+Check the full NodeJS API interfaces at:
+https://github.com/neoclide/coc.nvim/blob/master/typings/index.d.ts
 
 ------------------------------------------------------------------------------
 EXTENSION PACKAGE JSON 				*coc-api-json*
@@ -287,14 +294,17 @@ SINGLE FILE EXTENSIONS 				*coc-api-single*
 The easiest way to access the NodeJS API is make use of single file
 extensions.
 
-All Javascript files that ends with `.js` inside the folder
-|g:coc_config_home| + '/coc-extensions' are considered as coc extensions.
+All Javascript files that ends with `.js` inside the folder "coc-extensions"
+under |g:coc_config_home| are considered as coc extensions.
 
 The javascript files would be loaded during coc.nvim initialize by default.
 
-To contribute meta data, create file `${name}.json` aside with `${name}.js`,
-the json file works the same as package.json of extension |coc-api-json|,
-except that only `activationEvents` and `contributes` properties are used.
+To contribute extension meta data, create file `${name}.json` aside with
+`${name}.js`, the json file works the same as package.json of extension
+|coc-api-json|, except that only `activationEvents` and `contributes`
+properties are used.
+
+Single file extensions can't be managed by extensions list.
 
 ------------------------------------------------------------------------------
 CREATE CUSTOM EXTENSIONS 			*coc-api-extension*
@@ -314,7 +324,7 @@ extension step by step.
 To manually create an extension, follow these step:
 
   • Create an empty folder and goto that folder.
-  • Create package.json file |coc-api-json|.
+  • Create the package.json file |coc-api-json|.
   • Create a javascript file with name `index.js` and write code.
   • Add the created folder to your vim's runtimepath by
     add `set runtimepath^=/path/to/folder` in your vimrc.
@@ -347,6 +357,19 @@ Recommended steps:
 <
 ------------------------------------------------------------------------------
 DEBUG EXTENSIONS 				*coc-api-debug*
+
+Uncaught errors:~
+
+When an uncaught error raised on the NodeJS process, the error message would
+be send to vim through stderr, and echoed by vim (unless
+|g:coc_disable_uncaught_error| is enabeld).
+
+The error messages are not stored by vim's message history, use
+|:CocPrintErrors| to show previous errors.
+
+When error happens on the vim side, the promise would be rejected when sending
+request to vim, for notifications, vim would send `nvim_error_event` to the
+NodeJS process, and the node-client would create error log for it.
 
 Use the log file:~
 
@@ -383,6 +406,9 @@ Debug javascript code in chrome:~
   inspect.
 • Click the inspect link to open the devtools.
 • Click the sources label to debug javascript code.
+
+Other debugger clients can be used as well, see:
+https://nodejs.org/en/docs/guides/debugging-getting-started/
 
 ==============================================================================
 vim:tw=78:sta:noet:ts=8:sts=0:ft=help:fen:
