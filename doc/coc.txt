@@ -1615,12 +1615,6 @@ g:coc_text_prop_offset 					*g:coc_text_prop_offset*
 
 	Default: 1000
 
-g:coc_channel_timeout					*g:coc_channel_timeout*
-
-	Channel timeout in seconds for request to node client.
-
-	Default: 30
-
 g:coc_disable_transparent_cursor			*g:coc_disable_transparent_cursor*
 
 	Disable transparent cursor when CocList is activated.

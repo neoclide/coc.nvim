@@ -16,6 +16,7 @@ module.exports = async () => {
   let dataHome = path.join(tmpdir, process.pid.toString())
   fs.mkdirSync(dataHome, {recursive: true})
   process.env.NODE_ENV = 'test'
+  process.env.COC_NVIM = '1'
   process.env.COC_DATA_HOME = dataHome
   process.env.COC_VIMCONFIG = path.join(__dirname, 'src/__tests__')
 }

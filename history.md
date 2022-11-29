@@ -1,6 +1,7 @@
 # 2022-11-29
 
 - Add documentations for develop of coc.nvim extensions.
+- Remove unused variable `g:coc_channel_timeout`.
 
 # 2022-11-28
 

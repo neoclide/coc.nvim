@@ -39,10 +39,9 @@ endfunction
 function! s:start() dict
   if self.running | return | endif
   if !isdirectory(getcwd())
-    echohl Error | echon '[coc.nvim] Current cwd is not a valid directory.' | echohl None
+    echoerr '[coc.nvim] Current cwd is not a valid directory.'
     return
   endif
-  let timeout = string(get(g:, 'coc_channel_timeout', 30))
   let tmpdir = fnamemodify(tempname(), ':p:h')
   if s:is_vim
     if get(g:, 'node_client_debug', 0)
@@ -60,7 +59,6 @@ function! s:start() dict
             \ 'NODE_NO_WARNINGS': '1',
             \ 'VIM_NODE_RPC': '1',
             \ 'COC_NVIM': '1',
-            \ 'COC_CHANNEL_TIMEOUT': timeout,
             \ 'TMPDIR': tmpdir,
           \ }
           \}
@@ -88,35 +86,22 @@ function! s:start() dict
       let opts['env'] = {
           \ 'COC_NVIM': '1',
           \ 'NODE_NO_WARNINGS': '1',
-          \ 'COC_CHANNEL_TIMEOUT': timeout,
           \ 'TMPDIR': tmpdir
           \ }
     else
-      if exists('*getenv')
-        let original = {
-              \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
-              \ 'TMPDIR': getenv('TMPDIR'),
-              \ }
-      endif
-      if exists('*setenv')
-        call setenv('COC_NVIM', '1')
-        call setenv('NODE_NO_WARNINGS', '1')
-        call setenv('COC_CHANNEL_TIMEOUT', timeout)
-        call setenv('TMPDIR', tmpdir)
-      else
-        let $NODE_NO_WARNINGS = 1
-        let $TMPDIR = tmpdir
-      endif
+      let original = {
+            \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
+            \ 'TMPDIR': getenv('TMPDIR'),
+            \ }
+      call setenv('COC_NVIM', '1')
+      call setenv('NODE_NO_WARNINGS', '1')
+      call setenv('TMPDIR', tmpdir)
     endif
     let chan_id = jobstart(self.command, opts)
     if !empty(original)
-      if exists('*setenv')
-        for key in keys(original)
-          call setenv(key, original[key])
-        endfor
-      else
-        let $TMPDIR = original['TMPDIR']
-      endif
+      for key in keys(original)
+        call setenv(key, original[key])
+      endfor
     endif
     if chan_id <= 0
       echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
