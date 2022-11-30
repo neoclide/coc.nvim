@@ -83,8 +83,7 @@ async function start(watch) {
     banner: {
       js: `"use strict";
 global.__starttime = Date.now();
-global.__TESTER__ = process.env.COC_TESTER == '1';
-if (global.__TESTER__) process.env.COC_NO_PLUGINS = '1';`
+global.__TESTER__ = process.env.COC_TESTER == '1';`
     },
     outfile: 'build/index.js'
   })

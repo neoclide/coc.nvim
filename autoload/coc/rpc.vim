@@ -5,13 +5,19 @@ let s:name = 'coc'
 let s:is_vim = !has('nvim')
 
 function! coc#rpc#start_server()
-  if get(g:, 'coc_node_env', '') ==# 'test'
+  let test = get(g:, 'coc_node_env', '') ==# 'test'
+  if test && !s:is_vim
+    " server already started
+    let s:client = coc#client#create(s:name, [])
+    let chan_id = get(g:, 'coc_node_channel_id', 0)
+    let s:client['running'] = chan_id != 0
+    let s:client['chan_id'] = chan_id
+    return
+  endif
+  if exists('$COC_NVIM_REMOTE_ADDRESS')
+    let address = $COC_NVIM_REMOTE_ADDRESS
     if s:is_vim
       let s:client = coc#client#create(s:name, [])
-      let address = get(g:, 'coc_vim_channel_address', '')
-      if empty(address)
-        throw 'g:coc_vim_channel_address not defined'
-      endif
       let channel = ch_open(address, {
           \ 'mode': 'json',
           \ 'close_cb': {channel -> s:on_channel_close()},
@@ -21,15 +27,23 @@ function! coc#rpc#start_server()
       if ch_status(channel) == 'open'
         let s:client['running'] = 1
         let s:client['channel'] = channel
-      else
-        throw 'failed to open channel on '.address
       endif
     else
-      " server already started
+      let mode = address =~# ':\d\+$' ? 'tcp' : 'pipe'
       let s:client = coc#client#create(s:name, [])
-      let chan_id = get(g:, 'coc_node_channel_id', 0)
-      let s:client['running'] = chan_id != 0
-      let s:client['chan_id'] = chan_id
+      let chan_id =0
+      try
+        let chan_id = sockconnect(mode, address, { 'rpc': 1 })
+      catch /connection\ refused/
+        " ignroe
+      endtry
+      if chan_id > 0
+        let s:client['running'] = 1
+        let s:client['chan_id'] = chan_id
+      endif
+    endif
+    if !s:client['running']
+      echohl Error | echom 'coc.nvim failed to create connection on '.address.' check $COC_NVIM_REMOTE_ADDRESS' | echohl None
     endif
     return
   endif
@@ -116,10 +130,30 @@ function! coc#rpc#restart()
     call coc#rpc#request('detach', [])
     let g:coc_service_initialized = 0
     sleep 100m
-    let s:client['command'] = coc#util#job_command()
-    call coc#client#restart(s:name)
-    call s:check_vim_enter()
+    if exists('$COC_NVIM_REMOTE_ADDRESS')
+      call coc#rpc#close_connection()
+      sleep 100m
+      call coc#rpc#start_server()
+    else
+      let s:client['command'] = coc#util#job_command()
+      call coc#client#restart(s:name)
+      call s:check_vim_enter()
+    endif
     echohl MoreMsg | echom 'starting coc.nvim service' | echohl None
+  endif
+endfunction
+
+function! coc#rpc#close_connection() abort
+  if s:is_vim
+    let channel = get(s:client, 'channel', v:null)
+    if !empty(channel)
+      call ch_close(channel)
+    endif
+  else
+    let chan_id = get(s:client, 'chan_id', 0)
+    if chan_id
+      call chanclose(chan_id)
+    endif
   endif
 endfunction
 
@@ -171,9 +205,12 @@ function! s:check_vim_enter() abort
 endfunction
 
 function! s:on_channel_close() abort
+  if get(g:, 'coc_node_env', '') !=# 'test'
+    echohl Error | echom '[coc.nvim] channel closed' | echohl None
+  endif
   if !empty(s:client)
-    let client['running'] = 0
-    let client['channel'] = v:null
-    let client['async_req_id'] = 1
+    let s:client['running'] = 0
+    let s:client['channel'] = v:null
+    let s:client['async_req_id'] = 1
   endif
 endfunction

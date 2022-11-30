@@ -16,9 +16,6 @@ let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
 let g:coc_node_env = 'test'
 
-if exists('$COC_VIM_CHANNEL_ADDRESS')
-  let g:coc_vim_channel_address = $COC_VIM_CHANNEL_ADDRESS
-endif
 execute 'set runtimepath+='.s:root
 
 call coc#add_command('config', 'let g:coc_config_init = 1')

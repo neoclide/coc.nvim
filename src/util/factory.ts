@@ -90,7 +90,7 @@ export interface ISandbox {
   Promise: any
 }
 
-export function createSandbox(filename: string, logger: ILogger): ISandbox {
+export function createSandbox(filename: string, logger: ILogger, name?: string): ISandbox {
   const module = new Module(filename)
   module.paths = Module._nodeModulePaths(filename)
 
@@ -115,7 +115,7 @@ export function createSandbox(filename: string, logger: ILogger): ISandbox {
         logger.warn.apply(logger, args)
       }
     }
-  }) as ISandbox
+  }, { name }) as ISandbox
 
   defaults(sandbox, global)
   sandbox.Reflect = Reflect
@@ -158,7 +158,7 @@ export function createExtension(id: string, filename: string, isEmpty: boolean):
     activate: () => {},
     deactivate: null
   }
-  const sandbox = createSandbox(filename, createLogger(`extension:${id}`))
+  const sandbox = createSandbox(filename, createLogger(`extension:${id}`), id)
 
   delete Module._cache[require.resolve(filename)]
 

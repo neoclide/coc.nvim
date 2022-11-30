@@ -8,6 +8,7 @@ import path from 'path'
 import util from 'util'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
+import attach from '../attach'
 import type { Completion } from '../completion'
 import { DurationCompleteItem } from '../completion/types'
 import events from '../events'
@@ -16,7 +17,6 @@ import type Plugin from '../plugin'
 import type { ProviderResult } from '../provider'
 import { OutputChannel } from '../types'
 import { equals } from '../util/object'
-import attach from '../attach'
 import type { Workspace } from '../workspace'
 const vimrc = path.resolve(__dirname, 'vimrc')
 
@@ -109,7 +109,7 @@ export class Helper extends EventEmitter {
       shell: true,
       cwd: __dirname,
       env: {
-        COC_VIM_CHANNEL_ADDRESS: address,
+        COC_NVIM_REMOTE_ADDRESS: address,
         ...process.env
       }
     })
@@ -124,20 +124,25 @@ export class Helper extends EventEmitter {
   }
 
   private async listenOnVim(server: Server): Promise<string> {
+    const isWindows = process.platform === 'win32'
     return new Promise((resolve, reject) => {
-      getPort().then(port => {
-        let localhost = '127.0.0.1'
-        server.listen(port, localhost, () => {
-          resolve(`${localhost}:${port}`)
+      if (!isWindows) {
+        // not work on old version vim.
+        let socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
+        server.listen(socket, () => {
+          resolve(`unix:${socket}`)
         })
         server.on('error', reject)
-      }, reject)
-      //   // not work on old version vim.
-      //   let socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
-      //   server.listen(socket, () => {
-      //     resolve(`unix:${socket}`)
-      //   })
-      //   server.on('error', reject)
+        server.unref()
+      } else {
+        getPort().then(port => {
+          let localhost = '127.0.0.1'
+          server.listen(port, localhost, () => {
+            resolve(`${localhost}:${port}`)
+          })
+          server.on('error', reject)
+        }, reject)
+      }
       server.unref()
     })
   }
