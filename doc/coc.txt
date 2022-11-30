@@ -3461,7 +3461,6 @@ Options of CocList command~
 	Type a line number to select an item and invoke the default action on
 	insert mode. Type `0` to select the 10th line.
 
-
 --interactive
 -I
 	Use interactive mode, list items would be reloaded on input
@@ -3589,7 +3588,7 @@ Default mappings on normal mode:
 <Space>     - Toggle selection of current item.
 i,I,o,O,a,A - Change to insert mode.
 p           - Preview action.
-:           - Cancel list session without closing window.
+:           - Cancel the prompt and enter command mode.
 ?           - Show help of current list.
 t           - Do 'tabe' action.
 d           - Do 'drop' action.

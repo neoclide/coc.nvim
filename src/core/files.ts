@@ -261,12 +261,20 @@ export default class Files {
   }
 
   public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
-    const preferences = this.configurations.getConfiguration('coc.preferences')
-    let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
+    if (!openCommand) openCommand = this.configurations.initialConfiguration.get<string>('coc.preferences.jumpCommand', 'edit')
     let { nvim } = this
-    let doc = this.documents.getDocument(uri)
+    let u = URI.parse(uri)
+    let doc = this.documents.getDocument(u.with({ fragment: '' }).toString())
     let bufnr = doc ? doc.bufnr : -1
-    if (bufnr != -1 && jumpCommand == 'edit') {
+    if (!position && u.scheme === 'file' && u.fragment) {
+      let parts = u.fragment.split(',')
+      let lnum = parseInt(parts[0], 10)
+      if (!isNaN(lnum)) {
+        let col = parts.length > 0 && /^\d+$/.test(parts[1]) ? parseInt(parts[1], 10) : undefined
+        position = Position.create(lnum - 1, col == null ? 0 : col - 1)
+      }
+    }
+    if (bufnr != -1 && openCommand == 'edit') {
       // use buffer command since edit command would reload the buffer
       nvim.pauseNotification()
       nvim.command(`silent! normal! m'`, true)
@@ -283,9 +291,9 @@ export default class Files {
       let pos = position == null ? null : [position.line, position.character]
       if (scheme == 'file') {
         let bufname = normalizeFilePath(fsPath)
-        await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
+        await this.nvim.call('coc#util#jump', [openCommand, bufname, pos])
       } else {
-        await this.nvim.call('coc#util#jump', [jumpCommand, uri, pos])
+        await this.nvim.call('coc#util#jump', [openCommand, uri, pos])
       }
     }
   }

@@ -105,6 +105,16 @@ describe('jumpTo()', () => {
     expect(name).toBe(uri)
   })
 
+  it('should jump with uri fragment', async () => {
+    let uri = URI.file(__filename).with({ fragment: '3,3' }).toString()
+    await workspace.jumpTo(uri)
+    let cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([2, 2])
+    uri = URI.file(__filename).with({ fragment: '1' }).toString()
+    await workspace.jumpTo(uri)
+    cursor = await nvim.call('coc#util#cursor')
+    expect(cursor).toEqual([0, 0])
+  })
 })
 
 describe('openResource()', () => {
