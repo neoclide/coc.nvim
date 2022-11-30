@@ -5,13 +5,16 @@ import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Watchman from '../../core/watchman'
+import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
 import events from '../../events'
 import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContinsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
+import { Registry } from '../../util/registry'
 import { disposeAll } from '../../util'
 import { writeJson } from '../../util/fs'
 import workspace from '../../workspace'
 import helper from '../helper'
+import { deepIterate } from '../../util/object'
 
 let disposables: Disposable[] = []
 let nvim: Neovim
@@ -714,6 +717,71 @@ describe('ExtensionManager', () => {
       await manager.loadFileExtensions()
       let item = manager.getExtension('single-abc')
       expect(item.extension.isActive).toBe(true)
+    })
+  })
+
+  describe('registContribution', () => {
+    it('should register definitions', async () => {
+      let json = `{
+"configuration": {
+    "definitions": {
+      "flexible": {
+        "type": "object",
+        "$ref": 3,
+        "properties": {
+          "grow": {
+            "$ref": "#/definitions/flexible.position"
+          },
+          "omit": {
+            "$ref": "#/definitions/flexible.position"
+          }
+        }
+      }
+    },
+    "properties": {
+      "explorer.presets": {
+        "toggle": {
+          "$ref": "#/properties/explorer.toggle"
+        },
+        "mykey": {
+          "$ref": "#/definitions/mapping.keyMappings"
+        }
+      }
+    }
+  }
+}`
+      let obj = JSON.parse(json)
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, false)
+      let packageJSON = { contributes: obj }
+      manager.registContribution('@explorer', packageJSON, __dirname)
+      const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
+      let info = extensionRegistry.getExtension('@explorer')
+      let definitions = info.definitions
+      expect(definitions['explorer.flexible']).toBeDefined()
+      let refs: string[] = []
+      deepIterate(definitions, (node, key) => {
+        if (key == '$ref' && typeof node[key] === 'string') {
+          refs.push(node[key])
+        }
+      })
+      expect(refs).toEqual([
+        '#/definitions/explorer.flexible.position',
+        '#/definitions/explorer.flexible.position'
+      ])
+      refs = []
+      let properties = manager.configurationNodes[0].properties
+      deepIterate(properties, (node, key) => {
+        if (key == '$ref' && typeof node[key] === 'string') {
+          refs.push(node[key])
+        }
+      })
+      expect(refs).toEqual([
+        '#/properties/explorer.toggle',
+        '#/definitions/explorer.mapping.keyMappings'
+      ])
+      let defs = getExtensionDefinitions()
+      expect(defs['explorer.flexible']).toBeDefined()
     })
   })
 })

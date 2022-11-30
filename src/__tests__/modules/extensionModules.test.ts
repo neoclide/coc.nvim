@@ -1,3 +1,4 @@
+process.env.COC_NO_PLUGINS = '1'
 import { validExtensionFolder, getJsFiles, toInterval, getExtensionName, loadExtensionJson, ExtensionStat, checkExtensionRoot } from '../../extension/stat'
 import { InstallChannel, InstallBuffer } from '../../extension/ui'
 import fs from 'fs'

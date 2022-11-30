@@ -1158,6 +1158,28 @@ describe('object test', () => {
     expect(objects.isEmpty(null)).toBe(true)
     expect(objects.isEmpty({ x: 1 })).toBe(false)
   })
+
+  it('should deepIterate', () => {
+    let obj = {
+      x: 1,
+      $ref: '#1',
+      items: [{
+        obj: [{
+          y: 2,
+          $ref: '#2'
+        }, 4]
+      }, {
+        $ref: '#3'
+      }]
+    }
+    let vals: string[] = []
+    objects.deepIterate(obj, (obj, key) => {
+      if (key === '$ref') {
+        vals.push(obj[key])
+      }
+    })
+    expect(vals).toEqual(['#1', '#2', '#3'])
+  })
 })
 
 describe('ansiparse', () => {

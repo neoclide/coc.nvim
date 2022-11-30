@@ -3,10 +3,10 @@ import { Diagnostic } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import defaultSchema from '../../data/schema.json'
 import { createLogger } from '../logger'
-import { ConfigurationInspect, ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from './types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { CONFIG_FILE_NAME } from '../util/constants'
+import { getExtensionDefinitions } from '../util/extensionRegistry'
 import { findUp, normalizeFilePath, sameFile, watchFile } from '../util/fs'
 import { objectLiteral } from '../util/is'
 import { Extensions as JSONExtensions, IJSONContributionRegistry } from '../util/jsonRegistry'
@@ -21,6 +21,7 @@ import { ConfigurationModel } from './model'
 import { ConfigurationModelParser } from './parser'
 import { allSettings, Extensions, IConfigurationNode, IConfigurationRegistry, resourceSettings } from './registry'
 import { IConfigurationShape } from './shape'
+import { ConfigurationInspect, ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationChangeEvent, IConfigurationOverrides, WorkspaceConfiguration } from './types'
 import { addToValueTree, convertTarget, lookUp, scopeToOverrides } from './util'
 const logger = createLogger('configurations')
 
@@ -160,7 +161,7 @@ export default class Configurations {
       return {
         properties: allSettings.properties,
         patternProperties: allSettings.patternProperties,
-        definitions: defaultSchema.definitions as any,
+        definitions: Object.assign(getExtensionDefinitions(), defaultSchema.definitions),
         additionalProperties: false,
         allowTrailingCommas: true,
         allowComments: true
@@ -170,7 +171,7 @@ export default class Configurations {
       return {
         properties: resourceSettings.properties,
         patternProperties: resourceSettings.patternProperties,
-        definitions: defaultSchema.definitions as any,
+        definitions: Object.assign(getExtensionDefinitions(), defaultSchema.definitions),
         errorMessage: 'Configuration property may not work as folder configuration',
         additionalProperties: false,
         allowTrailingCommas: true,

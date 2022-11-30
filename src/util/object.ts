@@ -19,6 +19,22 @@ export function omitUndefined(obj: object): object {
   return result
 }
 
+export function deepIterate(obj: object, fn: (node: object, key: string) => void): object {
+  Object.entries(obj).forEach(([key, val]) => {
+    fn(obj, key)
+    if (Array.isArray(val)) {
+      val.forEach(node => {
+        if (Is.objectLiteral(node)) {
+          deepIterate(node, fn)
+        }
+      })
+    } else if (Is.objectLiteral(val)) {
+      deepIterate(val, fn)
+    }
+  })
+  return obj
+}
+
 export function toReadonly<T extends object>(obj: T): T {
   const result = {}
   for (let key of Object.keys(obj)) {

@@ -2,8 +2,12 @@
 import { isFalsyOrEmpty, toArray } from './array'
 import { pluginRoot } from './constants'
 import { isParentFolder, sameFile } from './fs'
+import type { IJSONSchema } from './jsonSchema'
+import { toObject } from './object'
 import { Registry } from './registry'
 import { toText } from './string'
+
+export type IStringDictionary<V> = Record<string, V>
 
 /**
  * Contains static extension infos
@@ -29,6 +33,7 @@ export interface IExtensionInfo {
   readonly onCommands?: string[]
   readonly commands?: CommandContribution[]
   readonly rootPatterns?: RootPatternContrib[]
+  readonly definitions?: IStringDictionary<IJSONSchema>
 }
 
 export interface IExtensionContributions {
@@ -63,6 +68,10 @@ export interface IExtensionRegistry {
    */
   unregistExtension(id: string): void
 
+  /**
+   * Get extension info.
+   */
+  getExtension(id: string): IExtensionInfo
   /**
    * Get all extensions
    */
@@ -122,6 +131,10 @@ class ExtensionRegistry implements IExtensionRegistry {
     this.extensionsById.set(id, info)
   }
 
+  public getExtension(id: string): IExtensionInfo {
+    return this.extensionsById.get(id)
+  }
+
   public getExtensions(): IExtensionContributions {
     return { extensions: this.extensionsById.values() }
   }
@@ -129,6 +142,17 @@ class ExtensionRegistry implements IExtensionRegistry {
 
 let extensionRegistry = new ExtensionRegistry()
 Registry.add(Extensions.ExtensionContribution, extensionRegistry)
+
+export function getExtensionDefinitions(): IStringDictionary<IJSONSchema> {
+  let obj = {}
+  for (let extensionInfo of extensionRegistry.getExtensions().extensions) {
+    let definitions = extensionInfo.definitions
+    Object.entries(toObject(definitions)).forEach(([key, val]) => {
+      obj[key] = val
+    })
+  }
+  return obj
+}
 
 export function validRootPattern(rootPattern: RootPatternContrib | undefined): boolean {
   return rootPattern && typeof rootPattern.filetype === 'string' && !isFalsyOrEmpty(rootPattern.patterns)

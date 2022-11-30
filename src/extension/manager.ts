@@ -7,18 +7,19 @@ import { createLogger } from '../logger'
 import Memos from '../model/memos'
 import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
-import { noPlugin } from '../util/constants'
-import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
+import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary } from '../util/extensionRegistry'
 import { createExtension, ExtensionExport } from '../util/factory'
 import { loadJson, remove, statAsync, watchFile } from '../util/fs'
 import { path } from '../util/node'
-import { isEmpty } from '../util/object'
+import * as Is from '../util/is'
+import { deepClone, deepIterate, isEmpty } from '../util/object'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { convertProperties, Registry } from '../util/registry'
 import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
+import type { IJSONSchema } from '../util/jsonSchema'
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 const logger = createLogger('extensions-manager')
@@ -84,9 +85,9 @@ const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Con
  * Manage loaded extensions
  */
 export class ExtensionManager {
-  private activated = noPlugin ? true : false
+  private activated = process.env.COC_NO_PLUGINS == '1' ? true : false
   private disposables: Disposable[] = []
-  private configurationNodes: IConfigurationNode[] = []
+  public readonly configurationNodes: IConfigurationNode[] = []
   private extensions: Map<string, ExtensionItem> = new Map()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
@@ -319,8 +320,28 @@ export class ExtensionManager {
   public registContribution(id: string, packageJSON: any, directory: string, filepath?: string): void {
     let { contributes, activationEvents } = packageJSON
     let { configuration, rootPatterns, commands } = contributes ?? {}
+    let definitions: IStringDictionary<IJSONSchema> | undefined
     if (configuration && !isEmpty(configuration.properties)) {
       let properties = convertProperties(configuration.properties, ConfigurationScope.RESOURCE)
+      if (Is.objectLiteral(configuration.definitions) && !isEmpty(configuration.definitions)) {
+        let prefix = id.replace(/[^\w]/g, '')
+        const addPrefix = (obj: object, key: string) => {
+          if (key == '$ref') {
+            let val = obj[key]
+            if (Is.string(val) && val.startsWith('#/definitions/')) {
+              obj[key] = val.slice(0, 14) + prefix + '.' + val.slice(14)
+            }
+          }
+        }
+        deepIterate(properties, addPrefix)
+        definitions = {}
+        Object.entries(deepClone(configuration.definitions)).forEach(([key, val]) => {
+          if (Is.objectLiteral(val)) {
+            definitions[prefix + '.' + key] = val
+            deepIterate(val, addPrefix)
+          }
+        })
+      }
       let node: IConfigurationNode = { properties, extensionInfo: { id, displayName: packageJSON.displayName } }
       this.configurationNodes.push(node)
       if (this.activated) {
@@ -337,9 +358,10 @@ export class ExtensionManager {
       name: id,
       directory,
       filepath,
-      onCommands: getOnCommandList(activationEvents),
       commands,
-      rootPatterns
+      definitions,
+      rootPatterns,
+      onCommands: getOnCommandList(activationEvents)
     })
   }
 
