@@ -7,11 +7,12 @@ import { createLogger } from '../logger'
 import Memos from '../model/memos'
 import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
-import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary } from '../util/extensionRegistry'
+import { Extensions as ExtensionsInfo, getProperties, IExtensionRegistry, IStringDictionary } from '../util/extensionRegistry'
 import { createExtension, ExtensionExport } from '../util/factory'
 import { loadJson, remove, statAsync, watchFile } from '../util/fs'
-import { path } from '../util/node'
 import * as Is from '../util/is'
+import type { IJSONSchema } from '../util/jsonSchema'
+import { path } from '../util/node'
 import { deepClone, deepIterate, isEmpty } from '../util/object'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { convertProperties, Registry } from '../util/registry'
@@ -19,7 +20,6 @@ import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
-import type { IJSONSchema } from '../util/jsonSchema'
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 const logger = createLogger('extensions-manager')
@@ -321,9 +321,11 @@ export class ExtensionManager {
     let { contributes, activationEvents } = packageJSON
     let { configuration, rootPatterns, commands } = contributes ?? {}
     let definitions: IStringDictionary<IJSONSchema> | undefined
-    if (configuration && !isEmpty(configuration.properties)) {
-      let properties = convertProperties(configuration.properties, ConfigurationScope.RESOURCE)
-      if (Is.objectLiteral(configuration.definitions) && !isEmpty(configuration.definitions)) {
+    let props = getProperties(configuration ?? {})
+    if (!isEmpty(props)) {
+      // /configuration
+      let properties = convertProperties(props, ConfigurationScope.RESOURCE)
+      if (Is.objectLiteral(configuration.definitions)) {
         let prefix = id.replace(/[^\w]/g, '')
         const addPrefix = (obj: object, key: string) => {
           if (key == '$ref') {

@@ -452,6 +452,15 @@ describe('Registry', () => {
     expect(extension.validCommandContribution({} as any)).toBe(false)
   })
 
+  it('should get properties', () => {
+    let properties = extension.getProperties({})
+    expect(properties).toEqual({})
+    properties = extension.getProperties({ properties: { x: 1 } })
+    expect(properties).toEqual({ x: 1 })
+    properties = extension.getProperties([{ properties: { x: 1 } }, { properties: { y: 2 } }])
+    expect(properties).toEqual({ x: 1, y: 2 })
+  })
+
   it('should get onCommands and commands', () => {
     let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
     registry.registerExtension('single', {

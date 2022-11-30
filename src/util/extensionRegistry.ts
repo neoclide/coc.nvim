@@ -2,6 +2,7 @@
 import { isFalsyOrEmpty, toArray } from './array'
 import { pluginRoot } from './constants'
 import { isParentFolder, sameFile } from './fs'
+import * as Is from './is'
 import type { IJSONSchema } from './jsonSchema'
 import { toObject } from './object'
 import { Registry } from './registry'
@@ -160,6 +161,18 @@ export function validRootPattern(rootPattern: RootPatternContrib | undefined): b
 
 export function validCommandContribution(cmd: CommandContribution | undefined): boolean {
   return cmd && typeof cmd.command === 'string' && typeof cmd.title === 'string'
+}
+
+export function getProperties(configuration: object): IStringDictionary<IJSONSchema> {
+  let obj = {}
+  if (Array.isArray(configuration)) {
+    for (let item of configuration) {
+      Object.assign(obj, toObject(item['properties']))
+    }
+  } else if (Is.objectLiteral(configuration['properties'])) {
+    obj = configuration['properties']
+  }
+  return obj
 }
 
 /**
