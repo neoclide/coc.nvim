@@ -124,7 +124,7 @@ export default class LocationsHandler {
       const filename = parsedURI.scheme == 'file' ? parsedURI.fsPath : parsedURI.toString()
       return {
         name: word,
-        cmd: `keepjumps ${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
+        cmd: `silent keepjumps ${location.range.start.line + 1} | normal ${location.range.start.character + 1}|`,
         filename,
       }
     })
