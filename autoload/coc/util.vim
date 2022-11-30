@@ -331,12 +331,6 @@ function! coc#util#install() abort
 endfunction
 
 function! coc#util#extension_root() abort
-  if get(g:, 'coc_node_env', '') ==# 'test'
-    return s:root.'/src/__tests__/extensions'
-  endif
-  if !empty(get(g:, 'coc_extension_root', ''))
-    echohl Error | echon 'g:coc_extension_root not used any more, use g:coc_data_home instead' | echohl None
-  endif
   return coc#util#get_data_home().'/extensions'
 endfunction
 
@@ -516,6 +510,9 @@ function! coc#util#get_config_home()
 endfunction
 
 function! coc#util#get_data_home()
+  if get(g:, 'coc_node_env', '') ==# 'test'
+    return $COC_DATA_HOME
+  endif
   if !empty(get(g:, 'coc_data_home', ''))
     let dir = resolve(expand(g:coc_data_home))
   else

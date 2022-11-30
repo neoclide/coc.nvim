@@ -978,6 +978,8 @@ DOCUMENT LINKS 						*coc-document-links*
 Check if current buffer have documentLink provider by
 `:echo CocAction('hasProvider', 'documentLink')`
 
+Highlight and tooltip of the links could be configured by |coc-config-links|.
+
 Use |coc-list-links| to manage list of links in current document.
 
 Document link key-mappings:~
@@ -1615,12 +1617,6 @@ g:coc_text_prop_offset 					*g:coc_text_prop_offset*
 
 	Default: 1000
 
-g:coc_channel_timeout					*g:coc_channel_timeout*
-
-	Channel timeout in seconds for request to node client.
-
-	Default: 30
-
 g:coc_disable_transparent_cursor			*g:coc_disable_transparent_cursor*
 
 	Disable transparent cursor when CocList is activated.
@@ -1748,6 +1744,11 @@ g:coc_quickfix_open_command				*g:coc_quickfix_open_command*
 	let g:coc_quickfix_open_command = 'copen|cfirst'
 <
 	Default: |copen|
+
+g:coc_open_url_command 					*g:coc_open_url_command*
+
+	Command used for open remote url, when not exists, coc.nvim will try
+	to use "open", "xdg-open" on Mac and Linux, "cmd /c start" on windows.
 
 g:node_client_debug					*g:node_client_debug*
 
@@ -2654,8 +2655,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	File and URL links are supported, return `v:false` when failed.
 
-	URI under cursor is searched when no link returned from documentLink
-	provider.
+	URI under cursor would be searched when no link returned from the
+	"documentLink" provider.
+
+	Configure |g:coc_open_url_command| for custom command to open remote
+	url.
 
 "links" 						*CocAction('links')*
 
@@ -2843,9 +2847,13 @@ COMMANDS						*coc-commands*
 
 	Use this command when you want coc to start all over again.
 
+:CocPrintErrors						*:CocPrintErrors*
+
+	Show stderr messages from the NodeJS process in a split window.
+
 :CocDisable						*:CocDisable*
 
-	Disable handling vim events.
+	Disable handling vim events, useful for debug performance issues.
 
 :CocEnable						*:CocEnable*
 
@@ -3463,7 +3471,6 @@ Options of CocList command~
 	Type a line number to select an item and invoke the default action on
 	insert mode. Type `0` to select the 10th line.
 
-
 --interactive
 -I
 	Use interactive mode, list items would be reloaded on input
@@ -3591,7 +3598,7 @@ Default mappings on normal mode:
 <Space>     - Toggle selection of current item.
 i,I,o,O,a,A - Change to insert mode.
 p           - Preview action.
-:           - Cancel list session without closing window.
+:           - Cancel the prompt and enter command mode.
 ?           - Show help of current list.
 t           - Do 'tabe' action.
 d           - Do 'drop' action.

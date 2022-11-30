@@ -2,7 +2,7 @@
   "description": "Configuration file for coc.nvim",
   "additionalProperties": false,
   "definitions": {
-    "float": {
+    "floatConfig": {
       "type": "object",
       "properties": {
         "border": {
@@ -63,174 +63,169 @@
         }
       }
     },
-    "languageServerBase": {
-      "type": "object",
-      "properties": {
-        "enable": {
-          "type": "boolean",
-          "default": true
-        },
-        "cwd": {
-          "type": "string",
-          "default": "",
-          "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
-        },
-        "disableDynamicRegister": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicate feature registration."
-        },
-        "disableSnippetCompletion": {
-          "type": "boolean",
-          "default": false,
-          "description": "Disable completion snippet feature for this languageserver, the languageserver may not respect it."
-        },
-        "disabledFeatures": {
-          "type": "array",
-          "default": [],
-          "description": "Disabled features for this languageserver.",
-          "items": {
-            "type": "string",
-            "enum": [
-              "completion",
-              "configuration",
-              "workspaceFolders",
-              "diagnostics",
-              "willSave",
-              "willSaveUntil",
-              "didSaveTextDocument",
-              "fileSystemWatcher",
-              "hover",
-              "signatureHelp",
-              "definition",
-              "references",
-              "documentHighlight",
-              "documentSymbol",
-              "workspaceSymbol",
-              "codeAction",
-              "codeLens",
-              "formatting",
-              "documentFormatting",
-              "documentRangeFormatting",
-              "documentOnTypeFormatting",
-              "rename",
-              "documentLink",
-              "executeCommand",
-              "pullConfiguration",
-              "typeDefinition",
-              "implementation",
-              "declaration",
-              "color",
-              "foldingRange",
-              "selectionRange",
-              "progress",
-              "callHierarchy",
-              "linkedEditing",
-              "inlayHint",
-              "inlineValue",
-              "typeHierarchy",
-              "pullDiagnostic",
-              "fileEvents",
-              "semanticTokens"
-            ]
-          }
-        },
-        "formatterPriority": {
-          "type": "number",
-          "default": 0,
-          "description": "Priority of this languageserver's formatter."
-        },
-        "env": {
-          "type": "object",
-          "default": null,
-          "description": "Environment variables for child process."
-        },
-        "stdioEncoding": {
-          "type": "string",
-          "default": "utf8",
-          "description": "Encoding used for stdio of child process."
-        },
-        "rootPatterns": {
-          "type": "array",
-          "default": [],
-          "description": "Root patterns used to resolve rootPath from current file, default to workspace root",
-          "items": {
-            "type": "string"
-          }
-        },
-        "requireRootPattern": {
-          "type": "boolean",
-          "default": false,
-          "description": "If true, doesn't start server when root pattern not found."
-        },
-        "ignoredRootPaths": {
-          "type": "array",
-          "default": [],
-          "description": "Absolute root paths that language server should not use as rootPath, higher priority than rootPatterns.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "filetypes": {
-          "type": "array",
-          "default": [],
-          "description": "Supported filetypes, add * in array for all filetypes.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "additionalSchemes": {
-          "type": "array",
-          "default": [],
-          "description": "Additional URI schemes, default schemes including file & untitled.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "revealOutputChannelOn": {
-          "type": "string",
-          "default": "never",
-          "description": "Configure message level to show the output channel buffer",
-          "enum": ["info", "warn", "error", "never"]
-        },
-        "progressOnInitialization": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable progress report on languageserver initialize."
-        },
-        "initializationOptions": {
-          "type": "object",
-          "default": {},
-          "description": "initializationOptions passed to languageserver"
-        },
-        "settings": {
-          "type": "object",
-          "default": {},
-          "description": "Settings of languageserver"
-        },
-        "trace.server": {
-          "type": "string",
-          "default": "off",
-          "enum": ["off", "messages", "verbose"],
-          "description": "Trace level of communication between server and client"
-        },
-        "trace.server.verbosity": {
-          "type": "string",
-          "default": "off",
-          "enum": ["off", "messages", "verbose"],
-          "description": "Trace level of communication between server and client"
-        },
-        "trace.server.format": {
-          "type": "string",
-          "default": "text",
-          "enum": ["text", "json"],
-          "description": "Text format of trace messages."
-        }
+    "languageserver.enable": {
+      "type": "boolean",
+      "description": "Enable the languageserver, restart coc.nvim required after change.",
+      "default": true
+    },
+    "languageserver.filetypes": {
+      "type": "array",
+      "default": [],
+      "description": "Supported filetypes, add * in array for all filetypes.",
+      "items": {
+        "type": "string"
       }
+    },
+    "languageserver.cwd": {
+      "type": "string",
+      "default": "",
+      "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+    },
+    "languageserver.settings": {
+      "type": "object",
+      "default": {},
+      "description": "Settings of languageserver"
+    },
+    "languageserver.initializationOptions": {
+      "type": "object",
+      "default": {},
+      "description": "initializationOptions passed to languageserver"
+    },
+    "languageserver.env": {
+      "type": "object",
+      "default": null,
+      "description": "Environment variables for child process."
+    },
+    "languageserver.stdioEncoding": {
+      "type": "string",
+      "default": "utf8",
+      "description": "Encoding used for stdio of child process."
+    },
+    "languageserver.rootPatterns": {
+      "type": "array",
+      "default": [],
+      "description": "Root patterns used to resolve rootPath from current file, default to workspace root",
+      "items": {
+        "type": "string"
+      }
+    },
+    "languageserver.requireRootPattern": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, doesn't start server when root pattern not found."
+    },
+    "languageserver.ignoredRootPaths": {
+      "type": "array",
+      "default": [],
+      "description": "Absolute root paths that language server should not use as rootPath, higher priority than rootPatterns.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "languageserver.additionalSchemes": {
+      "type": "array",
+      "default": [],
+      "description": "Additional URI schemes, default schemes including file & untitled.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "languageserver.revealOutputChannelOn": {
+      "type": "string",
+      "default": "never",
+      "description": "Configure message level to show the output channel buffer",
+      "enum": ["info", "warn", "error", "never"]
+    },
+    "languageserver.progressOnInitialization": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable progress report on languageserver initialize."
+    },
+    "languageserver.trace.server": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"],
+      "description": "Trace level of communication between server and client"
+    },
+    "languageserver.trace.server.verbosity": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"],
+      "description": "Trace level of communication between server and client"
+    },
+    "languageserver.trace.server.format": {
+      "type": "string",
+      "default": "text",
+      "enum": ["text", "json"],
+      "description": "Text format of trace messages."
+    },
+    "languageserver.disableDynamicRegister": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disable dynamic registerCapability feature for this languageserver to avoid duplicate feature registration."
+    },
+    "languageserver.disableSnippetCompletion": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disable completion snippet feature for this languageserver, the languageserver may not respect it."
+    },
+    "languageserver.disabledFeatures": {
+      "type": "array",
+      "default": [],
+      "description": "Disabled features for this languageserver.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "completion",
+          "configuration",
+          "workspaceFolders",
+          "diagnostics",
+          "willSave",
+          "willSaveUntil",
+          "didSaveTextDocument",
+          "fileSystemWatcher",
+          "hover",
+          "signatureHelp",
+          "definition",
+          "references",
+          "documentHighlight",
+          "documentSymbol",
+          "workspaceSymbol",
+          "codeAction",
+          "codeLens",
+          "formatting",
+          "documentFormatting",
+          "documentRangeFormatting",
+          "documentOnTypeFormatting",
+          "rename",
+          "documentLink",
+          "executeCommand",
+          "pullConfiguration",
+          "typeDefinition",
+          "implementation",
+          "declaration",
+          "color",
+          "foldingRange",
+          "selectionRange",
+          "progress",
+          "callHierarchy",
+          "linkedEditing",
+          "inlayHint",
+          "inlineValue",
+          "typeHierarchy",
+          "pullDiagnostic",
+          "fileEvents",
+          "semanticTokens"
+        ]
+      }
+    },
+    "languageserver.formatterPriority": {
+      "type": "number",
+      "default": 0,
+      "description": "Priority of this languageserver's formatter."
     },
     "languageServerSocket": {
       "type": "object",
-      "allOf": [{ "$ref": "#/definitions/languageServerBase" }],
       "required": ["port", "filetypes"],
       "additionalProperties": false,
       "properties": {
@@ -243,29 +238,64 @@
           "default": "127.0.0.1",
           "description": "Host of server"
         },
-        "disableSnippetCompletion": {},
-        "disableDynamicRegister": {},
-        "disabledFeatures": {},
-        "formatterPriority": {},
-        "enable": {},
-        "rootPatterns": {},
-        "requireRootPattern": {},
-        "ignoredRootPaths": {},
-        "filetypes": {},
-        "additionalSchemes": {},
-        "revealOutputChannelOn": {},
-        "progressOnInitialization": {},
-        "initializationOptions": {},
-        "settings": {},
-        "stdioEncoding": {},
-        "trace.server": {},
-        "trace.server.verbosity": {},
-        "trace.server.format": {}
+        "enable": {
+          "$ref": "#/definitions/languageserver.enable"
+        },
+        "disableSnippetCompletion": {
+          "$ref": "#/definitions/languageserver.disableSnippetCompletion"
+        },
+        "disableDynamicRegister": {
+          "$ref": "#/definitions/languageserver.disableDynamicRegister"
+        },
+        "disabledFeatures": {
+          "$ref": "#/definitions/languageserver.disabledFeatures"
+        },
+        "formatterPriority": {
+          "$ref": "#/definitions/languageserver.formatterPriority"
+        },
+        "rootPatterns": {
+          "$ref": "#/definitions/languageserver.rootPatterns"
+        },
+        "requireRootPattern": {
+          "$ref": "#/definitions/languageserver.requireRootPattern"
+        },
+        "ignoredRootPaths": {
+          "$ref": "#/definitions/languageserver.ignoredRootPaths"
+        },
+        "filetypes": {
+          "$ref": "#/definitions/languageserver.filetypes"
+        },
+        "additionalSchemes": {
+          "$ref": "#/definitions/languageserver.additionalSchemes"
+        },
+        "revealOutputChannelOn": {
+          "$ref": "#/definitions/languageserver.revealOutputChannelOn"
+        },
+        "progressOnInitialization": {
+          "$ref": "#/definitions/languageserver.progressOnInitialization"
+        },
+        "initializationOptions": {
+          "$ref": "#/definitions/languageserver.initializationOptions"
+        },
+        "settings": {
+          "$ref": "#/definitions/languageserver.settings"
+        },
+        "stdioEncoding": {
+          "$ref": "#/definitions/languageserver.stdioEncoding"
+        },
+        "trace.server": {
+          "$ref": "#/definitions/languageserver.trace.server"
+        },
+        "trace.server.verbosity": {
+          "$ref": "#/definitions/languageserver.trace.server.verbosity"
+        },
+        "trace.server.format": {
+          "$ref": "#/definitions/languageserver.trace.server.format"
+        }
       }
     },
     "languageServerModule": {
       "type": "object",
-      "allOf": [{ "$ref": "#/definitions/languageServerBase" }],
       "required": ["module", "filetypes"],
       "additionalProperties": false,
       "properties": {
@@ -305,32 +335,65 @@
           "type": "integer",
           "description": "Port number used when transport is 'socket'"
         },
-        "cwd": {},
-        "env": {},
-        "enable": {},
-        "disableDynamicRegister": {},
-        "disableSnippetCompletion": {},
-        "disabledFeatures": {},
-        "formatterPriority": {},
-        "rootPatterns": {},
-        "requireRootPattern": {},
-        "ignoredRootPaths": {},
-        "filetypes": {},
-        "additionalSchemes": {},
-        "revealOutputChannelOn": {},
-        "progressOnInitialization": {},
-        "initializationOptions": {},
-        "stdioEncoding": {},
-        "settings": {},
-        "trace.server": {},
-        "trace.server.verbosity": {},
-        "trace.server.format": {}
+        "enable": {
+          "$ref": "#/definitions/languageserver.enable"
+        },
+        "disableSnippetCompletion": {
+          "$ref": "#/definitions/languageserver.disableSnippetCompletion"
+        },
+        "disableDynamicRegister": {
+          "$ref": "#/definitions/languageserver.disableDynamicRegister"
+        },
+        "disabledFeatures": {
+          "$ref": "#/definitions/languageserver.disabledFeatures"
+        },
+        "formatterPriority": {
+          "$ref": "#/definitions/languageserver.formatterPriority"
+        },
+        "rootPatterns": {
+          "$ref": "#/definitions/languageserver.rootPatterns"
+        },
+        "requireRootPattern": {
+          "$ref": "#/definitions/languageserver.requireRootPattern"
+        },
+        "ignoredRootPaths": {
+          "$ref": "#/definitions/languageserver.ignoredRootPaths"
+        },
+        "filetypes": {
+          "$ref": "#/definitions/languageserver.filetypes"
+        },
+        "additionalSchemes": {
+          "$ref": "#/definitions/languageserver.additionalSchemes"
+        },
+        "revealOutputChannelOn": {
+          "$ref": "#/definitions/languageserver.revealOutputChannelOn"
+        },
+        "progressOnInitialization": {
+          "$ref": "#/definitions/languageserver.progressOnInitialization"
+        },
+        "initializationOptions": {
+          "$ref": "#/definitions/languageserver.initializationOptions"
+        },
+        "settings": {
+          "$ref": "#/definitions/languageserver.settings"
+        },
+        "stdioEncoding": {
+          "$ref": "#/definitions/languageserver.stdioEncoding"
+        },
+        "trace.server": {
+          "$ref": "#/definitions/languageserver.trace.server"
+        },
+        "trace.server.verbosity": {
+          "$ref": "#/definitions/languageserver.trace.server.verbosity"
+        },
+        "trace.server.format": {
+          "$ref": "#/definitions/languageserver.trace.server.format"
+        }
       }
     },
     "languageServerCommand": {
       "type": "object",
       "required": ["command", "filetypes"],
-      "allOf": [{ "$ref": "#/definitions/languageServerBase" }],
       "additionalProperties": false,
       "properties": {
         "command": {
@@ -356,26 +419,60 @@
           "default": false,
           "description": "Use shell for process"
         },
-        "cwd": {},
-        "env": {},
-        "enable": {},
-        "disableDynamicRegister": {},
-        "disableSnippetCompletion": {},
-        "disabledFeatures": {},
-        "formatterPriority": {},
-        "rootPatterns": {},
-        "requireRootPattern": {},
-        "ignoredRootPaths": {},
-        "filetypes": {},
-        "additionalSchemes": {},
-        "revealOutputChannelOn": {},
-        "progressOnInitialization": {},
-        "initializationOptions": {},
-        "stdioEncoding": {},
-        "settings": {},
-        "trace.server": {},
-        "trace.server.verbosity": {},
-        "trace.server.format": {}
+        "enable": {
+          "$ref": "#/definitions/languageserver.enable"
+        },
+        "disableSnippetCompletion": {
+          "$ref": "#/definitions/languageserver.disableSnippetCompletion"
+        },
+        "disableDynamicRegister": {
+          "$ref": "#/definitions/languageserver.disableDynamicRegister"
+        },
+        "disabledFeatures": {
+          "$ref": "#/definitions/languageserver.disabledFeatures"
+        },
+        "formatterPriority": {
+          "$ref": "#/definitions/languageserver.formatterPriority"
+        },
+        "rootPatterns": {
+          "$ref": "#/definitions/languageserver.rootPatterns"
+        },
+        "requireRootPattern": {
+          "$ref": "#/definitions/languageserver.requireRootPattern"
+        },
+        "ignoredRootPaths": {
+          "$ref": "#/definitions/languageserver.ignoredRootPaths"
+        },
+        "filetypes": {
+          "$ref": "#/definitions/languageserver.filetypes"
+        },
+        "additionalSchemes": {
+          "$ref": "#/definitions/languageserver.additionalSchemes"
+        },
+        "revealOutputChannelOn": {
+          "$ref": "#/definitions/languageserver.revealOutputChannelOn"
+        },
+        "progressOnInitialization": {
+          "$ref": "#/definitions/languageserver.progressOnInitialization"
+        },
+        "initializationOptions": {
+          "$ref": "#/definitions/languageserver.initializationOptions"
+        },
+        "settings": {
+          "$ref": "#/definitions/languageserver.settings"
+        },
+        "stdioEncoding": {
+          "$ref": "#/definitions/languageserver.stdioEncoding"
+        },
+        "trace.server": {
+          "$ref": "#/definitions/languageserver.trace.server"
+        },
+        "trace.server.verbosity": {
+          "$ref": "#/definitions/languageserver.trace.server.verbosity"
+        },
+        "trace.server.format": {
+          "$ref": "#/definitions/languageserver.trace.server.format"
+        }
       }
     }
   },
@@ -804,7 +901,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure float window style of diagnostic message.",
-      "allOf": [{ "$ref": "#/definitions/float" }],
+      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1070,7 +1167,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure default style float window/popup created by float factory (created around cursor and automatically closed)",
-      "allOf": [{ "$ref": "#/definitions/float" }],
+      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1096,7 +1193,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure float window style of hover documents.",
-      "allOf": [{ "$ref": "#/definitions/float" }],
+      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1694,7 +1791,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure float window style of signature documents.",
-      "allOf": [{ "$ref": "#/definitions/float" }],
+      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1858,7 +1955,7 @@
       "type": "object",
       "scope": "application",
       "description": "Configure style of popup menu and documentation window of completion.",
-      "allOf": [{ "$ref": "#/definitions/float" }],
+      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
       "additionalProperties": false,
       "properties": {
         "border": {},
@@ -1961,7 +2058,7 @@
       "type": ["object", "null"],
       "scope": "application",
       "description": "Configure style of popup menu, suggest.floatConfig is used when not specified.",
-      "allOf": [{ "$ref": "#/definitions/float" }],
+      "allOf": [{ "$ref": "#/definitions/floatConfig" }],
       "additionalProperties": false,
       "default": null,
       "properties": {

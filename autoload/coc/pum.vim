@@ -316,9 +316,7 @@ function! s:insert_word(word, finish) abort
       call coc#pum#repalce(s:start_col + 1, a:word, 1)
     else
       let saved_completeopt = &completeopt
-      if saved_completeopt =~ 'menuone'
-        noa set completeopt=menu
-      endif
+      noa set completeopt=menu
       noa call complete(s:start_col + 1, [{ 'empty': v:true, 'word': a:word }])
       " exit complete state
       if s:hide_pum

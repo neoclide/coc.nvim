@@ -1,6 +1,12 @@
+# 2022-11-30
+
+- File fragment support for `workspace.jumpTo()`.
+- Support `g:coc_open_url_command`.
+
 # 2022-11-29
 
 - Add documentations for develop of coc.nvim extensions.
+- Remove unused variable `g:coc_channel_timeout`.
 
 # 2022-11-28
 

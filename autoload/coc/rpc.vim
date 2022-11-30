@@ -6,11 +6,31 @@ let s:is_vim = !has('nvim')
 
 function! coc#rpc#start_server()
   if get(g:, 'coc_node_env', '') ==# 'test'
-    " server already started
-    let s:client = coc#client#create(s:name, [])
-    let chan_id = get(g:, 'coc_node_channel_id', 0)
-    let s:client['running'] = chan_id != 0
-    let s:client['chan_id'] = chan_id
+    if s:is_vim
+      let s:client = coc#client#create(s:name, [])
+      let address = get(g:, 'coc_vim_channel_address', '')
+      if empty(address)
+        throw 'g:coc_vim_channel_address not defined'
+      endif
+      let channel = ch_open(address, {
+          \ 'mode': 'json',
+          \ 'close_cb': {channel -> s:on_channel_close()},
+          \ 'noblock': 1,
+          \ 'timeout': 1000,
+          \ })
+      if ch_status(channel) == 'open'
+        let s:client['running'] = 1
+        let s:client['channel'] = channel
+      else
+        throw 'failed to open channel on '.address
+      endif
+    else
+      " server already started
+      let s:client = coc#client#create(s:name, [])
+      let chan_id = get(g:, 'coc_node_channel_id', 0)
+      let s:client['running'] = chan_id != 0
+      let s:client['chan_id'] = chan_id
+    endif
     return
   endif
   if empty(s:client)
@@ -37,6 +57,7 @@ function! coc#rpc#ready()
   return 1
 endfunction
 
+" Used for test on neovim only
 function! coc#rpc#set_channel(chan_id) abort
   if s:is_vim || get(g:, 'coc_node_env', '') !=# 'test'
     return
@@ -58,8 +79,16 @@ function! coc#rpc#kill()
   endif
 endfunction
 
-function! coc#rpc#get_errors()
-  return split(execute('messages'), "\n")
+function! coc#rpc#show_errors()
+  let client = coc#client#get_client('coc')
+  if !empty(client)
+    let lines = get(client, 'stderr', [])
+    keepalt new +setlocal\ buftype=nofile [Stderr of coc.nvim]
+    setl noswapfile wrap bufhidden=wipe nobuflisted nospell
+    call append(0, lines)
+    exe "normal! z" . len(lines) . "\<cr>"
+    exe "normal! gg"
+  endif
 endfunction
 
 function! coc#rpc#stop()
@@ -138,5 +167,13 @@ endfunction
 function! s:check_vim_enter() abort
   if s:client['running'] && v:vim_did_enter
     call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
+  endif
+endfunction
+
+function! s:on_channel_close() abort
+  if !empty(s:client)
+    let client['running'] = 0
+    let client['channel'] = v:null
+    let client['async_req_id'] = 1
   endif
 endfunction

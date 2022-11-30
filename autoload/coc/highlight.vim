@@ -35,7 +35,7 @@ function! coc#highlight#buffer_update(bufnr, key, highlights, ...) abort
     return
   endif
   let hls = map(copy(a:highlights), "{'hlGroup':v:val[0],'lnum':v:val[1],'colStart':v:val[2],'colEnd':v:val[3],'combine':get(v:val,4,1),'start_incl':get(v:val,5,0),'end_incl':get(v:val,6,0)}")
-  if len(hls) <= g:coc_highlight_maximum_count || get(g:, 'coc_node_env', '') ==# 'test'
+  if len(hls) <= g:coc_highlight_maximum_count
     call coc#highlight#update_highlights(a:bufnr, a:key, hls, 0, -1, priority)
     return
   endif

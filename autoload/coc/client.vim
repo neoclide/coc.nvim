@@ -39,10 +39,9 @@ endfunction
 function! s:start() dict
   if self.running | return | endif
   if !isdirectory(getcwd())
-    echohl Error | echon '[coc.nvim] Current cwd is not a valid directory.' | echohl None
+    echoerr '[coc.nvim] Current cwd is not a valid directory.'
     return
   endif
-  let timeout = string(get(g:, 'coc_channel_timeout', 30))
   let tmpdir = fnamemodify(tempname(), ':p:h')
   if s:is_vim
     if get(g:, 'node_client_debug', 0)
@@ -59,8 +58,6 @@ function! s:start() dict
           \ 'env': {
             \ 'NODE_NO_WARNINGS': '1',
             \ 'VIM_NODE_RPC': '1',
-            \ 'COC_NVIM': '1',
-            \ 'COC_CHANNEL_TIMEOUT': timeout,
             \ 'TMPDIR': tmpdir,
           \ }
           \}
@@ -86,37 +83,22 @@ function! s:start() dict
     if has('nvim-0.5.0')
       " could use env option
       let opts['env'] = {
-          \ 'COC_NVIM': '1',
           \ 'NODE_NO_WARNINGS': '1',
-          \ 'COC_CHANNEL_TIMEOUT': timeout,
           \ 'TMPDIR': tmpdir
           \ }
     else
-      if exists('*getenv')
-        let original = {
-              \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
-              \ 'TMPDIR': getenv('TMPDIR'),
-              \ }
-      endif
-      if exists('*setenv')
-        call setenv('COC_NVIM', '1')
-        call setenv('NODE_NO_WARNINGS', '1')
-        call setenv('COC_CHANNEL_TIMEOUT', timeout)
-        call setenv('TMPDIR', tmpdir)
-      else
-        let $NODE_NO_WARNINGS = 1
-        let $TMPDIR = tmpdir
-      endif
+      let original = {
+            \ 'NODE_NO_WARNINGS': getenv('NODE_NO_WARNINGS'),
+            \ 'TMPDIR': getenv('TMPDIR'),
+            \ }
+      call setenv('NODE_NO_WARNINGS', '1')
+      call setenv('TMPDIR', tmpdir)
     endif
     let chan_id = jobstart(self.command, opts)
     if !empty(original)
-      if exists('*setenv')
-        for key in keys(original)
-          call setenv(key, original[key])
-        endfor
-      else
-        let $TMPDIR = original['TMPDIR']
-      endif
+      for key in keys(original)
+        call setenv(key, original[key])
+      endfor
     endif
     if chan_id <= 0
       echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
@@ -135,9 +117,10 @@ function! s:on_stderr(name, msgs)
   let data[0] = client.': '.data[0]
   if a:name ==# 'coc' && len(filter(copy(data), 'v:val =~# "SyntaxError: Unexpected token"'))
     call coc#client#check_version()
+    return
   endif
   if get(g:, 'coc_disable_uncaught_error', 0) | return | endif
-  call coc#ui#echo_messages('Error', data)
+  call s:on_error(a:name, data)
 endfunction
 
 function! coc#client#check_version() abort
@@ -159,12 +142,7 @@ function! coc#client#check_version() abort
     endif
   endif
   if !empty(msgs)
-    call coc#notify#create(msgs, {
-          \ 'borderhighlight': 'CocErrorSign',
-          \ 'highlight': 'Normal',
-          \ 'timeout': 50000,
-          \ 'kind': 'error',
-          \ })
+    call s:on_error(a:name, msgs)
   endif
 endfunction
 
@@ -381,8 +359,20 @@ endfunction
 
 function! coc#client#open_log()
   if !get(g:, 'node_client_debug', 0)
-    echohl Error | echon '[coc.nvim] use let g:node_client_debug = 1 in your vimrc to enabled debug mode.' | echohl None
+    echohl Error | echon '[coc.nvim] use let g:node_client_debug = 1 in your vimrc to enable debug mode.' | echohl None
     return
   endif
   execute 'vs '.s:logfile
+endfunction
+
+function! s:on_error(name, msgs) abort
+  echohl ErrorMsg
+  echo join(a:msgs, "\n")
+  echohl None
+  let client = get(s:clients, a:name, v:null)
+  if !empty(client)
+    let errors = get(client, 'stderr', [])
+    call extend(errors, a:msgs)
+    let client['stderr'] = errors
+  endif
 endfunction

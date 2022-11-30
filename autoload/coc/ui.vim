@@ -147,8 +147,6 @@ function! coc#ui#echo_messages(hl, msgs)
     return
   endif
   execute 'echohl '.a:hl
-  echom a:msgs[0]
-  redraw
   echo join(msgs, "\n")
   echohl None
 endfunction
@@ -326,6 +324,10 @@ function! coc#ui#change_lines(bufnr, list) abort
 endfunction
 
 function! coc#ui#open_url(url)
+  if !empty(get(g:, 'coc_open_url_command', ''))
+    call system(g:coc_open_url_command.' '.a:url)
+    return
+  endif
   if has('mac') && executable('open')
     call system('open '.a:url)
     return
