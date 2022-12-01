@@ -62,11 +62,13 @@ endfunction
 
 function! coc#list#create(position, height, name, numberSelect)
   if a:position ==# 'tab'
-    execute 'silent tabe list:///'.a:name
+    call coc#ui#safe_open('silent tabe', 'list:///'.a:name)
   else
     call s:save_views(-1)
-    execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
-    execute 'resize '.a:height
+    let height = max([1, a:height])
+    let cmd = 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').height.'sp'
+    call coc#ui#safe_open(cmd, 'list:///'.a:name)
+    call s:set_height(height)
     call s:restore_views()
   endif
   if a:numberSelect
@@ -437,11 +439,21 @@ function! s:save_views(exclude) abort
 endfunction
 
 function! s:restore_views() abort
+  if s:is_vim
+    return
+  endif
   for nr in range(1, winnr('$'))
     let saved = getwinvar(nr, 'coc_list_saved_view', v:null)
     if !empty(saved)
       let winid = win_getid(nr)
-      call coc#compat#execute(winid, 'call winrestview(w:coc_list_saved_view) | unlet w:coc_list_saved_view')
+      call coc#compat#execute(winid, 'noa call winrestview(w:coc_list_saved_view) | unlet w:coc_list_saved_view')
     endif
   endfor
+endfunction
+
+function! s:set_height(height) abort
+  let curr = winheight(0)
+  if curr != a:height
+    execute 'resize '.a:height
+  endif
 endfunction

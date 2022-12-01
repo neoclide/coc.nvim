@@ -474,6 +474,18 @@ function! coc#ui#outline_close_preview() abort
   endif
 endfunction
 
+" Ignore error from autocmd when file opened
+function! coc#ui#safe_open(cmd, file) abort
+  let bufname = fnameescape(a:file)
+  try
+    execute a:cmd.' 'bufname
+  catch /.*/
+    if bufname('%') != bufname
+      throw v:exception
+    endif
+  endtry
+endfunction
+
 function! coc#ui#get_mouse() abort
   if get(g:, 'coc_node_env', '') ==# 'test'
     return get(g:, 'mouse_position', [win_getid(), line('.'), col('.')])

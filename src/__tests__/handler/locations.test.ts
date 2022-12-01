@@ -271,10 +271,10 @@ describe('locations', () => {
       expect(res).toEqual([
         {
           name: 'foo',
-          cmd: 'keepjumps 3 | normal 1|',
+          cmd: 'silent keepjumps 3 | normal 1|',
           filename: 'test://bar'
         },
-        { name: 'foo', cmd: 'keepjumps 2 | normal 1|', filename: '/foo' }
+        { name: 'foo', cmd: 'silent keepjumps 2 | normal 1|', filename: '/foo' }
       ])
     })
   })
