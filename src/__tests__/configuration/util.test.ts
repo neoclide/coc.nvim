@@ -1,6 +1,7 @@
 import * as assert from 'assert'
+import os from 'os'
 import { ParseError } from 'jsonc-parser'
-import { addToValueTree, convertErrors, convertTarget, getConfigurationValue, getDefaultValue, mergeChanges, mergeConfigProperties, overrideIdentifiersFromKey, removeFromValueTree, scopeToOverrides, toJSONObject } from '../../configuration/util'
+import { addToValueTree, toValuesTree, convertErrors, convertTarget, expand, expandObject, getConfigurationValue, getDefaultValue, mergeChanges, mergeConfigProperties, overrideIdentifiersFromKey, removeFromValueTree, scopeToOverrides, toJSONObject } from '../../configuration/util'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../configuration/types'
 
 describe('Configuration utils', () => {
@@ -21,6 +22,21 @@ describe('Configuration utils', () => {
     expect(getDefaultValue('number')).toBe(0)
     expect(getDefaultValue('array')).toEqual([])
     expect(getDefaultValue('object')).toEqual({})
+  })
+
+  it('should expand', () => {
+    expect(expand('${userHome}')).toBe(os.homedir())
+    expect(expand('${cwd}')).toBe(process.cwd())
+    expect(expand('${env:NODE_ENV}')).toBe('test')
+    expect(expand('${env:NOT_EXISTS}')).toBe('${env:NOT_EXISTS}')
+    expect(expandObject('${env:NODE_ENV}')).toBe('test')
+    expect(expandObject(undefined)).toBe(undefined)
+    let obj = {
+      list: ['${env:NODE_ENV}', '', 1],
+      val: '${env:NODE_ENV}'
+    }
+    let res = expandObject(obj)
+    expect(res).toEqual({ list: ['test', '', 1], val: 'test' })
   })
 
   it('should convertTarget', () => {
@@ -50,13 +66,28 @@ describe('Configuration utils', () => {
     })
   })
 
+  it('should toValuesTree', () => {
+    let res = toValuesTree({
+      'x.y.z': '${env:NODE_ENV}',
+      env: '${env:NODE_ENV}'
+    }, () => {}, true)
+    expect(res).toEqual({
+      x: {
+        y: {
+          z: 'test'
+        }
+      },
+      env: 'test'
+    })
+  })
+
   it('should addToValueTree conflict #1', () => {
     let fn = jest.fn()
     let obj = { x: 66 }
     addToValueTree(obj, 'x.y', '3', () => {
       fn()
-    })
-    addToValueTree(obj, 'x.y', '3', undefined)
+    }, true)
+    addToValueTree(obj, 'x.y', '3', () => {})
     expect(fn).toBeCalled()
   })
 
@@ -65,7 +96,7 @@ describe('Configuration utils', () => {
     addToValueTree(undefined, 'x', '3', () => {
       fn()
     })
-    addToValueTree(undefined, 'x', '3', undefined)
+    addToValueTree(undefined, 'x', '3', () => {})
     expect(fn).toBeCalled()
   })
 

@@ -3,9 +3,11 @@ import { ParseError, printParseErrorCode } from 'jsonc-parser'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationOverrides } from './types'
 import { distinct } from '../util/array'
+import * as Is from '../util/is'
+import { os } from '../util/node'
 import { equals, hasOwnProperty } from '../util/object'
+import { ConfigurationResourceScope, ConfigurationTarget, ConfigurationUpdateTarget, IConfigurationChange, IConfigurationOverrides } from './types'
 const documentUri = 'file:///1'
 
 export interface IConfigurationCompareResult {
@@ -19,6 +21,39 @@ const OVERRIDE_IDENTIFIER_PATTERN = `\\[([^\\]]+)\\]`
 const OVERRIDE_IDENTIFIER_REGEX = new RegExp(OVERRIDE_IDENTIFIER_PATTERN, 'g')
 export const OVERRIDE_PROPERTY_PATTERN = `^(${OVERRIDE_IDENTIFIER_PATTERN})+$`
 export const OVERRIDE_PROPERTY_REGEX = new RegExp(OVERRIDE_PROPERTY_PATTERN)
+
+/**
+ * Basic expand for ${env:value}, ${cwd}, ${userHome}
+ */
+export function expand(input: string): string {
+  return input.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
+    if (name.startsWith('env:')) {
+      let key = name.split(':')[1]
+      return process.env[key] ?? match
+    }
+    switch (name) {
+      case 'userHome':
+        return os.homedir()
+      case 'cwd':
+        return process.cwd()
+      default:
+        return match
+    }
+  })
+}
+
+export function expandObject(obj: any): any {
+  if (obj == null) return obj
+  if (typeof obj === 'string') return expand(obj)
+  if (Array.isArray(obj)) return obj.map(obj => expandObject(obj))
+  if (Is.objectLiteral(obj)) {
+    for (let key of Object.keys(obj)) {
+      obj[key] = expandObject(obj[key])
+    }
+    return obj
+  }
+  return obj
+}
 
 export function convertTarget(updateTarget: ConfigurationUpdateTarget): ConfigurationTarget {
   let target: ConfigurationTarget
@@ -128,15 +163,15 @@ export function convertErrors(content: string, errors: ParseError[]): Diagnostic
   return items
 }
 
-export function toValuesTree(properties: { [qualifiedKey: string]: any }, conflictReporter: (message: string) => void): any {
+export function toValuesTree(properties: { [qualifiedKey: string]: any }, conflictReporter: (message: string) => void, doExpand = false): any {
   const root = Object.create(null)
   for (const key in properties) {
-    addToValueTree(root, key, properties[key], conflictReporter)
+    addToValueTree(root, key, properties[key], conflictReporter, doExpand)
   }
   return root
 }
 
-export function addToValueTree(settingsTreeRoot: any, key: string, value: any, conflictReporter: (message: string) => void | undefined): void {
+export function addToValueTree(settingsTreeRoot: any, key: string, value: any, conflictReporter: (message: string) => void, doExpand = false): void {
   const segments = key.split('.')
   const last = segments.pop()!
 
@@ -158,7 +193,11 @@ export function addToValueTree(settingsTreeRoot: any, key: string, value: any, c
   }
 
   if (typeof curr === 'object' && curr !== null) {
-    curr[last] = value
+    if (doExpand) {
+      curr[last] = expandObject(value)
+    } else {
+      curr[last] = value
+    }
   } else {
     if (conflictReporter) conflictReporter(`Ignoring ${key} as ${segments.join('.')} is ${JSON.stringify(curr)}`)
   }

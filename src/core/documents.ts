@@ -229,6 +229,8 @@ export default class Documents implements Disposable {
           return val
         }
         switch (name) {
+          case 'userHome':
+            return os.homedir()
           case 'workspace':
           case 'workspaceRoot':
           case 'workspaceFolder':

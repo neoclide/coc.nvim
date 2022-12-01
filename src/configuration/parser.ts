@@ -112,7 +112,7 @@ export class ConfigurationModelParser {
     const onError = (message: string) => {
       console.error(`Conflict in settings file ${this._name}: ${message}`)
     }
-    const contents = toValuesTree(raw, onError)
+    const contents = toValuesTree(raw, onError, true)
     const keys = Object.keys(raw)
     const overrides = this.toOverrides(raw, onError)
     return { contents, keys, overrides, restricted: [] }
@@ -129,7 +129,7 @@ export class ConfigurationModelParser {
         overrides.push({
           identifiers: overrideIdentifiersFromKey(key),
           keys: Object.keys(overrideRaw),
-          contents: toValuesTree(overrideRaw, conflictReporter)
+          contents: toValuesTree(overrideRaw, conflictReporter, true)
         })
       }
     }
