@@ -62,6 +62,9 @@ import { SourceType } from './completion/types'
 import { PatternType } from './core/workspaceFolder'
 
 module.exports = {
+  get nvim() {
+    return workspace.nvim
+  },
   Uri: URI,
   LineBuilder,
   NullLogger,

@@ -15,6 +15,7 @@ export type GlobPattern = string | RelativePattern
 declare global {
   namespace NodeJS {
     interface Global {
+      __TESTER__?: boolean
       __TEST__?: boolean
       __starttime?: number
       REVISION?: string
@@ -22,6 +23,21 @@ declare global {
     }
   }
 }
+
+export interface ExtensionItem {
+  /**
+   * API returned by activate function
+   */
+  API: any
+  /**
+   * The object of module.exports of the extension entry without activate & deactivate function.
+   */
+  exports: any
+  /**
+   */
+  unload: () => void
+}
+
 export type Optional<T extends object, K extends keyof T = keyof T> = Omit<
   T,
   K
@@ -42,8 +58,7 @@ export interface AnsiHighlight {
 export interface LocationWithTarget extends Location {
   /**
    * The full target range of this link. If the target for example is a symbol then target range is the
-   * range enclosing this symbol not including leading/trailing whitespace but everything else
-   * like comments. This information is typically used to highlight the range in the editor.
+   * range enclosing this symbol not including leading/trailing whitespace but everything else like comments. This information is typically used to highlight the range in the editor.
    */
   targetRange?: Range
 }

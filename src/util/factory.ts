@@ -1,13 +1,14 @@
 'use strict'
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-import { fs, path, vm } from '../util/node'
 import { createLogger } from '../logger'
+import { fs, path, vm } from '../util/node'
 import { defaults } from './lodash'
+import { hasOwnProperty, toObject } from './object'
 
 export interface ExtensionExport {
   activate: (context: unknown) => any
-  deactivate: () => any | null
+  deactivate?: () => any
 }
+
 export interface ILogger {
   debug: (...meta: any[]) => void
   log: (...meta: any[]) => void
@@ -17,14 +18,15 @@ export interface ILogger {
 }
 
 export interface IModule {
-  new(name: string): any
+  new(name: string, parent?: boolean): any
   _resolveFilename: (file: string, context: any) => string
   _extensions: {}
   _cache: { [file: string]: any }
-  _compile: () => void
+  _compile: (content: string, filename: string) => any
   wrap: (content: string) => string
   require: (file: string) => NodeModule
   _nodeModulePaths: (filename: string) => string[]
+  createRequire: (filename: string) => (file: string) => any
 }
 
 const Module: IModule = require('module')
@@ -47,10 +49,10 @@ function removedGlobalStub(name: string): Function {
 }
 
 // @see node/lib/internal/module.js
-function makeRequireFunction(this: any): any {
+function makeRequireFunction(this: any, cocExports: any): any {
   const req: any = (p: string) => {
     if (p === 'coc.nvim') {
-      return require('../index')
+      return toObject(cocExports)
     }
     return this.require(p)
   }
@@ -63,14 +65,11 @@ function makeRequireFunction(this: any): any {
 }
 
 // @see node/lib/module.js
-export function compileInSandbox(sandbox: ISandbox): Function {
-  // eslint-disable-next-line
+export function compileInSandbox(sandbox: ISandbox, cocExports?: any): (content: string, filename: string) => any {
   return function(this: any, content: string, filename: string): any {
-    const require = makeRequireFunction.call(this)
+    const require = makeRequireFunction.call(this, cocExports)
     const dirname = path.dirname(filename)
-    // remove shebang
-    // eslint-disable-next-line
-    const newContent = content.replace(/^\#\!.*/, '')
+    const newContent = content.startsWith('#!') ? content.replace(/^#!.*/, '') : content
     const wrapper = Module.wrap(newContent)
     const compiledWrapper = vm.runInContext(wrapper, sandbox, { filename })
     const args = [this.exports, require, this, filename, dirname]
@@ -90,7 +89,16 @@ export interface ISandbox {
   Promise: any
 }
 
-export function createSandbox(filename: string, logger: ILogger, name?: string): ISandbox {
+// find correct Module since jest use a fake Module object that extends Module
+export function getProtoWithCompile(mod: Function): IModule {
+  if (hasOwnProperty(mod.prototype, '_compile')) return mod.prototype
+  if (hasOwnProperty(mod.prototype.__proto__, '_compile')) return mod.prototype.__proto__
+  throw new Error('_compile not found')
+}
+
+const ModuleProto = getProtoWithCompile(Module)
+
+export function createSandbox(filename: string, logger: ILogger, name?: string, noExport = global.__TEST__): ISandbox {
   const module = new Module(filename)
   module.paths = Module._nodeModulePaths(filename)
 
@@ -119,13 +127,12 @@ export function createSandbox(filename: string, logger: ILogger, name?: string):
 
   defaults(sandbox, global)
   sandbox.Reflect = Reflect
-
+  let cocExports = noExport ? undefined : require('../index')
   sandbox.require = function sandboxRequire(p): any {
-    const oldCompile = Module.prototype._compile
-    // Not work on test environment!
-    Module.prototype._compile = compileInSandbox(sandbox)
+    const oldCompile = ModuleProto._compile
+    ModuleProto._compile = compileInSandbox(sandbox, cocExports)
     const moduleExports = sandbox.module.require(p)
-    Module.prototype._compile = oldCompile
+    ModuleProto._compile = oldCompile
     return moduleExports
   }
 
@@ -158,7 +165,8 @@ export function createExtension(id: string, filename: string, isEmpty: boolean):
     activate: () => {},
     deactivate: null
   }
-  const sandbox = createSandbox(filename, createLogger(`extension:${id}`), id)
+  const logger = global.__TESTER__ ? console : createLogger(`extension:${id}`)
+  const sandbox = createSandbox(filename, logger, id)
 
   delete Module._cache[require.resolve(filename)]
 
@@ -166,12 +174,6 @@ export function createExtension(id: string, filename: string, isEmpty: boolean):
   // Require plugin to export activate & deactivate
   const defaultImport = sandbox.require(filename)
   const activate = (defaultImport && defaultImport.activate) || defaultImport
-
-  if (typeof activate !== 'function') {
-    return { activate: () => {}, deactivate: null }
-  }
-  return {
-    activate,
-    deactivate: typeof defaultImport.deactivate === 'function' ? defaultImport.deactivate : null
-  }
+  if (typeof activate !== 'function') return { activate: () => {} }
+  return typeof defaultImport === 'function' ? { activate } : Object.assign({}, defaultImport)
 }

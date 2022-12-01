@@ -3,6 +3,7 @@ import * as assert from 'assert'
 import cp, { spawn } from 'child_process'
 import os from 'os'
 import path from 'path'
+import fs from 'fs'
 import { v4 as uuid } from 'uuid'
 import vm from 'vm'
 import { AnnotatedTextEdit, CancellationToken, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
@@ -115,13 +116,51 @@ console.warn('warn')`, sandbox)
     expect(err).toBeDefined()
   })
 
+  it('should get module prototype', () => {
+    const Module = require('module')
+    expect(factory.getProtoWithCompile(Module as any)).toBeDefined()
+    function fn() {}
+    expect(() => {
+      factory.getProtoWithCompile(fn)
+    }).toThrow(Error)
+    fn.prototype._compile = () => {}
+    expect(factory.getProtoWithCompile(fn)).toBeDefined()
+  })
+
   it('should hook require', () => {
     let filename = path.join(__dirname, 'sandbox/log.js')
-    const sandbox = factory.createSandbox(filename, emptyLogger)
-    let fn = factory.compileInSandbox(sandbox)
+    const sandbox = factory.createSandbox(filename, console, 'hook', false)
+    let fn = factory.compileInSandbox(sandbox, { wait() {} })
     let obj: any = {}
     fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, filename])
     expect(typeof obj.exports).toBe('function')
+  })
+
+  it('should createSandbox', () => {
+    const Module = require('module')
+    let filename = path.join(__dirname, 'sandbox/log.js')
+    const sandbox = factory.createSandbox(filename, emptyLogger, 'hook', false)
+    let key = require.resolve(filename)
+    let keys = Object.keys(Module._cache)
+    delete Module._cache[require.resolve(filename)]
+    let exports = sandbox.require(filename)
+    expect(typeof exports).toBe('function')
+    let obj = exports()
+    expect(typeof obj.wait).toBe('function')
+  })
+
+  it('should clear the cache', async () => {
+    const Module = require('module')
+    let filename = path.join(os.tmpdir(), 'cache_test.js')
+    fs.writeFileSync(filename, 'module.exports = {x: 1}', 'utf8')
+    let sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
+    let exports = sandbox.require(filename)
+    delete Module._cache[require.resolve(filename)]
+    fs.writeFileSync(filename, 'module.exports = {y: 1}', 'utf8')
+    sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
+    exports = sandbox.require(filename)
+    expect(exports).toEqual({ y: 1 })
+    fs.rmSync(filename, { force: true })
   })
 })
 
