@@ -334,7 +334,9 @@ endfunction
 
 function! s:VimEnter() abort
   if coc#rpc#started()
-    call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
+    if !exists('$COC_NVIM_REMOTE_ADDRESS')
+      call coc#rpc#notify('VimEnter', [coc#util#path_replace_patterns(), join(globpath(&runtimepath, "", 0, 1), ",")])
+    endif
   elseif get(g:, 'coc_start_at_startup', 1)
     call coc#rpc#start_server()
   endif
@@ -352,6 +354,8 @@ function! s:Enable(initialize)
 
     if !v:vim_did_enter
       autocmd VimEnter            * call s:VimEnter()
+    else
+      call s:Highlight()
     endif
     if s:is_vim
       if exists('##DirChanged')

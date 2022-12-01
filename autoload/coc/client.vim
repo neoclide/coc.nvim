@@ -115,7 +115,7 @@ function! s:on_stderr(name, msgs)
   if empty(data) | return | endif
   let client = a:name ==# 'coc' ? '[coc.nvim]' : '['.a:name.']'
   let data[0] = client.': '.data[0]
-  if a:name ==# 'coc' && len(filter(copy(data), 'v:val =~# "SyntaxError: Unexpected token"'))
+  if a:name ==# 'coc' && len(filter(copy(data), 'v:val =~# "SyntaxError: "'))
     call coc#client#check_version()
     return
   endif
@@ -129,20 +129,21 @@ function! coc#client#check_version() abort
   else
     let node = $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH
   endif
-  let output = system(node . ' --version')
+  let cmd = node . ' --version'
+  let output = system(cmd)
   let msgs = []
   if v:shell_error
-    let msgs = ['Unexpected result from node --version'] + split(output, '\n')
+    let msgs = ['Unexpected result from "'.cmd.'"'] + split(output, '\n')
   else
     let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
     if empty(ms)
-      let msgs = ['Unable to detect version of node, make sure your node executable is http://nodejs.org/']
+      let msgs = ['Unable to get node version by "'.cmd.'" please install NodeJS from https://nodejs.org/en/download/']
     elseif str2nr(ms[1]) < 14 || (str2nr(ms[1]) == 14 && str2nr(ms[2]) < 14)
-      let msgs = ['Current Node.js version '.trim(output).' < 14.14.0 ', 'Please upgrade your node.js']
+      let msgs = ['Current Node.js version '.trim(output).' < 14.14.0 ', 'Please upgrade your .js']
     endif
   endif
   if !empty(msgs)
-    call s:on_error(a:name, msgs)
+    call s:on_error('coc', msgs)
   endif
 endfunction
 

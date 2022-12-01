@@ -2,6 +2,7 @@
 
 - File fragment support for `workspace.jumpTo()`.
 - Support `g:coc_open_url_command`.
+- Support `contributes.configuration` from extension as array.
 
 # 2022-11-29
 
