@@ -239,6 +239,31 @@ workspace folder.
 
 Folder configuration would overwrite user configuration.
 
+							*coc-configuration-expand*
+Variables expands:~
+
+Variables would be expanded in string values of configuration, supported
+variables:
+
+  • `${userHome}` the path of the user's home folder
+  • `${cwd}` current working directory of vim.
+
+You can also reference environment variables through the `${env:name}` syntax
+(for example, `${env:USERNAME}`), no expand happens when env not exists.
+
+Configurations that requires file paths (ex:
+|coc-config-workspace-ignoredFolders|) support expand `~` at the beginning of
+the filepath to user's home and some additional variables:
+
+  • `${workspaceFolder}` the current opened file's workspace folder.
+  • `${workspaceFolderBasename}` the name of the workspace folder opened in
+    coc.nvim without any slashes (/).
+  • `${file}` the current opened file.
+  • `${fileDirname}` the current opened file's dirname.
+  • `${fileExtname}` the current opened file's extension.
+  • `${fileBasename}`  the current opened file's basename
+  • `${fileBasenameNoExtension}` the current opened file's basename with no file extension.
+
 							*coc-configuration-scope*
 Configuration scope:~
 

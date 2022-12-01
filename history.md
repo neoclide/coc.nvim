@@ -1,3 +1,7 @@
+# 2022-12-02
+
+- Expand variables for string configuration value.
+
 # 2022-11-30
 
 - File fragment support for `workspace.jumpTo()`.
