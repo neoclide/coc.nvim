@@ -354,6 +354,8 @@ function! s:Enable(initialize)
 
     if !v:vim_did_enter
       autocmd VimEnter            * call s:VimEnter()
+    else
+      call s:Highlight()
     endif
     if s:is_vim
       if exists('##DirChanged')
