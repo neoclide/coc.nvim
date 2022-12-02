@@ -143,7 +143,7 @@ export class Helper extends EventEmitter {
     this.completion.stop(true)
     this.workspace.reset()
     await this.nvim.command('silent! %bwipeout! | setl nopreviewwindow')
-    await this.wait(30)
+    await this.wait(10)
     await this.workspace.document
   }
 

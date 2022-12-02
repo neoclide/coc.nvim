@@ -91,7 +91,7 @@
     "vscode-languageserver": "^8.0.2"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^5.8.8",
+    "@chemzqm/neovim": "^5.8.9",
     "ansi-styles": "^5.0.0",
     "bytes": "^3.1.0",
     "caniuse-lite": "^1.0.30001431",
