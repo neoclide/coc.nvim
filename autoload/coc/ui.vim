@@ -486,6 +486,17 @@ function! coc#ui#safe_open(cmd, file) abort
   endtry
 endfunction
 
+" Use noa to setloclist, avoid BufWinEnter autocmd
+function! coc#ui#setloclist(nr, items, action, title) abort
+  if a:action ==# ' '
+    let title = get(getloclist(a:nr, {'title': 1}), 'title', '')
+    let action = title ==# a:title ? 'r' : ' '
+    noa call setloclist(a:nr, [], action, {'title': a:title, 'items': a:items})
+  else
+    noa call setloclist(a:nr, [], a:action, {'title': a:title, 'items': a:items})
+  endif
+endfunction
+
 function! coc#ui#get_mouse() abort
   if get(g:, 'coc_node_env', '') ==# 'test'
     return get(g:, 'mouse_position', [win_getid(), line('.'), col('.')])

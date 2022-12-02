@@ -3,21 +3,23 @@ let s:is_win = has("win32") || has("win64")
 let s:client = v:null
 let s:name = 'coc'
 let s:is_vim = !has('nvim')
+let s:chan_id = 0
 
 function! coc#rpc#start_server()
   let test = get(g:, 'coc_node_env', '') ==# 'test'
-  if test && !s:is_vim
-    " server already started
+  if test && !s:is_vim && !exists('$COC_NVIM_REMOTE_ADDRESS')
+    " server already started, chan_id could be available later
     let s:client = coc#client#create(s:name, [])
-    let chan_id = get(g:, 'coc_node_channel_id', 0)
-    let s:client['running'] = chan_id != 0
-    let s:client['chan_id'] = chan_id
+    let s:client['running'] = s:chan_id != 0
+    let s:client['chan_id'] = s:chan_id
     return
   endif
   if exists('$COC_NVIM_REMOTE_ADDRESS')
     let address = $COC_NVIM_REMOTE_ADDRESS
     if s:is_vim
       let s:client = coc#client#create(s:name, [])
+      " TODO don't know if vim support named pipe on windows.
+      let address = address =~# ':\d\+$' ? address : 'unix:'.address
       let channel = ch_open(address, {
           \ 'mode': 'json',
           \ 'close_cb': {channel -> s:on_channel_close()},
@@ -29,18 +31,17 @@ function! coc#rpc#start_server()
         let s:client['channel'] = channel
       endif
     else
-      let mode = address =~# ':\d\+$' ? 'tcp' : 'pipe'
       let s:client = coc#client#create(s:name, [])
-      let chan_id =0
       try
+        let mode = address =~# ':\d\+$' ? 'tcp' : 'pipe'
         let chan_id = sockconnect(mode, address, { 'rpc': 1 })
+        if chan_id > 0
+          let s:client['running'] = 1
+          let s:client['chan_id'] = chan_id
+        endif
       catch /connection\ refused/
         " ignroe
       endtry
-      if chan_id > 0
-        let s:client['running'] = 1
-        let s:client['chan_id'] = chan_id
-      endif
     endif
     if !s:client['running']
       echohl Error | echom 'coc.nvim failed to create connection on '.address.' check $COC_NVIM_REMOTE_ADDRESS' | echohl None
@@ -73,14 +74,9 @@ endfunction
 
 " Used for test on neovim only
 function! coc#rpc#set_channel(chan_id) abort
-  if s:is_vim || get(g:, 'coc_node_env', '') !=# 'test'
-    return
-  endif
-  let g:coc_node_channel_id = a:chan_id
-  if a:chan_id != 0
-    let s:client['running'] = 1
-    let s:client['chan_id'] = a:chan_id
-  endif
+  let s:chan_id = a:chan_id
+  let s:client['running'] = a:chan_id != 0
+  let s:client['chan_id'] = a:chan_id
 endfunction
 
 function! coc#rpc#kill()
@@ -204,6 +200,7 @@ function! s:check_vim_enter() abort
   endif
 endfunction
 
+" Used on vim and remote address only
 function! s:on_channel_close() abort
   if get(g:, 'coc_node_env', '') !=# 'test'
     echohl Error | echom '[coc.nvim] channel closed' | echohl None
