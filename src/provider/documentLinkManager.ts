@@ -1,9 +1,8 @@
 'use strict'
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { DocumentLink } from 'vscode-languageserver-types'
+import { DocumentLink, Range } from 'vscode-languageserver-types'
 import { omit } from '../util/lodash'
-import { equals } from '../util/object'
 import { CancellationToken, Disposable } from '../util/protocol'
 import { DocumentLinkProvider, DocumentSelector } from './index'
 import Manager from './manager'
@@ -26,17 +25,24 @@ export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
     let items = this.getProviders(document)
     if (items.length == 0) return null
     const links: DocumentLinkWithSource[] = []
-    const results = await Promise.allSettled(items.map(item => {
+    const seenRanges: Set<string> = new Set()
+
+    function rangeToString(range: Range): string {
+      return `${range.start.line},${range.start.character},${range.end.line},${range.end.character}`
+    }
+
+    const results = await Promise.allSettled(items.map(async item => {
       let { id, provider } = item
-      return Promise.resolve(provider.provideDocumentLinks(document, token)).then(arr => {
-        if (Array.isArray(arr)) {
-          arr.forEach(link => {
-            if (!links.some(l => equals(l.range, link.range))) {
-              links.push(Object.assign({ source: id }, link))
-            }
-          })
-        }
-      })
+      const arr = await provider.provideDocumentLinks(document, token)
+      if (Array.isArray(arr)) {
+        arr.forEach(link => {
+          const rangeString = rangeToString(link.range)
+          if (!seenRanges.has(rangeString)) {
+            seenRanges.add(rangeString)
+            links.push(Object.assign({ source: id }, link))
+          }
+        })
+      }
     }))
     this.handleResults(results, 'provideDocumentLinks')
     return links
