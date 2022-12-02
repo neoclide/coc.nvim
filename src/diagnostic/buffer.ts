@@ -411,7 +411,7 @@ export class DiagnosticBuffer implements SyncItem {
   public updateLocationList(winid: number, title: string): void {
     if (!this._config.locationlistUpdate || winid == -1 || title !== 'Diagnostics of coc') return
     let items = this.toLocationListItems(this.diagnostics)
-    this.nvim.call('setloclist', [winid, [], 'r', { title: 'Diagnostics of coc', items }], true)
+    this.nvim.call('coc#ui#setloclist', [winid, items, 'r', 'Diagnostics of coc'], true)
   }
 
   public toLocationListItems(diagnostics: Diagnostic[]): LocationListItem[] {

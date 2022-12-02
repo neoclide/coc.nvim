@@ -154,17 +154,14 @@ class DiagnosticManager implements Disposable {
    * Fill location list with diagnostics
    */
   public async setLocationlist(bufnr: number): Promise<void> {
-    let buf = this.buffers.getItem(bufnr)
-    let doc = workspace.getDocument(bufnr)
-    if (!buf) throw new Error(`buffer ${bufnr} not attached, ${doc ? doc.notAttachReason : ''}`)
+    let doc = workspace.getAttachedDocument(bufnr)
+    let buf = this.buffers.getItem(doc.bufnr)
     let diagnostics: Diagnostic[] = []
     for (let diags of Object.values(this.getDiagnostics(buf))) {
       diagnostics.push(...diags)
     }
     let items = buf.toLocationListItems(diagnostics)
-    let curr = await this.nvim.call('getloclist', [0, { title: 1 }]) as { title?: string }
-    let action = curr.title && curr.title.indexOf('Diagnostics of coc') != -1 ? 'r' : ' '
-    await this.nvim.call('setloclist', [0, [], action, { title: 'Diagnostics of coc', items }])
+    await this.nvim.call('coc#ui#setloclist', [0, items, ' ', 'Diagnostics of coc'])
   }
 
   /**
