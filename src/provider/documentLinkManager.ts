@@ -11,6 +11,10 @@ interface DocumentLinkWithSource extends DocumentLink {
   source?: string
 }
 
+function rangeToString(range: Range): string {
+  return `${range.start.line},${range.start.character},${range.end.line},${range.end.character}`
+}
+
 export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
 
   public register(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable {
@@ -27,18 +31,20 @@ export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
     const links: DocumentLinkWithSource[] = []
     const seenRanges: Set<string> = new Set()
 
-    function rangeToString(range: Range): string {
-      return `${range.start.line},${range.start.character},${range.end.line},${range.end.character}`
-    }
-
     const results = await Promise.allSettled(items.map(async item => {
       let { id, provider } = item
       const arr = await provider.provideDocumentLinks(document, token)
       if (Array.isArray(arr)) {
+        let check = links.length > 0
         arr.forEach(link => {
-          const rangeString = rangeToString(link.range)
-          if (!seenRanges.has(rangeString)) {
-            seenRanges.add(rangeString)
+          if (check) {
+            const rangeString = rangeToString(link.range)
+            if (!seenRanges.has(rangeString)) {
+              seenRanges.add(rangeString)
+              links.push(Object.assign({ source: id }, link))
+            }
+          } else {
+            if (items.length > 1) seenRanges.add(rangeToString(link.range))
             links.push(Object.assign({ source: id }, link))
           }
         })
