@@ -63,11 +63,11 @@ describe('Workspace handler', () => {
       let root = workspace.root
       expect(root).toBe(os.tmpdir())
       let p = handler.openLocalConfig()
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('n')
       await p
       p = handler.openLocalConfig()
-      await helper.wait(10)
+      await helper.wait(20)
       await nvim.input('y')
       await p
       let bufname = await nvim.call('bufname', ['%'])

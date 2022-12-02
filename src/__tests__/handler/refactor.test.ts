@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from '@chemzqm/neovim/lib/api/Buffer'
 import fs from 'fs'
 import { Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -8,6 +7,7 @@ import Changes from '../../handler/refactor/changes'
 import Refactor from '../../handler/refactor/index'
 import languages from '../../languages'
 import { DidChangeTextDocumentParams } from '../../types'
+import { Disposable } from '../../util'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
