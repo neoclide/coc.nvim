@@ -269,14 +269,18 @@ function! coc#client#is_running(name) abort
   let client = get(s:clients, a:name, v:null)
   if empty(client) | return 0 | endif
   if !client['running'] | return 0 | endif
-  if s:is_vim
-    let status = job_status(ch_getjob(client['channel']))
-    return status ==# 'run'
-  else
-    let chan_id = client['chan_id']
-    let [code] = jobwait([chan_id], 10)
-    return code == -1
-  endif
+  try
+    if s:is_vim
+      let status = job_status(ch_getjob(client['channel']))
+      return status ==# 'run'
+    else
+      let chan_id = client['chan_id']
+      let [code] = jobwait([chan_id], 10)
+      return code == -1
+    endif
+  catch /.*/
+    return 0
+  endtry
 endfunction
 
 function! coc#client#stop(name) abort
@@ -306,6 +310,9 @@ function! coc#client#kill(name) abort
   let client = get(s:clients, a:name, v:null)
   if empty(client) | return 1 | endif
   let running = coc#client#is_running(a:name)
+  if empty(client) || exists('$COC_NVIM_REMOTE_ADDRESS')
+    return 1
+  endif
   if running
     if s:is_vim
       call job_stop(ch_getjob(client['channel']), 'kill')

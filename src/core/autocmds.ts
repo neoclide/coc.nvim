@@ -93,7 +93,7 @@ augroup end`
       if (this.env.isCygwin && platform.isWindows) {
         cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`
       }
-      void this.nvim.command(cmd)
+      void this.nvim.command(cmd, true)
     }
   }
 

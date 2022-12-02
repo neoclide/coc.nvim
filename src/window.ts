@@ -23,7 +23,7 @@ import type { TreeView, TreeViewOptions } from './tree'
 import type { Env, FloatConfig, FloatFactory, HighlightItem, OutputChannel, QuickPickItem } from './types'
 import { toObject } from './util/object'
 import { CancellationToken, Event } from './util/protocol'
-import { Workspace } from './workspace'
+import type { Workspace } from './workspace'
 
 export interface StatusItemOption {
   progress?: boolean

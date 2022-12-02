@@ -324,6 +324,12 @@ endfunction
 
 function! s:VimLeavePre() abort
   let g:coc_vim_leaving = 1
+  call s:Autocmd('VimLeavePre')
+  if s:is_vim && exists('$COC_NVIM_REMOTE_ADDRESS')
+    " Helps to avoid connection error.
+    call coc#rpc#close_connection()
+    return
+  endif
   if get(g:, 'coc_node_env', '') ==# 'test'
     return
   endif
@@ -410,7 +416,6 @@ function! s:Enable(initialize)
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd FocusLost           * call s:Autocmd('FocusLost')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
-    autocmd VimLeavePre         * call s:Autocmd('VimLeavePre')
     autocmd VimLeavePre         * call s:VimLeavePre()
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
     autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#notify('saveRefactor', [+expand('<abuf>')])

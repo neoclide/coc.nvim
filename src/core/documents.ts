@@ -222,6 +222,7 @@ export default class Documents implements Disposable {
     if (input.includes('$')) {
       let doc = this.getDocument(this.bufnr)
       let fsPath = doc ? URI.parse(doc.uri).fsPath : ''
+      const root = this._root || this._cwd
       input = input.replace(/\$\{(.*?)\}/g, (match: string, name: string) => {
         if (name.startsWith('env:')) {
           let key = name.split(':')[1]
@@ -234,9 +235,9 @@ export default class Documents implements Disposable {
           case 'workspace':
           case 'workspaceRoot':
           case 'workspaceFolder':
-            return this._root
+            return root
           case 'workspaceFolderBasename':
-            return path.basename(this._root)
+            return path.basename(root)
           case 'cwd':
             return this._cwd
           case 'file':

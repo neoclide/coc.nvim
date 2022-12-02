@@ -17,6 +17,7 @@ import type Plugin from '../plugin'
 import type { ProviderResult } from '../provider'
 import { OutputChannel } from '../types'
 import { equals } from '../util/object'
+import { terminate } from '../util/processes'
 import type { Workspace } from '../workspace'
 const vimrc = path.resolve(__dirname, 'vimrc')
 
@@ -70,25 +71,10 @@ export class Helper extends EventEmitter {
     let proc = this.proc = cp.spawn(process.env.NVIM_COMMAND ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
+    proc.unref()
     let plugin = this.plugin = attach({ proc })
     await this.nvim.uiAttach(160, 80, {})
-    let channelId = await this.nvim.channelId
-    this.nvim.call('coc#rpc#set_channel', [channelId], true)
-    this.nvim.on('notification', (method, args) => {
-      if (method == 'redraw') {
-        for (let arg of args) {
-          let event = arg[0]
-          this.emit(event, arg.slice(1))
-          if (event == 'put') {
-            let arr = arg.slice(1).map(o => o[0])
-            let line = arr.join('').trim()
-            if (line.length > 3) {
-              // console.log(line)
-            }
-          }
-        }
-      }
-    })
+    this.nvim.call('coc#rpc#set_channel', [1], true)
     await plugin.init('')
   }
 
@@ -128,9 +114,9 @@ export class Helper extends EventEmitter {
     return new Promise((resolve, reject) => {
       if (!isWindows) {
         // not work on old version vim.
-        let socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
+        const socket = path.join(os.tmpdir(), `coc-test-${uuid()}.sock`)
         server.listen(socket, () => {
-          resolve(`unix:${socket}`)
+          resolve(socket)
         })
         server.on('error', reject)
         server.unref()
@@ -156,8 +142,7 @@ export class Helper extends EventEmitter {
     }
     this.completion.stop(true)
     this.workspace.reset()
-    await this.nvim.command('silent! %bwipeout!')
-    await this.nvim.command('setl nopreviewwindow')
+    await this.nvim.command('silent! %bwipeout! | setl nopreviewwindow')
     await this.wait(30)
     await this.workspace.document
   }
@@ -166,10 +151,7 @@ export class Helper extends EventEmitter {
     if (this.plugin) this.plugin.dispose()
     if (this.nvim) await this.nvim.quit()
     if (this.server) this.server.close()
-    if (this.proc) {
-      this.proc.kill('SIGKILL')
-      this.proc = null
-    }
+    if (this.proc) terminate(this.proc)
     if (typeof global.gc === 'function') {
       global.gc()
     }

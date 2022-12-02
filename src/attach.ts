@@ -33,7 +33,7 @@ export function toErrorText(error: any): string {
   return error instanceof Error ? error.message : error.toString()
 }
 
-export default (opts: Attach, requestApi = true): Plugin => {
+export default (opts: Attach, requestApi = false): Plugin => {
   const nvim: NeovimClient = attach(opts, createLogger('node-client'), requestApi)
   nvim.setVar('coc_process_pid', process.pid, true)
   nvim.setClientInfo('coc', { major: semVer.major, minor: semVer.minor, patch: semVer.patch }, 'remote', {}, {})
