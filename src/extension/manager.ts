@@ -9,9 +9,10 @@ import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
 import { Extensions as ExtensionsInfo, getProperties, IExtensionRegistry, IStringDictionary } from '../util/extensionRegistry'
 import { createExtension, ExtensionExport } from '../util/factory'
-import { loadJson, remove, statAsync, watchFile } from '../util/fs'
+import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
+import { omit } from '../util/lodash'
 import { path } from '../util/node'
 import { deepClone, deepIterate, isEmpty } from '../util/object'
 import { Disposable, Emitter, Event } from '../util/protocol'
@@ -20,6 +21,20 @@ import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
+
+interface ExportExtension {
+  readonly name: string
+  readonly isActive: boolean
+  unload: () => Promise<void>
+  /**
+   * API returned by activate function
+   */
+  readonly api: any
+  /**
+   * The object of module.exports of the extension entry without activate & deactivate function.
+   */
+  readonly exports: any
+}
 
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 const logger = createLogger('extensions-manager')
@@ -59,6 +74,7 @@ export interface Extension<T> {
   readonly isActive: boolean
   readonly packageJSON: ExtensionJson
   readonly exports: T
+  readonly module: object
   activate(): Promise<T>
 }
 
@@ -256,10 +272,10 @@ export class ExtensionManager {
   /**
    * Load extension from folder, folder should contains coc extension.
    */
-  public async loadExtension(folder: string | string[]): Promise<boolean> {
+  public async loadExtension(folder: string | string[], noActive = false): Promise<boolean> {
     if (Array.isArray(folder)) {
       let results = await Promise.allSettled(folder.map(f => {
-        return this.loadExtension(f)
+        return this.loadExtension(f, noActive)
       }))
       results.forEach(res => {
         if (res.status === 'rejected') throw new Error(`Error on loadExtension ${res.reason}`)
@@ -275,7 +291,7 @@ export class ExtensionManager {
     await this.unloadExtension(name)
     let isLocal = !this.states.hasExtension(name)
     if (isLocal) this.states.addLocalExtension(name, folder)
-    await this.registerExtension(folder, Object.freeze(obj), isLocal ? ExtensionType.Local : ExtensionType.Global)
+    await this.registerExtension(folder, Object.freeze(obj), isLocal ? ExtensionType.Local : ExtensionType.Global, noActive)
     return true
   }
 
@@ -385,7 +401,7 @@ export class ExtensionManager {
     }
   }
 
-  public async loadExtensionFile(filepath: string): Promise<void> {
+  public async loadExtensionFile(filepath: string, noActive = false): Promise<string> {
     let stat = await statAsync(filepath)
     if (!stat || !stat.isFile()) return
     let filename = path.basename(filepath)
@@ -399,7 +415,8 @@ export class ExtensionManager {
       packageJSON[attr] = obj[attr]
     }
     await this.unloadExtension(name)
-    await this.registerExtension(root, packageJSON, ExtensionType.SingleFile)
+    await this.registerExtension(root, packageJSON, ExtensionType.SingleFile, noActive)
+    return name
   }
 
   public registerExtensions(stats: ExtensionToLoad[]): void {
@@ -413,7 +430,7 @@ export class ExtensionManager {
     }
   }
 
-  public async registerExtension(root: string, packageJSON: ExtensionJson, extensionType: ExtensionType): Promise<void> {
+  public async registerExtension(root: string, packageJSON: ExtensionJson, extensionType: ExtensionType, noActive = false): Promise<void> {
     let id = packageJSON.name
     if (this.states.isDisabled(id)) return
     let isActive = false
@@ -460,6 +477,9 @@ export class ExtensionManager {
       get isActive() {
         return isActive
       },
+      get module() {
+        return ext
+      },
       get exports() {
         if (!isActive) throw new Error(`Invalid access to exports, extension "${id}" not activated`)
         return exports
@@ -492,7 +512,7 @@ export class ExtensionManager {
     })
     this.registContribution(id, packageJSON, root, filename)
     this._onDidLoadExtension.fire(extension)
-    if (this.activated) await this.autoActiavte(id, extension)
+    if (this.activated && !noActive) await this.autoActiavte(id, extension)
   }
 
   public unregistContribution(id: string): void {
@@ -582,6 +602,43 @@ export class ExtensionManager {
         await this.reloadExtension(id)
         void window.showInformationMessage(`reloaded ${id}`)
       })
+    }
+  }
+
+  /**
+   * load extension in folder or file
+   */
+  public async load(filepath: string, active: boolean): Promise<ExportExtension> {
+    let name: string
+    if (isDirectory(filepath)) {
+      let obj = loadJson(path.join(filepath, 'package.json')) as any
+      name = obj.name
+      await this.loadExtension(filepath, true)
+    } else {
+      name = await this.loadExtensionFile(filepath, true)
+    }
+    if (!name) throw new Error(`Unable to load extension at ${filepath}`)
+    let disabled = this.states.isDisabled(name)
+    if (disabled) throw new Error(`extension ${name} is disabled`)
+    let item = this.getExtension(name)
+    if (active) await item.extension.activate()
+    return {
+      get isActive() {
+        return item.extension.isActive
+      },
+      get name() {
+        return name
+      },
+      get api() {
+        return item.extension.exports
+      },
+      get exports() {
+        let module = item.extension.module ?? {}
+        return omit(module, ['activate'])
+      },
+      unload: () => {
+        return this.unloadExtension(name)
+      }
     }
   }
 

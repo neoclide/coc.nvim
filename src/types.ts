@@ -24,20 +24,6 @@ declare global {
   }
 }
 
-export interface ExtensionItem {
-  /**
-   * API returned by activate function
-   */
-  API: any
-  /**
-   * The object of module.exports of the extension entry without activate & deactivate function.
-   */
-  exports: any
-  /**
-   */
-  unload: () => void
-}
-
 export type Optional<T extends object, K extends keyof T = keyof T> = Omit<
   T,
   K

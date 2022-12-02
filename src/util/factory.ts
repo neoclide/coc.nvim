@@ -7,6 +7,7 @@ import { hasOwnProperty, toObject } from './object'
 export interface ExtensionExport {
   activate: (context: unknown) => any
   deactivate?: () => any
+  [key: string]: any
 }
 
 export interface ILogger {

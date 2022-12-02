@@ -49,9 +49,8 @@ if (!global.__TESTER__) {
   attach({ reader: process.stdin, writer: process.stdout })
 } else {
   const exports = require('./src/index')
-  const manager = exports.extensions.manager
-  module.exports = {attach, exports, loadExtension: (folder) => {
-    return manager.loadExtension(folder)
+  module.exports = {attach, exports, loadExtension: (filepath, active) => {
+    return exports.extensions.manager.load(filepath, active)
   }}
 }`
       return {

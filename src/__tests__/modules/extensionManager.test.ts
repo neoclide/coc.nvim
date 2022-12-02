@@ -697,7 +697,7 @@ describe('ExtensionManager', () => {
       let called = false
       let spy = jest.spyOn(manager, 'loadExtensionFile').mockImplementation(() => {
         called = true
-        return Promise.resolve()
+        return Promise.resolve('')
       })
       await helper.waitValue(() => {
         return called
@@ -782,6 +782,60 @@ describe('ExtensionManager', () => {
       ])
       let defs = getExtensionDefinitions()
       expect(defs['explorer.flexible']).toBeDefined()
+    })
+  })
+
+  describe('loadFileOrFolder()', () => {
+
+    it('should throw for invalid extension', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, false)
+      await expect(async () => {
+        await manager.load('file_not_exists', false)
+      }).rejects.toThrow(Error)
+      let id = uuid()
+      let filpath = path.join(os.tmpdir(), id)
+      fs.writeFileSync(filpath, '', 'utf8')
+      await manager.toggleExtension(`single-${id}`)
+      await expect(async () => {
+        await manager.load(filpath, false)
+      }).rejects.toThrow(/disabled/)
+      fs.rmSync(filpath, { force: true })
+    })
+
+    it('should load extension without active', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, false)
+      createExtension(tmpfolder, {
+        name: 'name',
+        engines: { coc: '>= 0.0.80' },
+        activationEvents: ['*'],
+        contributes: {}
+      })
+      let res = await manager.load(tmpfolder, false)
+      expect(res.isActive).toBe(false)
+      expect(res.name).toBe('name')
+      expect(res.exports).toEqual({})
+      await res.unload()
+      fs.rmSync(tmpfolder, { recursive: true })
+    })
+
+    it('should load and active extension', async () => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder, false)
+      createExtension(tmpfolder, {
+        name: 'active',
+        engines: { coc: '>= 0.0.80' },
+        activationEvents: ['*'],
+        contributes: {}
+      }, `exports.activate = () => 'api';exports.foo = 'bar';`)
+      let res = await manager.load(tmpfolder, true)
+      expect(res.isActive).toBe(true)
+      expect(res.name).toBe('active')
+      expect(res.api).toBe('api')
+      expect(res.exports).toEqual({ foo: 'bar' })
+      await res.unload()
+      fs.rmSync(tmpfolder, { recursive: true })
     })
   })
 })
