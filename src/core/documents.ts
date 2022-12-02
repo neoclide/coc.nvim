@@ -274,16 +274,20 @@ export default class Documents implements Disposable {
       })
     }
     this._currentResolve = true
-    return new Promise<Document>(async resolve => {
-      let opts = await this.nvim.eval(`coc#util#get_bufoptions(bufnr("%"),${this.config.maxFileSize})`) as BufferOption
-      let doc: Document | undefined
-      if (opts != null) {
-        this.creating.delete(opts.bufnr)
-        doc = this._createDocument(opts)
-      }
-      this.resolveCurrent(doc)
-      resolve(doc)
-      this._currentResolve = false
+    return new Promise<Document>(resolve => {
+      this.nvim.eval(`coc#util#get_bufoptions(bufnr("%"),${this.config.maxFileSize})`).then((opts: any) => {
+        let doc: Document | undefined
+        if (opts != null) {
+          this.creating.delete(opts.bufnr)
+          doc = this._createDocument(opts)
+        }
+        this.resolveCurrent(doc)
+        resolve(doc)
+        this._currentResolve = false
+      }, () => {
+        resolve(undefined)
+        this._currentResolve = false
+      })
     })
   }
 

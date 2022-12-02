@@ -143,8 +143,8 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public get hasProvider(): boolean {
-    let { textDocument } = this.doc
-    return languages.hasProvider(ProviderName.SemanticTokens, textDocument) || languages.hasProvider(ProviderName.SemanticTokensRange, textDocument)
+    return languages.hasProvider(ProviderName.SemanticTokens, this.doc)
+      || languages.hasProvider(ProviderName.SemanticTokensRange, this.doc)
   }
 
   private get hasLegend(): boolean {
@@ -153,8 +153,8 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public get rangeProviderOnly(): boolean {
-    let { textDocument } = this.doc
-    return !languages.hasProvider(ProviderName.SemanticTokens, textDocument) && languages.hasProvider(ProviderName.SemanticTokensRange, textDocument)
+    return !languages.hasProvider(ProviderName.SemanticTokens, this.doc)
+      && languages.hasProvider(ProviderName.SemanticTokensRange, this.doc)
   }
 
   public get shouldRangeHighlight(): boolean {

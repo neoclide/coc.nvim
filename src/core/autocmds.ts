@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { createLogger } from '../logger'
 import { Autocmd } from '../types'
 import { disposeAll } from '../util'
 import { fs, os, path } from '../util/node'
@@ -8,6 +9,7 @@ import { Disposable } from '../util/protocol'
 import ContentProvider from './contentProvider'
 import { has } from './funcs'
 import Watchers from './watchers'
+const logger = createLogger('core-autocmds')
 
 interface PartialEnv {
   isCygwin: boolean
@@ -17,6 +19,7 @@ interface PartialEnv {
 
 export default class Autocmds implements Disposable {
   private _dynAutocmd = false
+  private _disposed = false
   private autocmdMaxId = 0
   public readonly autocmds: Map<number, Autocmd> = new Map()
   private nvim: Neovim
@@ -58,7 +61,7 @@ export default class Autocmds implements Disposable {
   }
 
   public setupDynamicAutocmd(force = false): void {
-    if (!force && !this._dynAutocmd) return
+    if ((!force && !this._dynAutocmd) || this._disposed) return
     this._dynAutocmd = true
     let schemes = this.contentProvider.schemes
     let cmds: string[] = []
@@ -83,7 +86,7 @@ augroup coc_dynamic_autocmd
   ${cmds.join('\n  ')}
 augroup end`
     if (this.env && has(this.env, 'nvim-0.5.0')) {
-      void this.nvim.exec(content, false)
+      this.nvim.call('nvim_exec', [content, 0], true)
     } else {
       let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)
       fs.mkdirSync(dir, { recursive: true })
@@ -93,11 +96,13 @@ augroup end`
       if (this.env.isCygwin && platform.isWindows) {
         cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`
       }
-      void this.nvim.command(cmd, true)
+      this.nvim.command(cmd, true)
     }
   }
 
   public dispose(): void {
+    if (this._disposed) return
+    this._disposed = true
     this.nvim.command(`augroup coc_dynamic_autocmd|  autocmd!|augroup end`, true)
     disposeAll(this.disposables)
   }

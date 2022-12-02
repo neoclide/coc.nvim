@@ -598,10 +598,10 @@ export class Workspace {
   }
 
   public dispose(): void {
+    this.autocmds.dispose()
     this.tabs.dispose()
     this.statusLine.dispose()
     this.watchers.dispose()
-    this.autocmds.dispose()
     this.contentProvider.dispose()
     this.documentsManager.dispose()
     this.configurations.dispose()

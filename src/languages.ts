@@ -263,8 +263,15 @@ class Languages {
   }
 
   public registerDocumentRangeSemanticTokensProvider(selector: DocumentSelector, provider: DocumentRangeSemanticTokensProvider, legend: SemanticTokensLegend): Disposable {
-    this._onDidSemanticTokensRefresh.fire(selector)
-    return this.semanticTokensRangeManager.register(selector, provider, legend)
+    let timer = setTimeout(() => {
+      this._onDidSemanticTokensRefresh.fire(selector)
+    }, eventDebounce)
+    let disposable = this.semanticTokensRangeManager.register(selector, provider, legend)
+    return Disposable.create(() => {
+      clearTimeout(timer)
+      disposable.dispose()
+      this._onDidSemanticTokensRefresh.fire(selector)
+    })
   }
 
   public registerInlayHintsProvider(selector: DocumentSelector, provider: InlayHintsProvider): Disposable {

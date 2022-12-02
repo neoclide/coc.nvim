@@ -642,7 +642,6 @@ describe('semanticTokens', () => {
   describe('Server cancelled', () => {
     it('should retrigger range request on server cancel', async () => {
       helper.updateConfiguration('semanticTokens.filetypes', ['*'])
-      await workspace.document
       let times = 0
       disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
         provideDocumentRangeSemanticTokens: () => {

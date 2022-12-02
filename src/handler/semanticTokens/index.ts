@@ -77,13 +77,16 @@ export default class SemanticTokens {
     })
     languages.onDidSemanticTokensRefresh(async selector => {
       if (isFalsyOrEmpty(this.staticConfig.highlightGroups)) await this.fetchHighlightGroups()
-      let visibleBufs = await this.nvim.call('coc#window#bufnrs') as number[]
+      let visibleBufs = window.visibleTextEditors.map(o => o.document.bufnr)
       for (let item of this.highlighters.items) {
-        let doc = workspace.getDocument(item.bufnr)
-        if (!doc || !workspace.match(selector, doc.textDocument)) continue
-        item.abandonResult()
-        if (visibleBufs.includes(item.bufnr)) {
-          item.highlight()
+        if (!workspace.match(selector, item.doc)) continue
+        if (!item.hasProvider) {
+          item.clearHighlight()
+        } else {
+          item.abandonResult()
+          if (visibleBufs.includes(item.bufnr)) {
+            item.highlight()
+          }
         }
       }
     }, null, this.disposables)
