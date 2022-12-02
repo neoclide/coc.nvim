@@ -68,26 +68,26 @@ Statusline integration				|coc-status|
   Lightline					|coc-status-lightline|
 Create plugins 					|coc-plugins|
 FAQ						|coc-faq|
-Changelog					|coc-changelog|
+Change log					|coc-changelog|
 
 ==============================================================================
 INTRODUCTION						*coc-introduction*
 
 Coc.nvim enhances your (Neo)Vim to match the user experience provided by
-VSCode through a rich extension ecosystem and implemented features specified
-by Language Server Protocol (3.17 for now).
+VSCode through a rich extension ecosystem and implemented the client features
+specified by Language Server Protocol (3.17 for now), see |coc-lsp|.
 
 Some features (like completion) automatically works by default, all of them
 can be disabled by |coc-configuration|.
 
-Some of its key features include:~
+Some key features:~
 
-  • APIs compatible with both Vim8 and Neovim.
-  • Loading VSCode-like extensions.
+  • Typescript APIs compatible with both Vim8 and Neovim.
+  • Loading VSCode-like extensions |coc-api-extension|.
   • Configuring coc.nvim and its extensions with JSON configuration
-  |coc-configuration|.
+    |coc-configuration|.
   • Configuring Language Servers that using Language Server Protocol (LSP)
-  |coc-config-languageserver|.
+    |coc-config-languageserver|.
 
 It is designed for best possible integration with other Vim plugins.
 
@@ -99,8 +99,8 @@ Note: multiple language servers for same document is allowed, but you should
 avoid configure same language server that already used by coc.nvim extension.
 
 Note: automatic completion plugins can't play nicely together, you can disable
-automatic completion of coc.nvim through `"suggest.autoTrigger": "none"` (or
-`"suggest.autoTrigger": "trigger"`) in your configuration file.
+automatic completion of coc.nvim by use `"suggest.autoTrigger": "none"` (or
+`"suggest.autoTrigger": "trigger"`) in your |coc-configuration|.
 
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
@@ -124,8 +124,8 @@ And run: >
 
   :PlugInstall
 
-For other plugin managers, make sure to use code from the release branch
-(unless you want to build from typescript source code).
+For other plugin managers, make sure to use the release branch (unless you
+need to build from typescript source code).
 
 To use Vim's native |packages| on Linux or MaxOS, use script like: >
 
@@ -224,7 +224,8 @@ Global configuration file:~
 Command |:CocConfig| will open (create when necessary) a user settings
 file in the folder returned by |coc#util#get_config_home()|.
 
-The user configuration can also be changed by API |coc#config()|.
+The user configuration could also be changed by API |coc#config()| or
+|g:coc_user_config|.
 
 The global configuration file can be created in another directory by setting
 |g:coc_config_home| in your vimrc like: >
@@ -310,7 +311,7 @@ Focus floating windows:~
 
 On neovim, use <CTRL-w>w (or |<Plug>(coc-float-jump)|) could focus a floating
 window just created (if it's focusable).  It's not allowed to focus popups on
-vim, unless it's using terminal buffer.
+vim, unless it's using a terminal buffer.
 
 							*coc-floating-config*
 Configure floating windows:~
@@ -332,7 +333,7 @@ Related highlight groups:
   • |CocFloatActive| For active parts.
   • |CocMenuSel| For selected line.
 
-To customize floating windows used by popup menu. Use configurations:
+To customize floating windows used by popup menu, use:
 
   • |coc-config-suggest-floatConfig|
   • |coc-config-suggest-pumFloatConfig|
@@ -347,6 +348,10 @@ configurations. For further customization, use:
 
 For customize dialog windows, use |coc-config-dialog|.
 For customize notification windows, use |coc-config-notification|.
+
+Configure |coc-preferences-enableMessageDialog| to show messages as
+notifications (except for the messages of unexpected errors which are always
+echoed).
 
 ==============================================================================
 LSP FEATURES 						*coc-lsp*
@@ -363,7 +368,7 @@ Features not supported:
 LSP features only works with attached documents, see |coc-document-attached|.
 
 To check exists providers of current buffer, use command
-`:CocCommand document.checkBuffer` or |CocHasProvider()|.
+`:CocCommand document.checkBuffer` or API |CocHasProvider()|.
 
 For historic reason, some features automatically works by default, but some
 are not.
@@ -376,8 +381,7 @@ Features automatically work by default:~
   • Trigger signature help |coc-signature|.
   • Inlay hints |coc-inlayHint|
 
-Most features could be disabled/enabled by |coc-configuration| and some
-vim variables.
+Most features could be toggled by |coc-configuration| and some vim variables.
 
 Features require enabled by configuration:~
 
@@ -841,7 +845,8 @@ Some tools may reload buffer from disk file during format, coc.nvim only
 apply `TextEdit[]` to the document.
 
 Don't be confused with vim's indent feature, configure/fix the 'indentexpr' of
-your buffer if the indent is wrong after insert new line.
+your buffer if the indent is wrong after character insert. (use
+|coc-format-ontype| might helps with the indent)
 
 							*coc-format-options*
 Format options:~
@@ -854,8 +859,8 @@ Buffer options that affect document format: 'eol', 'shiftwidth' and
     the end of the file.
 
 Those options are converted to `DocumentFormattingOptions` and transferred to
-languageservers before format.  The languageservers may only support some of
-those options.
+languageservers before format.  Note: the languageservers may only support
+some of those options.
 
 							*coc-format-document*
 Format full document:~
@@ -1173,6 +1178,7 @@ To show and hide outline of current window, use |CocAction('showOutline')| and
 Outline view has Window variable `cocViewId` set to `OUTLINE`.
 
 Following outline features are supported:
+
   • Start fuzzy filter by |coc-config-tree-key-activeFilter|.
   • Automatic update after document change.
   • Automatic reload when buffer in current window changed.
@@ -1181,8 +1187,8 @@ Following outline features are supported:
   |coc-config-outline-switchSortKey|.
   • Enable auto preview by |coc-config-outline-togglePreviewKey|.
 
-Note: outline would try to reload document symbols after 500ms when provider
-not registered, which avoid the necessary to check provider existence.
+Outline would try to reload document symbols after 500ms when provider not
+registered, which avoid the necessary to check provider existence.
 
 Checkout |coc-config-tree| and |coc-config-outline| for available
 configurations.
@@ -1783,6 +1789,20 @@ g:node_client_debug					*g:node_client_debug*
 <
 	Default: `0`
 
+g:coc_user_config 					*g:coc_user_config*
+
+	User configuration which will be passed to coc.nvim process during
+	initialization, no effect when changed after coc.nvim started.  Prefer
+	|coc#config| unless coc.nvim is lazy loaded.  Example: >
+
+	let g:coc_user_config = {}
+	let g:coc_user_config['suggest.timeout'] = 500
+	let g:coc_user_config['suggest.noselect'] = v:true
+<
+	Note: those configuration would overwrite the configuration from the
+	user's settings file, unless you have to use some dynamic variables,
+	using the settings file is recommended.
+
 g:coc_config_home					*g:coc_config_home*
 
 	Configure the directory which will be used to look for
@@ -1999,6 +2019,7 @@ coc#config({section}, {value})				*coc#config()*
 	Note: this function can be called before coc.nvim started.
 	Note: this function can work alongside the user configuration file,
 	but it's not recommended to use both.
+	Note: use |g:coc_user_config| when you have coc.nvim lazy loaded.
 
 coc#add_extension({name}, ...)				*coc#add_extension()*
 
@@ -2861,7 +2882,7 @@ COMMANDS						*coc-commands*
 
 :CocStart						*:CocStart*
 
-	Start the coc.nvim server, do nothing if it's already started.
+	Start the coc.nvim server, do nothing if the server already started.
 
 :CocRestart						*:CocRestart*
 
@@ -2871,7 +2892,7 @@ COMMANDS						*coc-commands*
 
 :CocPrintErrors						*:CocPrintErrors*
 
-	Show stderr messages from the NodeJS process in a split window.
+	Show errors from stderr of NodeJS process in a split window.
 
 :CocDisable						*:CocDisable*
 
@@ -2945,7 +2966,7 @@ COMMANDS						*coc-commands*
 
 	let $NVIM_COC_LOG_LEVEL='debug'
 <
-	to the beginning of your `.vimrc`
+	to your `.vimrc`
 
 :CocInfo						*:CocInfo*
 
