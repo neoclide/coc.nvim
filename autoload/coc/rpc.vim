@@ -45,11 +45,12 @@ function! coc#rpc#start_server()
       endtry
     endif
     if !s:client['running']
-      echohl Error | echom 'coc.nvim failed to create connection on '.address.' check $COC_NVIM_REMOTE_ADDRESS' | echohl None
+      echohl Error | echom '[coc.nvim] Unable connect to '.address.' from variable $COC_NVIM_REMOTE_ADDRESS' | echohl None
     elseif !test
       let logfile = exists('$NVIM_COC_LOG_FILE') ? $NVIM_COC_LOG_FILE : ''
       let loglevel = exists('$NVIM_COC_LOG_LEVEL') ? $NVIM_COC_LOG_LEVEL : ''
-      let data = [s:root, coc#util#get_data_home(), coc#util#get_config_home(), logfile, loglevel]
+      let runtimepath = join(globpath(&runtimepath, "", 0, 1), ",")
+      let data = [s:root, coc#util#get_data_home(), coc#util#get_config_home(), logfile, loglevel, runtimepath]
       if s:is_vim
         call ch_sendraw(s:client['channel'], json_encode(data)."\n")
       else
