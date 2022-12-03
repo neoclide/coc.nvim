@@ -184,9 +184,9 @@ export default class Configurations {
   }
 
   public parseConfigurationModel(filepath: string | undefined): ConfigurationModel {
-    if (!filepath) return new ConfigurationModel()
+    if (!filepath || !fs.existsSync(filepath)) return new ConfigurationModel()
     let parser = new ConfigurationModelParser(filepath)
-    let content = fs.existsSync(filepath) ? fs.readFileSync(filepath, 'utf8') : ''
+    let content = fs.readFileSync(filepath, 'utf8')
     let uri = URI.file(filepath).toString()
     parser.parse(content)
     if (!isFalsyOrEmpty(parser.errors)) {
