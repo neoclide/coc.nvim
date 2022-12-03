@@ -36,10 +36,8 @@ const logfile = resolveLogFilepath()
 emptyFile(logfile)
 
 const level = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || 'info', 'off')
-if (level === 'trace') {
-  Error.stackTraceLimit = 15
-}
-const logger = new FileLogger(logfile, textToLogLevel(level), {
+
+export const logger = new FileLogger(logfile, textToLogLevel(level), {
   color: !global.REVISION && process.platform !== 'win32',
   userFormatters: true
 })

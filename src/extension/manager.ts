@@ -7,6 +7,7 @@ import { createLogger } from '../logger'
 import Memos from '../model/memos'
 import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
+import { configHome, dataHome } from '../util/constants'
 import { Extensions as ExtensionsInfo, getProperties, IExtensionRegistry, IStringDictionary } from '../util/extensionRegistry'
 import { createExtension, ExtensionExport } from '../util/factory'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
@@ -92,8 +93,8 @@ export interface ExtensionItem {
 }
 
 const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
-const memos = new Memos(path.resolve(process.env.COC_DATA_HOME, 'memos.json'))
-memos.merge(path.resolve(process.env.COC_DATA_HOME, '../memos.json'))
+const memos = new Memos(path.resolve(dataHome, 'memos.json'))
+memos.merge(path.resolve(dataHome, '../memos.json'))
 
 const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
 
@@ -108,7 +109,7 @@ export class ExtensionManager {
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
-  private singleExtensionsRoot = path.join(process.env.COC_VIMCONFIG, 'coc-extensions')
+  private singleExtensionsRoot = path.join(configHome, 'coc-extensions')
   private modulesFolder: string
 
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event

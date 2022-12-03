@@ -4,7 +4,7 @@ import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
 import { distinct } from '../util/array'
-import { VERSION } from '../util/constants'
+import { dataHome, VERSION } from '../util/constants'
 import { isUrl } from '../util/is'
 import { fs, path, which } from '../util/node'
 import { executable } from '../util/processes'
@@ -26,8 +26,7 @@ export interface PropertyScheme {
   [key: string]: any
 }
 
-const DATA_HOME = process.env.COC_DATA_HOME
-const EXTENSIONS_FOLDER = path.join(DATA_HOME, 'extensions')
+const EXTENSIONS_FOLDER = path.join(dataHome, 'extensions')
 
 // global local file native
 export class Extensions {

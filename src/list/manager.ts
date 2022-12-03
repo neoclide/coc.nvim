@@ -5,7 +5,7 @@ import events from '../events'
 import { createLogger } from '../logger'
 import { IList, ListItem, ListOptions, ListTask, Matcher } from './types'
 import { defaultValue, disposeAll, getConditionValue } from '../util'
-import { isVim } from '../util/constants'
+import { dataHome, isVim } from '../util/constants'
 import { parseExtensionName } from '../util/extensionRegistry'
 import { debounce, stripAnsi } from '../util/node'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
@@ -48,7 +48,7 @@ export class ListManager implements Disposable {
   private listMap: Map<string, IList> = new Map()
 
   constructor() {
-    History.migrate(process.env.COC_DATA_HOME)
+    History.migrate(dataHome)
     this.db = new DataBase()
   }
 

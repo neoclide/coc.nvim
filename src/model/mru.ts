@@ -2,6 +2,7 @@
 import { fs, path, promisify } from '../util/node'
 import { readFileLines, writeFile } from '../util/fs'
 import { distinct } from '../util/array'
+import { dataHome } from '../util/constants'
 
 /**
  * Mru - manage string items as lines in mru file.
@@ -17,7 +18,7 @@ export default class Mru {
     name: string,
     base?: string,
     private maximum = 5000) {
-    this.file = path.join(base || process.env.COC_DATA_HOME, name)
+    this.file = path.join(base || dataHome, name)
     let dir = path.dirname(this.file)
     fs.mkdirSync(dir, { recursive: true })
   }

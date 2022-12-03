@@ -21,7 +21,6 @@ export const toThreeDigits = (v: number) => v < 10 ? `00${v}` : v < 100 ? `0${v}
 
 export interface ILogger {
   readonly category: string
-  readonly level: string
   getLevel(): LogLevel
   log(...args: any[]): void
   trace(...args: any[]): void
@@ -79,7 +78,7 @@ export function format(args: any, depth = 2, color = false, hidden = false): str
 }
 
 abstract class AbstractLogger {
-  private level: LogLevel = DEFAULT_LOG_LEVEL
+  protected level: LogLevel = DEFAULT_LOG_LEVEL
 
   public setLevel(level: LogLevel): void {
     if (this.level !== level) {
@@ -104,6 +103,7 @@ export class FileLogger extends AbstractLogger {
   private promise: Promise<void>
   private backupIndex = 1
   private config: LoggerConfiguration
+  private useConsole = false
   private loggers: Map<string, ILogger> = new Map()
 
   constructor(
@@ -122,13 +122,18 @@ export class FileLogger extends AbstractLogger {
     this.promise = this.initialize()
   }
 
+  public switchConsole(): void {
+    this.useConsole = !this.useConsole
+  }
+
+  private format(args: any[]): string {
+    let { color, showHidden, depth } = this.config
+    return format(args, depth, color, showHidden)
+  }
+
   public createLogger(scope: string): ILogger {
-    const fmt = (args: any): string => {
-      return format(args, this.config.depth, this.config.color, this.config.showHidden)
-    }
     let logger = this.loggers.has(scope) ? this.loggers.get(scope) : {
       category: scope,
-      level: this.stringifyLogLevel(this.getLevel()),
       mark: () => {
         // not used
       },
@@ -136,38 +141,38 @@ export class FileLogger extends AbstractLogger {
         return this.getLevel()
       },
       trace: (...args: any[]) => {
-        if (this.getLevel() <= LogLevel.Trace) {
-          this._log(LogLevel.Trace, scope, fmt(args), this.getCurrentTimestamp())
+        if (this.level <= LogLevel.Trace) {
+          this._log(LogLevel.Trace, scope, args, this.getCurrentTimestamp())
         }
       },
       debug: (...args: any[]) => {
-        if (this.getLevel() <= LogLevel.Debug) {
-          this._log(LogLevel.Debug, scope, fmt(args), this.getCurrentTimestamp())
+        if (this.level <= LogLevel.Debug) {
+          this._log(LogLevel.Debug, scope, args, this.getCurrentTimestamp())
         }
       },
       log: (...args: any[]) => {
-        if (this.getLevel() <= LogLevel.Info) {
-          this._log(LogLevel.Info, scope, fmt(args), this.getCurrentTimestamp())
+        if (this.level <= LogLevel.Info) {
+          this._log(LogLevel.Info, scope, args, this.getCurrentTimestamp())
         }
       },
       info: (...args: any[]) => {
-        if (this.getLevel() <= LogLevel.Info) {
-          this._log(LogLevel.Info, scope, fmt(args), this.getCurrentTimestamp())
+        if (this.level <= LogLevel.Info) {
+          this._log(LogLevel.Info, scope, args, this.getCurrentTimestamp())
         }
       },
       warn: (...args: any[]) => {
-        if (this.getLevel() <= LogLevel.Warning) {
-          this._log(LogLevel.Warning, scope, fmt(args), this.getCurrentTimestamp())
+        if (this.level <= LogLevel.Warning) {
+          this._log(LogLevel.Warning, scope, args, this.getCurrentTimestamp())
         }
       },
       error: (...args: any[]) => {
-        if (this.getLevel() <= LogLevel.Error) {
-          this._log(LogLevel.Error, scope, fmt(args), this.getCurrentTimestamp())
+        if (this.level <= LogLevel.Error) {
+          this._log(LogLevel.Error, scope, args, this.getCurrentTimestamp())
         }
       },
       fatal: (...args: any[]) => {
-        if (this.getLevel() <= LogLevel.Error) {
-          this._log(LogLevel.Error, scope, fmt(args), this.getCurrentTimestamp())
+        if (this.level <= LogLevel.Error) {
+          this._log(LogLevel.Error, scope, args, this.getCurrentTimestamp())
         }
       },
       /**
@@ -189,27 +194,33 @@ export class FileLogger extends AbstractLogger {
     return size > MAX_FILE_SIZE
   }
 
-  private _log(level: LogLevel, scope: string, message: string, time: string): void {
-    this.promise = this.promise.then(() => {
-      let fn = async () => {
-        let text: string
-        if (this.config.userFormatters !== false) {
-          let parts = [time, this.stringifyLogLevel(level), `(pid:${process.pid})`, `[${scope}]`]
-          text = `${parts.join(' ')} - ${message}\n`
-        } else {
-          text = message
+  private _log(level: LogLevel, scope: string, args: any[], time: string): void {
+    if (this.useConsole) {
+      let method = level === LogLevel.Error ? 'error' : 'log'
+      console[method](`${this.stringifyLogLevel(level)} [${scope}]`, format(args, null, true))
+    } else {
+      let message = this.format(args)
+      this.promise = this.promise.then(() => {
+        let fn = async () => {
+          let text: string
+          if (this.config.userFormatters !== false) {
+            let parts = [time, this.stringifyLogLevel(level), `(pid:${process.pid})`, `[${scope}]`]
+            text = `${parts.join(' ')} - ${message}\n`
+          } else {
+            text = message
+          }
+          await promisify(fs.appendFile)(this.fsPath, text, { encoding: 'utf8', flag: 'a+' })
+          let stat = await promisify(fs.stat)(this.fsPath)
+          if (this.shouldBackup(stat.size)) {
+            let newFile = this.getBackupResource()
+            await promisify(fs.rename)(this.fsPath, newFile)
+          }
         }
-        await promisify(fs.appendFile)(this.fsPath, text, { encoding: 'utf8', flag: 'a+' })
-        let stat = await promisify(fs.stat)(this.fsPath)
-        if (this.shouldBackup(stat.size)) {
-          let newFile = this.getBackupResource()
-          await promisify(fs.rename)(this.fsPath, newFile)
-        }
-      }
-      return fn()
-    }).catch(err => {
-      !global.REVISION && console.error(err)
-    })
+        return fn()
+      }).catch(err => {
+        !global.REVISION && console.error(err)
+      })
+    }
   }
 
   private getCurrentTimestamp(): string {

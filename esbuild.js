@@ -49,7 +49,8 @@ if (!global.__TESTER__) {
   attach({ reader: process.stdin, writer: process.stdout })
 } else {
   const exports = require('./src/index')
-  module.exports = {attach, exports, loadExtension: (filepath, active) => {
+  const logger = require('./src/logger').logger
+  module.exports = {attach, exports, logger, loadExtension: (filepath, active) => {
     return exports.extensions.manager.load(filepath, active)
   }}
 }`

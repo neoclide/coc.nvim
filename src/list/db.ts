@@ -5,9 +5,10 @@
 import { fs, path } from '../util/node'
 import { createLogger } from '../logger'
 import { byteLength, byteSlice } from '../util/string'
+import { dataHome } from '../util/constants'
 const logger = createLogger('list-db')
 
-const DB_PATH = path.join(process.env.COC_DATA_HOME, 'list_history.dat')
+const DB_PATH = path.join(dataHome, 'list_history.dat')
 
 // text, name index, folder index
 type HistoryItem = [string, number, number]

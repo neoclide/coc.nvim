@@ -69,8 +69,28 @@ describe('FileLogger', () => {
     let lines = content.split(/\n/)
     expect(lines.length).toBe(8)
     expect(logger.category).toBeDefined()
-    expect(logger.level).toBeDefined()
     expect(logger.getLevel()).toBeDefined()
+  })
+
+  it('should switch to console', () => {
+    filepath = path.join(os.tmpdir(), uuid())
+    let fileLogger = new FileLogger(filepath, LogLevel.Trace, {})
+    let logger = fileLogger.createLogger('scope')
+    fileLogger.switchConsole()
+    let fn = jest.fn()
+    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+      fn()
+    })
+    logger.error('error')
+    spy.mockRestore()
+    expect(fn).toBeCalled()
+    fn = jest.fn()
+    spy = jest.spyOn(console, 'log').mockImplementation(() => {
+      fn()
+    })
+    logger.info('info')
+    spy.mockRestore()
+    expect(fn).toBeCalled()
   })
 
   it('should enable color', async () => {
@@ -111,7 +131,6 @@ describe('FileLogger', () => {
     logger.mark('mark')
     await logger.flush()
     expect(fs.existsSync(filepath)).toBe(false)
-    expect(logger.level).toBeDefined()
   })
 
   it('should work without formatter', async () => {

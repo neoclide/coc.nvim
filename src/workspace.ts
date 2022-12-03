@@ -33,7 +33,7 @@ import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, DidChangeTextDocumentParams, EditerState, Env, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
-import { APIVERSION, pluginRoot, userConfigFile, VERSION, watchmanCommand } from './util/constants'
+import { APIVERSION, dataHome, pluginRoot, userConfigFile, VERSION, watchmanCommand } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
 import { IJSONSchema } from './util/jsonSchema'
 import { path } from './util/node'
@@ -493,7 +493,7 @@ export class Workspace {
    * Create DB instance at extension root.
    */
   public createDatabase(name: string): DB {
-    return new DB(path.join(process.env.COC_DATA_HOME, name + '.json'))
+    return new DB(path.join(dataHome, name + '.json'))
   }
 
   public registerBufferSync<T extends SyncItem>(create: (doc: Document) => T | undefined): BufferSync<T> {
