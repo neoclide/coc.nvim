@@ -1,18 +1,18 @@
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
+import type { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
-import Document from '../model/document'
+import type Document from '../model/document'
 import { waitWithToken } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
-import { ASCII_END } from '../util/constants'
 import { anyScore, FuzzyScore, fuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScorer } from '../util/filter'
 import * as Is from '../util/is'
 import { clamp } from '../util/numbers'
 import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { characterIndex } from '../util/string'
-import { CompleteConfig, CompleteItem, CompleteOption, DurationCompleteItem, ISource, SortMethod } from './types'
-import { Converter, ConvertOption, getPriority } from './util'
+import workspace from '../workspace'
+import { CompleteConfig, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
+import { Converter, ConvertOption, getPriority, useAscii } from './util'
 import { WordDistance } from './wordDistance'
 const logger = createLogger('completion-complete')
 const MAX_DISTANCE = 2 << 20
@@ -23,10 +23,6 @@ const MAX_TRIGGER_WAIT = 200
 export interface CompleteResultToFilter {
   items: DurationCompleteItem[]
   isIncomplete?: boolean
-}
-
-function useAscii(input: string): boolean {
-  return input.length > 0 && input.charCodeAt(0) < ASCII_END
 }
 
 export default class Complete {
@@ -50,13 +46,16 @@ export default class Complete {
   constructor(public option: CompleteOption,
     private document: Document,
     private config: CompleteConfig,
-    private sources: ISource<CompleteItem>[],
-    private nvim: Neovim) {
+    private sources: ISource<CompleteItem>[]) {
     this.inputStart = characterIndex(option.line, option.col)
     this.timeout = clamp(this.config.timeout, MIN_TIMEOUT, MAX_TIMEOUT)
     sources.sort((a, b) => (b.priority ?? 99) - (a.priority ?? 99))
     this.names = sources.map(o => o.name)
     this.asciiMatch = config.asciiMatch && useAscii(option.input)
+  }
+
+  private get nvim(): Neovim {
+    return workspace.nvim
   }
 
   private fireRefresh(waitTime: number): void {
@@ -164,8 +163,8 @@ export default class Complete {
         resolve()
       }, this.timeout)
     })
-    // default replace range
-    const range = getDefaultRange(this.option, this.inputStart, true)
+    // default insert or replace range
+    const range = this.getDefaultRange()
     let promises = sources.map(s => this.completeSource(s, range, token).then(added => {
       remains.delete(s.name)
       if (token.isCancellationRequested || cid != 0 || (this.cid > 0 && this._completing)) return
@@ -186,6 +185,7 @@ export default class Complete {
     // new option for each source
     let opt = Object.assign({}, this.option)
     let { asciiMatch } = this
+    const insertMode = this.config.insertMode
     const sourceName = source.name
     let added = false
     try {
@@ -209,7 +209,7 @@ export default class Complete {
               range = Range.create(line, characterIndex(opt.line, result.startcol), line, range.end.character)
             }
             const priority = getPriority(source, this.config.languageSourcePriority)
-            const option: ConvertOption = { source, priority, asciiMatch, itemDefaults: result.itemDefaults, range }
+            const option: ConvertOption = { source, insertMode, priority, asciiMatch, itemDefaults: result.itemDefaults, range }
             const converter = new Converter(this.inputStart, option, opt)
             const items = result.items.map(item => {
               let completeItem = converter.convertToDurationItem(item)
@@ -334,6 +334,14 @@ export default class Complete {
     })
   }
 
+  private getDefaultRange(): Range {
+    let { insertMode } = this.config
+    let { linenr, followWord, position } = this.option
+    let line = linenr - 1
+    let end = position.character + (insertMode == InsertMode.Repalce ? followWord.length : 0)
+    return Range.create(line, this.inputStart, line, end)
+  }
+
   private createTokenSource(isIncomplete: boolean): CancellationTokenSource {
     let tokenSource = new CancellationTokenSource()
     this.tokenSources.add(tokenSource)
@@ -368,12 +376,6 @@ export default class Complete {
     this.results.clear()
     this._onDidRefresh.dispose()
   }
-}
-
-function getDefaultRange(option: CompleteOption, inputStart: number, replace: boolean): Range {
-  let line = option.linenr - 1
-  let end = option.position.character + (replace ? option.followWord.length : 0)
-  return Range.create(line, inputStart, line, end)
 }
 
 export function sortItems(emptyInput: boolean, defaultSortMethod: SortMethod, a: DurationCompleteItem, b: DurationCompleteItem): number {

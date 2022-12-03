@@ -3,12 +3,11 @@ import type { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, In
 import type { ProviderResult } from '../provider'
 import type { Documentation } from '../types'
 
+export type EditRange = Range | { insert: Range, replace: Range }
+
 export interface ItemDefaults {
   commitCharacters?: string[]
-  editRange?: Range | {
-    insert: Range
-    replace: Range
-  }
+  editRange?: EditRange
   insertTextFormat?: InsertTextFormat
   insertTextMode?: InsertTextMode
   data?: any
@@ -35,6 +34,11 @@ export interface CompleteOption {
   readonly changedtick: number
   readonly triggerCharacter?: string
   triggerForInComplete?: boolean
+}
+
+export interface CompleteDoneOption extends CompleteOption {
+  readonly snippetsSupport: boolean
+  readonly insertMode: InsertMode
 }
 
 // For filter, render and resolve
@@ -94,8 +98,14 @@ export interface ExtendedCompleteItem extends VimCompleteItem {
   documentation?: Documentation[]
 }
 
+export enum InsertMode {
+  Insert = 'insert',
+  Repalce = 'replace',
+}
+
 export interface CompleteConfig {
   asciiMatch: boolean
+  insertMode: InsertMode
   autoTrigger: string
   filterGraceful: boolean
   snippetsSupport: boolean
@@ -178,7 +188,7 @@ export interface SourceConfig<T extends ExtendedCompleteItem = ExtendedCompleteI
   shouldComplete?(opt: CompleteOption): ProviderResult<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult<T>>
   onCompleteResolve?(item: T, opt: CompleteOption, token: CancellationToken): ProviderResult<void>
-  onCompleteDone?(item: T, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
+  onCompleteDone?(item: T, opt: CompleteOption): ProviderResult<void>
   shouldCommit?(item: T, character: string): boolean
 }
 
@@ -204,7 +214,7 @@ export interface ISource<T extends CompleteItem = CompleteItem> {
   shouldComplete?(opt: CompleteOption): ProviderResult<boolean>
   doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult<T>>
   onCompleteResolve?(item: T, opt: CompleteOption, token: CancellationToken): ProviderResult<void>
-  onCompleteDone?(item: T, opt: CompleteOption, snippetsSupport?: boolean): ProviderResult<void>
+  onCompleteDone?(item: T, opt: CompleteDoneOption): ProviderResult<void>
   shouldCommit?(item: T, character: string): boolean
   dispose?(): void
 }

@@ -1,3 +1,7 @@
+# 2022-12-03
+
+- Add configuration `suggest.insertMode`.
+
 # 2022-12-02
 
 - Expand variables for string configuration value.

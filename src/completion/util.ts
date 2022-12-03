@@ -6,12 +6,13 @@ import { SnippetParser } from '../snippets/parser'
 import { Documentation } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { CharCode } from '../util/charCode'
+import { ASCII_END } from '../util/constants'
 import * as Is from '../util/is'
 import { LRUCache } from '../util/map'
 import { unidecode } from '../util/node'
 import { isEmpty, toObject } from '../util/object'
 import { byteIndex, byteSlice, toText } from '../util/string'
-import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, ExtendedCompleteItem, ISource, ItemDefaults } from './types'
+import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, EditRange, ExtendedCompleteItem, InsertMode, ISource, ItemDefaults } from './types'
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line' | 'position'>
@@ -31,6 +32,7 @@ const MAX_MRU_ITEMS = 100
 const DEFAULT_HL_GROUP = 'CocSymbolDefault'
 
 export interface ConvertOption {
+  readonly insertMode: InsertMode
   readonly source: ISource
   readonly priority: number
   readonly range: Range
@@ -64,6 +66,10 @@ const highlightsMap = {
   [CompletionItemKind.Event]: 'CocSymbolEvent',
   [CompletionItemKind.Operator]: 'CocSymbolOperator',
   [CompletionItemKind.TypeParameter]: 'CocSymbolTypeParameter',
+}
+
+export function useAscii(input: string): boolean {
+  return input.length > 0 && input.charCodeAt(0) < ASCII_END
 }
 
 export function getKindText(kind: string | CompletionItemKind, kindMap: Map<CompletionItemKind, string>, defaultKindText: string): string {
@@ -301,12 +307,20 @@ export function getWord(item: CompletionItem, itemDefaults: ItemDefaults): strin
   return isSnippetItem(item, itemDefaults) ? snippetToWord(textToInsert, kind) : toValidWord(textToInsert, INVALID_WORD_CHARS)
 }
 
-export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults, character?: number): Range | undefined {
-  let range: Range | undefined
+export function getReplaceRange(item: CompletionItem, itemDefaults: ItemDefaults, character?: number, insertMode?: InsertMode): Range | undefined {
+  let editRange: EditRange | undefined
   if (item.textEdit) {
-    range = InsertReplaceEdit.is(item.textEdit) ? item.textEdit.replace : item.textEdit.range
+    editRange = InsertReplaceEdit.is(item.textEdit) ? item.textEdit : item.textEdit.range
   } else if (itemDefaults.editRange) {
-    range = Range.is(itemDefaults.editRange) ? itemDefaults.editRange : itemDefaults.editRange.replace
+    editRange = itemDefaults.editRange
+  }
+  let range: Range | undefined
+  if (editRange) {
+    if (Range.is(editRange)) {
+      range = editRange
+    } else {
+      range = insertMode == InsertMode.Insert ? editRange.insert : editRange.replace
+    }
   }
   // start character must contains character for completion
   if (range && Is.number(character) && range.start.character > character) range.start.character = character
@@ -423,7 +437,7 @@ export class Converter {
     const label = item.label.trim()
     const itemDefaults = toObject(option.itemDefaults) as ItemDefaults
     const word = getWord(item, itemDefaults)
-    const range = getReplaceRange(item, itemDefaults, inputStart) ?? option.range
+    const range = getReplaceRange(item, itemDefaults, inputStart, this.option.insertMode) ?? option.range
     const character = range.start.character
     const data = toObject(item.data)
     const filterText = item.filterText ?? item.label

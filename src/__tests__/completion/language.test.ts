@@ -5,7 +5,7 @@ import commandManager from '../../commands'
 import completion from '../../completion'
 import { fixIndent, getUltisnipOption } from '../../completion/source-language'
 import sources from '../../completion/sources'
-import { CompleteOption, ItemDefaults } from '../../completion/types'
+import { CompleteOption, InsertMode, ItemDefaults } from '../../completion/types'
 import languages from '../../languages'
 import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
@@ -281,7 +281,9 @@ describe('language source', () => {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [item]
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
-      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let opt = await nvim.call('coc#util#get_complete_option') as any
+      opt.snippetsSupport = false
+      opt.insertMode = InsertMode.Insert
       let source = sources.getSource('foo')
       await source.doComplete(opt, CancellationToken.None)
       await source.onCompleteDone(item, opt)
@@ -614,7 +616,7 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       let source = sources.getSource('foo')
       expect(source).toBeDefined()
-      let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
+      let opt = await nvim.call('coc#util#get_complete_option') as any
       await source.doComplete(opt, CancellationToken.None)
       let item = createCompletionItem('foo')
       await nvim.call('append', [0, ['', '']])
@@ -622,6 +624,27 @@ describe('language source', () => {
       await source.onCompleteDone(item, opt)
       let line = await nvim.line
       expect(line).toBe('')
+    })
+
+    it('should use insert range', async () => {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: async (): Promise<CompletionItem[]> => [{
+          label: 'foo',
+          insertText: 'foo'
+        }]
+      }
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      let source = sources.getSource('foo')
+      expect(source).toBeDefined()
+      await nvim.setLine('foo')
+      await nvim.input('I')
+      let opt = await nvim.call('coc#util#get_complete_option') as any
+      opt.insertMode = InsertMode.Insert
+      await source.doComplete(opt, CancellationToken.None)
+      let item = createCompletionItem('foo')
+      await source.onCompleteDone(item, opt)
+      let line = await nvim.line
+      expect(line).toBe('foofoo')
     })
 
     it('should fix replace range for paired characters', async () => {

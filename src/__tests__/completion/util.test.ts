@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTag, Disposable, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import sources from '../../completion/sources'
-import { CompleteOption, ISource } from '../../completion/types'
+import { CompleteOption, InsertMode, ISource } from '../../completion/types'
 import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffert, indentChanged, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
@@ -213,6 +213,12 @@ describe('util functions', () => {
         replace: Range.create(0, 0, 0, 3),
       }
     }, 0)).toEqual(Range.create(0, 0, 0, 3))
+    expect(getReplaceRange(item, {
+      editRange: {
+        insert: Range.create(0, 0, 0, 0),
+        replace: Range.create(0, 0, 0, 3),
+      }
+    }, 0, InsertMode.Insert)).toEqual(Range.create(0, 0, 0, 0))
     item.textEdit = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
     expect(getReplaceRange(item, {}, 0)).toEqual(Range.create(0, 0, 0, 3))
     item.textEdit = {
@@ -241,6 +247,7 @@ describe('util functions', () => {
         position: Position.create(0, 1)
       }
       let option: ConvertOption = {
+        insertMode: InsertMode.Repalce,
         priority: 0,
         range: Range.create(0, 1, 0, 4),
         source: getSource(),
@@ -259,6 +266,7 @@ describe('util functions', () => {
         position: Position.create(0, 0)
       }
       let option: ConvertOption = {
+        insertMode: InsertMode.Repalce,
         range: Range.create(0, 0, 0, 0),
         priority: 0,
         source: getSource(),
@@ -284,6 +292,7 @@ describe('util functions', () => {
         position: Position.create(0, 1)
       }
       let option: ConvertOption = {
+        insertMode: InsertMode.Repalce,
         range: Range.create(0, 1, 0, 1),
         priority: 0,
         source: getSource(),
@@ -311,6 +320,7 @@ describe('util functions', () => {
       }
       let option: ConvertOption = {
         range: Range.create(0, 0, 0, 1),
+        insertMode: InsertMode.Repalce,
         priority: 0,
         asciiMatch: false,
         source: getSource(),

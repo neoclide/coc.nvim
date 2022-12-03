@@ -83,6 +83,18 @@ describe('completion', () => {
       await helper.waitPopup()
     })
 
+    it('should use insert range without replace', async () => {
+      helper.updateConfiguration('suggest.insertMode', 'insert')
+      await nvim.setLine('ffoo')
+      let name = await create(['foo'], false)
+      await nvim.input('<right>')
+      triggerCompletion(name)
+      await helper.waitPopup()
+      await helper.confirmCompletion(0)
+      let line = await nvim.line
+      expect(line).toBe('foofoo')
+    })
+
     it('should use ascii match', async () => {
       await create(['\xc1\xc7\xc8'], false)
       await nvim.input('a')

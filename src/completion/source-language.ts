@@ -15,7 +15,7 @@ import { toObject } from '../util/object'
 import { CancellationToken, CompletionTriggerKind } from '../util/protocol'
 import { characterIndex } from '../util/string'
 import workspace from '../workspace'
-import { CompleteOption, CompleteResult, ISource, ItemDefaults, SourceType } from './types'
+import { CompleteDoneOption, CompleteOption, CompleteResult, InsertMode, ISource, ItemDefaults, SourceType } from './types'
 import { getReplaceRange, isSnippetItem } from './util'
 const logger = createLogger('source-language')
 
@@ -111,7 +111,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     return promise
   }
 
-  public async onCompleteDone(item: CompletionItem, opt: CompleteOption, snippetSupport: boolean): Promise<void> {
+  public async onCompleteDone(item: CompletionItem, opt: CompleteDoneOption): Promise<void> {
     let doc = workspace.getDocument(opt.bufnr)
     await doc.patchChange(true)
     let additionalEdits = !isFalsyOrEmpty(item.additionalTextEdits)
@@ -120,7 +120,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
       if (shouldCancel) snippetManager.cancel()
     }
     let version = doc.version
-    let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt, snippetSupport)
+    let isSnippet = await this.applyTextEdit(doc, additionalEdits, item, opt)
     if (additionalEdits) {
       // move cursor after edit
       await doc.applyEdits(item.additionalTextEdits, doc.version != version, !isSnippet)
@@ -135,16 +135,16 @@ export default class LanguageSource implements ISource<CompletionItem> {
     }
   }
 
-  private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteOption, snippetSupport: boolean): Promise<boolean> {
+  private async applyTextEdit(doc: Document, additionalEdits: boolean, item: CompletionItem, option: CompleteDoneOption): Promise<boolean> {
     let { linenr, col } = option
     let { character, line } = this.triggerContext
     let pos = await getLineAndPosition(workspace.nvim)
     if (pos.line != linenr - 1) return
     let { textEdit, insertText, label } = item
-    let range = getReplaceRange(item, this.itemDefaults)
+    let range = getReplaceRange(item, this.itemDefaults, undefined, option.insertMode)
     if (!range) {
       // create default replace range
-      let end = character + option.followWord.length
+      let end = character + (option.insertMode == InsertMode.Insert ? 0 : option.followWord.length)
       range = Range.create(pos.line, characterIndex(line, col), pos.line, end)
     }
     // replace range must contains cursor position.
@@ -160,7 +160,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
     if (next && newText.endsWith(next) && pariedCharacters.get(newText[0]) === next) {
       range.end.character += 1
     }
-    if (snippetSupport !== false && isSnippetItem(item, this.itemDefaults)) {
+    if (option.snippetsSupport !== false && isSnippetItem(item, this.itemDefaults)) {
       let opts = getUltisnipOption(item)
       let insertTextMode = item.insertTextMode ?? this.itemDefaults.insertTextMode
       return await snippetManager.insertSnippet(newText, !additionalEdits, range, insertTextMode, opts)

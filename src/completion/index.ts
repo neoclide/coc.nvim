@@ -20,7 +20,7 @@ import Complete from './complete'
 import Floating from './floating'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import sources from './sources'
-import { CompleteConfig, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, ISource, SortMethod } from './types'
+import { CompleteConfig, CompleteDoneOption, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
 import { checkIgnoreRegexps, createKindMap, getInput, getResumeInput, MruLoader, shouldStop, toCompleteDoneItem } from './util'
 const logger = createLogger('completion')
 const TRIGGER_TIMEOUT = getConditionValue(200, 20)
@@ -137,6 +137,7 @@ export class Completion implements Disposable {
     let suggest = workspace.getConfiguration('suggest', doc)
     this.config = {
       autoTrigger: suggest.get<string>('autoTrigger', 'always'),
+      insertMode: suggest.get<InsertMode>('insertMode', InsertMode.Repalce),
       filterGraceful: suggest.get<boolean>('filterGraceful', true),
       enableFloat: suggest.get<boolean>('enableFloat', true),
       languageSourcePriority: suggest.get<number>('languageSourcePriority', 99),
@@ -197,8 +198,7 @@ export class Completion implements Disposable {
       option,
       doc,
       this.config,
-      sourceList,
-      this.nvim)
+      sourceList)
     events.completing = true
     complete.onDidRefresh(async () => {
       clearTimeout(this.triggerTimer)
@@ -360,7 +360,9 @@ export class Completion implements Disposable {
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {
     await this.floating.resolveItem(source, item, option, false)
     if (!Is.func(source.onCompleteDone)) return
-    await Promise.resolve(source.onCompleteDone(item, option, this.config.snippetsSupport))
+    let { insertMode, snippetsSupport } = this.config
+    let opt: CompleteDoneOption = Object.assign({ insertMode, snippetsSupport }, option)
+    await Promise.resolve(source.onCompleteDone(item, opt))
   }
 
   private async onInsertEnter(bufnr: number): Promise<void> {
