@@ -1210,6 +1210,12 @@ Suggest~
 
 	Scope: `language-overridable`, default: `null`
 
+"suggest.insertMode" 					*coc-config-suggest-insertMode*
+
+	Controls whether words are overwritten when accepting completions.
+
+	Scope: `language-overridable`, default: `“replace"`
+
 "suggest.ignoreRegexps"					*coc-config-suggest-ignoreRegexps*
 
 	Regexps to ignore when trigger suggest.

@@ -1987,6 +1987,13 @@
       "scope": "language-overridable",
       "description": "Max items count for source priority bigger than or equal to 90."
     },
+    "suggest.insertMode": {
+      "type": "string",
+      "scope": "language-overridable",
+      "default": "replace",
+      "description": "Controls whether words are overwritten when accepting completions.",
+      "enum": ["insert", "replace"]
+    },
     "suggest.ignoreRegexps": {
       "type": "array",
       "scope": "language-overridable",
