@@ -89,7 +89,7 @@ export interface HandlerDelegate {
  * With providerId so it can be resolved.
  */
 export interface ExtendedCodeAction extends CodeAction {
-  providerId: string
+  providerId?: string
 }
 
 export interface IFileSystemWatcher extends Disposable {

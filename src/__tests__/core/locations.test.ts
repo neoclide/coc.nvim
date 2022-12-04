@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
-import { Location, Range } from 'vscode-languageserver-protocol'
+import { Location, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -28,6 +29,17 @@ function createLocations(): Location[] {
 }
 
 describe('showLocations()', () => {
+  it('should show locations by editor.action.showReferences', async () => {
+    let doc = await workspace.document
+    let uri = doc.uri
+    let locations = createLocations()
+    await commands.executeCommand('editor.action.showReferences', uri, Position.create(0, 0), locations)
+    await helper.waitValue(async () => {
+      let wins = await nvim.windows
+      return wins.length > 1
+    }, true)
+  })
+
   it('should show location list by default', async () => {
     let locations = createLocations()
     await workspace.showLocations(locations)

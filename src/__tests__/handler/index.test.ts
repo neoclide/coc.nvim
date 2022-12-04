@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
+import commands from '../../commands'
 import Handler from '../../handler/index'
 import { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
@@ -32,6 +33,30 @@ describe('Handler', () => {
     it('should check provider for document', async () => {
       let res = await handler.hasProvider('definition')
       expect(res).toBe(false)
+    })
+  })
+
+  describe('commands', () => {
+    it('should open url', async () => {
+      let fn = jest.fn()
+      let spy = jest.spyOn(nvim, 'call').mockImplementation(() => {
+        fn()
+        return null
+      })
+      await commands.executeCommand('vscode.open', 'http://www.example.com')
+      spy.mockRestore()
+      expect(fn).toBeCalled()
+    })
+
+    it('should restart', async () => {
+      let fn = jest.fn()
+      let spy = jest.spyOn(nvim, 'command').mockImplementation(() => {
+        fn()
+        return null
+      })
+      await commands.executeCommand('workbench.action.reloadWindow')
+      spy.mockRestore()
+      expect(fn).toBeCalled()
     })
   })
 

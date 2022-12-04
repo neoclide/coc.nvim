@@ -2,9 +2,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
 import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import commands from '../../commands'
 import events from '../../events'
-import languages from '../../languages'
 import Notification, { toButtons, toTitles } from '../../model/notification'
 import { toPickerItems } from '../../model/picker'
 import { formatMessage } from '../../model/progress'
@@ -707,27 +705,6 @@ describe('window', () => {
         [0, 0, 3, 'Search'],
         [2, 0, 3, 'Search']
       ])
-    })
-  })
-
-  describe('checkBuffer', () => {
-    async function checkFloat(content: string) {
-      let win = await helper.getFloat()
-      expect(win).toBeDefined()
-      let buf = await win.buffer
-      let lines = await buf.lines
-      expect(lines.join('\n')).toMatch(content)
-    }
-
-    it('should show state of current buffer', async () => {
-      disposables.push(languages.registerDocumentFormatProvider(['*'], {
-        provideDocumentFormattingEdits: () => {
-          return []
-        }
-      }))
-      await commands.executeCommand('document.checkBuffer')
-      await checkFloat('Provider state')
-      await nvim.call('coc#float#close_all', [])
     })
   })
 })

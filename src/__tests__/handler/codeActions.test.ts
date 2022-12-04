@@ -408,7 +408,7 @@ describe('handler codeActions', () => {
       currActions = [action]
       resolvedAction = Object.assign({ edit }, action)
       let arr = await codeActions.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
-      await codeActions.applyCodeAction(arr[0])
+      await commands.executeCommand('editor.action.doCodeAction', arr[0])
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
     })

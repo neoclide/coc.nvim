@@ -22,7 +22,7 @@ export default class LocationList extends BasicList {
       multiple: true,
       execute: async (items: ListItem[]) => {
         let locations = items.map(o => o.location)
-        await commands.executeCommand('workspace.refactor', locations)
+        await commands.executeCommand('editor.action.showRefactor', locations)
       }
     })
     this.addLocationActions()

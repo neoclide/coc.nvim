@@ -1,11 +1,13 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { DocumentHighlight, DocumentHighlightKind, Position, Range } from 'vscode-languageserver-types'
+import commands from '../commands'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
 import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
+import { comparePosition } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
@@ -35,6 +37,18 @@ export default class Highlights {
     window.onDidChangeActiveTextEditor(() => {
       this.loadConfiguration()
     }, null, this.disposables)
+    commands.register({
+      id: 'document.jumpToNextSymbol',
+      execute: async () => {
+        await this.jumpSymbol('next')
+      }
+    }, false, 'Jump to next symbol highlight position.')
+    commands.register({
+      id: 'document.jumpToPrevSymbol',
+      execute: async () => {
+        await this.jumpSymbol('previous')
+      }
+    }, false, 'Jump to previous symbol highlight position.')
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {
@@ -90,12 +104,40 @@ export default class Highlights {
     this.highlights.set(winid, highlights)
   }
 
+  public async jumpSymbol(direction: 'previous' | 'next'): Promise<void> {
+    let ranges = await this.getSymbolsRanges()
+    if (!ranges) return
+    let pos = await window.getCursorPosition()
+    if (direction == 'next') {
+      for (let i = 0; i <= ranges.length - 1; i++) {
+        if (comparePosition(ranges[i].start, pos) > 0) {
+          await window.moveTo(ranges[i].start)
+          return
+        }
+      }
+      await window.moveTo(ranges[0].start)
+    } else {
+      for (let i = ranges.length - 1; i >= 0; i--) {
+        if (comparePosition(ranges[i].end, pos) < 0) {
+          await window.moveTo(ranges[i].start)
+          return
+        }
+      }
+      await window.moveTo(ranges[ranges.length - 1].start)
+    }
+  }
+
   public async getSymbolsRanges(): Promise<Range[]> {
     let { doc, position } = await this.handler.getCurrentState()
     this.handler.checkProvider(ProviderName.DocumentHighlight, doc.textDocument)
     let highlights = await this.getHighlights(doc, position)
     if (!highlights) return null
-    return highlights.map(o => o.range)
+    return highlights.map(o => o.range).sort((a, b) => {
+      if (a.start.line != b.start.line) {
+        return a.start.line - b.start.line
+      }
+      return a.start.character - b.start.character
+    })
   }
 
   public hasHighlights(winid: number): boolean {

@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import commands from '../../commands'
 import Format from '../../handler/format'
 import languages, { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
@@ -74,6 +75,18 @@ describe('format handler', () => {
       let doc = await helper.createDocument('t.vim')
       let res = await languages.provideDocumentFormattingEdits(doc.textDocument, { tabSize: 2, insertSpaces: false }, CancellationToken.None)
       expect(res.length).toBe(1)
+    })
+
+    it('should format current buffer', async () => {
+      disposables.push(languages.registerDocumentFormatProvider([{ language: 'vim' }], {
+        provideDocumentFormattingEdits: () => {
+          return [TextEdit.insert(Position.create(0, 0), '  ')]
+        }
+      }))
+      await helper.createDocument('t.vim')
+      await commands.executeCommand('editor.action.format')
+      let line = await nvim.line
+      expect(line).toBe('  ')
     })
   })
 

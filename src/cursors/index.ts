@@ -6,6 +6,7 @@ import { IConfigurationChangeEvent } from '../types'
 import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
+import commands from '../commands'
 import CursorSession, { CursorsConfig } from './session'
 import { getVisualRanges, splitRange } from './util'
 
@@ -22,8 +23,11 @@ export default class Cursors {
       let session = this.getSession(e.bufnr)
       if (!session) return
       this.sessionsMap.delete(e.bufnr)
-      session.cancel()
+      session.dispose()
     }, null, this.disposables)
+    this.disposables.push(commands.registerCommand('editor.action.addRanges', async (ranges: Range[]) => {
+      await this.addRanges(ranges)
+    }, null, true))
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {

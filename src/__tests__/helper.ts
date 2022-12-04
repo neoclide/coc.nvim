@@ -67,7 +67,7 @@ export class Helper extends EventEmitter {
     return this.plugin.nvim
   }
 
-  public async setup(): Promise<void> {
+  public async setup(init = true): Promise<Plugin> {
     let proc = this.proc = cp.spawn(process.env.NVIM_COMMAND ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
@@ -75,7 +75,8 @@ export class Helper extends EventEmitter {
     let plugin = this.plugin = attach({ proc })
     await this.nvim.uiAttach(160, 80, {})
     this.nvim.call('coc#rpc#set_channel', [1], true)
-    await plugin.init('')
+    if (init) await plugin.init('')
+    return plugin
   }
 
   public async setupVim(): Promise<void> {

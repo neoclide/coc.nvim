@@ -7,6 +7,7 @@ import { getChange, getDelta, isSurrondChange, isTextChange, SurrondChange, Text
 import workspace from '../../workspace'
 import window from '../../window'
 import helper from '../helper'
+import commands from '../../commands'
 
 let nvim: Neovim
 let cursors: Cursors
@@ -253,7 +254,7 @@ describe('cursors', () => {
         Range.create(1, 0, 1, 3),
         Range.create(1, 4, 1, 7)
       ]
-      await cursors.addRanges(ranges)
+      await commands.executeCommand('editor.action.addRanges', ranges)
       let n = await rangeCount()
       expect(n).toBe(5)
     })

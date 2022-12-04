@@ -136,6 +136,6 @@ describe('create terminal', () => {
     expect(terminal.name).toBeDefined()
     terminal.dispose()
     await helper.wait(30)
-    expect(terminal.exitStatus).toEqual({ code: undefined })
+    expect(terminal.bufnr).toBeUndefined()
   })
 })

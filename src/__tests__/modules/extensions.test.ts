@@ -3,9 +3,10 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import which from 'which'
-import commandManager from '../../commands'
+import commands from '../../commands'
 import extensions, { Extensions, toUrl } from '../../extension'
 import { writeFile, writeJson } from '../../util/fs'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let tmpfolder: string
@@ -38,6 +39,15 @@ describe('extensions', () => {
     expect(extensions.onDidUnloadExtension).toBeDefined()
     expect(extensions.schemes).toBeDefined()
     expect(extensions.creteInstaller('npm', 'id')).toBeDefined()
+  })
+
+  it('should toggle auto update', async () => {
+    await commands.executeCommand('extensions.toggleAutoUpdate')
+    let config = workspace.getConfiguration('coc.preferences').get('extensionUpdateCheck')
+    expect(config).toBe('daily')
+    await commands.executeCommand('extensions.toggleAutoUpdate')
+    config = workspace.getConfiguration('coc.preferences').get('extensionUpdateCheck')
+    expect(config).toBe('never')
   })
 
   it('should get extensions stat', async () => {
@@ -78,7 +88,7 @@ describe('extensions', () => {
     let spy = jest.spyOn(extensions, 'installExtensions').mockImplementation(() => {
       return Promise.resolve()
     })
-    await commandManager.executeCommand('extensions.forceUpdateAll')
+    await commands.executeCommand('extensions.forceUpdateAll')
     spy.mockRestore()
   })
 

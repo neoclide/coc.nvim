@@ -1,13 +1,21 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import helper from '../helper'
+import workspace from '../../workspace'
 import { pathReplace, toErrorText } from '../../attach'
 import { URI } from 'vscode-uri'
 
 let nvim: Neovim
 beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
+  let plugin = await helper.setup(false)
+  nvim = plugin.nvim
+  nvim.emit('notification', 'updateConfig', ['suggest.timeout', 300])
+  nvim.emit('notification', 'action_not_exists', [])
+  let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+    // noop
+  })
+  await plugin.init('')
+  spy.mockRestore()
 })
 
 afterAll(async () => {
@@ -15,6 +23,11 @@ afterAll(async () => {
 })
 
 describe('notifications', () => {
+  it('should notification before plugin ready', () => {
+    let timeout = workspace.getConfiguration('suggest').get('timeout')
+    expect(timeout).toBe(300)
+  })
+
   it('should do Log', () => {
     nvim.emit('notification', 'Log', [])
     nvim.emit('notification', 'redraw', [])

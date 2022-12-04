@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import { Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
 import RefactorBuffer, { FileItemDef, fixChangeParams } from '../../handler/refactor/buffer'
 import Changes from '../../handler/refactor/changes'
 import Refactor from '../../handler/refactor/index'
@@ -117,7 +118,7 @@ describe('refactor', () => {
     it('should find file range', async () => {
       let uri = URI.file(__filename).toString()
       let locations = [{ uri, range: Range.create(0, 0, 0, 6) }]
-      let buf = await refactor.fromLocations(locations)
+      let buf = await commands.executeCommand<any>('editor.action.showRefactor', locations)
       let res = buf.getFileRange(4)
       expect(res).toBeDefined()
     })

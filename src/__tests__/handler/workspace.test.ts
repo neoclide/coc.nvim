@@ -4,6 +4,7 @@ import os from 'os'
 import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import commands from '../../commands'
 import events from '../../events'
 import extensions from '../../extension'
 import WorkspaceHandler from '../../handler/workspace'
@@ -40,6 +41,80 @@ describe('Workspace handler', () => {
   }
 
   describe('methods', () => {
+    it('should check filetype', async () => {
+      await helper.createDocument('t.vim')
+      await commands.executeCommand('document.echoFiletype')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('vim')
+    })
+
+    it('should show workspace folders', async () => {
+      await helper.edit(__filename)
+      await commands.executeCommand('workspace.workspaceFolders')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('coc.nvim')
+    })
+
+    it('should write writeHeapSnapshot', async () => {
+      const v8 = require('v8')
+      let called = false
+      let spy = jest.spyOn(v8, 'writeHeapSnapshot').mockImplementation(() => {
+        called = true
+      })
+      let filepath = await commands.executeCommand('workspace.writeHeapSnapshot')
+      spy.mockRestore()
+      expect(filepath).toBeDefined()
+      expect(called).toBe(true)
+    })
+
+    it('should show output', async () => {
+      window.createOutputChannel('foo')
+      window.createOutputChannel('bar')
+      let p = commands.executeCommand('workspace.showOutput')
+      await helper.waitFloat()
+      await nvim.input('<esc>')
+      await p
+      let bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toBe('')
+      await commands.executeCommand('workspace.showOutput', 'foo')
+      bufname = await nvim.call('bufname', ['%'])
+      expect(bufname).toMatch('output')
+    })
+
+    it('should rename buffer', async () => {
+      let doc = await helper.createDocument('a')
+      let fsPath = URI.parse(doc.uri).fsPath.replace(/a$/, 'b')
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
+      }))
+      let p = handler.renameCurrent()
+      await helper.wait(50)
+      await nvim.input('<backspace>b<cr>')
+      await p
+      let name = await nvim.eval('bufname("%")') as string
+      expect(name.endsWith('b')).toBe(true)
+    })
+
+    it('should rename file', async () => {
+      let fsPath = path.join(os.tmpdir(), 'x')
+      let newPath = path.join(os.tmpdir(), 'b')
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
+        if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+      }))
+      fs.writeFileSync(fsPath, 'foo', 'utf8')
+      await helper.createDocument(fsPath)
+      let p = commands.executeCommand('workspace.renameCurrentFile')
+      await helper.waitFor('mode', [], 'c')
+      await nvim.input('<backspace>b<cr>')
+      await p
+      let name = await nvim.eval('bufname("%")') as string
+      expect(name.endsWith('b')).toBe(true)
+      expect(fs.existsSync(newPath)).toBe(true)
+      let content = fs.readFileSync(newPath, 'utf8')
+      expect(content).toMatch(/foo/)
+    })
+
     it('should not throw when workspace folder does not exist', async () => {
       helper.updateConfiguration('workspace.rootPatterns', [])
       helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'])
@@ -97,7 +172,7 @@ describe('Workspace handler', () => {
 
     it('should should error message for document not attached', async () => {
       await nvim.command('edit t|let b:coc_enabled = 0')
-      await handler.bufferCheck()
+      await commands.executeCommand('document.checkBuffer')
       await checkFloat('not attached')
       await nvim.call('coc#float#close_all', [])
       await nvim.command('edit +setl\\ buftype=nofile b')

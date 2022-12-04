@@ -41,9 +41,11 @@ export default class Plugin {
     Object.defineProperty(window, 'cursors', {
       get: () => this.cursors
     })
+    Object.defineProperty(commandManager, 'nvim', {
+      get: () => this.nvim
+    })
     workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     this.cursors = new Cursors(nvim)
-    commandManager.init(nvim, this)
     listManager.init(nvim)
     this.addAction('checkJsonExtension', () => {
       if (extensions.has('coc-json')) return
@@ -58,7 +60,7 @@ export default class Plugin {
     this.addAction('attach', () => workspace.attach())
     this.addAction('detach', () => workspace.detach())
     this.addAction('doKeymap', async (key, defaultReturn, pressed) => this.handler.workspace.doKeymap(key, defaultReturn, pressed))
-    this.addAction('registerExtensions', (...folders: string[]) => extensions.manager.loadExtension(folders), 'registExtensions')
+    this.addAction('registerExtensions', (...folders: string[]) => extensions.manager.loadExtension(folders))
     this.addAction('snippetCheck', async (checkExpand: boolean, checkJump: boolean) => this.handler.workspace.snippetCheck(checkExpand, checkJump))
     this.addAction('snippetInsert', (range: Range, newText: string, mode?: InsertTextMode, ultisnip?: UltiSnippetOption) => snippetManager.insertSnippet(newText, true, range, mode, ultisnip))
     this.addAction('snippetNext', () => snippetManager.nextPlaceholder())

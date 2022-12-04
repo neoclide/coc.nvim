@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, ParameterInformation, SignatureInformation } from 'vscode-languageserver-protocol'
+import commands from '../../commands'
 import Signature from '../../handler/signature'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
@@ -41,7 +42,7 @@ describe('signatureHelp', () => {
       }))
       await helper.createDocument()
       await nvim.input('foo')
-      await signature.triggerSignatureHelp()
+      await commands.executeCommand('editor.action.triggerParameterHints')
       let win = await helper.getFloat()
       expect(win).toBeDefined()
       let lines = await helper.getWinLines(win.id)
@@ -60,6 +61,7 @@ describe('signatureHelp', () => {
       }, []))
       await helper.createDocument()
       await nvim.input('foo')
+      await helper.doAction('showSignatureHelp')
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
       expect(win).toBeDefined()

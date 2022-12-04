@@ -1,15 +1,17 @@
 import helper from '../helper'
 import path from 'path'
 import workspace from '../../workspace'
+import Plugin from '../../plugin'
 import { Neovim } from '@chemzqm/neovim'
 import * as exportObj from '../../index'
 import * as vsTypes from 'vscode-languageserver-types'
 
 let nvim: Neovim
-
+let plugin: Plugin
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  plugin = helper.plugin
 })
 
 afterAll(async () => {
@@ -18,6 +20,13 @@ afterAll(async () => {
 
 afterEach(async () => {
   await helper.reset()
+})
+
+describe('Plugin', () => {
+  it('should check hasAction', () => {
+    expect(plugin.hasAction('NOT_EXISTS')).toBe(false)
+    expect(plugin.hasAction('rename')).toBe(true)
+  })
 })
 
 describe('exports', () => {

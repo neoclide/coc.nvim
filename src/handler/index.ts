@@ -1,7 +1,9 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import { CodeActionKind, Position, Range, SymbolKind } from 'vscode-languageserver-types'
+import { CodeAction, CodeActionKind, Location, Position, Range, SymbolKind } from 'vscode-languageserver-types'
+import type { URI } from 'vscode-uri'
+import commands from '../commands'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
@@ -10,7 +12,9 @@ import { StatusBarItem } from '../model/status'
 import { ExtendedCodeAction, HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { getSymbolKind } from '../util/convert'
+import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Disposable } from '../util/protocol'
+import { getRangesFromEdit } from '../util/textedit'
 import window from '../window'
 import workspace from '../workspace'
 import CallHierarchy from './callHierarchy'
@@ -114,6 +118,55 @@ export default class Handler implements HandlerDelegate {
         this.semanticHighlighter.dispose()
       }
     })
+    this.registerCommands()
+  }
+
+  private registerCommands(): void {
+    commands.register({
+      id: 'document.renameCurrentWord',
+      execute: async () => {
+        let doc = await workspace.document
+        let edit = await this.rename.getWordEdit()
+        let ranges = getRangesFromEdit(doc.uri, toObject(edit))
+        if (!ranges) return window.showWarningMessage('Invalid position')
+        await commands.executeCommand('editor.action.addRanges', ranges)
+      }
+    }, false, 'rename word under cursor in current buffer by multiple cursors.')
+    commands.register({
+      id: ['workbench.action.reloadWindow', 'editor.action.restart'],
+      execute: () => {
+        this.nvim.command('CocRestart', true)
+      }
+    }, true)
+
+    this.register('vscode.open', (url: string | URI) => {
+      this.nvim.call('coc#ui#open_url', url.toString(), true)
+    })
+    this.register('editor.action.doCodeAction', async (action: CodeAction) => {
+      await this.codeActions.applyCodeAction(action)
+    })
+    this.register('editor.action.triggerParameterHints', async () => {
+      await this.signature.triggerSignatureHelp()
+    })
+    this.register('editor.action.showReferences', async (uri: string, position: Position, references: Location[]) => {
+      await workspace.jumpTo(uri, position)
+      await workspace.showLocations(references)
+    })
+    this.register('editor.action.rename', async (uri: string, position: Position, newName?: string) => {
+      await workspace.jumpTo(uri, position)
+      await this.rename.rename(newName)
+    })
+    this.register('editor.action.format', async () => {
+      await this.format.formatCurrentBuffer()
+    })
+    this.register('editor.action.showRefactor', async (locations: Location[]) => {
+      let locs = locations.filter(o => Location.is(o))
+      return await this.refactor.fromLocations(locs)
+    })
+  }
+
+  private register<T>(key, handler: (...args: any[]) => T | Promise<T>): void {
+    this.disposables.push(commands.registerCommand(key, handler, null, true))
   }
 
   private get requestStatusItem(): StatusBarItem {

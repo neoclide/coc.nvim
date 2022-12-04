@@ -1,8 +1,8 @@
 'use strict'
-import { fs, path, promisify } from '../util/node'
-import { readFileLines, writeFile } from '../util/fs'
 import { distinct } from '../util/array'
 import { dataHome } from '../util/constants'
+import { readFileLines, writeFile } from '../util/fs'
+import { fs, path, promisify } from '../util/node'
 
 /**
  * Mru - manage string items as lines in mru file.

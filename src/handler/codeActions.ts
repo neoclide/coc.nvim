@@ -1,6 +1,6 @@
 'use strict'
 import type { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CodeActionContext, CodeActionKind, CodeActionTriggerKind, Range } from 'vscode-languageserver-types'
+import { CodeAction, CodeActionContext, CodeActionKind, CodeActionTriggerKind, Range } from 'vscode-languageserver-types'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
@@ -132,12 +132,9 @@ export default class CodeActions {
     this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`, true)
   }
 
-  public async applyCodeAction(action: ExtendedCodeAction): Promise<void> {
+  public async applyCodeAction(action: ExtendedCodeAction | CodeAction): Promise<void> {
     if (action.disabled) {
       throw new Error(`Action "${action.title}" is disabled: ${action.disabled.reason}`)
-    }
-    if (!action.providerId) {
-      throw new Error('providerId not found with codeAction')
     }
     let resolved = await this.handler.withRequestToken('resolve codeAction', token => {
       return languages.resolveCodeAction(action, token)

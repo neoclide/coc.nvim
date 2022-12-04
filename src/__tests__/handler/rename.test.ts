@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import commands from '../../commands'
 import Rename from '../../handler/rename'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
@@ -151,16 +152,29 @@ describe('rename handler', () => {
     })
 
     it('should use newName from placeholder', async () => {
-      await helper.createDocument('t.js')
+      let doc = await helper.createDocument('t.js')
       await nvim.setLine('foo foo foo')
-      let p = rename.rename()
+      let p = commands.executeCommand('editor.action.rename', doc.uri, Position.create(0, 0))
       await helper.waitFloat()
       await nvim.input('<C-u>')
       await helper.wait(10)
       await nvim.input('bar')
       await nvim.input('<cr>')
-      let res = await p
-      expect(res).toBe(true)
+      await p
+      let line = await nvim.line
+      expect(line).toBe('bar bar bar')
+    })
+
+    it('should renameCurrentWord by cursors', async () => {
+      await commands.executeCommand('document.renameCurrentWord')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('Invalid position')
+      let doc = await helper.createDocument('t.js')
+      await nvim.setLine('foo foo foo')
+      await commands.executeCommand('document.renameCurrentWord')
+      let ns = await nvim.createNamespace('coc-cursors')
+      let markers = await doc.buffer.getExtMarks(ns, 0, -1)
+      expect(markers.length).toBe(3)
     })
 
     it('should return false for empty name', async () => {

@@ -1,9 +1,9 @@
 import style from 'ansi-styles'
 import * as assert from 'assert'
 import cp, { spawn } from 'child_process'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import fs from 'fs'
 import { v4 as uuid } from 'uuid'
 import vm from 'vm'
 import { AnnotatedTextEdit, CancellationToken, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
@@ -45,6 +45,24 @@ function toEdit(sl, sc, el, ec, text): TextEdit {
   return TextEdit.replace(Range.create(sl, sc, el, ec), text)
 }
 
+let logfile = path.join(os.tmpdir(), 'log_test.js')
+beforeAll(() => {
+  let code = `const {wait, nvim} = require('coc.nvim')
+console.log('log')
+console.debug('debug')
+console.info('info')
+console.error('error')
+console.warn('warn')
+module.exports = () => {
+  return {wait, nvim}
+}`
+  fs.writeFileSync(logfile, code, 'utf8')
+})
+
+afterAll(() => {
+  fs.unlinkSync(logfile)
+})
+
 describe('factory', () => {
   const emptyLogger = {
     log: () => {},
@@ -55,9 +73,8 @@ describe('factory', () => {
   }
 
   it('should create logger', () => {
-    let file = path.join(__dirname, 'sandbox/log.js')
     let fn = jest.fn()
-    const sandbox = factory.createSandbox(file, {
+    const sandbox = factory.createSandbox(logfile, {
       log: () => {
         fn()
       },
@@ -74,7 +91,7 @@ describe('factory', () => {
         fn()
       }
     })
-    let res = vm.runInContext(`
+    vm.runInContext(`
 console.log('log')
 console.debug('debug')
 console.info('info')
@@ -84,15 +101,13 @@ console.warn('warn')`, sandbox)
   })
 
   it('should not throw process.chdir', () => {
-    let file = path.join(__dirname, 'sandbox/log.js')
-    const sandbox = factory.createSandbox(file, emptyLogger)
+    const sandbox = factory.createSandbox(logfile, emptyLogger)
     let res = vm.runInContext(`process.chdir()`, sandbox)
     expect(res).toBeUndefined()
   })
 
   it('should throw with umask', () => {
-    let file = path.join(__dirname, 'sandbox/log.js')
-    const sandbox = factory.createSandbox(file, emptyLogger)
+    const sandbox = factory.createSandbox(logfile, emptyLogger)
     let res = vm.runInContext(`process.umask()`, sandbox)
     expect(typeof res).toBe('number')
     let err
@@ -105,8 +120,7 @@ console.warn('warn')`, sandbox)
   })
 
   it('should throw with process.exit', () => {
-    let file = path.join(__dirname, 'sandbox/log.js')
-    const sandbox = factory.createSandbox(file, emptyLogger)
+    const sandbox = factory.createSandbox(logfile, emptyLogger)
     let err
     try {
       vm.runInContext(`process.exit()`, sandbox)
@@ -128,22 +142,20 @@ console.warn('warn')`, sandbox)
   })
 
   it('should hook require', () => {
-    let filename = path.join(__dirname, 'sandbox/log.js')
-    const sandbox = factory.createSandbox(filename, console, 'hook', false)
+    const sandbox = factory.createSandbox(logfile, console, 'hook', false)
     let fn = factory.compileInSandbox(sandbox, { wait() {} })
     let obj: any = {}
-    fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, filename])
+    fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, logfile])
     expect(typeof obj.exports).toBe('function')
   })
 
   it('should createSandbox', () => {
     const Module = require('module')
-    let filename = path.join(__dirname, 'sandbox/log.js')
-    const sandbox = factory.createSandbox(filename, emptyLogger, 'hook', false)
-    let key = require.resolve(filename)
+    const sandbox = factory.createSandbox(logfile, emptyLogger, 'hook', false)
+    let key = require.resolve(logfile)
     let keys = Object.keys(Module._cache)
-    delete Module._cache[require.resolve(filename)]
-    let exports = sandbox.require(filename)
+    delete Module._cache[require.resolve(logfile)]
+    let exports = sandbox.require(logfile)
     expect(typeof exports).toBe('function')
     let obj = exports()
     expect(typeof obj.wait).toBe('function')
@@ -266,6 +278,19 @@ describe('textedit', () => {
     let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
     expect(textedits.emptyWorkspaceEdit(workspaceEdit)).toBe(false)
     expect(textedits.emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+  })
+
+  it('should get ranges', async () => {
+    let ranges = textedits.getRangesFromEdit('test:/1', {})
+    expect(ranges).toBeUndefined()
+    let edit: WorkspaceEdit = { changes: { 'test:/2': [TextEdit.insert(Position.create(0, 0), ' ')] } }
+    ranges = textedits.getRangesFromEdit('test:/1', edit)
+    expect(ranges).toBeUndefined()
+    ranges = textedits.getRangesFromEdit('test:/2', edit)
+    expect(ranges).toBeDefined()
+    edit = { documentChanges: [TextDocumentEdit.create({ uri: 'test:/1', version: null }, [TextEdit.insert(Position.create(0, 0), ' ')])] }
+    ranges = textedits.getRangesFromEdit('test:/1', edit)
+    expect(ranges).toBeDefined()
   })
 
   it('should get all annotation ids for confirm', () => {

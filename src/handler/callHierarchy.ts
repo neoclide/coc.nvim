@@ -89,6 +89,19 @@ export default class CallHierarchyHandler {
         win.clearMatchGroup(CallHierarchyHandler.rangesHighlight)
       }
     }, null, this.disposables)
+
+    commands.register({
+      id: 'document.showIncomingCalls',
+      execute: async () => {
+        await this.showCallHierarchyTree('incoming')
+      }
+    }, false, 'show incoming calls in tree view.')
+    commands.register({
+      id: 'document.showOutgoingCalls',
+      execute: async () => {
+        await this.showCallHierarchyTree('outgoing')
+      }
+    }, false, 'show outgoing calls in tree view.')
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {

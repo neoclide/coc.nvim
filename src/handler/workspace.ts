@@ -1,22 +1,27 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { v4 as uuid } from 'uuid'
+import { writeHeapSnapshot } from 'v8'
+import { Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import commands from '../commands'
+import type { WorkspaceConfiguration } from '../configuration/types'
+import { PatternType } from '../core/workspaceFolder'
 import extensions from '../extension'
 import languages, { ProviderName } from '../languages'
 import { getLoggerFile } from '../logger'
 import Highligher from '../model/highligher'
 import snippetManager from '../snippets/manager'
 import { HandlerDelegate } from '../types'
-import { fs, path } from '../util/node'
-import window from '../window'
-import workspace from '../workspace'
-import * as Is from '../util/is'
-import { isDirectory } from '../util/fs'
-import { directoryNotExists } from '../util/errors'
-import type { WorkspaceConfiguration } from '../configuration/types'
-import { PatternType } from '../core/workspaceFolder'
 import { defaultValue } from '../util'
 import { CONFIG_FILE_NAME } from '../util/constants'
+import { directoryNotExists } from '../util/errors'
+import { isDirectory } from '../util/fs'
+import * as Is from '../util/is'
+import { fs, os, path } from '../util/node'
+import { toText } from '../util/string'
+import window from '../window'
+import workspace from '../workspace'
 
 declare const REVISION
 
@@ -35,6 +40,84 @@ export default class WorkspaceHandler {
     Object.defineProperty(window, 'openLocalConfig', {
       get: () => this.openLocalConfig.bind(this)
     })
+
+    commands.register({
+      id: 'workspace.openLocation',
+      execute: async (winid: number, loc: Location, openCommand?: string) => {
+        if (winid) await nvim.call('win_gotoid', [winid])
+        await workspace.jumpTo(loc.uri, loc.range.start, openCommand)
+      }
+    }, true)
+    commands.register({
+      id: 'workspace.undo',
+      execute: async () => {
+        await workspace.files.undoWorkspaceEdit()
+      }
+    }, false, 'Undo previous this.workspace edit')
+    commands.register({
+      id: 'workspace.redo',
+      execute: async () => {
+        await workspace.files.redoWorkspaceEdit()
+      }
+    }, false, 'Redo previous this.workspace edit')
+    commands.register({
+      id: 'workspace.inspectEdit',
+      execute: async () => {
+        await workspace.files.inspectEdit()
+      }
+    }, false, 'Inspect previous this.workspace edit in new tab')
+    commands.register({
+      id: 'workspace.renameCurrentFile',
+      execute: async () => {
+        await this.renameCurrent()
+      }
+    }, false, 'change current filename to a new name and reload it.')
+    commands.register({
+      id: 'document.checkBuffer',
+      execute: async () => {
+        await this.bufferCheck()
+      }
+    }, false, 'Check providers for current buffer.')
+    commands.register({
+      id: 'document.echoFiletype',
+      execute: async () => {
+        let bufnr = await nvim.call('bufnr', '%') as number
+        let doc = workspace.getAttachedDocument(bufnr)
+        await window.echoLines([doc.filetype])
+      }
+    }, false, 'echo the mapped filetype of the current buffer')
+    commands.register({
+      id: 'workspace.workspaceFolders',
+      execute: async () => {
+        let folders = workspace.workspaceFolders
+        let lines = folders.map(folder => URI.parse(folder.uri).fsPath)
+        await window.echoLines(lines)
+      }
+    }, false, 'show opened workspaceFolders.')
+    commands.register({
+      id: 'workspace.writeHeapSnapshot',
+      execute: async () => {
+        let filepath = path.join(os.homedir(), `${uuid()}-${process.pid}.heapsnapshot`)
+        writeHeapSnapshot(filepath)
+        void window.showInformationMessage(`Create heapdump at: ${filepath}`)
+        return filepath
+      }
+    }, false, 'Generates a snapshot of the current V8 heap and writes it to a JSON file.')
+    commands.register({
+      id: 'workspace.showOutput',
+      execute: async (name?: string) => {
+        if (!name) name = await window.showQuickPick(workspace.channelNames, { title: 'Choose output name' }) as string
+        window.showOutputChannel(toText(name))
+      }
+    }, false, 'open output buffer to show output from languageservers or extensions.')
+    commands.register({
+      id: 'workspace.clearWatchman',
+      execute: async () => {
+        let res = await window.runTerminalCommand('watchman watch-del-all')
+        if (res.success) void window.showInformationMessage('Cleared watchman watching directories.')
+        return res.success
+      }
+    }, false, 'run watch-del-all for watchman to free up memory.')
   }
 
   public async openLog(): Promise<void> {
@@ -72,6 +155,20 @@ export default class WorkspaceHandler {
     }
     let filepath = path.join(dir, CONFIG_FILE_NAME)
     await this.nvim.call('coc#util#open_file', ['edit', filepath])
+  }
+
+  public async renameCurrent(): Promise<void> {
+    let { nvim } = this
+    let oldPath = await nvim.call('expand', ['%:p']) as string
+    // await nvim.callAsync()
+    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']]) as string
+    newPath = newPath ? newPath.trim() : null
+    if (newPath === oldPath || !newPath) return
+    if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
+      let overwrite = await window.showPrompt(`${newPath} exists, overwrite?`)
+      if (!overwrite) return
+    }
+    await workspace.renameFile(oldPath, newPath, { overwrite: true })
   }
 
   public addWorkspaceFolder(folder: string): void {

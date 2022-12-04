@@ -3,6 +3,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import CommandsHandler from '../../handler/commands'
 import { disposeAll } from '../../util'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -43,8 +44,33 @@ describe('Commands', () => {
       let res = commandManager.titles.get('vim.list')
       expect(res).toBe('list of coc.nvim')
       commandManager.unregister('vim.list')
+      commandManager.unregister('unknown.command')
       let list = commands.getCommandList()
       expect(list.includes('bad')).toBe(false)
+    })
+  })
+
+  describe('commandManager', () => {
+    it('should replace builtin command', async () => {
+      let fn = jest.fn()
+      commandManager.registerCommand('editor.action.restart', () => {
+        fn()
+      })
+      await commandManager.executeCommand('editor.action.restart')
+      expect(fn).toBeCalled()
+    })
+
+    it('should throw when command not found', async () => {
+      await expect(async () => {
+        await commandManager.executeCommand('')
+      }).rejects.toThrow(Error)
+    })
+
+    it('should add to recent', async () => {
+      await commandManager.addRecent('document.checkBuffer', true)
+      let mru = workspace.createMru('commands')
+      let list = await mru.load()
+      expect(list[0]).toBe('document.checkBuffer')
     })
   })
 

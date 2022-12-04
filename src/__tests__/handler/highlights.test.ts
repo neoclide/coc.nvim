@@ -1,9 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, DocumentHighlightKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import commands from '../../commands'
 import Highlights from '../../handler/highlights'
 import languages from '../../languages'
-import workspace from '../../workspace'
 import { disposeAll } from '../../util'
+import window from '../../window'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -13,7 +15,7 @@ let highlights: Highlights
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  highlights = helper.plugin.getHandler().documentHighlighter
+  highlights = helper.plugin.handler.documentHighlighter
 })
 
 afterAll(async () => {
@@ -63,6 +65,63 @@ describe('document highlights', () => {
       }
     }))
   }
+
+  it('should not throw when no range to jump', async () => {
+    let fn = jest.fn()
+    registerTimerProvider(fn, 10)
+    await commands.executeCommand('document.jumpToNextSymbol')
+    await commands.executeCommand('document.jumpToPrevSymbol')
+  })
+
+  it('should jump to previous range', async () => {
+    disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
+      provideDocumentHighlights: () => {
+        return [{
+          range: Range.create(0, 0, 0, 1),
+          kind: DocumentHighlightKind.Read
+        }, {
+          range: Range.create(0, 2, 0, 3),
+          kind: DocumentHighlightKind.Read
+        }]
+      }
+    }))
+    await nvim.setLine('foo bar')
+    await nvim.command('normal! $')
+    await commands.executeCommand('document.jumpToPrevSymbol')
+    let cur = await window.getCursorPosition()
+    expect(cur).toEqual(Position.create(0, 2))
+    await commands.executeCommand('document.jumpToPrevSymbol')
+    cur = await window.getCursorPosition()
+    expect(cur).toEqual(Position.create(0, 0))
+    await commands.executeCommand('document.jumpToPrevSymbol')
+    cur = await window.getCursorPosition()
+    expect(cur).toEqual(Position.create(0, 2))
+  })
+
+  it('should jump to next range', async () => {
+    disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {
+      provideDocumentHighlights: () => {
+        return [{
+          range: Range.create(0, 0, 0, 1),
+          kind: DocumentHighlightKind.Read
+        }, {
+          range: Range.create(0, 2, 0, 3),
+          kind: DocumentHighlightKind.Read
+        }]
+      }
+    }))
+    await nvim.setLine('foo bar')
+    await nvim.command('normal! ^')
+    await commands.executeCommand('document.jumpToNextSymbol')
+    let cur = await window.getCursorPosition()
+    expect(cur).toEqual(Position.create(0, 2))
+    await commands.executeCommand('document.jumpToNextSymbol')
+    cur = await window.getCursorPosition()
+    expect(cur).toEqual(Position.create(0, 0))
+    await commands.executeCommand('document.jumpToNextSymbol')
+    cur = await window.getCursorPosition()
+    expect(cur).toEqual(Position.create(0, 2))
+  })
 
   it('should not throw when provide throws', async () => {
     disposables.push(languages.registerDocumentHighlightProvider([{ language: '*' }], {

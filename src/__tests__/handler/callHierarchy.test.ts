@@ -6,6 +6,7 @@ import workspace from '../../workspace'
 import { disposeAll } from '../../util'
 import { URI } from 'vscode-uri'
 import helper, { createTmpFile } from '../helper'
+import commands from '../../commands'
 
 let nvim: Neovim
 let callHierarchy: CallHierarchyHandler
@@ -151,7 +152,7 @@ describe('CallHierarchy', () => {
         return []
       }
     }))
-    await callHierarchy.showCallHierarchyTree('incoming')
+    await commands.executeCommand('document.showIncomingCalls')
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual([
@@ -197,7 +198,7 @@ describe('CallHierarchy', () => {
       }
     }))
     let win = await nvim.window
-    await callHierarchy.showCallHierarchyTree('outgoing')
+    await commands.executeCommand('document.showOutgoingCalls')
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual([

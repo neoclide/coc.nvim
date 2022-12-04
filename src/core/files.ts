@@ -487,20 +487,6 @@ export default class Files {
     if (!opts.skipEvent) this._onDidRenameFiles.fire({ files: [file] })
   }
 
-  public async renameCurrent(): Promise<void> {
-    let { nvim } = this
-    let oldPath = await nvim.call('expand', ['%:p']) as string
-    // await nvim.callAsync()
-    let newPath = await nvim.callAsync('coc#util#with_callback', ['input', ['New path: ', oldPath, 'file']]) as string
-    newPath = newPath ? newPath.trim() : null
-    if (newPath === oldPath || !newPath) return
-    if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
-      let overwrite = await ui.showPrompt(this.nvim, `${newPath} exists, overwrite?`)
-      if (!overwrite) return
-    }
-    await this.renameFile(oldPath, newPath, { overwrite: true })
-  }
-
   /**
    * Return denied annotations
    */

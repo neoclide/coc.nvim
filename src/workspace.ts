@@ -557,10 +557,6 @@ export class Workspace {
     await this.files.deleteFile(filepath, opts)
   }
 
-  public async renameCurrent(): Promise<void> {
-    await this.files.renameCurrent()
-  }
-
   /**
    * Open resource by uri
    */

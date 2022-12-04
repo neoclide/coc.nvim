@@ -14,6 +14,7 @@ import window from '../../window'
 import workspace from '../../workspace'
 import events from '../../events'
 import helper, { createTmpFile } from '../helper'
+import commands from '../../commands'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -114,8 +115,8 @@ describe('findFiles()', () => {
 
 describe('applyEdits()', () => {
   it('should not throw when unable to undo & redo', async () => {
-    await workspace.files.undoWorkspaceEdit()
-    await workspace.files.redoWorkspaceEdit()
+    await commands.executeCommand('workspace.undo')
+    await commands.executeCommand('workspace.redo')
   })
 
   it('should show error when document with version not loaded', async () => {
@@ -448,7 +449,7 @@ describe('getOriginalLine', () => {
   describe('inspectEdit', () => {
     async function inspect(edit: WorkspaceEdit): Promise<Buffer> {
       await workspace.applyEdit(edit)
-      await workspace.files.inspectEdit()
+      await commands.executeCommand('workspace.inspectEdit')
       let buf = await nvim.buffer
       return buf
     }

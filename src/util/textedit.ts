@@ -93,6 +93,21 @@ export function emptyWorkspaceEdit(edit: WorkspaceEdit): boolean {
   return true
 }
 
+export function getRangesFromEdit(uri: string, edit: WorkspaceEdit): Range[] | undefined {
+  let { changes, documentChanges } = edit
+  if (changes) {
+    let edits = changes[uri]
+    return edits ? edits.map(e => e.range) : undefined
+  } else if (Array.isArray(documentChanges)) {
+    for (let c of documentChanges) {
+      if (TextDocumentEdit.is(c) && c.textDocument.uri == uri) {
+        return c.edits.map(e => e.range)
+      }
+    }
+  }
+  return undefined
+}
+
 export function getConfirmAnnotations(changes: ReadonlyArray<DocumentChange>, changeAnnotations: { [id: string]: ChangeAnnotation }): ReadonlyArray<string> {
   let keys: string[] = []
   const add = (key: string | undefined) => {

@@ -283,40 +283,6 @@ describe('workspace methods', () => {
     expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
   })
 
-  it('should rename buffer', async () => {
-    let doc = await helper.createDocument('a')
-    let fsPath = URI.parse(doc.uri).fsPath.replace(/a$/, 'b')
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
-    }))
-    let p = workspace.renameCurrent()
-    await helper.wait(50)
-    await nvim.input('<backspace>b<cr>')
-    await p
-    let name = await nvim.eval('bufname("%")') as string
-    expect(name.endsWith('b')).toBe(true)
-  })
-
-  it('should rename file', async () => {
-    let fsPath = path.join(tmpFolder, 'x')
-    let newPath = path.join(tmpFolder, 'b')
-    disposables.push(Disposable.create(() => {
-      if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
-      if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
-    }))
-    fs.writeFileSync(fsPath, 'foo', 'utf8')
-    await helper.createDocument(fsPath)
-    let p = workspace.renameCurrent()
-    await helper.waitFor('mode', [], 'c')
-    await nvim.input('<backspace>b<cr>')
-    await p
-    let name = await nvim.eval('bufname("%")') as string
-    expect(name.endsWith('b')).toBe(true)
-    expect(fs.existsSync(newPath)).toBe(true)
-    let content = fs.readFileSync(newPath, 'utf8')
-    expect(content).toMatch(/foo/)
-  })
-
   it('should handle will save event', async () => {
     async function doRename() {
       let fsPath = await createTmpFile('foo', disposables)

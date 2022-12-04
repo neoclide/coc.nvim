@@ -1,5 +1,6 @@
 'use strict'
-import commandManager from '../commands'
+import commands from '../commands'
+import { ConfigurationUpdateTarget } from '../configuration/types'
 import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
@@ -38,7 +39,7 @@ export class Extensions {
     checkExtensionRoot(EXTENSIONS_FOLDER)
     this.states = new ExtensionStat(EXTENSIONS_FOLDER)
     this.manager = new ExtensionManager(this.states, EXTENSIONS_FOLDER)
-    commandManager.register({
+    commands.register({
       id: 'extensions.forceUpdateAll',
       execute: async () => {
         let arr = await this.manager.cleanExtensions()
@@ -47,6 +48,22 @@ export class Extensions {
       }
     }, false, 'remove all global extensions and install them')
     this.globalPromise = this.globalExtensions()
+
+    commands.register({
+      id: 'extensions.toggleAutoUpdate',
+      execute: async () => {
+        let config = workspace.getConfiguration('coc.preferences', null)
+        let interval = config.get<string>('extensionUpdateCheck', 'daily')
+        let target = ConfigurationUpdateTarget.Global
+        if (interval == 'never') {
+          await config.update('extensionUpdateCheck', 'daily', target)
+          void window.showInformationMessage('Extension auto update enabled.')
+        } else {
+          await config.update('extensionUpdateCheck', 'never', target)
+          void window.showInformationMessage('Extension auto update disabled.')
+        }
+      }
+    }, false, 'toggle auto update of extensions.')
   }
 
   public async init(runtimepath: string): Promise<void> {
