@@ -538,9 +538,6 @@ function! coc#util#get_data_home()
 endfunction
 
 function! coc#util#get_complete_option()
-  if get(b:,"coc_suggest_disable",0)
-    return v:null
-  endif
   let pos = getcurpos()
   let line = getline(pos[1])
   let input = matchstr(strpart(line, 0, pos[2] - 1), '\k*$')

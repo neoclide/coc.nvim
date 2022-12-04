@@ -7,7 +7,6 @@ import { URI } from 'vscode-uri'
 import events from './events'
 import Mru from './model/mru'
 import type Plugin from './plugin'
-import { wait } from './util'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from './util/extensionRegistry'
 import { os, path } from './util/node'
 import { Disposable } from './util/protocol'
@@ -53,13 +52,19 @@ export class CommandManager implements Disposable {
     this.mru = this.workspace.createMru('commands')
     this.register({
       id: 'vscode.open',
-      execute: async (url: string | URI) => {
+      execute: (url: string | URI) => {
         nvim.call('coc#ui#open_url', url.toString(), true)
       }
     }, true)
     this.register({
       id: 'workbench.action.reloadWindow',
-      execute: async () => {
+      execute: () => {
+        nvim.command('CocRestart', true)
+      }
+    }, true)
+    this.register({
+      id: 'editor.action.restart',
+      execute: () => {
         nvim.command('CocRestart', true)
       }
     }, true)
@@ -67,12 +72,6 @@ export class CommandManager implements Disposable {
       id: 'editor.action.doCodeAction',
       execute: async (action: CodeAction) => {
         await plugin.cocAction('doCodeAction', action)
-      }
-    }, true)
-    this.register({
-      id: 'editor.action.triggerSuggest',
-      execute: async () => {
-        nvim.call('coc#refresh', [], true)
       }
     }, true)
     this.register({
@@ -88,18 +87,12 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
-      id: 'editor.action.restart',
-      execute: async () => {
-        await wait(30)
-        nvim.command('CocRestart', true)
-      }
-    }, true)
-    this.register({
       id: 'editor.action.showReferences',
       execute: async (_filepath: string, _position: Position, references: Location[]) => {
         await this.workspace.showLocations(references)
       }
     }, true)
+
     this.register({
       id: 'editor.action.rename',
       execute: async (uri: string, position: Position) => {

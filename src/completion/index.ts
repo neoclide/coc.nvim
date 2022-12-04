@@ -18,6 +18,7 @@ import window from '../window'
 import workspace from '../workspace'
 import Complete from './complete'
 import Floating from './floating'
+import commands from '../commands'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import sources from './sources'
 import { CompleteConfig, CompleteDoneOption, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
@@ -78,6 +79,11 @@ export class Completion implements Disposable {
       await this.floating.resolveItem(resolved.source, resolved.item, this.option, showDocs, detailRendered)
     }, null, this.disposables)
     this.nvim.call('coc#ui#check_pum_keymappings', [this.config.autoTrigger], true)
+    commands.registerCommand('editor.action.triggerSuggest', async (source?: string) => {
+      let opt = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
+      let arr = Is.string(source) ? [sources.getSource(source)] : undefined
+      await this.startCompletion(opt, arr)
+    }, this, true)
   }
 
   public get mru(): MruLoader {

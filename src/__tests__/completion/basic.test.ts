@@ -8,6 +8,7 @@ import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import { disposeAll, waitWithToken } from '../../util'
 import workspace from '../../workspace'
+import commands from '../../commands'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -88,7 +89,7 @@ describe('completion', () => {
       await nvim.setLine('ffoo')
       let name = await create(['foo'], false)
       await nvim.input('<right>')
-      triggerCompletion(name)
+      await commands.executeCommand('editor.action.triggerSuggest', name)
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       let line = await nvim.line
@@ -981,9 +982,9 @@ describe('completion', () => {
       expect(items.length).toBe(2)
     })
 
-    it('should trigger on force refresh', async () => {
+    it('should trigger on triggerSuggest command', async () => {
       await create(['foo', 'bar'], false)
-      await nvim.call('coc#start')
+      await commands.executeCommand('editor.action.triggerSuggest')
       await helper.waitPopup()
       let items = await helper.items()
       expect(items.length).toBe(2)
