@@ -696,7 +696,24 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private traceData(data: any, error = false): void {
     this.outputChannel.appendLine(this.data2String(data))
-    if (this._consoleDebug) error ? console.error(redOpen + this.data2String(data) + redClose) : console.log(this.data2String(data))
+    if (this._consoleDebug) error ? console.error(redOpen + this.data2String(data) + redClose) : console.log(this.parseTraceData(data))
+  }
+
+  private parseTraceData(data: any): string {
+    if (typeof data !== 'string') return this.data2String(data)
+    let prefixes = ['Params: ', 'Result: ']
+    for (let prefix of prefixes) {
+      if (data.startsWith(prefix)) {
+        try {
+          let obj = JSON.parse(data.slice(prefix.length))
+          return prefix + this.data2String(obj, true)
+        } catch (_e) {
+          // ignore
+          return data
+        }
+      }
+    }
+    return data
   }
 
   private consoleMessage(prefix: string, message: string, error = false): void {
@@ -706,7 +723,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private data2String(data: any): string {
+  private data2String(data: any, color = false): string {
     if (data instanceof ResponseError) {
       const responseError = data as ResponseError<any>
       return `  Message: ${responseError.message}\n  Code: ${responseError.code
@@ -721,7 +738,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (Is.string(data)) {
       return data
     }
-    return inspect(data, false, null, false)
+    return inspect(data, false, null, color)
   }
 
   public info(message: string, data?: any, showNotification = true): void {
