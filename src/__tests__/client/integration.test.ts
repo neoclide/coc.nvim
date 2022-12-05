@@ -521,6 +521,32 @@ describe('Client integration', () => {
     await client.stop()
   })
 
+  it('should use console for messages', async () => {
+    let serverModule = path.join(__dirname, './server/eventServer.js')
+    let serverOptions: lsclient.ServerOptions = {
+      command: 'node',
+      args: [serverModule, '--stdio']
+    }
+    let client = await testLanguageServer(serverOptions)
+    let fn = jest.fn()
+    let spy = jest.spyOn(console, 'log').mockImplementation(() => {
+      fn()
+    })
+    let s = jest.spyOn(console, 'error').mockImplementation(() => {
+      fn()
+    })
+    client.switchConsole()
+    client.info('message', { info: 'info' })
+    client.warn('message', { info: 'info' })
+    client.error('message', { info: 'info' })
+    client.info('message', { info: 'info' })
+    client.switchConsole()
+    s.mockRestore()
+    spy.mockRestore()
+    await client.stop()
+    expect(fn).toBeCalled()
+  })
+
   it('should separate diagnostics', async () => {
     async function startServer(disable?: boolean, handleDiagnostics?: (uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => void): Promise<lsclient.LanguageClient> {
       let clientOptions: lsclient.LanguageClientOptions = {

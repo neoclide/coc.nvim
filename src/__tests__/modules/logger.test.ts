@@ -1,5 +1,5 @@
 import { FileLogger, toTwoDigits, toThreeDigits, textToLogLevel, format, DEFAULT_LOG_LEVEL, LogLevel } from '../../logger/log'
-import { createLogger, resolveLogFilepath, emptyFile } from '../../logger/index'
+import { createLogger, getTimestamp, resolveLogFilepath, emptyFile } from '../../logger/index'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -13,6 +13,11 @@ afterEach(() => {
 describe('FileLogger', () => {
   it('should have DEFAULT_LOG_LEVEL', () => {
     expect(DEFAULT_LOG_LEVEL).toBeDefined()
+  })
+
+  it('should getTimestamp', () => {
+    let res = getTimestamp(new Date())
+    expect(res).toBeDefined()
   })
 
   it('should convert digits', () => {

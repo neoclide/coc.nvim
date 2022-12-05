@@ -1,4 +1,5 @@
 'use strict'
+import { inspect } from 'util'
 import type { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
@@ -6,7 +7,7 @@ import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
-import { createLogger } from '../logger'
+import { createLogger, getTimestamp } from '../logger'
 import type { MessageItem } from '../model/notification'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { OutputChannel, Thenable } from '../types'
@@ -76,6 +77,12 @@ interface ConnectionOptions {
   cancellationStrategy: CancellationStrategy
   connectionStrategy?: ConnectionStrategy
   maxRestartCount?: number
+}
+
+const redOpen = '\x1B[31m'
+const redClose = '\x1B[39m'
+function currentTimeStamp(): string {
+  return getTimestamp(new Date())
 }
 
 function createConnection(input: MessageReader, output: MessageWriter, errorHandler: ConnectionErrorHandler, closeHandler: ConnectionCloseHandler, options?: ConnectionOptions): Connection {
@@ -291,6 +298,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   private _traceFormat: TraceFormat
   private _trace: Trace
   private _tracer: Tracer
+  private _consoleDebug = false
 
   public constructor(
     id: string,
@@ -336,6 +344,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
     this._syncedDocuments = new Map<string, TextDocument>()
     this.registerBuiltinFeatures()
+  }
+
+  public switchConsole(): void {
+    this._consoleDebug = !this._consoleDebug
+    if (!this._consoleDebug) {
+      this.enableVerboseTrace()
+    }
   }
 
   private resolveClientOptions(clientOptions: LanguageClientOptions): ResolvedClientOptions {
@@ -672,12 +687,22 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private logObjectTrace(data: any): void {
     if (data.isLSPMessage && data.type) {
-      this.outputChannel.append(`[LSP   - ${(new Date().toLocaleTimeString())}] `)
+      this.outputChannel.append(`[LSP   - ${currentTimeStamp()}] `)
     } else {
-      this.outputChannel.append(`[Trace - ${(new Date().toLocaleTimeString())}] `)
+      this.outputChannel.append(`[Trace - ${currentTimeStamp()}] `)
     }
-    if (data) {
-      this.outputChannel.appendLine(`${JSON.stringify(data)}`)
+    this.traceData(data)
+  }
+
+  private traceData(data: any, error = false): void {
+    this.outputChannel.appendLine(this.data2String(data))
+    if (this._consoleDebug) error ? console.error(redOpen + this.data2String(data) + redClose) : console.log(this.data2String(data))
+  }
+
+  private consoleMessage(prefix: string, message: string, error = false): void {
+    if (this._consoleDebug) {
+      let msg = prefix + ' ' + message
+      error ? console.error(redOpen + msg + redClose) : console.log(msg)
     }
   }
 
@@ -696,37 +721,44 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (Is.string(data)) {
       return data
     }
-    return data.toString()
+    return inspect(data, false, null, false)
   }
 
   public info(message: string, data?: any, showNotification = true): void {
-    this.outputChannel.appendLine(`[Info  - ${(new Date().toLocaleTimeString())}] ${message}`)
-    if (data !== null && data !== undefined) {
-      this.outputChannel.appendLine(this.data2String(data))
-    }
+    let prefix = `[Info  - ${currentTimeStamp()}]`
+    this.outputChannel.appendLine(`${prefix} ${message}`)
+    this.consoleMessage(prefix, message)
+    if (data != null) this.traceData(data)
     if (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Info) {
       this.showNotificationMessage(MessageType.Info, message)
     }
   }
 
   public warn(message: string, data?: any, showNotification = true): void {
-    this.outputChannel.appendLine(`[Warn  - ${(new Date().toLocaleTimeString())}] ${message}`)
-    if (data !== null && data !== undefined) {
-      this.outputChannel.appendLine(this.data2String(data))
-    }
+    let prefix = `[Warn  - ${currentTimeStamp()}]`
+    this.outputChannel.appendLine(`${prefix} ${message}`)
+    this.consoleMessage(prefix, message)
+    if (data != null) this.traceData(data)
     if (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Warn) {
       this.showNotificationMessage(MessageType.Warning, message)
     }
   }
 
   public error(message: string, data?: any, showNotification: boolean | 'force' = true): void {
-    this.outputChannel.appendLine(`[Error - ${(new Date().toLocaleTimeString())}] ${message}`)
-    if (data !== null && data !== undefined) {
-      this.outputChannel.appendLine(this.data2String(data))
-    }
+    let prefix = `[Error - ${currentTimeStamp()}]`
+    this.outputChannel.appendLine(`${prefix} ${message}`)
+    this.consoleMessage(prefix, message, true)
+    if (data != null) this.traceData(data, true)
     if (showNotification === 'force' || (showNotification && this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Error)) {
       this.showNotificationMessage(MessageType.Error, message)
     }
+  }
+
+  private logTrace(message: string, data?: any): void {
+    let prefix = `[Trace - ${currentTimeStamp()}]`
+    this.outputChannel.appendLine(`${prefix} ${message}`)
+    this.consoleMessage(prefix, message)
+    if (data != null) this.traceData(data)
   }
 
   private showNotificationMessage(type: MessageType, message?: string) {
@@ -737,13 +769,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         ? window.showWarningMessage.bind(window)
         : window.showInformationMessage.bind(window)
     void messageFunc(message)
-  }
-
-  private logTrace(message: string, data?: any): void {
-    this.outputChannel.appendLine(`[Trace - ${(new Date().toLocaleTimeString())}] ${message}`)
-    if (data) {
-      this.outputChannel.appendLine(this.data2String(data))
-    }
   }
 
   public needsStart(): boolean {
@@ -1346,6 +1371,15 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this._traceFormat = traceFormat
     connection.trace(this._trace, this._tracer, {
       sendNotification,
+      traceFormat: this._traceFormat
+    }).catch(error => { this.error(`Updating trace failed with error`, error) })
+  }
+
+  private enableVerboseTrace(): void {
+    this._trace = Trace.Verbose
+    this._traceFormat = TraceFormat.Text
+    this._connection.trace(this._trace, this._tracer, {
+      sendNotification: true,
       traceFormat: this._traceFormat
     }).catch(error => { this.error(`Updating trace failed with error`, error) })
   }

@@ -182,13 +182,13 @@ export default class SemanticTokens {
    * Show semantic highlight info in temporarily buffer
    */
   public async showHighlightInfo(): Promise<void> {
-    let buf = await this.nvim.buffer
+    let bufnr = await this.nvim.call('bufnr', ['%']) as number
+    workspace.getAttachedDocument(bufnr)
     let { nvim } = this
-    let item = this.highlighters.getItem(buf.id)
-    if (!item) return nvim.echoError('Document not attached.')
+    let item = this.highlighters.getItem(bufnr)
     let hl = new Highlighter()
     nvim.pauseNotification()
-    nvim.command(`vs +setl\\ buftype=nofile __coc_semantic_highlights_${buf.id}__`, true)
+    nvim.command(`vs +setl\\ buftype=nofile __coc_semantic_highlights_${bufnr}__`, true)
     nvim.command(`setl bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1`, true)
     nvim.call('bufnr', ['%'], true)
     let res = await nvim.resumeNotification()
@@ -237,8 +237,7 @@ export default class SemanticTokens {
       hl.addLine(e instanceof Error ? e.message : e.toString(), 'Error')
     }
     nvim.pauseNotification()
-    let bufnr = res[0][2] as number
-    hl.render(nvim.createBuffer(bufnr))
+    hl.render(nvim.createBuffer(res[0][2] as number))
     nvim.resumeNotification(true, true)
   }
 

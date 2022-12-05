@@ -200,16 +200,6 @@ describe('semanticTokens', () => {
   })
 
   describe('showHighlightInfo()', () => {
-    it('should show error when buffer not attached', async () => {
-      await nvim.command('h')
-      await highlighter.showHighlightInfo()
-      let line = await helper.getCmdline()
-      expect(line).toMatch('not attached')
-      await highlighter.inspectSemanticToken()
-      line = await helper.getCmdline()
-      expect(line).toMatch('not attached')
-    })
-
     it('should show error when not enabled', async () => {
       await nvim.command('enew')
       await workspace.document
@@ -245,7 +235,6 @@ describe('semanticTokens', () => {
           }
         }
       }, { tokenModifiers: [], tokenTypes: [] }))
-      await highlighter.showHighlightInfo()
       await highlighter.showHighlightInfo()
       let buf = await nvim.buffer
       let lines = await buf.lines

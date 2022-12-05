@@ -3,6 +3,8 @@ import { FileLogger, textToLogLevel, ILogger } from './log'
 import { fs, path, os } from '../util/node'
 import { getConditionValue } from '../util'
 
+export { getTimestamp } from './log'
+
 export function resolveLogFilepath(): string {
   let file = process.env.NVIM_COC_LOG_FILE
   if (file) return file

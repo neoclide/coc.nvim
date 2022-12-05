@@ -1,3 +1,7 @@
+# 2022-12-05
+
+- Add `switchConsole` method to `LanguageClient`
+
 # 2022-12-03
 
 - Add configuration `suggest.insertMode`.
