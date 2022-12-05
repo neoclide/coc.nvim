@@ -2,10 +2,10 @@
 import type { Neovim } from '@chemzqm/neovim'
 import { Position, Range, SelectionRange } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../languages'
-import { HandlerDelegate } from '../types'
 import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
 import window from '../window'
+import { HandlerDelegate } from './types'
 
 export default class SelectionRangeHandler {
   private selectionRange: SelectionRange = null

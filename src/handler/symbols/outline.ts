@@ -7,12 +7,12 @@ import languages, { ProviderName } from '../../languages'
 import BufferSync from '../../model/bufferSync'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import BasicTreeView from '../../tree/TreeView'
-import { HandlerDelegate } from '../../types'
 import { disposeAll, getConditionValue } from '../../util'
 import { comparePosition, positionInRange } from '../../util/position'
 import type { Disposable } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
+import { HandlerDelegate } from '../types'
 import SymbolsBuffer from './buffer'
 
 // Support expand level.

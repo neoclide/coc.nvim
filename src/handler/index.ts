@@ -1,6 +1,5 @@
 'use strict'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeAction, CodeActionKind, Location, Position, Range, SymbolKind } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import commands from '../commands'
@@ -9,7 +8,7 @@ import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import { StatusBarItem } from '../model/status'
-import { ExtendedCodeAction, HandlerDelegate } from '../types'
+import { TextDocumentMatch } from '../types'
 import { disposeAll } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { toObject } from '../util/object'
@@ -37,6 +36,7 @@ import SemanticTokens from './semanticTokens/index'
 import Signature from './signature'
 import Symbols from './symbols/index'
 import TypeHierarchy from './typeHierarchy'
+import { HandlerDelegate } from './types'
 import WorkspaceHandler from './workspace'
 const logger = createLogger('Handler')
 
@@ -93,7 +93,7 @@ export default class Handler implements HandlerDelegate {
     this.locations = new Locations(nvim, this)
     this.signature = new Signature(nvim, this)
     this.rename = new Rename(nvim, this)
-    this.workspace = new WorkspaceHandler(nvim, this)
+    this.workspace = new WorkspaceHandler(nvim)
     this.codeActions = new CodeActions(nvim, this)
     this.commands = new Commands(nvim)
     this.callHierarchy = new CallHierarchy(nvim, this)
@@ -203,7 +203,7 @@ export default class Handler implements HandlerDelegate {
   /**
    * Throw error when provider doesn't exist.
    */
-  public checkProvider(id: ProviderName, document: TextDocument): void {
+  public checkProvider(id: ProviderName, document: TextDocumentMatch): void {
     if (!languages.hasProvider(id, document)) {
       throw new Error(`${id} provider not found for current buffer, your language server doesn't support it.`)
     }
@@ -262,12 +262,12 @@ export default class Handler implements HandlerDelegate {
     }
   }
 
-  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
+  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
     let codeActions = await this.codeActions.getCodeActions(doc, range, only)
     return codeActions.filter(o => !o.disabled)
   }
 
-  public async applyCodeAction(action: ExtendedCodeAction): Promise<void> {
+  public async applyCodeAction(action: CodeAction): Promise<void> {
     await this.codeActions.applyCodeAction(action)
   }
 

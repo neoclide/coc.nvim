@@ -8,13 +8,14 @@ import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
 import Document from '../model/document'
 import snippetManager from '../snippets/manager'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { IConfigurationChangeEvent } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import { pariedCharacters } from '../util/index'
 import { CancellationTokenSource } from '../util/protocol'
 import { isAlphabet } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 const logger = createLogger('handler-format')
 
 interface FormatPreferences {

@@ -12,7 +12,6 @@ import languages, { ProviderName } from '../languages'
 import { getLoggerFile } from '../logger'
 import Highligher from '../model/highligher'
 import snippetManager from '../snippets/manager'
-import { HandlerDelegate } from '../types'
 import { defaultValue } from '../util'
 import { CONFIG_FILE_NAME } from '../util/constants'
 import { directoryNotExists } from '../util/errors'
@@ -33,8 +32,7 @@ interface RootPatterns {
 
 export default class WorkspaceHandler {
   constructor(
-    private nvim: Neovim,
-    private handler: HandlerDelegate
+    private nvim: Neovim
   ) {
     // exported by window.
     Object.defineProperty(window, 'openLocalConfig', {

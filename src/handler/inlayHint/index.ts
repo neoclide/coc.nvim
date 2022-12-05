@@ -4,11 +4,11 @@ import commands from '../../commands'
 import events from '../../events'
 import languages, { ProviderName } from '../../languages'
 import BufferSync from '../../model/bufferSync'
-import { HandlerDelegate } from '../../types'
 import { disposeAll } from '../../util'
 import { Disposable } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
+import { HandlerDelegate } from '../types'
 import InlayHintBuffer from './buffer'
 
 export default class InlayHintHandler {

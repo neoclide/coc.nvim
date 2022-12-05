@@ -7,7 +7,7 @@ import events from '../events'
 import languages, { ProviderName } from '../languages'
 import BufferSync, { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams, Documentation, FloatFactory, HandlerDelegate, HighlightItem } from '../types'
+import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem } from '../types'
 import { disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { equals } from '../util/object'
@@ -15,6 +15,7 @@ import { positionInRange } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 // const regex = /CocAction(Async)?\(["']openLink["']\)/
 let floatFactory: FloatFactory | undefined

@@ -9,13 +9,13 @@ import languages, { ProviderName } from '../languages'
 import { TreeDataProvider } from '../tree/index'
 import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
-import { HandlerDelegate } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
 import { CancellationToken, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 interface TypeHierarchyDataItem extends TypeHierarchyItem {
   parent?: TypeHierarchyDataItem

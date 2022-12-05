@@ -32,7 +32,7 @@ import { StrWidth } from './model/strwidth'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, DidChangeTextDocumentParams, EditerState, Env, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
+import { Autocmd, DidChangeTextDocumentParams, Env, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
 import { APIVERSION, dataHome, pluginRoot, userConfigFile, VERSION, watchmanCommand } from './util/constants'
 import { parseExtensionName } from './util/extensionRegistry'
 import { IJSONSchema } from './util/jsonSchema'
@@ -428,7 +428,7 @@ export class Workspace {
     return this.documentsManager.readFile(uri)
   }
 
-  public async getCurrentState(): Promise<EditerState> {
+  public async getCurrentState(): Promise<{ document: LinesTextDocument, position: Position }> {
     let document = await this.document
     let position = await ui.getCursorPosition(this.nvim)
     return {

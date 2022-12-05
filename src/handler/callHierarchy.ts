@@ -8,13 +8,14 @@ import languages, { ProviderName } from '../languages'
 import { TreeDataProvider } from '../tree/index'
 import LocationsDataProvider from '../tree/LocationsDataProvider'
 import BasicTreeView from '../tree/TreeView'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { omit } from '../util/lodash'
 import { CancellationToken, CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 interface CallHierarchyDataItem extends CallHierarchyItem {
   parent?: CallHierarchyDataItem

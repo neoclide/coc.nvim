@@ -2,11 +2,11 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Range, WorkspaceEdit } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../languages'
-import { HandlerDelegate } from '../types'
 import { emptyRange } from '../util/position'
 import { CancellationTokenSource } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 export default class Rename {
   constructor(

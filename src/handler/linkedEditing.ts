@@ -6,7 +6,7 @@ import { getBeforeCount, getChange, getDelta } from '../cursors/util'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
-import { DidChangeTextDocumentParams, HandlerDelegate } from '../types'
+import { DidChangeTextDocumentParams } from '../types'
 import { getConditionValue } from '../util'
 import { debounce } from '../util/node'
 import { emptyRange, positionInRange, rangeAdjacent, rangeInRange, rangeIntersect } from '../util/position'
@@ -14,6 +14,7 @@ import { CancellationTokenSource } from '../util/protocol'
 import { characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 const debounceTime = getConditionValue(200, 10)
 

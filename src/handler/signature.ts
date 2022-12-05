@@ -5,7 +5,7 @@ import { IConfigurationChangeEvent } from '../configuration/types'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
-import { FloatConfig, FloatFactory, HandlerDelegate } from '../types'
+import { FloatConfig, FloatFactory } from '../types'
 import { disposeAll, getConditionValue } from '../util'
 import { isMarkdown } from '../util/is'
 import { debounce } from '../util/node'
@@ -13,6 +13,7 @@ import { CancellationTokenSource, Disposable, SignatureHelpTriggerKind } from '.
 import { byteLength, byteSlice } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 interface SignatureConfig {
   wait: number

@@ -5,10 +5,10 @@ import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import languages from '../languages'
 import Document from '../model/document'
-import { ExtendedCodeAction, HandlerDelegate } from '../types'
 import { boolToNumber } from '../util/numbers'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 /**
  * Handle codeActions related methods.
@@ -52,7 +52,7 @@ export default class CodeActions {
     return false
   }
 
-  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
+  public async getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
     range = range ?? Range.create(0, 0, doc.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(doc.textDocument, range)
     let context: CodeActionContext = { diagnostics, triggerKind: CodeActionTriggerKind.Invoked }
@@ -111,7 +111,7 @@ export default class CodeActions {
   /**
    * Get current codeActions
    */
-  public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]> {
+  public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<CodeAction[]> {
     let { doc } = await this.handler.getCurrentState()
     let range: Range
     if (mode) range = await window.getSelectedRange(mode)
@@ -132,7 +132,7 @@ export default class CodeActions {
     this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`, true)
   }
 
-  public async applyCodeAction(action: ExtendedCodeAction | CodeAction): Promise<void> {
+  public async applyCodeAction(action: CodeAction): Promise<void> {
     if (action.disabled) {
       throw new Error(`Action "${action.title}" is disabled: ${action.disabled.reason}`)
     }

@@ -2,7 +2,6 @@
 import { v4 as uuid } from 'uuid'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { CodeAction, CodeActionContext, CodeActionKind, Command, Range } from 'vscode-languageserver-types'
-import { ExtendedCodeAction } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
 import * as Is from '../util/is'
 import { omit } from '../util/lodash'
@@ -13,6 +12,13 @@ import Manager from './manager'
 interface ProviderMeta {
   kinds: CodeActionKind[] | undefined
   clientId: string
+}
+
+/*
+ * With providerId so it can be resolved.
+ */
+export interface ExtendedCodeAction extends CodeAction {
+  providerId?: string
 }
 
 export function codeActionContains(kinds: CodeActionKind[], kind: CodeActionKind): boolean {

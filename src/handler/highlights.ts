@@ -5,12 +5,13 @@ import commands from '../commands'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
 import Document from '../model/document'
-import { HandlerDelegate, IConfigurationChangeEvent } from '../types'
+import { IConfigurationChangeEvent } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 interface HighlightConfig {
   priority: number

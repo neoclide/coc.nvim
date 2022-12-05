@@ -1,5 +1,5 @@
 'use strict'
-import { fs, path, inspect, promisify } from '../util/node'
+import { fs, inspect, path, promisify } from '../util/node'
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 export enum LogLevel {
@@ -225,7 +225,7 @@ export class FileLogger extends AbstractLogger {
 
   private getCurrentTimestamp(): string {
     const currentTime = new Date()
-    return `${currentTime.getFullYear()}-${toTwoDigits(currentTime.getMonth() + 1)}-${toTwoDigits(currentTime.getDate())}T${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`
+    return `${currentTime.getFullYear()}-${toTwoDigits(currentTime.getMonth() + 1)}-${toTwoDigits(currentTime.getDate())}T${getTimestamp(currentTime)}`
   }
 
   private getBackupResource(): string {
@@ -243,4 +243,8 @@ export class FileLogger extends AbstractLogger {
     }
     return ''
   }
+}
+
+export function getTimestamp(date: Date): string {
+  return `${toTwoDigits(date.getHours())}:${toTwoDigits(date.getMinutes())}:${toTwoDigits(date.getSeconds())}.${toThreeDigits(date.getMilliseconds())}`
 }

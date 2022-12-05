@@ -5,10 +5,11 @@ import { Location, LocationLink, Position } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import languages, { ProviderName } from '../languages'
 import services from '../services'
-import { HandlerDelegate, LocationWithTarget } from '../types'
+import { LocationWithTarget } from '../types'
 import { hasOwnProperty } from '../util/object'
 import { CancellationToken, CancellationTokenSource } from '../util/protocol'
 import workspace from '../workspace'
+import { HandlerDelegate } from './types'
 
 export interface TagDefinition {
   name: string

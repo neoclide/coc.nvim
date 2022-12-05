@@ -6,7 +6,7 @@ import { URI } from 'vscode-uri'
 import { createLogger } from '../../logger'
 import Document from '../../model/document'
 import Highlighter from '../../model/highligher'
-import { BufferSyncItem, DidChangeTextDocumentParams, Optional, TextDocumentContentChange } from '../../types'
+import { DidChangeTextDocumentParams, Optional, TextDocumentContentChange } from '../../types'
 import { disposeAll } from '../../util'
 import { isParentFolder, readFileLines, sameFile } from '../../util/fs'
 import { omit } from '../../util/lodash'
@@ -80,7 +80,7 @@ export interface RefactorBufferOpts {
   fromWinid: number
 }
 
-export default class RefactorBuffer implements BufferSyncItem {
+export default class RefactorBuffer {
   private _disposed = false
   private _fileItems: FileItem[] = []
   private mutex = new Mutex()

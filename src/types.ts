@@ -1,14 +1,11 @@
 'use strict'
 import type { Window } from '@chemzqm/neovim'
-import type { CancellationToken, Disposable, Event } from 'vscode-languageserver-protocol'
-import type { TextDocument } from 'vscode-languageserver-textdocument'
-import type { CodeAction, CodeActionKind, CreateFile, DeleteFile, Location, Position, Range, RenameFile, SymbolKind, TextDocumentEdit } from 'vscode-languageserver-types'
+import type { Disposable, Event } from 'vscode-languageserver-protocol'
+import type { CreateFile, DeleteFile, Location, Range, RenameFile, TextDocumentEdit } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
-import type { ProviderName } from './languages'
-import type Document from './model/document'
 import type RelativePattern from './model/relativePattern'
 
-export { IConfigurationChangeEvent } from './configuration/types'
+export type { IConfigurationChangeEvent } from './configuration/types'
 
 export type GlobPattern = string | RelativePattern
 
@@ -49,14 +46,6 @@ export interface LocationWithTarget extends Location {
   targetRange?: Range
 }
 
-export interface CurrentState {
-  doc: Document
-  winid: number
-  position: Position
-  // :h mode()
-  mode: string
-}
-
 export interface BufferOption {
   readonly bufnr: number
   readonly eol: number
@@ -72,24 +61,6 @@ export interface BufferOption {
   readonly lisp: number
   readonly changedtick: number
   readonly previewwindow: number
-}
-
-export interface HandlerDelegate {
-  uri: string | undefined
-  checkProvider: (id: ProviderName, document: TextDocument) => void
-  withRequestToken: <T> (name: string, fn: (token: CancellationToken) => Thenable<T>, checkEmpty?: boolean) => Promise<T>
-  getCurrentState: () => Promise<CurrentState>
-  addDisposable: (disposable: Disposable) => void
-  getIcon(kind: SymbolKind): { text: string, hlGroup: string }
-  getCodeActions(doc: Document, range?: Range, only?: CodeActionKind[]): Promise<ExtendedCodeAction[]>
-  applyCodeAction(action: ExtendedCodeAction): Promise<void>
-}
-
-/*
- * With providerId so it can be resolved.
- */
-export interface ExtendedCodeAction extends CodeAction {
-  providerId?: string
 }
 
 export interface IFileSystemWatcher extends Disposable {
@@ -168,17 +139,6 @@ export interface HighlightItem extends HighlightItemOption {
   colEnd: number
 }
 
-export interface BufferSyncItem {
-  /**
-   * Called on buffer unload.
-   */
-  dispose: () => void
-  /**
-   * Called on buffer change.
-   */
-  onChange?(e: DidChangeTextDocumentParams): void
-}
-
 export interface Env {
   runtimepath: string
   readonly virtualText: boolean
@@ -217,11 +177,6 @@ export interface CommandConfig {
   id: string
   cmd: string
   title?: string
-}
-
-export interface EditerState {
-  document: TextDocument
-  position: Position
 }
 
 /**
@@ -305,17 +260,6 @@ export interface TextDocumentMatch {
   readonly languageId: string
 }
 
-// vim {{
-export interface LocationListItem {
-  bufnr: number
-  lnum: number
-  end_lnum: number
-  col: number
-  end_col: number
-  text: string
-  type: string
-}
-
 export interface QuickfixItem {
   uri?: string
   module?: string
@@ -346,13 +290,11 @@ export interface QuickPickItem {
    * A human-readable string which is rendered less prominent in the same line
    */
   description?: string
-
   /**
    * Optional flag indicating if this item is picked initially.
    */
   picked?: boolean
 }
-// }}
 
 // TextDocument {{
 export type DocumentChange = TextDocumentEdit | CreateFile | RenameFile | DeleteFile

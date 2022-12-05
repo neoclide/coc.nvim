@@ -1,8 +1,8 @@
 'use strict'
 import type { Neovim } from '@chemzqm/neovim'
-import { TextDocument } from 'vscode-languageserver-textdocument'
-import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Location, Position, Range, TextDocumentIdentifier } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import commands from '../commands'
 import events from '../events'
 import BufferSync from '../model/bufferSync'
 import { disposeAll } from '../util'
@@ -14,7 +14,6 @@ import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import commands from '../commands'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, severityLevel } from './util'
@@ -251,7 +250,7 @@ class DiagnosticManager implements Disposable {
     return items
   }
 
-  public getDiagnosticsInRange(document: TextDocument, range: Range): Diagnostic[] {
+  public getDiagnosticsInRange(document: TextDocumentIdentifier, range: Range): Diagnostic[] {
     let res: Diagnostic[] = []
     for (let collection of this.collections) {
       for (let item of collection.get(document.uri) ?? []) {

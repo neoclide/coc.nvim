@@ -1,10 +1,20 @@
 'use strict'
 import type { VirtualTextOption } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range, TextEdit } from 'vscode-languageserver-types'
-import { FloatConfig, LocationListItem } from '../types'
+import { FloatConfig } from '../types'
 import { comparePosition, rangeOverlap } from '../util/position'
 import { byteIndex } from '../util/string'
 import { getPosition } from '../util/textedit'
+
+export interface LocationListItem {
+  bufnr: number
+  lnum: number
+  end_lnum: number
+  col: number
+  end_col: number
+  text: string
+  type: string
+}
 
 export enum DiagnosticHighlight {
   Error = 'CocErrorHighlight',
