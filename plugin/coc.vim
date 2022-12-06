@@ -346,7 +346,7 @@ function! s:VimEnter() abort
   elseif get(g:, 'coc_start_at_startup', 1)
     call coc#rpc#start_server()
   endif
-  call timer_start(0, { -> s:Highlight()})
+  call s:Highlight()
 endfunction
 
 function! s:Enable(initialize)
@@ -354,6 +354,9 @@ function! s:Enable(initialize)
     return
   endif
   let g:coc_enabled = 1
+  sign define CocCurrentLine linehl=CocMenuSel
+  sign define CocListCurrent linehl=CocListLine
+  sign define CocTreeSelected linehl=CocTreeSelected
 
   augroup coc_nvim
     autocmd!
@@ -503,15 +506,6 @@ function! s:Highlight() abort
   hi default link CocInputBoxVirtualText   CocVirtualText
   hi default link CocFloatDividingLine     CocVirtualText
 
-  if !exists('*sign_getdefined') || empty(sign_getdefined('CocCurrentLine'))
-    sign define CocCurrentLine linehl=CocMenuSel
-  endif
-  if !exists('*sign_getdefined') || empty(sign_getdefined('CocListCurrent'))
-    sign define CocListCurrent linehl=CocListLine
-  endif
-  if !exists('*sign_getdefined') || empty(sign_getdefined('CocTreeSelected'))
-    sign define CocTreeSelected linehl=CocTreeSelected
-  endif
   if has('nvim-0.5.0')
     hi default CocCursorTransparent gui=strikethrough blend=100
   endif

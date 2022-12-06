@@ -41,7 +41,9 @@ endfunction
 function! coc#_insert_key(method, key, ...) abort
   let prefix = ''
   if get(a:, 1, 1)
-    if pumvisible() && s:hide_pum
+    if coc#pum#visible()
+      let prefix = "\<C-r>=coc#pum#close()\<CR>"
+    elseif pumvisible() && s:hide_pum
       let prefix = "\<C-x>\<C-z>"
     endif
   endif
