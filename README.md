@@ -835,4 +835,4 @@ Contributions of any kind are welcome!
 
 ## License
 
-[Anti 996](./LICENCE.md)
+[Anti 996](./LICENSE.md)
