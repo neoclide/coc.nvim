@@ -815,6 +815,7 @@ Try these steps when you have problem with coc.nvim.
     </tr>
     <tr>
       <td align="center"><a href="http://3ximus.github.io/cv"><img src="https://avatars.githubusercontent.com/u/9083012?v=4?s=50" width="50px;" alt="Fabio"/><br /><sub><b>Fabio</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=3ximus" title="Documentation">📖</a></td>
+      <td align="center"><a href="https://github.com/skysky97"><img src="https://avatars.githubusercontent.com/u/18086458?v=4?s=50" width="50px;" alt="Li Yunting"/><br /><sub><b>Li Yunting</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Askysky97" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
 </table>
