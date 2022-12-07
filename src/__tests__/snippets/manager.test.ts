@@ -138,7 +138,7 @@ describe('snippet provider', () => {
       await doc.synchronize()
       await nvim.input('f')
       await helper.waitPopup()
-      await nvim.call('coc#_select_confirm')
+      await nvim.call('coc#pum#select_confirm')
       await helper.waitFor('getline', ['.'], 'foot bar foot')
     })
   })
