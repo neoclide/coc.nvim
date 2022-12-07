@@ -1972,6 +1972,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "skysky97",
+      "name": "Li Yunting",
+      "avatar_url": "https://avatars.githubusercontent.com/u/18086458?v=4",
+      "profile": "https://github.com/skysky97",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
