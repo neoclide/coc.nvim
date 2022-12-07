@@ -302,6 +302,11 @@ function! s:HandleTextChangedI(bufnr) abort
   call s:Autocmd('TextChangedI', a:bufnr, coc#util#change_info())
 endfunction
 
+function! s:HandleInsertLeave(bufnr) abort
+  call coc#pum#close()
+  call s:Autocmd('InsertLeave', a:bufnr)
+endfunction
+
 function! s:HandleWinScrolled(winid) abort
   if getwinvar(a:winid, 'float', 0)
     call coc#float#nvim_scrollbar(a:winid)
@@ -403,7 +408,7 @@ function! s:Enable(initialize)
       autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'), coc#util#change_info())
     endif
     autocmd TextChangedI        * call s:HandleTextChangedI(+expand('<abuf>'))
-    autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
+    autocmd InsertLeave         * call s:HandleInsertLeave(+expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
     autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))

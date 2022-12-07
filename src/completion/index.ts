@@ -60,9 +60,6 @@ export class Completion implements Disposable {
     events.on('CursorMovedI', () => {
       clearTimeout(this.triggerTimer)
     }, this, this.disposables)
-    events.on('InsertLeave', () => {
-      this.stop(true)
-    }, null, this.disposables)
     events.on('CompleteStop', kind => {
       this.stop(false, kind)
     }, null, this.disposables)
