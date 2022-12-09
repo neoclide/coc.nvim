@@ -90,6 +90,13 @@ function! coc#rpc#set_channel(chan_id) abort
   let s:client['chan_id'] = a:chan_id
 endfunction
 
+function! coc#rpc#get_channel() abort
+  if empty(s:client)
+    return v:null
+  endif
+  return coc#client#get_channel(s:client)
+endfunction
+
 function! coc#rpc#kill()
   let pid = get(g:, 'coc_process_pid', 0)
   if !pid | return | endif
@@ -151,17 +158,19 @@ function! coc#rpc#restart()
 endfunction
 
 function! coc#rpc#close_connection() abort
-  if s:is_vim
-    let channel = get(s:client, 'channel', v:null)
-    if !empty(channel)
-      call ch_close(channel)
-    endif
-  else
-    let chan_id = get(s:client, 'chan_id', 0)
-    if chan_id
-      call chanclose(chan_id)
-    endif
+  let channel = coc#rpc#get_channel()
+  if channel == v:null
+    return
   endif
+  if s:is_vim
+    " Unlike neovim, vim not close the socket as expected.
+    call ch_close(channel)
+  else
+    call chanclose(channel)
+  endif
+  let s:client['running'] = 0
+  let s:client['channel'] = v:null
+  let s:client['chan_id'] = 0
 endfunction
 
 function! coc#rpc#request(method, args) abort

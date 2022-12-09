@@ -17,6 +17,39 @@ let s:buffer_id = {}
 let s:id_types = {}
 
 " helper {{
+" Create a window with bufnr for execute win_execute
+function! s:create_popup(bufnr) abort
+  noa let id = popup_create(1, {
+      \ 'line': 1,
+      \ 'col': &columns,
+      \ 'maxwidth': 1,
+      \ 'maxheight': 1,
+      \ })
+  return id
+endfunction
+
+function! s:check_bufnr(bufnr) abort
+  if !bufloaded(a:bufnr)
+    throw 'Invalid buffer id: '.a:bufnr
+  endif
+endfunction
+
+function! s:buf_execute(bufnr, cmds) abort
+  call s:check_bufnr(a:bufnr)
+  let winid = get(win_findbuf(a:bufnr), 0, -1)
+  let close = 0
+  if winid == -1
+    let winid = s:create_popup(a:bufnr)
+    let close = 1
+  endif
+  for cmd in a:cmds
+    call win_execute(winid, cmd, 'silent')
+  endfor
+  if close
+    noa call popup_close(winid)
+  endif
+endfunction
+
 function! s:buf_line_count(bufnr) abort
   if bufnr('%') == a:bufnr
     return line('$')
@@ -31,15 +64,7 @@ function! s:buf_line_count(bufnr) abort
       return info[0]['linecount']
     endif
   endif
-  if exists('*getbufline')
-    let lines = getbufline(a:bufnr, 1, '$')
-    return len(lines)
-  endif
-  let curr = bufnr('%')
-  execute 'noa buffer '.a:bufnr
-  let n = line('$')
-  execute 'noa buffer '.curr
-  return n
+  return len(getbufline(a:bufnr, 1, '$'))
 endfunction
 
 function! s:execute(cmd)
@@ -49,71 +74,96 @@ function! s:execute(cmd)
     silent! execute a:cmd
   endif
 endfunction
+
+function s:inspect_type(v) abort
+  let types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'Null']
+  return get(types, type(a:v), 'Unknown')
+endfunction
 " }}"
 
 " nvim client methods {{
 function! s:funcs.set_current_dir(dir) abort
-  execute 'cd '.a:dir
+  execute 'cd '.fnameescape(a:dir)
+  return v:null
 endfunction
 
 function! s:funcs.set_var(name, value) abort
   execute 'let g:'.a:name.'= a:value'
+  return v:null
 endfunction
 
 function! s:funcs.del_var(name) abort
+  if !has_key(g:, a:name)
+    throw 'Key not found: '.a:name
+  endif
   execute 'unlet g:'.a:name
+  return v:null
 endfunction
 
 function! s:funcs.set_option(name, value) abort
   execute 'let &'.a:name.' = a:value'
+  return v:null
+endfunction
+
+function! s:funcs.get_option(name)
+  return eval('&'.a:name)
 endfunction
 
 function! s:funcs.set_current_buf(bufnr) abort
-  if !bufexists(a:bufnr) | return | endif
+  call s:check_bufnr(a:bufnr)
   execute 'buffer '.a:bufnr
+  return v:null
 endfunction
 
-function! s:funcs.set_current_win(win_id) abort
-  let [tabnr, winnr] = win_id2tabwin(a:win_id)
-  if tabnr == 0 | return | endif
-  execute 'normal! '.tabnr.'gt'
-  execute winnr.' wincmd w'
+function! s:funcs.set_current_win(winid) abort
+  let [tabnr, winnr] = win_id2tabwin(a:winid)
+  if tabnr == 0
+    throw 'Invalid window id: '.a:winid
+  endif
+  call win_gotoid(a:winid)
+  return v:null
 endfunction
 
 function! s:funcs.set_current_tabpage(tabnr) abort
+  let max = tabpagenr('$')
+  if a:tabnr <= 0 || a:tabnr > max
+    throw 'Invalid tabpage id: '.a:tabnr
+  endif
   execute 'normal! '.a:tabnr.'gt'
+  return v:null
 endfunction
 
 function! s:funcs.list_wins() abort
   return map(getwininfo(), 'v:val["winid"]')
 endfunction
 
-function s:inspect_type(v) abort
-  let types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'Null']
-  return get(types, type(a:v), 'Unknown')
-endfunction
-
 function! s:funcs.call_atomic(calls)
-  let res = []
+  let results = []
   for i in range(len(a:calls))
     let [key, arglist] = a:calls[i]
     let name = key[5:]
     try
-      call add(res, call(s:funcs[name], arglist))
+      call add(results, call(s:funcs[name], arglist))
     catch /.*/
-      return [res, [i, "VimException(".s:inspect_type(v:exception).")", v:exception . ' on '.v:throwpoint]]
+      return [results, [i, "VimException(".s:inspect_type(v:exception).")", v:exception . ' on function "'.name.'"']]
     endtry
   endfor
-  return [res, v:null]
+  return [results, v:null]
 endfunction
 
 function! s:funcs.set_client_info(...) abort
+  " not supported
+  return v:null
 endfunction
 
 function! s:funcs.subscribe(...) abort
+  " not supported
+  return v:null
 endfunction
 
 function! s:funcs.unsubscribe(...) abort
+  " not supported
+  return v:null
 endfunction
 
 function! s:funcs.call_function(method, args) abort
@@ -121,6 +171,9 @@ function! s:funcs.call_function(method, args) abort
 endfunction
 
 function! s:funcs.call_dict_function(dict, method, args) abort
+  if type(a:dict) == v:t_string
+    return call(a:method, a:args, eval(a:dict))
+  endif
   return call(a:method, a:args, a:dict)
 endfunction
 
@@ -145,8 +198,11 @@ endfunction
 
 function! s:funcs.get_api_info()
   let names = coc#api#func_names()
-  " Not valid on vim, the channel used on vim can't be serialized.
-  return [1, {'functions': map(names, '{"name": "nvim_".v:val}')}]
+  let channel = coc#rpc#get_channel()
+  if empty(channel)
+    throw 'Unable to get channel'
+  endif
+  return [ch_info(channel)['id'], {'functions': map(names, '{"name": "nvim_".v:val}')}]
 endfunction
 
 function! s:funcs.list_bufs()
@@ -155,6 +211,7 @@ endfunction
 
 function! s:funcs.feedkeys(keys, mode, escape_csi)
   call feedkeys(a:keys, a:mode)
+  return v:null
 endfunction
 
 function! s:funcs.list_runtime_paths()
@@ -171,10 +228,12 @@ endfunction
 
 function! s:funcs.set_current_line(line)
   call setline('.', a:line)
+  return v:null
 endfunction
 
-function! s:funcs.del_current_line(line)
-  execute 'normal! dd'
+function! s:funcs.del_current_line()
+  call deletebufline('%', line('.'))
+  return v:null
 endfunction
 
 function! s:funcs.get_var(var)
@@ -183,10 +242,6 @@ endfunction
 
 function! s:funcs.get_vvar(var)
   return get(v:, a:var, v:null)
-endfunction
-
-function! s:funcs.get_option(name)
-  return eval('&'.a:name)
 endfunction
 
 function! s:funcs.get_current_buf()
@@ -253,7 +308,8 @@ function! s:funcs.buf_set_option(bufnr, name, val)
   elseif val is v:false
     let val = 0
   endif
-  return setbufvar(a:bufnr, '&'.a:name, val)
+  call setbufvar(a:bufnr, '&'.a:name, val)
+  return v:null
 endfunction
 
 function! s:funcs.buf_get_changedtick(bufnr)
@@ -265,11 +321,10 @@ function! s:funcs.buf_is_valid(bufnr)
 endfunction
 
 function! s:funcs.buf_get_mark(bufnr, name)
-  let nr = bufnr('%')
-  if a:bufnr != 0 || a:bufnr != nr
+  if a:bufnr != 0 && a:bufnr != bufnr('%')
     throw 'buf_get_mark support current buffer only'
   endif
-  return [line("'" . a:name), col("'" . a:name)]
+  return [line("'" . a:name), col("'" . a:name) - 1]
 endfunction
 
 function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd, ...) abort
@@ -292,7 +347,7 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
       call prop_type_add(type, extend({'highlight': a:hlGroup}, get(a:, 1, {})))
     endif
   endif
-  let end = a:colEnd == -1 ? strlen(getbufline(bufnr, a:line + 1)[0]) + 1 : a:colEnd + 1
+  let end = a:colEnd == -1 ? strlen(get(getbufline(bufnr, a:line + 1), 0, '')) + 1 : a:colEnd + 1
   if end < a:colStart + 1
     return
   endif
@@ -332,6 +387,7 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
 endfunction
 
 function! s:funcs.buf_line_count(bufnr) abort
+  call s:check_bufnr(a:bufnr)
   return s:buf_line_count(a:bufnr)
 endfunction
 
@@ -346,16 +402,18 @@ function! s:funcs.buf_detach()
 endfunction
 
 function! s:funcs.buf_get_lines(bufnr, start, end, strict) abort
-  let lines = getbufline(a:bufnr, 1, '$')
-  let start = a:start < 0 ? a:start + 1 : a:start
-  let end = a:end < 0 ? a:end + 1 : a:end
-  if a:strict && end > len(lines)
-    throw 'line number out of range: '. end
+  call s:check_bufnr(a:bufnr)
+  let len = s:buf_line_count(a:bufnr)
+  let start = a:start < 0 ? len + a:start + 2 : a:start + 1
+  let end = a:end < 0 ? len + a:end + 1 : a:end
+  if a:strict && end > len
+    throw 'Index out of bounds '. end
   endif
-  return lines[start : end - 1]
+  return getbufline(a:bufnr, start, end)
 endfunction
 
 function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
+  call s:check_bufnr(a:bufnr)
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   if !bufloaded(bufnr)
     return
@@ -368,13 +426,8 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
     let end = lineCount
   endif
   let delCount = end - (startLnum - 1)
-  let changeBuffer = 0
   let curr = bufnr('%')
-  if bufnr != curr && !exists('*setbufline')
-    let changeBuffer = 1
-    exe 'buffer '.bufnr
-  endif
-  if bufnr == curr || changeBuffer
+  if bufnr == curr
     " replace
     let storeView = winsaveview()
     if delCount == len(replacement)
@@ -385,26 +438,11 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       endif
       if delCount
         let start = startLnum + len(replacement)
-        let saved_reg = @"
-        if has('clipboard')
-          let system_reg = @*
-        endif
-        if exists('*deletebufline')
-          silent call deletebufline(curr, start, start + delCount - 1)
-        else
-          silent execute start . ','.(start + delCount - 1).'d'
-        endif
-        let @" = saved_reg
-        if has('clipboard')
-          let @* = system_reg
-        endif
+        silent call deletebufline(curr, start, start + delCount - 1)
       endif
     endif
     call winrestview(storeView)
-    if changeBuffer
-      exe 'buffer '.curr
-    endif
-  elseif exists('*setbufline')
+  else
     " replace
     if delCount == len(replacement)
       " 8.0.1039
@@ -416,29 +454,18 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       endif
       if delCount
         let start = startLnum + len(replacement)
-        let saved_reg = @"
-        if has('clipboard')
-          let system_reg = @*
-        endif
         "8.1.0039
         silent call deletebufline(bufnr, start, start + delCount - 1)
-        let @" = saved_reg
-        if has('clipboard')
-          let @* = system_reg
-        endif
       endif
     endif
   endif
 endfunction
 
 function! s:funcs.buf_set_name(bufnr, name) abort
-  let nr = bufnr('%')
-  if a:bufnr != nr
-    throw 'buf_set_name support current buffer only'
-  else
-    execute '0f'
-    execute 'file '.fnameescape(a:name)
-  endif
+  call s:buf_execute(a:bufnr, [
+      \ 'noa 0f',
+      \ 'file '.fnameescape(a:name)
+      \ ])
 endfunction
 
 function! s:funcs.buf_get_var(bufnr, name)

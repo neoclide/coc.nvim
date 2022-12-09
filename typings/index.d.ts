@@ -3988,7 +3988,6 @@ declare module 'coc.nvim' {
     text_wrap?: 'wrap' | 'truncate'
   }
 
-
   interface BaseApi<T> {
     /**
      * unique identify number
@@ -4054,6 +4053,8 @@ declare module 'coc.nvim' {
      */
     setOption(name: string, value: VimValue, isNotify: true): void
   }
+
+  export const nvim: Neovim
 
   export interface Neovim extends BaseApi<Neovim> {
 

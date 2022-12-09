@@ -15,6 +15,7 @@ process.on('exit', () => {
 module.exports = async () => {
   let dataHome = path.join(tmpdir, process.pid.toString())
   fs.mkdirSync(dataHome, {recursive: true})
+  process.env.VIMRUNTIME = ''
   process.env.NODE_ENV = 'test'
   process.env.COC_NVIM = '1'
   process.env.COC_DATA_HOME = dataHome
