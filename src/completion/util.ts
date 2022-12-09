@@ -288,7 +288,7 @@ function toValidWord(snippet: string, excludes: number[]): string {
 }
 
 function snippetToWord(text: string, kind: CompletionItemKind | undefined): string {
-  if (kind === CompletionItemKind.Function || kind === CompletionItemKind.Method) {
+  if (kind === CompletionItemKind.Function || kind === CompletionItemKind.Method || kind === CompletionItemKind.Class) {
     text = text.replace(/\(.+/, '')
   }
   if (!text.includes(DollarSign)) return text
