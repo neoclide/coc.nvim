@@ -1,6 +1,7 @@
 'use strict'
 import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-types'
 import { InsertChange } from '../events'
+import { createLogger } from '../logger'
 import Document from '../model/document'
 import { SnippetParser } from '../snippets/parser'
 import { Documentation } from '../types'
@@ -13,6 +14,7 @@ import { unidecode } from '../util/node'
 import { isEmpty, toObject } from '../util/object'
 import { byteIndex, byteSlice, toText } from '../util/string'
 import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, EditRange, ExtendedCompleteItem, InsertMode, ISource, ItemDefaults } from './types'
+const logger = createLogger('completion-util')
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line' | 'position'>
@@ -391,8 +393,11 @@ export class Converter {
   public convertToDurationItem(item: CompleteItem): DurationCompleteItem {
     if (Is.isCompletionItem(item)) {
       return this.convertLspCompleteItem(item)
+    } else if (Is.string(item.word)) {
+      return this.convertVimCompleteItem(item)
+    } else {
+      logger.error(`Unexpected completion item from ${this.option.source}:`, item)
     }
-    return this.convertVimCompleteItem(item)
   }
 
   private convertVimCompleteItem(item: ExtendedCompleteItem): DurationCompleteItem {
