@@ -1,11 +1,9 @@
 process.env.VIM_NODE_RPC = '1'
-import type { Buffer, Neovim } from '@chemzqm/neovim'
-import type { Helper } from './helper'
-import type { Window } from '../window'
+import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import { sameFile } from '../util/fs'
+import type { Helper } from './helper'
 // make sure VIM_NODE_RPC take effect first
 const helper = require('./helper').default as Helper
-const window = require('../window').default as Window
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -23,15 +21,6 @@ describe('vim api', () => {
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual(['foobar'])
-  })
-
-  it('should show message', async () => {
-    window.showMessage('msg')
-    let env = helper.workspace.env
-    await helper.waitValue(async () => {
-      let line = await helper.getCmdline(env.lines - 1)
-      return line.includes('msg')
-    }, true)
   })
 })
 
@@ -223,12 +212,12 @@ describe('Buffer API', () => {
     buffer = await nvim.buffer
   })
 
-  it('should set option', async () => {
+  it('should set buffer option', async () => {
     await buffer.setOption('buflisted', false)
-    let curr = await nvim.eval('&buflisted')
+    let curr = await buffer.getOption('buflisted')
     expect(curr).toBe(0)
     await buffer.setOption('buflisted', true)
-    curr = await nvim.eval('&buflisted')
+    curr = await buffer.getOption('buflisted')
     expect(curr).toBe(1)
   })
 
@@ -290,5 +279,157 @@ describe('Buffer API', () => {
     expect(lines).toEqual(['1'])
     lines = await buffer.getLines({ start: -2, end: -1, strictIndexing: false })
     expect(lines).toEqual(['4'])
+    await nvim.command('bd!')
+  })
+
+  it('should set lines', async () => {
+    // insert
+    await buffer.setLines(['1', '2', '3'], { start: 0, end: 0, strictIndexing: true })
+    let lines = await buffer.lines
+    expect(lines).toEqual(['1', '2', '3', ''])
+    // replace
+    await buffer.setLines(['4'], { start: 2, end: -1, strictIndexing: true })
+    lines = await buffer.lines
+    expect(lines).toEqual(['1', '2', '4'])
+    // delete
+    await buffer.setLines([], { start: 1, end: 2, strictIndexing: true })
+    lines = await buffer.lines
+    expect(lines).toEqual(['1', '4'])
+    await nvim.command('bd!')
+  })
+
+  it('should set name', async () => {
+    await buffer.setName('foo')
+    let name = await buffer.name
+    expect(name).toBe('foo')
+    await nvim.command('bd!')
+  })
+
+  it('should change buffer variable', async () => {
+    await buffer.setVar('foo', 'bar', false)
+    let curr = await buffer.getVar('foo')
+    expect(curr).toBe('bar')
+    buffer.deleteVar('foo')
+    curr = await buffer.getVar('foo')
+    expect(curr).toBeNull()
+  })
+})
+
+describe('Window API', () => {
+  let win: Window
+  beforeEach(async () => {
+    win = await nvim.window
+  })
+
+  it('should get buffer of window', async () => {
+    let buf = await win.buffer
+    let curr = await nvim.buffer
+    expect(buf.id).toBe(curr.id)
+  })
+
+  it('should set buffer', async () => {
+    let bufnr = await nvim.call('bufadd', ['foo']) as number
+    await nvim.call('bufload', [bufnr])
+    await win.setBuffer(nvim.createBuffer(bufnr))
+    let buf = await win.buffer
+    expect(buf.id).toBe(bufnr)
+    await nvim.command('silent! %bwipeout!')
+  })
+
+  it('should get position', async () => {
+    await nvim.command('sp')
+    let res = await win.position
+    expect(res[0]).toBeGreaterThan(0)
+    expect(res[1]).toBe(0)
+    await nvim.command('only!')
+  })
+
+  it('should get and set height', async () => {
+    let h = await win.height
+    await win.setHeight(3)
+    let curr = await win.height
+    expect(curr).toBe(3)
+    await win.setHeight(h)
+  })
+
+  it('should get and set width', async () => {
+    await nvim.command('vs')
+    await win.setWidth(5)
+    let curr = await win.width
+    expect(curr).toBe(5)
+    await nvim.command('only!')
+  })
+
+  it('should get and set cursor', async () => {
+    let buf = await nvim.buffer
+    await buf.setLines(['1', '2', '3', '4'], { start: 0, end: -1, strictIndexing: false })
+    await win.setCursor([3, 1])
+    let cursor = await win.cursor
+    expect(cursor).toEqual([3, 0])
+    await nvim.command('bd!')
+  })
+
+  it('should get and set option', async () => {
+    let relative = await win.getOption('relativenumber')
+    expect(relative).toBe(0)
+    await win.setOption('relativenumber', true)
+    relative = await win.getOption('relativenumber')
+    expect(relative).toBe(1)
+    await win.setOption('relativenumber', false)
+  })
+
+  it('should get and set var', async () => {
+    await win.setVar('foo', 'bar')
+    let curr = await win.getVar('foo')
+    expect(curr).toBe('bar')
+    win.deleteVar('foo')
+    curr = await win.getVar('foo')
+    expect(curr).toBe(null)
+  })
+
+  it('should check window is valid', async () => {
+    let valid = await win.valid
+    expect(valid).toBe(true)
+    let tab = await win.tabpage
+    expect(tab.id).toBe(1)
+    let n = await win.number
+    expect(n).toBe(1)
+    await nvim.command('vs')
+    await nvim.call('win_gotoid', [win.id])
+    await win.close(true)
+    valid = await win.valid
+    expect(valid).toBe(false)
+    await nvim.command('only!')
+  })
+})
+
+describe('Tabpage API', () => {
+  let tab: Tabpage
+  beforeEach(async () => {
+    tab = await nvim.tabpage
+  })
+
+  it('should get window list', async () => {
+    await nvim.command('vs')
+    let wins = await tab.windows
+    expect(wins.length).toBe(2)
+    await nvim.command('only!')
+  })
+
+  it('should get and set var', async () => {
+    await tab.setVar('foo', 'bar')
+    let curr = await tab.getVar('foo')
+    expect(curr).toBe('bar')
+    tab.deleteVar('foo')
+    curr = await tab.getVar('foo')
+    expect(curr).toBe(null)
+  })
+
+  it('should get current window', async () => {
+    let valid = await tab.valid
+    expect(valid).toBe(true)
+    let win = await tab.window
+    let curr = await nvim.call('win_getid')
+    expect(win.id).toBe(curr)
   })
 })

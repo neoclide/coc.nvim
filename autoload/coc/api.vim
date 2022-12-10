@@ -34,6 +34,7 @@ function! s:check_bufnr(bufnr) abort
   endif
 endfunction
 
+" execute command for bufnr
 function! s:buf_execute(bufnr, cmds) abort
   call s:check_bufnr(a:bufnr)
   let winid = get(win_findbuf(a:bufnr), 0, -1)
@@ -48,6 +49,39 @@ function! s:buf_execute(bufnr, cmds) abort
   if close
     noa call popup_close(winid)
   endif
+endfunction
+
+function! s:check_winid(winid) abort
+  if empty(getwininfo(a:winid))
+    throw 'Invalid window id: '.a:winid
+  endif
+endfunction
+
+function! s:check_tabnr(tabnr) abort
+  if a:tabnr != 1 && a:tabnr > tabpagenr('$')
+    throw 'Invalid tabpage id: '.a:tabnr
+  endif
+endfunction
+
+function! s:generate_id(bufnr) abort
+  let max = get(s:buffer_id, a:bufnr, s:prop_offset)
+  let id = max + 1
+  let s:buffer_id[a:bufnr] = id
+  return id
+endfunction
+
+function! s:win_execute(winid, cmd, ...) abort
+  let ref = get(a:000, 0, v:null)
+  let cmd = ref is v:null ? a:cmd : 'let ref["out"] = ' . a:cmd
+  call win_execute(a:winid, cmd)
+endfunction
+
+function! s:get_tabnr(winid) abort
+  let info = getwininfo(a:winid)
+  if empty(info)
+    throw 'Invalid window id: '.a:winid
+  endif
+  return info[0]['tabnr']
 endfunction
 
 function! s:buf_line_count(bufnr) abort
@@ -312,6 +346,11 @@ function! s:funcs.buf_set_option(bufnr, name, val)
   return v:null
 endfunction
 
+function! s:funcs.buf_get_option(bufnr, name)
+  call s:check_bufnr(a:bufnr)
+  return getbufvar(a:bufnr, '&'.a:name)
+endfunction
+
 function! s:funcs.buf_get_changedtick(bufnr)
   return getbufvar(a:bufnr, 'changedtick')
 endfunction
@@ -328,9 +367,6 @@ function! s:funcs.buf_get_mark(bufnr, name)
 endfunction
 
 function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd, ...) abort
-  if !has('patch-8.1.1719')
-    return
-  endif
   if a:srcId == 0
     let srcId = s:max_src_id + 1
     let s:max_src_id = srcId
@@ -361,12 +397,10 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
     " return generated srcId
     return srcId
   endif
+  return v:null
 endfunction
 
 function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
-  if !has('patch-8.1.1719')
-    return
-  endif
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
   let start = a:startLine + 1
   let end = a:endLine == -1 ? len(getbufline(bufnr, 1, '$')) : a:endLine
@@ -384,6 +418,7 @@ function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
       endtry
     endfor
   endif
+  return v:null
 endfunction
 
 function! s:funcs.buf_line_count(bufnr) abort
@@ -415,230 +450,186 @@ endfunction
 function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   call s:check_bufnr(a:bufnr)
   let bufnr = a:bufnr == 0 ? bufnr('%') : a:bufnr
-  if !bufloaded(bufnr)
-    return
+  let len = s:buf_line_count(bufnr)
+  let startLnum = a:start < 0 ? len + a:start + 2 : a:start + 1
+  let endLnum = a:end < 0 ? len + a:end + 1 : a:end
+  if endLnum > len
+    if a:strict
+      throw 'Index out of bounds '. end
+    else
+      let endLnum = len
+    endif
   endif
+  let delCount = endLnum - (startLnum - 1)
+  let view = bufnr == bufnr('%') ? winsaveview() : v:null
   let replacement = get(a:, 1, [])
-  let lineCount = s:buf_line_count(bufnr)
-  let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 2
-  let end = a:end >= 0 ? a:end : lineCount + a:end + 1
-  if end == lineCount + 1
-    let end = lineCount
-  endif
-  let delCount = end - (startLnum - 1)
-  let curr = bufnr('%')
-  if bufnr == curr
-    " replace
-    let storeView = winsaveview()
-    if delCount == len(replacement)
-      call setline(startLnum, replacement)
-    else
-      if len(replacement)
-        call append(startLnum - 1, replacement)
-      endif
-      if delCount
-        let start = startLnum + len(replacement)
-        silent call deletebufline(curr, start, start + delCount - 1)
-      endif
-    endif
-    call winrestview(storeView)
+  if delCount == len(replacement)
+    call setbufline(bufnr, startLnum, replacement)
   else
-    " replace
-    if delCount == len(replacement)
-      " 8.0.1039
-      call setbufline(bufnr, startLnum, replacement)
-    else
-      if len(replacement)
-        " 8.10037
-        call appendbufline(bufnr, startLnum - 1, replacement)
-      endif
-      if delCount
-        let start = startLnum + len(replacement)
-        "8.1.0039
-        silent call deletebufline(bufnr, start, start + delCount - 1)
-      endif
+    if len(replacement)
+      call appendbufline(bufnr, startLnum - 1, replacement)
+    endif
+    if delCount
+      let start = startLnum + len(replacement)
+      silent call deletebufline(bufnr, start, start + delCount - 1)
     endif
   endif
+  if view isnot v:null
+    call winrestview(view)
+  endif
+  return v:null
 endfunction
 
 function! s:funcs.buf_set_name(bufnr, name) abort
+  call s:check_bufnr(a:bufnr)
   call s:buf_execute(a:bufnr, [
       \ 'noa 0f',
       \ 'file '.fnameescape(a:name)
       \ ])
+  return v:null
+endfunction
+
+function! s:funcs.buf_get_name(bufnr)
+  call s:check_bufnr(a:bufnr)
+  return bufname(a:bufnr)
 endfunction
 
 function! s:funcs.buf_get_var(bufnr, name)
+  call s:check_bufnr(a:bufnr)
+  if !has_key(b:, a:name)
+    throw 'Key not found: '.a:name
+  endif
   return getbufvar(a:bufnr, a:name)
 endfunction
 
 function! s:funcs.buf_set_var(bufnr, name, val)
-  if !bufloaded(a:bufnr) | return | endif
+  call s:check_bufnr(a:bufnr)
   call setbufvar(a:bufnr, a:name, a:val)
+  return v:null
 endfunction
 
 function! s:funcs.buf_del_var(bufnr, name)
-  if bufnr == bufnr('%')
+  call s:check_bufnr(a:bufnr)
+  if a:bufnr == bufnr('%')
     execute 'unlet! b:'.a:name
-  elseif exists('*win_execute')
-    let winid = coc#compat#buf_win_id(a:bufnr)
-    if winid != -1
-      call win_execute(winid, 'unlet! b:'.a:name)
-    endif
+  else
+    call s:buf_execute(a:bufnr, ['unlet! b:'.a:name])
   endif
-endfunction
-
-function! s:funcs.buf_get_option(bufnr, name)
-  return getbufvar(a:bufnr, '&'.a:name)
-endfunction
-
-function! s:funcs.buf_get_name(bufnr)
-  return bufname(a:bufnr)
+  return v:null
 endfunction
 " }}
 
 " window methods {{
 function! s:funcs.win_get_buf(winid)
+  call s:check_winid(a:winid)
   return winbufnr(a:winid)
 endfunction
 
-function! s:funcs.win_get_position(win_id) abort
-  let [row, col] = win_screenpos(a:win_id)
+function! s:funcs.win_set_buf(winid, bufnr) abort
+  call s:check_winid(a:winid)
+  call s:check_bufnr(a:bufnr)
+  call s:win_execute(a:winid, 'buffer '.a:bufnr)
+  return v:null
+endfunction
+
+function! s:funcs.win_get_position(winid) abort
+  let [row, col] = win_screenpos(a:winid)
   if row == 0 && col == 0
-    throw 'Invalid window '.a:win_id
+    throw 'Invalid window '.a:winid
   endif
   return [row - 1, col - 1]
 endfunction
 
-function! s:funcs.win_get_height(win_id) abort
-  return winheight(a:win_id)
+function! s:funcs.win_set_height(winid, height) abort
+  call s:check_winid(a:winid)
+  call s:win_execute(a:winid, 'resize '.a:height)
+  return v:null
 endfunction
 
-function! s:funcs.win_get_width(win_id) abort
-  return winwidth(a:win_id)
+function! s:funcs.win_get_height(winid) abort
+  call s:check_winid(a:winid)
+  return winheight(a:winid)
 endfunction
 
-if exists('*win_execute')
-  function! s:win_execute(win_id, cmd, ...) abort
-    let ref = get(a:000, 0, v:null)
-    let cmd = ref is v:null ? a:cmd : 'let ref["out"] = ' . a:cmd
-    call win_execute(a:win_id, cmd)
-  endfunction
-else
-  function! s:win_execute(win_id, cmd, ...) abort
-    let ref = get(a:000, 0, v:null)
-    let cmd = ref is v:null ? a:cmd : 'let ref["out"] = ' . a:cmd
-    let winid = win_getid()
-    if winid == a:win_id
-      execute cmd
-    else
-      let goto_status = win_gotoid(a:win_id)
-      if !goto_status
-        return
-      endif
-      execute cmd
-      call win_gotoid(winid)
-    endif
-  endfunction
-endif
+function! s:funcs.win_set_width(winid, width) abort
+  call s:check_winid(a:winid)
+  call s:win_execute(a:winid, 'vertical resize '.a:width)
+  return v:null
+endfunction
 
-function! s:get_tabnr(winid) abort
+function! s:funcs.win_get_width(winid) abort
+  call s:check_winid(a:winid)
+  return winwidth(a:winid)
+endfunction
+
+function! s:funcs.win_set_cursor(winid, pos) abort
+  call s:check_winid(a:winid)
+  let [line, col] = a:pos
+  call s:win_execute(a:winid, 'call cursor('.line.','.(col + 1).')')
+  return v:null
+endfunction
+
+function! s:funcs.win_get_cursor(winid) abort
+  call s:check_winid(a:winid)
   let ref = {}
-  call s:win_execute(a:winid, 'tabpagenr()', ref)
-  return get(ref, 'out', 0)
-endfunction
-
-function! s:funcs.win_get_cursor(win_id) abort
-  let ref = {}
-  call s:win_execute(a:win_id, "[line('.'), col('.')-1]", ref)
+  call s:win_execute(a:winid, "[line('.'), col('.')-1]", ref)
   return get(ref, 'out', [1, 0])
 endfunction
 
-function! s:funcs.win_get_var(win_id, name, ...) abort
-  let tabnr = s:get_tabnr(a:win_id)
-  if tabnr
-    return gettabwinvar(tabnr, a:win_id, a:name, get(a:, 1, v:null))
-  endif
-  throw 'window '.a:win_id. ' not a visible window'
-endfunction
-
-function! s:funcs.win_set_width(win_id, width) abort
-  call s:win_execute(a:win_id, 'vertical resize '.a:width)
-endfunction
-
-function! s:funcs.win_set_buf(win_id, buf_id) abort
-  call s:win_execute(a:win_id, 'buffer '.a:buf_id)
-endfunction
-
-function! s:funcs.win_get_option(win_id, name) abort
-  let tabnr = s:get_tabnr(a:win_id)
-  if tabnr
-    return gettabwinvar(tabnr, a:win_id, '&'.a:name)
-  endif
-  throw 'window '.a:win_id. ' not a valid window'
-endfunction
-
-function! s:funcs.win_set_height(win_id, height) abort
-  return s:win_execute(a:win_id, 'resize '.a:height)
-endfunction
-
-function! s:funcs.win_set_option(win_id, name, value) abort
+function! s:funcs.win_set_option(winid, name, value) abort
+  let tabnr = s:get_tabnr(a:winid)
   let val = a:value
   if val is v:true
     let val = 1
   elseif val is v:false
     let val = 0
   endif
-  let tabnr = s:get_tabnr(a:win_id)
-  if tabnr
-    call settabwinvar(tabnr, a:win_id, '&'.a:name, val)
-  else
-    throw 'window '.a:win_id. ' not a valid window'
-  endif
+  call settabwinvar(tabnr, a:winid, '&'.a:name, val)
+  return v:null
 endfunction
 
-function! s:funcs.win_set_var(win_id, name, value) abort
-  let tabnr = s:get_tabnr(a:win_id)
-  if tabnr
-    call settabwinvar(tabnr, a:win_id, a:name, a:value)
-  else
-    throw "Invalid window id ".a:win_id
-  endif
+function! s:funcs.win_get_option(winid, name) abort
+  let tabnr = s:get_tabnr(a:winid)
+  return gettabwinvar(tabnr, a:winid, '&'.a:name)
 endfunction
 
-function! s:funcs.win_del_var(win_id, name) abort
-  call s:win_execute(a:win_id, 'unlet! w:'.a:name)
+function! s:funcs.win_get_var(winid, name, ...) abort
+  let tabnr = s:get_tabnr(a:winid)
+  return gettabwinvar(tabnr, a:winid, a:name, get(a:, 1, v:null))
 endfunction
 
-function! s:funcs.win_is_valid(win_id) abort
-  let info = getwininfo(a:win_id)
+function! s:funcs.win_set_var(winid, name, value) abort
+  let tabnr = s:get_tabnr(a:winid)
+  call settabwinvar(tabnr, a:winid, a:name, a:value)
+  return v:null
+endfunction
+
+function! s:funcs.win_del_var(winid, name) abort
+  call s:win_execute(a:winid, 'unlet! w:'.a:name)
+  return v:null
+endfunction
+
+function! s:funcs.win_is_valid(winid) abort
+  let info = getwininfo(a:winid)
   return empty(info) ? v:false : v:true
 endfunction
 
-function! s:funcs.win_get_number(win_id) abort
-  let info = getwininfo(a:win_id)
+function! s:funcs.win_get_number(winid) abort
+  let info = getwininfo(a:winid)
   if empty(info)
-    throw 'Invalid window id '.a:win_id
+    throw 'Invalid window id '.a:winid
   endif
   return info[0]['winnr']
 endfunction
 
-function! s:funcs.win_set_cursor(win_id, pos) abort
-  let [line, col] = a:pos
-  call s:win_execute(a:win_id, 'call cursor('.line.','.(col + 1).')')
-endfunction
-
-function! s:funcs.win_close(win_id, ...) abort
+function! s:funcs.win_close(winid, ...) abort
   let force = get(a:, 1, 0)
-  call s:win_execute(a:win_id, 'close'.(force ? '!' : ''))
+  call s:win_execute(a:winid, 'close'.(force ? '!' : ''))
+  return v:null
 endfunction
 
-function! s:funcs.win_get_tabpage(win_id) abort
-  let tabnr = s:get_tabnr(a:win_id)
-  if !tabnr
-    throw 'Invalid window id '.a:win_id
-  endif
-  return tabnr
+function! s:funcs.win_get_tabpage(winid) abort
+  return s:get_tabnr(a:winid)
 endfunction
 " }}
 
@@ -648,37 +639,37 @@ function! s:funcs.tabpage_get_number(id)
 endfunction
 
 function! s:funcs.tabpage_list_wins(tabnr)
+  call s:check_tabnr(a:tabnr)
   let info = getwininfo()
   return map(filter(info, 'v:val["tabnr"] == a:tabnr'), 'v:val["winid"]')
 endfunction
 
 function! s:funcs.tabpage_get_var(tabnr, name)
+  call s:check_tabnr(a:tabnr)
   return gettabvar(a:tabnr, a:name, v:null)
 endfunction
 
 function! s:funcs.tabpage_set_var(tabnr, name, value)
+  call s:check_tabnr(a:tabnr)
   call settabvar(a:tabnr, a:name, a:value)
+  return v:null
 endfunction
 
 function! s:funcs.tabpage_del_var(tabnr, name)
+  call s:check_tabnr(a:tabnr)
   call settabvar(a:tabnr, a:name, v:null)
+  return v:null
 endfunction
 
 function! s:funcs.tabpage_is_valid(tabnr)
   let max = tabpagenr('$')
-  return a:tabnr <= max
+  return a:tabnr <= max ? v:true : v:false
 endfunction
 
 function! s:funcs.tabpage_get_win(tabnr)
-  let wnr = tabpagewinnr(a:tabnr)
-  return win_getid(wnr, a:tabnr)
-endfunction
-
-function! s:generate_id(bufnr) abort
-  let max = get(s:buffer_id, a:bufnr, s:prop_offset)
-  let id = max + 1
-  let s:buffer_id[a:bufnr] = id
-  return id
+  call s:check_tabnr(a:tabnr)
+  let winnr = tabpagewinnr(a:tabnr)
+  return win_getid(winnr, a:tabnr)
 endfunction
 " }}
 
@@ -725,7 +716,6 @@ function! coc#api#notify(method, args) abort
   try
     call call(s:funcs[a:method], a:args)
   catch /.*/
-    let g:b = v:exception
     call coc#rpc#notify('nvim_error_event', [0, v:exception.' on api "'.a:method.'" '.json_encode(a:args)])
   endtry
 endfunction
