@@ -391,7 +391,8 @@ describe('Window API', () => {
     let valid = await win.valid
     expect(valid).toBe(true)
     let tab = await win.tabpage
-    expect(tab.id).toBe(1)
+    let nr = await tab.number
+    expect(nr).toBe(1)
     let n = await win.number
     expect(n).toBe(1)
     await nvim.command('vs')

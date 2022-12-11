@@ -6238,9 +6238,9 @@ declare module 'coc.nvim' {
    */
   export interface TextEditor {
     /**
-     * The tabpagenr of current editor.
+     * The tabpageid of current editor.
      */
-    readonly tabpagenr: number
+    readonly tabpageid: number
     /**
      * The window id of current editor.
      */

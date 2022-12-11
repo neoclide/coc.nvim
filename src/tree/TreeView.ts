@@ -267,8 +267,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
     return this.winid
   }
 
-  public get targetTabnr(): number | undefined {
-    return window.getTabNumber(this._targetTabId)
+  public get targetTabId(): number | undefined {
+    return this._targetTabId
   }
 
   public get targetWinId(): number | undefined {
@@ -907,10 +907,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this._creating = true
     let { nvim } = this
     let oldWinId = this.winid
-    let [bufnr, windowId, tabnr, loaded] = await nvim.eval(`[bufnr("%"),win_getid(),tabpagenr(),bufloaded(${this.bufnr || -1})]`) as [number, number, number, number]
+    let [bufnr, windowId, loaded] = await nvim.eval(`[bufnr("%"),win_getid(),bufloaded(${this.bufnr || -1})]`) as [number, number, number]
+    let tabpage = await nvim.tabpage
     this._targetBufnr = bufnr
     this._targetWinId = windowId
-    this._targetTabId = window.getTabId(tabnr)
+    this._targetTabId = tabpage.id
     if (!loaded) this.bufnr = undefined
     let create = this.bufnr == null
     let winid = await nvim.call('coc#window#find', ['cocViewId', this.viewId])

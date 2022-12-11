@@ -104,7 +104,7 @@ function! coc#window#is_float(winid) abort
       endtry
     endif
     return 0
-  elseif exists('*nvim_win_get_config')
+  else
     let config = nvim_win_get_config(a:winid)
     return !empty(config) && !empty(get(config, 'relative', ''))
   endif

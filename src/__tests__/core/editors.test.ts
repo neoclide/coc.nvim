@@ -30,7 +30,7 @@ describe('editors', () => {
 
   function assertEditor(editor: TextEditor, tabpagenr: number, winid: number) {
     expect(editor).toBeDefined()
-    expect(editor.tabpagenr).toBe(tabpagenr)
+    expect(editor.tabpageid).toBe(tabpagenr)
     expect(editor.winid).toBe(winid)
   }
 
@@ -70,19 +70,22 @@ describe('editors', () => {
 
   it('should change active editor on edit', async () => {
     await nvim.call('win_getid')
-    let fn = jest.fn()
-    window.onDidChangeVisibleTextEditors(() => {
-      fn()
-    }, null, disposables)
+    let n = 0
     let promise = new Promise<TextEditor>(resolve => {
+      window.onDidChangeVisibleTextEditors(() => {
+        n++
+      }, null, disposables)
       editors.onDidChangeActiveTextEditor(e => {
+        n++
         resolve(e)
       })
     })
     await nvim.command('edit foo')
     let editor = await promise
     expect(editor.document.uri).toMatch('foo')
-    expect(fn).toBeCalled()
+    await helper.waitValue(() => {
+      return n
+    }, 2)
   })
 
   it('should change active editor on window switch', async () => {
@@ -148,22 +151,35 @@ describe('editors', () => {
     expect(editors.visibleTextEditors.length).toBe(2)
   })
 
-  it('should have current tabnr after tab changed', async () => {
+  it('should have current tabpageid after tab changed', async () => {
     await nvim.command('tabe')
     await helper.waitValue(() => {
       return editors.visibleTextEditors.length
     }, 2)
-    let editor = editors.visibleTextEditors.find(o => o.tabpagenr == 2)
+    let ids: number[] = []
+    editors.visibleTextEditors.forEach(editor => {
+      ids.push(editor.tabpageid)
+    })
+    let editor = editors.visibleTextEditors[editors.visibleTextEditors.length - 1]
+    let previousId = editor.tabpageid
     await nvim.command('normal! 1gt')
     await nvim.command('tabe')
     await helper.waitValue(() => {
       return editors.visibleTextEditors.length
     }, 3)
-    expect(editor.tabpagenr).toBe(3)
+    expect(editor.tabpageid).toBe(previousId)
+    let tid: number
+    let disposable = editors.onDidTabClose(id => {
+      tid = id
+    })
     await nvim.command('tabc')
     await helper.waitValue(() => {
       return editors.visibleTextEditors.length
     }, 2)
-    expect(editor.tabpagenr).toBe(2)
+    disposable.dispose()
+    expect(editor.tabpageid).toBe(previousId)
+    expect(tid).toBeDefined()
+    editor = editors.visibleTextEditors.find(o => o.tabpageid == tid)
+    expect(editor).toBeUndefined()
   })
 })

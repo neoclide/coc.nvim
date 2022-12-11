@@ -401,7 +401,7 @@ endfunction
 
 function! coc#util#get_editoroption(winid) abort
   let info = get(getwininfo(a:winid), 0, v:null)
-  if empty(info) || coc#float#valid(a:winid)
+  if empty(info) || coc#window#is_float(a:winid)
     return v:null
   endif
   let bufnr = info['bufnr']
@@ -417,13 +417,33 @@ function! coc#util#get_editoroption(winid) abort
   return {
         \ 'bufnr': bufnr,
         \ 'winid': a:winid,
-        \ 'winids': map(getwininfo(), 'v:val["winid"]'),
-        \ 'tabpagenr': info['tabnr'],
+        \ 'tabpageid': coc#util#tabnr_id(info['tabnr']),
         \ 'winnr': winnr(),
         \ 'visibleRanges': s:visible_ranges(a:winid),
         \ 'tabSize': tabSize,
         \ 'insertSpaces': getbufvar(bufnr, '&expandtab') ? v:true : v:false
         \ }
+endfunction
+
+function! coc#util#tabnr_id(tabnr) abort
+  return s:is_vim ? coc#api#get_tabid(a:tabnr) : nvim_list_tabpages()[a:tabnr - 1]
+endfunction
+
+function! coc#util#editor_winids() abort
+  let winids = []
+  for info in getwininfo()
+    if !coc#window#is_float(info['winid'])
+      call add(winids, info['winid'])
+    endif
+  endfor
+  return winids
+endfunction
+
+function! coc#util#tabpages() abort
+  if s:is_vim
+    return coc#api#exec('list_tabpages', [])
+  endif
+  return nvim_list_tabpages()
 endfunction
 
 function! coc#util#getpid()

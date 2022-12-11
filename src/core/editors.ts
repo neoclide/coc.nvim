@@ -1,23 +1,21 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Emitter, Event } from '../util/protocol'
 import { Range } from 'vscode-languageserver-types'
 import events from '../events'
-import Document from '../model/document'
-import Documents from './documents'
-import type { Tabs } from './tabs'
 import { createLogger } from '../logger'
+import Document from '../model/document'
+import { Disposable, Emitter, Event } from '../util/protocol'
+import Documents from './documents'
 const logger = createLogger('core-editors')
 
 interface EditorOption {
   bufnr: number
   winid: number
-  tabpagenr: number
+  tabpageid: number
   winnr: number
   visibleRanges: [number, number][]
   tabSize: number
   insertSpaces: boolean
-  winids: number[]
 }
 
 export interface TextEditorOptions {
@@ -26,7 +24,8 @@ export interface TextEditorOptions {
 }
 
 export interface TextEditor {
-  readonly tabpagenr: number
+  readonly id: string
+  readonly tabpageid: number
   readonly winid: number
   readonly winnr: number
   readonly document: Document
@@ -37,14 +36,17 @@ export interface TextEditor {
 export default class Editors {
   private disposables: Disposable[] = []
   private winid: number
-  private previousId: string
+  private previousId: string | undefined
   private nvim: Neovim
   private editors: Map<number, TextEditor> = new Map()
+  private tabIds: Set<number> = new Set()
+  private readonly _onDidTabClose = new Emitter<number>()
   private readonly _onDidChangeActiveTextEditor = new Emitter<TextEditor | undefined>()
   private readonly _onDidChangeVisibleTextEditors = new Emitter<ReadonlyArray<TextEditor>>()
+  public readonly onDidTabClose: Event<number> = this._onDidTabClose.event
   public readonly onDidChangeActiveTextEditor: Event<TextEditor | undefined> = this._onDidChangeActiveTextEditor.event
   public readonly onDidChangeVisibleTextEditors: Event<ReadonlyArray<TextEditor>> = this._onDidChangeVisibleTextEditors.event
-  constructor(private documents: Documents, private readonly tabs: Tabs) {
+  constructor(private documents: Documents) {
   }
 
   public get activeTextEditor(): TextEditor | undefined {
@@ -55,32 +57,54 @@ export default class Editors {
     return Array.from(this.editors.values())
   }
 
-  private onChange(editor: TextEditor | undefined): void {
-    let id = `${editor.winid}-${editor.document.bufnr}-${editor.document.uri}`
-    if (id == this.previousId) return
+  private onChangeCurrent(editor: TextEditor | undefined): void {
+    let id = editor.id
+    if (id === this.previousId) return
     this.previousId = id
     this._onDidChangeActiveTextEditor.fire(editor)
   }
 
   public async attach(nvim: Neovim): Promise<void> {
     this.nvim = nvim
-    let { documents } = this
-    let doc = documents.getDocument(documents.bufnr)
-    if (doc && doc.winid > 0) {
-      this.winid = doc.winid
-      await this.createTextEditor(this.winid)
-    }
+    let [winid, winids] = await nvim.eval(`[win_getid(),coc#util#editor_winids()]`) as [number, number[]]
+    this.winid = winid
+    await Promise.allSettled(winids.map(winid => {
+      return this.createTextEditor(winid)
+    }))
+    events.on('TabNew', (tabid: number) => {
+      this.tabIds.add(tabid)
+    }, null, this.disposables)
+    events.on('TabClosed', (ids: number[]) => {
+      let changed = false
+      for (let editor of this.visibleTextEditors) {
+        if (!ids.includes(editor.tabpageid)) {
+          changed = true
+          this.editors.delete(editor.winid)
+        }
+      }
+      for (let id of Array.from(this.tabIds)) {
+        if (!ids.includes(id)) this._onDidTabClose.fire(id)
+      }
+      this.tabIds = new Set(ids)
+      if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
+    }, null, this.disposables)
     events.on('WinEnter', (winid: number) => {
       this.winid = winid
       let editor = this.editors.get(winid)
-      if (editor) this.onChange(editor)
+      if (editor) this.onChangeCurrent(editor)
     }, null, this.disposables)
     events.on('CursorHold', async () => {
-      let [winid, buftype, isFloat] = await nvim.eval(`[win_getid(),&buftype,coc#window#is_float(win_getid())]`) as [number, string, number]
+      let [winid, winids] = await nvim.eval(`[win_getid(),coc#util#editor_winids()]`) as [number, number[]]
+      this.winid = winid
       let changed = false
-      if (!isFloat && ['', 'acwrite'].includes(buftype) && !this.editors.has(winid)) {
-        let created = await this.createTextEditor(winid)
-        if (created) changed = true
+      let curr = Array.from(this.editors.keys())
+      await Promise.all(winids.filter(id => !curr.includes(id)).map(winid => {
+        return this.createTextEditor(winid).then(created => {
+          if (created) changed = true
+        })
+      }))
+      if (this.checkEditors(winids)) {
+        changed = true
       }
       if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
     }, null, this.disposables)
@@ -92,33 +116,34 @@ export default class Editors {
     }, null, this.disposables)
     events.on('BufWinEnter', async (_: number, winid: number) => {
       this.winid = winid
-      await this.createTextEditor(winid, true)
+      let changed = await this.createTextEditor(winid)
+      if (changed) this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
     }, null, this.disposables)
   }
 
-  private async createTextEditor(winid: number, check = false): Promise<boolean> {
+  public checkEditors(winids: number[]): boolean {
+    let changed = false
+    for (let winid of Array.from(this.editors.keys())) {
+      if (!winids.includes(winid)) {
+        changed = true
+        this.editors.delete(winid)
+      }
+    }
+    return changed
+  }
+
+  private async createTextEditor(winid: number): Promise<boolean> {
     let { documents, nvim } = this
     let opts = await nvim.call('coc#util#get_editoroption', [winid]) as EditorOption
     if (!opts) return false
-    let changed = false
-    if (check) {
-      for (let winid of this.editors.keys()) {
-        if (!opts.winids.includes(winid)) {
-          changed = true
-          this.editors.delete(winid)
-        }
-      }
-    }
+    this.tabIds.add(opts.tabpageid)
     let doc = documents.getDocument(opts.bufnr)
     if (doc) {
       let editor = this.fromOptions(opts, doc)
       this.editors.set(winid, editor)
-      if (winid == this.winid) this.onChange(editor)
-      this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
-      logger.debug('editor created winid & bufnr & tabnr: ', winid, opts.bufnr, opts.tabpagenr)
+      if (winid == this.winid) this.onChangeCurrent(editor)
+      logger.debug('editor created winid & bufnr & tabpageid: ', winid, opts.bufnr, opts.tabpageid)
       return true
-    } else if (changed) {
-      this._onDidChangeVisibleTextEditors.fire(this.visibleTextEditors)
     }
     logger.error(`document not found for window: ${winid}`)
     return false
@@ -126,12 +151,9 @@ export default class Editors {
 
   private fromOptions(opts: EditorOption, document: Document): TextEditor {
     let { visibleRanges } = opts
-    let { tabs } = this
-    let tid = tabs.getTabId(opts.tabpagenr)
     return {
-      get tabpagenr() {
-        return tabs.getTabNumber(tid)
-      },
+      id: `${opts.tabpageid}-${opts.winid}-${document.uri}`,
+      tabpageid: opts.tabpageid,
       winid: opts.winid,
       winnr: opts.winnr,
       document,

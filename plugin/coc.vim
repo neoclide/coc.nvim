@@ -362,6 +362,9 @@ function! s:Enable(initialize)
   sign define CocCurrentLine linehl=CocMenuSel
   sign define CocListCurrent linehl=CocListLine
   sign define CocTreeSelected linehl=CocTreeSelected
+  if s:is_vim
+    call coc#api#tabpage_ids()
+  endif
 
   augroup coc_nvim
     autocmd!
@@ -379,6 +382,7 @@ function! s:Enable(initialize)
         autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
       endif
       autocmd CursorMoved         list:///* call coc#list#select(bufnr('%'), line('.'))
+      autocmd TabNew              * call coc#api#tabpage_ids()
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
@@ -396,8 +400,8 @@ function! s:Enable(initialize)
     if exists('##WinScrolled')
       autocmd WinScrolled       * call s:HandleWinScrolled(+expand('<amatch>'))
     endif
-    autocmd TabNew              * call s:Autocmd('TabNew', tabpagenr())
-    autocmd TabClosed           * call s:Autocmd('TabClosed', +expand('<afile>'))
+    autocmd TabNew              * call s:Autocmd('TabNew', coc#util#tabnr_id(tabpagenr()))
+    autocmd TabClosed           * call s:Autocmd('TabClosed', coc#util#tabpages())
     autocmd WinLeave            * call s:Autocmd('WinLeave', win_getid())
     autocmd WinEnter            * call s:Autocmd('WinEnter', win_getid())
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), bufwinid(+expand('<abuf>')))
