@@ -1591,7 +1591,7 @@ describe('diff', () => {
 
   describe('timing', () => {
     it('should trace', async () => {
-      let t = createTiming('name', 1, true)
+      let t = createTiming('name', 1)
       t.start()
       t.start('label')
       await helper.wait(10)

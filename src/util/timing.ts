@@ -10,7 +10,7 @@ interface Timing {
 /**
  * Trace the duration and show error on timeout
  */
-export function createTiming(name: string, timeout?: number, trace = !global.__TEST__): Timing {
+export function createTiming(name: string, timeout?: number): Timing {
   let start: number
   let timer: NodeJS.Timer
   let _label: string
@@ -28,7 +28,7 @@ export function createTiming(name: string, timeout?: number, trace = !global.__T
     },
     stop() {
       clearTimeout(timer)
-      if (trace) logger.trace(`${name}${_label ? ` ${_label}` : ''} cost:`, Date.now() - start)
+      logger.trace(`${name}${_label ? ` ${_label}` : ''} cost:`, Date.now() - start)
     }
   }
 }
