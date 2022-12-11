@@ -269,7 +269,7 @@ export class Sources {
    * @returns {ISource[]}
    */
   public getNormalSources(filetype: string, uri: string): ISource[] {
-    let languageIds = filetype ? filetype.split('.') : []
+    let languageIds = filetype.split('.')
     let res = this.sources.filter(source => {
       let { filetypes, triggerOnly, documentSelector, enable } = source
       if (!enable || triggerOnly || (filetypes && !intersect(filetypes, languageIds))) return false
