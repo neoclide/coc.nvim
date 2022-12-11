@@ -6756,7 +6756,7 @@ declare module 'coc.nvim' {
     /**
      * Trigger coc.nvim's completion at current cursor position.
      */
-    export function executeCommand(command: 'editor.action.triggerSuggest'): Promise<void>
+    export function executeCommand(command: 'editor.action.triggerSuggest', source?: string): Promise<void>
 
     /**
      * Trigger signature help at current cursor position.

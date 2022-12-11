@@ -128,8 +128,7 @@ function! coc#_complete() abort
 endfunction
 
 function! coc#start(...)
-  let opt = coc#util#get_complete_option()
-  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
+  call CocActionAsync('startCompletion', get(a:, 1, {}))
   return ''
 endfunction
 

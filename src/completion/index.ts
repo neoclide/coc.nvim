@@ -2,6 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import commands from '../commands'
 import type { IConfigurationChangeEvent } from '../configuration/types'
 import events, { InsertChange, PopupChangeEvent } from '../events'
 import { createLogger } from '../logger'
@@ -18,7 +19,6 @@ import window from '../window'
 import workspace from '../workspace'
 import Complete from './complete'
 import Floating from './floating'
-import commands from '../commands'
 import PopupMenu, { PopupMenuConfig } from './pum'
 import sources from './sources'
 import { CompleteConfig, CompleteDoneOption, CompleteFinishKind, CompleteItem, CompleteOption, DurationCompleteItem, InsertMode, ISource, SortMethod } from './types'
@@ -77,9 +77,7 @@ export class Completion implements Disposable {
     }, null, this.disposables)
     this.nvim.call('coc#ui#check_pum_keymappings', [this.config.autoTrigger], true)
     commands.registerCommand('editor.action.triggerSuggest', async (source?: string) => {
-      let opt = await this.nvim.call('coc#util#get_complete_option') as CompleteOption
-      let arr = Is.string(source) ? [sources.getSource(source)] : undefined
-      await this.startCompletion(opt, arr)
+      await this.startCompletion({ source })
     }, this, true)
   }
 
@@ -187,8 +185,21 @@ export class Completion implements Disposable {
     let doc = workspace.getDocument(workspace.bufnr)
     this.loadLocalConfig(doc)
   }
+  public async startCompletion(opt?: { source?: string }): Promise<void> {
+    clearTimeout(this.triggerTimer)
+    let sourceList: ISource[]
+    if (Is.string(opt.source)) {
+      sourceList = toArray(sources.getSource(opt.source))
+    }
+    let bufnr = await this.nvim.call('bufnr', ['%']) as number
+    let doc = workspace.getAttachedDocument(bufnr)
+    let info = await this.nvim.call('coc#util#change_info') as InsertChange
+    info.pre = byteSlice(info.line, 0, info.col - 1)
+    const option = this.getCompleteOption(doc, info)
+    await this._startCompletion(option, sourceList)
+  }
 
-  public async startCompletion(option: CompleteOption, sourceList?: ISource[]): Promise<void> {
+  private async _startCompletion(option: CompleteOption, sourceList?: ISource[]): Promise<void> {
     this._debounced.clear()
     let doc = workspace.getAttachedDocument(option.bufnr)
     option.filetype = doc.filetype
@@ -300,17 +311,25 @@ export class Completion implements Disposable {
   }
 
   private async triggerCompletion(doc: Document, info: InsertChange, sources?: ISource[]): Promise<boolean> {
-    let { minTriggerInputLength, asciiCharactersOnly, autoTrigger } = this.config
-    if (autoTrigger === 'none') return false
+    let { minTriggerInputLength } = this.config
     let { pre } = info
     // check trigger
-    if (!sources) {
-      let shouldTrigger = this.shouldTrigger(doc, pre)
-      if (!shouldTrigger) return false
+    if (!sources && !this.shouldTrigger(doc, pre)) return false
+    const option = this.getCompleteOption(doc, info)
+    if (sources == null && option.input.length < minTriggerInputLength) {
+      logger.trace(`Suggest not triggered with input "${option.input}", minimal trigger input length: ${minTriggerInputLength}`)
+      return false
     }
-    let input = getInput(doc, pre, asciiCharactersOnly)
+    if (checkIgnoreRegexps(this.config.ignoreRegexps, option.input)) return false
+    await this._startCompletion(option, sources)
+    return true
+  }
+
+  private getCompleteOption(doc: Document, info: InsertChange): CompleteOption {
+    let { pre } = info
+    let input = getInput(doc, info.pre, this.config.asciiCharactersOnly)
     let followWord = doc.getStartWord(info.line.slice(info.pre.length))
-    let option: CompleteOption = {
+    return {
       input,
       position: Position.create(info.lnum - 1, info.pre.length),
       line: info.line,
@@ -326,13 +345,6 @@ export class Completion implements Disposable {
       filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',
       triggerCharacter: toText(pre[pre.length - 1])
     }
-    if (sources == null && input.length < minTriggerInputLength) {
-      logger.trace(`Suggest not triggered with input "${input}", minimal trigger input length: ${minTriggerInputLength}`)
-      return false
-    }
-    if (checkIgnoreRegexps(this.config.ignoreRegexps, option.input)) return false
-    await this.startCompletion(option, sources)
-    return true
   }
 
   public stop(close: boolean, kind: CompleteFinishKind = CompleteFinishKind.Normal): void {
