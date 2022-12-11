@@ -2,6 +2,7 @@
 
 - Allow configuration of `window` scoped used by folder configuration file, like
   VSCode.
+- Add location support for `getHover` action.
 
 # 2022-12-05
 

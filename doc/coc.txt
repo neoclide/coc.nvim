@@ -2532,10 +2532,17 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	same behavior as "jumpDefinition"
 
-"getHover"						*CocAction('getHover')*
+"getHover" [{hoverLocation}]				*CocAction('getHover')*
 
-	Get documentation text array on current position, returns array of
-	string.
+	Get documentation text array on {hoverLocation} or current position,
+	returns array of string.
+
+	{hoverLocation} could contains:
+	• bufnr: optional buffer number.
+	• line: 1 based line number.
+	• col: 1 based col number
+
+	Throw error when buffer with bufnr is not attached.
 
 "doHover" [{hoverTarget}]				*CocAction('doHover')*
 
