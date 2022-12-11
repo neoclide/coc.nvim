@@ -1,3 +1,8 @@
+# 2022-12-12
+
+- Allow configuration of `window` scoped used by folder configuration file, like
+  VSCode.
+
 # 2022-12-05
 
 - Add `switchConsole` method to `LanguageClient`
