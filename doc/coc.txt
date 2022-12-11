@@ -270,13 +270,13 @@ Configuration scope:~
 
 A configuration could be one of three different configuration scopes:
 
-  • `"application"` the configuration could only be changed in user configuration
+  • `"application"` the configuration could only be used in user configuration
     file.
 
-  • `"resource"` the configuration could be changed in user and workspace folder
+  • `"resource"` the configuration could be used in user and workspace folder
     configuration file.
 
-  • `"language-overridable"` the configuration could be changed in user and
+  • `"language-overridable"` the configuration could be used in user and
     workspace folder configuration file, and can be use used in language scoped
     configuration section like `[typescript][json]`.  For example: >
 

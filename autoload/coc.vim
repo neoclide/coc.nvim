@@ -50,30 +50,6 @@ function! coc#_insert_key(method, key, ...) abort
   return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
 
-" Deprecated, not used any more
-function! coc#_complete() abort
-  let items = get(g:coc#_context, 'candidates', [])
-  let preselect = get(g:coc#_context, 'preselect', -1)
-  let startcol = g:coc#_context.start + 1
-  if s:select_api && len(items) && preselect != -1
-    noa call complete(startcol, items)
-    call nvim_select_popupmenu_item(preselect, v:false, v:false, {})
-    " use <cmd> specific key to preselect item at once
-    call feedkeys("\<Cmd>\<CR>" , 'i')
-  else
-    if pumvisible()
-      let g:coc_disable_complete_done = 1
-    endif
-    call complete(startcol, items)
-  endif
-  return ''
-endfunction
-
-" Could be used by coc extensions
-function! coc#_cancel(...)
-  call coc#pum#close()
-endfunction
-
 " used for statusline
 function! coc#status()
   let info = get(b:, 'coc_diagnostic_info', {})
@@ -132,10 +108,33 @@ function! coc#do_notify(id, method, result)
   endif
 endfunction
 
-function! coc#start(...)
-  let opt = coc#util#get_complete_option()
-  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
+" Deprecated, not used any more
+function! coc#_complete() abort
+  let items = get(g:coc#_context, 'candidates', [])
+  let preselect = get(g:coc#_context, 'preselect', -1)
+  let startcol = g:coc#_context.start + 1
+  if s:select_api && len(items) && preselect != -1
+    noa call complete(startcol, items)
+    call nvim_select_popupmenu_item(preselect, v:false, v:false, {})
+    " use <cmd> specific key to preselect item at once
+    call feedkeys("\<Cmd>\<CR>" , 'i')
+  else
+    if pumvisible()
+      let g:coc_disable_complete_done = 1
+    endif
+    call complete(startcol, items)
+  endif
   return ''
+endfunction
+
+function! coc#start(...)
+  call CocActionAsync('startCompletion', get(a:, 1, {}))
+  return ''
+endfunction
+
+" Could be used by coc extensions
+function! coc#_cancel(...)
+  call coc#pum#close()
 endfunction
 
 function! coc#refresh() abort
@@ -143,6 +142,5 @@ function! coc#refresh() abort
 endfunction
 
 function! coc#_select_confirm() abort
-  call timer_start(1, { -> coc#pum#select_confirm()})
-  return s:is_vim || has('nvim-0.5.0') ? "\<Ignore>" : "\<space>\<bs>"
+  return "\<C-r>=coc#pum#select_confirm()\<CR>"
 endfunction
