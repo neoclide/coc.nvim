@@ -1445,7 +1445,7 @@ TypeHierarchy~
 ------------------------------------------------------------------------------
 Workspace~
 							*coc-config-workspace*
-"workspace.rootPatterns"				*coc-configu-workspace-rootPatterns*
+"workspace.rootPatterns"				*coc-config-workspace-rootPatterns*
 
 	Root patterns to resolve workspaceFolder from parent folders of opened
 	files, resolved from up to down.
