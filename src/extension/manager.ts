@@ -341,7 +341,7 @@ export class ExtensionManager {
     let props = getProperties(configuration ?? {})
     if (!isEmpty(props)) {
       // /configuration
-      let properties = convertProperties(props, ConfigurationScope.RESOURCE)
+      let properties = convertProperties(props, ConfigurationScope.WINDOW)
       if (Is.objectLiteral(configuration.definitions)) {
         let prefix = id.replace(/[^\w]/g, '')
         const addPrefix = (obj: object, key: string) => {

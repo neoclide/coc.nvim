@@ -479,6 +479,10 @@ describe('Registry', () => {
         type: 'string',
         default: ''
       },
+      format: {
+        type: 'string',
+        scope: 'window'
+      },
       'coc.source.name': {
         type: 'string',
         scope: 'resource'
@@ -490,11 +494,12 @@ describe('Registry', () => {
     }
     let res = convertProperties(properties)
     expect(res.foo).toBeDefined()
+    expect(res.format.scope).toBe(ConfigurationScope.WINDOW)
     expect(res.bar.scope).toBe(ConfigurationScope.LANGUAGE_OVERRIDABLE)
     expect(res.resource.scope).toBe(ConfigurationScope.RESOURCE)
     expect(res.window.scope).toBe(ConfigurationScope.WINDOW)
-    expect(res['coc.source.name'].scope).toBe(ConfigurationScope.WINDOW)
-    expect(res['list.source.name'].scope).toBe(ConfigurationScope.WINDOW)
+    expect(res['coc.source.name'].scope).toBe(ConfigurationScope.APPLICATION)
+    expect(res['list.source.name'].scope).toBe(ConfigurationScope.APPLICATION)
   })
 
   it('should parse extension name', () => {
