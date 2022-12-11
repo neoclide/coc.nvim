@@ -15,6 +15,7 @@ let s:max_src_id = 1000
 let s:buffer_id = {}
 " srcId => list of types
 let s:id_types = {}
+let s:tab_id = 1
 
 " helper {{
 " Create a window with bufnr for execute win_execute
@@ -57,10 +58,23 @@ function! s:check_winid(winid) abort
   endif
 endfunction
 
-function! s:check_tabnr(tabnr) abort
-  if a:tabnr != 1 && a:tabnr > tabpagenr('$')
-    throw 'Invalid tabpage id: '.a:tabnr
+function! s:tabid_nr(tid) abort
+  for nr in range(1, tabpagenr('$'))
+    if gettabvar(nr, '__tid', -1) == a:tid
+      return nr
+    endif
+  endfor
+  throw 'Invalid tabpage id: '.a:tid
+endfunction
+
+function! s:tabnr_id(nr) abort
+  let tid = gettabvar(a:nr, '__tid', -1)
+  if tid == -1
+    let tid = s:tab_id
+    call settabvar(a:nr, '__tid', tid)
+    let s:tab_id = s:tab_id + 1
   endif
+  return tid
 endfunction
 
 function! s:generate_id(bufnr) abort
@@ -76,12 +90,19 @@ function! s:win_execute(winid, cmd, ...) abort
   call win_execute(a:winid, cmd)
 endfunction
 
-function! s:get_tabnr(winid) abort
+function! s:win_tabnr(winid) abort
   let info = getwininfo(a:winid)
   if empty(info)
     throw 'Invalid window id: '.a:winid
   endif
-  return info[0]['tabnr']
+  let tabnr = info[0]['tabnr']
+  " popup
+  if tabnr == 0
+    let ref = {}
+    call s:win_execute(a:winid, 'tabpagenr()', ref)
+    return get(ref, 'out', [1, 0])
+  endif
+  return tabnr
 endfunction
 
 function! s:buf_line_count(bufnr) abort
@@ -150,20 +171,14 @@ function! s:funcs.set_current_buf(bufnr) abort
 endfunction
 
 function! s:funcs.set_current_win(winid) abort
-  let [tabnr, winnr] = win_id2tabwin(a:winid)
-  if tabnr == 0
-    throw 'Invalid window id: '.a:winid
-  endif
+  call s:win_tabnr(a:winid)
   call win_gotoid(a:winid)
   return v:null
 endfunction
 
-function! s:funcs.set_current_tabpage(tabnr) abort
-  let max = tabpagenr('$')
-  if a:tabnr <= 0 || a:tabnr > max
-    throw 'Invalid tabpage id: '.a:tabnr
-  endif
-  execute 'normal! '.a:tabnr.'gt'
+function! s:funcs.set_current_tabpage(tid) abort
+  let nr = s:tabid_nr(a:tid)
+  execute 'normal! '.nr.'gt'
   return v:null
 endfunction
 
@@ -287,11 +302,15 @@ function! s:funcs.get_current_win()
 endfunction
 
 function! s:funcs.get_current_tabpage()
-  return tabpagenr()
+  return s:tabnr_id(tabpagenr())
 endfunction
 
 function! s:funcs.list_tabpages()
-  return range(1, tabpagenr('$'))
+  let ids = []
+  for nr in range(1, tabpagenr('$'))
+    call add(ids, s:tabnr_id(nr))
+  endfor
+  return ids
 endfunction
 
 function! s:funcs.get_mode()
@@ -577,7 +596,7 @@ function! s:funcs.win_get_cursor(winid) abort
 endfunction
 
 function! s:funcs.win_set_option(winid, name, value) abort
-  let tabnr = s:get_tabnr(a:winid)
+  let tabnr = s:win_tabnr(a:winid)
   let val = a:value
   if val is v:true
     let val = 1
@@ -589,17 +608,17 @@ function! s:funcs.win_set_option(winid, name, value) abort
 endfunction
 
 function! s:funcs.win_get_option(winid, name) abort
-  let tabnr = s:get_tabnr(a:winid)
+  let tabnr = s:win_tabnr(a:winid)
   return gettabwinvar(tabnr, a:winid, '&'.a:name)
 endfunction
 
 function! s:funcs.win_get_var(winid, name, ...) abort
-  let tabnr = s:get_tabnr(a:winid)
+  let tabnr = s:win_tabnr(a:winid)
   return gettabwinvar(tabnr, a:winid, a:name, get(a:, 1, v:null))
 endfunction
 
 function! s:funcs.win_set_var(winid, name, value) abort
-  let tabnr = s:get_tabnr(a:winid)
+  let tabnr = s:win_tabnr(a:winid)
   call settabwinvar(tabnr, a:winid, a:name, a:value)
   return v:null
 endfunction
@@ -629,47 +648,50 @@ function! s:funcs.win_close(winid, ...) abort
 endfunction
 
 function! s:funcs.win_get_tabpage(winid) abort
-  return s:get_tabnr(a:winid)
+  let nr = s:win_tabnr(a:winid)
+  return s:tabnr_id(nr)
 endfunction
 " }}
 
 " tabpage methods {{
-function! s:funcs.tabpage_get_number(id)
-  return a:id
+function! s:funcs.tabpage_get_number(tid)
+  return s:tabid_nr(a:tid)
 endfunction
 
-function! s:funcs.tabpage_list_wins(tabnr)
-  call s:check_tabnr(a:tabnr)
-  let info = getwininfo()
-  return map(filter(info, 'v:val["tabnr"] == a:tabnr'), 'v:val["winid"]')
+function! s:funcs.tabpage_list_wins(tid)
+  let nr = s:tabid_nr(a:tid)
+  return gettabinfo(nr)[0]['windows']
 endfunction
 
-function! s:funcs.tabpage_get_var(tabnr, name)
-  call s:check_tabnr(a:tabnr)
-  return gettabvar(a:tabnr, a:name, v:null)
+function! s:funcs.tabpage_get_var(tid, name)
+  let nr = s:tabid_nr(a:tid)
+  return gettabvar(nr, a:name, v:null)
 endfunction
 
-function! s:funcs.tabpage_set_var(tabnr, name, value)
-  call s:check_tabnr(a:tabnr)
-  call settabvar(a:tabnr, a:name, a:value)
+function! s:funcs.tabpage_set_var(tid, name, value)
+  let nr = s:tabid_nr(a:tid)
+  call settabvar(nr, a:name, a:value)
   return v:null
 endfunction
 
-function! s:funcs.tabpage_del_var(tabnr, name)
-  call s:check_tabnr(a:tabnr)
-  call settabvar(a:tabnr, a:name, v:null)
+function! s:funcs.tabpage_del_var(tid, name)
+  let nr = s:tabid_nr(a:tid)
+  call settabvar(nr, a:name, v:null)
   return v:null
 endfunction
 
-function! s:funcs.tabpage_is_valid(tabnr)
-  let max = tabpagenr('$')
-  return a:tabnr <= max ? v:true : v:false
+function! s:funcs.tabpage_is_valid(tid)
+  for nr in range(1, tabpagenr('$'))
+    if gettabvar(nr, '__tid', -1) == a:tid
+      return v:true
+    endif
+  endfor
+  return v:false
 endfunction
 
-function! s:funcs.tabpage_get_win(tabnr)
-  call s:check_tabnr(a:tabnr)
-  let winnr = tabpagewinnr(a:tabnr)
-  return win_getid(winnr, a:tabnr)
+function! s:funcs.tabpage_get_win(tid)
+  let nr = s:tabid_nr(a:tid)
+  return win_getid(tabpagewinnr(nr), nr)
 endfunction
 " }}
 
@@ -718,5 +740,19 @@ function! coc#api#notify(method, args) abort
   catch /.*/
     call coc#rpc#notify('nvim_error_event', [0, v:exception.' on api "'.a:method.'" '.json_encode(a:args)])
   endtry
+endfunction
+
+" create id for all tabpages
+function! coc#api#tabpage_ids() abort
+  for nr in range(1, tabpagenr('$'))
+    if gettabvar(nr, '__tid', -1) == -1
+      call settabvar(nr, '__tid', s:tab_id)
+      let s:tab_id = s:tab_id + 1
+    endif
+  endfor
+endfunction
+
+function! coc#api#get_tabid(nr) abort
+  return s:tabnr_id(a:nr)
 endfunction
 " vim: set sw=2 ts=2 sts=2 et tw=78 foldmarker={{,}} foldmethod=marker foldlevel=0:

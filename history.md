@@ -2,6 +2,8 @@
 
 - Allow configuration of `window` scoped used by folder configuration file, like
   VSCode.
+- Add location support for `getHover` action.
+- Use unique id for each tab on vim.
 
 # 2022-12-05
 
