@@ -262,7 +262,7 @@ describe('completion', () => {
     })
 
     it('should trigger on trigger character', async () => {
-      helper.updateConfiguration('suggest.autoTrigger', 'trigger')
+      helper.updateConfiguration('suggest.autoTrigger', 'none')
       let fn = jest.fn()
       let source: ISource = {
         name: 'trigger',
@@ -275,9 +275,12 @@ describe('completion', () => {
         })
       }
       disposables.push(sources.addSource(source))
-      await nvim.input('if')
+      await nvim.input('if.')
       await helper.wait(20)
       expect(fn).toBeCalledTimes(0)
+      helper.updateConfiguration('suggest.autoTrigger', 'trigger')
+      await nvim.input('f')
+      await helper.wait(20)
       await nvim.input('.')
       await helper.waitPopup()
     })

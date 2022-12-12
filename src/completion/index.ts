@@ -310,13 +310,15 @@ export class Completion implements Disposable {
 
   private getTriggerSources(doc: Document, pretext: string): ISource[] {
     let disabled = doc.getVar('disabled_sources', [])
+    if (this.config.autoTrigger === 'none') return []
     return sources.getTriggerSources(pretext, doc.filetype, doc.uri, disabled)
   }
 
   private async triggerCompletion(doc: Document, info: InsertChange, sources?: ISource[]): Promise<boolean> {
-    let { minTriggerInputLength } = this.config
+    let { minTriggerInputLength, autoTrigger } = this.config
     let { pre } = info
     // check trigger
+    if (autoTrigger === 'none') return false
     if (!sources && !this.shouldTrigger(doc, pre)) return false
     const option = this.getCompleteOption(doc, info)
     if (sources == null && option.input.length < minTriggerInputLength) {
