@@ -86,8 +86,9 @@ let defaultDef: NodeDef[] = [
 ]
 
 async function checkLines(arr: string[]): Promise<void> {
-  let lines = await nvim.call('getline', [1, '$'])
-  expect(lines).toEqual(arr)
+  await helper.waitValue(async () => {
+    return await nvim.call('getline', [1, '$'])
+  }, arr)
 }
 
 describe('TreeView', () => {
@@ -107,7 +108,6 @@ describe('TreeView', () => {
       await treeView.show()
       let visible = treeView.visible
       expect(visible).toBe(true)
-      await helper.wait(50)
       await checkLines(['test', '+ a', '+ b', '  g'])
     })
 
@@ -137,7 +137,6 @@ describe('TreeView', () => {
       nodes[1].icon = { text: 'i', hlGroup: 'Title' }
       nodes[2].icon = { text: 'i', hlGroup: 'Title' }
       await treeView.show()
-      await helper.wait(50)
       await checkLines(['test', '+ i a', '+ i b', '  i g'])
     })
   })
@@ -146,13 +145,11 @@ describe('TreeView', () => {
     it('should change open close icon', async () => {
       createTreeView(defaultDef)
       await treeView.show()
-      await helper.wait(50)
       let { configurations } = workspace
       configurations.updateMemoryConfig({
         'tree.openedIcon': '',
         'tree.closedIcon': '',
       })
-      await helper.wait(50)
       await checkLines(['test', ' a', ' b', '  g'])
     })
   })
@@ -386,7 +383,6 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.command('exe 2')
       await nvim.input('t')
-      await helper.wait(50)
       await checkLines([
         'test',
         '- a',
@@ -489,13 +485,11 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.command('exe 2')
       await nvim.input('t')
-      await helper.wait(50)
       await checkLines([
         'test', '- a', '  + c', '    d', '- b', '    e', '    f', '  g'
       ])
       await nvim.command('exe 2')
       await nvim.input('t')
-      await helper.wait(50)
       await checkLines([
         'test', '+ a', '- b', '    e', '    f', '  g'
       ])
@@ -507,7 +501,6 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.command('exe 2')
       await nvim.input('t')
-      await helper.wait(50)
       await checkLines([
         'test',
         '- a',
@@ -518,7 +511,6 @@ describe('TreeView', () => {
       ])
       await nvim.command('exe 3')
       await nvim.input('t')
-      await helper.wait(50)
       await checkLines([
         'test',
         '+ a',
@@ -541,7 +533,6 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.command('exe 6')
       await nvim.input('t')
-      await helper.wait(50)
       await checkLines([
         'test',
         '- a',
@@ -554,7 +545,6 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('M')
-      await helper.wait(50)
       await checkLines([
         'test',
         '+ a',
@@ -574,7 +564,6 @@ describe('TreeView', () => {
       await helper.wait(50)
       await nvim.call('cursor', [2, 1])
       await nvim.input('<LeftRelease>')
-      await helper.wait(50)
       await checkLines([
         'test',
         '- a',
@@ -584,7 +573,6 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('<LeftRelease>')
-      await helper.wait(50)
       await checkLines([
         'test',
         '+ a',
@@ -771,7 +759,6 @@ describe('TreeView', () => {
         ['b', [['f']]],
         ['a', [['c'], ['j']]]
       ])
-      await helper.wait(50)
       await checkLines([
         'test',
         '  h',
@@ -798,7 +785,6 @@ describe('TreeView', () => {
         ['b', [['e'], ['f']]],
         ['g'],
       ])
-      await helper.wait(50)
       await checkLines([
         'test',
         '- a',
@@ -856,7 +842,6 @@ describe('TreeView', () => {
       let nodes = createNodes(defs)
       nodes[0].deprecated = true
       provider.update(nodes)
-      await helper.wait(50)
       await checkLines([
         'test',
         '  a',
@@ -1084,7 +1069,6 @@ describe('TreeView', () => {
       await nvim.input('<down>')
       await helper.wait(50)
       await nvim.input('<cr>')
-      await helper.wait(50)
       await checkLines(['test', 'ab '])
       let curr = treeView.selection[0]
       expect(curr).toBeUndefined()
@@ -1109,7 +1093,6 @@ describe('TreeView', () => {
       await nvim.input('ab')
       await helper.wait(50)
       await nvim.input('<cr>')
-      await helper.wait(50)
       await checkLines(['test', 'ab '])
     })
 
@@ -1118,7 +1101,6 @@ describe('TreeView', () => {
       await nvim.input('a')
       await helper.wait(50)
       await nvim.input('<bs>')
-      await helper.wait(50)
       await checkLines([
         'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
       ])
@@ -1129,7 +1111,6 @@ describe('TreeView', () => {
       await nvim.input('ab')
       await helper.wait(50)
       await nvim.input('<C-u>')
-      await helper.wait(50)
       await checkLines([
         'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
       ])
@@ -1137,8 +1118,8 @@ describe('TreeView', () => {
 
     it('should cancel filter by <esc> and <C-o>', async () => {
       await createFilterTreeView()
+      await helper.waitPrompt()
       await nvim.input('<esc>')
-      await helper.wait(50)
       await checkLines([
         'test',
         '+ a',
@@ -1146,9 +1127,8 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('f')
-      await helper.wait(20)
+      await helper.wait(10)
       await nvim.input('<C-o>')
-      await helper.wait(20)
       await checkLines([
         'test',
         '+ a',
@@ -1172,16 +1152,12 @@ describe('TreeView', () => {
       await nvim.input('f')
       await helper.wait(20)
       await nvim.input('<C-n>')
-      await helper.wait(20)
       await checkLines(['test', 'a ', '  a',])
       await nvim.input('<C-n>')
-      await helper.wait(20)
       await checkLines(['test', 'b ', '  b',])
       await nvim.input('<C-p>')
-      await helper.wait(20)
       await checkLines(['test', 'a ', '  a',])
       await nvim.input('<C-p>')
-      await helper.wait(20)
       await checkLines(['test', 'b ', '  b',])
     })
   })

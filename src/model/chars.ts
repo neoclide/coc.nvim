@@ -4,6 +4,7 @@ import { waitImmediate } from '../util'
 import { intable } from '../util/array'
 import { hasOwnProperty } from '../util/object'
 import { CancellationToken } from '../util/protocol'
+import { isHighSurrogate } from '../util/string'
 
 // Word ranges from vim, tested by '\k' option when '@' in iskeyword option.
 const WORD_RANGES: [number, number][] = [[257, 893], [895, 902], [904, 1369], [1376, 1416], [1418, 1469], [1471, 1471], [1473, 1474], [1476, 1522], [1525, 1547], [1549, 1562], [1564, 1566], [1568, 1641], [1646, 1747], [1749, 1791], [1806, 2403], [2406, 2415], [2417, 3571], [3573, 3662], [3664, 3673], [3676, 3843], [3859, 3897], [3902, 3972], [3974, 4169], [4176, 4346], [4348, 4960], [4969, 5740], [5743, 5759], [5761, 5786], [5789, 5866], [5870, 5940], [5943, 6099], [6109, 6143], [6155, 8191], [10240, 10495], [10649, 10711], [10716, 10747], [10750, 11775], [11904, 12287], [12321, 12335], [12337, 12348], [12350, 64829], [64832, 65071], [65132, 65279], [65296, 65305], [65313, 65338], [65345, 65370], [65382, 65535]]
@@ -11,6 +12,7 @@ const WORD_RANGES: [number, number][] = [[257, 893], [895, 902], [904, 1369], [1
 const MAX_CODE_UNIT = 65535
 
 const chineseRegex = /[\u4e00-\u9fa5]/
+const boundary = 19968
 
 export function getCharCode(str: string): number | undefined {
   if (/^\d+$/.test(str)) return parseInt(str, 10)
@@ -19,8 +21,8 @@ export function getCharCode(str: string): number | undefined {
 }
 
 export function sameScope(a: number, b: number): boolean {
-  if (a <= 255) return b <= 255
-  return b > 255
+  if (a < boundary) return b < boundary
+  return b >= boundary
 }
 
 export function* chineseSegments(text: string): Iterable<string> {
@@ -196,6 +198,7 @@ export class Chars {
 
   public isKeywordCode(code: number): boolean {
     if (code === 32 || code > MAX_CODE_UNIT) return false
+    if (isHighSurrogate(code)) return false
     return this.ranges.includes(code)
   }
 
@@ -211,6 +214,31 @@ export class Chars {
     return true
   }
 
+  public *iterateWords(text: string): Iterable<[number, number]> {
+    let start = -1
+    let prevCode: number | undefined
+    for (let i = 0, l = text.length; i < l; i++) {
+      let code = text.charCodeAt(i)
+      if (this.isKeywordCode(code)) {
+        if (start == -1) {
+          start = i
+        } else if (prevCode !== undefined && !sameScope(prevCode, code)) {
+          yield [start, i]
+          start = i
+        }
+      } else {
+        if (start != -1) {
+          yield [start, i]
+          start = -1
+        }
+      }
+      if (i === l - 1 && start != -1) {
+        yield [start, i + 1]
+      }
+      prevCode = code
+    }
+  }
+
   public matchLine(line: string, min = 2, max = 1024): string[] {
     let res: Set<string> = new Set()
     let l = line.length
@@ -218,10 +246,8 @@ export class Chars {
       line = line.slice(0, max)
       l = max
     }
-    let start = -1
-    let idx = 0
-    const add = (end: number): void => {
-      if (end - start < min) return
+    for (let [start, end] of this.iterateWords(line)) {
+      if (end - start < min) continue
       let word = line.slice(start, end)
       if (chineseRegex.test(word[0])) {
         for (let text of chineseSegments(word)) {
@@ -231,30 +257,6 @@ export class Chars {
         res.add(word)
       }
     }
-    let prevCode: number | undefined
-    for (const codePoint of line) {
-      let code = codePoint.codePointAt(0)
-      if (this.isKeywordCode(code)) {
-        if (start == -1) {
-          start = idx
-        } else if (prevCode !== undefined && !sameScope(prevCode, code)) {
-          add(idx)
-          start = idx
-        }
-      } else {
-        if (start != -1) {
-          add(idx)
-          start = -1
-        }
-      }
-      if (code > MAX_CODE_UNIT) {
-        idx += codePoint.length
-      } else {
-        idx++
-      }
-      prevCode = code
-    }
-    if (start != -1) add(l)
     return Array.from(res)
   }
 
@@ -262,26 +264,15 @@ export class Chars {
     let res: Set<string> = new Set()
     let ts = Date.now()
     for (let line of lines) {
-      if (line.length === 0) continue
-      let str = ''
       if (Date.now() - ts > 15) {
         await waitImmediate()
         ts = Date.now()
       }
-      for (let codePoint of line) {
-        if (token && token.isCancellationRequested) return undefined
-        let code = codePoint.codePointAt(0)
-        let isKeyword = this.isKeywordCode(code)
-        if (isKeyword) {
-          str = str + codePoint
-        } else {
-          if (str.length > 0) {
-            if (str.length >= min && str.length < 48) res.add(str)
-            str = ''
-          }
-        }
-      }
-      if (str.length >= min && str.length < 48) res.add(str)
+      if (token && token.isCancellationRequested) break
+      let arr = this.matchLine(line, min)
+      arr.forEach(word => {
+        res.add(word)
+      })
     }
     return res
   }
@@ -302,27 +293,11 @@ export class Chars {
         await waitImmediate()
         ts = Date.now()
       }
-      let start = -1
-      const add = (end: number) => {
+      for (let [start, end] of this.iterateWords(text)) {
         let word = text.slice(start, end)
         let arr = hasOwnProperty(res, word) ? res[word] : []
         arr.push(Range.create(i, start + sc, i, end + sc))
         res[word] = arr
-      }
-      for (let i = 0, l = text.length; i < l; i++) {
-        if (this.isKeywordChar(text[i])) {
-          if (start == -1) {
-            start = i
-          }
-        } else {
-          if (start != -1) {
-            add(i)
-            start = -1
-          }
-        }
-        if (i === l - 1 && start != -1) {
-          add(l)
-        }
       }
     }
     return res
