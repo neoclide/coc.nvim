@@ -20,7 +20,8 @@ let entryPlugin = {
     })
     build.onLoad({filter: /.*/, namespace: 'entry-ns'}, () => {
       let contents = `'use strict'
-if (!global.__TESTER__) {
+let isMain = require.main === module
+if (isMain) {
   Object.defineProperty(console, 'log', {
     value() {
       if (logger) logger.info(...arguments)
@@ -45,7 +46,7 @@ if (!global.__TESTER__) {
   })
 }
 const attach = require('./src/attach').default
-if (!global.__TESTER__) {
+if (isMain) {
   attach({ reader: process.stdin, writer: process.stdout })
 } else {
   const exports = require('./src/index')

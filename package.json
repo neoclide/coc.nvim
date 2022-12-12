@@ -6,6 +6,7 @@
   "engines": {
     "node": ">=14.14.0"
   },
+  "type": "commonjs",
   "scripts": {
     "lint": "eslint . --ext .ts --quiet",
     "lint:typecheck": "tsc -p tsconfig.json",
