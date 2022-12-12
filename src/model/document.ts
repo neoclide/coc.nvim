@@ -226,8 +226,10 @@ export default class Document {
   private attach(): void {
     if (this.env.isVim) return
     let lines = this.lines
-    void this.buffer.attach(true).then(res => {
+    this.buffer.attach(true).then(res => {
       if (!res) fireDetach(this.bufnr)
+    }, _e => {
+      fireDetach(this.bufnr)
     })
     this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
       if (buf.id !== this.bufnr || !this._attached || tick == null) return

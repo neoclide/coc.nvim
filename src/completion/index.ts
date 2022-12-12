@@ -56,10 +56,13 @@ export class Completion implements Disposable {
     this.pum = new PopupMenu(this.staticConfig, this._mru)
     this.floating = new Floating(this.staticConfig)
     this._debounced = debounce(this.onCursorMovedI.bind(this), CURSORMOVE_DEBOUNCE)
+    events.on('CursorMoved', () => {
+      this.stop(true)
+    }, null, this.disposables)
     events.on('CursorMovedI', this._debounced, this, this.disposables)
     events.on('CursorMovedI', () => {
       clearTimeout(this.triggerTimer)
-    }, this, this.disposables)
+    }, null, this.disposables)
     events.on('CompleteStop', kind => {
       this.stop(false, kind)
     }, null, this.disposables)
