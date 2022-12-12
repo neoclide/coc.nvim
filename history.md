@@ -4,6 +4,7 @@
   VSCode.
 - Add location support for `getHover` action.
 - Use unique id for each tab on vim.
+- Chinese word segmentation for keywords.
 
 # 2022-12-05
 

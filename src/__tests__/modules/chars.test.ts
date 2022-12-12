@@ -1,5 +1,5 @@
 import { CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
-import { Chars, IntegerRanges, getCharCode, splitKeywordOption, sameScope } from '../../model/chars'
+import { Chars, IntegerRanges, getCharCode, splitKeywordOption, sameScope, chineseSegments } from '../../model/chars'
 import { makeLine } from '../helper'
 
 describe('funcs', () => {
@@ -23,6 +23,24 @@ describe('funcs', () => {
     expect(sameScope(1, 3)).toBe(true)
     expect(sameScope(266, 1024)).toBe(true)
     expect(sameScope(1, 999)).toBe(false)
+  })
+
+  it('should chineseSegments', () => {
+    let res = Array.from(chineseSegments('你好世界'))
+    expect(Array.isArray(res)).toBe(true)
+    let fn = Intl['Segmenter']
+    Object.defineProperty(Intl, 'Segmenter', {
+      get: () => {
+        return undefined
+      }
+    })
+    res = Array.from(chineseSegments('你好世界'))
+    Object.defineProperty(Intl, 'Segmenter', {
+      get: () => {
+        return fn
+      }
+    })
+    expect(res).toEqual(['你好世界'])
   })
 })
 

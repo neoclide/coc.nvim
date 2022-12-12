@@ -10,6 +10,8 @@ const WORD_RANGES: [number, number][] = [[257, 893], [895, 902], [904, 1369], [1
 
 const MAX_CODE_UNIT = 65535
 
+const chineseRegex = /[\u4e00-\u9fa5]/
+
 export function getCharCode(str: string): number | undefined {
   if (/^\d+$/.test(str)) return parseInt(str, 10)
   if (str.length > 0) return str.charCodeAt(0)
@@ -19,6 +21,21 @@ export function getCharCode(str: string): number | undefined {
 export function sameScope(a: number, b: number): boolean {
   if (a <= 255) return b <= 255
   return b > 255
+}
+
+export function* chineseSegments(text: string): Iterable<string> {
+  if (Intl === undefined || typeof Intl['Segmenter'] !== 'function') {
+    yield text
+    return
+  }
+  let res: string[] = []
+  let items = new Intl['Segmenter']('cn', { granularity: 'word' }).segment(text)
+  for (let item of items) {
+    if (item.isWordLike) {
+      yield item.segment
+    }
+  }
+  return res
 }
 
 export function splitKeywordOption(iskeyword: string): string[] {
@@ -195,7 +212,7 @@ export class Chars {
   }
 
   public matchLine(line: string, min = 2, max = 1024): string[] {
-    let res: string[] = []
+    let res: Set<string> = new Set()
     let l = line.length
     if (l > max) {
       line = line.slice(0, max)
@@ -206,7 +223,13 @@ export class Chars {
     const add = (end: number): void => {
       if (end - start < min) return
       let word = line.slice(start, end)
-      if (!res.includes(word)) res.push(word)
+      if (chineseRegex.test(word[0])) {
+        for (let text of chineseSegments(word)) {
+          res.add(text)
+        }
+      } else {
+        res.add(word)
+      }
     }
     let prevCode: number | undefined
     for (const codePoint of line) {
@@ -232,7 +255,7 @@ export class Chars {
       prevCode = code
     }
     if (start != -1) add(l)
-    return res
+    return Array.from(res)
   }
 
   public async matchLines(lines: ReadonlyArray<string>, min = 2, token?: CancellationToken): Promise<Set<string> | undefined> {
