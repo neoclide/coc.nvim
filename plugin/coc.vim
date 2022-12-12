@@ -587,7 +587,7 @@ function! s:Highlight() abort
     for [key, value] in items(hlMap)
       let ts = get(value, 0, '')
       let fallback = get(value, 1, '')
-      execute 'hi default link CocSem'.key.' '.(hlexists(ts) ? ts : fallback)
+      execute 'hi default link CocSem'.key.' '.(coc#highlight#valid(ts) ? ts : fallback)
     endfor
   endif
   let symbolMap = {
@@ -627,7 +627,7 @@ function! s:Highlight() abort
       \ 'TypeParameter': ['@parameter', 'Identifier'],
       \ }
   for [key, value] in items(symbolMap)
-    let hlGroup = hlexists(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
+    let hlGroup = coc#highlight#valid(value[0]) ? value[0] : get(value, 1, 'CocSymbolDefault')
     if hlexists(hlGroup)
       execute 'hi default CocSymbol'.key.' '.coc#highlight#get_hl_command(synIDtrans(hlID(hlGroup)), 'fg', '223', '#ebdbb2')
     endif
