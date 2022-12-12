@@ -3,10 +3,11 @@ import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemTa
 import { caseScore, matchScore, matchScoreWithPositions } from '../../completion/match'
 import sources from '../../completion/sources'
 import { CompleteOption, InsertMode, ISource } from '../../completion/types'
-import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffert, indentChanged, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
+import { checkIgnoreRegexps, Converter, ConvertOption, createKindMap, emptLabelDetails, getDetail, getDocumentaions, getInput, getKindHighlight, getKindText, getPriority, getReplaceRange, getResumeInput, getWord, hasAction, highlightOffert, indentChanged, isWordCode, MruLoader, OptionForWord, Selection, shouldIndent, shouldStop, toCompleteDoneItem } from '../../completion/util'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
 import languages from '../../languages'
+import { Chars } from '../../model/chars'
 import { disposeAll } from '../../util'
 import { getCharCodes } from '../../util/fuzzy'
 import workspace from '../../workspace'
@@ -161,11 +162,22 @@ describe('util functions', () => {
     expect(res).toBe(true)
   })
 
-  it('should consider none word character as input', async () => {
-    let doc = await helper.createDocument('t.vim')
-    let res = getInput(doc, 'a#b#', false)
+  it('should check isWordCode', () => {
+    let chars = new Chars('@,_,#')
+    expect(isWordCode(chars, 97, true)).toBe(true)
+    expect(isWordCode(chars, 97, false)).toBe(true)
+    expect(isWordCode(chars, 10, false)).toBe(false)
+    expect(isWordCode(chars, 0xdc00, false)).toBe(false)
+    expect(isWordCode(chars, 20320, true)).toBe(false)
+  })
+
+  it('should consider none word character as input', () => {
+    let chars = new Chars('@,_,#')
+    let res = getInput(chars, 'a#b#', false)
     expect(res).toBe('a#b#')
-    res = getInput(doc, '你b#', true)
+    res = getInput(chars, '你b#', true)
+    expect(res).toBe('b#')
+    res = getInput(chars, '你b#', false)
     expect(res).toBe('b#')
   })
 

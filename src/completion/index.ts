@@ -327,7 +327,7 @@ export class Completion implements Disposable {
 
   private getCompleteOption(doc: Document, info: InsertChange): CompleteOption {
     let { pre } = info
-    let input = getInput(doc, info.pre, this.config.asciiCharactersOnly)
+    let input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly)
     let followWord = doc.getStartWord(info.line.slice(info.pre.length))
     return {
       input,

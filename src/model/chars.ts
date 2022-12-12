@@ -16,6 +16,11 @@ export function getCharCode(str: string): number | undefined {
   return undefined
 }
 
+export function sameScope(a: number, b: number): boolean {
+  if (a <= 255) return b <= 255
+  return b > 255
+}
+
 export function splitKeywordOption(iskeyword: string): string[] {
   let res: string[] = []
   let i = 0
@@ -203,10 +208,14 @@ export class Chars {
       let word = line.slice(start, end)
       if (!res.includes(word)) res.push(word)
     }
+    let prevCode: number | undefined
     for (const codePoint of line) {
       let code = codePoint.codePointAt(0)
       if (this.isKeywordCode(code)) {
         if (start == -1) {
+          start = idx
+        } else if (prevCode !== undefined && !sameScope(prevCode, code)) {
+          add(idx)
           start = idx
         }
       } else {
@@ -220,6 +229,7 @@ export class Chars {
       } else {
         idx++
       }
+      prevCode = code
     }
     if (start != -1) add(l)
     return res

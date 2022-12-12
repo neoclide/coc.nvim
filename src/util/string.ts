@@ -1,5 +1,5 @@
 'use strict'
-import { Range } from 'vscode-languageserver-types'
+import type { Range } from 'vscode-languageserver-types'
 
 const UTF8_2BYTES_START = 0x80
 const UTF8_3BYTES_START = 0x800
@@ -90,7 +90,7 @@ function isHighSurrogate(codePoint) {
   return codePoint >= 0xd800 && codePoint <= 0xdbff
 }
 
-function isLowSurrogate(codePoint) {
+export function isLowSurrogate(codePoint: number): boolean {
   return codePoint >= 0xdc00 && codePoint <= 0xdfff
 }
 
