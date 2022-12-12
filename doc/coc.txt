@@ -2253,6 +2253,8 @@ coc#float#close_all([{all}])				*coc#float#close_all()*
 	Close all float windows/popups created by coc.nvim, set {all} to `1`
 	for all float window/popups.
 
+	Return `""`.
+
 coc#float#close({winid}) 				*coc#float#close()*
 
 	Close float window/popup with {winid}.

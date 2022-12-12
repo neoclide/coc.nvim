@@ -22,6 +22,7 @@ function! coc#float#close_all(...) abort
       " ignore
     endtry
   endfor
+  return ''
 endfunction
 
 function! coc#float#jump() abort
