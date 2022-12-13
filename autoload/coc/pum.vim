@@ -77,6 +77,7 @@ function! coc#pum#select_confirm() abort
     endif
     call coc#pum#close('confirm')
   endif
+  return ''
 endfunction
 
 function! coc#pum#_close() abort

@@ -933,13 +933,14 @@ function! coc#float#create_buf(bufnr, ...) abort
       noa let bufnr = bufadd('')
       noa call bufload(bufnr)
       call setbufvar(bufnr, '&buflisted', 0)
+      call setbufvar(bufnr, '&modeline', 0)
+      call setbufvar(bufnr, '&buftype', 'nofile')
+      call setbufvar(bufnr, '&swapfile', 0)
     else
       noa let bufnr = nvim_create_buf(v:false, v:true)
     endif
     let bufhidden = get(a:, 2, 'wipe')
-    call setbufvar(bufnr, '&buftype', 'nofile')
     call setbufvar(bufnr, '&bufhidden', bufhidden)
-    call setbufvar(bufnr, '&swapfile', 0)
     call setbufvar(bufnr, '&undolevels', -1)
     " neovim's bug
     call setbufvar(bufnr, '&modifiable', 1)
