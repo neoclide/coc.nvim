@@ -260,23 +260,6 @@ export class Chars {
     return Array.from(res)
   }
 
-  public async matchLines(lines: ReadonlyArray<string>, min = 2, token?: CancellationToken): Promise<Set<string> | undefined> {
-    let res: Set<string> = new Set()
-    let ts = Date.now()
-    for (let line of lines) {
-      if (Date.now() - ts > 15) {
-        await waitImmediate()
-        ts = Date.now()
-      }
-      if (token && token.isCancellationRequested) break
-      let arr = this.matchLine(line, min)
-      arr.forEach(word => {
-        res.add(word)
-      })
-    }
-    return res
-  }
-
   public async computeWordRanges(lines: ReadonlyArray<string>, range: Range, token?: CancellationToken): Promise<{ [word: string]: Range[] }> {
     let s = range.start.line
     let e = range.end.line

@@ -232,8 +232,7 @@ export default class Document {
       fireDetach(this.bufnr)
     })
     this.buffer.listen('lines', (buf: Buffer, tick: number, firstline: number, lastline: number, linedata: string[]) => {
-      if (buf.id !== this.bufnr || !this._attached || tick == null) return
-      if (tick > this._changedtick) {
+      if (tick && tick > this._changedtick) {
         this._changedtick = tick
         lines = [...lines.slice(0, firstline), ...linedata, ...(lastline == -1 ? [] : lines.slice(lastline))]
         if (lines.length == 0) lines = ['']

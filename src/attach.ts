@@ -1,5 +1,4 @@
 'use strict'
-import './util/extensions'
 import { attach, Attach, Neovim } from '@chemzqm/neovim'
 import { URI } from 'vscode-uri'
 import events from './events'

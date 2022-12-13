@@ -215,21 +215,6 @@ describe('chars', () => {
     })
   })
 
-  describe('matchLines()', () => {
-    it('should match keywords', async () => {
-      let chars = new Chars('@')
-      let source = new CancellationTokenSource()
-      let res = await chars.matchLines(['foo bar'], 3, source.token)
-      expect(Array.from(res)).toEqual(['foo', 'bar'])
-    })
-
-    it('should consider unicode character as word', async () => {
-      let chars = new Chars('@')
-      let res = await chars.matchLines(['blackкофе'], 3)
-      expect(Array.from(res)).toEqual(['blackкофе'])
-    })
-  })
-
   describe('matchLine()', () => {
     it('should matchLine', async () => {
       let text = 'a'.repeat(2048)
