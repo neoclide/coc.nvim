@@ -1,5 +1,5 @@
 'use strict'
-import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { CodeAction, CodeActionKind, Location, Position, Range, SymbolKind } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 import commands from '../commands'

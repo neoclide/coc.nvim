@@ -4183,6 +4183,7 @@ declare module 'coc.nvim' {
 
     /**
      * Gets existing, non-anonymous namespaces.
+     * **Note:** works on neovim only.
      *
      * @return dict that maps from names to namespace ids.
      */
@@ -4442,27 +4443,6 @@ declare module 'coc.nvim' {
      * **Note:** works on neovim only.
      */
     unsubscribe(event: string): Promise<void>
-
-    /**
-     * Activates UI events on the channel.
-     *
-     * **Note:** works on neovim only.
-     */
-    uiAttach(width: number, height: number, options: UiAttachOptions): Promise<void>
-
-    /**
-     * `:h nvim_ui_try_resize`
-     *
-     * **Note:** works on neovim only.
-     */
-    uiTryResize(width: number, height: number): Promise<void>
-
-    /**
-     * Deactivates UI events on the channel.
-     *
-     * **Note:** works on neovim only.
-     */
-    uiDetach(): Promise<void>
 
     /**
      * Quit vim.

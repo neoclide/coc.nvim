@@ -1,7 +1,7 @@
 'use strict'
 import type { Disposable } from '../util/protocol'
-import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { v1 as uuidv1 } from 'uuid'
+import { Neovim } from '@chemzqm/neovim'
 
 export const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 

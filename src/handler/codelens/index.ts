@@ -1,5 +1,5 @@
 'use strict'
-import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import type { Neovim } from '@chemzqm/neovim'
 import type { DocumentSelector } from 'vscode-languageserver-protocol'
 import { debounce } from '../..//util/node'
 import commands from '../../commands'
