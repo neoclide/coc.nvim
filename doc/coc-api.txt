@@ -278,9 +278,9 @@ coc.nvim, inclduing:
     associated filetype.
   • commands: List of commands with `id` and `title` that can be invoked by
     |:CocCommand|.
-  • configuration: Contains `properties` object or a list of `properties`
-    objects which define the configuration properties contributed by this
-    extension.
+  • configuration: Contains `properties` object or a list of configurations
+    that each one provide `properties` objects which define the configuration
+    properties contributed by this extension.
 
 The `contributes` property could also contains other properties that used by
 other extensions, for example: the `jsonValidation` property could be used by

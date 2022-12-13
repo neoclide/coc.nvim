@@ -1,17 +1,17 @@
 process.env.COC_NO_PLUGINS = '1'
-import { validExtensionFolder, getJsFiles, toInterval, getExtensionName, loadExtensionJson, ExtensionStat, checkExtensionRoot } from '../../extension/stat'
-import { InstallChannel, InstallBuffer } from '../../extension/ui'
+import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import path from 'path'
 import os from 'os'
+import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { disposeAll } from '../../util'
-import helper from '../helper'
 import events from '../../events'
-import window from '../../window'
-import { Neovim } from '@chemzqm/neovim'
+import { checkExtensionRoot, ExtensionStat, getExtensionName, getJsFiles, loadExtensionJson, loadGlobalJsonAsync, toInterval, validExtensionFolder } from '../../extension/stat'
+import { InstallBuffer, InstallChannel } from '../../extension/ui'
+import { disposeAll } from '../../util'
 import { loadJson, writeJson } from '../../util/fs'
+import window from '../../window'
+import helper from '../helper'
 
 let disposables: Disposable[] = []
 let nvim: Neovim
@@ -28,11 +28,62 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
+function createFolder(): string {
+  let folder = path.join(os.tmpdir(), uuid())
+  fs.mkdirSync(folder, { recursive: true })
+  disposables.push(Disposable.create(() => {
+    fs.rmSync(folder, { recursive: true, force: true })
+  }))
+  return folder
+}
+
 describe('utils', () => {
   describe('getJsFiles', () => {
     it('should get js files', async () => {
       let res = await getJsFiles(__dirname)
       expect(Array.isArray(res)).toBe(true)
+    })
+  })
+
+  describe('loadGlobalJsonAsync()', () => {
+    it('should throw when engines not valid', async () => {
+      let folder = createFolder()
+      let file = path.join(folder, 'package.json')
+      fs.writeFileSync(file, '{}', 'utf8')
+      await expect(async () => {
+        await loadGlobalJsonAsync(folder, '0.0.80')
+      }).rejects.toThrow(/Invalid engines/)
+      fs.writeFileSync(file, '{"engines": {}}', 'utf8')
+      await expect(async () => {
+        await loadGlobalJsonAsync(folder, '0.0.80')
+      }).rejects.toThrow(/Invalid engines/)
+    })
+
+    it('should throw when version not match', async () => {
+      let folder = createFolder()
+      let file = path.join(folder, 'package.json')
+      fs.writeFileSync(file, '{"engines": {"coc": ">=0.0.80"}}', 'utf8')
+      await expect(async () => {
+        await loadGlobalJsonAsync(folder, '0.0.79')
+      }).rejects.toThrow(/not match/)
+    })
+
+    it('should throw when main file not found', async () => {
+      let folder = createFolder()
+      let file = path.join(folder, 'package.json')
+      fs.writeFileSync(file, '{"engines": {"coc": ">=0.0.80"}}', 'utf8')
+      await expect(async () => {
+        await loadGlobalJsonAsync(folder, '0.0.80')
+      }).rejects.toThrow(/not found/)
+    })
+
+    it('should load json', async () => {
+      let folder = createFolder()
+      let file = path.join(folder, 'package.json')
+      fs.writeFileSync(file, '{"name": "foo","engines": {"coc": ">=0.0.80"}}', 'utf8')
+      fs.writeFileSync(path.join(folder, 'index.js'), '', 'utf8')
+      let res = await loadGlobalJsonAsync(folder, '0.0.80')
+      expect(res.name).toBe('foo')
     })
   })
 
@@ -164,9 +215,22 @@ describe('ExtensionStat', () => {
     expect(stat.getFolder('unknown')).toBeUndefined()
   })
 
+  it('should iterate activated extensions', () => {
+    let folder = createFolder()
+    writeJson(path.join(folder, 'package.json'), {
+      disabled: ['x', 'y'],
+      dependencies: { x: '', y: '', z: '', a: '' }
+    })
+    let names: string[] = []
+    let stat = new ExtensionStat(folder)
+    for (let name of stat.activated()) {
+      names.push(name)
+    }
+    expect(names).toEqual(['z', 'a'])
+  })
+
   it('should migrate #1', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
-    fs.mkdirSync(folder)
+    let folder = createFolder()
     let stat = new ExtensionStat(folder)
     expect(stat.getExtensionsStat()).toEqual({})
     let data = {
@@ -187,12 +251,10 @@ describe('ExtensionStat', () => {
     expect(obj.disabled).toEqual(['x'])
     expect(obj.locked).toEqual(['y'])
     expect(fs.existsSync(filepath)).toBe(false)
-    fs.rmSync(folder, { force: true, recursive: true })
   })
 
   it('should migrate #2', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
-    fs.mkdirSync(folder)
+    let folder = createFolder()
     let stat = new ExtensionStat(folder)
     expect(stat.getExtensionsStat()).toEqual({})
     let data = {}
@@ -204,12 +266,10 @@ describe('ExtensionStat', () => {
     let obj = loadJson(path.join(folder, 'package.json')) as any
     expect(obj.disabled).toEqual([])
     expect(obj.locked).toEqual([])
-    fs.rmSync(folder, { force: true, recursive: true })
   })
 
   it('should load disabled & locked from package.json', async () => {
-    let folder = path.join(os.tmpdir(), uuid())
-    fs.mkdirSync(folder)
+    let folder = createFolder()
     let obj = {
       disabled: ['foo'],
       locked: ['bar'],
@@ -224,7 +284,6 @@ describe('ExtensionStat', () => {
     expect(stat.disabledExtensions).toEqual(['foo'])
     expect(stat.lockedExtensions).toEqual(['bar'])
     expect(stat.getExtensionsStat()['z']).toBe(0)
-    fs.rmSync(folder, { force: true, recursive: true })
   })
 
   it('should add & remove extension', async () => {

@@ -29,12 +29,7 @@ endfunction
 
 function! coc#snippet#show_choices(lnum, col, position, input) abort
   call coc#snippet#move(a:position)
-  let opt = coc#util#get_complete_option()
-  call CocActionAsync('startCompletion', extend(opt, {
-        \ 'input': a:input,
-        \ 'source': '$words',
-        \ 'col': a:col - 1
-        \ }))
+  call CocActionAsync('startCompletion', { 'source': '$words' })
   redraw
 endfunction
 

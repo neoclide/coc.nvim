@@ -1,9 +1,9 @@
 import { CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
-import { Chars, IntegerRanges, getCharCode, splitKeywordOption } from '../../model/chars'
+import { Chars, IntegerRanges, getCharCode, splitKeywordOption, sameScope, chineseSegments } from '../../model/chars'
 import { makeLine } from '../helper'
 
 describe('funcs', () => {
-  it('should splitKeywordsOptions', async () => {
+  it('should splitKeywordsOptions', () => {
     expect(splitKeywordOption('')).toEqual([])
     expect(splitKeywordOption('_,-,128-140,#-43')).toEqual(['_', '-', '128-140', '#-43'])
     expect(splitKeywordOption('^a-z,#,^')).toEqual(['^a-z', '#', '^'])
@@ -13,15 +13,41 @@ describe('funcs', () => {
     expect(splitKeywordOption(' -~,^,')).toEqual([' -~', '^,'])
   })
 
-  it('should toCharCode', async () => {
+  it('should toCharCode', () => {
     expect(getCharCode('10')).toBe(10)
     expect(getCharCode('')).toBeUndefined()
     expect(getCharCode('a')).toBe(97)
   })
+
+  it('should sameScope', () => {
+    expect(sameScope(1, 3)).toBe(true)
+    expect(sameScope(266, 1024)).toBe(true)
+    expect(sameScope(97, 19970)).toBe(false)
+  })
+
+  it('should chineseSegments', () => {
+    let res = Array.from(chineseSegments('你好世界'))
+    expect(Array.isArray(res)).toBe(true)
+    let fn = Intl['Segmenter']
+    if (typeof fn === 'function') {
+      Object.defineProperty(Intl, 'Segmenter', {
+        get: () => {
+          return undefined
+        }
+      })
+      res = Array.from(chineseSegments('你好世界'))
+      Object.defineProperty(Intl, 'Segmenter', {
+        get: () => {
+          return fn
+        }
+      })
+      expect(res).toEqual(['你好世界'])
+    }
+  })
 })
 
 describe('IntegerRanges', () => {
-  it('should add ranges', async () => {
+  it('should add ranges', () => {
     let r = new IntegerRanges()
     expect(r.flatten()).toEqual([])
     r.add(4, 3)
@@ -36,7 +62,7 @@ describe('IntegerRanges', () => {
     expect(r.flatten()).toEqual([1, 1, 2, 9])
   })
 
-  it('should exclude ranges', async () => {
+  it('should exclude ranges', () => {
     let r = new IntegerRanges()
     r.add(1, 2)
     r.add(4, 6)
@@ -57,14 +83,14 @@ describe('IntegerRanges', () => {
     expect(r.includes(7)).toBe(true)
   })
 
-  it('should check word code', async () => {
+  it('should check word code', () => {
     let r = new IntegerRanges([], true)
     expect(r.includes(258)).toBe(true)
     expect(r.includes(894)).toBe(false)
     expect(r.includes(33)).toBe(false)
   })
 
-  it('should fromKeywordOption', async () => {
+  it('should fromKeywordOption', () => {
     let r = IntegerRanges.fromKeywordOption('@,_')
     expect(r.includes(97)).toBe(true)
     expect(r.includes('_'.charCodeAt(0))).toBe(true)
@@ -104,6 +130,12 @@ describe('chars', () => {
       expect(chars.isKeywordChar('A')).toBe(true)
       expect(chars.isKeywordChar('Z')).toBe(true)
       expect(chars.isKeywordChar('\u205f')).toBe(false)
+    })
+
+    it('should iterateWords', async () => {
+      let chars = new Chars('@')
+      let res = Array.from(chars.iterateWords(' 你好foo bar'))
+      expect(res).toEqual([[1, 3], [3, 6], [7, 10]])
     })
 
     it('should match code range', () => {
@@ -208,6 +240,9 @@ describe('chars', () => {
       expect(chars.matchLine('?foo bar')).toEqual(['foo', 'bar'])
       expect(chars.matchLine('?foo $')).toEqual(['foo'])
       expect(chars.matchLine('?foo foo foo')).toEqual(['foo'])
+      expect(chars.matchLine(' 你好foo')).toEqual(['你好', 'foo'])
+      expect(chars.matchLine('bar你好')).toEqual(['bar', '你好'])
+      expect(chars.matchLine('你好，世界。')).toEqual(['你好', '世界'])
       expect(chars.matchLine('foo😍bar foo，bar')).toEqual(['foo', 'bar'])
     })
   })

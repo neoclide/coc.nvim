@@ -38,7 +38,7 @@ describe('ConfigurationRegistry', () => {
     }
     node.properties['test.bar'] = {
       type: 'string',
-      scope: ConfigurationScope.WINDOW,
+      scope: ConfigurationScope.APPLICATION,
       included: false
     }
     node.properties['test.resource'] = {

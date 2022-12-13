@@ -41,6 +41,10 @@ describe('extensions', () => {
     expect(extensions.creteInstaller('npm', 'id')).toBeDefined()
   })
 
+  it('should not throw with addSchemeProperty', async () => {
+    extensions.addSchemeProperty('', null)
+  })
+
   it('should toggle auto update', async () => {
     await commands.executeCommand('extensions.toggleAutoUpdate')
     let config = workspace.getConfiguration('coc.preferences').get('extensionUpdateCheck')
@@ -66,6 +70,10 @@ describe('extensions', () => {
     let stats = extensions.globalExtensionStats()
     expect(stats).toEqual([])
     extensions.states.removeExtension('foo')
+    process.env.COC_NO_PLUGINS = '1'
+    stats = extensions.globalExtensionStats()
+    expect(stats).toEqual([])
+    process.env.COC_NO_PLUGINS = '0'
   })
 
   it('should load extension stats from runtimepath', async () => {
@@ -217,9 +225,16 @@ describe('extensions', () => {
     let link = path.join(extensions.modulesFolder, 'test-link')
     fs.mkdirSync(folder, { recursive: true })
     fs.symlinkSync(folder, link)
+    let stats = extensions.states
+    stats.addExtension('foo', '1.0.0')
+    let extensionFolder = path.join(extensions.modulesFolder, 'foo')
+    fs.mkdirSync(extensionFolder, { recursive: true })
     extensions.cleanModulesFolder()
     expect(fs.existsSync(folder)).toBe(false)
     expect(fs.existsSync(link)).toBe(false)
+    stats.removeExtension('foo')
+    expect(fs.existsSync(extensionFolder)).toBe(true)
+    fs.rmSync(extensionFolder, { recursive: true })
   })
 
   it('should install global extension', async () => {

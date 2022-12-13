@@ -35,13 +35,10 @@ function! coc#pum#winid() abort
   return s:pum_winid
 endfunction
 
-function! coc#pum#close_detail(...) abort
+function! coc#pum#close_detail() abort
   let winid = coc#float#get_float_by_kind('pumdetail')
   if winid
     call coc#float#close(winid, 1)
-    if s:is_vim && get(a:, 1, 0)
-      call timer_start(0, { -> execute('redraw')})
-    endif
   endif
 endfunction
 
@@ -66,8 +63,7 @@ function! coc#pum#close(...) abort
     endif
     call s:close_pum()
     if !get(a:, 2, 0)
-      " vim possible have unexpected text inserted without timer.
-      call timer_start(1, { -> coc#rpc#notify('CompleteStop', [kind])})
+      call coc#rpc#notify('CompleteStop', [kind])
     endif
   endif
   return ''
@@ -81,14 +77,12 @@ function! coc#pum#select_confirm() abort
     endif
     call coc#pum#close('confirm')
   endif
+  return ''
 endfunction
 
 function! coc#pum#_close() abort
   if coc#pum#visible()
     call s:close_pum()
-    if s:is_vim
-      call timer_start(0, { -> execute('redraw')})
-    endif
   endif
 endfunction
 

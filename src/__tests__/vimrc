@@ -56,3 +56,7 @@ function! GetFloatCursorRelative(winid) abort
   let pos = popup_getpos(a:winid)
   return {'row' : pos['line'] - cursorLine - 1, 'col' : pos['col'] - cursorCol - 1}
 endfunction
+
+function! DictAdd() dict
+  return self.key + 1
+endfunction

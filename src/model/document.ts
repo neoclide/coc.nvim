@@ -122,10 +122,6 @@ export default class Document {
     return this.uri && this.uri.endsWith('%5BCommand%20Line%5D')
   }
 
-  public get enabled(): boolean {
-    return this.getVar('enabled', true)
-  }
-
   /**
    * LanguageId of TextDocument, main filetype are used for combined filetypes
    * with '.'
@@ -562,14 +558,13 @@ export default class Document {
    */
   public fixStartcol(position: Position, valids: string[]): number {
     let line = this.getline(position.line)
-    if (!line) return null
+    if (!line) return 0
     let { character } = position
     let start = line.slice(0, character)
     let col = byteLength(start)
     let { chars } = this
     for (let i = start.length - 1; i >= 0; i--) {
       let c = start[i]
-      if (c == ' ') break
       if (!chars.isKeywordChar(c) && !valids.includes(c)) {
         break
       }

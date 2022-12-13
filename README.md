@@ -2,7 +2,7 @@
   <a href="https://www.vim.org/scripts/script.php?script_id=5779">
     <img alt="Logo" src="https://alfs.chigua.cn/dianyou/data/platform/default/20220525/coc.png" height="240" />
   </a>
-  <p align="center">Get that VS Code experience in Vim</p>
+  <p align="center">Make your Vim/Neovim as smart as VSCode</p>
   <p align="center">
     <a href="LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-Anti%20996-brightgreen.svg?style=flat-square"></a>
     <a href="https://github.com/neoclide/coc.nvim/actions"><img alt="Actions" src="https://img.shields.io/github/workflow/status/neoclide/coc.nvim/coc.nvim%20CI?style=flat-square"></a>
@@ -359,20 +359,25 @@ vim.api.nvim_create_autocmd("User", {
     desc = "Update signature help on jump placeholder"
 })
 
-
 -- Apply codeAction to the selected region
 -- Example: `<leader>aap` for current paragraph
 local opts = {silent = true, nowait = true}
 keyset("x", "<leader>a", "<Plug>(coc-codeaction-selected)", opts)
 keyset("n", "<leader>a", "<Plug>(coc-codeaction-selected)", opts)
 
+-- Remap keys for apply code actions at the cursor position.
+keyset("n", "<leader>ac", "<Plug>(coc-codeaction-cursor)", opts)
+-- Remap keys for apply code actions affect whole buffer.
+keyset("n", "<leader>as", "<Plug>(coc-codeaction-source)", opts)
 -- Remap keys for applying codeActions to the current buffer
 keyset("n", "<leader>ac", "<Plug>(coc-codeaction)", opts)
-
-
--- Apply AutoFix to problems on the current line
+-- Apply the most preferred quickfix action on the current line.
 keyset("n", "<leader>qf", "<Plug>(coc-fix-current)", opts)
 
+-- Remap keys for apply refactor code actions.
+keyset("n", "<leader>re", "<Plug>(coc-codeaction-refactor)", { silent = true })
+keyset("x", "<leader>r", "<Plug>(coc-codeaction-refactor-selected)", { silent = true })
+keyset("n", "<leader>r", "<Plug>(coc-codeaction-refactor-selected)", { silent = true })
 
 -- Run the Code Lens actions on the current line
 keyset("n", "<leader>cl", "<Plug>(coc-codelens-action)", opts)
@@ -815,6 +820,8 @@ Try these steps if you experience problems with coc.nvim:
     </tr>
     <tr>
       <td align="center"><a href="http://3ximus.github.io/cv"><img src="https://avatars.githubusercontent.com/u/9083012?v=4?s=50" width="50px;" alt="Fabio"/><br /><sub><b>Fabio</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=3ximus" title="Documentation">📖</a></td>
+      <td align="center"><a href="https://github.com/skysky97"><img src="https://avatars.githubusercontent.com/u/18086458?v=4?s=50" width="50px;" alt="Li Yunting"/><br /><sub><b>Li Yunting</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/issues?q=author%3Askysky97" title="Bug reports">🐛</a></td>
+      <td align="center"><a href="https://github.com/LebJe"><img src="https://avatars.githubusercontent.com/u/51171427?v=4?s=50" width="50px;" alt="Jeff L."/><br /><sub><b>Jeff L.</b></sub></a><br /><a href="https://github.com/neoclide/coc.nvim/commits?author=LebJe" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

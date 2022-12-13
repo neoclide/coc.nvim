@@ -16,7 +16,6 @@ import Files, { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreat
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import { callAsync, createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
 import Keymaps, { LocalMode, MapMode } from './core/keymaps'
-import { Tabs } from './core/tabs'
 import * as ui from './core/ui'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
@@ -75,7 +74,6 @@ export class Workspace {
   public readonly files: Files
   public readonly fileSystemWatchers: FileSystemWatcherManager
   public readonly editors: Editors
-  public tabs: Tabs = new Tabs()
   public statusLine = new StatusLine()
   private fuzzyExports: FuzzyWasi
   private strWdith: StrWidth
@@ -102,7 +100,7 @@ export class Workspace {
     this.autocmds = new Autocmds(this.contentProvider, this.watchers)
     this.keymaps = new Keymaps(documents)
     this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
-    this.editors = new Editors(documents, this.tabs)
+    this.editors = new Editors(documents)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
     this.onDidChangeWorkspaceFolders = this.workspaceFolderControl.onDidChangeWorkspaceFolders
     this.onDidChangeConfiguration = this.configurations.onDidChange
@@ -149,7 +147,6 @@ export class Workspace {
       })
     }
     let env = this._env = await nvim.call('coc#util#vim_info') as Env
-    this.tabs.init(env.tabCount)
     window.init(env)
     this.checkVersion(APIVERSION)
     this.configurations.updateMemoryConfig(this._env.config)
@@ -360,6 +357,11 @@ export class Workspace {
    */
   public getDocument(uri: number | string): Document | null {
     return this.documentsManager.getDocument(uri)
+  }
+
+  public hasDocument(uri: string, version?: number): boolean {
+    let doc = this.documentsManager.getDocument(uri)
+    return doc != null && (version != null ? doc.version == version : true)
   }
 
   public getUri(bufnr: number, defaultValue = ''): string {
@@ -595,7 +597,6 @@ export class Workspace {
 
   public dispose(): void {
     this.autocmds.dispose()
-    this.tabs.dispose()
     this.statusLine.dispose()
     this.watchers.dispose()
     this.contentProvider.dispose()

@@ -8,7 +8,7 @@ import { toPickerItems } from '../../model/picker'
 import { formatMessage } from '../../model/progress'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { disposeAll } from '../../util'
-import window, { Window } from '../../window'
+import window from '../../window'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
@@ -37,11 +37,6 @@ afterEach(async () => {
 
 describe('window', () => {
   describe('functions', () => {
-    it('should get tab number', async () => {
-      expect(window instanceof Window).toBe(true)
-      expect(window.getTabNumber(2 << 5)).toBeUndefined()
-    })
-
     it('should formatMessage', async () => {
       expect(formatMessage('a', 'b', 1)).toBe('a b 1%')
       expect(formatMessage(undefined, undefined, 1)).toBe('1%')

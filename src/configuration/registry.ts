@@ -184,7 +184,7 @@ class ConfigurationRegistry implements IConfigurationRegistry {
     return properties
   }
 
-  private validateAndRegisterProperties(configuration: IConfigurationNode, validate: boolean, extensionInfo: IExtensionInfo | undefined, scope: ConfigurationScope = ConfigurationScope.WINDOW): string[] {
+  private validateAndRegisterProperties(configuration: IConfigurationNode, validate: boolean, extensionInfo: IExtensionInfo | undefined, scope: ConfigurationScope = ConfigurationScope.APPLICATION): string[] {
     scope = configuration.scope == null ? scope : configuration.scope
     const propertyKeys: string[] = []
     const properties = configuration.properties
@@ -242,6 +242,7 @@ class ConfigurationRegistry implements IConfigurationRegistry {
   private updateSchema(key: string, property: IConfigurationPropertySchema): void {
     allSettings.properties[key] = property
     switch (property.scope) {
+      case ConfigurationScope.WINDOW:
       case ConfigurationScope.RESOURCE:
         resourceSettings.properties[key] = property
         break
@@ -255,6 +256,7 @@ class ConfigurationRegistry implements IConfigurationRegistry {
   private removeFromSchema(key: string, property: IConfigurationPropertySchema): void {
     delete allSettings.properties[key]
     switch (property.scope) {
+      case ConfigurationScope.WINDOW:
       case ConfigurationScope.RESOURCE:
       case ConfigurationScope.LANGUAGE_OVERRIDABLE:
         delete resourceSettings.properties[key]

@@ -1972,6 +1972,24 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "skysky97",
+      "name": "Li Yunting",
+      "avatar_url": "https://avatars.githubusercontent.com/u/18086458?v=4",
+      "profile": "https://github.com/skysky97",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "LebJe",
+      "name": "Jeff L.",
+      "avatar_url": "https://avatars.githubusercontent.com/u/51171427?v=4",
+      "profile": "https://github.com/LebJe",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

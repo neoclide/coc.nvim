@@ -1,7 +1,7 @@
 'use strict'
 import { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionItemTag, InsertReplaceEdit, InsertTextFormat, Range } from 'vscode-languageserver-types'
 import { InsertChange } from '../events'
-import Document from '../model/document'
+import { createLogger } from '../logger'
 import { SnippetParser } from '../snippets/parser'
 import { Documentation } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
@@ -11,8 +11,10 @@ import * as Is from '../util/is'
 import { LRUCache } from '../util/map'
 import { unidecode } from '../util/node'
 import { isEmpty, toObject } from '../util/object'
-import { byteIndex, byteSlice, toText } from '../util/string'
+import { byteIndex, byteSlice, isLowSurrogate, toText } from '../util/string'
+import { Chars, sameScope } from '../model/chars'
 import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, EditRange, ExtendedCompleteItem, InsertMode, ISource, ItemDefaults } from './types'
+const logger = createLogger('completion-util')
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
 type PartialOption = Pick<CompleteOption, 'col' | 'colnr' | 'line' | 'position'>
@@ -215,18 +217,26 @@ export function shouldStop(bufnr: number, pretext: string, info: InsertChange, o
   return false
 }
 
-export function getInput(document: Document, pre: string, asciiCharactersOnly: boolean): string {
+export function getInput(chars: Chars, pre: string, asciiCharactersOnly: boolean): string {
   let len = 0
+  let prev: number | undefined
   for (let i = pre.length - 1; i >= 0; i--) {
-    let ch = pre[i]
-    let word = document.isWord(ch) && (asciiCharactersOnly ? ch.charCodeAt(0) < 255 : true)
-    if (word) {
-      len += 1
-    } else {
+    let code = pre.charCodeAt(i)
+    let word = isWordCode(chars, code, asciiCharactersOnly)
+    if (!word || (prev !== undefined && !sameScope(prev, code))) {
       break
     }
+    len += 1
+    prev = code
   }
   return len == 0 ? '' : pre.slice(-len)
+}
+
+export function isWordCode(chars: Chars, code: number, asciiCharactersOnly: boolean): boolean {
+  if (!chars.isKeywordCode(code)) return false
+  if (isLowSurrogate(code)) return false
+  if (asciiCharactersOnly && code >= 255) return false
+  return true
 }
 
 export function shouldIndent(indentkeys: string, pretext: string): boolean {
@@ -288,7 +298,7 @@ function toValidWord(snippet: string, excludes: number[]): string {
 }
 
 function snippetToWord(text: string, kind: CompletionItemKind | undefined): string {
-  if (kind === CompletionItemKind.Function || kind === CompletionItemKind.Method) {
+  if (kind === CompletionItemKind.Function || kind === CompletionItemKind.Method || kind === CompletionItemKind.Class) {
     text = text.replace(/\(.+/, '')
   }
   if (!text.includes(DollarSign)) return text
@@ -391,8 +401,11 @@ export class Converter {
   public convertToDurationItem(item: CompleteItem): DurationCompleteItem {
     if (Is.isCompletionItem(item)) {
       return this.convertLspCompleteItem(item)
+    } else if (Is.string(item.word)) {
+      return this.convertVimCompleteItem(item)
+    } else {
+      logger.error(`Unexpected completion item from ${this.option.source}:`, item)
     }
-    return this.convertVimCompleteItem(item)
   }
 
   private convertVimCompleteItem(item: ExtendedCompleteItem): DurationCompleteItem {

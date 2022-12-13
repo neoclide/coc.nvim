@@ -4,7 +4,7 @@ import { ConfigurationUpdateTarget } from '../configuration/types'
 import { createLogger } from '../logger'
 import type { OutputChannel } from '../types'
 import { concurrent } from '../util'
-import { distinct } from '../util/array'
+import { distinct, isFalsyOrEmpty } from '../util/array'
 import { dataHome, VERSION } from '../util/constants'
 import { isUrl } from '../util/is'
 import { fs, path, which } from '../util/node'
@@ -180,9 +180,8 @@ export class Extensions {
    * Install extensions, can be called without initialize.
    */
   public async installExtensions(list: string[]): Promise<void> {
-    if (list.length == 0) return
+    if (isFalsyOrEmpty(list) || !this.npm) return
     let { npm } = this
-    if (!npm) return
     list = distinct(list)
     let installBuffer = this.createInstallerUI(false, false)
     await Promise.resolve(installBuffer.start(list))
@@ -261,19 +260,16 @@ export class Extensions {
 
   public async globalExtensions(): Promise<ExtensionToLoad[]> {
     if (process.env.COC_NO_PLUGINS == '1') return []
-    let dependencies = this.states.dependencies
     let res: ExtensionToLoad[] = []
-    let keys = Object.keys(dependencies)
-    let disabled = this.states.disabledExtensions
-    await Promise.all(keys.map(key => {
-      if (disabled.includes(key)) return Promise.resolve()
+    for (let key of this.states.activated()) {
       let root = path.join(this.modulesFolder, key)
-      return loadGlobalJsonAsync(root, VERSION).then(json => {
-        if (json) res.push({ root, isLocal: false, packageJSON: json })
-      }, err => {
+      try {
+        let json = await loadGlobalJsonAsync(root, VERSION)
+        res.push({ root, isLocal: false, packageJSON: json })
+      } catch (err) {
         logger.error(`Error on load package.json of ${key}`, err)
-      })
-    }))
+      }
+    }
     return res
   }
 

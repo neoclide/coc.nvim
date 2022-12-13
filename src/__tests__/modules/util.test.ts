@@ -152,8 +152,6 @@ console.warn('warn')`, sandbox)
   it('should createSandbox', () => {
     const Module = require('module')
     const sandbox = factory.createSandbox(logfile, emptyLogger, 'hook', false)
-    let key = require.resolve(logfile)
-    let keys = Object.keys(Module._cache)
     delete Module._cache[require.resolve(logfile)]
     let exports = sandbox.require(logfile)
     expect(typeof exports).toBe('function')
@@ -479,6 +477,10 @@ describe('Registry', () => {
         type: 'string',
         default: ''
       },
+      format: {
+        type: 'string',
+        scope: 'window'
+      },
       'coc.source.name': {
         type: 'string',
         scope: 'resource'
@@ -490,11 +492,12 @@ describe('Registry', () => {
     }
     let res = convertProperties(properties)
     expect(res.foo).toBeDefined()
+    expect(res.format.scope).toBe(ConfigurationScope.WINDOW)
     expect(res.bar.scope).toBe(ConfigurationScope.LANGUAGE_OVERRIDABLE)
     expect(res.resource.scope).toBe(ConfigurationScope.RESOURCE)
     expect(res.window.scope).toBe(ConfigurationScope.WINDOW)
-    expect(res['coc.source.name'].scope).toBe(ConfigurationScope.WINDOW)
-    expect(res['list.source.name'].scope).toBe(ConfigurationScope.WINDOW)
+    expect(res['coc.source.name'].scope).toBe(ConfigurationScope.APPLICATION)
+    expect(res['list.source.name'].scope).toBe(ConfigurationScope.APPLICATION)
   })
 
   it('should parse extension name', () => {
@@ -1591,7 +1594,7 @@ describe('diff', () => {
 
   describe('timing', () => {
     it('should trace', async () => {
-      let t = createTiming('name', 1, true)
+      let t = createTiming('name', 1)
       t.start()
       t.start('label')
       await helper.wait(10)

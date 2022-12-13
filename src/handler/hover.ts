@@ -1,9 +1,10 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { DefinitionLink, Hover, MarkedString, MarkupContent, Range } from 'vscode-languageserver-types'
+import { DefinitionLink, Hover, MarkedString, MarkupContent, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { IConfigurationChangeEvent } from '../configuration/types'
 import languages, { ProviderName } from '../languages'
+import Document from '../model/document'
 import { TextDocumentContentProvider } from '../provider'
 import { Documentation, FloatConfig, FloatFactory } from '../types'
 import { disposeAll, getConditionValue } from '../util'
@@ -12,6 +13,7 @@ import { readFileLines } from '../util/fs'
 import { isMarkdown } from '../util/is'
 import { fs } from '../util/node'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
+import { characterIndex } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { HandlerDelegate } from './types'
@@ -23,6 +25,12 @@ interface HoverConfig {
   floatConfig: FloatConfig
   previewMaxHeight: number
   autoHide: boolean
+}
+
+interface HoverLocation {
+  bufnr?: number
+  line: number
+  col: number
 }
 
 const highlightDelay = getConditionValue(500, 10)
@@ -179,9 +187,20 @@ export default class HoverHandler {
   /**
    * Get hover text array
    */
-  public async getHover(): Promise<string[]> {
+  public async getHover(loc?: HoverLocation): Promise<string[]> {
     let result: string[] = []
-    let { doc, position } = await this.handler.getCurrentState()
+    let doc: Document
+    let position: Position
+    if (!loc) {
+      let state = await this.handler.getCurrentState()
+      doc = state.doc
+      position = state.position
+    } else {
+      doc = loc.bufnr ? workspace.getAttachedDocument(loc.bufnr) : await workspace.document
+      let line = doc.getline(loc.line - 1)
+      let character = characterIndex(line, loc.col - 1)
+      position = Position.create(loc.line - 1, character)
+    }
     this.handler.checkProvider(ProviderName.Hover, doc.textDocument)
     await doc.synchronize()
     let tokenSource = new CancellationTokenSource()

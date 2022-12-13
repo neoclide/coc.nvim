@@ -185,8 +185,14 @@ describe('Hover', () => {
           return { contents: { kind: MarkupKind.PlainText, value: 'value' } }
         }
       }))
-      let res = await hover.getHover()
+      let res = await hover.getHover({ line: 1, col: 2 })
       expect(res).toEqual(['value'])
+    })
+
+    it('should throw when buffer not attached', async () => {
+      await expect(async () => {
+        await hover.getHover({ bufnr: 999, line: 1, col: 2 })
+      }).rejects.toThrow(/not created/)
     })
   })
 

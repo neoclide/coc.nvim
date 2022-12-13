@@ -3,6 +3,7 @@ import { toArray } from '../util/array'
 import { readFile, writeJson } from '../util/fs'
 import { objectLiteral } from '../util/is'
 import { fs, path, semver, promisify } from '../util/node'
+import { toObject } from '../util/object'
 const logger = createLogger('extension-stat')
 
 interface DataBase {
@@ -82,6 +83,15 @@ export class ExtensionStat {
     if (changed) writeJson(this.jsonFile, curr)
     let ids = Object.keys(curr.dependencies ?? {})
     this.extensions = new Set(ids)
+  }
+
+  public *activated(): Iterable<string> {
+    let { disabled } = this
+    for (let key of Object.keys(this.dependencies)) {
+      if (!disabled.has(key)) {
+        yield key
+      }
+    }
   }
 
   public addLocalExtension(name: string, folder: string): void {
@@ -235,20 +245,25 @@ export function validExtensionFolder(folder: string, version: string): boolean {
   return res != null && errors.length == 0
 }
 
+function getEntryFile(main: string | undefined): string {
+  if (!main) return 'index.js'
+  if (!main.endsWith('.js')) return main + '.js'
+  return main
+}
+
 export async function loadGlobalJsonAsync(folder: string, version: string): Promise<ExtensionJson> {
   let jsonFile = path.join(folder, 'package.json')
   let content = await readFile(jsonFile, 'utf8')
   let packageJSON = JSON.parse(content) as ExtensionJson
-  let { engines, main } = packageJSON
-  main = main ?? 'index.js'
-  if (!main.endsWith('.js')) main = main + '.js'
-  if (!engines || !objectLiteral(engines)) throw new Error('Invalid engines field')
-  if (engines) {
-    let keys = Object.keys(engines)
-    if (!keys.includes('coc') && !keys.includes('vscode')) throw new Error('Invalid engines field')
-    if (keys.includes('coc') && !semver.satisfies(version, engines['coc'].replace(/^\^/, '>='))) {
-      throw new Error(`coc.nvim version not match, required ${engines['coc']}`)
-    }
+  let { engines } = packageJSON
+  let main = getEntryFile(packageJSON.main)
+  if (!engines || (typeof engines.coc !== 'string' && typeof engines.vscode !== 'string')) throw new Error('Invalid engines field')
+  let keys = Object.keys(engines)
+  if (keys.includes('coc') && !semver.satisfies(version, engines['coc'].replace(/^\^/, '>='))) {
+    throw new Error(`coc.nvim version not match, required ${engines['coc']}`)
+  }
+  if (!engines.vscode && !fs.existsSync(path.join(folder, main))) {
+    throw new Error(`main file ${main} not found, you may need to build the project.`)
   }
   return packageJSON
 }
@@ -260,12 +275,9 @@ export function loadExtensionJson(folder: string, version: string, errors: strin
     return undefined
   }
   let packageJSON = loadJson(jsonFile) as ExtensionJson
-  let { name, engines, main } = packageJSON
-  main = main ?? 'index.js'
-  if (!main.endsWith('.js')) main = main + '.js'
-  if (!name) {
-    errors.push(`can't find name in package.json`)
-  }
+  let { name, engines } = packageJSON
+  let main = getEntryFile(packageJSON.main)
+  if (!name) errors.push(`can't find name in package.json`)
   if (!engines || !objectLiteral(engines)) {
     errors.push(`invalid engines in ${jsonFile}`)
   }
@@ -328,7 +340,7 @@ export function loadJson(filepath: string): object {
   try {
     let text = fs.readFileSync(filepath, 'utf8')
     let data = JSON.parse(text)
-    return data ?? {}
+    return toObject(data)
   } catch (e) {
     logger.error(`Error on parse json file ${filepath}`, e)
     return {}

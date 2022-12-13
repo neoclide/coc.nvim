@@ -31,7 +31,11 @@ export const enum ConfigurationScope {
   /**
    * Application specific configuration, which can be configured only in local user settings.
    */
-  WINDOW = 1,
+  APPLICATION = 1,
+  /**
+   * Window specific configuration, which can be configured in the user or workspace settings.
+   */
+  WINDOW,
   /**
    * Resource specific configuration, which can be configured in the user, workspace or folder settings.
    */

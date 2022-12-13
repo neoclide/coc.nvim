@@ -1,5 +1,4 @@
 'use strict'
-import { inspect } from 'util'
 import type { ApplyWorkspaceEditParams, ApplyWorkspaceEditResult, CallHierarchyPrepareRequest, CancellationStrategy, CancellationToken, ClientCapabilities, CodeActionRequest, CodeLensRequest, CompletionRequest, ConfigurationRequest, ConnectionStrategy, DeclarationRequest, DefinitionRequest, DidChangeConfigurationNotification, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeWatchedFilesNotification, DidChangeWatchedFilesRegistrationOptions, DidChangeWorkspaceFoldersNotification, DidCloseTextDocumentNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidOpenTextDocumentNotification, DidRenameFilesNotification, DidSaveTextDocumentNotification, Disposable, DocumentColorRequest, DocumentDiagnosticRequest, DocumentFormattingRequest, DocumentHighlightRequest, DocumentLinkRequest, DocumentOnTypeFormattingRequest, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, FileOperationRegistrationOptions, FoldingRangeRequest, GenericNotificationHandler, GenericRequestHandler, HoverRequest, ImplementationRequest, InitializeParams, InitializeResult, InlineValueRequest, LinkedEditingRangeRequest, Message, MessageActionItem, MessageSignature, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, ProgressToken, ProgressType, ProtocolNotificationType, ProtocolNotificationType0, ProtocolRequestType, ProtocolRequestType0, PublishDiagnosticsParams, ReferencesRequest, RegistrationParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, SelectionRangeRequest, SemanticTokensRegistrationType, ServerCapabilities, ShowDocumentParams, ShowDocumentResult, ShowMessageRequestParams, SignatureHelpRequest, TextDocumentRegistrationOptions, TextDocumentSyncOptions, TextEdit, TraceOptions, Tracer, TypeDefinitionRequest, TypeHierarchyPrepareRequest, UnregistrationParams, WillCreateFilesRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest, WorkDoneProgressBegin, WorkDoneProgressCreateRequest, WorkDoneProgressEnd, WorkDoneProgressReport, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from "vscode-languageserver-textdocument"
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, MarkupKind, TextDocumentEdit } from 'vscode-languageserver-types'
@@ -7,10 +6,12 @@ import { URI } from 'vscode-uri'
 import { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from '../core/files'
 import DiagnosticCollection from '../diagnostic/collection'
 import languages from '../languages'
-import { createLogger, getTimestamp } from '../logger'
+import { createLogger } from '../logger'
 import type { MessageItem } from '../model/notification'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { OutputChannel, Thenable } from '../types'
+import { defaultValue, getConditionValue } from '../util'
+import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError } from '../util/errors'
 import { resolveRoot, sameFile } from '../util/fs'
 import * as Is from '../util/is'
@@ -19,6 +20,7 @@ import { comparePosition } from '../util/position'
 import {
   ApplyWorkspaceEditRequest, createProtocolConnection, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, InitializedNotification, InitializeRequest, InlayHintRequest, LogMessageNotification, LSPErrorCodes, MessageReader, MessageType, MessageWriter, PositionEncodingKind, PublishDiagnosticsNotification, RegistrationRequest, ResourceOperationKind, ResponseError, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRequest, ShowDocumentRequest, ShowMessageNotification, ShowMessageRequest, ShutdownRequest, TelemetryEventNotification, TextDocumentSyncKind, Trace, TraceFormat, UnregistrationRequest, WorkDoneProgress
 } from '../util/protocol'
+import { toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import { CallHierarchyFeature, CallHierarchyMiddleware } from './callHierarchy'
@@ -54,6 +56,7 @@ import { SignatureHelpFeature, SignatureHelpMiddleware } from './signatureHelp'
 import { DidChangeTextDocumentFeature, DidChangeTextDocumentFeatureShape, DidCloseTextDocumentFeature, DidCloseTextDocumentFeatureShape, DidOpenTextDocumentFeature, DidOpenTextDocumentFeatureShape, DidSaveTextDocumentFeature, DidSaveTextDocumentFeatureShape, ResolvedTextDocumentSyncCapabilities, TextDocumentSynchronizationMiddleware, WillSaveFeature, WillSaveWaitUntilFeature } from './textSynchronization'
 import { TypeDefinitionFeature, TypeDefinitionMiddleware } from './typeDefinition'
 import { TypeHierarchyFeature, TypeHierarchyMiddleware } from './typeHierarchy'
+import { currentTimeStamp, data2String, getLocale, getTraceMessage, parseTraceData, toMethod } from './utils'
 import * as cv from './utils/converter'
 import { CloseAction, DefaultErrorHandler, ErrorAction, ErrorHandler, InitializationFailedHandler } from './utils/errorHandler'
 import { ConsoleLogger, NullLogger } from './utils/logger'
@@ -74,16 +77,13 @@ interface ConnectionCloseHandler {
 }
 
 interface ConnectionOptions {
-  cancellationStrategy: CancellationStrategy
+  cancellationStrategy?: CancellationStrategy
   connectionStrategy?: ConnectionStrategy
   maxRestartCount?: number
 }
 
 const redOpen = '\x1B[31m'
 const redClose = '\x1B[39m'
-function currentTimeStamp(): string {
-  return getTimestamp(new Date())
-}
 
 function createConnection(input: MessageReader, output: MessageWriter, errorHandler: ConnectionErrorHandler, closeHandler: ConnectionCloseHandler, options?: ConnectionOptions): Connection {
   let logger = new ConsoleLogger()
@@ -96,13 +96,13 @@ function createConnection(input: MessageReader, output: MessageWriter, errorHand
     hasPendingResponse: (): boolean => connection.hasPendingResponse(),
     listen: (): void => connection.listen(),
     sendRequest: <R>(type: string | MessageSignature, ...params: any[]): Promise<R> => {
-      return connection.sendRequest(Is.string(type) ? type : type.method, ...params)
+      return connection.sendRequest(toMethod(type), ...params)
     },
-    onRequest: <R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable => connection.onRequest(Is.string(type) ? type : type.method, handler),
+    onRequest: <R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable => connection.onRequest(toMethod(type), handler),
     sendNotification: (type: string | MessageSignature, params?: any): Promise<void> => {
-      return connection.sendNotification(Is.string(type) ? type : type.method, params)
+      return connection.sendNotification(toMethod(type), params)
     },
-    onNotification: (type: string | MessageSignature, handler: GenericNotificationHandler): Disposable => connection.onNotification(Is.string(type) ? type : type.method, handler),
+    onNotification: (type: string | MessageSignature, handler: GenericNotificationHandler): Disposable => connection.onNotification(toMethod(type), handler),
 
     onProgress: connection.onProgress,
     sendProgress: connection.sendProgress,
@@ -275,7 +275,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   protected _state: ClientState
   private _onStart: Promise<void> | undefined
   private _onStop: Promise<void> | undefined
-  private _connection: Connection | undefined
+  public _connection: Connection | undefined
   private _initializeResult: InitializeResult | undefined
   private _outputChannel: OutputChannel | undefined
   private _capabilities: ServerCapabilities & ResolvedTextDocumentSyncCapabilities
@@ -360,16 +360,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       markdown.supportHtml = clientOptions.markdown.supportHtml === true
     }
     let disableSnippetCompletion = clientOptions.disableSnippetCompletion
-    if (clientOptions.disableSnippetCompletion === undefined) {
-      let suggest = workspace.getConfiguration('suggest', clientOptions.workspaceFolder)
-      if (suggest.get<boolean>('snippetsSupport', true) === false) {
-        disableSnippetCompletion = true
-      }
-    }
     let disableMarkdown = clientOptions.disableMarkdown
     if (disableMarkdown === undefined) {
-      let preferences = workspace.getConfiguration('coc.preferences', clientOptions.workspaceFolder)
-      disableMarkdown = preferences.get<boolean>('enableMarkdown', true) === false
+      disableMarkdown = workspace.initialConfiguration.get<boolean>('coc.preferences.enableMarkdown') === false
     }
     const pullConfig = workspace.getConfiguration('pullDiagnostic', clientOptions.workspaceFolder)
     let pullOption = clientOptions.diagnosticPullOptions ?? {}
@@ -481,7 +474,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       const connection = await this.$start()
       return await connection.sendRequest<R>(type, ...params)
     } catch (error) {
-      this.error(`Sending request ${Is.string(type) ? type : type.method} failed.`, error)
+      this.error(`Sending request ${toMethod(type)} failed.`, error)
       throw error
     }
   }
@@ -492,7 +485,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public onRequest<P, R, E>(type: RequestType<P, R, E>, handler: RequestHandler<P, R, E>): Disposable
   public onRequest<R, E>(method: string, handler: GenericRequestHandler<R, E>): Disposable
   public onRequest<R, E>(type: string | MessageSignature, handler: GenericRequestHandler<R, E>): Disposable {
-    const method = typeof type === 'string' ? type : type.method
+    const method = toMethod(type)
     this._requestHandlers.set(method, handler)
     const connection = this.activeConnection()
     let disposable: Disposable
@@ -542,7 +535,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       const connection = await this.$start()
       return await connection.sendNotification(type, params)
     } catch (error) {
-      this.error(`Sending notification ${Is.string(type) ? type : type.method} failed.`, error)
+      this.error(`Sending notification ${toMethod(type)} failed.`, error)
       throw error
     }
   }
@@ -553,7 +546,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public onNotification<P>(type: NotificationType<P>, handler: NotificationHandler<P>): Disposable
   public onNotification(method: string, handler: GenericNotificationHandler): Disposable
   public onNotification(type: string | MessageSignature, handler: GenericNotificationHandler): Disposable {
-    const method = typeof type === 'string' ? type : type.method
+    const method = toMethod(type)
     this._notificationHandlers.set(method, handler)
     const connection = this.activeConnection()
     let disposable: Disposable
@@ -661,7 +654,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public get outputChannel(): OutputChannel {
     if (!this._outputChannel) {
       let { outputChannelName } = this._clientOptions
-      this._outputChannel = window.createOutputChannel(outputChannelName ? outputChannelName : this._name)
+      this._outputChannel = window.createOutputChannel(defaultValue(outputChannelName, this._name))
     }
     return this._outputChannel
   }
@@ -686,34 +679,13 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private logObjectTrace(data: any): void {
-    if (data.isLSPMessage && data.type) {
-      this.outputChannel.append(`[LSP   - ${currentTimeStamp()}] `)
-    } else {
-      this.outputChannel.append(`[Trace - ${currentTimeStamp()}] `)
-    }
+    this.outputChannel.append(getTraceMessage(data))
     this.traceData(data)
   }
 
   private traceData(data: any, error = false): void {
-    this.outputChannel.appendLine(this.data2String(data))
-    if (this._consoleDebug) error ? console.error(redOpen + this.data2String(data) + redClose) : console.log(this.parseTraceData(data))
-  }
-
-  private parseTraceData(data: any): string {
-    if (typeof data !== 'string') return this.data2String(data)
-    let prefixes = ['Params: ', 'Result: ']
-    for (let prefix of prefixes) {
-      if (data.startsWith(prefix)) {
-        try {
-          let obj = JSON.parse(data.slice(prefix.length))
-          return prefix + this.data2String(obj, true)
-        } catch (_e) {
-          // ignore
-          return data
-        }
-      }
-    }
-    return data
+    this.outputChannel.appendLine(data2String(data))
+    if (this._consoleDebug) error ? console.error(redOpen + data2String(data) + redClose) : console.log(parseTraceData(data))
   }
 
   private consoleMessage(prefix: string, message: string, error = false): void {
@@ -721,24 +693,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       let msg = prefix + ' ' + message
       error ? console.error(redOpen + msg + redClose) : console.log(msg)
     }
-  }
-
-  private data2String(data: any, color = false): string {
-    if (data instanceof ResponseError) {
-      const responseError = data as ResponseError<any>
-      return `  Message: ${responseError.message}\n  Code: ${responseError.code
-        } ${responseError.data ? '\n' + responseError.data.toString() : ''}`
-    }
-    if (data instanceof Error) {
-      if (Is.string(data.stack)) {
-        return data.stack
-      }
-      return (data as Error).message
-    }
-    if (Is.string(data)) {
-      return data
-    }
-    return inspect(data, false, null, color)
   }
 
   public info(message: string, data?: any, showNotification = true): void {
@@ -778,8 +732,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     if (data != null) this.traceData(data)
   }
 
-  private showNotificationMessage(type: MessageType, message?: string) {
-    message = message ?? 'A request has failed. See the output for more information.'
+  private showNotificationMessage(type: MessageType, message: string) {
     const messageFunc = type === MessageType.Error
       ? window.showErrorMessage.bind(window)
       : type === MessageType.Warning
@@ -942,10 +895,10 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
           void window.showInformationMessage(message.message)
       }
     })
-    connection.onNotification(TelemetryEventNotification.type, data => {
-      // Not supported.
-      // this._telemetryEmitter.fire(data);
-    })
+    // connection.onNotification(TelemetryEventNotification.type, data => {
+    //   // Not supported.
+    //   // this._telemetryEmitter.fire(data);
+    // })
     connection.onRequest(ShowMessageRequest.type, (params: ShowMessageRequestParams) => {
       let messageFunc: <T extends MessageItem>(message: string, ...items: T[]) => Thenable<T>
       switch (params.type) {
@@ -961,7 +914,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         default:
           messageFunc = window.showInformationMessage.bind(window)
       }
-      let actions: MessageActionItem[] = params.actions || []
+      let actions: MessageActionItem[] = toArray(params.actions)
       return messageFunc(params.message, ...actions).then(res => {
         return res == null ? null : res
       })
@@ -978,7 +931,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
               await workspace.loadFile(params.uri)
             } else {
               await workspace.jumpTo(params.uri, selection?.start)
-              if (comparePosition(selection.start, selection.end) != 0) {
+              if (selection && comparePosition(selection.start, selection.end) != 0) {
                 await window.selectRange(selection)
               }
             }
@@ -1012,21 +965,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       return URI.parse(this._clientOptions.workspaceFolder.uri).fsPath
     }
     let { ignoredRootPaths, rootPatterns, requireRootPattern } = this._clientOptions
-    let resolved: string
-    if (Array.isArray(rootPatterns) && rootPatterns.length > 0) {
-      let doc = workspace.getDocument(workspace.bufnr)
-      if (doc && doc.schema == 'file') {
-        let dir = path.dirname(URI.parse(doc.uri).fsPath)
-        resolved = resolveRoot(dir, rootPatterns, workspace.cwd)
-      } else {
-        resolved = resolveRoot(workspace.cwd, rootPatterns)
-      }
-      if (requireRootPattern && !resolved) {
-        throw new Error(`Required root pattern not resolved, server won't start.`)
-      }
+    let resolved: string | undefined
+    if (!isFalsyOrEmpty(rootPatterns)) {
+      resolved = workspace.documentsManager.resolveRoot(rootPatterns, requireRootPattern)
     }
-
-    let rootPath = resolved || workspace.rootPath || workspace.cwd
+    let rootPath = resolved || workspace.rootPath
     if (sameFile(rootPath, os.homedir()) || ignoredRootPaths.some(p => sameFile(rootPath, p))) {
       this.warn(`Ignored rootPath ${rootPath} of client "${this._id}"`)
       return null
@@ -1046,7 +989,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       initializationOptions: Is.func(initializationOptions) ? initializationOptions() : initializationOptions,
       trace: Trace.toString(this._trace),
       workspaceFolders: workspaceFolder ? [workspaceFolder] : null,
-      locale: this.getLocale(),
+      locale: getLocale(),
       clientInfo: {
         name: 'coc.nvim',
         version: workspace.version
@@ -1063,8 +1006,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         part.done()
         return result
       }, error => {
-        part.cancel()
-        throw error
+        part.done()
+        return Promise.reject(error)
       })
     } else {
       return this.doInitialize(connection, initParams)
@@ -1152,9 +1095,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
           cb(item && item.id === 'retry')
         })
       } else {
-        if (error && error.message) {
-          void window.showErrorMessage(error.message)
-        }
+        void window.showErrorMessage(toText(error.message))
         this.error('Server initialization failed.', error)
         logger.error(`Server ${this.id} initialization failed.`, error)
         cb(false)
@@ -1242,8 +1183,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     for (let feature of this._features.values()) {
       if (typeof feature.dispose === 'function') {
         feature.dispose()
-      } else {
-        logger.error(`Feature can't be disposed`, feature)
       }
     }
     if (mode === 'stop' && this._diagnostics) {
@@ -1269,10 +1208,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {
     let { uri, diagnostics, version } = params
-    if (typeof version === 'number') {
-      let doc = workspace.getDocument(uri)
-      if (!doc || doc.version != version) return
-    }
+    if (Is.number(version) && !workspace.hasDocument(uri, version)) return
     let middleware = this.clientOptions.middleware!.handleDiagnostics
     if (middleware) {
       middleware(uri, diagnostics, (uri, diagnostics) =>
@@ -1294,7 +1230,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     let closeHandler = () => {
       this.handleConnectionClosed()
     }
-    const transports = await this.createMessageTransports(this._clientOptions.stdioEncoding ?? 'utf8')
+    const transports = await this.createMessageTransports(defaultValue(this._clientOptions.stdioEncoding, 'utf8'))
     this._connection = createConnection(transports.reader, transports.writer, errorHandler, closeHandler, this._clientOptions.connectionOptions)
     return this._connection
   }
@@ -1337,7 +1273,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       this.$state = ClientState.Initial
       this._onStop = Promise.resolve()
       this._onStart = undefined
-      this.start().catch(error => this.error(`Restarting server failed`, error, 'force'))
+      this.start().catch(this.error.bind(this, `Restarting server failed`))
     }
   }
 
@@ -1347,13 +1283,11 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private handleConnectionError(error: Error, message: Message, count: number) {
+  public handleConnectionError(error: Error, message: Message, count: number) {
     let action = this._clientOptions.errorHandler!.error(error, message, count)
     if (action === ErrorAction.Shutdown) {
       this.error(`Client ${this._name}: connection to server is erroring. Shutting down server.`, undefined, 'force')
-      this.stop().catch(error => {
-        this.error(`Stopping server failed`, error)
-      })
+      this.stop().catch(this.error.bind(this, `Stopping server failed`))
     }
   }
 
@@ -1367,7 +1301,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
 
   private refreshTrace(
     connection: Connection,
-    sendNotification = false
+    sendNotification: boolean
   ): void {
     let config = workspace.getConfiguration(this._id, this.clientOptions.workspaceFolder)
     let trace: Trace = Trace.Off
@@ -1389,7 +1323,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     connection.trace(this._trace, this._tracer, {
       sendNotification,
       traceFormat: this._traceFormat
-    }).catch(error => { this.error(`Updating trace failed with error`, error) })
+    }).catch(this.error.bind(this, `Updating trace failed with error`))
   }
 
   private enableVerboseTrace(): void {
@@ -1398,7 +1332,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this._connection.trace(this._trace, this._tracer, {
       sendNotification: true,
       traceFormat: this._traceFormat
-    }).catch(error => { this.error(`Updating trace failed with error`, error) })
+    }).catch(this.error.bind(this, `Updating trace failed with error`))
   }
 
   private readonly _features: (StaticFeature | DynamicFeature<any>)[] = []
@@ -1598,8 +1532,8 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     }
   }
 
-  private handleRegistrationRequest(params: RegistrationParams): Promise<void> {
-    if (this.clientOptions.disableDynamicRegister) return Promise.resolve()
+  private handleRegistrationRequest(params: RegistrationParams): void {
+    if (this.clientOptions.disableDynamicRegister) return
     // We will not receive a registration call before a client is running
     // from a server. However if we stop or shutdown we might which might
     // try to restart the server. So ignore registrations if we are not running
@@ -1609,42 +1543,30 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       }
       return
     }
-    return new Promise<void>((resolve, reject) => {
-      for (const registration of params.registrations) {
-        const feature = this._dynamicFeatures.get(registration.method)
-        if (!feature) {
-          reject(new Error(`No feature implementation for ${registration.method} found. Registration failed.`))
-          return
-        }
-        const options = registration.registerOptions ?? {}
-        options.documentSelector = options.documentSelector ?? this._clientOptions.documentSelector
-        const data: RegistrationData<any> = {
-          id: registration.id,
-          registerOptions: options
-        }
-        try {
-          feature.register(data)
-        } catch (err) {
-          reject(err)
-          return
-        }
+    for (const registration of params.registrations) {
+      const feature = this._dynamicFeatures.get(registration.method)
+      if (!feature) {
+        this.error(`No feature implementation for ${registration.method} found. Registration failed.`)
+        return
       }
-      resolve()
-    })
+      const options = registration.registerOptions ?? {}
+      options.documentSelector = options.documentSelector ?? this._clientOptions.documentSelector
+      const data: RegistrationData<any> = {
+        id: registration.id,
+        registerOptions: options
+      }
+      feature.register(data)
+    }
   }
 
   private handleUnregistrationRequest(
     params: UnregistrationParams
   ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(resolve => {
       for (let unregistration of params.unregisterations) {
         if (this._ignoredRegistrations.has(unregistration.id)) continue
         const feature = this._dynamicFeatures.get(unregistration.method)
-        if (!feature) {
-          reject(new Error(`No feature implementation for ${unregistration.method} found. Unregistration failed.`))
-          return
-        }
-        feature.unregister(unregistration.id)
+        if (feature) feature.unregister(unregistration.id)
       }
       resolve()
     })
@@ -1703,12 +1625,6 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     return workspace.applyEdit(params.edit).then(value => {
       return { applied: value }
     })
-  }
-
-  private getLocale(): string {
-    const lang = process.env.LANG
-    if (!lang) return 'en'
-    return lang.split('.')[0]
   }
 
   private static RequestsToCancelOnContentModified: Set<string> = new Set([

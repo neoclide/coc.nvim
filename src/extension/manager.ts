@@ -341,7 +341,7 @@ export class ExtensionManager {
     let props = getProperties(configuration ?? {})
     if (!isEmpty(props)) {
       // /configuration
-      let properties = convertProperties(props, ConfigurationScope.RESOURCE)
+      let properties = convertProperties(props, ConfigurationScope.WINDOW)
       if (Is.objectLiteral(configuration.definitions)) {
         let prefix = id.replace(/[^\w]/g, '')
         const addPrefix = (obj: object, key: string) => {
@@ -441,7 +441,7 @@ export class ExtensionManager {
     let exports: any
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
-    const timing = createTiming(`activate ${id}`)
+    const timing = createTiming(`activate ${id}`, 5000)
     let extension: Extension<API> = {
       activate: (): Promise<API> => {
         if (result) return result

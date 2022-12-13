@@ -63,14 +63,6 @@ export class Window {
     this.highlights.checkMarkers = this.workspace.has('nvim-0.5.1') || env.isVim
   }
 
-  public getTabNumber(id: number): number | undefined {
-    return this.workspace.tabs.getTabNumber(id)
-  }
-
-  public getTabId(nr: number): number | undefined {
-    return this.workspace.tabs.getTabId(nr)
-  }
-
   public get activeTextEditor(): TextEditor | undefined {
     return this.workspace.editors.activeTextEditor
   }
@@ -80,7 +72,7 @@ export class Window {
   }
 
   public get onDidTabClose(): Event<number> {
-    return this.workspace.tabs.onDidTabClose
+    return this.workspace.editors.onDidTabClose
   }
 
   public get onDidChangeActiveTextEditor(): Event<TextEditor | undefined> {

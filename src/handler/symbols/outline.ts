@@ -74,9 +74,9 @@ export default class SymbolsOutline {
     }, null, this.disposables)
     window.onDidChangeActiveTextEditor(async editor => {
       if (!this.config.checkBufferSwitch) return
-      let view = this.treeViewList.find(v => v.visible && v.targetTabnr == editor.tabpagenr)
+      let view = this.treeViewList.find(v => v.visible && v.targetTabId == editor.tabpageid)
       if (view) {
-        await this.showOutline(editor.document.bufnr, editor.tabpagenr)
+        await this.showOutline(editor.document.bufnr, editor.tabpageid)
         await nvim.command(`noa call win_gotoid(${editor.winid})`)
       }
     }, null, this.disposables)
@@ -84,8 +84,8 @@ export default class SymbolsOutline {
       if (!this.config.followCursor) return
       let provider = this.providersMap.get(bufnr)
       if (!provider) return
-      let tabnr = await nvim.call('tabpagenr')
-      let view = this.treeViewList.find(o => o.visible && o.targetBufnr == bufnr && o.targetTabnr == tabnr)
+      let tabpage = await nvim.tabpage
+      let view = this.treeViewList.find(o => o.visible && o.targetBufnr == bufnr && o.targetTabId == tabpage.id)
       if (!view) return
       await this.revealPosition(bufnr, view, Position.create(cursor[0] - 1, cursor[1] - 1))
     }, null, this.disposables)
@@ -254,11 +254,11 @@ export default class SymbolsOutline {
     return this.sortByMap.get(bufnr) ?? this.config.sortBy
   }
 
-  private async showOutline(bufnr: number, tabnr: number): Promise<BasicTreeView<OutlineNode>> {
+  private async showOutline(bufnr: number, tabId: number): Promise<BasicTreeView<OutlineNode>> {
     if (!this.providersMap.has(bufnr)) {
       this.providersMap.set(bufnr, this.createProvider(bufnr))
     }
-    let treeView = this.treeViewList.find(v => v.valid && v.targetBufnr == bufnr && v.targetTabnr == tabnr)
+    let treeView = this.treeViewList.find(v => v.valid && v.targetBufnr == bufnr && v.targetTabId == tabId)
     if (!treeView) {
       let { switchSortKey, togglePreviewKey } = this.config
       let autoPreview = this.config.autoPreview
@@ -348,14 +348,15 @@ export default class SymbolsOutline {
    * Create outline view.
    */
   public async show(keep?: number): Promise<void> {
-    let [bufnr, tabnr, winid] = await this.nvim.eval('[bufnr("%"),tabpagenr(),win_getid()]') as [number, number, number]
+    let [bufnr, winid] = await this.nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
+    let tabpage = await this.nvim.tabpage
     let doc = workspace.getDocument(bufnr)
     if (doc && !doc.attached) {
       void window.showErrorMessage(`Unable to show outline, ${doc.notAttachReason}`)
       return
     }
     let position = await window.getCursorPosition()
-    let treeView = await this.showOutline(bufnr, tabnr)
+    let treeView = await this.showOutline(bufnr, tabpage.id)
     if (keep == 1 || (keep === undefined && this.config.keepWindow)) {
       await this.nvim.command(`noa call win_gotoid(${winid})`)
     } else if (this.config.followCursor) {

@@ -557,7 +557,7 @@ export function createConfigurationNode(name: string, interactive: boolean, id?:
     items: { type: 'string' }
   }
   let node: IConfigurationNode = {
-    scope: ConfigurationScope.WINDOW,
+    scope: ConfigurationScope.APPLICATION,
     properties,
   }
   if (id) node.extensionInfo = { id }

@@ -175,6 +175,12 @@ describe('Document', () => {
   })
 
   describe('properties', () => {
+    it('should get languageId', async () => {
+      await nvim.command(`edit +setl\\ filetype=txt.vim foo`)
+      let doc = await workspace.document
+      expect(doc.languageId).toBe('txt')
+    })
+
     it('should parse iskeyword of character range', async () => {
       await nvim.setOption('iskeyword', 'a-z,A-Z,48-57,_')
       let opt = await nvim.getOption('iskeyword')
@@ -191,7 +197,7 @@ describe('Document', () => {
 
     it('should get word range', async () => {
       let doc = await workspace.document
-      await nvim.setLine('foo bar')
+      await nvim.setLine('foo bar#')
       await doc.synchronize()
       let range = doc.getWordRangeAtPosition({ line: 0, character: 0 })
       expect(range).toEqual(Range.create(0, 0, 0, 3))
@@ -201,6 +207,27 @@ describe('Document', () => {
       expect(range).toEqual(Range.create(0, 4, 0, 7))
       range = doc.getWordRangeAtPosition({ line: 0, character: 7 })
       expect(range).toBeNull()
+      range = doc.getWordRangeAtPosition({ line: 0, character: 7 }, '#')
+      expect(range).toEqual(Range.create(0, 4, 0, 8))
+    })
+
+    it('should fix start col', async () => {
+      let doc = await workspace.document
+      expect(doc.fixStartcol(Position.create(0, 3), ['#'])).toBe(0)
+      await nvim.setLine('foo #def')
+      expect(doc.fixStartcol(Position.create(0, 6), ['#'])).toBe(4)
+    })
+
+    it('should get lines', async () => {
+      let doc = await workspace.document
+      let lines = doc.getLines()
+      expect(lines).toEqual([''])
+    })
+
+    it('should add additional keywords', async () => {
+      await nvim.command(`edit foo | let b:coc_additional_keywords=['#']`)
+      let doc = await workspace.document
+      expect(doc.isWord('#')).toBe(true)
     })
 
     it('should check has changed', async () => {
@@ -464,6 +491,25 @@ describe('Document', () => {
       await assertChange(2, 1, 3, 0, '', ['foo', 'bar', 'd'])
       await assertChange(2, 0, 3, 0, 'if', ['foo', 'bar', 'if'])
       await assertChange(2, 0, 2, 2, 'x', ['foo', 'bar', 'x'])
+    })
+  })
+
+  describe('changeLines()', () => {
+    it('should change lines', async () => {
+      let doc = await workspace.document
+      await doc.changeLines([[0, '']])
+      await doc.buffer.replace(['a', 'b', 'c'], 0)
+      await doc.changeLines([[0, 'd'], [2, 'f']])
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual(['d', 'b', 'f'])
+    })
+  })
+
+  describe('getOffset()', () => {
+    it('should get offset', async () => {
+      let doc = await workspace.document
+      let offset = doc.getOffset(1, 0)
+      expect(offset).toBe(0)
     })
   })
 

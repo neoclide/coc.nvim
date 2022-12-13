@@ -192,7 +192,7 @@ export default class Source implements ISource<ExtendedCompleteItem> {
           }
           if (token.isCancellationRequested || curr - start > MAX_DURATION) return true
         }
-        if (w.length <= 1 || w === exclude || items.has(w) || noMatchWords.has(w)) continue
+        if ((w.length <= 1 && w.charCodeAt(0) < 255) || w === exclude || items.has(w) || noMatchWords.has(w)) continue
         if (firstMatch && !firstMatchFuzzy(firstCode, ascii, w)) {
           noMatchWords.add(w)
           continue

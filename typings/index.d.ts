@@ -3988,7 +3988,6 @@ declare module 'coc.nvim' {
     text_wrap?: 'wrap' | 'truncate'
   }
 
-
   interface BaseApi<T> {
     /**
      * unique identify number
@@ -4054,6 +4053,8 @@ declare module 'coc.nvim' {
      */
     setOption(name: string, value: VimValue, isNotify: true): void
   }
+
+  export const nvim: Neovim
 
   export interface Neovim extends BaseApi<Neovim> {
 
@@ -6237,9 +6238,9 @@ declare module 'coc.nvim' {
    */
   export interface TextEditor {
     /**
-     * The tabpagenr of current editor.
+     * The tabpageid of current editor.
      */
-    readonly tabpagenr: number
+    readonly tabpageid: number
     /**
      * The window id of current editor.
      */
@@ -6755,7 +6756,7 @@ declare module 'coc.nvim' {
     /**
      * Trigger coc.nvim's completion at current cursor position.
      */
-    export function executeCommand(command: 'editor.action.triggerSuggest'): Promise<void>
+    export function executeCommand(command: 'editor.action.triggerSuggest', source?: string): Promise<void>
 
     /**
      * Trigger signature help at current cursor position.
