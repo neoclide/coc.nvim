@@ -65,6 +65,28 @@ describe('client API', () => {
     await nvim.command('silent! %bwipeout!')
   })
 
+  it('should execute vim script', async () => {
+    let output = await nvim.exec(`echo 'foo'\necho 'bar'`, true)
+    expect(output).toBe('foo\nbar')
+    output = await nvim.exec(`let g:x = '5'\nunlet g:x`)
+    expect(output).toBeNull()
+  })
+
+  it('should create new buffer', async () => {
+    let buf = await nvim.createNewBuffer()
+    let valid = await buf.valid
+    expect(valid).toBe(true)
+    let listed = await buf.getOption('buflisted')
+    expect(listed).toBe(0)
+    buf = await nvim.createNewBuffer(true, true)
+    valid = await buf.valid
+    expect(valid).toBe(true)
+    listed = await buf.getOption('buflisted')
+    expect(listed).toBe(1)
+    let buftype = await buf.getOption('buftype')
+    expect(buftype).toBe('nofile')
+  })
+
   it('should set current window', async () => {
     let winid = await nvim.call('win_getid') as number
     await nvim.command('sp | sp | sp')

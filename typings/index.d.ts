@@ -4214,8 +4214,6 @@ declare module 'coc.nvim' {
 
     /**
      * Creates a new, empty, unnamed buffer.
-     *
-     * **Note:** works on neovim only.
      */
     createNewBuffer(listed?: boolean, scratch?: boolean): Promise<Buffer>
 
@@ -4365,8 +4363,7 @@ declare module 'coc.nvim' {
     commandOutput(arg: string): Promise<string>
 
     /**
-     * Executes Vimscript (multiline block of Ex-commands), like
-     * anonymous |:source|
+     * Executes Vimscript (multiline block of Ex-commands), like anonymous |:source|
      */
     exec(src: string, output?: boolean): Promise<string>
 

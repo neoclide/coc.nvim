@@ -2,7 +2,7 @@ scriptencoding utf-8
 let s:is_vim = !has('nvim')
 let s:nvim_50 = has('nvim-0.5.0')
 let s:nvim_60 = has('nvim-0.6.0')
-let s:clear_match_by_window = s:nvim_60 || has('patch-8.1.1084')
+let s:clear_match_by_window = s:nvim_60 || s:is_vim
 let s:set_extmark = has('nvim') && exists('*nvim_buf_set_extmark')
 let s:namespace_map = {}
 let s:ns_id = 1
@@ -560,11 +560,7 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
   endif
   if !s:clear_match_by_window
     let curr = win_getid()
-    if has('nvim')
-      noa call nvim_set_current_win(winid)
-    else
-      noa call win_gotoid(winid)
-    endif
+    noa call win_gotoid(winid)
   endif
   let ids = []
   for range in a:ranges
@@ -604,11 +600,7 @@ function! coc#highlight#match_ranges(winid, bufnr, ranges, hlGroup, priority) ab
     endif
   endfor
   if !s:clear_match_by_window
-    if has('nvim')
-      noa call nvim_set_current_win(curr)
-    else
-      noa call win_gotoid(curr)
-    endif
+    noa call win_gotoid(curr)
   endif
   return ids
 endfunction

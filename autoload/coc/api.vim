@@ -271,6 +271,27 @@ function! s:funcs.command_output(cmd)
   return execute(a:cmd)
 endfunction
 
+function! s:funcs.exec(code, output) abort
+  let cmds = split(a:code, '\n')
+  if a:output
+    return substitute(execute(cmds, 'silent!'), '^\n', '', '')
+  endif
+  call execute(cmds)
+  return v:null
+endfunction
+
+function! s:funcs.create_buf(listed, scratch) abort
+  let bufnr = bufadd('')
+  call setbufvar(bufnr, '&buflisted', a:listed ? 1 : 0)
+  if a:scratch
+    call setbufvar(bufnr, '&modeline', 0)
+    call setbufvar(bufnr, '&buftype', 'nofile')
+    call setbufvar(bufnr, '&swapfile', 0)
+  endif
+  call bufload(bufnr)
+  return bufnr
+endfunction
+
 function! s:funcs.get_current_line()
   return getline('.')
 endfunction
