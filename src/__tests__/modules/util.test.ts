@@ -152,8 +152,6 @@ console.warn('warn')`, sandbox)
   it('should createSandbox', () => {
     const Module = require('module')
     const sandbox = factory.createSandbox(logfile, emptyLogger, 'hook', false)
-    let key = require.resolve(logfile)
-    let keys = Object.keys(Module._cache)
     delete Module._cache[require.resolve(logfile)]
     let exports = sandbox.require(logfile)
     expect(typeof exports).toBe('function')

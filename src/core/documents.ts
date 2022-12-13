@@ -10,7 +10,7 @@ import Document from '../model/document'
 import { LinesTextDocument } from '../model/textdocument'
 import { BufferOption, DidChangeTextDocumentParams, Env, LocationWithTarget, QuickfixItem } from '../types'
 import { defaultValue, disposeAll } from '../util'
-import { normalizeFilePath, readFile, readFileLine } from '../util/fs'
+import { normalizeFilePath, readFile, readFileLine, resolveRoot } from '../util/fs'
 import { fs, os, path } from '../util/node'
 import * as platform from '../util/platform'
 import { Disposable, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
@@ -189,6 +189,21 @@ export default class Documents implements Disposable {
     for (let bufnr of this.buffers.keys()) {
       this.onBufUnload(bufnr)
     }
+  }
+
+  public resolveRoot(rootPatterns: string[], requireRootPattern = false): string | undefined {
+    let doc = this.getDocument(this.bufnr)
+    let resolved: string | undefined
+    if (doc && doc.schema == 'file') {
+      let dir = path.dirname(URI.parse(doc.uri).fsPath)
+      resolved = resolveRoot(dir, rootPatterns, this.cwd)
+    } else {
+      resolved = resolveRoot(this.cwd, rootPatterns)
+    }
+    if (requireRootPattern && !resolved) {
+      throw new Error(`Required root pattern not resolved.`)
+    }
+    return resolved
   }
 
   public get textDocuments(): LinesTextDocument[] {

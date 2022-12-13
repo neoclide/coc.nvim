@@ -152,7 +152,7 @@ describe('editors', () => {
   })
 
   it('should have current tabpageid after tab changed', async () => {
-    await nvim.command('tabe')
+    await nvim.command('tabe|doautocmd CursorHold')
     await helper.waitValue(() => {
       return editors.visibleTextEditors.length
     }, 2)

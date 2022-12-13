@@ -145,6 +145,13 @@ describe('workspace methods', () => {
     })
   })
 
+  it('should check document', async () => {
+    let doc = await workspace.document
+    expect(workspace.hasDocument(doc.uri)).toBe(true)
+    expect(workspace.hasDocument(doc.uri, doc.version)).toBe(true)
+    expect(workspace.hasDocument(doc.uri, doc.version - 1)).toBe(false)
+  })
+
   it('should get format options when uri does not exist', async () => {
     let uri = URI.file('/tmp/foo').toString()
     let opts = await workspace.getFormatOptions(uri)

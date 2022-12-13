@@ -35,6 +35,17 @@ describe('documents', () => {
     expect(res.uri).toBe(doc.uri)
   })
 
+  it('should resolveRoot', async () => {
+    let res = documents.resolveRoot(['package.json'])
+    expect(res).toBeDefined()
+    expect(() => {
+      documents.resolveRoot(['unexpected file'], true)
+    }).toThrow(Error)
+    await helper.edit(__filename)
+    res = documents.resolveRoot(['package.json'])
+    expect(res).toBeDefined()
+  })
+
   it('should consider lisp option for iskeyword', async () => {
     await nvim.command(`e +setl\\ lisp t`)
     let doc = await workspace.document

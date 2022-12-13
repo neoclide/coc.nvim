@@ -20,7 +20,7 @@ connection.onInitialize((params) => {
     setTimeout(() => {
       process.exit()
     }, 10)
-    throw new Error('message')
+    throw new Error('normal throw error')
   }
   if (options.utf8) {
     return {capabilities: {positionEncoding: PositionEncodingKind.UTF8}}

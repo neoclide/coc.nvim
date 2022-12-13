@@ -4,8 +4,9 @@ import { Delayer } from '../../language-client/utils/async'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
 import { wait } from '../../util/index'
 import { CloseAction, DefaultErrorHandler, ErrorAction } from '../../language-client/utils/errorHandler'
+import { data2String, getLocale, getTraceMessage, parseTraceData } from '../../language-client/utils'
 
-test('Logger', async () => {
+test('Logger', () => {
   const logger = new ConsoleLogger()
   logger.error('error')
   logger.warn('warn')
@@ -16,6 +17,31 @@ test('Logger', async () => {
   nullLogger.warn('warn')
   nullLogger.info('info')
   nullLogger.log('log')
+})
+
+test('getLocale', () => {
+  process.env.LANG = ''
+  expect(getLocale()).toBe('en')
+  process.env.LANG = 'en_US.UTF-8'
+  expect(getLocale()).toBe('en_US')
+})
+
+test('getTraceMessage', () => {
+  expect(getTraceMessage({})).toMatch('Trace')
+  expect(getTraceMessage({ isLSPMessage: true, type: 'request' })).toMatch('LSP')
+})
+
+test('data2String', () => {
+  let err = new Error('my error')
+  err.stack = undefined
+  let text = data2String(err)
+  expect(text).toMatch('error')
+})
+
+test('parseTraceData', () => {
+  expect(parseTraceData('msg')).toMatch('msg')
+  expect(parseTraceData('Params: data')).toMatch('data')
+  expect(parseTraceData('Result: {"foo": bar}')).toMatch('bar')
 })
 
 test('DefaultErrorHandler', async () => {

@@ -1,12 +1,16 @@
 import * as assert from 'assert'
 import cp from 'child_process'
 import path from 'path'
-import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, Disposable, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
+import fs from 'fs'
+import os from 'os'
+import { v4 as uuid } from 'uuid'
+import { CancellationToken, CancellationTokenSource, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
 import { Diagnostic, MarkupKind, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
 import { CloseAction, ErrorAction, HandleDiagnosticsSignature } from '../../language-client'
+import { LSPCancellationError } from '../../language-client/features'
 import { InitializationFailedHandler } from '../../language-client/utils/errorHandler'
 import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
@@ -36,6 +40,10 @@ describe('SettingMonitor', () => {
       transport: lsclient.TransportKind.ipc
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    client.onNotification('customNotification', () => {
+    })
+    client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', () => {
+    })
     await client.start()
     let monitor = new lsclient.SettingMonitor(client, 'html.enabled')
     let disposable = monitor.start()
@@ -174,23 +182,31 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.stdio
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-    let fn = jest.fn()
+    let called = false
     client.onNotification('progressResult', res => {
-      fn()
+      called = true
       expect(res).toEqual({ kind: 'begin', title: 'begin progress' })
     })
     await client.sendProgress(WorkDoneProgress.type, '4b3a71d0-2b3f-46af-be2c-2827f548579f', { kind: 'begin', title: 'begin progress' })
     await client.start()
-    await helper.wait(50)
+    await helper.waitValue(() => {
+      return called
+    }, true)
+    let spy = jest.spyOn(client._connection as any, 'sendProgress').mockImplementation(() => {
+      throw new Error('error')
+    })
+    await expect(async () => {
+      await client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })
+    }).rejects.toThrow(Error)
+    spy.mockRestore()
     let p = client.stop()
     await expect(async () => {
       await client._start()
     }).rejects.toThrow(Error)
     await p
-    expect(fn).toBeCalled()
   })
 
-  it('should handle error', async () => {
+  it('should use custom errorHandler', async () => {
     let called = false
     let clientOptions: lsclient.LanguageClientOptions = {
       synchronize: {},
@@ -217,6 +233,7 @@ describe('Client events', () => {
     await helper.waitValue(() => {
       return called
     }, true)
+    client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
   })
 
   it('should handle message events', async () => {
@@ -229,6 +246,7 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.stdio
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
+    expect(client.hasPendingResponse).toBeUndefined()
     disposables.push(client)
     await client.start()
     await client.sendNotification('logMessage')
@@ -236,19 +254,35 @@ describe('Client events', () => {
     let types = [MessageType.Error, MessageType.Warning, MessageType.Info, MessageType.Log]
     for (const t of types) {
       await client.sendNotification('requestMessage', { type: t })
-      await helper.wait(30)
+      await helper.waitValue(async () => {
+        let m = await workspace.nvim.mode
+        return m.blocking
+      }, true)
       if (t == MessageType.Error) {
         await workspace.nvim.input('1')
       } else {
         await workspace.nvim.input('<cr>')
       }
     }
-    let uri = URI.file(__filename)
+    let filename = path.join(os.tmpdir(), uuid())
+    let uri = URI.file(filename)
+    fs.writeFileSync(filename, 'foo', 'utf8')
+    let spy = jest.spyOn(workspace, 'openResource').mockImplementation(() => {
+      return Promise.resolve()
+    })
+    let called = false
+    let s = jest.spyOn(window, 'selectRange').mockImplementation(() => {
+      called = true
+      return Promise.reject(new Error('failed'))
+    })
     await client.sendNotification('showDocument', { external: true, uri: 'lsptest:///1' })
     await client.sendNotification('showDocument', { uri: 'lsptest:///1', takeFocus: false })
     await client.sendNotification('showDocument', { uri: uri.toString() })
     await client.sendNotification('showDocument', { uri: uri.toString(), selection: Range.create(0, 0, 1, 0) })
-    await helper.wait(300)
+    await helper.waitValue(() => called, true)
+    spy.mockRestore()
+    s.mockRestore()
+    fs.unlinkSync(filename)
     await helper.waitValue(() => {
       return client.hasPendingResponse
     }, false)
@@ -426,8 +460,23 @@ describe('Client integration', () => {
       let error = new ResponseError(LSPErrorCodes.RequestCancelled, 'request cancelled')
       client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
     }).rejects.toThrow(CancellationError)
+    await expect(async () => {
+      let error = new ResponseError(LSPErrorCodes.RequestCancelled, 'request cancelled', 'cancelled')
+      client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
+    }).rejects.toThrow(LSPCancellationError)
+    await expect(async () => {
+      let error = new Error('failed')
+      client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
+    }).rejects.toThrow(Error)
     let error = new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
     client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
+    error = new ResponseError(ErrorCodes.PendingResponseRejected, '')
+    client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
+    await expect(async () => {
+      let error = new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
+      client.handleFailedRequest(InlayHintRequest.type, undefined, error, '')
+    }).rejects.toThrow(CancellationError)
+
     await client.stop()
     client.info('message', new Error('my error'), true)
     client.warn('message', 'error', true)
@@ -642,11 +691,16 @@ describe('Client integration', () => {
 
   it('should handle error on initialize', async () => {
     let client: lsclient.LanguageClient
+    let progressOnInitialization = false
     async function startServer(handler: InitializationFailedHandler | undefined, key = 'throwError'): Promise<lsclient.LanguageClient> {
       let clientOptions: lsclient.LanguageClientOptions = {
         initializationFailedHandler: handler,
+        progressOnInitialization,
         initializationOptions: {
           [key]: true
+        },
+        connectionOptions: {
+          maxRestartCount: 1
         }
       }
       let serverModule = path.join(__dirname, './server/eventServer.js')
@@ -658,39 +712,40 @@ describe('Client integration', () => {
       await client.start()
       return client
     }
+    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
+      // noop
+    })
     let n = 0
-    let fn = async () => {
+    await expect(async () => {
       await startServer(() => {
         n++
         return n == 1
       })
-    }
-    await expect(fn()).rejects.toThrow(Error)
-    let spy = jest.spyOn(console, 'error').mockImplementation(() => {
-      // noop
-    })
-    const noRestart = () => false
+    }).rejects.toThrow(Error)
     await helper.waitValue(() => {
       return n
-    }, 5)
-    fn = async () => {
-      await startServer(noRestart, 'normalThrow')
-    }
-    await expect(fn()).rejects.toThrow(Error)
-    fn = async () => {
-      await startServer(noRestart, 'utf8')
-    }
-    await expect(fn()).rejects.toThrow(Error)
-    fn = async () => {
+    }, 2)
+    let promise = new Promise<void>(resolve => {
+      let spy = jest.spyOn(window, 'showErrorMessage').mockImplementation(() => {
+        resolve()
+        spy.mockRestore()
+        return Promise.resolve({} as any)
+      })
+    })
+    await expect(async () => {
+      await startServer(undefined)
+    }).rejects.toThrow(Error)
+    await promise
+    await expect(async () => {
+      await startServer(undefined, 'normalThrow')
+    }).rejects.toThrow(Error)
+    progressOnInitialization = true
+    await expect(async () => {
+      await startServer(undefined, 'utf8')
+    }).rejects.toThrow(/Unsupported position encoding/)
+    await expect(async () => {
       await client.stop()
-    }
-    await expect(fn()).rejects.toThrow(Error)
-    fn = async () => {
-      await startServer(noRestart)
-    }
-    await expect(fn()).rejects.toThrow(Error)
-    await helper.wait(500)
-    client.clientOptions.errorHandler = undefined
+    }).rejects.toThrow(Error)
     spy.mockRestore()
   })
 })

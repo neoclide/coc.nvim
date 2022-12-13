@@ -359,6 +359,11 @@ export class Workspace {
     return this.documentsManager.getDocument(uri)
   }
 
+  public hasDocument(uri: string, version?: number): boolean {
+    let doc = this.documentsManager.getDocument(uri)
+    return doc != null && (version != null ? doc.version == version : true)
+  }
+
   public getUri(bufnr: number, defaultValue = ''): string {
     let doc = this.documentsManager.getDocument(bufnr)
     return doc ? doc.uri : defaultValue
