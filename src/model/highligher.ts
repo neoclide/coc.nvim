@@ -35,14 +35,12 @@ export default class Highlighter {
       let res = parseAnsiHighlights(line)
       for (let hl of res.highlights) {
         let { span, hlGroup } = hl
-        if (span[0] != span[1]) {
-          this._highlights.push({
-            lnum: this.lines.length,
-            colStart: span[0],
-            colEnd: span[1],
-            hlGroup
-          })
-        }
+        this._highlights.push({
+          lnum: this.lines.length,
+          colStart: span[0],
+          colEnd: span[1],
+          hlGroup
+        })
       }
       this.lines.push(res.line)
     } else {
@@ -50,7 +48,7 @@ export default class Highlighter {
     }
   }
 
-  public addLines(lines): void {
+  public addLines(lines: string[]): void {
     this.lines.push(...lines)
   }
 
@@ -127,7 +125,7 @@ export default class Highlighter {
       buffer.addHighlight({
         hlGroup: item.hlGroup,
         colStart: item.colStart,
-        colEnd: item.colEnd == null ? -1 : item.colEnd,
+        colEnd: item.colEnd,
         line: start + item.lnum,
         srcId: -1
       })

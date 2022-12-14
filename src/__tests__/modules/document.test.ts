@@ -337,9 +337,8 @@ describe('Document', () => {
       await nvim.setLine('foo')
       let doc = await workspace.document
       expect(typeof doc.hasChanged).toBe('boolean')
-      await doc.synchronize()
-      let content = doc.content
-      expect(content).toBe('foo')
+      await doc.patchChange()
+      await helper.waitValue(() => doc.content, 'foo')
     })
   })
 

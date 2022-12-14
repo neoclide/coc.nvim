@@ -1,5 +1,6 @@
 'use strict'
 import { fs, path } from '../util/node'
+import { toObject } from '../util/object'
 
 export default class DB {
   constructor(public readonly filepath: string) {
@@ -11,12 +12,12 @@ export default class DB {
    * @param {string} key unique key allows dot notation.
    * @returns {any}
    */
-  public fetch(key: string): any {
+  public fetch(key: string | undefined): any {
     let obj = this.load()
     if (!key) return obj
     let parts = key.split('.')
     for (let part of parts) {
-      if (typeof obj[part] == 'undefined') {
+      if (typeof obj[part] === 'undefined') {
         return undefined
       }
       obj = obj[part]
@@ -33,7 +34,7 @@ export default class DB {
     let obj = this.load()
     let parts = key.split('.')
     for (let part of parts) {
-      if (typeof obj[part] == 'undefined') {
+      if (typeof obj[part] === 'undefined') {
         return false
       }
       obj = obj[part]
@@ -52,7 +53,7 @@ export default class DB {
     let parts = key.split('.')
     let len = parts.length
     for (let i = 0; i < len; i++) {
-      if (typeof obj[parts[i]] == 'undefined') {
+      if (typeof obj[parts[i]] === 'undefined') {
         break
       }
       if (i == len - 1) {
@@ -71,19 +72,16 @@ export default class DB {
    * @param {number|null|boolean|string|{[index} data saved data.
    */
   public push(key: string, data: number | null | boolean | string | { [index: string]: any }): void {
-    let origin = this.load() || {}
+    let origin = toObject(this.load())
     let obj = origin
     let parts = key.split('.')
     let len = parts.length
-    if (obj == null) {
-      let dir = path.dirname(this.filepath)
-      fs.mkdirSync(dir, { recursive: true })
-      obj = origin
-    }
     for (let i = 0; i < len; i++) {
       let key = parts[i]
       if (i == len - 1) {
         obj[key] = data
+        let dir = path.dirname(this.filepath)
+        fs.mkdirSync(dir, { recursive: true })
         fs.writeFileSync(this.filepath, JSON.stringify(origin, null, 2))
         break
       }
@@ -98,8 +96,8 @@ export default class DB {
 
   private load(): any {
     let dir = path.dirname(this.filepath)
-    let stat = fs.statSync(dir)
-    if (!stat || !stat.isDirectory()) {
+    let exists = fs.existsSync(dir)
+    if (!exists) {
       fs.mkdirSync(dir, { recursive: true })
       fs.writeFileSync(this.filepath, '{}', 'utf8')
       return {}
@@ -117,8 +115,8 @@ export default class DB {
    * Empty db file.
    */
   public clear(): void {
-    let stat = fs.statSync(this.filepath)
-    if (!stat || !stat.isFile()) return
+    let exists = fs.existsSync(this.filepath)
+    if (!exists) return
     fs.writeFileSync(this.filepath, '{}', 'utf8')
   }
 

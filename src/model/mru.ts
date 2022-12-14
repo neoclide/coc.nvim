@@ -12,7 +12,7 @@ export default class Mru {
 
   /**
    * @param {string} name unique name
-   * @param {string} base? optional directory name, default to config root of coc.nvim
+   * @param {string} base? optional directory name, default to data root of coc.nvim
    */
   constructor(
     name: string,
@@ -24,15 +24,16 @@ export default class Mru {
   }
 
   /**
-   * Load iems from mru file
+   * Load lines from mru file
    */
   public async load(): Promise<string[]> {
     try {
       let lines = await readFileLines(this.file, 0, this.maximum)
       if (lines.length > this.maximum) {
-        await writeFile(this.file, lines.join('\n'))
+        let newLines = lines.slice(0, this.maximum)
+        await writeFile(this.file, newLines.join('\n'))
+        return distinct(newLines)
       }
-      if (lines[lines.length - 1] == '') lines = lines.slice(0, -1)
       return distinct(lines)
     } catch (e) {
       return []
@@ -40,7 +41,6 @@ export default class Mru {
   }
 
   public loadSync(): string[] {
-    if (!fs.existsSync(this.file)) return []
     try {
       let content = fs.readFileSync(this.file, 'utf8')
       content = content.trim()

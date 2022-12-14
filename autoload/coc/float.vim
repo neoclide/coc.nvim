@@ -1207,6 +1207,18 @@ function! coc#float#add_related(winid, target) abort
   call coc#window#set_var(a:target, 'related', arr)
 endfunction
 
+function! coc#float#get_wininfo(winid) abort
+  if !coc#float#valid(a:winid)
+    throw 'Not valid float window: '.a:winid
+  endif
+  if s:is_vim
+    let pos = popup_getpos(a:winid)
+    return {'topline': pos['firstline'], 'botline': pos['lastline']}
+  endif
+  let info = getwininfo(a:winid)[0]
+  return {'topline': info['topline'], 'botline': info['botline']}
+endfunction
+
 function! s:popup_cursor(n) abort
   if a:n == 0
     return 'cursor'

@@ -3,8 +3,8 @@ import { Neovim } from '@chemzqm/neovim'
 import { isVim } from '../util/constants'
 
 interface WindowInfo {
-  botline: number,
-  topline: number
+  topline: number,
+  botline: number
 }
 
 /**
@@ -24,12 +24,6 @@ export default class Popup {
     return this._currIndex
   }
 
-  public get valid(): Promise<boolean> {
-    return this.nvim.call('coc#float#valid', [this.winid]).then(res => {
-      return !!res
-    })
-  }
-
   public close(): void {
     this.nvim.call('coc#float#close', [this.winid], true)
   }
@@ -42,21 +36,18 @@ export default class Popup {
     this.nvim.call('coc#compat#execute', [this.winid, cmd], true)
   }
 
+  private async getWininfo(): Promise<WindowInfo> {
+    return await this.nvim.call('coc#float#get_wininfo', [this.winid]) as WindowInfo
+  }
+
   /**
    * Simple scroll method, not consider wrapped lines.
    */
   public async scrollForward(): Promise<void> {
-    let { nvim, bufnr, winid } = this
+    let { nvim, bufnr } = this
     let buf = nvim.createBuffer(bufnr)
     let total = await buf.length
-    let botline: number
-    if (!isVim) {
-      let infos = await nvim.call('getwininfo', [winid]) as WindowInfo[]
-      if (!infos || !infos.length) return
-      botline = infos[0].botline
-    } else {
-      botline = await nvim.eval(`get(popup_getpos(${winid}), 'lastline', 0)`) as number
-    }
+    let { botline } = await this.getWininfo()
     if (botline >= total || botline == 0) return
     nvim.pauseNotification()
     this.setCursor(botline - 1)
@@ -71,15 +62,8 @@ export default class Popup {
    * Simple scroll method, not consider wrapped lines.
    */
   public async scrollBackward(): Promise<void> {
-    let { nvim, winid } = this
-    let topline: number
-    if (!isVim) {
-      let infos = await nvim.call('getwininfo', [winid]) as WindowInfo[]
-      if (!infos || !infos.length) return
-      topline = infos[0].topline
-    } else {
-      topline = await nvim.eval(`get(popup_getpos(${winid}), 'firstline', 0)`) as number
-    }
+    let { nvim } = this
+    let { topline } = await this.getWininfo()
     if (topline == 1) return
     nvim.pauseNotification()
     this.setCursor(topline - 1)
