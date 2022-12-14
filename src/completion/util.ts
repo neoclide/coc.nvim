@@ -398,14 +398,14 @@ export class Converter {
     return 0
   }
 
-  public convertToDurationItem(item: CompleteItem): DurationCompleteItem {
+  public convertToDurationItem(item: CompleteItem): DurationCompleteItem | undefined {
     if (Is.isCompletionItem(item)) {
       return this.convertLspCompleteItem(item)
     } else if (Is.string(item.word)) {
       return this.convertVimCompleteItem(item)
-    } else {
-      logger.error(`Unexpected completion item from ${this.option.source}:`, item)
     }
+    logger.error(`Unexpected completion item from ${this.option.source}:`, item)
+    return undefined
   }
 
   private convertVimCompleteItem(item: ExtendedCompleteItem): DurationCompleteItem {

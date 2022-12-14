@@ -202,7 +202,7 @@ export default class Complete {
             return
           }
           let len = result ? result.items.length : 0
-          logger.debug(`Source "${sourceName}" finished with ${len} items ${Date.now() - start}ms`)
+          logger.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start)
           if (len > 0) {
             if (Is.number(result.startcol)) {
               let line = opt.linenr - 1
@@ -211,11 +211,13 @@ export default class Complete {
             const priority = getPriority(source, this.config.languageSourcePriority)
             const option: ConvertOption = { source, insertMode, priority, asciiMatch, itemDefaults: result.itemDefaults, range }
             const converter = new Converter(this.inputStart, option, opt)
-            const items = result.items.map(item => {
+            const items = result.items.reduce((items, item) => {
               let completeItem = converter.convertToDurationItem(item)
+              if (!completeItem) return items
               map.set(completeItem, item)
-              return completeItem
-            })
+              items.push(completeItem)
+              return items
+            }, [])
             this.minCharacter = Math.min(this.minCharacter, converter.minCharacter)
             this.results.set(sourceName, { items, isIncomplete: result.isIncomplete === true })
             added = true

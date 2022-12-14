@@ -249,7 +249,7 @@ describe('completion', () => {
         doComplete: async (opt: CompleteOption) => {
           option = opt
           if (opt.triggerCharacter == '-') return { items: [{ word: '-foo' }] }
-          return { items: [{ word: 'foo' }, { word: 'bar' }] }
+          return { items: [{ word: 'foo' }, { word: 'bar' }, { label: undefined }] }
         }
       }
       disposables.push(sources.addSource(source))
