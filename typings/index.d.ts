@@ -10179,7 +10179,7 @@ declare module 'coc.nvim' {
      * @param {number} bufnr - Buffer number
      * @param {string} ns - Highlight namespace
      * @param {HighlightItem[]} items - Highlight items
-     * @param {[number, number] | undefined} - region 0 based start line and end line (end exclusive)
+     * @param {[number, number] | undefined} region - 0 based start line and end line (end exclusive)
      * @param {CancellationToken} token - CancellationToken
      * @returns {Promise<HighlightDiff>}
      */
