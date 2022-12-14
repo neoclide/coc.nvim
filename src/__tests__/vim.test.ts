@@ -24,6 +24,58 @@ describe('vim api', () => {
   })
 })
 
+describe('document', () => {
+  it('should patch change', async () => {
+    let doc = await helper.createDocument('foo')
+    await nvim.command('enew')
+    // undefined change
+    await doc.patchChange(true)
+    await nvim.command(`b ${doc.bufnr}`)
+    // no change
+    await doc.patchChange(true)
+    await nvim.setLine('foo')
+    // changed
+    await doc.patchChange(true)
+    let curr = doc.getline(0, false)
+    expect(curr).toBe('foo')
+    await nvim.setLine('bar')
+    await doc.patchChange()
+    await doc.patchChange()
+    curr = doc.getline(0, false)
+    expect(curr).toBe('bar')
+    await nvim.command(`bd! ${doc.bufnr}`)
+    expect(doc.attached).toBe(false)
+    await doc.patchChange()
+    await nvim.command('silent! %bwipeout!')
+  })
+
+  it('should fetch content', async () => {
+    let doc = await helper.workspace.document
+    await nvim.setLine('foo')
+    await helper.waitValue(() => doc.getline(0, false), 'foo')
+    await nvim.command('silent! %bwipeout!')
+    doc.detach()
+    await doc._fetchContent()
+  })
+
+  it('should synchronize on TextChangedI', async () => {
+    let doc = await helper.workspace.document
+    await nvim.feedKeys('ifoo', 'int', false)
+    await helper.waitValue(() => doc.getline(0, false), 'foo')
+    await nvim.command('doautocmd <nomodeline> TextChangedP')
+    await nvim.setLine('foo foot f')
+    await nvim.eval(`feedkeys("\\<end>", 'int')`)
+    await nvim.eval(`feedkeys("\\<C-n>", 'int')`)
+    await doc.patchChange()
+    await nvim.eval(`feedkeys("\\<C-n>", 'int')`)
+    await nvim.eval(`feedkeys("\\<esc>", 'int')`)
+    await helper.wait(20)
+    let line = await nvim.line
+    await helper.waitValue(() => doc.getline(0, false), line)
+    await nvim.command('silent! %bwipeout!')
+  })
+})
+
 describe('client API', () => {
   it('should set current dir', async () => {
     await nvim.setDirectory(__dirname)

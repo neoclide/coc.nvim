@@ -100,7 +100,7 @@ class Events {
 
   private handlers: Map<string, ((...args: any[]) => Promise<unknown>)[]> = new Map()
   private _cursor: CursorPosition
-  private _bufnr: number
+  private _bufnr = 1
   // bufnr & character
   private _recentInserts: [number, string][] = []
   private _lastChange = 0
@@ -265,7 +265,7 @@ class Events {
       }
       // Avoid CursorMoved event when it's not moved at all
       if (this._cursor && equals(this._cursor, cursor)) return
-      this._cursor = Object.freeze(cursor)
+      this._cursor = cursor
     }
     let cbs = this.handlers.get(event)
     if (cbs?.length) {

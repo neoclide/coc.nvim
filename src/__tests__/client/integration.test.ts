@@ -289,13 +289,13 @@ describe('Client events', () => {
   })
 
   it('should invoke showDocument middleware', async () => {
-    let fn = jest.fn()
+    let called = false
     let clientOptions: lsclient.LanguageClientOptions = {
       synchronize: {},
       middleware: {
         window: {
           showDocument: async (params, next) => {
-            fn()
+            called = true
             let res = await next(params, CancellationToken.None)
             return res as any
           }
@@ -311,8 +311,7 @@ describe('Client events', () => {
     let uri = URI.file(__filename)
     await client.start()
     await client.sendNotification('showDocument', { uri: uri.toString() })
-    await helper.wait(50)
-    expect(fn).toBeCalled()
+    await helper.waitValue(() => called, true)
     await client.restart()
     await client.stop()
   })

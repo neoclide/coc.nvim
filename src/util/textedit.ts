@@ -2,6 +2,7 @@
 import { AnnotatedTextEdit, ChangeAnnotation, Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
 import { DocumentChange } from '../types'
+import { isFalsyOrEmpty } from './array'
 import { toObject } from './object'
 import { comparePosition, emptyRange, samePosition, toValidRange } from './position'
 import { byteIndex, contentToLines, toText } from './string'
@@ -215,7 +216,8 @@ export function filterSortEdits(textDocument: LinesTextDocument, edits: TextEdit
 /**
  * Apply valid & sorted edits
  */
-export function applyEdits(document: LinesTextDocument, edits: TextEdit[]): string[] | undefined {
+export function applyEdits(document: LinesTextDocument, edits: TextEdit[] | undefined): string[] | undefined {
+  if (isFalsyOrEmpty(edits)) return undefined
   if (edits.length == 1) {
     let { start, end } = edits[0].range
     let { lines } = document

@@ -4,10 +4,8 @@ import path from 'path'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import events from '../../events'
-import Document, { getUri } from '../../model/document'
+import Document, { getNotAttachReason, getUri } from '../../model/document'
 import { computeLinesOffsets, LinesTextDocument } from '../../model/textdocument'
-import { BufferOption } from '../../types'
 import { Disposable, disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
 import workspace from '../../workspace'
@@ -121,16 +119,12 @@ describe('LinesTextDocument', () => {
     expect(doc.lineCount).toBe(1)
     expect(doc.end).toEqual(Position.create(0, 3))
   })
-})
 
-describe('computeLinesOffsets()', () => {
   it('should computeLinesOffsets', () => {
     expect(computeLinesOffsets(['foo'], true)).toEqual([0, 4])
     expect(computeLinesOffsets(['foo'], false)).toEqual([0])
   })
-})
 
-describe('getUri', () => {
   it('should get uri for unknown buftype', () => {
     let res = getUri('foo', 3, '', false)
     expect(res).toBe('unknown:3')
@@ -139,9 +133,7 @@ describe('getUri', () => {
     res = getUri(__filename, 3, 'terminal', true)
     expect(URI.parse(res).fsPath).toBe(__filename)
   })
-})
 
-describe('TextLine', () => {
   it('should work with line not last one', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let textLine = doc.lineAt(0)
@@ -155,8 +147,12 @@ describe('TextLine', () => {
   it('should work with last line', () => {
     let doc = createTextDocument(['foo', 'bar'])
     let textLine = doc.lineAt(2)
-    let r = textLine.rangeIncludingLineBreak
     expect(textLine.rangeIncludingLineBreak).toEqual(Range.create(2, 0, 2, 0))
+  })
+
+  it('should not attach when size exceeded', async () => {
+    let reason = getNotAttachReason('', 1, 99)
+    expect(reason).toMatch('exceed')
   })
 })
 
@@ -171,7 +167,11 @@ describe('Document', () => {
   })
 
   afterEach(async () => {
-    await helper.reset()
+    let mode = await nvim.mode
+    if (mode.mode != 'n') {
+      await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
+    }
+    await nvim.command('silent! %bwipeout! | setl nopreviewwindow')
   })
 
   describe('properties', () => {
@@ -241,7 +241,7 @@ describe('Document', () => {
 
     it('should get symbol ranges', async () => {
       let doc = await workspace.document
-      await nvim.setLine('foo bar foo')
+      await nvim.setLine('-foo bar foo')
       let ranges = doc.getSymbolRanges('foo')
       expect(ranges.length).toBe(2)
     })
@@ -297,10 +297,9 @@ describe('Document', () => {
 
     it('should get lineCount, previewwindow, winid', async () => {
       let doc = await workspace.document
-      let { lineCount, winid, previewwindow } = doc
+      let { lineCount, winid } = doc
       expect(lineCount).toBe(1)
       expect(winid != -1).toBe(true)
-      expect(previewwindow).toBe(false)
     })
 
     it('should set filetype', async () => {
@@ -318,7 +317,45 @@ describe('Document', () => {
     })
   })
 
+  describe('attach()', () => {
+    it('should not attach when buffer not loaded', async () => {
+      await nvim.command('tabe foo | doautocmd CursorHold')
+      let doc = await workspace.document
+      let spy = jest.spyOn(doc.buffer, 'attach').mockImplementation(() => {
+        return Promise.reject(new Error('detached'))
+      })
+      doc.attach()
+      spy.mockRestore()
+      await nvim.command(`bd ${doc.bufnr}`)
+      doc.attach()
+      await helper.wait(10)
+      expect(doc.attached).toBe(false)
+    })
+
+    it('should consider eol option', async () => {
+      await nvim.command('edit foo|setl noeol')
+      await nvim.setLine('foo')
+      let doc = await workspace.document
+      expect(typeof doc.hasChanged).toBe('boolean')
+      await doc.synchronize()
+      let content = doc.content
+      expect(content).toBe('foo')
+    })
+  })
+
   describe('applyEdits()', () => {
+    it('should not throw with old API', async () => {
+      let doc = await workspace.document
+      await doc.applyEdits(nvim as any, [] as any)
+      expect(doc.previewwindow).toBe(false)
+    })
+
+    it('should not apply when not change happens', async () => {
+      let doc = await workspace.document
+      let res = await doc.applyEdits([TextEdit.insert(Position.create(0, 0), '')])
+      expect(res).toBeUndefined()
+    })
+
     it('should simple applyEdits', async () => {
       let doc = await workspace.document
       let edits: TextEdit[] = []
@@ -696,52 +733,6 @@ describe('Document', () => {
       await nvim.resumeNotification()
       let matches = await nvim.call('getmatches', [win.id]) as any
       expect(matches.length).toBe(0)
-    })
-  })
-
-  describe('onTextChange', () => {
-    async function createVimDocument(): Promise<Document> {
-      let doc = await workspace.document
-      doc.detach()
-      let opts = await nvim.call('coc#util#get_bufoptions', [doc.bufnr, 2097152]) as BufferOption
-      let buf = nvim.createBuffer(doc.bufnr)
-      let env = Object.assign({ isVim: true }, workspace.env)
-      return new Document(buf, env, nvim, opts)
-    }
-
-    it('should fetch lines on TextChanged', async () => {
-      let doc = await createVimDocument()
-      expect(doc.attached).toBe(true)
-      let disposable = events.on('TextChanged', (bufnr: number) => {
-        if (bufnr == doc.bufnr) doc.onTextChange('TextChanged')
-      })
-      let p = new Promise<void>(resolve => {
-        doc.onDocumentChange(() => {
-          resolve()
-        })
-      })
-      await nvim.setLine('foo')
-      await p
-      disposable.dispose()
-      let line = doc.getline(0)
-      expect(line).toBe('foo')
-    })
-
-    it('should update on insert change', async () => {
-
-      let doc = await createVimDocument()
-      workspace.documentsManager.buffers.set(doc.bufnr, doc)
-      await nvim.setLine('foo foot')
-      await doc.synchronize()
-      let disposables: Disposable[] = []
-        ;['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
-          events.on(event as any, (bufnr: number, info) => {
-            if (bufnr === doc.bufnr) doc.onTextChange(event, info)
-          }, null, disposables)
-        })
-      await nvim.input('of')
-      await nvim.eval(`feedkeys("\\<C-n>", 'in')`)
-      await helper.waitFor('pumvisible', [], 1)
     })
   })
 })
