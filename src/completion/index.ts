@@ -188,6 +188,7 @@ export class Completion implements Disposable {
     let doc = workspace.getDocument(workspace.bufnr)
     this.loadLocalConfig(doc)
   }
+
   public async startCompletion(opt?: { source?: string }): Promise<void> {
     clearTimeout(this.triggerTimer)
     let sourceList: ISource[]
@@ -198,7 +199,7 @@ export class Completion implements Disposable {
     let doc = workspace.getAttachedDocument(bufnr)
     let info = await this.nvim.call('coc#util#change_info') as InsertChange
     info.pre = byteSlice(info.line, 0, info.col - 1)
-    const option = this.getCompleteOption(doc, info)
+    const option = this.getCompleteOption(doc, info, true)
     await this._startCompletion(option, sourceList)
   }
 
@@ -330,7 +331,7 @@ export class Completion implements Disposable {
     return true
   }
 
-  private getCompleteOption(doc: Document, info: InsertChange): CompleteOption {
+  private getCompleteOption(doc: Document, info: InsertChange, manual = false): CompleteOption {
     let { pre } = info
     let input = getInput(doc.chars, info.pre, this.config.asciiCharactersOnly)
     let followWord = doc.getStartWord(info.line.slice(info.pre.length))
@@ -348,7 +349,7 @@ export class Completion implements Disposable {
       changedtick: info.changedtick,
       synname: '',
       filepath: doc.schema === 'file' ? URI.parse(doc.uri).fsPath : '',
-      triggerCharacter: toText(pre[pre.length - 1])
+      triggerCharacter: manual ? undefined : toText(pre[pre.length - 1])
     }
   }
 

@@ -240,12 +240,14 @@ describe('completion', () => {
       await nvim.command('edit t|setl iskeyword=@,-')
       let doc = await workspace.document
       expect(doc.chars.isKeywordChar('-')).toBe(true)
+      let option: CompleteOption
       let source: ISource = {
         name: 'dash',
         enable: true,
         sourceType: SourceType.Service,
         triggerCharacters: ['-'],
         doComplete: async (opt: CompleteOption) => {
+          option = opt
           if (opt.triggerCharacter == '-') return { items: [{ word: '-foo' }] }
           return { items: [{ word: 'foo' }, { word: 'bar' }] }
         }
@@ -254,6 +256,7 @@ describe('completion', () => {
       await nvim.input('i')
       triggerCompletion('dash')
       await helper.waitPopup()
+      expect(option.triggerCharacter).toBeUndefined()
       await nvim.input('-')
       await helper.waitValue(() => {
         let items = completion.activeItems
