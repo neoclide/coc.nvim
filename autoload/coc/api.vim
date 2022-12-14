@@ -35,6 +35,12 @@ function! s:check_bufnr(bufnr) abort
   endif
 endfunction
 
+" TextChanged not fired when using channel on vim.
+function! s:on_textchange(bufnr) abort
+  let event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
+  exe 'doautocmd <nomodeline> '.event.' '.bufname(a:bufnr)
+endfunction
+
 " execute command for bufnr
 function! s:buf_execute(bufnr, cmds) abort
   call s:check_bufnr(a:bufnr)
@@ -298,11 +304,13 @@ endfunction
 
 function! s:funcs.set_current_line(line)
   call setline('.', a:line)
+  call s:on_textchange(bufnr('%'))
   return v:null
 endfunction
 
 function! s:funcs.del_current_line()
   call deletebufline('%', line('.'))
+  call s:on_textchange(bufnr('%'))
   return v:null
 endfunction
 
@@ -335,7 +343,8 @@ function! s:funcs.list_tabpages()
 endfunction
 
 function! s:funcs.get_mode()
-  return {'blocking': v:false, 'mode': mode()}
+  let m = mode()
+  return {'blocking': m ==# 'r' ? v:true : v:false, 'mode': m}
 endfunction
 
 function! s:funcs.strwidth(str)
@@ -517,6 +526,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   if view isnot v:null
     call winrestview(view)
   endif
+  call s:on_textchange(a:bufnr)
   return v:null
 endfunction
 
