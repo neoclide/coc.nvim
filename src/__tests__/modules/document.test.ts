@@ -167,11 +167,7 @@ describe('Document', () => {
   })
 
   afterEach(async () => {
-    let mode = await nvim.mode
-    if (mode.mode != 'n') {
-      await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
-    }
-    await nvim.command('silent! %bwipeout! | setl nopreviewwindow')
+    await helper.reset()
   })
 
   describe('properties', () => {
@@ -265,7 +261,7 @@ describe('Document', () => {
     it('should attach change events', async () => {
       let doc = await workspace.document
       await nvim.setLine('abc')
-      await doc.synchronize()
+      await doc.patchChange()
       let content = doc.getDocumentContent()
       expect(content.indexOf('abc')).toBe(0)
     })
@@ -276,7 +272,7 @@ describe('Document', () => {
       let val = doc.getVar<number>('enabled', 0)
       expect(val).toBe(0)
       await nvim.setLine('abc')
-      await doc.synchronize()
+      await doc.patchChange()
       let content = doc.getDocumentContent()
       expect(content.indexOf('abc')).toBe(-1)
       expect(doc.notAttachReason).toMatch('coc_enabled')
