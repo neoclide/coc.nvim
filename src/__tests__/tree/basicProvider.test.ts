@@ -1,6 +1,7 @@
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
-import { TreeItemCollapsibleState } from '../../tree'
 import commandsManager from '../../commands'
+import { TreeItemCollapsibleState } from '../../tree'
+import { HistoryInput } from '../../tree/filter'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import { disposeAll } from '../../util'
 
@@ -72,6 +73,21 @@ function createNodes(defs: NodeDef[]): TreeNode[] {
   })
 }
 
+describe('HistoryInput()', () => {
+  it('should manage history inputs', async () => {
+    let h = new HistoryInput()
+    h.add('a')
+    h.add('b')
+    expect(h.next('')).toBe('b')
+    expect(h.next('a')).toBe('b')
+    expect(h.next('b')).toBe('a')
+    expect(h.toJSON()).toBe(`[b,a]`)
+    expect(h.previous('')).toBe('a')
+    expect(h.previous('a')).toBe('b')
+    expect(h.previous('b')).toBe('a')
+  })
+})
+
 describe('BasicDataProvider', () => {
   describe('getChildren()', () => {
     it('should get children from root', async () => {
@@ -85,6 +101,19 @@ describe('BasicDataProvider', () => {
       let res = await provider.getChildren()
       expect(res.length).toBe(3)
       expect(res.map(o => o.label)).toEqual(['a', 'b', 'g'])
+    })
+
+    it('should throw when result is not array', async () => {
+      let provider = new BasicDataProvider({
+        provideData: () => {
+          return undefined
+        }
+      })
+      disposables.push(provider)
+      await expect(async () => {
+        await provider.getChildren()
+      }).rejects.toThrow(Error)
+      expect(provider.getLevel(undefined)).toBe(0)
     })
 
     it('should get children from child node', async () => {
@@ -134,10 +163,14 @@ describe('BasicDataProvider', () => {
     })
 
     it('should respect expandLevel option', async () => {
+      let def: NodeDef[] = [
+        ['a', [['c', [['e'], ['f']]], ['d']]],
+        ['b']
+      ]
       let provider = new BasicDataProvider({
         expandLevel: 1,
         provideData: () => {
-          return createNodes(defaultDef)
+          return createNodes(def)
         }
       })
       disposables.push(provider)
@@ -145,6 +178,14 @@ describe('BasicDataProvider', () => {
       let item = provider.getTreeItem(res[0])
       expect(item).toBeDefined()
       expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded)
+      item = provider.getTreeItem(res[0].children[0])
+      expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed)
+      let n = 0
+      provider.iterate(res[0], undefined, 0, () => {
+        n++
+        return true
+      })
+      expect(n).toBe(5)
     })
 
     it('should include highlights', async () => {

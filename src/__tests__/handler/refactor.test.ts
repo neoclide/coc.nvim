@@ -510,7 +510,7 @@ bar
       let buf = await setup()
       await nvim.call('cursor', [4, 1])
       let p = buf.showMenu()
-      await helper.wait(30)
+      await helper.waitPrompt()
       await nvim.input('2')
       await p
       let items = buf.fileItems

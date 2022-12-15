@@ -291,6 +291,23 @@ export class Helper extends EventEmitter {
     }
   }
 
+  public async waitNotification(event: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let fn = (method: string) => {
+        if (method == event) {
+          clearTimeout(timer)
+          this.nvim.removeListener('notification', fn)
+          resolve()
+        }
+      }
+      let timer = setTimeout(() => {
+        this.nvim.removeListener('notification', fn)
+        reject(new Error('wait notification timeout after 2s'))
+      }, 2000)
+      this.nvim.on('notification', fn)
+    })
+  }
+
   public async waitValue<T>(fn: () => ProviderResult<T>, value: T): Promise<void> {
     let find = false
     for (let i = 0; i < 200; i++) {

@@ -61,3 +61,7 @@ export class TreeItem {
     }
   }
 }
+
+export function getItemLabel(item: TreeItem): string {
+  return TreeItemLabel.is(item.label) ? item.label.label : item.label
+}

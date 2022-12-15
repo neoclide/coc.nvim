@@ -7,6 +7,7 @@ import { ProviderResult } from '../provider'
 import { disposeAll } from '../util'
 import { TreeDataProvider, TreeItemAction } from './index'
 import { TreeItem, TreeItemCollapsibleState, TreeItemIcon, TreeItemLabel } from './TreeItem'
+import { toArray } from '../util/array'
 
 export interface TreeNode {
   label: string
@@ -69,18 +70,14 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
   constructor(private opts: ProviderOptions<T>) {
     this.invokeCommand = `_invoke_${uuid()}`
     this.disposables.push(commandsManager.registerCommand(this.invokeCommand, async (node: T) => {
-      if (typeof opts.handleClick === 'function') {
-        await opts.handleClick(node)
-      } else {
-        console.error('Handler not found')
-      }
+      await opts.handleClick(node)
     }, null, true))
     if (typeof opts.resolveActions === 'function') {
       this.resolveActions = opts.resolveActions.bind(this)
     }
   }
 
-  private iterate(node: T, parentNode: T | undefined, level: number, fn: (node: T, parentNode: T | undefined, level: number) => void | boolean): void | boolean {
+  public iterate(node: T, parentNode: T | undefined, level: number, fn: (node: T, parentNode: T | undefined, level: number) => void | boolean): void | boolean {
     let res = fn(node, parentNode, level)
     if (res === false) return false
     if (Array.isArray(node.children)) {
@@ -117,7 +114,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
         if (fireEvent) this._onDidChangeTreeData.fire(previous)
         return
       }
-      if (previous.children?.length && curr.children?.length) {
+      if (toArray(previous.children).length > 0 && toArray(curr.children).length > 0) {
         this.updateNodes(previous.children, curr.children, previous, fireEvent)
       }
     }
@@ -157,10 +154,10 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
   public update(data: T[], reset?: boolean): ReadonlyArray<T> {
     if (!this.data) return
     if (reset) {
-      this.data = data || []
+      this.data = toArray(data)
       this._onDidChangeTreeData.fire(undefined)
     } else {
-      this.updateNodes(this.data, data || [], undefined)
+      this.updateNodes(this.data, toArray(data), undefined)
     }
     return this.data
   }
@@ -193,7 +190,7 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
   }
 
   public async getChildren(element?: T): Promise<T[]> {
-    if (element) return element.children || []
+    if (element) return element.children ?? []
     if (this.data) return this.data
     let data = await Promise.resolve(this.opts.provideData())
     if (!Array.isArray(data)) throw new Error(`Unable to fetch data`)
@@ -219,10 +216,10 @@ export default class BasicDataProvider<T extends TreeNode> implements TreeDataPr
     return find
   }
 
-  private getLevel(element: T): number {
-    if (!this.data) return undefined
+  public getLevel(element: T): number {
+    if (!this.data) return 0
     let level = 0
-    for (let item of this.data) {
+    for (let item of toArray(this.data)) {
       let res = this.iterate(item, null, 1, (node, _parentNode, l) => {
         if (node === element) {
           level = l

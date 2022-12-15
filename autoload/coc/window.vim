@@ -188,19 +188,8 @@ function! coc#window#close(winid) abort
     if nvim_win_is_valid(a:winid)
       call nvim_win_close(a:winid, 1)
     endif
-  elseif exists('*win_execute')
-    call coc#compat#execute(a:winid, 'noa close!', 'silent!')
   else
-    let curr = win_getid()
-    if curr == a:winid
-      silent! close!
-    else
-      let res = win_gotoid(a:winid)
-      if res
-        silent! close!
-        call win_gotoid(curr)
-      endif
-    endif
+    call coc#compat#execute(a:winid, 'noa close!', 'silent!')
   endif
 endfunction
 

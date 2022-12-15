@@ -503,3 +503,61 @@ function! coc#ui#get_mouse() abort
   endif
   return [v:mouse_winid,v:mouse_lnum,v:mouse_col]
 endfunction
+
+" viewId - identifier of tree view
+" bufnr - bufnr tree view
+" winid - winid of tree view
+" bufname -  bufname of tree view
+" command - split command
+" optional options - bufhidden, canSelectMany, winfixwidth
+function! coc#ui#create_tree(opts) abort
+  let viewId = a:opts['viewId']
+  let bufname = a:opts['bufname']
+  let tabid = coc#util#tabnr_id(tabpagenr())
+  let winid = s:get_tree_winid(a:opts)
+  let bufnr = a:opts['bufnr']
+  if !bufloaded(bufnr)
+    let bufnr = -1
+  endif
+  if winid != -1
+    call win_gotoid(winid)
+    if bufnr('%') == bufnr
+      return [bufnr, winid, tabid]
+    elseif bufnr != -1
+      execute 'silent keepalt buffer '.bufnr
+    else
+      execute 'silent keepalt edit +setl\ buftype=nofile '.bufname
+      call s:set_tree_defaults(a:opts)
+    endif
+  else
+    " need to split
+    let cmd = get(a:opts, 'command', 'belowright 30vs')
+    execute 'silent keepalt '.cmd.' +setl\ buftype=nofile '.bufname
+    call s:set_tree_defaults(a:opts)
+    let winid = win_getid()
+  endif
+  let w:cocViewId = viewId
+  return [winbufnr(winid), winid, tabid]
+endfunction
+
+" valid window id or -1
+function! s:get_tree_winid(opts) abort
+  let viewId = a:opts['viewId']
+  let winid = a:opts['winid']
+  if winid != -1 && coc#window#visible(winid)
+    return winid
+  endif
+  if winid != -1
+    call coc#compat#execute(winid, 'noa close!', 'silent!')
+  endif
+  return coc#window#find('cocViewId', viewId)
+endfunction
+
+function! s:set_tree_defaults(opts) abort
+  let bufhidden = get(a:opts, 'bufhidden', 'wipe')
+  let signcolumn = get(a:opts, 'canSelectMany', v:false) ? 'yes' : 'no'
+  let winfixwidth = get(a:opts, 'winfixwidth', v:false) ? ' winfixwidth' : ''
+  execute 'setl bufhidden='.bufhidden.' signcolumn='.signcolumn.winfixwidth
+  setl nolist nonumber norelativenumber foldcolumn=0
+  setl nocursorline nobuflisted wrap undolevels=-1 filetype=coctree nomodifiable noswapfile
+endfunction
