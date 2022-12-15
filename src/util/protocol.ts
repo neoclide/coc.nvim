@@ -9,7 +9,6 @@ export {
   ExitNotification,
   LogMessageNotification,
   ShowMessageNotification,
-  TelemetryEventNotification,
   ShowMessageRequest,
   ShowDocumentRequest,
   PublishDiagnosticsNotification,

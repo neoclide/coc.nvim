@@ -12,7 +12,7 @@ export type GlobPattern = string | RelativePattern
 declare global {
   namespace NodeJS {
     interface Global {
-      __TESTER__?: boolean
+      __isMain?: boolean
       __TEST__?: boolean
       __starttime?: number
       REVISION?: string

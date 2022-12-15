@@ -62,7 +62,7 @@ enum ScopeNames {
   LanguageOverridable = 'language-overridable',
 }
 
-function convertScope(key: string, scope: string, defaultScope = ConfigurationScope.APPLICATION): ConfigurationScope {
+function convertScope(key: string, scope: string, defaultScope: ConfigurationScope): ConfigurationScope {
   if (sourcePrefixes.some(p => key.startsWith(p))) return ConfigurationScope.APPLICATION
   if (scope === ScopeNames.Application) return ConfigurationScope.APPLICATION
   if (scope === ScopeNames.Window) return ConfigurationScope.WINDOW

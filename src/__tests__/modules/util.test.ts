@@ -64,12 +64,19 @@ afterAll(() => {
 })
 
 describe('factory', () => {
-  const emptyLogger = {
+  afterAll(() => {
+    global.__TEST__ = true
+  })
+
+  const emptyLogger: factory.ILogger = {
     log: () => {},
     info: () => {},
     error: () => {},
     debug: () => {},
-    warn: () => {}
+    warn: () => {},
+    trace: () => {},
+    fatal: () => {},
+    mark: () => {}
   }
 
   it('should create logger', () => {
@@ -89,6 +96,12 @@ describe('factory', () => {
       },
       warn: () => {
         fn()
+      },
+      trace: () => {
+      },
+      fatal: () => {
+      },
+      mark: () => {
       }
     })
     vm.runInContext(`
@@ -142,7 +155,7 @@ console.warn('warn')`, sandbox)
   })
 
   it('should hook require', () => {
-    const sandbox = factory.createSandbox(logfile, console, 'hook', false)
+    const sandbox = factory.createSandbox(logfile, factory.consoleLogger, 'hook', false)
     let fn = factory.compileInSandbox(sandbox, { wait() {} })
     let obj: any = {}
     fn.apply(obj, [`const {wait} = require('coc.nvim')\nmodule.exports = wait`, logfile])
@@ -159,7 +172,7 @@ console.warn('warn')`, sandbox)
     expect(typeof obj.wait).toBe('function')
   })
 
-  it('should clear the cache', async () => {
+  it('should clear the cache', () => {
     const Module = require('module')
     let filename = path.join(os.tmpdir(), 'cache_test.js')
     fs.writeFileSync(filename, 'module.exports = {x: 1}', 'utf8')
@@ -170,6 +183,20 @@ console.warn('warn')`, sandbox)
     sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
     exports = sandbox.require(filename)
     expect(exports).toEqual({ y: 1 })
+    fs.rmSync(filename, { force: true })
+  })
+
+  it('should create extension', () => {
+    global.__TEST__ = false
+    let filename = path.join(os.tmpdir(), 'hash.js')
+    fs.writeFileSync(filename, `#! /usr/bin/env node
+    module.exports = function(){
+      return {fs: require("fs"), resolved: require.resolve('fs')}
+    }`, 'utf8')
+    let exp = factory.createExtension('hash', filename, false) as any
+    let res = exp.activate()
+    expect(res.fs).toBeDefined()
+    expect(res.resolved).toBe('fs')
     fs.rmSync(filename, { force: true })
   })
 })

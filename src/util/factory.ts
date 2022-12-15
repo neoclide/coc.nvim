@@ -11,11 +11,15 @@ export interface ExtensionExport {
 }
 
 export interface ILogger {
-  debug: (...meta: any[]) => void
-  log: (...meta: any[]) => void
-  error: (...meta: any[]) => void
-  warn: (...meta: any[]) => void
-  info: (...meta: any[]) => void
+  category?: string
+  log(...args: any[]): void
+  trace(...args: any[]): void
+  debug(...args: any[]): void
+  info(...args: any[]): void
+  warn(...args: any[]): void
+  error(...args: any[]): void
+  fatal(...args: any[]): void
+  mark(...args: any[]): void
 }
 
 export interface IModule {
@@ -30,7 +34,20 @@ export interface IModule {
   createRequire: (filename: string) => (file: string) => any
 }
 
+export const consoleLogger: ILogger = {
+  category: '',
+  log: console.log.bind(console),
+  debug: console.debug.bind(console),
+  error: console.error.bind(console),
+  warn: console.warn.bind(console),
+  info: console.info.bind(console),
+  trace: console.log.bind(console),
+  fatal: console.error.bind(console),
+  mark: console.log.bind(console),
+}
+
 const Module: IModule = require('module')
+const mainModule = require.main
 const REMOVED_GLOBALS = [
   'reallyExit',
   'abort',
@@ -43,7 +60,7 @@ const REMOVED_GLOBALS = [
   'kill',
 ]
 
-function removedGlobalStub(name: string): Function {
+function removedGlobalStub(name: string) {
   return () => {
     throw new Error(`process.${name}() is not allowed in extension sandbox`)
   }
@@ -57,8 +74,8 @@ function makeRequireFunction(this: any, cocExports: any): any {
     }
     return this.require(p)
   }
-  req.resolve = (request: string) => Module._resolveFilename(request, this)
-  req.main = process.mainModule
+  req.resolve = request => Module._resolveFilename(request, this)
+  req.main = mainModule
   // Enable support to add extra extension types
   req.extensions = Module._extensions
   req.cache = Module._cache
@@ -160,13 +177,17 @@ export function createSandbox(filename: string, logger: ILogger, name?: string, 
   return sandbox
 }
 
+function getLogger(useConsole: boolean, id: string): ILogger {
+  return useConsole ? consoleLogger : createLogger(`extension:${id}`)
+}
+
 // inspiration drawn from Module
 export function createExtension(id: string, filename: string, isEmpty: boolean): ExtensionExport {
   if (isEmpty || !fs.existsSync(filename)) return {
     activate: () => {},
     deactivate: null
   }
-  const logger = global.__TESTER__ ? console : createLogger(`extension:${id}`)
+  const logger = getLogger(!global.__isMain && !global.__TEST__, id)
   const sandbox = createSandbox(filename, logger, id)
 
   delete Module._cache[require.resolve(filename)]

@@ -10205,7 +10205,6 @@ declare module 'coc.nvim' {
   // extensions module {{
   export interface Logger {
     readonly category: string
-    readonly level: string
     log(...args: any[]): void
     trace(message: any, ...args: any[]): void
     debug(message: any, ...args: any[]): void

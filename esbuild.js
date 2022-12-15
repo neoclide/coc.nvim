@@ -20,8 +20,7 @@ let entryPlugin = {
     })
     build.onLoad({filter: /.*/, namespace: 'entry-ns'}, () => {
       let contents = `'use strict'
-let isMain = require.main === module
-if (isMain) {
+if (global.__isMain) {
   Object.defineProperty(console, 'log', {
     value() {
       if (logger) logger.info(...arguments)
@@ -29,13 +28,11 @@ if (isMain) {
   })
   const { createLogger } = require('./src/logger/index')
   const logger = createLogger('server')
-
   process.on('uncaughtException', function(err) {
     let msg = 'Uncaught exception: ' + err.message
     console.error(msg)
     logger.error('uncaughtException', err.stack)
   })
-
   process.on('unhandledRejection', function(reason, p) {
     if (reason instanceof Error) {
       console.error('UnhandledRejection: ' + reason.message + '\\n' + reason.stack)
@@ -44,13 +41,12 @@ if (isMain) {
     }
     logger.error('unhandledRejection ', p, reason)
   })
-}
-const attach = require('./src/attach').default
-if (isMain) {
+  const attach = require('./src/attach').default
   attach({ reader: process.stdin, writer: process.stdout })
 } else {
   const exports = require('./src/index')
   const logger = require('./src/logger').logger
+  const attach = require('./src/attach').default
   module.exports = {attach, exports, logger, loadExtension: (filepath, active) => {
     return exports.extensions.manager.load(filepath, active)
   }}
@@ -84,7 +80,7 @@ async function start(watch) {
     banner: {
       js: `"use strict";
 global.__starttime = Date.now();
-global.__TESTER__ = process.env.COC_TESTER == '1';`
+global.__isMain = require.main === module;`
     },
     outfile: 'build/index.js'
   })

@@ -1,5 +1,5 @@
 'use strict'
-import { byteLength, upperFirst } from './string'
+import { byteLength, toText, upperFirst } from './string'
 
 export interface AnsiItem {
   foreground?: string
@@ -242,7 +242,7 @@ export function ansiparse(str: string): AnsiItem[] {
   }
 
   if (matchingText) {
-    state.text = matchingText + (matchingControl ? matchingControl : '')
+    state.text = matchingText + toText(matchingControl)
     result.push(state)
   }
   return result

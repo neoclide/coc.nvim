@@ -18,7 +18,7 @@ import * as Is from '../util/is'
 import { os, path } from '../util/node'
 import { comparePosition } from '../util/position'
 import {
-  ApplyWorkspaceEditRequest, createProtocolConnection, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, InitializedNotification, InitializeRequest, InlayHintRequest, LogMessageNotification, LSPErrorCodes, MessageReader, MessageType, MessageWriter, PositionEncodingKind, PublishDiagnosticsNotification, RegistrationRequest, ResourceOperationKind, ResponseError, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRequest, ShowDocumentRequest, ShowMessageNotification, ShowMessageRequest, ShutdownRequest, TelemetryEventNotification, TextDocumentSyncKind, Trace, TraceFormat, UnregistrationRequest, WorkDoneProgress
+  ApplyWorkspaceEditRequest, createProtocolConnection, Emitter, ErrorCodes, Event, ExitNotification, FailureHandlingKind, InitializedNotification, InitializeRequest, InlayHintRequest, LogMessageNotification, LSPErrorCodes, MessageReader, MessageType, MessageWriter, PositionEncodingKind, PublishDiagnosticsNotification, RegistrationRequest, ResourceOperationKind, ResponseError, SemanticTokensDeltaRequest, SemanticTokensRangeRequest, SemanticTokensRequest, ShowDocumentRequest, ShowMessageNotification, ShowMessageRequest, ShutdownRequest, TextDocumentSyncKind, Trace, TraceFormat, UnregistrationRequest, WorkDoneProgress
 } from '../util/protocol'
 import { toText } from '../util/string'
 import window from '../window'

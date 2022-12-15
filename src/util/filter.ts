@@ -168,12 +168,10 @@ export function fuzzyScore(pattern: string, patternLow: string, patternStart: nu
         _table[row][column] = leftScore
         _arrows[row][column] = Arrow.Left
         _diag[row][column] = 0
-      } else if (canComeDiag) {
+      } else {
         _table[row][column] = diagScore
         _arrows[row][column] = Arrow.Diag
         _diag[row][column] = _diag[row - 1][column - 1] + 1
-      } else {
-        throw new Error(`not possible`)
       }
     }
   }

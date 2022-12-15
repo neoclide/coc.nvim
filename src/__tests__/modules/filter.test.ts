@@ -164,6 +164,8 @@ describe('filter functions', () => {
       '^a^a^a^a^a^aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       fuzzyScore
     )
+    let res = fuzzyScore('a'.repeat(1024), 'a'.repeat(1024), 0, 'word', 'word', 0)
+    expect(res).toBeUndefined()
   })
 
   test('Freeze when fjfj -> jfjf, https://github.com/microsoft/vscode/issues/91807', function() {
