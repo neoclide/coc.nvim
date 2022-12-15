@@ -213,7 +213,10 @@ export default class Complete {
             const converter = new Converter(this.inputStart, option, opt)
             const items = result.items.reduce((items, item) => {
               let completeItem = converter.convertToDurationItem(item)
-              if (!completeItem) return items
+              if (!completeItem) {
+                logger.error(`Unexpected completion item from ${sourceName}:`, item)
+                return items
+              }
               map.set(completeItem, item)
               items.push(completeItem)
               return items
