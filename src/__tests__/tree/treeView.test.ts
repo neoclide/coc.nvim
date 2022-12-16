@@ -1009,7 +1009,7 @@ describe('TreeView', () => {
         throw new Error('Error on updateUI')
       })
       await nvim.input('a')
-      await events.race(['InputChar'])
+      await helper.wait(50)
       spy.mockRestore()
     })
 
