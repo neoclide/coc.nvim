@@ -318,7 +318,7 @@ export default class SymbolsOutline {
         }
       }, true)
     }
-    await treeView.show(this.config.splitCommand)
+    await treeView.show(this.config.splitCommand, false)
     return treeView
   }
 

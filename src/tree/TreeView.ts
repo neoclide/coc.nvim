@@ -891,7 +891,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
   }
 
-  public async show(splitCommand = 'belowright 30vs'): Promise<boolean> {
+  public async show(splitCommand = 'belowright 30vs', waitRender = true): Promise<boolean> {
     let { nvim } = this
     let [targetBufnr, windowId] = await nvim.eval(`[bufnr("%"),win_getid()]`) as [number, number]
     this._targetBufnr = targetBufnr
@@ -914,7 +914,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (bufnr == opts.bufnr) return true
     this.registerKeymaps()
     this.updateHeadLines(true)
-    await this.render()
+    let promise = this.render()
+    if (waitRender) await promise
     return true
   }
 
