@@ -1031,7 +1031,7 @@ describe('TreeView', () => {
     it('should filter new nodes on data change', async () => {
       await createFilterTreeView()
       await nvim.input('a')
-      await events.race(['InputChar'])
+      await helper.wait(50)
       updateData([
         ['ab'],
         ['e'],
@@ -1045,12 +1045,12 @@ describe('TreeView', () => {
     it('should change selected item by <up> and <down>', async () => {
       await createFilterTreeView()
       await nvim.input('a')
-      await events.race(['InputChar'])
+      await helper.wait(50)
       updateData([
         ['ab'],
         ['fA']
       ])
-      await helper.wait(10)
+      await helper.wait(30)
       await nvim.input('<down>')
       await helper.waitValue(() => {
         let curr = treeView.selection[0]
@@ -1076,11 +1076,11 @@ describe('TreeView', () => {
     it('should not throw with empty nodes', async () => {
       await createFilterTreeView()
       await nvim.input('ab')
-      await helper.wait(10)
+      await helper.wait(50)
       await nvim.input('<up>')
-      await helper.wait(10)
+      await helper.wait(50)
       await nvim.input('<down>')
-      await helper.wait(10)
+      await helper.wait(50)
       await nvim.input('<cr>')
       await checkLines(['test', 'ab '])
       let curr = treeView.selection[0]
