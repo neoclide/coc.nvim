@@ -202,6 +202,7 @@ export default class Plugin {
       await extensions.init(rtp)
       await workspace.init(window)
       nvim.setVar('coc_workspace_initialized', true, true)
+      snippetManager.init()
       services.init()
       sources.init()
       completion.init()

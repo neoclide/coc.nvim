@@ -1103,7 +1103,7 @@ describe('TreeView', () => {
     it('should keep state when press <cr> with empty selection', async () => {
       await createFilterTreeView()
       await nvim.input('ab')
-      await events.race(['InputChar'], 50)
+      await helper.wait(50)
       await nvim.input('<cr>')
       await checkLines(['test', 'ab '])
     })

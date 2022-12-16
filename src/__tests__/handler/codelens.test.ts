@@ -105,6 +105,8 @@ describe('codeLenes featrue', () => {
     }, true)
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
     expect(markers.length).toBe(1)
+    let codeLenes = buf.currentCodeLens
+    await languages.resolveCodeLens(codeLenes[0], CancellationToken.None)
   })
 
   it('should refresh on empty changes', async () => {

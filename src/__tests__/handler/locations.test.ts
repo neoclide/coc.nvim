@@ -11,7 +11,7 @@ import { URI } from 'vscode-uri'
 let nvim: Neovim
 let locations: LocationHandler
 let disposables: Disposable[] = []
-let currLocations: Location[]
+let currLocations: Location[] | LocationLink[]
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -38,6 +38,11 @@ function createLocation(name: string, sl: number, sc: number, el: number, ec: nu
   return Location.create(`test://${name}`, Range.create(sl, sc, el, ec))
 }
 
+function createLocationLink(name: string, sl: number, sc: number, el: number, ec: number): LocationLink {
+  let r = Range.create(sl, sc, el, ec)
+  return LocationLink.create(`test://${name}`, r, r)
+}
+
 describe('locations', () => {
   describe('no provider', () => {
     it('should return null when provider does not exist', async () => {
@@ -58,13 +63,13 @@ describe('locations', () => {
     beforeEach(() => {
       disposables.push(languages.registerReferencesProvider([{ language: '*' }], {
         provideReferences: () => {
-          return currLocations
+          return currLocations as any
         }
       }))
     })
 
     it('should get references', async () => {
-      currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
+      currLocations = [createLocationLink('foo', 0, 0, 0, 0), createLocationLink('bar', 0, 0, 0, 0)]
       let res = await locations.references()
       expect(res.length).toBe(2)
     })

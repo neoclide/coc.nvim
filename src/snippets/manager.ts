@@ -21,7 +21,7 @@ export class SnippetManager {
   private disposables: Disposable[] = []
   private _statusItem: StatusBarItem
 
-  constructor() {
+  public init() {
     events.on('InsertCharPre', (_, bufnr: number) => {
       // avoid update session when pumvisible
       // Update may cause completion unexpected terminated.
@@ -35,6 +35,15 @@ export class SnippetManager {
     workspace.onDidCloseTextDocument(e => {
       let session = this.getSession(e.bufnr)
       if (session) session.deactivate()
+    }, null, this.disposables)
+    window.onDidChangeActiveTextEditor(e => {
+      if (!this._statusItem) return
+      let session = this.getSession(e.document.bufnr)
+      if (session) {
+        this.statusItem.show()
+      } else {
+        this.statusItem.hide()
+      }
     }, null, this.disposables)
     commands.register({
       id: 'editor.action.insertSnippet',
@@ -54,15 +63,6 @@ export class SnippetManager {
     let statusItem = this._statusItem = window.createStatusBarItem(0)
     const snippetConfig = workspace.initialConfiguration.get('snippet') as any
     statusItem.text = defaultValue(snippetConfig.statusText, '')
-    window.onDidChangeActiveTextEditor(e => {
-      if (!this.statusItem) return
-      let session = this.getSession(e.document.bufnr)
-      if (session) {
-        statusItem.show()
-      } else {
-        statusItem.hide()
-      }
-    }, null, this.disposables)
     return this._statusItem
   }
 
@@ -192,7 +192,7 @@ export class SnippetManager {
   public async resolveSnippet(snippetString: string, ultisnip?: UltiSnippetOption): Promise<string> {
     if (ultisnip) {
       let session = this.getSession(workspace.bufnr)
-      ultisnip.noPython = session != null && session.snippet.hasPython
+      if (session != null && session.snippet.hasPython) ultisnip.noPython = false
     }
     return await SnippetSession.resolveSnippet(this.nvim, snippetString, ultisnip)
   }

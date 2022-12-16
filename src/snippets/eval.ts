@@ -4,6 +4,7 @@ import { Range } from '@chemzqm/neovim/lib/types'
 import { exec } from 'child_process'
 import { isVim } from '../util/constants'
 import { promisify } from '../util/node'
+import { toText } from '../util/string'
 export type EvalKind = 'vim' | 'python' | 'shell'
 
 export interface UltiSnippetContext {
@@ -32,7 +33,7 @@ export interface UltiSnippetContext {
 /**
  * Eval code for code placeholder.
  */
-export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr = ''): Promise<string> {
+export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr: string): Promise<string> {
   if (kind == 'vim') {
     let res = await nvim.eval(code)
     return res.toString()
@@ -40,14 +41,14 @@ export async function evalCode(nvim: Neovim, kind: EvalKind, code: string, curr 
 
   if (kind == 'shell') {
     let res = await promisify(exec)(code)
-    return res.stdout.replace(/\s*$/, '') || res.stderr
+    return res.stdout.replace(/\s*$/, '')
   }
 
   let lines = [`snip._reset("${escapeString(curr)}")`]
   lines.push(...code.split(/\r?\n/).map(line => line.replace(/\t/g, '    ')))
   await executePythonCode(nvim, lines)
-  let res = await nvim.call(`pyxeval`, 'str(snip.rv)')
-  return typeof res === 'string' ? res : ''
+  let res = await nvim.call(`pyxeval`, 'str(snip.rv)') as string
+  return toText(res)
 }
 
 export function prepareMatchCode(snip: UltiSnippetContext): string {
@@ -86,16 +87,17 @@ export function preparePythonCodes(snip: UltiSnippetContext): string[] {
 export async function executePythonCode(nvim: Neovim, codes: string[]) {
   try {
     await nvim.command(`pyx ${addPythonTryCatch(codes.join('\n'))}`)
-  } catch (e) {
-    let err = new Error(e instanceof Error ? e.message : e.toString())
-    err.stack = `Error on execute python code:\n${codes.join('\n')}\n` + (e instanceof Error ? e.stack : e)
+  } catch (e: any) {
+    let err = new Error(e.message)
+    err.stack = `Error on execute python code:\n${codes.join('\n')}\n` + e.stack
     throw err
   }
 }
 
 export function getVariablesCode(values: { [index: number]: string }): string {
   let keys = Object.keys(values)
-  let maxIndex = keys.length ? Math.max.apply(null, keys.map(v => Number(v))) : 0
+  if (keys.length == 0) return `t = ()`
+  let maxIndex = Math.max.apply(null, keys.map(v => Number(v)))
   let vals = (new Array(maxIndex)).fill('""')
   for (let [idx, val] of Object.entries(values)) {
     vals[idx] = `"${escapeString(val)}"`
@@ -156,10 +158,10 @@ export function convertRegex(str: string): string {
     throw new Error('pattern (?id/name)yes-pattern|no-pattern not supported')
   }
   return str.replace(regex, (match, p1) => {
-    if (match == '\\A') return '^'
     if (match.startsWith('(?#')) return ''
     if (match.startsWith('(?P<')) return '(?' + match.slice(3)
     if (match.startsWith('(?P=')) return `\\k<${p1}>`
-    return ''
+    // if (match == '\\A') return '^'
+    return '^'
   })
 }

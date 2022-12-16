@@ -1,15 +1,28 @@
 /* eslint-disable */
 import * as assert from 'assert'
 import { EvalKind } from '../../snippets/eval'
-import { Choice, CodeBlock, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
+import { Choice, CodeBlock, ConditionString, FormatString, Marker, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
 
 describe('SnippetParser', () => {
 
   test('transformEscapes', () => {
     assert.equal(transformEscapes('b\\uabc\\LDef'), 'bAbcdef')
+    assert.equal(transformEscapes('b\\lAbc\\LDef'), 'babcdef')
     assert.equal(transformEscapes('b\\Uabc\\Edef'), 'bABCdef')
     assert.equal(transformEscapes('b\\LABC\\Edef'), 'babcdef')
     assert.equal(transformEscapes(' \\n \\t'), ' \n \t')
+  })
+
+  test('Empty Marker', () => {
+    assert.ok(Marker != null)
+    assert.strictEqual((new Text('')).snippet, undefined)
+  })
+
+  test('Empty CodeBlock', () => {
+    let b = new CodeBlock('', 'vim')
+    b.update(new Map())
+    b.resolve(undefined)
+    assert.strictEqual(b.value, '')
   })
 
   test('Scanner', () => {
@@ -172,8 +185,12 @@ describe('SnippetParser', () => {
     assertPlaceholder(first('${1:foo}'), 1)
     assertPlaceholder(first('${2:foo}'), 2)
     let f = first('$foo $bar') as Variable
-    assert.equal(f instanceof Variable, true)
-    assert.equal(f.name, 'foo')
+    assert.strictEqual(f instanceof Variable, true)
+    assert.strictEqual(f.name, 'foo')
+    const p = new SnippetParser(false)
+    let s = p.parse('${1/from/to/}', true)
+    let placeholder = s.placeholders[0]
+    assert.strictEqual(placeholder.toTextmateString(), '${1/from/to/}')
   })
 
   test('Parser, text', () => {
@@ -192,6 +209,11 @@ describe('SnippetParser', () => {
     assertText('}}', '}}')
     assertText('ff}}', 'ff}}')
 
+    assertText('${foo/.*/complex${1:/upcase/i}', '${foo/.*/complex/upcase/i')
+    assertText('${foo/.*/${1/upcase}', '${foo/.*/${1/upcase}')
+    assertText('${VISUAL/.*/complex${1:/upcase}/i}', '${VISUAL/.*/complex/upcase/i}', true)
+    assertText('${foo/.*/complex${p:/upcase}/i}', '${foo/.*/complex/upcase/i}')
+
     assertText('farboo', 'farboo')
     assertText('far{{}}boo', 'far{{}}boo')
     assertText('far{{123}}boo', 'far{{123}}boo')
@@ -201,7 +223,6 @@ describe('SnippetParser', () => {
     assertText('far{{id:bern {{id:basel}}}}boo', 'far{{id:bern {{id:basel}}}}boo')
     assertText('far{{id:bern {{id2:basel}}}}boo', 'far{{id:bern {{id2:basel}}}}boo')
   })
-
 
   test('Parser, TM text', () => {
     assertTextAndMarker('foo${1:bar}}', 'foobar}', Text, Placeholder, Text)
@@ -289,6 +310,9 @@ describe('SnippetParser', () => {
     assertText('aa `!v xyz`', 'aa ', true)
     assertText('aa `!p xyz`', 'aa ', true)
     assertText('aa `!p foo\nbar`', 'aa ', true)
+    assertText('aa `!p py', 'aa `!p py', true)
+    assertText('aa `!p \n`', 'aa ', true)
+    assertText('aa `!p\n  1\n  2`', 'aa ', true)
     const c = text => {
       return (new SnippetParser(true)).parse(text)
     }
@@ -350,6 +374,8 @@ describe('SnippetParser', () => {
     assert.equal(arr[2].toString(), '_foo')
     assert.equal(arr[3].toString(), '_foo')
     assert.deepEqual(s.values, { '0': '', '1': '_foo', '2': 'bar', '3': '' })
+    s = c('${1:`!p snip.rv = t[2]`} ${2:`!p snip.rv = t[1]`}')
+    assert.deepEqual(s.orderedPyIndexBlocks, [])
   })
 
   test('Parser, python CodeBlock with related', () => {
@@ -388,6 +414,10 @@ describe('SnippetParser', () => {
     assert.equal(c('${1:`!p foo`}').hasCodeBlock, true)
     assert.equal(c('`!p foo`').hasCodeBlock, true)
     assert.equal(c('$1').hasCodeBlock, false)
+    let s = (new SnippetParser(false)).parse('`!p foo`', true)
+    assert.strictEqual(s.hasCodeBlock, false)
+    let len = s.fullLen(s.children[1])
+    assert.strictEqual(len, 0)
   })
 
   test('Parser, resolved variable', () => {
@@ -405,14 +435,15 @@ describe('SnippetParser', () => {
     const c = text => {
       return (new SnippetParser(true)).parse(text)
     }
-    let s = c('${VISUAL} ${visual}')
+    let s = c('${VISUAL/\\w+\\s*/\\u$0\\\\x/} ${visual}')
     await s.resolveVariables({
       resolve: async (variable) => {
         if (variable.name === 'VISUAL') return 'visual'
         return ''
       }
     })
-    expect(s.toString()).toBe('visual ${visual}')
+    expect(s.toTextmateString()).toBe('${VISUAL:Visual\\\\x/\\w+\\s*/\\u${0}\\\\x/} \\${visual\\}')
+    expect(s.clone().toString()).toBe('Visual\\x ${visual}')
   })
 
   test('Parser variable with code', () => {
@@ -484,7 +515,7 @@ describe('SnippetParser', () => {
   test('Parser, transform backslash', () => {
     const p = new SnippetParser(true)
     const snip = p.parse('${1:a}\n${1/\\w+/\\(\\)\\:\\x\\\\y/}')
-    expect(snip.toString()).toBe('a\n():\\x\\\\y')
+    expect(snip.toString()).toBe('a\n():\\x\\y')
   })
 
   test('Parser, transform with ascii option', () => {
@@ -608,6 +639,7 @@ describe('SnippetParser', () => {
 
     assert.equal(placeholders.length, 1)
     assert.ok(placeholders[0].choice instanceof Choice)
+    assert.ok(placeholders[0].choice.clone() instanceof Choice)
     assert.ok(placeholders[0].children[0] instanceof Choice)
     assert.equal((<Choice>placeholders[0].children[0]).options.length, 3)
 
@@ -648,6 +680,7 @@ describe('SnippetParser', () => {
     assert.equal(placeholder.children.length, 3)
     assert.ok(placeholder.children[0] instanceof Text)
     assert.ok(placeholder.children[1] instanceof Variable)
+    assert.ok(placeholder.children[1].clone() instanceof Variable)
     assert.ok(placeholder.children[2] instanceof Text)
     assert.equal(placeholder.children[0].toString(), ' ')
     assert.equal(placeholder.children[1].toString(), '')
@@ -695,6 +728,47 @@ describe('SnippetParser', () => {
     assert.ok(children[4] instanceof Text)
     assert.equal(children[4].toString(), ';\n')
 
+  })
+
+  test('Parser, ConditionString', () => {
+    assert.ok(ConditionString != undefined)
+    let s = new ConditionString(0, 'if', 'else')
+    assert.strictEqual(s.toTextmateString(), '(?0:if:else)')
+    s = new ConditionString(0, 'if', '')
+    assert.strictEqual(s.clone().toTextmateString(), '(?0:if)')
+    // invalid examples
+    assertText('$1 ${1/.*/(?p:foo:bar)/}', ' (?p:foo:bar)', true)
+    assertText('$1 ${1/.*/(?1foobar)/}', ' (?1foobar)', true)
+    assertText('$1 ${1/.*/(?1:foo:bar/}', ' (?1:foo:bar', true)
+    assertText('$1 ${1/.*/', ' ${1/.*/', true)
+    assertText('${foo', '${foo')
+    assertText('$foo', '$foo', true)
+    assertText('${foo}', '${foo}', true)
+    assertText('$1 ${1/.*/(?1:', ' ${1/.*/(?1:', true)
+  })
+
+  test('Parser, FormatString', () => {
+    let { children } = new SnippetParser().parse('${foo/^x/complex${1:?if:else}/i}')
+    let transform = children[0]['transform'] as Transform
+    let res = transform.resolve('y')
+    assert.strictEqual(res, 'complexelse')
+    let formatString = transform.children[1] as FormatString
+    assert.strictEqual(formatString.toTextmateString(), '${1:?if:else}')
+    let assertResolve = (shorthandName: string, value: string, result: string) => {
+      let formatString = new FormatString(0, shorthandName)
+      assert.strictEqual(formatString.resolve(value), result)
+      assert.ok(formatString.toTextmateString().includes(shorthandName))
+    }
+    assertResolve('upcase', '', '')
+    assertResolve('downcase', '', '')
+    assertResolve('capitalize', '', '')
+    assertResolve('pascalcase', '', '')
+    assertResolve('pascalcase', '', '')
+    assertResolve('pascalcase', '1', '1')
+    let f = new FormatString(0, undefined, 'if', undefined)
+    assert.strictEqual(f.toTextmateString(), '${0:+if}')
+    f = new FormatString(0, undefined, undefined, 'else')
+    assert.strictEqual(f.toTextmateString(), '${0:-else}')
   })
 
   test('Parser, default placeholder values', () => {
@@ -871,7 +945,7 @@ describe('SnippetParser', () => {
     assert.equal(snippet.placeholders.length, 5)
   })
 
-  test('TextmateSnippet#replace 2/2', function() {
+  test('TextmateSnippet#replace 2/2', () => {
     let snippet = new SnippetParser().parse('aaa${1:bbb${2:ccc}}$0', true)
 
     assert.equal(snippet.placeholders.length, 3)
@@ -885,7 +959,7 @@ describe('SnippetParser', () => {
     assert.equal(snippet.placeholders.length, 4)
   })
 
-  test('TextmateSnippet#insertSnippet', function() {
+  test('TextmateSnippet#insertSnippet with placeholder', () => {
     let snippet = new SnippetParser().parse('${1:aaa} bbb ${2:ccc}}$0', true)
     let marker = snippet.placeholders.find(o => o.index == 1)
     snippet.insertSnippet('${1:dd} ${2:ff}', marker, ['', 'aaa'])
@@ -893,14 +967,25 @@ describe('SnippetParser', () => {
     expect(arr).toEqual([1, 2, 3, 4, 5, 0])
   })
 
-  test('Maximum call stack size exceeded, #28983', function() {
+  test('TextmateSnippet#insertSnippet with variable', async () => {
+    let snippet = new SnippetParser().parse('|${foo} ${foo} ${u}|', true)
+    await snippet.resolveVariables({
+      resolve: variable => {
+        if (variable.name == 'u') return undefined
+        return Promise.resolve(variable.name)
+      }
+    })
+    let marker = snippet.variables[0]
+    snippet.insertSnippet('${1:bar}', marker, ['', ''])
+    assert.strictEqual(snippet.toString(), '|bar bar |')
+  })
+
+  test('Maximum call stack size exceeded, #28983', () => {
     new SnippetParser().parse('${1:${foo:${1}}}')
   })
 
-  test('Snippet can freeze the editor, #30407', function() {
-
+  test('Snippet can freeze the editor, #30407', () => {
     const seen = new Set<Marker>()
-
     seen.clear()
     new SnippetParser().parse('class ${1:${TM_FILENAME/(?:\\A|_)([A-Za-z0-9]+)(?:\\.rb)?/(?2::\\u$1)/g}} < ${2:Application}Controller\n  $3\nend').walk(marker => {
       assert.ok(!seen.has(marker))
@@ -967,6 +1052,7 @@ describe('SnippetParser', () => {
   test('Snippet optional transforms are not applied correctly when reusing the same variable, #37702', function() {
 
     const transform = new Transform()
+    assert.strictEqual(transform.toString(), '')
     transform.appendChild(new FormatString(1, 'upcase'))
     transform.appendChild(new FormatString(2, 'upcase'))
     transform.regexp = /^(.)|-(.)/g
@@ -975,6 +1061,8 @@ describe('SnippetParser', () => {
 
     const clone = transform.clone()
     assert.equal(clone.resolve('my-file-name'), 'MyFileName')
+    transform.regexp = /^(.)|-(.)/i
+    assert.strictEqual(transform.clone().regexp.ignoreCase, true)
   })
 
   test('problem with snippets regex #40570', function() {

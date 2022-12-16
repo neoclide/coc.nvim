@@ -5,9 +5,10 @@ import { URI } from 'vscode-uri'
 import WorkspaceFolderController from '../core/workspaceFolder'
 import { path } from '../util/node'
 import { hasOwnProperty } from '../util/object'
+import { toText } from '../util/string'
 import { Variable, VariableResolver } from "./parser"
 
-function padZero(n: number): string {
+export function padZero(n: number): string {
   return n < 10 ? '0' + n : n.toString()
 }
 
@@ -135,13 +136,13 @@ export class SnippetVariableResolver implements VariableResolver {
       if (s) return s
       let comments = await nvim.eval('&comments') as string
       let { single } = parseComments(comments)
-      return single ?? ''
+      return single
     }
     if (['BLOCK_COMMENT_START', 'BLOCK_COMMENT_END'].includes(name)) {
       let comments = await nvim.eval('&comments') as string
       let { start, end } = parseComments(comments)
-      if (name === 'BLOCK_COMMENT_START') return start ?? ''
-      if (name === 'BLOCK_COMMENT_END') return end ?? ''
+      if (name === 'BLOCK_COMMENT_START') return start
+      if (name === 'BLOCK_COMMENT_END') return end
     }
   }
 

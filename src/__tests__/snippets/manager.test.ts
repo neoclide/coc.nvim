@@ -3,8 +3,9 @@ import path from 'path'
 import { InsertTextMode, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import Document from '../../model/document'
-import snippetManager from '../../snippets/manager'
+import snippetManager, { SnippetManager } from '../../snippets/manager'
 import { SnippetString } from '../../snippets/string'
+import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -30,41 +31,53 @@ beforeEach(async () => {
 })
 
 describe('snippet provider', () => {
-  describe('insertSnippet command', () => {
-    it('should insert ultisnips snippet', async () => {
-      await nvim.setLine('foo')
-      let edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "bar"`}')
-      await commandManager.executeCommand('editor.action.insertSnippet', edit, {})
-      let line = await nvim.line
-      expect(line).toBe('bar')
-      edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "foo"`}')
-      await commandManager.executeCommand('editor.action.insertSnippet', edit, { regex: '' })
-      line = await nvim.line
-      expect(line).toBe('foo')
+  describe('Events', () => {
+    it('should change status item on editor change', async () => {
+      let doc = await helper.createDocument('foo')
+      await nvim.input('i')
+      await snippetManager.insertSnippet('${1:foo} $1 ')
+      let val = await nvim.getVar('coc_status')
+      expect(val).toBeDefined()
+      await nvim.command('edit bar')
+      await helper.waitValue(async () => {
+        let val = await nvim.getVar('coc_status') as string
+        return val.includes('SNIP')
+      }, false)
+      await nvim.command('buffer ' + doc.bufnr)
+      await helper.waitValue(async () => {
+        let val = await nvim.getVar('coc_status') as string
+        return val.includes('SNIP')
+      }, true)
+    })
+
+    it('should check position on InsertEnter', async () => {
+      await nvim.input('ibar<left><left><left>')
+      await snippetManager.insertSnippet('${1:foo} $1 ')
+      await nvim.input('<esc>A')
+      await helper.wait(50)
+      expect(snippetManager.session).toBeUndefined()
     })
   })
 
   describe('insertSnippet()', () => {
     it('should throw when buffer not attached', async () => {
       await nvim.command(`vnew +setl\\ buftype=nofile`)
-      let err
-      try {
+      await expect(async () => {
         await snippetManager.insertSnippet('foo')
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      }).rejects.toThrow(Error)
     })
 
     it('should throw with invalid range', async () => {
-      await nvim.command(`vnew +setl\\ buftype=nofile`)
-      let err
-      try {
+      await expect(async () => {
         await snippetManager.insertSnippet('foo', false, Range.create(3, 0, 3, 0))
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      }).rejects.toThrow(Error)
+    })
+
+    it('should replace range for ultisnip with python code', async () => {
+      await nvim.setLine('foo')
+      await snippetManager.insertSnippet('`!p snip.rv = vim.current.line`', false, Range.create(0, 0, 0, 3), InsertTextMode.asIs, {})
+      let line = await nvim.line
+      expect(line).toBe('')
     })
 
     it('should not active when insert plain snippet', async () => {
@@ -157,28 +170,6 @@ describe('snippet provider', () => {
       await snippetManager.previousPlaceholder()
       let val = await doc.buffer.getVar('coc_snippet_active')
       expect(val).toBe(0)
-    })
-  })
-
-  describe('Events', () => {
-    it('should check position on InsertEnter', async () => {
-      await nvim.input('ibar<left><left><left>')
-      await snippetManager.insertSnippet('${1:foo} $1 ')
-      await nvim.input('<esc>A')
-      await helper.wait(50)
-      expect(snippetManager.session).toBeUndefined()
-    })
-
-    it('should change status item on editor change', async () => {
-      await nvim.command('tabe')
-      await workspace.document
-      await nvim.input('i')
-      await snippetManager.insertSnippet('${1:foo} $1 ')
-      let val = await nvim.getVar('coc_status')
-      expect(val).toBeDefined()
-      await nvim.setTabpage(nvim.createTabpage(1))
-      val = await nvim.getVar('coc_status') as string
-      expect(val.includes('SNIP')).toBeFalsy()
     })
   })
 
@@ -282,9 +273,54 @@ describe('snippet provider', () => {
       let res = await snippetManager.insertSnippet('${1:foo} `!p snip.rv = t[1]`', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {}) as any
       expect(res).toBe(true)
       let snippet = await snippetManager.resolveSnippet('${1:x} `!p snip.rv= t[1]`', {})
-      expect(snippet.toString()).toBe('x ')
+      expect(snippet.toString()).toBe('x x')
       res = await nvim.call('pyxeval', 't[1]') as any
-      expect(res).toBe('foo')
+      expect(res).toBe('x')
+    })
+  })
+
+  describe('normalizeInsertText()', () => {
+    it('should normalizeInsertText', async () => {
+      let doc = await workspace.document
+      Object.defineProperty(window, 'activeTextEditor', {
+        get: () => {
+          return undefined
+        },
+        configurable: true,
+        enumerable: true
+      })
+      let res = await snippetManager.normalizeInsertText(doc.uri, 'foo\nbar', '  ', InsertTextMode.adjustIndentation)
+      expect(res).toBe('foo\n  bar')
+      Object.defineProperty(window, 'activeTextEditor', {
+        get: () => {
+          return workspace.editors.activeTextEditor
+        }
+      })
+    })
+  })
+
+  describe('editsInsideSnippet()', () => {
+    it('should check editsInsideSnippet', async () => {
+      await nvim.setLine('foo')
+      await nvim.input('o')
+      await snippetManager.insertSnippet('${1:foo} $1 ')
+      let res = await snippetManager.editsInsideSnippet([TextEdit.replace(Range.create(0, 0, 0, 3), '')])
+      expect(res).toBe(false)
+    })
+  })
+
+  describe('insertSnippet command', () => {
+    it('should insert ultisnips snippet', async () => {
+      expect(SnippetManager).toBeDefined()
+      await nvim.setLine('foo')
+      let edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "bar"`}')
+      await commandManager.executeCommand('editor.action.insertSnippet', edit, {})
+      let line = await nvim.line
+      expect(line).toBe('bar')
+      edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "foo"`}')
+      await commandManager.executeCommand('editor.action.insertSnippet', edit, { regex: '' })
+      line = await nvim.line
+      expect(line).toBe('foo')
     })
   })
 

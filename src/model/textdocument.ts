@@ -1,6 +1,7 @@
 'use strict'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, Range } from 'vscode-languageserver-types'
+import { toText } from '../util/string'
 import { TextLine } from './textline'
 
 export function computeLinesOffsets(lines: ReadonlyArray<string>, eol: boolean): number[] {
@@ -64,7 +65,7 @@ export class LinesTextDocument implements TextDocument {
       let { start, end } = range
       if (start.line === end.line) {
         if (start.character === end.character) return ''
-        let line = this.lines[start.line] ?? ''
+        let line = toText(this.lines[start.line])
         return line.substring(start.character, end.character)
       }
       return this.content.substring(this.offsetAt(range.start), this.offsetAt(range.end))

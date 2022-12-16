@@ -1,10 +1,11 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { createLogger } from '../logger'
+import { defaultValue } from '../util'
 import { groupBy } from '../util/array'
 import { CharCode } from '../util/charCode'
 import { unidecode } from '../util/node'
-import { getCharIndexes } from '../util/string'
+import { getCharIndexes, toText } from '../util/string'
 import { convertRegex, evalCode, EvalKind, executePythonCode, getVariablesCode, prepareMatchCode, UltiSnippetContext } from './eval'
 const logger = createLogger('snippets-parser')
 const ULTISNIP_VARIABLES = ['VISUAL', 'YANK', 'UUID']
@@ -214,6 +215,7 @@ export class Text extends Marker {
   constructor(public value: string) {
     super()
   }
+
   public toString(): string {
     return this.value
   }
@@ -221,9 +223,11 @@ export class Text extends Marker {
   public toTextmateString(): string {
     return Text.escape(this.value)
   }
+
   public len(): number {
     return this.value.length
   }
+
   public clone(): Text {
     return new Text(this.value)
   }
@@ -276,7 +280,7 @@ export class CodeBlock extends Marker {
 
   public async resolve(nvim: Neovim): Promise<void> {
     if (!this.code.length) return
-    let res = await evalCode(nvim, this.kind, this.code, this._value ?? '')
+    let res = await evalCode(nvim, this.kind, this.code, defaultValue(this._value, ''))
     if (res != null) this._value = res
   }
 
@@ -309,7 +313,7 @@ export class CodeBlock extends Marker {
   }
 }
 
-export abstract class TransformableMarker extends Marker {
+abstract class TransformableMarker extends Marker {
   public transform: Transform
 }
 
@@ -337,7 +341,7 @@ export class Placeholder extends TransformableMarker {
     }
     if (this.children.length === 0 && !this.transform) {
       return `$${this.index}`
-    } else if (this.children.length === 0) {
+    } else if (this.children.length === 0 || (this.children.length == 1 && this.children[0].toTextmateString() == '')) {
       return `\${${this.index}${transformString}}`
     } else if (this.choice) {
       return `\${${this.index}|${this.choice.toTextmateString()}|${transformString}}`
@@ -437,7 +441,17 @@ export class Transform extends Marker {
   }
 
   public toTextmateString(): string {
-    return `/${this.regexp.source}/${this.children.map(c => c.toTextmateString())}/${(this.regexp.ignoreCase ? 'i' : '') + (this.regexp.global ? 'g' : '')}`
+    let format = this.children.map(c => c.toTextmateString()).join('')
+    if (this.ultisnip) {
+      // avoid bad escape of Text for ultisnip format
+      format = format.replace(/\\\\(\w)/g, (match, ch) => {
+        if (['u', 'l', 'U', 'L', 'E', 'n', 't'].includes(ch)) {
+          return '\\' + ch
+        }
+        return match
+      })
+    }
+    return `/${this.regexp.source}/${format}/${(this.regexp.ignoreCase ? 'i' : '') + (this.regexp.global ? 'g' : '')}`
   }
 
   public clone(): Transform {
@@ -535,13 +549,11 @@ export class FormatString extends Marker {
 }
 
 export class Variable extends TransformableMarker {
-  private _resolved = false
+  private _resolved: boolean
 
-  constructor(public name: string, resolved?: boolean) {
+  constructor(public name: string, resolved = false) {
     super()
-    if (typeof resolved === 'boolean') {
-      this._resolved = resolved
-    }
+    this._resolved = resolved
   }
 
   public get resolved(): boolean {
@@ -566,17 +578,16 @@ export class Variable extends TransformableMarker {
       })
       let lines = value.split('\n')
       let indents = lines.filter(s => s.length > 0).map(s => s.match(/^\s*/)[0])
-      let minIndent = indents.length == 0 ? '' :
-        indents.reduce((p, c) => p.length < c.length ? p : c)
-      let newLines = lines.map((s, i) => i == 0 || s.length == 0 || !s.startsWith(minIndent) ? s :
-        indent + s.slice(minIndent.length))
+      let minIndent = indents.reduce((p, c) => p < c.length ? p : c.length, 0)
+      let newLines = lines.map((s, i) => i == 0 || s.length == 0 || !s.startsWith(' '.repeat(minIndent)) ? s :
+        indent + s.slice(minIndent))
       value = newLines.join('\n')
     }
     if (this.transform) {
-      value = this.transform.resolve(value || '')
+      value = this.transform.resolve(toText(value))
     }
-    if (value !== undefined) {
-      this._children = [new Text(value) as any]
+    if (value != null) {
+      this._children = [new Text(value.toString())]
       return true
     }
     return false
@@ -670,7 +681,7 @@ export class TextmateSnippet extends Marker {
   public get orderedPyIndexBlocks(): CodeBlock[] {
     let res: CodeBlock[] = []
     let filtered = this.pyBlocks.filter(o => typeof o.index === 'number')
-    if (filtered.length == 0) return res
+    if (filtered.length === 0) return res
     let allIndexes = filtered.map(o => o.index)
     let usedIndexes: number[] = []
     const checkBlock = (b: CodeBlock): boolean => {
@@ -744,6 +755,7 @@ export class TextmateSnippet extends Marker {
     if (marker instanceof Placeholder) {
       index = marker.index
     } else {
+      // variables of ultisnips can't be updated,
       while (marker.parent) {
         if (marker instanceof Placeholder) {
           index = marker.index
@@ -751,8 +763,8 @@ export class TextmateSnippet extends Marker {
         }
         marker = marker.parent
       }
+      if (index === undefined) return
     }
-    if (index === undefined) return
     // update related placeholders
     let blocks = this.getDependentPyIndexBlocks(index)
     await executePythonCode(nvim, [getVariablesCode(this.values)])
@@ -968,7 +980,7 @@ export class TextmateSnippet extends Marker {
     for (let p of markers) {
       if (p === marker) continue
       let newText = p.transform ? p.transform.resolve(val) : val
-      p.setOnlyChild(new Text(newText || ''))
+      p.setOnlyChild(new Text(toText(newText)))
     }
     this.synchronizeParents(markers)
   }
@@ -1215,7 +1227,7 @@ export class SnippetParser {
     }
     let start = this._token
     let pre: Token
-    while (this._token.type !== type || (checkBackSlash && pre?.type === TokenType.Backslash)) {
+    while (this._token.type !== type || (checkBackSlash && pre && pre.type === TokenType.Backslash)) {
       if (checkBackSlash) pre = this._token
       this._token = this._scanner.next()
       if (this._token.type === TokenType.EOF) {
@@ -1269,7 +1281,7 @@ export class SnippetParser {
       parent.appendChild(new Placeholder(Number(value)))
     } else {
       if (this.ultisnip && !ULTISNIP_VARIABLES.includes(value)) {
-        parent.appendChild(new Text('${' + value + '}'))
+        parent.appendChild(new Text('$' + value))
       } else {
         parent.appendChild(new Variable(value))
       }
@@ -1495,7 +1507,7 @@ export class SnippetParser {
       let escaped: string
       // eslint-disable-next-line no-cond-assign
       if (escaped = this._accept(TokenType.Backslash, true)) {
-        escaped = this._accept(TokenType.Forwardslash, true) || escaped
+        escaped = this._accept(TokenType.Backslash, true) || this._accept(TokenType.Forwardslash, true) || escaped
         transform.appendChild(new Text(escaped))
         continue
       }
@@ -1693,8 +1705,9 @@ export class SnippetParser {
         } else {
           let codes = code.split(/\r?\n/)
           codes = codes.filter(s => !/^\s*$/.test(s))
+          if (!codes.length) return true
           // format multi line code
-          let ind = codes[0] ? codes[0].match(/^\s*/)[0] : ''
+          let ind = codes[0].match(/^\s*/)[0]
           if (ind.length && codes.every(s => s.startsWith(ind))) {
             codes = codes.map(s => s.slice(ind.length))
           }
@@ -1721,6 +1734,7 @@ export class SnippetParser {
 }
 
 const escapedCharacters = [':', '(', ')', '{', '}']
+// \u \l \U \L \E \n \t
 export function transformEscapes(input: string, backslashIndexes = []): string {
   let res = ''
   let len = input.length

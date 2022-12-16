@@ -43,7 +43,6 @@ export default class DocumentColorManager extends Manager<DocumentColorProvider>
 
   public async provideColorPresentations(colorInformation: ColorWithSource, document: TextDocument, token: CancellationToken): Promise<ColorPresentation[] | null> {
     let providers = this.getProviders(document)
-    if (providers.length === 0) return null
     let { range, color } = colorInformation
     for (let item of providers) {
       let res = await Promise.resolve(item.provider.provideColorPresentations(color, { document, range }, token))

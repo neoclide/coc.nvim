@@ -4,10 +4,10 @@ import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { LinesTextDocument } from '../../model/textdocument'
-import { addPythonTryCatch, convertRegex, executePythonCode, UltiSnippetContext } from '../../snippets/eval'
-import { Placeholder, TextmateSnippet } from '../../snippets/parser'
-import { checkContentBefore, CocSnippet, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
-import { parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
+import { addPythonTryCatch, convertRegex, executePythonCode, getVariablesCode, UltiSnippetContext } from '../../snippets/eval'
+import { Placeholder, TextmateSnippet, Variable } from '../../snippets/parser'
+import { checkContentBefore, CocSnippet, comparePlaceholder, getContentBefore, getEndPosition, getParts, normalizeSnippetString, reduceTextEdit, shouldFormat } from '../../snippets/snippet'
+import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } from '../../snippets/variableResolve'
 import { UltiSnippetOption } from '../../types'
 import workspace from '../../workspace'
 import helper from '../helper'
@@ -55,6 +55,16 @@ describe('CocSnippet', () => {
   }
 
   describe('resolveVariables()', () => {
+    it('should padZero', () => {
+      expect(padZero(1)).toBe('01')
+      expect(padZero(10)).toBe('10')
+    })
+
+    it('should getVariablesCode', () => {
+      expect(getVariablesCode({})).toBe('t = ()')
+      expect(getVariablesCode({ 1: 'foo', 3: 'bar' })).toBe('t = ("","foo","","bar",)')
+    })
+
     it('should resolve uppercase variables', async () => {
       let doc = await helper.createDocument()
       let fsPath = URI.parse(doc.uri).fsPath
@@ -73,6 +83,7 @@ describe('CocSnippet', () => {
       let d = new Date()
       await assertResult('$CURRENT_YEAR', d.getFullYear().toString())
       await assertResult('$NOT_EXISTS', 'NOT_EXISTS')
+      await assertResult('$TM_CURRENT_WORD', 'foo')
     })
 
     it('should resolve new VSCode variables', async () => {
@@ -223,6 +234,14 @@ describe('CocSnippet', () => {
       expect(c.text).toBe('foo bar oo bar foo bar')
     })
 
+    it('should update variable marker', async () => {
+      let c = await createSnippet('${1:${VISUAL}`!p snip.rv = "bar"`} $1', {})
+      let variable = c.tmSnippet.placeholders[0].children[0] as Variable
+      await c.tmSnippet.update(nvim, variable, 'x')
+      expect(c.tmSnippet.toString()).toBe('bar bar')
+      variable = new Variable('name')
+      await c.tmSnippet.update(nvim, variable, 'x')
+    })
   })
 
   describe('getContentBefore()', () => {
@@ -273,6 +292,11 @@ describe('CocSnippet', () => {
       assert(c, undefined, [1, 2, 0])
       assert(c, 1, [1, 2, 0])
       assert(c, 2, [2, 1, 0])
+    })
+
+    it('should compares placeholders', () => {
+      expect(comparePlaceholder({ primary: false, index: 1 }, { primary: false, index: 0 })).toBe(-1)
+      expect(comparePlaceholder({ primary: true, index: 1 }, { primary: false, index: 1 })).toBe(-1)
     })
   })
 

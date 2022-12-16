@@ -21,8 +21,14 @@ export interface ExtendedCodeAction extends CodeAction {
   providerId?: string
 }
 
-export function codeActionContains(kinds: CodeActionKind[], kind: CodeActionKind): boolean {
+function codeActionContains(kinds: CodeActionKind[], kind: CodeActionKind): boolean {
   return kinds.some(k => kind === k || kind.startsWith(k + '.'))
+}
+
+export function checkAction(only: CodeActionKind[] | undefined, action: CodeAction | Command): boolean {
+  if (isFalsyOrEmpty(only)) return true
+  if (Command.is(action)) return false
+  return codeActionContains(only, action.kind)
 }
 
 export default class CodeActionManager extends Manager<CodeActionProvider, ProviderMeta> {
@@ -60,7 +66,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
         let actions = await Promise.resolve(provider.provideCodeActions(document, range, context, token))
         if (isFalsyOrEmpty(actions)) return
         for (let action of actions) {
-          if (titles.includes(action.title)) continue
+          if (titles.includes(action.title) || !checkAction(only, action)) continue
           if (Command.is(action)) {
             let codeAction: ExtendedCodeAction = {
               title: action.title,
@@ -69,7 +75,6 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
             }
             res.push(codeAction)
           } else {
-            if (only && !codeActionContains(only, action.kind)) continue
             res.push(Object.assign({ providerId: id }, action))
           }
           titles.push(action.title)

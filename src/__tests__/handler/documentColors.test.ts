@@ -17,12 +17,13 @@ let state = 'normal'
 let colors: Colors
 let disposables: Disposable[] = []
 let colorPresentations: ColorPresentation[] = []
+let disposable: Disposable
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
   await nvim.command(`source ${path.join(process.cwd(), 'autoload/coc/color.vim')}`)
   colors = helper.plugin.getHandler().colors
-  languages.registerDocumentColorProvider([{ language: '*' }], {
+  disposable = languages.registerDocumentColorProvider([{ language: '*' }], {
     provideColorPresentations: (
       _color: Color,
       _context: { document: TextDocument; range: Range },
@@ -323,6 +324,14 @@ describe('Colors', () => {
       await helper.doAction('pickColor')
       let line = await nvim.getLine()
       expect(line).toBe('#ffffff')
+    })
+
+    it('should return null when provider not exists', async () => {
+      disposable.dispose()
+      let doc = await workspace.document
+      let color = ColorInformation.create(Range.create(0, 0, 0, 6), Color.create(100, 100, 100, 0))
+      let res = await languages.provideColorPresentations(color, doc.textDocument, CancellationToken.None)
+      expect(res).toBeNull()
     })
   })
 })

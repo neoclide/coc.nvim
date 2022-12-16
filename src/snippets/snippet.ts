@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { LinesTextDocument } from '../model/textdocument'
+import { defaultValue } from '../util'
 import { emptyRange, getEnd, positionInRange, rangeInRange } from '../util/position'
 import { CancellationToken } from '../util/protocol'
 import { getChangedPosition } from '../util/textedit'
@@ -98,11 +99,7 @@ export class CocSnippet {
   public getSortedPlaceholders(curr?: CocSnippetPlaceholder | undefined): CocSnippetPlaceholder[] {
     let res = curr ? [curr] : []
     let arr = this._placeholders.filter(o => o !== curr && !o.transform)
-    arr.sort((a, b) => {
-      if (a.primary !== b.primary) return a.primary ? -1 : 1
-      if (a.index == 0 || b.index == 0) return a.index == 0 ? 1 : -1
-      return a.index - b.index
-    })
+    arr.sort(comparePlaceholder)
     res.push(...arr)
     return res
   }
@@ -153,8 +150,8 @@ export class CocSnippet {
 
   public getPlaceholder(index: number): CocSnippetPlaceholder {
     let filtered = this._placeholders.filter(o => o.index == index && !o.transform)
-    let find = filtered.find(o => o.primary) || filtered[0]
-    return find ?? filtered[0]
+    let find = filtered.find(o => o.primary)
+    return defaultValue(find, filtered[0])
   }
 
   public getPrevPlaceholder(index: number): CocSnippetPlaceholder | undefined {
@@ -165,7 +162,7 @@ export class CocSnippet {
       index = index - 1
       let arr = placeholders.filter(o => o.index == index)
       if (arr.length) {
-        find = arr.find(o => o.primary) || arr[0]
+        find = defaultValue(arr.find(o => o.primary), arr[0])
         break
       }
     }
@@ -232,9 +229,14 @@ export class CocSnippet {
     await this.tmSnippet.update(this.nvim, marker, newText)
     if (token.isCancellationRequested) return undefined
     this.synchronize()
-    let p = this._placeholders.find(o => o.marker == marker)
-    let after = p ? p.before : before
+    let after = this.getTextBefore(marker, before)
     return { text: this._text, delta: getChangedPosition(cursor, TextEdit.replace(r, after)) }
+  }
+
+  public getTextBefore(marker: Snippets.Placeholder | Snippets.Variable, defaultValue: string): string {
+    let placeholder = this._placeholders.find(o => o.marker == marker)
+    if (placeholder) return placeholder.before
+    return defaultValue
   }
 
   public removeText(offset: number, length: number): boolean {
@@ -410,7 +412,7 @@ export function getParts(text: string, range: Range, r: Range): [string, string]
   let lines = text.split('\n')
   let d = r.start.line - range.start.line
   for (let i = 0; i <= d; i++) {
-    let s = lines[i] ?? ''
+    let s = defaultValue(lines[i], '')
     if (i == d) {
       before.push(i == 0 ? s.substring(0, r.start.character - range.start.character) : s.substring(0, r.start.character))
     } else {
@@ -436,7 +438,7 @@ export function getParts(text: string, range: Range, r: Range): [string, string]
 export function normalizeSnippetString(snippet: string, indent: string, opts: { tabSize: number, insertSpaces: boolean }): string {
   let lines = snippet.split(/\r?\n/)
   let ind = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
-  let tabSize = opts.tabSize || 2
+  let tabSize = defaultValue(opts.tabSize, 2)
   lines = lines.map((line, idx) => {
     let space = line.match(/^\s*/)[0]
     let pre = space
@@ -455,4 +457,10 @@ export function shouldFormat(snippet: string): boolean {
   if (/^\s/.test(snippet)) return true
   if (snippet.indexOf('\n') !== -1) return true
   return false
+}
+
+export function comparePlaceholder(a: { primary: boolean, index: number }, b: { primary: boolean, index: number }): number {
+  if (a.primary !== b.primary) return a.primary ? -1 : 1
+  if (a.index == 0 || b.index == 0) return a.index == 0 ? 1 : -1
+  return a.index - b.index
 }

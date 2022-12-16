@@ -5,6 +5,7 @@ import commands from '../../commands'
 import ActionsHandler, { shouldAutoApply } from '../../handler/codeActions'
 import languages from '../../languages'
 import { ProviderResult } from '../../provider'
+import { checkAction } from '../../provider/codeActionManager'
 import { disposeAll } from '../../util'
 import { rangeInRange } from '../../util/position'
 import workspace from '../../workspace'
@@ -13,7 +14,7 @@ import helper from '../helper'
 let nvim: Neovim
 let disposables: Disposable[] = []
 let codeActions: ActionsHandler
-let currActions: CodeAction[]
+let currActions: (CodeAction | Command)[]
 let resolvedAction: CodeAction
 beforeAll(async () => {
   await helper.setup()
@@ -55,6 +56,14 @@ describe('handler codeActions', () => {
   })
 
   describe('organizeImport', () => {
+    it('should filter command ', () => {
+      let cmd = Command.create('title', 'command')
+      let res = checkAction([CodeActionKind.Refactor], cmd)
+      expect(res).toBe(false)
+      res = checkAction(undefined, cmd)
+      expect(res).toBe(true)
+    })
+
     it('should return false when organize import action not found', async () => {
       currActions = []
       await helper.createDocument()
@@ -70,7 +79,7 @@ describe('handler codeActions', () => {
       edits.push(TextEdit.replace(Range.create(1, 0, 1, 3), 'foo'))
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('organize import', edit, CodeActionKind.SourceOrganizeImports)
-      currActions = [action, CodeAction.create('another action')]
+      currActions = [action, CodeAction.create('another action'), Command.create('title', 'command')]
       await codeActions.organizeImport()
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar', 'foo'])
@@ -151,7 +160,7 @@ describe('handler codeActions', () => {
           _context: CodeActionContext, _token: CancellationToken
         ) => {
           range = r
-          return [CodeAction.create('a'), CodeAction.create('b'), CodeAction.create('c')]
+          return [CodeAction.create('a'), CodeAction.create('b'), CodeAction.create('c'), Command.create('title', 'command')]
         },
       }, undefined))
       disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
@@ -161,7 +170,7 @@ describe('handler codeActions', () => {
       }, undefined))
       let res = await codeActions.getCodeActions(doc)
       expect(range).toEqual(Range.create(0, 0, 3, 0))
-      expect(res.length).toBe(4)
+      expect(res.length).toBe(5)
     })
 
     it('should filter actions by range', async () => {

@@ -59,7 +59,8 @@ describe('Links', () => {
     disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
       provideDocumentLinks: () => {
         return [
-          DocumentLink.create(Range.create(1, 0, 1, 5), 'test:///bar')
+          DocumentLink.create(Range.create(1, 0, 1, 5), 'test:///bar'),
+          DocumentLink.create(Range.create(2, 0, 2, 5), 'test:///x'),
         ]
       }
     }))
@@ -69,7 +70,7 @@ describe('Links', () => {
       }
     }))
     let res = await links.getLinks()
-    expect(res.length).toBe(2)
+    expect(res.length).toBe(3)
     let link = await languages.resolveDocumentLink(res[0], CancellationToken.None)
     expect(link).toBeDefined()
   })

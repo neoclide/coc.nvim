@@ -65,6 +65,7 @@ describe('symbols outline', () => {
     await helper.edit()
     let buf = await nvim.buffer
     await nvim.command('setf javascript')
+    await nvim.command('setl modifiable')
     await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
     let doc = await workspace.document
     await doc.synchronize()
@@ -289,12 +290,14 @@ fun1() {}
       await createBuffer()
       await symbols.showOutline(1)
       await nvim.command('enew')
-      await helper.wait(30)
+      await helper.wait(50)
     })
 
     it('should recreated when original window exists', async () => {
+      let win = await nvim.window
       await symbols.showOutline(1)
-      await helper.wait(20)
+      await helper.wait(50)
+      await nvim.setWindow(win)
       await createBuffer()
       await helper.waitValue(async () => {
         let buf = await getOutlineBuffer()
