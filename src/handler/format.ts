@@ -64,7 +64,6 @@ export default class FormatHandler {
     handler.addDisposable(events.on('Enter', async bufnr => {
       let res = await events.race(['CursorMovedI'], 100)
       if (res.args && res.args[0] === bufnr) {
-        logger.debug('handleEnter')
         await this.handleEnter(bufnr)
       }
     }))

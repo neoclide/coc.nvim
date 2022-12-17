@@ -56,7 +56,7 @@ export enum EventName {
   TextInsert = 'TextInsert',
 }
 
-export type BufEvents = 'BufHidden' | 'BufEnter'
+export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufRename'
   | 'InsertLeave' | 'TermOpen' | 'InsertEnter' | 'BufCreate' | 'BufUnload'
   | 'BufDetach' | 'Enter' | 'LinesChanged'
 

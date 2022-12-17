@@ -46,7 +46,6 @@ export default class Documents implements Disposable {
   private disposables: Disposable[] = []
   private creating: Map<number, Promise<Document | undefined>> = new Map()
   public buffers: Map<number, Document> = new Map()
-  private winids: Set<number> = new Set()
   private resolves: ((doc: Document) => void)[] = []
   private readonly _onDidOpenTextDocument = new Emitter<LinesTextDocument>()
   private readonly _onDidCloseDocument = new Emitter<LinesTextDocument>()
@@ -74,28 +73,20 @@ export default class Documents implements Disposable {
     this.nvim = nvim
     this._env = env
     this._attached = true
-    let { bufnrs, bufnr, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
-    this.winids = new Set(winids)
+    let { bufnrs, bufnr } = await this.nvim.call('coc#util#all_state') as StateInfo
     this._bufnr = bufnr
     await Promise.all(bufnrs.map(bufnr => this.createDocument(bufnr)))
     events.on('BufDetach', this.onBufDetach, this, this.disposables)
+    events.on('BufRename', async bufnr => {
+      this.detachBuffer(bufnr)
+      await this.createDocument(bufnr)
+    }, null, this.disposables)
     events.on('VimLeavePre', () => {
       this.resolveCurrent(undefined)
-    }, null, this.disposables)
-    events.on('WinEnter', (winid: number) => {
-      this.winids.add(winid)
-    }, null, this.disposables)
-    events.on('WinClosed', (winid: number) => {
-      this.winids.delete(winid)
-    }, null, this.disposables)
-    events.on('BufWinEnter', (_, winid: number) => {
-      this.winids.add(winid)
     }, null, this.disposables)
     events.on('DirChanged', cwd => {
       this._cwd = normalizeFilePath(cwd)
     }, null, this.disposables)
-    // check unloaded buffers
-    events.on('CursorHold', this.onCursorHold, this, this.disposables)
     const checkCurrentBuffer = (bufnr: number) => {
       this._bufnr = bufnr
       void this.createDocument(bufnr)
@@ -120,27 +111,6 @@ export default class Documents implements Disposable {
         }, null, this.disposables)
       })
     }
-  }
-
-  private async onCursorHold(): Promise<void> {
-    let { bufnrs, winids } = await this.nvim.call('coc#util#all_state') as StateInfo
-    let fns: (() => Promise<void>)[] = []
-    for (let bufnr of this.buffers.keys()) {
-      if (!bufnrs.includes(bufnr)) {
-        fns.push(async () => {
-          await events.fire('BufUnload', [bufnr])
-        })
-      }
-    }
-    for (let winid of this.winids) {
-      if (!winids.includes(winid)) {
-        fns.push(async () => {
-          await events.fire('WinClosed', [winid])
-        })
-      }
-    }
-    this.winids = new Set(winids)
-    await Promise.allSettled(fns.map(fn => fn()))
   }
 
   private getConfiguration(e?: IConfigurationChangeEvent): void {
@@ -179,8 +149,8 @@ export default class Documents implements Disposable {
     }
   }
 
-  public get bufnrs(): number[] {
-    return Array.from(this.buffers.keys())
+  public get bufnrs(): Iterable<number> {
+    return this.buffers.keys()
   }
 
   public detach(): void {

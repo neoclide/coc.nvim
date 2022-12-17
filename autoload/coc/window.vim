@@ -69,7 +69,7 @@ function! coc#window#get_var(winid, name, ...) abort
   else
     try
       return coc#api#exec('win_get_var', [a:winid, a:name, get(a:, 1, v:null)])
-    catch /.*/
+    catch /Invalid window id/
       return get(a:, 1, v:null)
     endtry
   endif

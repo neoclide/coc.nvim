@@ -128,7 +128,7 @@ describe('documents', () => {
 
   it('should get bufnrs', async () => {
     await workspace.document
-    let bufnrs = documents.bufnrs
+    let bufnrs = Array.from(documents.bufnrs)
     expect(bufnrs.length).toBe(1)
   })
 

@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import Editors, { TextEditor } from '../../core/editors'
+import Editors, { TextEditor, renamed } from '../../core/editors'
 import workspace from '../../workspace'
 import window from '../../window'
 import events from '../../events'
 import helper from '../helper'
 import { disposeAll } from '../../util'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 
 let editors: Editors
 let nvim: Neovim
@@ -26,6 +27,38 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
+describe('util', () => {
+  it('should check renamed', async () => {
+    await helper.edit('foo')
+    let editor = editors.activeTextEditor
+    expect(renamed(editor, {
+      bufnr: 0,
+      fullpath: '',
+      tabid: 1,
+      winid: 1000,
+    })).toBe(false)
+    expect(renamed(editor, {
+      bufnr: editor.document.bufnr,
+      fullpath: '',
+      tabid: 1,
+      winid: 1000,
+    })).toBe(true)
+    expect(renamed(editor, {
+      bufnr: editor.document.bufnr,
+      fullpath: URI.parse(editor.document.uri).fsPath,
+      tabid: 1,
+      winid: 1000,
+    })).toBe(false)
+    Object.assign(editor, { uri: 'lsp:///1' })
+    expect(renamed(editor, {
+      bufnr: editor.document.bufnr,
+      fullpath: '',
+      tabid: 1,
+      winid: 1000,
+    })).toBe(false)
+  })
+})
+
 describe('editors', () => {
 
   function assertEditor(editor: TextEditor, tabpagenr: number, winid: number) {
@@ -40,6 +73,35 @@ describe('editors', () => {
     assertEditor(editor, 1, winid)
     let editors = window.visibleTextEditors
     expect(editors.length).toBe(1)
+    workspace.editors.checkTabs([])
+    workspace.editors.checkUnloadedBuffers([])
+  })
+
+  it('should create editor not created', async () => {
+    await nvim.command(`edit +setl\\ buftype=nofile foo`)
+    let doc = await workspace.document
+    await nvim.command('setl buftype=')
+    await events.fire('BufDetach', [doc.bufnr])
+    await events.fire('CursorHold', [doc.bufnr])
+    expect(window.activeTextEditor).toBeDefined()
+    expect(window.visibleTextEditors.length).toBe(1)
+  })
+
+  it('should detect buffer rename', async () => {
+    let doc = await helper.createDocument('foo')
+    await doc.buffer.setName('bar')
+    await events.fire('CursorHold', [doc.bufnr])
+    expect(window.activeTextEditor).toBeDefined()
+    expect(window.activeTextEditor.id).toMatch(/bar$/)
+  })
+
+  it('should detect buffer switch', async () => {
+    let doc = await helper.createDocument('foo')
+    await helper.createDocument('bar')
+    await nvim.command('noa b ' + doc.bufnr)
+    await events.fire('CursorHold', [doc.bufnr])
+    expect(window.activeTextEditor).toBeDefined()
+    expect(window.activeTextEditor.id).toMatch(/foo$/)
   })
 
   it('should change active editor on split', async () => {
@@ -97,29 +159,7 @@ describe('editors', () => {
     expect(editors.visibleTextEditors.length).toBe(2)
   })
 
-  it('should not create editor for float window', async () => {
-    let fn = jest.fn()
-    await nvim.call('win_getid')
-    editors.onDidChangeActiveTextEditor(e => {
-      fn()
-    })
-    let res = await nvim.call('coc#float#create_float_win', [0, 0, {
-      relative: 'editor',
-      row: 1,
-      col: 1,
-      width: 10,
-      height: 1,
-      lines: ['foo']
-    }])
-    await nvim.call('win_gotoid', [res[0]])
-    await events.fire('CursorHold', [res[1]])
-    await nvim.command('wincmd p')
-    expect(fn).toBeCalledTimes(0)
-    expect(editors.visibleTextEditors.length).toBe(1)
-  })
-
   it('should cleanup on CursorHold', async () => {
-    let winid = await nvim.call('win_getid')
     let promise = new Promise<TextEditor>(resolve => {
       editors.onDidChangeActiveTextEditor(e => {
         if (e.document.uri.includes('foo')) {
@@ -127,9 +167,9 @@ describe('editors', () => {
         }
       }, null, disposables)
     })
-    await nvim.command('tabe foo')
+    await nvim.command('sp foo')
     await promise
-    await nvim.call('win_execute', [winid, 'noa close'])
+    await nvim.command('noa close')
     let bufnr = await nvim.eval("bufnr('%')")
     await events.fire('CursorHold', [bufnr])
     expect(editors.visibleTextEditors.length).toBe(1)
