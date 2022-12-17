@@ -74,6 +74,7 @@ export default class Highlighter {
   }
 
   public addText(text: string, hlGroup?: string): void {
+    if (!text) return
     let { lines } = this
     let pre = lines[lines.length - 1] || ''
     if (text.includes('\n')) {

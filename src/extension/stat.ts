@@ -336,7 +336,7 @@ export async function getJsFiles(folder: string): Promise<string[]> {
   return files.filter(f => f.endsWith('.js'))
 }
 
-export function loadJson(filepath: string): object {
+function loadJson(filepath: string): object {
   try {
     let text = fs.readFileSync(filepath, 'utf8')
     let data = JSON.parse(text)

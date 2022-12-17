@@ -7,6 +7,7 @@ import { LocationLink, Position, Range, TextEdit } from 'vscode-languageserver-t
 import { URI } from 'vscode-uri'
 import Documents from '../../core/documents'
 import events from '../../events'
+import BufferSync from '../../model/bufferSync'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -25,6 +26,23 @@ afterEach(async () => {
 
 afterAll(async () => {
   await helper.shutdown()
+})
+
+describe('BufferSync', () => {
+  it('should recreate document', async () => {
+    let doc = documents.getDocument(documents.bufnr)
+    let called = false
+    let sync = new BufferSync(doc => {
+      return {
+        bufnr: doc.bufnr,
+        dispose: () => {
+          called = true
+        }
+      }
+    }, documents)
+    sync.create(doc)
+    expect(called).toBe(true)
+  })
 })
 
 describe('documents', () => {

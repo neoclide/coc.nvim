@@ -53,8 +53,7 @@ export default class BufferSync<T extends SyncItem> {
     return o ? o.item : undefined
   }
 
-  private create(doc: Document): void {
-    if (!doc) return
+  public create(doc: Document): void {
     let o = this.itemsMap.get(doc.bufnr)
     if (o) o.item.dispose()
     let item = this._create(doc)

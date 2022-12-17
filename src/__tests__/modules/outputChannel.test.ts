@@ -43,6 +43,23 @@ describe('OutputChannel', () => {
     let bufnr = (await nvim.buffer).id
     c.show(true)
     await helper.waitFor('bufnr', ['%'], bufnr)
+    c.hide()
+    c.clear(1)
+    c.dispose()
+    c.append('')
+    c.appendLine('')
+  })
+
+  test('outputChannel.keep()', async () => {
+    await nvim.setLine('foo')
+    let c = new OutputChannel('clear', nvim)
+    c.appendLine('foo')
+    c.appendLine('bar')
+    c.show()
+    await helper.wait(10)
+    c.clear(2)
+    let lines = await nvim.call('getbufline', ['output:///clear', 1, '$']) as string[]
+    expect(lines.includes('bar')).toBe(true)
   })
 
   test('outputChannel.show(false)', async () => {

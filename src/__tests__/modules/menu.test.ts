@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
-import Menu, { isMenuItem } from '../../model/menu'
+import Menu, { isMenuItem, toIndexText } from '../../model/menu'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -21,8 +21,12 @@ afterEach(async () => {
 })
 
 describe('Menu', () => {
-  it('should check isMenuItem', async () => {
+  it('should check isMenuItem', () => {
     expect(isMenuItem(null)).toBe(false)
+  })
+
+  it('should get index text', () => {
+    expect(toIndexText(99)).toBe('  ')
   })
 
   it('should dispose on window close', async () => {

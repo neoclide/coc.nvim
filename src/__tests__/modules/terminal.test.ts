@@ -32,6 +32,7 @@ describe('terminal properties', () => {
     await helper.wait(300)
     lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
     expect(lines.includes(`option '-term'`)).toBe(true)
+    terminal.onExit(-1)
   })
 
   it('should get pid', async () => {
@@ -49,5 +50,13 @@ describe('terminal properties', () => {
     await terminal.show()
     let winnr = await nvim.call('bufwinnr', terminal.bufnr)
     expect(winnr != -1).toBe(true)
+  })
+
+  it('should  not throw when not shown', async () => {
+    let terminal = new TerminalModel('sh', [], nvim)
+    terminal.sendText('text')
+    await terminal.start(__dirname, {})
+    await terminal.show()
+    await terminal.show()
   })
 })

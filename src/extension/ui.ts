@@ -9,6 +9,8 @@ import { byteLength } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 
+const interval = getConditionValue(100, 1)
+
 export enum State {
   Waiting,
   Failed,
@@ -201,7 +203,7 @@ export class InstallBuffer implements InstallUI {
     this.bufnr = res[0][1] as number
     this.interval = setInterval(() => {
       this.draw()
-    }, 100)
+    }, interval)
   }
 
   public dispose(): void {

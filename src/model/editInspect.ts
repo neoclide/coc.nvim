@@ -7,6 +7,7 @@ import type Keymaps from '../core/keymaps'
 import events from '../events'
 import { DocumentChange } from '../types'
 import { disposeAll } from '../util'
+import { toArray } from '../util/array'
 import { isParentFolder } from '../util/fs'
 import { fastDiff, path } from '../util/node'
 import { Disposable } from '../util/protocol'
@@ -70,7 +71,8 @@ export default class EditInspect {
       return path.isAbsolute(filepath) ? filepath : path.join(cwd, filepath)
     }
     let highligher = new Highlighter()
-    let map = grouByAnnotation(state.edit.documentChanges ?? [], state.edit.changeAnnotations ?? {})
+    let changes = toArray(state.edit.documentChanges)
+    let map = grouByAnnotation(changes, state.edit.changeAnnotations ?? {})
     for (let [label, changes] of map.entries()) {
       if (label) {
         highligher.addLine(label, 'MoreMsg')
@@ -135,7 +137,8 @@ export default class EditInspect {
       let uri = URI.file(absPath(find.filepath)).toString()
       let filepath = this.renameMap.has(find.filepath) ? this.renameMap.get(find.filepath) : find.filepath
       await nvim.call('coc#util#open_file', ['tab drop', absPath(filepath)])
-      let change = (state.edit.documentChanges ?? []).find(o => TextDocumentEdit.is(o) && o.textDocument.uri == uri) as TextDocumentEdit
+      let documentChanges = toArray(state.edit.documentChanges)
+      let change = documentChanges.find(o => TextDocumentEdit.is(o) && o.textDocument.uri == uri) as TextDocumentEdit
       let originLine = getOriginalLine(find, change)
       if (originLine !== undefined) await nvim.call('cursor', [originLine, col])
       nvim.redrawVim()
@@ -167,7 +170,7 @@ export default class EditInspect {
           this.addFile(fsPath, highligher, curr)
           highligher.addLine('')
           let last = parts[parts.length - 1]
-          if (last.length > 0) highligher.addText(last)
+          highligher.addText(last)
         }
         lnum += text.split('\n').length - 1
       } else if (diff[0] == fastDiff.DELETE) {

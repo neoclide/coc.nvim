@@ -190,6 +190,16 @@ describe('SnippetSession', () => {
       line = await nvim.line
       expect(line).toBe('afoo bar b')
     })
+
+    it('should not nested when range not contains', async () => {
+      await nvim.command('startinsert')
+      let session = await createSession()
+      let res = await session.start('${1:a} ${2:b}', defaultRange)
+      res = await session.start('${1:foo} ${2:bar}', Range.create(0, 0, 0, 3), false)
+      expect(res).toBe(true)
+      let line = await nvim.line
+      expect(line).toBe('foo bar')
+    })
   })
 
   describe('getRanges()', () => {

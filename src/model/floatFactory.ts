@@ -4,12 +4,13 @@ import { debounce } from '../util/node'
 import events, { BufEvents } from '../events'
 import { parseDocuments } from '../markdown'
 import { Documentation, FloatConfig } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, getConditionValue } from '../util'
 import { isFalsyOrEmpty } from '../util/array'
 import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { Disposable } from '../util/protocol'
 import { isVim } from '../util/constants'
+const debounceTime = getConditionValue(100, 20)
 
 export interface WindowConfig {
   width: number
@@ -48,7 +49,7 @@ export default class FloatFactoryImpl implements Disposable {
   private cursor: [number, number]
   private onCursorMoved: Function & { clear(): void }
   constructor(private nvim: Neovim) {
-    this.onCursorMoved = debounce(this._onCursorMoved.bind(this), 100)
+    this.onCursorMoved = debounce(this._onCursorMoved.bind(this), debounceTime)
   }
 
   private bindEvents(autoHide: boolean, alignTop: boolean): void {
@@ -85,7 +86,7 @@ export default class FloatFactoryImpl implements Disposable {
       // cursor not moved
       return
     }
-    if (autoHide || bufnr != this.targetBufnr || !events.insertMode) {
+    if (bufnr != this.targetBufnr || !events.insertMode || autoHide) {
       this.close()
       return
     }
@@ -216,6 +217,7 @@ export default class FloatFactoryImpl implements Disposable {
 
   public dispose(): void {
     this.cursor = undefined
+    this.onCursorMoved.clear()
     this.close()
   }
 }

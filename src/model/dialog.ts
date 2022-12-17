@@ -4,6 +4,7 @@ import { Disposable, Emitter, Event } from '../util/protocol'
 import events from '../events'
 import { HighlightItem } from '../types'
 import { disposeAll } from '../util'
+import { toArray } from '../util/array'
 
 export interface DialogButton {
   /**
@@ -73,10 +74,10 @@ export class Dialog {
         if (config.callback) config.callback(-1)
       }
     }, null, this.disposables)
+    let btns = toArray(config.buttons).filter(o => o.disabled != true)
     events.on('FloatBtnClick', (bufnr, idx) => {
       if (bufnr == this.bufnr) {
         this.dispose()
-        let btns = config?.buttons.filter(o => o.disabled != true)
         if (config.callback) config.callback(btns[idx].index)
       }
     }, null, this.disposables)
@@ -102,9 +103,8 @@ export class Dialog {
     if (buttons) opts.buttons = buttons.filter(o => !o.disabled).map(o => o.text)
     if (preferences.rounded) opts.rounded = 1
     if (Array.isArray(opts.buttons)) opts.getchar = 1
-    let res = await nvim.call('coc#dialog#create_dialog', [this.lines, opts])
-    if (!res) throw new Error('Unable to open dialog window.')
-    this.bufnr = res[1]
+    let [_winid, bufnr] = await nvim.call('coc#dialog#create_dialog', [this.lines, opts]) as [number, number]
+    this.bufnr = bufnr
     nvim.command('redraw', true)
   }
 

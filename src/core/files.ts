@@ -18,7 +18,6 @@ import { createFilteredChanges, getConfirmAnnotations, toDocumentChanges } from 
 import type { Window } from '../window'
 import Documents from './documents'
 import type Keymaps from './keymaps'
-import * as ui from './ui'
 import WorkspaceFolderController from './workspaceFolder'
 const logger = createLogger('core-files')
 

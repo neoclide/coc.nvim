@@ -185,6 +185,7 @@ describe('QuickPick', () => {
       return q.selectedItems.length
     }, 1)
     q.showFilteredItems()
+    await events.fire('BufWinLeave', [q.buffer.id])
     q.dispose()
   })
 })

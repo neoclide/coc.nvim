@@ -22,6 +22,9 @@ describe('Memos', () => {
     await memo.update('foo.bar', 'memo')
     let res = memo.get<string>('foo.bar')
     expect(res).toBe('memo')
+    await memo.update('foo.bar', undefined)
+    res = memo.get<string>('foo.bar')
+    expect(res).toBeUndefined()
   })
 
   it('should get value for key if it does not exist', async () => {

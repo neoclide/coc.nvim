@@ -12,7 +12,10 @@ import { CancellationError } from '../util/errors'
 import { objectLiteral } from '../util/is'
 import { fs } from '../util/node'
 import workspace from '../workspace'
+import { toText } from '../util/string'
+import { getConditionValue } from '../util'
 const logger = createLogger('model-fetch')
+export const timeout = getConditionValue(500, 50)
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
 
@@ -57,10 +60,6 @@ export interface FetchOptions {
   password?: string
 }
 
-function toText(text: string | undefined | null): string {
-  return text ? text : ''
-}
-
 export function getRequestModule(url: URL): typeof http | typeof https {
   return url.protocol === 'https:' ? https : http
 }
@@ -75,6 +74,14 @@ export function toURL(urlInput: string | URL): URL {
   let url = new URL(urlInput)
   if (!['https:', 'http:'].includes(url.protocol)) throw new Error(`Not valid protocol with ${urlInput}, should be http: or https:`)
   return url
+}
+
+export function toPort(port: number | string | undefined, protocol: string): number {
+  if (port) {
+    port = typeof port === 'number' ? port : parseInt(port, 10)
+    if (!isNaN(port)) return port
+  }
+  return protocol.startsWith('https') ? 443 : 80
 }
 
 export function getDataType(data: any): string {
@@ -94,7 +101,7 @@ export function getSystemProxyURI(endpoint: URL, env = process.env): string | nu
   if (noProxy) {
     // canonicalize the hostname, so that 'oogle.com' won't match 'google.com'
     const hostname = endpoint.hostname.replace(/^\.*/, '.').toLowerCase()
-    const port = endpoint.port || endpoint.protocol.startsWith('https') ? '443' : '80'
+    const port = toPort(endpoint.port, endpoint.protocol).toString()
     const noProxyList = noProxy.split(',')
     for (let i = 0, len = noProxyList.length; i < len; i++) {
       let noProxyItem = noProxyList[i].trim().toLowerCase()
@@ -103,7 +110,7 @@ export function getSystemProxyURI(endpoint: URL, env = process.env): string | nu
         let noProxyItemParts = noProxyItem.split(':', 2)
         let noProxyHost = noProxyItemParts[0].replace(/^\.*/, '.')
         let noProxyPort = noProxyItemParts[1]
-        if (port === noProxyPort && hostname.endsWith(noProxyHost)) {
+        if (port == noProxyPort && hostname.endsWith(noProxyHost)) {
           return null
         }
       } else {
@@ -135,7 +142,7 @@ export function getAgent(endpoint: URL, options: ProxyOptions): HttpsProxyAgent 
     }
     let opts = {
       host: proxyURL.hostname,
-      port: proxyURL.port ? Number(proxyURL.port) : (proxyURL.protocol === 'https:' ? 443 : 80),
+      port: toPort(proxyURL.port, proxyURL.protocol),
       auth: proxyURL.username ? `${proxyURL.username}:${toText(proxyURL.password)}` : undefined,
       rejectUnauthorized: typeof options.proxyStrictSSL === 'boolean' ? options.proxyStrictSSL : true
     }
@@ -161,7 +168,7 @@ export function resolveRequestOptions(url: URL, options: FetchOptions): any {
   let opts: any = {
     method: options.method ?? 'GET',
     hostname: url.hostname,
-    port: url.port ? parseInt(url.port, 10) : (url.protocol === 'https:' ? 443 : 80),
+    port: toPort(url.port, url.protocol),
     path: url.pathname + url.search,
     agent,
     rejectUnauthorized: proxyOptions.proxyStrictSSL,
@@ -201,7 +208,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = res.headers
         let chunks: Buffer[] = []
-        let contentType: string = headers['content-type'] || ''
+        let contentType: string = toText(headers['content-type'])
         readable = decompressResponse(res)
         readable.on('data', chunk => {
           chunks.push(chunk)
@@ -239,7 +246,7 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
       if (opts.agent && e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
           reject(e)
-        }, 500)
+        }, timeout)
       } else {
         reject(e)
       }

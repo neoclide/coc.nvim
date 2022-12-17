@@ -13,8 +13,8 @@ import helper from '../helper'
 
 let nvim: Neovim
 
-function createTextDocument(lines: string[]): LinesTextDocument {
-  return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
+function createTextDocument(lines: string[], eol = true): LinesTextDocument {
+  return new LinesTextDocument('file://a', 'txt', 1, lines, 1, eol)
 }
 
 async function setLines(doc: Document, lines: string[]): Promise<void> {
@@ -71,12 +71,25 @@ describe('LinesTextDocument', () => {
     expect(doc.length).toBe(4)
     expect(doc.getText().length).toBe(4)
     expect(doc.length).toBe(4)
+    doc = createTextDocument(['foo'], false)
+    expect(doc.length).toBe(3)
   })
 
   it('should getText by range', () => {
     let doc = createTextDocument(['foo', 'bar'])
     expect(doc.getText(Range.create(0, 0, 0, 1))).toBe('f')
     expect(doc.getText(Range.create(0, 0, 1, 0))).toBe('foo\n')
+  })
+
+  it('should get positionAt', () => {
+    let doc = createTextDocument([], false)
+    expect(doc.positionAt(0)).toEqual(Position.create(0, 0))
+  })
+
+  it('should get offsetAt', () => {
+    let doc = createTextDocument([''], false)
+    expect(doc.offsetAt(Position.create(1, 0))).toBe(0)
+    expect(doc.offsetAt({ line: -1, character: -1 })).toBe(0)
   })
 
   it('should work when eol enabled', () => {
@@ -326,6 +339,7 @@ describe('Document', () => {
       doc.attach()
       await helper.wait(10)
       expect(doc.attached).toBe(false)
+      await doc.synchronize()
     })
 
     it('should consider eol option', async () => {

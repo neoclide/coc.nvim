@@ -5,7 +5,7 @@ import { v1 as uuidv1 } from 'uuid'
 import { CancellationToken } from '../util/protocol'
 import { createLogger } from '../logger'
 import { crypto, fs, path } from '../util/node'
-import { FetchOptions, getRequestModule, resolveRequestOptions, toURL } from './fetch'
+import { FetchOptions, timeout, getRequestModule, resolveRequestOptions, toURL } from './fetch'
 const logger = createLogger('model-download')
 
 export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
@@ -35,6 +35,14 @@ export function getEtag(headers: IncomingHttpHeaders): string | undefined {
   header = header.replace(/^W\//, '')
   if (!header.startsWith('"') || !header.endsWith('"')) return undefined
   return header.slice(1, -1)
+}
+
+export function getExtname(dispositionHeader: string): string | undefined {
+  const contentDisposition = require('content-disposition')
+  let disposition = contentDisposition.parse(dispositionHeader)
+  let filename = disposition.parameters.filename
+  if (filename) return path.extname(filename)
+  return undefined
 }
 
 /**
@@ -73,16 +81,12 @@ export default function download(urlInput: string | URL, options: DownloadOption
     let timer: NodeJS.Timer
     const req = mod.request(opts, (res: IncomingMessage) => {
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
-        let headers = res.headers ?? {}
+        let headers = res.headers
         let dispositionHeader = headers['content-disposition']
         let etag = getEtag(headers)
         let checkEtag = etag && typeof etagAlgorithm === 'string'
         if (!extname && dispositionHeader) {
-          const contentDisposition = require('content-disposition')
-          let disposition = contentDisposition.parse(dispositionHeader)
-          if (disposition.parameters?.filename) {
-            extname = path.extname(disposition.parameters.filename)
-          }
+          extname = getExtname(dispositionHeader)
         }
         if (extract === true) {
           if (extname === '.zip' || headers['content-type'] == 'application/zip') {
@@ -110,7 +114,6 @@ export default function download(urlInput: string | URL, options: DownloadOption
           }
         })
         res.on('end', () => {
-          if (finished) return
           clearTimeout(timer)
           timer = undefined
           logger.info('Download completed:', url)
@@ -127,7 +130,6 @@ export default function download(urlInput: string | URL, options: DownloadOption
           stream = res.pipe(fs.createWriteStream(dest))
         }
         stream.on('finish', () => {
-          if (finished) return
           if (hash) {
             if (hash.digest('hex') !== etag) {
               reject(new Error(`Etag check failed by ${etagAlgorithm}, content not match.`))
@@ -150,7 +152,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
         timer = setTimeout(() => {
           finished = true
           reject(e)
-        }, 500)
+        }, timeout)
       } else {
         clearTimeout(timer)
         if (opts.agent && opts.agent.proxy) {

@@ -73,11 +73,9 @@ export default class ProgressNotification<R> extends Notification {
         if (p.message) nvim.call('coc#window#set_var', [this.winid, 'message', p.message.replace(/\r?\n/g, ' ')], true)
       }
     }, tokenSource.token).then(res => {
-      if (this._disposed) return
       this._onDidFinish.fire(res)
       this.dispose()
     }, err => {
-      if (this._disposed) return
       if (err) this.nvim.echoError(err)
       this._onDidFinish.fire(undefined)
       this.dispose()

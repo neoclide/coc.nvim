@@ -30,15 +30,10 @@ export default class Memos {
   }
 
   private fetchContent(id: string, key: string): any {
-    try {
-      let content = fs.readFileSync(this.filepath, 'utf8')
-      let res = JSON.parse(content)
-      let obj = res[id]
-      if (!obj) return undefined
-      return obj[key]
-    } catch (e) {
-      return undefined
-    }
+    let res = loadJson(this.filepath)
+    let obj = res[id]
+    if (!obj) return undefined
+    return obj[key]
   }
 
   private async update(id: string, key: string, value: any): Promise<void> {

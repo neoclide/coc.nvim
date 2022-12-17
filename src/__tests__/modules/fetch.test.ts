@@ -6,8 +6,8 @@ import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
 import { promisify } from 'util'
 import http, { Server } from 'http'
-import download, { getEtag } from '../../model/download'
-import fetch, { getAgent, getDataType, request, getText, getRequestModule, getSystemProxyURI, resolveRequestOptions, toURL } from '../../model/fetch'
+import download, { getEtag, getExtname } from '../../model/download'
+import fetch, { getAgent, getDataType, request, getText, getRequestModule, getSystemProxyURI, resolveRequestOptions, toURL, toPort } from '../../model/fetch'
 import helper from '../helper'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 
@@ -65,7 +65,7 @@ async function createServer(): Promise<number> {
         setTimeout(() => {
           res.writeHead(200)
           res.end('abc')
-        }, 200)
+        }, 50)
       }
       if (req.url === '/json') {
         res.writeHead(200, { 'Content-Type': 'application/json;charset=utf8' })
@@ -82,6 +82,13 @@ async function createServer(): Promise<number> {
       if (req.url === '/reject') {
         setTimeout(() => {
           res.socket.destroy(new Error('Rejected'))
+        }, 20)
+      }
+      if (req.url === '/close') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' })
+        res.write("foo")
+        setTimeout(() => {
+          res.destroy(new Error('closed'))
         }, 20)
       }
       if (req.url === '/binary') {
@@ -122,6 +129,7 @@ async function createServer(): Promise<number> {
       }
     })
     servers.push(server)
+    server.unref()
     server.listen(port, () => {
       resolve(port)
     })
@@ -129,18 +137,30 @@ async function createServer(): Promise<number> {
 }
 
 describe('utils', () => {
-  it('should getText', async () => {
+  it('should getText', () => {
     expect(getText({ x: 1 })).toBe('{"x":1}')
   })
 
-  it('should getEtag', async () => {
+  it('should getExtname', () => {
+    let res = getExtname('attachment; x="y"')
+    expect(res).toBeUndefined()
+  })
+
+  it('should getPort', async () => {
+    expect(toPort(80, 'http')).toBe(80)
+    expect(toPort('80', 'http')).toBe(80)
+    expect(toPort('x', 'http')).toBe(80)
+    expect(toPort('', 'https')).toBe(443)
+  })
+
+  it('should getEtag', () => {
     expect(getEtag({})).toBeUndefined()
     expect(getEtag({ etag: '"abc"' })).toBe('abc')
     expect(getEtag({ etag: 'W/"abc"' })).toBe('abc')
     expect(getEtag({ etag: 'Wabc"' })).toBeUndefined()
   })
 
-  it('should get data type', async () => {
+  it('should get data type', () => {
     expect(getDataType(null)).toBe('null')
     expect(getDataType(undefined)).toBe('undefined')
     expect(getDataType('s')).toBe('string')
@@ -150,7 +170,7 @@ describe('utils', () => {
     expect(getDataType(new Date())).toBe('unknown')
   })
 
-  it('should getRequestModule', async () => {
+  it('should getRequestModule', () => {
     let url = toURL('https://www.baidu.com')
     expect(getRequestModule(url)).toBeDefined()
   })
@@ -164,7 +184,7 @@ describe('utils', () => {
     expect(toURL(u)).toBe(u)
   })
 
-  it('should report valid proxy', async () => {
+  it('should report valid proxy', () => {
     let agent = getAgent(new URL('http://google.com'), { proxy: 'domain.com:1234' })
     expect(agent).toBe(null)
 
@@ -177,7 +197,7 @@ describe('utils', () => {
     agent = getAgent(new URL('http://google.com'), { proxy: 'domain.com' })
     expect(agent).toBe(null)
 
-    agent = getAgent(new URL('http://google.com'), { proxy: 'https://domain.com' })
+    agent = getAgent(new URL('https://google.com'), { proxy: 'https://domain.com' })
     let proxy = (agent as any).proxy
     expect(proxy.port).toBe(443)
 
@@ -197,7 +217,7 @@ describe('utils', () => {
     expect(proxy.auth).toBe('user:pass')
   })
 
-  it('should getAgent from proxy', async () => {
+  it('should getAgent from proxy', () => {
     let agent = getAgent(new URL('http://google.com'), { proxy: 'http://user:@domain.com' })
     let proxy = (agent as any).proxy
     expect(proxy.host).toBe('domain.com')
@@ -205,7 +225,7 @@ describe('utils', () => {
     expect(proxy.port).toBe(80)
   })
 
-  it('should getSystemProxyURI', async () => {
+  it('should getSystemProxyURI', () => {
     let url = new URL('http://www.example.com')
     let http_proxy = 'http://127.0.0.1:7070'
     expect(getSystemProxyURI(url, { NO_PROXY: '*', HTTP_PROXY: http_proxy })).toBeNull()
@@ -288,6 +308,17 @@ describe('fetch', () => {
     await expect(fn()).rejects.toThrow()
   })
 
+  it('should catch abnormal close', async () => {
+    let fn = async () => {
+      await fetch(`http://127.0.0.1:${port}/close`)
+    }
+    await expect(fn()).rejects.toThrow()
+    fn = async () => {
+      await download(`http://127.0.0.1:${port}/close`, { dest: os.tmpdir() })
+    }
+    await expect(fn()).rejects.toThrow()
+  })
+
   it('should throw on 404 response', async () => {
     let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/404`)
@@ -339,6 +370,11 @@ describe('fetch', () => {
       await request(url, undefined, opts)
     }
     await expect(fn()).rejects.toThrow(Error)
+    fn = async () => {
+      await download(url, Object.assign(opts, { dest: os.tmpdir() }))
+    }
+    await expect(fn()).rejects.toThrow(Error)
+
     opts.agent.destroy()
   })
 
@@ -459,22 +495,26 @@ describe('download', () => {
 
   it('should download tgz', async () => {
     let url = `http://127.0.0.1:${port}/tgz`
-    let res = await download(url, {
+    let opts = {
       dest: tempdir,
       extract: true,
       timeout: 3000,
       strip: 0
-    })
+    }
+    let res = await download(url, opts)
     let file = path.join(res, 'test.js')
     let exists = fs.existsSync(file)
     expect(exists).toBe(true)
+    opts.strip = undefined
+    res = await download(url, opts)
+    expect(res).toBeDefined()
   })
 
   it('should cancel download by CancellationToken', async () => {
     let fn = async () => {
       let tokenSource = new CancellationTokenSource()
       let p = download(`http://127.0.0.1:${port}/slow`, { dest: tempdir }, tokenSource.token)
-      await helper.wait(1)
+      await helper.wait(10)
       tokenSource.cancel()
       await p
     }

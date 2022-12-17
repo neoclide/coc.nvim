@@ -84,7 +84,7 @@ export function* matchSpansReverse(text: string, positions: ArrayLike<number>, e
   }
 }
 
-export function* matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]> {
+function* matchSpans(text: string, positions: ArrayLike<number>, max?: number): Iterable<[number, number]> {
   max = max ? Math.min(max, text.length) : text.length
   let byteIndex = bytes(text, Math.min(text.length, 4096))
   let start: number | undefined

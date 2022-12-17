@@ -121,6 +121,7 @@ describe('ExtensionManager', () => {
       })
       let manager = create(tmpfolder)
       await manager.loadExtension(tmpfolder)
+      await manager.activateExtensions()
       let fn = () => {
         manager.tryActivateExtensions('onLanguage', () => {
           throw new Error('test error')
@@ -502,6 +503,8 @@ describe('ExtensionManager', () => {
       expect(item.extension.isActive).toBe(true)
       await item.deactivate()
       expect(item.extension.isActive).toBe(false)
+      process.env.COC_NO_PLUGINS = '1'
+      await manager.activateExtensions()
     })
 
     it('should reload extension from directory', async () => {
@@ -816,6 +819,7 @@ describe('ExtensionManager', () => {
       expect(res.isActive).toBe(false)
       expect(res.name).toBe('name')
       expect(res.exports).toEqual({})
+      await manager.activateExtensions()
       await res.unload()
       fs.rmSync(tmpfolder, { recursive: true })
     })

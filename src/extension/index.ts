@@ -33,7 +33,7 @@ const EXTENSIONS_FOLDER = path.join(dataHome, 'extensions')
 export class Extensions {
   public readonly manager: ExtensionManager
   public readonly states: ExtensionStat
-  public readonly modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
+  public modulesFolder = path.join(EXTENSIONS_FOLDER, 'node_modules')
   private globalPromise: Promise<ExtensionToLoad[]>
   constructor() {
     checkExtensionRoot(EXTENSIONS_FOLDER)
@@ -76,8 +76,8 @@ export class Extensions {
   }
 
   public async activateExtensions(): Promise<void> {
-    if (process.env.COC_NO_PLUGINS == '1') return
     await this.manager.activateExtensions()
+    if (process.env.COC_NO_PLUGINS == '1') return
     let names = this.states.filterGlobalExtensions(workspace.env.globalExtensions)
     void this.installExtensions(names)
     // check extensions need watch & install

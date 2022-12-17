@@ -3,11 +3,16 @@ import Highlighter from '../../model/highligher'
 import helper from '../helper'
 
 let nvim: Neovim
+beforeAll(async () => {
+  await helper.setup()
+  nvim = helper.nvim
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
+
 describe('Highlighter', () => {
-  beforeAll(async () => {
-    await helper.setup()
-    nvim = helper.nvim
-  })
 
   let highligher: Highlighter
   beforeEach(() => {
@@ -34,8 +39,10 @@ describe('Highlighter', () => {
     expect(highligher.content).toBe('foobar')
   })
 
-  it('should add texts', async () => {
+  it('should add texts', () => {
     highligher.addTexts([{ text: 'foo' }, { text: 'bar', hlGroup: 'Comment' }])
+    highligher.addText('')
+    highligher.addText(undefined)
     expect(highligher.highlights).toEqual([{ lnum: 0, colStart: 3, colEnd: 6, hlGroup: 'Comment' }])
     expect(highligher.content).toBe('foobar')
   })

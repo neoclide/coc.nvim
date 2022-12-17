@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import events from '../../events'
 import FloatFactoryImpl from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
 import { Documentation } from '../../types'
@@ -24,6 +25,18 @@ afterEach(async () => {
 
 describe('FloatFactory', () => {
   describe('show()', () => {
+    it('should close after create window', async () => {
+      let docs: Documentation[] = [{
+        filetype: 'markdown',
+        content: 'f'
+      }]
+      let p = floatFactory.show(docs, { shadow: true, focusable: true, rounded: true, border: [1, 1, 1, 1] })
+      floatFactory.close()
+      await helper.wait(10)
+      let win = floatFactory.window
+      expect(win).toBeNull()
+    })
+
     it('should show window', async () => {
       expect(floatFactory.window).toBe(null)
       expect(floatFactory.buffer).toBe(null)
@@ -39,6 +52,32 @@ describe('FloatFactory', () => {
       expect(hasFloat).toBe(1)
       await floatFactory.show([{ filetype: 'txt', content: '' }])
       expect(floatFactory.window).toBe(null)
+    })
+
+    it('should close when MenuPopupChanged', async () => {
+      let docs: Documentation[] = [{
+        filetype: 'markdown',
+        content: 'f'.repeat(81)
+      }]
+      await floatFactory.show(docs, { focusable: true })
+      await events.fire('BufEnter', [floatFactory.bufnr])
+      let ev = {
+        row: 21,
+        startcol: 0,
+        index: 0,
+        word: '',
+        height: 1,
+        width: 1,
+        col: 10,
+        size: 1,
+        scrollbar: true,
+        inserted: true,
+        move: false,
+      }
+      await events.fire('MenuPopupChanged', [ev, 22])
+      await events.fire('MenuPopupChanged', [ev, 20])
+      expect(floatFactory.window).toBeNull()
+      floatFactory.close()
     })
 
     it('should create window', async () => {
@@ -200,6 +239,16 @@ describe('FloatFactory', () => {
       await helper.waitFor('coc#float#has_float', [], 0)
     })
 
+    it('should not hide when not moved', async () => {
+      let bufnr = await nvim.call('bufnr', ['%']) as number
+      let docs: Documentation[] = [{
+        filetype: 'markdown',
+        content: 'foo'
+      }]
+      await floatFactory.show(docs, { focusable: false })
+      floatFactory._onCursorMoved(false, bufnr, [1, 1])
+    })
+
     it('should hide on CursorMoved', async () => {
       await helper.createDocument()
       await nvim.setLine('foo')
@@ -222,6 +271,7 @@ describe('FloatFactory', () => {
         content: 'foo'
       }]
       await floatFactory.show(docs)
+      floatFactory._onCursorMoved(false, floatFactory.bufnr, [1, 1])
       await nvim.call('cursor', [1, 2])
       await helper.wait(10)
       await nvim.call('cursor', cursor)

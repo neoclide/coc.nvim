@@ -55,8 +55,24 @@ describe('extensions', () => {
   })
 
   it('should get extensions stat', async () => {
+    process.env.COC_NO_PLUGINS = '1'
+    await extensions.globalExtensions()
     let stats = await extensions.getExtensionStates()
     expect(stats.length).toBe(0)
+    process.env.COC_NO_PLUGINS = '0'
+  })
+
+  it('should add global extensions', async () => {
+    extensions.states.addExtension('foo', '0.0.1')
+    extensions.states.addExtension('bar', '0.0.1')
+    extensions.modulesFolder = path.join(os.tmpdir(), uuid())
+    let folder = path.join(extensions.modulesFolder, 'foo')
+    writeJson(path.join(folder, 'package.json'), { name: 'foo', engines: { coc: '>=0.0.1' } })
+    fs.writeFileSync(path.join(folder, 'index.js'), '')
+    let res = await extensions.globalExtensions()
+    expect(res.length).toBe(1)
+    fs.rmSync(extensions.modulesFolder, { recursive: true })
+    extensions.states.removeExtension('foo')
   })
 
   it('should has extension', () => {

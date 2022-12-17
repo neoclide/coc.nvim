@@ -27,6 +27,10 @@ export function isMenuItem(item: any): item is MenuItem {
   return typeof item.text === 'string'
 }
 
+export function toIndexText(n: number): string {
+  return n < 99 ? `${n + 1}. ` : '  '
+}
+
 /**
  * Select single item from menu at cursor position.
  */
@@ -186,8 +190,7 @@ export default class Menu {
     let highlights: HighlightItem[] = []
     let lines = items.map((v, i) => {
       let text: string = isMenuItem(v) ? v.text : v
-      let pre = i < 99 ? `${i + 1}. ` : ''
-      // if (i < 99) return `${i + 1}. ${text.trim()}`
+      let pre = toIndexText(i)
       if (shortcutIndexes.has(i)) {
         highlights.push({
           lnum: i,
@@ -210,13 +213,12 @@ export default class Menu {
       }
     })
     if (highlights.length) opts.highlights = highlights
-    let res = await nvim.call('coc#dialog#create_menu', [lines, opts]) as [number, number, number]
-    if (!res) throw new Error('Unable to create menu window')
+    let [winid, bufnr, contentHeight] = await nvim.call('coc#dialog#create_menu', [lines, opts]) as [number, number, number]
     nvim.command('redraw', true)
     if (this._disposed) return
-    this.win = new Popup(nvim, res[0], res[1], lines.length + res[2], res[2])
-    this.bufnr = res[1]
-    this.contentHeight = res[2]
+    this.win = new Popup(nvim, winid, bufnr, lines.length + contentHeight, contentHeight)
+    this.bufnr = bufnr
+    this.contentHeight = contentHeight
     this.attachEvents()
     nvim.call('coc#prompt#start_prompt', ['menu'], true)
   }

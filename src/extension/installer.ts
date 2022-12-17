@@ -7,6 +7,7 @@ import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import { loadJson } from '../util/fs'
 import { child_process, fs, os, path, readline, semver } from '../util/node'
+import { toText } from '../util/string'
 import workspace from '../workspace'
 const logger = createLogger('extension-installer')
 const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']
@@ -163,7 +164,7 @@ export class Installer extends EventEmitter implements IInstaller {
     let info = await this.getInfo()
     logger.info(`Fetched info of ${this.def}`, info)
     let { name, version } = info
-    let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
+    let required = toText(info['engines.coc']).replace(/^\^/, '>=')
     if (required && !semver.satisfies(workspace.version, required)) {
       throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
     }

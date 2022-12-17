@@ -14,6 +14,16 @@ beforeAll(async () => {
 })
 
 describe('Resolver()', () => {
+  it('should return empty string when file not exists', async () => {
+    let spy = jest.spyOn(fs, 'existsSync').mockImplementation(() => {
+      return false
+    })
+    let r = new Resolver()
+    let res = await r.yarnFolder
+    expect(res).toBe('')
+    spy.mockRestore()
+  })
+
   it('should resolve null', async () => {
     let r = new Resolver()
     let spy = jest.spyOn(which, 'sync').mockImplementation(() => {

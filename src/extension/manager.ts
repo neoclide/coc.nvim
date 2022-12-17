@@ -102,7 +102,7 @@ const configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Con
  * Manage loaded extensions
  */
 export class ExtensionManager {
-  private activated = process.env.COC_NO_PLUGINS == '1' ? true : false
+  private activated = false
   private disposables: Disposable[] = []
   public readonly configurationNodes: IConfigurationNode[] = []
   private extensions: Map<string, ExtensionItem> = new Map()
@@ -121,6 +121,7 @@ export class ExtensionManager {
 
   public activateExtensions(): Promise<PromiseSettledResult<void>[]> {
     this.activated = true
+    if (process.env.COC_NO_PLUGINS == '1') return
     configurationRegistry.registerConfigurations(this.configurationNodes)
     this.attachEvents()
     let promises: Promise<void>[] = []
