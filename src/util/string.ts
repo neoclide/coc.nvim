@@ -6,6 +6,10 @@ const UTF8_3BYTES_START = 0x800
 const UTF8_4BYTES_START = 65536
 const encoding = 'utf8'
 
+export function toErrorText(error: any): string {
+  return error instanceof Error ? error.message : error.toString()
+}
+
 export function toInteger(text: string): number | undefined {
   let n = parseInt(text, 10)
   return isNaN(n) ? undefined : n

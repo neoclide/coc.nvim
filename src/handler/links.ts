@@ -9,7 +9,7 @@ import BufferSync, { SyncItem } from '../model/bufferSync'
 import Document from '../model/document'
 import { DidChangeTextDocumentParams, Documentation, FloatFactory, HighlightItem } from '../types'
 import { disposeAll, getConditionValue } from '../util'
-import { isFalsyOrEmpty } from '../util/array'
+import { isFalsyOrEmpty, toArray } from '../util/array'
 import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
@@ -147,7 +147,7 @@ export default class Links implements Disposable {
 class LinkBuffer implements SyncItem {
   private tokenSource: CancellationTokenSource | undefined
   private _config: LinkConfig | undefined
-  public links: ReadonlyArray<DocumentLink> = []
+  public links: DocumentLink[] = []
   public fetchLinks: Function & { clear(): void }
   // last highlight version
   constructor(public readonly doc: Document) {
@@ -229,10 +229,6 @@ class LinkBuffer implements SyncItem {
   public dispose(): void {
     this.cancel()
   }
-}
-
-export function toArray(links: ReadonlyArray<DocumentLink> | undefined): ReadonlyArray<DocumentLink> {
-  return links ?? []
 }
 
 export function sameLinks(links: ReadonlyArray<DocumentLink>, other: ReadonlyArray<DocumentLink>): boolean {

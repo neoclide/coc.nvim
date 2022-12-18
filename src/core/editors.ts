@@ -76,6 +76,13 @@ export default class Editors {
     return Array.from(this.editors.values())
   }
 
+  public isVisible(bufnr: number): boolean {
+    for (let editor of this.editors.values()) {
+      if (editor.bufnr == bufnr) return true
+    }
+    return false
+  }
+
   private onChangeCurrent(editor: TextEditor | undefined): void {
     let id = editor.id
     if (id === this.previousId) return

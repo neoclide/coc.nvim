@@ -722,6 +722,7 @@ describe('strings', () => {
   })
 
   it('should convert to integer', () => {
+    expect(strings.toErrorText('a')).toBe('a')
     expect(strings.toInteger('a')).toBeUndefined()
     expect(strings.toInteger('1')).toBe(1)
   })

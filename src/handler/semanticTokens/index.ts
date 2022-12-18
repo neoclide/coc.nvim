@@ -7,9 +7,9 @@ import BufferSync from '../../model/bufferSync'
 import Highlighter from '../../model/highligher'
 import { Documentation, FloatFactory } from '../../types'
 import { disposeAll } from '../../util'
-import { distinct, isFalsyOrEmpty } from '../../util/array'
+import { distinct, isFalsyOrEmpty, toArray } from '../../util/array'
 import type { Disposable } from '../../util/protocol'
-import { upperFirst } from '../../util/string'
+import { toErrorText, toText, upperFirst } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
 import SemanticTokensBuffer, { HLGROUP_PREFIX, NAMESPACE, StaticConfig } from './buffer'
@@ -105,7 +105,7 @@ export default class SemanticTokens {
     if (!item || !item.enabled) {
       if (!item) {
         let doc = await workspace.document
-        void window.showErrorMessage(`Document not attached, ${doc?.notAttachReason}`)
+        void window.showErrorMessage(`Document not attached, ${doc.notAttachReason}`)
       } else {
         try {
           item.checkState()
@@ -113,17 +113,17 @@ export default class SemanticTokens {
           void window.showErrorMessage((e as Error).message)
         }
       }
-      floatFactory?.close()
+      this.closeFloat()
       return
     }
     let [_, line, col] = await this.nvim.call('getcurpos', []) as [number, number, number]
-    let highlights = item.highlights ?? []
+    let highlights = toArray(item.highlights)
     let highlight = highlights.find(o => {
       let column = col - 1
       return o.range[0] === line - 1 && column >= o.range[1] && column < o.range[2]
     })
     if (highlight) {
-      let modifiers = highlight.tokenModifiers || []
+      let modifiers = toArray(highlight.tokenModifiers)
       let highlights = []
       if (highlight.hlGroup) {
         let s = 'Highlight group: '.length
@@ -136,7 +136,7 @@ export default class SemanticTokens {
       }
       let docs: Documentation[] = [{
         filetype: 'txt',
-        content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${highlight.hlGroup || ''}`,
+        content: `Type: ${highlight.tokenType}\nModifiers: ${modifiers.join(', ')}\nHighlight group: ${toText(highlight.hlGroup)}`,
         highlights
       }]
       if (!floatFactory) {
@@ -149,8 +149,12 @@ export default class SemanticTokens {
       }
       await floatFactory.show(docs, { winblend: 0 })
     } else {
-      floatFactory?.close()
+      this.closeFloat()
     }
+  }
+
+  public closeFloat(): void {
+    floatFactory?.close()
   }
 
   public async fetchHighlightGroups(): Promise<void> {
@@ -158,14 +162,12 @@ export default class SemanticTokens {
     this.staticConfig.highlightGroups = highlightGroups
   }
 
-  public async getCurrentItem(): Promise<SemanticTokensBuffer | null> {
+  public async getCurrentItem(): Promise<SemanticTokensBuffer | undefined> {
     let buf = await this.nvim.buffer
-    let highlighter = this.highlighters.getItem(buf.id)
-    if (!highlighter) null
-    return highlighter
+    return this.getItem(buf.id)
   }
 
-  public getItem(bufnr: number): SemanticTokensBuffer | null {
+  public getItem(bufnr: number): SemanticTokensBuffer | undefined {
     return this.highlighters.getItem(bufnr)
   }
   /**
@@ -234,7 +236,7 @@ export default class SemanticTokens {
         hl.addLine('')
       }
     } catch (e) {
-      hl.addLine(e instanceof Error ? e.message : e.toString(), 'Error')
+      hl.addLine(toErrorText(e))
     }
     nvim.pauseNotification()
     hl.render(nvim.createBuffer(res[0][2] as number))

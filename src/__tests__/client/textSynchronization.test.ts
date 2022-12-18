@@ -164,14 +164,14 @@ describe('TextDocumentSynchronization', () => {
       await nvim.call('setline', [1, 'foo'])
       await doc.synchronize()
       await client.forceDocumentSync()
-      await nvim.call('setline', [1, 'foo'])
+      await nvim.call('setline', [1, 'bar'])
       await doc.synchronize()
       await helper.waitValue(() => {
         return called
       }, true)
       let res = await client.sendRequest('getLastChange') as any
       expect(res.uri).toBe(doc.uri)
-      expect(res.text).toBe('foo\n')
+      expect(res.text).toBe('bar\n')
       let provider = feature.getProvider(doc.textDocument)
       expect(provider).toBeDefined()
       await provider.send({ contentChanges: [], textDocument: { uri: doc.uri, version: doc.version }, bufnr: doc.bufnr, original: '', originalLines: [] })

@@ -7,6 +7,7 @@ import Plugin from './plugin'
 import { VERSION } from './util/constants'
 import { objectLiteral } from './util/is'
 import { semver } from './util/node'
+import { toErrorText } from './util/string'
 import { createTiming } from './util/timing'
 const logger = createLogger('attach')
 
@@ -26,10 +27,6 @@ export function pathReplace(patterns: object | undefined): void {
       return old_uri(path)
     }
   }
-}
-
-export function toErrorText(error: any): string {
-  return error instanceof Error ? error.message : error.toString()
 }
 
 export default (opts: Attach, requestApi = false): Plugin => {

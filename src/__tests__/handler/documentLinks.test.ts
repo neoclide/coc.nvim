@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, DocumentLink, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import events from '../../events'
-import LinksHandler, { sameLinks, toArray } from '../../handler/links'
+import LinksHandler, { sameLinks } from '../../handler/links'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
@@ -28,7 +28,6 @@ afterEach(async () => {
 
 describe('Links', () => {
   it('should check sameLinks', () => {
-    expect(toArray(undefined)).toEqual([])
     expect(sameLinks([], [])).toBe(true)
     expect(sameLinks([{ range: Range.create(0, 0, 0, 1) }], [])).toBe(false)
     expect(sameLinks([{ range: Range.create(0, 0, 0, 1) }], [{ range: Range.create(0, 0, 1, 0) }])).toBe(false)
