@@ -225,10 +225,6 @@ describe('window', () => {
       expect(res).toBe(1)
     })
 
-    it('should convert picker items', () => {
-      expect(toPickerItems([{ label: 'foo' }])).toEqual([{ label: 'foo' }])
-    })
-
     it('should return select items for picker', async () => {
       let curr = await nvim.call('win_getid')
       let p = window.showPickerDialog(['foo', 'bar'], 'select')

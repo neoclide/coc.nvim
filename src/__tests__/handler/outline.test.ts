@@ -65,7 +65,7 @@ describe('symbols outline', () => {
     await helper.edit()
     let buf = await nvim.buffer
     await nvim.command('setf javascript')
-    await nvim.command('setl modifiable')
+    await buf.setOption('modifiable', true)
     await buf.setLines(code.split('\n'), { start: 0, end: -1, strictIndexing: false })
     let doc = await workspace.document
     await doc.synchronize()

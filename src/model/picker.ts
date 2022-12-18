@@ -1,13 +1,12 @@
 'use strict'
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Emitter, Event } from '../util/protocol'
 import events from '../events'
 import { HighlightItem, QuickPickItem } from '../types'
 import { disposeAll } from '../util'
+import { CancellationToken, Disposable, Emitter, Event } from '../util/protocol'
 import { byteLength } from '../util/string'
 import { DialogPreferences } from './dialog'
 import Popup from './popup'
-import { isVim } from '../util/constants'
 
 interface PickerConfig {
   title: string
@@ -22,7 +21,7 @@ export function toPickerItems(items: (QuickPickItem | string)[]): QuickPickItem[
  * Pick multiple items from dialog
  */
 export default class Picker {
-  private bufnr: number
+  public bufnr: number
   private win: Popup | undefined
   private picked: Set<number> = new Set()
   private total: number
@@ -42,7 +41,6 @@ export default class Picker {
       })
     }
     this.disposables.push(this._onDidClose)
-    this.addKeymappings()
   }
 
   public get currIndex(): number {
@@ -60,16 +58,16 @@ export default class Picker {
       }
     }, null, this.disposables)
     events.on('FloatBtnClick', (bufnr, idx) => {
-      if (bufnr == this.bufnr) {
-        if (idx == 0) {
-          let selected = Array.from(this.picked)
-          this._onDidClose.fire(selected.length ? selected : undefined)
-        } else {
-          this._onDidClose.fire(undefined)
-        }
-        this.dispose()
+      if (bufnr != this.bufnr) return
+      if (idx == 0) {
+        let selected = Array.from(this.picked)
+        this._onDidClose.fire(selected.length > 0 ? selected : undefined)
+      } else {
+        this._onDidClose.fire(undefined)
       }
+      this.dispose()
     }, null, this.disposables)
+    this.addKeymappings()
   }
 
   private addKeymappings(): void {
@@ -83,7 +81,7 @@ export default class Picker {
     }
     this.addKeys('<LeftRelease>', async () => {
       // not work on vim
-      if (isVim || !this.win) return
+      // if (isVim) return
       let [winid, lnum, col] = await nvim.call('coc#ui#get_mouse') as [number, number, number]
       nvim.pauseNotification()
       if (winid == this.win.winid) {
@@ -91,7 +89,7 @@ export default class Picker {
           toggleSelect(lnum - 1)
           this.changeLine(lnum - 1)
         } else {
-          this.setCursor(lnum - 1)
+          this.win.setCursor(lnum - 1)
         }
       }
       nvim.call('win_gotoid', [winid], true)
@@ -130,15 +128,15 @@ export default class Picker {
       toggleSelect(idx)
       nvim.pauseNotification()
       this.changeLine(idx)
-      this.setCursor(this.currIndex + 1)
+      this.win.setCursor(this.currIndex + 1)
       nvim.command('redraw', true)
       await nvim.resumeNotification()
     })
     this.addKeys('<C-f>', async () => {
-      await this.win?.scrollForward()
+      await this.win.scrollForward()
     })
     this.addKeys('<C-b>', async () => {
-      await this.win?.scrollBackward()
+      await this.win.scrollBackward()
     })
   }
 
@@ -197,13 +195,13 @@ export default class Picker {
     this.win = undefined
   }
 
-  private async onInputChar(session: string, character: string): Promise<void> {
+  public async onInputChar(session: string, character: string): Promise<void> {
     if (session != 'picker' || !this.win) return
     let fn = this.keyMappings.get(character)
     if (fn) await Promise.resolve(fn(character))
   }
 
-  private changeLine(index: number): void {
+  public changeLine(index: number): void {
     let { nvim } = this
     let item = this.config.items[index]
     if (!item) return
@@ -214,11 +212,6 @@ export default class Picker {
     let buf = nvim.createBuffer(this.bufnr)
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     buf.addHighlight({ hlGroup: 'Comment', line: index, srcId: 1, colStart: col, colEnd: -1 })
-  }
-
-  private setCursor(index: number): void {
-    if (!this.win) return
-    this.win.setCursor(index)
   }
 
   private addKeys(keys: string | string[], fn: (character: string) => void): void {
