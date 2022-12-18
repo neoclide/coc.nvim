@@ -1146,21 +1146,11 @@ function! s:close_win(winid, noautocmd) abort
 endfunction
 
 function! s:nvim_create_keymap(winid) abort
-  if exists('*nvim_buf_set_keymap')
-    let bufnr = winbufnr(a:winid)
-    call nvim_buf_set_keymap(bufnr, 'n', '<LeftRelease>', ':call coc#float#nvim_float_click()<CR>', {
+  let bufnr = winbufnr(a:winid)
+  call nvim_buf_set_keymap(bufnr, 'n', '<LeftRelease>', ':call coc#float#nvim_float_click()<CR>', {
         \ 'silent': v:true,
         \ 'nowait': v:true
         \ })
-  else
-    let curr = win_getid()
-    let m = mode()
-    if m == 'n' || m == 'i' || m == 'ic'
-      noa call win_gotoid(a:winid)
-      nnoremap <buffer><silent> <LeftRelease> :call coc#float#nvim_float_click()<CR>
-      noa call win_gotoid(curr)
-    endif
-  endif
 endfunction
 
 " getwininfo is buggy on neovim, use topline, width & height should for content

@@ -429,14 +429,29 @@ function! coc#util#tabnr_id(tabnr) abort
   return s:is_vim ? coc#api#get_tabid(a:tabnr) : nvim_list_tabpages()[a:tabnr - 1]
 endfunction
 
-function! coc#util#editor_winids() abort
-  let winids = []
+function! coc#util#get_loaded_bufs() abort
+  return map(getbufinfo({'bufloaded': 1}),'v:val["bufnr"]')
+endfunction
+
+function! coc#util#editor_infos() abort
+  let result = []
   for info in getwininfo()
     if !coc#window#is_float(info['winid'])
-      call add(winids, info['winid'])
+      let bufnr = info['bufnr']
+      let buftype = getbufvar(bufnr, '&buftype')
+      if buftype !=# '' && buftype !=# 'acwrite'
+        continue
+      endif
+      let bufname = bufname(bufnr)
+      call add(result, {
+          \ 'winid': info['winid'],
+          \ 'bufnr': bufnr,
+          \ 'tabid': coc#util#tabnr_id(info['tabnr']),
+          \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
+          \ })
     endif
   endfor
-  return winids
+  return result
 endfunction
 
 function! coc#util#tabpages() abort

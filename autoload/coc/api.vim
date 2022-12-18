@@ -261,7 +261,7 @@ function! s:funcs.get_api_info()
 endfunction
 
 function! s:funcs.list_bufs()
-  return map(getbufinfo({'bufloaded': 1}), 'v:val["bufnr"]')
+  return map(getbufinfo(), 'v:val["bufnr"]')
 endfunction
 
 function! s:funcs.feedkeys(keys, mode, escape_csi)
@@ -405,6 +405,10 @@ function! s:funcs.buf_get_changedtick(bufnr)
 endfunction
 
 function! s:funcs.buf_is_valid(bufnr)
+  return bufexists(a:bufnr) ? v:true : v:false
+endfunction
+
+function! s:funcs.buf_is_loaded(bufnr)
   return bufloaded(a:bufnr) ? v:true : v:false
 endfunction
 
