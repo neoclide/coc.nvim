@@ -77,7 +77,8 @@ jobs:
           node --max-old-space-size=4096 --expose-gc ./node_modules/.bin/jest --maxWorkers=2 --coverage --forceExit
 
       - name: Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3.1.1
         if: ${{ matrix.ENABLE_CODE_COVERAGE }}
         with:
-          fail_ci_if_error: true
+          fail_ci_if_error: false
+          verbose: true
