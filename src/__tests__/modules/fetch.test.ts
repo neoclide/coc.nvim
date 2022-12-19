@@ -6,6 +6,7 @@ import { URL } from 'url'
 import { v4 as uuid } from 'uuid'
 import { promisify } from 'util'
 import http, { Server } from 'http'
+import semver from 'semver'
 import download, { getEtag, getExtname } from '../../model/download'
 import fetch, { getAgent, getDataType, request, getText, getRequestModule, getSystemProxyURI, resolveRequestOptions, toURL, toPort } from '../../model/fetch'
 import helper from '../helper'
@@ -309,14 +310,17 @@ describe('fetch', () => {
   })
 
   it('should catch abnormal close', async () => {
-    let fn = async () => {
-      await fetch(`http://127.0.0.1:${port}/close`)
+    let version = semver.parse(process.version)
+    if (version.major >= 16) {
+      let fn = async () => {
+        await fetch(`http://127.0.0.1:${port}/close`)
+      }
+      await expect(fn()).rejects.toThrow()
+      fn = async () => {
+        await download(`http://127.0.0.1:${port}/close`, { dest: os.tmpdir() })
+      }
+      await expect(fn()).rejects.toThrow()
     }
-    await expect(fn()).rejects.toThrow()
-    fn = async () => {
-      await download(`http://127.0.0.1:${port}/close`, { dest: os.tmpdir() })
-    }
-    await expect(fn()).rejects.toThrow()
   })
 
   it('should throw on 404 response', async () => {
