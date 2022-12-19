@@ -4065,6 +4065,8 @@ declare module 'coc.nvim' {
 
     /**
      * Check if `nvim_` function exists.
+     *
+     * @deprecated use `workspace.has` to check vim version instead.
      */
     hasFunction(name: string): boolean
 
@@ -8842,6 +8844,7 @@ declare module 'coc.nvim' {
      * @return The cells count.
      */
     export function getDisplayWidth(text: string, cache?: boolean): number
+
     /**
      * Like vim's has(), but for version check only.
      * Check patch on neovim and check nvim on vim would return false.

@@ -286,6 +286,13 @@ function! s:funcs.exec(code, output) abort
   return v:null
 endfunction
 
+" Queues raw user-input, <" is special. To input a literal "<", send <LT>.
+function! s:funcs.input(keys) abort
+  let escaped = substitute(a:keys, '<', '\\<', 'g')
+  call feedkeys(eval('"'.escaped.'"'), 't')
+  return v:null
+endfunction
+
 function! s:funcs.create_buf(listed, scratch) abort
   let bufnr = bufadd('')
   call setbufvar(bufnr, '&buflisted', a:listed ? 1 : 0)
