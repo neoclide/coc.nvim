@@ -295,15 +295,17 @@ export default class SemanticTokensBuffer implements SyncItem {
 
   public async doHighlight(forceFull = false, onShown = false): Promise<void> {
     this.cancel()
-    if (!this.enabled) return
+    if (!this.enabled || (!onShown && !workspace.editors.isVisible(this.bufnr))) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    if (!onShown && !workspace.editors.isVisible(this.bufnr)) return
     if (this.shouldRangeHighlight) {
       let rangeTokenSource = this.rangeTokenSource = new CancellationTokenSource()
-      await this.doRangeHighlight(rangeTokenSource.token)
-      if (rangeTokenSource.token.isCancellationRequested && this.rangeProviderOnly) return
+      let rangeToken = rangeTokenSource.token
+      await this.doRangeHighlight(rangeToken)
+      if (!rangeToken.isCancellationRequested) this.rangeTokenSource = undefined
+      if (rangeToken.isCancellationRequested && this.rangeProviderOnly) return
     }
+    if (token.isCancellationRequested) return
     const { doc } = this
     const version = doc.version
     let tokenRanges: SemanticTokenRange[] | undefined
@@ -337,6 +339,7 @@ export default class SemanticTokensBuffer implements SyncItem {
       this.regions.clear()
       await this.highlightRegions(token)
     }
+    if (!token.isCancellationRequested) this.tokenSource = undefined
     this._onDidRefresh.fire()
   }
 
@@ -423,6 +426,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     } else {
       await this.highlightRegions(token)
     }
+    if (!token.isCancellationRequested) this.rangeTokenSource = undefined
   }
 
   /**
@@ -486,7 +490,6 @@ export default class SemanticTokensBuffer implements SyncItem {
   public cancel(rangeOnly = false): void {
     if (this.rangeTokenSource) {
       this.rangeTokenSource.cancel()
-      this.rangeTokenSource.dispose()
       this.rangeTokenSource = null
     }
     if (rangeOnly) return
@@ -494,7 +497,6 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.highlight.clear()
     if (this.tokenSource) {
       this.tokenSource.cancel()
-      this.tokenSource.dispose()
       this.tokenSource = null
     }
   }

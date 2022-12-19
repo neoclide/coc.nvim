@@ -474,6 +474,7 @@ describe('semanticTokens', () => {
       expect(item.highlights).toBeUndefined()
       disposable.dispose()
       await item.doHighlight(true)
+      await item.onCursorMoved()
     })
   })
 
