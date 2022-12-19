@@ -301,6 +301,15 @@ describe('Buffer API', () => {
     expect(changedtick).toBe(curr)
   })
 
+  it('should add and delete keymap', async () => {
+    buffer.setKeymap('n', 'e', ':normal! G', { noremap: true, nowait: true, silent: true })
+    let res = await nvim.exec('nmap e', true)
+    expect(res).toMatch('normal!')
+    buffer.deleteKeymap('n', 'e')
+    res = await nvim.exec('nmap e', true)
+    expect(res).toMatch('No mapping found')
+  })
+
   it('should check buffer valid', async () => {
     let valid = await buffer.valid
     expect(valid).toBe(true)

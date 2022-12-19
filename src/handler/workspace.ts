@@ -231,8 +231,8 @@ export default class WorkspaceHandler {
     return doc && doc.attached
   }
 
-  public async doKeymap(key: string, defaultReturn = '', pressed?: string): Promise<string> {
-    return await workspace.keymaps.doKeymap(key, defaultReturn, pressed)
+  public async doKeymap(key: string, defaultReturn = ''): Promise<string> {
+    return await workspace.keymaps.doKeymap(key, defaultReturn)
   }
 
   public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {

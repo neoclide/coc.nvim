@@ -16,6 +16,7 @@ let s:buffer_id = {}
 " srcId => list of types
 let s:id_types = {}
 let s:tab_id = 1
+let s:keymap_arguments = ['nowait', 'silent', 'script', 'expr', 'unique']
 
 " helper {{
 " Create a window with bufnr for execute win_execute
@@ -575,6 +576,33 @@ function! s:funcs.buf_del_var(bufnr, name)
     execute 'unlet! b:'.a:name
   else
     call s:buf_execute(a:bufnr, ['unlet! b:'.a:name])
+  endif
+  return v:null
+endfunction
+
+function! s:funcs.buf_set_keymap(bufnr, mode, lhs, rhs, opts) abort
+  let modekey = get(a:opts, 'noremap', 0) ?  a:mode . 'noremap' : a:mode
+  let arguments = ''
+  for key in keys(a:opts)
+    if a:opts[key] && index(s:keymap_arguments, key) != -1
+      let arguments .= '<'.key.'>'
+    endif
+  endfor
+  let cmd = modekey . ' ' . arguments .'<buffer> '.a:lhs. ' '.a:rhs
+  if bufnr('%') == a:bufnr || a:bufnr == 0
+    execute cmd
+  else
+    call s:buf_execute(a:bufnr, [cmd])
+  endif
+  return v:null
+endfunction
+
+function! s:funcs.buf_del_keymap(bufnr, mode, lhs) abort
+  let cmd = 'silent '.a:mode.'unmap <buffer> '.a:lhs
+  if bufnr('%') == a:bufnr || a:bufnr == 0
+    execute cmd
+  else
+    call s:buf_execute(a:bufnr, [cmd])
   endif
   return v:null
 endfunction

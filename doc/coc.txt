@@ -208,7 +208,7 @@ Use |coc-list-extensions| or |CocAction('extensionStats')| to get list of extens
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-The configuration of coc.nvim is stored in file `coc-settings.json`.
+The configuration of coc.nvim is stored in file named "coc-settings.json".
 
 Configuration properties are contributed by coc.nvim itself and coc.nvim
 extensions.  See |coc-config| for builtin configurations.
@@ -302,7 +302,7 @@ Close floating windows:~
 
 To close all floating windows/popups use |coc#float#close_all()| or
 |popup_clear()| on vim.  Or you can use <CTRL-w>o on neovim which close all
-split windows as well.
+split windows as well.  Or use |popup_clear()| on vim.
 
 To close single floating window/popup, use |coc#float#close()|.
 

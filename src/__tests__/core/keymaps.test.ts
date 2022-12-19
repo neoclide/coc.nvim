@@ -26,7 +26,7 @@ afterEach(async () => {
 
 describe('doKeymap()', () => {
   it('should not throw when key not mapped', async () => {
-    await keymaps.doKeymap('<C-a>', '', '{C-a}')
+    await keymaps.doKeymap('<C-a>', '')
   })
 })
 
@@ -80,7 +80,21 @@ describe('registerExprKeymap()', () => {
     await helper.wait(50)
     await nvim.command('normal! viw')
     await nvim.input('x<esc>')
-    await helper.wait(50)
-    expect(called).toBe(true)
+    await helper.waitValue(() => called, true)
+  })
+})
+
+describe('registerLocalKeymap', () => {
+  it('should register local keymap by notification', async () => {
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    let called = false
+    let disposable = keymaps.registerLocalKeymap(bufnr, 'n', 'n', () => {
+      called = true
+    }, true)
+    await nvim.call('feedkeys', ['n', 't'])
+    await helper.waitValue(() => called, true)
+    disposable.dispose()
+    let res = await nvim.exec('nmap n', true)
+    expect(res).toMatch('No mapping found')
   })
 })

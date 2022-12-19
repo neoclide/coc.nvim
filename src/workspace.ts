@@ -98,7 +98,7 @@ export class Workspace {
     this.contentProvider = new ContentProvider(documents)
     this.watchers = new Watchers()
     this.autocmds = new Autocmds(this.contentProvider, this.watchers)
-    this.keymaps = new Keymaps(documents)
+    this.keymaps = new Keymaps()
     this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
     this.editors = new Editors(documents)
     this.onDidRuntimePathChange = this.watchers.onDidRuntimePathChange
@@ -480,8 +480,15 @@ export class Workspace {
     return this.keymaps.registerExprKeymap(mode, key, fn, buffer)
   }
 
-  public registerLocalKeymap(mode: LocalMode, key: string, fn: Function, notify = false): Disposable {
-    return this.keymaps.registerLocalKeymap(mode, key, fn, notify)
+  public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: Function, notify = false): Disposable {
+    if (typeof arguments[0] === 'string') {
+      bufnr = this.bufnr
+      mode = arguments[0] as LocalMode
+      key = arguments[1]
+      fn = arguments[2]
+      notify = arguments[3] ?? false
+    }
+    return this.keymaps.registerLocalKeymap(bufnr, mode, key, fn, notify)
   }
 
   /**

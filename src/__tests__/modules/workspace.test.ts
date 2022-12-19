@@ -470,6 +470,17 @@ describe('workspace utility', () => {
     expect(workspace.has('nvim-0.5.0')).toBe(true)
     expect(workspace.has('nvim-9.0.0')).toBe(false)
   })
+
+  it('should registerLocalKeymap by old API', async () => {
+    let called = false
+    let fn = workspace.registerLocalKeymap.bind(workspace) as any
+    let disposable = fn('n', 'n', () => { called = true })
+    await nvim.call('feedkeys', ['n', 't'])
+    await helper.waitValue(() => called, true)
+    disposable.dispose()
+    let res = await nvim.exec('nmap n', true)
+    expect(res).toMatch('No mapping found')
+  })
 })
 
 describe('workspace events', () => {

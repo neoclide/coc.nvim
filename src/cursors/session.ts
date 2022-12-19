@@ -42,12 +42,13 @@ export default class CursorSession {
   private activated = true
   private changing = false
   constructor(private nvim: Neovim, private doc: Document, private config: CursorsConfig) {
+    let { bufnr } = doc
     doc.buffer.setVar('coc_cursors_activated', 1, true)
     let { cancelKey, nextKey, previousKey } = this.config
-    this.disposables.push(workspace.registerLocalKeymap('n', cancelKey, () => {
+    this.disposables.push(workspace.registerLocalKeymap(bufnr, 'n', cancelKey, () => {
       this.cancel()
     }))
-    this.disposables.push(workspace.registerLocalKeymap('n', nextKey, async () => {
+    this.disposables.push(workspace.registerLocalKeymap(bufnr, 'n', nextKey, async () => {
       let ranges = this.ranges.map(o => o.range)
       let curr = await window.getCursorPosition()
       for (let r of ranges) {
@@ -59,7 +60,7 @@ export default class CursorSession {
       let wrap = this.config.wrapscan
       if (ranges.length && wrap) await window.moveTo(ranges[0].start)
     }))
-    this.disposables.push(workspace.registerLocalKeymap('n', previousKey, async () => {
+    this.disposables.push(workspace.registerLocalKeymap(bufnr, 'n', previousKey, async () => {
       let ranges = this.ranges.map(o => o.range)
       let curr = await window.getCursorPosition()
       for (let i = ranges.length - 1; i >= 0; i--) {

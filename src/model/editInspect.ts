@@ -122,7 +122,7 @@ export default class EditInspect {
     highligher.render(buffer)
     buffer.setOption('modifiable', false, true)
     await nvim.resumeNotification(true)
-    this.disposables.push(this.keymaps.registerLocalKeymap('n', '<CR>', async () => {
+    this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, 'n', '<CR>', async () => {
       let lnum = await nvim.call('line', '.')
       let col = await nvim.call('col', '.')
       let find: ChangedFileItem
@@ -143,7 +143,7 @@ export default class EditInspect {
       if (originLine !== undefined) await nvim.call('cursor', [originLine, col])
       nvim.redrawVim()
     }, true))
-    this.disposables.push(this.keymaps.registerLocalKeymap('n', '<esc>', async () => {
+    this.disposables.push(this.keymaps.registerLocalKeymap(buffer.id, 'n', '<esc>', async () => {
       nvim.command('bwipeout!', true)
     }, true))
   }

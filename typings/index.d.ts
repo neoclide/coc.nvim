@@ -3928,7 +3928,11 @@ declare module 'coc.nvim' {
     changedtick?: number
   }
 
+  /**
+   * All values default to `false`, see `:h :map-arguments`
+   */
   export interface BufferKeymapOption {
+    noremap?: boolean
     nowait?: boolean
     silent?: boolean
     script?: boolean
@@ -4466,12 +4470,17 @@ declare module 'coc.nvim' {
     changedtick: Promise<number>
 
     /**
-     * Add buffer keymap by notification.
+     * Add buffer keymap by notification, `:h nvim_buf_set_keymap`
      */
     setKeymap(mode: string, lhs: string, rhs: string, opts?: BufferKeymapOption): void
 
     /**
-     * Removes an ext mark by notification.
+     * Delete buffer keymap, `:h nvim_buf_del_keymap`
+     */
+    deleteKeymap(mode: string, lhs: string): void
+
+    /**
+     * Removes an ext mark by notification. Neovim only.
      *
      * @public
      * @param {number} ns_id - Namespace id
@@ -4480,7 +4489,7 @@ declare module 'coc.nvim' {
     deleteExtMark(ns_id: number, id: number): void
 
     /**
-     * Gets the position (0-indexed) of an extmark.
+     * Gets the position (0-indexed) of an extmark. Neovim only.
      *
      * @param {number} ns_id - Namespace id
      * @param {number} id - Extmark id
@@ -9027,9 +9036,16 @@ declare module 'coc.nvim' {
     export function registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: () => ProviderResult<string>, buffer?: boolean): Disposable
 
     /**
-     * Register local key-mapping.
+     * Register local keymap with callback
+     *
+     * @param {number} bufnr - buffer number, use 0 for current buffer.
+     * @param {'n' | 'v' | 's' | 'x'} mode - mode short-name 
+     * @param {string} key - lhs of keymap.
+     * @param {Function} fn - callback function.
+     * @param {boolean} notify - send notification instead of request from vim when inovke callback, default to `false`.
+     * @returns {Disposable}
      */
-    export function registerLocalKeymap(mode: 'n' | 'v' | 's' | 'x', key: string, fn: () => ProviderResult<any>, notify?: boolean): Disposable
+    export function registerLocalKeymap(bufnr: number, mode: 'n' | 'v' | 's' | 'x', key: string, fn: () => ProviderResult<any>, notify?: boolean): Disposable
 
     /**
      * Register for buffer sync objects, created item should be disposable

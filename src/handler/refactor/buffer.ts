@@ -96,9 +96,9 @@ export default class RefactorBuffer {
     private opts: RefactorBufferOpts
   ) {
     this.changes = new Changes()
-    this.disposables.push(workspace.registerLocalKeymap('n', '<CR>', this.splitOpen.bind(this), true))
+    this.disposables.push(workspace.registerLocalKeymap(bufnr, 'n', '<CR>', this.splitOpen.bind(this), true))
     if (config.showMenu) {
-      this.disposables.push(workspace.registerLocalKeymap('n', config.showMenu, this.showMenu.bind(this), true))
+      this.disposables.push(workspace.registerLocalKeymap(bufnr, 'n', config.showMenu, this.showMenu.bind(this), true))
     }
     workspace.onDidChangeTextDocument(this.onDocumentChange, this, this.disposables)
   }

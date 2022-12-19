@@ -1,3 +1,8 @@
+# 2022-12-20
+
+- Export `Buffer.setKeymap` and `Buffer.deleteKeymap` with vim and neovim support.
+- Make `workspace.registerLocalKeymap` accept bufnr argument.
+
 # 2022-12-12
 
 - Allow configuration of `window` scoped used by folder configuration file, like
