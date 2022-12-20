@@ -6,7 +6,7 @@ import { CancellationToken, CancellationTokenSource, Disposable, Position, Range
 import { URI } from 'vscode-uri'
 import commandManager from '../../commands'
 import events from '../../events'
-import SemanticTokensBuffer from '../../handler/semanticTokens/buffer'
+import SemanticTokensBuffer, { toHighlightPart } from '../../handler/semanticTokens/buffer'
 import SemanticTokens from '../../handler/semanticTokens/index'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
@@ -186,6 +186,14 @@ async function createRustBuffer(): Promise<Buffer> {
 }
 
 describe('semanticTokens', () => {
+  describe('toHighlightPart()', () => {
+    it('should convert to highlight part', () => {
+      expect(toHighlightPart('token')).toBe('Token')
+      expect(toHighlightPart('is key word')).toBe('Is_key_word')
+      expect(toHighlightPart('token')).toBe('Token')
+    })
+  })
+
   describe('Provider', () => {
     it('should not throw when buffer item not found', async () => {
       await events.fire('CursorMoved', [9])

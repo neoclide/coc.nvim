@@ -1,10 +1,17 @@
 'use strict'
 import type { Range } from 'vscode-languageserver-types'
+import { intable } from './array'
+import { CharCode } from './charCode'
 
 const UTF8_2BYTES_START = 0x80
 const UTF8_3BYTES_START = 0x800
 const UTF8_4BYTES_START = 65536
 const encoding = 'utf8'
+const asciiTable: ReadonlyArray<[number, number]> = [
+  [48, 57],
+  [65, 90],
+  [97, 122]
+]
 
 export function toErrorText(error: any): string {
   return error instanceof Error ? error.message : error.toString()
@@ -21,6 +28,11 @@ export function toText(text: string | null | undefined): string {
 
 export function toBase64(text: string) {
   return global.Buffer.from(text).toString('base64')
+}
+
+export function isHighlightGroupCharCode(code: number): boolean {
+  if (intable(code, asciiTable)) return true
+  return code === CharCode.Underline || code === CharCode.Period || code === CharCode.AtSign
 }
 
 /**

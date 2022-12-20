@@ -727,6 +727,19 @@ describe('strings', () => {
     expect(strings.toInteger('1')).toBe(1)
   })
 
+  it('should check highlight character', () => {
+    expect(strings.isHighlightGroupCharCode('1'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('9'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('a'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('z'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('A'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('Z'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('.'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('_'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode('@'.charCodeAt(0))).toBe(true)
+    expect(strings.isHighlightGroupCharCode(' '.charCodeAt(0))).toBe(false)
+  })
+
   it('should convert to text', () => {
     expect(strings.toText(undefined)).toBe('')
     expect(strings.toText(null)).toBe('')

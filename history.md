@@ -1,3 +1,8 @@
+# 2022-12-21
+
+- When create `CocSem` highlight group, replace invalid character of token types
+  and token modifiers with underline.
+
 # 2022-12-20
 
 - Export `Buffer.setKeymap` and `Buffer.deleteKeymap` with vim and neovim support.

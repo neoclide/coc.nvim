@@ -13,7 +13,7 @@ import { CancellationError } from '../../util/errors'
 import { wait, waitImmediate } from '../../util/index'
 import { toNumber } from '../../util/numbers'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../../util/protocol'
-import { bytes, toText, upperFirst } from '../../util/string'
+import { bytes, isHighlightGroupCharCode, toText } from '../../util/string'
 import window from '../../window'
 import workspace from '../../workspace'
 const logger = createLogger('semanticTokens-buffer')
@@ -60,6 +60,7 @@ interface RangeHighlights {
 // should be higher than document debounce
 const debounceInterval = getConditionValue(100, 20)
 const requestDelay = getConditionValue(500, 20)
+const highlightGroupMap: Map<string, string> = new Map()
 
 export interface StaticConfig {
   filetypes: string[] | null
@@ -237,7 +238,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     let combine = false
     // Compose highlight group CocSem + modifier + type
     for (let item of tokenModifiers) {
-      let hlGroup = HLGROUP_PREFIX + upperFirst(item) + upperFirst(tokenType)
+      let hlGroup = HLGROUP_PREFIX + toHighlightPart(item) + toHighlightPart(tokenType)
       if (highlightGroups.includes(hlGroup)) {
         combine = combinedModifiers.includes(item)
         highlightGroup = hlGroup
@@ -245,17 +246,17 @@ export default class SemanticTokensBuffer implements SyncItem {
       }
     }
     if (!highlightGroup) {
-      for (let item of tokenModifiers) {
-        let hlGroup = HLGROUP_PREFIX + upperFirst(item)
+      for (let modifier of tokenModifiers) {
+        let hlGroup = HLGROUP_PREFIX + toHighlightPart(modifier)
         if (highlightGroups.includes(hlGroup)) {
           highlightGroup = hlGroup
-          combine = combinedModifiers.includes(item)
+          combine = combinedModifiers.includes(modifier)
           break
         }
       }
     }
     if (!highlightGroup) {
-      let hlGroup = HLGROUP_PREFIX + upperFirst(tokenType)
+      let hlGroup = HLGROUP_PREFIX + toHighlightPart(tokenType)
       if (highlightGroups.includes(hlGroup)) {
         highlightGroup = hlGroup
       }
@@ -506,4 +507,18 @@ export default class SemanticTokensBuffer implements SyncItem {
     this.clearHighlight()
     this._onDidRefresh.dispose()
   }
+}
+
+export function toHighlightPart(token: string): string {
+  if (!token) return ''
+  if (highlightGroupMap.has(token)) return highlightGroupMap.get(token)
+  let chars: string[] = []
+  for (let i = 0; i < token.length; i++) {
+    let ch = token[i]
+    ch = isHighlightGroupCharCode(ch.charCodeAt(0)) ? ch : '_'
+    chars.push(i == 0 ? ch.toUpperCase() : ch)
+  }
+  let part = chars.join('')
+  highlightGroupMap.set(token, part)
+  return part
 }
