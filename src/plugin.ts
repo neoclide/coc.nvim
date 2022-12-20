@@ -44,7 +44,6 @@ export default class Plugin {
     Object.defineProperty(commandManager, 'nvim', {
       get: () => this.nvim
     })
-    workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
     this.cursors = new Cursors(nvim)
     listManager.init(nvim)
     this.addAction('checkJsonExtension', () => {
@@ -201,6 +200,7 @@ export default class Plugin {
     try {
       await extensions.init(rtp)
       await workspace.init(window)
+      workspace.registerTextDocumentContentProvider('output', channels.getProvider(nvim))
       nvim.setVar('coc_workspace_initialized', true, true)
       snippetManager.init()
       services.init()
@@ -218,7 +218,6 @@ export default class Plugin {
       logger.info(`coc.nvim initialized with node: ${process.version} after`, Date.now() - getConditionValue(global.__starttime, Date.now()))
       this.ready = true
       await events.fire('ready', [])
-      workspace.autocmds.setupDynamicAutocmd(true)
     } catch (e) {
       nvim.echoError(e)
     }

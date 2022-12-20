@@ -1,22 +1,59 @@
 'use strict'
 import type { Neovim } from '@chemzqm/neovim'
 import events from '../events'
+import { createLogger } from '../logger'
+import { ProviderResult } from '../provider'
 import { Env } from '../types'
 import { disposeAll } from '../util'
 import { Disposable, Emitter, Event } from '../util/protocol'
+import { toErrorText } from '../util/string'
+const logger = createLogger('watchers')
 
 export default class Watchers implements Disposable {
   private nvim: Neovim
   private env: Env
-  private watchedOptions: Set<string> = new Set()
+  private optionCallbacks: Map<string, Set<(oldValue: any, newValue: any) => ProviderResult<void>>> = new Map()
+  private globalCallbacks: Map<string, Set<(oldValue: any, newValue: any) => ProviderResult<void>>> = new Map()
   private disposables: Disposable[] = []
   private _onDidRuntimePathChange = new Emitter<string[]>()
-  private readonly _onDidOptionChange = new Emitter<void>()
   public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
-  public readonly onDidOptionChange: Event<void> = this._onDidOptionChange.event
-
   constructor() {
-    this.watchOption('runtimepath', (oldValue, newValue: string) => {
+    events.on('OptionSet', async (changed: string, oldValue: any, newValue: any) => {
+      let cbs = Array.from(this.optionCallbacks.get(changed) ?? [])
+      await Promise.allSettled(cbs.map(cb => {
+        return (async () => {
+          try {
+            await Promise.resolve(cb(oldValue, newValue))
+          } catch (e) {
+            this.nvim.errWriteLine(`Error on OptionSet '${changed}': ${toErrorText(e)}`)
+            logger.error(`Error on OptionSet callback:`, e)
+          }
+        })()
+      }))
+    }, null, this.disposables)
+    events.on('GlobalChange', async (changed: string, oldValue: any, newValue: any) => {
+      let cbs = Array.from(this.globalCallbacks.get(changed) ?? [])
+      await Promise.allSettled(cbs.map(cb => {
+        return (async () => {
+          try {
+            await Promise.resolve(cb(oldValue, newValue))
+          } catch (e) {
+            this.nvim.errWriteLine(`Error on GlobalChange '${changed}': ${toErrorText(e)}`)
+            logger.error(`Error on GlobalChange callback:`, e)
+          }
+        })()
+      }))
+    }, null, this.disposables)
+  }
+
+  public get options(): string[] {
+    return Array.from(this.optionCallbacks.keys())
+  }
+
+  public attach(nvim: Neovim, env: Env): void {
+    this.nvim = nvim
+    this.env = env
+    this.watchOption('runtimepath', (oldValue: string, newValue: string) => {
       let oldList: string[] = oldValue.split(',')
       let newList: string[] = newValue.split(',')
       let paths = newList.filter(x => !oldList.includes(x))
@@ -27,65 +64,50 @@ export default class Watchers implements Disposable {
     }, this.disposables)
   }
 
-  public get options(): string[] {
-    return Array.from(this.watchedOptions)
-  }
-
-  public attach(nvim: Neovim, env: Env): void {
-    this.nvim = nvim
-    this.env = env
-  }
-
   /**
    * Watch for option change.
    */
-  public watchOption(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
-    let watching = this.watchedOptions.has(key)
-    if (!watching) {
-      this.watchedOptions.add(key)
-      this._onDidOptionChange.fire()
+  public watchOption(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): Disposable {
+    let cbs = this.optionCallbacks.get(key)
+    if (!cbs) {
+      cbs = new Set()
+      this.optionCallbacks.set(key, cbs)
     }
-    let disposable = events.on('OptionSet', async (changed: string, oldValue: any, newValue: any) => {
-      if (changed == key && callback) {
-        await Promise.resolve(callback(oldValue, newValue))
-      }
+    cbs.add(callback)
+    let cmd = `autocmd! coc_dynamic_option OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`
+    this.nvim.command(cmd, true)
+    let disposable = Disposable.create(() => {
+      let cbs = this.optionCallbacks.get(key)
+      cbs.delete(callback)
+      if (cbs.size === 0) this.nvim.command(`autocmd! coc_dynamic_option OptionSet ${key}`, true)
     })
-    if (disposables) {
-      disposables.push(
-        Disposable.create(() => {
-          disposable.dispose()
-          if (watching) return
-          this.watchedOptions.delete(key)
-          this._onDidOptionChange.fire()
-        })
-      )
-    }
+    if (disposables) disposables.push(disposable)
+    return disposable
   }
 
   /**
    * Watch global variable, works on neovim only.
    */
-  public watchGlobal(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
+  public watchGlobal(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): Disposable {
     let { nvim } = this
-    nvim.call('coc#_watch', key, true)
-    let disposable = events.on('GlobalChange', async (changed: string, oldValue: any, newValue: any) => {
-      if (changed == key) {
-        await Promise.resolve(callback(oldValue, newValue))
-      }
-    })
-    if (disposables) {
-      disposables.push(
-        Disposable.create(() => {
-          disposable.dispose()
-          nvim.call('coc#_unwatch', key, true)
-        })
-      )
+    let cbs = this.globalCallbacks.get(key)
+    if (!cbs) {
+      cbs = new Set()
+      this.globalCallbacks.set(key, cbs)
     }
+    cbs.add(callback)
+    nvim.call('coc#_watch', key, true)
+    let disposable = Disposable.create(() => {
+      let cbs = this.globalCallbacks.get(key)
+      cbs.delete(callback)
+      if (cbs.size === 0) nvim.call('coc#_unwatch', key, true)
+    })
+    if (disposables) disposables.push(disposable)
+    return disposable
   }
 
   public dispose(): void {
     disposeAll(this.disposables)
-    this._onDidOptionChange.dispose()
     this._onDidRuntimePathChange.dispose()
   }
 }

@@ -16,7 +16,6 @@ export {
   UnregistrationRequest,
   ApplyWorkspaceEditRequest,
   InitializedNotification,
-  MessageSignature,
   TraceFormat,
   ResourceOperationKind,
   FailureHandlingKind,

@@ -1,4 +1,5 @@
 'use strict'
+import { toObject } from '../util/object'
 /**
  * Renderer for convert markdown to terminal string
  */
@@ -13,7 +14,7 @@ let COLON_REPLACER_REGEXP = new RegExp(escapeRegExp(COLON_REPLACER), 'g')
 // hard (no-reflowing) line break.  Previously \r and \r\n were turned
 // into \n in marked's lexer- preprocessing step. So \r is safe to use
 // to indicate a hard (non-reflowed) return.
-let HARD_RETURN = '\r'
+let HARD_RETURN = /\r/g
 
 function identity(str: string): string {
   return str
@@ -49,15 +50,15 @@ let defaultOptions = {
   tableOptions: {}
 }
 
-function fixHardReturn(text, reflow) {
-  return reflow ? text.replace(HARD_RETURN, /\n/g) : text
+export function fixHardReturn(text, reflow) {
+  return reflow ? text.replace(HARD_RETURN, '\n') : text
 }
 
 function indentLines(indent, text) {
   return text.replace(/(^|\n)(.+)/g, '$1' + indent + '$2')
 }
 
-function identify(indent, text) {
+export function identify(indent, text) {
   if (!text) return text
   return indent + text.split('\n').join('\n' + indent)
 }
@@ -87,12 +88,12 @@ let isPointedLine = function(line, indent) {
   return line.match('^(?:' + indent + ')*' + POINT_REGEX)
 }
 
-function toSpaces(str) {
+export function toSpaces(str) {
   return ' '.repeat(str.length)
 }
 
 let BULLET_POINT = '* '
-function bulletPointLine(indent, line) {
+export function bulletPointLine(indent, line) {
   return isPointedLine(line, indent) ? line : toSpaces(BULLET_POINT) + line
 }
 
@@ -108,7 +109,8 @@ function bulletPointLines(lines, indent) {
 let numberedPoint = function(n) {
   return n + '. '
 }
-function numberedLine(indent, line, num) {
+
+export function numberedLine(indent, line, num) {
   return isPointedLine(line, indent)
     ? {
       num: num + 1,
@@ -149,7 +151,7 @@ function undoColon(str) {
   return str.replace(COLON_REPLACER_REGEXP, ':')
 }
 
-function generateTableRow(text, escape = null) {
+export function generateTableRow(text, escape = null) {
   if (!text) return []
   escape = escape || identity
   let lines = escape(text).split('\n')
@@ -198,8 +200,8 @@ class Renderer {
     this.tab = '  '
     this.tableSettings = this.o.tableOptions
     // this.emoji = identity
-    this.unescape = this.o.unescape ? unescapeEntities : identity
-    this.highlightOptions = highlightOptions || {}
+    this.unescape = unescapeEntities
+    this.highlightOptions = toObject(highlightOptions)
     this.transform = this.compose(undoColon, this.unescape)
   }
 
@@ -221,10 +223,6 @@ class Renderer {
 
   public heading(text: string, level: number, _raw: any): string {
     text = this.transform(text)
-    let prefix = this.o.showSectionPrefix
-      ? new Array(level + 1).join('#') + ' '
-      : ''
-    text = prefix + text
     return section(
       level === 1 ? this.o.firstHeading(text) : this.o.heading(text)
     )
@@ -332,7 +330,6 @@ class Renderer {
 
   public image(href, title, text): string {
     let out = '![' + text
-    if (title) out += ' – ' + title
     return out + '](' + href + ')'
   }
 

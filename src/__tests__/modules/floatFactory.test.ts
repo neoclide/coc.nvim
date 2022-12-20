@@ -250,7 +250,8 @@ describe('FloatFactory', () => {
     })
 
     it('should hide on CursorMoved', async () => {
-      await helper.createDocument()
+      let doc = await helper.createDocument()
+      await nvim.input('i')
       await nvim.setLine('foo')
       let docs: Documentation[] = [{
         filetype: 'markdown',
@@ -258,7 +259,7 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       await helper.waitFloat()
-      await nvim.input('$')
+      floatFactory._onCursorMoved(true, doc.bufnr, [3, 3])
       await helper.waitFor('coc#float#has_float', [], 0)
     })
 

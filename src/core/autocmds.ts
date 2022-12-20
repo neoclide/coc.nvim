@@ -3,12 +3,8 @@ import { Neovim } from '@chemzqm/neovim'
 import { createLogger } from '../logger'
 import { Autocmd } from '../types'
 import { disposeAll } from '../util'
-import { fs, os, path } from '../util/node'
-import * as platform from '../util/platform'
+import { isFalsyOrEmpty } from '../util/array'
 import { Disposable } from '../util/protocol'
-import ContentProvider from './contentProvider'
-import { has } from './funcs'
-import Watchers from './watchers'
 const logger = createLogger('core-autocmds')
 
 interface PartialEnv {
@@ -17,25 +13,14 @@ interface PartialEnv {
   version: string
 }
 
+let autocmdMaxId = 0
+const groupName = 'coc_dynamic_autocmd'
+
 export default class Autocmds implements Disposable {
-  private _dynAutocmd = false
-  private _disposed = false
-  private autocmdMaxId = 0
   public readonly autocmds: Map<number, Autocmd> = new Map()
   private nvim: Neovim
   private env: PartialEnv
   private disposables: Disposable[] = []
-  constructor(
-    private contentProvider: ContentProvider,
-    private watchers: Watchers
-  ) {
-    this.contentProvider.onDidProviderChange(() => {
-      this.setupDynamicAutocmd()
-    }, null, this.disposables)
-    this.watchers.onDidOptionChange(() => {
-      this.setupDynamicAutocmd()
-    }, null, this.disposables)
-  }
 
   public attach(nvim: Neovim, env: PartialEnv): void {
     this.nvim = nvim
@@ -44,66 +29,43 @@ export default class Autocmds implements Disposable {
 
   public async doAutocmd(id: number, args: any[]): Promise<void> {
     let autocmd = this.autocmds.get(id)
-    if (autocmd) {
-      await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
-    }
+    if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
   }
 
   public registerAutocmd(autocmd: Autocmd): Disposable {
-    this.autocmdMaxId += 1
-    let id = this.autocmdMaxId
+    autocmdMaxId += 1
+    let id = autocmdMaxId
     this.autocmds.set(id, autocmd)
-    this.setupDynamicAutocmd()
+    this.nvim.command(createCommand(id, autocmd), true)
     return Disposable.create(() => {
       this.autocmds.delete(id)
-      this.setupDynamicAutocmd()
+      this.resetDynamicAutocmd()
     })
   }
 
-  public setupDynamicAutocmd(force = false): void {
-    if ((!force && !this._dynAutocmd) || this._disposed) return
-    this._dynAutocmd = true
-    let schemes = this.contentProvider.schemes
-    let cmds: string[] = []
-    for (let scheme of schemes) {
-      cmds.push(`autocmd BufReadCmd,FileReadCmd,SourceCmd ${scheme}:/* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<afile>')])`)
-    }
+  public resetDynamicAutocmd(): void {
+    let { nvim } = this
+    nvim.pauseNotification()
+    nvim.command(`autocmd! ${groupName}`, true)
     for (let [id, autocmd] of this.autocmds.entries()) {
-      let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : ''
-      let event = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
-      let pattern = autocmd.pattern != null ? autocmd.pattern : '*'
-      if (/\buser\b/i.test(event)) {
-        pattern = ''
-      }
-      cmds.push(`autocmd ${event} ${pattern} call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`)
+      nvim.command(createCommand(id, autocmd), true)
     }
-    for (let key of this.watchers.options) {
-      cmds.push(`autocmd OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`)
-    }
-    let content = `
-augroup coc_dynamic_autocmd
-  autocmd!
-  ${cmds.join('\n  ')}
-augroup end`
-    if (this.env && has(this.env, 'nvim-0.5.0')) {
-      this.nvim.call('nvim_exec', [content, 0], true)
-    } else {
-      let dir = path.join(process.env.TMPDIR || os.tmpdir(), `coc.nvim-${process.pid}`)
-      fs.mkdirSync(dir, { recursive: true })
-      let filepath = path.join(dir, `coc-${process.pid}.vim`)
-      fs.writeFileSync(filepath, content, 'utf8')
-      let cmd = `source ${filepath}`
-      if (this.env.isCygwin && platform.isWindows) {
-        cmd = `execute "source" . substitute(system('cygpath ${filepath.replace(/\\/g, '/')}'), '\\n', '', 'g')`
-      }
-      this.nvim.command(cmd, true)
-    }
+    nvim.resumeNotification(false, true)
   }
 
   public dispose(): void {
-    if (this._disposed) return
-    this._disposed = true
-    this.nvim.command(`augroup coc_dynamic_autocmd|  autocmd!|augroup end`, true)
+    this.nvim.command(`autocmd! ${groupName}`, true)
     disposeAll(this.disposables)
   }
+}
+
+export function createCommand(id: number, autocmd: Autocmd): string {
+  let args = isFalsyOrEmpty(autocmd.arglist) ? '' : ', ' + autocmd.arglist.join(', ')
+  let event = Array.isArray(autocmd.event) ? autocmd.event.join(',') : autocmd.event
+  let pattern = autocmd.pattern != null ? autocmd.pattern : '*'
+  if (/\buser\b/i.test(event)) {
+    pattern = ''
+  }
+  let method = autocmd.request ? 'request' : 'notify'
+  return `autocmd! ${groupName} ${event} ${pattern} call coc#rpc#${method}('doAutocmd', [${id}${args}])`
 }

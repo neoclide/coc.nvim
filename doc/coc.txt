@@ -2907,6 +2907,10 @@ COMMANDS						*coc-commands*
 
 	Disable handling vim events, useful for debug performance issues.
 
+	All autocmds used by coc.nvim would be removed, including |OptionSet|
+	autocmds and dynamic registered autocmds.
+
+
 :CocEnable						*:CocEnable*
 
 	Enable handling vim events.

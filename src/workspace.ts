@@ -97,7 +97,7 @@ export class Workspace {
     let documents = this.documentsManager = new Documents(this.configurations, this.workspaceFolderControl)
     this.contentProvider = new ContentProvider(documents)
     this.watchers = new Watchers()
-    this.autocmds = new Autocmds(this.contentProvider, this.watchers)
+    this.autocmds = new Autocmds()
     this.keymaps = new Keymaps()
     this.files = new Files(documents, this.configurations, this.workspaceFolderControl, this.keymaps)
     this.editors = new Editors(documents)
@@ -298,7 +298,7 @@ export class Workspace {
    * Register autocmd on vim.
    */
   public registerAutocmd(autocmd: Autocmd): Disposable {
-    if (autocmd.request) {
+    if (autocmd.request && autocmd.event !== 'BufWritePre') {
       let name = parseExtensionName(Error().stack)
       logger.warn(`Extension "${name}" registered synchronized autocmd "${autocmd.event}", which could be slow.`)
     }
@@ -308,15 +308,16 @@ export class Workspace {
   /**
    * Watch for option change.
    */
-  public watchOption(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
-    this.watchers.watchOption(key, callback, disposables)
+  public watchOption(key: string, callback: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): Disposable {
+    return this.watchers.watchOption(key, callback, disposables)
   }
 
   /**
    * Watch global variable, works on neovim only.
    */
-  public watchGlobal(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
-    this.watchers.watchGlobal(key, callback || function() {}, disposables)
+  public watchGlobal(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): Disposable {
+    let cb = callback ?? function() {}
+    return this.watchers.watchGlobal(key, cb, disposables)
   }
 
   /**

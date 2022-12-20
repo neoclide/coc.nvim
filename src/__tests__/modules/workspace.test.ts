@@ -378,39 +378,31 @@ describe('workspace utility', () => {
         event = ev
       }
     }))
-    disposables.push(workspace.registerAutocmd({
-      event: ['InsertEnter', 'CursorMoved'],
-      callback: () => {
-        eventCount += 1
-      }
-    }))
     await nvim.setLine('foo')
-    await helper.wait(30)
     await nvim.command('normal! yy')
-    await helper.wait(30)
-    await nvim.command('normal! Abar')
     await helper.wait(30)
     expect(event.regtype).toBe('V')
     expect(event.operator).toBe('y')
     expect(event.regcontents).toEqual(['foo'])
-    expect(eventCount).toBeGreaterThan(2)
+    expect(eventCount).toBe(1)
     disposables.forEach(d => d.dispose())
   })
 
   it('should register keymap', async () => {
-    let fn = jest.fn()
+    let n = 0
+    let fn = () => {
+      n++
+    }
     await nvim.command('nmap go <Plug>(coc-echo)')
     let disposable = workspace.registerKeymap(['n', 'v'], 'echo', fn, { sync: true })
-    await helper.wait(30)
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await nvim.call('feedkeys', ['go', 'i'])
-    await helper.wait(50)
-    expect(fn).toBeCalledTimes(1)
+    await helper.waitValue(() => n, 1)
     disposable.dispose()
     await nvim.call('feedkeys', ['go', 'i'])
-    await helper.wait(50)
-    expect(fn).toBeCalledTimes(1)
+    await helper.wait(20)
+    expect(n).toBe(1)
   })
 
   it('should register expr keymap', async () => {
@@ -445,24 +437,56 @@ describe('workspace utility', () => {
   })
 
   it('should watch options', async () => {
-    let fn = jest.fn()
-    workspace.watchOption('showmode', fn, disposables)
-    workspace.watchOption('showmode', fn)
-    await helper.wait(30)
-    await nvim.command('set showmode')
-    await helper.wait(30)
-    expect(fn).toBeCalled()
-    await nvim.command('noa set noshowmode')
+    await events.fire('OptionSet', ['showmode', 0, 1])
+    let times = 0
+    let fn = () => {
+      times++
+    }
+    let disposable = workspace.watchOption('showmode', fn)
+    let toDispose = workspace.watchOption('showmode', jest.fn())
+    nvim.command('set showmode', true)
+    await helper.waitValue(() => times, 1)
+    disposable.dispose()
+    nvim.command('set noshowmode', true)
+    await helper.wait(20)
+    expect(times).toBe(1)
+    toDispose.dispose()
   })
 
   it('should watch global', async () => {
-    let fn = jest.fn()
-    workspace.watchGlobal('x', fn, disposables)
-    workspace.watchGlobal('x', fn)
-    workspace.watchGlobal('x')
+    await events.fire('GlobalChange', ['x', 0, 1])
+    let times = 0
+    let fn = () => {
+      times++
+    }
+    let disposable = workspace.watchGlobal('x', fn)
+    workspace.watchGlobal('x', undefined, disposables)
+    workspace.watchGlobal('x', undefined, disposables)
     await nvim.command('let g:x = 1')
-    await helper.wait(30)
-    expect(fn).toBeCalled()
+    await helper.waitValue(() => times, 1)
+    disposable.dispose()
+    await nvim.command('let g:x = 2')
+    await helper.wait(20)
+    expect(times).toBe(1)
+  })
+
+  it('should show error on watch callback error', async () => {
+    let called = false
+    let fn = () => {
+      called = true
+      throw new Error('error')
+    }
+    workspace.watchOption('showmode', fn, disposables)
+    nvim.command('set showmode', true)
+    await helper.waitValue(() => called, true)
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Error on OptionSet')
+    called = false
+    workspace.watchGlobal('y', fn, disposables)
+    await nvim.command('let g:y = 2')
+    await helper.waitValue(() => called, true)
+    line = await helper.getCmdline()
+    expect(line).toMatch('Error on GlobalChange')
   })
 
   it('should check nvim version', async () => {
@@ -662,7 +686,6 @@ describe('workspace textDocument content provider', () => {
       provideTextDocumentContent: (_uri, _token): string => text
     }
     workspace.registerTextDocumentContentProvider('jdk', provider)
-    workspace.autocmds.setupDynamicAutocmd(true)
     await nvim.command('edit jdk://1')
     await workspace.document
     text = 'bar'

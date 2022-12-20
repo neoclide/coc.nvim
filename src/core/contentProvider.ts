@@ -43,6 +43,16 @@ export default class ContentProvider implements Disposable {
     })
   }
 
+  private resetAutocmds(): void {
+    let { nvim, schemes } = this
+    nvim.pauseNotification()
+    nvim.command(`autocmd! coc_dynamic_content BufReadCmd,FileReadCmd,SourceCmd *`, true)
+    for (let scheme of schemes) {
+      nvim.command(getAutocmdCommand(scheme), true)
+    }
+    nvim.resumeNotification(false, true)
+  }
+
   public registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable {
     this.providers.set(scheme, provider)
     this._onDidProviderChange.fire()
@@ -59,9 +69,11 @@ export default class ContentProvider implements Disposable {
         })
       }, null, disposables)
     }
+    this.nvim.command(getAutocmdCommand(scheme), true)
     return Disposable.create(() => {
       this.providers.delete(scheme)
       disposeAll(disposables)
+      this.resetAutocmds()
       this._onDidProviderChange.fire()
     })
   }
@@ -71,4 +83,8 @@ export default class ContentProvider implements Disposable {
     this._onDidProviderChange.dispose()
     this.providers.clear()
   }
+}
+
+function getAutocmdCommand(scheme: string): string {
+  return `autocmd! coc_dynamic_content BufReadCmd,FileReadCmd,SourceCmd ${scheme}:/* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<afile>')])`
 }

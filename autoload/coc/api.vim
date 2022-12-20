@@ -417,7 +417,6 @@ function! s:funcs.set_keymap(mode, lhs, rhs, opts) abort
   let lhs = s:escape_space(a:lhs)
   let rhs = empty(a:rhs) ? '<Nop>' : s:escape_space(a:rhs)
   let cmd = modekey . ' ' . arguments .' '.lhs. ' '.rhs
-  call coc#rpc#notify('Log', ["set_keymap", cmd, a:mode])
   execute cmd
   return v:null
 endfunction

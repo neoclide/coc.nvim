@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import { createCommand } from '../../core/autocmds'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -13,31 +14,30 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
-afterEach(async () => {
-  await helper.reset()
-})
-
 describe('setupDynamicAutocmd()', () => {
+  it('should create command', async () => {
+    let callback = () => {}
+    expect(createCommand(1, { callback, event: 'event', arglist: [], pattern: '*', request: true })).toMatch('event')
+    expect(createCommand(1, { callback, event: 'event', arglist: ['foo'] })).toMatch('foo')
+    expect(createCommand(1, { callback, event: ['foo', 'bar'], arglist: [] })).toMatch('foo')
+    expect(createCommand(1, { callback, event: 'user Event', arglist: [] })).toMatch('user')
+  })
+
   it('should setup autocmd on vim', async () => {
     await nvim.setLine('foo')
-    let fn = nvim.hasFunction
-    nvim.hasFunction = () => {
-      return false
-    }
     let called = false
-    workspace.registerAutocmd({
+    let disposable = workspace.registerAutocmd({
       event: 'CursorMoved',
       request: true,
       callback: () => {
         called = true
       }
     })
-    await helper.wait(50)
+    await helper.wait(10)
     await nvim.command('normal! $')
-    await helper.wait(100)
-    nvim.hasFunction = fn
+    await helper.waitValue(() => called, true)
     expect(called).toBe(true)
-    nvim.command(`augroup coc_dynamic_autocmd|  autocmd!|augroup end`, true)
+    disposable.dispose()
   })
 
   it('should setup user autocmd', async () => {
@@ -49,11 +49,10 @@ describe('setupDynamicAutocmd()', () => {
         called = true
       }
     })
-    workspace.autocmds.setupDynamicAutocmd(true)
-    await helper.wait(50)
+    workspace.autocmds.resetDynamicAutocmd()
+    await helper.wait(10)
     await nvim.command('doautocmd <nomodeline> User CocJumpPlaceholder')
-    await helper.wait(100)
-    expect(called).toBe(true)
+    await helper.waitValue(() => called, true)
   })
 })
 
