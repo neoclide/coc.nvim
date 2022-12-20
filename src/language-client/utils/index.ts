@@ -1,7 +1,7 @@
-import { MessageSignature, ResponseError } from 'vscode-languageserver-protocol/node'
 import { getTimestamp } from '../../logger'
 import * as Is from '../../util/is'
 import { inspect } from '../../util/node'
+import { MessageSignature, ResponseError } from '../../util/protocol'
 
 export function getLocale(): string {
   const lang = process.env.LANG
