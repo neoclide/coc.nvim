@@ -305,10 +305,10 @@
     ieee754 "^1.1.8"
     int64-buffer "^0.1.9"
 
-"@chemzqm/neovim@^6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-6.1.0.tgz#2e563d0c037826159e9c2327aa9320cb1078bf1f"
-  integrity sha512-mU8T3x4hfvUsPwq5f18f9WBJ6Zvua8XgM5oEwRaq4BX+OdxUImvtJyakgvRqmlbIgbqEFUDeyvelgv38QZOyZA==
+"@chemzqm/neovim@^6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-6.1.1.tgz#bd624e27844ee7e1b7dc39f3abb30a25bcde2479"
+  integrity sha512-FadmfnNrtSFv6fsjQEevYCBZG5gxeHmfM545SSqS7lXoHlNBWhqQgeAmzcQ8AQGn3jPeXriDISOAuPvEy8NIgg==
   dependencies:
     "@chemzqm/msgpack-lite" "^0.1.29"
 

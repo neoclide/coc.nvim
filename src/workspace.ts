@@ -156,7 +156,7 @@ export class Workspace {
     })
     this.files.attach(nvim, env, window)
     this.contentProvider.attach(nvim)
-    this.keymaps.attach(nvim)
+    this.keymaps.attach(nvim, env)
     this.autocmds.attach(nvim, env)
     this.watchers.attach(nvim, env)
     await this.documentsManager.attach(this.nvim, this._env)

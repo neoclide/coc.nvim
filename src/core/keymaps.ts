@@ -1,13 +1,14 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import events from '../events'
 import { createLogger } from '../logger'
-import { KeymapOption } from '../types'
+import { Env, KeymapOption } from '../types'
 import { Disposable } from '../util/protocol'
+import { toBase64 } from '../util/string'
 const logger = createLogger('core-keymaps')
 
-export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
-
-export type LocalMode = 'n' | 'v' | 's' | 'x'
+export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!'
+export type LocalMode = 'n' | 'i' | 'v' | 's' | 'x'
 
 export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'n' || mode == 'o' || mode == 'x' || mode == 'v') return '<C-U>'
@@ -16,17 +17,21 @@ export function getKeymapModifier(mode: MapMode): string {
   return ''
 }
 
+export function getBufnr(buffer: number | boolean): number {
+  return typeof buffer === 'number' ? buffer : events.bufnr
+}
+
 export default class Keymaps {
   private readonly keymaps: Map<string, [Function, boolean]> = new Map()
   private nvim: Neovim
   constructor() {
   }
 
-  public attach(nvim: Neovim): void {
+  public attach(nvim: Neovim, env: Env): void {
     this.nvim = nvim
   }
 
-  public async doKeymap(key: string, defaultReturn = ''): Promise<string> {
+  public async doKeymap(key: string, defaultReturn: string): Promise<string> {
     let keymap = this.keymaps.get(key)
     if (!keymap) {
       logger.error(`keymap for ${key} not found`)
@@ -39,64 +44,77 @@ export default class Keymaps {
   }
 
   /**
-   * Register <Plug>(coc-${key}) key mapping.
+   * Register global <Plug>(coc-${key}) key mapping.
    */
-  public registerKeymap(modes: MapMode[], key: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
-    if (!key) throw new Error(`Invalid key ${key} of registerKeymap`)
-    if (this.keymaps.has(key)) throw new Error(`${key} already exists.`)
+  public registerKeymap(modes: MapMode[], name: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
+    if (!name) throw new Error(`Invalid key ${name} of registerKeymap`)
+    let key = `coc-${name}`
+    if (this.keymaps.has(key)) throw new Error(`${name} already exists.`)
+    let lhs = `<Plug>(${key})`
     opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts)
     let { nvim } = this
     this.keymaps.set(key, [fn, !!opts.repeat])
     let method = opts.sync ? 'request' : 'notify'
-    let silent = opts.silent ? '<silent>' : ''
-    for (let m of modes) {
-      if (m == 'i') {
-        nvim.command(`inoremap ${silent}<expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}', ${opts.cancel ? 1 : 0})`, true)
+    let cancel = opts.cancel ? 1 : 0
+    for (let mode of modes) {
+      if (mode == 'i') {
+        nvim.setKeymap(mode, lhs, `coc#_insert_key('${method}', '${key}', ${cancel})`, {
+          expr: true,
+          noremap: true,
+          silent: opts.silent
+        })
       } else {
-        let modify = getKeymapModifier(m)
-        nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) :${modify}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
+        nvim.setKeymap(mode, lhs, `:${getKeymapModifier(mode)}call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, {
+          noremap: true,
+          silent: opts.silent
+        })
       }
     }
     return Disposable.create(() => {
       this.keymaps.delete(key)
       for (let m of modes) {
-        nvim.command(`${m}unmap <Plug>(coc-${key})`, true)
+        nvim.deleteKeymap(m, lhs)
       }
     })
   }
 
-  public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false): Disposable {
-    // bufnr support
-    let id = `${mode}-${global.Buffer.from(key).toString('base64')}-${buffer ? '1' : '0'}`.replace(/'/g, "''")
+  public registerExprKeymap(mode: MapMode, lhs: string, fn: Function, buffer: number | boolean = false): Disposable {
+    let bufnr = getBufnr(buffer)
+    let id = `${mode}-${toBase64(lhs)}${buffer ? `-${bufnr}` : ''}`
     let { nvim } = this
-    this.keymaps.set(id, [fn, false])
-    if (mode == 'i') {
-      nvim.command(`inoremap <silent><expr>${buffer ? '<nowait><buffer>' : ''} ${key} coc#_insert_key('request', '${id}')`, true)
+    let rhs = mode == 'i' ? `coc#_insert_key('request', '${id}')` : `coc#rpc#request('doKeymap', ['${id}'])`
+    let opts = { noremap: true, silent: true, expr: true, nowait: true }
+    if (buffer) {
+      nvim.createBuffer(bufnr).setKeymap(mode, lhs, rhs, opts)
     } else {
-      nvim.command(`${mode}noremap <silent><expr>${buffer ? '<nowait><buffer>' : ''} ${key} coc#rpc#request('doKeymap', ['${id}'])`, true)
+      nvim.setKeymap(mode, lhs, rhs, opts)
     }
+    this.keymaps.set(id, [fn, false])
     return Disposable.create(() => {
       this.keymaps.delete(id)
-      nvim.command(`${mode}unmap ${buffer ? '<buffer>' : ''} ${key}`, true)
+      if (buffer) {
+        nvim.createBuffer(bufnr).deleteKeymap(mode, lhs)
+      } else {
+        nvim.deleteKeymap(mode, lhs)
+      }
     })
   }
 
-  public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: Function, notify = false): Disposable {
+  public registerLocalKeymap(bufnr: number, mode: LocalMode, lhs: string, fn: Function, notify: boolean): Disposable {
     let { nvim } = this
-    let escaped = encodeURIComponent(key).replace(/'/g, "''")
     let buffer = nvim.createBuffer(bufnr)
-    let id = `local-${bufnr}-${mode}-${escaped}`
+    let id = `local-${bufnr}-${mode}-${toBase64(lhs)}`
     this.keymaps.set(id, [fn, false])
     let method = notify ? 'notify' : 'request'
     let modify = getKeymapModifier(mode)
-    buffer.setKeymap(mode, key, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, {
+    buffer.setKeymap(mode, lhs, `:${modify}call coc#rpc#${method}('doKeymap', ['${id}'])<CR>`, {
       silent: true,
       nowait: true,
       noremap: true
     })
     return Disposable.create(() => {
       this.keymaps.delete(id)
-      buffer.deleteKeymap(mode, key)
+      buffer.deleteKeymap(mode, lhs)
     })
   }
 }

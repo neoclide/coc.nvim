@@ -75,6 +75,9 @@ export class Helper extends EventEmitter {
     let plugin = this.plugin = attach({ proc })
     await this.nvim.uiAttach(160, 80, {})
     this.nvim.call('coc#rpc#set_channel', [1], true)
+    this.nvim.on('vim_error', err => {
+      // console.error('Error from vim: ', err)
+    })
     if (init) await plugin.init('')
     return plugin
   }
@@ -87,6 +90,9 @@ export class Helper extends EventEmitter {
     let promise = new Promise<void>(resolve => {
       server = this.server = net.createServer(socket => {
         this.plugin = attach({ reader: socket, writer: socket })
+        this.nvim.on('vim_error', err => {
+          // console.error('Error from vim: ', err)
+        })
         resolve()
       })
     })

@@ -278,6 +278,15 @@ describe('client API', () => {
     let namespace = await nvim.createNamespace('foo')
     expect(ns).toBe(namespace)
   })
+
+  it('should add and delete keymap', async () => {
+    nvim.setKeymap('n', ' ', ':normal! G', { nowait: true, script: true })
+    let res = await nvim.exec('nmap <space>', true)
+    expect(res).toMatch('normal!')
+    nvim.deleteKeymap('n', ' ')
+    res = await nvim.exec('nmap <sapce>', true)
+    expect(res).toMatch('No mapping found')
+  })
 })
 
 describe('Buffer API', () => {
@@ -301,7 +310,7 @@ describe('Buffer API', () => {
     expect(changedtick).toBe(curr)
   })
 
-  it('should add and delete keymap', async () => {
+  it('should add and delete buffer keymap', async () => {
     buffer.setKeymap('n', 'e', ':normal! G', { noremap: true, nowait: true, silent: true })
     let res = await nvim.exec('nmap e', true)
     expect(res).toMatch('normal!')

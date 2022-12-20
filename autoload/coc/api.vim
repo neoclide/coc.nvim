@@ -2,7 +2,7 @@
 " Description: Client api used by vim8
 " Author: Qiming Zhao <chemzqm@gmail.com>
 " Licence: Anti 996 licence
-" Last Modified: Jun 03, 2022
+" Last Modified: 2022-12-20
 " ============================================================================
 if has('nvim') | finish | endif
 scriptencoding utf-8
@@ -140,6 +140,27 @@ endfunction
 function s:inspect_type(v) abort
   let types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'Null']
   return get(types, type(a:v), 'Unknown')
+endfunction
+
+function! s:escape_space(text) abort
+  return substitute(a:text, ' ', '<space>', 'g')
+endfunction
+
+function! s:create_mode_prefix(mode, opts) abort
+  if a:mode ==# '!'
+    return 'map!'
+  endif
+  return get(a:opts, 'noremap', 0) ?  a:mode . 'noremap' : a:mode . 'map'
+endfunction
+
+function! s:create_arguments(opts) abort
+  let arguments = ''
+  for key in keys(a:opts)
+    if a:opts[key] && index(s:keymap_arguments, key) != -1
+      let arguments .= '<'.key.'>'
+    endif
+  endfor
+  return arguments
 endfunction
 " }}"
 
@@ -389,6 +410,23 @@ function! s:funcs.create_namespace(name) abort
   endif
   return id
 endfunction
+
+function! s:funcs.set_keymap(mode, lhs, rhs, opts) abort
+  let modekey = s:create_mode_prefix(a:mode, a:opts)
+  let arguments = s:create_arguments(a:opts)
+  let lhs = s:escape_space(a:lhs)
+  let rhs = empty(a:rhs) ? '<Nop>' : s:escape_space(a:rhs)
+  let cmd = modekey . ' ' . arguments .' '.lhs. ' '.rhs
+  call coc#rpc#notify('Log', ["set_keymap", cmd, a:mode])
+  execute cmd
+  return v:null
+endfunction
+
+function! s:funcs.del_keymap(mode, lhs) abort
+  let lhs = substitute(a:lhs, ' ', '<space>', 'g')
+  execute 'silent '.a:mode.'unmap '.lhs
+  return v:null
+endfunction
 " }}
 
 " buffer methods {{
@@ -581,14 +619,11 @@ function! s:funcs.buf_del_var(bufnr, name)
 endfunction
 
 function! s:funcs.buf_set_keymap(bufnr, mode, lhs, rhs, opts) abort
-  let modekey = get(a:opts, 'noremap', 0) ?  a:mode . 'noremap' : a:mode
-  let arguments = ''
-  for key in keys(a:opts)
-    if a:opts[key] && index(s:keymap_arguments, key) != -1
-      let arguments .= '<'.key.'>'
-    endif
-  endfor
-  let cmd = modekey . ' ' . arguments .'<buffer> '.a:lhs. ' '.a:rhs
+  let modekey = s:create_mode_prefix(a:mode, a:opts)
+  let arguments = s:create_arguments(a:opts)
+  let lhs = s:escape_space(a:lhs)
+  let rhs = empty(a:rhs) ? '<Nop>' : s:escape_space(a:rhs)
+  let cmd = modekey . ' ' . arguments .'<buffer> '.lhs. ' '.rhs
   if bufnr('%') == a:bufnr || a:bufnr == 0
     execute cmd
   else
@@ -598,7 +633,8 @@ function! s:funcs.buf_set_keymap(bufnr, mode, lhs, rhs, opts) abort
 endfunction
 
 function! s:funcs.buf_del_keymap(bufnr, mode, lhs) abort
-  let cmd = 'silent '.a:mode.'unmap <buffer> '.a:lhs
+  let lhs = substitute(a:lhs, ' ', '<space>', 'g')
+  let cmd = 'silent '.a:mode.'unmap <buffer> '.lhs
   if bufnr('%') == a:bufnr || a:bufnr == 0
     execute cmd
   else

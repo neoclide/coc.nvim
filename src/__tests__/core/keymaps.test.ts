@@ -1,9 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import workspace from '../../workspace'
-import Keymaps, { getKeymapModifier } from '../../core/keymaps'
+import Keymaps, { getBufnr, getKeymapModifier } from '../../core/keymaps'
 import helper from '../helper'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../../util'
+import events from '../../events'
 
 let nvim: Neovim
 let keymaps: Keymaps
@@ -31,14 +32,19 @@ describe('doKeymap()', () => {
 })
 
 describe('registerKeymap()', () => {
-  it('should getKeymapModifier', async () => {
+  it('should getBufnr', () => {
+    expect(getBufnr(3)).toBe(3)
+    expect(getBufnr(true)).toBe(events.bufnr)
+  })
+
+  it('should getKeymapModifier', () => {
     expect(getKeymapModifier('i')).toBe('<C-o>')
     expect(getKeymapModifier('s')).toBe('<Esc>')
     expect(getKeymapModifier('x')).toBe('<C-U>')
     expect(getKeymapModifier('t' as any)).toBe('')
   })
 
-  it('should throw for invalid key', async () => {
+  it('should throw for invalid key', () => {
     let err
     try {
       keymaps.registerKeymap(['i'], '', jest.fn())
@@ -62,9 +68,26 @@ describe('registerKeymap()', () => {
   it('should register insert key mapping', async () => {
     let fn = jest.fn()
     disposables.push(keymaps.registerKeymap(['i'], 'test', fn))
-    await helper.wait(10)
     let res = await nvim.call('execute', ['verbose imap <Plug>(coc-test)'])
     expect(res).toMatch('coc#_insert_key')
+  })
+
+  it('should register with different options', async () => {
+    let called = false
+    let fn = () => {
+      called = true
+      return ''
+    }
+    disposables.push(keymaps.registerKeymap(['n', 'v'], 'test', fn, {
+      sync: false,
+      cancel: false,
+      silent: false,
+      repeat: true
+    }))
+    let res = await nvim.exec(`verbose nmap <Plug>(coc-test)`, true)
+    expect(res).toMatch('coc#rpc#notify')
+    await nvim.eval(`feedkeys("\\<Plug>(coc-test)")`)
+    await helper.waitValue(() => called, true)
   })
 })
 
@@ -76,11 +99,28 @@ describe('registerExprKeymap()', () => {
       called = true
       return ''
     }
-    disposables.push(keymaps.registerExprKeymap('x', 'x', fn, true))
-    await helper.wait(50)
+    disposables.push(keymaps.registerExprKeymap('x', 'x', fn))
     await nvim.command('normal! viw')
     await nvim.input('x<esc>')
     await helper.waitValue(() => called, true)
+  })
+
+  it('should register insert key mapping', async () => {
+    let buf = await nvim.buffer
+    let called = false
+    let fn = () => {
+      called = true
+      return ''
+    }
+    let disposable = keymaps.registerExprKeymap('i', 'x', fn, buf.id)
+    let res = await nvim.exec('imap x', true)
+    expect(res).toMatch('coc#_insert_key')
+    await nvim.input('i')
+    await nvim.input('x')
+    await helper.waitValue(() => called, true)
+    disposable.dispose()
+    res = await nvim.exec('imap x', true)
+    expect(res).toMatch('No mapping found')
   })
 })
 
@@ -91,10 +131,11 @@ describe('registerLocalKeymap', () => {
     let disposable = keymaps.registerLocalKeymap(bufnr, 'n', 'n', () => {
       called = true
     }, true)
-    await nvim.call('feedkeys', ['n', 't'])
+    let res = await nvim.exec('nmap n', true)
+    await nvim.input('n')
     await helper.waitValue(() => called, true)
     disposable.dispose()
-    let res = await nvim.exec('nmap n', true)
+    res = await nvim.exec('nmap n', true)
     expect(res).toMatch('No mapping found')
   })
 })

@@ -19,6 +19,10 @@ export function toText(text: string | null | undefined): string {
   return text ?? ''
 }
 
+export function toBase64(text: string) {
+  return global.Buffer.from(text).toString('base64')
+}
+
 /**
  * A fast function (therefore imprecise) to check if code points are emojis.
  * Generated using https://github.com/alexdima/unicode-utils/blob/main/emoji-test.js

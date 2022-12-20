@@ -232,10 +232,11 @@ export interface OutputChannel {
 }
 
 export interface KeymapOption {
-  sync: boolean
-  cancel: boolean
-  silent: boolean
-  repeat: boolean
+  desc?: string
+  sync?: boolean
+  cancel?: boolean
+  silent?: boolean
+  repeat?: boolean
 }
 
 export interface Autocmd {

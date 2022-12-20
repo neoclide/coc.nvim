@@ -3932,6 +3932,7 @@ declare module 'coc.nvim' {
    * All values default to `false`, see `:h :map-arguments`
    */
   export interface BufferKeymapOption {
+    desc?: string
     noremap?: boolean
     nowait?: boolean
     silent?: boolean
@@ -4382,6 +4383,16 @@ declare module 'coc.nvim' {
      * `:h nvim_feedkeys`
      */
     feedKeys(keys: string, mode: string, escapeCsi: boolean): Promise<void>
+
+    /**
+     * Add global keymap by notification, `:h nvim_set_keymap`
+     */
+    setKeymap(mode: string, lhs: string, rhs: string, opts?: BufferKeymapOption): void
+
+    /**
+     * Delete global keymap, `:h nvim_del_keymap`
+     */
+    deleteKeymap(mode: string, lhs: string): void
 
     /**
      * Queues raw user-input. Unlike |nvim_feedkeys()|, this uses a
@@ -8152,19 +8163,19 @@ declare module 'coc.nvim' {
     /**
      * Use request instead of notify, default true
      */
-    sync: boolean
+    sync?: boolean
     /**
      * Cancel completion before invoke callback, default true
      */
-    cancel: boolean
+    cancel?: boolean
     /**
-     * Use <silent> for keymap, default false
+     * Use <silent> for keymap, default true.
      */
-    silent: boolean
+    silent?: boolean
     /**
      * Enable repeat support for repeat.vim, default false
      */
-    repeat: boolean
+    repeat?: boolean
   }
 
   export interface DidChangeTextDocumentParams {
@@ -8204,7 +8215,7 @@ declare module 'coc.nvim' {
     position: Position
   }
 
-  export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o'
+  export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!'
 
   export interface Autocmd {
     /**
@@ -9019,33 +9030,47 @@ declare module 'coc.nvim' {
     export function registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
 
     /**
-     * Register unique keymap uses `<Plug>(coc-{key})` as lhs
-     * Throw error when {key} already exists.
+     * Register unique global key-mapping with `<Plug>(coc-{key})` as lhs.
+     * 'noremap' is always used, Throw error when {key} already exists.
      *
      * @param {MapMode[]} modes - array of 'n' | 'i' | 'v' | 'x' | 's' | 'o'
-     * @param {string} key - unique name
-     * @param {Function} fn - callback function
-     * @param {Partial} opts
+     * @param {string} key - unique name, should only use alphabetical characters and '-'.
+     * @param {Function} fn - callback function.
+     * @param {Partial} opts - Optional option.
      * @returns {Disposable}
      */
     export function registerKeymap(modes: MapMode[], key: string, fn: () => ProviderResult<any>, opts?: Partial<KeymapOption>): Disposable
 
     /**
-     * Register expr key-mapping.
+     * Register expr mapping global or local to buffer.
+     *
+     * Unlike :map, space in {lhs} is accepted as part of the {lhs}, keycodes
+     * are replaced are usual.
+     * 'noremap' and map arguments <silent>, <nowait> are always used.
+     *
+     * @param {MapMode} mode - Mode short-name.
+     * @param {string} rhs - rhs of key-mapping.
+     * @param {Function} fn - callback function.
+     * @param {number | boolean} buffer - Buffer number or current buffer by use `true`, default to false.
+     * @returns {Disposable}
      */
-    export function registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: () => ProviderResult<string>, buffer?: boolean): Disposable
+    export function registerExprKeymap(mode: MapMode, rhs: string, fn: () => ProviderResult<string>, buffer?: number | boolean): Disposable
 
     /**
-     * Register local keymap with callback
+     * Register local keymap with callback.
+     *
+     * Unlike :map, space in {lhs} is accepted as part of the {lhs}, keycodes
+     * are replaced are usual.
+     * 'noremap' and map arguments <silent>, <nowait> are always used.
      *
      * @param {number} bufnr - buffer number, use 0 for current buffer.
-     * @param {'n' | 'v' | 's' | 'x'} mode - mode short-name 
-     * @param {string} key - lhs of keymap.
+     * @param {'n' | 'i' | 'v' | 's' | 'x'} mode - mode short-name.
+     * @param {string} lhs - lhs of key-mapping.
      * @param {Function} fn - callback function.
      * @param {boolean} notify - send notification instead of request from vim when inovke callback, default to `false`.
      * @returns {Disposable}
      */
-    export function registerLocalKeymap(bufnr: number, mode: 'n' | 'v' | 's' | 'x', key: string, fn: () => ProviderResult<any>, notify?: boolean): Disposable
+    export function registerLocalKeymap(bufnr: number, mode: 'n' | 'i' | 'v' | 's' | 'x', lhs: string, fn: () => ProviderResult<any>, notify?: boolean): Disposable
 
     /**
      * Register for buffer sync objects, created item should be disposable
