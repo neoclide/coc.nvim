@@ -92,6 +92,7 @@ export default class ListUI {
   }
 
   public onDidChangeItems(ev: ListItemsEvent): void {
+    if (!ev.append) this.clearSelection()
     this.sequence.run(async () => {
       let { items, reload, append, finished, sorted } = ev
       if (this.shouldSort && !sorted) {
