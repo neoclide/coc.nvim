@@ -149,16 +149,11 @@ function! coc#compat#buf_del_keymap(bufnr, mode, lhs) abort
     endtry
     return
   endif
-  if bufnr == a:bufnr
-    execute 'silent! '.a:mode.'unmap <buffer> '.a:lhs
-    return
-  endif
-  if exists('*win_execute')
-    let winid = coc#compat#buf_win_id(a:bufnr)
-    if winid != -1
-      call win_execute(winid, a:mode.'unmap <buffer> '.a:lhs, 'silent!')
-    endif
-  endif
+  try
+    call coc#api#exec('buf_del_keymap', [a:bufnr, a:mode, a:lhs])
+  catch /E31/
+    " ignore keymap doesn't exist
+  endtry
 endfunction
 
 function! coc#compat#buf_add_keymap(bufnr, mode, lhs, rhs, opts) abort
@@ -168,21 +163,7 @@ function! coc#compat#buf_add_keymap(bufnr, mode, lhs, rhs, opts) abort
   if exists('*nvim_buf_set_keymap')
     call nvim_buf_set_keymap(a:bufnr, a:mode, a:lhs, a:rhs, a:opts)
   else
-    let cmd = a:mode . 'noremap '
-    for key in keys(a:opts)
-      if get(a:opts, key, 0)
-        let cmd .= '<'.key.'>'
-      endif
-    endfor
-    let cmd .= '<buffer> '.a:lhs.' '.a:rhs
-    if bufnr('%') == a:bufnr
-      execute cmd
-    elseif exists('*win_execute')
-      let winid = coc#compat#buf_win_id(a:bufnr)
-      if winid != -1
-        call win_execute(winid, cmd)
-      endif
-    endif
+    call coc#api#exec('buf_set_keymap', [a:bufnr, a:mode, a:lhs, a:rhs, a:opts])
   endif
 endfunction
 

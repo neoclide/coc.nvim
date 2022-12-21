@@ -377,6 +377,14 @@ function! coc#dialog#prompt_confirm(title, cb) abort
   call a:cb(v:null, res)
 endfunction
 
+" works on neovim only
+function! coc#dialog#get_prompt_win() abort
+  if s:prompt_win_bufnr == 0
+    return -1
+  endif
+  return get(win_findbuf(s:prompt_win_bufnr), 0, -1)
+endfunction
+
 function! coc#dialog#get_config_editor(lines, config) abort
   let title = get(a:config, 'title', '')
   let maxheight = min([get(a:config, 'maxHeight', 78), &lines - &cmdheight - 6])
@@ -707,7 +715,7 @@ function! s:close_auto_hide_wins(...) abort
     if except && id == except
       continue
     endif
-    if coc#window#get_var(id, 'autohide', 0)
+    if getwinvar(id, 'autohide', 0)
       call coc#float#close(id)
     endif
   endfor

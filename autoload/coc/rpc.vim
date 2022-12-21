@@ -141,6 +141,9 @@ function! coc#rpc#restart()
     call coc#highlight#clear_all()
     call coc#ui#sign_unplace()
     call coc#float#close_all()
+    autocmd! coc_dynamic_autocmd
+    autocmd! coc_dynamic_content
+    autocmd! coc_dynamic_option
     call coc#rpc#request('detach', [])
     let g:coc_service_initialized = 0
     sleep 100m

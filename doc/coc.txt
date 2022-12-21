@@ -208,7 +208,7 @@ Use |coc-list-extensions| or |CocAction('extensionStats')| to get list of extens
 ==============================================================================
 CONFIGURATION						*coc-configuration*
 
-The configuration of coc.nvim is stored in file `coc-settings.json`.
+The configuration of coc.nvim is stored in file named "coc-settings.json".
 
 Configuration properties are contributed by coc.nvim itself and coc.nvim
 extensions.  See |coc-config| for builtin configurations.
@@ -302,7 +302,7 @@ Close floating windows:~
 
 To close all floating windows/popups use |coc#float#close_all()| or
 |popup_clear()| on vim.  Or you can use <CTRL-w>o on neovim which close all
-split windows as well.
+split windows as well.  Or use |popup_clear()| on vim.
 
 To close single floating window/popup, use |coc#float#close()|.
 
@@ -477,7 +477,7 @@ include type information and documentation of current symbol.
 
 Hover functions:~
 
-  • ||CocAction('doHover')| Show hover information at cursor position.
+  • |CocAction('doHover')| Show hover information at cursor position.
   • |CocAction('definitionHover')||| Show hover information with definition
   context at cursor position.
   • |CocAction('getHover')| Get hover documentations at cursor position.
@@ -986,6 +986,8 @@ DOCUMENT COLORS 					*coc-document-colors*
 
 Document colors added color highlights to vim buffers.  To enable document
 color highlights, use |coc-config-colors-enable|.
+
+The feature requires vim >= 8.1.1719 or neovim >= 0.5.0.
 
 Note: the highlights define gui colors only, make use you have 'termguicolors'
 enabled (and your terminal support gui colors) if you're using vim in
@@ -2907,6 +2909,10 @@ COMMANDS						*coc-commands*
 
 	Disable handling vim events, useful for debug performance issues.
 
+	To disable dynamic autocmds registered by extensions, use:
+>
+	:autocmd! coc_dynamic_autocmd
+<
 :CocEnable						*:CocEnable*
 
 	Enable handling vim events.

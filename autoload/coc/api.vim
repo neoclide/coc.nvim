@@ -2,9 +2,12 @@
 " Description: Client api used by vim8
 " Author: Qiming Zhao <chemzqm@gmail.com>
 " Licence: Anti 996 licence
-" Last Modified: Jun 03, 2022
+" Last Modified: 2022-12-20
 " ============================================================================
-if has('nvim') | finish | endif
+if has('nvim')
+  finish
+endif
+
 scriptencoding utf-8
 let s:funcs = {}
 let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
@@ -16,6 +19,7 @@ let s:buffer_id = {}
 " srcId => list of types
 let s:id_types = {}
 let s:tab_id = 1
+let s:keymap_arguments = ['nowait', 'silent', 'script', 'expr', 'unique']
 
 " helper {{
 " Create a window with bufnr for execute win_execute
@@ -26,6 +30,7 @@ function! s:create_popup(bufnr) abort
       \ 'maxwidth': 1,
       \ 'maxheight': 1,
       \ })
+  call popup_hide(id)
   return id
 endfunction
 
@@ -59,14 +64,22 @@ function! s:buf_execute(bufnr, cmds) abort
 endfunction
 
 function! s:check_winid(winid) abort
-  if empty(getwininfo(a:winid))
+  if empty(getwininfo(a:winid)) && empty(popup_getpos(a:winid))
     throw 'Invalid window id: '.a:winid
   endif
 endfunction
 
+function! s:is_popup(winid) abort
+  try
+    return !empty(popup_getpos(a:winid))
+  catch /^Vim\%((\a\+)\)\=:E993/
+    return 0
+  endtry
+endfunction
+
 function! s:tabid_nr(tid) abort
   for nr in range(1, tabpagenr('$'))
-    if gettabvar(nr, '__tid', -1) == a:tid
+    if gettabvar(nr, '__tid', v:null) is a:tid
       return nr
     endif
   endfor
@@ -97,16 +110,11 @@ function! s:win_execute(winid, cmd, ...) abort
 endfunction
 
 function! s:win_tabnr(winid) abort
-  let info = getwininfo(a:winid)
-  if empty(info)
+  let ref = {}
+  call win_execute(a:winid, 'let ref["out"] = tabpagenr()')
+  let tabnr = get(ref, 'out', -1)
+  if tabnr == -1
     throw 'Invalid window id: '.a:winid
-  endif
-  let tabnr = info[0]['tabnr']
-  " popup
-  if tabnr == 0
-    let ref = {}
-    call s:win_execute(a:winid, 'tabpagenr()', ref)
-    return get(ref, 'out', [1, 0])
   endif
   return tabnr
 endfunction
@@ -139,6 +147,27 @@ endfunction
 function s:inspect_type(v) abort
   let types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'Null']
   return get(types, type(a:v), 'Unknown')
+endfunction
+
+function! s:escape_space(text) abort
+  return substitute(a:text, ' ', '<space>', 'g')
+endfunction
+
+function! s:create_mode_prefix(mode, opts) abort
+  if a:mode ==# '!'
+    return 'map!'
+  endif
+  return get(a:opts, 'noremap', 0) ?  a:mode . 'noremap' : a:mode . 'map'
+endfunction
+
+function! s:create_arguments(opts) abort
+  let arguments = ''
+  for key in keys(a:opts)
+    if a:opts[key] && index(s:keymap_arguments, key) != -1
+      let arguments .= '<'.key.'>'
+    endif
+  endfor
+  return arguments
 endfunction
 " }}"
 
@@ -286,6 +315,13 @@ function! s:funcs.exec(code, output) abort
   return v:null
 endfunction
 
+" Queues raw user-input, <" is special. To input a literal "<", send <LT>.
+function! s:funcs.input(keys) abort
+  let escaped = substitute(a:keys, '<', '\\<', 'g')
+  call feedkeys(eval('"'.escaped.'"'), 't')
+  return v:null
+endfunction
+
 function! s:funcs.create_buf(listed, scratch) abort
   let bufnr = bufadd('')
   call setbufvar(bufnr, '&buflisted', a:listed ? 1 : 0)
@@ -380,6 +416,22 @@ function! s:funcs.create_namespace(name) abort
     let s:namespace_cache[a:name] = id
   endif
   return id
+endfunction
+
+function! s:funcs.set_keymap(mode, lhs, rhs, opts) abort
+  let modekey = s:create_mode_prefix(a:mode, a:opts)
+  let arguments = s:create_arguments(a:opts)
+  let lhs = s:escape_space(a:lhs)
+  let rhs = empty(a:rhs) ? '<Nop>' : s:escape_space(a:rhs)
+  let cmd = modekey . ' ' . arguments .' '.lhs. ' '.rhs
+  execute cmd
+  return v:null
+endfunction
+
+function! s:funcs.del_keymap(mode, lhs) abort
+  let lhs = substitute(a:lhs, ' ', '<space>', 'g')
+  execute 'silent '.a:mode.'unmap '.lhs
+  return v:null
 endfunction
 " }}
 
@@ -571,6 +623,31 @@ function! s:funcs.buf_del_var(bufnr, name)
   endif
   return v:null
 endfunction
+
+function! s:funcs.buf_set_keymap(bufnr, mode, lhs, rhs, opts) abort
+  let modekey = s:create_mode_prefix(a:mode, a:opts)
+  let arguments = s:create_arguments(a:opts)
+  let lhs = s:escape_space(a:lhs)
+  let rhs = empty(a:rhs) ? '<Nop>' : s:escape_space(a:rhs)
+  let cmd = modekey . ' ' . arguments .'<buffer> '.lhs. ' '.rhs
+  if bufnr('%') == a:bufnr || a:bufnr == 0
+    execute cmd
+  else
+    call s:buf_execute(a:bufnr, [cmd])
+  endif
+  return v:null
+endfunction
+
+function! s:funcs.buf_del_keymap(bufnr, mode, lhs) abort
+  let lhs = substitute(a:lhs, ' ', '<space>', 'g')
+  let cmd = 'silent '.a:mode.'unmap <buffer> '.lhs
+  if bufnr('%') == a:bufnr || a:bufnr == 0
+    execute cmd
+  else
+    call s:buf_execute(a:bufnr, [cmd])
+  endif
+  return v:null
+endfunction
 " }}
 
 " window methods {{
@@ -596,23 +673,37 @@ endfunction
 
 function! s:funcs.win_set_height(winid, height) abort
   call s:check_winid(a:winid)
-  call s:win_execute(a:winid, 'resize '.a:height)
+  if s:is_popup(a:winid)
+    call popup_move(a:winid, {'maxheight': a:height, 'minheight': a:height})
+  else
+    call s:win_execute(a:winid, 'resize '.a:height)
+  endif
   return v:null
 endfunction
 
 function! s:funcs.win_get_height(winid) abort
   call s:check_winid(a:winid)
+  if s:is_popup(a:winid)
+    return popup_getpos(a:winid)['height']
+  endif
   return winheight(a:winid)
 endfunction
 
 function! s:funcs.win_set_width(winid, width) abort
   call s:check_winid(a:winid)
-  call s:win_execute(a:winid, 'vertical resize '.a:width)
+  if s:is_popup(a:winid)
+    call popup_move(a:winid, {'maxwidth': a:width, 'minwidth': a:width})
+  else
+    call s:win_execute(a:winid, 'vertical resize '.a:width)
+  endif
   return v:null
 endfunction
 
 function! s:funcs.win_get_width(winid) abort
   call s:check_winid(a:winid)
+  if s:is_popup(a:winid)
+    return popup_getpos(a:winid)['width']
+  endif
   return winwidth(a:winid)
 endfunction
 
@@ -642,9 +733,13 @@ function! s:funcs.win_set_option(winid, name, value) abort
   return v:null
 endfunction
 
-function! s:funcs.win_get_option(winid, name) abort
+function! s:funcs.win_get_option(winid, name, ...) abort
   let tabnr = s:win_tabnr(a:winid)
-  return gettabwinvar(tabnr, a:winid, '&'.a:name)
+  let result = gettabwinvar(tabnr, a:winid, '&'.a:name, get(a:, 1, v:null))
+  if result is v:null
+    throw "Invalid option name: '".a:name."'"
+  endif
+  return result
 endfunction
 
 function! s:funcs.win_get_var(winid, name, ...) abort
@@ -659,16 +754,21 @@ function! s:funcs.win_set_var(winid, name, value) abort
 endfunction
 
 function! s:funcs.win_del_var(winid, name) abort
-  call s:win_execute(a:winid, 'unlet! w:'.a:name)
+  call s:check_winid(a:winid)
+  call win_execute(a:winid, 'unlet! w:'.a:name)
   return v:null
 endfunction
 
 function! s:funcs.win_is_valid(winid) abort
-  let info = getwininfo(a:winid)
-  return empty(info) ? v:false : v:true
+  let invalid = empty(getwininfo(a:winid)) && empty(popup_getpos(a:winid))
+  return invalid ? v:false : v:true
 endfunction
 
+" Not work for popup
 function! s:funcs.win_get_number(winid) abort
+  if s:is_popup(a:winid)
+    return 0
+  endif
   let info = getwininfo(a:winid)
   if empty(info)
     throw 'Invalid window id '.a:winid
@@ -676,15 +776,20 @@ function! s:funcs.win_get_number(winid) abort
   return info[0]['winnr']
 endfunction
 
-function! s:funcs.win_close(winid, ...) abort
-  let force = get(a:, 1, 0)
-  call s:win_execute(a:winid, 'close'.(force ? '!' : ''))
-  return v:null
-endfunction
-
 function! s:funcs.win_get_tabpage(winid) abort
   let nr = s:win_tabnr(a:winid)
   return s:tabnr_id(nr)
+endfunction
+
+function! s:funcs.win_close(winid, ...) abort
+  call s:check_winid(a:winid)
+  let force = get(a:, 1, 0)
+  if s:is_popup(a:winid)
+    call popup_close(a:winid)
+  else
+    call s:win_execute(a:winid, 'close'.(force ? '!' : ''))
+  endif
+  return v:null
 endfunction
 " }}
 

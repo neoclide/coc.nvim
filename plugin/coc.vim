@@ -265,9 +265,7 @@ function! s:Disable() abort
   if get(g:, 'coc_enabled', 0) == 0
     return
   endif
-  augroup coc_nvim
-    autocmd!
-  augroup end
+  autocmd! coc_nvim
   call coc#rpc#request('detach', [])
   echohl MoreMsg
     echom '[coc.nvim] Event disabled'
@@ -358,6 +356,7 @@ function! s:Enable(initialize)
   if get(g:, 'coc_enabled', 0) == 1
     return
   endif
+
   let g:coc_enabled = 1
   sign define CocCurrentLine linehl=CocMenuSel
   sign define CocListCurrent linehl=CocListLine
@@ -713,6 +712,12 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable(1)
+augroup coc_dynamic_autocmd
+augroup END
+augroup coc_dynamic_content
+augroup END
+augroup coc_dynamic_option
+augroup END
 
 " Default key-mappings for completion
 if empty(mapcheck('<C-n>', 'i'))

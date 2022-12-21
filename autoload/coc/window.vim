@@ -94,16 +94,11 @@ endfunction
 
 function! coc#window#is_float(winid) abort
   if s:is_vim
-    if exists('*popup_list')
-      return index(popup_list(), a:winid) != -1
-    else
-      try
-        return !empty(popup_getpos(a:winid))
-      catch /^Vim\%((\a\+)\)\=:E993/
-        return 0
-      endtry
-    endif
-    return 0
+    try
+      return !empty(popup_getpos(a:winid))
+    catch /^Vim\%((\a\+)\)\=:E993/
+      return 0
+    endtry
   else
     let config = nvim_win_get_config(a:winid)
     return !empty(config) && !empty(get(config, 'relative', ''))
