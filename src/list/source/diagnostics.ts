@@ -28,7 +28,7 @@ export default class DiagnosticsList extends LocationList {
     }, null, this.disposables)
   }
 
-  public async loadItems(context: ListContext): Promise<ListItem[] | ListTask> {
+  public async loadItems(context: ListContext): Promise<ListItem[]> {
     let list = await diagnosticManager.getDiagnosticList()
     let { cwd } = context
     const config = this.getConfig()
