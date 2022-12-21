@@ -468,6 +468,9 @@ describe('Window API', () => {
     relative = await win.getOption('relativenumber')
     expect(relative).toBe(1)
     await win.setOption('relativenumber', false)
+    await expect(async () => {
+      await win.getOption('not_exists')
+    }).rejects.toThrow('Invalid option name')
   })
 
   it('should get and set var', async () => {
@@ -493,6 +496,47 @@ describe('Window API', () => {
     valid = await win.valid
     expect(valid).toBe(false)
     await nvim.command('only!')
+  })
+})
+
+describe('Popup', () => {
+  it('should works for popup window', async () => {
+    let winid = await nvim.call('popup_create', [['foo', 'bar'], {}]) as number
+    expect(winid).toBeGreaterThan(1000)
+    let win = nvim.createWindow(winid)
+    let buf = await win.buffer
+    expect(buf.id).toBeGreaterThan(0)
+    let pos = await win.position
+    expect(typeof pos[0]).toBe('number')
+    expect(typeof pos[1]).toBe('number')
+    await win.setHeight(10)
+    let height = await win.height
+    expect(height).toBe(10)
+    await win.setWidth(20)
+    let width = await win.width
+    expect(width).toBe(20)
+    await win.setCursor([1, 2])
+    let cur = await win.cursor
+    expect(cur).toEqual([1, 2])
+    await win.setOption('relativenumber', true)
+    // different on neovim which returns true and false
+    let option = await win.getOption('relativenumber')
+    expect(option).toBe(1)
+    await win.setVar('foo', 'bar', false)
+    let val = await win.getVar('foo')
+    expect(val).toBe('bar')
+    win.deleteVar('foo')
+    val = await win.getVar('foo')
+    expect(val).toBeNull()
+    let valid = await win.valid
+    expect(valid).toBe(true)
+    // not work on vim
+    let num = await win.number
+    expect(num).toBe(0)
+    let tabpage = await win.tabpage
+    expect(tabpage.id).toBeGreaterThan(0)
+    await win.close(true)
+    await nvim.call('popup_clear', [])
   })
 })
 

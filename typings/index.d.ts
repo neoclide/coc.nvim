@@ -4045,6 +4045,9 @@ declare module 'coc.nvim' {
 
     /**
      * Retrieves a scoped option, doesn't exist for tabpage.
+     *
+     * Note: neovim returns true/false for boolean option, but it would be 0/1
+     * on vim.
      */
     getOption(name: string): Promise<VimValue>
 

@@ -477,7 +477,7 @@ include type information and documentation of current symbol.
 
 Hover functions:~
 
-  • ||CocAction('doHover')| Show hover information at cursor position.
+  • |CocAction('doHover')| Show hover information at cursor position.
   • |CocAction('definitionHover')||| Show hover information with definition
   context at cursor position.
   • |CocAction('getHover')| Get hover documentations at cursor position.

@@ -4,7 +4,10 @@
 " Licence: Anti 996 licence
 " Last Modified: 2022-12-20
 " ============================================================================
-if has('nvim') | finish | endif
+if has('nvim')
+  finish
+endif
+
 scriptencoding utf-8
 let s:funcs = {}
 let s:prop_offset = get(g:, 'coc_text_prop_offset', 1000)
@@ -60,14 +63,22 @@ function! s:buf_execute(bufnr, cmds) abort
 endfunction
 
 function! s:check_winid(winid) abort
-  if empty(getwininfo(a:winid))
+  if empty(getwininfo(a:winid)) && empty(popup_getpos(a:winid))
     throw 'Invalid window id: '.a:winid
   endif
 endfunction
 
+function! s:is_popup(winid) abort
+  try
+    return !empty(popup_getpos(a:winid))
+  catch /^Vim\%((\a\+)\)\=:E993/
+    return 0
+  endtry
+endfunction
+
 function! s:tabid_nr(tid) abort
   for nr in range(1, tabpagenr('$'))
-    if gettabvar(nr, '__tid', -1) == a:tid
+    if gettabvar(nr, '__tid', v:null) is a:tid
       return nr
     endif
   endfor
@@ -98,16 +109,11 @@ function! s:win_execute(winid, cmd, ...) abort
 endfunction
 
 function! s:win_tabnr(winid) abort
-  let info = getwininfo(a:winid)
-  if empty(info)
+  let ref = {}
+  call win_execute(a:winid, 'let ref["out"] = tabpagenr()')
+  let tabnr = get(ref, 'out', -1)
+  if tabnr == -1
     throw 'Invalid window id: '.a:winid
-  endif
-  let tabnr = info[0]['tabnr']
-  " popup
-  if tabnr == 0
-    let ref = {}
-    call s:win_execute(a:winid, 'tabpagenr()', ref)
-    return get(ref, 'out', [1, 0])
   endif
   return tabnr
 endfunction
@@ -666,23 +672,37 @@ endfunction
 
 function! s:funcs.win_set_height(winid, height) abort
   call s:check_winid(a:winid)
-  call s:win_execute(a:winid, 'resize '.a:height)
+  if s:is_popup(a:winid)
+    call popup_move(a:winid, {'maxheight': a:height, 'minheight': a:height})
+  else
+    call s:win_execute(a:winid, 'resize '.a:height)
+  endif
   return v:null
 endfunction
 
 function! s:funcs.win_get_height(winid) abort
   call s:check_winid(a:winid)
+  if s:is_popup(a:winid)
+    return popup_getpos(a:winid)['height']
+  endif
   return winheight(a:winid)
 endfunction
 
 function! s:funcs.win_set_width(winid, width) abort
   call s:check_winid(a:winid)
-  call s:win_execute(a:winid, 'vertical resize '.a:width)
+  if s:is_popup(a:winid)
+    call popup_move(a:winid, {'maxwidth': a:width, 'minwidth': a:width})
+  else
+    call s:win_execute(a:winid, 'vertical resize '.a:width)
+  endif
   return v:null
 endfunction
 
 function! s:funcs.win_get_width(winid) abort
   call s:check_winid(a:winid)
+  if s:is_popup(a:winid)
+    return popup_getpos(a:winid)['width']
+  endif
   return winwidth(a:winid)
 endfunction
 
@@ -712,9 +732,13 @@ function! s:funcs.win_set_option(winid, name, value) abort
   return v:null
 endfunction
 
-function! s:funcs.win_get_option(winid, name) abort
+function! s:funcs.win_get_option(winid, name, ...) abort
   let tabnr = s:win_tabnr(a:winid)
-  return gettabwinvar(tabnr, a:winid, '&'.a:name)
+  let result = gettabwinvar(tabnr, a:winid, '&'.a:name, get(a:, 1, v:null))
+  if result is v:null
+    throw "Invalid option name: '".a:name."'"
+  endif
+  return result
 endfunction
 
 function! s:funcs.win_get_var(winid, name, ...) abort
@@ -729,16 +753,21 @@ function! s:funcs.win_set_var(winid, name, value) abort
 endfunction
 
 function! s:funcs.win_del_var(winid, name) abort
-  call s:win_execute(a:winid, 'unlet! w:'.a:name)
+  call s:check_winid(a:winid)
+  call win_execute(a:winid, 'unlet! w:'.a:name)
   return v:null
 endfunction
 
 function! s:funcs.win_is_valid(winid) abort
-  let info = getwininfo(a:winid)
-  return empty(info) ? v:false : v:true
+  let invalid = empty(getwininfo(a:winid)) && empty(popup_getpos(a:winid))
+  return invalid ? v:false : v:true
 endfunction
 
+" Not work for popup
 function! s:funcs.win_get_number(winid) abort
+  if s:is_popup(a:winid)
+    return 0
+  endif
   let info = getwininfo(a:winid)
   if empty(info)
     throw 'Invalid window id '.a:winid
@@ -746,15 +775,20 @@ function! s:funcs.win_get_number(winid) abort
   return info[0]['winnr']
 endfunction
 
-function! s:funcs.win_close(winid, ...) abort
-  let force = get(a:, 1, 0)
-  call s:win_execute(a:winid, 'close'.(force ? '!' : ''))
-  return v:null
-endfunction
-
 function! s:funcs.win_get_tabpage(winid) abort
   let nr = s:win_tabnr(a:winid)
   return s:tabnr_id(nr)
+endfunction
+
+function! s:funcs.win_close(winid, ...) abort
+  call s:check_winid(a:winid)
+  let force = get(a:, 1, 0)
+  if s:is_popup(a:winid)
+    call popup_close(a:winid)
+  else
+    call s:win_execute(a:winid, 'close'.(force ? '!' : ''))
+  endif
+  return v:null
 endfunction
 " }}
 
