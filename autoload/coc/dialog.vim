@@ -707,7 +707,7 @@ function! s:close_auto_hide_wins(...) abort
     if except && id == except
       continue
     endif
-    if coc#window#get_var(id, 'autohide', 0)
+    if getwinvar(id, 'autohide', 0)
       call coc#float#close(id)
     endif
   endfor
