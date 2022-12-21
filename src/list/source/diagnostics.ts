@@ -5,7 +5,7 @@ import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
 import { ListManager } from '../manager'
-import { ListContext, ListItem, ListTask } from '../types'
+import { ListContext, ListItem } from '../types'
 import LocationList from './location'
 
 export function convertToLabel(item: DiagnosticItem, cwd: string, includeCode: boolean, pathFormat: PathFormatting = 'full'): string[] {
