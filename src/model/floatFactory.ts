@@ -139,7 +139,8 @@ export default class FloatFactoryImpl implements Disposable {
       title: opts.title || '',
       close: opts.close ? 1 : 0,
       rounded: opts.rounded ? 1 : 0,
-      modes: opts.modes || ['n', 'i', 'ic', 's']
+      modes: opts.modes || ['n', 'i', 'ic', 's'],
+      zindex: 1
     }
     if (!isVim) {
       if (typeof opts.winblend === 'number') config.winblend = opts.winblend

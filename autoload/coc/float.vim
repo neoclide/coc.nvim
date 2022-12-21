@@ -114,6 +114,7 @@ endfunction
 " - focusable:  (optional) neovim only, default to true.
 " - scrollinside: (optional) neovim only, create scrollbar inside window.
 " - rounded: (optional) use rounded borderchars, ignored when borderchars exists.
+" - zindex: (optional) zindex of window, default 50.
 " - borderchars: (optional) borderchars, should be length of 8
 " - nopad: (optional) not add pad when 1
 " - index: (optional) line index
@@ -127,6 +128,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     return []
   endtry
   let lnum = max([1, get(a:config, 'index', 0) + 1])
+  let zindex = get(a:config, 'zindex', 50)
   " use exists
   if a:winid && coc#float#valid(a:winid)
     if s:is_vim
@@ -189,6 +191,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
           \ 'maxheight': a:config['height'],
           \ 'close': get(a:config, 'close', 0) ? 'button' : 'none',
           \ 'border': border,
+          \ 'zindex': zindex,
           \ 'callback': { -> coc#float#on_close(winid)},
           \ 'borderhighlight': [s:get_borderhighlight(a:config)],
           \ 'scrollbarhighlight': 'CocFloatSbar',
@@ -203,10 +206,6 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
     call coc#float#vim_buttons(winid, a:config)
   else
     let config = s:convert_config_nvim(a:config, 1)
-    let border = get(a:config, 'border', [])
-    if has('nvim-0.5.0') && get(a:config, 'shadow', 0) && empty(get(a:config, 'buttons', v:null)) && empty(get(border, 2, 0))
-      let config['border'] = 'shadow'
-    endif
     noa let winid = nvim_open_win(bufnr, 0, config)
     if winid is 0
       return []
@@ -275,6 +274,9 @@ function! coc#float#nvim_border_win(config, borderchars, winid, border, title, h
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
+  if has_key(a:config, 'zindex')
+    let opt['zindex'] = a:config['zindex']
+  endif
   if has('nvim-0.5.0') && a:shadow && !a:hasbtn && a:border[2]
     let opt['border'] = 'shadow'
     let opt['noautocmd'] = 1
@@ -302,8 +304,8 @@ function! coc#float#nvim_close_btn(config, winid, border, hlgroup, related) abor
         \ 'focusable': v:true,
         \ 'style': 'minimal',
         \ }
-  if has('nvim-0.5.1')
-    let config['zindex'] = 300
+  if has_key(a:config, 'zindex')
+    let config['zindex'] = a:config['zindex'] + 2
   endif
   if winid
     call nvim_win_set_config(winid, coc#dict#pick(config, ['relative', 'row', 'col']))
@@ -327,8 +329,8 @@ function! coc#float#nvim_right_pad(config, winid, shadow, related) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  if has('nvim-0.5.1')
-    let config['zindex'] = 300
+  if has_key(a:config, 'zindex')
+    let config['zindex'] = a:config['zindex'] + 1
   endif
   if has('nvim-0.5.0') && a:shadow
     let config['border'] = 'shadow'
@@ -480,8 +482,8 @@ function! coc#float#nvim_scrollbar(winid) abort
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
-  if has('nvim-0.5.1')
-    let opts['zindex'] = get(config, 'zindex', 50)
+  if has_key(config, 'zindex')
+    let opts['zindex'] = config['zindex'] + 2
   endif
   if has('nvim-0.5.0') && s:has_shadow(config)
     let opts['border'] = 'shadow'
@@ -1059,8 +1061,16 @@ function! s:convert_config_nvim(config, create) abort
   else
     let result['width'] = float2nr(result['width'] + (get(a:config, 'nopad', 0) ? 0 : 1))
   endif
-  if has('nvim-0.5.1') && a:create
-    let result['noautocmd'] = v:true
+  if has('nvim-0.5.0') && get(a:config, 'shadow', 0) && a:create
+    if empty(get(a:config, 'buttons', v:null)) && empty(get(border, 2, 0))
+      let result['border'] = 'shadow'
+    endif
+  endif
+  if has('nvim-0.5.1')
+    let result['zindex'] = get(a:config, 'zindex', 50)
+    if a:create
+      let result['noautocmd'] = v:true
+    endif
   endif
   let result['height'] = float2nr(result['height'])
   return result
