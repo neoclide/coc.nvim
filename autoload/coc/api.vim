@@ -30,6 +30,7 @@ function! s:create_popup(bufnr) abort
       \ 'maxwidth': 1,
       \ 'maxheight': 1,
       \ })
+  call popup_hide(id)
   return id
 endfunction
 

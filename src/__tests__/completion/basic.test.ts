@@ -1424,9 +1424,6 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.selectedItem?.word
       }, 'foo')
-      let bufnr = await nvim.call('bufnr', ['%']) as number
-      completion.onCursorMovedI(bufnr, [1, 4], false)
-      expect(completion.isActivated).toBe(true)
       await nvim.call('coc#pum#_navigate', [0, 1])
       await helper.waitValue(() => {
         return completion.selectedItem

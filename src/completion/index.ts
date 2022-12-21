@@ -103,7 +103,7 @@ export class Completion implements Disposable {
       let start = characterIndex(line, col)
       if (start < curr) {
         let text = line.substring(start, curr)
-        if ((text === this.selectedItem?.word) || (!this.inserted && text === this.pum.search)) {
+        if (!this.inserted && text === this.pum.search) {
           return
         }
       }

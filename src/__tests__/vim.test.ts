@@ -1,5 +1,6 @@
 process.env.VIM_NODE_RPC = '1'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
+import { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import { sameFile } from '../util/fs'
 import type { Helper } from './helper'
 // make sure VIM_NODE_RPC take effect first
@@ -21,6 +22,32 @@ describe('vim api', () => {
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual(['foobar'])
+    await nvim.command('bd!')
+  })
+
+  it('should navigate complete items', async () => {
+    helper.updateConfiguration('suggest.noselect', true)
+    const sources = require('../completion/sources').default
+    let name = Math.random().toString(16).slice(-6)
+    let disposable = sources.createSource({
+      name,
+      doComplete: (_opt): Promise<CompleteResult<ExtendedCompleteItem>> => new Promise(resolve => {
+        resolve({
+          items: [{ word: 'foo\nbar' }, { word: 'word' }]
+        })
+      })
+    })
+    await nvim.input('i')
+    nvim.call('coc#start', { source: name }, true)
+    await helper.waitPopup()
+    await nvim.call('coc#pum#_navigate', [1, 1])
+    await helper.waitFor('getline', ['.'], 'foo')
+    expect(helper.completion.isActivated).toBe(true)
+    await nvim.call('coc#pum#close', ['cancel'])
+    await nvim.input('<esc>')
+    await helper.waitFor('mode', [], 'n')
+    disposable.dispose()
+    await nvim.command('silent! %bwipeout!')
   })
 })
 
@@ -81,6 +108,14 @@ describe('client API', () => {
     await nvim.setDirectory(__dirname)
     let res = await nvim.call('getcwd') as string
     expect(sameFile(res, __dirname)).toBe(true)
+  })
+
+  it('should input characters', async () => {
+    await nvim.input('iabc')
+    await helper.waitFor('getline', ['.'], 'abc')
+    await nvim.input('<esc>')
+    await helper.waitFor('mode', [], 'n')
+    await nvim.command('bwipeout!')
   })
 
   it('should set var', async () => {

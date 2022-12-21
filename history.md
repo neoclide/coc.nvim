@@ -1,3 +1,7 @@
+# 2022-12-22
+
+- Support popup window for window related APIs.
+
 # 2022-12-21
 
 - When create `CocSem` highlight group, replace invalid character of token types

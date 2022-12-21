@@ -6,7 +6,7 @@ import { CancellationError } from './util/errors'
 import * as Is from './util/is'
 import { equals } from './util/object'
 import { CancellationToken, Disposable } from './util/protocol'
-import { byteSlice } from './util/string'
+import { byteLength, byteSlice } from './util/string'
 const logger = createLogger('events')
 const SYNC_AUTOCMDS = ['BufWritePre']
 
@@ -74,8 +74,7 @@ export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | Wi
   | InsertChangeEvents | 'CompleteStop' | 'CompleteDone' | 'TextChanged' | 'MenuPopupChanged' | 'BufWritePost' | 'BufWritePre'
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
-  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert'
-  | 'PromptKeyPress'
+  | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress'
 
 export type CursorEvents = CursorHoldEvents | CursorMoveEvents
 export type CursorHoldEvents = 'CursorHold' | 'CursorHoldI'
@@ -194,6 +193,7 @@ class Events {
     } else if (event == EventName.InsertEnter) {
       this._insertMode = true
     } else if (event == EventName.InsertLeave) {
+      this._last_pum_insert = undefined
       this._insertMode = false
       this._pumVisible = false
       this._recentInserts = []
@@ -263,8 +263,9 @@ class Events {
         col: args[1][1],
         insert: event == EventName.CursorMovedI
       }
+      if (this._last_pum_insert && byteLength(this._last_pum_insert) + 1 == cursor.col) return
       // Avoid CursorMoved event when it's not moved at all
-      if (this._cursor && equals(this._cursor, cursor)) return
+      if ((this._cursor && equals(this._cursor, cursor))) return
       this._cursor = cursor
     }
     let cbs = this.handlers.get(event)
