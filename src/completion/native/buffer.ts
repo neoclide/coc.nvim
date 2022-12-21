@@ -1,10 +1,10 @@
 'use strict'
-import { CancellationToken, Disposable } from '../../util/protocol'
 import BufferSync from '../../model/bufferSync'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
 import { waitImmediate } from '../../util'
+import { CancellationToken } from '../../util/protocol'
 import { KeywordsBuffer } from '../keywords'
 import Source from '../source'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource } from '../types'
 
 export class Buffer extends Source {
   constructor(private keywords: BufferSync<KeywordsBuffer>) {
@@ -35,11 +35,7 @@ export class Buffer extends Source {
   }
 }
 
-export function register(sourceMap: Map<string, ISource>, keywords: BufferSync<KeywordsBuffer>): Disposable {
+export function register(sourceMap: Map<string, ISource>, keywords: BufferSync<KeywordsBuffer>): void {
   let source = new Buffer(keywords)
   sourceMap.set('buffer', source)
-  return Disposable.create(() => {
-    source.dispose()
-    sourceMap.delete('buffer')
-  })
 }

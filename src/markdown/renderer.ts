@@ -85,7 +85,7 @@ function fixNestedLists(body, indent) {
 }
 
 let isPointedLine = function(line, indent) {
-  return line.match('^(?:' + indent + ')*' + POINT_REGEX)
+  return line.match('^(?:' + indent + ')*' + POINT_REGEX) != null
 }
 
 export function toSpaces(str) {

@@ -197,14 +197,14 @@ export class FileLogger extends AbstractLogger {
   private _log(level: LogLevel, scope: string, args: any[], time: string): void {
     if (this.useConsole) {
       let method = level === LogLevel.Error ? 'error' : 'log'
-      console[method](`${this.stringifyLogLevel(level)} [${scope}]`, format(args, null, true))
+      console[method](`${stringifyLogLevel(level)} [${scope}]`, format(args, null, true))
     } else {
       let message = this.format(args)
       this.promise = this.promise.then(() => {
         let fn = async () => {
           let text: string
           if (this.config.userFormatters !== false) {
-            let parts = [time, this.stringifyLogLevel(level), `(pid:${process.pid})`, `[${scope}]`]
+            let parts = [time, stringifyLogLevel(level), `(pid:${process.pid})`, `[${scope}]`]
             text = `${parts.join(' ')} - ${message}\n`
           } else {
             text = message
@@ -232,17 +232,17 @@ export class FileLogger extends AbstractLogger {
     this.backupIndex = this.backupIndex > 5 ? 1 : this.backupIndex
     return path.join(path.dirname(this.fsPath), `${path.basename(this.fsPath)}_${this.backupIndex++}`)
   }
+}
 
-  private stringifyLogLevel(level: LogLevel): string {
-    switch (level) {
-      case LogLevel.Debug: return 'DEBUG'
-      case LogLevel.Error: return 'ERROR'
-      case LogLevel.Info: return 'INFO'
-      case LogLevel.Trace: return 'TRACE'
-      case LogLevel.Warning: return 'WARN'
-    }
-    return ''
+export function stringifyLogLevel(level: LogLevel): string {
+  switch (level) {
+    case LogLevel.Debug: return 'DEBUG'
+    case LogLevel.Error: return 'ERROR'
+    case LogLevel.Info: return 'INFO'
+    case LogLevel.Trace: return 'TRACE'
+    case LogLevel.Warning: return 'WARN'
   }
+  return ''
 }
 
 export function getTimestamp(date: Date): string {

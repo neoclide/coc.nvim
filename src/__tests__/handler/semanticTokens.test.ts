@@ -188,6 +188,7 @@ async function createRustBuffer(): Promise<Buffer> {
 describe('semanticTokens', () => {
   describe('toHighlightPart()', () => {
     it('should convert to highlight part', () => {
+      expect(toHighlightPart('')).toBe('')
       expect(toHighlightPart('token')).toBe('Token')
       expect(toHighlightPart('is key word')).toBe('Is_key_word')
       expect(toHighlightPart('token')).toBe('Token')

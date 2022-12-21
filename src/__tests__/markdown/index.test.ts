@@ -100,6 +100,19 @@ example:
     expect(res.codes).toEqual([{ filetype: 'html', startLine: 1, endLine: 2 }])
   })
 
+  it('should merge empty lines', async () => {
+    let content = `
+https://baidu.com/%25E0%25A4%25A
+foo
+
+
+
+bar
+ `
+    let res = parseMarkdown(content, {})
+    expect(res.lines).toEqual(['foo', '', 'bar'])
+  })
+
   it('should compose empty lines', () => {
     let content = 'foo\n\n\nbar\n\n\n'
     let res = parseMarkdown(content, {})

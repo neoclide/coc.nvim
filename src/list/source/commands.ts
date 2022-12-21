@@ -7,6 +7,7 @@ import { Registry } from '../../util/registry'
 import workspace from '../../workspace'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
+import { toText } from '../../util/string'
 
 const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
 
@@ -31,16 +32,13 @@ export default class CommandsList extends BasicList {
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let items: UnformattedListItem[] = []
     let mruList = await this.mru.load()
-    let onCommandList = extensionRegistry.onCommands.map(id => {
-      return { id, title: extensionRegistry.getCommandTitle(id) }
-    })
     let ids: Set<string> = new Set()
-    for (const obj of onCommandList.concat(commandManager.commandList)) {
+    for (const obj of extensionRegistry.onCommands.concat(commandManager.commandList)) {
       let { id, title } = obj
       if (ids.has(id)) continue
       ids.add(id)
       items.push({
-        label: [id, title ?? ''],
+        label: [id, toText(title)],
         filterText: id,
         data: { cmd: id, score: score(mruList, id) }
       })

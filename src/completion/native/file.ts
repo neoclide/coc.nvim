@@ -1,13 +1,13 @@
 'use strict'
 import { CompletionItemKind } from 'vscode-languageserver-types'
-import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, VimCompleteItem } from '../types'
 import { statAsync } from '../../util/fs'
-import { fs, path, promisify, minimatch } from '../../util/node'
+import { fs, minimatch, path, promisify } from '../../util/node'
 import { isWindows } from '../../util/platform'
-import { CancellationToken, Disposable } from '../../util/protocol'
+import { CancellationToken } from '../../util/protocol'
 import { byteSlice } from '../../util/string'
 import workspace from '../../workspace'
 import Source from '../source'
+import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, VimCompleteItem } from '../types'
 const pathRe = /(?:\.{0,2}|~|\$HOME|([\w]+)|[a-zA-Z]:|)(\/|\\+)(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-]+(\/|\\+))*(?:[\u4E00-\u9FA5\u00A0-\u024F\w .@()-])*$/
 
 interface PathOption {
@@ -151,9 +151,6 @@ export class File extends Source {
   }
 }
 
-export function register(sourceMap: Map<string, ISource>): Disposable {
+export function register(sourceMap: Map<string, ISource>): void {
   sourceMap.set('file', new File(isWindows))
-  return Disposable.create(() => {
-    sourceMap.delete('file')
-  })
 }

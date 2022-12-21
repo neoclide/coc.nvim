@@ -1,11 +1,20 @@
 'use strict'
-import diagnosticManager from '../../diagnostic/manager'
-import { ListContext, ListItem } from '../types'
+import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
+import { defaultValue } from '../../util'
 import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
 import { formatListItems, formatPath, PathFormatting, UnformattedListItem } from '../formatting'
 import { ListManager } from '../manager'
+import { ListContext, ListItem, ListTask } from '../types'
 import LocationList from './location'
+
+export function convertToLabel(item: DiagnosticItem, cwd: string, includeCode: boolean, pathFormat: PathFormatting = 'full'): string[] {
+  const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
+  const formattedPath = formatPath(pathFormat, file)
+  const formattedPosition = pathFormat !== "hidden" ? [`${formattedPath}:${item.lnum}`] : []
+  const source = includeCode ? `[${item.source} ${defaultValue(item.code, '')}]` : item.source
+  return [...formattedPosition, source, item.severity, item.message]
+}
 
 export default class DiagnosticsList extends LocationList {
   public readonly defaultAction = 'open'
@@ -19,19 +28,15 @@ export default class DiagnosticsList extends LocationList {
     }, null, this.disposables)
   }
 
-  public async loadItems(context: ListContext): Promise<ListItem[]> {
+  public async loadItems(context: ListContext): Promise<ListItem[] | ListTask> {
     let list = await diagnosticManager.getDiagnosticList()
     let { cwd } = context
     const config = this.getConfig()
-    const shouldIncludeCode = config.get<boolean>('includeCode', true)
+    const includeCode = config.get<boolean>('includeCode', true)
     const pathFormat = config.get<PathFormatting>('pathFormat', "full")
     const unformatted: UnformattedListItem[] = list.map(item => {
-      const file = isParentFolder(cwd, item.file) ? path.relative(cwd, item.file) : item.file
-      const formattedPath = formatPath(pathFormat, file)
-      const formattedPosition = pathFormat !== "hidden" ? [`${formattedPath}:${item.lnum}`] : []
-      const code = shouldIncludeCode ? [`[${item.source}${item.code ? '' : ']'}`, item.code ? `${item.code}]` : ''] : []
       return {
-        label: [...formattedPosition, ...code, item.severity, item.message],
+        label: convertToLabel(item, cwd, includeCode, pathFormat),
         location: item.location,
       }
     })

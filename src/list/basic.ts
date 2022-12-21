@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { EventEmitter } from 'events'
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { WorkspaceConfiguration } from '../configuration/types'

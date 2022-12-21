@@ -46,7 +46,7 @@ export interface IExtensionRegistry {
   /**
    * Commands for activate extensions.
    */
-  readonly onCommands: string[]
+  readonly onCommands: ({ id: string, title: string })[]
 
   /**
    * Commands contributed from extensions.
@@ -89,10 +89,17 @@ class ExtensionRegistry implements IExtensionRegistry {
     this.extensionsById = new Map()
   }
 
-  public get onCommands(): string[] {
-    let res: string[] = []
+  public get onCommands(): ({ id: string, title: string })[] {
+    let res: ({ id: string, title: string })[] = []
     for (let item of this.extensionsById.values()) {
-      res.push(...(toArray(item.onCommands).filter(s => typeof s === 'string')))
+      let { commands, onCommands } = item
+      for (let cmd of onCommands) {
+        if (typeof cmd === 'string') {
+          let find = commands.find(o => o.command === cmd)
+          let title = find == null ? '' : find.title
+          res.push({ id: cmd, title })
+        }
+      }
     }
     return res
   }

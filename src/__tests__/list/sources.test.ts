@@ -1,17 +1,24 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Diagnostic, DiagnosticSeverity, Disposable, Emitter, Location, Range } from 'vscode-languageserver-protocol'
+import os from 'os'
+import { CancellationToken, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, Emitter, Location, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import diagnosticManager from '../../diagnostic/manager'
+import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
 import events from '../../events'
 import languages from '../../languages'
 import BasicList, { PreviewOptions, toVimFiletype } from '../../list/basic'
-import { formatListItems, formatPath, UnformattedListItem } from '../../list/formatting'
+import { fixWidth, formatListItems, formatPath, formatUri, UnformattedListItem } from '../../list/formatting'
 import manager from '../../list/manager'
+import { convertToLabel } from '../../list/source/diagnostics'
+import { mruScore } from '../../list/source/lists'
+import { sortSymbolItems } from '../../list/source/symbols'
+import { ListArgument, ListContext, ListItem } from '../../list/types'
 import Document from '../../model/document'
 import services, { IServiceProvider, ServiceStat } from '../../services'
 import { QuickfixItem } from '../../types'
-import { ListArgument, ListContext, ListItem } from '../../list/types'
 import { disposeAll } from '../../util'
+import * as extension from '../../util/extensionRegistry'
+import { path } from '../../util/node'
+import { Registry } from '../../util/registry'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -57,6 +64,7 @@ let nvim: Neovim
 const locations: QuickfixItem[] = [{
   filename: __filename,
   range: Range.create(0, 0, 0, 6),
+  targetRange: Range.create(0, 0, 0, 6),
   text: 'foo',
   type: 'Error'
 }, {
@@ -68,6 +76,10 @@ const locations: QuickfixItem[] = [{
   filename: __filename,
   range: Range.create(3, 0, 4, 6),
   text: 'multiple'
+}, {
+  filename: path.join(os.tmpdir(), '3195369f-5b9f-4c46-99cd-6007c0224595'),
+  range: Range.create(3, 0, 4, 6),
+  text: 'tmpdir'
 }]
 
 beforeAll(async () => {
@@ -89,16 +101,36 @@ afterEach(async () => {
 
 describe('formatting', () => {
   describe('formatPath()', () => {
-    it('should format path', async () => {
+    it('should format path', () => {
       expect(formatPath('hidden', 'path')).toBe('')
       expect(formatPath('full', __filename)).toMatch('sources.test.ts')
       expect(formatPath('short', __filename)).toMatch('sources.test.ts')
       expect(formatPath('filename', __filename)).toMatch('sources.test.ts')
     })
+
+    it('should format uri', () => {
+      let cwd = process.cwd()
+      expect(formatUri('http://www.example.com', cwd)).toMatch('http')
+      expect(formatUri(URI.file(__filename).toString(), cwd)).toMatch('sources')
+      expect(formatUri(URI.file(os.tmpdir()).toString(), cwd)).toMatch(os.tmpdir())
+    })
+
+    it('should fixWidth', () => {
+      expect(fixWidth('a'.repeat(10), 2)).toBe('a.')
+    })
+
+    it('should sort symbols', () => {
+      const assert = (a, b, n) => {
+        expect(sortSymbolItems(a, b)).toBe(n)
+      }
+      assert({ data: { score: 1 } }, { data: { score: 2 } }, 1)
+      assert({ data: { kind: 1 } }, { data: { kind: 2 } }, -1)
+      assert({ data: { file: 'aa' } }, { data: { file: 'b' } }, 1)
+    })
   })
 
   describe('formatListItems', () => {
-    it('should format list items', async () => {
+    it('should format list items', () => {
       expect(formatListItems(false, [])).toEqual([])
       let items: UnformattedListItem[] = [{
         label: ['a', 'b', 'c']
@@ -348,13 +380,17 @@ describe('list sources', () => {
     })
 
     it('should not use filename when current buffer only', async () => {
+      let filepath = path.join(os.tmpdir(), 'b7d9e548-00ec-4419-98a8-dc03874e405c')
+      let doc = await helper.createDocument(filepath)
       let locations = [{
-        filename: __filename,
+        filename: filepath,
+        bufnr: doc.bufnr,
         lnum: 1,
         col: 1,
         text: 'multiple'
       }, {
-        filename: __filename,
+        filename: filepath,
+        bufnr: doc.bufnr,
         lnum: 1,
         col: 1,
         end_lnum: 2,
@@ -362,7 +398,6 @@ describe('list sources', () => {
         text: 'multiple'
       }]
       await nvim.setVar('coc_jump_locations', locations)
-      await helper.createDocument(__filename)
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
     })
@@ -414,7 +449,6 @@ describe('list sources', () => {
     it('should do refactor action', async () => {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
-      await manager.session.ui.selectAll()
       await manager.doAction('refactor')
       let name = await nvim.eval('bufname("%")')
       expect(name).toMatch('coc_refactor')
@@ -454,16 +488,27 @@ describe('list sources', () => {
   })
 
   describe('commands', () => {
-    it('should load commands source', async () => {
-      await manager.start(['commands'])
-      await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
-    })
-
     it('should do run action', async () => {
       await manager.start(['commands'])
       await manager.session?.ui.ready
       await manager.doAction()
+    })
+
+    it('should load commands source', async () => {
+      let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
+      registry.registerExtension('single', {
+        name: 'single',
+        directory: os.tmpdir(),
+        onCommands: ['cmd', 'cmd'],
+        commands: [{ command: 'cmd', title: 'title' }]
+      })
+      await manager.start(['commands'])
+      await manager.session?.ui.ready
+      expect(manager.isActivated).toBe(true)
+      await manager.doAction('append')
+      let line = await helper.getCmdline()
+      expect(line).toMatch(':CocCommand')
+      registry.unregistExtension('single')
     })
   })
 
@@ -499,32 +544,29 @@ describe('list sources', () => {
       return doc
     }
 
+    it('should get label', async () => {
+      let item: DiagnosticItem = {
+        code: 1000,
+        col: 0,
+        end_col: 1,
+        end_lnum: 1,
+        file: os.tmpdir(),
+        level: 0,
+        lnum: 1,
+        location: Location.create('file:///1', Range.create(0, 0, 0, 1)),
+        message: 'message',
+        severity: 'error',
+        source: 'source'
+      }
+      expect(convertToLabel(item, process.cwd(), false).indexOf('1000')).toBe(-1)
+      expect(convertToLabel(item, process.cwd(), true, 'hidden').includes('[source 1000]')).toBe(true)
+    })
+
     it('should load diagnostics source', async () => {
       await createDocument('a')
       await manager.start(['diagnostics'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
-    })
-
-    it('should not include code', async () => {
-      let fn = helper.updateConfiguration('list.source.diagnostics.includeCode', false)
-      disposables.push({ dispose: fn })
-      await createDocument('a')
-      await manager.start(['diagnostics'])
-      await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
-      let line = await nvim.line
-      expect(line.match(/100/)).toBeNull()
-    })
-
-    it('should hide file path', async () => {
-      helper.updateConfiguration('list.source.diagnostics.pathFormat', 'hidden')
-      await createDocument('foo')
-      await manager.start(['diagnostics'])
-      await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
-      let line = await nvim.line
-      expect(line.match(/foo/)).toBeNull()
     })
 
     it('should refresh on diagnostics refresh', async () => {
@@ -560,6 +602,11 @@ describe('list sources', () => {
   })
 
   describe('lists', () => {
+    it('should get list score', () => {
+      expect(mruScore(['foo'], 'foo')).toBe(1)
+      expect(mruScore([], 'foo')).toBe(-1)
+    })
+
     it('should load lists source', async () => {
       await manager.start(['lists'])
       await manager.session?.ui.ready
@@ -679,11 +726,36 @@ describe('list sources', () => {
   describe('links', () => {
     it('should load links source', async () => {
       let disposable = languages.registerDocumentLinkProvider([{ scheme: 'file' }, { scheme: 'untitled' }], {
-        provideDocumentLinks: () => []
+        provideDocumentLinks: () => {
+          return [
+            DocumentLink.create(Range.create(0, 0, 0, 5), 'file:///foo'),
+            DocumentLink.create(Range.create(1, 0, 1, 5), 'file:///bar')
+          ]
+        }
       })
       await manager.start(['links'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
+      await manager.doAction('jump')
+      disposable.dispose()
+    })
+
+    it('should resolve target', async () => {
+      let disposable = languages.registerDocumentLinkProvider([{ scheme: 'file' }, { scheme: 'untitled' }], {
+        provideDocumentLinks: () => {
+          return [
+            DocumentLink.create(Range.create(0, 0, 0, 5)),
+          ]
+        },
+        resolveDocumentLink: link => {
+          link.target = 'file:///foo'
+          return link
+        }
+      })
+      await manager.start(['links'])
+      await manager.session?.ui.ready
+      expect(manager.isActivated).toBe(true)
+      await manager.doAction('open')
       disposable.dispose()
     })
   })

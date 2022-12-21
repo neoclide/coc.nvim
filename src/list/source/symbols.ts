@@ -1,17 +1,23 @@
 'use strict'
-import { TextDocument } from 'vscode-languageserver-textdocument'
-import { Location, Range, SymbolInformation } from 'vscode-languageserver-types'
-import { URI } from 'vscode-uri'
+import { Location, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../../languages'
 import { AnsiHighlight, LocationWithTarget } from '../../types'
-import { ListContext, ListItem } from '../types'
 import { getSymbolKind } from '../../util/convert'
-import { isParentFolder } from '../../util/fs'
-import { minimatch, path } from '../../util/node'
+import { minimatch } from '../../util/node'
 import { CancellationToken, CancellationTokenSource } from '../../util/protocol'
 import { byteLength } from '../../util/string'
 import workspace from '../../workspace'
+import { formatUri } from '../formatting'
+import { ListContext, ListItem } from '../types'
 import LocationList from './location'
+
+interface ItemToSort {
+  data: {
+    score?: number
+    kind?: number
+    file?: string
+  }
+}
 
 export default class Symbols extends LocationList {
   public readonly interactive = true
@@ -29,45 +35,28 @@ export default class Symbols extends LocationList {
     let { input } = context
     let args = this.parseArguments(context.args)
     let filterKind = args.kind ? (args.kind as string).toLowerCase() : ''
-    if (!context.options.interactive) {
-      throw new Error('Symbols only works on interactive mode')
-    }
-    if (!languages.hasProvider(ProviderName.WorkspaceSymbols, TextDocument.create('file:///1', '', 1, ''))) {
+    if (!languages.hasProvider(ProviderName.WorkspaceSymbols, { uri: 'file:///1', languageId: '' })) {
       throw new Error('No workspace symbols provider registered')
     }
     let symbols = await languages.getWorkspaceSymbols(input, token)
     let config = this.getConfig()
     let excludes = config.get<string[]>('excludes', [])
-    let items: ListItem[] = []
-    if (input.length > 0) this.fuzzyMatch.setPattern(input, true)
+    let items: (ListItem & ItemToSort)[] = []
+    this.fuzzyMatch.setPattern(input, true)
     for (let s of symbols) {
       let kind = getSymbolKind(s.kind)
       if (filterKind && kind.toLowerCase() != filterKind) {
         continue
       }
-      let file: string | undefined
-      if (s.location) {
-        file = URI.parse(s.location.uri).fsPath
-        if (isParentFolder(workspace.cwd, file)) {
-          file = path.relative(workspace.cwd, file)
-        }
-        if (excludes.some(p => minimatch(file, p))) {
-          continue
-        }
+      let file = formatUri(s.location.uri, workspace.cwd)
+      if (excludes.some(p => minimatch(file, p))) {
+        continue
       }
       let item = this.createListItem(input, s, kind, file)
       items.push(item)
     }
     this.fuzzyMatch.free()
-    items.sort((a, b) => {
-      if (a.data.score != b.data.score) {
-        return b.data.score - a.data.score
-      }
-      if (a.data.kind != b.data.kind) {
-        return a.data.kind - b.data.kind
-      }
-      return a.data.file.length - b.data.file.length
-    })
+    items.sort(sortSymbolItems)
     return items
   }
 
@@ -82,7 +71,7 @@ export default class Symbols extends LocationList {
     return item
   }
 
-  public createListItem(input: string, item: SymbolInformation, kind: string, file: string): ListItem {
+  public createListItem(input: string, item: SymbolInformation, kind: string, file: string): ListItem & ItemToSort {
     let { name } = item
     let label = ''
     let ansiHighlights: AnsiHighlight[] = []
@@ -98,6 +87,9 @@ export default class Symbols extends LocationList {
         label += ' '
       }
       ansiHighlights.push({ span: [start, end], hlGroup: highlights[index] })
+      if (index === 0 && item.tags.includes(SymbolTag.Deprecated)) {
+        ansiHighlights.push({ span: [start, end], hlGroup: 'CocDeprecatedHighlight' })
+      }
     }
     let score = 0
     if (input.length > 0) {
@@ -117,13 +109,20 @@ export default class Symbols extends LocationList {
       }
     }
   }
-
-  public doHighlight(): void {
-  }
 }
 
 function toTargetLocation(location: Location): LocationWithTarget {
   let loc: LocationWithTarget = Location.create(location.uri, Range.create(location.range.start, location.range.start))
   loc.targetRange = location.range
   return loc
+}
+
+export function sortSymbolItems(a: ItemToSort, b: ItemToSort): number {
+  if (a.data.score != b.data.score) {
+    return b.data.score - a.data.score
+  }
+  if (a.data.kind != b.data.kind) {
+    return a.data.kind - b.data.kind
+  }
+  return a.data.file.length - b.data.file.length
 }

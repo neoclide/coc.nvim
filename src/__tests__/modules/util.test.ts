@@ -560,7 +560,7 @@ describe('Registry', () => {
     registry.registerExtension('single', {
       name: 'single',
       directory: os.tmpdir(),
-      onCommands: ['a', 'b'],
+      onCommands: ['a', 'b', 'cmd', undefined],
       commands: [{ command: 'cmd', title: 'title' }]
     })
     expect(registry.commands.length).toBeGreaterThan(0)

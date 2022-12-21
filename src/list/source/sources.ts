@@ -4,6 +4,7 @@ import { URI } from 'vscode-uri'
 import sources from '../../completion/sources'
 import { ListItem } from '../types'
 import BasicList from '../basic'
+import { fixWidth } from '../formatting'
 
 export default class SourcesList extends BasicList {
   public readonly defaultAction = 'toggle'
@@ -30,10 +31,6 @@ export default class SourcesList extends BasicList {
 
   public async loadItems(): Promise<ListItem[]> {
     let stats = sources.sourceStats()
-    stats.sort((a, b) => {
-      if (a.type != b.type) return a.type < b.type ? 1 : -1
-      return a.name > b.name ? -1 : 1
-    })
     return stats.map(stat => {
       let prefix = stat.disabled ? ' ' : '*'
       let location: Location
@@ -63,11 +60,4 @@ export default class SourcesList extends BasicList {
     nvim.command('highlight default link CocSourcesType Statement', true)
     nvim.resumeNotification(false, true)
   }
-}
-
-function fixWidth(str: string, width: number): string {
-  if (str.length > width) {
-    return str.slice(0, width - 1) + '.'
-  }
-  return str + ' '.repeat(width - str.length)
 }

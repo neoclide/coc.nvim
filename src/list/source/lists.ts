@@ -1,9 +1,10 @@
 'use strict'
 import Mru from '../../model/mru'
-import { IList, ListContext, ListItem } from '../types'
 import { isVim } from '../../util/constants'
+import { toText } from '../../util/string'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
+import { IList, ListContext, ListItem } from '../types'
 
 const delay = isVim ? 50 : 0
 
@@ -31,11 +32,11 @@ export default class ListsList extends BasicList {
     for (let list of this.listMap.values()) {
       if (list.name == 'lists') continue
       items.push({
-        label: [list.name, ...(list.description ? [list.description] : [])],
+        label: [list.name, toText(list.description)],
         data: {
           name: list.name,
           interactive: list.interactive,
-          score: score(mruList, list.name)
+          score: mruScore(mruList, list.name)
         }
       })
     }
@@ -52,7 +53,7 @@ export default class ListsList extends BasicList {
   }
 }
 
-function score(list: string[], key: string): number {
+export function mruScore(list: string[], key: string): number {
   let idx = list.indexOf(key)
   return idx == -1 ? -1 : list.length - idx
 }

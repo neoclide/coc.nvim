@@ -1,14 +1,15 @@
 'use strict'
-import type { CancellationToken } from '../../util/protocol'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 import { Location, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import commands from '../../commands'
 import { AnsiHighlight, LocationWithTarget, QuickfixItem } from '../../types'
-import { ListContext, ListItem } from '../types'
+import { toArray } from '../../util/array'
 import { isParentFolder } from '../../util/fs'
 import { path } from '../../util/node'
 import { byteLength } from '../../util/string'
 import BasicList from '../basic'
+import { ListContext, ListItem } from '../types'
 
 export default class LocationList extends BasicList {
   public defaultAction = 'open'
@@ -28,11 +29,10 @@ export default class LocationList extends BasicList {
     this.addLocationActions()
   }
 
-  public async loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[]> {
+  public async loadItems(context: ListContext, _token: CancellationToken): Promise<ListItem[]> {
     // filename, lnum, col, text, type
     let locs = await this.nvim.getVar('coc_jump_locations') as QuickfixItem[]
-    if (token.isCancellationRequested) return []
-    locs = locs || []
+    locs = toArray(locs)
     let bufnr = context.buffer.id
     let ignoreFilepath = locs.every(o => o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {

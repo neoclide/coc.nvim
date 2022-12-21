@@ -82,11 +82,13 @@ export class TerminalModel {
   public async show(preserveFocus?: boolean): Promise<boolean> {
     let { bufnr, nvim } = this
     if (!bufnr) return false
-    let [loaded, winid, curr] = await nvim.eval(`[bufloaded(${bufnr}),bufwinid(${bufnr}),win_getid()]`) as [number, number, number]
+    let [loaded, curr] = await nvim.eval(`[bufloaded(${bufnr}),win_getid()]`) as [number, number]
     if (!loaded) return false
-    if (curr == winid) return true
+    let winids = await nvim.call('win_findbuf', [bufnr]) as [number, number]
+    let winid = winids[0]
+    if (winid && curr == winid) return true
     nvim.pauseNotification()
-    if (winid == -1) {
+    if (!winid) {
       nvim.command(`below ${bufnr}sb`, true)
       nvim.command('resize 8', true)
       nvim.call('coc#util#do_autocmd', ['CocTerminalOpen'], true)
