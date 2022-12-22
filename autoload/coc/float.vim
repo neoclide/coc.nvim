@@ -279,7 +279,6 @@ function! coc#float#nvim_border_win(config, borderchars, winid, border, title, h
   endif
   if has('nvim-0.5.0') && a:shadow && !a:hasbtn && a:border[2]
     let opt['border'] = 'shadow'
-    let opt['noautocmd'] = 1
   endif
   if winid
     call nvim_win_set_config(winid, opt)
@@ -1068,9 +1067,6 @@ function! s:convert_config_nvim(config, create) abort
   endif
   if has('nvim-0.5.1')
     let result['zindex'] = get(a:config, 'zindex', 50)
-    if a:create
-      let result['noautocmd'] = v:true
-    endif
   endif
   let result['height'] = float2nr(result['height'])
   return result
