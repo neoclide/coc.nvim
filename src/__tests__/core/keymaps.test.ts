@@ -29,6 +29,17 @@ describe('doKeymap()', () => {
   it('should not throw when key not mapped', async () => {
     await keymaps.doKeymap('<C-a>', '')
   })
+
+  it('should invoke exists keymap', async () => {
+    let called = false
+    keymaps.registerKeymap(['i', 'n'], 'test-keymap', () => {
+      called = true
+      return 'result'
+    })
+    let res = await keymaps.doKeymap('test-keymap', '')
+    expect(res).toBe('result')
+    expect(called).toBe(true)
+  })
 })
 
 describe('registerKeymap()', () => {

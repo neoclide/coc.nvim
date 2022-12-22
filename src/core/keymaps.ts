@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
 import { createLogger } from '../logger'
-import { Env, KeymapOption } from '../types'
+import { KeymapOption } from '../types'
 import { Disposable } from '../util/protocol'
 import { toBase64 } from '../util/string'
 const logger = createLogger('core-keymaps')
@@ -24,15 +24,13 @@ export function getBufnr(buffer: number | boolean): number {
 export default class Keymaps {
   private readonly keymaps: Map<string, [Function, boolean]> = new Map()
   private nvim: Neovim
-  constructor() {
-  }
 
-  public attach(nvim: Neovim, env: Env): void {
+  public attach(nvim: Neovim): void {
     this.nvim = nvim
   }
 
   public async doKeymap(key: string, defaultReturn: string): Promise<string> {
-    let keymap = this.keymaps.get(key)
+    let keymap = this.keymaps.get(key) ?? this.keymaps.get('coc-' + key)
     if (!keymap) {
       logger.error(`keymap for ${key} not found`)
       return defaultReturn
