@@ -13,7 +13,7 @@ import { Registry } from '../util/registry'
 import { toInteger } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
-import ListConfiguration from './configuration'
+import listConfiguration from './configuration'
 import { DataBase } from './db'
 import History from './history'
 import Mappings from './mappings'
@@ -31,6 +31,7 @@ import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
 import { ConfigurationScope } from '../configuration/types'
+import extensions from '../extension/index'
 const logger = createLogger('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -38,7 +39,6 @@ const winleaveDalay = isVim ? 50 : 0
 
 export class ListManager implements Disposable {
   public prompt: Prompt
-  public config: ListConfiguration
   public mappings: Mappings
   public db: DataBase
   private plugTs = 0
@@ -57,10 +57,9 @@ export class ListManager implements Disposable {
   }
 
   public init(nvim: Neovim): void {
-    this.config = new ListConfiguration()
-    this.prompt = new Prompt(nvim, this.config)
-    this.mappings = new Mappings(this, nvim, this.config)
-    let signText = this.config.get<string>('selectedSignText', '*')
+    this.prompt = new Prompt(nvim)
+    this.mappings = new Mappings(this, nvim)
+    let signText = listConfiguration.get<string>('selectedSignText', '*')
     nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true)
     events.on('InputChar', this.onInputChar, this, this.disposables)
     let debounced = debounce(async () => {
@@ -98,7 +97,7 @@ export class ListManager implements Disposable {
     this.registerList(new SymbolsList(), true)
     this.registerList(new OutlineList(), true)
     this.registerList(new CommandsList(), true)
-    this.registerList(new ExtensionList(), true)
+    this.registerList(new ExtensionList(extensions.manager), true)
     this.registerList(new DiagnosticsList(this), true)
     this.registerList(new SourcesList(), true)
     this.registerList(new ServicesList(), true)
@@ -113,7 +112,7 @@ export class ListManager implements Disposable {
     let curr = this.sessionsMap.get(name)
     if (curr) curr.dispose()
     this.prompt.start(res.options)
-    let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.config, this.db)
+    let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.db)
     this.sessionsMap.set(name, session)
     this.lastSession = session
     try {
@@ -319,7 +318,6 @@ export class ListManager implements Disposable {
         interactive,
         matcher,
         position,
-        smartcase: this.config.smartcase,
         ignorecase: options.includes('ignore-case') ? true : false,
         mode: !options.includes('normal') ? 'insert' : 'normal',
         sort: !options.includes('no-sort') ? true : false

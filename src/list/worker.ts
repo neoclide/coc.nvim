@@ -1,17 +1,18 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { createLogger } from '../logger'
 import { FuzzyMatch } from '../model/fuzzyMatch'
-import { IList, ListContext, ListItem, ListItemsEvent, ListItemWithScore, ListOptions, ListTask } from './types'
 import { parseAnsiHighlights } from '../util/ansiparse'
 import { filter } from '../util/async'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { Mutex } from '../util/mutex'
+import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
 import { bytes, smartcaseIndex } from '../util/string'
 import workspace from '../workspace'
+import listConfiguration from './configuration'
 import Prompt from './prompt'
+import { IList, ListContext, ListItem, ListItemsEvent, ListItemWithScore, ListOptions, ListTask } from './types'
 const logger = createLogger('list-worker')
 const controlCode = '\x1b'
 const WHITE_SPACE_CHARS = [32, 9]
@@ -239,7 +240,8 @@ export default class Worker {
   }
 
   private async filterItemsByInclude(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
-    let { ignorecase, smartcase } = this.listOptions
+    let { ignorecase } = this.listOptions
+    const smartcase = listConfiguration.smartcase
     let inputs = this.toInputs(input)
     if (ignorecase) inputs = inputs.map(s => s.toLowerCase())
     await filter(items, item => {
@@ -297,7 +299,8 @@ export default class Worker {
 
   private async filterItemsByFuzzyMatch(input: string, items: ListItem[], token: CancellationToken, onFilter: OnFilter): Promise<void> {
     let { extendedSearchMode } = this.config
-    let { sort, smartcase } = this.listOptions
+    let { sort } = this.listOptions
+    const smartcase = listConfiguration.smartcase
     let idx = 0
     this.fuzzyMatch.setPattern(input, !extendedSearchMode)
     let codes = getCharCodes(input)

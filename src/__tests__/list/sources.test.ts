@@ -1,25 +1,35 @@
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
 import os from 'os'
-import { CancellationToken, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, Emitter, Location, Range } from 'vscode-languageserver-protocol'
+import { v4 as uuid } from 'uuid'
+import { CancellationToken, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, DocumentSymbol, Emitter, Location, Position, Range, SymbolInformation, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
 import events from '../../events'
+import extensions from '../../extension/index'
+import { ExtensionInfo, ExtensionManager } from '../../extension/manager'
+import { ExtensionStat } from '../../extension/stat'
 import languages from '../../languages'
 import BasicList, { PreviewOptions, toVimFiletype } from '../../list/basic'
 import { fixWidth, formatListItems, formatPath, formatUri, UnformattedListItem } from '../../list/formatting'
 import manager from '../../list/manager'
 import { convertToLabel } from '../../list/source/diagnostics'
+import ExtensionList, { getExtensionPrefix, getExtensionPriority, sortExtensionItem } from '../../list/source/extensions'
+import FolderList from '../../list/source/folders'
 import { mruScore } from '../../list/source/lists'
-import { sortSymbolItems } from '../../list/source/symbols'
-import { ListArgument, ListContext, ListItem } from '../../list/types'
+import OutlineList, { contentToItems, getFilterText, loadCtagsSymbols, symbolsToListItems } from '../../list/source/outline'
+import SymbolsList, { sortSymbolItems } from '../../list/source/symbols'
+import { ListArgument, ListContext, ListItem, ListOptions } from '../../list/types'
 import Document from '../../model/document'
 import services, { IServiceProvider, ServiceStat } from '../../services'
 import { QuickfixItem } from '../../types'
 import { disposeAll } from '../../util'
 import * as extension from '../../util/extensionRegistry'
-import { path } from '../../util/node'
+import { path, which } from '../../util/node'
 import { Registry } from '../../util/registry'
+import window from '../../window'
 import workspace from '../../workspace'
+import Parser from '../handler/parser'
 import helper from '../helper'
 
 let listItems: ListItem[] = []
@@ -56,6 +66,34 @@ class SimpleList extends BasicList {
     return Promise.resolve(['a', 'b', 'c'].map((s, idx) => {
       return { label: s, location: Location.create('test:///a', Range.create(idx, 0, idx + 1, 0)) } as ListItem
     }))
+  }
+}
+
+async function createContext(option: Partial<ListOptions>): Promise<ListContext> {
+  let buffer = await nvim.buffer
+  let window = await nvim.window
+  return {
+    args: [],
+    buffer,
+    cwd: process.cwd(),
+    input: '',
+    listWindow: nvim.createWindow(1002),
+    options: Object.assign({
+      position: 'bottom',
+      reverse: false,
+      input: '',
+      ignorecase: false,
+      smartcase: false,
+      interactive: false,
+      sort: false,
+      mode: 'normal',
+      matcher: 'strict',
+      autoPreview: false,
+      numberSelect: false,
+      noQuit: false,
+      first: false
+    }, option),
+    window
   }
 }
 
@@ -100,55 +138,116 @@ afterEach(async () => {
 })
 
 describe('formatting', () => {
-  describe('formatPath()', () => {
-    it('should format path', () => {
-      expect(formatPath('hidden', 'path')).toBe('')
-      expect(formatPath('full', __filename)).toMatch('sources.test.ts')
-      expect(formatPath('short', __filename)).toMatch('sources.test.ts')
-      expect(formatPath('filename', __filename)).toMatch('sources.test.ts')
-    })
-
-    it('should format uri', () => {
-      let cwd = process.cwd()
-      expect(formatUri('http://www.example.com', cwd)).toMatch('http')
-      expect(formatUri(URI.file(__filename).toString(), cwd)).toMatch('sources')
-      expect(formatUri(URI.file(os.tmpdir()).toString(), cwd)).toMatch(os.tmpdir())
-    })
-
-    it('should fixWidth', () => {
-      expect(fixWidth('a'.repeat(10), 2)).toBe('a.')
-    })
-
-    it('should sort symbols', () => {
-      const assert = (a, b, n) => {
-        expect(sortSymbolItems(a, b)).toBe(n)
-      }
-      assert({ data: { score: 1 } }, { data: { score: 2 } }, 1)
-      assert({ data: { kind: 1 } }, { data: { kind: 2 } }, -1)
-      assert({ data: { file: 'aa' } }, { data: { file: 'b' } }, 1)
-    })
+  it('should format path', () => {
+    expect(formatPath('hidden', 'path')).toBe('')
+    expect(formatPath('full', __filename)).toMatch('sources.test.ts')
+    expect(formatPath('short', __filename)).toMatch('sources.test.ts')
+    expect(formatPath('filename', __filename)).toMatch('sources.test.ts')
   })
 
-  describe('formatListItems', () => {
-    it('should format list items', () => {
-      expect(formatListItems(false, [])).toEqual([])
-      let items: UnformattedListItem[] = [{
-        label: ['a', 'b', 'c']
-      }]
-      expect(formatListItems(false, items)).toEqual([{
-        label: 'a\tb\tc'
-      }])
-      items = [{
-        label: ['a', 'b', 'c']
-      }, {
-        label: ['foo', 'bar', 'go']
-      }]
-      expect(formatListItems(true, items)).toEqual([{
-        label: 'a  \tb  \tc '
-      }, {
-        label: 'foo\tbar\tgo'
-      }])
+  it('should format uri', () => {
+    let cwd = process.cwd()
+    expect(formatUri('http://www.example.com', cwd)).toMatch('http')
+    expect(formatUri(URI.file(__filename).toString(), cwd)).toMatch('sources')
+    expect(formatUri(URI.file(os.tmpdir()).toString(), cwd)).toMatch(os.tmpdir())
+  })
+
+  it('should fixWidth', () => {
+    expect(fixWidth('a'.repeat(10), 2)).toBe('a.')
+  })
+
+  it('should sort symbols', () => {
+    const assert = (a, b, n) => {
+      expect(sortSymbolItems(a, b)).toBe(n)
+    }
+    assert({ data: { score: 1 } }, { data: { score: 2 } }, 1)
+    assert({ data: { kind: 1 } }, { data: { kind: 2 } }, -1)
+    assert({ data: { file: 'aa' } }, { data: { file: 'b' } }, 1)
+  })
+
+  it('should format list items', () => {
+    expect(formatListItems(false, [])).toEqual([])
+    let items: UnformattedListItem[] = [{
+      label: ['a', 'b', 'c']
+    }]
+    expect(formatListItems(false, items)).toEqual([{
+      label: 'a\tb\tc'
+    }])
+    items = [{
+      label: ['a', 'b', 'c']
+    }, {
+      label: ['foo', 'bar', 'go']
+    }]
+    expect(formatListItems(true, items)).toEqual([{
+      label: 'a  \tb  \tc '
+    }, {
+      label: 'foo\tbar\tgo'
+    }])
+  })
+})
+
+describe('Extensions util', () => {
+  it('should sortExtensionItem', () => {
+    expect(sortExtensionItem({ data: { priority: 1 } }, { data: { priority: 0 } })).toBe(-1)
+    expect(sortExtensionItem({ data: { id: 'a' } }, { data: { id: 'b' } })).toBe(1)
+    expect(sortExtensionItem({ data: { id: 'b' } }, { data: { id: 'a' } })).toBe(-1)
+  })
+
+  it('should get extension prefix', () => {
+    expect(getExtensionPrefix('')).toBe('+')
+    expect(getExtensionPrefix('disabled')).toBe('-')
+    expect(getExtensionPrefix('activated')).toBe('*')
+    expect(getExtensionPrefix('unknown')).toBe('?')
+  })
+
+  it('should get extension priority', () => {
+    expect(getExtensionPriority('')).toBe(0)
+    expect(getExtensionPriority('unknown')).toBe(2)
+    expect(getExtensionPriority('activated')).toBe(1)
+    expect(getExtensionPriority('disabled')).toBe(-1)
+  })
+})
+
+describe('Outline util', () => {
+  it('should getFilterText', () => {
+    expect(getFilterText(DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)), 'kind')).toBe('name')
+    expect(getFilterText(DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)), '')).toBe('nameFunction')
+  })
+
+  it('should load items by ctags', async () => {
+    let doc = await workspace.document
+    let spy = jest.spyOn(which, 'sync').mockImplementation(() => {
+      return ''
     })
+    let items = await loadCtagsSymbols(doc, nvim)
+    expect(items).toEqual([])
+    spy.mockRestore()
+    doc = await helper.createDocument(__filename)
+    items = await loadCtagsSymbols(doc, nvim)
+    expect(items.length).toBeGreaterThan(0)
+  })
+
+  it('should convert to list items', async () => {
+    let doc = await workspace.document
+    expect(contentToItems('a\tb\t2\td\n\n', doc).length).toBe(1)
+  })
+
+  it('should convert and filter document symbols', async () => {
+    let symbols = [
+      SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), ''),
+      SymbolInformation.create('child', SymbolKind.Method, Range.create(0, 0, 0, 10), '', 'root'),
+      SymbolInformation.create('child) callback', SymbolKind.Function, Range.create(1, 0, 1, 10), '', 'root')
+    ]
+    let res = symbolsToListItems(symbols, 'lsp:/1', 'function')
+    expect(res).toEqual([])
+    res = symbolsToListItems(symbols, 'lsp:/1', 'method')
+    expect(res.length).toBe(2)
+    let documentSymbols = [
+      DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)),
+      DocumentSymbol.create('name', 'detail', SymbolKind.Method, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)),
+    ]
+    res = symbolsToListItems(documentSymbols, 'lsp:/1', 'function')
+    expect(res.length).toBe(1)
   })
 })
 
@@ -587,17 +686,117 @@ describe('list sources', () => {
 
   describe('extensions', () => {
     it('should load extensions source', async () => {
-      await manager.start(['extensions'])
-      await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      let folder = path.join(os.tmpdir(), uuid())
+      fs.mkdirSync(path.join(folder, 'foo'), { recursive: true })
+      fs.mkdirSync(path.join(folder, 'bar'), { recursive: true })
+      let infos: ExtensionInfo[] = []
+      infos.push({
+        id: 'foo',
+        version: '1.0.0',
+        description: 'foo',
+        root: path.join(folder, 'foo'),
+        exotic: false,
+        state: 'activated',
+        isLocal: false,
+        isLocked: true,
+        packageJSON: { name: 'foo', engines: {} }
+      })
+      infos.push({
+        id: 'bar',
+        version: '1.0.0',
+        description: 'bar',
+        root: path.join(folder, 'bar'),
+        exotic: false,
+        state: 'activated',
+        isLocal: true,
+        isLocked: false,
+        packageJSON: { name: 'bar', engines: {} }
+      })
+      let spy = jest.spyOn(extensions, 'getExtensionStates').mockImplementation(() => {
+        return Promise.resolve(infos)
+      })
+      const doAction = async (name: string, item: any) => {
+        let action = source.actions.find(o => o.name == name)
+        await action.execute(item)
+      }
+      let states = new ExtensionStat(folder)
+      let manager = new ExtensionManager(states, folder)
+      let source = new ExtensionList(manager)
+      let items = await source.loadItems()
+      expect(items.length).toBe(2)
+      items[0].data.state = 'disabled'
+      await doAction('toggle', items[0])
+      await doAction('toggle', items[1])
+      items[1].data.state = 'loaded'
+      await expect(async () => {
+        await doAction('toggle', items[1])
+      }).rejects.toThrow(Error)
+      await doAction('configuration', items[0])
+      let jsonfile = path.join(folder, 'bar/package.json')
+      fs.writeFileSync(jsonfile, '{}', 'utf8')
+      await doAction('configuration', items[1])
+      fs.writeFileSync(jsonfile, '{"contributes": {}}', 'utf8')
+      await doAction('configuration', items[1])
+      await helper.mockFunction('coc#ui#open_url', 0)
+      await doAction('open', items[1])
+      await doAction('disable', items[0])
+      await doAction('disable', items[1])
+      await doAction('enable', items[0])
+      await doAction('enable', items[1])
+      await doAction('lock', items[0])
+      await expect(async () => {
+        await doAction('reload', items[0])
+      }).rejects.toThrow(Error)
+      await doAction('uninstall', items)
+      await doAction('help', items[0])
+      let helpfile = path.join(folder, 'bar/readme.md')
+      fs.writeFileSync(helpfile, '', 'utf8')
+      await doAction('help', items[1])
+      let bufname = await nvim.eval('bufname("%")')
+      expect(bufname).toMatch('readme')
+      source.doHighlight()
+      spy.mockRestore()
     })
   })
 
   describe('folders', () => {
     it('should load folders source', async () => {
-      await manager.start(['folders'])
-      await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      await helper.createDocument(__filename)
+      let uid = uuid()
+      let source = new FolderList()
+      const doAction = async (name: string, item: any) => {
+        let action = source.actions.find(o => o.name == name)
+        await action.execute(item)
+      }
+      let res = await source.loadItems()
+      expect(res.length).toBe(1)
+      await doAction('delete', res[0])
+      expect(workspace.folderPaths.length).toBe(0)
+      let p = doAction('edit', res[0])
+      await helper.waitFor('mode', [], 'c')
+      await nvim.input('<cr>')
+      await p
+      p = doAction('edit', res[0])
+      await helper.waitFor('mode', [], 'c')
+      await nvim.input('<C-u>')
+      await nvim.input('<cr>')
+      await p
+      p = doAction('newfile', res[0])
+      await helper.waitFloat()
+      await helper.wait(30)
+      await nvim.input('<C-u>')
+      await nvim.input('<cr>')
+      await p
+      fs.rmSync(path.join(os.tmpdir(), uid), { recursive: true, force: true })
+      let filepath = path.join(os.tmpdir(), uid, 'bar')
+      let spy = jest.spyOn(window, 'requestInput').mockImplementation(() => {
+        return Promise.resolve(filepath)
+      })
+      await doAction('newfile', res[0])
+      let exists = fs.existsSync(filepath)
+      expect(exists).toBe(true)
+      spy.mockRestore()
+      workspace.reset()
     })
   })
 
@@ -620,10 +819,42 @@ describe('list sources', () => {
   })
 
   describe('outline', () => {
-    it('should load outline source', async () => {
-      await manager.start(['outline'])
-      await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+    it('should load items from provider', async () => {
+      let doc = await workspace.document
+      disposables.push(languages.registerDocumentSymbolProvider([{ language: '*' }], {
+        provideDocumentSymbols: document => {
+          let text = document.getText()
+          let parser = new Parser(text, text.includes('detail'))
+          let res = parser.parse()
+          return Promise.resolve(res)
+        }
+      }))
+      let source = new OutlineList()
+      let context = await createContext({})
+      let res = await source.loadItems(context, CancellationToken.None)
+      expect(res).toEqual([])
+      let code = `class myClass {
+      fun1() {
+      }
+    }`
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), code)])
+      res = await source.loadItems(context, CancellationToken.None)
+      expect(res.length).toBe(2)
+      source.doHighlight()
+    })
+
+    it('should load items by ctags', async () => {
+      helper.updateConfiguration('list.source.outline.ctagsFiletypes', ['vim'])
+      await nvim.command('edit +setl\\ filetype=vim foo')
+      let doc = await workspace.document
+      expect(doc.filetype).toBe('vim')
+      let source = new OutlineList()
+      let context = await createContext({})
+      context.args = ['-kind', 'function']
+      let res = await source.loadItems(context, CancellationToken.None)
+      expect(res).toEqual([])
+      res = await source.loadItems(context, CancellationToken.Cancelled)
+      expect(res).toEqual([])
     })
   })
 
@@ -711,15 +942,85 @@ describe('list sources', () => {
   })
 
   describe('symbols', () => {
+    it('should create list item', () => {
+      let source = new SymbolsList()
+      let symbolItem = SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), '')
+      let item = source.createListItem('', symbolItem, 'kind', './foo')
+      expect(item).toBeDefined()
+      symbolItem.tags = [SymbolTag.Deprecated]
+      item = source.createListItem('', symbolItem, 'kind', './foo')
+      let highlights = item.ansiHighlights
+      let find = highlights.find(o => o.hlGroup == 'CocDeprecatedHighlight')
+      expect(find).toBeDefined()
+      source.fuzzyMatch.setPattern('a')
+      item = source.createListItem('a', symbolItem, 'kind', './foo')
+      expect(item).toBeDefined()
+      source.fuzzyMatch.setPattern('r')
+      item = source.createListItem('r', symbolItem, 'kind', './foo')
+      highlights = item.ansiHighlights
+      find = highlights.find(o => o.hlGroup == 'CocListSearch')
+      expect(find).toBeDefined()
+    })
+
+    it('should resolve item', async () => {
+      let source = new SymbolsList()
+      let res = await source.resolveItem({ label: 'label', data: {} })
+      expect(res).toBeNull()
+      let haveResult = false
+      let disposable = languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols: () => [
+          SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), '')
+        ],
+        resolveWorkspaceSymbol: symbolItem => {
+          symbolItem.location = Location.create('lsp:///1', Range.create(0, 0, 1, 0))
+          return haveResult ? symbolItem : null
+        }
+      })
+      disposables.push(disposable)
+      let symbols = await languages.getWorkspaceSymbols('', CancellationToken.None)
+      res = await source.resolveItem({ label: 'label', data: { original: symbols[0] } })
+      expect(res).toBeNull()
+      haveResult = true
+      res = await source.resolveItem({ label: 'label', data: { original: symbols[0] } })
+      expect(Location.is(res.location)).toBe(true)
+      if (Location.is(res.location)) {
+        expect(res.location.uri).toBe('lsp:///1')
+      }
+    })
+
+    it('should load items', async () => {
+      let source = new SymbolsList()
+      let context = await createContext({ interactive: true })
+      await expect(async () => {
+        await source.loadItems(context, CancellationToken.None)
+      }).rejects.toThrow(Error)
+      disposables.push(languages.registerWorkspaceSymbolProvider({
+        provideWorkspaceSymbols: () => [
+          SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), URI.file(__filename).toString())
+        ]
+      }))
+      let res = await source.loadItems(context, CancellationToken.Cancelled)
+      expect(res).toEqual([])
+      context.args = ['-kind', 'function']
+      res = await source.loadItems(context, CancellationToken.None)
+      expect(res).toEqual([])
+      context.args = []
+      helper.updateConfiguration('list.source.symbols.excludes', ['**/*.ts'])
+      res = await source.loadItems(context, CancellationToken.None)
+      expect(res).toEqual([])
+      helper.updateConfiguration('list.source.symbols.excludes', [])
+      res = await source.loadItems(context, CancellationToken.None)
+      expect(res.length).toBe(1)
+    })
+
     it('should load symbols source', async () => {
       await helper.createDocument()
-      let disposable = languages.registerWorkspaceSymbolProvider({
+      disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => []
-      })
+      }))
       await manager.start(['--interactive', 'symbols'])
       await manager.session?.ui.ready
       expect(manager.isActivated).toBe(true)
-      disposable.dispose()
     })
   })
 

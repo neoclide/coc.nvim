@@ -337,7 +337,7 @@ describe('applyEdits()', () => {
   })
 
   it('should support edit new file with CreateFile', async () => {
-    let file = path.join(os.tmpdir(), 'foo')
+    let file = path.join(os.tmpdir(), uuid())
     let uri = URI.file(file).toString()
     let workspaceEdit: WorkspaceEdit = {
       documentChanges: [

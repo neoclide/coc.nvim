@@ -1,14 +1,14 @@
 'use strict'
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { debounce } from '../util/node'
 import events from '../events'
-import { ListItem, ListItemsEvent, ListOptions } from './types'
 import { HighlightItem } from '../types'
 import { disposeAll, getConditionValue } from '../util'
+import { debounce } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { Sequence } from '../util/sequence'
 import workspace from '../workspace'
-import ListConfiguration from './configuration'
+import listConfiguration from './configuration'
+import { ListItem, ListItemsEvent, ListOptions } from './types'
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
 
@@ -55,10 +55,9 @@ export default class ListUI {
   constructor(
     private nvim: Neovim,
     private name: string,
-    private listOptions: ListOptions,
-    private config: ListConfiguration
+    private listOptions: ListOptions
   ) {
-    this.signOffset = config.get<number>('signOffset')
+    this.signOffset = listConfiguration.get<number>('signOffset')
     this.newTab = listOptions.position == 'tab'
     this.reversed = listOptions.reverse === true
     events.on('BufWinLeave', async bufnr => {
@@ -134,7 +133,7 @@ export default class ListUI {
     return this.window?.id
   }
   private get limitLines(): number {
-    return this.config.get<number>('limitLines', Infinity)
+    return listConfiguration.get<number>('limitLines', Infinity)
   }
 
   private onLineChange(index: number): void {
@@ -322,7 +321,7 @@ export default class ListUI {
   public getHeight(len: number, finished: boolean): number {
     let { listOptions } = this
     if (typeof listOptions.height === 'number') return listOptions.height
-    let height = this.config.get<number>('height', 10)
+    let height = listConfiguration.get<number>('height', 10)
     if (finished && !listOptions.interactive && listOptions.input.length == 0) {
       height = Math.min(len, height)
     }
@@ -340,7 +339,7 @@ export default class ListUI {
       this.height = height
       this.buffer = nvim.createBuffer(bufnr)
       let win = this.window = nvim.createWindow(winid)
-      let statusSegments = this.config.get<string[]>('statusLineSegments')
+      let statusSegments = listConfiguration.get<string[]>('statusLineSegments')
       if (statusSegments) win.setOption('statusline', statusSegments.join(" "), true)
       this._onDidOpen.fire(this.bufnr)
     }
@@ -396,7 +395,7 @@ export default class ListUI {
     }
     buffer.setOption('modifiable', false, true)
     if (reversed && !newTab) {
-      let maxHeight = this.config.get<number>('height', 10)
+      let maxHeight = listConfiguration.get<number>('height', 10)
       nvim.call('coc#window#set_height', [window.id, Math.max(Math.min(maxHeight, this.length), 1)], true)
     }
     if (index > this.items.length - 1) index = 0

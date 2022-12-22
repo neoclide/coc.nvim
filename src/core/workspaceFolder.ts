@@ -46,7 +46,7 @@ interface WorkspaceConfig {
 }
 
 export default class WorkspaceFolderController {
-  private config: WorkspaceConfig
+  public config: WorkspaceConfig
   private _onDidChangeWorkspaceFolders = new Emitter<WorkspaceFoldersChangeEvent>()
   public readonly onDidChangeWorkspaceFolders: Event<WorkspaceFoldersChangeEvent> = this._onDidChangeWorkspaceFolders.event
   // filetype => patterns

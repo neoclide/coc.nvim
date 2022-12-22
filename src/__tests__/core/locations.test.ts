@@ -153,9 +153,7 @@ describe('openResource()', () => {
     let buf = await helper.edit()
     let doc = workspace.getDocument(buf.id)
     await workspace.openResource(doc.uri)
-    await helper.wait(30)
-    let bufnr = await nvim.call('bufnr', '%')
-    expect(bufnr).toBe(buf.id)
+    await helper.waitFor('bufnr', ['%'], buf.id)
   })
 
   it('should open url', async () => {
@@ -163,8 +161,6 @@ describe('openResource()', () => {
     let buf = await helper.edit()
     let uri = 'http://example.com'
     await workspace.openResource(uri)
-    await helper.wait(30)
-    let bufnr = await nvim.call('bufnr', '%')
-    expect(bufnr).toBe(buf.id)
+    await helper.waitFor('bufnr', ['%'], buf.id)
   })
 })

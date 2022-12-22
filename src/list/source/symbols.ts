@@ -2,6 +2,7 @@
 import { Location, Range, SymbolInformation, SymbolTag } from 'vscode-languageserver-types'
 import languages, { ProviderName } from '../../languages'
 import { AnsiHighlight, LocationWithTarget } from '../../types'
+import { toArray } from '../../util/array'
 import { getSymbolKind } from '../../util/convert'
 import { minimatch } from '../../util/node'
 import { CancellationToken, CancellationTokenSource } from '../../util/protocol'
@@ -23,7 +24,7 @@ export default class Symbols extends LocationList {
   public readonly interactive = true
   public readonly description = 'search workspace symbols'
   public readonly detail = 'Symbols list is provided by server, it works on interactive mode only.'
-  private fuzzyMatch = workspace.createFuzzyMatch()
+  public fuzzyMatch = workspace.createFuzzyMatch()
   public name = 'symbols'
   public options = [{
     name: '-k, -kind KIND',
@@ -34,11 +35,12 @@ export default class Symbols extends LocationList {
   public async loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[]> {
     let { input } = context
     let args = this.parseArguments(context.args)
-    let filterKind = args.kind ? (args.kind as string).toLowerCase() : ''
+    let filterKind = args.kind ? args.kind.toString().toLowerCase() : ''
     if (!languages.hasProvider(ProviderName.WorkspaceSymbols, { uri: 'file:///1', languageId: '' })) {
       throw new Error('No workspace symbols provider registered')
     }
     let symbols = await languages.getWorkspaceSymbols(input, token)
+    if (token.isCancellationRequested) return []
     let config = this.getConfig()
     let excludes = config.get<string[]>('excludes', [])
     let items: (ListItem & ItemToSort)[] = []
@@ -60,13 +62,13 @@ export default class Symbols extends LocationList {
     return items
   }
 
-  public async resolveItem(item: ListItem): Promise<ListItem> {
-    let s = item.data.original
-    if (!s) return null
+  public async resolveItem(item: ListItem): Promise<ListItem | null> {
+    let symbolItem = item.data.original
+    if (!symbolItem) return null
     let tokenSource = new CancellationTokenSource()
-    let resolved = await languages.resolveWorkspaceSymbol(s, tokenSource.token)
+    let resolved = await languages.resolveWorkspaceSymbol(symbolItem, tokenSource.token)
     if (!resolved) return null
-    s.location = resolved.location
+    symbolItem.location = resolved.location
     item.location = toTargetLocation(resolved.location)
     return item
   }
@@ -87,7 +89,7 @@ export default class Symbols extends LocationList {
         label += ' '
       }
       ansiHighlights.push({ span: [start, end], hlGroup: highlights[index] })
-      if (index === 0 && item.tags.includes(SymbolTag.Deprecated)) {
+      if (index === 0 && (toArray(item.tags)).includes(SymbolTag.Deprecated)) {
         ansiHighlights.push({ span: [start, end], hlGroup: 'CocDeprecatedHighlight' })
       }
     }
@@ -105,7 +107,11 @@ export default class Symbols extends LocationList {
       ansiHighlights,
       location: toTargetLocation(item.location),
       data: {
-        original: item, input, kind: item.kind, file, score,
+        original: item,
+        input,
+        kind: item.kind,
+        file,
+        score,
       }
     }
   }

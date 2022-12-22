@@ -157,8 +157,7 @@ describe('WorkspaceFolderController', () => {
     it('should resolve to cwd for file in cwd', async () => {
       updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
       let file = path.join(os.tmpdir(), 'foo')
-      await nvim.command(`edit ${file}`)
-      let doc = await workspace.document
+      let doc = await helper.createDocument(file)
       let res = workspaceFolder.resolveRoot(doc, os.tmpdir(), false, expand)
       expect(res).toBe(os.tmpdir())
     })

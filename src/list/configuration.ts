@@ -1,8 +1,8 @@
 'use strict'
-import workspace from '../workspace'
-import window from '../window'
 import { EventEmitter } from 'events'
 import { ConfigurationTarget } from '../configuration/types'
+import window from '../window'
+import workspace from '../workspace'
 
 export const validKeys = [
   '<esc>',
@@ -79,7 +79,7 @@ export const validKeys = [
   '<A-z>',
 ]
 
-export default class ListConfiguration extends EventEmitter {
+export class ListConfiguration extends EventEmitter {
   constructor() {
     super()
     workspace.onDidChangeConfiguration(e => {
@@ -118,3 +118,5 @@ export default class ListConfiguration extends EventEmitter {
     return null
   }
 }
+
+export default new ListConfiguration()

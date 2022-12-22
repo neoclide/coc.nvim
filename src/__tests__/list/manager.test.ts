@@ -133,7 +133,6 @@ describe('list', () => {
       await manager.session?.ui.ready
       let opts = manager.session?.listOptions
       expect(opts).toEqual({
-        smartcase: false,
         reverse: true,
         numberSelect: true,
         autoPreview: true,

@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { v4 as uuid } from 'uuid'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { Location, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -360,7 +361,7 @@ describe('workspace utility', () => {
   })
 
   it('should not findUp from file in other directory', async () => {
-    await nvim.command(`edit ${path.join(os.tmpdir(), 'foo')}`)
+    await nvim.command(`edit ${path.join(os.tmpdir(), uuid())}`)
     let filepath = await workspace.findUp('tsconfig.json')
     expect(filepath).toBeNull()
   })

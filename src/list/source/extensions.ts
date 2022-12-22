@@ -1,29 +1,38 @@
 'use strict'
 import { URI } from 'vscode-uri'
+import { ExtensionManager } from '../../extension/manager'
 import extensions from '../../extension'
-import { ListContext, ListItem } from '../types'
-import { wait } from '../../util'
+import { getConditionValue, wait } from '../../util'
 import { fs, os, path } from '../../util/node'
 import workspace from '../../workspace'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
+import { ListItem } from '../types'
+const delay = getConditionValue(50, 0)
+
+interface ItemToSort {
+  data: {
+    priority?: number,
+    id?: string
+  }
+}
 
 export default class ExtensionList extends BasicList {
   public defaultAction = 'toggle'
   public description = 'manage coc extensions'
   public name = 'extensions'
 
-  constructor() {
+  constructor(private manager: ExtensionManager) {
     super()
     this.addAction('toggle', async item => {
       let { id, state } = item.data
       if (state == 'disabled') return
       if (state == 'activated') {
-        await extensions.manager.deactivate(id)
+        await this.manager.deactivate(id)
       } else {
-        await extensions.manager.activate(id)
+        await this.manager.activate(id)
       }
-      await wait(100)
+      await wait(delay)
     }, { persist: true, reload: true, parallel: true })
 
     this.addAction('configuration', async item => {
@@ -38,38 +47,34 @@ export default class ExtensionList extends BasicList {
 
     this.addAction('open', async item => {
       let { root } = item.data
-      if (workspace.env.isiTerm) {
-        workspace.nvim.call('coc#ui#iterm_open', [root], true)
-      } else {
-        workspace.nvim.call('coc#ui#open_url', [root], true)
-      }
+      workspace.nvim.call('coc#ui#open_url', [root], true)
     })
 
     this.addAction('disable', async item => {
       let { id, state } = item.data
-      if (state !== 'disabled') await extensions.manager.toggleExtension(id)
+      if (state !== 'disabled') await this.manager.toggleExtension(id)
     }, { persist: true, reload: true, parallel: true })
 
     this.addAction('enable', async item => {
       let { id, state } = item.data
-      if (state == 'disabled') await extensions.manager.toggleExtension(id)
+      if (state == 'disabled') await this.manager.toggleExtension(id)
     }, { persist: true, reload: true, parallel: true })
 
     this.addAction('lock', async item => {
       let { id } = item.data
-      extensions.states.setLocked(id, true)
+      this.manager.states.setLocked(id, true)
     }, { persist: true, reload: true })
 
     this.addAction('help', async item => {
       let { root } = item.data
       let files = fs.readdirSync(root, { encoding: 'utf8' })
       let file = files.find(f => /^readme/i.test(f))
-      if (file) await workspace.callAsync('coc#util#jump', ['edit', path.join(root, file)])
+      if (file) await workspace.jumpTo(URI.file(file).toString())
     })
 
     this.addAction('reload', async item => {
       let { id } = item.data
-      await extensions.manager.reloadExtension(id)
+      await this.manager.reloadExtension(id)
     }, { persist: true, reload: true })
 
     this.addMultipleAction('uninstall', async items => {
@@ -78,23 +83,16 @@ export default class ExtensionList extends BasicList {
         if (item.data.isLocal) continue
         ids.push(item.data.id)
       }
-      await extensions.manager.uninstallExtensions(ids)
+      await this.manager.uninstallExtensions(ids)
     })
   }
 
-  public async loadItems(_context: ListContext): Promise<ListItem[]> {
-    let items: UnformattedListItem[] = []
+  public async loadItems(): Promise<ListItem[]> {
+    let items: (UnformattedListItem & ItemToSort)[] = []
     let list = await extensions.getExtensionStates()
     for (let stat of list) {
-      let prefix = '+'
-      if (stat.state == 'disabled') {
-        prefix = '-'
-      } else if (stat.state == 'activated') {
-        prefix = '*'
-      } else if (stat.state == 'unknown') {
-        prefix = '?'
-      }
-      let root = await this.nvim.call('resolve', stat.root) as string
+      let prefix = getExtensionPrefix(stat.state)
+      let root = fs.realpathSync(stat.root)
       let locked = stat.isLocked
       items.push({
         label: [`${prefix} ${stat.id}${locked ? ' ' : ''}`, ...(stat.isLocal ? ['[RTP]'] : []), stat.version, root.replace(os.homedir(), '~')],
@@ -104,16 +102,11 @@ export default class ExtensionList extends BasicList {
           root,
           state: stat.state,
           isLocal: stat.isLocal,
-          priority: getPriority(stat.state)
+          priority: getExtensionPriority(stat.state)
         }
       })
     }
-    items.sort((a, b) => {
-      if (a.data.priority != b.data.priority) {
-        return b.data.priority - a.data.priority
-      }
-      return b.data.id - a.data.id ? 1 : -1
-    })
+    items.sort(sortExtensionItem)
     return formatListItems(this.alignColumns, items)
   }
 
@@ -136,7 +129,26 @@ export default class ExtensionList extends BasicList {
   }
 }
 
-function getPriority(stat: string): number {
+export function sortExtensionItem(a: ItemToSort, b: ItemToSort): number {
+  if (a.data.priority != b.data.priority) {
+    return b.data.priority - a.data.priority
+  }
+  return b.data.id > a.data.id ? 1 : -1
+}
+
+export function getExtensionPrefix(state: string): string {
+  let prefix = '+'
+  if (state == 'disabled') {
+    prefix = '-'
+  } else if (state == 'activated') {
+    prefix = '*'
+  } else if (state == 'unknown') {
+    prefix = '?'
+  }
+  return prefix
+}
+
+export function getExtensionPriority(stat: string): number {
   switch (stat) {
     case 'unknown':
       return 2

@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { EventEmitter } from 'events'
 import { Location, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { WorkspaceConfiguration } from '../configuration/types'
@@ -12,7 +11,7 @@ import { comparePosition, emptyRange } from '../util/position'
 import { CancellationToken, Disposable } from '../util/protocol'
 import workspace from '../workspace'
 import CommandTask, { CommandTaskOption } from './commandTask'
-import ListConfiguration from './configuration'
+import listConfiguration, { ListConfiguration } from './configuration'
 import { IList, ListAction, ListArgument, ListContext, ListItem, ListTask, LocationWithLine, MultipleListAction, SingleListAction } from './types'
 
 interface ActionOptions {
@@ -65,35 +64,35 @@ export default abstract class BasicList implements IList, Disposable {
 
   constructor() {
     this.nvim = workspace.nvim
-    this.config = new ListConfiguration()
+    this.config = listConfiguration
   }
 
   public get alignColumns(): boolean {
-    return this.config.get('alignColumns', false)
+    return listConfiguration.get('alignColumns', false)
   }
 
   protected get floatPreview(): boolean {
-    return this.config.get('floatPreview', false)
+    return listConfiguration.get('floatPreview', false)
   }
 
   protected get hlGroup(): string {
-    return this.config.get('previewHighlightGroup', 'Search')
+    return listConfiguration.get('previewHighlightGroup', 'Search')
   }
 
   protected get previewHeight(): number {
-    return this.config.get('maxPreviewHeight', 12)
+    return listConfiguration.get('maxPreviewHeight', 12)
   }
 
   protected get splitRight(): boolean {
-    return this.config.get('previewSplitRight', false)
+    return listConfiguration.get('previewSplitRight', false)
   }
 
   protected get toplineStyle(): string {
-    return this.config.get('previewToplineStyle', 'offset')
+    return listConfiguration.get('previewToplineStyle', 'offset')
   }
 
   protected get toplineOffset(): number {
-    return this.config.get('previewToplineOffset', 3)
+    return listConfiguration.get('previewToplineOffset', 3)
   }
 
   public parseArguments(args: string[]): { [key: string]: string | boolean } {

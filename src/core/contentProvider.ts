@@ -86,5 +86,6 @@ export default class ContentProvider implements Disposable {
 }
 
 function getAutocmdCommand(scheme: string): string {
-  return `autocmd! coc_dynamic_content BufReadCmd,FileReadCmd,SourceCmd ${scheme}:/* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<afile>')])`
+  let rhs = `call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<afile>')])`
+  return `autocmd! coc_dynamic_content BufReadCmd,FileReadCmd,SourceCmd ${scheme}:/* ${rhs}`
 }

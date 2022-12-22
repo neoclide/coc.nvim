@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { ListMode, ListOptions, Matcher } from './types'
 import { Emitter, Event } from '../util/protocol'
-import ListConfiguration from './configuration'
+import listConfiguration from './configuration'
 
 export default class Prompt {
   private cusorIndex = 0
@@ -11,11 +11,10 @@ export default class Prompt {
   private _mode: ListMode = 'insert'
   private interactive = false
   private requestInput = false
-
   private _onDidChangeInput = new Emitter<string>()
   public readonly onDidChangeInput: Event<string> = this._onDidChangeInput.event
 
-  constructor(private nvim: Neovim, private config: ListConfiguration) {
+  constructor(private nvim: Neovim) {
   }
 
   public get input(): string {
@@ -68,7 +67,7 @@ export default class Prompt {
   }
 
   public drawPrompt(): void {
-    let indicator = this.config.get<string>('indicator', '>')
+    let indicator = listConfiguration.get<string>('indicator', '>')
     let { cusorIndex, interactive, input, _matcher } = this
     let cmds = ['echo ""']
     if (this.mode == 'insert') {

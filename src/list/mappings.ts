@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { ListMode } from './types'
 import window from '../window'
-import ListConfiguration, { validKeys } from './configuration'
+import listConfiguration, { validKeys } from './configuration'
 import { ListManager } from './manager'
 
 export default class Mappings {
@@ -13,8 +13,7 @@ export default class Mappings {
   private actions: Map<string, (expr?: string) => void | Promise<void>> = new Map()
 
   constructor(private manager: ListManager,
-    private nvim: Neovim,
-    private config: ListConfiguration) {
+    private nvim: Neovim) {
     let { prompt } = manager
     this.addAction('do:switch', async () => {
       await manager.switchMatcher()
@@ -174,15 +173,15 @@ export default class Mappings {
     this.addKeyMapping('normal', '?', 'do:help')
     this.addKeyMapping('normal', ':', 'do:command')
     this.createMappings()
-    config.on('change', () => {
+    listConfiguration.on('change', () => {
       this.createMappings()
     })
   }
 
   private createMappings(): void {
-    let insertMappings = this.config.get<any>('insertMappings', {})
+    let insertMappings = listConfiguration.get<any>('insertMappings', {})
     this.userInsertMappings = this.fixUserMappings(insertMappings, 'list.insertMappings')
-    let normalMappings = this.config.get<any>('normalMappings', {})
+    let normalMappings = listConfiguration.get<any>('normalMappings', {})
     this.userNormalMappings = this.fixUserMappings(normalMappings, 'list.normalMappings')
   }
 
@@ -240,8 +239,8 @@ export default class Mappings {
   }
 
   public async doInsertKeymap(key: string): Promise<boolean> {
-    if (key === this.config.nextKey) return await this.navigate(false)
-    if (key === this.config.previousKey) return await this.navigate(true)
+    if (key === listConfiguration.nextKey) return await this.navigate(false)
+    if (key === listConfiguration.previousKey) return await this.navigate(true)
     let expr = this.userInsertMappings.get(key)
     if (expr) {
       let fn = this.getAction(expr)

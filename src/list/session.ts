@@ -8,7 +8,7 @@ import { debounce } from '../util/node'
 import { Disposable } from '../util/protocol'
 import window from '../window'
 import workspace from '../workspace'
-import ListConfiguration from './configuration'
+import listConfiguration from './configuration'
 import { DataBase } from './db'
 import InputHistory from './history'
 import Prompt from './prompt'
@@ -42,16 +42,15 @@ export default class ListSession {
     private list: IList,
     public readonly listOptions: ListOptions,
     private listArgs: string[] = [],
-    private config: ListConfiguration,
     private db: DataBase
   ) {
-    this.ui = new UI(nvim, list.name, listOptions, config)
+    this.ui = new UI(nvim, list.name, listOptions)
     this.history = new InputHistory(prompt, list.name, db, workspace.cwd)
     this.worker = new Worker(nvim, list, prompt, listOptions, {
-      interactiveDebounceTime: config.get<number>('interactiveDebounceTime', 100),
-      extendedSearchMode: config.get<boolean>('extendedSearchMode', true)
+      interactiveDebounceTime: listConfiguration.get<number>('interactiveDebounceTime', 100),
+      extendedSearchMode: listConfiguration.get<boolean>('extendedSearchMode', true)
     })
-    this.interactiveDebounceTime = config.get<number>('interactiveDebounceTime', 100)
+    this.interactiveDebounceTime = listConfiguration.get<number>('interactiveDebounceTime', 100)
     let debouncedChangeLine = debounce(async () => {
       let [previewing, currwin, lnum] = await nvim.eval('[coc#list#has_preview(),win_getid(),line(".")]') as [number, number, number]
       if (previewing && currwin == this.winid) {
@@ -173,7 +172,7 @@ export default class ListSession {
     let shortcuts: Set<string> = new Set()
     let choices: string[] = []
     let invalids: string[] = []
-    let menuAction = workspace.env.dialog && this.config.get('menuAction', false)
+    let menuAction = workspace.env.dialog && listConfiguration.get('menuAction', false)
     for (let name of names) {
       let i = 0
       for (let ch of name) {

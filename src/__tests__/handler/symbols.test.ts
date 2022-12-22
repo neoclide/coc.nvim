@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { Disposable, SymbolInformation, SymbolKind, Range } from 'vscode-languageserver-protocol'
+import { Disposable, SymbolInformation, SymbolKind, Range, CancellationToken } from 'vscode-languageserver-protocol'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
 import workspace from '../../workspace'
@@ -94,6 +94,8 @@ describe('symbols handler', () => {
       let doc = await workspace.document
       let res = languages.getDocumentSymbolMetadata(doc.textDocument)
       expect(res).toBeNull()
+      let symbols = await languages.getDocumentSymbol(doc.textDocument, CancellationToken.None)
+      expect(symbols).toBeNull()
     })
 
     it('should get symbols of current buffer', async () => {

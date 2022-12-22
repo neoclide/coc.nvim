@@ -185,9 +185,7 @@ describe('Installer', () => {
   describe('update()', () => {
     it('should skip install & update for symbolic folder', async () => {
       tmpfolder = path.join(os.tmpdir(), 'foo')
-      if (fs.existsSync(tmpfolder)) {
-        fs.unlinkSync(tmpfolder)
-      }
+      fs.rmSync(tmpfolder, { recursive: true, force: true })
       fs.symlinkSync(__dirname, tmpfolder, 'dir')
       let installer = new Installer(os.tmpdir(), 'npm', 'foo')
       let res = await installer.doInstall({ name: 'foo' })

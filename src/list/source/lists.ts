@@ -1,12 +1,9 @@
 'use strict'
 import Mru from '../../model/mru'
-import { isVim } from '../../util/constants'
 import { toText } from '../../util/string'
 import BasicList from '../basic'
 import { formatListItems, UnformattedListItem } from '../formatting'
 import { IList, ListContext, ListItem } from '../types'
-
-const delay = isVim ? 50 : 0
 
 export default class ListsList extends BasicList {
   public readonly name = 'lists'
@@ -22,7 +19,7 @@ export default class ListsList extends BasicList {
       await this.mru.add(name)
       setTimeout(() => {
         this.nvim.command(`CocList ${name}`, true)
-      }, delay)
+      }, 50)
     })
   }
 
