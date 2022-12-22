@@ -324,6 +324,10 @@ function! coc#ui#change_lines(bufnr, list) abort
 endfunction
 
 function! coc#ui#open_url(url)
+  if isdirectory(a:url) && $TERM_PROGRAM ==# "iTerm.app"
+    call coc#ui#iterm_open(a:url)
+    return
+  endif
   if !empty(get(g:, 'coc_open_url_command', ''))
     call system(g:coc_open_url_command.' '.a:url)
     return
