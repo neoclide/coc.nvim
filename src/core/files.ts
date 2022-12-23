@@ -244,7 +244,7 @@ export default class Files {
     uri = typeof uri === 'string' ? URI.file(uri) : uri
     let doc = this.documents.getDocument(uri.toString())
     if (doc) {
-      await this.jumpTo(uri.toString(), null, 'drop')
+      await this.jumpTo(uri, null, 'drop')
       return doc
     }
     const scheme = uri.scheme
@@ -259,10 +259,10 @@ export default class Files {
     return await this.loadResource(uri.toString())
   }
 
-  public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
+  public async jumpTo(uri: string | URI, position?: Position | null, openCommand?: string): Promise<void> {
     if (!openCommand) openCommand = this.configurations.initialConfiguration.get<string>('coc.preferences.jumpCommand', 'edit')
     let { nvim } = this
-    let u = URI.parse(uri)
+    let u = uri instanceof URI ? uri : URI.parse(uri)
     let doc = this.documents.getDocument(u.with({ fragment: '' }).toString())
     let bufnr = doc ? doc.bufnr : -1
     if (!position && u.scheme === 'file' && u.fragment) {
@@ -286,13 +286,13 @@ export default class Files {
       }
       await nvim.resumeNotification(true)
     } else {
-      let { fsPath, scheme } = URI.parse(uri)
+      let { fsPath, scheme } = u
       let pos = position == null ? null : [position.line, position.character]
       if (scheme == 'file') {
         let bufname = normalizeFilePath(fsPath)
         await this.nvim.call('coc#util#jump', [openCommand, bufname, pos])
       } else {
-        await this.nvim.call('coc#util#jump', [openCommand, uri, pos])
+        await this.nvim.call('coc#util#jump', [openCommand, uri.toString(), pos])
       }
     }
   }
@@ -307,10 +307,8 @@ export default class Files {
       await nvim.call('coc#ui#open_url', uri)
       return
     }
-    let wildignore = await nvim.getOption('wildignore')
-    await nvim.setOption('wildignore', '')
     await this.jumpTo(uri)
-    await nvim.setOption('wildignore', wildignore)
+    await this.documents.document
   }
 
   /**

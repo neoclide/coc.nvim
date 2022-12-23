@@ -8975,7 +8975,7 @@ declare module 'coc.nvim' {
     /**
      * Jump to location.
      */
-    export function jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void>
+    export function jumpTo(uri: string | Uri, position?: Position | null, openCommand?: string): Promise<void>
 
     /**
      * Create a file in vim and disk

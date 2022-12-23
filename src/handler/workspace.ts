@@ -136,8 +136,8 @@ export default class WorkspaceHandler {
     let folder = workspace.getWorkspaceFolder(URI.file(fsPath).toString())
     if (!folder) {
       let c = workspace.initialConfiguration.get<any>('workspace')
-      let patterns = defaultValue(c.rootPatterns, []) as string[]
-      let ignored = defaultValue(c.ignoredFiletypes, []) as string[]
+      let patterns = defaultValue<string[]>(c.rootPatterns, [])
+      let ignored = defaultValue<string[]>(c.ignoredFiletypes, [])
       let msg: string
       if (ignored.includes(filetype)) msg = `Filetype '${filetype}' is ignored for workspace folder resolve.`
       if (!msg) msg = `Can't resolve workspace folder for file '${fsPath}, consider create one of ${patterns.join(', ')} in your project root.'.`
@@ -151,8 +151,7 @@ export default class WorkspaceHandler {
       if (!res) return
       fs.mkdirSync(dir)
     }
-    let filepath = path.join(dir, CONFIG_FILE_NAME)
-    await this.nvim.call('coc#util#open_file', ['edit', filepath])
+    await workspace.jumpTo(URI.file(path.join(dir, CONFIG_FILE_NAME)))
   }
 
   public async renameCurrent(): Promise<void> {

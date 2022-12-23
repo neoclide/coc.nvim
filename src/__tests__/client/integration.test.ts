@@ -51,7 +51,7 @@ describe('SettingMonitor', () => {
     await helper.waitValue(() => {
       return client.state
     }, lsclient.State.Stopped)
-    await helper.wait(20)
+    await helper.wait(50)
     helper.updateConfiguration('html.enabled', true)
     await helper.waitValue(() => {
       return client.state != lsclient.State.Stopped
@@ -75,6 +75,7 @@ describe('global functions', () => {
     let uri = URI.file(__filename)
     await workspace.openResource(uri.toString())
     expect(lsclient.mainGetRootPath()).toBeDefined()
+    await workspace.nvim.command('bd!')
   })
 
   it('should get runtime path', async () => {

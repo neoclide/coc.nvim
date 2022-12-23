@@ -81,7 +81,7 @@ autocmd User CocLocationsChange :call OnLocationsChange()`)
 
 describe('jumpTo()', () => {
   it('should jumpTo position', async () => {
-    let uri = URI.file('/tmp/foo').toString()
+    let uri = URI.file('/tmp/foo')
     await workspace.jumpTo(uri, { line: 1, character: 1 })
     await nvim.command('setl buftype=nofile')
     let buf = await nvim.buffer
@@ -99,6 +99,8 @@ describe('jumpTo()', () => {
     let buf = await nvim.buffer
     let name = await buf.name
     expect(name).toBe(uri)
+    let doc = await workspace.document
+    expect(doc.uri.startsWith('zipfile:/tmp')).toBe(true)
   })
 
   it('should jump without position', async () => {

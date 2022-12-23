@@ -41,7 +41,7 @@ export default class ExtensionList extends BasicList {
       if (fs.existsSync(jsonFile)) {
         let lines = fs.readFileSync(jsonFile, 'utf8').split(/\r?\n/)
         let idx = lines.findIndex(s => s.includes('"contributes"'))
-        await workspace.jumpTo(URI.file(jsonFile).toString(), { line: idx == -1 ? 0 : idx, character: 0 })
+        await workspace.jumpTo(URI.file(jsonFile), { line: idx == -1 ? 0 : idx, character: 0 })
       }
     })
 
@@ -69,7 +69,7 @@ export default class ExtensionList extends BasicList {
       let { root } = item.data
       let files = fs.readdirSync(root, { encoding: 'utf8' })
       let file = files.find(f => /^readme/i.test(f))
-      if (file) await workspace.jumpTo(URI.file(file).toString())
+      if (file) await workspace.jumpTo(URI.file(file))
     })
 
     this.addAction('reload', async item => {

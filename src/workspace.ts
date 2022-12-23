@@ -514,7 +514,7 @@ export class Workspace {
     await this.documentsManager.attach(this.nvim, this._env)
   }
 
-  public jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
+  public jumpTo(uri: string | URI, position?: Position | null, openCommand?: string): Promise<void> {
     return this.files.jumpTo(uri, position, openCommand)
   }
 
