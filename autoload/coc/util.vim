@@ -175,24 +175,27 @@ function! coc#util#jump(cmd, filepath, ...) abort
     silent! normal! m'
   endif
   let path = a:filepath
-  if (has('win32unix'))
+  if has('win32unix')
     let path = substitute(a:filepath, '\v\\', '/', 'g')
   endif
   let file = fnamemodify(path, ":~:.")
-  if a:cmd == 'pedit'
+  if a:cmd ==# 'pedit'
     let extra = empty(get(a:, 1, [])) ? '' : '+'.(a:1[0] + 1)
     exe 'pedit '.extra.' '.fnameescape(file)
     return
-  elseif a:cmd == 'drop' && exists('*bufadd')
+  elseif a:cmd ==# 'drop'
     let dstbuf = bufadd(path)
     let binfo = getbufinfo(dstbuf)
     if len(binfo) == 1 && empty(binfo[0].windows)
-      exec 'buffer '.dstbuf
+      execute 'buffer '.dstbuf
       let &buflisted = 1
     else
-      exec 'drop '.fnameescape(file)
+      let saved = &wildignore
+      set wildignore=
+      execute 'drop '.fnameescape(file)
+      execute 'set wildignore='.saved
     endif
-  elseif a:cmd == 'edit' && bufloaded(file)
+  elseif a:cmd ==# 'edit' && bufloaded(file)
     exe 'b '.bufnr(file)
   else
     call s:safer_open(a:cmd, file)
@@ -227,12 +230,19 @@ function! s:safer_open(cmd, file) abort
     let buf = bufadd(a:file)
     if a:cmd != 'edit'
       " Open split, tab, etc. by a:cmd.
-      exe a:cmd
+      execute a:cmd
     endif
     " Set current buffer to the file
     exe 'keepjumps buffer ' . buf
   else
-    exe a:cmd.' '.fnameescape(a:file)
+    if a:cmd =~# 'drop'
+      let saved = &wildignore
+      set wildignore=
+      execute a:cmd.' '.fnameescape(a:file)
+      execute 'set wildignore='.saved
+    else
+      execute a:cmd.' '.fnameescape(a:file)
+    endif
   endif
 endfunction
 
