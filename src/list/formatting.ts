@@ -3,6 +3,7 @@ import { ListItem } from './types'
 import { path } from '../util/node'
 import { URI } from 'vscode-uri'
 import { isParentFolder } from '../util/fs'
+import { toText } from '../util/string'
 
 export type PathFormatting = "full" | "short" | "filename" | "hidden"
 
@@ -66,6 +67,6 @@ export function formatPath(format: PathFormatting, pathToFormat: string): string
     return [...shortenedInit, segments[segments.length - 1]].join(path.sep)
   } else {
     const segments = pathToFormat.split(path.sep)
-    return segments[segments.length - 1] ?? ""
+    return toText(segments[segments.length - 1])
   }
 }

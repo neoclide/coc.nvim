@@ -9,6 +9,7 @@ import { disposeAll } from '../util'
 import { lineToLocation } from '../util/fs'
 import { comparePosition, emptyRange } from '../util/position'
 import { CancellationToken, Disposable } from '../util/protocol'
+import { toText } from '../util/string'
 import workspace from '../workspace'
 import CommandTask, { CommandTaskOption } from './commandTask'
 import listConfiguration, { ListConfiguration } from './configuration'
@@ -113,7 +114,7 @@ export default abstract class BasicList implements IList, Disposable {
       if (!def) continue
       let value: string | boolean = true
       if (def.hasValue) {
-        value = args[i + 1] || ''
+        value = toText(args[i + 1])
         i = i + 1
       }
       res[def.name] = value

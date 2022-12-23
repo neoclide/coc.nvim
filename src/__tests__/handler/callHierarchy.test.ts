@@ -96,17 +96,17 @@ describe('CallHierarchy', () => {
         }]
       }
     }))
-    let res = await callHierarchy.getIncoming()
+    let res = await helper.doAction('incomingCalls')
     expect(res.length).toBe(1)
     expect(res[0].from.name).toBe('bar')
-    let outgoing = await callHierarchy.getOutgoing()
+    let outgoing = await helper.doAction('outgoingCalls')
     expect(outgoing.length).toBe(1)
     res = await callHierarchy.getIncoming(outgoing[0].to)
     expect(res.length).toBe(1)
   })
 
   it('should show warning when provider does not exist', async () => {
-    await callHierarchy.showCallHierarchyTree('incoming')
+    await helper.doAction('showIncomingCalls')
     let line = await helper.getCmdline()
     expect(line).toMatch('not found')
   })
@@ -376,7 +376,7 @@ describe('CallHierarchy', () => {
         }]
       }
     }))
-    await callHierarchy.showCallHierarchyTree('outgoing')
+    await helper.doAction('showOutgoingCalls')
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual([

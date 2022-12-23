@@ -42,6 +42,10 @@ class OptionList extends BasicList {
     name: '-i, -input INPUT',
     hasValue: true,
     description: 'input'
+  }, {
+    key: 'name',
+    description: '',
+    name: '-name'
   }]
   constructor() {
     super()
@@ -139,6 +143,7 @@ afterEach(async () => {
 
 describe('formatting', () => {
   it('should format path', () => {
+    expect(formatPath('short', 'home')).toMatch('home')
     expect(formatPath('hidden', 'path')).toBe('')
     expect(formatPath('full', __filename)).toMatch('sources.test.ts')
     expect(formatPath('short', __filename)).toMatch('sources.test.ts')
@@ -319,9 +324,11 @@ describe('BasicList', () => {
     beforeAll(() => {
       list = new OptionList()
     })
+
     it('should jump to uri', async () => {
       let uri = URI.file(__filename).toString()
-      await list.jumpTo(uri, 'edit')
+      let ctx = await createContext({ position: 'tab' })
+      await list.jumpTo(uri, null, ctx)
       let bufname = await nvim.call('bufname', ['%'])
       expect(bufname).toMatch('sources.test.ts')
     })
@@ -537,6 +544,7 @@ describe('list sources', () => {
     })
 
     it('should do quickfix action', async () => {
+      await nvim.setVar('coc_quickfix_open_command', 'copen', false)
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.session.ui.selectAll()
@@ -850,7 +858,7 @@ describe('list sources', () => {
       expect(doc.filetype).toBe('vim')
       let source = new OutlineList()
       let context = await createContext({})
-      context.args = ['-kind', 'function']
+      context.args = ['-kind', 'function', '-name', 'name']
       let res = await source.loadItems(context, CancellationToken.None)
       expect(res).toEqual([])
       res = await source.loadItems(context, CancellationToken.Cancelled)

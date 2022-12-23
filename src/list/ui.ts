@@ -3,9 +3,11 @@ import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import events from '../events'
 import { HighlightItem } from '../types'
 import { disposeAll, getConditionValue } from '../util'
+import { toArray } from '../util/array'
 import { debounce } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { Sequence } from '../util/sequence'
+import { toText } from '../util/string'
 import workspace from '../workspace'
 import listConfiguration from './configuration'
 import { ListItem, ListItemsEvent, ListOptions } from './types'
@@ -37,7 +39,6 @@ export default class ListUI {
   private currIndex = 0
   private items: ListItem[] = []
   private disposables: Disposable[] = []
-  private signOffset: number
   private selected: Set<number> = new Set()
   private mouseDown: MousePosition
   private sequence = new Sequence()
@@ -57,7 +58,6 @@ export default class ListUI {
     private name: string,
     private listOptions: ListOptions
   ) {
-    this.signOffset = listConfiguration.get<number>('signOffset')
     this.newTab = listOptions.position == 'tab'
     this.reversed = listOptions.reverse === true
     events.on('BufWinLeave', async bufnr => {
@@ -162,7 +162,7 @@ export default class ListUI {
   public async echoMessage(item: ListItem): Promise<void> {
     let { items } = this
     let idx = items.indexOf(item)
-    let msg = `[${idx + 1}/${items.length}] ${item.label || ''}`
+    let msg = `[${idx + 1}/${items.length}] ${toText(item.label)}`
     this.nvim.callTimer('coc#ui#echo_lines', [[msg]], true)
   }
 
@@ -194,7 +194,7 @@ export default class ListUI {
     let { selectedItems } = this
     if (selectedItems.length) return selectedItems
     let item = await this.item
-    return item == null ? [] : [item]
+    return toArray(item)
   }
 
   public async onMouse(event: MouseEvent): Promise<void> {
@@ -236,7 +236,7 @@ export default class ListUI {
     if (!selected.size || !this.buffer) return
     nvim.pauseNotification()
     for (let lnum of selected) {
-      this.buffer?.placeSign({ lnum, id: this.signOffset + lnum, name: 'CocSelected', group: 'coc-list' })
+      this.buffer.placeSign({ lnum, id: listConfiguration.signOffset + lnum, name: 'CocSelected', group: 'coc-list' })
     }
     nvim.command('redraw', true)
     nvim.resumeNotification(false, true)
@@ -267,8 +267,9 @@ export default class ListUI {
   }
 
   private toggleLine(lnum: number): void {
-    let { selected, buffer, signOffset } = this
+    let { selected, buffer } = this
     let exists = selected.has(lnum)
+    const signOffset = listConfiguration.signOffset
     if (!exists) {
       selected.add(lnum)
       buffer.placeSign({ lnum, id: signOffset + lnum, name: 'CocSelected', group: 'coc-list' })
@@ -279,7 +280,8 @@ export default class ListUI {
   }
 
   public async selectLines(start: number, end: number): Promise<void> {
-    let { nvim, signOffset, buffer, length } = this
+    let { nvim, buffer, length } = this
+    const signOffset = listConfiguration.signOffset
     this.clearSelection()
     let { selected } = this
     nvim.pauseNotification()
@@ -302,8 +304,8 @@ export default class ListUI {
 
   public clearSelection(): void {
     let { selected, buffer } = this
-    if (selected.size > 0) {
-      buffer?.unplaceSign({ group: 'coc-list' })
+    if (buffer && selected.size > 0) {
+      buffer.unplaceSign({ group: 'coc-list' })
       this.selected.clear()
     }
   }
@@ -354,7 +356,7 @@ export default class ListUI {
     this._onDidLineChange.fire()
   }
 
-  private async appendItems(items: ListItem[]): Promise<void> {
+  public async appendItems(items: ListItem[]): Promise<void> {
     if (!this.window || items.length === 0) return
     let curr = this.items.length
     let remain = this.limitLines - curr
@@ -371,7 +373,7 @@ export default class ListUI {
     return true
   }
 
-  private setLines(lines: string[], append: number, index: number): void {
+  public setLines(lines: string[], append: number, index: number): void {
     let { nvim, buffer, window, reversed, newTab } = this
     if (!buffer || !window) return
     nvim.pauseNotification()
@@ -445,7 +447,6 @@ export default class ListUI {
 
   private doHighlight(start: number, end: number): void {
     let { items, reversed, length, buffer } = this
-    if (!buffer) return
     const highlightItems: HighlightItem[] = []
     const iterate = (i: number): void => {
       let lnum = this.indexToLnum(i) - 1
@@ -471,7 +472,7 @@ export default class ListUI {
     if (start > end) {
       [start, end] = [end, start]
     }
-    if (highlightItems.length == 0) return
+    if (!buffer || highlightItems.length == 0) return
     buffer.updateHighlights('list', highlightItems, { start, end: end + 1, priority: 99 })
   }
 

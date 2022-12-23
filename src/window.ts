@@ -106,7 +106,7 @@ export class Window {
    * @param cwd Cwd of terminal, default to result of |getcwd()|.
    */
   public async runTerminalCommand(cmd: string, cwd?: string, keepfocus = false): Promise<TerminalResult> {
-    return await this.terminalManager.runTerminalCommand(this.nvim, cmd || this.workspace.cwd, cwd, keepfocus)
+    return await this.terminalManager.runTerminalCommand(this.nvim, cmd, cwd ?? this.workspace.cwd, keepfocus)
   }
 
   /**

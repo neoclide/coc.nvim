@@ -231,8 +231,8 @@ export default class Mappings {
     return res
   }
 
-  private async navigate(up: boolean): Promise<boolean> {
-    let ui = this.manager?.session.ui
+  public async navigate(up: boolean): Promise<boolean> {
+    let ui = this.manager.session?.ui
     if (!ui) return false
     await ui.moveCursor(up ? -1 : 1)
     return true

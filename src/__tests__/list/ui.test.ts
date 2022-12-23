@@ -98,9 +98,10 @@ describe('list ui', () => {
         }
       }
       disposables.push(manager.registerList(list))
-      await manager.start(['preselect'])
+      await manager.start(['--tab', 'preselect'])
       let ui = manager.session.ui
       await ui.ready
+      ui.restoreWindow()
       let line = await nvim.line
       expect(line).toBe('bar')
     })
@@ -139,8 +140,7 @@ describe('list ui', () => {
       await ui.ready
       await mockMouse(ui.winid, 1)
       await manager.session.onMouseEvent('<2-LeftMouse>')
-      await helper.wait(100)
-      expect(lastItem).toBe('foo')
+      await helper.waitValue(() => lastItem, 'foo')
     })
 
     it('should select clicked line', async () => {
@@ -148,14 +148,18 @@ describe('list ui', () => {
       disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
       let ui = manager.session.ui
+      ui.updateItem(undefined, 0)
+      ui.setLines([], 0, 0)
+      await ui.onMouse('mouseDown')
       await ui.ready
       await mockMouse(ui.winid, 2)
+      await ui.onMouse('mouseDrag')
+      await ui.onMouse('mouseUp')
       await ui.onMouse('mouseDown')
-      await helper.wait(50)
       await mockMouse(ui.winid, 2)
       await ui.onMouse('mouseUp')
-      await helper.wait(50)
       let item = await ui.item
+      await ui.appendItems([])
       expect(item.label).toBe('bar')
     })
 
@@ -262,9 +266,11 @@ describe('reversed list', () => {
       disposables.push(manager.registerList(list))
       void manager.start(['--reverse', '--normal', 'slow'])
     })
+    let ui = manager.session.ui
+    ui.setCursor(99)
     await p
     await helper.wait(50)
-    let ui = manager.session.ui
+    // ui.setCursor(2)
     let buf = nvim.createBuffer(ui.bufnr)
     let lines = await buf.lines
     expect(lines).toEqual(['5', '4', '3', '2', '1'])

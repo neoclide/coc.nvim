@@ -273,7 +273,7 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       floatFactory._onCursorMoved(false, floatFactory.bufnr, [1, 1])
-      await nvim.call('cursor', [1, 2])
+      await nvim.call('cursor', cursor)
       await helper.wait(10)
       await nvim.call('cursor', cursor)
       await helper.wait(10)

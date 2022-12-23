@@ -10,7 +10,7 @@ import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { Disposable } from '../util/protocol'
 import { isVim } from '../util/constants'
-const debounceTime = getConditionValue(100, 20)
+const debounceTime = getConditionValue(100, 10)
 
 export interface WindowConfig {
   width: number

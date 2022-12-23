@@ -132,7 +132,7 @@ export default class Prompt {
 
   public removeNext(): void {
     let { cusorIndex, input } = this
-    if (cusorIndex == input.length - 1) return
+    if (cusorIndex == input.length) return
     let pre = input.slice(0, cusorIndex)
     let post = input.slice(cusorIndex + 1)
     this._input = `${pre}${post}`

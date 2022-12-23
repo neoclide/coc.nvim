@@ -86,9 +86,18 @@ class ServiceManager implements Disposable {
   private readonly registered: Map<string, IServiceProvider> = new Map()
   private disposables: Disposable[] = []
   private pendingNotifications: Map<string, NotificationItem[]> = new Map()
+  /**
+   * @deprecated
+   */
+  public regist
+  /**
+   * @deprecated
+   */
+  public registLanguageClient
 
   constructor() {
-    this.registLanguageClient = this.registerLanguageClient
+    this.registLanguageClient = this.registerLanguageClient.bind(this)
+    this.regist = this.register.bind(this)
   }
 
   public init(): void {
@@ -121,10 +130,6 @@ class ServiceManager implements Disposable {
     let lspConfig = workspace.getConfiguration(undefined, uri)
     let config = lspConfig.inspect('languageserver').workspaceFolderValue
     this.registerClientsByConfig(config as { [key: string]: LanguageServerConfig }, uri)
-  }
-
-  public regist(service: IServiceProvider): Disposable {
-    return this.register(service)
   }
 
   public register(service: IServiceProvider): Disposable {
@@ -246,7 +251,7 @@ class ServiceManager implements Disposable {
     return await Promise.resolve(client.sendRequest(method, params, token))
   }
 
-  public async registerNotification(id: string, method: string): Promise<void> {
+  public registerNotification(id: string, method: string): void {
     let service = this.getService(id)
     if (service && service.client) {
       service.client.onNotification(method, async result => {
@@ -265,10 +270,6 @@ class ServiceManager implements Disposable {
 
   private sendNotificationVim(id: string, method: string, result: any): void {
     workspace.nvim.call('coc#do_notify', [id, method, result], true)
-  }
-
-  public registLanguageClient(name: string | LanguageClient, config?: LanguageServerConfig, folder?: URI): Disposable {
-    return typeof name === 'string' ? this.registerLanguageClient(name, config, folder) : this.registerLanguageClient(name)
   }
 
   public registerLanguageClient(client: LanguageClient): Disposable

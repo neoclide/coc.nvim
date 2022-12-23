@@ -1,16 +1,17 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
+import { ConfigurationScope } from '../configuration/types'
 import events from '../events'
+import extensions from '../extension/index'
 import { createLogger } from '../logger'
-import { IList, ListItem, ListOptions, ListTask, Matcher } from './types'
 import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { dataHome, isVim } from '../util/constants'
 import { parseExtensionName } from '../util/extensionRegistry'
-import { debounce, stripAnsi } from '../util/node'
+import { stripAnsi } from '../util/node'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
 import { Registry } from '../util/registry'
-import { toInteger } from '../util/string'
+import { toErrorText, toInteger } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import listConfiguration from './configuration'
@@ -30,8 +31,7 @@ import OutlineList from './source/outline'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
-import { ConfigurationScope } from '../configuration/types'
-import extensions from '../extension/index'
+import { IList, ListItem, ListOptions, ListTask, Matcher } from './types'
 const logger = createLogger('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -62,30 +62,24 @@ export class ListManager implements Disposable {
     let signText = listConfiguration.get<string>('selectedSignText', '*')
     nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true)
     events.on('InputChar', this.onInputChar, this, this.disposables)
-    let debounced = debounce(async () => {
+    events.on('FocusGained', async () => {
       let session = await this.getCurrentSession()
       if (session) this.prompt.drawPrompt()
-    }, 100)
-    events.on('FocusGained', debounced, null, this.disposables)
+    }, null, this.disposables)
     events.on('WinEnter', winid => {
       let session = this.getSessionByWinid(winid)
       if (session) this.prompt.start(session.listOptions)
     }, null, this.disposables)
     let timer: NodeJS.Timer
     events.on('WinLeave', winid => {
-      if (timer) clearTimeout(timer)
+      clearTimeout(timer)
       let session = this.getSessionByWinid(winid)
       if (session) {
-        setTimeout(() => {
+        timer = setTimeout(() => {
           this.prompt.cancel()
         }, winleaveDalay)
       }
     }, null, this.disposables)
-    this.disposables.push({
-      dispose: () => {
-        debounced.clear()
-      }
-    })
     this.prompt.onDidChangeInput(() => {
       this.session?.onInputChange()
     })
@@ -120,8 +114,7 @@ export class ListManager implements Disposable {
     } catch (e) {
       this.nvim.command(`echo ""`, true)
       this.nvim.call('coc#prompt#stop_prompt', ['list'], true)
-      let msg = e instanceof Error ? e.message : e.toString()
-      void window.showErrorMessage(`Error on "CocList ${name}": ${msg}`)
+      void window.showErrorMessage(`Error on "CocList ${name}": ${toErrorText(e)}`)
       this.nvim.redrawVim()
       logger.error('Error on list start:', e)
     }
@@ -137,7 +130,7 @@ export class ListManager implements Disposable {
     return null
   }
 
-  private async getCurrentSession(): Promise<ListSession | null> {
+  public async getCurrentSession(): Promise<ListSession | null> {
     let { id } = await this.nvim.window
     for (let session of this.sessionsMap.values()) {
       if (session && session.winid == id) {
@@ -326,14 +319,13 @@ export class ListManager implements Disposable {
   }
 
   private async onInputChar(session: string, ch: string, charmod: number): Promise<void> {
-    if (session != 'list') return
+    if (!ch || session != 'list') return
     let { mode } = this.prompt
     let now = Date.now()
     if (ch == '<plug>' || (this.plugTs && now - this.plugTs < 20)) {
       this.plugTs = now
       return
     }
-    if (!ch) return
     if (ch == '<esc>') {
       await this.cancel()
       return
@@ -347,11 +339,11 @@ export class ListManager implements Disposable {
 
   public async onInsertInput(ch: string, charmod?: number): Promise<void> {
     let { session } = this
-    if (!session) return
     if (mouseKeys.includes(ch)) {
       await this.onMouseEvent(ch)
       return
     }
+    if (!session) return
     let n = await session.doNumberSelect(ch)
     if (n) return
     let done = await this.mappings.doInsertKeymap(ch)
@@ -379,7 +371,7 @@ export class ListManager implements Disposable {
   }
 
   private onMouseEvent(key): Promise<void> {
-    if (this.session) return this.session.onMouseEvent(key)
+    return this.session?.onMouseEvent(key)
   }
 
   public async feedkeys(key: string, remap = true): Promise<void> {
@@ -399,7 +391,7 @@ export class ListManager implements Disposable {
     this.prompt.start()
   }
 
-  public async normal(command: string, bang = true): Promise<void> {
+  public async normal(command: string, bang: boolean): Promise<void> {
     let { nvim } = this
     await nvim.call('coc#prompt#stop_prompt', ['list'])
     await nvim.command(`normal${bang ? '!' : ''} ${command}`)
@@ -460,15 +452,15 @@ export class ListManager implements Disposable {
   }
 
   /**
-   * Get items of {name} list, not work with interactive list.
+   * Get items of {name} list
    *
    * @param {string} name
    * @returns {Promise<any>}
    */
-  public async loadItems(name: string): Promise<any> {
+  public async loadItems(name: string): Promise<ListItem[] | undefined> {
     let args = [name]
     let res = this.parseArgs(args)
-    if (!res) return
+    if (!res || !name) return
     let { list, options, listArgs } = res
     let source = new CancellationTokenSource()
     let token = source.token
@@ -483,7 +475,7 @@ export class ListManager implements Disposable {
       listWindow: null
     }, token)
     if (!items || Array.isArray(items)) {
-      return items
+      return items as ListItem[]
     }
     let task = items as ListTask
     let newItems = await new Promise<ListItem[]>((resolve, reject) => {

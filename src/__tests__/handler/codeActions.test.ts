@@ -3,7 +3,7 @@ import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Comma
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import commands from '../../commands'
 import ActionsHandler, { shouldAutoApply } from '../../handler/codeActions'
-import languages from '../../languages'
+import languages, { ProviderName } from '../../languages'
 import { ProviderResult } from '../../provider'
 import { checkAction } from '../../provider/codeActionManager'
 import { disposeAll } from '../../util'
@@ -66,9 +66,11 @@ describe('handler codeActions', () => {
 
     it('should return false when organize import action not found', async () => {
       currActions = []
-      await helper.createDocument()
+      let doc = await helper.createDocument()
+      expect(languages.hasProvider(ProviderName.CodeAction, doc)).toBe(true)
       let res = await codeActions.organizeImport()
       expect(res).toBe(false)
+      expect(languages.hasProvider('undefined' as any, doc)).toBe(false)
     })
 
     it('should perform organize import action', async () => {
@@ -104,7 +106,7 @@ describe('handler codeActions', () => {
     it('should show warning when no action available', async () => {
       await helper.createDocument()
       currActions = []
-      await codeActions.codeActionRange(1, 2, CodeActionKind.QuickFix)
+      await helper.doAction('codeActionRange', 1, 2, CodeActionKind.QuickFix)
       let line = await helper.getCmdline()
       expect(line).toMatch(/No quickfix code action/)
     })

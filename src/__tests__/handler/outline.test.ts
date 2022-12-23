@@ -528,9 +528,9 @@ fun1() {}
   describe('hide()', () => {
     it('should hide outline', async () => {
       await createBuffer('')
-      await symbols.showOutline(1)
-      await helper.wait(50)
-      await symbols.hideOutline()
+      await helper.doAction('showOutline', 1)
+      await helper.wait(10)
+      await helper.doAction('hideOutline')
       let buf = await getOutlineBuffer()
       expect(buf).toBeUndefined()
     })

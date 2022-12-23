@@ -1,13 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
-import manager from '../../list/manager'
-import { parseInput, indexOf } from '../../list/worker'
-import helper from '../helper'
-import { ListContext, ListTask, ListItem } from '../../list/types'
-import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
+import styles from 'ansi-styles'
 import { EventEmitter } from 'events'
-import colors from 'colors/safe'
+import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
+import manager from '../../list/manager'
+import { ListContext, ListItem, ListTask } from '../../list/types'
+import { convertItemLabel, indexOf, parseInput } from '../../list/worker'
 import { disposeAll } from '../../util'
+import helper from '../helper'
 
 let items: ListItem[] = []
 
@@ -38,7 +38,7 @@ class IntervalTaskList extends BasicList {
     let interval = setInterval(() => {
       emitter.emit('data', { label: i.toFixed() })
       i++
-    }, 50)
+    }, 20)
     emitter.dispose = () => {
       clearInterval(interval)
       emitter.emit('end')
@@ -80,7 +80,7 @@ class InteractiveList extends BasicList {
   public interactive = true
   public loadItems(context: ListContext, _token: CancellationToken): Promise<ListItem[]> {
     return Promise.resolve([{
-      label: colors.magenta(context.input || '')
+      label: styles.magenta.open + (context.input || '') + styles.magenta.close
     }])
   }
 }
@@ -124,16 +124,14 @@ afterEach(async () => {
   await helper.reset()
 })
 
-describe('indexOf()', () => {
-  it('should get index', async () => {
+describe('util', () => {
+  it('should get index', () => {
     expect(indexOf('Abc', 'a', true, false)).toBe(0)
     expect(indexOf('Abc', 'A', false, false)).toBe(0)
     expect(indexOf('abc', 'A', false, true)).toBe(0)
   })
-})
 
-describe('parseInput', () => {
-  it('should parse input with space', async () => {
+  it('should parse input with space', () => {
     let res = parseInput('a b')
     expect(res).toEqual(['a', 'b'])
     res = parseInput('a b ')
@@ -142,9 +140,17 @@ describe('parseInput', () => {
     expect(res).toEqual(['ab'])
   })
 
-  it('should parse input with escaped space', async () => {
+  it('should parse input with escaped space', () => {
     let res = parseInput('a\\ b')
     expect(res).toEqual(['a b'])
+  })
+
+  it('should convert item label', () => {
+    expect(convertItemLabel({ label: 'foo\nbar\nx' }).label).toBe('foo')
+    const redOpen = '\x1B[31m'
+    const redClose = '\x1B[39m'
+    let label = redOpen + 'foo' + redClose
+    expect(convertItemLabel({ label }).label).toBe('foo')
   })
 })
 
@@ -153,6 +159,7 @@ describe('list worker', () => {
   it('should work with long running task', async () => {
     disposables.push(manager.registerList(new IntervalTaskList()))
     await manager.start(['task'])
+    await manager.session.worker.drawItems()
     await manager.session.ui.ready
     await helper.waitValue(() => {
       return manager.session?.length > 2
@@ -171,8 +178,16 @@ describe('list worker', () => {
     disposables.push(manager.registerList(new DataList()))
     await manager.start(['data'])
     await manager.session.ui.ready
-    await nvim.input('a')
+    await helper.listInput('a')
     await helper.waitFor('getline', ['.'], 'ade')
+    await manager.cancel()
+  })
+
+  it('should ready with undefined result', async () => {
+    items = undefined
+    disposables.push(manager.registerList(new DataList()))
+    await manager.start(['data'])
+    await manager.session.ui.ready
     await manager.cancel()
   })
 
@@ -182,12 +197,15 @@ describe('list worker', () => {
     await manager.session.ui.ready
     let line = await nvim.call('getline', [1])
     expect(line).toMatch('No results')
+    await manager.cancel()
   })
 
   it('should cancel task by use CancellationToken', async () => {
     disposables.push(manager.registerList(new IntervalTaskList()))
     await manager.start(['task'])
     expect(manager.session?.worker.isLoading).toBe(true)
+    await helper.listInput('1')
+    await helper.wait(50)
     manager.session?.stop()
     expect(manager.session?.worker.isLoading).toBe(false)
   })
@@ -195,7 +213,7 @@ describe('list worker', () => {
   it('should render slow interactive list', async () => {
     disposables.push(manager.registerList(new DelayTask()))
     await manager.start(['delay'])
-    await nvim.input('a')
+    await helper.listInput('a')
     await helper.waitFor('getline', [2], 'abort')
   })
 
@@ -204,12 +222,11 @@ describe('list worker', () => {
     await manager.start(['-I', 'test'])
     await manager.session?.ui.ready
     expect(manager.isActivated).toBe(true)
-    await nvim.input('f')
-    await helper.wait(30)
-    await nvim.input('a')
-    await helper.wait(30)
-    await nvim.input('x')
+    await helper.listInput('f')
+    await helper.listInput('a')
+    await helper.listInput('x')
     await helper.waitFor('getline', ['.'], 'fax')
+    await manager.cancel(true)
   })
 
   it('should not activate on load error', async () => {

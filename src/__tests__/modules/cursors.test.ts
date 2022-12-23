@@ -269,7 +269,7 @@ describe('cursors', () => {
         Range.create(0, 0, 0, 3),
         Range.create(1, 0, 1, 3),
       ]
-      await cursors.addRanges(ranges)
+      await helper.doAction('addRanges', ranges)
       let session = cursors.getSession(doc.bufnr)
       expect(session.validChange(Range.create(0, 0, 1, 0), '')).toBe(false)
       expect(session.validChange(Range.create(0, 0, 2, 0), '\n\n')).toBe(false)

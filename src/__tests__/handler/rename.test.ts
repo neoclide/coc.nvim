@@ -102,7 +102,7 @@ describe('rename handler', () => {
   describe('getWordEdit', () => {
     it('should not throw when provider not found', async () => {
       await helper.edit()
-      let res = await rename.getWordEdit()
+      let res = await helper.doAction('getWordEdit')
       expect(res).toBe(null)
     })
 

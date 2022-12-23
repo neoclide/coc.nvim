@@ -89,12 +89,12 @@ export class ListConfiguration extends EventEmitter {
     })
   }
 
-  public get floatPreview(): boolean {
-    return this.get<boolean>('floatPreview', false)
-  }
-
   public get smartcase(): boolean {
     return this.get<boolean>('smartCase', false)
+  }
+
+  public get signOffset(): number {
+    return this.get<number>('signOffset', 900)
   }
 
   public get<T>(key: string, defaultValue?: T): T {

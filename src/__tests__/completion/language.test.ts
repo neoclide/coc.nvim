@@ -143,6 +143,7 @@ describe('language source', () => {
     })
 
     it('should add detail to preview when no resolve exists', async () => {
+      await helper.createDocument('foo.vim')
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -152,7 +153,7 @@ describe('language source', () => {
           detail: 'bar()'
         }]
       }
-      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', 'vim', provider))
       let mode = await nvim.mode
       if (mode.mode !== 'i') {
         await nvim.input('i')

@@ -156,6 +156,11 @@ export default class Configurations {
     return model
   }
 
+  public getDescription(key: string): string | undefined {
+    let property = allSettings.properties[key]
+    return property ? property.description : undefined
+  }
+
   public getJSONSchema(uri: string): IJSONSchema | undefined {
     if (uri === userSettingsSchemaId) {
       return {

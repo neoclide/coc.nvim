@@ -66,6 +66,7 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.noselect', true)
       expect(typeof Completion).toBe('function')
       await create([{ word: 'foo' }, { word: 'foo' }, { word: 'bar', preselect: true }], true)
+      expect(events.completing).toBe(true)
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'bar')
     })

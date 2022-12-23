@@ -78,6 +78,7 @@ describe('snippet provider', () => {
       await snippetManager.insertSnippet('`!p snip.rv = vim.current.line`', false, Range.create(0, 0, 0, 3), InsertTextMode.asIs, {})
       let line = await nvim.line
       expect(line).toBe('')
+      await helper.doAction('selectCurrentPlaceholder')
     })
 
     it('should not active when insert plain snippet', async () => {

@@ -79,7 +79,7 @@ describe('services', () => {
       w.addWorkspaceFolder(folder, true)
       let s = services.getService('foo')
       expect(s).toBeDefined()
-      await s.start()
+      await s.restart()
       w.removeWorkspaceFolder(folder)
     })
 
@@ -226,6 +226,13 @@ describe('services', () => {
       await services.start(TextDocument.create('file:///2', 'java', 1, ''))
       let s = services.getService('test')
       expect(s.state).toBe(ServiceStat.Running)
+      let code = `call coc#on_notify('test', 'notification', { -> execute('let g:called = 1')})`
+      await nvim.exec(code)
+      await helper.doAction('registerNotification', 'test', 'notification')
+      await client.sendNotification('triggerNotification')
+      await helper.waitValue(() => {
+        return nvim.getVar('called')
+      }, 1)
     })
   })
 

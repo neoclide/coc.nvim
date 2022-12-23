@@ -147,7 +147,7 @@ describe('symbols handler', () => {
             SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), '', 'root')
           ]
         }
-      }))
+      }, { label: 'test' }))
       await helper.createDocument()
       let res = await symbols.getDocumentSymbols()
       expect(res.length).toBe(2)
@@ -277,7 +277,8 @@ describe('symbols handler', () => {
           return res
         }
       }))
-      disposables.push(languages.registerWorkspaceSymbolProvider({
+      let fn: any = languages.registerWorkspaceSymbolProvider.bind(languages)
+      disposables.push(fn('vim', {
         provideWorkspaceSymbols: (_query, _token) => {
           return null
         }

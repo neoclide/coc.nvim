@@ -241,7 +241,7 @@ describe('semanticTokens', () => {
 
     it('should show message when not enabled', async () => {
       await helper.edit('t.txt')
-      await semanticTokens.showHighlightInfo()
+      await helper.doAction('showSemanticHighlightInfo')
       let buf = await nvim.buffer
       let lines = await buf.lines
       expect(lines[2]).toMatch('not enabled for current filetype')

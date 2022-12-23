@@ -3,9 +3,10 @@ import path from 'path'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
-import { QuickfixItem } from '../../types'
 import { IList, ListContext, ListItem } from '../../list/types'
+import { QuickfixItem } from '../../types'
 import { disposeAll } from '../../util/index'
+import listConfiguration, { ListConfiguration } from '../../list/configuration'
 import window from '../../window'
 import helper from '../helper'
 
@@ -99,7 +100,7 @@ afterEach(async () => {
 })
 
 describe('isValidAction()', () => {
-  it('should check invalid action', async () => {
+  it('should check invalid action', () => {
     let mappings = manager.mappings
     expect(mappings.isValidAction('foo')).toBe(false)
     expect(mappings.isValidAction('do:switch')).toBe(true)
@@ -109,12 +110,25 @@ describe('isValidAction()', () => {
 })
 
 describe('User mappings', () => {
+  it('should not throw when session not exists', async () => {
+    let mappings = manager.mappings
+    let res = await mappings.navigate(true)
+    expect(res).toBe(false)
+    res = await mappings.navigate(false)
+    expect(res).toBe(false)
+  })
+
   it('should show warning for invalid key', async () => {
+    expect(ListConfiguration).toBeDefined()
+    expect(listConfiguration.fixKey('<c-a>')).toBe('<C-a>')
+    listConfiguration.fixKey('<a')
+    let msg = await helper.getCmdline()
+    expect(msg).toMatch('not supported')
     let revert = helper.updateConfiguration('list.insertMappings', {
       xy: 'action:tabe',
     })
     await helper.wait(30)
-    let msg = await helper.getCmdline()
+    msg = await helper.getCmdline()
     revert()
     await nvim.command('echo ""')
     expect(msg).toMatch('Invalid configuration')
@@ -545,7 +559,7 @@ describe('list insert mappings', () => {
   it('should select action for visual selected items', async () => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await helper.wait(50)
+    await helper.waitPrompt()
     await nvim.input('V')
     await helper.wait(30)
     await nvim.input('2')
@@ -599,17 +613,30 @@ describe('list insert mappings', () => {
     await helper.listInput('<right>')
     await helper.listInput('c')
     let input = manager.prompt.input
+    let mode = manager.prompt.mode
+    manager.prompt.input = input
+    manager.prompt.mode = mode
+    await helper.listInput('<home>')
+    manager.prompt.removeNext()
+    manager.prompt.removeNext()
+    manager.prompt.removeNext()
+    manager.prompt.removeNext()
     expect(input).toBe('afc')
   })
 
   it('should move cursor by <end> and <home>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
+    await helper.listInput('ff')
     await helper.listInput('<home>')
     await helper.listInput('<end>')
-    await helper.listInput('a')
+    await helper.listInput('<end>')
     let input = manager.prompt.input
-    expect(input).toBe('a')
+    manager.prompt.removeWord()
+    manager.prompt.removeWord()
+    manager.prompt.removeTail()
+    manager.prompt.removeTail()
+    expect(input).toBe('ff')
   })
 
   it('should move cursor by <PageUp> <PageDown> <C-d>', async () => {

@@ -285,7 +285,7 @@ class Events {
             await fn(args)
           } catch (e) {
             let res = shouldIgnore(e)
-            if (!res) logger.error(`Error on event: ${event}`, e instanceof Error ? e.stack : e)
+            if (!res) logger.error(`Error on event: ${event}`, e)
           }
           clearTimeout(timer)
         }
@@ -364,7 +364,7 @@ class Events {
 }
 
 function shouldIgnore(err: any): boolean {
-  if (err instanceof CancellationError || (err instanceof Error && err.message?.includes('transport disconnected'))) return true
+  if (err instanceof CancellationError || (err instanceof Error && err.message.includes('transport disconnected'))) return true
   return false
 }
 

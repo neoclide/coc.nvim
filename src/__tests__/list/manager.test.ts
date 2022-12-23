@@ -1,13 +1,14 @@
 import { Neovim, Window } from '@chemzqm/neovim'
+import EventEmitter from 'events'
 import path from 'path'
-import events from '../../events'
-import manager, { createConfigurationNode } from '../../list/manager'
-import window from '../../window'
-import { QuickfixItem } from '../../types'
-import { IList } from '../../list/types'
-import { toArray } from '../../util/array'
-import helper from '../helper'
 import { Range } from 'vscode-languageserver-types'
+import events from '../../events'
+import manager, { ListManager, createConfigurationNode } from '../../list/manager'
+import { IList } from '../../list/types'
+import { QuickfixItem } from '../../types'
+import { toArray } from '../../util/array'
+import window from '../../window'
+import helper from '../helper'
 
 let nvim: Neovim
 const locations: ReadonlyArray<QuickfixItem> = [{
@@ -101,6 +102,7 @@ describe('list', () => {
     })
 
     it('should do default action for first item', async () => {
+      expect(ListManager).toBeDefined()
       await manager.start(['--normal', '--first', 'location'])
       let filename = path.basename(__filename)
       await helper.waitValue(async () => {
@@ -116,6 +118,7 @@ describe('list', () => {
       await manager.start(['location'])
       await manager.session?.ui.ready
       await helper.waitPrompt()
+      await manager.session?.ui.ready
       await manager.doAction()
       await manager.cancel()
       let bufname = await nvim.eval('expand("%:p")')
@@ -152,16 +155,20 @@ describe('list', () => {
   describe('list configuration', () => {
     it('should change indicator', async () => {
       helper.updateConfiguration('list.indicator', '>>')
+      manager.prompt.input = 'foo'
       await manager.start(['location'])
       await manager.session.ui.ready
       await helper.waitValue(async () => {
         let line = await helper.getCmdline()
         return line.includes('>>')
       }, true)
+      await events.fire('FocusGained', [])
     })
 
     it('should split right for preview window', async () => {
       helper.updateConfiguration('list.previewSplitRight', true)
+      await manager.doAction('preview')
+      await manager.resume()
       let win = await nvim.window
       await manager.start(['location'])
       await manager.session?.ui.ready
@@ -302,13 +309,69 @@ describe('list', () => {
     })
   })
 
+  describe('switchMatcher()', () => {
+    it('should switch matcher', async () => {
+      await manager.switchMatcher()
+      await manager.start(['--normal', 'location'])
+      manager.session.onInputChange()
+      await manager.session.ui.ready
+      const assertMatcher = (value: string) => {
+        expect(manager.session.listOptions.matcher).toBe(value)
+      }
+      await manager.switchMatcher()
+      assertMatcher('strict')
+      await manager.switchMatcher()
+      assertMatcher('regex')
+      await manager.switchMatcher()
+      assertMatcher('fuzzy')
+      await manager.switchMatcher()
+      assertMatcher('strict')
+      manager.session.listOptions.interactive = true
+      await manager.switchMatcher()
+      assertMatcher('strict')
+      await manager.cancel(true)
+    })
+  })
+
   describe('loadItems()', () => {
     it('should load items for list', async () => {
       let res = await manager.loadItems('location')
       expect(res.length).toBeGreaterThan(0)
-        ; (manager as any).lastSession = undefined
+      Object.assign(manager, { lastSession: undefined })
       manager.toggleMode()
       manager.stop()
+      res = await manager.loadItems('')
+      expect(res).toBeUndefined()
+      let error = true
+      manager.registerList({
+        name: 'emitter',
+        actions: [],
+        defaultAction: '',
+        loadItems: () => {
+          let emitter: any = new EventEmitter()
+          emitter.dispose = () => {
+            emitter.removeAllListeners()
+          }
+          if (error) {
+            setTimeout(() => {
+              emitter.emit('error', new Error('error'))
+              emitter.emit('end')
+            }, 2)
+          } else {
+            setTimeout(() => {
+              emitter.emit('data', { label: 'foo' })
+              emitter.emit('end')
+            }, 2)
+          }
+          return emitter
+        }
+      })
+      await expect(async () => {
+        await manager.loadItems('emitter')
+      }).rejects.toThrow(Error)
+      error = false
+      res = await manager.loadItems('emitter')
+      expect(res.length).toBe(1)
     })
   })
 
@@ -319,6 +382,7 @@ describe('list', () => {
       await manager.start(['--number-select', 'location'])
       await manager.session.ui.ready
       await manager.onInsertInput('1')
+      await manager.onInsertInput(String.fromCharCode(129))
       let basename = path.basename(__filename)
       await helper.waitValue(async () => {
         let bufname = await nvim.call('bufname', ['%']) as string
@@ -349,12 +413,16 @@ describe('list', () => {
       manager.parseArgs(['$x', 'location'])
       let msg = await helper.getCmdline()
       expect(msg).toMatch('Invalid list option')
+      manager.parseArgs(['-xyz', 'location'])
+      msg = await helper.getCmdline()
+      expect(msg).toMatch('Invalid option')
     })
 
-    it('should show error for option that does not exist', async () => {
-      manager.parseArgs(['-xyz', 'location'])
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('Invalid option')
+    it('should parse valid arguments', async () => {
+      let res = manager.parseArgs([])
+      expect(res.list.name).toBe('lists')
+      res = manager.parseArgs(['lists', '-foo'])
+      expect(res.listArgs).toEqual(['-foo'])
     })
 
     it('should show error for interactive with list not support interactive', async () => {
@@ -373,6 +441,9 @@ describe('list', () => {
       await manager.resume('location')
       await manager.resume()
       expect(manager.isActivated).toBe(true)
+      await manager.resume('not_exists')
+      let line = await helper.getCmdline()
+      expect(line).toMatch('Can\'t find')
     })
   })
 

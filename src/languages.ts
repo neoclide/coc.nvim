@@ -37,6 +37,7 @@ import { LocationWithTarget, TextDocumentMatch } from './types'
 import { disposeAll, getConditionValue } from './util'
 import * as Is from './util/is'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
+import { toText } from './util/string'
 
 const eventDebounce = getConditionValue(500, 10)
 
@@ -145,7 +146,7 @@ class Languages {
   public registerCompletionItemProvider(
     name: string,
     shortcut: string,
-    selector: DocumentSelector | null,
+    selector: DocumentSelector | string | null,
     provider: CompletionItemProvider,
     triggerCharacters: string[] = [],
     priority?: number,
@@ -336,7 +337,7 @@ class Languages {
   }
 
   public async getWorkspaceSymbols(query: string, token: CancellationToken): Promise<SymbolInformation[]> {
-    return await this.workspaceSymbolsManager.provideWorkspaceSymbols(query ?? '', token)
+    return await this.workspaceSymbolsManager.provideWorkspaceSymbols(toText(query), token)
   }
 
   public async resolveWorkspaceSymbol(symbol: SymbolInformation, token: CancellationToken): Promise<SymbolInformation> {
@@ -569,7 +570,7 @@ class Languages {
       case ProviderName.TypeHierarchy:
         return this.typeHierarchyManager.hasProvider(document)
       default:
-        throw new Error(`Invalid provider name: ${String(id)}`)
+        return false
     }
   }
 }

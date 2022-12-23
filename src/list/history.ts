@@ -4,6 +4,7 @@ import { createLogger } from '../logger'
 import { isFalsyOrEmpty } from '../util/array'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { DataBase } from './db'
+import { toText } from '../util/string'
 const logger = createLogger('list-history')
 
 export default class InputHistory {
@@ -91,7 +92,7 @@ export default class InputHistory {
     } else {
       this._index = _index - 1
     }
-    this.historyInput = this.prompt.input = _filtered[this._index] ?? ''
+    this.historyInput = this.prompt.input = toText(_filtered[this._index])
   }
 
   public next(): void {
@@ -102,6 +103,6 @@ export default class InputHistory {
     } else {
       this._index = _index + 1
     }
-    this.historyInput = this.prompt.input = _filtered[this._index] ?? ''
+    this.historyInput = this.prompt.input = toText(_filtered[this._index])
   }
 }

@@ -35,13 +35,12 @@ afterEach(async () => {
 
 describe('workspace properties', () => {
 
-  it('should have initialized', () => {
-    let { nvim, rootPath, uri, insertMode, workspaceFolder, cwd, documents, textDocuments } = workspace
+  it('should have initialized', async () => {
+    let { nvim, uri, insertMode, workspaceFolder, cwd, documents, textDocuments } = workspace
     expect(insertMode).toBe(false)
     expect(nvim).toBeTruthy()
     expect(documents.length).toBe(1)
     expect(textDocuments.length).toBe(1)
-    expect(rootPath).toBe(process.cwd())
     expect(cwd).toBe(process.cwd())
     let floatSupported = workspace.floatSupported
     expect(floatSupported).toBe(true)
@@ -56,6 +55,8 @@ describe('workspace properties', () => {
     expect(watchmanPath == null || typeof watchmanPath === 'string').toBe(true)
     let folder = workspace.getWorkspaceFolder(uri)
     expect(folder).toBeUndefined()
+    let rootPath = await helper.doAction('currentWorkspacePath')
+    expect(rootPath).toBe(process.cwd())
   })
 
   it('should get filetyps', async () => {
@@ -64,6 +65,10 @@ describe('workspace properties', () => {
     expect(filetypes.has('javascript')).toBe(true)
     let languageIds = workspace.languageIds
     expect(languageIds.has('javascript')).toBe(true)
+  })
+
+  it('should get display width', () => {
+    expect(workspace.getDisplayWidth('a')).toBe(1)
   })
 
   it('should get channelNames', async () => {

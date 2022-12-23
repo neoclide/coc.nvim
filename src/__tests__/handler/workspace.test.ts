@@ -240,7 +240,7 @@ describe('Workspace handler', () => {
       await nvim.command('nmap do <Plug>(coc-test)')
       disposables.push(workspace.registerKeymap(['n'], 'test', () => {
         called = true
-      }, { repeat: true, silent: true, sync: false }))
+      }))
       await helper.waitValue(async () => {
         let res = await nvim.call('maparg', ['<Plug>(coc-test)', 'n']) as string
         return res.length > 0

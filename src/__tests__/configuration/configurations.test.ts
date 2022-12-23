@@ -154,6 +154,14 @@ describe('Configurations', () => {
     })
   })
 
+  describe('getDescription()', () => {
+    it('should get description', () => {
+      let userConfigFile = path.join(__dirname, '.vim/coc-settings.json')
+      let conf = new Configurations(userConfigFile, undefined)
+      expect(conf.getDescription('not_exists_key')).toBeUndefined()
+    })
+  })
+
   describe('addFolderFile()', () => {
     it('should not add invalid folder from cwd', async () => {
       let userConfigFile = path.join(__dirname, '.vim/coc-settings.json')

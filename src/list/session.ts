@@ -3,7 +3,7 @@ import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import extensions from '../extension'
 import Highlighter from '../model/highligher'
 import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from './types'
-import { disposeAll, wait } from '../util'
+import { defaultValue, disposeAll, wait } from '../util'
 import { debounce } from '../util/node'
 import { Disposable } from '../util/protocol'
 import window from '../window'
@@ -41,7 +41,7 @@ export default class ListSession {
     private prompt: Prompt,
     private list: IList,
     public readonly listOptions: ListOptions,
-    private listArgs: string[] = [],
+    private listArgs: string[],
     private db: DataBase
   ) {
     this.ui = new UI(nvim, list.name, listOptions)
@@ -371,27 +371,12 @@ export default class ListSession {
     if (Object.keys(config).length) {
       highligher.addLine('CONFIGURATIONS', 'Label')
       highligher.addLine('')
-      let props = {}
-      extensions.all.forEach(extension => {
-        let { packageJSON } = extension
-        let { contributes } = packageJSON
-        if (!contributes) return
-        let { configuration } = contributes
-        if (configuration) {
-          let { properties } = configuration
-          if (properties) {
-            for (let key of Object.keys(properties)) {
-              props[key] = properties[key]
-            }
-          }
-        }
-      })
       for (let key of Object.keys(config)) {
         let val = config[key]
         let name = `list.source.${list.name}.${key}`
-        let description = props[name] && props[name].description ? props[name].description : key
+        let description = defaultValue(workspace.configurations.getDescription(name), key)
         highligher.addLine(`  "${name}"`, 'MoreMsg')
-        highligher.addText(` - ${description}, current value: `)
+        highligher.addText(` - ${description} current value: `)
         highligher.addText(JSON.stringify(val), 'Special')
       }
       highligher.addLine('')
@@ -509,40 +494,36 @@ export default class ListSession {
     let persistAction = action.persist === true || action.name == 'preview'
     if (position === 'tab' && action.tabPersist) persistAction = true
     let persist = this.winid && (persistAction || noQuit)
-    try {
-      if (persist) {
-        if (!persistAction) {
-          nvim.pauseNotification()
-          nvim.call('coc#prompt#stop_prompt', ['list'], true)
-          nvim.call('win_gotoid', [this.context.window.id], true)
-          await nvim.resumeNotification()
-        }
-      } else {
-        await this.hide()
+    if (persist) {
+      if (!persistAction) {
+        nvim.pauseNotification()
+        nvim.call('coc#prompt#stop_prompt', ['list'], true)
+        nvim.call('win_gotoid', [this.context.window.id], true)
+        await nvim.resumeNotification()
       }
-      if (action.multiple) {
-        await Promise.resolve(action.execute(items, this.context))
-      } else if (action.parallel) {
-        await Promise.all(items.map(item => Promise.resolve(action.execute(item, this.context))))
-      } else {
-        for (let item of items) {
-          await Promise.resolve(action.execute(item, this.context))
-        }
+    } else {
+      await this.hide()
+    }
+    if (action.multiple) {
+      await Promise.resolve(action.execute(items, this.context))
+    } else if (action.parallel) {
+      await Promise.all(items.map(item => Promise.resolve(action.execute(item, this.context))))
+    } else {
+      for (let item of items) {
+        await Promise.resolve(action.execute(item, this.context))
       }
-      if (persist) this.ui.restoreWindow()
-      if (action.reload && persist) {
-        await this.reloadItems()
-      } else if (persist) {
-        this.nvim.command('redraw', true)
-      }
-    } catch (e) {
-      this.nvim.echoError(e)
+    }
+    if (persist) this.ui.restoreWindow()
+    if (action.reload && persist) {
+      await this.reloadItems()
+    } else if (persist) {
+      this.nvim.command('redraw', true)
     }
   }
 
   public onInputChange(): void {
     if (this.timer) clearTimeout(this.timer)
-    this.ui?.cancel()
+    this.ui.cancel()
     this.history.filter()
     this.listOptions.input = this.prompt.input
     // reload or filter items

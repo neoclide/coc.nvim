@@ -4,11 +4,10 @@ import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-pr
 import { URI } from 'vscode-uri'
 import events from '../../events'
 import Notification, { toButtons, toTitles } from '../../model/notification'
-import { toPickerItems } from '../../model/picker'
 import { formatMessage } from '../../model/progress'
 import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { disposeAll } from '../../util'
-import window from '../../window'
+import window, { Window } from '../../window'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
 
@@ -37,7 +36,8 @@ afterEach(async () => {
 
 describe('window', () => {
   describe('functions', () => {
-    it('should formatMessage', async () => {
+    it('should formatMessage', () => {
+      expect(Window).toBeDefined()
       expect(formatMessage('a', 'b', 1)).toBe('a b 1%')
       expect(formatMessage(undefined, undefined, 1)).toBe('1%')
       expect(formatMessage('a', undefined, 0)).toBe('a')
@@ -72,6 +72,8 @@ describe('window', () => {
 
     it('should run terminal command', async () => {
       let res = await window.runTerminalCommand('ls', __dirname)
+      expect(res.success).toBe(true)
+      res = await window.runTerminalCommand('echo 1')
       expect(res.success).toBe(true)
     })
 
@@ -270,6 +272,7 @@ describe('window', () => {
     })
 
     it('should show messages', async () => {
+      window.showMessage('more')
       window.showMessage('error', 'error')
       window.showMessage('warning', 'warning')
       window.showMessage('moremsg', 'more')
