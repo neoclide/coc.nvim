@@ -67,6 +67,7 @@ export default class ContentProvider implements Disposable {
           end: -1,
           strictIndexing: false
         })
+        this.nvim.command(`if &filetype ==# '' | filetype detect | endif`, true)
       }, null, disposables)
     }
     this.nvim.command(getAutocmdCommand(scheme), true)
