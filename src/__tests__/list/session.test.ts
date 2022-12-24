@@ -98,6 +98,10 @@ describe('list session', () => {
       await manager.doAction('multiple')
       expect(lastItems.length).toBe(3)
       lastItems = undefined
+      await manager.doAction('not_exists')
+      let line = await helper.getCmdline()
+      console.log(line)
+      expect(line).toMatch('not found')
     })
 
     it('should invoke parallel action', async () => {

@@ -181,7 +181,7 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
       if (!pre) continue
       let next = parsedLines[i + 1]
       // Skip empty line when next is code block or hr or header
-      if (!next || next.startsWith(DOTS) || next.startsWith(DIVIDE_CHARACTER) || next.startsWith(HEADER_PREFIX)) continue
+      if (!next || next.startsWith(DOTS) || next.startsWith(DIVIDE_CHARACTER)) continue
       lines.push(line)
       currline++
       continue
