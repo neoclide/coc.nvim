@@ -35,7 +35,16 @@ if (global.__isMain) {
   })
   process.on('unhandledRejection', function(reason, p) {
     if (reason instanceof Error) {
-      console.error('UnhandledRejection: ' + reason.message + '\\n' + reason.stack)
+      if (typeof reason.code === 'number') {
+        let msg = 'Unhandled response error ' + reason.code + ' from language server: ' + reason.message
+        if (reason.data != null) {
+          console.error(msg, reason.data)
+        } else {
+          console.error(msg)
+        }
+      } else {
+        console.error('UnhandledRejection: ' + reason.message + '\\n' + reason.stack)
+      }
     } else {
       console.error('UnhandledRejection: ' + reason)
     }
