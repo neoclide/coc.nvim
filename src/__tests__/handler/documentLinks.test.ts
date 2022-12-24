@@ -42,7 +42,7 @@ describe('Links', () => {
         ]
       }
     }))
-    let res = await links.getLinks()
+    let res = await helper.doAction('links')
     expect(res.length).toBe(2)
   })
 
@@ -160,7 +160,7 @@ describe('Links', () => {
         return link
       }
     }))
-    await links.openCurrentLink()
+    await helper.doAction('openLink')
     let bufname = await nvim.call('bufname', '%')
     expect(bufname).toBe('test:///foo')
     await nvim.call('setline', [1, ['a', 'b', 'c']])

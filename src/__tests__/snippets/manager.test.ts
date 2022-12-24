@@ -132,7 +132,7 @@ describe('snippet provider', () => {
   describe('nextPlaceholder()', () => {
     it('should goto next placeholder', async () => {
       await snippetManager.insertSnippet('${1:a} ${2:b}')
-      await snippetManager.nextPlaceholder()
+      await helper.doAction('snippetNext')
       let col = await nvim.call('col', '.')
       expect(col).toBe(3)
     })
@@ -161,7 +161,7 @@ describe('snippet provider', () => {
     it('should goto previous placeholder', async () => {
       await snippetManager.insertSnippet('${1:a} ${2:b}')
       await snippetManager.nextPlaceholder()
-      await snippetManager.previousPlaceholder()
+      await helper.doAction('snippetPrev')
       let col = await nvim.call('col', '.')
       expect(col).toBe(1)
     })
@@ -178,7 +178,7 @@ describe('snippet provider', () => {
     it('should cancel snippet session', async () => {
       let buffer = doc.buffer
       await nvim.call('coc#snippet#enable')
-      snippetManager.cancel()
+      await helper.doAction('snippetCancel')
       let val = await buffer.getVar('coc_snippet_active')
       expect(val).toBe(0)
       let active = await snippetManager.insertSnippet('${1:foo}')

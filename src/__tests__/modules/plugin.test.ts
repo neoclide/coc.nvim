@@ -27,6 +27,12 @@ describe('Plugin', () => {
     expect(plugin.hasAction('NOT_EXISTS')).toBe(false)
     expect(plugin.hasAction('rename')).toBe(true)
   })
+
+  it('should throw when action exists', () => {
+    expect(() => {
+      plugin.addAction('rename', () => {})
+    }).toThrow(Error)
+  })
 })
 
 describe('exports', () => {

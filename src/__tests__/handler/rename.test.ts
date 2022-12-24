@@ -136,13 +136,9 @@ describe('rename handler', () => {
   describe('rename', () => {
     it('should throw when provider not found', async () => {
       await helper.edit()
-      let err
-      try {
-        await rename.rename('foo')
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await expect(async () => {
+        await helper.doAction('rename', 'foo')
+      }).rejects.toThrow(Error)
     })
 
     it('should return false for invalid position', async () => {

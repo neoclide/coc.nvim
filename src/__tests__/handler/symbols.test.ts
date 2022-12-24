@@ -285,7 +285,7 @@ describe('symbols handler', () => {
       }))
       let res = await symbols.getWorkspaceSymbols('a')
       expect(res.length).toBe(1)
-      let resolved = await symbols.resolveWorkspaceSymbol(res[0])
+      let resolved = await helper.doAction('resolveWorkspaceSymbol', res[0])
       expect(resolved?.location?.uri).toBe('test:///foo')
     })
 
@@ -295,7 +295,7 @@ describe('symbols handler', () => {
           return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0), '')]
         }
       }))
-      let res = await symbols.getWorkspaceSymbols('a')
+      let res = await helper.doAction('getWorkspaceSymbols')
       let resolved = await symbols.resolveWorkspaceSymbol(res[0])
       expect(resolved).toBeDefined()
     })

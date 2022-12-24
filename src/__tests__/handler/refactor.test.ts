@@ -548,7 +548,7 @@ bar
       await nvim.resumeNotification()
       let doc = workspace.getDocument(buf.bufnr)
       await doc.synchronize()
-      let res = await refactor.save(buf.buffer.id)
+      let res = await helper.doAction('saveRefactor', doc.bufnr)
       expect(res).toBe(true)
       expect(getRanges()).toEqual([[0, 2], [3, 4]])
       let content = fs.readFileSync(filename, 'utf8')
@@ -617,7 +617,7 @@ bar
           return null
         }
       })
-      await refactor.doRefactor()
+      await helper.doAction('refactor')
       let res = await helper.getCmdline()
       expect(res).toMatch(/Error/)
     })

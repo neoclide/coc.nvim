@@ -68,7 +68,7 @@ describe('handler codeActions', () => {
       currActions = []
       let doc = await helper.createDocument()
       expect(languages.hasProvider(ProviderName.CodeAction, doc)).toBe(true)
-      let res = await codeActions.organizeImport()
+      let res = await helper.doAction('organizeImport')
       expect(res).toBe(false)
       expect(languages.hasProvider('undefined' as any, doc)).toBe(false)
     })
@@ -203,6 +203,7 @@ describe('handler codeActions', () => {
       let res = await codeActions.getCodeActions(doc, undefined, [CodeActionKind.Source])
       expect(res.length).toBe(1)
       expect(res[0].kind).toBe(CodeActionKind.SourceFixAll)
+      await helper.doAction('fixAll')
     })
   })
 
@@ -224,7 +225,7 @@ describe('handler codeActions', () => {
     it('should get codeActions by line', async () => {
       currActions = []
       await helper.createDocument()
-      let res = await codeActions.getCurrentCodeActions('line')
+      let res = await helper.doAction('codeActions', 'line')
       expect(range).toEqual(Range.create(0, 0, 1, 0))
       expect(res.length).toBe(3)
     })
@@ -253,13 +254,7 @@ describe('handler codeActions', () => {
     it('should not throw when no action exists', async () => {
       currActions = []
       await helper.createDocument()
-      let err
-      try {
-        await codeActions.doCodeAction(undefined)
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeUndefined()
+      await helper.doAction('codeAction', undefined)
     })
 
     it('should apply single code action when only is title', async () => {
@@ -389,7 +384,7 @@ describe('handler codeActions', () => {
     it('should show message when quickfix action does not exist', async () => {
       currActions = []
       await helper.createDocument()
-      await codeActions.doQuickfix()
+      await helper.doAction('doQuickfix')
       let msg = await helper.getCmdline()
       expect(msg).toMatch('No quickfix')
     })
@@ -418,7 +413,7 @@ describe('handler codeActions', () => {
       action.isPreferred = true
       currActions = [action]
       resolvedAction = Object.assign({ edit }, action)
-      let arr = await codeActions.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
+      let arr = await helper.doAction('quickfixes', 'line')
       await commands.executeCommand('editor.action.doCodeAction', arr[0])
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['bar'])
@@ -427,13 +422,9 @@ describe('handler codeActions', () => {
     it('should throw for disabled action', async () => {
       let action: any = CodeAction.create('my action', CodeActionKind.Empty)
       action.disabled = { reason: 'disabled', providerId: 'x' }
-      let err
-      try {
-        await codeActions.applyCodeAction(action)
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await expect(async () => {
+        await helper.doAction('doCodeAction', action)
+      }).rejects.toThrow(Error)
     })
 
     it('should invoke registered command after apply edit', async () => {

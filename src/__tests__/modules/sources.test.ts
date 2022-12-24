@@ -1,9 +1,9 @@
-import { Disposable } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import events from '../../events'
+import { Disposable } from 'vscode-languageserver-protocol'
 import sources from '../../completion/sources'
 import { ISource, SourceType } from '../../completion/types'
+import events from '../../events'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -105,13 +105,13 @@ describe('sources', () => {
     expect(names.includes('bar')).toBe(true)
   })
 
-  it('should return source states', () => {
-    let stats = sources.sourceStats()
+  it('should return source states', async () => {
+    let stats = await helper.doAction('sourceStat')
     expect(stats.length > 1).toBe(true)
   })
 
-  it('should toggle source state', () => {
-    sources.toggleSource('around')
+  it('should toggle source state', async () => {
+    await helper.doAction('toggleSource', 'around')
     let s = sources.getSource('around')
     expect(s.enable).toBe(false)
     sources.toggleSource('around')
@@ -142,7 +142,7 @@ describe('sources#refresh', () => {
       refresh: fn
     }
     disposables.push(sources.addSource(source))
-    await sources.refresh('refresh')
+    await helper.doAction('refreshSource', 'refresh')
     expect(fn).toBeCalled()
   })
 

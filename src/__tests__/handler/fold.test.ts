@@ -41,7 +41,7 @@ describe('Folds', () => {
         return []
       }
     }))
-    let res = await folds.fold()
+    let res = await helper.doAction('fold')
     expect(res).toBe(false)
   })
 

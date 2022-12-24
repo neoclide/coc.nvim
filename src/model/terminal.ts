@@ -82,9 +82,8 @@ export class TerminalModel {
   public async show(preserveFocus?: boolean): Promise<boolean> {
     let { bufnr, nvim } = this
     if (!bufnr) return false
-    let [loaded, curr] = await nvim.eval(`[bufloaded(${bufnr}),win_getid()]`) as [number, number]
+    let [loaded, curr, winids] = await nvim.eval(`[bufloaded(${bufnr}),win_getid(),win_findbuf(${bufnr})]`) as [number, number, number[]]
     if (!loaded) return false
-    let winids = await nvim.call('win_findbuf', [bufnr]) as [number, number]
     let winid = winids[0]
     if (winid && curr == winid) return true
     nvim.pauseNotification()

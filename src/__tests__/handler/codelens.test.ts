@@ -62,6 +62,13 @@ describe('codeLenes featrue', () => {
     expect(getTextAlign('right_align')).toBe('right')
   })
 
+  it('should not throw when srcId not exists', async () => {
+    let doc = await workspace.document
+    let item = codeLens.buffers.getItem(doc.bufnr)
+    item.clear()
+    await item.doAction(0)
+  })
+
   it('should invoke codeLenes action', async () => {
     let fn = jest.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {

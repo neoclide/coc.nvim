@@ -147,6 +147,6 @@ export default class CodeActions {
 
 export function shouldAutoApply(only: CodeActionKind[] | string | undefined): boolean {
   if (!only) return false
-  if (typeof only === 'string' || only[0] === CodeActionKind.QuickFix) return true
+  if (typeof only === 'string' || only[0] === CodeActionKind.QuickFix || only[0] === CodeActionKind.SourceFixAll) return true
   return false
 }

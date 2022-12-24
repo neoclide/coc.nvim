@@ -31,13 +31,9 @@ describe('selectionRange', () => {
     it('should throw error when selectionRange provider does not exist', async () => {
       let doc = await helper.createDocument()
       await doc.synchronize()
-      let err
-      try {
-        await selection.getSelectionRanges()
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      await expect(async () => {
+        await helper.doAction('selectionRanges')
+      }).rejects.toThrow(Error)
     })
 
     it('should return ranges', async () => {
@@ -85,7 +81,7 @@ describe('selectionRange', () => {
         }
       }))
       await doc.synchronize()
-      await selection.selectRange('', false)
+      await helper.doAction('rangeSelect', '', false)
       await selection.selectRange('', true)
       expect(called).toBe(1)
       let res = await getSelectedRange()

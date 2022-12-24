@@ -70,7 +70,7 @@ describe('diagnostic manager', () => {
   describe('setLocationlist()', () => {
     it('should set location list', async () => {
       let doc = await createDocument()
-      await manager.setLocationlist(doc.bufnr)
+      await helper.doAction('fillDiagnostics', doc.bufnr)
       let res = await nvim.call('getloclist', [doc.bufnr]) as any[]
       expect(res.length).toBeGreaterThan(2)
       helper.updateConfiguration('diagnostic.locationlistLevel', 'error')
@@ -181,7 +181,7 @@ describe('diagnostic manager', () => {
     it('should toggle diagnostics for all buffer', async () => {
       await createDocument()
       let doc = await createDocument()
-      await manager.toggleDiagnostic()
+      await helper.doAction('diagnosticToggle')
       let item = manager.getItem(doc.bufnr)
       expect(item.config.enable).toBe(false)
       await manager.toggleDiagnostic(1)
@@ -201,7 +201,7 @@ describe('diagnostic manager', () => {
       diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 3), DiagnosticSeverity.Warning))
       collection.set(doc.uri, diagnostics)
       collection.set('file:///1', [])
-      let list = await manager.getDiagnosticList()
+      let list = await helper.doAction('diagnosticList')
       expect(list).toBeDefined()
       expect(list.length).toBeGreaterThanOrEqual(5)
       expect(list[0].severity).toBe('Error')
@@ -243,7 +243,7 @@ describe('diagnostic manager', () => {
 
   describe('preview()', () => {
     it('should not throw with empty diagnostics', async () => {
-      await manager.preview()
+      await helper.doAction('diagnosticPreview')
       let tabpage = await nvim.tabpage
       let wins = await tabpage.windows
       expect(wins.length).toBe(1)
@@ -322,7 +322,7 @@ describe('diagnostic manager', () => {
     it('should get undefined when buffer not attached', async () => {
       await nvim.command(`edit +setl\\ buftype=nofile tmp`)
       let res = await manager.getCurrentDiagnostics()
-      await manager.echoCurrentMessage()
+      await helper.doAction('diagnosticInfo')
       expect(res).toBeUndefined()
     })
 
@@ -466,7 +466,7 @@ describe('diagnostic manager', () => {
         let pos = await window.getCursorPosition()
         expect(pos).toEqual(ranges[i].start)
       }
-      await manager.jumpPrevious()
+      await helper.doAction('diagnosticPrevious')
     })
 
     it('should jump to next', async () => {
@@ -478,7 +478,7 @@ describe('diagnostic manager', () => {
         let pos = await window.getCursorPosition()
         expect(pos).toEqual(ranges[i].start)
       }
-      await manager.jumpNext()
+      await helper.doAction('diagnosticNext')
     })
 
     it('should consider invalid position', async () => {
@@ -650,7 +650,7 @@ describe('diagnostic manager', () => {
   describe('toggleDiagnosticBuffer', () => {
     it('should not throw when bufnr is invliad or disabled', async () => {
       let doc = await workspace.document
-      await manager.toggleDiagnosticBuffer(99)
+      await helper.doAction('diagnosticToggleBuffer', 99)
       helper.updateConfiguration('diagnostic.enable', false)
       await manager.toggleDiagnosticBuffer(doc.bufnr)
     })
@@ -700,7 +700,7 @@ describe('diagnostic manager', () => {
       await workspace.loadFile(uris[1], 'tabe')
       let collection = manager.create('tmp')
       collection.set([[uris[0], [createDiagnostic('Error one')]], [uris[1], [createDiagnostic('Error two')]]])
-      await manager.refresh()
+      await helper.doAction('diagnosticRefresh')
       let bufnrs = [workspace.getDocument(uris[0]).bufnr, workspace.getDocument(uris[1]).bufnr]
       for (let bufnr of bufnrs) {
         let buf = nvim.createBuffer(bufnr)

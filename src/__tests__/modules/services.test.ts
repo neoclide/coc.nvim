@@ -160,10 +160,17 @@ describe('services', () => {
     })
   })
 
+  describe('getServiceStats()', () => {
+    it('should get services', async () => {
+      let res = await helper.doAction('services')
+      expect(res).toBeDefined()
+    })
+  })
+
   describe('toggle()', () => {
     it('should throw when service not found ', async () => {
       let fn = async () => {
-        await services.toggle('id')
+        await helper.doAction('toggleService', 'id')
       }
       await expect(fn()).rejects.toThrow(Error)
     })

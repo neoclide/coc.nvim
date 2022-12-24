@@ -7,12 +7,14 @@ import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
 import Document from '../../model/document'
 import { DidChangeTextDocumentParams } from '../../types'
-import { getConditionValue } from '../../util'
+import { defaultValue, getConditionValue } from '../../util'
+import { isFalsyOrEmpty } from '../../util/array'
 import { isCommand } from '../../util/is'
 import { debounce } from '../../util/node'
 import { CancellationTokenSource } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
+import { handleError } from '../util'
 const logger = createLogger('codelens-buffer')
 
 export interface CodeLensInfo {
@@ -35,7 +37,7 @@ export enum TextAlign {
 }
 
 let srcId: number | undefined
-const debounceTime = getConditionValue(200, 50)
+const debounceTime = getConditionValue(200, 20)
 const CODELENS_HL = 'CocCodeLens'
 const NORMAL_HL = 'Normal'
 
@@ -55,14 +57,10 @@ export default class CodeLensBuffer implements SyncItem {
     public readonly document: Document
   ) {
     this.resolveCodeLens = debounce(() => {
-      this._resolveCodeLenses().catch(e => {
-        logger.error(`Error on resolve codeLens`, e)
-      })
+      this._resolveCodeLenses().catch(handleError)
     }, debounceTime)
     this.debounceFetch = debounce(() => {
-      this.fetchCodeLenses().catch(e => {
-        logger.error(`Error on fetch codeLens`, e)
-      })
+      this.fetchCodeLenses().catch(handleError)
     }, debounceTime)
     if (this.hasProvider) this.debounceFetch()
   }
@@ -101,9 +99,7 @@ export default class CodeLensBuffer implements SyncItem {
   public onChange(e: DidChangeTextDocumentParams): void {
     if (e.contentChanges.length === 0 && this.codeLenses != null) {
       this.resolveCodeLens.clear()
-      this._resolveCodeLenses().catch(e => {
-        logger.error(`Error on resolve codeLens`, e)
-      })
+      this._resolveCodeLenses().catch(handleError)
     } else {
       this.cancel()
       this.debounceFetch()
@@ -112,10 +108,6 @@ export default class CodeLensBuffer implements SyncItem {
 
   public get currentCodeLens(): CodeLens[] | undefined {
     return this.codeLenses?.codeLenses
-  }
-
-  public get version(): number | undefined {
-    return this.codeLenses?.version
   }
 
   private get hasProvider(): boolean {
@@ -129,7 +121,7 @@ export default class CodeLensBuffer implements SyncItem {
     await this.fetchCodeLenses()
   }
 
-  private async fetchCodeLenses(): Promise<void> {
+  public async fetchCodeLenses(): Promise<void> {
     if (!this.hasProvider || !this.config.enabled) return
     let noFetch = this.codeLenses?.version == this.document.version
     if (!noFetch) {
@@ -139,11 +131,15 @@ export default class CodeLensBuffer implements SyncItem {
       this.cancelFetch()
       let tokenSource = this.tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
-      if (token.isCancellationRequested) return
       if (!srcId) srcId = await this.nvim.createNamespace('coc-codelens')
       let codeLenses = await languages.getCodeLens(textDocument, token)
-      codeLenses = Array.isArray(codeLenses) ? codeLenses.filter(o => o != null) : []
-      if (token.isCancellationRequested || codeLenses.length == 0) return
+      if (token.isCancellationRequested) return
+      codeLenses = defaultValue(codeLenses, [])
+      codeLenses = codeLenses.filter(o => o != null)
+      if (isFalsyOrEmpty(codeLenses)) {
+        this.clear()
+        return
+      }
       this.codeLenses = { version, codeLenses }
       if (empty) this.setVirtualText(codeLenses)
     }
@@ -160,7 +156,7 @@ export default class CodeLensBuffer implements SyncItem {
     let [bufnr, start, end, total] = await this.nvim.eval(`[bufnr('%'),line('w0'),line('w$'),line('$')]`) as [number, number, number, number]
     // only resolve current buffer
     if (this.isChanged || bufnr != this.bufnr) return
-    if (this.resolveTokenSource) this.resolveTokenSource.cancel()
+    this.cancel()
     codeLenses = codeLenses.filter(o => {
       let lnum = o.range.start.line + 1
       return lnum >= start && lnum <= end
@@ -258,12 +254,16 @@ export default class CodeLensBuffer implements SyncItem {
     }
   }
 
-  private cancel(): void {
-    this.resolveCodeLens.clear()
+  private cancelResolve(): void {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
+  }
+
+  private cancel(): void {
+    this.resolveCodeLens.clear()
+    this.cancelResolve()
     this.cancelFetch()
   }
 

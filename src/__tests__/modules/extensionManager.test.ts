@@ -111,6 +111,11 @@ describe('ExtensionManager', () => {
   }
 
   describe('activateExtensions()', () => {
+    it('should registExtensions', async () => {
+      let res = await helper.doAction('registerExtensions')
+      expect(res).toBe(true)
+    })
+
     it('should throw on error', async () => {
       tmpfolder = createFolder()
       createExtension(tmpfolder, {
@@ -646,6 +651,9 @@ describe('ExtensionManager', () => {
       }
       await expect(fn()).rejects.toThrow(Error)
       spy.mockRestore()
+      await expect(async () => {
+        await helper.doAction('watchExtension', 'not_exists_extension')
+      }).rejects.toThrow(/not found/)
     })
 
     it('should reload extension on file change', async () => {

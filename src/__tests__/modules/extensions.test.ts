@@ -75,10 +75,14 @@ describe('extensions', () => {
     extensions.states.removeExtension('foo')
   })
 
-  it('should has extension', () => {
+  it('should has extension', async () => {
     let res = extensions.has('test')
     expect(res).toBe(false)
     expect(extensions.isActivated('unknown')).toBe(false)
+    let loaded = await helper.doAction('loadedExtensions')
+    expect(loaded).toEqual([])
+    let stats = await helper.doAction('extensionStats')
+    expect(stats).toBeDefined()
   })
 
   it('should load global extensions', async () => {
@@ -92,7 +96,7 @@ describe('extensions', () => {
     process.env.COC_NO_PLUGINS = '0'
   })
 
-  it('should load extension stats from runtimepath', async () => {
+  it('should load extension stats from runtimepath', () => {
     let f1 = path.join(os.tmpdir(), uuid())
     fs.mkdirSync(f1)
     writeJson(path.join(f1, 'package.json'), { name: 'name', engines: { coc: '>=0.0.1' } })
@@ -106,6 +110,8 @@ describe('extensions', () => {
     expect(res.length).toBe(1)
     expect(res[0].id).toBe('name')
     extensions.states.removeExtension('folder')
+    fs.rmSync(f1, { recursive: true, force: true })
+    fs.rmSync(f2, { recursive: true, force: true })
   })
 
   it('should force update extensions', async () => {
@@ -186,7 +192,7 @@ describe('extensions', () => {
         }
       } as any
     })
-    await extensions.updateExtensions(true)
+    await helper.doAction('updateExtensions', true)
     spy.mockRestore()
     s.mockRestore()
   })
@@ -268,7 +274,7 @@ describe('extensions', () => {
         }
       } as any
     })
-    await extensions.installExtensions(['coc-omni'])
+    await helper.doAction('installExtensions', 'coc-omni')
     let item = extensions.getExtension('coc-omni')
     expect(item).toBeDefined()
     expect(extensions.getExtensionById('coc-omni')).toBeDefined()
@@ -278,7 +284,11 @@ describe('extensions', () => {
     expect(globals.length).toBe(1)
     expect((await extensions.getExtensionStates()).length).toBeGreaterThan(0)
     spy.mockRestore()
-    await extensions.manager.uninstallExtensions(['coc-omni'])
+    await helper.doAction('reloadExtension', 'coc-omni')
+    await helper.doAction('deactivateExtension', 'coc-omni')
+    await helper.doAction('activeExtension', 'coc-omni')
+    await helper.doAction('toggleExtension', 'coc-omni')
+    await helper.doAction('uninstallExtension', 'coc-omni')
     item = extensions.getExtension('coc-omni')
     expect(item).toBeUndefined()
   })

@@ -31,7 +31,7 @@ afterEach(async () => {
 describe('Handler', () => {
   describe('hasProvider', () => {
     it('should check provider for document', async () => {
-      let res = await handler.hasProvider('definition')
+      let res = await helper.doAction('hasProvider', 'definition')
       expect(res).toBe(false)
     })
   })

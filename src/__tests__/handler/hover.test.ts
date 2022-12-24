@@ -81,7 +81,7 @@ describe('Hover', () => {
     it('should show MarkupContent hover', async () => {
       helper.updateConfiguration('hover.target', 'preview')
       hoverResult = { contents: { kind: 'plaintext', value: 'my hover' } }
-      await hover.onHover()
+      await helper.doAction('doHover')
       let res = await getDocumentText()
       expect(res).toMatch('my hover')
     })
@@ -171,7 +171,7 @@ describe('Hover', () => {
           return { contents: MarkedString.fromPlainText('MarkedString hover') }
         }
       }))
-      let res = await hover.getHover()
+      let res = await helper.doAction('getHover')
       expect(res.includes('foo')).toBe(true)
       expect(res.includes('bar')).toBe(true)
       expect(res.includes('MarkupContent hover')).toBe(true)
@@ -211,7 +211,7 @@ describe('Hover', () => {
           }]
         }
       }))
-      await hover.definitionHover('preview')
+      await helper.doAction('definitionHover', 'preview')
       let res = await getDocumentText()
       expect(res).toBe('string hover\n\nfoo\nbar')
     })

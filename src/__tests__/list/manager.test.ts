@@ -120,13 +120,13 @@ describe('list', () => {
       await helper.waitPrompt()
       await manager.session?.ui.ready
       await manager.doAction()
-      await manager.cancel()
+      await helper.doAction('listCancel')
       let bufname = await nvim.eval('expand("%:p")')
       expect(bufname).toMatch('manager.test.ts')
-      await manager.next()
+      await helper.doAction('listNext')
       let line = await nvim.call('line', '.')
       expect(line).toBe(2)
-      await manager.previous()
+      await helper.doAction('listPrev')
       line = await nvim.call('line', '.')
       expect(line).toBe(1)
     })
@@ -303,7 +303,7 @@ describe('list', () => {
 
   describe('descriptions', () => {
     it('should get descriptions', async () => {
-      let res = manager.descriptions
+      let res = await helper.doAction('listDescriptions')
       expect(res).toBeDefined()
       expect(res.location).toBeDefined()
     })
@@ -340,7 +340,7 @@ describe('list', () => {
       Object.assign(manager, { lastSession: undefined })
       manager.toggleMode()
       manager.stop()
-      res = await manager.loadItems('')
+      res = await helper.doAction('listLoadItems', '')
       expect(res).toBeUndefined()
       let error = true
       manager.registerList({
@@ -439,7 +439,7 @@ describe('list', () => {
       await manager.session.ui.ready
       await manager.session.hide()
       await manager.resume('location')
-      await manager.resume()
+      await helper.doAction('listResume')
       expect(manager.isActivated).toBe(true)
       await manager.resume('not_exists')
       let line = await helper.getCmdline()
@@ -482,8 +482,8 @@ describe('list', () => {
       manager.registerList(list, true)
       await manager.start(['test'])
       await manager.session.ui.ready
-      await manager.first('a')
-      await manager.last('a')
+      await helper.doAction('listFirst', 'a')
+      await helper.doAction('listLast', 'a')
       await manager.first('test')
       expect(last).toBe('foo')
       await manager.last('test')
