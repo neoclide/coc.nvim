@@ -141,20 +141,20 @@ describe('symbols handler', () => {
 
     it('should support SymbolInformation', async () => {
       disposables.push(languages.registerDocumentSymbolProvider(['*'], {
-        provideDocumentSymbols: () => {
-          let s = SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), '')
+        provideDocumentSymbols: doc => {
+          let s = SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), doc.uri)
           s.deprecated = true
           return [
             s,
-            SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), '', 'root')
+            SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 3, 0, 7), doc.uri, 'root'),
+            SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), doc.uri, 'root')
           ]
         }
       }, { label: 'test' }))
       await helper.createDocument()
       let res = await symbols.getDocumentSymbols()
-      expect(res.length).toBe(2)
+      expect(res.length).toBe(3)
       expect(res[0].text).toBe('root')
-      expect(res[1].text).toBe('child')
       await nvim.command('edit +setl\\ buftype=nofile b')
       res = await symbols.getDocumentSymbols()
       expect(res).toBeUndefined()

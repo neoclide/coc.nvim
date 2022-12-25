@@ -1,5 +1,5 @@
 'use strict'
-import { DocumentSymbol, SymbolTag } from 'vscode-languageserver-types'
+import { DocumentSymbol } from 'vscode-languageserver-types'
 import languages from '../../languages'
 import { createLogger } from '../../logger'
 import { SyncItem } from '../../model/bufferSync'
@@ -9,7 +9,6 @@ import { disposeAll, getConditionValue } from '../../util'
 import { debounce } from '../../util/node'
 import { CancellationTokenSource, Disposable, Emitter, Event } from '../../util/protocol'
 import { handleError } from '../util'
-import { isDocumentSymbols } from './util'
 const logger = createLogger('symbols-buffer')
 
 const DEBEBOUNCE_INTERVAL = getConditionValue(500, 10)
@@ -58,19 +57,9 @@ export default class SymbolsBuffer implements SyncItem {
     let symbols = await languages.getDocumentSymbol(textDocument, token)
     this.tokenSource = undefined
     if (symbols == null || token.isCancellationRequested) return
-    let res: DocumentSymbol[]
-    if (isDocumentSymbols(symbols)) {
-      res = symbols
-    } else {
-      res = symbols.map(o => {
-        let sym = DocumentSymbol.create(o.name, '', o.kind, o.location.range, o.location.range)
-        if (o.deprecated) sym.tags = [SymbolTag.Deprecated]
-        return sym
-      })
-    }
     this.version = version
-    this.symbols = res
-    this._onDidUpdate.fire(res)
+    this.symbols = symbols
+    this._onDidUpdate.fire(symbols)
   }
 
   public cancel(): void {

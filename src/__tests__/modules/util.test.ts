@@ -1009,6 +1009,12 @@ describe('Position', () => {
     expect(positions.samePosition(pos, Position.create(0, 0))).toBe(true)
   })
 
+  test('equalsRange', () => {
+    let r = Range.create(0, 0, 0, 1)
+    expect(positions.equalsRange(r, r)).toBe(true)
+    expect(positions.equalsRange(r, Range.create(0, 1, 0, 1))).toBe(false)
+  })
+
   test('compareRangesUsingStarts', () => {
     let pos = Position.create(3, 3)
     let range = Range.create(pos, pos)

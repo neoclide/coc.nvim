@@ -30,7 +30,7 @@ export default class Outline extends LocationList {
     let document = workspace.getAttachedDocument(context.buffer.id)
     let config = this.getConfig()
     let ctagsFiletypes = config.get<string[]>('ctagsFiletypes', [])
-    let symbols: DocumentSymbol[] | SymbolInformation[] | null
+    let symbols: DocumentSymbol[] | null
     let args = this.parseArguments(context.args)
     let filterKind = args.kind ? args.kind.toString().toLowerCase() : null
     if (!ctagsFiletypes.includes(document.filetype)) {
@@ -58,50 +58,29 @@ export default class Outline extends LocationList {
   }
 }
 
-export function symbolsToListItems(symbols: DocumentSymbol[] | SymbolInformation[], uri: string, filterKind: string | null): UnformattedListItem[] {
+export function symbolsToListItems(symbols: DocumentSymbol[], uri: string, filterKind: string | null): UnformattedListItem[] {
   let items: UnformattedListItem[] = []
-  let isSymbols = DocumentSymbol.is(symbols[0])
-  if (isSymbols) {
-    const addSymbols = (symbols: DocumentSymbol[], level = 0) => {
-      symbols.sort((a, b) => {
-        return compareRangesUsingStarts(a.selectionRange, b.selectionRange)
-      })
-      for (let s of symbols) {
-        let kind = getSymbolKind(s.kind)
-        let location = Location.create(uri, s.selectionRange)
-        items.push({
-          label: [`${'| '.repeat(level)}${s.name}`, `[${kind}]`, `${s.range.start.line + 1}`],
-          filterText: getFilterText(s, filterKind),
-          location,
-          data: { kind }
-        })
-        if (!isFalsyOrEmpty(s.children)) {
-          addSymbols(s.children, level + 1)
-        }
-      }
-    }
-    addSymbols(symbols as DocumentSymbol[])
-    if (filterKind) {
-      items = items.filter(o => o.data.kind.toLowerCase().indexOf(filterKind) == 0)
-    }
-  } else {
-    (symbols as SymbolInformation[]).sort((a, b) => {
-      return compareRangesUsingStarts(a.location.range, b.location.range)
+  const addSymbols = (symbols: DocumentSymbol[], level = 0) => {
+    symbols.sort((a, b) => {
+      return compareRangesUsingStarts(a.selectionRange, b.selectionRange)
     })
-    for (let s of symbols as SymbolInformation[]) {
+    for (let s of symbols) {
       let kind = getSymbolKind(s.kind)
-      // not include javascript callbacks
-      if (s.name.endsWith(') callback')) continue
-      if (filterKind && !kind.toLowerCase().startsWith(filterKind)) {
-        continue
-      }
-      s.location.uri = defaultValue(s.location.uri, uri)
+      let location = Location.create(uri, s.selectionRange)
       items.push({
-        label: [s.name, `[${kind}]`, `${s.location.range.start.line + 1}`],
+        label: [`${'| '.repeat(level)}${s.name}`, `[${kind}]`, `${s.range.start.line + 1}`],
         filterText: getFilterText(s, filterKind),
-        location: s.location
+        location,
+        data: { kind }
       })
+      if (!isFalsyOrEmpty(s.children)) {
+        addSymbols(s.children, level + 1)
+      }
     }
+  }
+  addSymbols(symbols as DocumentSymbol[])
+  if (filterKind) {
+    items = items.filter(o => o.data.kind.toLowerCase().indexOf(filterKind) == 0)
   }
   return items
 }

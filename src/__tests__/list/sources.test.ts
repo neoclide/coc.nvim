@@ -236,24 +236,6 @@ describe('Outline util', () => {
     let doc = await workspace.document
     expect(contentToItems('a\tb\t2\td\n\n', doc).length).toBe(1)
   })
-
-  it('should convert and filter document symbols', async () => {
-    let symbols = [
-      SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), ''),
-      SymbolInformation.create('child', SymbolKind.Method, Range.create(0, 0, 0, 10), '', 'root'),
-      SymbolInformation.create('child) callback', SymbolKind.Function, Range.create(1, 0, 1, 10), '', 'root')
-    ]
-    let res = symbolsToListItems(symbols, 'lsp:/1', 'function')
-    expect(res).toEqual([])
-    res = symbolsToListItems(symbols, 'lsp:/1', 'method')
-    expect(res.length).toBe(2)
-    let documentSymbols = [
-      DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)),
-      DocumentSymbol.create('name', 'detail', SymbolKind.Method, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)),
-    ]
-    res = symbolsToListItems(documentSymbols, 'lsp:/1', 'function')
-    expect(res.length).toBe(1)
-  })
 })
 
 describe('configuration', () => {

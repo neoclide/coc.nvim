@@ -324,7 +324,7 @@ class Languages {
     return await this.referenceManager.provideReferences(document, position, context, token)
   }
 
-  public async getDocumentSymbol(document: TextDocument, token: CancellationToken): Promise<SymbolInformation[] | DocumentSymbol[]> {
+  public async getDocumentSymbol(document: TextDocument, token: CancellationToken): Promise<DocumentSymbol[] | null> {
     return await this.documentSymbolManager.provideDocumentSymbols(document, token)
   }
 

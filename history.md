@@ -1,3 +1,7 @@
+# 2022-12-25
+
+- Create symbol tree from SymbolInformation list.
+
 # 2022-12-23
 
 - Support `URI` as param for API `workspace.jumpTo()`.
