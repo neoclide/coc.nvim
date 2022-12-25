@@ -223,6 +223,7 @@ describe('fs', () => {
   describe('sameFile', () => {
     it('should be casesensitive', () => {
       expect(sameFile('/a', '/A', false)).toBe(false)
+      expect(sameFile('/a', '/A', true)).toBe(true)
     })
   })
 
@@ -258,8 +259,9 @@ describe('fs', () => {
   })
 
   describe('fileStartsWith()', () => {
-    it('should check casesensitive case', async () => {
+    it('should check casesensitive case', () => {
       expect(fileStartsWith('/a/b', '/A', false)).toBe(false)
+      expect(fileStartsWith('/a/b', '/A', true)).toBe(true)
     })
   })
 

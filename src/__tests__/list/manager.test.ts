@@ -418,6 +418,7 @@ describe('list', () => {
 
   describe('parseArgs()', () => {
     it('should show error for bad option', async () => {
+      await helper.wait(20)
       manager.parseArgs(['$x', 'location'])
       let msg = await helper.getCmdline()
       expect(msg).toMatch('Invalid list option')

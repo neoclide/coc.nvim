@@ -252,8 +252,9 @@ export class Helper extends EventEmitter {
 
   public async getCmdline(lnum?: number): Promise<string> {
     let str = ''
+    let n = await this.nvim.eval('&lines') as number
     for (let i = 1, l = 70; i < l; i++) {
-      let ch = await this.nvim.call('screenchar', [lnum ?? 79, i]) as number
+      let ch = await this.nvim.call('screenchar', [lnum ?? n - 1, i]) as number
       if (ch == -1) break
       str += String.fromCharCode(ch)
     }
