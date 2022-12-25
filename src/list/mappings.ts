@@ -173,12 +173,9 @@ export default class Mappings {
     this.addKeyMapping('normal', '?', 'do:help')
     this.addKeyMapping('normal', ':', 'do:command')
     this.createMappings()
-    listConfiguration.on('change', () => {
-      this.createMappings()
-    })
   }
 
-  private createMappings(): void {
+  public createMappings(): void {
     let insertMappings = listConfiguration.get<any>('insertMappings', {})
     this.userInsertMappings = this.fixUserMappings(insertMappings, 'list.insertMappings')
     let normalMappings = listConfiguration.get<any>('normalMappings', {})

@@ -264,6 +264,7 @@ describe('list', () => {
         return wins.length > 0
       }, false)
       await manager.togglePreview()
+      manager.session.ui.setCursor(2)
       await helper.waitValue(async () => {
         let wins = await getFloats()
         return wins.length > 0
@@ -287,16 +288,18 @@ describe('list', () => {
           }
         }],
         defaultAction: 'open',
-        loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'bar' }]),
+        loadItems: () => Promise.resolve([{ label: 'foo' }, { label: 'foo bar' }]),
         resolveItem: item => {
-          item.label = item.label.slice(0, 1)
+          item.label = 'foo bar'
           return Promise.resolve(item)
         }
       }
       let disposable = manager.registerList(list, true)
       await manager.start(['--normal', 'test'])
       await manager.session.ui.ready
-      await helper.waitFor('getline', ['.'], 'f')
+      await helper.waitFor('getline', ['.'], 'foo bar')
+      await manager.session.next()
+      await manager.session.resolveItem()
       disposable.dispose()
     })
   })
@@ -363,6 +366,10 @@ describe('list', () => {
               emitter.emit('end')
             }, 2)
           }
+          setInterval(() => {
+            emitter.emit('data', { label: 'bar' })
+            emitter.emit('error', new Error('error'))
+          }, 10)
           return emitter
         }
       })
@@ -372,6 +379,7 @@ describe('list', () => {
       error = false
       res = await manager.loadItems('emitter')
       expect(res.length).toBe(1)
+      await helper.wait(10)
     })
   })
 
@@ -564,6 +572,11 @@ describe('list', () => {
       await manager.start(['--input=f.o', '--regex', 'location'])
       await manager.session.ui.ready
       let item = await manager.session?.ui.item
+      expect(item.label).toMatch('foo')
+      await manager.session.hide()
+      await manager.start(['--input=f.o', '--ignore-case', '--regex', 'location'])
+      await manager.session.ui.ready
+      item = await manager.session?.ui.item
       expect(item.label).toMatch('foo')
     })
 

@@ -27,10 +27,11 @@ export default class Symbols {
     private handler: HandlerDelegate
   ) {
     this.buffers = workspace.registerBufferSync(doc => {
-      let buf = new SymbolsBuffer(doc.bufnr, this.autoUpdateBufnrs)
+      let { bufnr } = doc
+      let buf = new SymbolsBuffer(doc, this.autoUpdateBufnrs)
       buf.onDidUpdate(symbols => {
         if (!this.outline) return
-        this.outline.onSymbolsUpdate(buf.bufnr, symbols)
+        this.outline.onSymbolsUpdate(bufnr, symbols)
       })
       return buf
     })

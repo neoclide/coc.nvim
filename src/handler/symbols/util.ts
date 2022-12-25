@@ -25,7 +25,7 @@ export function convertSymbols(symbols: DocumentSymbol[]): SymbolInfo[] {
   return res
 }
 
-export function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
+function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
   let ra = a.selectionRange
   let rb = b.selectionRange
   return comparePosition(ra.start, rb.start)

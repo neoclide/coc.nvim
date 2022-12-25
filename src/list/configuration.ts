@@ -1,6 +1,4 @@
 'use strict'
-import { EventEmitter } from 'events'
-import { ConfigurationTarget } from '../configuration/types'
 import window from '../window'
 import workspace from '../workspace'
 
@@ -79,14 +77,13 @@ export const validKeys = [
   '<A-z>',
 ]
 
-export class ListConfiguration extends EventEmitter {
-  constructor() {
-    super()
-    workspace.onDidChangeConfiguration(e => {
-      if (e.source !== ConfigurationTarget.Default && e.affectsConfiguration('list')) {
-        this.emit('change')
-      }
-    })
+export class ListConfiguration {
+  public get debounceTime(): number {
+    return this.get<number>('interactiveDebounceTime', 100)
+  }
+
+  public get extendedSearchMode(): boolean {
+    return this.get<boolean>('extendedSearchMode', true)
   }
 
   public get smartcase(): boolean {

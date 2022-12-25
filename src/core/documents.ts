@@ -81,9 +81,6 @@ export default class Documents implements Disposable {
       this.detachBuffer(bufnr)
       await this.createDocument(bufnr)
     }, null, this.disposables)
-    events.on('VimLeavePre', () => {
-      this.resolveCurrent(undefined)
-    }, null, this.disposables)
     events.on('DirChanged', cwd => {
       this._cwd = normalizeFilePath(cwd)
     }, null, this.disposables)
@@ -107,7 +104,7 @@ export default class Documents implements Disposable {
       ['TextChangedP', 'TextChangedI', 'TextChanged'].forEach(event => {
         events.on(event as any, (bufnr: number, info?: InsertChange) => {
           let doc = this.buffers.get(bufnr)
-          if (doc?.attached) doc.onTextChange(event, info)
+          if (doc && doc.attached) doc.onTextChange(event, info)
         }, null, this.disposables)
       })
     }
@@ -154,7 +151,6 @@ export default class Documents implements Disposable {
   }
 
   public detach(): void {
-    if (!this._attached) return
     this._attached = false
     for (let bufnr of this.buffers.keys()) {
       this.onBufUnload(bufnr)

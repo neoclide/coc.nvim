@@ -142,8 +142,10 @@ describe('symbols handler', () => {
     it('should support SymbolInformation', async () => {
       disposables.push(languages.registerDocumentSymbolProvider(['*'], {
         provideDocumentSymbols: () => {
+          let s = SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), '')
+          s.deprecated = true
           return [
-            SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), ''),
+            s,
             SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), '', 'root')
           ]
         }

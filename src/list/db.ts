@@ -128,3 +128,5 @@ export class DataBase {
     this.folders = folders
   }
 }
+
+export default new DataBase()

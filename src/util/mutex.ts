@@ -11,6 +11,11 @@ export class Mutex {
     }
   }
 
+  public reset(): void {
+    this.tasks = []
+    this.count = 1
+  }
+
   public get busy(): boolean {
     return this.count == 0
   }

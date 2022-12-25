@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
-import { ConfigurationScope } from '../configuration/types'
+import { ConfigurationScope, ConfigurationTarget } from '../configuration/types'
 import events from '../events'
 import extensions from '../extension/index'
 import { createLogger } from '../logger'
@@ -15,7 +15,6 @@ import { toErrorText, toInteger } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import listConfiguration from './configuration'
-import { DataBase } from './db'
 import History from './history'
 import Mappings from './mappings'
 import Prompt from './prompt'
@@ -40,7 +39,6 @@ const winleaveDalay = isVim ? 50 : 0
 export class ListManager implements Disposable {
   public prompt: Prompt
   public mappings: Mappings
-  public db: DataBase
   private plugTs = 0
   private sessionsMap: Map<string, ListSession> = new Map()
   private lastSession: ListSession | undefined
@@ -49,7 +47,6 @@ export class ListManager implements Disposable {
 
   constructor() {
     History.migrate(dataHome)
-    this.db = new DataBase()
   }
 
   private get nvim(): Neovim {
@@ -80,6 +77,11 @@ export class ListManager implements Disposable {
         }, winleaveDalay)
       }
     }, null, this.disposables)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.source !== ConfigurationTarget.Default && e.affectsConfiguration('list')) {
+        this.mappings.createMappings()
+      }
+    }, null, this.disposables)
     this.prompt.onDidChangeInput(() => {
       this.session?.onInputChange()
     })
@@ -106,7 +108,7 @@ export class ListManager implements Disposable {
     let curr = this.sessionsMap.get(name)
     if (curr) curr.dispose()
     this.prompt.start(res.options)
-    let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs, this.db)
+    let session = new ListSession(this.nvim, this.prompt, res.list, res.options, res.listArgs)
     this.sessionsMap.set(name, session)
     this.lastSession = session
     try {

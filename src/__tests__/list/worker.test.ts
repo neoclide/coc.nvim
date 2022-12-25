@@ -5,7 +5,7 @@ import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
 import { ListContext, ListItem, ListTask } from '../../list/types'
-import { convertItemLabel, indexOf, parseInput } from '../../list/worker'
+import { convertItemLabel, indexOf, parseInput, toInputs } from '../../list/worker'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -151,6 +151,10 @@ describe('util', () => {
     const redClose = '\x1B[39m'
     let label = redOpen + 'foo' + redClose
     expect(convertItemLabel({ label }).label).toBe('foo')
+  })
+
+  it('should convert input', () => {
+    expect(toInputs('foo bar', false)).toEqual(['foo bar'])
   })
 })
 

@@ -2,7 +2,7 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import events from '../events'
 import { HighlightItem } from '../types'
-import { disposeAll, getConditionValue } from '../util'
+import { defaultValue, disposeAll, getConditionValue } from '../util'
 import { toArray } from '../util/array'
 import { debounce } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
@@ -527,7 +527,7 @@ export default class ListUI {
 
   public dispose(): void {
     disposeAll(this.disposables)
-    this.nvim.call('coc#window#close', [this.winid || -1], true)
+    this.nvim.call('coc#window#close', [defaultValue(this.winid, -1)], true)
     this.reset()
     this.items = []
     this._onDidChangeLine.dispose()

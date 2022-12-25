@@ -3,6 +3,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
 import ListSession from '../../list/session'
+import Prompt from '../../list/prompt'
 import { ListItem, IList } from '../../list/types'
 import { disposeAll } from '../../util'
 import helper from '../helper'
@@ -18,11 +19,11 @@ class SimpleList extends BasicList {
     name: 'foo',
     description: 'foo'
   }]
-  constructor(nvim: Neovim) {
+  constructor() {
     super()
     this.addAction('open', item => {
       lastItem = item.label
-    })
+    }, { tabPersist: true })
     this.addMultipleAction('multiple', items => {
       lastItems = items
     })
@@ -61,7 +62,7 @@ describe('list session', () => {
   describe('doDefaultAction()', () => {
     it('should throw error when default action does not exist', async () => {
       labels = ['a', 'b', 'c']
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       list.defaultAction = 'foo'
       let len = list.actions.length
       list.actions.splice(0, len)
@@ -89,7 +90,7 @@ describe('list session', () => {
   describe('doItemAction()', () => {
     it('should invoke multiple action', async () => {
       labels = ['a', 'b', 'c']
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       disposables.push(manager.registerList(list))
       await manager.start(['--normal', 'simple'])
       let ui = manager.session.ui
@@ -98,15 +99,15 @@ describe('list session', () => {
       await manager.doAction('multiple')
       expect(lastItems.length).toBe(3)
       lastItems = undefined
+      await manager.session.doPreview(0)
       await manager.doAction('not_exists')
       let line = await helper.getCmdline()
-      console.log(line)
       expect(line).toMatch('not found')
     })
 
     it('should invoke parallel action', async () => {
       labels = ['a', 'b', 'c']
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       disposables.push(manager.registerList(list))
       await manager.start(['--normal', 'simple'])
       let ui = manager.session.ui
@@ -117,9 +118,24 @@ describe('list session', () => {
       expect(Date.now() - d).toBeLessThan(300)
     })
 
+    it('should support tabPersist action', async () => {
+      labels = ['a', 'b', 'c']
+      let list = new SimpleList()
+      disposables.push(manager.registerList(list))
+      await manager.start(['--normal', '--tab', 'simple'])
+      let ui = manager.session.ui
+      await ui.ready
+      await manager.doAction('open')
+      let tabnr = await nvim.call('tabpagenr')
+      expect(tabnr).toBeGreaterThan(1)
+      let win = nvim.createWindow(ui.winid)
+      let valid = await win.valid
+      expect(valid).toBe(true)
+    })
+
     it('should invoke reload action', async () => {
       labels = ['a', 'b', 'c']
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       disposables.push(manager.registerList(list))
       await manager.start(['--normal', 'simple'])
       let ui = manager.session.ui
@@ -163,7 +179,7 @@ describe('list session', () => {
     it('should do preview on resume', async () => {
       labels = ['a', 'b', 'c']
       let lastItem
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       list.actions.push({
         name: 'preview',
         execute: item => {
@@ -188,7 +204,7 @@ describe('list session', () => {
     it('should jump back', async () => {
       let win = await nvim.window
       labels = ['a', 'b', 'c']
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       disposables.push(manager.registerList(list))
       await manager.start(['--normal', 'simple'])
       let ui = manager.session.ui
@@ -200,6 +216,34 @@ describe('list session', () => {
     })
   })
 
+  describe('hide()', () => {
+    it('should not throw when window undefined', async () => {
+      let session = new ListSession(nvim, new Prompt(nvim), new SimpleList(), {
+        reverse: true,
+        numberSelect: true,
+        autoPreview: true,
+        first: false,
+        input: 'test',
+        interactive: false,
+        matcher: 'strict',
+        ignorecase: true,
+        position: 'top',
+        mode: 'normal',
+        noQuit: false,
+        sort: false
+      }, [])
+      await expect(async () => {
+        await session.call('fn_not_exists')
+      }).rejects.toThrow(Error)
+      await session.doPreview(0)
+      await session.first()
+      await session.hide(false, true)
+      let worker: any = session.worker
+      worker._onDidChangeItems.fire({ items: [] })
+      worker._onDidChangeLoading.fire(false)
+    })
+  })
+
   describe('doNumberSelect()', () => {
     async function create(len: number): Promise<ListSession> {
       labels = []
@@ -207,7 +251,7 @@ describe('list session', () => {
         let code = 'a'.charCodeAt(0) + i
         labels.push(String.fromCharCode(code))
       }
-      let list = new SimpleList(nvim)
+      let list = new SimpleList()
       disposables.push(manager.registerList(list))
       await manager.start(['--normal', '--number-select', 'simple'])
       let ui = manager.session.ui
@@ -235,7 +279,7 @@ describe('list session', () => {
 describe('showHelp()', () => {
   it('should show description and options in help', async () => {
     labels = ['a', 'b', 'c']
-    let list = new SimpleList(nvim)
+    let list = new SimpleList()
     disposables.push(manager.registerList(list))
     await manager.start(['--normal', 'simple'])
     let ui = manager.session.ui
@@ -251,7 +295,7 @@ describe('chooseAction()', () => {
   it('should filter actions not have shortcuts', async () => {
     labels = ['a', 'b', 'c']
     let fn = jest.fn()
-    let list = new SimpleList(nvim)
+    let list = new SimpleList()
     list.actions.push({
       name: 'a',
       execute: () => {
@@ -282,7 +326,7 @@ describe('chooseAction()', () => {
     helper.updateConfiguration('list.menuAction', true)
     labels = ['a', 'b', 'c']
     let fn = jest.fn()
-    let list = new SimpleList(nvim)
+    let list = new SimpleList()
     let len = list.actions.length
     list.actions.splice(0, len)
     list.actions.push({
