@@ -1,3 +1,7 @@
+# 2022-12-23
+
+- Support `URI` as param for API `workspace.jumpTo()`.
+
 # 2022-12-22
 
 - Support popup window for window related APIs.

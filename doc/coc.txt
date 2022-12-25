@@ -215,16 +215,22 @@ extensions.  See |coc-config| for builtin configurations.
 
 The configuration files are all in JSON format (with comment supported), it's
 recommended to enable JSON completion and validation by install the `coc-json`
-extension: >
-
+extension:
+>
 	:CocInstall coc-json
 <
+To fix the highlight of comment, use:
+>
+	autocmd FileType json syntax match Comment +\/\/.\+$+
+<
+in your vimrc.
+
 Global configuration file:~
 
 Command |:CocConfig| will open (create when necessary) a user settings
 file in the folder returned by |coc#util#get_config_home()|.
 
-The user configuration could also be changed by API |coc#config()| or
+The user configuration value could be overwritten by API |coc#config()| or
 |g:coc_user_config|.
 
 The global configuration file can be created in another directory by setting
@@ -234,11 +240,15 @@ The global configuration file can be created in another directory by setting
 
 Folder configuration file:~
 
-To create a local configuration file for a specific workspace, use
+To create a local configuration file for a specific workspace folder, use
 |:CocLocalConfig| to create and open `.vim/coc-settings.json` in current
 workspace folder.
 
 Folder configuration would overwrite user configuration.
+
+Note: the configuration file won't work when the parent folder is not resolved
+as workspace folder, it's best practice to start vim inside workspace folder,
+see |coc-workspace-folders|.
 
 							*coc-configuration-expand*
 Variables expands:~
@@ -1098,10 +1108,10 @@ could comes from:
   • "rootPatterns" contributions from coc.nvim extensions.
   • |coc-config-workspace-rootPatterns|
 
-Workspace folder is resolved from cwd of vim first and then from top directory
-to the parent directory of current filepath, when workspace folder not
-resolved, current working directory is used if it's parent folder of current
-buffer.  Configurations are provided to change the default behavior:
+Workspace folder is resolved from cwd of vim first (by default) and then from
+top directory to the parent directory of current filepath, when workspace
+folder not resolved, current working directory is used if it's parent folder
+of current buffer.  Configurations are provided to change the default behavior:
 
   • |coc-config-workspace-ignoredFiletypes|
   • |coc-config-workspace-ignoredFolders|
@@ -1116,11 +1126,11 @@ folder may not work when you start vim from home directory.
 To preserve workspace folders across vim session, |g:WorkspaceFolders| is
 provided.
 
+Use `:CocCommand workspace.workspaceFolders` to echo current workspaceFolders.
+
 To manage current workspace folders, use |coc-list-folders|
 
 To get related root patterns of current buffer, use |coc#util#root_patterns()|
-
-Use `:CocCommand workspace.workspaceFolders` to echo current workspaceFolders.
 
 							*coc-workspace-edits*
 Workspace edit~

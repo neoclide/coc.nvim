@@ -240,6 +240,9 @@ function! coc#list#float_preview(lines, config) abort
   let lines = s:get_preview_lines(a:lines, a:config)
   let height = s:get_preview_height(lines, a:config)
   let height = min([remain, height + 2])
+  if height < 0
+    return
+  endif
   let row = position ==# 'bottom' ? winrow - 3 - height : winrow + winheight(winnr())
   let title = fnamemodify(get(a:config, 'name', ''), ':.')
   let total = get(get(b:, 'list_status', {}), 'total', 0)
