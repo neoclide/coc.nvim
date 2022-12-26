@@ -1,5 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
+import { Emitter } from 'vscode-languageserver-protocol'
 import { createCommand } from '../../core/autocmds'
+import { TextDocumentContentProvider } from '../../provider'
+import { URI } from 'vscode-uri'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -12,6 +15,42 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await helper.shutdown()
+})
+
+describe('contentProvider', () => {
+  it('should not throw for scheme not registered', async () => {
+    await workspace.contentProvider.onBufReadCmd('not_exists', '')
+  })
+
+  it('should register document content provider', async () => {
+    let provider: TextDocumentContentProvider = {
+      provideTextDocumentContent: (_uri, _token): string => 'sample text'
+    }
+    workspace.registerTextDocumentContentProvider('test', provider)
+    await nvim.command('edit test://1')
+    let buf = await nvim.buffer
+    let lines = await buf.lines
+    expect(lines).toEqual(['sample text'])
+  })
+
+  it('should react on change event of document content provider', async () => {
+    let text = 'foo'
+    let emitter = new Emitter<URI>()
+    let event = emitter.event
+    let provider: TextDocumentContentProvider = {
+      onDidChange: event,
+      provideTextDocumentContent: (_uri, _token): string => text
+    }
+    workspace.registerTextDocumentContentProvider('jdk', provider)
+    await nvim.command('edit jdk://1')
+    let doc = await workspace.document
+    text = 'bar'
+    emitter.fire(URI.parse('jdk://1'))
+    await helper.waitFor('getline', ['.'], 'bar')
+    await nvim.command('bwipeout!')
+    await helper.waitValue(() => doc.attached, false)
+    emitter.fire(URI.parse('jdk://1'))
+  })
 })
 
 describe('setupDynamicAutocmd()', () => {
