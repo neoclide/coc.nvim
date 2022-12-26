@@ -3523,11 +3523,11 @@ Options of CocList command~
 	`--tab`.
 
 ----strict
-  •S
+  -S
 	Use strict matching instead of fuzzy matching.
 
 ----regex
-  •R
+  -R
 	Use regex matching instead of fuzzy matching.
 
 ----ignore-case
@@ -3535,12 +3535,12 @@ Options of CocList command~
 	Ignore case when using strict matching or regex matching.
 
 ----number-select
-  •N
+  -N
 	Type a line number to select an item and invoke the default action on
 	insert mode. Type `0` to select the 10th line.
 
 ----interactive
-  •I
+  -I
 	Use interactive mode, list items would be reloaded on input
 	change, filter and sort would be done by list implementation.
 
@@ -3551,7 +3551,7 @@ Options of CocList command~
 	`--ignore-case` would not work at all.
 
 ----auto-preview
-  •A
+  -A
 
 	Start a preview for the current item on the visible list.
 

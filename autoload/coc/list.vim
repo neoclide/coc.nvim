@@ -249,7 +249,7 @@ function! coc#list#float_preview(lines, config) abort
   if !empty(total)
     let title .= ' ('.line('.').'/'.total.')'
   endif
-  let lnum = get(a:config, 'lnum', 1)
+  let lnum = min([get(a:config, 'lnum', 1), len(lines)])
   let opts = {
       \ 'relative': 'editor',
       \ 'width': winwidth(winnr()) - 2,
