@@ -6,15 +6,15 @@ import { v4 as uuid } from 'uuid'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { RecoverFunc, getOriginalLine } from '../../model/editInspect'
+import commands from '../../commands'
+import events from '../../events'
+import { getOriginalLine, RecoverFunc } from '../../model/editInspect'
 import RelativePattern from '../../model/relativePattern'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
 import window from '../../window'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper, { createTmpFile } from '../helper'
-import commands from '../../commands'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -69,7 +69,7 @@ describe('findFiles()', () => {
   })
 
   it('should use glob pattern', async () => {
-    let res = await workspace.findFiles('**/*.ts')
+    let res = await workspace.findFiles('**/*.ts', undefined, 1)
     expect(res.length).toBeGreaterThan(0)
   })
 
@@ -90,6 +90,10 @@ describe('findFiles()', () => {
     let arr = await workspace.findFiles('**/*.ts', relativePattern)
     let res = arr.find(o => path.relative(__dirname, o.fsPath).startsWith('files'))
     expect(res).toBeUndefined()
+
+    relativePattern = new RelativePattern(URI.file(path.join(__dirname, 'foo')), '**/*.ts')
+    arr = await workspace.findFiles('**/*.ts', relativePattern, 1)
+    expect(arr.length).toBe(1)
   })
 
   it('should respect maxResults', async () => {
@@ -100,13 +104,13 @@ describe('findFiles()', () => {
   it('should respect token', async () => {
     let source = new CancellationTokenSource()
     source.cancel()
-    let arr = await workspace.findFiles('**/*.ts', undefined, 1, source.token)
+    let arr = await workspace.findFiles('**/*.ts', undefined, 2, source.token)
     expect(arr.length).toBe(0)
   })
 
   it('should cancel findFiles', async () => {
     let source = new CancellationTokenSource()
-    let p = workspace.findFiles('**/*.ts', undefined, 1, source.token)
+    let p = workspace.findFiles('**/*.ts', undefined, undefined, source.token)
     source.cancel()
     let arr = await p
     expect(arr.length).toBe(0)
@@ -117,6 +121,21 @@ describe('applyEdits()', () => {
   it('should not throw when unable to undo & redo', async () => {
     await commands.executeCommand('workspace.undo')
     await commands.executeCommand('workspace.redo')
+  })
+
+  it('should throw for unsupported scheme', () => {
+    expect(() => {
+      let edit = TextDocumentEdit.create({ uri: 'lsp:/1', version: 1 }, [TextEdit.insert(Position.create(0, 0), ' ')])
+      workspace.files.validateChanges([edit])
+    }).toThrow(Error)
+    expect(() => {
+      let edit = TextDocumentEdit.create({ uri: 'lsp:/1', version: null }, [TextEdit.insert(Position.create(0, 0), ' ')])
+      workspace.files.validateChanges([edit])
+    }).toThrow(Error)
+    let rename = RenameFile.create('lsp:/1', 'lsp:/2')
+    expect(() => {
+      workspace.files.validateChanges([rename])
+    }).toThrow(Error)
   })
 
   it('should show error when document with version not loaded', async () => {
@@ -145,6 +164,8 @@ describe('applyEdits()', () => {
     expect(res).toBe(true)
     let line = await nvim.getLine()
     expect(line).toBe('bar')
+    await nvim.command('bd!')
+    await workspace.files.undoWorkspaceEdit()
   })
 
   it('should apply edit with out change buffers', async () => {
@@ -229,6 +250,23 @@ describe('applyEdits()', () => {
     expect(res).toBe(true)
     pos = await window.getCursorPosition()
     expect(pos).toEqual({ line: 1, character: 0 })
+  })
+
+  it('should throw when waitUntil is not synchronize', async () => {
+    let err
+    workspace.onWillCreateFiles(e => {
+      setTimeout(() => {
+        try {
+          e.waitUntil(Promise.resolve())
+        } catch (e) {
+          err = e
+        }
+      }, 0)
+    }, null, disposables)
+    let file = path.join(os.tmpdir(), uuid())
+    await workspace.createFile(file, { overwrite: true })
+    expect(err).toBeDefined()
+    fs.rmSync(file, { force: true })
   })
 
   it('should support null version of documentChanges', async () => {
@@ -385,7 +423,7 @@ describe('applyEdits()', () => {
   })
 
   it('should should support annotations', async () => {
-    async function assertEdit(confirm: boolean): Promise<void> {
+    async function assertEdit(confirm: boolean, description: string | undefined): Promise<void> {
       let doc = await helper.createDocument(uuid())
       let edit: WorkspaceEdit = {
         documentChanges: [
@@ -404,7 +442,7 @@ describe('applyEdits()', () => {
           '85bc78e2-5ef0-4949-b10c-13f476faf430': {
             needsConfirmation: true,
             label: 'Text changes',
-            description: 'description'
+            description
           }
         }
       }
@@ -423,8 +461,8 @@ describe('applyEdits()', () => {
         expect(content).toBe('\n')
       }
     }
-    await assertEdit(true)
-    await assertEdit(false)
+    await assertEdit(true, 'description')
+    await assertEdit(false, undefined)
   })
 })
 
@@ -559,7 +597,7 @@ describe('getOriginalLine', () => {
   describe('createFile()', () => {
     it('should create and revert parent folder', async () => {
       const folder = path.join(os.tmpdir(), uuid())
-      const filepath = path.join(folder, 'bar')
+      const filepath = path.join(folder, 'a/b/bar')
       disposables.push(Disposable.create(() => {
         fs.rmSync(folder, { recursive: true, force: true })
       }))
@@ -620,12 +658,20 @@ describe('getOriginalLine', () => {
 
   describe('renameFile', () => {
     it('should throw when oldPath not exists', async () => {
+      await workspace.renameFile('/foo', '/foo')
+      await workspace.renameFile('/foo', __filename, { ignoreIfExists: true })
       let filepath = path.join(__dirname, 'not_exists_file')
       let newPath = path.join(__dirname, 'bar')
       let fn = async () => {
         await workspace.renameFile(filepath, newPath)
       }
       await expect(fn()).rejects.toThrow(Error)
+    })
+
+    it('should throw when new path exits and not overwrite', async () => {
+      await expect(async () => {
+        await workspace.renameFile('/foo', __filename, {})
+      }).rejects.toThrow(/exists/)
     })
 
     it('should rename file on disk', async () => {
@@ -814,10 +860,12 @@ describe('getOriginalLine', () => {
       let docs = await workspace.loadFiles(files)
       let uris = docs.map(o => o.uri)
       expect(uris).toEqual(files)
+      await workspace.loadFiles([])
     })
 
-    it('should load empty files array', async () => {
-      await workspace.loadFiles([])
+    it('should load uri', async () => {
+      let res = await workspace.loadFiles(['deno:/foo'])
+      expect(res[0].uri).toBe('deno:/foo')
     })
   })
 

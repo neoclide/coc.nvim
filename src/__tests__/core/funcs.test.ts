@@ -4,6 +4,7 @@ import path from 'path'
 import Configurations from '../../configuration/index'
 import * as funcs from '../../core/funcs'
 import Resolver from '../../model/resolver'
+import * as platform from '../../util/platform'
 import which from 'which'
 import { v4 as uuid } from 'uuid'
 let configurations: Configurations
@@ -94,6 +95,10 @@ describe('getWatchmanPath()', () => {
   it('should get watchman path', async () => {
     let res = funcs.getWatchmanPath(configurations)
     expect(typeof res === 'string' || res == null).toBe(true)
+    configurations.updateMemoryConfig({ 'coc.preferences.watchmanPath': 'not_exists_watchman' })
+    res = funcs.getWatchmanPath(configurations)
+    expect(res).toBeNull()
+    configurations.updateMemoryConfig({ 'coc.preferences.watchmanPath': null })
   })
 })
 
@@ -120,11 +125,12 @@ describe('findUp()', () => {
 })
 
 describe('score()', () => {
-  it('should return score', async () => {
+  it('should return score', () => {
     expect(funcs.score(undefined, 'untitled:///1', '')).toBe(0)
     expect(funcs.score({ scheme: '*' }, 'untitled:///1', '')).toBe(3)
     expect(funcs.score('vim', 'untitled:///1', 'vim')).toBe(10)
     expect(funcs.score('*', 'untitled:///1', '')).toBe(5)
     expect(funcs.score('', 'untitled:///1', 'vim')).toBe(0)
+    expect(funcs.score({ pattern: '/*' }, 'untitled:///1', 'vim', false)).toBe(5)
   })
 })

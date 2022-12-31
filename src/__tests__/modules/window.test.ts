@@ -2,6 +2,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
 import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { convertHighlightItem } from '../../core/highlights'
 import events from '../../events'
 import Notification, { toButtons, toTitles } from '../../model/notification'
 import { formatMessage } from '../../model/progress'
@@ -43,6 +44,17 @@ describe('window', () => {
       expect(formatMessage('a', undefined, 0)).toBe('a')
     })
 
+    it('should convert highlight item', () => {
+      let res = convertHighlightItem({
+        colStart: 0,
+        colEnd: 1,
+        hlGroup: 'Search',
+        lnum: 0,
+        combine: true
+      })
+      expect(res).toEqual(['Search', 0, 0, 1, 1, 0, 0])
+    })
+
     it('should get offset', async () => {
       let buf = await nvim.buffer
       await nvim.call('setline', [buf.id, ['bar', 'foo']])
@@ -73,7 +85,7 @@ describe('window', () => {
     it('should run terminal command', async () => {
       let res = await window.runTerminalCommand('ls', __dirname)
       expect(res.success).toBe(true)
-      res = await window.runTerminalCommand('echo 1')
+      res = await window.runTerminalCommand('echo 1', process.cwd(), true)
       expect(res.success).toBe(true)
     })
 
@@ -225,19 +237,30 @@ describe('window', () => {
       await nvim.input('2')
       let res = await p
       expect(res).toBe(1)
+      res = await window.showMenuPicker(['foo'], { title: 'title', position: 'center' }, CancellationToken.Cancelled)
+      expect(res).toBe(-1)
     })
 
     it('should return select items for picker', async () => {
       let curr = await nvim.call('win_getid')
       let p = window.showPickerDialog(['foo', 'bar'], 'select')
       await helper.waitFloat()
-      await helper.wait(30)
+      await helper.waitPrompt()
       await nvim.input(' ')
       await nvim.input('<cr>')
       let res = await p
       let winid = await nvim.call('win_getid')
       expect(winid).toBe(curr)
       expect(res).toEqual(['foo'])
+    })
+
+    it('should return undefined for picker', async () => {
+      let p = window.showPickerDialog(['foo', 'bar'], 'select')
+      await helper.waitFloat()
+      await helper.waitPrompt()
+      await nvim.input('<esc>')
+      let res = await p
+      expect(res).toBeUndefined()
     })
 
     it('should return undefined when cancelled', async () => {
@@ -269,6 +292,7 @@ describe('window', () => {
       let ch = await nvim.call('screenchar', [79, 1]) as number
       let s = String.fromCharCode(ch)
       expect(s).toBe('a')
+      await window.echoLines(['a', 'b'.repeat(200)], true)
     })
 
     it('should show messages', async () => {
@@ -276,6 +300,13 @@ describe('window', () => {
       window.showMessage('error', 'error')
       window.showMessage('warning', 'warning')
       window.showMessage('moremsg', 'more')
+    })
+
+    it('should show message item', async () => {
+      let p = window.showInformationMessage('information message', { title: 'first' }, { title: 'second' })
+      await ensureNotification(0)
+      let res = await p
+      expect(res).toEqual({ title: 'first' })
     })
 
     it('should show information message', async () => {

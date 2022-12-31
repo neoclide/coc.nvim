@@ -123,4 +123,12 @@ describe('selectRange()', () => {
     let res = await ui.getSelection(nvim, 'v')
     expect(res).toEqual(Range.create(0, 0, 0, 3))
   })
+
+  it('should select range #3', async () => {
+    await ui.selectRange(nvim, Range.create(0, 0, 0, 0), true)
+    let m = await nvim.mode
+    expect(m.mode).toBe('v')
+    await nvim.input('<esc>')
+    await ui.selectRange(nvim, Range.create(0, 0, 0, 1), true)
+  })
 })

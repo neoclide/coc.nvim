@@ -8,6 +8,7 @@ import events from '../../events'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 import Parser from './parser'
+import { asDocumentSymbolTree } from '../../provider/documentSymbolManager'
 
 let nvim: Neovim
 let symbols: Symbols
@@ -89,6 +90,17 @@ describe('symbols handler', () => {
   })
 
   describe('documentSymbols', () => {
+    it('should create document symbol tree', () => {
+      let uri = 'lsp:/1'
+      let symbols = [
+        SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), uri),
+        SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 3, 0, 7), uri, 'root'),
+        SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), uri, 'root'),
+      ]
+      let res = asDocumentSymbolTree(symbols)
+      expect(res.length).toBe(2)
+    })
+
     it('should get empty metadata when provider not found', async () => {
       disposeAll(disposables)
       let doc = await workspace.document

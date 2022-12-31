@@ -11,7 +11,6 @@ import { toText } from '../util/string'
 import { Dialogs } from './dialogs'
 import { echoMessages, MsgTypes } from './ui'
 
-export { MessageItem }
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 
 /**

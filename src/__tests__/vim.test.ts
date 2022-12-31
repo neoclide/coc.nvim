@@ -49,6 +49,22 @@ describe('vim api', () => {
     disposable.dispose()
     await nvim.command('silent! %bwipeout!')
   })
+
+  it('should echo message by callTimer', async () => {
+    const ui = require('../core/ui')
+    ui.echoMessages(nvim, 'message', 'more', 'more')
+    await helper.waitValue(async () => {
+      let line = await helper.getCmdline()
+      return line.includes('message')
+    }, true)
+  })
+
+  it('should call async', async () => {
+    const funcs = require('../core/funcs')
+    await nvim.command('normal! gg')
+    let res = await funcs.callAsync(nvim, 'line', ['.'])
+    expect(res).toBe(1)
+  })
 })
 
 describe('document', () => {

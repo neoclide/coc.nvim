@@ -50,12 +50,10 @@ export async function callAsync<T>(nvim: Neovim, method: string, args: any[]): P
   return await nvim.callAsync('coc#util#with_callback', [method, args]) as T
 }
 
-/*
- * Create namespace id.
- *
+/**
  * @deprecated
  */
-export function createNameSpace(name = ''): number {
+export function createNameSpace(name: string): number {
   if (namespaceMap.has(name)) return namespaceMap.get(name)
   NAME_SPACE = NAME_SPACE + 1
   namespaceMap.set(name, NAME_SPACE)
@@ -66,13 +64,8 @@ export function createNameSpace(name = ''): number {
  * Resolve watchman path.
  */
 export function getWatchmanPath(configurations: Configurations): string | null {
-  const preferences = configurations.getConfiguration('coc.preferences')
-  let watchmanPath = preferences.get<string>('watchmanPath', 'watchman')
-  try {
-    return which.sync(watchmanPath)
-  } catch (e) {
-    return null
-  }
+  const watchmanPath = configurations.initialConfiguration.get<string>('coc.preferences.watchmanPath', 'watchman')
+  return which.sync(watchmanPath, { nothrow: true })
 }
 
 export async function findUp(nvim: Neovim, cwd: string, filename: string | string[]): Promise<string | null> {
@@ -93,7 +86,7 @@ export function resolveModule(name: string): Promise<string> {
   return resolver.resolveModule(name)
 }
 
-export function score(selector: DocumentSelector | DocumentFilter | string, uri: string, languageId: string): number {
+export function score(selector: DocumentSelector | DocumentFilter | string, uri: string, languageId: string, caseInsensitive = platform.isWindows || platform.isMacintosh): number {
   if (Array.isArray(selector)) {
     // array -> take max individual value
     let ret = 0
@@ -144,7 +137,6 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     }
 
     if (pattern) {
-      let caseInsensitive = platform.isWindows || platform.isMacintosh
       let p = caseInsensitive ? pattern.toLowerCase() : pattern
       let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath
       if (p === f || minimatch(f, p, { dot: true })) {

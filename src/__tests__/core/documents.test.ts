@@ -51,6 +51,9 @@ describe('documents', () => {
     let doc = await helper.createDocument('foo')
     let res = documents.getDocument(doc.uri)
     expect(res.uri).toBe(doc.uri)
+    let uri = 'file:///' + doc.uri.slice(8).toUpperCase()
+    res = documents.getDocument(uri)
+    expect(res.uri).toBe(doc.uri)
   })
 
   it('should resolveRoot', async () => {
@@ -153,6 +156,13 @@ describe('documents', () => {
   it('should get uri', async () => {
     let doc = await workspace.document
     expect(documents.uri).toBe(doc.uri)
+  })
+
+  it('should get current uri', async () => {
+    let doc = await workspace.document
+    documents.detachBuffer(doc.bufnr)
+    let uri = await documents.getCurrentUri()
+    expect(uri).toBeUndefined()
   })
 
   it('should attach events on vim', async () => {

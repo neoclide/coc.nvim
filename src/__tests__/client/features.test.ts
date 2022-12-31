@@ -1626,6 +1626,7 @@ describe('Server activation', () => {
   }
 
   test('Start server on document open', async () => {
+    await workspace.nvim.command('silent! %bwipeout!')
     const client = createClient()
     assert.strictEqual(client.state, State.Stopped)
     const started = checkServerStart(client, workspace.onDidOpenTextDocument(document => {

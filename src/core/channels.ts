@@ -7,7 +7,7 @@ import BufferChannel from '../model/outputChannel'
 import { TextDocumentContentProvider } from '../provider'
 import { OutputChannel } from '../types'
 
-export class Channels {
+class Channels {
   private outputChannels: Map<string, BufferChannel> = new Map()
   private bufnrs: Map<number, string> = new Map()
   private disposable: Disposable

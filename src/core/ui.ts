@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range } from 'vscode-languageserver-types'
 import FloatFactoryImpl, { FloatWinConfig } from '../model/floatFactory'
-import { Documentation, Env, FloatConfig, FloatFactory, FloatOptions } from '../types'
+import { Documentation, FloatConfig, FloatFactory, FloatOptions } from '../types'
 import { isVim } from '../util/constants'
 import { byteIndex, byteLength } from '../util/string'
 
@@ -99,7 +99,7 @@ export async function getCursorScreenPosition(nvim: Neovim): Promise<ScreenPosit
   return { row, col }
 }
 
-export async function echoLines(nvim: Neovim, env: Env, lines: string[], truncate = false): Promise<void> {
+export async function echoLines(nvim: Neovim, env: { cmdheight: number, columns: number }, lines: string[], truncate: boolean): Promise<void> {
   let cmdHeight = env.cmdheight
   if (lines.length > cmdHeight && truncate) {
     lines = lines.slice(0, cmdHeight)

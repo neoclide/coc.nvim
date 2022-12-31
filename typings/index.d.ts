@@ -8853,13 +8853,6 @@ declare module 'coc.nvim' {
     export function openTextDocument(fileName: string): Thenable<Document>
 
     /**
-     * Create new namespace id by name.
-     *
-     * @deprecated Latest neovim requires namespace created by neoivm.
-     */
-    export function createNameSpace(name: string): number
-
-    /**
      * Get display cell count of text on vim.
      * Control character below 0x80 are considered as 1.
      *

@@ -1,12 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Emitter } from 'vscode-languageserver-protocol'
-import { createCommand } from '../../core/autocmds'
-import { TextDocumentContentProvider } from '../../provider'
+import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { createCommand } from '../../core/autocmds'
+import events from '../../events'
+import { TextDocumentContentProvider } from '../../provider'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
+let disposables: Disposable[] = []
 
 beforeAll(async () => {
   await helper.setup()
@@ -15,6 +18,62 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await helper.shutdown()
+  disposeAll(disposables)
+})
+
+describe('watchers', () => {
+  it('should watch options', async () => {
+    await events.fire('OptionSet', ['showmode', 0, 1])
+    let times = 0
+    let fn = () => {
+      times++
+    }
+    let disposable = workspace.watchOption('showmode', fn)
+    disposables.push(workspace.watchOption('showmode', jest.fn()))
+    nvim.command('set showmode', true)
+    expect(workspace.watchers.options.length).toBeGreaterThan(0)
+    await helper.waitValue(() => times, 1)
+    disposable.dispose()
+    nvim.command('set noshowmode', true)
+    await helper.wait(20)
+    expect(times).toBe(1)
+  })
+
+  it('should watch global', async () => {
+    await events.fire('GlobalChange', ['x', 0, 1])
+    let times = 0
+    let fn = () => {
+      times++
+    }
+    let disposable = workspace.watchGlobal('x', fn)
+    workspace.watchGlobal('x', undefined, disposables)
+    workspace.watchGlobal('x', undefined, disposables)
+    await nvim.command('let g:x = 1')
+    await helper.waitValue(() => times, 1)
+    disposable.dispose()
+    await nvim.command('let g:x = 2')
+    await helper.wait(20)
+    expect(times).toBe(1)
+  })
+
+  it('should show error on watch callback error', async () => {
+    let called = false
+    let fn = () => {
+      called = true
+      throw new Error('error')
+    }
+    workspace.watchOption('showmode', fn, disposables)
+    nvim.command('set showmode', true)
+    await helper.waitValue(() => called, true)
+    let line = await helper.getCmdline()
+    expect(line).toMatch('Error on OptionSet')
+    called = false
+    workspace.watchGlobal('y', fn, disposables)
+    await nvim.command('let g:y = 2')
+    await helper.waitValue(() => called, true)
+    line = await helper.getCmdline()
+    expect(line).toMatch('Error on GlobalChange')
+  })
 })
 
 describe('contentProvider', () => {

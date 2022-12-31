@@ -3,12 +3,11 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
-import { Disposable, Emitter } from 'vscode-languageserver-protocol'
+import { Disposable } from 'vscode-languageserver-protocol'
 import { Location, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { userSettingsSchemaId } from '../../configuration'
 import events from '../../events'
-import { TextDocumentContentProvider } from '../../provider'
 import { disposeAll } from '../../util'
 import workspace, { Workspace } from '../../workspace'
 import helper, { createTmpFile } from '../helper'
@@ -34,7 +33,6 @@ afterEach(async () => {
 })
 
 describe('workspace properties', () => {
-
   it('should have initialized', async () => {
     let { nvim, uri, insertMode, workspaceFolder, cwd, documents, textDocuments } = workspace
     expect(insertMode).toBe(false)
@@ -441,60 +439,6 @@ describe('workspace utility', () => {
     expect(line).toBe('""')
     disposable.dispose()
   })
-
-  it('should watch options', async () => {
-    await events.fire('OptionSet', ['showmode', 0, 1])
-    let times = 0
-    let fn = () => {
-      times++
-    }
-    let disposable = workspace.watchOption('showmode', fn)
-    let toDispose = workspace.watchOption('showmode', jest.fn())
-    nvim.command('set showmode', true)
-    await helper.waitValue(() => times, 1)
-    disposable.dispose()
-    nvim.command('set noshowmode', true)
-    await helper.wait(20)
-    expect(times).toBe(1)
-    toDispose.dispose()
-  })
-
-  it('should watch global', async () => {
-    await events.fire('GlobalChange', ['x', 0, 1])
-    let times = 0
-    let fn = () => {
-      times++
-    }
-    let disposable = workspace.watchGlobal('x', fn)
-    workspace.watchGlobal('x', undefined, disposables)
-    workspace.watchGlobal('x', undefined, disposables)
-    await nvim.command('let g:x = 1')
-    await helper.waitValue(() => times, 1)
-    disposable.dispose()
-    await nvim.command('let g:x = 2')
-    await helper.wait(20)
-    expect(times).toBe(1)
-  })
-
-  it('should show error on watch callback error', async () => {
-    let called = false
-    let fn = () => {
-      called = true
-      throw new Error('error')
-    }
-    workspace.watchOption('showmode', fn, disposables)
-    nvim.command('set showmode', true)
-    await helper.waitValue(() => called, true)
-    let line = await helper.getCmdline()
-    expect(line).toMatch('Error on OptionSet')
-    called = false
-    workspace.watchGlobal('y', fn, disposables)
-    await nvim.command('let g:y = 2')
-    await helper.waitValue(() => called, true)
-    line = await helper.getCmdline()
-    expect(line).toMatch('Error on GlobalChange')
-  })
-
   it('should check nvim version', async () => {
     expect(workspace.has('patch-7.4.248')).toBe(false)
     expect(workspace.has('nvim-0.5.0')).toBe(true)

@@ -13,7 +13,7 @@ export interface HighlightDiff {
   add: HighlightItemDef[]
 }
 
-function convertHighlightItem(item: HighlightItem): HighlightItemDef {
+export function convertHighlightItem(item: HighlightItem): HighlightItemDef {
   return [item.hlGroup, item.lnum, item.colStart, item.colEnd, item.combine ? 1 : 0, item.start_incl ? 1 : 0, item.end_incl ? 1 : 0]
 }
 
@@ -104,7 +104,7 @@ export class Highlights {
     return { remove: linesToRemove, add: newItems, removeMarkers }
   }
 
-  public async applyDiffHighlights(bufnr: number, ns: string, priority: number, diff: HighlightDiff, notify = false): Promise<void> {
+  public async applyDiffHighlights(bufnr: number, ns: string, priority: number, diff: HighlightDiff, notify: boolean): Promise<void> {
     let { nvim } = this
     let { remove, add, removeMarkers } = diff
     if (remove.length === 0 && add.length === 0 && removeMarkers.length === 0) return

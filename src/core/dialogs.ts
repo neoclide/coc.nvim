@@ -118,7 +118,7 @@ export class Dialogs {
   /**
    * Shows a selection list.
    */
-  public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options?: QuickPickOptions, token: CancellationToken = CancellationToken.None): Promise<Item | Item[] | undefined> {
+  public async showQuickPick(itemsOrItemsPromise: Item[] | Promise<Item[]>, options: QuickPickOptions, token: CancellationToken): Promise<Item | Item[] | undefined> {
     if (isFalsyOrEmpty(itemsOrItemsPromise)) return undefined
     options = defaultValue(options, {})
     const items = await Promise.resolve(itemsOrItemsPromise)

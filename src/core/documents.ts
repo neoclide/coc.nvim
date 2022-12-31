@@ -138,6 +138,12 @@ export default class Documents implements Disposable {
     return Array.from(this.buffers.values()).filter(o => o.attached)
   }
 
+  public async getCurrentUri(): Promise<string | undefined> {
+    let bufnr = await this.nvim.call('bufnr', ['%']) as number
+    let doc = this.getDocument(bufnr)
+    return doc ? doc.uri : undefined
+  }
+
   public *attached(schema?: string): Iterable<Document> {
     for (let doc of this.buffers.values()) {
       if (!doc.attached) continue
@@ -185,10 +191,12 @@ export default class Documents implements Disposable {
       return this.buffers.get(uri)
     }
     const caseInsensitive = platform.isWindows || platform.isMacintosh
-    uri = URI.parse(uri).toString()
+    let u = URI.parse(uri)
+    uri = u.toString()
+    let isFile = u.scheme === 'file'
     for (let doc of this.buffers.values()) {
       if (doc.uri === uri) return doc
-      if (caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
+      if (isFile && caseInsensitive && doc.uri.toLowerCase() === uri.toLowerCase()) return doc
     }
     return null
   }
@@ -432,7 +440,7 @@ export default class Documents implements Disposable {
     }
   }
 
-  private detachBuffer(bufnr: number): void {
+  public detachBuffer(bufnr: number): void {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     logger.debug('document detach', bufnr, doc.uri)

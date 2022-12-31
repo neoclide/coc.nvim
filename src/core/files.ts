@@ -383,7 +383,7 @@ export default class Files {
         })
       }
       fs.writeFileSync(filepath, '', 'utf8')
-      recovers && recovers.push(async () => {
+      recovers && recovers.push(() => {
         fs.rmSync(filepath, { force: true, recursive: true })
       })
       let doc = await this.loadResource(filepath)
@@ -466,7 +466,7 @@ export default class Files {
       let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null]) as number
       await this.documents.onBufCreate(bufnr)
     } else {
-      if (oldStat?.isDirectory()) {
+      if (oldStat.isDirectory()) {
         for (let doc of this.documents.attached('file')) {
           let u = URI.parse(doc.uri)
           if (isParentFolder(oldPath, u.fsPath, false)) {
@@ -513,8 +513,7 @@ export default class Files {
       let denied = await this.promptAnotations(documentChanges, edit.changeAnnotations)
       if (denied.length > 0) documentChanges = createFilteredChanges(documentChanges, denied)
       let changes: { [uri: string]: LinesChange } = {}
-      let doc = await this.documents.document
-      let currentUri = doc ? doc.uri : undefined
+      let currentUri = await this.documents.getCurrentUri()
       currentOnly = documentChanges.every(o => TextDocumentEdit.is(o) && o.textDocument.uri === currentUri)
       this.validateChanges(documentChanges)
       for (const change of documentChanges) {
@@ -599,7 +598,7 @@ export default class Files {
     await this.applyEdit(editState.edit)
   }
 
-  private validateChanges(documentChanges: ReadonlyArray<DocumentChange>): void {
+  public validateChanges(documentChanges: ReadonlyArray<DocumentChange>): void {
     let { documents } = this
     for (let change of documentChanges) {
       if (TextDocumentEdit.is(change)) {
@@ -608,8 +607,8 @@ export default class Files {
         if (typeof version === 'number' && version > 0) {
           if (!doc) throw errors.notLoaded(uri)
           if (doc.version != version) throw new Error(`${uri} changed before apply edit`)
-        } else if (!doc) {
-          if (!isFile(uri)) throw errors.badScheme(URI.parse(uri).scheme)
+        } else if (!doc && !isFile(uri)) {
+          throw errors.badScheme(uri)
         }
       } else if (CreateFile.is(change) || DeleteFile.is(change)) {
         if (!isFile(change.uri)) throw errors.badScheme(change.uri)
@@ -626,14 +625,16 @@ export default class Files {
     if (token?.isCancellationRequested || !folders.length || maxResults === 0) return []
     maxResults = maxResults ?? Infinity
     let roots = folders.map(o => URI.parse(o.uri).fsPath)
+    let pattern: string
     if (typeof include !== 'string') {
-      let base = include.baseUri.fsPath
-      roots = roots.filter(r => isParentFolder(base, r, true))
+      pattern = include.pattern
+      roots = [include.baseUri.fsPath]
+    } else {
+      pattern = include
     }
-    let pattern = typeof include === 'string' ? include : include.pattern
     let res: URI[] = []
+    let exceed = false
     for (let root of roots) {
-      if (res.length >= maxResults) break
       let files = await promisify(glob)(pattern, {
         dot: true,
         cwd: root,
@@ -644,8 +645,12 @@ export default class Files {
       for (let file of files) {
         if (exclude && fileMatch(root, file, exclude)) continue
         res.push(URI.file(path.join(root, file)))
-        if (res.length === maxResults) break
+        if (res.length === maxResults) {
+          exceed = true
+          break
+        }
       }
+      if (exceed) break
     }
     return res
   }
