@@ -566,6 +566,14 @@
       "scope": "language-overridable",
       "default": false
     },
+    "coc.preferences.formatOnSaveTimeout": {
+      "type": "integer",
+      "scope": "language-overridable",
+      "description": "How long before the format command run on save times out.",
+      "default": 500,
+      "minimum": 200,
+      "maximum": 5000
+    },
     "coc.preferences.formatOnSaveFiletypes": {
       "type": ["null", "array"],
       "scope": "resource",
