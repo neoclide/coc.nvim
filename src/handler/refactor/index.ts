@@ -53,7 +53,7 @@ export default class Refactor {
     this.config = Object.assign(this.config || {}, {
       afterContext: config.get('afterContext', 3),
       beforeContext: config.get('beforeContext', 3),
-      openCommand: config.get('openCommand', 'edit'),
+      openCommand: config.get('openCommand', 'vsplit'),
       saveToFile: config.get('saveToFile', true),
       showMenu: config.get('showMenu', '<Tab>')
     })

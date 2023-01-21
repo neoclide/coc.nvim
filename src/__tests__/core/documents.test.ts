@@ -52,8 +52,10 @@ describe('documents', () => {
     let res = documents.getDocument(doc.uri)
     expect(res.uri).toBe(doc.uri)
     let uri = 'file:///' + doc.uri.slice(8).toUpperCase()
-    res = documents.getDocument(uri)
+    res = documents.getDocument(uri, true)
     expect(res.uri).toBe(doc.uri)
+    res = documents.getDocument(uri, false)
+    expect(res).toBeNull()
   })
 
   it('should resolveRoot', async () => {

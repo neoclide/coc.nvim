@@ -2607,10 +2607,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	Open refactor windows with current symbol as activated cursor ranges.
 	Check |coc-config-cursors| and |coc-config-refactor| for related
-	configuration.
+	configuration. Use |coc-config-workspace-openResourceCommand| for
+	command to open buffers on save.
 
 	Use <CR> to open buffer at current position in split window.
-	Use <Tab> to show action menu which have tab open and remove actions.
+	Use <Tab> to invoke tab open or remove action with current chunk.
 
 "format"						*CocAction('format')*
 
