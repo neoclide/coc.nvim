@@ -189,8 +189,8 @@ export default class SemanticTokensBuffer implements SyncItem {
   public checkState(): void {
     if (!workspace.env.updateHighlight) throw new Error(`Can't perform highlight update, highlight update requires vim >= 8.1.1719 or neovim >= 0.5.0`)
     if (!this.configEnabled) throw new Error(`Semantic tokens highlight not enabled for current filetype: ${this.doc.filetype}`)
-    if (this.staticConfig.highlightGroups.length === 0) throw new Error(`Unable to find highlight groups starts with CocSem`)
     if (!this.hasProvider || !this.hasLegend) throw new Error(`SemanticTokens provider not found for ${this.doc.uri}`)
+    if (this.staticConfig.highlightGroups.length === 0) throw new Error(`Unable to find highlight groups starts with CocSem`)
   }
 
   public async getTokenRanges(

@@ -1,9 +1,9 @@
 'use strict'
-import { Disposable } from '../util/protocol'
 import type Documents from '../core/documents'
 import events from '../events'
 import { DidChangeTextDocumentParams } from '../types'
 import { disposeAll } from '../util'
+import { Disposable } from '../util/protocol'
 import type Document from './document'
 
 export interface SyncItem extends Disposable {

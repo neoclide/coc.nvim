@@ -761,14 +761,17 @@ describe('semanticTokens', () => {
       // @ts-ignore
       workspace._env.updateHighlight = true
       expect(enabled).toBe(false)
-      semanticTokens.staticConfig.highlightGroups = []
-      expect(() => {
-        item.checkState()
-      }).toThrow('Unable to find highlight groups')
       semanticTokens.staticConfig.highlightGroups = ['CocSemKeyword']
       expect(() => {
         item.checkState()
       }).toThrow('provider not found')
+      registerProvider()
+      doc = await helper.createDocument('t.rs')
+      item = semanticTokens.getItem(doc.bufnr)
+      semanticTokens.staticConfig.highlightGroups = []
+      expect(() => {
+        item.checkState()
+      }).toThrow('Unable to find highlight groups')
     })
   })
 
