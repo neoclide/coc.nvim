@@ -1342,8 +1342,12 @@ Selection range function:~
 CODE LENS 						*coc-code-lens*
 
 Code lens feature shows additional information above or after specific lines.
-Works best on nvim >= 0.6.0 and vim >= 9.0.0438, on older vim, some
-configurations may not work or not work at all.
+Works best on nvim >= 0.6.0 and vim >= 9.0.0438. On older vim, some
+configurations may not work.
+
+CodeLens are not shown by default, use |coc-config-codeLens-enable| to enable,
+you may also need enable codeLens feature by configure extension or
+languageserver.
 
 Check if current buffer have code lens provider by
 `:echo CocAction('hasProvider', 'codeLens')`
@@ -1351,9 +1355,9 @@ Check if current buffer have code lens provider by
 To temporarily toggle codeLens of current buffer, use command
 `:CocCommand document.toggleCodeLens`
 
-Code lens are not shown by default, use |coc-config-codeLens-enable| to enable,
-you may also need enable code lens by configure extension or configured
-languageserver.
+To invoke command from codeLens, use |<Plug>(coc-codelens-action)|.
+
+Use |CocCodeLens| for highlight of codeLens virtual text.
 
 Code lens are automatically requested on buffer create/change, checkout
 |coc-config-codeLens| for available configurations.
@@ -1473,7 +1477,8 @@ with selected code. Works on both |visual-mode| and |normal-mode|.
 
 *<Plug>(coc-openlink)* Open link under cursor by use |CocAction('openlink')|.
 
-*<Plug>(coc-codelens-action)* Do command from codeLens of current line.
+*<Plug>(coc-codelens-action)* invoke command contributed by codeLens at the
+current line.
 
 *<Plug>(coc-fix-current)* Try first quickfix action for diagnostics of current
 line.

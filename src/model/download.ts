@@ -56,7 +56,7 @@ export default function download(urlInput: string | URL, options: DownloadOption
   let { etagAlgorithm } = options
   let { dest, onProgress, extract } = options
   if (!dest || !path.isAbsolute(dest)) {
-    throw new Error(`Expect absolute file path for dest option.`)
+    throw new Error(`Invalid dest path: ${dest}`)
   }
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true })
@@ -70,7 +70,6 @@ export default function download(urlInput: string | URL, options: DownloadOption
   let opts = resolveRequestOptions(url, options)
   if (!opts.agent && options.agent) opts.agent = options.agent
   let extname = path.extname(url.pathname)
-  let finished = false
   return new Promise<string>((resolve, reject) => {
     if (token) {
       let disposable = token.onCancellationRequested(() => {
@@ -150,7 +149,6 @@ export default function download(urlInput: string | URL, options: DownloadOption
       // Possible succeed proxy request with ECONNRESET error on node > 14
       if (opts.agent && e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
-          finished = true
           reject(e)
         }, timeout)
       } else {
@@ -159,7 +157,6 @@ export default function download(urlInput: string | URL, options: DownloadOption
           reject(new Error(`Request failed using proxy ${opts.agent.proxy.host}: ${e.message}`))
           return
         }
-        finished = true
         reject(e)
       }
     })
