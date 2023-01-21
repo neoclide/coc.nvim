@@ -1342,8 +1342,12 @@ Selection range function:~
 CODE LENS 						*coc-code-lens*
 
 Code lens feature shows additional information above or after specific lines.
-Works best on nvim >= 0.6.0 and vim >= 9.0.0438, on older vim, some
-configurations may not work or not work at all.
+Works best on nvim >= 0.6.0 and vim >= 9.0.0438. On older vim, some
+configurations may not work.
+
+CodeLens are not shown by default, use |coc-config-codeLens-enable| to enable,
+you may also need enable codeLens feature by configure extension or
+languageserver.
 
 Check if current buffer have code lens provider by
 `:echo CocAction('hasProvider', 'codeLens')`
@@ -1351,9 +1355,9 @@ Check if current buffer have code lens provider by
 To temporarily toggle codeLens of current buffer, use command
 `:CocCommand document.toggleCodeLens`
 
-Code lens are not shown by default, use |coc-config-codeLens-enable| to enable,
-you may also need enable code lens by configure extension or configured
-languageserver.
+To invoke command from codeLens, use |<Plug>(coc-codelens-action)|.
+
+Use |CocCodeLens| for highlight of codeLens virtual text.
 
 Code lens are automatically requested on buffer create/change, checkout
 |coc-config-codeLens| for available configurations.
@@ -1473,7 +1477,8 @@ with selected code. Works on both |visual-mode| and |normal-mode|.
 
 *<Plug>(coc-openlink)* Open link under cursor by use |CocAction('openlink')|.
 
-*<Plug>(coc-codelens-action)* Do command from codeLens of current line.
+*<Plug>(coc-codelens-action)* invoke command contributed by codeLens at the
+current line.
 
 *<Plug>(coc-fix-current)* Try first quickfix action for diagnostics of current
 line.
@@ -2607,10 +2612,11 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 
 	Open refactor windows with current symbol as activated cursor ranges.
 	Check |coc-config-cursors| and |coc-config-refactor| for related
-	configuration.
+	configuration. Use |coc-config-workspace-openResourceCommand| for
+	command to open buffers on save.
 
 	Use <CR> to open buffer at current position in split window.
-	Use <Tab> to show action menu which have tab open and remove actions.
+	Use <Tab> to invoke tab open or remove action with current chunk.
 
 "format"						*CocAction('format')*
 
@@ -3523,11 +3529,11 @@ Options of CocList command~
 	`--tab`.
 
 ----strict
-  •S
+  -S
 	Use strict matching instead of fuzzy matching.
 
 ----regex
-  •R
+  -R
 	Use regex matching instead of fuzzy matching.
 
 ----ignore-case
@@ -3535,12 +3541,12 @@ Options of CocList command~
 	Ignore case when using strict matching or regex matching.
 
 ----number-select
-  •N
+  -N
 	Type a line number to select an item and invoke the default action on
 	insert mode. Type `0` to select the 10th line.
 
 ----interactive
-  •I
+  -I
 	Use interactive mode, list items would be reloaded on input
 	change, filter and sort would be done by list implementation.
 
@@ -3551,7 +3557,7 @@ Options of CocList command~
 	`--ignore-case` would not work at all.
 
 ----auto-preview
-  •A
+  -A
 
 	Start a preview for the current item on the visible list.
 
