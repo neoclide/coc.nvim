@@ -10,10 +10,10 @@ import { createLogger } from '../logger'
 import type { MessageItem } from '../model/notification'
 import { CallHierarchyProvider, CodeActionProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingRangeProvider, HoverProvider, ImplementationProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ProviderResult, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from '../provider'
 import { OutputChannel, Thenable } from '../types'
-import { defaultValue, getConditionValue } from '../util'
+import { defaultValue } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError } from '../util/errors'
-import { resolveRoot, sameFile } from '../util/fs'
+import { sameFile } from '../util/fs'
 import * as Is from '../util/is'
 import { os, path } from '../util/node'
 import { comparePosition } from '../util/position'
@@ -1286,7 +1286,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public handleConnectionError(error: Error, message: Message, count: number) {
     let action = this._clientOptions.errorHandler!.error(error, message, count)
     if (action === ErrorAction.Shutdown) {
-      this.error(`Client ${this._name}: connection to server is erroring. Shutting down server.`, undefined, 'force')
+      this.error(`Connection to server is erroring, ${error.message}. Shutting down server.`, error, 'force')
       this.stop().catch(this.error.bind(this, `Stopping server failed`))
     }
   }
