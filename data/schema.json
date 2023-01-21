@@ -76,6 +76,12 @@
         "type": "string"
       }
     },
+    "languageserver.maxRestartCount": {
+      "type": "integer",
+      "default": 4,
+      "minimum": 1,
+      "description": "Maximum restart count when server closed in the last 3 minutes."
+    },
     "languageserver.cwd": {
       "type": "string",
       "default": "",
@@ -220,7 +226,7 @@
       }
     },
     "languageserver.formatterPriority": {
-      "type": "number",
+      "type": "integer",
       "default": 0,
       "description": "Priority of this languageserver's formatter."
     },
@@ -261,6 +267,9 @@
         },
         "ignoredRootPaths": {
           "$ref": "#/definitions/languageserver.ignoredRootPaths"
+        },
+        "maxRestartCount": {
+          "$ref": "#/definitions/languageserver.maxRestartCount"
         },
         "filetypes": {
           "$ref": "#/definitions/languageserver.filetypes"
@@ -359,6 +368,9 @@
         "ignoredRootPaths": {
           "$ref": "#/definitions/languageserver.ignoredRootPaths"
         },
+        "maxRestartCount": {
+          "$ref": "#/definitions/languageserver.maxRestartCount"
+        },
         "filetypes": {
           "$ref": "#/definitions/languageserver.filetypes"
         },
@@ -442,6 +454,9 @@
         },
         "ignoredRootPaths": {
           "$ref": "#/definitions/languageserver.ignoredRootPaths"
+        },
+        "maxRestartCount": {
+          "$ref": "#/definitions/languageserver.maxRestartCount"
         },
         "filetypes": {
           "$ref": "#/definitions/languageserver.filetypes"
@@ -812,7 +827,7 @@
       }
     },
     "colors.highlightPriority": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "description": "Priority for colors highlights, works on vim8 and neovim >= 0.6.0",
       "default": 1000,
@@ -924,13 +939,13 @@
       "default": "%message (%source%code)"
     },
     "diagnostic.highlightLimit": {
-      "type": "number",
+      "type": "integer",
       "scope": "language-overridable",
       "description": "Limit count for highlighted diagnostics, too many diagnostic highlights could make vim stop responding",
       "default": 1000
     },
     "diagnostic.highlightPriority": {
-      "type": "number",
+      "type": "integer",
       "scope": "language-overridable",
       "description": "Priority for diagnostic highlights, works on vim8 and neovim >= 0.6.0",
       "default": 4096,
@@ -970,7 +985,7 @@
       "default": true
     },
     "diagnostic.messageDelay": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "description": "How long to wait (in milliseconds) before displaying the diagnostic message with echo or float",
       "default": 200
@@ -1021,7 +1036,7 @@
       "enum": ["hint", "information", "warning", "error"]
     },
     "diagnostic.signPriority": {
-      "type": "number",
+      "type": "integer",
       "scope": "resource",
       "description": "Priority of diagnostic signs, default to 10",
       "default": 10
@@ -1072,7 +1087,7 @@
       "default": " \\ "
     },
     "diagnostic.virtualTextLines": {
-      "type": "number",
+      "type": "integer",
       "scope": "language-overridable",
       "description": "The number of non empty lines from a diagnostic to display",
       "default": 3
@@ -1084,7 +1099,7 @@
       "default": " "
     },
     "diagnostic.virtualTextWinCol": {
-      "type": ["number", "null"],
+      "type": ["integer", "null"],
       "scope": "language-overridable",
       "description": "Window column number to align virtual text, neovim only.",
       "default": null
@@ -1114,13 +1129,13 @@
       "description": "Highlight group for dialog window/popup, default to 'CocFloating'"
     },
     "dialog.maxHeight": {
-      "type": "number",
+      "type": "integer",
       "default": 30,
       "scope": "application",
       "description": "Maximum height of dialog window."
     },
     "dialog.maxWidth": {
-      "type": "number",
+      "type": "integer",
       "default": 80,
       "scope": "application",
       "description": "Maximum width of dialog window."
@@ -1150,7 +1165,7 @@
       "description": "Highlight group for shortcut character in menu dialog, default to 'MoreMsg'"
     },
     "documentHighlight.priority": {
-      "type": "number",
+      "type": "integer",
       "default": -1,
       "scope": "resource",
       "description": "Match priority used by document highlight, see ':h matchadd'"
@@ -1210,7 +1225,7 @@
       }
     },
     "hover.previewMaxHeight": {
-      "type": "number",
+      "type": "integer",
       "scope": "resource",
       "default": 12,
       "description": "Max height of preview window for hover."
@@ -1336,7 +1351,7 @@
       "description": "Enable extended search mode which allows multiple search patterns delimited by spaces."
     },
     "list.height": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 10,
       "description": "Height of split list window."
@@ -1354,7 +1369,7 @@
       "description": "Custom keymappings on insert mode."
     },
     "list.interactiveDebounceTime": {
-      "type": "number",
+      "type": "integer",
       "default": 100,
       "scope": "application",
       "description": "Debounce time for input change on interactive mode."
@@ -1366,7 +1381,7 @@
       "description": "Limit lines for list buffer."
     },
     "list.maxPreviewHeight": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 12,
       "description": "Max height for preview window of list."
@@ -1402,7 +1417,7 @@
       "description": "Use vsplit for preview window."
     },
     "list.previewToplineOffset": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 3,
       "description": "Topline offset for list previews"
@@ -1427,7 +1442,7 @@
       "description": "Sign text for selected lines."
     },
     "list.signOffset": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 900,
       "description": "Sign offset of list, should be different from other plugins."
@@ -1597,7 +1612,7 @@
       "description": "Show detail as description aside with label, when false detail will be shown in tooltip on cursor hold."
     },
     "outline.expandLevel": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 1,
       "description": "Expand level of tree nodes."
@@ -1639,7 +1654,7 @@
       "description": "Highlight group of preview window."
     },
     "outline.previewMaxWidth": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 80,
       "description": "Max width of preview window."
@@ -1711,13 +1726,13 @@
       "description": "Whether to pull for workspace diagnostics when possible."
     },
     "refactor.afterContext": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 3,
       "description": "Print num lines of trailing context after each match."
     },
     "refactor.beforeContext": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "default": 3,
       "description": "Print num lines of leading context before each match."
@@ -1766,7 +1781,7 @@
       }
     },
     "semanticTokens.highlightPriority": {
-      "type": "number",
+      "type": "integer",
       "scope": "language-overridable",
       "description": "Priority for semantic tokens highlight.",
       "default": 2048,
@@ -1927,7 +1942,7 @@
       "enum": ["abbr", "preview"]
     },
     "suggest.detailMaxLength": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "description": "Max length of detail that should be shown in popup menu.",
       "deprecationMessage": "Use suggest.labelMaxLength instead.",
@@ -2013,13 +2028,13 @@
       "default": ["\r", "\n"]
     },
     "suggest.labelMaxLength": {
-      "type": "number",
+      "type": "integer",
       "scope": "application",
       "description": "Max length of abbr that shown as label of complete item.",
       "default": 200
     },
     "suggest.languageSourcePriority": {
-      "type": "number",
+      "type": "integer",
       "default": 99,
       "scope": "language-overridable",
       "description": "Priority of language sources."
@@ -2038,7 +2053,7 @@
       "description": "Max items count for source priority lower than 90."
     },
     "suggest.maxCompleteItemCount": {
-      "type": "number",
+      "type": "integer",
       "default": 256,
       "scope": "language-overridable",
       "description": "Maximum number of complete items shown in vim"
