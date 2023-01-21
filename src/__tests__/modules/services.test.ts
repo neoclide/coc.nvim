@@ -125,7 +125,7 @@ describe('services', () => {
       expect(getLanguageServerOptions('x', 'y', {} as any)).toBe(null)
       expect(getLanguageServerOptions('x', 'y', { filetypes: ['vim'] })).toBe(null)
       expect(getLanguageServerOptions('x', 'y', toConfig({ module: 'not_exists' }))).toBe(null)
-      expect(getLanguageServerOptions('x', 'y', toConfig({ module: __filename }))).toBeDefined()
+      expect(getLanguageServerOptions('x', 'y', toConfig({ module: __filename, maxRestartCount: 1 }))).toBeDefined()
       expect(getLanguageServerOptions('x', 'y', toConfig({ module: __filename, runtime: process.execPath }))).toBeDefined()
       expect(getLanguageServerOptions('x', 'y', toConfig({ command: 'cmd', args: [], disableWorkspaceFolders: true, disableSnippetCompletion: true } as any))).toBeDefined()
       expect(getLanguageServerOptions('x', 'y', toConfig({ command: 'cmd', ignoredRootPaths: ['/foo'], initializationOptions: {} }))).toBeDefined()

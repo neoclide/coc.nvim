@@ -8,6 +8,7 @@ import events from './events'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State, Transport, TransportKind } from './language-client'
 import { createLogger } from './logger'
 import { disposeAll, wait } from './util'
+import { toArray } from './util/array'
 import { fs, net, path } from './util/node'
 import { toObject } from './util/object'
 import { CancellationToken, Disposable, Emitter, Event } from './util/protocol'
@@ -35,6 +36,7 @@ export interface LanguageServerConfig {
   command?: string
   transport?: string
   transportPort?: number
+  maxRestartCount?: number
   disableSnippetCompletion?: boolean
   disableDynamicRegister?: boolean
   disabledFeatures?: string[]
@@ -427,7 +429,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
     }
   }
   let disableSnippetCompletion = !!config.disableSnippetCompletion
-  let ignoredRootPaths = config.ignoredRootPaths ?? []
+  let ignoredRootPaths = toArray(config.ignoredRootPaths)
   let clientOptions: LanguageClientOptions = {
     workspaceFolder: folder == null ? undefined : { name: path.basename(folder.fsPath), uri: folder.toString() },
     rootPatterns: config.rootPatterns,
@@ -447,6 +449,9 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
     stdioEncoding: config.stdioEncoding,
     progressOnInitialization: config.progressOnInitialization === true,
     initializationOptions: config.initializationOptions ?? {}
+  }
+  if (config.maxRestartCount) {
+    clientOptions.connectionOptions = { maxRestartCount: config.maxRestartCount }
   }
   return [clientOptions, serverOptions]
 }

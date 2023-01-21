@@ -1669,6 +1669,9 @@ Languageserver~
 	  Note: it's required for start the languageserver, please make sure
 	  your filetype is expected by `:CocCommand document.echoFiletype` command
 
+	- 'maxRestartCount': Maximum restart count when server closed in the
+	  last 3 minutes, default to `4`.
+
 	- "additionalSchemes": Additional URI schemes, default schemes
 	  including file & untitled.
 	  Note: you have to setup vim provide content for custom URI as well.
