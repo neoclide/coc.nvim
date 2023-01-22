@@ -1,7 +1,7 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import { CodeAction, CodeActionKind, Location, Position, Range, SymbolKind } from 'vscode-languageserver-types'
-import type { URI } from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import commands from '../commands'
 import events from '../events'
 import languages, { ProviderName } from '../languages'
@@ -139,8 +139,8 @@ export default class Handler implements HandlerDelegate {
       }
     }, true)
 
-    this.register('vscode.open', (url: string | URI) => {
-      this.nvim.call('coc#ui#open_url', url.toString(), true)
+    this.register('vscode.open', async (url: string | URI) => {
+      await workspace.openResource(url.toString())
     })
     this.register('editor.action.doCodeAction', async (action: CodeAction) => {
       await this.codeActions.applyCodeAction(action)
