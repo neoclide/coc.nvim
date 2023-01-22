@@ -1286,7 +1286,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   public handleConnectionError(error: Error, message: Message, count: number) {
     let action = this._clientOptions.errorHandler!.error(error, message, count)
     if (action === ErrorAction.Shutdown) {
-      this.error(`Connection to server is erroring, ${error.message}. Shutting down server.`, error, 'force')
+      this.error(`Connection to server ${this._name} is erroring, ${error.message}. Shutting down server.`, error, 'force')
       this.stop().catch(this.error.bind(this, `Stopping server failed`))
     }
   }

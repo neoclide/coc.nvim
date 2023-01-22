@@ -143,16 +143,18 @@ export default class Worker {
         task?.dispose()
         void onEnd()
       })
+      let toDispose = task
       task.on('error', async (error: Error | string) => {
         if (task == null) return
         task = null
+        toDispose.dispose()
         this.tokenSource = null
         this.loading = false
         disposable.dispose()
         clearInterval(interval)
         workspace.nvim.call('coc#prompt#stop_prompt', ['list'], true)
         workspace.nvim.echoError(`Task error: ${error.toString()}`)
-        logger.error('Task error:', error)
+        logger.error('List task error:', error)
       })
       task.on('end', onEnd)
     }
