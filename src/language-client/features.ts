@@ -554,11 +554,11 @@ export abstract class TextDocumentLanguageFeature<PO, RO extends TextDocumentReg
     if (TextDocumentRegistrationOptions.is(capability)) {
       const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
       const selector = capability.documentSelector ?? documentSelector
-      return [id, Object.assign({}, { documentSelector: selector }, capability)]
+      return [id, Object.assign({}, capability, { documentSelector: selector })]
     }
     if (WorkDoneProgressOptions.is(capability)) {
       const id = StaticRegistrationOptions.hasId(capability) ? capability.id : UUID.generateUuid()
-      return [id, Object.assign({}, { documentSelector }, capability) as any]
+      return [id, Object.assign({}, capability, { documentSelector }) as any]
     }
     return [undefined, undefined]
   }
