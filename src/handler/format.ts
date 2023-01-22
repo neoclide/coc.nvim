@@ -45,13 +45,18 @@ export default class FormatHandler {
           }
           let options = await workspace.getFormatOptions(event.document.uri)
           let tokenSource = new CancellationTokenSource()
+          let config = workspace.getConfiguration('coc.preferences', {
+            uri: event.document.uri, languageId:
+              event.document.languageId
+          })
+          let formatOnSaveTimeout = config.get<number>('formatOnSaveTimeout', 500)
           let timer: NodeJS.Timer
           const tp = new Promise<undefined>(c => {
             timer = setTimeout(() => {
-              logger.warn(`Format on save ${event.document.uri} timeout after 0.5s`)
+              logger.warn(`Attempt to format ${event.document.uri} on save timed out after ${formatOnSaveTimeout}ms`)
               tokenSource.cancel()
               c(undefined)
-            }, 500)
+            }, formatOnSaveTimeout)
           })
           const provideEdits = languages.provideDocumentFormattingEdits(event.document, options, tokenSource.token)
           let textEdits = await Promise.race([tp, provideEdits])
