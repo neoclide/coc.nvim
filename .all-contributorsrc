@@ -1990,6 +1990,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "mcmire",
+      "name": "Elliot Winkler",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7371?v=4",
+      "profile": "https://hachyderm.io/@mcmire",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
