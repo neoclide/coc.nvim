@@ -304,29 +304,13 @@ function! s:get_index(next) abort
   return index
 endfunction
 
-function! s:save_textwidth() abort
-  let bufnr = bufnr('%')
-  if get(s:saved_textwidth, 0, 0) == bufnr
-    return
-  endif
-  call s:restore_textwidth()
-  let s:saved_textwidth = [bufnr, &textwidth]
-  noa setl textwidth=0
-endfunction
-
-function! s:restore_textwidth() abort
-  let bufnr = get(s:saved_textwidth, 0, 0)
-  if bufnr
-    noa call setbufvar(bufnr, '&textwidth', get(s:saved_textwidth, 1, 0))
-  endif
-  let s:saved_textwidth = []
-endfunction
-
 function! s:insert_word(word, finish) abort
   if s:start_col != -1 && mode() ==# 'i'
-    if !a:finish
-      call s:save_textwidth()
-      call timer_start(0, { -> s:restore_textwidth()})
+    " avoid auto wrap using 'textwidth'
+    if !a:finish && &textwidth > 0
+      let textwidth = &textwidth
+      noa setl textwidth=0
+      call timer_start(0, { -> execute('noa setl textwidth='.textwidth)})
     endif
     " should not be used on finish to have correct line.
     if s:is_vim && !a:finish
