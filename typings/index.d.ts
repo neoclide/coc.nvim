@@ -12257,7 +12257,7 @@ declare module 'coc.nvim' {
     registerFeature(feature: StaticFeature | DynamicFeature<any>): void
 
     /**
-     * Log failed request to outputChannel.
+     * Log failed request to outputChannel and throw error when necessary.
      */
     handleFailedRequest<T, P extends { kind: string }>(type: P, token: CancellationToken | undefined, error: any, defaultValue: T)
   }

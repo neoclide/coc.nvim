@@ -1662,7 +1662,15 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   // Should be keeped
-  public logFailedRequest(): void {
+  public logFailedRequest(type: any, error: any): void {
+    // If we get a request cancel don't log anything.
+    if (
+      error instanceof ResponseError &&
+      error.code === LSPErrorCodes.RequestCancelled
+    ) {
+      return
+    }
+    this.error(`Request ${type.method} failed.`, error)
   }
 }
 
