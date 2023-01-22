@@ -1605,10 +1605,6 @@ b:coc_disabled_sources 					*b:coc_disabled_sources*
 >
 	let b:coc_disabled_sources = ['around', 'buffer', 'file']
 <
-b:coc_diagnostic_disable				*b:coc_diagnostic_disable*
-
-	Disable diagnostic support of current buffer.
-
 b:coc_suggest_blacklist                 	        *b:coc_suggest_blacklist*
 
 	List of input words for which completion should not be triggered.
@@ -1956,6 +1952,10 @@ b:coc_snippet_active					*b:coc_snippet_active*
 
 	Is `1` when snippet session is activated, use |coc#jumpable| to check
 	if it's possible to jump placeholder.
+
+b:coc_diagnostic_disable				*b:coc_diagnostic_disable*
+
+	Disable diagnostic support of current buffer.
 
 b:coc_diagnostic_info					*b:coc_diagnostic_info*
 

@@ -1337,6 +1337,9 @@ function! s:set_float_defaults(winid, config) abort
   else
     call setwinvar(a:winid, '&foldcolumn', 0)
   endif
+  if exists('&statuscolumn')
+    call setwinvar(a:winid, '&statuscolumn', '')
+  endif
   if !s:is_vim || !has("patch-8.2.3100")
     call setwinvar(a:winid, '&number', 0)
     call setwinvar(a:winid, '&relativenumber', 0)
@@ -1376,6 +1379,9 @@ function! s:nvim_add_related(winid, target, kind, winhl, related) abort
     call setwinvar(a:winid, '&foldcolumn', 0)
     call setwinvar(a:winid, '&signcolumn', 0)
     call setwinvar(a:winid, '&list', 0)
+  endif
+  if exists('&statuscolumn')
+    call setwinvar(a:winid, '&statuscolumn', '')
   endif
   let winhl = empty(a:winhl) ? coc#window#get_var(a:target, '&winhl', '') : a:winhl
   call setwinvar(a:winid, '&winhl', winhl)

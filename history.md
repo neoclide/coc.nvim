@@ -1,3 +1,11 @@
+# 2023-01-23
+
+- Make `vscode.open` command work with file uri.
+
+# 2023-01-22
+
+- `maxRestartCount` configuration for configured language server.
+
 # 2022-12-25
 
 - Create symbol tree from SymbolInformation list.

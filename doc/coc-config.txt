@@ -1566,6 +1566,12 @@ Preferences~
 
 	Scope: `language-overridable`, default: `false`
 
+"coc.preferences.formatOnSaveTimeout"			*coc-preferences-formatOnSaveTimeout*
+
+	How long before the format command run on save will time out.
+
+	Scope: `language-overridable`, default: `200`
+
 "coc.preferences.formatOnType"				*coc-preferences-formatOnType*
 
 	Set to true to enable formatting on typing
