@@ -76,11 +76,16 @@ export default class Keymaps {
     })
   }
 
-  public registerExprKeymap(mode: MapMode, lhs: string, fn: Function, buffer: number | boolean = false): Disposable {
+  public registerExprKeymap(mode: MapMode, lhs: string, fn: Function, buffer: number | boolean = false, cancel = true): Disposable {
     let bufnr = getBufnr(buffer)
     let id = `${mode}-${toBase64(lhs)}${buffer ? `-${bufnr}` : ''}`
     let { nvim } = this
-    let rhs = mode == 'i' ? `coc#_insert_key('request', '${id}')` : `coc#rpc#request('doKeymap', ['${id}'])`
+    let rhs: string
+    if (mode == 'i') {
+      rhs = `coc#_insert_key('request', '${id}', ${cancel ? '1' : '0'})`
+    } else {
+      rhs = `coc#rpc#request('doKeymap', ['${id}'])`
+    }
     let opts = { noremap: true, silent: true, expr: true, nowait: true }
     if (buffer) {
       nvim.createBuffer(bufnr).setKeymap(mode, lhs, rhs, opts)

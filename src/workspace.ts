@@ -477,8 +477,8 @@ export class Workspace {
     return this.keymaps.registerKeymap(modes, key, fn, opts)
   }
 
-  public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false): Disposable {
-    return this.keymaps.registerExprKeymap(mode, key, fn, buffer)
+  public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false, cancel = true): Disposable {
+    return this.keymaps.registerExprKeymap(mode, key, fn, buffer, cancel)
   }
 
   public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: Function, notify = false): Disposable {

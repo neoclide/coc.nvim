@@ -9048,9 +9048,10 @@ declare module 'coc.nvim' {
      * @param {string} rhs - rhs of key-mapping.
      * @param {Function} fn - callback function.
      * @param {number | boolean} buffer - Buffer number or current buffer by use `true`, default to false.
+     * @param {boolean} cancel - Cancel pupop menu before invoke callback, insert mode only, define to true.
      * @returns {Disposable}
      */
-    export function registerExprKeymap(mode: MapMode, rhs: string, fn: () => ProviderResult<string>, buffer?: number | boolean): Disposable
+    export function registerExprKeymap(mode: MapMode, rhs: string, fn: () => ProviderResult<string>, buffer?: number | boolean, cancel?: boolean): Disposable
 
     /**
      * Register local keymap with callback.

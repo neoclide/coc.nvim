@@ -133,6 +133,14 @@ describe('registerExprKeymap()', () => {
     res = await nvim.exec('imap x', true)
     expect(res).toMatch('No mapping found')
   })
+
+  it('should regist key mapping without cancel pum', async () => {
+    let fn = jest.fn()
+    let disposable = keymaps.registerExprKeymap('i', 'x', fn, false, false)
+    let res = await nvim.exec('imap x', true)
+    expect(res).toMatch('coc#_insert_key')
+    disposable.dispose()
+  })
 })
 
 describe('registerLocalKeymap', () => {

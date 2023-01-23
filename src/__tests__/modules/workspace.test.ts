@@ -431,7 +431,7 @@ describe('workspace utility', () => {
   it('should register buffer expr keymap', async () => {
     let fn = () => '""'
     await nvim.input('i')
-    let disposable = workspace.registerExprKeymap('i', '"', fn, true)
+    let disposable = workspace.registerExprKeymap('i', '"', fn, true, false)
     await helper.wait(30)
     await nvim.call('feedkeys', ['"', 't'])
     await helper.wait(30)
