@@ -305,6 +305,7 @@ export default class Complete {
           item.positions = fuzzyResult
         } else {
           item.score = 0
+          item.positions = undefined
         }
         words.add(word)
         arr.push(item)
