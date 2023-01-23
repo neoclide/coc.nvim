@@ -125,24 +125,25 @@ describe('util functions', () => {
 
   it('should getResumeInput', () => {
     let opt = { line: 'foo', colnr: 4, col: 1, position: { line: 0, character: 3 } }
-    expect(getResumeInput(opt, 'f')).toBeNull()
+    expect(getResumeInput(opt, '')).toBeNull()
+    expect(getResumeInput(opt, 'f')).toBe('')
     expect(getResumeInput(opt, 'bar')).toBeNull()
     expect(getResumeInput(opt, 'foo f')).toBeNull()
     expect(getResumeInput(opt, 'foot')).toBe('oot')
   })
 
-  function createOption(bufnr: number, linenr: number, line: string, colnr: number): Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'> {
-    return { bufnr, linenr, line, colnr }
+  function createOption(bufnr: number, linenr: number, line: string, col: number): Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'col'> {
+    return { bufnr, linenr, line, col }
   }
 
   it('should check stop', () => {
     let opt = createOption(1, 1, 'a', 2)
-    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: '' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: ' ' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'fo' }, opt)).toBe(true)
-    expect(shouldStop(2, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 2, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
-    expect(shouldStop(1, 'foo', { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'barb' }, opt)).toBe(true)
+    expect(shouldStop(1, { line: '', col: 2, lnum: 1, changedtick: 1, pre: '' }, opt)).toBe(true)
+    expect(shouldStop(1, { line: '', col: 2, lnum: 1, changedtick: 1, pre: ' ' }, opt)).toBe(true)
+    expect(shouldStop(1, { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'fo' }, opt)).toBe(true)
+    expect(shouldStop(2, { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
+    expect(shouldStop(1, { line: '', col: 2, lnum: 2, changedtick: 1, pre: 'foob' }, opt)).toBe(true)
+    expect(shouldStop(1, { line: '', col: 2, lnum: 1, changedtick: 1, pre: 'barb' }, opt)).toBe(true)
   })
 
   it('should check indent', () => {

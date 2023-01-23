@@ -175,6 +175,7 @@ export class Completion implements Disposable {
       detailMaxLength: toNumber(suggest.detailMaxLength, 100),
       invalidInsertCharacters: toArray(suggest.invalidInsertCharacters),
       formatItems: suggest.formatItems,
+      filterOnBackspace: suggest.filterOnBackspace,
       floatConfig: toObject(suggest.floatConfig),
       pumFloatConfig: suggest.pumFloatConfig,
       labelMaxLength: suggest.labelMaxLength,
@@ -243,6 +244,7 @@ export class Completion implements Disposable {
     const doc = workspace.getDocument(bufnr)
     if (!doc || !doc.attached) return
     const { option } = this
+    const filterOnBackspace = this.staticConfig.filterOnBackspace
     if (option != null) {
       // detect item word insert
       if (!info.insertChar) {
@@ -262,7 +264,7 @@ export class Completion implements Disposable {
         await this.triggerCompletion(doc, info)
         return
       }
-      if (shouldStop(bufnr, this.pretext, info, option)) {
+      if (shouldStop(bufnr, info, option) || (filterOnBackspace === false && info.pre.length < this.pretext.length)) {
         this.stop(true)
       }
     }

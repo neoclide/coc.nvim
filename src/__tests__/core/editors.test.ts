@@ -188,7 +188,7 @@ describe('editors', () => {
     await promise
     await nvim.call('win_execute', [winid, 'noa close'])
     await nvim.command('edit bar')
-    expect(editors.visibleTextEditors.length).toBe(2)
+    await helper.waitValue(() => editors.visibleTextEditors.length, 2)
   })
 
   it('should have current tabpageid after tab changed', async () => {

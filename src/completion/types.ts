@@ -1,4 +1,4 @@
-import type { CancellationToken, CompletionTriggerKind, DocumentSelector } from 'vscode-languageserver-protocol'
+import type { CancellationToken, DocumentSelector } from 'vscode-languageserver-protocol'
 import type { CompletionItem, CompletionItemKind, CompletionItemLabelDetails, InsertTextFormat, InsertTextMode, Position, Range } from 'vscode-languageserver-types'
 import type { ProviderResult } from '../provider'
 import type { Documentation } from '../types'

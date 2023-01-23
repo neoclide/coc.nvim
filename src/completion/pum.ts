@@ -57,6 +57,7 @@ export interface PopupMenuConfig {
   noselect: boolean
   selection: Selection
   enablePreselect: boolean
+  filterOnBackspace: boolean
   floatConfig: FloatConfig
   pumFloatConfig?: FloatConfig
   formatItems: ReadonlyArray<string>

@@ -11,7 +11,7 @@ import * as Is from '../util/is'
 import { LRUCache } from '../util/map'
 import { unidecode } from '../util/node'
 import { isEmpty, toObject } from '../util/object'
-import { byteIndex, byteSlice, isLowSurrogate, toText } from '../util/string'
+import { byteIndex, byteSlice, characterIndex, isLowSurrogate, toText } from '../util/string'
 import { CompleteDoneItem, CompleteItem, CompleteOption, DurationCompleteItem, EditRange, ExtendedCompleteItem, InsertMode, ISource, ItemDefaults } from './types'
 
 type MruItem = Pick<Readonly<DurationCompleteItem>, 'kind' | 'filterText' | 'source'>
@@ -138,13 +138,13 @@ export function getDocumentaions(completeItem: CompleteItem, filetype: string, d
 }
 
 export function getResumeInput(option: PartialOption, pretext: string): string {
-  const { line, position } = option
-  const cursor = position.character
+  const { line, col } = option
+  const start = characterIndex(line, col)
   const pl = pretext.length
-  if (pl < cursor) return null
+  if (pl < start) return null
   for (let i = 0; i < pl; i++) {
-    if (i < cursor) {
-      // should not change content before cursor.
+    if (i < start) {
+      // should not change content before start col.
       if (pretext.charCodeAt(i) !== line.charCodeAt(i)) {
         return null
       }
@@ -206,12 +206,12 @@ export function indentChanged(event: { word: string } | undefined, cursor: [numb
   return false
 }
 
-export function shouldStop(bufnr: number, pretext: string, info: InsertChange, option: Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'colnr'>): boolean {
+export function shouldStop(bufnr: number, info: InsertChange, option: Pick<CompleteOption, 'bufnr' | 'linenr' | 'line' | 'col'>): boolean {
   let { pre } = info
-  if (pre.length === 0 || pre[pre.length - 1] === ' ' || pre.length < pretext.length) return true
-  if (option.bufnr != bufnr) return true
-  let text = byteSlice(option.line, 0, option.colnr - 1)
-  if (option.linenr != info.lnum || !pre.startsWith(text)) return true
+  if (pre.length === 0 || pre[pre.length - 1] === ' ') return true
+  if (option.bufnr != bufnr || option.linenr != info.lnum) return true
+  let text = byteSlice(option.line, 0, option.col)
+  if (!pre.startsWith(text)) return true
   return false
 }
 
