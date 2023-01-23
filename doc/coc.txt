@@ -1693,7 +1693,7 @@ g:coc_uri_prefix_replace_patterns			*g:coc_uri_prefix_replace_patterns*
 <
 g:coc_enable_locationlist				*g:coc_enable_locationlist*
 
-	Use location list of |CocList| when jump to locations.
+	Use location list of |coc-list| when jump to locations.
 
 	Set it to 0 when you need customize behavior of location jump by use
 	|CocLocationsChange| and |g:coc_jump_locations|
@@ -1969,8 +1969,8 @@ b:coc_current_function					*b:coc_current_function*
 
 	Function string that current cursor in.
 
-	Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
-	in coc-settings.json to update it on CursorHold.
+	Enable |coc-preferences-currentFunctionSymbolAutoUpdate| to update the
+	value on CursorHold.
 
 b:coc_cursors_activated					*b:coc_cursors_activated*
 

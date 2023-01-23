@@ -1974,6 +1974,12 @@
       "scope": "language-overridable",
       "default": true
     },
+    "suggest.filterOnBackspace": {
+      "type": "boolean",
+      "scope": "application",
+      "description": "Filter complete items on backspace.",
+      "default": true
+    },
     "suggest.floatConfig": {
       "type": "object",
       "scope": "application",

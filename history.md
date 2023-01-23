@@ -1,6 +1,8 @@
 # 2023-01-23
 
 - Make `vscode.open` command work with file uri.
+- Cancel option for `workspace.registerExprKeymap()`.
+- Support `suggest.filterOnBackspace` configuration.
 
 # 2023-01-22
 

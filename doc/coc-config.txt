@@ -1177,7 +1177,7 @@ Suggest~
 
 	Enable float window with documentation aside with popupmenu.
 
-	Scope: `language-overridable`, default: `true"`
+	Scope: `language-overridable`, default: `true`
 
 "suggest.enablePreselect"				*coc-config-suggest-enablePreselect*
 
@@ -1185,6 +1185,19 @@ Suggest~
 	false.
 
 	Scope: `application`, default: `true`
+
+"suggest.filterGraceful" 				*coc-config-suggest-filterGraceful*
+
+	Controls whether filtering and sorting suggestions accounts for small
+	typos.
+
+	Scope: `language-overridable`, default: `true`
+
+"suggest.filterOnBackspace" 				*coc-config-suggest-filterOnBackspace*
+
+	Filter complete items on backspace.
+
+	Scope: `language-overridable`, default: `true`
 
 "suggest.floatConfig"					*coc-config-suggest-floatConfig*
 
